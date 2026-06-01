@@ -97,6 +97,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-sm{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;white-space:nowrap}
 .btn-sm:hover{background:#F5F5F7}
 .btn-concluir{color:#2E7D32;border-color:#A5D6A7}
+.btn-excluir{color:#C62828;border-color:#FFCDD2}
+.btn-excluir:hover{background:#FDECEA}
 .btn-foco{color:#6B21A8;border-color:#DDD6FE}
 .btn-foco:hover{background:#F5F3FF}
 .btn-agendar{color:#1B5E20;border-color:#A5D6A7}
@@ -517,6 +519,7 @@ function renderCasos(){
           <button class="btn-sm btn-agendar" onclick="toggleAgendar('${c.id}')"><i class="ti ti-calendar-plus" style="font-size:12px;vertical-align:-1px"></i> Agendar</button>
           <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
           <button class="btn-sm ${c.concluido?'':'btn-concluir'}" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
+          <button class="btn-sm btn-excluir" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash" style="font-size:12px;vertical-align:-1px"></i> Excluir</button>
         </div>
       </div>
       <div class="ag-inline" id="ag-block-${c.id}">
@@ -604,6 +607,10 @@ window.abrirGcal=function(id){
   const fmt=d=>d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00';
   const end=new Date(dt.getTime()+60*60*1000);
   window.open(base+'&text='+titulo+'&dates='+fmt(dt)+'/'+fmt(end)+'&details='+desc,'_blank');
+};
+window.excluirCaso=function(id){
+  if(confirm('Tem certeza que deseja excluir este caso? Esta ação não pode ser desfeita.'))
+    remove(ref(db,'casos/'+id));
 };
 window.setFiltro=function(f,btn){
   filtro=f;
