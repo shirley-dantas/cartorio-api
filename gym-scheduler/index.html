@@ -7,6 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>GymDuo 💪</title>
+  <!-- Firebase Realtime Database SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -115,6 +118,8 @@
       gap: 5px; font-size: 14px; font-weight: 800; flex-shrink: 0;
     }
 
+    .sync-dot { font-size: 9px; cursor: help; flex-shrink: 0; }
+
     /* ===== TABS ===== */
     .tabs {
       display: flex; gap: 4px;
@@ -193,6 +198,27 @@
     .ex-name { font-size: 15px; font-weight: 600; }
     .ex-detail { font-size: 12px; color: var(--muted); margin-top: 3px; }
     .ex-item.done .ex-name { text-decoration: line-through; color: var(--muted); }
+
+    /* exercise expand panel */
+    .ex-info-btn {
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: var(--surface2); color: var(--muted);
+      font-size: 15px; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .ex-info-btn:active { background: var(--border); }
+
+    .ex-panel {
+      display: none; background: var(--surface2);
+      border-radius: 0 0 12px 12px; padding: 14px 14px 14px 54px;
+      margin-top: -4px; border: 1px solid var(--border); border-top: none;
+    }
+    .ex-panel.open { display: block; }
+    .ex-panel-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
+    .ex-panel-icon { font-size: 16px; flex-shrink: 0; width: 22px; }
+    .ex-panel-txt { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .ex-panel-txt strong { color: var(--text); font-size: 12px; }
 
     /* rest day */
     .rest-day {
@@ -317,6 +343,7 @@
         <div class="header-streak" id="hdrStreak"></div>
       </div>
       <div class="stars-pill">⭐ <span id="hdrStars">0</span></div>
+      <div id="syncDot" class="sync-dot" title="Verificando conexão...">🟡</div>
     </div>
 
     <div class="tabs">
@@ -423,58 +450,186 @@ const WORKOUTS = {
     segunda: {
       nome: 'Glúteos + Posterior',
       exercicios: [
-        { nome: 'Agachamento Sumô',     series: 4, reps: '12', obs: 'Pés bem abertos, ponta para fora' },
-        { nome: 'Hip Thrust',           series: 4, reps: '15', obs: 'Contrair o glúteo no topo' },
-        { nome: 'Leg Press 45°',        series: 4, reps: '15', obs: 'Pés altos e afastados' },
-        { nome: 'Mesa Flexora',         series: 4, reps: '12', obs: '' },
-        { nome: 'Stiff',                series: 3, reps: '12', obs: 'Costas retas, sente o alongamento' },
-        { nome: 'Abdução de Quadril',   series: 3, reps: '20', obs: 'Máquina ou cabo' },
+        {
+          nome: 'Agachamento Sumô', series: 4, reps: '12',
+          aparelho: 'Barra no rack ou haltere segurado na frente',
+          como: 'Pés bem mais afastados que o quadril, pontas viradas para fora. Desça mantendo o joelho no sentido dos dedos. Empurre o chão ao subir, contraindo o glúteo no topo.'
+        },
+        {
+          nome: 'Hip Thrust', series: 4, reps: '15',
+          aparelho: 'Banco + barra ou máquina de hip thrust',
+          como: 'Apoie os ombros no banco, barra sobre o cós do quadril (use toalha). Pés afastados, joelhos a 90°. Empurre o quadril para cima até o corpo ficar reto, contraia forte o glúteo e segure 1 segundo no topo.'
+        },
+        {
+          nome: 'Leg Press 45°', series: 4, reps: '15',
+          aparelho: 'Máquina leg press 45 graus',
+          como: 'Pés altos e afastados no apoio para ativar mais glúteo. Desça até as coxas ficarem paralelas ao chão, sem deixar o lombo sair do banco. Empurre sem travar o joelho no topo.'
+        },
+        {
+          nome: 'Mesa Flexora', series: 4, reps: '12',
+          aparelho: 'Máquina mesa flexora (deitada)',
+          como: 'Deite de bruços, tornozelos sob o apoio. Dobre os joelhos trazendo o calcanhar em direção aos glúteos, de forma controlada. Desça lentamente sem bater o peso.'
+        },
+        {
+          nome: 'Stiff', series: 3, reps: '12',
+          aparelho: 'Halteres ou barra',
+          como: 'Em pé, pernas quase estendidas. Incline o tronco para frente (costas retas!) deixando os pesos descerem pela frente das pernas até sentir o alongamento na parte de trás da coxa. Suba contraindo glúteo e posterior.'
+        },
+        {
+          nome: 'Abdução de Quadril', series: 3, reps: '20',
+          aparelho: 'Máquina abdutora ou cabo com tornozeleira',
+          como: 'Sentada na máquina, afaste as pernas contra a resistência. Segure 1 segundo na abertura máxima. No cabo: fique em pé, mova a perna para o lado sem inclinar o tronco.'
+        },
       ]
     },
     terca: {
       nome: 'Costas + Bíceps',
       exercicios: [
-        { nome: 'Puxada Frontal',       series: 4, reps: '12', obs: 'Pegada larga, traz à frente do peito' },
-        { nome: 'Remada Sentada',       series: 4, reps: '12', obs: 'Cotovelos próximos ao corpo' },
-        { nome: 'Remada Unilateral',    series: 3, reps: '12', obs: 'Cada lado' },
-        { nome: 'Pullover',             series: 3, reps: '15', obs: 'Haltere ou polia' },
-        { nome: 'Rosca Direta',         series: 3, reps: '12', obs: 'Sem balançar o tronco' },
-        { nome: 'Rosca Martelo',        series: 3, reps: '12', obs: 'Cada lado' },
+        {
+          nome: 'Puxada Frontal', series: 4, reps: '12',
+          aparelho: 'Máquina puxada alta (pulldown)',
+          como: 'Sentada, agarre a barra com pegada larga. Incline levemente o tronco para trás, puxe a barra até a parte superior do peito abrindo bem os cotovelos para baixo. Suba de forma controlada.'
+        },
+        {
+          nome: 'Remada Sentada', series: 4, reps: '12',
+          aparelho: 'Máquina de remada sentada (cabo baixo)',
+          como: 'Sentada, segure a pegada com as costas retas e levemente inclinadas à frente. Puxe para o umbigo mantendo os cotovelos próximos ao corpo. Abra o peito no final e volte controlada.'
+        },
+        {
+          nome: 'Remada Unilateral', series: 3, reps: '12',
+          aparelho: 'Haltere + banco',
+          como: 'Apoie o joelho e a mão no banco, costas paralelas ao chão. Pegue o haltere com a outra mão e puxe como se estivesse dando a partida num motor — cotovelo sobe alto. Desça controlado. Faça 12 cada lado.'
+        },
+        {
+          nome: 'Pullover', series: 3, reps: '15',
+          aparelho: 'Haltere ou polia alta',
+          como: 'Deitada no banco com os pés apoiados, segure um haltere com as duas mãos. Braços quase estendidos acima do peito. Desça o haltere atrás da cabeça sentindo alongar as costas. Volte à posição inicial.'
+        },
+        {
+          nome: 'Rosca Direta', series: 3, reps: '12',
+          aparelho: 'Halteres ou barra EZ',
+          como: 'Em pé, cotovelos fixos ao lado do corpo. Suba os pesos em direção aos ombros, gire levemente o pulso ao subir (supinação). Desça lentamente. Não balance o tronco.'
+        },
+        {
+          nome: 'Rosca Martelo', series: 3, reps: '12',
+          aparelho: 'Halteres',
+          como: 'Pegada neutra (polegar para cima, como segurar um martelo). Suba o haltere alternando os braços ou simultâneo. O pulso não gira. Trabalha o braquial (debaixo do bíceps) e o antebraço.'
+        },
       ]
     },
     quarta: {
       nome: 'Peito + Tríceps',
       exercicios: [
-        { nome: 'Supino Plano c/ Halteres', series: 4, reps: '12', obs: '' },
-        { nome: 'Supino Inclinado',          series: 3, reps: '12', obs: '30–45° de inclinação' },
-        { nome: 'Crucifixo Plano',           series: 3, reps: '15', obs: 'Cotovelo levemente dobrado' },
-        { nome: 'Crossover',                 series: 3, reps: '15', obs: 'Nas polias, vai até cruzar as mãos' },
-        { nome: 'Tríceps Corda',             series: 4, reps: '15', obs: 'Abre as mãos no final' },
-        { nome: 'Tríceps Testa',             series: 3, reps: '12', obs: 'Com haltere ou barra EZ' },
+        {
+          nome: 'Supino Plano c/ Halteres', series: 4, reps: '12',
+          aparelho: 'Banco plano + halteres',
+          como: 'Deitada no banco plano, halteres ao lado do peito com cotovelos a 45° do corpo (não abra demais). Empurre os pesos para cima até quase juntar as mãos. Desça controlado até sentir o peitoral abrir.'
+        },
+        {
+          nome: 'Supino Inclinado', series: 3, reps: '12',
+          aparelho: 'Banco inclinado (30–45°) + halteres ou barra',
+          como: 'Inclinação entre 30 e 45 graus. Mesma mecânica do supino plano. Trabalha mais a parte superior do peito. Não deixe os pesos cair atrás — controle na descida.'
+        },
+        {
+          nome: 'Crucifixo Plano', series: 3, reps: '15',
+          aparelho: 'Banco plano + halteres',
+          como: 'Deitada, braços abertos para os lados com cotovelo levemente dobrado (como abraçar uma árvore grande). Suba os halteres até quase se tocarem. É um movimento de abraço — não de empurrar.'
+        },
+        {
+          nome: 'Crossover', series: 3, reps: '15',
+          aparelho: 'Máquina de cabos (duas polias)',
+          como: 'Puxe as alças de cima para baixo, cruzando as mãos na frente da barriga. Mantenha cotovelo levemente dobrado o tempo todo. Segure 1 segundo quando as mãos se cruzarem.'
+        },
+        {
+          nome: 'Tríceps Corda', series: 4, reps: '15',
+          aparelho: 'Cabo alto com acessório de corda',
+          como: 'Em pé, cotovelos fixos ao lado do corpo. Puxe a corda para baixo até os braços ficarem estendidos, abrindo as mãos para os lados no final. Volte controlado. Não deixe os cotovelos se afastarem do corpo.'
+        },
+        {
+          nome: 'Tríceps Testa', series: 3, reps: '12',
+          aparelho: 'Haltere ou barra EZ',
+          como: 'Deitada no banco, braços estendidos acima do rosto. Dobre apenas os cotovelos trazendo o peso em direção à testa. Estenda de volta. O cotovelo fica fixo — só o antebraço se move.'
+        },
       ]
     },
     quinta: {
       nome: 'Pernas Completo',
       exercicios: [
-        { nome: 'Agachamento Livre',    series: 4, reps: '12', obs: 'Joelhos alinhados com os pés' },
-        { nome: 'Cadeira Extensora',    series: 3, reps: '15', obs: '' },
-        { nome: 'Afundo (Avanço)',      series: 3, reps: '12', obs: 'Cada perna' },
-        { nome: 'Cadeira Abdutora',     series: 4, reps: '20', obs: '' },
-        { nome: 'Panturrilha em Pé',    series: 4, reps: '20', obs: '' },
-        { nome: 'Abdominal Crunch',     series: 3, reps: '20', obs: '' },
-        { nome: 'Prancha',              series: 3, reps: '40s', obs: 'Respira fundo, não prende o ar' },
+        {
+          nome: 'Agachamento Livre', series: 4, reps: '12',
+          aparelho: 'Barra no rack ou peso corporal',
+          como: 'Pés na largura dos ombros, pontas levemente para fora. Desça como se fosse sentar numa cadeira, joelhos alinhados com os dedos. Desça até a coxa ficar paralela ao chão. Empurre o chão ao subir.'
+        },
+        {
+          nome: 'Cadeira Extensora', series: 3, reps: '15',
+          aparelho: 'Máquina cadeira extensora',
+          como: 'Sentada, apoio atrás dos tornozelos. Estenda as pernas até ficarem retas, segure 1 segundo e desça controlado. Trabalha o quadríceps (frente da coxa). Não bata o peso na descida.'
+        },
+        {
+          nome: 'Afundo (Avanço)', series: 3, reps: '12',
+          aparelho: 'Peso corporal, halteres ou barra',
+          como: 'Em pé, dê um passo grande à frente. Dobre os dois joelhos até o joelho traseiro quase tocar o chão. O joelho da frente não pode passar muito dos dedos do pé. Volte e repita com a outra perna. 12 cada.'
+        },
+        {
+          nome: 'Cadeira Abdutora', series: 4, reps: '20',
+          aparelho: 'Máquina abdutora (sentada, pernas fecham/abrem)',
+          como: 'Sentada, joelhos sobre o apoio. Abra as pernas contra a resistência, segure 1 segundo na abertura máxima. Volte controlado. Trabalha parte externa do glúteo e coxa.'
+        },
+        {
+          nome: 'Panturrilha em Pé', series: 4, reps: '20',
+          aparelho: 'Máquina de panturrilha ou degrau + haltere',
+          como: 'De pé, pontas dos pés no apoio (calcanhar no ar). Suba na ponta do pé o máximo que conseguir, segure 1 segundo. Desça até o calcanhar ir abaixo do nível do apoio para alongar bem.'
+        },
+        {
+          nome: 'Abdominal Crunch', series: 3, reps: '20',
+          aparelho: 'No tatame / colchonete',
+          como: 'Deitada, joelhos dobrados, pés no chão. Mãos atrás da cabeça (sem puxar o pescoço). Suba o tronco em direção aos joelhos, contraindo o abdômen. Desça com controle. Não bata a cabeça no chão.'
+        },
+        {
+          nome: 'Prancha', series: 3, reps: '40s',
+          aparelho: 'No tatame / colchonete',
+          como: 'Apoiada nos antebraços e pontas dos pés, corpo reto como uma tábua. Contraia abdômen, glúteo e não deixe o quadril cair. Respire normalmente. Se balançar muito, abaixe o joelho e continue.'
+        },
       ]
     },
     sexta: {
       nome: 'Ombros + Abdômen',
       exercicios: [
-        { nome: 'Desenvolvimento c/ Halteres', series: 4, reps: '12', obs: '' },
-        { nome: 'Elevação Lateral',            series: 4, reps: '15', obs: 'Cotovelo levemente dobrado' },
-        { nome: 'Elevação Frontal',            series: 3, reps: '12', obs: 'Alternado ou simultâneo' },
-        { nome: 'Face Pull',                   series: 3, reps: '15', obs: 'Ótimo para postura' },
-        { nome: 'Abdominal Supra',             series: 4, reps: '20', obs: '' },
-        { nome: 'Prancha',                     series: 3, reps: '45s', obs: '' },
-        { nome: 'Russian Twist',               series: 3, reps: '20', obs: 'Com ou sem peso' },
+        {
+          nome: 'Desenvolvimento c/ Halteres', series: 4, reps: '12',
+          aparelho: 'Halteres + banco com encosto reto',
+          como: 'Sentada com costas apoiadas, halteres na altura dos ombros com cotovelos a 90°. Empurre os pesos para cima até os braços ficarem quase estendidos. Desça controlado. Não arque as costas.'
+        },
+        {
+          nome: 'Elevação Lateral', series: 4, reps: '15',
+          aparelho: 'Halteres ou cabo lateral',
+          como: 'Em pé, halteres nas laterais do corpo. Levante os braços lateralmente até a altura dos ombros (cotovelos levemente dobrados). Imagine despejar água de um copo no lado. Desça lentamente — essa descida é importante!'
+        },
+        {
+          nome: 'Elevação Frontal', series: 3, reps: '12',
+          aparelho: 'Halteres ou anilha',
+          como: 'Em pé, braços à frente do corpo. Levante um peso por vez até a altura dos ombros, com braço quase estendido. Desça controlado antes de subir o outro. Pode fazer com os dois ao mesmo tempo.'
+        },
+        {
+          nome: 'Face Pull', series: 3, reps: '15',
+          aparelho: 'Cabo na altura do rosto com corda',
+          como: 'Puxe a corda em direção ao rosto, separando as mãos ao chegar perto. Cotovelos sobem altos. Excelente para postura e parte posterior do ombro. Não deixe os cotovelos caírem.'
+        },
+        {
+          nome: 'Abdominal Supra', series: 4, reps: '20',
+          aparelho: 'No tatame / colchonete',
+          como: 'Deitada, pernas levantadas a 90° (ou pés apoiados num banco). Mãos na nuca. Suba o tronco em direção aos joelhos. Mais eficaz que o crunch tradicional por eliminar o quadril.'
+        },
+        {
+          nome: 'Prancha', series: 3, reps: '45s',
+          aparelho: 'No tatame / colchonete',
+          como: 'Antebraços e pontas dos pés no chão. Corpo reto, quadril nem alto nem baixo. Respire fundo. Foque em contrair o abdômen como se fosse levar um soco.'
+        },
+        {
+          nome: 'Russian Twist', series: 3, reps: '20',
+          aparelho: 'No tatame — com anilha ou peso corporal',
+          como: 'Sentada com joelhos dobrados, tronco inclinado para trás a 45°. Gire o tronco de um lado para o outro tocando o peso no chão. Para dificultar: levante os pés. Cada lado conta como 1 repetição.'
+        },
       ]
     },
     sabado: null,
@@ -485,60 +640,196 @@ const WORKOUTS = {
     segunda: {
       nome: 'Peito + Tríceps',
       exercicios: [
-        { nome: 'Supino Plano c/ Barra',         series: 4, reps: '10', obs: 'Exercício base, peso desafiador' },
-        { nome: 'Supino Inclinado c/ Halteres',  series: 4, reps: '10', obs: '' },
-        { nome: 'Crucifixo Plano',               series: 3, reps: '15', obs: '' },
-        { nome: 'Crossover',                     series: 3, reps: '15', obs: '' },
-        { nome: 'Tríceps Corda',                 series: 4, reps: '15', obs: 'Isolado, sem puxar o corpo' },
-        { nome: 'Tríceps Testa',                 series: 3, reps: '12', obs: '' },
-        { nome: 'Mergulho (Paralelo)',           series: 3, reps: '12', obs: 'Ou entre dois bancos' },
+        {
+          nome: 'Supino Plano c/ Barra', series: 4, reps: '10',
+          aparelho: 'Rack de supino + barra olímpica',
+          como: 'Deitado no banco, barra alinhada com os olhos. Retire do rack com braços estendidos. Desça a barra até tocar levemente o peito (não bata). Empurre de volta explodindo. Pegada um pouco mais larga que os ombros.'
+        },
+        {
+          nome: 'Supino Inclinado c/ Halteres', series: 4, reps: '10',
+          aparelho: 'Banco inclinado (30–45°) + halteres',
+          como: 'Banco entre 30 e 45 graus. Halteres ao lado do peito, cotovelos a 45° (não abra totalmente para os lados). Empurre os pesos para cima convergindo as mãos. Desça controlado sentindo o peitoral superior alongar.'
+        },
+        {
+          nome: 'Crucifixo Plano', series: 3, reps: '15',
+          aparelho: 'Banco plano + halteres',
+          como: 'Deitado, braços abertos como asas com cotovelo levemente dobrado fixo. Suba fechando os braços como um abraço. Não empurre — é um arco. O cotovelo não dobra mais durante o movimento.'
+        },
+        {
+          nome: 'Crossover', series: 3, reps: '15',
+          aparelho: 'Máquina de cabos (duas polias altas)',
+          como: 'Um pé à frente para equilíbrio. Puxe as alças de cima para baixo cruzando na frente da barriga. Cotovelo fixo levemente dobrado. Segure a contração 1 segundo. Volte controlado abrindo o peito.'
+        },
+        {
+          nome: 'Tríceps Corda', series: 4, reps: '15',
+          aparelho: 'Cabo alto com acessório de corda dupla',
+          como: 'Em pé, cotovelos colados ao lado do corpo — eles não se movem. Puxe a corda para baixo e abra as pontas para os lados ao chegar embaixo. Suba controlado. A corda ajuda a trabalhar as duas cabeças do tríceps.'
+        },
+        {
+          nome: 'Tríceps Testa', series: 3, reps: '12',
+          aparelho: 'Barra EZ ou haltere',
+          como: 'Deitado no banco, braços estendidos acima do peito. Dobre só os cotovelos trazendo o peso em direção à testa ou acima da cabeça. Estenda de volta. Somente o antebraço se move — cotovelo fixo.'
+        },
+        {
+          nome: 'Mergulho (Paralelo)', series: 3, reps: '12',
+          aparelho: 'Barras paralelas ou entre dois bancos',
+          como: 'Segure as barras com os braços estendidos. Desça dobrando os cotovelos até os braços ficarem a 90° (ou sentir o peitoral inferior alongar). Suba empurrando. Para tríceps: corpo mais reto. Para peito: incline levemente à frente.'
+        },
       ]
     },
     terca: {
       nome: 'Costas + Bíceps',
       exercicios: [
-        { nome: 'Puxada Frontal',           series: 4, reps: '12', obs: 'Pegada fechada ou média' },
-        { nome: 'Remada Curvada c/ Barra',  series: 4, reps: '10', obs: 'Costas retas, força nas costas' },
-        { nome: 'Remada Unilateral',        series: 3, reps: '12', obs: 'Cada lado' },
-        { nome: 'Pullover',                 series: 3, reps: '12', obs: '' },
-        { nome: 'Rosca Direta',             series: 4, reps: '12', obs: '' },
-        { nome: 'Rosca Concentrada',        series: 3, reps: '12', obs: 'Cada braço' },
-        { nome: 'Rosca Martelo',            series: 3, reps: '12', obs: '' },
+        {
+          nome: 'Puxada Frontal', series: 4, reps: '12',
+          aparelho: 'Máquina pulldown (puxada alta)',
+          como: 'Pegada média ou fechada (supinada para mais bíceps). Incline o tronco levemente para trás. Puxe a barra até o queixo/parte superior do peito abrindo os cotovelos para baixo. Suba controlado abrindo as costas.'
+        },
+        {
+          nome: 'Remada Curvada c/ Barra', series: 4, reps: '10',
+          aparelho: 'Barra olímpica',
+          como: 'Em pé, tronco inclinado a 45° (costas retas, não arqueadas). Puxe a barra em direção ao umbigo mantendo os cotovelos próximos ao corpo. Sinta as escápulas se aproximando. Desça sem bater o peso.'
+        },
+        {
+          nome: 'Remada Unilateral', series: 3, reps: '12',
+          aparelho: 'Haltere + banco',
+          como: 'Joelho e mão do mesmo lado apoiados no banco. Puxe o haltere com o cotovelo subindo alto. Sinta a escápula se fechar no final. Costas paralelas ao chão. 12 repetições cada lado.'
+        },
+        {
+          nome: 'Pullover', series: 3, reps: '12',
+          aparelho: 'Haltere ou cabo alto',
+          como: 'Deitado perpendicular ao banco (só os ombros apoiados), pés no chão. Haltere acima do peito com as duas mãos. Desça em arco atrás da cabeça sentindo as costas se abrirem. Volte controlado.'
+        },
+        {
+          nome: 'Rosca Direta', series: 4, reps: '12',
+          aparelho: 'Barra reta ou EZ',
+          como: 'Em pé, cotovelos fixos ao lado do corpo. Suba a barra em direção aos ombros com força. Desça lentamente (fase negativa é muito importante). Não balance o tronco — se balançar, reduza o peso.'
+        },
+        {
+          nome: 'Rosca Concentrada', series: 3, reps: '12',
+          aparelho: 'Haltere',
+          como: 'Sentado, cotovelo apoiado na face interna da coxa. Suba o haltere completamente, gire levemente o pulso (supinação). Desça todo o caminho para maior amplitude. Máximo de isolamento no bíceps. 12 cada braço.'
+        },
+        {
+          nome: 'Rosca Martelo', series: 3, reps: '12',
+          aparelho: 'Halteres',
+          como: 'Pegada neutra (polegar para cima). Suba os pesos mantendo o pulso reto sem girar. Trabalha bíceps braquial e braquiorradial (antebraço). Pode fazer alternado ou simultâneo.'
+        },
       ]
     },
     quarta: {
       nome: 'Pernas',
       exercicios: [
-        { nome: 'Agachamento Livre',     series: 5, reps: '10', obs: 'Exercício principal — foco total' },
-        { nome: 'Leg Press 45°',         series: 4, reps: '12', obs: '' },
-        { nome: 'Cadeira Extensora',     series: 3, reps: '15', obs: '' },
-        { nome: 'Mesa Flexora',          series: 4, reps: '12', obs: '' },
-        { nome: 'Stiff',                 series: 3, reps: '12', obs: '' },
-        { nome: 'Panturrilha em Pé',     series: 4, reps: '20', obs: '' },
+        {
+          nome: 'Agachamento Livre', series: 5, reps: '10',
+          aparelho: 'Rack de agachamento + barra olímpica',
+          como: 'Barra nos trapézios (não no pescoço). Pés na largura dos ombros. Desça controlado até a coxa paralela ou abaixo do paralelo com o chão. Empurre o chão ao subir. Joelhos não fecham para dentro. Este é o rei dos exercícios!'
+        },
+        {
+          nome: 'Leg Press 45°', series: 4, reps: '12',
+          aparelho: 'Máquina leg press 45 graus',
+          como: 'Pés centralizados no apoio na largura dos ombros. Desça até as coxas chegarem perto do peito sem tirar o lombo do banco. Empurre sem travar o joelho no topo. Para mais quadríceps: pés mais baixos e próximos.'
+        },
+        {
+          nome: 'Cadeira Extensora', series: 3, reps: '15',
+          aparelho: 'Máquina cadeira extensora',
+          como: 'Ajuste o apoio na frente dos tornozelos. Estenda as pernas até ficarem retas e segure 1 segundo no topo para contrair bem o quadríceps. Desça lentamente — a fase negativa importa muito.'
+        },
+        {
+          nome: 'Mesa Flexora', series: 4, reps: '12',
+          aparelho: 'Máquina mesa flexora (deitada)',
+          como: 'Deite de bruços, joelhos alinhados com o eixo da máquina. Puxe os calcanhares em direção ao glúteo o máximo que conseguir. Segure 1 segundo. Desça controlado sem bater o peso.'
+        },
+        {
+          nome: 'Stiff', series: 3, reps: '12',
+          aparelho: 'Halteres ou barra',
+          como: 'Em pé, joelhos quase estendidos. Incline o tronco para frente com as costas retas (não arredonde!) descendo os pesos pela frente das pernas. Desça até sentir o alongamento forte no posterior da coxa. Suba contraindo glúteo.'
+        },
+        {
+          nome: 'Panturrilha em Pé', series: 4, reps: '20',
+          aparelho: 'Máquina de panturrilha em pé ou degrau com haltere',
+          como: 'Apoio na ponta dos pés, calcanhar livre. Suba o máximo que conseguir, segure 1–2 segundos. Desça até o calcanhar ir abaixo do apoio para alongar. Amplitude total é o segredo para panturrilha crescer.'
+        },
       ]
     },
     quinta: {
       nome: 'Ombros + Trapézio',
       exercicios: [
-        { nome: 'Desenvolvimento c/ Barra', series: 4, reps: '10', obs: 'Na frente da cabeça' },
-        { nome: 'Desenvolvimento Arnold',   series: 3, reps: '12', obs: '' },
-        { nome: 'Elevação Lateral',         series: 4, reps: '15', obs: '' },
-        { nome: 'Elevação Frontal',         series: 3, reps: '12', obs: '' },
-        { nome: 'Remada Alta',              series: 3, reps: '12', obs: 'Para deltóide e trapézio' },
-        { nome: 'Encolhimento de Ombros',   series: 4, reps: '15', obs: 'Com barra ou haltere' },
+        {
+          nome: 'Desenvolvimento c/ Barra', series: 4, reps: '10',
+          aparelho: 'Barra + rack ou banco com encosto',
+          como: 'Sentado ou em pé, barra na altura dos ombros na frente da cabeça. Empurre para cima até os braços ficarem estendidos. Desça controlado. Não arqueie as costas. Versão em pé exige mais equilíbrio e core.'
+        },
+        {
+          nome: 'Desenvolvimento Arnold', series: 3, reps: '12',
+          aparelho: 'Halteres',
+          como: 'Começa com os halteres na frente do rosto, palmas para você. Ao empurrar para cima, gire os pulsos até as palmas ficarem para frente. Trabalha todo o deltóide pela rotação. Desça fazendo o movimento inverso.'
+        },
+        {
+          nome: 'Elevação Lateral', series: 4, reps: '15',
+          aparelho: 'Halteres ou cabo lateral',
+          como: 'Em pé, halteres nas laterais. Levante os braços até a altura dos ombros com cotovelo levemente dobrado. Não balance o tronco para ajudar. Peso leve e execução perfeita valem mais que peso alto.'
+        },
+        {
+          nome: 'Elevação Frontal', series: 3, reps: '12',
+          aparelho: 'Halteres ou anilha',
+          como: 'Em pé, um peso em cada mão ou anilha nas duas mãos. Levante à frente até a altura dos ombros com os braços quase estendidos. Pode fazer alternado. Não balance o corpo.'
+        },
+        {
+          nome: 'Remada Alta', series: 3, reps: '12',
+          aparelho: 'Barra ou halteres',
+          como: 'Em pé, puxe a barra do quadril até o queixo com os cotovelos subindo acima das mãos. Os cotovelos ficam mais altos que as mãos o tempo todo. Trabalha deltóide lateral e trapézio superior.'
+        },
+        {
+          nome: 'Encolhimento de Ombros', series: 4, reps: '15',
+          aparelho: 'Halteres pesados ou barra',
+          como: 'Em pé, halteres nas laterais (peso alto). Suba os ombros em direção às orelhas sem dobrar os cotovelos. Segure 1 segundo no topo. Desça bem devagar. Círculos não — movimento reto para cima.'
+        },
       ]
     },
     sexta: {
       nome: 'Braços + Abdômen',
       exercicios: [
-        { nome: 'Rosca Direta c/ Barra',  series: 4, reps: '12', obs: '' },
-        { nome: 'Rosca Martelo',          series: 3, reps: '12', obs: '' },
-        { nome: 'Rosca 21',               series: 3, reps: '21', obs: '7 parcial baixo + 7 parcial alto + 7 completo' },
-        { nome: 'Tríceps Corda',          series: 4, reps: '15', obs: '' },
-        { nome: 'Mergulho (Paralelo)',    series: 3, reps: '10', obs: '' },
-        { nome: 'Abdominal Crunch',       series: 4, reps: '20', obs: '' },
-        { nome: 'Prancha',               series: 3, reps: '60s', obs: '' },
-        { nome: 'Elevação de Pernas',     series: 3, reps: '15', obs: '' },
+        {
+          nome: 'Rosca Direta c/ Barra', series: 4, reps: '12',
+          aparelho: 'Barra reta ou EZ',
+          como: 'Em pé, cotovelos fixos ao lado do corpo. Suba a barra até os ombros sem balançar. A descida lenta (3–4 segundos) é o que mais gera resultado. Mantenha pulsos retos.'
+        },
+        {
+          nome: 'Rosca Martelo', series: 3, reps: '12',
+          aparelho: 'Halteres',
+          como: 'Pegada neutra — polegar apontado para cima. Suba os pesos sem girar o pulso. Pode fazer alternado. Complementa a rosca direta trabalhando o músculo abaixo do bíceps.'
+        },
+        {
+          nome: 'Rosca 21', series: 3, reps: '21',
+          aparelho: 'Barra EZ ou halteres',
+          como: '7 repetições do fundo até a metade (ângulo de 90°). Depois 7 repetições da metade até o topo. Depois 7 completas sem parar. Você vai sentir o bíceps queimar muito. Isso é normal — continue!'
+        },
+        {
+          nome: 'Tríceps Corda', series: 4, reps: '15',
+          aparelho: 'Cabo alto com corda dupla',
+          como: 'Cotovelos fixos ao lado do corpo. Puxe a corda para baixo abrindo as pontas no final. Suba controlado. Cotovelos não podem se afastar — esse é o erro mais comum.'
+        },
+        {
+          nome: 'Mergulho (Paralelo)', series: 3, reps: '10',
+          aparelho: 'Barras paralelas',
+          como: 'Segure as barras com braços estendidos. Desça dobrando os cotovelos até 90°. Para foco no tríceps mantenha o corpo reto (não incline para frente). Suba explodindo com força. Se difícil, apoie os pés num banco.'
+        },
+        {
+          nome: 'Abdominal Crunch', series: 4, reps: '20',
+          aparelho: 'No tatame / colchonete',
+          como: 'Deitado, joelhos dobrados, pés no chão. Mãos atrás da cabeça sem puxar o pescoço. Suba o tronco em direção aos joelhos usando só o abdômen. Expire ao subir, inspire ao descer. Não precisa sentar completamente.'
+        },
+        {
+          nome: 'Prancha', series: 3, reps: '60s',
+          aparelho: 'No tatame / colchonete',
+          como: 'Antebraços no chão, pontas dos pés. Corpo em linha reta. Contraia abdômen, glúteo e quadríceps ao mesmo tempo. Se começar a perder a forma, prefira fazer 3 séries de 30s a uma de 60s mal feita.'
+        },
+        {
+          nome: 'Elevação de Pernas', series: 3, reps: '15',
+          aparelho: 'Barra fixa, banco ou chão',
+          como: 'Deitado, mãos embaixo do glúteo. Suba as pernas esticadas até 90°, desça sem encostar no chão. Para dificultar: faça na barra (suspenso). Trabalha abdômen inferior. Controle — sem balançar.'
+        },
       ]
     },
     sabado: null,
@@ -551,6 +842,63 @@ const DAY_NAMES = {
   domingo:'Domingo', segunda:'Segunda-feira', terca:'Terça-feira',
   quarta:'Quarta-feira', quinta:'Quinta-feira', sexta:'Sexta-feira', sabado:'Sábado'
 };
+
+// =============================================================
+// FIREBASE
+// Para sincronizar entre os dois celulares em tempo real:
+//
+// 1. Acesse https://firebase.google.com e crie um projeto novo
+//    (ex: "gymduo-shirley-renato")
+// 2. Na tela do projeto, clique em "</>" para adicionar um app web
+// 3. No menu lateral: Build → Realtime Database → Create database
+//    → Escolha qualquer região → Start in test mode (30 dias aberto)
+// 4. Clique no ícone de engrenagem → Project Settings → seu app web
+// 5. Role até "firebaseConfig" e copie os valores abaixo
+// =============================================================
+const FIREBASE_CONFIG = {
+  apiKey:            "PREENCHER",
+  authDomain:        "PREENCHER",
+  databaseURL:       "PREENCHER",  // ex: https://gymduo-xxx-rtdb.firebaseio.com
+  projectId:         "PREENCHER",
+  storageBucket:     "PREENCHER",
+  messagingSenderId: "PREENCHER",
+  appId:             "PREENCHER"
+};
+
+let db = null;
+
+function setSyncStatus(status) {
+  const el = document.getElementById('syncDot');
+  if (!el) return;
+  const map = {
+    online:      { e: '🟢', t: 'Sincronizado — dados em tempo real' },
+    connecting:  { e: '🟡', t: 'Conectando ao Firebase...' },
+    offline:     { e: '🔴', t: 'Sem sincronização — dados salvos só neste celular' },
+  };
+  const s = map[status] || map.offline;
+  el.textContent = s.e;
+  el.title = s.t;
+}
+
+function initFirebase() {
+  const isConfigured = !Object.values(FIREBASE_CONFIG).some(v => v === 'PREENCHER');
+  if (!isConfigured) { setSyncStatus('offline'); return; }
+
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    setSyncStatus('connecting');
+
+    db.ref('gymDuo').on('value', snapshot => {
+      const data = snapshot.val();
+      if (data) { persist(data); render(); }
+      setSyncStatus('online');
+    }, () => setSyncStatus('offline'));
+  } catch(e) {
+    console.warn('Firebase init error:', e);
+    setSyncStatus('offline');
+  }
+}
 
 // =============================================================
 // STATE
@@ -571,7 +919,7 @@ function weekMonday() {
 }
 
 // =============================================================
-// STORAGE (localStorage; replace with Firebase for cross-device sync)
+// STORAGE (localStorage como cache local + Firebase para sync)
 // =============================================================
 function store() {
   try { return JSON.parse(localStorage.getItem('gymDuo') || '{}'); }
@@ -588,6 +936,11 @@ function set(path, val) {
   for (let i = 0; i < keys.length - 1; i++) { if (!o[keys[i]]) o[keys[i]] = {}; o = o[keys[i]]; }
   o[keys[keys.length-1]] = val;
   persist(d);
+
+  if (db) {
+    db.ref('gymDuo/' + keys.join('/')).set(val)
+      .catch(() => setSyncStatus('offline'));
+  }
 }
 
 // =============================================================
@@ -694,11 +1047,24 @@ function renderToday() {
   exList.innerHTML = w.exercicios.map((ex, i) => {
     const isDone = !!saved[i];
     if (isDone) done++;
-    return `<div class="ex-item${isDone ? ' done' : ''}" onclick="toggleEx(${i})">
-      <div class="ex-check">${isDone ? '✓' : ''}</div>
-      <div class="ex-body">
-        <div class="ex-name">${ex.nome}</div>
-        <div class="ex-detail">${ex.series} séries × ${ex.reps}${ex.obs ? ' · ' + ex.obs : ''}</div>
+    return `<div>
+      <div class="ex-item${isDone ? ' done' : ''}" onclick="toggleEx(${i})">
+        <div class="ex-check">${isDone ? '✓' : ''}</div>
+        <div class="ex-body">
+          <div class="ex-name">${ex.nome}</div>
+          <div class="ex-detail">${ex.series} séries × ${ex.reps}</div>
+        </div>
+        <button class="ex-info-btn" onclick="event.stopPropagation();togglePanel(${i})" aria-label="Ver instruções">ℹ</button>
+      </div>
+      <div id="panel-${i}" class="ex-panel">
+        <div class="ex-panel-row">
+          <div class="ex-panel-icon">🏋️</div>
+          <div class="ex-panel-txt"><strong>Aparelho:</strong> ${ex.aparelho}</div>
+        </div>
+        <div class="ex-panel-row">
+          <div class="ex-panel-icon">📋</div>
+          <div class="ex-panel-txt"><strong>Como fazer:</strong> ${ex.como}</div>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -721,6 +1087,11 @@ function toggleEx(i) {
   const date = todayDateKey();
   set(`${currentUser}.${date}.${i}`, !get(`${currentUser}.${date}.${i}`));
   renderToday();
+}
+
+function togglePanel(i) {
+  const panel = document.getElementById(`panel-${i}`);
+  if (panel) panel.classList.toggle('open');
 }
 
 function recalcStreak(user) {
@@ -829,6 +1200,9 @@ function genMotivation(sW, rW, sS, rS) {
   if (sW + rW === 0) return '<strong>Primeira semana!</strong> Montem um ritmo juntos e façam disso um hábito. Vocês conseguem!';
   return `🤝 <strong>Empatados!</strong> A próxima estrela decide quem lidera. Qual dos dois vai treinar primeiro?`;
 }
+
+// inicia ao carregar a página
+initFirebase();
 </script>
 </body>
 </html>
