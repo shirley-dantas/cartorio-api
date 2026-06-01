@@ -1,0 +1,667 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Operacional — 20º Tabelião de Notas</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F7;color:#1C1C1E;min-height:100vh;font-size:14px}
+.topnav{background:#1C1C2E;padding:13px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.topnav-brand h1{font-size:14px;font-weight:500;color:#fff}
+.topnav-brand p{font-size:11px;color:#6E6E8A;margin-top:1px}
+.topnav-right{display:flex;align-items:center;gap:10px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#4ADE80;flex-shrink:0}
+.sync-dot.off{background:#EF4444}
+.sync-dot.loading{background:#FBBF24}
+.sync-label{font-size:11px;color:#6E6E8A}
+.container{max-width:1060px;margin:0 auto;padding:20px 18px}
+.foco-card{background:#1C1C2E;border-radius:12px;padding:16px 20px;margin-bottom:18px}
+.foco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.foco-title{font-size:13px;font-weight:500;color:#fff;display:flex;align-items:center;gap:7px}
+.foco-title i{font-size:15px;color:#A78BFA}
+.foco-add-btn{font-size:12px;padding:4px 11px;border-radius:7px;border:0.5px solid #3C3C5E;background:transparent;color:#A78BFA;cursor:pointer}
+.foco-add-btn:hover{background:#2C2C4E}
+.foco-items{display:flex;flex-direction:column;gap:6px}
+.foco-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#2C2C4E;border-radius:8px}
+.foco-item.done{opacity:.45}
+.foco-check{width:16px;height:16px;border-radius:4px;border:1.5px solid #6E6E8A;background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.foco-check.checked{background:#A78BFA;border-color:#A78BFA}
+.foco-check.checked::after{content:'';width:8px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translateY(-1px);display:block}
+.foco-text{font-size:13px;color:#E0E0F0;flex:1;line-height:1.4}
+.foco-text.done{text-decoration:line-through;color:#6E6E8A}
+.foco-del{font-size:16px;color:#6E6E8A;cursor:pointer;padding:0 2px;background:none;border:none;line-height:1}
+.foco-del:hover{color:#E57373}
+.foco-empty{font-size:12px;color:#6E6E8A;font-style:italic;padding:4px 0}
+.foco-input-row{display:flex;gap:8px;margin-top:8px}
+.foco-input-row input{flex:1;font-size:13px;padding:7px 11px;border-radius:8px;border:0.5px solid #3C3C5E;background:#2C2C4E;color:#E0E0F0;font-family:inherit;outline:none}
+.foco-input-row input:focus{border-color:#A78BFA}
+.foco-input-row button{font-size:12px;padding:7px 14px;border-radius:8px;border:none;background:#A78BFA;color:#fff;cursor:pointer;font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px;margin-bottom:18px}
+.stat{background:#fff;border-radius:10px;padding:12px 14px;border:0.5px solid #E5E5EA}
+.stat-label{font-size:11px;color:#8E8EA0;margin-bottom:3px}
+.stat-num{font-size:24px;font-weight:500;color:#1C1C1E}
+.stat-num.red{color:#C62828}.stat-num.amber{color:#B45309}.stat-num.green{color:#2E7D32}.stat-num.purple{color:#6B21A8}
+.tab-bar{display:flex;gap:2px;border-bottom:1px solid #E5E5EA;margin-bottom:18px}
+.tab{font-size:13px;padding:7px 15px;border:none;background:transparent;color:#8E8EA0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:5px}
+.tab.on{color:#1C1C1E;border-bottom-color:#1C1C2E;font-weight:500}
+.tab:hover{color:#1C1C1E}
+.toolbar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.fbtn{font-size:12px;padding:5px 13px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#8E8EA0;cursor:pointer;white-space:nowrap}
+.fbtn.on,.fbtn:hover{background:#1C1C2E;color:#fff;border-color:#1C1C2E}
+.search-wrap{margin-left:auto}
+.search-wrap input{font-size:13px;padding:6px 12px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;width:190px;outline:none}
+.search-wrap input:focus{border-color:#1C1C2E}
+.cases{display:flex;flex-direction:column;gap:7px}
+.card{background:#fff;border:0.5px solid #E5E5EA;border-radius:11px;padding:14px 16px;border-left:3px solid transparent}
+.card:hover{box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.card.prioridade{border-left-color:#7C3AED}
+.card.critico{border-left-color:#C62828}
+.card.atencao{border-left-color:#B45309}
+.card.emdia{border-left-color:#2E7D32}
+.card.regular{border-left-color:#64748B}
+.card.concluido{opacity:.45;border-left-color:#D1D1D6}
+.card-main{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
+.card-name{font-size:14px;font-weight:500;color:#1C1C1E;margin-bottom:1px}
+.card-tipo{font-size:11px;color:#AEAEB2;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px}
+.proxima-acao{display:flex;align-items:center;gap:7px;background:#F5F5F7;border-radius:7px;padding:7px 11px;margin-bottom:8px}
+.proxima-acao i{font-size:15px;color:#6B21A8;flex-shrink:0}
+.proxima-acao-text{font-size:13px;color:#1C1C1E;font-weight:500;flex:1;line-height:1.35}
+.proxima-acao-edit{font-size:11px;color:#AEAEB2;cursor:pointer;padding:2px 6px;border-radius:5px;border:0.5px solid #E5E5EA;background:#fff}
+.proxima-acao-edit:hover{border-color:#1C1C2E;color:#1C1C1E}
+.card-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.badge{font-size:11px;padding:2px 8px;border-radius:5px;font-weight:500;white-space:nowrap}
+.b-prioridade{background:#EDE9FE;color:#4C1D95}
+.b-critico{background:#FDECEA;color:#B71C1C}
+.b-atencao{background:#FFF8E1;color:#7A4F00}
+.b-emdia{background:#E8F5E9;color:#1B5E20}
+.b-regular{background:#F1F5F9;color:#475569}
+.b-shirley{background:#E3F2FD;color:#0D47A1}
+.b-grazi{background:#E8F5E9;color:#1B5E20}
+.b-ambas{background:#FFF8E1;color:#7A4F00}
+.b-gabriel{background:#F3E5F5;color:#4A148C}
+.b-andre{background:#FCE4EC;color:#880E4F}
+.b-gray{background:#F2F2F7;color:#636366}
+.dias-badge{font-size:11px;padding:2px 8px;border-radius:5px;font-weight:500;white-space:nowrap}
+.dias-1{background:#FFF8E1;color:#7A4F00}
+.dias-3{background:#FFF3E0;color:#8D4600}
+.dias-7{background:#FDECEA;color:#B71C1C}
+.dias-15{background:#880E4F;color:#fff}
+.dep-badge{font-size:11px;padding:2px 9px;border-radius:5px;font-weight:500;white-space:nowrap;background:#EDE9FE;color:#4C1D95}
+.prazo{font-size:11px;color:#8E8EA0;display:flex;gap:3px;align-items:center}
+.card-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0}
+.sel{font-size:12px;padding:4px 6px;border-radius:6px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;cursor:pointer;outline:none;max-width:120px}
+.sel:focus{border-color:#1C1C2E}
+.btn-sm{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;white-space:nowrap}
+.btn-sm:hover{background:#F5F5F7}
+.btn-concluir{color:#2E7D32;border-color:#A5D6A7}
+.btn-foco{color:#6B21A8;border-color:#DDD6FE}
+.btn-foco:hover{background:#F5F3FF}
+.btn-agendar{color:#1B5E20;border-color:#A5D6A7}
+.obs-block{margin-top:10px;padding-top:10px;border-top:0.5px solid #F2F2F7}
+.obs-text{font-size:12px;color:#636366;line-height:1.55}
+.obs-edit{display:none;flex-direction:column;gap:6px;margin-top:7px}
+.obs-edit textarea{width:100%;font-size:12px;padding:7px 10px;border-radius:7px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;min-height:54px;outline:none}
+.obs-edit-row{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.saved-msg{font-size:11px;color:#2E7D32;display:none}
+.acao-edit{display:none;gap:6px;margin-top:6px;align-items:center}
+.acao-edit input{flex:1;font-size:13px;padding:6px 10px;border-radius:7px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;font-family:inherit;outline:none}
+.acao-edit input:focus{border-color:#6B21A8}
+.acao-edit button{font-size:12px;padding:6px 12px;border-radius:7px;border:none;background:#1C1C2E;color:#fff;cursor:pointer}
+.ag-inline{padding:10px 0 2px;display:none}
+.ag-inner{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#F0FDF4;border-radius:8px;padding:10px 12px;border:0.5px solid #BBF7D0}
+.ag-inner input{font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #BBF7D0;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
+.ag-inner .btn-gcal{font-size:12px;padding:5px 13px;border-radius:7px;border:none;background:#16A34A;color:#fff;cursor:pointer;font-weight:500}
+.ag-inner .btn-open{font-size:12px;padding:5px 13px;border-radius:7px;border:0.5px solid #BBF7D0;background:#fff;color:#16A34A;cursor:pointer}
+.add-section{margin-top:14px}
+.add-toggle{width:100%;font-size:13px;padding:10px;border-radius:10px;border:1px dashed #D1D1D6;background:transparent;color:#8E8EA0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.add-toggle:hover{background:#fff;color:#1C1C1E;border-color:#1C1C2E}
+.add-form{display:none;background:#F5F5F7;border-radius:12px;padding:16px;margin-top:10px;border:0.5px solid #E5E5EA}
+.add-form h3{font-size:13px;font-weight:500;margin-bottom:12px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.form-row{margin-bottom:8px}
+.add-form input,.add-form select,.add-form textarea{width:100%;font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
+.add-form input:focus,.add-form select:focus,.add-form textarea:focus{border-color:#1C1C2E}
+.add-form textarea{resize:vertical;min-height:52px}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.btn-cancel{font-size:13px;padding:7px 15px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer}
+.btn-save{font-size:13px;padding:7px 15px;border-radius:8px;border:none;background:#1C1C2E;color:#fff;cursor:pointer;font-weight:500}
+.doit-wrap{overflow-x:auto}
+table.doit{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:12px;overflow:hidden;border:0.5px solid #E5E5EA}
+table.doit th{font-size:11px;font-weight:500;color:#8E8EA0;padding:10px 13px;text-align:left;background:#F5F5F7;border-bottom:0.5px solid #E5E5EA;white-space:nowrap}
+table.doit td{padding:11px 13px;border-bottom:0.5px solid #F2F2F7;vertical-align:middle}
+table.doit tr:last-child td{border-bottom:none}
+table.doit tr:hover td{background:#FAFAFA}
+.pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:5px;font-weight:500;white-space:nowrap}
+.pill-red{background:#FDECEA;color:#B71C1C}
+.pill-amber{background:#FFF8E1;color:#7A4F00}
+.pill-green{background:#E8F5E9;color:#1B5E20}
+.pill-gray{background:#F2F2F7;color:#636366}
+.pill-blue{background:#E3F2FD;color:#0D47A1}
+.empty{text-align:center;padding:30px;color:#8E8EA0;font-size:13px}
+.loading-overlay{text-align:center;padding:40px;color:#8E8EA0;font-size:13px}
+.updated{font-size:11px;color:#AEAEB2;text-align:right;margin-top:14px}
+@media(max-width:600px){
+  .card-main{grid-template-columns:1fr}
+  .card-actions{flex-direction:row;flex-wrap:wrap;justify-content:flex-start}
+  .form-grid{grid-template-columns:1fr}
+  .container{padding:14px 12px}
+  .search-wrap{margin-left:0;width:100%}
+  .search-wrap input{width:100%}
+}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="topnav-brand">
+    <h1>Painel operacional</h1>
+    <p>20º Tabelião de Notas · Escrevente Shirley Dantas</p>
+  </div>
+  <div class="topnav-right">
+    <div class="sync-dot loading" id="sync-dot"></div>
+    <span class="sync-label" id="sync-label">Conectando...</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="foco-card">
+    <div class="foco-header">
+      <div class="foco-title"><i class="ti ti-bolt"></i> Foco do dia</div>
+      <button class="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar</button>
+    </div>
+    <div class="foco-items" id="foco-items"></div>
+    <div class="foco-input-row" id="foco-input-row" style="display:none">
+      <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key==='Enter')addFoco()">
+      <button onclick="addFoco()">Adicionar</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"><div class="loading-overlay">Carregando...</div></div>
+
+  <div class="tab-bar">
+    <button class="tab on" onclick="mudarTab('casos',this)"><i class="ti ti-briefcase" style="font-size:14px"></i> Casos ativos</button>
+    <button class="tab" onclick="mudarTab('doit',this)"><i class="ti ti-building" style="font-size:14px"></i> Do It</button>
+  </div>
+
+  <div id="view-casos">
+    <div class="toolbar">
+      <button class="fbtn on" onclick="setFiltro('todos',this)">Todos</button>
+      <button class="fbtn" onclick="setFiltro('prioridade',this)">Prioridade</button>
+      <button class="fbtn" onclick="setFiltro('critico',this)">Crítico</button>
+      <button class="fbtn" onclick="setFiltro('atencao',this)">Atenção</button>
+      <button class="fbtn" onclick="setFiltro('emdia',this)">Em dia</button>
+      <button class="fbtn" onclick="setFiltro('regular',this)">Regular</button>
+      <button class="fbtn" onclick="setFiltro('parado',this)">Parados +3d</button>
+      <button class="fbtn" onclick="setFiltro('shirley',this)">Shirley</button>
+      <button class="fbtn" onclick="setFiltro('grazi',this)">Grazi</button>
+      <button class="fbtn" onclick="setFiltro('gabriel',this)">Gabriel</button>
+      <button class="fbtn" onclick="setFiltro('andre',this)">André</button>
+      <button class="fbtn" onclick="setFiltro('terceiro',this)">Aguard. terceiro</button>
+      <div class="search-wrap"><input type="text" placeholder="Buscar..." oninput="buscar(this.value)"></div>
+    </div>
+    <div class="cases" id="casos-list"><div class="loading-overlay"><i class="ti ti-loader" style="font-size:22px;display:block;margin-bottom:8px"></i>Sincronizando com o banco de dados...</div></div>
+    <div class="add-section">
+      <button class="add-toggle" onclick="toggleForm()"><i class="ti ti-plus" style="font-size:15px"></i> Adicionar novo caso</button>
+      <div class="add-form" id="add-form">
+        <h3>Novo caso</h3>
+        <div class="form-grid">
+          <input type="text" id="f-nome" placeholder="Nome do cliente *">
+          <input type="text" id="f-tipo" placeholder="Tipo de ato">
+        </div>
+        <div class="form-row"><input type="text" id="f-acao" placeholder="Próxima ação * (ex: Elaborar minuta, Retornar ligação...)"></div>
+        <div class="form-grid">
+          <select id="f-status">
+            <option value="prioridade">Prioridade</option>
+            <option value="critico">Crítico</option>
+            <option value="atencao" selected>Atenção</option>
+            <option value="emdia">Em dia</option>
+            <option value="regular">Regular</option>
+          </select>
+          <select id="f-resp">
+            <option value="shirley">Shirley</option>
+            <option value="grazi">Grazi</option>
+            <option value="ambas">Ambas</option>
+            <option value="gabriel">Gabriel</option>
+            <option value="andre">André</option>
+          </select>
+        </div>
+        <div class="form-grid">
+          <input type="text" id="f-prazo" placeholder="Prazo (ex: 30/05)">
+          <select id="f-dep">
+            <option value="">Sem dependência externa</option>
+            <option value="Falta documentos">Falta documentos</option>
+            <option value="Aguardando cliente">Aguardando cliente</option>
+            <option value="Registro de Imóveis">Registro de Imóveis</option>
+            <option value="Prefeitura">Prefeitura</option>
+            <option value="Pré-conferência">Pré-conferência</option>
+            <option value="Jurídico Prime">Jurídico Prime</option>
+            <option value="Construtora">Construtora</option>
+          </select>
+        </div>
+        <div class="form-grid">
+          <input type="datetime-local" id="f-agendado">
+          <input type="text" id="f-agendado-desc" placeholder="Descrição do evento no Calendar">
+        </div>
+        <textarea id="f-obs" placeholder="Observações (opcional)" style="width:100%;margin-top:4px"></textarea>
+        <div class="form-actions">
+          <button class="btn-cancel" onclick="toggleForm()">Cancelar</button>
+          <button class="btn-save" onclick="salvarNovo()">Salvar caso</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-doit" style="display:none">
+    <div class="doit-wrap"><table class="doit" id="doit-table"></table></div>
+  </div>
+
+  <div class="updated" id="updated"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA_tR17xeu0uhfonc1y1ksStmjGZtY_tcM",
+  authDomain: "painel-cartorio.firebaseapp.com",
+  databaseURL: "https://painel-cartorio-default-rtdb.firebaseio.com",
+  projectId: "painel-cartorio",
+  storageBucket: "painel-cartorio.firebasestorage.app",
+  messagingSenderId: "1007920804636",
+  appId: "1:1007920804636:web:6cdbf25fa6812b2f5a40d9"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const DEPS=['','Falta documentos','Aguardando cliente','Registro de Imóveis','Prefeitura','Pré-conferência','Jurídico Prime','Construtora'];
+
+const hoje=new Date();hoje.setHours(0,0,0,0);
+function diasParado(iso){if(!iso)return 0;const d=new Date(iso);d.setHours(0,0,0,0);return Math.floor((hoje-d)/(1000*60*60*24));}
+function isoHoje(){return new Date().toISOString().split('T')[0]}
+function tsStr(){const n=new Date();return`${n.toLocaleDateString('pt-BR')} ${n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;}
+
+const defaultCasos=[
+  {nome:'Alfredo Patrão | ABG',tipo:'Inventário + Sobrepartilha',acao:'Elaborar minuta da sobrepartilha',status:'critico',resp:'shirley',prazo:'30/05',dep:'',obs:'Em aberto desde 2025. Minuta errada — tabelião exigiu sobrepartilha.',atualizado:'2026-05-21',agendado:'',agendado_desc:'',concluido:false},
+  {nome:'Miguel | Un. 2216 Do It',tipo:'Escritura + Confissão de Dívida',acao:'Iniciar minuta + Grazi confirmar ao cliente',status:'critico',resp:'ambas',prazo:'Hoje',dep:'',obs:'Cliente perguntou hoje às 14h53. Minuta não iniciada.',atualizado:'2026-05-28',agendado:'',agendado_desc:'',concluido:false},
+  {nome:'Gustavo Bertola',tipo:'Inventário + Compra e Venda',acao:'Analisar documentos recebidos',status:'atencao',resp:'shirley',prazo:'30/05',dep:'',obs:'Docs recebidos hoje. Compradora: Dona Rosa (avó).',atualizado:'2026-05-28',agendado:'',agendado_desc:'',concluido:false},
+  {nome:'Rejane Gregorio',tipo:'Cessão de Direitos Hereditários',acao:'Decidir sobre ofício bancário',status:'atencao',resp:'shirley',prazo:'29/05',dep:'Falta documentos',obs:'Docs recebidos 19/05. Faltam dados bancários.',atualizado:'2026-05-19',agendado:'',agendado_desc:'',concluido:false},
+  {nome:'Fabio / Julia | Un. 2011',tipo:'Escritura — Baixa de Hipoteca',acao:'Confirmar se documento de baixa está correto',status:'atencao',resp:'shirley',prazo:'29/05',dep:'',obs:'Doc de baixa recebido hoje às 16h54.',atualizado:'2026-05-28',agendado:'',agendado_desc:'',concluido:false},
+  {nome:'Juliana Halabi | BL01-2412',tipo:'Do It — Baixa de Hipoteca',acao:'Dar continuidade após baixa recebida',status:'atencao',resp:'grazi',prazo:'30/05',dep:'',obs:'Baixa recebida hoje via Rhailton / Direcional.',atualizado:'2026-05-28',agendado:'',agendado_desc:'',concluido:false},
+  {nome:'B3 | Procuração PROC-039.26',tipo:'Procuração Pública',acao:'Aguardar agenda da B3',status:'emdia',resp:'shirley',prazo:'—',dep:'Aguardando cliente',obs:'Respondida hoje. Bola na quadra deles.',atualizado:'2026-05-28',agendado:'',agendado_desc:'',concluido:false},
+  {nome:'Rhailton / Direcional',tipo:'Do It — Gestão',acao:'Monitorar TQs pendentes',status:'emdia',resp:'grazi',prazo:'—',dep:'Construtora',obs:'Respondido hoje. Baixa da Juliana em andamento.',atualizado:'2026-05-28',agendado:'',agendado_desc:'',concluido:false},
+  {nome:'Dr. Vitor Leite',tipo:'A confirmar',acao:'Verificar se ligação aconteceu',status:'atencao',resp:'shirley',prazo:'Hoje',dep:'',obs:'Confirmou ligação na segunda-feira.',atualizado:'2026-05-26',agendado:'',agendado_desc:'',concluido:false},
+  {nome:'Bel | 20º Cartório',tipo:'Relacionamento institucional',acao:'Retornar ligação',status:'atencao',resp:'shirley',prazo:'Hoje',dep:'',obs:'"Amanhã falamos então" — ontem às 21h44.',atualizado:'2026-05-27',agendado:'',agendado_desc:'',concluido:false},
+];
+
+const doitData=[
+  {un:'Un. 2011',cliente:'Fabio / Julia Pires',tq:'Baixa recebida',minuta:'Feita',assin:'Assinado',reg:'Pendente',resp:'Ambas'},
+  {un:'Un. 2216',cliente:'Miguel',tq:'TQ pendente',minuta:'Não iniciada',assin:'Pendente',reg:'Pendente',resp:'Shirley'},
+  {un:'Un. 2103',cliente:'Cecília',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
+  {un:'Un. 1803',cliente:'Adolfo',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
+  {un:'Un. 1807',cliente:'Gabriel',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
+  {un:'Un. 2012',cliente:'Ana',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
+  {un:'Un. 1003',cliente:'Roberto Grunpeter',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
+  {un:'Un. 1512',cliente:'Gal / Sofia',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
+  {un:'Un. 2203',cliente:'Isabella',tq:'TQ recebido',minuta:'Feita',assin:'Assinado',reg:'Pendente',resp:'Ambas'},
+  {un:'BL01-2412',cliente:'Juliana Ifanger Halabi',tq:'Baixa recebida',minuta:'Feita',assin:'Assinado',reg:'Pendente',resp:'Grazi'},
+  {un:'BL01-2302',cliente:'Nicolas Ferreira',tq:'TQ recebido',minuta:'Feita',assin:'NÃO ASSINOU',reg:'Pendente',resp:'Grazi'},
+];
+
+let casos={};
+let focos=[];
+let filtro='todos';
+let busca='';
+let inicializado=false;
+
+// ── FIREBASE LISTENERS ──
+const casosRef=ref(db,'casos');
+const focosRef=ref(db,'focos');
+
+onValue(casosRef,(snap)=>{
+  const data=snap.val();
+  if(!data&&!inicializado){
+    // Primeira vez — popular com dados default
+    defaultCasos.forEach(c=>{
+      const nr=push(casosRef);
+      set(nr,{...c,id:nr.key});
+    });
+    inicializado=true;
+  } else if(data){
+    casos=data;
+    inicializado=true;
+    renderStats();
+    renderCasos();
+  }
+  setSyncStatus(true);
+},()=>setSyncStatus(false));
+
+onValue(focosRef,(snap)=>{
+  focos=snap.val()||[];
+  renderFoco();
+});
+
+function setSyncStatus(ok){
+  const dot=document.getElementById('sync-dot');
+  const lbl=document.getElementById('sync-label');
+  dot.className='sync-dot '+(ok?'':'off');
+  lbl.textContent=ok?`Sincronizado · ${tsStr()}`:'Sem conexão';
+  document.getElementById('updated').textContent=ok?`Atualizado em ${tsStr()}`:'';
+}
+
+function getCasosList(){
+  return Object.values(casos).filter(Boolean);
+}
+
+// ── FOCO DO DIA ──
+function renderFoco(){
+  const el=document.getElementById('foco-items');
+  const arr=Array.isArray(focos)?focos:Object.values(focos||{});
+  if(!arr.length){el.innerHTML='<div class="foco-empty">Nenhuma prioridade definida para hoje.</div>';return;}
+  el.innerHTML=arr.map((f,i)=>`
+    <div class="foco-item${f.done?' done':''}">
+      <div class="foco-check${f.done?' checked':''}" onclick="toggleFoco(${i})"></div>
+      <span class="foco-text${f.done?' done':''}">${f.text}</span>
+      <button class="foco-del" onclick="delFoco(${i})">&times;</button>
+    </div>
+  `).join('');
+}
+window.toggleFocoInput=function(){
+  const r=document.getElementById('foco-input-row');
+  r.style.display=r.style.display==='flex'?'none':'flex';
+  if(r.style.display==='flex')setTimeout(()=>document.getElementById('foco-input').focus(),50);
+};
+window.addFoco=function(){
+  const v=document.getElementById('foco-input').value.trim();
+  if(!v)return;
+  const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+  if(arr.length>=5){alert('Máximo 5 prioridades por dia.');return;}
+  arr.push({text:v,done:false});
+  set(focosRef,arr);
+  document.getElementById('foco-input').value='';
+};
+window.toggleFoco=function(i){
+  const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+  if(arr[i])arr[i].done=!arr[i].done;
+  set(focosRef,arr);
+};
+window.delFoco=function(i){
+  const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+  arr.splice(i,1);
+  set(focosRef,arr);
+};
+
+// ── STATS ──
+function renderStats(){
+  const ativos=getCasosList().filter(x=>!x.concluido);
+  const pr=ativos.filter(x=>x.status==='prioridade').length;
+  const cr=ativos.filter(x=>x.status==='critico').length;
+  const at=ativos.filter(x=>x.status==='atencao').length;
+  const ok=ativos.filter(x=>x.status==='emdia'||x.status==='regular').length;
+  const parados=ativos.filter(x=>diasParado(x.atualizado)>=3).length;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="stat-label">Total ativos</div><div class="stat-num">${ativos.length}</div></div>
+    <div class="stat"><div class="stat-label">Prioridade</div><div class="stat-num purple">${pr}</div></div>
+    <div class="stat"><div class="stat-label">Críticos</div><div class="stat-num red">${cr}</div></div>
+    <div class="stat"><div class="stat-label">Atenção</div><div class="stat-num amber">${at}</div></div>
+    <div class="stat"><div class="stat-label">Em dia</div><div class="stat-num green">${ok}</div></div>
+    <div class="stat"><div class="stat-label">Parados +3d</div><div class="stat-num purple">${parados}</div></div>
+  `;
+}
+
+// ── BADGES ──
+function bStatus(s){
+  const m={prioridade:'b-prioridade Prioridade',critico:'b-critico Crítico',atencao:'b-atencao Atenção',emdia:'b-emdia Em dia',regular:'b-regular Regular'};
+  const v=(m[s]||'b-gray '+s).split(' ');
+  return`<span class="badge ${v[0]}">${v.slice(1).join(' ')}</span>`;
+}
+function bResp(r){
+  const m={shirley:'b-shirley Shirley',grazi:'b-grazi Grazi',ambas:'b-ambas Ambas',gabriel:'b-gabriel Gabriel',andre:'b-andre André'};
+  const v=(m[r]||'b-gray '+r).split(' ');
+  return`<span class="badge ${v[0]}">${v.slice(1).join(' ')}</span>`;
+}
+function bDias(iso){
+  const d=diasParado(iso);
+  if(d<=0)return'';
+  let cls,txt;
+  if(d<3){cls='dias-1';txt=d===1?'1 dia parado':`${d} dias parado`;}
+  else if(d<7){cls='dias-3';txt=`${d} dias parado`;}
+  else if(d<15){cls='dias-7';txt=`${d} dias parado`;}
+  else{cls='dias-15';txt=`${d} dias parado`;}
+  return`<span class="dias-badge ${cls}"><i class="ti ti-clock" style="font-size:11px;vertical-align:-1px"></i> ${txt}</span>`;
+}
+function bDep(dep){
+  if(!dep)return'';
+  return`<span class="dep-badge"><i class="ti ti-hourglass" style="font-size:11px;vertical-align:-1px"></i> ${dep}</span>`;
+}
+
+// ── FILTRO ──
+function visivel(c){
+  if(filtro==='concluido')return c.concluido;
+  if(c.concluido)return false;
+  if(filtro==='prioridade'&&c.status!=='prioridade')return false;
+  if(filtro==='critico'&&c.status!=='critico')return false;
+  if(filtro==='atencao'&&c.status!=='atencao')return false;
+  if(filtro==='emdia'&&c.status!=='emdia')return false;
+  if(filtro==='regular'&&c.status!=='regular')return false;
+  if(filtro==='shirley'&&c.resp!=='shirley')return false;
+  if(filtro==='grazi'&&c.resp!=='grazi')return false;
+  if(filtro==='gabriel'&&c.resp!=='gabriel')return false;
+  if(filtro==='andre'&&c.resp!=='andre')return false;
+  if(filtro==='parado'&&diasParado(c.atualizado)<3)return false;
+  if(filtro==='terceiro'&&!c.dep)return false;
+  if(busca){
+    const q=busca.toLowerCase();
+    if(![c.nome,c.tipo,c.acao,c.obs].some(t=>(t||'').toLowerCase().includes(q)))return false;
+  }
+  return true;
+}
+
+// ── RENDER CASOS ──
+function renderCasos(){
+  const el=document.getElementById('casos-list');
+  const lista=getCasosList().filter(visivel);
+  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-inbox" style="font-size:26px;display:block;margin-bottom:8px;opacity:.35"></i>Nenhum caso encontrado.</div>';return;}
+  // Ordenar: prioridade > critico > atencao > emdia > regular
+  const ordem={prioridade:0,critico:1,atencao:2,emdia:3,regular:4};
+  lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
+  el.innerHTML=lista.map(c=>{
+    const agBadge=c.agendado?`<span class="badge" style="background:#E8F5E9;color:#1B5E20"><i class="ti ti-calendar-check" style="font-size:11px;vertical-align:-1px"></i> ${new Date(c.agendado).toLocaleDateString('pt-BR')} ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:'';
+    return`
+    <div class="card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
+      <div class="card-main">
+        <div>
+          <div class="card-name">${c.nome}</div>
+          <div class="card-tipo">${c.tipo||'—'}</div>
+          <div class="proxima-acao">
+            <i class="ti ti-arrow-narrow-right"></i>
+            <span class="proxima-acao-text" id="acao-txt-${c.id}">${c.acao||'Definir próxima ação...'}</span>
+            <button class="proxima-acao-edit" onclick="toggleAcaoEdit('${c.id}')">editar</button>
+          </div>
+          <div class="acao-edit" id="acao-edit-${c.id}">
+            <input type="text" id="acao-inp-${c.id}" value="${(c.acao||'').replace(/"/g,'&quot;')}" onkeydown="if(event.key==='Enter')salvarAcao('${c.id}')">
+            <button onclick="salvarAcao('${c.id}')">Salvar</button>
+          </div>
+          <div class="card-meta">
+            ${c.concluido?'<span class="badge b-gray">Concluído</span>':bStatus(c.status)}
+            ${bResp(c.resp)}
+            ${c.prazo&&c.prazo!=='—'?`<span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${c.prazo}</span>`:''}
+            ${bDias(c.atualizado)}
+            ${bDep(c.dep)}
+            ${agBadge}
+          </div>
+        </div>
+        <div class="card-actions">
+          <select class="sel" onchange="mudarCampo('${c.id}','status',this.value)">
+            <option value="prioridade"${c.status==='prioridade'?' selected':''}>Prioridade</option>
+            <option value="critico"${c.status==='critico'?' selected':''}>Crítico</option>
+            <option value="atencao"${c.status==='atencao'?' selected':''}>Atenção</option>
+            <option value="emdia"${c.status==='emdia'?' selected':''}>Em dia</option>
+            <option value="regular"${c.status==='regular'?' selected':''}>Regular</option>
+          </select>
+          <select class="sel" onchange="mudarCampo('${c.id}','resp',this.value)">
+            <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
+            <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
+            <option value="ambas"${c.resp==='ambas'?' selected':''}>Ambas</option>
+            <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
+            <option value="andre"${c.resp==='andre'?' selected':''}>André</option>
+          </select>
+          <select class="sel" onchange="mudarCampo('${c.id}','dep',this.value)">
+            ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
+          </select>
+          <button class="btn-sm btn-foco" onclick="addAoFoco('${c.id}')"><i class="ti ti-bolt" style="font-size:12px;vertical-align:-1px"></i> Foco</button>
+          <button class="btn-sm btn-agendar" onclick="toggleAgendar('${c.id}')"><i class="ti ti-calendar-plus" style="font-size:12px;vertical-align:-1px"></i> Agendar</button>
+          <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
+          <button class="btn-sm ${c.concluido?'':'btn-concluir'}" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
+        </div>
+      </div>
+      <div class="ag-inline" id="ag-block-${c.id}">
+        <div class="ag-inner">
+          <i class="ti ti-calendar-event" style="font-size:16px;color:#16A34A;flex-shrink:0"></i>
+          <input type="datetime-local" id="ag-inp-${c.id}" value="${c.agendado||''}" style="flex:1;min-width:160px">
+          <input type="text" id="ag-desc-${c.id}" value="${(c.agendado_desc||'').replace(/"/g,'&quot;')}" placeholder="Descrição do evento" style="flex:2;min-width:160px">
+          <button class="btn-gcal" onclick="salvarAgendado('${c.id}')">Salvar</button>
+          <button class="btn-open" onclick="abrirGcal('${c.id}')">Abrir no Calendar</button>
+        </div>
+      </div>
+      <div class="obs-block">
+        <div class="obs-text" id="obs-txt-${c.id}">${c.obs||'<em style="opacity:.5">Nenhuma observação.</em>'}</div>
+        <div class="obs-edit" id="obs-edit-${c.id}">
+          <textarea rows="2" id="obs-ta-${c.id}">${c.obs||''}</textarea>
+          <div class="obs-edit-row">
+            <span class="saved-msg" id="saved-${c.id}"><i class="ti ti-check"></i> Salvo</span>
+            <button class="btn-sm" onclick="salvarObs('${c.id}')">Salvar</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── AÇÕES ──
+window.mudarCampo=function(id,campo,valor){
+  const upd={};
+  upd[campo]=valor;
+  upd['atualizado']=isoHoje();
+  update(ref(db,`casos/${id}`),upd);
+};
+window.toggleConcluido=function(id){
+  const c=casos[id];
+  if(c)update(ref(db,`casos/${id}`),{concluido:!c.concluido,atualizado:isoHoje()});
+};
+window.toggleObs=function(id){
+  const e=document.getElementById('obs-edit-'+id);
+  e.style.display=e.style.display==='flex'?'none':'flex';
+};
+window.salvarObs=function(id){
+  const v=document.getElementById('obs-ta-'+id).value;
+  update(ref(db,`casos/${id}`),{obs:v,atualizado:isoHoje()});
+  const s=document.getElementById('saved-'+id);s.style.display='inline';
+  setTimeout(()=>{s.style.display='none';document.getElementById('obs-edit-'+id).style.display='none';},1400);
+};
+window.toggleAcaoEdit=function(id){
+  const e=document.getElementById('acao-edit-'+id);
+  const open=e.style.display==='flex';
+  e.style.display=open?'none':'flex';
+  if(!open)setTimeout(()=>document.getElementById('acao-inp-'+id).focus(),40);
+};
+window.salvarAcao=function(id){
+  const v=document.getElementById('acao-inp-'+id).value.trim();
+  if(v)update(ref(db,`casos/${id}`),{acao:v,atualizado:isoHoje()});
+  document.getElementById('acao-edit-'+id).style.display='none';
+};
+window.addAoFoco=function(id){
+  const c=casos[id];if(!c)return;
+  const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+  if(arr.length>=5){alert('Foco do dia já tem 5 itens.');return;}
+  const txt=`${c.acao} — ${c.nome}`;
+  if(arr.some(f=>f.text===txt)){alert('Já está no foco do dia.');return;}
+  arr.push({text:txt,done:false});
+  set(focosRef,arr);
+};
+window.toggleAgendar=function(id){
+  const b=document.getElementById('ag-block-'+id);
+  b.style.display=b.style.display==='block'?'none':'block';
+};
+window.salvarAgendado=function(id){
+  const v=document.getElementById('ag-inp-'+id).value;
+  const d=document.getElementById('ag-desc-'+id).value.trim();
+  update(ref(db,`casos/${id}`),{agendado:v,agendado_desc:d,atualizado:isoHoje()});
+  document.getElementById('ag-block-'+id).style.display='none';
+};
+window.abrirGcal=function(id){
+  const c=casos[id];if(!c)return;
+  const base='https://calendar.google.com/calendar/render?action=TEMPLATE';
+  const titulo=encodeURIComponent((c.agendado_desc||c.acao||c.nome)+' — '+c.nome);
+  const desc=encodeURIComponent('Cartório: '+c.tipo+'\nPróxima ação: '+c.acao+'\n'+(c.obs||''));
+  if(!c.agendado){window.open(base+'&text='+titulo+'&details='+desc,'_blank');return;}
+  const dt=new Date(c.agendado);
+  const pad=n=>String(n).padStart(2,'0');
+  const fmt=d=>d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00';
+  const end=new Date(dt.getTime()+60*60*1000);
+  window.open(base+'&text='+titulo+'&dates='+fmt(dt)+'/'+fmt(end)+'&details='+desc,'_blank');
+};
+window.setFiltro=function(f,btn){
+  filtro=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderCasos();
+};
+window.buscar=function(v){busca=v;renderCasos();};
+window.toggleForm=function(){
+  const f=document.getElementById('add-form');
+  f.style.display=f.style.display==='block'?'none':'block';
+};
+window.salvarNovo=function(){
+  const nome=document.getElementById('f-nome').value.trim();
+  if(!nome){document.getElementById('f-nome').focus();return;}
+  const nr=push(casosRef);
+  set(nr,{
+    id:nr.key,nome,
+    tipo:document.getElementById('f-tipo').value.trim()||'—',
+    acao:document.getElementById('f-acao').value.trim()||'Definir próxima ação',
+    status:document.getElementById('f-status').value,
+    resp:document.getElementById('f-resp').value,
+    prazo:document.getElementById('f-prazo').value.trim()||'—',
+    dep:document.getElementById('f-dep').value,
+    agendado:document.getElementById('f-agendado').value||'',
+    agendado_desc:document.getElementById('f-agendado-desc').value.trim()||'',
+    obs:document.getElementById('f-obs').value.trim(),
+    atualizado:isoHoje(),
+    concluido:false
+  });
+  ['f-nome','f-tipo','f-acao','f-prazo','f-obs','f-agendado-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-dep').value='';
+  document.getElementById('f-agendado').value='';
+  window.toggleForm();
+};
+
+// ── DO IT ──
+window.mudarTab=function(t,btn){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('view-casos').style.display=t==='casos'?'block':'none';
+  document.getElementById('view-doit').style.display=t==='doit'?'block':'none';
+  if(t==='doit')renderDoit();
+};
+function renderDoit(){
+  const pillTQ=v=>v.includes('Aguardando')?`<span class="pill pill-red">${v}</span>`:v.includes('recebida')||v.includes('recebido')?`<span class="pill pill-amber">${v}</span>`:`<span class="pill pill-green">${v}</span>`;
+  const pillA=v=>v==='NÃO ASSINOU'?`<span class="pill pill-red">${v}</span>`:v==='Assinado'?`<span class="pill pill-green">${v}</span>`:v==='Pendente'?`<span class="pill pill-amber">${v}</span>`:`<span class="pill pill-gray">${v}</span>`;
+  const pillM=v=>v==='Não iniciada'?`<span class="pill pill-red">${v}</span>`:v==='Feita'?`<span class="pill pill-green">${v}</span>`:`<span class="pill pill-gray">${v}</span>`;
+  const pillR=v=>({Shirley:'pill-blue',Grazi:'pill-green',Ambas:'pill-amber'}[v]||'pill-gray');
+  document.getElementById('doit-table').innerHTML=`
+  <thead><tr><th>Unidade</th><th>Cliente</th><th>Status TQ</th><th>Minuta</th><th>Assinatura</th><th>Registro</th><th>Resp.</th></tr></thead>
+  <tbody>${doitData.map(r=>`<tr>
+    <td style="font-weight:500;white-space:nowrap">${r.un}</td><td>${r.cliente}</td>
+    <td>${pillTQ(r.tq)}</td><td>${pillM(r.minuta)}</td><td>${pillA(r.assin)}</td>
+    <td><span class="pill ${r.reg==='Pendente'?'pill-amber':'pill-green'}">${r.reg}</span></td>
+    <td><span class="pill ${pillR(r.resp)}">${r.resp}</span></td>
+  </tr>`).join('')}</tbody>`;
+}
+</script>
+</body>
+</html>
