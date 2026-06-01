@@ -2,6 +2,7 @@
   "name": "cartorio-api",
   "private": true,
   "dependencies": {
-    "@netlify/blobs": "^7.0.0"
+    "@netlify/blobs": "^7.0.0",
+    "firebase": "^12.14.0"
   }
 }

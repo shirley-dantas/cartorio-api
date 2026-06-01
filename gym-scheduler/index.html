@@ -7,6 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>GymDuo 💪</title>
+  <!-- Firebase SDK (compat — funciona direto no HTML sem bundler) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -841,19 +844,28 @@ const DAY_NAMES = {
 };
 
 // =============================================================
-// SYNC — Netlify Blobs via /.netlify/functions/gym-sync
-// Sincroniza automaticamente quando publicado no Netlify.
-// Localmente (sem deploy) fica em modo offline (localStorage).
+// FIREBASE CONFIG
+// Valores preenchidos a partir do console — faltam 3 (ver abaixo)
 // =============================================================
-const SYNC_URL = '/.netlify/functions/gym-sync';
-let pollTimer = null;
+const FIREBASE_CONFIG = {
+  apiKey:            "PREENCHER",   // ← truncado na foto, cole o valor completo
+  authDomain:        "gymduo-shirley-renato.firebaseapp.com",
+  databaseURL:       "PREENCHER",   // ← criar Realtime Database para obter esta URL
+  projectId:         "gymduo-shirley-renato",
+  storageBucket:     "gymduo-shirley-renato.firebasestorage.app",
+  messagingSenderId: "1057347545052",
+  appId:             "PREENCHER",   // ← truncado na foto, cole o valor completo
+  measurementId:     "G-WDLRES8P01"
+};
+
+let db = null;
 
 function setSyncStatus(status) {
   const el = document.getElementById('syncDot');
   if (!el) return;
   const map = {
-    online:     { e: '🟢', t: 'Sincronizado entre os dois celulares' },
-    connecting: { e: '🟡', t: 'Conectando...' },
+    online:     { e: '🟢', t: 'Sincronizado em tempo real via Firebase' },
+    connecting: { e: '🟡', t: 'Conectando ao Firebase...' },
     offline:    { e: '🔴', t: 'Sem sincronização — dados salvos só neste celular' },
   };
   const s = map[status] || map.offline;
@@ -861,43 +873,39 @@ function setSyncStatus(status) {
   el.title = s.t;
 }
 
-async function syncFromServer() {
-  try {
-    const res = await fetch(SYNC_URL, { signal: AbortSignal.timeout(6000) });
-    if (!res.ok) throw new Error('http ' + res.status);
-    const serverData = await res.json();
-    if (serverData && Object.keys(serverData).length > 0) {
-      persist(serverData);
-      render();
-    }
-    setSyncStatus('online');
-  } catch(e) {
-    setSyncStatus('offline');
-  }
-}
-
-async function pushToServer(path, value) {
-  try {
-    await fetch(SYNC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path, value }),
-      signal: AbortSignal.timeout(6000),
-    });
-  } catch(_) {
-    setSyncStatus('offline');
-  }
-}
-
 function startSync() {
-  setSyncStatus('connecting');
-  syncFromServer();
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(syncFromServer, 8000);
+  const missing = Object.entries(FIREBASE_CONFIG)
+    .filter(([, v]) => v === 'PREENCHER')
+    .map(([k]) => k);
+
+  if (missing.length > 0) {
+    console.warn('Firebase: config incompleto —', missing.join(', '));
+    setSyncStatus('offline');
+    return;
+  }
+
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    setSyncStatus('connecting');
+
+    db.ref('gymDuo').on('value', snapshot => {
+      const data = snapshot.val();
+      if (data) { persist(data); render(); }
+      setSyncStatus('online');
+    }, () => setSyncStatus('offline'));
+  } catch(e) {
+    console.warn('Firebase init error:', e);
+    setSyncStatus('offline');
+  }
 }
 
 function stopSync() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  if (db) { db.ref('gymDuo').off(); db = null; }
+}
+
+function pushToServer(path, value) {
+  if (db) db.ref('gymDuo/' + path).set(value).catch(() => setSyncStatus('offline'));
 }
 
 // =============================================================
