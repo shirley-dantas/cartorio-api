@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>GymDuo 💪</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #1a1a1a;
+      --surface2: #222222;
+      --border: #2e2e2e;
+      --text: #f0f0f0;
+      --muted: #888;
+      --shirley: #ff6b9d;
+      --renato: #4d9fff;
+      --gold: #ffd700;
+      --green: #4caf50;
+      --radius: 16px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overscroll-behavior: none;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* ===== SCREENS ===== */
+    .screen { display: none; flex-direction: column; flex: 1; min-height: 0; }
+    .screen.active { display: flex; }
+
+    /* ===== PROFILE SCREEN ===== */
+    #profileScreen {
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      gap: 36px;
+    }
+
+    .logo-wrap { text-align: center; }
+    .logo-icon { font-size: 56px; display: block; }
+    .logo-title {
+      font-size: 32px; font-weight: 900; margin-top: 8px;
+      background: linear-gradient(135deg, var(--shirley), var(--renato));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo-sub { color: var(--muted); font-size: 15px; margin-top: 6px; }
+
+    .profile-cards { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+
+    .profile-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      cursor: pointer;
+      border: 2px solid var(--border);
+      transition: transform 0.15s, border-color 0.15s;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .profile-card:active { transform: scale(0.97); }
+    .profile-card[data-user="shirley"] { border-color: var(--shirley); }
+    .profile-card[data-user="renato"] { border-color: var(--renato); }
+
+    .profile-avatar {
+      width: 60px; height: 60px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; flex-shrink: 0;
+    }
+    .profile-card[data-user="shirley"] .profile-avatar { background: rgba(255,107,157,0.18); }
+    .profile-card[data-user="renato"]  .profile-avatar { background: rgba(77,159,255,0.18); }
+
+    .profile-info h2 { font-size: 20px; font-weight: 800; }
+    .profile-info p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .profile-card[data-user="shirley"] .profile-info h2 { color: var(--shirley); }
+    .profile-card[data-user="renato"]  .profile-info h2 { color: var(--renato); }
+
+    /* ===== APP HEADER ===== */
+    .app-header {
+      padding: 16px 16px 0;
+      display: flex; align-items: center; gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .back-btn {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--surface); border: none; color: var(--text);
+      font-size: 20px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .header-user { flex: 1; }
+    .header-name { font-size: 19px; font-weight: 800; }
+    .header-streak { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .stars-pill {
+      background: var(--surface); border-radius: 20px;
+      padding: 7px 13px; display: flex; align-items: center;
+      gap: 5px; font-size: 14px; font-weight: 800; flex-shrink: 0;
+    }
+
+    /* ===== TABS ===== */
+    .tabs {
+      display: flex; gap: 4px;
+      padding: 12px 16px 0;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .tab {
+      flex: 1; padding: 10px 4px; border-radius: 10px 10px 0 0;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      color: var(--muted); border: none; background: transparent;
+      transition: color 0.15s, background 0.15s;
+    }
+    .tab.active { background: var(--surface); color: var(--text); }
+
+    .tab-pane { display: none; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .tab-pane.active { display: block; }
+
+    /* ===== TODAY PANE ===== */
+    .today-wrap { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    .day-header { display: flex; align-items: center; justify-content: space-between; }
+    .day-title { font-size: 22px; font-weight: 900; }
+    .workout-tag {
+      background: var(--surface); border-radius: 20px;
+      padding: 5px 12px; font-size: 12px; color: var(--muted);
+    }
+
+    /* star celebration */
+    .star-banner {
+      display: none;
+      background: linear-gradient(135deg, #2d1f00, #3a2900);
+      border: 1px solid rgba(255,215,0,0.4);
+      border-radius: var(--radius); padding: 20px; text-align: center;
+    }
+    .star-banner.show { display: block; }
+    .star-banner .s-icon { font-size: 44px; animation: pop 0.4s ease; }
+    .star-banner h3 { font-size: 17px; font-weight: 800; color: var(--gold); margin-top: 8px; }
+    .star-banner p { font-size: 13px; color: #b8960c; margin-top: 4px; }
+    @keyframes pop { 0%{transform:scale(0.5);opacity:0} 80%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+
+    /* progress card */
+    .progress-card {
+      background: var(--surface); border-radius: var(--radius); padding: 16px 18px;
+    }
+    .progress-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .progress-label { font-size: 13px; color: var(--muted); }
+    .progress-num { font-size: 18px; font-weight: 800; }
+    .progress-bar {
+      height: 7px; background: var(--border); border-radius: 4px; overflow: hidden;
+    }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+
+    /* exercise list */
+    .ex-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .ex-item {
+      background: var(--surface); border-radius: 12px; padding: 14px 14px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; border: 1px solid transparent;
+      transition: background 0.2s, border-color 0.2s;
+      user-select: none;
+    }
+    .ex-item.done { background: rgba(76,175,80,0.09); border-color: rgba(76,175,80,0.35); }
+    .ex-item:active { transform: scale(0.98); }
+
+    .ex-check {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0; transition: all 0.2s;
+    }
+    .ex-item.done .ex-check { background: var(--green); border-color: var(--green); }
+
+    .ex-body { flex: 1; }
+    .ex-name { font-size: 15px; font-weight: 600; }
+    .ex-detail { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .ex-item.done .ex-name { text-decoration: line-through; color: var(--muted); }
+
+    /* rest day */
+    .rest-day {
+      display: none; background: var(--surface); border-radius: var(--radius);
+      padding: 44px 24px; text-align: center; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .rest-day.show { display: flex; }
+    .rest-day .rd-icon { font-size: 52px; }
+    .rest-day h3 { font-size: 20px; font-weight: 800; }
+    .rest-day p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+    /* ===== WEEK PANE ===== */
+    .week-wrap { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .pane-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+
+    .wday-card {
+      background: var(--surface); border-radius: 12px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .wday-card.is-today { border: 1px solid var(--border); }
+
+    .wday-icon {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0; background: var(--surface2);
+    }
+    .wday-icon.done-icon { background: rgba(76,175,80,0.15); }
+    .wday-icon.today-icon { background: rgba(255,215,0,0.12); }
+
+    .wday-info { flex: 1; }
+    .wday-name { font-size: 15px; font-weight: 600; }
+    .wday-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    /* ===== COMPETITION PANE ===== */
+    .comp-wrap { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .comp-heading { font-size: 18px; font-weight: 800; text-align: center; }
+
+    .comp-card {
+      background: var(--surface); border-radius: var(--radius); padding: 20px;
+    }
+
+    .comp-week-range { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 16px; }
+
+    .comp-scores { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .comp-user { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+    .comp-ava {
+      width: 58px; height: 58px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 26px;
+    }
+    .comp-uname { font-size: 13px; font-weight: 700; }
+    .comp-big { font-size: 40px; font-weight: 900; line-height: 1; }
+    .comp-slabel { font-size: 11px; color: var(--muted); }
+
+    .comp-vs { font-size: 18px; font-weight: 900; color: var(--muted); }
+
+    .comp-verdict {
+      margin-top: 16px;
+      background: rgba(255,215,0,0.08); border: 1px solid rgba(255,215,0,0.2);
+      border-radius: 10px; padding: 11px 14px;
+      font-size: 14px; text-align: center; line-height: 1.4;
+    }
+
+    .streak-card { background: var(--surface); border-radius: var(--radius); padding: 18px 20px; }
+    .streak-heading { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+    .streak-rows { display: flex; flex-direction: column; gap: 12px; }
+    .streak-row { display: flex; align-items: center; gap: 10px; }
+    .streak-who { width: 56px; font-size: 13px; font-weight: 600; }
+    .streak-track { flex: 1; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+    .streak-bar { height: 100%; border-radius: 5px; transition: width 0.5s ease; }
+    .streak-val { font-size: 13px; font-weight: 800; width: 36px; text-align: right; }
+
+    .motive-card {
+      background: var(--surface2); border-radius: 12px;
+      padding: 16px; display: flex; gap: 12px; align-items: flex-start;
+    }
+    .motive-icon { font-size: 24px; flex-shrink: 0; }
+    .motive-text { font-size: 13px; line-height: 1.55; color: var(--muted); }
+    .motive-text strong { color: var(--text); }
+
+    /* ===== UTILITIES ===== */
+    .shirley-color { color: var(--shirley); }
+    .renato-color  { color: var(--renato); }
+
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- PROFILE SELECTION -->
+  <div id="profileScreen" class="screen active">
+    <div class="logo-wrap">
+      <span class="logo-icon">💪</span>
+      <div class="logo-title">GymDuo</div>
+      <div class="logo-sub">Quem vai treinar hoje?</div>
+    </div>
+    <div class="profile-cards">
+      <div class="profile-card" data-user="shirley" onclick="selectProfile('shirley')">
+        <div class="profile-avatar">🌸</div>
+        <div class="profile-info">
+          <h2>Shirley</h2>
+          <p>Glúteos · Costas · Peito · Pernas · Ombros</p>
+        </div>
+      </div>
+      <div class="profile-card" data-user="renato" onclick="selectProfile('renato')">
+        <div class="profile-avatar">🏋️</div>
+        <div class="profile-info">
+          <h2>Renato</h2>
+          <p>Peito · Costas · Pernas · Ombros · Braços</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="mainApp" class="screen">
+    <div class="app-header">
+      <button class="back-btn" onclick="goBack()">‹</button>
+      <div class="header-user">
+        <div class="header-name" id="hdrName"></div>
+        <div class="header-streak" id="hdrStreak"></div>
+      </div>
+      <div class="stars-pill">⭐ <span id="hdrStars">0</span></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('today',this)">Hoje</button>
+      <button class="tab" onclick="switchTab('week',this)">Semana</button>
+      <button class="tab" onclick="switchTab('comp',this)">🏆 Placar</button>
+    </div>
+
+    <!-- TODAY -->
+    <div id="paneToday" class="tab-pane active">
+      <div class="today-wrap">
+        <div class="day-header">
+          <div class="day-title" id="todayTitle"></div>
+          <div class="workout-tag" id="todayTag"></div>
+        </div>
+        <div id="starBanner" class="star-banner">
+          <div class="s-icon">⭐</div>
+          <h3>Você ganhou uma estrela!</h3>
+          <p>Treino 100% concluído! Incrível!</p>
+        </div>
+        <div class="progress-card" id="progressCard">
+          <div class="progress-top">
+            <span class="progress-label">Progresso de hoje</span>
+            <span class="progress-num" id="progNum">0/0</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div id="exList" class="ex-list"></div>
+        <div id="restDay" class="rest-day">
+          <div class="rd-icon">😴</div>
+          <h3>Dia de Descanso</h3>
+          <p>Recuperação faz parte do treino.<br>Volte forte amanhã!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEEK -->
+    <div id="paneWeek" class="tab-pane">
+      <div class="week-wrap">
+        <div class="pane-title">Semana atual</div>
+        <div id="weekList"></div>
+      </div>
+    </div>
+
+    <!-- COMPETITION -->
+    <div id="paneComp" class="tab-pane">
+      <div class="comp-wrap">
+        <div class="comp-heading">🏆 Placar da Semana</div>
+
+        <div class="comp-card">
+          <div class="comp-week-range" id="weekRange"></div>
+          <div class="comp-scores">
+            <div class="comp-user">
+              <div class="comp-ava" style="background:rgba(255,107,157,0.15)">🌸</div>
+              <div class="comp-uname shirley-color">Shirley</div>
+              <div class="comp-big shirley-color" id="sStars">0</div>
+              <div class="comp-slabel">⭐ semana</div>
+            </div>
+            <div class="comp-vs">VS</div>
+            <div class="comp-user">
+              <div class="comp-ava" style="background:rgba(77,159,255,0.15)">🏋️</div>
+              <div class="comp-uname renato-color">Renato</div>
+              <div class="comp-big renato-color" id="rStars">0</div>
+              <div class="comp-slabel">⭐ semana</div>
+            </div>
+          </div>
+          <div class="comp-verdict" id="verdict"></div>
+        </div>
+
+        <div class="streak-card">
+          <div class="streak-heading">🔥 Sequência de dias</div>
+          <div class="streak-rows">
+            <div class="streak-row">
+              <div class="streak-who shirley-color">Shirley</div>
+              <div class="streak-track"><div class="streak-bar" id="sStreakBar" style="background:var(--shirley);width:0%"></div></div>
+              <div class="streak-val shirley-color" id="sStreakVal">0</div>
+            </div>
+            <div class="streak-row">
+              <div class="streak-who renato-color">Renato</div>
+              <div class="streak-track"><div class="streak-bar" id="rStreakBar" style="background:var(--renato);width:0%"></div></div>
+              <div class="streak-val renato-color" id="rStreakVal">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="motive-card">
+          <div class="motive-icon">💬</div>
+          <div class="motive-text" id="motiveText"></div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /mainApp -->
+
+</div><!-- /app -->
+
+<script>
+// =============================================================
+// TREINOS
+// =============================================================
+const WORKOUTS = {
+  shirley: {
+    segunda: {
+      nome: 'Glúteos + Posterior',
+      exercicios: [
+        { nome: 'Agachamento Sumô',     series: 4, reps: '12', obs: 'Pés bem abertos, ponta para fora' },
+        { nome: 'Hip Thrust',           series: 4, reps: '15', obs: 'Contrair o glúteo no topo' },
+        { nome: 'Leg Press 45°',        series: 4, reps: '15', obs: 'Pés altos e afastados' },
+        { nome: 'Mesa Flexora',         series: 4, reps: '12', obs: '' },
+        { nome: 'Stiff',                series: 3, reps: '12', obs: 'Costas retas, sente o alongamento' },
+        { nome: 'Abdução de Quadril',   series: 3, reps: '20', obs: 'Máquina ou cabo' },
+      ]
+    },
+    terca: {
+      nome: 'Costas + Bíceps',
+      exercicios: [
+        { nome: 'Puxada Frontal',       series: 4, reps: '12', obs: 'Pegada larga, traz à frente do peito' },
+        { nome: 'Remada Sentada',       series: 4, reps: '12', obs: 'Cotovelos próximos ao corpo' },
+        { nome: 'Remada Unilateral',    series: 3, reps: '12', obs: 'Cada lado' },
+        { nome: 'Pullover',             series: 3, reps: '15', obs: 'Haltere ou polia' },
+        { nome: 'Rosca Direta',         series: 3, reps: '12', obs: 'Sem balançar o tronco' },
+        { nome: 'Rosca Martelo',        series: 3, reps: '12', obs: 'Cada lado' },
+      ]
+    },
+    quarta: {
+      nome: 'Peito + Tríceps',
+      exercicios: [
+        { nome: 'Supino Plano c/ Halteres', series: 4, reps: '12', obs: '' },
+        { nome: 'Supino Inclinado',          series: 3, reps: '12', obs: '30–45° de inclinação' },
+        { nome: 'Crucifixo Plano',           series: 3, reps: '15', obs: 'Cotovelo levemente dobrado' },
+        { nome: 'Crossover',                 series: 3, reps: '15', obs: 'Nas polias, vai até cruzar as mãos' },
+        { nome: 'Tríceps Corda',             series: 4, reps: '15', obs: 'Abre as mãos no final' },
+        { nome: 'Tríceps Testa',             series: 3, reps: '12', obs: 'Com haltere ou barra EZ' },
+      ]
+    },
+    quinta: {
+      nome: 'Pernas Completo',
+      exercicios: [
+        { nome: 'Agachamento Livre',    series: 4, reps: '12', obs: 'Joelhos alinhados com os pés' },
+        { nome: 'Cadeira Extensora',    series: 3, reps: '15', obs: '' },
+        { nome: 'Afundo (Avanço)',      series: 3, reps: '12', obs: 'Cada perna' },
+        { nome: 'Cadeira Abdutora',     series: 4, reps: '20', obs: '' },
+        { nome: 'Panturrilha em Pé',    series: 4, reps: '20', obs: '' },
+        { nome: 'Abdominal Crunch',     series: 3, reps: '20', obs: '' },
+        { nome: 'Prancha',              series: 3, reps: '40s', obs: 'Respira fundo, não prende o ar' },
+      ]
+    },
+    sexta: {
+      nome: 'Ombros + Abdômen',
+      exercicios: [
+        { nome: 'Desenvolvimento c/ Halteres', series: 4, reps: '12', obs: '' },
+        { nome: 'Elevação Lateral',            series: 4, reps: '15', obs: 'Cotovelo levemente dobrado' },
+        { nome: 'Elevação Frontal',            series: 3, reps: '12', obs: 'Alternado ou simultâneo' },
+        { nome: 'Face Pull',                   series: 3, reps: '15', obs: 'Ótimo para postura' },
+        { nome: 'Abdominal Supra',             series: 4, reps: '20', obs: '' },
+        { nome: 'Prancha',                     series: 3, reps: '45s', obs: '' },
+        { nome: 'Russian Twist',               series: 3, reps: '20', obs: 'Com ou sem peso' },
+      ]
+    },
+    sabado: null,
+    domingo: null,
+  },
+
+  renato: {
+    segunda: {
+      nome: 'Peito + Tríceps',
+      exercicios: [
+        { nome: 'Supino Plano c/ Barra',         series: 4, reps: '10', obs: 'Exercício base, peso desafiador' },
+        { nome: 'Supino Inclinado c/ Halteres',  series: 4, reps: '10', obs: '' },
+        { nome: 'Crucifixo Plano',               series: 3, reps: '15', obs: '' },
+        { nome: 'Crossover',                     series: 3, reps: '15', obs: '' },
+        { nome: 'Tríceps Corda',                 series: 4, reps: '15', obs: 'Isolado, sem puxar o corpo' },
+        { nome: 'Tríceps Testa',                 series: 3, reps: '12', obs: '' },
+        { nome: 'Mergulho (Paralelo)',           series: 3, reps: '12', obs: 'Ou entre dois bancos' },
+      ]
+    },
+    terca: {
+      nome: 'Costas + Bíceps',
+      exercicios: [
+        { nome: 'Puxada Frontal',           series: 4, reps: '12', obs: 'Pegada fechada ou média' },
+        { nome: 'Remada Curvada c/ Barra',  series: 4, reps: '10', obs: 'Costas retas, força nas costas' },
+        { nome: 'Remada Unilateral',        series: 3, reps: '12', obs: 'Cada lado' },
+        { nome: 'Pullover',                 series: 3, reps: '12', obs: '' },
+        { nome: 'Rosca Direta',             series: 4, reps: '12', obs: '' },
+        { nome: 'Rosca Concentrada',        series: 3, reps: '12', obs: 'Cada braço' },
+        { nome: 'Rosca Martelo',            series: 3, reps: '12', obs: '' },
+      ]
+    },
+    quarta: {
+      nome: 'Pernas',
+      exercicios: [
+        { nome: 'Agachamento Livre',     series: 5, reps: '10', obs: 'Exercício principal — foco total' },
+        { nome: 'Leg Press 45°',         series: 4, reps: '12', obs: '' },
+        { nome: 'Cadeira Extensora',     series: 3, reps: '15', obs: '' },
+        { nome: 'Mesa Flexora',          series: 4, reps: '12', obs: '' },
+        { nome: 'Stiff',                 series: 3, reps: '12', obs: '' },
+        { nome: 'Panturrilha em Pé',     series: 4, reps: '20', obs: '' },
+      ]
+    },
+    quinta: {
+      nome: 'Ombros + Trapézio',
+      exercicios: [
+        { nome: 'Desenvolvimento c/ Barra', series: 4, reps: '10', obs: 'Na frente da cabeça' },
+        { nome: 'Desenvolvimento Arnold',   series: 3, reps: '12', obs: '' },
+        { nome: 'Elevação Lateral',         series: 4, reps: '15', obs: '' },
+        { nome: 'Elevação Frontal',         series: 3, reps: '12', obs: '' },
+        { nome: 'Remada Alta',              series: 3, reps: '12', obs: 'Para deltóide e trapézio' },
+        { nome: 'Encolhimento de Ombros',   series: 4, reps: '15', obs: 'Com barra ou haltere' },
+      ]
+    },
+    sexta: {
+      nome: 'Braços + Abdômen',
+      exercicios: [
+        { nome: 'Rosca Direta c/ Barra',  series: 4, reps: '12', obs: '' },
+        { nome: 'Rosca Martelo',          series: 3, reps: '12', obs: '' },
+        { nome: 'Rosca 21',               series: 3, reps: '21', obs: '7 parcial baixo + 7 parcial alto + 7 completo' },
+        { nome: 'Tríceps Corda',          series: 4, reps: '15', obs: '' },
+        { nome: 'Mergulho (Paralelo)',    series: 3, reps: '10', obs: '' },
+        { nome: 'Abdominal Crunch',       series: 4, reps: '20', obs: '' },
+        { nome: 'Prancha',               series: 3, reps: '60s', obs: '' },
+        { nome: 'Elevação de Pernas',     series: 3, reps: '15', obs: '' },
+      ]
+    },
+    sabado: null,
+    domingo: null,
+  }
+};
+
+const DAY_KEYS  = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
+const DAY_NAMES = {
+  domingo:'Domingo', segunda:'Segunda-feira', terca:'Terça-feira',
+  quarta:'Quarta-feira', quinta:'Quinta-feira', sexta:'Sexta-feira', sabado:'Sábado'
+};
+
+// =============================================================
+// STATE
+// =============================================================
+let currentUser = null;
+let currentTab  = 'today';
+
+function todayDayKey()  { return DAY_KEYS[new Date().getDay()]; }
+function todayDateKey() { return new Date().toISOString().split('T')[0]; }
+
+function weekMonday() {
+  const now = new Date();
+  const dow = now.getDay();
+  const mon = new Date(now);
+  mon.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow));
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+
+// =============================================================
+// STORAGE (localStorage; replace with Firebase for cross-device sync)
+// =============================================================
+function store() {
+  try { return JSON.parse(localStorage.getItem('gymDuo') || '{}'); }
+  catch { return {}; }
+}
+function persist(d) { localStorage.setItem('gymDuo', JSON.stringify(d)); }
+
+function get(path) {
+  return path.split('.').reduce((o,k) => (o||{})[k], store());
+}
+function set(path, val) {
+  const d = store(), keys = path.split('.');
+  let o = d;
+  for (let i = 0; i < keys.length - 1; i++) { if (!o[keys[i]]) o[keys[i]] = {}; o = o[keys[i]]; }
+  o[keys[keys.length-1]] = val;
+  persist(d);
+}
+
+// =============================================================
+// PROFILE
+// =============================================================
+function selectProfile(user) {
+  currentUser = user;
+  const color = user === 'shirley' ? 'var(--shirley)' : 'var(--renato)';
+  const name  = user === 'shirley' ? 'Shirley' : 'Renato';
+
+  document.getElementById('hdrName').textContent = name;
+  document.getElementById('hdrName').style.color = color;
+  document.getElementById('progFill').style.background = color;
+
+  document.getElementById('profileScreen').classList.remove('active');
+  document.getElementById('mainApp').classList.add('active');
+
+  switchTab('today', document.querySelector('.tab'));
+}
+
+function goBack() {
+  document.getElementById('mainApp').classList.remove('active');
+  document.getElementById('profileScreen').classList.add('active');
+  currentUser = null;
+}
+
+// =============================================================
+// TABS
+// =============================================================
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const map = { today: 'paneToday', week: 'paneWeek', comp: 'paneComp' };
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById(map[tab]).classList.add('active');
+
+  render();
+}
+
+// =============================================================
+// RENDER DISPATCHER
+// =============================================================
+function render() {
+  if (!currentUser) return;
+  renderHeader();
+  if (currentTab === 'today') renderToday();
+  if (currentTab === 'week')  renderWeek();
+  if (currentTab === 'comp')  renderComp();
+}
+
+// =============================================================
+// HEADER
+// =============================================================
+function renderHeader() {
+  const mon = weekMonday();
+  let weekStars = 0;
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    if (get(`${currentUser}.stars.${d.toISOString().split('T')[0]}`)) weekStars++;
+  }
+  document.getElementById('hdrStars').textContent = weekStars;
+
+  const streak = get(`${currentUser}.streak`) || 0;
+  const fire = streak >= 7 ? '👑' : streak >= 3 ? '🔥' : '💪';
+  document.getElementById('hdrStreak').textContent =
+    streak > 0 ? `${fire} ${streak} dia${streak !== 1 ? 's' : ''} seguido${streak !== 1 ? 's' : ''}` : 'Comece sua sequência!';
+}
+
+// =============================================================
+// TODAY TAB
+// =============================================================
+function renderToday() {
+  const day   = todayDayKey();
+  const date  = todayDateKey();
+  const w     = WORKOUTS[currentUser][day];
+
+  document.getElementById('todayTitle').textContent = DAY_NAMES[day];
+
+  const exList  = document.getElementById('exList');
+  const restDay = document.getElementById('restDay');
+  const pCard   = document.getElementById('progressCard');
+  const banner  = document.getElementById('starBanner');
+
+  if (!w) {
+    document.getElementById('todayTag').textContent = 'Descanso 😴';
+    exList.style.display  = 'none';
+    restDay.classList.add('show');
+    pCard.style.display   = 'none';
+    banner.classList.remove('show');
+    return;
+  }
+
+  document.getElementById('todayTag').textContent = w.nome;
+  exList.style.display = 'flex';
+  restDay.classList.remove('show');
+  pCard.style.display = 'block';
+
+  const saved = get(`${currentUser}.${date}`) || {};
+  const total = w.exercicios.length;
+  let done = 0;
+
+  exList.innerHTML = w.exercicios.map((ex, i) => {
+    const isDone = !!saved[i];
+    if (isDone) done++;
+    return `<div class="ex-item${isDone ? ' done' : ''}" onclick="toggleEx(${i})">
+      <div class="ex-check">${isDone ? '✓' : ''}</div>
+      <div class="ex-body">
+        <div class="ex-name">${ex.nome}</div>
+        <div class="ex-detail">${ex.series} séries × ${ex.reps}${ex.obs ? ' · ' + ex.obs : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  document.getElementById('progNum').textContent  = `${done}/${total}`;
+  document.getElementById('progFill').style.width = `${pct}%`;
+
+  const allDone = done === total && total > 0;
+  banner.classList.toggle('show', allDone);
+
+  if (allDone && !get(`${currentUser}.stars.${date}`)) {
+    set(`${currentUser}.stars.${date}`, true);
+    recalcStreak(currentUser);
+    renderHeader();
+  }
+}
+
+function toggleEx(i) {
+  const date = todayDateKey();
+  set(`${currentUser}.${date}.${i}`, !get(`${currentUser}.${date}.${i}`));
+  renderToday();
+}
+
+function recalcStreak(user) {
+  let streak = 0;
+  const now = new Date();
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    const dk = d.toISOString().split('T')[0];
+    const day = DAY_KEYS[d.getDay()];
+    if (!WORKOUTS[user][day]) continue; // rest day — skip, does not break streak
+    if (!get(`${user}.stars.${dk}`)) break;
+    streak++;
+  }
+  set(`${user}.streak`, streak);
+}
+
+// =============================================================
+// WEEK TAB
+// =============================================================
+function renderWeek() {
+  const mon    = weekMonday();
+  const today  = todayDayKey();
+  const el     = document.getElementById('weekList');
+  const wdays  = ['segunda','terca','quarta','quinta','sexta'];
+
+  el.innerHTML = wdays.map((day, i) => {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    const dk  = d.toISOString().split('T')[0];
+    const w   = WORKOUTS[currentUser][day];
+    const isToday = day === today;
+    const hasStar = get(`${currentUser}.stars.${dk}`);
+    const saved   = get(`${currentUser}.${dk}`) || {};
+    const doneN   = Object.values(saved).filter(Boolean).length;
+    const totalN  = w ? w.exercicios.length : 0;
+
+    let icon = '⬜', iconCls = '', sub = '';
+    if (!w)        { icon = '💤'; iconCls = '';          sub = 'Descanso'; }
+    else if (hasStar) { icon = '⭐'; iconCls = 'done-icon';  sub = 'Completo!'; }
+    else if (isToday) { icon = '🏃'; iconCls = 'today-icon'; sub = `${doneN}/${totalN} feitos`; }
+    else if (d < new Date()) { sub = doneN > 0 ? `${doneN}/${totalN} feitos` : 'Não registrado'; }
+    else             { sub = w ? w.nome : ''; }
+
+    return `<div class="wday-card${isToday ? ' is-today' : ''}" style="margin-bottom:8px">
+      <div class="wday-icon ${iconCls}">${icon}</div>
+      <div class="wday-info">
+        <div class="wday-name">${DAY_NAMES[day]}${isToday ? ' (hoje)' : ''}</div>
+        <div class="wday-sub">${sub}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// =============================================================
+// COMPETITION TAB
+// =============================================================
+function renderComp() {
+  const mon = weekMonday();
+  let sW = 0, rW = 0;
+
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    const dk = d.toISOString().split('T')[0];
+    if (get(`shirley.stars.${dk}`)) sW++;
+    if (get(`renato.stars.${dk}`))  rW++;
+  }
+
+  document.getElementById('sStars').textContent = sW;
+  document.getElementById('rStars').textContent = rW;
+
+  const fri = new Date(mon); fri.setDate(mon.getDate() + 4);
+  const fmt = d => d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
+  document.getElementById('weekRange').textContent = `${fmt(mon)} – ${fmt(fri)}`;
+
+  let verdict = '';
+  if      (sW === rW && sW === 0) verdict = '🏁 Ninguém pontuou ainda — quem abre o placar?';
+  else if (sW === rW)             verdict = `🤝 Empate em ${sW} ⭐ — vai desempatar!`;
+  else if (sW > rW)               verdict = `🌸 Shirley lidera com ${sW - rW} ⭐ de vantagem!`;
+  else                            verdict = `🏋️ Renato lidera com ${rW - sW} ⭐ de vantagem!`;
+  document.getElementById('verdict').textContent = verdict;
+
+  const sStr = get('shirley.streak') || 0;
+  const rStr = get('renato.streak')  || 0;
+  const maxS = Math.max(sStr, rStr, 1);
+  document.getElementById('sStreakVal').textContent = sStr;
+  document.getElementById('rStreakVal').textContent = rStr;
+  document.getElementById('sStreakBar').style.width = `${sStr / maxS * 100}%`;
+  document.getElementById('rStreakBar').style.width = `${rStr / maxS * 100}%`;
+
+  document.getElementById('motiveText').innerHTML = genMotivation(sW, rW, sStr, rStr);
+}
+
+function genMotivation(sW, rW, sS, rS) {
+  if (sW === 5 && rW === 5) return '🎉 <strong>Semana 100% para os dois!</strong> Que casal dedicado! Vocês merecem muito!';
+  if (sW === 5) return '🌸 <strong>Shirley zerou a semana!</strong> Renato, ainda dá tempo de buscar o empate — vai!';
+  if (rW === 5) return '🏋️ <strong>Renato zerou a semana!</strong> Shirley, ainda dá tempo — vai lá buscar!';
+  if (sS >= 7 || rS >= 7) {
+    const who = sS >= rS ? 'Shirley' : 'Renato';
+    return `👑 <strong>${who} tem ${Math.max(sS,rS)} dias seguidos!</strong> Isso é consistência de verdade. Continue!`;
+  }
+  if (sS >= 3 || rS >= 3) {
+    const who = sS >= rS ? 'Shirley' : 'Renato';
+    return `🔥 <strong>${who} está em sequência!</strong> Não deixa quebrar agora — cada treino conta!`;
+  }
+  if (sW > rW) return `🌸 Shirley na frente! <strong>Renato</strong>, você está a ${sW - rW} estrela${sW - rW > 1 ? 's' : ''} de empatar. Bora!`;
+  if (rW > sW) return `🏋️ Renato na frente! <strong>Shirley</strong>, você está a ${rW - sW} estrela${rW - sW > 1 ? 's' : ''} de empatar. Vamos!`;
+  if (sW + rW === 0) return '<strong>Primeira semana!</strong> Montem um ritmo juntos e façam disso um hábito. Vocês conseguem!';
+  return `🤝 <strong>Empatados!</strong> A próxima estrela decide quem lidera. Qual dos dois vai treinar primeiro?`;
+}
+</script>
+</body>
+</html>
