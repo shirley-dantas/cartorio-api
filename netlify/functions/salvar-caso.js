@@ -13,20 +13,33 @@ exports.handler = async (evento) => {
 
   const body = JSON.parse(evento.body);
 
-  const remetente = (body.remetente || "").replace(/[^0-9]/g, "");
-  
+  // Extrair remetente em diferentes formatos que a Evolution API pode mandar
+  const remetente = (
+    body.data?.key?.remoteJid ||
+    body.remetente ||
+    ""
+  ).replace(/[^0-9]/g, "");
+
   if (NUMEROS_INTERNOS.some(n => remetente.includes(n))) {
     return { statusCode: 200, body: "Mensagem interna ignorada" };
   }
 
+  // Extrair nome e mensagem
+  const nome = body.data?.pushName || body.nome || remetente || "Cliente WhatsApp";
+  const mensagem = 
+    body.data?.message?.conversation ||
+    body.data?.message?.extendedTextMessage?.text ||
+    body.resumo ||
+    "Mensagem recebida via WhatsApp";
+
   const caso = {
-    nome: body.nome || remetente || "Cliente WhatsApp",
-    tipo: body.tipo || "WhatsApp",
-    acao: body.resumo || body.mensagem || "Mensagem recebida via WhatsApp",
+    nome: nome,
+    tipo: "WhatsApp",
+    acao: mensagem,
     status: "atencao",
     resp: "grazi",
     prazo: "Hoje",
-    obs: body.resumo || body.mensagem || "",
+    obs: mensagem,
     atualizado: new Date().toISOString().split("T")[0],
     concluido: false,
     dep: ""
