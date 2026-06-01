@@ -17,6 +17,17 @@ function classificarServico(texto) {
   return "A classificar";
 }
 
+function classificarUrgencia(texto) {
+  const t = (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const palavrasAlta = ["urgente", "urgencia", "hoje", "agora", "imediato", "imediata", "amanha", "prazo", "vencendo", "vencido", "vence", "emergencia", "rapido", "rapida", "preciso ja", "preciso hoje"];
+  const palavrasBaixa = ["quando puder", "sem pressa", "consulta", "informacao", "quanto custa", "valor", "preco", "tabela", "gostaria de saber", "quero saber"];
+  const achouAlta = palavrasAlta.find(p => t.includes(p));
+  if (achouAlta) return { status: "critico", motivo: `Urgência alta detectada: "${achouAlta}"` };
+  const achouBaixa = palavrasBaixa.find(p => t.includes(p));
+  if (achouBaixa) return { status: "emdia", motivo: `Mensagem de consulta ou informação: "${achouBaixa}"` };
+  return { status: "atencao", motivo: "Urgência padrão — sem indicadores específicos" };
+}
+
 exports.handler = async (evento) => {
   if (evento.httpMethod !== "POST") {
     return { statusCode: 405, body: "Método não permitido" };
@@ -40,14 +51,16 @@ exports.handler = async (evento) => {
     corpo.Resumo ||
     "Mensagem recebida via WhatsApp";
 
+  const urgencia = classificarUrgencia(mensagem);
+
   const caso = {
     nome: nome,
     tipo: classificarServico(mensagem),
     cacau: mensagem,
-    status: "atenção",
+    status: urgencia.status,
     resp: "grazi",
     prazo: "Hoje",
-    obs: mensagem,
+    obs: `${mensagem}\n\n[Urgência: ${urgencia.motivo}]`,
     por: new Date().toISOString().split("T")[0],
     concluiram: false,
     dep: ""
