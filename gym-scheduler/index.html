@@ -7,9 +7,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>GymDuo 💪</title>
-  <!-- Firebase Realtime Database SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -844,60 +841,63 @@ const DAY_NAMES = {
 };
 
 // =============================================================
-// FIREBASE
-// Para sincronizar entre os dois celulares em tempo real:
-//
-// 1. Acesse https://firebase.google.com e crie um projeto novo
-//    (ex: "gymduo-shirley-renato")
-// 2. Na tela do projeto, clique em "</>" para adicionar um app web
-// 3. No menu lateral: Build → Realtime Database → Create database
-//    → Escolha qualquer região → Start in test mode (30 dias aberto)
-// 4. Clique no ícone de engrenagem → Project Settings → seu app web
-// 5. Role até "firebaseConfig" e copie os valores abaixo
+// SYNC — Netlify Blobs via /.netlify/functions/gym-sync
+// Sincroniza automaticamente quando publicado no Netlify.
+// Localmente (sem deploy) fica em modo offline (localStorage).
 // =============================================================
-const FIREBASE_CONFIG = {
-  apiKey:            "PREENCHER",
-  authDomain:        "PREENCHER",
-  databaseURL:       "PREENCHER",  // ex: https://gymduo-xxx-rtdb.firebaseio.com
-  projectId:         "PREENCHER",
-  storageBucket:     "PREENCHER",
-  messagingSenderId: "PREENCHER",
-  appId:             "PREENCHER"
-};
-
-let db = null;
+const SYNC_URL = '/.netlify/functions/gym-sync';
+let pollTimer = null;
 
 function setSyncStatus(status) {
   const el = document.getElementById('syncDot');
   if (!el) return;
   const map = {
-    online:      { e: '🟢', t: 'Sincronizado — dados em tempo real' },
-    connecting:  { e: '🟡', t: 'Conectando ao Firebase...' },
-    offline:     { e: '🔴', t: 'Sem sincronização — dados salvos só neste celular' },
+    online:     { e: '🟢', t: 'Sincronizado entre os dois celulares' },
+    connecting: { e: '🟡', t: 'Conectando...' },
+    offline:    { e: '🔴', t: 'Sem sincronização — dados salvos só neste celular' },
   };
   const s = map[status] || map.offline;
   el.textContent = s.e;
   el.title = s.t;
 }
 
-function initFirebase() {
-  const isConfigured = !Object.values(FIREBASE_CONFIG).some(v => v === 'PREENCHER');
-  if (!isConfigured) { setSyncStatus('offline'); return; }
-
+async function syncFromServer() {
   try {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    db = firebase.database();
-    setSyncStatus('connecting');
-
-    db.ref('gymDuo').on('value', snapshot => {
-      const data = snapshot.val();
-      if (data) { persist(data); render(); }
-      setSyncStatus('online');
-    }, () => setSyncStatus('offline'));
+    const res = await fetch(SYNC_URL, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) throw new Error('http ' + res.status);
+    const serverData = await res.json();
+    if (serverData && Object.keys(serverData).length > 0) {
+      persist(serverData);
+      render();
+    }
+    setSyncStatus('online');
   } catch(e) {
-    console.warn('Firebase init error:', e);
     setSyncStatus('offline');
   }
+}
+
+async function pushToServer(path, value) {
+  try {
+    await fetch(SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, value }),
+      signal: AbortSignal.timeout(6000),
+    });
+  } catch(_) {
+    setSyncStatus('offline');
+  }
+}
+
+function startSync() {
+  setSyncStatus('connecting');
+  syncFromServer();
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(syncFromServer, 8000);
+}
+
+function stopSync() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
 
 // =============================================================
@@ -919,7 +919,7 @@ function weekMonday() {
 }
 
 // =============================================================
-// STORAGE (localStorage como cache local + Firebase para sync)
+// STORAGE — localStorage como cache local + Netlify para sync
 // =============================================================
 function store() {
   try { return JSON.parse(localStorage.getItem('gymDuo') || '{}'); }
@@ -931,16 +931,13 @@ function get(path) {
   return path.split('.').reduce((o,k) => (o||{})[k], store());
 }
 function set(path, val) {
-  const d = store(), keys = path.split('.');
+  const keys = path.split('.');
+  const d = store();
   let o = d;
   for (let i = 0; i < keys.length - 1; i++) { if (!o[keys[i]]) o[keys[i]] = {}; o = o[keys[i]]; }
-  o[keys[keys.length-1]] = val;
+  o[keys[keys.length - 1]] = val;
   persist(d);
-
-  if (db) {
-    db.ref('gymDuo/' + keys.join('/')).set(val)
-      .catch(() => setSyncStatus('offline'));
-  }
+  pushToServer(keys.join('/'), val);
 }
 
 // =============================================================
@@ -959,9 +956,11 @@ function selectProfile(user) {
   document.getElementById('mainApp').classList.add('active');
 
   switchTab('today', document.querySelector('.tab'));
+  startSync();
 }
 
 function goBack() {
+  stopSync();
   document.getElementById('mainApp').classList.remove('active');
   document.getElementById('profileScreen').classList.add('active');
   currentUser = null;
@@ -1201,8 +1200,6 @@ function genMotivation(sW, rW, sS, rS) {
   return `🤝 <strong>Empatados!</strong> A próxima estrela decide quem lidera. Qual dos dois vai treinar primeiro?`;
 }
 
-// inicia ao carregar a página
-initFirebase();
 </script>
 </body>
 </html>
