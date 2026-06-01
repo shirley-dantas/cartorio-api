@@ -68,13 +68,28 @@ exports.handler = async (evento) => {
 
   const dados = JSON.stringify(caso);
 
-  return new Promise((resolver) => {
+  // Salvar no Firebase
+  await new Promise((resolver) => {
     const requis = https.request(
       "https://painel-cartorio-default-rtdb.firebaseio.com/casos.json",
       { method: "POST", headers: { "Content-Type": "application/json" } },
-      (res) => { resolver({ statusCode: 200, body: "OK" }); }
+      (res) => { resolver(); }
     );
     requis.write(dados);
     requis.end();
   });
+
+  // Criar pasta no Google Drive (sem bloquear a resposta)
+  try {
+    const driveUrl = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
+    const drivePayload = JSON.stringify({ nome: caso.nome, tipo: caso.tipo });
+    await new Promise((res) => {
+      const r = https.request(driveUrl, { method: "POST", headers: { "Content-Type": "application/json" } }, () => res());
+      r.on("error", () => res());
+      r.write(drivePayload);
+      r.end();
+    });
+  } catch(_) {}
+
+  return { statusCode: 200, body: "OK" };
 };

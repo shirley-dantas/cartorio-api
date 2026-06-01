@@ -641,6 +641,10 @@ window.salvarNovo=function(){
     atualizado:isoHoje(),
     concluido:false
   });
+  // Criar pasta no Google Drive
+  const driveNome = nome;
+  const driveTipo = document.getElementById('f-tipo').value.trim()||'A classificar';
+  fetch('https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec',{method:'POST',body:JSON.stringify({nome:driveNome,tipo:driveTipo})}).catch(()=>{});
   ['f-nome','f-tipo','f-acao','f-prazo','f-obs','f-agendado-desc'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-dep').value='';
   document.getElementById('f-agendado').value='';
