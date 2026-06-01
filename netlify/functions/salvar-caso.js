@@ -1,5 +1,22 @@
 const https = require("https");
 
+function classificarServico(texto) {
+  const t = (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  if (/inventario|espolio|faleceu|falecimento|heranca|herdeiro|partilha|sobrepartilha/.test(t)) return "Inventário";
+  if (/compra|venda|escritura|imovel|apartamento|terreno|casa/.test(t)) return "Escritura de Compra e Venda";
+  if (/procuracao|procurador/.test(t)) return "Procuração";
+  if (/uniao estavel|convivencia|companheiro|companheira/.test(t)) return "União Estável";
+  if (/divorcio|separacao|dissolucao/.test(t)) return "Divórcio";
+  if (/ata notarial|ata de/.test(t)) return "Ata Notarial";
+  if (/doacao|doou|doar/.test(t)) return "Doação";
+  if (/cessao|direitos hereditarios|ceder direitos/.test(t)) return "Cessão de Direitos";
+  if (/pacto|antenupcial/.test(t)) return "Pacto Antenupcial";
+  if (/testamento/.test(t)) return "Testamento";
+  if (/reconhecimento de firma|reconhecer firma|firma/.test(t)) return "Reconhecimento de Firma";
+  if (/autenticacao|autenticar|copia autenticada/.test(t)) return "Autenticação";
+  return "A classificar";
+}
+
 exports.handler = async (evento) => {
   if (evento.httpMethod !== "POST") {
     return { statusCode: 405, body: "Método não permitido" };
@@ -25,7 +42,7 @@ exports.handler = async (evento) => {
 
   const caso = {
     nome: nome,
-    tipo: "WhatsApp",
+    tipo: classificarServico(mensagem),
     cacau: mensagem,
     status: "atenção",
     resp: "grazi",
