@@ -290,7 +290,7 @@ table.doit tr:hover td{background:#FAFAFA}
     <button class="modal-close" onclick="fecharMinuta()">&times;</button>
     <div class="modal-title"><i class="ti ti-file-text" style="font-size:15px;vertical-align:-2px;color:#0D47A1"></i> Assistente de Análise e Minuta</div>
     <div class="modal-sub" id="modal-caso-info">—</div>
-    <label class="modal-label">Cole aqui os documentos e informações do caso (matrícula, RG, dados das partes, etc.)</label>
+    <label class="modal-label" id="modal-label-docs">Documentos e informações do caso (carregando...)</label>
     <textarea class="modal-textarea" id="modal-docs" placeholder="Ex: Matrícula nº 12345 — Proprietário: João da Silva, CPF 000.000.000-00, casado com Maria Silva em comunhão parcial de bens...&#10;&#10;Cole quantas informações tiver. Quanto mais detalhes, melhor a análise."></textarea>
     <div class="modal-btn-row">
       <button class="modal-copy-btn" style="display:none" id="btn-copiar" onclick="copiarAnalise()">Copiar resultado</button>
@@ -655,16 +655,41 @@ window.abrirGcal=function(id){
   const end=new Date(dt.getTime()+60*60*1000);
   window.open(base+'&text='+titulo+'&dates='+fmt(dt)+'/'+fmt(end)+'&details='+desc,'_blank');
 };
-window.abrirMinuta=function(id){
+window.abrirMinuta=async function(id){
   const c=casos[id];if(!c)return;
   document.getElementById('modal-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
   document.getElementById('modal-docs').value='';
+  document.getElementById('modal-label-docs').textContent='Documentos e informações do caso (carregando...)';
   document.getElementById('modal-result').style.display='none';
   document.getElementById('modal-loading').style.display='none';
   document.getElementById('btn-copiar').style.display='none';
-  document.getElementById('btn-gerar').disabled=false;
+  document.getElementById('btn-gerar').disabled=true;
   document.getElementById('btn-gerar').dataset.id=id;
   document.getElementById('modal-minuta').classList.add('open');
+
+  try {
+    const snap=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/documentos.json`);
+    const docs=await snap.json();
+    const linhas=[];
+    if(c.obs) linhas.push('=== INFORMAÇÕES DO CASO ===\n'+c.obs);
+    if(docs && typeof docs==='object'){
+      const lista=Object.values(docs);
+      if(lista.length>0){
+        linhas.push('\n=== DOCUMENTOS RECEBIDOS VIA WHATSAPP ===');
+        lista.forEach(d=>linhas.push(`• ${d.nome} (${d.tipo.toUpperCase()}) — recebido em ${new Date(d.salvoEm).toLocaleString('pt-BR')}`));
+        linhas.push('\nOs arquivos acima estão salvos na pasta do caso no Google Drive.');
+      }
+    }
+    document.getElementById('modal-docs').value=linhas.join('\n');
+    document.getElementById('modal-label-docs').textContent=
+      (docs && Object.keys(docs).length>0)
+        ? 'Documentos carregados automaticamente do WhatsApp — adicione informações extras se necessário:'
+        : 'Nenhum documento recebido via WhatsApp. Cole aqui os dados do caso manualmente:';
+  } catch {
+    document.getElementById('modal-label-docs').textContent='Documentos e informações do caso:';
+    if(c.obs) document.getElementById('modal-docs').value=c.obs;
+  }
+  document.getElementById('btn-gerar').disabled=false;
 };
 window.fecharMinuta=function(){
   document.getElementById('modal-minuta').classList.remove('open');
