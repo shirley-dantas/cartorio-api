@@ -130,6 +130,18 @@ module.exports = async (req, res) => {
   const isFim   = texto.toLowerCase() === "fim";
   const isTexto = !isMedia && texto.length > 0;
 
+  // LOG TEMPORÁRIO DE DIAGNÓSTICO
+  await httpReq(`https://${FIREBASE_HOST}/log_webhook.json`, "POST", {
+    ts: new Date().toISOString(),
+    tipoMensagem,
+    isMedia,
+    isTexto,
+    isFim,
+    texto: texto.slice(0, 100),
+    destinatario,
+    chaves: Object.keys(mensagemObj)
+  });
+
   if (isFim) {
     await clearSessao();
     return res.status(200).send("Sessão encerrada");
