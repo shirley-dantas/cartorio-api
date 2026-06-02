@@ -7,6 +7,7 @@ const EVOLUTION_HOST     = "evolution-api-production-59b1.up.railway.app";
 const FIREBASE_HOST      = "painel-cartorio-default-rtdb.firebaseio.com";
 const DRIVE_URL          = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
 const NUMERO_OPERACIONAL = "5511947851816";
+const ANTHROPIC_API_KEY  = process.env.ANTHROPIC_API_KEY;
 // ═══════════════════════════════════════════════════════════════
 
 function classificarServico(texto) {
@@ -92,6 +93,50 @@ async function criarPastaDrive(nome, tipo) {
   return httpReq(DRIVE_URL, "POST", { acao: "criar-pasta", nome, tipo });
 }
 
+async function extrairTextoPDF(base64, mimetype) {
+  const body = JSON.stringify({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    messages: [{
+      role: "user",
+      content: [
+        {
+          type: "document",
+          source: { type: "base64", media_type: mimetype, data: base64 }
+        },
+        {
+          type: "text",
+          text: "Extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar."
+        }
+      ]
+    }]
+  });
+  return new Promise((resolve) => {
+    const options = {
+      hostname: "api.anthropic.com",
+      path: "/v1/messages",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Length": Buffer.byteLength(body)
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", d => data += d);
+      res.on("end", () => {
+        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
+        catch { resolve(null); }
+      });
+    });
+    req.on("error", () => resolve(null));
+    req.write(body);
+    req.end();
+  });
+}
+
 // ══ HANDLER VERCEL ══════════════════════════════════════════════
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
@@ -163,12 +208,16 @@ module.exports = async (req, res) => {
       const mime = tipoMensagem.includes("image") ? "image/jpeg" : tipoMensagem.includes("audio") ? "audio/mpeg" : tipoMensagem.includes("video") ? "video/mp4" : "application/pdf";
       const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16);
       const nomeArquivo = `${sessao.nome.replace(/\s+/g, "_").toUpperCase()}_${ts}.${ext}`;
-      await salvarNoDrive(sessao.nome, nomeArquivo, resultado.base64, mime);
+      const [, textoExtraido] = await Promise.all([
+        salvarNoDrive(sessao.nome, nomeArquivo, resultado.base64, mime),
+        (mime === "application/pdf" || mime === "image/jpeg") ? extrairTextoPDF(resultado.base64, mime) : Promise.resolve(null)
+      ]);
       if (sessao.casoId) {
         await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}/documentos.json`, "POST", {
           nome: nomeArquivo,
           tipo: ext,
-          salvoEm: new Date().toISOString()
+          salvoEm: new Date().toISOString(),
+          ...(textoExtraido ? { texto: textoExtraido } : {})
         });
       }
     }

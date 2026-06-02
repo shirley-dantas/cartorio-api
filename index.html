@@ -677,9 +677,11 @@ window.abrirMinuta=async function(id){
     if(docs && typeof docs==='object'){
       const lista=Object.values(docs);
       if(lista.length>0){
-        linhas.push('\n=== DOCUMENTOS RECEBIDOS VIA WHATSAPP ===');
-        lista.forEach(d=>linhas.push(`• ${d.nome} (${d.tipo.toUpperCase()}) — recebido em ${new Date(d.salvoEm).toLocaleString('pt-BR')}`));
-        linhas.push('\nOs arquivos acima estão salvos na pasta do caso no Google Drive.');
+        lista.forEach(d=>{
+          linhas.push(`\n=== DOCUMENTO: ${d.nome} ===`);
+          if(d.texto) linhas.push(d.texto);
+          else linhas.push(`(Arquivo ${d.tipo.toUpperCase()} — salvo no Drive em ${new Date(d.salvoEm).toLocaleString('pt-BR')})`);
+        });
       }
     }
     document.getElementById('modal-docs').value=linhas.join('\n');
