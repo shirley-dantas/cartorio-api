@@ -103,12 +103,6 @@ module.exports = async (req, res) => {
     return res.status(400).send("JSON inválido");
   }
 
-  // LOG TEMPORÁRIO — salva payload bruto no Firebase para diagnóstico
-  await httpReq(`https://${FIREBASE_HOST}/webhook_log.json`, "POST", {
-    ts: new Date().toISOString(),
-    payload: JSON.stringify(corpo).slice(0, 500)
-  });
-
   // Suporta tanto campo em português (dados/chave) quanto inglês (data/key)
   const dadosEvt    = corpo?.data   || corpo?.dados   || {};
   const chaveEvt    = dadosEvt?.key || dadosEvt?.chave || {};
