@@ -71,9 +71,11 @@ async function buscarCasoPorNome(texto) {
   const data = await httpReq(`https://${FIREBASE_HOST}/casos.json`, "GET");
   if (!data || typeof data !== "object") return null;
   const norm = texto.toLowerCase().trim();
-  return Object.values(data).find(c =>
+  const entrada = Object.entries(data).find(([, c]) =>
     c && !c.concluido && c.nome && c.nome.toLowerCase().includes(norm)
-  ) || null;
+  );
+  if (!entrada) return null;
+  return { ...entrada[1], id: entrada[0] };
 }
 async function baixarMidia(mensagemObj) {
   return httpReq(
@@ -143,6 +145,13 @@ module.exports = async (req, res) => {
       const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16);
       const nomeArquivo = `${sessao.nome.replace(/\s+/g, "_").toUpperCase()}_${ts}.${ext}`;
       await salvarNoDrive(sessao.nome, nomeArquivo, resultado.base64, mime);
+      if (sessao.casoId) {
+        await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}/documentos.json`, "POST", {
+          nome: nomeArquivo,
+          tipo: ext,
+          salvoEm: new Date().toISOString()
+        });
+      }
     }
     return res.status(200).send("Arquivo salvo no Drive");
   }
@@ -168,11 +177,12 @@ module.exports = async (req, res) => {
       dep: ""
     };
 
-    await Promise.all([
+    const [fbResp] = await Promise.all([
       httpReq(`https://${FIREBASE_HOST}/casos.json`, "POST", caso),
       criarPastaDrive(caso.nome, caso.tipo),
-      setSessao({ nome: caso.nome, casoId: null, timestamp: new Date().toISOString() })
     ]);
+    const casoId = fbResp?.name || null;
+    await setSessao({ nome: caso.nome, casoId, timestamp: new Date().toISOString() });
   }
 
   return res.status(200).send("OK");
