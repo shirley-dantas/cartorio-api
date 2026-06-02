@@ -378,6 +378,8 @@ onValue(casosRef,(snap)=>{
     });
     inicializado=true;
   } else if(data){
+    // Garante que todo caso tenha o campo id preenchido com a chave do Firebase
+    Object.keys(data).forEach(k=>{ if(data[k] && !data[k].id) data[k].id=k; });
     casos=data;
     inicializado=true;
     renderStats();
