@@ -676,7 +676,7 @@ window.gerarAnalise=async function(){
   document.getElementById('modal-result').style.display='none';
   document.getElementById('btn-copiar').style.display='none';
   try{
-    const resp=await fetch('/.netlify/functions/analisar-caso',{
+    const resp=await fetch('/api/analisar-caso',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docs})
