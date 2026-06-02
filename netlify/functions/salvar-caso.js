@@ -1,8 +1,8 @@
 const https = require("https");
 
 // ══ CONFIGURAÇÕES ══════════════════════════════════════════════
-const EVOLUTION_INSTANCE = "PREENCHER"; // nome da instância na Evolution API
-const EVOLUTION_API_KEY  = "PREENCHER"; // chave de API da Evolution API
+const EVOLUTION_INSTANCE = "escrivaninha";
+const EVOLUTION_API_KEY  = "escritorio@2025#EvAPI";
 const EVOLUTION_HOST     = "evolution-api-production-59b1.up.railway.app";
 const FIREBASE_HOST      = "painel-cartorio-default-rtdb.firebaseio.com";
 const DRIVE_URL          = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
