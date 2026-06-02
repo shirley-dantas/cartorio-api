@@ -98,14 +98,17 @@ function callClaude(userMessage) {
   });
 }
 
-exports.handler = async (evento) => {
-  if (evento.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Método não permitido" };
-  }
+module.exports = async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).send("Método não permitido");
 
   let dados;
-  try { dados = JSON.parse(evento.body); }
-  catch { return { statusCode: 400, body: "JSON inválido" }; }
+  try { dados = typeof req.body === "string" ? JSON.parse(req.body) : req.body; }
+  catch { return res.status(400).json({ ok: false, erro: "JSON inválido" }); }
 
   const { nome, tipo, obs, documentos } = dados;
 
@@ -120,15 +123,8 @@ Por favor, realize a análise completa conforme seu protocolo.`;
 
   try {
     const resposta = await callClaude(mensagem);
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ ok: true, analise: resposta })
-    };
+    return res.status(200).json({ ok: true, analise: resposta });
   } catch (err) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ ok: false, erro: err.message })
-    };
+    return res.status(500).json({ ok: false, erro: err.message });
   }
 };
