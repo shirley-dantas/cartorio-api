@@ -77,11 +77,11 @@ async function buscarCasoPorNome(texto) {
   if (!entrada) return null;
   return { ...entrada[1], id: entrada[0] };
 }
-async function baixarMidia(mensagemObj) {
+async function baixarMidia(dadosEvt) {
   return httpReq(
     `https://${EVOLUTION_HOST}/chat/getBase64FromMediaMessage/${EVOLUTION_INSTANCE}`,
     "POST",
-    { message: mensagemObj, convertToMp4: false },
+    { message: dadosEvt, convertToMp4: false },
     { apikey: EVOLUTION_API_KEY }
   );
 }
@@ -150,7 +150,7 @@ module.exports = async (req, res) => {
   if (isMedia) {
     const sessao = await getSessao();
     if (!sessao?.nome) return res.status(200).send("Sem sessão ativa");
-    const resultado = await baixarMidia(mensagemObj);
+    const resultado = await baixarMidia(dadosEvt);
     await httpReq(`https://${FIREBASE_HOST}/log_webhook.json`, "POST", {
       ts: new Date().toISOString(), etapa: "apos-baixar-midia",
       temBase64: !!(resultado?.base64),
