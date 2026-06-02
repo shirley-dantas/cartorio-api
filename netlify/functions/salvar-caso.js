@@ -1,7 +1,7 @@
 const https = require("https");
 
 // ══ CONFIGURAÇÕES ══════════════════════════════════════════════
-const EVOLUTION_INSTANCE = "escrivaninha";
+const EVOLUTION_INSTANCE = "escritorio";
 const EVOLUTION_API_KEY  = "escritorio@2025#EvAPI";
 const EVOLUTION_HOST     = "evolution-api-production-59b1.up.railway.app";
 const FIREBASE_HOST      = "painel-cartorio-default-rtdb.firebaseio.com";
