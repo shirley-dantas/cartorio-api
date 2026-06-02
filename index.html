@@ -102,6 +102,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-foco{color:#6B21A8;border-color:#DDD6FE}
 .btn-foco:hover{background:#F5F3FF}
 .btn-agendar{color:#1B5E20;border-color:#A5D6A7}
+.btn-minuta{color:#0D47A1;border-color:#BBDEFB}
+.btn-minuta:hover{background:#E3F2FD}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:14px;width:100%;max-width:780px;padding:24px;position:relative;margin:auto}
+.modal-title{font-size:15px;font-weight:600;color:#1C1C1E;margin-bottom:4px}
+.modal-sub{font-size:12px;color:#8E8EA0;margin-bottom:16px}
+.modal-close{position:absolute;top:16px;right:18px;font-size:20px;color:#8E8EA0;cursor:pointer;background:none;border:none;line-height:1}
+.modal-close:hover{color:#1C1C1E}
+.modal-label{font-size:12px;font-weight:500;color:#636366;margin-bottom:5px;display:block}
+.modal-textarea{width:100%;font-size:13px;padding:10px 12px;border-radius:8px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;outline:none;min-height:130px}
+.modal-textarea:focus{border-color:#1C1C2E;background:#fff}
+.modal-btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.btn-gerar{font-size:13px;padding:9px 20px;border-radius:8px;border:none;background:#1C1C2E;color:#fff;cursor:pointer;font-weight:500}
+.btn-gerar:hover{background:#2C2C4E}
+.btn-gerar:disabled{opacity:.5;cursor:not-allowed}
+.modal-result{margin-top:18px;padding-top:16px;border-top:0.5px solid #E5E5EA;display:none}
+.modal-result-text{font-size:13px;color:#1C1C1E;line-height:1.7;white-space:pre-wrap;background:#F5F5F7;border-radius:8px;padding:14px;max-height:480px;overflow-y:auto}
+.modal-copy-btn{font-size:12px;padding:6px 14px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;margin-top:8px}
+.modal-copy-btn:hover{background:#F5F5F7}
+.modal-loading{text-align:center;padding:24px;color:#8E8EA0;font-size:13px;display:none}
 .obs-block{margin-top:10px;padding-top:10px;border-top:0.5px solid #F2F2F7}
 .obs-text{font-size:12px;color:#636366;line-height:1.55}
 .obs-edit{display:none;flex-direction:column;gap:6px;margin-top:7px}
@@ -261,6 +282,29 @@ table.doit tr:hover td{background:#FAFAFA}
   </div>
 
   <div class="updated" id="updated"></div>
+</div>
+
+<!-- Modal Assistente de Minutas -->
+<div class="modal-overlay" id="modal-minuta">
+  <div class="modal-box">
+    <button class="modal-close" onclick="fecharMinuta()">&times;</button>
+    <div class="modal-title"><i class="ti ti-file-text" style="font-size:15px;vertical-align:-2px;color:#0D47A1"></i> Assistente de Análise e Minuta</div>
+    <div class="modal-sub" id="modal-caso-info">—</div>
+    <label class="modal-label">Cole aqui os documentos e informações do caso (matrícula, RG, dados das partes, etc.)</label>
+    <textarea class="modal-textarea" id="modal-docs" placeholder="Ex: Matrícula nº 12345 — Proprietário: João da Silva, CPF 000.000.000-00, casado com Maria Silva em comunhão parcial de bens...&#10;&#10;Cole quantas informações tiver. Quanto mais detalhes, melhor a análise."></textarea>
+    <div class="modal-btn-row">
+      <button class="modal-copy-btn" style="display:none" id="btn-copiar" onclick="copiarAnalise()">Copiar resultado</button>
+      <button class="btn-gerar" id="btn-gerar" onclick="gerarAnalise()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Gerar Análise e Minuta</button>
+    </div>
+    <div class="modal-loading" id="modal-loading">
+      <i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>
+      Analisando documentos e preparando relatório...<br>
+      <span style="font-size:11px;color:#AEAEB2">Isso pode levar até 30 segundos</span>
+    </div>
+    <div class="modal-result" id="modal-result">
+      <div class="modal-result-text" id="modal-result-text"></div>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -515,6 +559,7 @@ function renderCasos(){
           <select class="sel" onchange="mudarCampo('${c.id}','dep',this.value)">
             ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
           </select>
+          <button class="btn-sm btn-minuta" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text" style="font-size:12px;vertical-align:-1px"></i> Minuta</button>
           <button class="btn-sm btn-foco" onclick="addAoFoco('${c.id}')"><i class="ti ti-bolt" style="font-size:12px;vertical-align:-1px"></i> Foco</button>
           <button class="btn-sm btn-agendar" onclick="toggleAgendar('${c.id}')"><i class="ti ti-calendar-plus" style="font-size:12px;vertical-align:-1px"></i> Agendar</button>
           <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
@@ -607,6 +652,54 @@ window.abrirGcal=function(id){
   const fmt=d=>d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00';
   const end=new Date(dt.getTime()+60*60*1000);
   window.open(base+'&text='+titulo+'&dates='+fmt(dt)+'/'+fmt(end)+'&details='+desc,'_blank');
+};
+window.abrirMinuta=function(id){
+  const c=casos[id];if(!c)return;
+  document.getElementById('modal-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
+  document.getElementById('modal-docs').value='';
+  document.getElementById('modal-result').style.display='none';
+  document.getElementById('modal-loading').style.display='none';
+  document.getElementById('btn-copiar').style.display='none';
+  document.getElementById('btn-gerar').disabled=false;
+  document.getElementById('btn-gerar').dataset.id=id;
+  document.getElementById('modal-minuta').classList.add('open');
+};
+window.fecharMinuta=function(){
+  document.getElementById('modal-minuta').classList.remove('open');
+};
+window.gerarAnalise=async function(){
+  const id=document.getElementById('btn-gerar').dataset.id;
+  const c=casos[id];if(!c)return;
+  const docs=document.getElementById('modal-docs').value.trim();
+  document.getElementById('btn-gerar').disabled=true;
+  document.getElementById('modal-loading').style.display='block';
+  document.getElementById('modal-result').style.display='none';
+  document.getElementById('btn-copiar').style.display='none';
+  try{
+    const resp=await fetch('/.netlify/functions/analisar-caso',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docs})
+    });
+    const data=await resp.json();
+    document.getElementById('modal-loading').style.display='none';
+    document.getElementById('modal-result').style.display='block';
+    document.getElementById('modal-result-text').textContent=data.analise||data.erro||'Sem resposta.';
+    document.getElementById('btn-copiar').style.display='inline-block';
+  }catch(e){
+    document.getElementById('modal-loading').style.display='none';
+    document.getElementById('modal-result').style.display='block';
+    document.getElementById('modal-result-text').textContent='Erro ao conectar com o assistente. Tente novamente.';
+  }
+  document.getElementById('btn-gerar').disabled=false;
+};
+window.copiarAnalise=function(){
+  const txt=document.getElementById('modal-result-text').textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn=document.getElementById('btn-copiar');
+    btn.textContent='Copiado!';
+    setTimeout(()=>btn.textContent='Copiar resultado',2000);
+  });
 };
 window.excluirCaso=function(id){
   if(confirm('Tem certeza que deseja excluir este caso? Esta ação não pode ser desfeita.'))
