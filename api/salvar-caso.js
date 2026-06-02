@@ -103,17 +103,20 @@ module.exports = async (req, res) => {
     return res.status(400).send("JSON inválido");
   }
 
-  const destinatario = corpo?.dados?.chave?.remotoJid || "";
+  // Suporta tanto campo em português (dados/chave) quanto inglês (data/key)
+  const dadosEvt    = corpo?.data   || corpo?.dados   || {};
+  const chaveEvt    = dadosEvt?.key || dadosEvt?.chave || {};
+  const destinatario = chaveEvt?.remoteJid || chaveEvt?.remotoJid || "";
   const numeroDestino = destinatario.replace(/[^0-9]/g, "");
   if (numeroDestino !== NUMERO_OPERACIONAL) {
     return res.status(200).send("Mensagem ignorada");
   }
 
-  const mensagemObj  = corpo.dados?.mensagem || corpo.dados?.message || {};
-  const tipoMensagem = corpo.dados?.tipoMensagem || corpo.dados?.messageType || "";
+  const mensagemObj  = dadosEvt?.message  || dadosEvt?.mensagem  || {};
+  const tipoMensagem = dadosEvt?.messageType || dadosEvt?.tipoMensagem || "";
   const texto = (
-    mensagemObj?.conversa ||
     mensagemObj?.conversation ||
+    mensagemObj?.conversa ||
     mensagemObj?.extendedTextMessage?.text ||
     mensagemObj?.mensagemTextoEstendida?.texto ||
     mensagemObj?.imageMessage?.caption ||
