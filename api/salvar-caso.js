@@ -151,6 +151,13 @@ module.exports = async (req, res) => {
     const sessao = await getSessao();
     if (!sessao?.nome) return res.status(200).send("Sem sessão ativa");
     const resultado = await baixarMidia(mensagemObj);
+    await httpReq(`https://${FIREBASE_HOST}/log_webhook.json`, "POST", {
+      ts: new Date().toISOString(), etapa: "apos-baixar-midia",
+      temBase64: !!(resultado?.base64),
+      tamanhoBase64: resultado?.base64?.length || 0,
+      chavesResultado: resultado ? Object.keys(resultado) : [],
+      sessaoNome: sessao?.nome, sessaoCasoId: sessao?.casoId
+    });
     if (resultado?.base64) {
       const ext  = tipoMensagem.includes("image") ? "jpg" : tipoMensagem.includes("audio") ? "mp3" : tipoMensagem.includes("video") ? "mp4" : "pdf";
       const mime = tipoMensagem.includes("image") ? "image/jpeg" : tipoMensagem.includes("audio") ? "audio/mpeg" : tipoMensagem.includes("video") ? "video/mp4" : "application/pdf";
