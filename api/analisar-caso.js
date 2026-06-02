@@ -249,8 +249,9 @@ function callClaude(userMessage) {
 
 const DRIVE_URL = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
 
-function httpPost(url, body) {
+function httpPost(url, body, redirectCount = 0) {
   return new Promise((resolve) => {
+    if (redirectCount > 5) return resolve(null);
     const payload = JSON.stringify(body);
     const u = new URL(url);
     const options = {
@@ -258,6 +259,20 @@ function httpPost(url, body) {
       headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) }
     };
     const r = https.request(options, (res) => {
+      if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location) {
+        // Apps Script redireciona — seguir o redirect com GET (comportamento padrão do browser)
+        const loc = res.headers.location;
+        const lu = new URL(loc, url);
+        const getOptions = { hostname: lu.hostname, path: lu.pathname + lu.search, method: "GET" };
+        const gr = https.request(getOptions, (gres) => {
+          let data = "";
+          gres.on("data", d => data += d);
+          gres.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
+        });
+        gr.on("error", () => resolve(null));
+        gr.end();
+        return;
+      }
       let data = "";
       res.on("data", d => data += d);
       res.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
