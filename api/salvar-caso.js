@@ -196,11 +196,15 @@ module.exports = async (req, res) => {
       dep: ""
     };
 
-    const [fbResp] = await Promise.all([
+    const [fbResp, driveResp] = await Promise.all([
       httpReq(`https://${FIREBASE_HOST}/casos.json`, "POST", caso),
       criarPastaDrive(caso.nome, caso.tipo),
     ]);
     const casoId = fbResp?.name || null;
+    const driveUrl = driveResp?.url || null;
+    if (casoId && driveUrl) {
+      await httpReq(`https://${FIREBASE_HOST}/casos/${casoId}.json`, "PATCH", { driveUrl });
+    }
     await setSessao({ nome: caso.nome, casoId, timestamp: new Date().toISOString() });
   }
 

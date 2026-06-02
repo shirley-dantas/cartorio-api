@@ -103,6 +103,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-foco:hover{background:#F5F3FF}
 .btn-agendar{color:#1B5E20;border-color:#A5D6A7}
 .btn-minuta{color:#0D47A1;border-color:#BBDEFB}
+.btn-drive{color:#1E8E3E;border-color:#A8D5B5}.btn-drive:hover{background:#F0FAF3}
 .btn-minuta:hover{background:#E3F2FD}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
 .modal-overlay.open{display:flex}
@@ -562,6 +563,7 @@ function renderCasos(){
             ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
           </select>
           <button class="btn-sm btn-minuta" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text" style="font-size:12px;vertical-align:-1px"></i> Minuta</button>
+          ${c.driveUrl?`<button class="btn-sm btn-drive" onclick="window.open('${c.driveUrl}','_blank')"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Drive</button>`:''}
           <button class="btn-sm btn-foco" onclick="addAoFoco('${c.id}')"><i class="ti ti-bolt" style="font-size:12px;vertical-align:-1px"></i> Foco</button>
           <button class="btn-sm btn-agendar" onclick="toggleAgendar('${c.id}')"><i class="ti ti-calendar-plus" style="font-size:12px;vertical-align:-1px"></i> Agendar</button>
           <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
