@@ -195,9 +195,17 @@ FORMATO DA RESPOSTA — sempre em duas partes:
 
 ---
 
-## PARTE 2 — PRÉ-RASCUNHO DA MINUTA
+## PARTE 2 — MINUTA NOTARIAL
 
-(Gerar somente após o relatório. Destacar claramente todos os campos pendentes com [PREENCHER] e todas as dúvidas com ⚠️)`;
+Escreva a minuta completa e profissional do ato, no padrão de escritura pública brasileira.
+
+REGRAS DA MINUTA:
+- Use # para título principal e ## para seções/cláusulas
+- Campos a preencher: [PREENCHER — descrição do dado necessário]
+- Alertas e pendências jurídicas: insira 【PENDÊNCIA: descrição objetiva do que precisa ser verificado ou resolvido】 imediatamente após o trecho afetado
+- Se foi fornecida uma minuta modelo nos documentos, use sua estrutura como referência principal
+- A minuta deve conter todos os elementos formais: preâmbulo, qualificação das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas
+- Preencha todos os campos que tiverem informação disponível nos documentos fornecidos`;
 
 function callClaude(userMessage) {
   return new Promise((resolve, reject) => {
@@ -239,6 +247,46 @@ function callClaude(userMessage) {
   });
 }
 
+const DRIVE_URL = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
+
+function httpPost(url, body) {
+  return new Promise((resolve) => {
+    const payload = JSON.stringify(body);
+    const u = new URL(url);
+    const options = {
+      hostname: u.hostname, path: u.pathname + u.search, method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) }
+    };
+    const r = https.request(options, (res) => {
+      let data = "";
+      res.on("data", d => data += d);
+      res.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
+    });
+    r.on("error", () => resolve(null));
+    r.write(payload);
+    r.end();
+  });
+}
+
+function parsearResposta(texto) {
+  const comentarios = [];
+  const regex = /【PENDÊNCIA: ([^】]+)】/g;
+  let match;
+  let num = 1;
+  while ((match = regex.exec(texto)) !== null) {
+    comentarios.push(`Pendência ${num}: ${match[1].trim()}`);
+    num++;
+  }
+  const parte2Idx = texto.search(/##\s*PARTE\s*2/i);
+  let relatorio = texto;
+  let minuta = "";
+  if (parte2Idx !== -1) {
+    relatorio = texto.substring(0, parte2Idx).trim();
+    minuta = texto.substring(parte2Idx).replace(/【PENDÊNCIA: [^】]+】/g, "").replace(/\n{3,}/g, "\n\n").trim();
+  }
+  return { relatorio, minuta, comentarios };
+}
+
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -266,7 +314,24 @@ Por favor, realize a análise completa conforme seu protocolo.`;
 
   try {
     const resposta = await callClaude(mensagem);
-    return res.status(200).json({ ok: true, analise: resposta });
+    const { relatorio, minuta, comentarios } = parsearResposta(resposta);
+
+    let docUrl = null;
+    let docNome = null;
+    if (minuta) {
+      const driveResp = await httpPost(DRIVE_URL, {
+        acao: "criar-minuta-doc",
+        nome: nome || "Caso",
+        tipo: tipo || "",
+        relatorio,
+        minuta,
+        comentarios
+      });
+      docUrl = driveResp?.url || null;
+      docNome = driveResp?.nome || null;
+    }
+
+    return res.status(200).json({ ok: true, analise: relatorio, docUrl, docNome });
   } catch (err) {
     return res.status(500).json({ ok: false, erro: err.message });
   }

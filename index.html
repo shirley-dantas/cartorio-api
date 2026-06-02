@@ -294,16 +294,23 @@ table.doit tr:hover td{background:#FAFAFA}
     <label class="modal-label" id="modal-label-docs">Documentos e informações do caso (carregando...)</label>
     <textarea class="modal-textarea" id="modal-docs" placeholder="Ex: Matrícula nº 12345 — Proprietário: João da Silva, CPF 000.000.000-00, casado com Maria Silva em comunhão parcial de bens...&#10;&#10;Cole quantas informações tiver. Quanto mais detalhes, melhor a análise."></textarea>
     <div class="modal-btn-row">
-      <button class="modal-copy-btn" style="display:none" id="btn-copiar" onclick="copiarAnalise()">Copiar resultado</button>
-      <button class="btn-gerar" id="btn-gerar" onclick="gerarAnalise()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Gerar Análise e Minuta</button>
+      <button class="btn-gerar" id="btn-gerar" onclick="gerarAnalise()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Gerar Minuta no Drive</button>
     </div>
     <div class="modal-loading" id="modal-loading">
       <i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>
-      Analisando documentos e preparando relatório...<br>
-      <span style="font-size:11px;color:#AEAEB2">Isso pode levar até 30 segundos</span>
+      Analisando documentos e gerando minuta...<br>
+      <span style="font-size:11px;color:#AEAEB2">Isso pode levar até 60 segundos</span>
     </div>
-    <div class="modal-result" id="modal-result">
-      <div class="modal-result-text" id="modal-result-text"></div>
+    <div class="modal-result" id="modal-result" style="text-align:center;padding:16px">
+      <div style="font-size:15px;font-weight:600;color:#1B5E20;margin-bottom:8px">✅ Minuta gerada com sucesso!</div>
+      <div style="font-size:12px;color:#636366;margin-bottom:14px" id="modal-doc-nome"></div>
+      <a id="btn-abrir-doc" href="#" target="_blank" style="display:inline-block;background:#1B5E20;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">
+        <i class="ti ti-brand-google-drive" style="font-size:13px;vertical-align:-1px"></i> Abrir documento no Drive
+      </a>
+      <div style="margin-top:10px">
+        <button class="modal-copy-btn" id="btn-copiar-rel" onclick="copiarRelatorio()" style="display:none">Copiar relatório</button>
+      </div>
+      <div id="modal-result-text" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -705,7 +712,6 @@ window.gerarAnalise=async function(){
   document.getElementById('btn-gerar').disabled=true;
   document.getElementById('modal-loading').style.display='block';
   document.getElementById('modal-result').style.display='none';
-  document.getElementById('btn-copiar').style.display='none';
   try{
     const resp=await fetch('/api/analisar-caso',{
       method:'POST',
@@ -715,21 +721,31 @@ window.gerarAnalise=async function(){
     const data=await resp.json();
     document.getElementById('modal-loading').style.display='none';
     document.getElementById('modal-result').style.display='block';
-    document.getElementById('modal-result-text').textContent=data.analise||data.erro||'Sem resposta.';
-    document.getElementById('btn-copiar').style.display='inline-block';
+    if(data.docUrl){
+      document.getElementById('btn-abrir-doc').href=data.docUrl;
+      document.getElementById('modal-doc-nome').textContent=data.docNome||'';
+      document.getElementById('btn-copiar-rel').style.display='inline-block';
+      document.getElementById('modal-result-text').textContent=data.analise||'';
+    } else {
+      document.getElementById('modal-doc-nome').textContent='';
+      document.getElementById('btn-abrir-doc').href='#';
+      document.getElementById('modal-result-text').textContent=data.analise||data.erro||'Sem resposta.';
+      document.getElementById('modal-result-text').style.display='block';
+    }
   }catch(e){
     document.getElementById('modal-loading').style.display='none';
     document.getElementById('modal-result').style.display='block';
-    document.getElementById('modal-result-text').textContent='Erro ao conectar com o assistente. Tente novamente.';
+    document.getElementById('modal-result-text').textContent='Erro ao conectar. Tente novamente.';
+    document.getElementById('modal-result-text').style.display='block';
   }
   document.getElementById('btn-gerar').disabled=false;
 };
-window.copiarAnalise=function(){
+window.copiarRelatorio=function(){
   const txt=document.getElementById('modal-result-text').textContent;
   navigator.clipboard.writeText(txt).then(()=>{
-    const btn=document.getElementById('btn-copiar');
+    const btn=document.getElementById('btn-copiar-rel');
     btn.textContent='Copiado!';
-    setTimeout(()=>btn.textContent='Copiar resultado',2000);
+    setTimeout(()=>btn.textContent='Copiar relatório',2000);
   });
 };
 window.excluirCaso=function(id){
