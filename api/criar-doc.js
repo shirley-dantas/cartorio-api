@@ -56,7 +56,8 @@ module.exports = async (req, res) => {
     });
 
     if (!driveResp || !driveResp.url) {
-      return res.status(500).json({ ok: false, erro: "Apps Script não retornou URL" });
+      const detalhe = driveResp?.erro || (driveResp ? JSON.stringify(driveResp) : "resposta nula do Apps Script");
+      return res.status(500).json({ ok: false, erro: detalhe });
     }
 
     return res.status(200).json({
