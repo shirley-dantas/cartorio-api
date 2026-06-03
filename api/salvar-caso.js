@@ -259,35 +259,31 @@ Por favor, gere a minuta completa conforme as informações disponíveis, usando
     const resposta = await callClaudeMinuta(mensagem);
     if (!resposta) return { driveUrl: null, docUrl: null };
 
-    const comentarios = [];
+    let comentarios = [];
     let minuta = resposta;
-
-    // Remove seção de análise documental e converte linhas em comentários
-    const idxSecao = minuta.search(/\n(?:---\s*\n)?(?:#{0,3}\s*)?(?:ANÁLISE|ANALISE|APONTAMENTO|PENDÊNCIA DOCUMENTAL|PENDENCIAS DOCUMENTAIS)/i);
-    if (idxSecao !== -1) {
-      const secao = minuta.slice(idxSecao);
-      minuta = minuta.slice(0, idxSecao);
-      secao.split("\n").forEach(linha => {
-        const m = linha.match(/\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|/);
-        if (m) {
-          const doc = m[2].trim();
-          const titular = m[3].trim();
-          const obs = m[4].trim();
-          let txt = `Pendência ${m[1]}: ${doc}`;
-          if (titular && titular !== "—") txt += ` — ${titular}`;
-          if (obs && obs !== "—") txt += ` (${obs})`;
-          comentarios.push(txt);
-        }
-      });
+    try {
+      // Remove seção de análise documental
+      const termos = ["---\nANALISE","---\nANÁLISE","\nANÁLISE DOCUMENTAL","\nANALISE DOCUMENTAL","\n## ANÁLISE","\nAPONTAMENTOS TÉCNICOS","\nPENDÊNCI"];
+      let idxCorte = -1;
+      for (const t of termos) { const idx = minuta.indexOf(t); if (idx !== -1 && (idxCorte === -1 || idx < idxCorte)) idxCorte = idx; }
+      if (idxCorte !== -1) {
+        const secao = minuta.slice(idxCorte);
+        minuta = minuta.slice(0, idxCorte);
+        secao.split("\n").forEach(linha => {
+          const m = linha.match(/\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|/);
+          if (m) { comentarios.push("Pendencia " + m[1] + ": " + m[2].trim() + (m[3].trim() ? " - " + m[3].trim() : "") + (m[4].trim() ? " (" + m[4].trim() + ")" : "")); }
+        });
+      }
+      // Extrai marcadores inline
+      const INICIO = "【PENDÊNCIA: "; const FIM = "】";
+      let pos = 0; let num = comentarios.length + 1;
+      while (true) { const s = minuta.indexOf(INICIO, pos); if (s === -1) break; const e = minuta.indexOf(FIM, s); if (e === -1) break; comentarios.push("Pendencia " + num + ": " + minuta.slice(s + INICIO.length, e).trim()); num++; pos = e + 1; }
+      let limpo = ""; pos = 0;
+      while (true) { const s = minuta.indexOf(INICIO, pos); if (s === -1) { limpo += minuta.slice(pos); break; } const e = minuta.indexOf(FIM, s); if (e === -1) { limpo += minuta.slice(pos); break; } limpo += minuta.slice(pos, s); pos = e + 1; }
+      minuta = limpo.replace(/\n{3,}/g, "\n\n").trim();
+    } catch(e) {
+      minuta = resposta.replace(/\n{3,}/g, "\n\n").trim();
     }
-
-    const regex = /【PENDÊNCIA: ([^】]+)】/g;
-    let match; let num = comentarios.length + 1;
-    while ((match = regex.exec(minuta)) !== null) {
-      comentarios.push(`Pendência ${num}: ${match[1].trim()}`);
-      num++;
-    }
-    minuta = minuta.replace(/【PENDÊNCIA: [^】]+】/g, "").replace(/\n{3,}/g, "\n\n").trim();
 
     const driveResp = await httpPostComRedirect(DRIVE_URL, {
       acao: "criar-minuta-doc",

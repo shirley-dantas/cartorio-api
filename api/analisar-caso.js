@@ -289,47 +289,84 @@ function httpPost(url, body) {
   });
 }
 
-function parsearResposta(texto) {
+function removerSecaoAnalise(texto) {
+  // Detecta seção de análise documental pelo separador --- ou pelo cabeçalho
+  const termos = [
+    "---\nANALISE", "---\nANÁLISE",
+    "\nANÁLISE DOCUMENTAL", "\nANALISE DOCUMENTAL",
+    "\n## ANÁLISE", "\n## ANALISE",
+    "\nAPONTAMENTOS TÉCNICOS", "\nPENDÊNCI"
+  ];
+  let idxCorte = -1;
+  for (const t of termos) {
+    const idx = texto.indexOf(t);
+    if (idx !== -1 && (idxCorte === -1 || idx < idxCorte)) idxCorte = idx;
+  }
+  if (idxCorte === -1) return { corpo: texto, secao: "" };
+  return { corpo: texto.slice(0, idxCorte), secao: texto.slice(idxCorte) };
+}
+
+function extrairPendencias(secao) {
   const comentarios = [];
-  let minuta = texto;
+  secao.split("\n").forEach(linha => {
+    const m = linha.match(/\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|/);
+    if (m) {
+      const doc = m[2].trim();
+      const titular = m[3].trim();
+      const obs = m[4].trim();
+      let txt = "Pendencia " + m[1] + ": " + doc;
+      if (titular && titular !== "-" && titular !== "—") txt += " - " + titular;
+      if (obs && obs !== "-" && obs !== "—") txt += " (" + obs + ")";
+      comentarios.push(txt);
+    }
+  });
+  return comentarios;
+}
 
-  // Remove seção de análise documental do corpo e converte linhas em comentários
-  const idxSecao = minuta.search(/\n(?:---\s*\n)?(?:#{0,3}\s*)?(?:ANÁLISE|ANALISE|APONTAMENTO|PENDÊNCIA DOCUMENTAL|PENDENCIAS DOCUMENTAIS)/i);
-  if (idxSecao !== -1) {
-    const secao = minuta.slice(idxSecao);
-    minuta = minuta.slice(0, idxSecao);
-    secao.split("\n").forEach(linha => {
-      // Captura linhas de tabela: | 01 | Documento | Titular | Obs |
-      const m = linha.match(/\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|/);
-      if (m) {
-        const doc = m[2].trim();
-        const titular = m[3].trim();
-        const obs = m[4].trim();
-        let txt = `Pendência ${m[1]}: ${doc}`;
-        if (titular && titular !== "—") txt += ` — ${titular}`;
-        if (obs && obs !== "—") txt += ` (${obs})`;
-        comentarios.push(txt);
-      }
-    });
+function parsearResposta(texto) {
+  try {
+    const comentarios = [];
+
+    // Remove seção de análise documental e extrai como comentários
+    const { corpo, secao } = removerSecaoAnalise(texto);
+    if (secao) comentarios.push(...extrairPendencias(secao));
+
+    let minuta = corpo;
+
+    // Extrai marcadores inline de pendência usando indexOf (evita problemas com regex Unicode)
+    const INICIO = "【PENDÊNCIA: ";
+    const FIM = "】";
+    let pos = 0;
+    let num = comentarios.length + 1;
+    while (true) {
+      const s = minuta.indexOf(INICIO, pos);
+      if (s === -1) break;
+      const e = minuta.indexOf(FIM, s);
+      if (e === -1) break;
+      comentarios.push("Pendencia " + num + ": " + minuta.slice(s + INICIO.length, e).trim());
+      num++;
+      pos = e + 1;
+    }
+
+    // Remove os marcadores do texto
+    let limpo = "";
+    pos = 0;
+    while (true) {
+      const s = minuta.indexOf(INICIO, pos);
+      if (s === -1) { limpo += minuta.slice(pos); break; }
+      const e = minuta.indexOf(FIM, s);
+      if (e === -1) { limpo += minuta.slice(pos); break; }
+      limpo += minuta.slice(pos, s);
+      pos = e + 1;
+    }
+
+    minuta = limpo.replace(/\n{3,}/g, "\n\n").trim();
+    return { minuta, comentarios };
+  } catch (err) {
+    // Fallback seguro: retorna o texto bruto sem processamento
+    const minuta = texto.replace(/\n{3,}/g, "\n\n").trim();
+    return { minuta, comentarios: ["Erro ao processar pendencias: " + err.message] };
   }
-
-  // Extrai marcadores 【PENDÊNCIA】 do texto e converte em comentários
-  const regex = /【PENDÊNCIA: ([^】]+)】/g;
-  let match;
-  let num = comentarios.length + 1;
-  while ((match = regex.exec(minuta)) !== null) {
-    comentarios.push(`Pendência ${num}: ${match[1].trim()}`);
-    num++;
-  }
-
-  // Remove marcadores do texto, remove negrito indevido no parágrafo de emolumentos
-  minuta = minuta
-    .replace(/【PENDÊNCIA: [^】]+】/g, "")
-    .replace(/(CNPJ[^)]+\))\*\*/g, "$1")  // garante sem negrito após CNPJ
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-
-  return { minuta, comentarios };
 }
 
 module.exports = async (req, res) => {
