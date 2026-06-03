@@ -1,7 +1,7 @@
 {
   "functions": {
-    "api/*.js": {
-      "maxDuration": 60
-    }
+    "api/analisar-caso.js": { "maxDuration": 60 },
+    "api/criar-doc.js": { "maxDuration": 60 },
+    "api/salvar-caso.js": { "maxDuration": 60 }
   }
 }
