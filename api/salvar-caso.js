@@ -259,31 +259,20 @@ Por favor, gere a minuta completa conforme as informações disponíveis, usando
     const resposta = await callClaudeMinuta(mensagem);
     if (!resposta) return { driveUrl: null, docUrl: null };
 
-    let comentarios = [];
+    const comentarios = [];
     let minuta = resposta;
-    try {
-      // Remove seção de análise documental
-      const termos = ["---\nANALISE","---\nANÁLISE","\nANÁLISE DOCUMENTAL","\nANALISE DOCUMENTAL","\n## ANÁLISE","\nAPONTAMENTOS TÉCNICOS","\nPENDÊNCI"];
-      let idxCorte = -1;
-      for (const t of termos) { const idx = minuta.indexOf(t); if (idx !== -1 && (idxCorte === -1 || idx < idxCorte)) idxCorte = idx; }
-      if (idxCorte !== -1) {
-        const secao = minuta.slice(idxCorte);
-        minuta = minuta.slice(0, idxCorte);
-        secao.split("\n").forEach(linha => {
-          const m = linha.match(/\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|/);
-          if (m) { comentarios.push("Pendencia " + m[1] + ": " + m[2].trim() + (m[3].trim() ? " - " + m[3].trim() : "") + (m[4].trim() ? " (" + m[4].trim() + ")" : "")); }
-        });
-      }
-      // Extrai marcadores inline
-      const INICIO = "【PENDÊNCIA: "; const FIM = "】";
-      let pos = 0; let num = comentarios.length + 1;
-      while (true) { const s = minuta.indexOf(INICIO, pos); if (s === -1) break; const e = minuta.indexOf(FIM, s); if (e === -1) break; comentarios.push("Pendencia " + num + ": " + minuta.slice(s + INICIO.length, e).trim()); num++; pos = e + 1; }
-      let limpo = ""; pos = 0;
-      while (true) { const s = minuta.indexOf(INICIO, pos); if (s === -1) { limpo += minuta.slice(pos); break; } const e = minuta.indexOf(FIM, s); if (e === -1) { limpo += minuta.slice(pos); break; } limpo += minuta.slice(pos, s); pos = e + 1; }
-      minuta = limpo.replace(/\n{3,}/g, "\n\n").trim();
-    } catch(e) {
-      minuta = resposta.replace(/\n{3,}/g, "\n\n").trim();
-    }
+    const INICIO = "【PENDÊNCIA: ";
+    const FIM = "】";
+    let pos = 0; let num = 1;
+    while (true) { const s = minuta.indexOf(INICIO, pos); if (s === -1) break; const e = minuta.indexOf(FIM, s); if (e === -1) break; comentarios.push("Pendencia " + num + ": " + minuta.slice(s + INICIO.length, e).trim()); num++; pos = e + 1; }
+    let limpo = ""; pos = 0;
+    while (true) { const s = minuta.indexOf(INICIO, pos); if (s === -1) { limpo += minuta.slice(pos); break; } const e = minuta.indexOf(FIM, s); if (e === -1) { limpo += minuta.slice(pos); break; } limpo += minuta.slice(pos, s); pos = e + 1; }
+    minuta = limpo;
+    const cortes = ["---\nANALISE", "---\nANÁLISE", "\nANÁLISE DOCUMENTAL", "\nANALISE DOCUMENTAL", "\nAPONTAMENTOS TÉCNICOS"];
+    let idxCorte = -1;
+    for (let i = 0; i < cortes.length; i++) { const idx = minuta.indexOf(cortes[i]); if (idx !== -1 && (idxCorte === -1 || idx < idxCorte)) idxCorte = idx; }
+    if (idxCorte !== -1) minuta = minuta.slice(0, idxCorte);
+    minuta = minuta.replace(/\n\n\n+/g, "\n\n").trim();
 
     const driveResp = await httpPostComRedirect(DRIVE_URL, {
       acao: "criar-minuta-doc",

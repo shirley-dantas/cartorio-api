@@ -289,84 +289,47 @@ function httpPost(url, body) {
   });
 }
 
-function removerSecaoAnalise(texto) {
-  // Detecta seção de análise documental pelo separador --- ou pelo cabeçalho
-  const termos = [
-    "---\nANALISE", "---\nANÁLISE",
-    "\nANÁLISE DOCUMENTAL", "\nANALISE DOCUMENTAL",
-    "\n## ANÁLISE", "\n## ANALISE",
-    "\nAPONTAMENTOS TÉCNICOS", "\nPENDÊNCI"
-  ];
+function parsearResposta(texto) {
+  const comentarios = [];
+  const INICIO = "【PENDÊNCIA: ";
+  const FIM = "】";
+  let pos = 0;
+  let num = 1;
+
+  // Extrai marcadores de pendência
+  while (true) {
+    const s = texto.indexOf(INICIO, pos);
+    if (s === -1) break;
+    const e = texto.indexOf(FIM, s);
+    if (e === -1) break;
+    comentarios.push("Pendencia " + num + ": " + texto.slice(s + INICIO.length, e).trim());
+    num++;
+    pos = e + 1;
+  }
+
+  // Remove marcadores do texto
+  let minuta = "";
+  pos = 0;
+  while (true) {
+    const s = texto.indexOf(INICIO, pos);
+    if (s === -1) { minuta += texto.slice(pos); break; }
+    const e = texto.indexOf(FIM, s);
+    if (e === -1) { minuta += texto.slice(pos); break; }
+    minuta += texto.slice(pos, s);
+    pos = e + 1;
+  }
+
+  // Remove seção de análise documental se a IA gerou mesmo assim
+  const cortes = ["---\nANALISE", "---\nANÁLISE", "\nANÁLISE DOCUMENTAL", "\nANALISE DOCUMENTAL", "\nAPONTAMENTOS TÉCNICOS"];
   let idxCorte = -1;
-  for (const t of termos) {
-    const idx = texto.indexOf(t);
+  for (let i = 0; i < cortes.length; i++) {
+    const idx = minuta.indexOf(cortes[i]);
     if (idx !== -1 && (idxCorte === -1 || idx < idxCorte)) idxCorte = idx;
   }
-  if (idxCorte === -1) return { corpo: texto, secao: "" };
-  return { corpo: texto.slice(0, idxCorte), secao: texto.slice(idxCorte) };
-}
+  if (idxCorte !== -1) minuta = minuta.slice(0, idxCorte);
 
-function extrairPendencias(secao) {
-  const comentarios = [];
-  secao.split("\n").forEach(linha => {
-    const m = linha.match(/\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|/);
-    if (m) {
-      const doc = m[2].trim();
-      const titular = m[3].trim();
-      const obs = m[4].trim();
-      let txt = "Pendencia " + m[1] + ": " + doc;
-      if (titular && titular !== "-" && titular !== "—") txt += " - " + titular;
-      if (obs && obs !== "-" && obs !== "—") txt += " (" + obs + ")";
-      comentarios.push(txt);
-    }
-  });
-  return comentarios;
-}
-
-function parsearResposta(texto) {
-  try {
-    const comentarios = [];
-
-    // Remove seção de análise documental e extrai como comentários
-    const { corpo, secao } = removerSecaoAnalise(texto);
-    if (secao) comentarios.push(...extrairPendencias(secao));
-
-    let minuta = corpo;
-
-    // Extrai marcadores inline de pendência usando indexOf (evita problemas com regex Unicode)
-    const INICIO = "【PENDÊNCIA: ";
-    const FIM = "】";
-    let pos = 0;
-    let num = comentarios.length + 1;
-    while (true) {
-      const s = minuta.indexOf(INICIO, pos);
-      if (s === -1) break;
-      const e = minuta.indexOf(FIM, s);
-      if (e === -1) break;
-      comentarios.push("Pendencia " + num + ": " + minuta.slice(s + INICIO.length, e).trim());
-      num++;
-      pos = e + 1;
-    }
-
-    // Remove os marcadores do texto
-    let limpo = "";
-    pos = 0;
-    while (true) {
-      const s = minuta.indexOf(INICIO, pos);
-      if (s === -1) { limpo += minuta.slice(pos); break; }
-      const e = minuta.indexOf(FIM, s);
-      if (e === -1) { limpo += minuta.slice(pos); break; }
-      limpo += minuta.slice(pos, s);
-      pos = e + 1;
-    }
-
-    minuta = limpo.replace(/\n{3,}/g, "\n\n").trim();
-    return { minuta, comentarios };
-  } catch (err) {
-    // Fallback seguro: retorna o texto bruto sem processamento
-    const minuta = texto.replace(/\n{3,}/g, "\n\n").trim();
-    return { minuta, comentarios: ["Erro ao processar pendencias: " + err.message] };
-  }
+  minuta = minuta.replace(/\n\n\n+/g, "\n\n").trim();
+  return { minuta, comentarios };
 }
 
 module.exports = async (req, res) => {
