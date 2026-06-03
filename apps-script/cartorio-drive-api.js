@@ -138,7 +138,11 @@ function inserirParagrafoFormatado(body, textoMd, tipoHeading) {
   para.setLineSpacing(1.15);
   para.setSpacingBefore(0);
   para.setSpacingAfter(0);
-  if (tipoHeading === 1) para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+  if (tipoHeading === 1) {
+    para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+  } else {
+    para.setAlignment(DocumentApp.HorizontalAlignment.JUSTIFY);
+  }
 
   var textEl = para.editAsText();
   if (textoLimpo.length > 0) {

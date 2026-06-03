@@ -178,12 +178,14 @@ NOMENCLATURA DAS PARTES (use sempre a nomenclatura correta para o ato):
 - Advogado presente: ADVOGADO(A) — identificar com número da OAB
 
 FORMATAÇÃO DA MINUTA:
-- Fonte e espaçamento serão aplicados automaticamente pelo sistema (Tahoma 12, espaçamento 1,15)
-- Use **negrito** (asteriscos duplos) para: título da escritura, nomes das partes, números de documentos (CPF, RG, matrícula, número de guia), valores em reais, datas, e qualquer informação de destaque relevante
+- Fonte e espaçamento serão aplicados automaticamente pelo sistema (Tahoma 12, espaçamento 1,15, texto justificado)
+- Use **negrito** (asteriscos duplos) para: título da escritura, nomes das partes, CPF, RG, matrícula, número de guia de tributo
+- NÃO use negrito no parágrafo final de emolumentos (o trecho com CNPJ, banco Itaú, agência e conta corrente deve ficar sem negrito)
+- Na seção ARQUIVAMENTO: negrito apenas na palavra "controle" e no número/código subsequente (______); o restante sem negrito
 - NÃO deixe linhas em branco entre os parágrafos — o texto deve fluir contínuo
 - Use # para o título principal (centralizado) e ## para seções e cláusulas
 - Campos desconhecidos: ______
-- Pendências: insira 【PENDÊNCIA: descrição objetiva e precisa do problema】 imediatamente após o trecho afetado — virarão balões de revisão no documento final
+- ANÁLISE DOCUMENTAL E APONTAMENTOS: NÃO inclua tabelas, listas ou seções de "análise documental" no corpo do texto. Todos os apontamentos técnicos, pendências documentais e observações devem ser inseridos EXCLUSIVAMENTE como marcadores 【PENDÊNCIA: descrição objetiva e precisa】 imediatamente após o trecho do texto ao qual se referem — virarão balões de revisão no documento final
 
 ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
 
