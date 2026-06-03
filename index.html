@@ -757,8 +757,10 @@ window.gerarReeditar=async function(){
   const instrucao=document.getElementById('reeditar-instrucao').value.trim();
   if(!instrucao){document.getElementById('reeditar-instrucao').focus();return;}
   document.getElementById('btn-reeditar-gerar').disabled=true;
-  document.getElementById('reeditar-loading').style.display='block';
   document.getElementById('reeditar-result').style.display='none';
+  const rLoad=document.getElementById('reeditar-loading');
+  const setRLoad=(txt)=>{rLoad.style.display='block';rLoad.innerHTML=`<i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>${txt}`;};
+  const setRErro=(msg)=>{rLoad.style.display='none';document.getElementById('reeditar-result').style.display='block';document.getElementById('btn-abrir-reeditar').href='#';document.getElementById('reeditar-doc-nome').textContent='⚠️ '+msg;};
   try{
     // Buscar documentos existentes do caso
     let docsTexto='';
@@ -775,31 +777,26 @@ window.gerarReeditar=async function(){
       }
       docsTexto=linhas.join('\n');
     }catch(e){docsTexto=c.obs||'';}
-    const resp=await fetch('/api/analisar-caso',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao})
-    });
-    const data=await resp.json();
-    document.getElementById('reeditar-loading').style.display='none';
+    // Passo 1 — IA
+    setRLoad('Gerando nova versão da minuta…<br><span style="font-size:11px;color:#AEAEB2">Passo 1 de 2</span>');
+    const r1=await fetch('/api/analisar-caso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao})});
+    const d1=await r1.json();
+    if(!d1.ok||!d1.minuta) throw new Error(d1.erro||'A IA não retornou minuta.');
+    // Passo 2 — Drive
+    setRLoad('Salvando nova versão no Drive…<br><span style="font-size:11px;color:#AEAEB2">Passo 2 de 2</span>');
+    const r2=await fetch('/api/criar-doc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,minuta:d1.minuta,comentarios:d1.comentarios||[]})});
+    const d2=await r2.json();
+    rLoad.style.display='none';
     document.getElementById('reeditar-result').style.display='block';
-    if(data.docUrl){
-      document.getElementById('btn-abrir-reeditar').href=data.docUrl;
-      document.getElementById('reeditar-doc-nome').textContent=data.docNome||'';
-      // Atualiza driveUrl no card se vier folderUrl
-      if(data.folderUrl && id){
-        const {ref,update}=window._fbUtils||{};
-        if(ref&&update) update(ref(window._db,'casos/'+id),{driveUrl:data.folderUrl}).catch(()=>{});
-      }
+    if(d2.ok&&d2.docUrl){
+      document.getElementById('btn-abrir-reeditar').href=d2.docUrl;
+      document.getElementById('reeditar-doc-nome').textContent=d2.docNome||'';
+      if(d2.folderUrl) update(ref(db,'casos/'+id),{driveUrl:d2.folderUrl}).catch(()=>{});
     } else {
-      document.getElementById('reeditar-doc-nome').textContent='Erro ao gerar. Tente novamente.';
-      document.getElementById('btn-abrir-reeditar').href='#';
+      setRErro(d2.erro||'Não foi possível salvar no Drive.');
     }
   }catch(e){
-    document.getElementById('reeditar-loading').style.display='none';
-    document.getElementById('reeditar-result').style.display='block';
-    document.getElementById('reeditar-doc-nome').textContent='Erro ao conectar. Tente novamente.';
-    document.getElementById('btn-abrir-reeditar').href='#';
+    setRErro(e.message||'Erro ao conectar. Tente novamente.');
   }
   document.getElementById('btn-reeditar-gerar').disabled=false;
 };
@@ -808,37 +805,41 @@ window.gerarAnalise=async function(){
   const c=casos[id];if(!c)return;
   const docs=document.getElementById('modal-docs').value.trim();
   document.getElementById('btn-gerar').disabled=true;
-  document.getElementById('modal-loading').style.display='block';
   document.getElementById('modal-result').style.display='none';
-  try{
-    const resp=await fetch('/api/analisar-caso',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docs})
-    });
-    const data=await resp.json();
-    document.getElementById('modal-loading').style.display='none';
-    document.getElementById('modal-result').style.display='block';
-    if(data.docUrl){
-      document.getElementById('btn-abrir-doc').href=data.docUrl;
-      document.getElementById('modal-doc-nome').textContent=data.docNome||'';
-      document.getElementById('btn-copiar-rel').style.display='inline-block';
-      document.getElementById('modal-result-text').textContent=data.analise||'';
-    } else {
-      document.getElementById('modal-doc-nome').textContent='';
-      document.getElementById('btn-abrir-doc').href='#';
-      document.getElementById('modal-result-text').textContent=data.analise||data.erro||'Sem resposta.';
-      document.getElementById('modal-result-text').style.display='block';
-    }
-  }catch(e){
-    document.getElementById('modal-loading').style.display='none';
-    document.getElementById('modal-result').style.display='none';
-    document.getElementById('modal-doc-nome').textContent='⚠️ Tempo esgotado. Tente novamente em instantes.';
-    document.getElementById('modal-doc-nome').style.display='block';
+  const loading=document.getElementById('modal-loading');
+  const setLoading=(txt)=>{loading.style.display='block';loading.innerHTML=`<i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>${txt}`;};
+  const setErro=(msg)=>{
+    loading.style.display='none';
     document.getElementById('modal-result').style.display='block';
     document.getElementById('btn-abrir-doc').style.display='none';
     document.getElementById('btn-copiar-rel').style.display='none';
+    document.getElementById('modal-doc-nome').textContent='⚠️ '+msg;
     document.getElementById('modal-result-text').style.display='none';
+  };
+  try{
+    // Passo 1 — IA gera a minuta
+    setLoading('Analisando documentos e gerando minuta…<br><span style="font-size:11px;color:#AEAEB2">Passo 1 de 2</span>');
+    const r1=await fetch('/api/analisar-caso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docs})});
+    const d1=await r1.json();
+    if(!d1.ok||!d1.minuta) throw new Error(d1.erro||'A IA não retornou minuta.');
+    // Passo 2 — Salvar no Drive
+    setLoading('Salvando documento no Drive…<br><span style="font-size:11px;color:#AEAEB2">Passo 2 de 2</span>');
+    const r2=await fetch('/api/criar-doc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,minuta:d1.minuta,comentarios:d1.comentarios||[]})});
+    const d2=await r2.json();
+    loading.style.display='none';
+    document.getElementById('modal-result').style.display='block';
+    if(d2.ok&&d2.docUrl){
+      document.getElementById('btn-abrir-doc').href=d2.docUrl;
+      document.getElementById('btn-abrir-doc').style.display='inline-block';
+      document.getElementById('modal-doc-nome').textContent=d2.docNome||'';
+      document.getElementById('modal-result-text').style.display='none';
+      document.getElementById('btn-copiar-rel').style.display='none';
+      if(d2.folderUrl) update(ref(db,'casos/'+id),{driveUrl:d2.folderUrl}).catch(()=>{});
+    } else {
+      setErro(d2.erro||'Não foi possível salvar no Drive.');
+    }
+  }catch(e){
+    setErro(e.message||'Erro ao conectar. Tente novamente.');
   }
   document.getElementById('btn-gerar').disabled=false;
 };

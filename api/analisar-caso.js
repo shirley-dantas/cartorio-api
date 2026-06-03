@@ -284,24 +284,7 @@ Por favor, gere a minuta completa conforme as informações disponíveis.`;
   try {
     const resposta = await callClaude(mensagem);
     const { minuta, comentarios } = parsearResposta(resposta);
-
-    let docUrl = null;
-    let folderUrl = null;
-    let docNome = null;
-    if (minuta) {
-      const driveResp = await httpPost(DRIVE_URL, {
-        acao: "criar-minuta-doc",
-        nome: nome || "Caso",
-        tipo: tipo || "",
-        minuta,
-        comentarios
-      });
-      docUrl = driveResp?.url || null;
-      folderUrl = driveResp?.folderUrl || null;
-      docNome = driveResp?.nome || null;
-    }
-
-    return res.status(200).json({ ok: true, docUrl, folderUrl, docNome });
+    return res.status(200).json({ ok: true, minuta, comentarios });
   } catch (err) {
     return res.status(500).json({ ok: false, erro: err.message });
   }
