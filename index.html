@@ -751,6 +751,27 @@ window.abrirReeditar=async function(id){
 window.fecharReeditar=function(){
   document.getElementById('modal-reeditar').classList.remove('open');
 };
+async function lerSSE(response){
+  const reader=response.body.getReader();
+  const dec=new TextDecoder();
+  let buf='';let result=null;
+  while(true){
+    const{done,value}=await reader.read();
+    if(done)break;
+    buf+=dec.decode(value,{stream:true});
+    const lines=buf.split('\n');
+    buf=lines.pop();
+    let lastEvent='';
+    for(const line of lines){
+      if(line.startsWith('event: ')){lastEvent=line.slice(7).trim();continue;}
+      if(line.startsWith('data: ')&&lastEvent==='result'){
+        try{result=JSON.parse(line.slice(6));}catch{}
+      }
+    }
+  }
+  if(!result)throw new Error('Sem resposta da IA (stream vazio).');
+  return result;
+}
 window.gerarReeditar=async function(){
   const id=document.getElementById('btn-reeditar-gerar').dataset.id;
   const c=casos[id];if(!c)return;
@@ -777,10 +798,10 @@ window.gerarReeditar=async function(){
       }
       docsTexto=linhas.join('\n');
     }catch(e){docsTexto=c.obs||'';}
-    // Passo 1 — IA
+    // Passo 1 — IA (streaming)
     setRLoad('Gerando nova versão da minuta…<br><span style="font-size:11px;color:#AEAEB2">Passo 1 de 2</span>');
     const r1=await fetch('/api/analisar-caso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade||'digital'})});
-    const t1=await r1.text();let d1;try{d1=JSON.parse(t1);}catch{throw new Error('Passo 1 retornou resposta inválida: '+t1.slice(0,200));}
+    const d1=await lerSSE(r1);
     if(!d1.ok||!d1.minuta) throw new Error(d1.erro||'A IA não retornou minuta.');
     // Passo 2 — Drive
     setRLoad('Salvando nova versão no Drive…<br><span style="font-size:11px;color:#AEAEB2">Passo 2 de 2</span>');
@@ -817,10 +838,10 @@ window.gerarAnalise=async function(){
     document.getElementById('modal-result-text').style.display='none';
   };
   try{
-    // Passo 1 — IA gera a minuta
+    // Passo 1 — IA gera a minuta (streaming)
     setLoading('Analisando documentos e gerando minuta…<br><span style="font-size:11px;color:#AEAEB2">Passo 1 de 2</span>');
     const r1=await fetch('/api/analisar-caso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docs,modalidade:c.modalidade||'digital'})});
-    const t1=await r1.text();let d1;try{d1=JSON.parse(t1);}catch{throw new Error('Passo 1 retornou resposta inválida: '+t1.slice(0,200));}
+    const d1=await lerSSE(r1);
     if(!d1.ok||!d1.minuta) throw new Error(d1.erro||'A IA não retornou minuta.');
     // Passo 2 — Salvar no Drive
     setLoading('Salvando documento no Drive…<br><span style="font-size:11px;color:#AEAEB2">Passo 2 de 2</span>');

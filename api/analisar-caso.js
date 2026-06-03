@@ -214,11 +214,12 @@ NOTA SOBRE O ENCERRAMENTO: Substitua "adquirente" pelo nome correto da parte pri
 
 A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualificação completa das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas.`;
 
-function callClaude(userMessage) {
+function callClaudeStream(userMessage, onChunk) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       model: "claude-sonnet-4-6",
       max_tokens: 5000,
+      stream: true,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }]
     });
@@ -236,16 +237,27 @@ function callClaude(userMessage) {
     };
 
     const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try {
-          const parsed = JSON.parse(data);
-          resolve(parsed?.content?.[0]?.text || "Sem resposta da IA.");
-        } catch {
-          resolve("Erro ao processar resposta da IA.");
+      let fullText = "";
+      let buffer = "";
+      res.on("data", (chunk) => {
+        buffer += chunk.toString();
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (raw === "[DONE]") continue;
+          try {
+            const evt = JSON.parse(raw);
+            if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
+              const text = evt.delta.text || "";
+              fullText += text;
+              onChunk(text);
+            }
+          } catch {}
         }
       });
+      res.on("end", () => resolve(fullText || "Sem resposta da IA."));
     });
 
     req.on("error", reject);
@@ -360,11 +372,19 @@ ${documentos || "Nenhum documento fornecido ainda."}
 
 Por favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade ${mod.toUpperCase()} conforme as instruções do sistema.`;
 
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("X-Accel-Buffering", "no");
+
   try {
-    const resposta = await callClaude(mensagem);
+    const resposta = await callClaudeStream(mensagem, (chunk) => {
+      res.write(`data: ${JSON.stringify({ t: chunk })}\n\n`);
+    });
     const { minuta, comentarios } = parsearResposta(resposta);
-    return res.status(200).json({ ok: true, minuta, comentarios });
+    res.write(`event: result\ndata: ${JSON.stringify({ ok: true, minuta, comentarios })}\n\n`);
+    res.end();
   } catch (err) {
-    return res.status(500).json({ ok: false, erro: err.message });
+    res.write(`event: result\ndata: ${JSON.stringify({ ok: false, erro: err.message })}\n\n`);
+    res.end();
   }
 };
