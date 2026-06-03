@@ -291,15 +291,44 @@ function httpPost(url, body) {
 
 function parsearResposta(texto) {
   const comentarios = [];
+  let minuta = texto;
+
+  // Remove seção de análise documental do corpo e converte linhas em comentários
+  const idxSecao = minuta.search(/\n(?:---\s*\n)?(?:#{0,3}\s*)?(?:ANÁLISE|ANALISE|APONTAMENTO|PENDÊNCIA DOCUMENTAL|PENDENCIAS DOCUMENTAIS)/i);
+  if (idxSecao !== -1) {
+    const secao = minuta.slice(idxSecao);
+    minuta = minuta.slice(0, idxSecao);
+    secao.split("\n").forEach(linha => {
+      // Captura linhas de tabela: | 01 | Documento | Titular | Obs |
+      const m = linha.match(/\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|/);
+      if (m) {
+        const doc = m[2].trim();
+        const titular = m[3].trim();
+        const obs = m[4].trim();
+        let txt = `Pendência ${m[1]}: ${doc}`;
+        if (titular && titular !== "—") txt += ` — ${titular}`;
+        if (obs && obs !== "—") txt += ` (${obs})`;
+        comentarios.push(txt);
+      }
+    });
+  }
+
+  // Extrai marcadores 【PENDÊNCIA】 do texto e converte em comentários
   const regex = /【PENDÊNCIA: ([^】]+)】/g;
   let match;
-  let num = 1;
-  while ((match = regex.exec(texto)) !== null) {
+  let num = comentarios.length + 1;
+  while ((match = regex.exec(minuta)) !== null) {
     comentarios.push(`Pendência ${num}: ${match[1].trim()}`);
     num++;
   }
-  // A resposta inteira é a minuta — remove os marcadores do texto do doc
-  const minuta = texto.replace(/【PENDÊNCIA: [^】]+】/g, "").replace(/\n{3,}/g, "\n\n").trim();
+
+  // Remove marcadores do texto, remove negrito indevido no parágrafo de emolumentos
+  minuta = minuta
+    .replace(/【PENDÊNCIA: [^】]+】/g, "")
+    .replace(/(CNPJ[^)]+\))\*\*/g, "$1")  // garante sem negrito após CNPJ
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
   return { minuta, comentarios };
 }
 

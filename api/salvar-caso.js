@@ -260,13 +260,34 @@ Por favor, gere a minuta completa conforme as informações disponíveis, usando
     if (!resposta) return { driveUrl: null, docUrl: null };
 
     const comentarios = [];
+    let minuta = resposta;
+
+    // Remove seção de análise documental e converte linhas em comentários
+    const idxSecao = minuta.search(/\n(?:---\s*\n)?(?:#{0,3}\s*)?(?:ANÁLISE|ANALISE|APONTAMENTO|PENDÊNCIA DOCUMENTAL|PENDENCIAS DOCUMENTAIS)/i);
+    if (idxSecao !== -1) {
+      const secao = minuta.slice(idxSecao);
+      minuta = minuta.slice(0, idxSecao);
+      secao.split("\n").forEach(linha => {
+        const m = linha.match(/\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|/);
+        if (m) {
+          const doc = m[2].trim();
+          const titular = m[3].trim();
+          const obs = m[4].trim();
+          let txt = `Pendência ${m[1]}: ${doc}`;
+          if (titular && titular !== "—") txt += ` — ${titular}`;
+          if (obs && obs !== "—") txt += ` (${obs})`;
+          comentarios.push(txt);
+        }
+      });
+    }
+
     const regex = /【PENDÊNCIA: ([^】]+)】/g;
-    let match; let num = 1;
-    while ((match = regex.exec(resposta)) !== null) {
+    let match; let num = comentarios.length + 1;
+    while ((match = regex.exec(minuta)) !== null) {
       comentarios.push(`Pendência ${num}: ${match[1].trim()}`);
       num++;
     }
-    const minuta = resposta.replace(/【PENDÊNCIA: [^】]+】/g, "").replace(/\n{3,}/g, "\n\n").trim();
+    minuta = minuta.replace(/【PENDÊNCIA: [^】]+】/g, "").replace(/\n{3,}/g, "\n\n").trim();
 
     const driveResp = await httpPostComRedirect(DRIVE_URL, {
       acao: "criar-minuta-doc",
