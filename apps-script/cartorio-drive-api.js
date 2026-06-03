@@ -6,9 +6,9 @@ const PASTA_RAIZ_ID = "1KDMZ-FJMoXEzpMXKSojeZgNeJ_p4lhSb";
 const NOME_PASTA_MINUTAS = "MINUTAS IA";
 
 function getPastaMinutasIA() {
-  const raiz = DriveApp.getFolderById(PASTA_RAIZ_ID);
-  const busca = raiz.getFoldersByName(NOME_PASTA_MINUTAS);
-  return busca.hasNext() ? busca.next() : raiz.createFolder(NOME_PASTA_MINUTAS);
+  // Cria/localiza MINUTAS IA direto no Meu Drive (sempre acessível)
+  const busca = DriveApp.getFoldersByName(NOME_PASTA_MINUTAS);
+  return busca.hasNext() ? busca.next() : DriveApp.createFolder(NOME_PASTA_MINUTAS);
 }
 
 function doPost(e) {
