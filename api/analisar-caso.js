@@ -127,7 +127,7 @@ ATENÇÃO — ATO: ATA NOTARIAL
 ATENÇÃO — ATO: DAÇÃO EM PAGAMENTO
 - Identificar credor e devedor
 - Identificar a dívida original (valor, origem, data)
-<br>- Identificar o bem dado em pagamento (imóvel: matrícula completa)
+- Identificar o bem dado em pagamento (imóvel: matrícula completa)
 - Verificar se o valor do bem é compatível com a dívida (saldo devedor)
 - Verificar ITBI se imóvel urbano
 - Verificar anuência conjugal do devedor se casado
@@ -151,61 +151,20 @@ Ao analisar um caso, você simula simultaneamente o trabalho de:
 - Um Escrevente de Notas altamente qualificado
 - Um Analista Documental Imobiliário especializado
 
-Seu objetivo é identificar riscos, inconsistências, exigências e pendências ANTES da elaboração da minuta.
+Gere a minuta notarial completa e profissional do ato, no padrão de escritura pública brasileira.
 
 REGRAS FUNDAMENTAIS:
 - Nunca assuma informações inexistentes
 - Nunca preencha lacunas sem evidência documental
-- Sempre destaque dúvidas, inconsistências ou ausência de documentos
-- Quando houver mais de uma interpretação possível, apresente todas as hipóteses com os impactos de cada uma
-- Seu papel é atuar como analista jurídico-cartorário preventivo
+- Preencha todos os campos que tiverem informação disponível nos documentos fornecidos
+- Quando houver mais de uma interpretação possível, escolha a mais conservadora e registre o problema como pendência
 
-ANÁLISE DA MATRÍCULA (quando fornecida):
-- Identificar proprietários atuais e continuidade registral
-- Verificar averbações, registros ativos, cancelamentos
-- Verificar cláusulas restritivas/resolutivas, usufruto, incomunicabilidade, inalienabilidade, impenhorabilidade
-- Verificar indisponibilidades, alienações fiduciárias, hipotecas, penhoras, arrestos
-- Verificar ações judiciais averbadas, bloqueios, georreferenciamento
-- Verificar divergências cadastrais
-
-ANÁLISE DAS PARTES:
-- Conferir qualificação completa
-- Identificar divergências de nome, estado civil, CPF/RG/certidões
-- Verificar necessidade de anuência conjugal, regime de bens, documentos complementares
-
-ANÁLISE DO NEGÓCIO JURÍDICO:
-- Compatibilidade entre documentos
-- Viabilidade do negócio pretendido
-- Necessidade de documentos adicionais e certidões
-- Possíveis impedimentos e riscos registrais/notariais
-
-FORMATO DA RESPOSTA — sempre em duas partes:
-
-## PARTE 1 — RELATÓRIO PRÉVIO
-
-**1. Resumo do caso**
-**2. Partes envolvidas**
-**3. Dados do imóvel** (se aplicável)
-**4. Documentos recebidos**
-**5. Documentos faltantes**
-**6. Pendências identificadas**
-**7. Riscos identificados**
-**8. Sugestões de saneamento**
-**9. Estrutura da minuta sugerida**
-
----
-
-## PARTE 2 — MINUTA NOTARIAL
-
-Escreva a minuta completa e profissional do ato, no padrão de escritura pública brasileira.
-
-REGRAS DA MINUTA:
+FORMATO DA MINUTA:
 - Use # para título principal e ## para seções/cláusulas
-- Campos a preencher: [PREENCHER — descrição do dado necessário]
-- Alertas e pendências jurídicas: insira 【PENDÊNCIA: descrição objetiva do que precisa ser verificado ou resolvido】 imediatamente após o trecho afetado
-- Se foi fornecida uma minuta modelo nos documentos, use sua estrutura como referência principal
+- Campos faltantes: [PREENCHER — descrição do dado necessário]
+- Onde houver dúvida, risco jurídico, pendência ou informação insuficiente: insira 【PENDÊNCIA: descrição objetiva do problema】 imediatamente após o trecho afetado — esses marcadores virarão balões de revisão no documento
 - A minuta deve conter todos os elementos formais: preâmbulo, qualificação das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas
-- Preencha todos os campos que tiverem informação disponível nos documentos fornecidos`;
+- Se foi fornecida uma minuta modelo nos documentos, use sua estrutura como referência principal`;
 
 function callClaude(userMessage) {
   return new Promise((resolve, reject) => {
@@ -249,9 +208,9 @@ function callClaude(userMessage) {
 
 const DRIVE_URL = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
 
-function httpPost(url, body, redirectCount = 0) {
+function httpPost(url, body) {
   return new Promise((resolve) => {
-    if (redirectCount > 5) return resolve(null);
+    if (!url) return resolve(null);
     const payload = JSON.stringify(body);
     const u = new URL(url);
     const options = {
@@ -260,7 +219,6 @@ function httpPost(url, body, redirectCount = 0) {
     };
     const r = https.request(options, (res) => {
       if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location) {
-        // Apps Script redireciona — seguir o redirect com GET (comportamento padrão do browser)
         const loc = res.headers.location;
         const lu = new URL(loc, url);
         const getOptions = { hostname: lu.hostname, path: lu.pathname + lu.search, method: "GET" };
@@ -292,14 +250,9 @@ function parsearResposta(texto) {
     comentarios.push(`Pendência ${num}: ${match[1].trim()}`);
     num++;
   }
-  const parte2Idx = texto.search(/##\s*PARTE\s*2/i);
-  let relatorio = texto;
-  let minuta = "";
-  if (parte2Idx !== -1) {
-    relatorio = texto.substring(0, parte2Idx).trim();
-    minuta = texto.substring(parte2Idx).replace(/【PENDÊNCIA: [^】]+】/g, "").replace(/\n{3,}/g, "\n\n").trim();
-  }
-  return { relatorio, minuta, comentarios };
+  // A resposta inteira é a minuta — remove os marcadores do texto do doc
+  const minuta = texto.replace(/【PENDÊNCIA: [^】]+】/g, "").replace(/\n{3,}/g, "\n\n").trim();
+  return { minuta, comentarios };
 }
 
 module.exports = async (req, res) => {
@@ -314,39 +267,41 @@ module.exports = async (req, res) => {
   try { dados = typeof req.body === "string" ? JSON.parse(req.body) : req.body; }
   catch { return res.status(400).json({ ok: false, erro: "JSON inválido" }); }
 
-  const { nome, tipo, obs, documentos } = dados;
+  const { nome, tipo, obs, documentos, instrucao } = dados;
 
   const instrucoes = instrucoesPorTipo(tipo);
   const mensagem = `CASO: ${nome || "Não informado"}
 TIPO DE ATO: ${tipo || "Não informado"}
 ${instrucoes ? instrucoes + "\n" : ""}
 OBSERVAÇÕES DO CASO: ${obs || "Nenhuma"}
+${instrucao ? `\nINSTRUÇÃO DE ATUALIZAÇÃO DA MINUTA: ${instrucao}` : ""}
 
 DOCUMENTOS E INFORMAÇÕES FORNECIDAS:
 ${documentos || "Nenhum documento fornecido ainda."}
 
-Por favor, realize a análise completa conforme seu protocolo.`;
+Por favor, gere a minuta completa conforme as informações disponíveis.`;
 
   try {
     const resposta = await callClaude(mensagem);
-    const { relatorio, minuta, comentarios } = parsearResposta(resposta);
+    const { minuta, comentarios } = parsearResposta(resposta);
 
     let docUrl = null;
+    let folderUrl = null;
     let docNome = null;
     if (minuta) {
       const driveResp = await httpPost(DRIVE_URL, {
         acao: "criar-minuta-doc",
         nome: nome || "Caso",
         tipo: tipo || "",
-        relatorio,
         minuta,
         comentarios
       });
       docUrl = driveResp?.url || null;
+      folderUrl = driveResp?.folderUrl || null;
       docNome = driveResp?.nome || null;
     }
 
-    return res.status(200).json({ ok: true, analise: relatorio, docUrl, docNome });
+    return res.status(200).json({ ok: true, docUrl, folderUrl, docNome });
   } catch (err) {
     return res.status(500).json({ ok: false, erro: err.message });
   }

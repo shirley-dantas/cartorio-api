@@ -93,6 +93,148 @@ async function criarPastaDrive(nome, tipo) {
   return httpReq(DRIVE_URL, "POST", { acao: "criar-pasta", nome, tipo });
 }
 
+// ══ GERAÇÃO AUTOMÁTICA DE MINUTA ════════════════════════════════
+
+const SYSTEM_PROMPT_MINUTA = `Você é o Assistente Jurídico-Cartorário do 20º Cartório de Notas de São Paulo.
+
+Gere a minuta notarial completa e profissional do ato, no padrão de escritura pública brasileira.
+
+REGRAS FUNDAMENTAIS:
+- Nunca assuma informações inexistentes
+- Nunca preencha lacunas sem evidência documental
+- Preencha todos os campos que tiverem informação disponível
+
+FORMATO DA MINUTA:
+- Use # para título principal e ## para seções/cláusulas
+- Campos faltantes: [PREENCHER — descrição do dado necessário]
+- Onde houver dúvida, risco jurídico, pendência ou informação insuficiente: insira 【PENDÊNCIA: descrição objetiva do problema】 imediatamente após o trecho afetado
+- A minuta deve conter todos os elementos formais: preâmbulo, qualificação das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas`;
+
+const INSTRUCOES_MINUTA = {
+  "Inventário": "Verificar certidão de óbito, herdeiros, regime de bens, bens do espólio, ITCMD SP (4%), meação × herança.",
+  "Escritura de Compra e Venda": "Verificar matrícula, certidões negativas do vendedor, ITBI, forma de pagamento, anuência conjugal.",
+  "Procuração": "Identificar outorgante e outorgado, poderes específicos, substabelecimento, prazo, imóvel se aplicável.",
+  "Divórcio": "Verificar certidão de casamento, ausência de filhos menores, partilha de bens, nome após divórcio.",
+  "União Estável": "Verificar documentos dos companheiros, regime de bens, data de início, cláusulas especiais.",
+  "Doação": "Identificar bem doado, ITCMD, cláusulas restritivas, anuência conjugal, usufruto se aplicável.",
+  "Renúncia": "Identificar bem/direito, natureza da renúncia (translativa ou abdicativa), impacto registral, tributos.",
+  "Cessão de Direitos": "Identificar cedente, cessionário, direitos cedidos, valor, ITBI ou ITCMD conforme o caso.",
+  "Pacto Antenupcial": "Verificar regime de bens escolhido, bens pré-nupciais, data do casamento, registro no CRI.",
+  "Testamento": "Verificar capacidade civil, legítima (50%), quota disponível, legatários, testamenteiro.",
+  "Ata Notarial": "Identificar fato a ser constatado, requerente, finalidade. Descrever objetivamente, sem opinião jurídica.",
+  "Dação em Pagamento": "Identificar dívida original, bem dado em pagamento, ITBI, quitação expressa, certidões do devedor."
+};
+
+function instrucoesMinimasPorTipo(tipo) {
+  if (!tipo) return "";
+  const chave = Object.keys(INSTRUCOES_MINUTA).find(k => tipo.toLowerCase().includes(k.toLowerCase()));
+  return chave ? `ATENÇÃO — ATO: ${chave.toUpperCase()}\n${INSTRUCOES_MINUTA[chave]}` : "";
+}
+
+function callClaudeMinuta(mensagem) {
+  return new Promise((resolve) => {
+    const body = JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8000,
+      system: SYSTEM_PROMPT_MINUTA,
+      messages: [{ role: "user", content: mensagem }]
+    });
+    const options = {
+      hostname: "api.anthropic.com",
+      path: "/v1/messages",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Length": Buffer.byteLength(body)
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", d => data += d);
+      res.on("end", () => {
+        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
+        catch { resolve(null); }
+      });
+    });
+    req.on("error", () => resolve(null));
+    req.write(body);
+    req.end();
+  });
+}
+
+function httpPostComRedirect(url, body) {
+  return new Promise((resolve) => {
+    const payload = JSON.stringify(body);
+    const u = new URL(url);
+    const options = {
+      hostname: u.hostname, path: u.pathname + u.search, method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) }
+    };
+    const r = https.request(options, (res) => {
+      if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location) {
+        const lu = new URL(res.headers.location, url);
+        const gr = https.request({ hostname: lu.hostname, path: lu.pathname + lu.search, method: "GET" }, (gres) => {
+          let data = "";
+          gres.on("data", d => data += d);
+          gres.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
+        });
+        gr.on("error", () => resolve(null));
+        gr.end();
+        return;
+      }
+      let data = "";
+      res.on("data", d => data += d);
+      res.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
+    });
+    r.on("error", () => resolve(null));
+    r.write(payload);
+    r.end();
+  });
+}
+
+async function gerarECriarMinuta(caso) {
+  try {
+    const instrucoes = instrucoesMinimasPorTipo(caso.tipo);
+    const mensagem = `CASO: ${caso.nome}
+TIPO DE ATO: ${caso.tipo || "Não informado"}
+${instrucoes ? instrucoes + "\n" : ""}
+OBSERVAÇÕES DO CASO: ${caso.obs || "Nenhuma"}
+
+Por favor, gere a minuta completa conforme as informações disponíveis.`;
+
+    const resposta = await callClaudeMinuta(mensagem);
+    if (!resposta) return { driveUrl: null, docUrl: null };
+
+    const comentarios = [];
+    const regex = /【PENDÊNCIA: ([^】]+)】/g;
+    let match; let num = 1;
+    while ((match = regex.exec(resposta)) !== null) {
+      comentarios.push(`Pendência ${num}: ${match[1].trim()}`);
+      num++;
+    }
+    const minuta = resposta.replace(/【PENDÊNCIA: [^】]+】/g, "").replace(/\n{3,}/g, "\n\n").trim();
+
+    const driveResp = await httpPostComRedirect(DRIVE_URL, {
+      acao: "criar-minuta-doc",
+      nome: caso.nome,
+      tipo: caso.tipo || "",
+      minuta,
+      comentarios
+    });
+
+    return {
+      driveUrl: driveResp?.folderUrl || null,
+      docUrl: driveResp?.url || null
+    };
+  } catch (e) {
+    return { driveUrl: null, docUrl: null };
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+
 async function extrairTextoPDF(base64, mimetype) {
   const body = JSON.stringify({
     model: "claude-sonnet-4-6",
@@ -245,16 +387,20 @@ module.exports = async (req, res) => {
       dep: ""
     };
 
-    const [fbResp, driveResp] = await Promise.all([
-      httpReq(`https://${FIREBASE_HOST}/casos.json`, "POST", caso),
-      criarPastaDrive(caso.nome, caso.tipo),
-    ]);
+    const fbResp = await httpReq(`https://${FIREBASE_HOST}/casos.json`, "POST", caso);
     const casoId = fbResp?.name || null;
-    const driveUrl = driveResp?.url || null;
-    if (casoId && driveUrl) {
-      await httpReq(`https://${FIREBASE_HOST}/casos/${casoId}.json`, "PATCH", { driveUrl });
-    }
     await setSessao({ nome: caso.nome, casoId, timestamp: new Date().toISOString() });
+
+    // Gerar minuta automaticamente e salvar no Drive (MINUTAS IA)
+    if (casoId) {
+      const { driveUrl, docUrl } = await gerarECriarMinuta(caso);
+      const patch = {};
+      if (driveUrl) patch.driveUrl = driveUrl;
+      if (docUrl) patch.docUrl = docUrl;
+      if (Object.keys(patch).length > 0) {
+        await httpReq(`https://${FIREBASE_HOST}/casos/${casoId}.json`, "PATCH", patch);
+      }
+    }
   }
 
   return res.status(200).send("OK");

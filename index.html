@@ -104,6 +104,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-agendar{color:#1B5E20;border-color:#A5D6A7}
 .btn-minuta{color:#0D47A1;border-color:#BBDEFB}
 .btn-drive{color:#1E8E3E;border-color:#A8D5B5}.btn-drive:hover{background:#F0FAF3}
+.btn-reeditar{color:#6A1B9A;border-color:#CE93D8}.btn-reeditar:hover{background:#F3E5F5}
 .btn-minuta:hover{background:#E3F2FD}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
 .modal-overlay.open{display:flex}
@@ -315,6 +316,32 @@ table.doit tr:hover td{background:#FAFAFA}
   </div>
 </div>
 
+<!-- Modal Reeditar Minuta -->
+<div class="modal-overlay" id="modal-reeditar">
+  <div class="modal-box">
+    <button class="modal-close" onclick="fecharReeditar()">&times;</button>
+    <div class="modal-title"><i class="ti ti-edit" style="font-size:15px;vertical-align:-2px;color:#6A1B9A"></i> Reeditar Minuta</div>
+    <div class="modal-sub" id="reeditar-caso-info">—</div>
+    <label class="modal-label">O que você quer alterar ou acrescentar na minuta?</label>
+    <textarea class="modal-textarea" id="reeditar-instrucao" placeholder="Ex: Acrescentar cláusula de usufruto vitalício em favor do vendedor&#10;Ex: Alterar forma de pagamento para financiamento bancário&#10;Ex: Incluir dados do imóvel: matrícula 12345, Cartório do 5º RI"></textarea>
+    <div class="modal-btn-row">
+      <button class="btn-gerar" id="btn-reeditar-gerar" onclick="gerarReeditar()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Gerar nova versão</button>
+    </div>
+    <div class="modal-loading" id="reeditar-loading">
+      <i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>
+      Gerando nova versão da minuta...<br>
+      <span style="font-size:11px;color:#AEAEB2">Isso pode levar até 60 segundos</span>
+    </div>
+    <div class="modal-result" id="reeditar-result" style="text-align:center;padding:16px">
+      <div style="font-size:15px;font-weight:600;color:#1B5E20;margin-bottom:8px">✅ Nova versão gerada com sucesso!</div>
+      <div style="font-size:12px;color:#636366;margin-bottom:14px" id="reeditar-doc-nome"></div>
+      <a id="btn-abrir-reeditar" href="#" target="_blank" style="display:inline-block;background:#6A1B9A;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">
+        <i class="ti ti-brand-google-drive" style="font-size:13px;vertical-align:-1px"></i> Abrir nova versão no Drive
+      </a>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -331,6 +358,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+window._db = db;
+window._fbUtils = { ref, update };
 
 const DEPS=['','Falta documentos','Aguardando cliente','Registro de Imóveis','Prefeitura','Pré-conferência','Jurídico Prime','Construtora'];
 
@@ -570,6 +599,7 @@ function renderCasos(){
             ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
           </select>
           <button class="btn-sm btn-minuta" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text" style="font-size:12px;vertical-align:-1px"></i> Minuta</button>
+          <button class="btn-sm btn-reeditar" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit" style="font-size:12px;vertical-align:-1px"></i> Reeditar</button>
           ${c.driveUrl?`<button class="btn-sm btn-drive" onclick="window.open('${c.driveUrl}','_blank')"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Drive</button>`:''}
           <button class="btn-sm btn-foco" onclick="addAoFoco('${c.id}')"><i class="ti ti-bolt" style="font-size:12px;vertical-align:-1px"></i> Foco</button>
           <button class="btn-sm btn-agendar" onclick="toggleAgendar('${c.id}')"><i class="ti ti-calendar-plus" style="font-size:12px;vertical-align:-1px"></i> Agendar</button>
@@ -704,6 +734,71 @@ window.abrirMinuta=async function(id){
 };
 window.fecharMinuta=function(){
   document.getElementById('modal-minuta').classList.remove('open');
+};
+window.abrirReeditar=async function(id){
+  const c=casos[id];if(!c)return;
+  document.getElementById('reeditar-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
+  document.getElementById('reeditar-instrucao').value='';
+  document.getElementById('reeditar-loading').style.display='none';
+  document.getElementById('reeditar-result').style.display='none';
+  document.getElementById('btn-reeditar-gerar').disabled=false;
+  document.getElementById('btn-reeditar-gerar').dataset.id=id;
+  document.getElementById('modal-reeditar').classList.add('open');
+};
+window.fecharReeditar=function(){
+  document.getElementById('modal-reeditar').classList.remove('open');
+};
+window.gerarReeditar=async function(){
+  const id=document.getElementById('btn-reeditar-gerar').dataset.id;
+  const c=casos[id];if(!c)return;
+  const instrucao=document.getElementById('reeditar-instrucao').value.trim();
+  if(!instrucao){document.getElementById('reeditar-instrucao').focus();return;}
+  document.getElementById('btn-reeditar-gerar').disabled=true;
+  document.getElementById('reeditar-loading').style.display='block';
+  document.getElementById('reeditar-result').style.display='none';
+  try{
+    // Buscar documentos existentes do caso
+    let docsTexto='';
+    try{
+      const snap=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/documentos.json`);
+      const docs=await snap.json();
+      const linhas=[];
+      if(c.obs) linhas.push('=== INFORMAÇÕES DO CASO ===\n'+c.obs);
+      if(docs && typeof docs==='object'){
+        Object.values(docs).forEach(d=>{
+          linhas.push(`\n=== DOCUMENTO: ${d.nome} ===`);
+          if(d.texto) linhas.push(d.texto);
+        });
+      }
+      docsTexto=linhas.join('\n');
+    }catch(e){docsTexto=c.obs||'';}
+    const resp=await fetch('/api/analisar-caso',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao})
+    });
+    const data=await resp.json();
+    document.getElementById('reeditar-loading').style.display='none';
+    document.getElementById('reeditar-result').style.display='block';
+    if(data.docUrl){
+      document.getElementById('btn-abrir-reeditar').href=data.docUrl;
+      document.getElementById('reeditar-doc-nome').textContent=data.docNome||'';
+      // Atualiza driveUrl no card se vier folderUrl
+      if(data.folderUrl && id){
+        const {ref,update}=window._fbUtils||{};
+        if(ref&&update) update(ref(window._db,'casos/'+id),{driveUrl:data.folderUrl}).catch(()=>{});
+      }
+    } else {
+      document.getElementById('reeditar-doc-nome').textContent='Erro ao gerar. Tente novamente.';
+      document.getElementById('btn-abrir-reeditar').href='#';
+    }
+  }catch(e){
+    document.getElementById('reeditar-loading').style.display='none';
+    document.getElementById('reeditar-result').style.display='block';
+    document.getElementById('reeditar-doc-nome').textContent='Erro ao conectar. Tente novamente.';
+    document.getElementById('btn-abrir-reeditar').href='#';
+  }
+  document.getElementById('btn-reeditar-gerar').disabled=false;
 };
 window.gerarAnalise=async function(){
   const id=document.getElementById('btn-gerar').dataset.id;

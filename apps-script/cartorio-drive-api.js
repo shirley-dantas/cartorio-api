@@ -3,6 +3,13 @@
 // Depois clique em Implantar > Gerenciar implantações > atualizar versão
 
 const PASTA_RAIZ_ID = "1KDMZ-FJMoXEzpMXKSojeZgNeJ_p4lhSb";
+const NOME_PASTA_MINUTAS = "MINUTAS IA";
+
+function getPastaMinutasIA() {
+  const raiz = DriveApp.getFolderById(PASTA_RAIZ_ID);
+  const busca = raiz.getFoldersByName(NOME_PASTA_MINUTAS);
+  return busca.hasNext() ? busca.next() : raiz.createFolder(NOME_PASTA_MINUTAS);
+}
 
 function doPost(e) {
   try {
@@ -20,15 +27,13 @@ function doPost(e) {
 function criarPasta(dados) {
   const nomeCliente = (dados.nome || "Sem nome").toUpperCase();
   const tipoCaso = dados.tipo || "A classificar";
-  const pastaRaiz = DriveApp.getFolderById(PASTA_RAIZ_ID);
+  const pastaMinutas = getPastaMinutasIA();
 
-  let pastaCliente;
-  const buscaCliente = pastaRaiz.getFoldersByName(nomeCliente);
-  pastaCliente = buscaCliente.hasNext() ? buscaCliente.next() : pastaRaiz.createFolder(nomeCliente);
+  const buscaCliente = pastaMinutas.getFoldersByName(nomeCliente);
+  const pastaCliente = buscaCliente.hasNext() ? buscaCliente.next() : pastaMinutas.createFolder(nomeCliente);
 
-  let pastaCaso;
   const buscaCaso = pastaCliente.getFoldersByName(tipoCaso);
-  pastaCaso = buscaCaso.hasNext() ? buscaCaso.next() : pastaCliente.createFolder(tipoCaso);
+  const pastaCaso = buscaCaso.hasNext() ? buscaCaso.next() : pastaCliente.createFolder(tipoCaso);
 
   return resp({ ok: true, url: pastaCaso.getUrl() });
 }
@@ -52,14 +57,14 @@ function salvarArquivo(dados) {
 
 function criarMinutaDoc(dados) {
   const nomeCliente = (dados.nome || "Caso").toUpperCase();
-  const pastaRaiz = DriveApp.getFolderById(PASTA_RAIZ_ID);
+  const pastaMinutas = getPastaMinutasIA();
 
-  // Encontra ou cria pasta do cliente
-  const buscaCliente = pastaRaiz.getFoldersByName(nomeCliente);
-  const pastaCliente = buscaCliente.hasNext() ? buscaCliente.next() : pastaRaiz.createFolder(nomeCliente);
+  // Encontra ou cria subpasta do cliente dentro de MINUTAS IA
+  const buscaCliente = pastaMinutas.getFoldersByName(nomeCliente);
+  const pastaCliente = buscaCliente.hasNext() ? buscaCliente.next() : pastaMinutas.createFolder(nomeCliente);
 
-  // Nome do documento com data
-  const dataHoje = Utilities.formatDate(new Date(), "America/Sao_Paulo", "dd/MM/yyyy");
+  // Nome do documento com data e hora
+  const dataHoje = Utilities.formatDate(new Date(), "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
   const nomeDoc = "MINUTA — " + dados.nome + " — " + dataHoje;
 
   // Cria o Google Doc
@@ -70,28 +75,10 @@ function criarMinutaDoc(dados) {
   const body = doc.getBody();
   body.clear();
 
-  // Insere o relatório prévio
-  if (dados.relatorio) {
-    const linhasRel = dados.relatorio.split("\n");
-    linhasRel.forEach(function(linha) {
-      if (!linha.trim()) return;
-      if (linha.startsWith("# ")) {
-        body.appendParagraph(linha.substring(2).trim()).setHeading(DocumentApp.ParagraphHeading.HEADING1);
-      } else if (linha.startsWith("## ")) {
-        body.appendParagraph(linha.substring(3).trim()).setHeading(DocumentApp.ParagraphHeading.HEADING2);
-      } else if (linha.startsWith("### ")) {
-        body.appendParagraph(linha.substring(4).trim()).setHeading(DocumentApp.ParagraphHeading.HEADING3);
-      } else {
-        body.appendParagraph(linha.trim());
-      }
-    });
-    body.appendPageBreak();
-  }
-
-  // Insere a minuta
+  // Insere apenas a minuta (sem página de relatório separada)
   if (dados.minuta) {
-    const linhasMin = dados.minuta.split("\n");
-    linhasMin.forEach(function(linha) {
+    const linhas = dados.minuta.split("\n");
+    linhas.forEach(function(linha) {
       if (!linha.trim()) return;
       if (linha.startsWith("# ")) {
         body.appendParagraph(linha.substring(2).trim()).setHeading(DocumentApp.ParagraphHeading.HEADING1);
@@ -107,7 +94,7 @@ function criarMinutaDoc(dados) {
 
   doc.saveAndClose();
 
-  // Adiciona comentários via Drive API
+  // Adiciona apontamentos como comentários/balões de revisão via Drive API
   const token = ScriptApp.getOAuthToken();
   const comentarios = dados.comentarios || [];
   comentarios.forEach(function(comentario) {
@@ -130,6 +117,7 @@ function criarMinutaDoc(dados) {
   return resp({
     ok: true,
     url: "https://docs.google.com/document/d/" + docId + "/edit",
+    folderUrl: pastaCliente.getUrl(),
     nome: nomeDoc
   });
 }
