@@ -779,7 +779,7 @@ window.gerarReeditar=async function(){
     }catch(e){docsTexto=c.obs||'';}
     // Passo 1 — IA
     setRLoad('Gerando nova versão da minuta…<br><span style="font-size:11px;color:#AEAEB2">Passo 1 de 2</span>');
-    const r1=await fetch('/api/analisar-caso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao})});
+    const r1=await fetch('/api/analisar-caso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade||'digital'})});
     const d1=await r1.json();
     if(!d1.ok||!d1.minuta) throw new Error(d1.erro||'A IA não retornou minuta.');
     // Passo 2 — Drive
@@ -819,7 +819,7 @@ window.gerarAnalise=async function(){
   try{
     // Passo 1 — IA gera a minuta
     setLoading('Analisando documentos e gerando minuta…<br><span style="font-size:11px;color:#AEAEB2">Passo 1 de 2</span>');
-    const r1=await fetch('/api/analisar-caso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docs})});
+    const r1=await fetch('/api/analisar-caso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docs,modalidade:c.modalidade||'digital'})});
     const d1=await r1.json();
     if(!d1.ok||!d1.minuta) throw new Error(d1.erro||'A IA não retornou minuta.');
     // Passo 2 — Salvar no Drive

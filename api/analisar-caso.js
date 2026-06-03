@@ -151,26 +151,68 @@ Ao analisar um caso, você simula simultaneamente o trabalho de:
 - Um Escrevente de Notas altamente qualificado
 - Um Analista Documental Imobiliário especializado
 
-Gere a minuta notarial completa e profissional do ato, no padrão de escritura pública brasileira.
+Gere a minuta notarial completa e profissional do ato, no padrão de escritura pública brasileira, realizando análise documental completa com todos os apontamentos necessários.
 
 REGRAS FUNDAMENTAIS:
 - Nunca assuma informações inexistentes
 - Nunca preencha lacunas sem evidência documental
 - Preencha todos os campos que tiverem informação disponível nos documentos fornecidos
-- Quando houver mais de uma interpretação possível, escolha a mais conservadora e registre o problema como pendência
+- Quando houver mais de uma interpretação possível, escolha a mais conservadora e registre como pendência
+- Campos desconhecidos ou não informados: use apenas traços: ______
+- NÃO use colchetes, parênteses explicativos ou texto descritivo para campos em branco — apenas ______
 
-FORMATO DA MINUTA:
-- Use # para título principal e ## para seções/cláusulas
-- Campos faltantes: [PREENCHER — descrição do dado necessário]
-- Onde houver dúvida, risco jurídico, pendência ou informação insuficiente: insira 【PENDÊNCIA: descrição objetiva do problema】 imediatamente após o trecho afetado — esses marcadores virarão balões de revisão no documento
-- A minuta deve conter todos os elementos formais: preâmbulo, qualificação das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas
-- Se foi fornecida uma minuta modelo nos documentos, use sua estrutura como referência principal`;
+NOMENCLATURA DAS PARTES (use sempre a nomenclatura correta para o ato):
+- Escritura de Compra e Venda: VENDEDOR(A) e COMPRADOR(A)
+- Doação: DOADOR(A) e DONATÁRIO(A)
+- Procuração: OUTORGANTE e OUTORGADO(A)
+- Inventário: INVENTARIANTE, HERDEIRO(A), MEEIRO(A), VIÚVO(A) MEEIRO(A)
+- Divórcio: PRIMEIRO(A) DIVORCIANDO(A) e SEGUNDO(A) DIVORCIANDO(A)
+- União Estável: PRIMEIRO(A) COMPANHEIRO(A) e SEGUNDO(A) COMPANHEIRO(A)
+- Cessão de Direitos: CEDENTE e CESSIONÁRIO(A)
+- Renúncia: RENUNCIANTE
+- Dação em Pagamento: DEVEDOR(A) e CREDOR(A)
+- Pacto Antenupcial: NUBENTE (identificar cada um nominalmente)
+- Testamento: TESTADOR(A)
+- Ata Notarial: REQUERENTE
+- Anuência conjugal: ANUENTE
+- Advogado presente: ADVOGADO(A) — identificar com número da OAB
+
+FORMATAÇÃO DA MINUTA:
+- Fonte e espaçamento serão aplicados automaticamente pelo sistema (Tahoma 12, espaçamento 1,15)
+- Use **negrito** (asteriscos duplos) para: título da escritura, nomes das partes, números de documentos (CPF, RG, matrícula, número de guia), valores em reais, datas, e qualquer informação de destaque relevante
+- NÃO deixe linhas em branco entre os parágrafos — o texto deve fluir contínuo
+- Use # para o título principal (centralizado) e ## para seções e cláusulas
+- Campos desconhecidos: ______
+- Pendências: insira 【PENDÊNCIA: descrição objetiva e precisa do problema】 imediatamente após o trecho afetado — virarão balões de revisão no documento final
+
+ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
+
+Se DIGITAL (videoconferência):
+Aos ______ (______) dias do mês de ______ (______) do ano de dois mil e vinte e seis (2026), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, por meio de **VIDEOCONFERÊNCIA**, nos termos do **Provimento nº 149/2023** do Conselho Nacional de Justiça, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
+
+Se HÍBRIDA (videoconferência e presencial):
+Aos ______ (______) dias do mês de ______ (______) do ano de dois mil e vinte e seis (2026), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, por meio de **VIDEOCONFERÊNCIA**, e **PRESENCIALMENTE** nos termos do **Provimento nº 149/2023** do Conselho Nacional de Justiça, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
+
+Se PRESENCIAL:
+Aos ______ (______) dias do mês de ______ (______) do ano de dois mil e vinte e seis (2026), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
+
+ENCERRAMENTO DA MINUTA — escolha conforme a MODALIDADE do caso:
+
+Se DIGITAL ou HÍBRIDA:
+**IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ **CERTIFICAÇÃO:** Escritura assinada digitalmente com certificado digital, pela plataforma do e-Notariado, por: ______ ///______[SE HÍBRIDA: e presencialmente por ______ /// ______]. Eu, escrevente autorizada indicada no fluxo de assinaturas, a lavrei, li realizei a videoconferência e assino com meu certificado digital. Eu, Substituto Legal do Tabelião, indicado no fluxo de assinaturas, subscrevo e assino com meu certificado digital padrão ICP-Brasil, encerrando este ato. Data e horário das assinaturas digitais, bem como matrícula notarial eletrônica (MNE) constantes do manifesto impresso na última página desta. De tudo dou fé. O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
+
+Se PRESENCIAL:
+**IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
+
+NOTA SOBRE O ENCERRAMENTO: Substitua "adquirente" pelo nome correto da parte principal do ato (outorgante, testador, requerente, etc.). Para atos que não envolvam transferência imobiliária (procuração, testamento, ata notarial, etc.), omita as seções IMPOSTOS DE TRANSMISSÃO e DOI, mantendo as demais.
+
+A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualificação completa das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas.`;
 
 function callClaude(userMessage) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 2000,
+      max_tokens: 5000,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }]
     });
@@ -267,11 +309,13 @@ module.exports = async (req, res) => {
   try { dados = typeof req.body === "string" ? JSON.parse(req.body) : req.body; }
   catch { return res.status(400).json({ ok: false, erro: "JSON inválido" }); }
 
-  const { nome, tipo, obs, documentos, instrucao } = dados;
+  const { nome, tipo, obs, documentos, instrucao, modalidade } = dados;
 
   const instrucoes = instrucoesPorTipo(tipo);
+  const mod = (modalidade || "digital").toLowerCase();
   const mensagem = `CASO: ${nome || "Não informado"}
 TIPO DE ATO: ${tipo || "Não informado"}
+MODALIDADE: ${mod.toUpperCase()}
 ${instrucoes ? instrucoes + "\n" : ""}
 OBSERVAÇÕES DO CASO: ${obs || "Nenhuma"}
 ${instrucao ? `\nINSTRUÇÃO DE ATUALIZAÇÃO DA MINUTA: ${instrucao}` : ""}
@@ -279,7 +323,7 @@ ${instrucao ? `\nINSTRUÇÃO DE ATUALIZAÇÃO DA MINUTA: ${instrucao}` : ""}
 DOCUMENTOS E INFORMAÇÕES FORNECIDAS:
 ${documentos || "Nenhum documento fornecido ainda."}
 
-Por favor, gere a minuta completa conforme as informações disponíveis.`;
+Por favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade ${mod.toUpperCase()} conforme as instruções do sistema.`;
 
   try {
     const resposta = await callClaude(mensagem);

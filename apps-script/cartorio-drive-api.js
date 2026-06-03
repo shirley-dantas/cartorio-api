@@ -75,20 +75,16 @@ function criarMinutaDoc(dados) {
   const body = doc.getBody();
   body.clear();
 
-  // Insere apenas a minuta (sem página de relatório separada)
   if (dados.minuta) {
     const linhas = dados.minuta.split("\n");
     linhas.forEach(function(linha) {
       if (!linha.trim()) return;
-      if (linha.startsWith("# ")) {
-        body.appendParagraph(linha.substring(2).trim()).setHeading(DocumentApp.ParagraphHeading.HEADING1);
-      } else if (linha.startsWith("## ")) {
-        body.appendParagraph(linha.substring(3).trim()).setHeading(DocumentApp.ParagraphHeading.HEADING2);
-      } else if (linha.startsWith("### ")) {
-        body.appendParagraph(linha.substring(4).trim()).setHeading(DocumentApp.ParagraphHeading.HEADING3);
-      } else {
-        body.appendParagraph(linha.trim());
-      }
+      var textoMd = linha;
+      var tipoHeading = 0;
+      if (linha.startsWith("# ")) { tipoHeading = 1; textoMd = linha.substring(2).trim(); }
+      else if (linha.startsWith("## ")) { tipoHeading = 2; textoMd = linha.substring(3).trim(); }
+      else if (linha.startsWith("### ")) { tipoHeading = 3; textoMd = linha.substring(4).trim(); }
+      inserirParagrafoFormatado(body, textoMd, tipoHeading);
     });
   }
 
@@ -120,6 +116,52 @@ function criarMinutaDoc(dados) {
     folderUrl: pastaCliente.getUrl(),
     nome: nomeDoc
   });
+}
+
+function inserirParagrafoFormatado(body, textoMd, tipoHeading) {
+  // Parseiar **negrito**
+  var segmentos = [];
+  var regex = /\*\*([^*]+)\*\*/g;
+  var lastIndex = 0;
+  var match;
+  while ((match = regex.exec(textoMd)) !== null) {
+    if (match.index > lastIndex) segmentos.push({ t: textoMd.slice(lastIndex, match.index), b: false });
+    segmentos.push({ t: match[1], b: true });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < textoMd.length) segmentos.push({ t: textoMd.slice(lastIndex), b: false });
+  if (segmentos.length === 0) segmentos.push({ t: textoMd, b: false });
+
+  var textoLimpo = segmentos.map(function(s) { return s.t; }).join("");
+  var para = body.appendParagraph(textoLimpo);
+  para.setHeading(DocumentApp.ParagraphHeading.NORMAL);
+  para.setLineSpacing(1.15);
+  para.setSpacingBefore(0);
+  para.setSpacingAfter(0);
+  if (tipoHeading === 1) para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+
+  var textEl = para.editAsText();
+  if (textoLimpo.length > 0) {
+    textEl.setFontFamily(0, textoLimpo.length - 1, "Tahoma");
+    textEl.setFontSize(0, textoLimpo.length - 1, 12);
+    textEl.setBold(0, textoLimpo.length - 1, false);
+  }
+
+  // Negrito para headings
+  if (tipoHeading > 0 && textoLimpo.length > 0) {
+    textEl.setBold(0, textoLimpo.length - 1, true);
+  }
+
+  // Negrito inline dos marcadores **
+  var pos = 0;
+  segmentos.forEach(function(seg) {
+    if (seg.t.length > 0 && seg.b) {
+      textEl.setBold(pos, pos + seg.t.length - 1, true);
+    }
+    pos += seg.t.length;
+  });
+
+  return para;
 }
 
 function resp(obj) {
