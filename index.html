@@ -702,6 +702,9 @@ window.abrirMinuta=async function(id){
   document.getElementById('modal-result').style.display='none';
   document.getElementById('modal-loading').style.display='none';
   document.getElementById('btn-copiar-rel').style.display='none';
+  document.getElementById('btn-abrir-doc').style.display='inline-block';
+  document.getElementById('btn-abrir-doc').href='#';
+  document.getElementById('modal-doc-nome').textContent='';
   document.getElementById('btn-gerar').disabled=true;
   document.getElementById('btn-gerar').dataset.id=id;
   document.getElementById('modal-minuta').classList.add('open');
@@ -829,9 +832,13 @@ window.gerarAnalise=async function(){
     }
   }catch(e){
     document.getElementById('modal-loading').style.display='none';
+    document.getElementById('modal-result').style.display='none';
+    document.getElementById('modal-doc-nome').textContent='⚠️ Tempo esgotado. Tente novamente em instantes.';
+    document.getElementById('modal-doc-nome').style.display='block';
     document.getElementById('modal-result').style.display='block';
-    document.getElementById('modal-result-text').textContent='Erro ao conectar. Tente novamente.';
-    document.getElementById('modal-result-text').style.display='block';
+    document.getElementById('btn-abrir-doc').style.display='none';
+    document.getElementById('btn-copiar-rel').style.display='none';
+    document.getElementById('modal-result-text').style.display='none';
   }
   document.getElementById('btn-gerar').disabled=false;
 };

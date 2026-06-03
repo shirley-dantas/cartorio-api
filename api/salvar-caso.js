@@ -135,7 +135,7 @@ function callClaudeMinuta(mensagem) {
   return new Promise((resolve) => {
     const body = JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 8000,
+      max_tokens: 4000,
       system: SYSTEM_PROMPT_MINUTA,
       messages: [{ role: "user", content: mensagem }]
     });
