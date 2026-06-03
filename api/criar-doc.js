@@ -16,7 +16,7 @@ function httpPost(url, body) {
         const gr = https.request({ hostname: lu.hostname, path: lu.pathname + lu.search, method: "GET" }, (gres) => {
           let data = "";
           gres.on("data", d => data += d);
-          gres.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
+          gres.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve({ _raw: data.slice(0, 300) }); } });
         });
         gr.on("error", () => resolve(null));
         gr.end();
@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
     });
 
     if (!driveResp || !driveResp.url) {
-      const detalhe = driveResp?.erro || (driveResp ? JSON.stringify(driveResp) : "resposta nula do Apps Script");
+      const detalhe = driveResp?._raw || driveResp?.erro || (driveResp ? JSON.stringify(driveResp) : "resposta nula do Apps Script");
       return res.status(500).json({ ok: false, erro: detalhe });
     }
 
