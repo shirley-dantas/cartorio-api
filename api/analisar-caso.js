@@ -218,7 +218,7 @@ function callClaudeStream(userMessage, onChunk) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 5000,
+      max_tokens: 3000,
       stream: true,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }]
@@ -356,7 +356,11 @@ module.exports = async (req, res) => {
   try { dados = typeof req.body === "string" ? JSON.parse(req.body) : req.body; }
   catch { return res.status(400).json({ ok: false, erro: "JSON inválido" }); }
 
-  const { nome, tipo, obs, documentos, instrucao, modalidade } = dados;
+  const { nome, tipo, obs, instrucao, modalidade } = dados;
+  // Limita texto dos documentos para evitar timeout no Vercel (60s)
+  const documentos = typeof dados.documentos === "string"
+    ? dados.documentos.slice(0, 8000)
+    : (dados.documentos || "");
 
   const instrucoes = instrucoesPorTipo(tipo);
   const mod = (modalidade || "digital").toLowerCase();
