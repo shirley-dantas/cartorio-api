@@ -129,12 +129,15 @@ NOMENCLATURA DAS PARTES (use sempre a correta para o ato):
 - Anuência conjugal: ANUENTE
 
 FORMATAÇÃO:
-- Use **negrito** para: título, nomes das partes, CPF, RG, matrícula, número de guia de tributo
-- NÃO use negrito no parágrafo final de emolumentos (CNPJ, banco Itaú, agência e conta corrente sem negrito)
-- Na seção ARQUIVAMENTO: negrito apenas na palavra "controle" e no número subsequente; o restante sem negrito
+- Use **negrito** SOMENTE para: título, nomes das partes, CPF, RG, matrícula, número de guia de tributo
+- PROIBIDO negrito em: CNPJ, nome do banco, agência, conta corrente e qualquer texto do parágrafo final de pagamento
+- Na seção ARQUIVAMENTO: negrito SOMENTE na palavra "controle" e no número que vem logo depois (______). Todo o restante sem negrito
 - NÃO deixe linhas em branco entre parágrafos
 - Use # para título principal e ## para seções/cláusulas
-- ANÁLISE DOCUMENTAL E APONTAMENTOS: NÃO inclua tabelas ou listas de análise no corpo do texto. Todos os apontamentos devem ser inseridos EXCLUSIVAMENTE como marcadores 【PENDÊNCIA: descrição objetiva】 imediatamente após o trecho ao qual se referem
+
+REGRA ABSOLUTA — ANÁLISE DOCUMENTAL:
+NUNCA inclua no corpo do texto: tabelas, listas numeradas, seções "ANÁLISE DOCUMENTAL", "APONTAMENTOS TÉCNICOS", "PENDÊNCIAS DOCUMENTAIS" ou estrutura similar.
+Cada pendência deve aparecer EXCLUSIVAMENTE como marcador 【PENDÊNCIA: descrição objetiva】 inserido diretamente no texto, após o trecho ao qual se refere. Esses marcadores viram balões de revisão automaticamente.
 
 ABERTURA DA MINUTA (escolha conforme MODALIDADE):
 

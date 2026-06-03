@@ -3,7 +3,7 @@
 // Depois clique em Implantar > Gerenciar implantações > atualizar versão
 
 const PASTA_RAIZ_ID = "1KDMZ-FJMoXEzpMXKSojeZgNeJ_p4lhSb";
-const NOME_PASTA_MINUTAS = "MINUTAS IA";
+const NOME_PASTA_MINUTAS = "0 - MINUTAS IA";
 
 function getPastaMinutasIA() {
   // Cria/localiza MINUTAS IA direto no Meu Drive (sempre acessível)
