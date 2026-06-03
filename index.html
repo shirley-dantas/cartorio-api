@@ -751,26 +751,23 @@ window.abrirReeditar=async function(id){
 window.fecharReeditar=function(){
   document.getElementById('modal-reeditar').classList.remove('open');
 };
-async function lerSSE(response){
-  const reader=response.body.getReader();
-  const dec=new TextDecoder();
-  let buf='';let result=null;
-  while(true){
-    const{done,value}=await reader.read();
-    if(done)break;
-    buf+=dec.decode(value,{stream:true});
-    const lines=buf.split('\n');
-    buf=lines.pop();
-    let lastEvent='';
-    for(const line of lines){
-      if(line.startsWith('event: ')){lastEvent=line.slice(7).trim();continue;}
-      if(line.startsWith('data: ')&&lastEvent==='result'){
-        try{result=JSON.parse(line.slice(6));}catch{}
+async function aguardarJobFirebase(jobId,onTick){
+  const url='https://painel-cartorio-default-rtdb.firebaseio.com/jobs/'+jobId+'.json';
+  const limite=120;// max 2 minutos
+  for(let i=0;i<limite;i++){
+    await new Promise(r=>setTimeout(r,3000));
+    if(onTick)onTick(i);
+    try{
+      const r=await fetch(url);
+      const d=await r.json();
+      if(d&&d.status==='done'){
+        // limpa job do Firebase
+        fetch(url,{method:'DELETE'}).catch(()=>{});
+        return d;
       }
-    }
+    }catch{}
   }
-  if(!result)throw new Error('Sem resposta da IA (stream vazio).');
-  return result;
+  throw new Error('Tempo esgotado aguardando geração da minuta (mais de 6 minutos).');
 }
 window.gerarReeditar=async function(){
   const id=document.getElementById('btn-reeditar-gerar').dataset.id;
@@ -798,15 +795,14 @@ window.gerarReeditar=async function(){
       }
       docsTexto=linhas.join('\n');
     }catch(e){docsTexto=c.obs||'';}
-    // Passo 1 — IA (streaming)
-    setRLoad('Gerando nova versão da minuta…<br><span style="font-size:11px;color:#AEAEB2">Passo 1 de 2</span>');
-    const r1=await fetch('/api/analisar-caso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade||'digital'})});
-    const d1=await lerSSE(r1);
-    if(!d1.ok||!d1.minuta) throw new Error(d1.erro||'A IA não retornou minuta.');
-    // Passo 2 — Drive
-    setRLoad('Salvando nova versão no Drive…<br><span style="font-size:11px;color:#AEAEB2">Passo 2 de 2</span>');
-    const r2=await fetch('/api/criar-doc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,minuta:d1.minuta,comentarios:d1.comentarios||[]})});
-    const t2=await r2.text();let d2;try{d2=JSON.parse(t2);}catch{throw new Error('Passo 2 retornou resposta inválida: '+t2.slice(0,200));}
+    setRLoad('Iniciando geração da minuta…');
+    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade||'digital'})});
+    const di=await ri.json();
+    if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
+    const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
+      const seg=(tick+1)*3;
+      setRLoad('Gerando minuta com IA… '+seg+'s<br><span style="font-size:11px;color:#AEAEB2">Aguardando Apps Script processar</span>');
+    });
     rLoad.style.display='none';
     document.getElementById('reeditar-result').style.display='block';
     if(d2.ok&&d2.docUrl){
@@ -838,15 +834,14 @@ window.gerarAnalise=async function(){
     document.getElementById('modal-result-text').style.display='none';
   };
   try{
-    // Passo 1 — IA gera a minuta (streaming)
-    setLoading('Analisando documentos e gerando minuta…<br><span style="font-size:11px;color:#AEAEB2">Passo 1 de 2</span>');
-    const r1=await fetch('/api/analisar-caso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docs,modalidade:c.modalidade||'digital'})});
-    const d1=await lerSSE(r1);
-    if(!d1.ok||!d1.minuta) throw new Error(d1.erro||'A IA não retornou minuta.');
-    // Passo 2 — Salvar no Drive
-    setLoading('Salvando documento no Drive…<br><span style="font-size:11px;color:#AEAEB2">Passo 2 de 2</span>');
-    const r2=await fetch('/api/criar-doc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,minuta:d1.minuta,comentarios:d1.comentarios||[]})});
-    const t2=await r2.text();let d2;try{d2=JSON.parse(t2);}catch{throw new Error('Passo 2 retornou resposta inválida: '+t2.slice(0,200));}
+    setLoading('Iniciando geração da minuta…');
+    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docs,modalidade:c.modalidade||'digital'})});
+    const di=await ri.json();
+    if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
+    const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
+      const seg=(tick+1)*3;
+      setLoading('Gerando minuta com IA… '+seg+'s<br><span style="font-size:11px;color:#AEAEB2">Aguardando Apps Script processar</span>');
+    });
     loading.style.display='none';
     document.getElementById('modal-result').style.display='block';
     if(d2.ok&&d2.docUrl){
