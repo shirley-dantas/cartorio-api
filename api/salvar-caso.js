@@ -39,6 +39,11 @@ function classificarServico(texto) {
   return "A classificar";
 }
 
+function ehLegendaModelo(texto) {
+  const t = (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  return /\bmodelo\b/.test(t);
+}
+
 function classificarUrgencia(texto) {
   const t = (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const alta  = ["urgente","urgencia","hoje","agora","imediato","imediata","amanha","prazo","vencendo","vencido","vence","emergencia","rapido","rapida","preciso ja","preciso hoje"];
@@ -291,6 +296,50 @@ Por favor, gere a minuta completa conforme as informações disponíveis, usando
   }
 }
 
+async function extrairTextoModelo(base64, mimetype) {
+  const bloco = mimetype === "application/pdf"
+    ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
+    : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
+  const body = JSON.stringify({
+    model: "claude-sonnet-4-6",
+    max_tokens: 4000,
+    messages: [{
+      role: "user",
+      content: [
+        bloco,
+        {
+          type: "text",
+          text: "Este documento é uma MINUTA MODELO — uma escritura ou ato notarial já pronto, que será usado como referência de estilo e estrutura para redigir uma nova minuta. Transcreva o texto completo do documento, na íntegra, sem resumir e sem comentar. Apenas o texto puro da minuta."
+        }
+      ]
+    }]
+  });
+  return new Promise((resolve) => {
+    const options = {
+      hostname: "api.anthropic.com",
+      path: "/v1/messages",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Length": Buffer.byteLength(body)
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", d => data += d);
+      res.on("end", () => {
+        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
+        catch { resolve(null); }
+      });
+    });
+    req.on("error", () => resolve(null));
+    req.write(body);
+    req.end();
+  });
+}
+
 // ════════════════════════════════════════════════════════════════
 
 async function extrairTextoPDF(base64, mimetype) {
@@ -404,18 +453,20 @@ module.exports = async (req, res) => {
       sessaoNome: sessao?.nome, sessaoCasoId: sessao?.casoId
     });
     if (resultado?.base64) {
+      const isModelo = ehLegendaModelo(texto);
       const ext  = tipoMensagem.includes("image") ? "jpg" : tipoMensagem.includes("audio") ? "mp3" : tipoMensagem.includes("video") ? "mp4" : "pdf";
       const mime = tipoMensagem.includes("image") ? "image/jpeg" : tipoMensagem.includes("audio") ? "audio/mpeg" : tipoMensagem.includes("video") ? "video/mp4" : "application/pdf";
       const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16);
-      const nomeArquivo = `${sessao.nome.replace(/\s+/g, "_").toUpperCase()}_${ts}.${ext}`;
+      const nomeArquivo = `${isModelo ? "MODELO_" : ""}${sessao.nome.replace(/\s+/g, "_").toUpperCase()}_${ts}.${ext}`;
+      const podeExtrair = mime === "application/pdf" || mime === "image/jpeg";
       const [, textoExtraido] = await Promise.all([
         salvarNoDrive(sessao.nome, nomeArquivo, resultado.base64, mime),
-        (mime === "application/pdf" || mime === "image/jpeg") ? extrairTextoPDF(resultado.base64, mime) : Promise.resolve(null)
+        podeExtrair ? (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)) : Promise.resolve(null)
       ]);
       if (sessao.casoId) {
         await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}/documentos.json`, "POST", {
           nome: nomeArquivo,
-          tipo: ext,
+          tipo: isModelo ? "modelo" : ext,
           salvoEm: new Date().toISOString(),
           ...(textoExtraido ? { texto: textoExtraido } : {})
         });

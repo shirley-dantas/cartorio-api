@@ -718,7 +718,9 @@ window.abrirMinuta=async function(id){
       const lista=Object.values(docs);
       if(lista.length>0){
         lista.forEach(d=>{
-          linhas.push(`\n=== DOCUMENTO: ${d.nome} ===`);
+          linhas.push(d.tipo==='modelo'
+            ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
+            : `\n=== DOCUMENTO: ${d.nome} ===`);
           if(d.texto) linhas.push(d.texto);
           else linhas.push(`(Arquivo ${d.tipo.toUpperCase()} — salvo no Drive em ${new Date(d.salvoEm).toLocaleString('pt-BR')})`);
         });
@@ -789,7 +791,9 @@ window.gerarReeditar=async function(){
       if(c.obs) linhas.push('=== INFORMAÇÕES DO CASO ===\n'+c.obs);
       if(docs && typeof docs==='object'){
         Object.values(docs).forEach(d=>{
-          linhas.push(`\n=== DOCUMENTO: ${d.nome} ===`);
+          linhas.push(d.tipo==='modelo'
+            ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
+            : `\n=== DOCUMENTO: ${d.nome} ===`);
           if(d.texto) linhas.push(d.texto);
         });
       }

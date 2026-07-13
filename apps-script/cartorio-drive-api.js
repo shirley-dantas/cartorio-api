@@ -184,6 +184,13 @@ NUNCA inclua no corpo do texto: tabelas, listas numeradas, seções intituladas 
 Cada pendência ou apontamento deve aparecer EXCLUSIVAMENTE como um marcador 【PENDÊNCIA: descrição objetiva e precisa do problema】 inserido diretamente no meio do texto, imediatamente após a palavra ou trecho ao qual se refere.
 Esses marcadores serão automaticamente convertidos em balões de revisão no documento — portanto NÃO devem aparecer como texto solto, tabela ou lista separada.
 
+REGRA ABSOLUTA — MODELO DE MINUTA (REFERÊNCIA):
+Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (REFERÊNCIA", ele é apenas um EXEMPLO de estilo, estrutura, formatação e fraseado — vindo de outro caso, fornecido pela equipe ou aprendido de casos anteriores do mesmo tipo de ato.
+- Use esse modelo SOMENTE para orientar como organizar e redigir a minuta (ordem das cláusulas, tom, estrutura das frases)
+- NUNCA copie nomes, CPF, RG, matrícula, endereços, valores, datas ou qualquer dado específico do modelo
+- Todos os dados factuais da minuta devem vir EXCLUSIVAMENTE dos demais documentos e observações do caso atual
+- Se o modelo mencionar uma cláusula que não se aplica ao caso atual, não a inclua
+
 ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
 
 Se DIGITAL (videoconferência):
@@ -221,6 +228,49 @@ function instrucoesPorTipo(tipo) {
     return tipo.toLowerCase().indexOf(k.toLowerCase()) !== -1;
   });
   return chave ? INSTRUCOES_POR_TIPO[chave] : "";
+}
+
+// ── Biblioteca de modelos aprendidos por tipo de ato ────────────────────────
+// A cada minuta gerada com sucesso, guardamos o texto como modelo daquele
+// tipo de ato. Assim, com o tempo, a IA passa a ter uma referência de estilo
+// automática mesmo quando a equipe não envia uma minuta "MODELO" pelo WhatsApp.
+
+function chaveTipo(tipo) {
+  if (!tipo) return "geral";
+  const chaves = Object.keys(INSTRUCOES_POR_TIPO);
+  const chave = chaves.find(function(k) {
+    return tipo.toLowerCase().indexOf(k.toLowerCase()) !== -1;
+  });
+  const base = (chave || tipo).toLowerCase().trim().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return base.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "geral";
+}
+
+function buscarModeloAprendido(tipo) {
+  try {
+    const chave = chaveTipo(tipo);
+    const response = UrlFetchApp.fetch(FIREBASE_URL + "/modelos/" + chave + ".json", { muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+    if (data && data.texto) return data;
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function salvarModeloAprendido(tipo, texto, nomeCaso) {
+  try {
+    const chave = chaveTipo(tipo);
+    UrlFetchApp.fetch(FIREBASE_URL + "/modelos/" + chave + ".json", {
+      method: "put",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        texto: texto.slice(0, 6000),
+        origemCaso: nomeCaso || "",
+        atualizado: new Date().toISOString()
+      }),
+      muteHttpExceptions: true
+    });
+  } catch (e) {}
 }
 
 function parsearResposta(texto) {
@@ -324,6 +374,16 @@ function gerarECriarMinuta(dados) {
   try {
     var instrucoes = instrucoesPorTipo(dados.tipo);
     var mod = (dados.modalidade || "digital").toLowerCase();
+    var documentosTexto = dados.documentos || "Nenhum documento fornecido ainda.";
+
+    // Se a equipe não enviou um modelo explícito ("MODELO" no WhatsApp), busca
+    // automaticamente o último modelo aprendido para esse tipo de ato.
+    if (documentosTexto.indexOf("MODELO DE MINUTA (REFERÊNCIA") === -1) {
+      var modeloAprendido = buscarModeloAprendido(dados.tipo);
+      if (modeloAprendido) {
+        documentosTexto += "\n\n=== MODELO DE MINUTA (REFERÊNCIA APRENDIDA AUTOMATICAMENTE) — " + (dados.tipo || "") + " ===\n" + modeloAprendido.texto;
+      }
+    }
 
     var mensagem = "CASO: " + (dados.nome || "Não informado") + "\n" +
       "TIPO DE ATO: " + (dados.tipo || "Não informado") + "\n" +
@@ -332,7 +392,7 @@ function gerarECriarMinuta(dados) {
       "OBSERVAÇÕES DO CASO: " + (dados.obs || "Nenhuma") + "\n" +
       (dados.instrucao ? "\nINSTRUÇÃO DE ATUALIZAÇÃO DA MINUTA: " + dados.instrucao + "\n" : "") +
       "\nDOCUMENTOS E INFORMAÇÕES FORNECIDAS:\n" +
-      (dados.documentos || "Nenhum documento fornecido ainda.") +
+      documentosTexto +
       "\n\nPor favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade " + mod.toUpperCase() + " conforme as instruções do sistema.";
 
     var resposta = chamarClaude(mensagem);
@@ -344,6 +404,9 @@ function gerarECriarMinuta(dados) {
       minuta: parsed.minuta,
       comentarios: parsed.comentarios
     });
+
+    // Aprende com essa minuta: vira a referência automática do tipo para os próximos casos
+    salvarModeloAprendido(dados.tipo, parsed.minuta, dados.nome);
 
     if (jobId) {
       salvarJobFirebase(jobId, {
