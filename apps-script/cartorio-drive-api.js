@@ -185,14 +185,14 @@ Cada pendência ou apontamento deve aparecer EXCLUSIVAMENTE como um marcador 【
 Esses marcadores serão automaticamente convertidos em balões de revisão no documento — portanto NÃO devem aparecer como texto solto, tabela ou lista separada.
 
 REGRA ABSOLUTA — MODELO DE MINUTA (REFERÊNCIA):
-Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (REFERÊNCIA", esse texto é um MOLDE a ser seguido de forma QUASE LITERAL, do início ao fim, palavra por palavra — não é apenas uma inspiração de estilo.
-- COPIE o texto do modelo integralmente — toda a estrutura, todas as cláusulas e subcláusulas (mesma numeração), todos os parágrafos, toda a linguagem jurídica padrão, do preâmbulo ao encerramento — SEM resumir, SEM encurtar, SEM parafrasear, SEM pular nenhuma cláusula
-- A ÚNICA coisa que muda são os DADOS ESPECÍFICOS: troque nomes, CPF, RG, matrícula, endereços, valores e datas do modelo pelos dados REAIS do caso atual (vindos exclusivamente dos outros documentos e observações — NUNCA do próprio modelo)
-- Todo o texto que NÃO é um dado específico (cláusulas padrão, poderes, disposições legais, texto de fechamento, linguagem jurídica) deve ser reproduzido EXATAMENTE como está no modelo — não invente uma versão "resumida" ou "equivalente"
-- A minuta final deve ter extensão praticamente igual à do modelo (se o modelo tem 15 páginas e 13 cláusulas com várias subcláusulas cada, a minuta final também precisa ter aproximadamente essa extensão e essa quantidade de cláusulas — não é aceitável entregar uma versão de 5 páginas)
-- Só pule uma cláusula do modelo se ela for claramente incompatível com o caso atual (ex: menciona um bem que não existe no caso novo) — isso deve ser raro, exceção, nunca a regra
-- IMPORTANTE — NÃO CONFUNDA as duas fontes: a proibição de copiar é APENAS para os DADOS ESPECÍFICOS (nomes, CPF, RG, endereço, valor, data) que aparecem dentro do bloco do modelo. Qualquer dado que apareça nos OUTROS documentos do caso (fora do bloco do modelo) é real e deve ser usado normalmente. Já o TEXTO/ESTRUTURA do modelo (tudo que não é um dado específico) deve ser copiado, não evitado
-- REGRA DE CONCLUSÃO — NÃO PARE CEDO: antes de considerar a minuta finalizada, confira cláusula por cláusula se você reproduziu TODAS as cláusulas e subcláusulas do modelo (mesma numeração: se o modelo vai de 1 a 13, com subcláusulas como 6.1 a 6.10, sua minuta precisa chegar até o fim de todas elas). NÃO termine no meio só porque o texto já "parece" completo — um modelo de 15 páginas exige uma minuta de aproximadamente 15 páginas. Só finalize (com encerramento e assinaturas) depois de reproduzir 100% do conteúdo do modelo, com os dados trocados.
+Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (REFERÊNCIA", ele é apenas um EXEMPLO de estilo, estrutura, formatação e fraseado — vindo de outro caso, fornecido pela equipe ou aprendido de casos anteriores do mesmo tipo de ato.
+- Use esse modelo SOMENTE para orientar como organizar e redigir a minuta (ordem das cláusulas, tom, estrutura das frases)
+- NUNCA copie nomes, CPF, RG, matrícula, endereços, valores, datas ou qualquer dado específico do modelo
+- Todos os dados factuais da minuta devem vir EXCLUSIVAMENTE dos demais documentos e observações do caso atual
+- Se o modelo mencionar uma cláusula que não se aplica ao caso atual, não a inclua
+- IMPORTANTE — NÃO CONFUNDA as duas fontes: essa restrição vale APENAS para dados que aparecem dentro do bloco "MODELO DE MINUTA (REFERÊNCIA...)". Qualquer dado (nome, CPF, RG, endereço, valor, data) que apareça nos OUTROS documentos do caso (fora do bloco do modelo) é dado real do caso atual e deve ser usado normalmente, com total confiança — mesmo que esse mesmo tipo de campo também apareça preenchido no modelo. NÃO deixe um campo em branco (______) só porque um campo parecido existe no modelo; deixe em branco SOMENTE quando o dado não aparecer em nenhum lugar fora do bloco do modelo
+- MANTENHA O MESMO NÍVEL DE DETALHE E ABRANGÊNCIA do modelo — se o modelo tiver uma lista extensa e detalhada de poderes/cláusulas (ex: nomes de bancos específicos, órgãos públicos nomeados, poderes judiciais completos), a minuta nova deve ter uma lista igualmente extensa e detalhada, adaptada ao caso atual. NÃO resuma ou condense cláusulas do modelo em itens genéricos — reproduza a mesma quantidade e riqueza de detalhes, apenas trocando os dados específicos pelos do caso atual (ou removendo o item, se genuinamente não se aplicar)
+- REGRA DE CONCLUSÃO — NÃO PARE CEDO: antes de considerar a minuta finalizada, verifique mentalmente se você já escreveu uma cláusula ou seção correspondente a CADA cláusula/seção que existe no modelo (mesma numeração, mesmos títulos de cláusula, mesmo número aproximado de itens). Se o modelo tem cláusulas 1 a 13, ou subcláusulas 6.1 a 6.10, sua minuta também precisa chegar até lá — NÃO termine no meio (ex: só até a cláusula 6.5) só porque o texto já "parece" completo. Um documento de referência longo e detalhado exige uma minuta igualmente longa e detalhada. Só finalize (com encerramento e assinaturas) depois de cobrir TODO o conteúdo equivalente ao modelo.
 
 ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
 
@@ -378,10 +378,10 @@ function gerarMinutaCompleta(mensagemBase) {
       mensagem = mensagemBase +
         "\n\n---\nATENÇÃO: você já escreveu o trecho abaixo desta MESMA minuta (isto é uma continuação, não um novo pedido). " +
         "NÃO repita esse trecho — continue EXATAMENTE de onde ele parou, mantendo a mesma formatação, numeração de cláusulas e estilo. " +
-        "Lembre-se: o modelo de referência deve ser reproduzido QUASE LITERALMENTE (só trocando dados específicos) — confira, cláusula por cláusula, se você já reproduziu TODO o texto do modelo até o fim (mesma numeração, mesmo número de cláusulas e subcláusulas). " +
-        "Se esse trecho já contiver o encerramento completo da minuta (assinaturas) E reproduzir 100% do conteúdo do modelo, responda EXATAMENTE com a palavra CONCLUIDO, sem mais nada. " +
-        "Caso contrário, continue reproduzindo o restante do modelo (com os dados trocados) a partir de onde parou.\n\n" +
-        "TRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI (ou responda CONCLUIDO se já estiver 100% completo):";
+        "Antes de considerar concluído, confira se já cobriu TODAS as cláusulas/seções equivalentes às do modelo de referência (mesma numeração e escopo). " +
+        "Se esse trecho já contiver o encerramento completo da minuta (assinaturas) E cobrir todo o conteúdo equivalente ao modelo, responda EXATAMENTE com a palavra CONCLUIDO, sem mais nada. " +
+        "Caso contrário, continue escrevendo o restante.\n\n" +
+        "TRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI (ou responda CONCLUIDO se já estiver completo):";
     }
     var res = chamarClaudeRaw(mensagem);
     var textoNovo = res.texto;
