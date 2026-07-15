@@ -755,7 +755,7 @@ window.fecharReeditar=function(){
 };
 async function aguardarJobFirebase(jobId,onTick){
   const url='https://painel-cartorio-default-rtdb.firebaseio.com/jobs/'+jobId+'.json';
-  const limite=120;// max 2 minutos
+  const limite=140;// max ~7 minutos (documentos longos podem levar mais tempo para gerar)
   for(let i=0;i<limite;i++){
     await new Promise(r=>setTimeout(r,3000));
     if(onTick)onTick(i);

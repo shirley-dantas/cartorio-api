@@ -303,11 +303,23 @@ function parsearResposta(texto) {
     pos = e2 + 1;
   }
 
-  var cortes = ["---\nANALISE", "---\nANÁLISE", "\nANÁLISE DOCUMENTAL", "\nANALISE DOCUMENTAL", "\nAPONTAMENTOS TÉCNICOS"];
+  // Corta apenas se uma LINHA INTEIRA for um título de seção proibido (ex: "## ANÁLISE
+  // DOCUMENTAL"), nunca quando a palavra aparece dentro de uma frase normal (ex: cláusulas
+  // bancárias que mencionam "análise de crédito" não devem disparar o corte).
+  var proibidos = ["analise documental", "apontamentos tecnicos", "pendencias documentais"];
+  var linhas = minuta.split("\n");
   var idxCorte = -1;
-  for (var i = 0; i < cortes.length; i++) {
-    var idx = minuta.indexOf(cortes[i]);
-    if (idx !== -1 && (idxCorte === -1 || idx < idxCorte)) idxCorte = idx;
+  var posAtual = 0;
+  for (var li = 0; li < linhas.length; li++) {
+    var linhaLimpa = linhas[li]
+      .replace(/^#{1,6}\s*/, "")
+      .replace(/\*\*/g, "")
+      .replace(/[:\-—]+$/, "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "");
+    if (proibidos.indexOf(linhaLimpa) !== -1) { idxCorte = posAtual; break; }
+    posAtual += linhas[li].length + 1;
   }
   if (idxCorte !== -1) minuta = minuta.slice(0, idxCorte);
 
@@ -315,13 +327,13 @@ function parsearResposta(texto) {
   return { minuta: minuta, comentarios: comentarios };
 }
 
-function chamarClaude(mensagem) {
+function chamarClaudeRaw(mensagem) {
   var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada. Vá em Projeto > Propriedades do script e adicione a chave.");
 
   var payload = {
     model: "claude-sonnet-4-6",
-    max_tokens: 4000,
+    max_tokens: 8000,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: mensagem }]
   };
@@ -339,7 +351,35 @@ function chamarClaude(mensagem) {
 
   var data = JSON.parse(response.getContentText());
   if (data.error) throw new Error("Erro Claude API: " + (data.error.message || JSON.stringify(data.error)));
-  return data.content[0].text;
+  return { texto: data.content[0].text, pararPorTamanho: data.stop_reason === "max_tokens" };
+}
+
+function chamarClaude(mensagem) {
+  return chamarClaudeRaw(mensagem).texto;
+}
+
+// Gera a minuta em pedaços, continuando automaticamente de onde parou até terminar
+// de verdade (ou até um limite de segurança). Isso permite minutas bem mais longas
+// (50+ páginas) sem depender de acertar de antemão um tamanho máximo de resposta —
+// cada pedaço é rápido (uma chamada à IA), e só continua se realmente precisar.
+function gerarMinutaCompleta(mensagemBase) {
+  var MAX_PEDACOS = 6;
+  var textoCompleto = "";
+  for (var i = 0; i < MAX_PEDACOS; i++) {
+    var mensagem = mensagemBase;
+    if (i > 0) {
+      var trechoFinal = textoCompleto.slice(-1500);
+      mensagem = mensagemBase +
+        "\n\n---\nATENÇÃO: você já escreveu o trecho abaixo desta MESMA minuta (isto é uma continuação, não um novo pedido). " +
+        "NÃO repita esse trecho — continue EXATAMENTE de onde ele parou, mantendo a mesma formatação, numeração de cláusulas e estilo. " +
+        "Se esse trecho já contiver o encerramento completo da minuta (assinaturas), não escreva mais nada, apenas responda com um único espaço.\n\n" +
+        "TRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI:";
+    }
+    var res = chamarClaudeRaw(mensagem);
+    textoCompleto += res.texto;
+    if (!res.pararPorTamanho) break; // terminou naturalmente, não precisa continuar
+  }
+  return textoCompleto;
 }
 
 function salvarJobFirebase(jobId, resultado) {
@@ -377,11 +417,12 @@ function gerarECriarMinuta(dados) {
     var instrucoes = instrucoesPorTipo(dados.tipo);
     var mod = (dados.modalidade || "digital").toLowerCase();
     var documentosTexto = dados.documentos || "Nenhum documento fornecido ainda.";
-    // Limite de segurança: textos muito longos deixam a geração lenta a ponto de
-    // ultrapassar o tempo máximo de execução do Apps Script (6 minutos), travando
-    // a minuta sem aviso. Corta o excesso preservando o início (dados do caso).
-    if (documentosTexto.length > 15000) {
-      documentosTexto = documentosTexto.slice(0, 15000) + "\n\n[...texto truncado por limite de tamanho...]";
+    // Limite de segurança generoso: a causa real da demora era o envio cortado
+    // pela metade (já corrigido no iniciar-minuta.js), não o tamanho do texto —
+    // a IA lê o texto de entrada rápido; quem demora é a geração da resposta,
+    // que já tem limite (max_tokens). Este limite aqui só evita casos extremos.
+    if (documentosTexto.length > 100000) {
+      documentosTexto = documentosTexto.slice(0, 100000) + "\n\n[...texto truncado por limite de tamanho...]";
     }
 
     // Se a equipe não enviou um modelo explícito ("MODELO" no WhatsApp), busca
@@ -403,7 +444,7 @@ function gerarECriarMinuta(dados) {
       documentosTexto +
       "\n\nPor favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade " + mod.toUpperCase() + " conforme as instruções do sistema.";
 
-    var resposta = chamarClaude(mensagem);
+    var resposta = gerarMinutaCompleta(mensagem);
     var parsed = parsearResposta(resposta);
 
     var docResult = _criarMinutaDocInterno({
