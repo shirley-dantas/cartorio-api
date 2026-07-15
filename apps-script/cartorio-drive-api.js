@@ -190,6 +190,8 @@ Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (
 - NUNCA copie nomes, CPF, RG, matrícula, endereços, valores, datas ou qualquer dado específico do modelo
 - Todos os dados factuais da minuta devem vir EXCLUSIVAMENTE dos demais documentos e observações do caso atual
 - Se o modelo mencionar uma cláusula que não se aplica ao caso atual, não a inclua
+- IMPORTANTE — NÃO CONFUNDA as duas fontes: essa restrição vale APENAS para dados que aparecem dentro do bloco "MODELO DE MINUTA (REFERÊNCIA...)". Qualquer dado (nome, CPF, RG, endereço, valor, data) que apareça nos OUTROS documentos do caso (fora do bloco do modelo) é dado real do caso atual e deve ser usado normalmente, com total confiança — mesmo que esse mesmo tipo de campo também apareça preenchido no modelo. NÃO deixe um campo em branco (______) só porque um campo parecido existe no modelo; deixe em branco SOMENTE quando o dado não aparecer em nenhum lugar fora do bloco do modelo
+- MANTENHA O MESMO NÍVEL DE DETALHE E ABRANGÊNCIA do modelo — se o modelo tiver uma lista extensa e detalhada de poderes/cláusulas (ex: nomes de bancos específicos, órgãos públicos nomeados, poderes judiciais completos), a minuta nova deve ter uma lista igualmente extensa e detalhada, adaptada ao caso atual. NÃO resuma ou condense cláusulas do modelo em itens genéricos — reproduza a mesma quantidade e riqueza de detalhes, apenas trocando os dados específicos pelos do caso atual (ou removendo o item, se genuinamente não se aplicar)
 
 ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
 
@@ -210,7 +212,7 @@ Se DIGITAL ou HÍBRIDA:
 Se PRESENCIAL:
 **IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
 
-NOTA SOBRE O ENCERRAMENTO: Substitua "adquirente" pelo nome correto da parte principal do ato (outorgante, testador, requerente, etc.). Para atos que não envolvam transferência imobiliária (procuração, testamento, ata notarial, etc.), omita as seções IMPOSTOS DE TRANSMISSÃO e DOI, mantendo as demais.
+NOTA SOBRE O ENCERRAMENTO: Substitua "adquirente" pelo nome correto da parte principal do ato (outorgante, testador, requerente, etc.). Para atos que não envolvam transferência imobiliária (procuração, testamento, ata notarial, etc.), omita APENAS as seções IMPOSTOS DE TRANSMISSÃO e DOI. As demais seções — **INDISPONIBILIDADE**, **ARQUIVAMENTO**, **CERTIFICAÇÃO** e o parágrafo final de emolumentos — são OBRIGATÓRIAS em TODO ato, sem exceção, independentemente do tipo. NUNCA omita a frase de INDISPONIBILIDADE (consulta à Central de Indisponibilidade de Bens).
 
 A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualificação completa das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas.`;
 
@@ -319,7 +321,7 @@ function chamarClaude(mensagem) {
 
   var payload = {
     model: "claude-sonnet-4-6",
-    max_tokens: 5000,
+    max_tokens: 4000,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: mensagem }]
   };
@@ -375,6 +377,12 @@ function gerarECriarMinuta(dados) {
     var instrucoes = instrucoesPorTipo(dados.tipo);
     var mod = (dados.modalidade || "digital").toLowerCase();
     var documentosTexto = dados.documentos || "Nenhum documento fornecido ainda.";
+    // Limite de segurança: textos muito longos deixam a geração lenta a ponto de
+    // ultrapassar o tempo máximo de execução do Apps Script (6 minutos), travando
+    // a minuta sem aviso. Corta o excesso preservando o início (dados do caso).
+    if (documentosTexto.length > 15000) {
+      documentosTexto = documentosTexto.slice(0, 15000) + "\n\n[...texto truncado por limite de tamanho...]";
+    }
 
     // Se a equipe não enviou um modelo explícito ("MODELO" no WhatsApp), busca
     // automaticamente o último modelo aprendido para esse tipo de ato.

@@ -3,20 +3,29 @@ const https = require("https");
 const DRIVE_URL = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
 
 function dispararAppsScript(payload) {
-  const body = JSON.stringify(payload);
-  const u = new URL(DRIVE_URL);
-  const options = {
-    hostname: u.hostname,
-    path: u.pathname + u.search,
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }
-  };
-  const req = https.request(options, (res) => {
-    res.resume(); // descarta resposta — não precisamos dela
+  // Retorna uma Promise que resolve assim que o pedido foi TOTALMENTE
+  // enviado (não quando a resposta chega — o Apps Script demora dezenas de
+  // segundos para responder, e essa função do Vercel só tem 10s de limite).
+  // Isso é essencial: a função do Vercel pode ser encerrada assim que
+  // respondemos ao navegador, o que antes cortava o envio pela metade
+  // (fire-and-forget sem aguardar nada) e deixava a geração travada de forma
+  // imprevisível. Aguardamos só o suficiente para garantir que os dados
+  // saíram — o Apps Script continua processando em segundo plano no Google.
+  return new Promise((resolve) => {
+    const body = JSON.stringify(payload);
+    const u = new URL(DRIVE_URL);
+    const options = {
+      hostname: u.hostname,
+      path: u.pathname + u.search,
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }
+    };
+    const req = https.request(options);
+    req.on("error", () => resolve());
+    req.on("finish", () => resolve()); // dados totalmente enviados ao socket
+    req.write(body);
+    req.end();
   });
-  req.on("error", () => {}); // ignora erros — Apps Script processa independente
-  req.write(body);
-  req.end();
 }
 
 module.exports = async (req, res) => {
@@ -32,7 +41,7 @@ module.exports = async (req, res) => {
 
   const jobId = Date.now() + "-" + Math.random().toString(36).slice(2, 8);
 
-  dispararAppsScript({
+  await dispararAppsScript({
     acao: "gerar-e-criar-minuta",
     jobId,
     nome: dados.nome,
