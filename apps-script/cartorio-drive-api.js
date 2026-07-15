@@ -365,6 +365,11 @@ function chamarClaude(mensagem) {
 // cada pedaço é rápido (uma chamada à IA), e só continua se realmente precisar.
 function gerarMinutaCompleta(mensagemBase) {
   var MAX_PEDACOS = 6;
+  // Quando há um modelo de referência, a IA tende a "achar" que terminou cedo demais
+  // (parar em ~1/3 do conteúdo do modelo). Por isso, sempre que houver modelo, forçamos
+  // pelo menos uma rodada extra de autoverificação de cobertura, mesmo que a IA não tenha
+  // batido no limite de tamanho — ela precisa confirmar explicitamente que terminou.
+  var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1;
   var textoCompleto = "";
   for (var i = 0; i < MAX_PEDACOS; i++) {
     var mensagem = mensagemBase;
@@ -373,12 +378,23 @@ function gerarMinutaCompleta(mensagemBase) {
       mensagem = mensagemBase +
         "\n\n---\nATENÇÃO: você já escreveu o trecho abaixo desta MESMA minuta (isto é uma continuação, não um novo pedido). " +
         "NÃO repita esse trecho — continue EXATAMENTE de onde ele parou, mantendo a mesma formatação, numeração de cláusulas e estilo. " +
-        "Se esse trecho já contiver o encerramento completo da minuta (assinaturas), não escreva mais nada, apenas responda com um único espaço.\n\n" +
-        "TRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI:";
+        "Antes de considerar concluído, confira se já cobriu TODAS as cláusulas/seções equivalentes às do modelo de referência (mesma numeração e escopo). " +
+        "Se esse trecho já contiver o encerramento completo da minuta (assinaturas) E cobrir todo o conteúdo equivalente ao modelo, responda EXATAMENTE com a palavra CONCLUIDO, sem mais nada. " +
+        "Caso contrário, continue escrevendo o restante.\n\n" +
+        "TRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI (ou responda CONCLUIDO se já estiver completo):";
     }
     var res = chamarClaudeRaw(mensagem);
-    textoCompleto += res.texto;
-    if (!res.pararPorTamanho) break; // terminou naturalmente, não precisa continuar
+    var textoNovo = res.texto;
+    var respostaLimpa = textoNovo.trim().toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    if (respostaLimpa === "CONCLUIDO") break;
+
+    textoCompleto += textoNovo;
+
+    var precisaContinuar = res.pararPorTamanho; // bateu no limite de tamanho, com certeza precisa continuar
+    if (!precisaContinuar && temModelo && i === 0) {
+      precisaContinuar = true; // primeira rodada com modelo: sempre confirma cobertura antes de aceitar
+    }
+    if (!precisaContinuar) break;
   }
   return textoCompleto;
 }
