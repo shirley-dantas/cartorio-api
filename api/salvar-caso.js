@@ -296,6 +296,17 @@ Por favor, gere a minuta completa conforme as informações disponíveis, usando
   }
 }
 
+async function extrairTextoDocx(base64) {
+  try {
+    const mammoth = require("mammoth");
+    const buffer = Buffer.from(base64, "base64");
+    const resultado = await mammoth.extractRawText({ buffer });
+    return (resultado && resultado.value && resultado.value.trim()) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 async function extrairTextoModelo(base64, mimetype) {
   const bloco = mimetype === "application/pdf"
     ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
@@ -454,14 +465,20 @@ module.exports = async (req, res) => {
     });
     if (resultado?.base64) {
       const isModelo = ehLegendaModelo(texto);
-      const ext  = tipoMensagem.includes("image") ? "jpg" : tipoMensagem.includes("audio") ? "mp3" : tipoMensagem.includes("video") ? "mp4" : "pdf";
-      const mime = tipoMensagem.includes("image") ? "image/jpeg" : tipoMensagem.includes("audio") ? "audio/mpeg" : tipoMensagem.includes("video") ? "video/mp4" : "application/pdf";
+      // Usa o tipo/nome reais devolvidos pela Evolution API (mais confiável que o tipo genérico da mensagem)
+      const mimeReal = resultado.mimetype || "";
+      const nomeReal = resultado.fileName || "";
+      const isDocx = mimeReal.indexOf("wordprocessingml.document") !== -1 || /\.docx$/i.test(nomeReal);
+      const ext  = isDocx ? "docx" : tipoMensagem.includes("image") ? "jpg" : tipoMensagem.includes("audio") ? "mp3" : tipoMensagem.includes("video") ? "mp4" : "pdf";
+      const mime = isDocx ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : tipoMensagem.includes("image") ? "image/jpeg" : tipoMensagem.includes("audio") ? "audio/mpeg" : tipoMensagem.includes("video") ? "video/mp4" : "application/pdf";
       const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16);
       const nomeArquivo = `${isModelo ? "MODELO_" : ""}${sessao.nome.replace(/\s+/g, "_").toUpperCase()}_${ts}.${ext}`;
-      const podeExtrair = mime === "application/pdf" || mime === "image/jpeg";
+      const podeExtrair = isDocx || mime === "application/pdf" || mime === "image/jpeg";
       const [, textoExtraido] = await Promise.all([
         salvarNoDrive(sessao.nome, nomeArquivo, resultado.base64, mime),
-        podeExtrair ? (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)) : Promise.resolve(null)
+        podeExtrair
+          ? (isDocx ? extrairTextoDocx(resultado.base64) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
+          : Promise.resolve(null)
       ]);
       if (sessao.casoId) {
         await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}/documentos.json`, "POST", {

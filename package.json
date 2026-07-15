@@ -3,6 +3,7 @@
   "private": true,
   "dependencies": {
     "@netlify/blobs": "^7.0.0",
-    "firebase": "^12.14.0"
+    "firebase": "^12.14.0",
+    "mammoth": "^1.8.0"
   }
 }
