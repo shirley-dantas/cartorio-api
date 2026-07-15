@@ -371,6 +371,7 @@ function gerarMinutaCompleta(mensagemBase) {
   // batido no limite de tamanho — ela precisa confirmar explicitamente que terminou.
   var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1;
   var textoCompleto = "";
+  var rodadas = 0;
   for (var i = 0; i < MAX_PEDACOS; i++) {
     var mensagem = mensagemBase;
     if (i > 0) {
@@ -384,6 +385,7 @@ function gerarMinutaCompleta(mensagemBase) {
         "TRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI (ou responda CONCLUIDO se já estiver completo):";
     }
     var res = chamarClaudeRaw(mensagem);
+    rodadas++;
     var textoNovo = res.texto;
     var respostaLimpa = textoNovo.trim().toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
     if (respostaLimpa === "CONCLUIDO") break;
@@ -396,7 +398,7 @@ function gerarMinutaCompleta(mensagemBase) {
     }
     if (!precisaContinuar) break;
   }
-  return textoCompleto;
+  return { texto: textoCompleto, rodadas: rodadas, temModelo: temModelo };
 }
 
 function salvarJobFirebase(jobId, resultado) {
@@ -461,8 +463,8 @@ function gerarECriarMinuta(dados) {
       documentosTexto +
       "\n\nPor favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade " + mod.toUpperCase() + " conforme as instruções do sistema.";
 
-    var resposta = gerarMinutaCompleta(mensagem);
-    var parsed = parsearResposta(resposta);
+    var geracao = gerarMinutaCompleta(mensagem);
+    var parsed = parsearResposta(geracao.texto);
 
     var docResult = _criarMinutaDocInterno({
       nome: dados.nome,
@@ -480,7 +482,9 @@ function gerarECriarMinuta(dados) {
         ok: true,
         docUrl: docResult.url,
         folderUrl: docResult.folderUrl,
-        docNome: docResult.nome
+        docNome: docResult.nome,
+        diagRodadas: geracao.rodadas,
+        diagTemModelo: geracao.temModelo
       });
     }
 
