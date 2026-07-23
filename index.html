@@ -44,10 +44,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .stat-label{font-size:11px;color:#8E8EA0;margin-bottom:3px}
 .stat-num{font-size:24px;font-weight:500;color:#1C1C1E}
 .stat-num.red{color:#C62828}.stat-num.amber{color:#B45309}.stat-num.green{color:#2E7D32}.stat-num.purple{color:#6B21A8}
-.tab-bar{display:flex;gap:2px;border-bottom:1px solid #E5E5EA;margin-bottom:18px}
-.tab{font-size:13px;padding:7px 15px;border:none;background:transparent;color:#8E8EA0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:5px}
-.tab.on{color:#1C1C1E;border-bottom-color:#1C1C2E;font-weight:500}
-.tab:hover{color:#1C1C1E}
 .toolbar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .fbtn{font-size:12px;padding:5px 13px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#8E8EA0;cursor:pointer;white-space:nowrap}
 .fbtn.on,.fbtn:hover{background:#1C1C2E;color:#fff;border-color:#1C1C2E}
@@ -61,28 +57,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card.critico{border-left-color:#C62828}
 .card.atencao{border-left-color:#B45309}
 .card.emdia{border-left-color:#2E7D32}
-.card.regular{border-left-color:#64748B}
 .card.concluido{opacity:.45;border-left-color:#D1D1D6}
 .card-main{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
 .card-name{font-size:14px;font-weight:500;color:#1C1C1E;margin-bottom:1px}
 .card-tipo{font-size:11px;color:#AEAEB2;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px}
-.proxima-acao{display:flex;align-items:center;gap:7px;background:#F5F5F7;border-radius:7px;padding:7px 11px;margin-bottom:8px}
-.proxima-acao i{font-size:15px;color:#6B21A8;flex-shrink:0}
-.proxima-acao-text{font-size:13px;color:#1C1C1E;font-weight:500;flex:1;line-height:1.35}
-.proxima-acao-edit{font-size:11px;color:#AEAEB2;cursor:pointer;padding:2px 6px;border-radius:5px;border:0.5px solid #E5E5EA;background:#fff}
-.proxima-acao-edit:hover{border-color:#1C1C2E;color:#1C1C1E}
 .card-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .badge{font-size:11px;padding:2px 8px;border-radius:5px;font-weight:500;white-space:nowrap}
 .b-prioridade{background:#EDE9FE;color:#4C1D95}
 .b-critico{background:#FDECEA;color:#B71C1C}
 .b-atencao{background:#FFF8E1;color:#7A4F00}
 .b-emdia{background:#E8F5E9;color:#1B5E20}
-.b-regular{background:#F1F5F9;color:#475569}
 .b-shirley{background:#E3F2FD;color:#0D47A1}
 .b-grazi{background:#E8F5E9;color:#1B5E20}
-.b-ambas{background:#FFF8E1;color:#7A4F00}
 .b-gabriel{background:#F3E5F5;color:#4A148C}
-.b-andre{background:#FCE4EC;color:#880E4F}
 .b-gray{background:#F2F2F7;color:#636366}
 .dias-badge{font-size:11px;padding:2px 8px;border-radius:5px;font-weight:500;white-space:nowrap}
 .dias-1{background:#FFF8E1;color:#7A4F00}
@@ -131,21 +118,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .obs-edit textarea{width:100%;font-size:12px;padding:7px 10px;border-radius:7px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;min-height:54px;outline:none}
 .obs-edit-row{display:flex;gap:6px;justify-content:flex-end;align-items:center}
 .saved-msg{font-size:11px;color:#2E7D32;display:none}
-.acao-edit{display:none;gap:6px;margin-top:6px;align-items:center}
-.acao-edit input{flex:1;font-size:13px;padding:6px 10px;border-radius:7px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;font-family:inherit;outline:none}
-.acao-edit input:focus{border-color:#6B21A8}
-.acao-edit button{font-size:12px;padding:6px 12px;border-radius:7px;border:none;background:#1C1C2E;color:#fff;cursor:pointer}
 .ag-inline{padding:10px 0 2px;display:none}
 .ag-inner{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#F0FDF4;border-radius:8px;padding:10px 12px;border:0.5px solid #BBF7D0}
 .ag-inner input{font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #BBF7D0;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
 .ag-inner .btn-gcal{font-size:12px;padding:5px 13px;border-radius:7px;border:none;background:#16A34A;color:#fff;cursor:pointer;font-weight:500}
 .ag-inner .btn-open{font-size:12px;padding:5px 13px;border-radius:7px;border:0.5px solid #BBF7D0;background:#fff;color:#16A34A;cursor:pointer}
+.reg-inline{padding:10px 0 2px;display:none}
+.reg-inner{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#EFF6FF;border-radius:8px;padding:10px 12px;border:0.5px solid #BFDBFE}
+.reg-inner input{font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #BFDBFE;background:#fff;color:#1C1C1E;font-family:inherit;outline:none;flex:1;min-width:150px}
+.reg-inner button{font-size:12px;padding:5px 13px;border-radius:7px;border:none;background:#1D4ED8;color:#fff;cursor:pointer;font-weight:500}
 .add-section{margin-top:14px}
 .add-toggle{width:100%;font-size:13px;padding:10px;border-radius:10px;border:1px dashed #D1D1D6;background:transparent;color:#8E8EA0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
 .add-toggle:hover{background:#fff;color:#1C1C1E;border-color:#1C1C2E}
 .add-form{display:none;background:#F5F5F7;border-radius:12px;padding:16px;margin-top:10px;border:0.5px solid #E5E5EA}
 .add-form h3{font-size:13px;font-weight:500;margin-bottom:12px}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
 .form-row{margin-bottom:8px}
 .add-form input,.add-form select,.add-form textarea{width:100%;font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
 .add-form input:focus,.add-form select:focus,.add-form textarea:focus{border-color:#1C1C2E}
@@ -153,18 +141,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .btn-cancel{font-size:13px;padding:7px 15px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer}
 .btn-save{font-size:13px;padding:7px 15px;border-radius:8px;border:none;background:#1C1C2E;color:#fff;cursor:pointer;font-weight:500}
-.doit-wrap{overflow-x:auto}
-table.doit{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:12px;overflow:hidden;border:0.5px solid #E5E5EA}
-table.doit th{font-size:11px;font-weight:500;color:#8E8EA0;padding:10px 13px;text-align:left;background:#F5F5F7;border-bottom:0.5px solid #E5E5EA;white-space:nowrap}
-table.doit td{padding:11px 13px;border-bottom:0.5px solid #F2F2F7;vertical-align:middle}
-table.doit tr:last-child td{border-bottom:none}
-table.doit tr:hover td{background:#FAFAFA}
-.pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:5px;font-weight:500;white-space:nowrap}
-.pill-red{background:#FDECEA;color:#B71C1C}
-.pill-amber{background:#FFF8E1;color:#7A4F00}
-.pill-green{background:#E8F5E9;color:#1B5E20}
-.pill-gray{background:#F2F2F7;color:#636366}
-.pill-blue{background:#E3F2FD;color:#0D47A1}
 .empty{text-align:center;padding:30px;color:#8E8EA0;font-size:13px}
 .loading-overlay{text-align:center;padding:40px;color:#8E8EA0;font-size:13px}
 .updated{font-size:11px;color:#AEAEB2;text-align:right;margin-top:14px}
@@ -206,11 +182,6 @@ table.doit tr:hover td{background:#FAFAFA}
 
   <div class="stats" id="stats"><div class="loading-overlay">Carregando...</div></div>
 
-  <div class="tab-bar">
-    <button class="tab on" onclick="mudarTab('casos',this)"><i class="ti ti-briefcase" style="font-size:14px"></i> Casos ativos</button>
-    <button class="tab" onclick="mudarTab('doit',this)"><i class="ti ti-building" style="font-size:14px"></i> Do It</button>
-  </div>
-
   <div id="view-casos">
     <div class="toolbar">
       <button class="fbtn on" onclick="setFiltro('todos',this)">Todos</button>
@@ -218,12 +189,10 @@ table.doit tr:hover td{background:#FAFAFA}
       <button class="fbtn" onclick="setFiltro('critico',this)">Crítico</button>
       <button class="fbtn" onclick="setFiltro('atencao',this)">Atenção</button>
       <button class="fbtn" onclick="setFiltro('emdia',this)">Em dia</button>
-      <button class="fbtn" onclick="setFiltro('regular',this)">Regular</button>
       <button class="fbtn" onclick="setFiltro('parado',this)">Parados +3d</button>
       <button class="fbtn" onclick="setFiltro('shirley',this)">Shirley</button>
       <button class="fbtn" onclick="setFiltro('grazi',this)">Grazi</button>
       <button class="fbtn" onclick="setFiltro('gabriel',this)">Gabriel</button>
-      <button class="fbtn" onclick="setFiltro('andre',this)">André</button>
       <button class="fbtn" onclick="setFiltro('terceiro',this)">Aguard. terceiro</button>
       <div class="search-wrap"><input type="text" placeholder="Buscar..." oninput="buscar(this.value)"></div>
     </div>
@@ -236,21 +205,17 @@ table.doit tr:hover td{background:#FAFAFA}
           <input type="text" id="f-nome" placeholder="Nome do cliente *">
           <input type="text" id="f-tipo" placeholder="Tipo de ato">
         </div>
-        <div class="form-row"><input type="text" id="f-acao" placeholder="Próxima ação * (ex: Elaborar minuta, Retornar ligação...)"></div>
         <div class="form-grid">
           <select id="f-status">
             <option value="prioridade">Prioridade</option>
             <option value="critico">Crítico</option>
             <option value="atencao" selected>Atenção</option>
             <option value="emdia">Em dia</option>
-            <option value="regular">Regular</option>
           </select>
           <select id="f-resp">
             <option value="shirley">Shirley</option>
             <option value="grazi">Grazi</option>
-            <option value="ambas">Ambas</option>
             <option value="gabriel">Gabriel</option>
-            <option value="andre">André</option>
           </select>
         </div>
         <div class="form-grid">
@@ -270,6 +235,11 @@ table.doit tr:hover td{background:#FAFAFA}
           <input type="datetime-local" id="f-agendado">
           <input type="text" id="f-agendado-desc" placeholder="Descrição do evento no Calendar">
         </div>
+        <div class="form-grid-3">
+          <input type="text" id="f-prenotacao" placeholder="Nº de prenotação (Registro de Imóveis)">
+          <input type="text" id="f-controle" placeholder="Número de controle">
+          <input type="text" id="f-livrofolha" placeholder="Livro e folha">
+        </div>
         <textarea id="f-obs" placeholder="Observações (opcional)" style="width:100%;margin-top:4px"></textarea>
         <div class="form-actions">
           <button class="btn-cancel" onclick="toggleForm()">Cancelar</button>
@@ -277,10 +247,6 @@ table.doit tr:hover td{background:#FAFAFA}
         </div>
       </div>
     </div>
-  </div>
-
-  <div id="view-doit" style="display:none">
-    <div class="doit-wrap"><table class="doit" id="doit-table"></table></div>
   </div>
 
   <div class="updated" id="updated"></div>
@@ -381,20 +347,6 @@ const defaultCasos=[
   {nome:'Bel | 20º Cartório',tipo:'Relacionamento institucional',acao:'Retornar ligação',status:'atencao',resp:'shirley',prazo:'Hoje',dep:'',obs:'"Amanhã falamos então" — ontem às 21h44.',atualizado:'2026-05-27',agendado:'',agendado_desc:'',concluido:false},
 ];
 
-const doitData=[
-  {un:'Un. 2011',cliente:'Fabio / Julia Pires',tq:'Baixa recebida',minuta:'Feita',assin:'Assinado',reg:'Pendente',resp:'Ambas'},
-  {un:'Un. 2216',cliente:'Miguel',tq:'TQ pendente',minuta:'Não iniciada',assin:'Pendente',reg:'Pendente',resp:'Shirley'},
-  {un:'Un. 2103',cliente:'Cecília',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
-  {un:'Un. 1803',cliente:'Adolfo',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
-  {un:'Un. 1807',cliente:'Gabriel',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
-  {un:'Un. 2012',cliente:'Ana',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
-  {un:'Un. 1003',cliente:'Roberto Grunpeter',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
-  {un:'Un. 1512',cliente:'Gal / Sofia',tq:'Aguardando TQ',minuta:'—',assin:'—',reg:'—',resp:'Grazi'},
-  {un:'Un. 2203',cliente:'Isabella',tq:'TQ recebido',minuta:'Feita',assin:'Assinado',reg:'Pendente',resp:'Ambas'},
-  {un:'BL01-2412',cliente:'Juliana Ifanger Halabi',tq:'Baixa recebida',minuta:'Feita',assin:'Assinado',reg:'Pendente',resp:'Grazi'},
-  {un:'BL01-2302',cliente:'Nicolas Ferreira',tq:'TQ recebido',minuta:'Feita',assin:'NÃO ASSINOU',reg:'Pendente',resp:'Grazi'},
-];
-
 let casos={};
 let focos=[];
 let filtro='todos';
@@ -486,7 +438,7 @@ function renderStats(){
   const pr=ativos.filter(x=>x.status==='prioridade').length;
   const cr=ativos.filter(x=>x.status==='critico').length;
   const at=ativos.filter(x=>x.status==='atencao').length;
-  const ok=ativos.filter(x=>x.status==='emdia'||x.status==='regular').length;
+  const ok=ativos.filter(x=>x.status==='emdia').length;
   const parados=ativos.filter(x=>diasParado(x.atualizado)>=3).length;
   document.getElementById('stats').innerHTML=`
     <div class="stat"><div class="stat-label">Total ativos</div><div class="stat-num">${ativos.length}</div></div>
@@ -500,12 +452,12 @@ function renderStats(){
 
 // ── BADGES ──
 function bStatus(s){
-  const m={prioridade:'b-prioridade Prioridade',critico:'b-critico Crítico',atencao:'b-atencao Atenção',emdia:'b-emdia Em dia',regular:'b-regular Regular'};
+  const m={prioridade:'b-prioridade Prioridade',critico:'b-critico Crítico',atencao:'b-atencao Atenção',emdia:'b-emdia Em dia'};
   const v=(m[s]||'b-gray '+s).split(' ');
   return`<span class="badge ${v[0]}">${v.slice(1).join(' ')}</span>`;
 }
 function bResp(r){
-  const m={shirley:'b-shirley Shirley',grazi:'b-grazi Grazi',ambas:'b-ambas Ambas',gabriel:'b-gabriel Gabriel',andre:'b-andre André'};
+  const m={shirley:'b-shirley Shirley',grazi:'b-grazi Grazi',gabriel:'b-gabriel Gabriel'};
   const v=(m[r]||'b-gray '+r).split(' ');
   return`<span class="badge ${v[0]}">${v.slice(1).join(' ')}</span>`;
 }
@@ -532,11 +484,9 @@ function visivel(c){
   if(filtro==='critico'&&c.status!=='critico')return false;
   if(filtro==='atencao'&&c.status!=='atencao')return false;
   if(filtro==='emdia'&&c.status!=='emdia')return false;
-  if(filtro==='regular'&&c.status!=='regular')return false;
   if(filtro==='shirley'&&c.resp!=='shirley')return false;
   if(filtro==='grazi'&&c.resp!=='grazi')return false;
   if(filtro==='gabriel'&&c.resp!=='gabriel')return false;
-  if(filtro==='andre'&&c.resp!=='andre')return false;
   if(filtro==='parado'&&diasParado(c.atualizado)<3)return false;
   if(filtro==='terceiro'&&!c.dep)return false;
   if(busca){
@@ -551,8 +501,8 @@ function renderCasos(){
   const el=document.getElementById('casos-list');
   const lista=getCasosList().filter(visivel);
   if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-inbox" style="font-size:26px;display:block;margin-bottom:8px;opacity:.35"></i>Nenhum caso encontrado.</div>';return;}
-  // Ordenar: prioridade > critico > atencao > emdia > regular
-  const ordem={prioridade:0,critico:1,atencao:2,emdia:3,regular:4};
+  // Ordenar: prioridade > critico > atencao > emdia
+  const ordem={prioridade:0,critico:1,atencao:2,emdia:3};
   lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
   el.innerHTML=lista.map(c=>{
     const agBadge=c.agendado?`<span class="badge" style="background:#E8F5E9;color:#1B5E20"><i class="ti ti-calendar-check" style="font-size:11px;vertical-align:-1px"></i> ${new Date(c.agendado).toLocaleDateString('pt-BR')} ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:'';
@@ -562,15 +512,6 @@ function renderCasos(){
         <div>
           <div class="card-name">${c.nome}</div>
           <div class="card-tipo">${c.tipo||'—'}</div>
-          <div class="proxima-acao">
-            <i class="ti ti-arrow-narrow-right"></i>
-            <span class="proxima-acao-text" id="acao-txt-${c.id}">${c.acao||'Definir próxima ação...'}</span>
-            <button class="proxima-acao-edit" onclick="toggleAcaoEdit('${c.id}')">editar</button>
-          </div>
-          <div class="acao-edit" id="acao-edit-${c.id}">
-            <input type="text" id="acao-inp-${c.id}" value="${(c.acao||'').replace(/"/g,'&quot;')}" onkeydown="if(event.key==='Enter')salvarAcao('${c.id}')">
-            <button onclick="salvarAcao('${c.id}')">Salvar</button>
-          </div>
           <div class="card-meta">
             ${c.concluido?'<span class="badge b-gray">Concluído</span>':bStatus(c.status)}
             ${bResp(c.resp)}
@@ -578,6 +519,9 @@ function renderCasos(){
             ${bDias(c.atualizado)}
             ${bDep(c.dep)}
             ${agBadge}
+            ${c.prenotacao?`<span class="prazo"><i class="ti ti-hash" style="font-size:12px"></i>Prenotação ${c.prenotacao}</span>`:''}
+            ${c.numControle?`<span class="prazo"><i class="ti ti-list-numbers" style="font-size:12px"></i>Controle ${c.numControle}</span>`:''}
+            ${c.livroFolha?`<span class="prazo"><i class="ti ti-book" style="font-size:12px"></i>${c.livroFolha}</span>`:''}
           </div>
         </div>
         <div class="card-actions">
@@ -586,14 +530,11 @@ function renderCasos(){
             <option value="critico"${c.status==='critico'?' selected':''}>Crítico</option>
             <option value="atencao"${c.status==='atencao'?' selected':''}>Atenção</option>
             <option value="emdia"${c.status==='emdia'?' selected':''}>Em dia</option>
-            <option value="regular"${c.status==='regular'?' selected':''}>Regular</option>
           </select>
           <select class="sel" onchange="mudarCampo('${c.id}','resp',this.value)">
             <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
             <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
-            <option value="ambas"${c.resp==='ambas'?' selected':''}>Ambas</option>
             <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
-            <option value="andre"${c.resp==='andre'?' selected':''}>André</option>
           </select>
           <select class="sel" onchange="mudarCampo('${c.id}','dep',this.value)">
             ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
@@ -603,6 +544,7 @@ function renderCasos(){
           ${c.driveUrl?`<button class="btn-sm btn-drive" onclick="window.open('${c.driveUrl}','_blank')"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Drive</button>`:''}
           <button class="btn-sm btn-foco" onclick="addAoFoco('${c.id}')"><i class="ti ti-bolt" style="font-size:12px;vertical-align:-1px"></i> Foco</button>
           <button class="btn-sm btn-agendar" onclick="toggleAgendar('${c.id}')"><i class="ti ti-calendar-plus" style="font-size:12px;vertical-align:-1px"></i> Agendar</button>
+          <button class="btn-sm" onclick="toggleRegistro('${c.id}')"><i class="ti ti-building-bank" style="font-size:12px;vertical-align:-1px"></i> Registro</button>
           <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
           <button class="btn-sm ${c.concluido?'':'btn-concluir'}" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
           <button class="btn-sm btn-excluir" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash" style="font-size:12px;vertical-align:-1px"></i> Excluir</button>
@@ -615,6 +557,15 @@ function renderCasos(){
           <input type="text" id="ag-desc-${c.id}" value="${(c.agendado_desc||'').replace(/"/g,'&quot;')}" placeholder="Descrição do evento" style="flex:2;min-width:160px">
           <button class="btn-gcal" onclick="salvarAgendado('${c.id}')">Salvar</button>
           <button class="btn-open" onclick="abrirGcal('${c.id}')">Abrir no Calendar</button>
+        </div>
+      </div>
+      <div class="reg-inline" id="reg-block-${c.id}">
+        <div class="reg-inner">
+          <i class="ti ti-building-bank" style="font-size:16px;color:#1D4ED8;flex-shrink:0"></i>
+          <input type="text" id="reg-prenotacao-${c.id}" value="${(c.prenotacao||'').replace(/"/g,'&quot;')}" placeholder="Nº de prenotação">
+          <input type="text" id="reg-controle-${c.id}" value="${(c.numControle||'').replace(/"/g,'&quot;')}" placeholder="Número de controle">
+          <input type="text" id="reg-livrofolha-${c.id}" value="${(c.livroFolha||'').replace(/"/g,'&quot;')}" placeholder="Livro e folha">
+          <button onclick="salvarRegistro('${c.id}')">Salvar</button>
         </div>
       </div>
       <div class="obs-block">
@@ -652,22 +603,22 @@ window.salvarObs=function(id){
   const s=document.getElementById('saved-'+id);s.style.display='inline';
   setTimeout(()=>{s.style.display='none';document.getElementById('obs-edit-'+id).style.display='none';},1400);
 };
-window.toggleAcaoEdit=function(id){
-  const e=document.getElementById('acao-edit-'+id);
-  const open=e.style.display==='flex';
-  e.style.display=open?'none':'flex';
-  if(!open)setTimeout(()=>document.getElementById('acao-inp-'+id).focus(),40);
+window.toggleRegistro=function(id){
+  const b=document.getElementById('reg-block-'+id);
+  b.style.display=b.style.display==='block'?'none':'block';
 };
-window.salvarAcao=function(id){
-  const v=document.getElementById('acao-inp-'+id).value.trim();
-  if(v)update(ref(db,`casos/${id}`),{acao:v,atualizado:isoHoje()});
-  document.getElementById('acao-edit-'+id).style.display='none';
+window.salvarRegistro=function(id){
+  const prenotacao=document.getElementById('reg-prenotacao-'+id).value.trim();
+  const numControle=document.getElementById('reg-controle-'+id).value.trim();
+  const livroFolha=document.getElementById('reg-livrofolha-'+id).value.trim();
+  update(ref(db,`casos/${id}`),{prenotacao,numControle,livroFolha,atualizado:isoHoje()});
+  document.getElementById('reg-block-'+id).style.display='none';
 };
 window.addAoFoco=function(id){
   const c=casos[id];if(!c)return;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   if(arr.length>=5){alert('Foco do dia já tem 5 itens.');return;}
-  const txt=`${c.acao} — ${c.nome}`;
+  const txt=`${c.tipo||'Caso'} — ${c.nome}`;
   if(arr.some(f=>f.text===txt)){alert('Já está no foco do dia.');return;}
   arr.push({text:txt,done:false});
   set(focosRef,arr);
@@ -685,8 +636,8 @@ window.salvarAgendado=function(id){
 window.abrirGcal=function(id){
   const c=casos[id];if(!c)return;
   const base='https://calendar.google.com/calendar/render?action=TEMPLATE';
-  const titulo=encodeURIComponent((c.agendado_desc||c.acao||c.nome)+' — '+c.nome);
-  const desc=encodeURIComponent('Cartório: '+c.tipo+'\nPróxima ação: '+c.acao+'\n'+(c.obs||''));
+  const titulo=encodeURIComponent((c.agendado_desc||c.tipo||c.nome)+' — '+c.nome);
+  const desc=encodeURIComponent('Cartório: '+c.tipo+'\n'+(c.obs||''));
   if(!c.agendado){window.open(base+'&text='+titulo+'&details='+desc,'_blank');return;}
   const dt=new Date(c.agendado);
   const pad=n=>String(n).padStart(2,'0');
@@ -893,13 +844,15 @@ window.salvarNovo=function(){
   set(nr,{
     id:nr.key,nome,
     tipo:document.getElementById('f-tipo').value.trim()||'—',
-    acao:document.getElementById('f-acao').value.trim()||'Definir próxima ação',
     status:document.getElementById('f-status').value,
     resp:document.getElementById('f-resp').value,
     prazo:document.getElementById('f-prazo').value.trim()||'—',
     dep:document.getElementById('f-dep').value,
     agendado:document.getElementById('f-agendado').value||'',
     agendado_desc:document.getElementById('f-agendado-desc').value.trim()||'',
+    prenotacao:document.getElementById('f-prenotacao').value.trim(),
+    numControle:document.getElementById('f-controle').value.trim(),
+    livroFolha:document.getElementById('f-livrofolha').value.trim(),
     obs:document.getElementById('f-obs').value.trim(),
     atualizado:isoHoje(),
     concluido:false
@@ -908,34 +861,11 @@ window.salvarNovo=function(){
   const driveNome = nome;
   const driveTipo = document.getElementById('f-tipo').value.trim()||'A classificar';
   fetch('https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec',{method:'POST',body:JSON.stringify({nome:driveNome,tipo:driveTipo})}).catch(()=>{});
-  ['f-nome','f-tipo','f-acao','f-prazo','f-obs','f-agendado-desc'].forEach(id=>document.getElementById(id).value='');
+  ['f-nome','f-tipo','f-prazo','f-obs','f-agendado-desc','f-prenotacao','f-controle','f-livrofolha'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-dep').value='';
   document.getElementById('f-agendado').value='';
   window.toggleForm();
 };
-
-// ── DO IT ──
-window.mudarTab=function(t,btn){
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  document.getElementById('view-casos').style.display=t==='casos'?'block':'none';
-  document.getElementById('view-doit').style.display=t==='doit'?'block':'none';
-  if(t==='doit')renderDoit();
-};
-function renderDoit(){
-  const pillTQ=v=>v.includes('Aguardando')?`<span class="pill pill-red">${v}</span>`:v.includes('recebida')||v.includes('recebido')?`<span class="pill pill-amber">${v}</span>`:`<span class="pill pill-green">${v}</span>`;
-  const pillA=v=>v==='NÃO ASSINOU'?`<span class="pill pill-red">${v}</span>`:v==='Assinado'?`<span class="pill pill-green">${v}</span>`:v==='Pendente'?`<span class="pill pill-amber">${v}</span>`:`<span class="pill pill-gray">${v}</span>`;
-  const pillM=v=>v==='Não iniciada'?`<span class="pill pill-red">${v}</span>`:v==='Feita'?`<span class="pill pill-green">${v}</span>`:`<span class="pill pill-gray">${v}</span>`;
-  const pillR=v=>({Shirley:'pill-blue',Grazi:'pill-green',Ambas:'pill-amber'}[v]||'pill-gray');
-  document.getElementById('doit-table').innerHTML=`
-  <thead><tr><th>Unidade</th><th>Cliente</th><th>Status TQ</th><th>Minuta</th><th>Assinatura</th><th>Registro</th><th>Resp.</th></tr></thead>
-  <tbody>${doitData.map(r=>`<tr>
-    <td style="font-weight:500;white-space:nowrap">${r.un}</td><td>${r.cliente}</td>
-    <td>${pillTQ(r.tq)}</td><td>${pillM(r.minuta)}</td><td>${pillA(r.assin)}</td>
-    <td><span class="pill ${r.reg==='Pendente'?'pill-amber':'pill-green'}">${r.reg}</span></td>
-    <td><span class="pill ${pillR(r.resp)}">${r.resp}</span></td>
-  </tr>`).join('')}</tbody>`;
-}
 </script>
 </body>
 </html>
