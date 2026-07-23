@@ -60,6 +60,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card.concluido{opacity:.45;border-left-color:#D1D1D6}
 .card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .card-aguardando{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.card-aguardando .reg-label{font-size:11px;color:#7A4F00}
+.reg-date{font-size:12px;padding:3px 7px;border-radius:5px;border:0.5px solid #FFD180;background:#FFF8E1;color:#1C1C1E;font-family:inherit;outline:none}
+.reg-date:focus{border-color:#B45309}
 .card-name{font-size:14px;font-weight:500;color:#1C1C1E;margin-bottom:1px}
 .card-tipo{font-size:11px;color:#AEAEB2;text-transform:uppercase;letter-spacing:.3px}
 .card-registro{display:flex;flex-wrap:wrap;gap:10px 16px;background:#F8F9FB;border:0.5px solid #ECECF0;border-radius:8px;padding:8px 10px;margin-bottom:9px}
@@ -513,11 +516,6 @@ function renderCasos(){
   lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
   el.innerHTML=lista.map(c=>{
     const agBadge=(c.agendado&&c.dep!=='Aguardando cliente')?`<span class="badge" style="background:#E8F5E9;color:#1B5E20"><i class="ti ti-calendar-check" style="font-size:11px;vertical-align:-1px"></i> ${new Date(c.agendado).toLocaleDateString('pt-BR')} ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:'';
-    const aguardandoBadges=c.dep==='Aguardando cliente'?`
-      <div class="card-aguardando">
-        <span class="badge b-prioridade"><i class="ti ti-hourglass" style="font-size:11px;vertical-align:-1px"></i> Aguardando cliente</span>
-        ${c.agendado?`<span class="badge" style="background:#E8F5E9;color:#1B5E20"><i class="ti ti-calendar-check" style="font-size:11px;vertical-align:-1px"></i> Escritura agendada: ${new Date(c.agendado).toLocaleDateString('pt-BR')} ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:''}
-      </div>`:'';
     return`
     <div class="card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
       <div class="card-header">
@@ -525,7 +523,15 @@ function renderCasos(){
           <div class="card-name">${c.nome}</div>
           <div class="card-tipo">${c.tipo||'—'}</div>
         </div>
-        ${aguardandoBadges}
+        <div class="card-aguardando">
+          <select class="sel" onchange="mudarCampo('${c.id}','dep',this.value)">
+            ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
+          </select>
+          ${c.dep==='Aguardando cliente'?`
+            <span class="reg-label">Assinatura da escritura</span>
+            <input type="datetime-local" class="reg-date" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)">
+          `:''}
+        </div>
       </div>
 
       <div class="card-registro">
@@ -562,9 +568,6 @@ function renderCasos(){
         </select>
         ${c.prazo&&c.prazo!=='—'?`<span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${c.prazo}</span>`:''}
         ${bDias(c.atualizado)}
-        <select class="sel" onchange="mudarCampo('${c.id}','dep',this.value)">
-          ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
-        </select>
         ${agBadge}
       </div>
 
