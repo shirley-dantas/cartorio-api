@@ -35,6 +35,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-del{font-size:16px;color:#6E6E8A;cursor:pointer;padding:0 2px;background:none;border:none;line-height:1}
 .foco-del:hover{color:#E57373}
 .foco-empty{font-size:12px;color:#6E6E8A;font-style:italic;padding:4px 0}
+.foco-sugestao{display:none;margin-top:10px;padding:10px 12px;background:#2C2C4E;border-radius:8px;border:0.5px solid #3C3C5E;font-size:12.5px;color:#E0E0F0;line-height:1.55}
+.foco-sugestao.show{display:block}
+.foco-sugestao-label{font-size:10px;color:#A78BFA;font-weight:600;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:4px;margin-bottom:5px}
+.foco-sugestao-loading{color:#A78BFA;font-style:italic}
 .foco-input-row{display:flex;gap:8px;margin-top:8px}
 .foco-input-row input{flex:1;font-size:13px;padding:7px 11px;border-radius:8px;border:0.5px solid #3C3C5E;background:#2C2C4E;color:#E0E0F0;font-family:inherit;outline:none}
 .foco-input-row input:focus{border-color:#A78BFA}
@@ -175,6 +179,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar</button>
     </div>
     <div class="foco-items" id="foco-items"></div>
+    <div class="foco-sugestao" id="foco-sugestao"></div>
     <div class="foco-input-row" id="foco-input-row" style="display:none">
       <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key==='Enter')addFoco()">
       <button onclick="addFoco()">Adicionar</button>
@@ -429,9 +434,38 @@ window.addFoco=function(){
 };
 window.toggleFoco=function(i){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  if(arr[i])arr[i].done=!arr[i].done;
+  if(!arr[i])return;
+  const ficandoConcluida=!arr[i].done;
+  arr[i].done=!arr[i].done;
   set(focosRef,arr);
+  if(ficandoConcluida) sugerirProximaTarefa(arr[i].text,arr);
 };
+async function sugerirProximaTarefa(tarefaConcluida,arrAtual){
+  const restantes=arrAtual.filter(f=>!f.done).map(f=>f.text);
+  const el=document.getElementById('foco-sugestao');
+  if(!restantes.length){
+    el.className='foco-sugestao show';
+    el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente</div>Foco do dia concluído! Bom trabalho.';
+    return;
+  }
+  el.className='foco-sugestao show';
+  el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente</div><span class="foco-sugestao-loading">Analisando o painel...</span>';
+  const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
+    nome:c.nome,tipo:c.tipo,status:c.status,resp:c.resp,prazo:c.prazo,dep:c.dep,
+    diasParado:diasParado(c.atualizado),obs:c.obs
+  }));
+  try{
+    const r=await fetch('/api/sugerir-proxima',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tarefaConcluida,focosRestantes:restantes,casosAtivos})});
+    const j=await r.json();
+    if(j.ok&&j.sugestao){
+      el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente</div>'+j.sugestao;
+    }else{
+      el.className='foco-sugestao';
+    }
+  }catch(e){
+    el.className='foco-sugestao';
+  }
+}
 window.delFoco=function(i){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   arr.splice(i,1);
