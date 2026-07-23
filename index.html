@@ -128,6 +128,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .modal-copy-btn{font-size:12px;padding:6px 14px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;margin-top:8px}
 .modal-copy-btn:hover{background:#F5F5F7}
 .modal-loading{text-align:center;padding:24px;color:#8E8EA0;font-size:13px;display:none}
+.atend-textarea-wrap{position:relative}
+.atend-textarea-wrap .modal-textarea{padding-right:44px}
+.mic-btn{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:none;background:#F5F5F7;color:#636366;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px}
+.mic-btn:hover{background:#E5E5EA}
+.mic-btn.active{background:#C62828;color:#fff;animation:mic-pulse 1.2s infinite}
+@keyframes mic-pulse{0%{box-shadow:0 0 0 0 rgba(198,40,40,.5)}70%{box-shadow:0 0 0 8px rgba(198,40,40,0)}100%{box-shadow:0 0 0 0 rgba(198,40,40,0)}}
+.atend-historico{margin-top:18px;padding-top:14px;border-top:0.5px solid #E5E5EA}
+.atend-item{padding:10px 0;border-bottom:0.5px solid #F2F2F7}
+.atend-item:last-child{border-bottom:none}
+.atend-item-data{font-size:11px;color:#8E8EA0;margin-bottom:3px;font-weight:500}
+.atend-item-resumo{font-size:13px;color:#1C1C1E;line-height:1.5}
+.atend-item-pend{margin:6px 0 0 18px;font-size:12px;color:#B45309}
 .obs-text{font-size:12px;color:#636366;line-height:1.55;cursor:pointer}
 .obs-text:hover{color:#1C1C1E}
 .obs-edit{display:none;flex-direction:column;gap:6px;margin-top:7px}
@@ -315,6 +327,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <i class="ti ti-brand-google-drive" style="font-size:13px;vertical-align:-1px"></i> Abrir nova versão no Drive
       </a>
     </div>
+  </div>
+</div>
+
+<!-- Modal Registrar Atendimento -->
+<div class="modal-overlay" id="modal-atendimento">
+  <div class="modal-box">
+    <button class="modal-close" onclick="fecharAtendimento()">&times;</button>
+    <div class="modal-title"><i class="ti ti-headset" style="font-size:15px;vertical-align:-2px;color:#1B5E20"></i> Registrar Atendimento</div>
+    <div class="modal-sub" id="atend-caso-info">—</div>
+    <label class="modal-label">O que foi tratado? (ligação, e-mail, WhatsApp, presencial...)</label>
+    <div class="atend-textarea-wrap">
+      <textarea class="modal-textarea" id="atend-texto" placeholder="Fale ou digite o que aconteceu no atendimento..."></textarea>
+      <button type="button" class="mic-btn" id="atend-mic" onclick="toggleDitado()" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
+    </div>
+    <div class="modal-btn-row">
+      <button class="btn-gerar" id="btn-atend-gerar" onclick="registrarAtendimento()" style="background:#1B5E20"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Registrar</button>
+    </div>
+    <div class="modal-loading" id="atend-loading">
+      <i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>
+      Organizando o registro...
+    </div>
+    <div class="atend-historico" id="atend-historico"></div>
   </div>
 </div>
 
@@ -603,6 +637,7 @@ function renderCasos(){
         <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
         <button class="btn-sm btn-foco" onclick="addAoFoco('${c.id}')"><i class="ti ti-bolt" style="font-size:12px;vertical-align:-1px"></i> Foco</button>
         <button class="btn-sm btn-reeditar" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit" style="font-size:12px;vertical-align:-1px"></i> Reeditar</button>
+        <button class="btn-sm" onclick="abrirAtendimento('${c.id}')"><i class="ti ti-headset" style="font-size:12px;vertical-align:-1px"></i> Atendimento</button>
         <button class="btn-sm ${c.concluido?'':'btn-concluir'}" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
         <button class="btn-sm btn-excluir" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash" style="font-size:12px;vertical-align:-1px"></i> Excluir</button>
       </div>
@@ -699,6 +734,85 @@ window.abrirReeditar=async function(id){
 window.fecharReeditar=function(){
   document.getElementById('modal-reeditar').classList.remove('open');
 };
+
+// ── REGISTRAR ATENDIMENTO ──
+let reconhecimentoVoz=null,ditando=false;
+window.toggleDitado=function(){
+  const btn=document.getElementById('atend-mic');
+  const ta=document.getElementById('atend-texto');
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('Seu navegador não suporta ditado por voz (use o Chrome), mas você pode digitar normalmente.');return;}
+  if(ditando){reconhecimentoVoz.stop();return;}
+  reconhecimentoVoz=new SR();
+  reconhecimentoVoz.lang='pt-BR';
+  reconhecimentoVoz.continuous=true;
+  reconhecimentoVoz.interimResults=false;
+  reconhecimentoVoz.onresult=(e)=>{
+    let txt='';
+    for(let i=e.resultIndex;i<e.results.length;i++)txt+=e.results[i][0].transcript;
+    ta.value=(ta.value+' '+txt).trim();
+  };
+  reconhecimentoVoz.onend=()=>{ditando=false;btn.classList.remove('active');};
+  reconhecimentoVoz.onerror=()=>{ditando=false;btn.classList.remove('active');};
+  reconhecimentoVoz.start();
+  ditando=true;
+  btn.classList.add('active');
+};
+async function carregarHistoricoAtendimento(id){
+  const el=document.getElementById('atend-historico');
+  el.innerHTML='<div style="font-size:12px;color:#AEAEB2;padding:8px 0">Carregando histórico...</div>';
+  try{
+    const snap=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/historico.json`);
+    const data=await snap.json();
+    const lista=data?Object.values(data).sort((a,b)=>(b.data||'').localeCompare(a.data||'')):[];
+    if(!lista.length){el.innerHTML='<div style="font-size:12px;color:#AEAEB2;padding:8px 0">Nenhum atendimento registrado ainda.</div>';return;}
+    el.innerHTML=lista.map(h=>`
+      <div class="atend-item">
+        <div class="atend-item-data">${new Date(h.data).toLocaleDateString('pt-BR')} ${new Date(h.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+        <div class="atend-item-resumo">${h.resumo||''}</div>
+        ${h.pendencias&&h.pendencias.length?`<ul class="atend-item-pend">${h.pendencias.map(p=>`<li>${p}</li>`).join('')}</ul>`:''}
+      </div>`).join('');
+  }catch(e){
+    el.innerHTML='<div style="font-size:12px;color:#C62828;padding:8px 0">Erro ao carregar histórico.</div>';
+  }
+}
+window.abrirAtendimento=async function(id){
+  const c=casos[id];if(!c)return;
+  document.getElementById('atend-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
+  document.getElementById('atend-texto').value='';
+  document.getElementById('atend-loading').style.display='none';
+  document.getElementById('btn-atend-gerar').disabled=false;
+  document.getElementById('btn-atend-gerar').dataset.id=id;
+  document.getElementById('modal-atendimento').classList.add('open');
+  carregarHistoricoAtendimento(id);
+};
+window.fecharAtendimento=function(){
+  if(reconhecimentoVoz&&ditando)reconhecimentoVoz.stop();
+  document.getElementById('modal-atendimento').classList.remove('open');
+};
+window.registrarAtendimento=async function(){
+  const id=document.getElementById('btn-atend-gerar').dataset.id;
+  const c=casos[id];if(!c)return;
+  const texto=document.getElementById('atend-texto').value.trim();
+  if(!texto){document.getElementById('atend-texto').focus();return;}
+  if(reconhecimentoVoz&&ditando)reconhecimentoVoz.stop();
+  document.getElementById('btn-atend-gerar').disabled=true;
+  document.getElementById('atend-loading').style.display='block';
+  try{
+    const r=await fetch('/api/registrar-atendimento',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,texto})});
+    const j=await r.json();
+    if(!j.ok)throw new Error(j.erro||'Erro ao organizar o registro.');
+    const entrada={data:new Date().toISOString(),texto,resumo:j.resumo||'',pendencias:j.pendencias||[]};
+    await push(ref(db,`casos/${id}/historico`),entrada);
+    document.getElementById('atend-texto').value='';
+    await carregarHistoricoAtendimento(id);
+  }catch(e){
+    alert(e.message||'Erro ao registrar atendimento.');
+  }
+  document.getElementById('atend-loading').style.display='none';
+  document.getElementById('btn-atend-gerar').disabled=false;
+};
+
 async function aguardarJobFirebase(jobId,onTick){
   const url='https://painel-cartorio-default-rtdb.firebaseio.com/jobs/'+jobId+'.json';
   const limite=140;// max ~7 minutos (documentos longos podem levar mais tempo para gerar)
