@@ -512,7 +512,7 @@ function renderCasos(){
   const ordem={prioridade:0,critico:1,atencao:2,emdia:3};
   lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
   el.innerHTML=lista.map(c=>{
-    const agBadge=c.agendado?`<span class="badge" style="background:#E8F5E9;color:#1B5E20"><i class="ti ti-calendar-check" style="font-size:11px;vertical-align:-1px"></i> ${new Date(c.agendado).toLocaleDateString('pt-BR')} ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:'';
+    const agBadge=(c.agendado&&c.dep!=='Aguardando cliente')?`<span class="badge" style="background:#E8F5E9;color:#1B5E20"><i class="ti ti-calendar-check" style="font-size:11px;vertical-align:-1px"></i> ${new Date(c.agendado).toLocaleDateString('pt-BR')} ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:'';
     const aguardandoBadges=c.dep==='Aguardando cliente'?`
       <div class="card-aguardando">
         <span class="badge b-prioridade"><i class="ti ti-hourglass" style="font-size:11px;vertical-align:-1px"></i> Aguardando cliente</span>
