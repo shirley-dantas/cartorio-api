@@ -85,6 +85,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .b-gabriel{background:#F3E5F5;color:#4A148C}
 .b-gray{background:#F2F2F7;color:#636366}
 .dias-badge{font-size:11px;padding:2px 8px;border-radius:5px;font-weight:500;white-space:nowrap}
+.dias-0{background:#E8F5E9;color:#1B5E20}
 .dias-1{background:#FFF8E1;color:#7A4F00}
 .dias-3{background:#FFF3E0;color:#8D4600}
 .dias-7{background:#FDECEA;color:#B71C1C}
@@ -468,9 +469,9 @@ function bResp(r){
 }
 function bDias(iso){
   const d=diasParado(iso);
-  if(d<=0)return'';
   let cls,txt;
-  if(d<3){cls='dias-1';txt=d===1?'1 dia parado':`${d} dias parado`;}
+  if(d<=0){cls='dias-0';txt='Atualizado hoje';}
+  else if(d<3){cls='dias-1';txt=d===1?'1 dia parado':`${d} dias parado`;}
   else if(d<7){cls='dias-3';txt=`${d} dias parado`;}
   else if(d<15){cls='dias-7';txt=`${d} dias parado`;}
   else{cls='dias-15';txt=`${d} dias parado`;}
@@ -558,7 +559,7 @@ function renderCasos(){
           <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
           <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
         </select>
-        ${c.prazo&&c.prazo!=='—'?`<span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${c.prazo}</span>`:''}
+        <span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${c.prazo&&c.prazo!=='—'?c.prazo:'—'}</span>
         ${bDias(c.atualizado)}
       </div>
 
