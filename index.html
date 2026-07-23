@@ -753,7 +753,15 @@ window.toggleDitado=function(){
     ta.value=(ta.value+' '+txt).trim();
   };
   reconhecimentoVoz.onend=()=>{ditando=false;btn.classList.remove('active');};
-  reconhecimentoVoz.onerror=()=>{ditando=false;btn.classList.remove('active');};
+  reconhecimentoVoz.onerror=(e)=>{
+    ditando=false;btn.classList.remove('active');
+    if(e.error==='no-speech')return;
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+      alert('O navegador bloqueou o acesso ao microfone. Clique no ícone de cadeado (ou câmera/microfone) ao lado do endereço do site, no navegador, e permita o acesso ao microfone. Depois tente de novo.');
+    }else{
+      alert('Não foi possível usar o microfone agora (erro: '+e.error+'). Pode digitar manualmente por enquanto.');
+    }
+  };
   reconhecimentoVoz.start();
   ditando=true;
   btn.classList.add('active');
