@@ -64,7 +64,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .reg-date{font-size:12px;padding:3px 7px;border-radius:5px;border:0.5px solid #FFD180;background:#FFF8E1;color:#1C1C1E;font-family:inherit;outline:none}
 .reg-date:focus{border-color:#B45309}
 .card-name{font-size:14px;font-weight:500;color:#1C1C1E;margin-bottom:1px}
-.card-tipo{font-size:11px;color:#AEAEB2;text-transform:uppercase;letter-spacing:.3px}
+.card-tipo{font-size:11px;color:#AEAEB2;text-transform:uppercase;letter-spacing:.3px;border:none;border-bottom:1px dashed transparent;background:transparent;font-family:inherit;padding:0;outline:none;cursor:text;width:100%}
+.card-tipo:hover,.card-tipo:focus{color:#1C1C1E;border-bottom-color:#D1D1D6}
 .card-registro{display:flex;flex-wrap:wrap;gap:10px 16px;background:#F8F9FB;border:0.5px solid #ECECF0;border-radius:8px;padding:8px 10px;margin-bottom:9px}
 .reg-field{display:flex;align-items:center;gap:5px}
 .reg-label{font-size:11px;color:#8E8EA0;white-space:nowrap}
@@ -521,7 +522,7 @@ function renderCasos(){
       <div class="card-header">
         <div>
           <div class="card-name">${c.nome}</div>
-          <div class="card-tipo">${c.tipo||'—'}</div>
+          <input type="text" class="card-tipo" value="${esc(c.tipo)}" placeholder="Tipo de ato (clique para classificar)" onchange="mudarCampo('${c.id}','tipo',this.value)">
         </div>
         <div class="card-aguardando">
           <select class="sel" onchange="mudarCampo('${c.id}','dep',this.value)">
