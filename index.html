@@ -58,8 +58,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card.atencao{border-left-color:#B45309}
 .card.emdia{border-left-color:#2E7D32}
 .card.concluido{opacity:.45;border-left-color:#D1D1D6}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.card-aguardando{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .card-name{font-size:14px;font-weight:500;color:#1C1C1E;margin-bottom:1px}
-.card-tipo{font-size:11px;color:#AEAEB2;margin-bottom:10px;text-transform:uppercase;letter-spacing:.3px}
+.card-tipo{font-size:11px;color:#AEAEB2;text-transform:uppercase;letter-spacing:.3px}
 .card-registro{display:flex;flex-wrap:wrap;gap:10px 16px;background:#F8F9FB;border:0.5px solid #ECECF0;border-radius:8px;padding:8px 10px;margin-bottom:9px}
 .reg-field{display:flex;align-items:center;gap:5px}
 .reg-label{font-size:11px;color:#8E8EA0;white-space:nowrap}
@@ -236,8 +238,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <input type="text" id="f-agendado-desc" placeholder="Descrição do evento no Calendar">
         </div>
         <div class="form-grid">
+          <input type="text" id="f-registroPrenotado" placeholder="Registro">
           <input type="text" id="f-prenotacao" placeholder="Prenotação">
-          <input type="text" id="f-registroPrenotado" placeholder="Registro prenotado">
         </div>
         <div class="form-grid-3">
           <input type="text" id="f-livro" placeholder="Livro">
@@ -511,14 +513,24 @@ function renderCasos(){
   lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
   el.innerHTML=lista.map(c=>{
     const agBadge=c.agendado?`<span class="badge" style="background:#E8F5E9;color:#1B5E20"><i class="ti ti-calendar-check" style="font-size:11px;vertical-align:-1px"></i> ${new Date(c.agendado).toLocaleDateString('pt-BR')} ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:'';
+    const aguardandoBadges=c.dep==='Aguardando cliente'?`
+      <div class="card-aguardando">
+        <span class="badge b-prioridade"><i class="ti ti-hourglass" style="font-size:11px;vertical-align:-1px"></i> Aguardando cliente</span>
+        ${c.agendado?`<span class="badge" style="background:#E8F5E9;color:#1B5E20"><i class="ti ti-calendar-check" style="font-size:11px;vertical-align:-1px"></i> Escritura agendada: ${new Date(c.agendado).toLocaleDateString('pt-BR')} ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:''}
+      </div>`:'';
     return`
     <div class="card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
-      <div class="card-name">${c.nome}</div>
-      <div class="card-tipo">${c.tipo||'—'}</div>
+      <div class="card-header">
+        <div>
+          <div class="card-name">${c.nome}</div>
+          <div class="card-tipo">${c.tipo||'—'}</div>
+        </div>
+        ${aguardandoBadges}
+      </div>
 
       <div class="card-registro">
+        <div class="reg-field"><span class="reg-label">Registro</span><input type="text" value="${esc(c.registroPrenotado)}" placeholder="—" onchange="mudarCampo('${c.id}','registroPrenotado',this.value)"></div>
         <div class="reg-field"><span class="reg-label">Prenotação</span><input type="text" value="${esc(c.prenotacao)}" placeholder="—" onchange="mudarCampo('${c.id}','prenotacao',this.value)"></div>
-        <div class="reg-field"><span class="reg-label">Registro prenotado</span><input type="text" value="${esc(c.registroPrenotado)}" placeholder="—" onchange="mudarCampo('${c.id}','registroPrenotado',this.value)"></div>
         <div class="reg-field"><span class="reg-label">Livro</span><input type="text" value="${esc(c.livro)}" placeholder="—" onchange="mudarCampo('${c.id}','livro',this.value)"></div>
         <div class="reg-field"><span class="reg-label">Folha</span><input type="text" value="${esc(c.folha)}" placeholder="—" onchange="mudarCampo('${c.id}','folha',this.value)"></div>
         <div class="reg-field"><span class="reg-label">Controle</span><input type="text" value="${esc(c.controle)}" placeholder="—" onchange="mudarCampo('${c.id}','controle',this.value)"></div>
