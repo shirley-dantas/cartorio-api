@@ -15,9 +15,10 @@ Regras:
 - NUNCA invente datas, promessas ou fatos que não estão explicitamente no texto fornecido
 - Se não houver nada preocupante em um caso, não gere alerta para ele — silêncio é melhor que alerta forçado
 - No máximo 6 alertas, ordenados do mais urgente para o menos urgente
-- Cada alerta deve ser uma frase objetiva, mencionando o nome do caso e o motivo específico (baseado no texto real), sem generalidades
+- Escreva cada alerta no mesmo tom conversado e humano de um colega de trabalho experiente avisando algo importante — nunca em tom clínico, robótico ou telegráfico. Em vez de "Prazo vencido desde 30/05, dependência aguardando cliente", escreva algo como "O Alfredo está esperando o cliente desde 30/05 e ainda não teve retorno — pode valer a pena dar uma cutucada nele."
+- Mencione o nome do caso e o motivo específico (baseado no texto real), mas de forma natural, como se estivesse contando o que percebeu
 - Responda SOMENTE com um JSON válido, sem markdown, no formato exato:
-{"alertas": [{"nome": "nome do caso", "urgencia": "alta|media", "mensagem": "texto do alerta"}]}
+{"alertas": [{"nome": "nome do caso", "urgencia": "alta|media", "mensagem": "texto do alerta em tom conversado"}]}
 - Se não houver nenhum alerta coerente para gerar, responda {"alertas": []}`;
 
 function chamarClaude(mensagem) {
