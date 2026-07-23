@@ -817,6 +817,12 @@ window.registrarAtendimento=async function(){
     if(!j.ok)throw new Error(j.erro||'Erro ao organizar o registro.');
     const entrada={data:new Date().toISOString(),texto,resumo:j.resumo||'',pendencias:j.pendencias||[]};
     await push(ref(db,`casos/${id}/historico`),entrada);
+    const dataFmt=new Date(entrada.data).toLocaleDateString('pt-BR')+' '+new Date(entrada.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    let linhaObs=`[${dataFmt}] ${entrada.resumo}`;
+    if(entrada.pendencias.length)linhaObs+=' — Pendência: '+entrada.pendencias.join('; ');
+    const obsAtual=(c.obs||'').trim();
+    const novoObs=obsAtual?`${linhaObs}\n\n${obsAtual}`:linhaObs;
+    await update(ref(db,`casos/${id}`),{obs:novoObs,atualizado:isoHoje()});
     document.getElementById('atend-texto').value='';
     await carregarHistoricoAtendimento(id);
   }catch(e){
