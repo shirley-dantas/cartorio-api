@@ -510,7 +510,6 @@ function renderCasos(){
   const ordem={prioridade:0,critico:1,atencao:2,emdia:3};
   lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
   el.innerHTML=lista.map(c=>{
-    const agBadge=(c.agendado&&c.dep!=='Aguardando cliente')?`<span class="badge" style="background:#E8F5E9;color:#1B5E20"><i class="ti ti-calendar-check" style="font-size:11px;vertical-align:-1px"></i> ${new Date(c.agendado).toLocaleDateString('pt-BR')} ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:'';
     return`
     <div class="card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
       <div class="card-header">
@@ -522,10 +521,8 @@ function renderCasos(){
           <select class="sel" onchange="mudarCampo('${c.id}','dep',this.value)">
             ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
           </select>
-          ${c.dep==='Aguardando cliente'?`
-            <span class="reg-label">Assinatura da escritura</span>
-            <input type="datetime-local" class="reg-date" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)">
-          `:''}
+          <span class="reg-label">Assinatura da escritura</span>
+          <input type="datetime-local" class="reg-date" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)">
         </div>
       </div>
 
@@ -563,7 +560,6 @@ function renderCasos(){
         </select>
         ${c.prazo&&c.prazo!=='—'?`<span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${c.prazo}</span>`:''}
         ${bDias(c.atualizado)}
-        ${agBadge}
       </div>
 
       <div class="card-buttons">
