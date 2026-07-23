@@ -18,6 +18,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.loading{background:#FBBF24}
 .sync-label{font-size:11px;color:#6E6E8A}
 .container{max-width:1060px;margin:0 auto;padding:20px 18px}
+.alertas-card{background:#FFF8E1;border:1px solid #FFE082;border-radius:12px;padding:14px 20px;margin-bottom:18px}
+.alertas-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.alertas-title{font-size:13px;font-weight:600;color:#7A4F00;display:flex;align-items:center;gap:7px}
+.alertas-title i{font-size:15px;color:#B45309}
+.alertas-atualizado{font-size:10px;color:#8D6E00}
+.alertas-items{display:flex;flex-direction:column;gap:6px}
+.alerta-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:#fff;border-radius:8px;font-size:12.5px;color:#4A3300;line-height:1.5}
+.alerta-item.alta{border-left:3px solid #C62828}
+.alerta-item.media{border-left:3px solid #B45309}
+.alerta-item i{font-size:14px;margin-top:1px;flex-shrink:0}
+.alerta-item.alta i{color:#C62828}
+.alerta-item.media i{color:#B45309}
+.alerta-item b{font-weight:600}
 .foco-card{background:#1C1C2E;border-radius:12px;padding:16px 20px;margin-bottom:18px}
 .foco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .foco-title{font-size:13px;font-weight:500;color:#fff;display:flex;align-items:center;gap:7px}
@@ -188,6 +201,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <div class="container">
+  <div class="alertas-card" id="alertas-card" style="display:none">
+    <div class="alertas-header">
+      <div class="alertas-title"><i class="ti ti-alert-triangle"></i> Alertas</div>
+      <span class="alertas-atualizado" id="alertas-atualizado"></span>
+    </div>
+    <div class="alertas-items" id="alertas-items"></div>
+  </div>
+
   <div class="foco-card">
     <div class="foco-header">
       <div class="foco-title"><i class="ti ti-bolt"></i> Foco do dia</div>
@@ -405,6 +426,8 @@ let inicializado=false;
 // ── FIREBASE LISTENERS ──
 const casosRef=ref(db,'casos');
 const focosRef=ref(db,'focos');
+const alertasRef=ref(db,'alertas');
+let alertasVerificados=false;
 
 onValue(casosRef,(snap)=>{
   const data=snap.val();
@@ -422,9 +445,14 @@ onValue(casosRef,(snap)=>{
     inicializado=true;
     renderStats();
     renderCasos();
+    verificarAlertasSeNecessario();
   }
   setSyncStatus(true);
 },()=>setSyncStatus(false));
+
+onValue(alertasRef,(snap)=>{
+  renderAlertas(snap.val());
+});
 
 onValue(focosRef,(snap)=>{
   focos=snap.val()||[];
@@ -509,6 +537,42 @@ window.delFoco=function(i){
   arr.splice(i,1);
   set(focosRef,arr);
 };
+
+// ── ALERTAS ──
+function renderAlertas(data){
+  const card=document.getElementById('alertas-card');
+  const items=document.getElementById('alertas-items');
+  const atualizadoEl=document.getElementById('alertas-atualizado');
+  const lista=data&&Array.isArray(data.lista)?data.lista:[];
+  if(!lista.length){card.style.display='none';return;}
+  card.style.display='block';
+  atualizadoEl.textContent=data.geradoEm?('Verificado em '+new Date(data.geradoEm).toLocaleDateString('pt-BR')+' '+new Date(data.geradoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})):'';
+  items.innerHTML=lista.map(a=>`
+    <div class="alerta-item ${a.urgencia==='alta'?'alta':'media'}">
+      <i class="ti ti-alert-circle"></i>
+      <span><b>${a.nome||'Caso'}:</b> ${a.mensagem||''}</span>
+    </div>`).join('');
+}
+async function verificarAlertasSeNecessario(){
+  if(alertasVerificados)return;
+  alertasVerificados=true;
+  const LIMITE_MS=4*60*60*1000;
+  try{
+    const snap=await fetch('https://painel-cartorio-default-rtdb.firebaseio.com/alertas/geradoEm.json');
+    const geradoEm=await snap.json();
+    if(geradoEm&&(Date.now()-new Date(geradoEm).getTime())<LIMITE_MS)return;
+    const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
+      nome:c.nome,tipo:c.tipo,resp:c.resp,prazo:c.prazo,dep:c.dep,
+      diasParado:diasParado(c.atualizado),obs:c.obs
+    }));
+    if(!casosAtivos.length)return;
+    const r=await fetch('/api/verificar-alertas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({casosAtivos})});
+    const j=await r.json();
+    if(j.ok){
+      await set(ref(db,'alertas'),{geradoEm:new Date().toISOString(),lista:j.alertas||[]});
+    }
+  }catch(e){}
+}
 
 // ── STATS ──
 function renderStats(){
