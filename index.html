@@ -133,6 +133,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .mic-btn{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:none;background:#F5F5F7;color:#636366;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px}
 .mic-btn:hover{background:#E5E5EA}
 .mic-btn.active{background:#C62828;color:#fff;animation:mic-pulse 1.2s infinite}
+.mic-btn-dark{position:static;background:#2C2C4E;color:#A78BFA;border:0.5px solid #3C3C5E;width:34px;height:34px;flex-shrink:0}
+.mic-btn-dark:hover{background:#3C3C5E}
+.mic-btn-dark.active{background:#C62828;color:#fff;border-color:#C62828}
 @keyframes mic-pulse{0%{box-shadow:0 0 0 0 rgba(198,40,40,.5)}70%{box-shadow:0 0 0 8px rgba(198,40,40,0)}100%{box-shadow:0 0 0 0 rgba(198,40,40,0)}}
 .atend-historico{margin-top:18px;padding-top:14px;border-top:0.5px solid #E5E5EA}
 .atend-item{padding:10px 0;border-bottom:0.5px solid #F2F2F7}
@@ -194,6 +197,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="foco-sugestao" id="foco-sugestao"></div>
     <div class="foco-input-row" id="foco-input-row" style="display:none">
       <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key==='Enter')addFoco()">
+      <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado('foco-input','foco-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
       <button onclick="addFoco()">Adicionar</button>
     </div>
   </div>
@@ -339,7 +343,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <label class="modal-label">O que foi tratado? (ligação, e-mail, WhatsApp, presencial...)</label>
     <div class="atend-textarea-wrap">
       <textarea class="modal-textarea" id="atend-texto" placeholder="Fale ou digite o que aconteceu no atendimento..."></textarea>
-      <button type="button" class="mic-btn" id="atend-mic" onclick="toggleDitado()" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
+      <button type="button" class="mic-btn" id="atend-mic" onclick="toggleDitado('atend-texto','atend-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
     </div>
     <div class="modal-btn-row">
       <button class="btn-gerar" id="btn-atend-gerar" onclick="registrarAtendimento()" style="background:#1B5E20"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Registrar</button>
@@ -737,9 +741,9 @@ window.fecharReeditar=function(){
 
 // ── REGISTRAR ATENDIMENTO ──
 let reconhecimentoVoz=null,ditando=false;
-window.toggleDitado=function(){
-  const btn=document.getElementById('atend-mic');
-  const ta=document.getElementById('atend-texto');
+window.toggleDitado=function(inputId,btnId){
+  const btn=document.getElementById(btnId);
+  const ta=document.getElementById(inputId);
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){alert('Seu navegador não suporta ditado por voz (use o Chrome), mas você pode digitar normalmente.');return;}
   if(ditando){reconhecimentoVoz.stop();return;}
