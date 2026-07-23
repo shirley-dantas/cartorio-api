@@ -423,6 +423,7 @@ function doPost(e) {
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
+    if (acao === "criar-evento-agenda") return criarEventoAgenda(dados);
     return resp({ ok: false, erro: "Ação desconhecida" });
   } catch(err) {
     return resp({ ok: false, erro: err.message });
@@ -496,6 +497,24 @@ function gerarECriarMinuta(dados) {
     }
     return resp({ ok: false, erro: err.message });
   }
+}
+
+// ── Criar evento na Agenda do Google ──────────────────────────────────────
+// Cria o evento direto na Agenda associada a esta conta (a mesma do Drive),
+// em vez de só abrir um link para a equipe salvar manualmente.
+
+function criarEventoAgenda(dados) {
+  if (!dados.dataHora) return resp({ ok: false, erro: "Data e hora não informadas." });
+  var inicio = new Date(dados.dataHora);
+  if (isNaN(inicio.getTime())) return resp({ ok: false, erro: "Data e hora inválidas." });
+
+  var duracaoMin = dados.duracaoMin || 60;
+  var fim = new Date(inicio.getTime() + duracaoMin * 60000);
+  var titulo = (dados.descricao || dados.tipo || "Compromisso") + " — " + (dados.nome || "");
+  var descricao = "Cartório: " + (dados.tipo || "") + "\n" + (dados.obs || "");
+
+  var evento = CalendarApp.getDefaultCalendar().createEvent(titulo, inicio, fim, { description: descricao });
+  return resp({ ok: true, eventId: evento.getId() });
 }
 
 // ── Criar pasta ────────────────────────────────────────────────────────────

@@ -122,7 +122,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ag-inner{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#F0FDF4;border-radius:8px;padding:10px 12px;border:0.5px solid #BBF7D0}
 .ag-inner input{font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #BBF7D0;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
 .ag-inner .btn-gcal{font-size:12px;padding:5px 13px;border-radius:7px;border:none;background:#16A34A;color:#fff;cursor:pointer;font-weight:500}
-.ag-inner .btn-open{font-size:12px;padding:5px 13px;border-radius:7px;border:0.5px solid #BBF7D0;background:#fff;color:#16A34A;cursor:pointer}
+.ag-inner .btn-gcal:disabled{opacity:.6;cursor:not-allowed}
 .reg-inline{padding:10px 0 2px;display:none}
 .reg-inner{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#EFF6FF;border-radius:8px;padding:10px 12px;border:0.5px solid #BFDBFE}
 .reg-inner input{font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #BFDBFE;background:#fff;color:#1C1C1E;font-family:inherit;outline:none;flex:1;min-width:150px}
@@ -555,8 +555,8 @@ function renderCasos(){
           <i class="ti ti-calendar-event" style="font-size:16px;color:#16A34A;flex-shrink:0"></i>
           <input type="datetime-local" id="ag-inp-${c.id}" value="${c.agendado||''}" style="flex:1;min-width:160px">
           <input type="text" id="ag-desc-${c.id}" value="${(c.agendado_desc||'').replace(/"/g,'&quot;')}" placeholder="Descrição do evento" style="flex:2;min-width:160px">
-          <button class="btn-gcal" onclick="salvarAgendado('${c.id}')">Salvar</button>
-          <button class="btn-open" onclick="abrirGcal('${c.id}')">Abrir no Calendar</button>
+          <button class="btn-gcal" id="ag-btn-${c.id}" onclick="salvarAgendado('${c.id}')">Salvar</button>
+          <span class="saved-msg" id="ag-status-${c.id}"></span>
         </div>
       </div>
       <div class="reg-inline" id="reg-block-${c.id}">
@@ -627,23 +627,34 @@ window.toggleAgendar=function(id){
   const b=document.getElementById('ag-block-'+id);
   b.style.display=b.style.display==='block'?'none':'block';
 };
-window.salvarAgendado=function(id){
+window.salvarAgendado=async function(id){
+  const c=casos[id];if(!c)return;
   const v=document.getElementById('ag-inp-'+id).value;
   const d=document.getElementById('ag-desc-'+id).value.trim();
-  update(ref(db,`casos/${id}`),{agendado:v,agendado_desc:d,atualizado:isoHoje()});
-  document.getElementById('ag-block-'+id).style.display='none';
-};
-window.abrirGcal=function(id){
-  const c=casos[id];if(!c)return;
-  const base='https://calendar.google.com/calendar/render?action=TEMPLATE';
-  const titulo=encodeURIComponent((c.agendado_desc||c.tipo||c.nome)+' — '+c.nome);
-  const desc=encodeURIComponent('Cartório: '+c.tipo+'\n'+(c.obs||''));
-  if(!c.agendado){window.open(base+'&text='+titulo+'&details='+desc,'_blank');return;}
-  const dt=new Date(c.agendado);
-  const pad=n=>String(n).padStart(2,'0');
-  const fmt=d=>d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00';
-  const end=new Date(dt.getTime()+60*60*1000);
-  window.open(base+'&text='+titulo+'&dates='+fmt(dt)+'/'+fmt(end)+'&details='+desc,'_blank');
+  const btn=document.getElementById('ag-btn-'+id);
+  const status=document.getElementById('ag-status-'+id);
+  await update(ref(db,`casos/${id}`),{agendado:v,agendado_desc:d,atualizado:isoHoje()});
+  if(!v){document.getElementById('ag-block-'+id).style.display='none';return;}
+  btn.disabled=true;
+  status.style.display='inline';
+  status.style.color='#8E8EA0';
+  status.textContent='Criando na Agenda...';
+  try{
+    const r=await fetch('/api/agendar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,dataHora:v,descricao:d})});
+    const j=await r.json();
+    if(j.ok){
+      status.style.color='#2E7D32';
+      status.innerHTML='<i class="ti ti-check"></i> Salvo e criado na Agenda';
+      setTimeout(()=>{document.getElementById('ag-block-'+id).style.display='none';status.style.display='none';},1600);
+    }else{
+      status.style.color='#C62828';
+      status.textContent='Salvo no painel, mas não criou na Agenda: '+(j.erro||'erro desconhecido');
+    }
+  }catch(e){
+    status.style.color='#C62828';
+    status.textContent='Salvo no painel, mas não conseguiu conectar à Agenda.';
+  }
+  btn.disabled=false;
 };
 window.abrirMinuta=async function(id){
   const c=casos[id];if(!c)return;
