@@ -58,10 +58,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card.atencao{border-left-color:#B45309}
 .card.emdia{border-left-color:#2E7D32}
 .card.concluido{opacity:.45;border-left-color:#D1D1D6}
-.card-main{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.card-aguardando{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.card-aguardando .reg-label{font-size:11px;color:#7A4F00}
+.reg-date{font-size:12px;padding:3px 7px;border-radius:5px;border:0.5px solid #FFD180;background:#FFF8E1;color:#1C1C1E;font-family:inherit;outline:none}
+.reg-date:focus{border-color:#B45309}
 .card-name{font-size:14px;font-weight:500;color:#1C1C1E;margin-bottom:1px}
-.card-tipo{font-size:11px;color:#AEAEB2;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px}
-.card-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.card-tipo{font-size:11px;color:#AEAEB2;text-transform:uppercase;letter-spacing:.3px;border:none;border-bottom:1px dashed transparent;background:transparent;font-family:inherit;padding:0;outline:none;cursor:text;width:100%}
+.card-tipo:hover,.card-tipo:focus{color:#1C1C1E;border-bottom-color:#D1D1D6}
+.card-registro{display:flex;flex-wrap:wrap;gap:10px 16px;background:#F8F9FB;border:0.5px solid #ECECF0;border-radius:8px;padding:8px 10px;margin-bottom:9px}
+.reg-field{display:flex;align-items:center;gap:5px}
+.reg-label{font-size:11px;color:#8E8EA0;white-space:nowrap}
+.reg-field input{font-size:12px;padding:3px 7px;border-radius:5px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;width:96px;font-family:inherit;outline:none}
+.reg-field input:focus{border-color:#1D4ED8}
+.card-obs{margin-bottom:9px}
+.obs-label{font-size:11px;font-weight:500;color:#8E8EA0;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}
+.card-info{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:9px}
+.card-buttons{display:flex;flex-wrap:wrap;gap:6px}
 .badge{font-size:11px;padding:2px 8px;border-radius:5px;font-weight:500;white-space:nowrap}
 .b-prioridade{background:#EDE9FE;color:#4C1D95}
 .b-critico{background:#FDECEA;color:#B71C1C}
@@ -72,14 +85,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .b-gabriel{background:#F3E5F5;color:#4A148C}
 .b-gray{background:#F2F2F7;color:#636366}
 .dias-badge{font-size:11px;padding:2px 8px;border-radius:5px;font-weight:500;white-space:nowrap}
+.dias-0{background:#E8F5E9;color:#1B5E20}
 .dias-1{background:#FFF8E1;color:#7A4F00}
 .dias-3{background:#FFF3E0;color:#8D4600}
 .dias-7{background:#FDECEA;color:#B71C1C}
 .dias-15{background:#880E4F;color:#fff}
 .dep-badge{font-size:11px;padding:2px 9px;border-radius:5px;font-weight:500;white-space:nowrap;background:#EDE9FE;color:#4C1D95}
 .prazo{font-size:11px;color:#8E8EA0;display:flex;gap:3px;align-items:center}
-.card-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0}
-.sel{font-size:12px;padding:4px 6px;border-radius:6px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;cursor:pointer;outline:none;max-width:120px}
+.sel{font-size:12px;padding:4px 6px;border-radius:6px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;cursor:pointer;outline:none;max-width:130px}
 .sel:focus{border-color:#1C1C2E}
 .btn-sm{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;white-space:nowrap}
 .btn-sm:hover{background:#F5F5F7}
@@ -88,7 +101,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-excluir:hover{background:#FDECEA}
 .btn-foco{color:#6B21A8;border-color:#DDD6FE}
 .btn-foco:hover{background:#F5F3FF}
-.btn-agendar{color:#1B5E20;border-color:#A5D6A7}
 .btn-minuta{color:#0D47A1;border-color:#BBDEFB}
 .btn-drive{color:#1E8E3E;border-color:#A8D5B5}.btn-drive:hover{background:#F0FAF3}
 .btn-reeditar{color:#6A1B9A;border-color:#CE93D8}.btn-reeditar:hover{background:#F3E5F5}
@@ -112,21 +124,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .modal-copy-btn{font-size:12px;padding:6px 14px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;margin-top:8px}
 .modal-copy-btn:hover{background:#F5F5F7}
 .modal-loading{text-align:center;padding:24px;color:#8E8EA0;font-size:13px;display:none}
-.obs-block{margin-top:10px;padding-top:10px;border-top:0.5px solid #F2F2F7}
-.obs-text{font-size:12px;color:#636366;line-height:1.55}
+.obs-text{font-size:12px;color:#636366;line-height:1.55;cursor:pointer}
+.obs-text:hover{color:#1C1C1E}
 .obs-edit{display:none;flex-direction:column;gap:6px;margin-top:7px}
 .obs-edit textarea{width:100%;font-size:12px;padding:7px 10px;border-radius:7px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;min-height:54px;outline:none}
 .obs-edit-row{display:flex;gap:6px;justify-content:flex-end;align-items:center}
 .saved-msg{font-size:11px;color:#2E7D32;display:none}
-.ag-inline{padding:10px 0 2px;display:none}
-.ag-inner{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#F0FDF4;border-radius:8px;padding:10px 12px;border:0.5px solid #BBF7D0}
-.ag-inner input{font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #BBF7D0;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
-.ag-inner .btn-gcal{font-size:12px;padding:5px 13px;border-radius:7px;border:none;background:#16A34A;color:#fff;cursor:pointer;font-weight:500}
-.ag-inner .btn-open{font-size:12px;padding:5px 13px;border-radius:7px;border:0.5px solid #BBF7D0;background:#fff;color:#16A34A;cursor:pointer}
-.reg-inline{padding:10px 0 2px;display:none}
-.reg-inner{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#EFF6FF;border-radius:8px;padding:10px 12px;border:0.5px solid #BFDBFE}
-.reg-inner input{font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #BFDBFE;background:#fff;color:#1C1C1E;font-family:inherit;outline:none;flex:1;min-width:150px}
-.reg-inner button{font-size:12px;padding:5px 13px;border-radius:7px;border:none;background:#1D4ED8;color:#fff;cursor:pointer;font-weight:500}
 .add-section{margin-top:14px}
 .add-toggle{width:100%;font-size:13px;padding:10px;border-radius:10px;border:1px dashed #D1D1D6;background:transparent;color:#8E8EA0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
 .add-toggle:hover{background:#fff;color:#1C1C1E;border-color:#1C1C2E}
@@ -145,8 +148,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .loading-overlay{text-align:center;padding:40px;color:#8E8EA0;font-size:13px}
 .updated{font-size:11px;color:#AEAEB2;text-align:right;margin-top:14px}
 @media(max-width:600px){
-  .card-main{grid-template-columns:1fr}
-  .card-actions{flex-direction:row;flex-wrap:wrap;justify-content:flex-start}
   .form-grid{grid-template-columns:1fr}
   .container{padding:14px 12px}
   .search-wrap{margin-left:0;width:100%}
@@ -235,10 +236,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <input type="datetime-local" id="f-agendado">
           <input type="text" id="f-agendado-desc" placeholder="Descrição do evento no Calendar">
         </div>
+        <div class="form-grid">
+          <input type="text" id="f-registroPrenotado" placeholder="Registro">
+          <input type="text" id="f-prenotacao" placeholder="Prenotação">
+        </div>
         <div class="form-grid-3">
-          <input type="text" id="f-prenotacao" placeholder="Nº de prenotação (Registro de Imóveis)">
-          <input type="text" id="f-controle" placeholder="Número de controle">
-          <input type="text" id="f-livrofolha" placeholder="Livro e folha">
+          <input type="text" id="f-livro" placeholder="Livro">
+          <input type="text" id="f-folha" placeholder="Folha">
+          <input type="text" id="f-controle" placeholder="Controle">
         </div>
         <textarea id="f-obs" placeholder="Observações (opcional)" style="width:100%;margin-top:4px"></textarea>
         <div class="form-actions">
@@ -332,6 +337,7 @@ const DEPS=['','Falta documentos','Aguardando cliente','Registro de Imóveis','P
 const hoje=new Date();hoje.setHours(0,0,0,0);
 function diasParado(iso){if(!iso)return 0;const d=new Date(iso);d.setHours(0,0,0,0);return Math.floor((hoje-d)/(1000*60*60*24));}
 function isoHoje(){return new Date().toISOString().split('T')[0]}
+function esc(s){return(s||'').replace(/"/g,'&quot;')}
 function tsStr(){const n=new Date();return`${n.toLocaleDateString('pt-BR')} ${n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;}
 
 const defaultCasos=[
@@ -463,9 +469,9 @@ function bResp(r){
 }
 function bDias(iso){
   const d=diasParado(iso);
-  if(d<=0)return'';
   let cls,txt;
-  if(d<3){cls='dias-1';txt=d===1?'1 dia parado':`${d} dias parado`;}
+  if(d<=0){cls='dias-0';txt='Atualizado hoje';}
+  else if(d<3){cls='dias-1';txt=d===1?'1 dia parado':`${d} dias parado`;}
   else if(d<7){cls='dias-3';txt=`${d} dias parado`;}
   else if(d<15){cls='dias-7';txt=`${d} dias parado`;}
   else{cls='dias-15';txt=`${d} dias parado`;}
@@ -505,71 +511,33 @@ function renderCasos(){
   const ordem={prioridade:0,critico:1,atencao:2,emdia:3};
   lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
   el.innerHTML=lista.map(c=>{
-    const agBadge=c.agendado?`<span class="badge" style="background:#E8F5E9;color:#1B5E20"><i class="ti ti-calendar-check" style="font-size:11px;vertical-align:-1px"></i> ${new Date(c.agendado).toLocaleDateString('pt-BR')} ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:'';
     return`
     <div class="card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
-      <div class="card-main">
+      <div class="card-header">
         <div>
           <div class="card-name">${c.nome}</div>
-          <div class="card-tipo">${c.tipo||'—'}</div>
-          <div class="card-meta">
-            ${c.concluido?'<span class="badge b-gray">Concluído</span>':bStatus(c.status)}
-            ${bResp(c.resp)}
-            ${c.prazo&&c.prazo!=='—'?`<span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${c.prazo}</span>`:''}
-            ${bDias(c.atualizado)}
-            ${bDep(c.dep)}
-            ${agBadge}
-            ${c.prenotacao?`<span class="prazo"><i class="ti ti-hash" style="font-size:12px"></i>Prenotação ${c.prenotacao}</span>`:''}
-            ${c.numControle?`<span class="prazo"><i class="ti ti-list-numbers" style="font-size:12px"></i>Controle ${c.numControle}</span>`:''}
-            ${c.livroFolha?`<span class="prazo"><i class="ti ti-book" style="font-size:12px"></i>${c.livroFolha}</span>`:''}
-          </div>
+          <input type="text" class="card-tipo" value="${esc(c.tipo)}" placeholder="Tipo de ato (clique para classificar)" onchange="mudarCampo('${c.id}','tipo',this.value)">
         </div>
-        <div class="card-actions">
-          <select class="sel" onchange="mudarCampo('${c.id}','status',this.value)">
-            <option value="prioridade"${c.status==='prioridade'?' selected':''}>Prioridade</option>
-            <option value="critico"${c.status==='critico'?' selected':''}>Crítico</option>
-            <option value="atencao"${c.status==='atencao'?' selected':''}>Atenção</option>
-            <option value="emdia"${c.status==='emdia'?' selected':''}>Em dia</option>
-          </select>
-          <select class="sel" onchange="mudarCampo('${c.id}','resp',this.value)">
-            <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
-            <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
-            <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
-          </select>
+        <div class="card-aguardando">
           <select class="sel" onchange="mudarCampo('${c.id}','dep',this.value)">
             ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
           </select>
-          <button class="btn-sm btn-minuta" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text" style="font-size:12px;vertical-align:-1px"></i> Minuta</button>
-          <button class="btn-sm btn-reeditar" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit" style="font-size:12px;vertical-align:-1px"></i> Reeditar</button>
-          ${c.driveUrl?`<button class="btn-sm btn-drive" onclick="window.open('${c.driveUrl}','_blank')"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Drive</button>`:''}
-          <button class="btn-sm btn-foco" onclick="addAoFoco('${c.id}')"><i class="ti ti-bolt" style="font-size:12px;vertical-align:-1px"></i> Foco</button>
-          <button class="btn-sm btn-agendar" onclick="toggleAgendar('${c.id}')"><i class="ti ti-calendar-plus" style="font-size:12px;vertical-align:-1px"></i> Agendar</button>
-          <button class="btn-sm" onclick="toggleRegistro('${c.id}')"><i class="ti ti-building-bank" style="font-size:12px;vertical-align:-1px"></i> Registro</button>
-          <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
-          <button class="btn-sm ${c.concluido?'':'btn-concluir'}" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
-          <button class="btn-sm btn-excluir" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash" style="font-size:12px;vertical-align:-1px"></i> Excluir</button>
+          <span class="reg-label">Assinatura da escritura</span>
+          <input type="datetime-local" class="reg-date" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)">
         </div>
       </div>
-      <div class="ag-inline" id="ag-block-${c.id}">
-        <div class="ag-inner">
-          <i class="ti ti-calendar-event" style="font-size:16px;color:#16A34A;flex-shrink:0"></i>
-          <input type="datetime-local" id="ag-inp-${c.id}" value="${c.agendado||''}" style="flex:1;min-width:160px">
-          <input type="text" id="ag-desc-${c.id}" value="${(c.agendado_desc||'').replace(/"/g,'&quot;')}" placeholder="Descrição do evento" style="flex:2;min-width:160px">
-          <button class="btn-gcal" onclick="salvarAgendado('${c.id}')">Salvar</button>
-          <button class="btn-open" onclick="abrirGcal('${c.id}')">Abrir no Calendar</button>
-        </div>
+
+      <div class="card-registro">
+        <div class="reg-field"><span class="reg-label">Registro</span><input type="text" value="${esc(c.registroPrenotado)}" placeholder="—" onchange="mudarCampo('${c.id}','registroPrenotado',this.value)"></div>
+        <div class="reg-field"><span class="reg-label">Prenotação</span><input type="text" value="${esc(c.prenotacao)}" placeholder="—" onchange="mudarCampo('${c.id}','prenotacao',this.value)"></div>
+        <div class="reg-field"><span class="reg-label">Livro</span><input type="text" value="${esc(c.livro)}" placeholder="—" onchange="mudarCampo('${c.id}','livro',this.value)"></div>
+        <div class="reg-field"><span class="reg-label">Folha</span><input type="text" value="${esc(c.folha)}" placeholder="—" onchange="mudarCampo('${c.id}','folha',this.value)"></div>
+        <div class="reg-field"><span class="reg-label">Controle</span><input type="text" value="${esc(c.controle)}" placeholder="—" onchange="mudarCampo('${c.id}','controle',this.value)"></div>
       </div>
-      <div class="reg-inline" id="reg-block-${c.id}">
-        <div class="reg-inner">
-          <i class="ti ti-building-bank" style="font-size:16px;color:#1D4ED8;flex-shrink:0"></i>
-          <input type="text" id="reg-prenotacao-${c.id}" value="${(c.prenotacao||'').replace(/"/g,'&quot;')}" placeholder="Nº de prenotação">
-          <input type="text" id="reg-controle-${c.id}" value="${(c.numControle||'').replace(/"/g,'&quot;')}" placeholder="Número de controle">
-          <input type="text" id="reg-livrofolha-${c.id}" value="${(c.livroFolha||'').replace(/"/g,'&quot;')}" placeholder="Livro e folha">
-          <button onclick="salvarRegistro('${c.id}')">Salvar</button>
-        </div>
-      </div>
-      <div class="obs-block">
-        <div class="obs-text" id="obs-txt-${c.id}">${c.obs||'<em style="opacity:.5">Nenhuma observação.</em>'}</div>
+
+      <div class="card-obs">
+        <span class="obs-label">Observações</span>
+        <div class="obs-text" id="obs-txt-${c.id}" onclick="toggleObs('${c.id}')">${c.obs||'<em style="opacity:.5">Nenhuma observação registrada.</em>'}</div>
         <div class="obs-edit" id="obs-edit-${c.id}">
           <textarea rows="2" id="obs-ta-${c.id}">${c.obs||''}</textarea>
           <div class="obs-edit-row">
@@ -577,6 +545,32 @@ function renderCasos(){
             <button class="btn-sm" onclick="salvarObs('${c.id}')">Salvar</button>
           </div>
         </div>
+      </div>
+
+      <div class="card-info">
+        <select class="sel" onchange="mudarCampo('${c.id}','status',this.value)">
+          <option value="prioridade"${c.status==='prioridade'?' selected':''}>Prioridade</option>
+          <option value="critico"${c.status==='critico'?' selected':''}>Crítico</option>
+          <option value="atencao"${c.status==='atencao'?' selected':''}>Atenção</option>
+          <option value="emdia"${c.status==='emdia'?' selected':''}>Em dia</option>
+        </select>
+        <select class="sel" onchange="mudarCampo('${c.id}','resp',this.value)">
+          <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
+          <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
+          <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
+        </select>
+        <span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${c.prazo&&c.prazo!=='—'?c.prazo:'—'}</span>
+        ${bDias(c.atualizado)}
+      </div>
+
+      <div class="card-buttons">
+        <button class="btn-sm btn-minuta" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text" style="font-size:12px;vertical-align:-1px"></i> Minuta</button>
+        ${c.driveUrl?`<button class="btn-sm btn-drive" onclick="window.open('${c.driveUrl}','_blank')"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Drive</button>`:''}
+        <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
+        <button class="btn-sm btn-foco" onclick="addAoFoco('${c.id}')"><i class="ti ti-bolt" style="font-size:12px;vertical-align:-1px"></i> Foco</button>
+        <button class="btn-sm btn-reeditar" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit" style="font-size:12px;vertical-align:-1px"></i> Reeditar</button>
+        <button class="btn-sm ${c.concluido?'':'btn-concluir'}" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
+        <button class="btn-sm btn-excluir" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash" style="font-size:12px;vertical-align:-1px"></i> Excluir</button>
       </div>
     </div>`;
   }).join('');
@@ -603,17 +597,6 @@ window.salvarObs=function(id){
   const s=document.getElementById('saved-'+id);s.style.display='inline';
   setTimeout(()=>{s.style.display='none';document.getElementById('obs-edit-'+id).style.display='none';},1400);
 };
-window.toggleRegistro=function(id){
-  const b=document.getElementById('reg-block-'+id);
-  b.style.display=b.style.display==='block'?'none':'block';
-};
-window.salvarRegistro=function(id){
-  const prenotacao=document.getElementById('reg-prenotacao-'+id).value.trim();
-  const numControle=document.getElementById('reg-controle-'+id).value.trim();
-  const livroFolha=document.getElementById('reg-livrofolha-'+id).value.trim();
-  update(ref(db,`casos/${id}`),{prenotacao,numControle,livroFolha,atualizado:isoHoje()});
-  document.getElementById('reg-block-'+id).style.display='none';
-};
 window.addAoFoco=function(id){
   const c=casos[id];if(!c)return;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
@@ -622,28 +605,6 @@ window.addAoFoco=function(id){
   if(arr.some(f=>f.text===txt)){alert('Já está no foco do dia.');return;}
   arr.push({text:txt,done:false});
   set(focosRef,arr);
-};
-window.toggleAgendar=function(id){
-  const b=document.getElementById('ag-block-'+id);
-  b.style.display=b.style.display==='block'?'none':'block';
-};
-window.salvarAgendado=function(id){
-  const v=document.getElementById('ag-inp-'+id).value;
-  const d=document.getElementById('ag-desc-'+id).value.trim();
-  update(ref(db,`casos/${id}`),{agendado:v,agendado_desc:d,atualizado:isoHoje()});
-  document.getElementById('ag-block-'+id).style.display='none';
-};
-window.abrirGcal=function(id){
-  const c=casos[id];if(!c)return;
-  const base='https://calendar.google.com/calendar/render?action=TEMPLATE';
-  const titulo=encodeURIComponent((c.agendado_desc||c.tipo||c.nome)+' — '+c.nome);
-  const desc=encodeURIComponent('Cartório: '+c.tipo+'\n'+(c.obs||''));
-  if(!c.agendado){window.open(base+'&text='+titulo+'&details='+desc,'_blank');return;}
-  const dt=new Date(c.agendado);
-  const pad=n=>String(n).padStart(2,'0');
-  const fmt=d=>d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00';
-  const end=new Date(dt.getTime()+60*60*1000);
-  window.open(base+'&text='+titulo+'&dates='+fmt(dt)+'/'+fmt(end)+'&details='+desc,'_blank');
 };
 window.abrirMinuta=async function(id){
   const c=casos[id];if(!c)return;
@@ -851,8 +812,10 @@ window.salvarNovo=function(){
     agendado:document.getElementById('f-agendado').value||'',
     agendado_desc:document.getElementById('f-agendado-desc').value.trim()||'',
     prenotacao:document.getElementById('f-prenotacao').value.trim(),
-    numControle:document.getElementById('f-controle').value.trim(),
-    livroFolha:document.getElementById('f-livrofolha').value.trim(),
+    registroPrenotado:document.getElementById('f-registroPrenotado').value.trim(),
+    livro:document.getElementById('f-livro').value.trim(),
+    folha:document.getElementById('f-folha').value.trim(),
+    controle:document.getElementById('f-controle').value.trim(),
     obs:document.getElementById('f-obs').value.trim(),
     atualizado:isoHoje(),
     concluido:false
@@ -861,7 +824,7 @@ window.salvarNovo=function(){
   const driveNome = nome;
   const driveTipo = document.getElementById('f-tipo').value.trim()||'A classificar';
   fetch('https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec',{method:'POST',body:JSON.stringify({nome:driveNome,tipo:driveTipo})}).catch(()=>{});
-  ['f-nome','f-tipo','f-prazo','f-obs','f-agendado-desc','f-prenotacao','f-controle','f-livrofolha'].forEach(id=>document.getElementById(id).value='');
+  ['f-nome','f-tipo','f-prazo','f-obs','f-agendado-desc','f-prenotacao','f-registroPrenotado','f-livro','f-folha','f-controle'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-dep').value='';
   document.getElementById('f-agendado').value='';
   window.toggleForm();
