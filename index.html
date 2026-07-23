@@ -759,9 +759,10 @@ window.toggleDitado=function(inputId,btnId){
   reconhecimentoVoz.onend=()=>{ditando=false;btn.classList.remove('active');};
   reconhecimentoVoz.onerror=(e)=>{
     ditando=false;btn.classList.remove('active');
-    if(e.error==='no-speech')return;
     if(e.error==='not-allowed'||e.error==='service-not-allowed'){
       alert('O navegador bloqueou o acesso ao microfone. Clique no ícone de cadeado (ou câmera/microfone) ao lado do endereço do site, no navegador, e permita o acesso ao microfone. Depois tente de novo.');
+    }else if(e.error==='no-speech'||e.error==='audio-capture'){
+      alert('O navegador não captou nenhum som do microfone (erro: '+e.error+'). Isso geralmente é permissão do microfone bloqueada no Windows, não no navegador. Verifique em: Configurações do Windows → Privacidade e segurança → Microfone → "Permitir que os aplicativos acessem seu microfone" (e também a permissão específica do Chrome/Edge nessa lista) devem estar ativados. Depois tente de novo.');
     }else{
       alert('Não foi possível usar o microfone agora (erro: '+e.error+'). Pode digitar manualmente por enquanto.');
     }
