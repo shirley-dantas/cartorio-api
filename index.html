@@ -156,6 +156,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .atend-item-data{font-size:11px;color:#8E8EA0;margin-bottom:3px;font-weight:500}
 .atend-item-resumo{font-size:13px;color:#1C1C1E;line-height:1.5}
 .atend-item-pend{margin:6px 0 0 18px;font-size:12px;color:#B45309}
+.atend-item-link{font-size:10px;color:#8E8EA0;background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:8px;padding:0}
+.atend-item-link:hover{color:#1C1C1E}
+.atend-item-link-del:hover{color:#C62828}
+.atend-item-form{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.atend-item-form textarea{width:100%;font-size:12px;padding:6px 8px;border-radius:6px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;outline:none}
+.atend-item-form-row{display:flex;gap:6px;justify-content:flex-end}
 .obs-text{font-size:12px;color:#636366;line-height:1.55;cursor:pointer}
 .obs-text:hover{color:#1C1C1E}
 .obs-edit{display:none;flex-direction:column;gap:6px;margin-top:7px}
@@ -835,24 +841,58 @@ window.toggleDitado=function(inputId,btnId){
   ditando=true;
   btn.classList.add('active');
 };
+let atendCasoIdAtual=null;
 async function carregarHistoricoAtendimento(id){
+  atendCasoIdAtual=id;
   const el=document.getElementById('atend-historico');
   el.innerHTML='<div style="font-size:12px;color:#AEAEB2;padding:8px 0">Carregando histórico...</div>';
   try{
     const snap=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/historico.json`);
     const data=await snap.json();
-    const lista=data?Object.values(data).sort((a,b)=>(b.data||'').localeCompare(a.data||'')):[];
+    const lista=data?Object.entries(data).sort((a,b)=>(b[1].data||'').localeCompare(a[1].data||'')):[];
     if(!lista.length){el.innerHTML='<div style="font-size:12px;color:#AEAEB2;padding:8px 0">Nenhum atendimento registrado ainda.</div>';return;}
-    el.innerHTML=lista.map(h=>`
+    el.innerHTML=lista.map(([key,h])=>`
       <div class="atend-item">
-        <div class="atend-item-data">${new Date(h.data).toLocaleDateString('pt-BR')} ${new Date(h.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
-        <div class="atend-item-resumo">${h.resumo||''}</div>
-        ${h.pendencias&&h.pendencias.length?`<ul class="atend-item-pend">${h.pendencias.map(p=>`<li>${p}</li>`).join('')}</ul>`:''}
+        <div class="atend-item-data">
+          ${new Date(h.data).toLocaleDateString('pt-BR')} ${new Date(h.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
+          <button class="atend-item-link" onclick="toggleEditAtendimento('${key}')">editar</button>
+          <button class="atend-item-link atend-item-link-del" onclick="excluirAtendimento('${key}')">excluir</button>
+        </div>
+        <div class="atend-item-view" id="atend-view-${key}">
+          <div class="atend-item-resumo">${h.resumo||''}</div>
+          ${h.pendencias&&h.pendencias.length?`<ul class="atend-item-pend">${h.pendencias.map(p=>`<li>${p}</li>`).join('')}</ul>`:''}
+        </div>
+        <div class="atend-item-form" id="atend-form-${key}" style="display:none">
+          <textarea id="atend-edit-resumo-${key}" rows="2">${h.resumo||''}</textarea>
+          <textarea id="atend-edit-pend-${key}" rows="2" placeholder="Uma pendência por linha">${(h.pendencias||[]).join('\n')}</textarea>
+          <div class="atend-item-form-row">
+            <button class="btn-sm" onclick="toggleEditAtendimento('${key}')">Cancelar</button>
+            <button class="btn-sm btn-concluir" onclick="salvarEdicaoAtendimento('${key}')">Salvar</button>
+          </div>
+        </div>
       </div>`).join('');
   }catch(e){
     el.innerHTML='<div style="font-size:12px;color:#C62828;padding:8px 0">Erro ao carregar histórico.</div>';
   }
 }
+window.toggleEditAtendimento=function(key){
+  const view=document.getElementById('atend-view-'+key);
+  const form=document.getElementById('atend-form-'+key);
+  const abrindo=form.style.display==='none';
+  view.style.display=abrindo?'none':'block';
+  form.style.display=abrindo?'block':'none';
+};
+window.salvarEdicaoAtendimento=async function(key){
+  const resumo=document.getElementById('atend-edit-resumo-'+key).value.trim();
+  const pendencias=document.getElementById('atend-edit-pend-'+key).value.split('\n').map(s=>s.trim()).filter(Boolean);
+  await update(ref(db,`casos/${atendCasoIdAtual}/historico/${key}`),{resumo,pendencias});
+  await carregarHistoricoAtendimento(atendCasoIdAtual);
+};
+window.excluirAtendimento=async function(key){
+  if(!confirm('Excluir este registro de atendimento? Isso não pode ser desfeito.'))return;
+  await remove(ref(db,`casos/${atendCasoIdAtual}/historico/${key}`));
+  await carregarHistoricoAtendimento(atendCasoIdAtual);
+};
 window.abrirAtendimento=async function(id){
   const c=casos[id];if(!c)return;
   document.getElementById('atend-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
