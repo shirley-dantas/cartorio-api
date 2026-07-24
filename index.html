@@ -760,8 +760,12 @@ async function verificarAlertasSeNecessario(forcar){
       await set(ref(db,'alertas'),{geradoEm:new Date().toISOString(),lista:j.alertas||[]});
       await adicionarAgendaAoFoco(j.agendaHoje||[],'hoje');
       await adicionarAgendaAoFoco(j.agendaAmanha||[],'amanha');
+    }else{
+      if(forcar)alert('Não consegui verificar os alertas agora: '+(j.erro||'erro desconhecido')+'. Tente de novo em alguns segundos.');
     }
-  }catch(e){}
+  }catch(e){
+    if(forcar)alert('Não consegui conectar para verificar os alertas. Tente de novo.');
+  }
   if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
 }
 async function adicionarAgendaAoFoco(itens,marcador){
