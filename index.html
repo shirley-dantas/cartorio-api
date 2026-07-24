@@ -749,7 +749,7 @@ async function verificarAlertasSeNecessario(forcar){
     }
     if(btn){btn.disabled=true;btn.textContent='Verificando...';}
     const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
-      nome:c.nome,tipo:c.tipo,resp:c.resp,prazo:c.prazo,dep:c.dep,
+      nome:c.nome,tipo:c.tipo,resp:c.resp,prazo:c.prazo,dep:c.dep,agendado:c.agendado,
       diasParado:diasParado(c.atualizado),obs:c.obs
     }));
     if(!casosAtivos.length)return;
@@ -758,9 +758,24 @@ async function verificarAlertasSeNecessario(forcar){
     const j=await r.json();
     if(j.ok){
       await set(ref(db,'alertas'),{geradoEm:new Date().toISOString(),lista:j.alertas||[]});
+      await adicionarAgendaHojeAoFoco(j.agendaHoje||[]);
     }
   }catch(e){}
   if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
+}
+async function adicionarAgendaHojeAoFoco(agendaHoje){
+  if(!agendaHoje.length)return;
+  const hoje=isoHoje();
+  const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+  let mudou=false;
+  agendaHoje.forEach(item=>{
+    const jaExiste=arr.some(f=>f.auto&&f.casoNome===item.nome&&f.dataRef===hoje);
+    if(jaExiste)return;
+    if(arr.length>=5)return;
+    arr.push({text:item.mensagem,done:false,auto:true,casoNome:item.nome,dataRef:hoje});
+    mudou=true;
+  });
+  if(mudou)await set(focosRef,arr);
 }
 
 // ── STATS ──
