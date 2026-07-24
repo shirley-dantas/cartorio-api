@@ -704,19 +704,19 @@ async function verificarAlertasSeNecessario(forcar){
 async function adicionarAgendaAoFoco(gruposOrdenados){
   const LIMITE_FOCO=8;
   const hoje=isoHoje();
-  const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  let mudou=false;
+  const atual=Array.isArray(focos)?focos:Object.values(focos||{});
+  const manuais=atual.filter(f=>!f.auto);
+  const autoAntigos=atual.filter(f=>f.auto);
+  const arr=[...manuais];
   gruposOrdenados.forEach(({itens,marcador})=>{
     itens.forEach(item=>{
       if(arr.length>=LIMITE_FOCO)return;
-      const jaExiste=arr.some(f=>f.auto&&f.casoNome===item.nome&&f.dataRef===hoje&&f.marcador===marcador);
-      if(jaExiste)return;
+      const antigo=autoAntigos.find(f=>f.casoNome===item.nome&&f.marcador===marcador);
       const texto=`${ICONE_MARCADOR[marcador]||''} ${item.mensagem}`.trim();
-      arr.push({text:texto,done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
-      mudou=true;
+      arr.push({text:texto,done:antigo?antigo.done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
     });
   });
-  if(mudou)await set(focosRef,arr);
+  await set(focosRef,arr);
 }
 
 // ── STATS ──
