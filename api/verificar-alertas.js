@@ -76,6 +76,7 @@ module.exports = async (req, res) => {
   catch { return res.status(400).json({ ok: false, erro: "JSON inválido" }); }
 
   const casosAtivos = Array.isArray(dados.casosAtivos) ? dados.casosAtivos : [];
+  const aprendizados = Array.isArray(dados.aprendizados) ? dados.aprendizados : [];
   const hoje = new Date().toISOString().split("T")[0];
 
   if (!casosAtivos.length) {
@@ -91,6 +92,7 @@ module.exports = async (req, res) => {
 PANORAMA DOS CASOS ATIVOS:
 
 ${listaCasos}
+${aprendizados.length ? `\nAPRENDIZADOS DA EQUIPE (correções que já fizeram em alertas anteriores — leve em consideração antes de decidir):\n${aprendizados.join("\n")}` : ""}
 
 Revise e gere os alertas coerentes, se houver.`;
 
