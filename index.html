@@ -621,17 +621,7 @@ function montarSaudacao(forcar){
   saudacaoMontada=true;
   if(sessionStorage.getItem('saudacao_fechada'))return;
   const agora=new Date();
-  const hoje=isoHoje();
-  const assinaturasHoje=getCasosList()
-    .filter(c=>!c.concluido&&c.agendado&&c.agendado.split('T')[0]===hoje)
-    .sort((a,b)=>a.agendado.localeCompare(b.agendado));
-  let msg=`Bom dia, ${usuario}! Hoje é ${DIAS_SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}. Vamos começar?`;
-  if(assinaturasHoje.length){
-    const lista=assinaturasHoje.map(c=>`${c.nome} às ${new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`).join('; ');
-    msg+=` Hoje ${assinaturasHoje.length===1?'temos escritura marcada com':'temos '+assinaturasHoje.length+' escrituras marcadas com'} ${lista}. Já está tudo pronto?`;
-  }else{
-    msg+=' Nenhuma assinatura marcada para hoje.';
-  }
+  const msg=`Bom dia, ${usuario}! Hoje é ${DIAS_SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}. Vamos começar? Os compromissos e pendências de hoje já estão logo abaixo, no Foco do dia.`;
   document.getElementById('saudacao-texto').textContent=msg;
   document.getElementById('saudacao-card').style.display='block';
 }
