@@ -9,7 +9,11 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F7;color:#1C1C1E;min-height:100vh;font-size:14px}
-.topnav{background:#1C1C2E;padding:13px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.topnav{background:linear-gradient(135deg,#1C1C2E,#22223A);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+.ia-live{display:inline-flex;align-items:center;gap:5px;font-size:9px;color:#4ADE80;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.ia-live-dot{width:6px;height:6px;border-radius:50%;background:#4ADE80;position:relative;flex-shrink:0}
+.ia-live-dot::after{content:'';position:absolute;inset:-4px;border-radius:50%;background:#4ADE80;opacity:.55;animation:ia-pulse 1.8s ease-out infinite}
+@keyframes ia-pulse{0%{transform:scale(.5);opacity:.55}100%{transform:scale(2.4);opacity:0}}
 .topnav-brand h1{font-size:14px;font-weight:500;color:#fff}
 .topnav-brand p{font-size:11px;color:#6E6E8A;margin-top:1px}
 .topnav-right{display:flex;align-items:center;gap:10px}
@@ -18,7 +22,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.loading{background:#FBBF24}
 .sync-label{font-size:11px;color:#6E6E8A}
 .container{max-width:1060px;margin:0 auto;padding:20px 18px}
-.alertas-card{background:#FFF8E1;border:1px solid #FFE082;border-radius:12px;padding:14px 20px;margin-bottom:18px}
+.alertas-card{background:#FFF8E1;border:1px solid #FFE082;border-radius:12px;padding:14px 20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(180,83,9,.08)}
 .alertas-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .alertas-title{font-size:13px;font-weight:600;color:#7A4F00;display:flex;align-items:center;gap:7px}
 .alertas-title i{font-size:15px;color:#B45309}
@@ -35,7 +39,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .alerta-item.alta i{color:#C62828}
 .alerta-item.media i{color:#B45309}
 .alerta-item b{font-weight:600}
-.foco-card{background:#1C1C2E;border-radius:12px;padding:16px 20px;margin-bottom:18px}
+.foco-card{background:#1C1C2E;border-radius:12px;padding:16px 20px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .foco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .foco-title{font-size:13px;font-weight:500;color:#fff;display:flex;align-items:center;gap:7px}
 .foco-title i{font-size:15px;color:#A78BFA}
@@ -61,19 +65,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-input-row input:focus{border-color:#A78BFA}
 .foco-input-row button{font-size:12px;padding:7px 14px;border-radius:8px;border:none;background:#A78BFA;color:#fff;cursor:pointer;font-weight:500}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px;margin-bottom:18px}
-.stat{background:#fff;border-radius:10px;padding:12px 14px;border:0.5px solid #E5E5EA}
+.stat{background:#fff;border-radius:10px;padding:12px 14px;border:0.5px solid #E5E5EA;box-shadow:0 1px 2px rgba(0,0,0,.03);transition:box-shadow .2s ease,transform .15s ease}
+.stat:hover{box-shadow:0 3px 10px rgba(0,0,0,.06);transform:translateY(-1px)}
 .stat-label{font-size:11px;color:#8E8EA0;margin-bottom:3px}
 .stat-num{font-size:24px;font-weight:500;color:#1C1C1E}
 .stat-num.red{color:#C62828}.stat-num.amber{color:#B45309}.stat-num.green{color:#2E7D32}.stat-num.purple{color:#6B21A8}
 .toolbar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
-.fbtn{font-size:12px;padding:5px 13px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#8E8EA0;cursor:pointer;white-space:nowrap}
+.fbtn{font-size:12px;padding:5px 13px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#8E8EA0;cursor:pointer;white-space:nowrap;transition:background .15s ease,color .15s ease,border-color .15s ease}
 .fbtn.on,.fbtn:hover{background:#1C1C2E;color:#fff;border-color:#1C1C2E}
 .search-wrap{margin-left:auto}
 .search-wrap input{font-size:13px;padding:6px 12px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;width:190px;outline:none}
 .search-wrap input:focus{border-color:#1C1C2E}
 .cases{display:flex;flex-direction:column;gap:7px}
-.card{background:#fff;border:0.5px solid #E5E5EA;border-radius:11px;padding:14px 16px;border-left:3px solid transparent}
-.card:hover{box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.card{background:#fff;border:0.5px solid #E5E5EA;border-radius:11px;padding:14px 16px;border-left:3px solid transparent;box-shadow:0 1px 2px rgba(0,0,0,.03);transition:box-shadow .2s ease,transform .15s ease}
+.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px)}
 .card.prioridade{border-left-color:#7C3AED}
 .card.critico{border-left-color:#C62828}
 .card.atencao{border-left-color:#B45309}
@@ -115,7 +120,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .prazo{font-size:11px;color:#8E8EA0;display:flex;gap:3px;align-items:center}
 .sel{font-size:12px;padding:4px 6px;border-radius:6px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;cursor:pointer;outline:none;max-width:130px}
 .sel:focus{border-color:#1C1C2E}
-.btn-sm{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;white-space:nowrap}
+.btn-sm{font-size:11px;padding:4px 10px;border-radius:6px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;white-space:nowrap;transition:background .15s ease,border-color .15s ease}
 .btn-sm:hover{background:#F5F5F7}
 .btn-concluir{color:#2E7D32;border-color:#A5D6A7}
 .btn-excluir{color:#C62828;border-color:#FFCDD2}
@@ -137,7 +142,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .modal-textarea{width:100%;font-size:13px;padding:10px 12px;border-radius:8px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;outline:none;min-height:130px}
 .modal-textarea:focus{border-color:#1C1C2E;background:#fff}
 .modal-btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
-.btn-gerar{font-size:13px;padding:9px 20px;border-radius:8px;border:none;background:#1C1C2E;color:#fff;cursor:pointer;font-weight:500}
+.btn-gerar{font-size:13px;padding:9px 20px;border-radius:8px;border:none;background:#1C1C2E;color:#fff;cursor:pointer;font-weight:500;transition:background .15s ease}
 .btn-gerar:hover{background:#2C2C4E}
 .btn-gerar:disabled{opacity:.5;cursor:not-allowed}
 .modal-result{margin-top:18px;padding-top:16px;border-top:0.5px solid #E5E5EA;display:none}
@@ -166,7 +171,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .atend-item-form{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .atend-item-form textarea{width:100%;font-size:12px;padding:6px 8px;border-radius:6px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;outline:none}
 .atend-item-form-row{display:flex;gap:6px;justify-content:flex-end}
-.obs-text{font-size:12px;color:#636366;line-height:1.55;cursor:pointer}
+.obs-text{font-size:12px;font-weight:600;color:#3A3A3C;line-height:1.55;cursor:pointer}
 .obs-text:hover{color:#1C1C1E}
 .obs-edit{display:none;flex-direction:column;gap:6px;margin-top:7px}
 .obs-edit textarea{width:100%;font-size:12px;padding:7px 10px;border-radius:7px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;min-height:54px;outline:none}
@@ -213,7 +218,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="container">
   <div class="alertas-card" id="alertas-card" style="display:none">
     <div class="alertas-header">
-      <div class="alertas-title"><i class="ti ti-alert-triangle"></i> Alertas</div>
+      <div class="alertas-title"><i class="ti ti-alert-triangle"></i> Alertas <span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="alertas-atualizado" id="alertas-atualizado"></span>
         <button class="alertas-refresh" id="alertas-refresh-btn" onclick="forcarVerificacaoAlertas()">Verificar agora</button>
@@ -422,6 +427,7 @@ const hoje=new Date();hoje.setHours(0,0,0,0);
 function diasParado(iso){if(!iso)return 0;const d=new Date(iso);d.setHours(0,0,0,0);return Math.floor((hoje-d)/(1000*60*60*24));}
 function isoHoje(){return new Date().toISOString().split('T')[0]}
 function esc(s){return(s||'').replace(/"/g,'&quot;')}
+const IA_LIVE='<span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span>';
 function tsStr(){const n=new Date();return`${n.toLocaleDateString('pt-BR')} ${n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;}
 
 const defaultCasos=[
@@ -531,11 +537,11 @@ async function sugerirProximaTarefa(tarefaConcluida,arrAtual){
   const el=document.getElementById('foco-sugestao');
   if(!restantes.length){
     el.className='foco-sugestao show';
-    el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente</div>Foco do dia concluído! Bom trabalho.';
+    el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente '+IA_LIVE+'</div>Foco do dia concluído! Bom trabalho.';
     return;
   }
   el.className='foco-sugestao show';
-  el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente</div><span class="foco-sugestao-loading">Analisando o painel...</span>';
+  el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente '+IA_LIVE+'</div><span class="foco-sugestao-loading">Analisando o painel...</span>';
   const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
     nome:c.nome,tipo:c.tipo,status:c.status,resp:c.resp,prazo:c.prazo,dep:c.dep,
     diasParado:diasParado(c.atualizado),obs:c.obs
@@ -544,7 +550,7 @@ async function sugerirProximaTarefa(tarefaConcluida,arrAtual){
     const r=await fetch('/api/sugerir-proxima',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tarefaConcluida,focosRestantes:restantes,casosAtivos})});
     const j=await r.json();
     if(j.ok&&j.sugestao){
-      el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente</div>'+j.sugestao;
+      el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente '+IA_LIVE+'</div>'+j.sugestao;
     }else{
       el.className='foco-sugestao';
     }
