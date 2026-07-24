@@ -227,17 +227,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <div class="container">
-  <div class="alertas-card" id="alertas-card" style="display:none">
-    <div class="alertas-header">
-      <div class="alertas-title"><i class="ti ti-alert-triangle"></i> Alertas <span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span></div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="alertas-atualizado" id="alertas-atualizado"></span>
-        <button class="alertas-refresh" id="alertas-refresh-btn" onclick="forcarVerificacaoAlertas()">Verificar agora</button>
-      </div>
-    </div>
-    <div class="alertas-items" id="alertas-items"></div>
-  </div>
-
   <div class="foco-card">
     <div class="foco-header">
       <div class="foco-title"><i class="ti ti-bolt"></i> Foco do dia</div>
@@ -253,6 +242,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="stats" id="stats"><div class="loading-overlay">Carregando...</div></div>
+
+  <div class="alertas-card" id="alertas-card" style="display:none">
+    <div class="alertas-header">
+      <div class="alertas-title"><i class="ti ti-alert-triangle"></i> Alertas <span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="alertas-atualizado" id="alertas-atualizado"></span>
+        <button class="alertas-refresh" id="alertas-refresh-btn" onclick="forcarVerificacaoAlertas()">Verificar agora</button>
+      </div>
+    </div>
+    <div class="alertas-items" id="alertas-items"></div>
+  </div>
 
   <div id="view-casos">
     <div class="toolbar">
