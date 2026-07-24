@@ -758,21 +758,22 @@ async function verificarAlertasSeNecessario(forcar){
     const j=await r.json();
     if(j.ok){
       await set(ref(db,'alertas'),{geradoEm:new Date().toISOString(),lista:j.alertas||[]});
-      await adicionarAgendaHojeAoFoco(j.agendaHoje||[]);
+      await adicionarAgendaAoFoco(j.agendaHoje||[],'hoje');
+      await adicionarAgendaAoFoco(j.agendaAmanha||[],'amanha');
     }
   }catch(e){}
   if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
 }
-async function adicionarAgendaHojeAoFoco(agendaHoje){
-  if(!agendaHoje.length)return;
+async function adicionarAgendaAoFoco(itens,marcador){
+  if(!itens.length)return;
   const hoje=isoHoje();
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   let mudou=false;
-  agendaHoje.forEach(item=>{
-    const jaExiste=arr.some(f=>f.auto&&f.casoNome===item.nome&&f.dataRef===hoje);
+  itens.forEach(item=>{
+    const jaExiste=arr.some(f=>f.auto&&f.casoNome===item.nome&&f.dataRef===hoje&&f.marcador===marcador);
     if(jaExiste)return;
     if(arr.length>=5)return;
-    arr.push({text:item.mensagem,done:false,auto:true,casoNome:item.nome,dataRef:hoje});
+    arr.push({text:item.mensagem,done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
     mudou=true;
   });
   if(mudou)await set(focosRef,arr);
