@@ -22,15 +22,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.loading{background:#FBBF24}
 .sync-label{font-size:11px;color:#6E6E8A}
 .container{max-width:1080px;margin:0 auto;padding:24px 18px}
-.alertas-card{background:linear-gradient(135deg,#FFFBEB,#FFF3D6);border:1px solid #FFE082;border-radius:16px;padding:16px 22px;margin-bottom:20px;box-shadow:0 2px 10px rgba(180,83,9,.09)}
-.alertas-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.alertas-title{font-size:13px;font-weight:600;color:#7A4F00;display:flex;align-items:center;gap:7px}
-.alertas-title i{font-size:15px;color:#B45309}
-.alertas-atualizado{font-size:10px;color:#8D6E00}
-.alertas-refresh{font-size:10px;padding:3px 9px;border-radius:6px;border:0.5px solid #FFD180;background:#fff;color:#B45309;cursor:pointer}
-.alertas-refresh:hover{background:#FFF3E0}
+.alertas-atualizado{font-size:10px;color:#8E8EA0}
+.alertas-refresh{font-size:10px;padding:4px 10px;border-radius:7px;border:0.5px solid #3C3C5E;background:transparent;color:#A78BFA;cursor:pointer;transition:background .15s ease}
+.alertas-refresh:hover{background:#2C2C4E}
 .alertas-refresh:disabled{opacity:.6;cursor:not-allowed}
-.alertas-empty{font-size:12px;color:#7A4F00;font-style:italic;padding:2px 0}
 .feedback-row{display:flex;gap:6px;margin-top:6px;align-items:center}
 .feedback-btn{font-size:13px;padding:2px 7px;border-radius:6px;border:0.5px solid #D1D1D6;background:#fff;cursor:pointer;line-height:1.4}
 .feedback-btn:hover{background:#F5F5F7}
@@ -47,14 +42,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .saudacao-card{position:relative;background:linear-gradient(160deg,#1C1C2E,#231C3D);border-radius:16px;padding:16px 44px 16px 22px;margin-bottom:20px;color:#E0E0F0;font-size:13.5px;line-height:1.6;box-shadow:0 4px 18px rgba(28,20,60,.22)}
 .saudacao-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#6E6E8A;font-size:18px;cursor:pointer;line-height:1}
 .saudacao-close:hover{color:#fff}
-.alertas-items{display:flex;flex-direction:column;gap:6px}
-.alerta-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:#fff;border-radius:8px;font-size:12.5px;color:#4A3300;line-height:1.5}
-.alerta-item.alta{border-left:3px solid #C62828}
-.alerta-item.media{border-left:3px solid #B45309}
-.alerta-item i{font-size:14px;margin-top:1px;flex-shrink:0}
-.alerta-item.alta i{color:#C62828}
-.alerta-item.media i{color:#B45309}
-.alerta-item b{font-weight:600}
 .foco-card{background:linear-gradient(160deg,#1C1C2E,#231C3D);border-radius:16px;padding:18px 22px;margin-bottom:20px;box-shadow:0 4px 18px rgba(28,20,60,.22)}
 .foco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .foco-title{font-size:13px;font-weight:500;color:#fff;display:flex;align-items:center;gap:7px}
@@ -250,8 +237,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="foco-card">
     <div class="foco-header">
-      <div class="foco-title"><i class="ti ti-bolt"></i> Foco do dia</div>
-      <button class="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar</button>
+      <div class="foco-title"><i class="ti ti-bolt"></i> Foco do dia <span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="alertas-atualizado" id="alertas-atualizado"></span>
+        <button class="alertas-refresh" id="alertas-refresh-btn" onclick="forcarVerificacaoAlertas()">Verificar agora</button>
+        <button class="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar</button>
+      </div>
     </div>
     <div class="foco-items" id="foco-items"></div>
     <div class="foco-sugestao" id="foco-sugestao"></div>
@@ -263,17 +254,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="stats" id="stats"><div class="loading-overlay">Carregando...</div></div>
-
-  <div class="alertas-card" id="alertas-card" style="display:none">
-    <div class="alertas-header">
-      <div class="alertas-title"><i class="ti ti-alert-triangle"></i> Alertas <span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span></div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="alertas-atualizado" id="alertas-atualizado"></span>
-        <button class="alertas-refresh" id="alertas-refresh-btn" onclick="forcarVerificacaoAlertas()">Verificar agora</button>
-      </div>
-    </div>
-    <div class="alertas-items" id="alertas-items"></div>
-  </div>
 
   <div id="view-casos">
     <div class="toolbar">
@@ -498,7 +478,6 @@ let inicializado=false;
 // ── FIREBASE LISTENERS ──
 const casosRef=ref(db,'casos');
 const focosRef=ref(db,'focos');
-const alertasRef=ref(db,'alertas');
 let alertasVerificados=false;
 
 onValue(casosRef,(snap)=>{
@@ -522,10 +501,6 @@ onValue(casosRef,(snap)=>{
   }
   setSyncStatus(true);
 },()=>setSyncStatus(false));
-
-onValue(alertasRef,(snap)=>{
-  renderAlertas(snap.val());
-});
 
 onValue(focosRef,(snap)=>{
   focos=snap.val()||[];
@@ -682,15 +657,6 @@ window.toggleFeedbackNeg=function(id){
 async function registrarAprendizado(categoria,contexto,feedback,motivo){
   await push(ref(db,'aprendizados'),{categoria,contexto,feedback,motivo:motivo||'',data:new Date().toISOString()});
 }
-window.darFeedbackAlerta=async function(i,tipo){
-  const a=alertasAtuais[i];if(!a)return;
-  const motivoEl=document.getElementById('feedback-motivo-alerta-'+i);
-  const motivo=motivoEl?motivoEl.value.trim():'';
-  await registrarAprendizado('alerta',`${a.nome}: ${a.mensagem}`,tipo,motivo);
-  // Marca como visto: some da tela de todo mundo agora, mas volta sozinho na
-  // proxima verificacao se o problema real ainda nao tiver sido resolvido
-  await update(ref(db,`alertas/lista/${i}`),{visto:true});
-};
 window.darFeedbackFoco=async function(tipo){
   const motivoEl=document.getElementById('feedback-motivo-foco');
   const motivo=motivoEl?motivoEl.value.trim():'';
@@ -702,37 +668,8 @@ window.darFeedbackFoco=async function(tipo){
   if(rowEl)rowEl.textContent=tipo==='positivo'?'Valeu, anotado!':'Obrigado, vou levar em conta.';
 };
 
-// ── ALERTAS ──
-let alertasAtuais=[];
-function renderAlertas(data){
-  const card=document.getElementById('alertas-card');
-  const items=document.getElementById('alertas-items');
-  const atualizadoEl=document.getElementById('alertas-atualizado');
-  const lista=data&&Array.isArray(data.lista)?data.lista:[];
-  card.style.display='block';
-  atualizadoEl.textContent=data&&data.geradoEm?('Verificado em '+new Date(data.geradoEm).toLocaleDateString('pt-BR')+' '+new Date(data.geradoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})):'';
-  alertasAtuais=lista;
-  const visiveis=lista.map((a,i)=>({a,i})).filter(x=>!x.a.visto);
-  if(!visiveis.length){
-    items.innerHTML='<div class="alertas-empty">Nada preocupante no momento — tudo em dia por aqui.</div>';
-    return;
-  }
-  items.innerHTML=visiveis.map(({a,i})=>`
-    <div class="alerta-item ${a.urgencia==='alta'?'alta':'media'}">
-      <i class="ti ti-alert-circle"></i>
-      <div style="flex:1">
-        <span><b>${a.nome||'Caso'}:</b> ${a.mensagem||''}</span>
-        <div class="feedback-row">
-          <button class="feedback-btn" onclick="darFeedbackAlerta(${i},'positivo')" title="Resolvido / ok">👍 Ok, resolvido</button>
-          <button class="feedback-btn" onclick="toggleFeedbackNeg('alerta-${i}')" title="Não é bem assim">👎 Não é bem assim</button>
-        </div>
-        <div class="feedback-neg-form" id="feedback-neg-alerta-${i}">
-          <input type="text" id="feedback-motivo-alerta-${i}" placeholder="Por quê? (ajuda a IA a aprender)">
-          <button class="feedback-btn" onclick="darFeedbackAlerta(${i},'negativo')">Enviar</button>
-        </div>
-      </div>
-    </div>`).join('');
-}
+// ── ALERTAS (tudo entra no Foco do Dia, com icone diferente por tipo) ──
+const ICONE_MARCADOR={alerta:'⚠️',hoje:'📅',amanha:'📅 (amanhã)'};
 window.forcarVerificacaoAlertas=function(){
   verificarAlertasSeNecessario(true);
 };
@@ -740,6 +677,7 @@ async function verificarAlertasSeNecessario(forcar){
   if(alertasVerificados&&!forcar)return;
   alertasVerificados=true;
   const btn=document.getElementById('alertas-refresh-btn');
+  const atualizadoEl=document.getElementById('alertas-atualizado');
   const LIMITE_MS=4*60*60*1000;
   try{
     if(!forcar){
@@ -757,14 +695,17 @@ async function verificarAlertasSeNecessario(forcar){
     const r=await fetch('/api/verificar-alertas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({casosAtivos,aprendizados})});
     const j=await r.json();
     if(j.ok){
-      await set(ref(db,'alertas'),{geradoEm:new Date().toISOString(),lista:j.alertas||[]});
+      const agora=new Date().toISOString();
+      await set(ref(db,'alertas'),{geradoEm:agora,lista:j.alertas||[]});
+      await adicionarAgendaAoFoco(j.alertas||[],'alerta');
       await adicionarAgendaAoFoco(j.agendaHoje||[],'hoje');
       await adicionarAgendaAoFoco(j.agendaAmanha||[],'amanha');
+      if(atualizadoEl)atualizadoEl.textContent='Verificado em '+new Date(agora).toLocaleDateString('pt-BR')+' '+new Date(agora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     }else{
-      if(forcar)alert('Não consegui verificar os alertas agora: '+(j.erro||'erro desconhecido')+'. Tente de novo em alguns segundos.');
+      if(forcar)alert('Não consegui verificar agora: '+(j.erro||'erro desconhecido')+'. Tente de novo em alguns segundos.');
     }
   }catch(e){
-    if(forcar)alert('Não consegui conectar para verificar os alertas. Tente de novo.');
+    if(forcar)alert('Não consegui conectar para verificar. Tente de novo.');
   }
   if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
 }
@@ -777,7 +718,8 @@ async function adicionarAgendaAoFoco(itens,marcador){
     const jaExiste=arr.some(f=>f.auto&&f.casoNome===item.nome&&f.dataRef===hoje&&f.marcador===marcador);
     if(jaExiste)return;
     if(arr.length>=5)return;
-    arr.push({text:item.mensagem,done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
+    const texto=`${ICONE_MARCADOR[marcador]||''} ${item.mensagem}`.trim();
+    arr.push({text:texto,done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
     mudou=true;
   });
   if(mudou)await set(focosRef,arr);
