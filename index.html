@@ -23,6 +23,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .alertas-title{font-size:13px;font-weight:600;color:#7A4F00;display:flex;align-items:center;gap:7px}
 .alertas-title i{font-size:15px;color:#B45309}
 .alertas-atualizado{font-size:10px;color:#8D6E00}
+.alertas-refresh{font-size:10px;padding:3px 9px;border-radius:6px;border:0.5px solid #FFD180;background:#fff;color:#B45309;cursor:pointer}
+.alertas-refresh:hover{background:#FFF3E0}
+.alertas-refresh:disabled{opacity:.6;cursor:not-allowed}
+.alertas-empty{font-size:12px;color:#7A4F00;font-style:italic;padding:2px 0}
 .alertas-items{display:flex;flex-direction:column;gap:6px}
 .alerta-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:#fff;border-radius:8px;font-size:12.5px;color:#4A3300;line-height:1.5}
 .alerta-item.alta{border-left:3px solid #C62828}
@@ -210,7 +214,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="alertas-card" id="alertas-card" style="display:none">
     <div class="alertas-header">
       <div class="alertas-title"><i class="ti ti-alert-triangle"></i> Alertas</div>
-      <span class="alertas-atualizado" id="alertas-atualizado"></span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="alertas-atualizado" id="alertas-atualizado"></span>
+        <button class="alertas-refresh" id="alertas-refresh-btn" onclick="forcarVerificacaoAlertas()">Verificar agora</button>
+      </div>
     </div>
     <div class="alertas-items" id="alertas-items"></div>
   </div>
@@ -277,7 +284,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option value="Prefeitura">Prefeitura</option>
             <option value="Pré-conferência">Pré-conferência</option>
             <option value="Jurídico Prime">Jurídico Prime</option>
-            <option value="Construtora">Construtora</option>
+            <option value="Aguardando traslado">Aguardando traslado</option>
+            <option value="Falta assinatura">Falta assinatura</option>
+            <option value="Travar agenda">Travar agenda</option>
+            <option value="Nota de exigência">Nota de exigência</option>
+            <option value="Escritura assinada">Escritura assinada</option>
+            <option value="Escritura pronta">Escritura pronta</option>
+            <option value="Entregar para o cliente">Entregar para o cliente</option>
+            <option value="Concluído">Concluído</option>
           </select>
         </div>
         <div class="form-grid">
@@ -402,7 +416,7 @@ const db = getDatabase(app);
 window._db = db;
 window._fbUtils = { ref, update };
 
-const DEPS=['','Falta documentos','Aguardando cliente','Registro de Imóveis','Prefeitura','Pré-conferência','Jurídico Prime','Construtora'];
+const DEPS=['','Falta documentos','Aguardando cliente','Registro de Imóveis','Prefeitura','Pré-conferência','Jurídico Prime','Aguardando traslado','Falta assinatura','Travar agenda','Nota de exigência','Escritura assinada','Escritura pronta','Entregar para o cliente','Concluído'];
 
 const hoje=new Date();hoje.setHours(0,0,0,0);
 function diasParado(iso){if(!iso)return 0;const d=new Date(iso);d.setHours(0,0,0,0);return Math.floor((hoje-d)/(1000*60*60*24));}
@@ -550,23 +564,33 @@ function renderAlertas(data){
   const items=document.getElementById('alertas-items');
   const atualizadoEl=document.getElementById('alertas-atualizado');
   const lista=data&&Array.isArray(data.lista)?data.lista:[];
-  if(!lista.length){card.style.display='none';return;}
   card.style.display='block';
-  atualizadoEl.textContent=data.geradoEm?('Verificado em '+new Date(data.geradoEm).toLocaleDateString('pt-BR')+' '+new Date(data.geradoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})):'';
+  atualizadoEl.textContent=data&&data.geradoEm?('Verificado em '+new Date(data.geradoEm).toLocaleDateString('pt-BR')+' '+new Date(data.geradoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})):'';
+  if(!lista.length){
+    items.innerHTML='<div class="alertas-empty">Nada preocupante no momento — tudo em dia por aqui.</div>';
+    return;
+  }
   items.innerHTML=lista.map(a=>`
     <div class="alerta-item ${a.urgencia==='alta'?'alta':'media'}">
       <i class="ti ti-alert-circle"></i>
       <span><b>${a.nome||'Caso'}:</b> ${a.mensagem||''}</span>
     </div>`).join('');
 }
-async function verificarAlertasSeNecessario(){
-  if(alertasVerificados)return;
+window.forcarVerificacaoAlertas=function(){
+  verificarAlertasSeNecessario(true);
+};
+async function verificarAlertasSeNecessario(forcar){
+  if(alertasVerificados&&!forcar)return;
   alertasVerificados=true;
+  const btn=document.getElementById('alertas-refresh-btn');
   const LIMITE_MS=4*60*60*1000;
   try{
-    const snap=await fetch('https://painel-cartorio-default-rtdb.firebaseio.com/alertas/geradoEm.json');
-    const geradoEm=await snap.json();
-    if(geradoEm&&(Date.now()-new Date(geradoEm).getTime())<LIMITE_MS)return;
+    if(!forcar){
+      const snap=await fetch('https://painel-cartorio-default-rtdb.firebaseio.com/alertas/geradoEm.json');
+      const geradoEm=await snap.json();
+      if(geradoEm&&(Date.now()-new Date(geradoEm).getTime())<LIMITE_MS)return;
+    }
+    if(btn){btn.disabled=true;btn.textContent='Verificando...';}
     const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
       nome:c.nome,tipo:c.tipo,resp:c.resp,prazo:c.prazo,dep:c.dep,
       diasParado:diasParado(c.atualizado),obs:c.obs
@@ -578,6 +602,7 @@ async function verificarAlertasSeNecessario(){
       await set(ref(db,'alertas'),{geradoEm:new Date().toISOString(),lista:j.alertas||[]});
     }
   }catch(e){}
+  if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
 }
 
 // ── STATS ──
