@@ -94,11 +94,20 @@ module.exports = async (req, res) => {
     return res.status(200).json({ ok: true, alertas: [] });
   }
 
-  const listaCasos = casosAtivos.map(c =>
-    `- ${c.nome} (${c.tipo || "tipo não definido"}) | responsável: ${c.resp || "—"} | prazo: ${c.prazo || "—"} | dias parado: ${c.diasParado ?? 0} | dependência: ${c.dep || "nenhuma"} | assinatura da escritura agendada: ${c.agendado ? new Date(c.agendado).toLocaleString("pt-BR") : "não marcada"}\n  observações: ${(c.obs || "nenhuma").slice(0, 400)}`
-  ).join("\n\n");
+  // Divide em lotes e consulta a IA em paralelo, para o tempo de resposta
+  // não crescer conforme a quantidade de casos ativos aumenta.
+  const TAMANHO_LOTE = 12;
+  const lotes = [];
+  for (let i = 0; i < casosAtivos.length; i += TAMANHO_LOTE) {
+    lotes.push(casosAtivos.slice(i, i + TAMANHO_LOTE));
+  }
 
-  const mensagem = `DATA DE HOJE: ${hoje}
+  const montarMensagem = (lote) => {
+    const listaCasos = lote.map(c =>
+      `- ${c.nome} (${c.tipo || "tipo não definido"}) | responsável: ${c.resp || "—"} | prazo: ${c.prazo || "—"} | dias parado: ${c.diasParado ?? 0} | dependência: ${c.dep || "nenhuma"} | assinatura da escritura agendada: ${c.agendado ? new Date(c.agendado).toLocaleString("pt-BR") : "não marcada"}\n  observações: ${(c.obs || "nenhuma").slice(0, 400)}`
+    ).join("\n\n");
+
+    return `DATA DE HOJE: ${hoje}
 
 PANORAMA DOS CASOS ATIVOS:
 
@@ -106,17 +115,38 @@ ${listaCasos}
 ${aprendizados.length ? `\nAPRENDIZADOS DA EQUIPE (correções que já fizeram em alertas/agenda anteriores — leve em consideração antes de decidir):\n${aprendizados.join("\n")}` : ""}
 
 Revise e separe em alertas (coisa parada), agenda de hoje e agenda de amanhã (coisa programada), se houver.`;
+  };
 
-  try {
-    const resposta = await chamarClaude(mensagem);
-    const parsed = extrairJson(resposta);
-    res.status(200).json({
-      ok: true,
-      alertas: Array.isArray(parsed.alertas) ? parsed.alertas : [],
-      agendaHoje: Array.isArray(parsed.agendaHoje) ? parsed.agendaHoje : [],
-      agendaAmanha: Array.isArray(parsed.agendaAmanha) ? parsed.agendaAmanha : []
-    });
-  } catch (err) {
-    res.status(500).json({ ok: false, erro: err.message });
+  const resultados = await Promise.allSettled(
+    lotes.map(lote => chamarClaude(montarMensagem(lote)).then(extrairJson))
+  );
+
+  const alertas = [];
+  const agendaHoje = [];
+  const agendaAmanha = [];
+  let algumSucesso = false;
+  let primeiroErro = null;
+
+  resultados.forEach(r => {
+    if (r.status === "fulfilled") {
+      algumSucesso = true;
+      const parsed = r.value;
+      if (Array.isArray(parsed.alertas)) alertas.push(...parsed.alertas);
+      if (Array.isArray(parsed.agendaHoje)) agendaHoje.push(...parsed.agendaHoje);
+      if (Array.isArray(parsed.agendaAmanha)) agendaAmanha.push(...parsed.agendaAmanha);
+    } else if (!primeiroErro) {
+      primeiroErro = r.reason && r.reason.message;
+    }
+  });
+
+  if (!algumSucesso) {
+    return res.status(500).json({ ok: false, erro: primeiroErro || "Erro desconhecido" });
   }
+
+  res.status(200).json({
+    ok: true,
+    alertas: alertas.slice(0, 6),
+    agendaHoje: agendaHoje.slice(0, 4),
+    agendaAmanha: agendaAmanha.slice(0, 4)
+  });
 };
