@@ -284,7 +284,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option value="Prefeitura">Prefeitura</option>
             <option value="Pré-conferência">Pré-conferência</option>
             <option value="Jurídico Prime">Jurídico Prime</option>
-            <option value="Construtora">Construtora</option>
+            <option value="Aguardando traslado">Aguardando traslado</option>
+            <option value="Falta assinatura">Falta assinatura</option>
+            <option value="Travar agenda">Travar agenda</option>
+            <option value="Nota de exigência">Nota de exigência</option>
+            <option value="Escritura assinada">Escritura assinada</option>
+            <option value="Escritura pronta">Escritura pronta</option>
+            <option value="Entregar para o cliente">Entregar para o cliente</option>
+            <option value="Concluído">Concluído</option>
           </select>
         </div>
         <div class="form-grid">
@@ -409,7 +416,7 @@ const db = getDatabase(app);
 window._db = db;
 window._fbUtils = { ref, update };
 
-const DEPS=['','Falta documentos','Aguardando cliente','Registro de Imóveis','Prefeitura','Pré-conferência','Jurídico Prime','Construtora'];
+const DEPS=['','Falta documentos','Aguardando cliente','Registro de Imóveis','Prefeitura','Pré-conferência','Jurídico Prime','Aguardando traslado','Falta assinatura','Travar agenda','Nota de exigência','Escritura assinada','Escritura pronta','Entregar para o cliente','Concluído'];
 
 const hoje=new Date();hoje.setHours(0,0,0,0);
 function diasParado(iso){if(!iso)return 0;const d=new Date(iso);d.setHours(0,0,0,0);return Math.floor((hoje-d)/(1000*60*60*24));}
