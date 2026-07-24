@@ -687,9 +687,11 @@ async function verificarAlertasSeNecessario(forcar){
     if(j.ok){
       const agora=new Date().toISOString();
       await set(ref(db,'alertas'),{geradoEm:agora,lista:j.alertas||[]});
-      await adicionarAgendaAoFoco(j.alertas||[],'alerta');
-      await adicionarAgendaAoFoco(j.agendaHoje||[],'hoje');
-      await adicionarAgendaAoFoco(j.agendaAmanha||[],'amanha');
+      await adicionarAgendaAoFoco([
+        {itens:j.agendaHoje||[],marcador:'hoje'},
+        {itens:j.agendaAmanha||[],marcador:'amanha'},
+        {itens:j.alertas||[],marcador:'alerta'}
+      ]);
       if(atualizadoEl)atualizadoEl.textContent='Verificado em '+new Date(agora).toLocaleDateString('pt-BR')+' '+new Date(agora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     }else{
       if(forcar)alert('Não consegui verificar agora: '+(j.erro||'erro desconhecido')+'. Tente de novo em alguns segundos.');
@@ -699,18 +701,20 @@ async function verificarAlertasSeNecessario(forcar){
   }
   if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
 }
-async function adicionarAgendaAoFoco(itens,marcador){
-  if(!itens.length)return;
+async function adicionarAgendaAoFoco(gruposOrdenados){
+  const LIMITE_FOCO=8;
   const hoje=isoHoje();
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   let mudou=false;
-  itens.forEach(item=>{
-    const jaExiste=arr.some(f=>f.auto&&f.casoNome===item.nome&&f.dataRef===hoje&&f.marcador===marcador);
-    if(jaExiste)return;
-    if(arr.length>=5)return;
-    const texto=`${ICONE_MARCADOR[marcador]||''} ${item.mensagem}`.trim();
-    arr.push({text:texto,done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
-    mudou=true;
+  gruposOrdenados.forEach(({itens,marcador})=>{
+    itens.forEach(item=>{
+      if(arr.length>=LIMITE_FOCO)return;
+      const jaExiste=arr.some(f=>f.auto&&f.casoNome===item.nome&&f.dataRef===hoje&&f.marcador===marcador);
+      if(jaExiste)return;
+      const texto=`${ICONE_MARCADOR[marcador]||''} ${item.mensagem}`.trim();
+      arr.push({text:texto,done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
+      mudou=true;
+    });
   });
   if(mudou)await set(focosRef,arr);
 }
