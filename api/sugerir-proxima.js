@@ -74,6 +74,7 @@ module.exports = async (req, res) => {
   const tarefaConcluida = dados.tarefaConcluida || "";
   const focosRestantes = Array.isArray(dados.focosRestantes) ? dados.focosRestantes : [];
   const casosAtivos = Array.isArray(dados.casosAtivos) ? dados.casosAtivos : [];
+  const aprendizados = Array.isArray(dados.aprendizados) ? dados.aprendizados : [];
 
   if (!focosRestantes.length) {
     return res.status(200).json({ ok: true, sugestao: null });
@@ -105,6 +106,7 @@ ${listaCarga || "Sem dados de responsáveis."}
 
 PANORAMA DOS CASOS ATIVOS DO CARTÓRIO:
 ${listaCasos || "Nenhum caso ativo cadastrado."}
+${aprendizados.length ? `\nAPRENDIZADOS DA EQUIPE (correções que já fizeram em sugestões anteriores — leve em consideração antes de decidir):\n${aprendizados.join("\n")}` : ""}
 
 Recomende qual tarefa restante fazer a seguir, com uma explicação objetiva.`;
 
