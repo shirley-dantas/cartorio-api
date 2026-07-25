@@ -80,10 +80,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-fab-wrap{position:fixed;right:22px;bottom:22px;left:auto;top:auto;z-index:900}
 .foco-fab-wrap.walking{animation:walk-bob .45s ease-in-out infinite alternate}
 @keyframes walk-bob{0%{transform:translateY(0)}100%{transform:translateY(-4px)}}
-.foco-fab{position:relative;display:block;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#A9895A,#DCC493);box-shadow:0 4px 14px rgba(22,40,58,.28);border:none;cursor:pointer;padding:0;overflow:visible}
-.foco-fab::after{content:'';position:absolute;inset:-6px;border-radius:50%;background:linear-gradient(135deg,#A9895A,#DCC493);opacity:.3;z-index:-1;animation:fab-pulse 2.6s ease-out infinite}
-.foco-fab-face{width:30px;height:30px;display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible}
-@keyframes fab-pulse{0%{transform:scale(.85);opacity:.3}100%{transform:scale(1.55);opacity:0}}
+.foco-fab{position:relative;display:block;width:52px;height:52px;border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(22,40,58,.28);border:none;cursor:pointer;padding:0;overflow:visible}
+.foco-fab::after{content:'';position:absolute;inset:-6px;border-radius:50%;background:#fff;opacity:.35;z-index:-1;animation:fab-pulse 2.6s ease-out infinite}
+.foco-fab-face{width:48px;height:48px;display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible}
+@keyframes fab-pulse{0%{transform:scale(.85);opacity:.35}100%{transform:scale(1.55);opacity:0}}
 .foco-fab-leg{display:none;position:absolute;bottom:-7px;width:6px;height:12px;background:#16283A;border-radius:3px;transform-origin:top center}
 .foco-fab-leg-l{left:15px}
 .foco-fab-leg-r{right:15px}
@@ -482,12 +482,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <span class="foco-fab-leg foco-fab-leg-r"></span>
   <button type="button" class="foco-fab" id="foco-fab-btn" onclick="toggleFocoFab()" aria-label="Adicionar ao Foco do dia" title="Adicionar ao Foco do dia">
     <svg class="foco-fab-face" viewBox="0 0 60 60" aria-hidden="true">
-      <line x1="30" y1="4" x2="30" y2="13" stroke="#16283A" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="30" cy="4" r="3.2" fill="#16283A"/>
-      <rect x="10" y="13" width="40" height="34" rx="13" fill="#16283A"/>
-      <circle cx="22" cy="30" r="4.6" fill="#F1E4C6"/>
-      <circle cx="38" cy="30" r="4.6" fill="#F1E4C6"/>
-      <path d="M22,40 Q30,45 38,40" stroke="#F1E4C6" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <line x1="30" y1="5" x2="30" y2="11" stroke="#C7CAD1" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="30" cy="4" r="3" fill="#D8DAE0"/>
+      <circle cx="30" cy="34" r="22" fill="#F7F5F0" stroke="#E5E5EA" stroke-width="1.5"/>
+      <circle cx="21" cy="32" r="4.4" fill="#2D2D2D"/>
+      <circle cx="39" cy="32" r="4.4" fill="#2D2D2D"/>
+      <circle cx="22.4" cy="30.5" r="1.3" fill="#fff"/>
+      <circle cx="40.4" cy="30.5" r="1.3" fill="#fff"/>
+      <path d="M22,42 Q30,47 38,42" stroke="#2D2D2D" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <circle cx="13" cy="38" r="3.2" fill="#FF8FA3" opacity=".55"/>
+      <circle cx="47" cy="38" r="3.2" fill="#FF8FA3" opacity=".55"/>
     </svg>
   </button>
 </div>
