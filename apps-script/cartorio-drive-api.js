@@ -8,6 +8,12 @@
 //
 // FIREBASE: Certifique-se que as regras do Realtime Database permitem escrita em /jobs/
 // { "rules": { "jobs": { ".read": true, ".write": true } } }
+//
+// CALENDAR: este script agora também cria/atualiza/exclui eventos no Google
+// Calendar (mesma conta do Drive). Ao colar este código e salvar, o Apps
+// Script vai pedir para reautorizar o projeto com o escopo do Calendar —
+// aceite a permissão e implante uma nova versão (Implantar > Gerenciar
+// implantações > editar > Nova versão).
 
 const PASTA_RAIZ_ID = "1KDMZ-FJMoXEzpMXKSojeZgNeJ_p4lhSb";
 const NOME_PASTA_MINUTAS = "0 - MINUTAS IA";
@@ -423,8 +429,55 @@ function doPost(e) {
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
+    if (acao === "sincronizar-evento-calendar") return sincronizarEventoCalendar(dados);
+    if (acao === "excluir-evento-calendar") return excluirEventoCalendar(dados);
     return resp({ ok: false, erro: "Ação desconhecida" });
   } catch(err) {
+    return resp({ ok: false, erro: err.message });
+  }
+}
+
+// ── Calendar (compromisso "agendado" de cada caso) ─────────────────────────
+// Usa o calendário principal da mesma conta Google que roda este Apps Script
+// (a mesma do Drive). Cria o evento na primeira sincronização e, nas próximas,
+// atualiza o mesmo evento (dados.eventId) em vez de duplicar.
+
+function sincronizarEventoCalendar(dados) {
+  try {
+    var cal = CalendarApp.getDefaultCalendar();
+    var inicio = new Date(dados.dataHora);
+    var fim = new Date(inicio.getTime() + 60 * 60 * 1000); // duração padrão: 1h
+    var titulo = (dados.nome || "Caso") + (dados.tipo ? " — " + dados.tipo : "");
+    var descricao = dados.descricao || "";
+
+    var evento = null;
+    if (dados.eventId) {
+      try { evento = cal.getEventById(dados.eventId); } catch (e) { evento = null; }
+    }
+
+    if (evento) {
+      evento.setTitle(titulo);
+      evento.setTime(inicio, fim);
+      evento.setDescription(descricao);
+    } else {
+      evento = cal.createEvent(titulo, inicio, fim, { description: descricao });
+    }
+
+    return resp({ ok: true, eventId: evento.getId() });
+  } catch (err) {
+    return resp({ ok: false, erro: err.message });
+  }
+}
+
+function excluirEventoCalendar(dados) {
+  try {
+    if (dados.eventId) {
+      var cal = CalendarApp.getDefaultCalendar();
+      var evento = cal.getEventById(dados.eventId);
+      if (evento) evento.deleteEvent();
+    }
+    return resp({ ok: true });
+  } catch (err) {
     return resp({ ok: false, erro: err.message });
   }
 }

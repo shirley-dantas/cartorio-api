@@ -454,6 +454,31 @@ const db = getDatabase(app);
 window._db = db;
 window._fbUtils = { ref, update };
 
+const GAS_URL='https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec';
+
+// Cria/atualiza/remove o evento no Google Calendar correspondente ao compromisso
+// (campo "agendado") de um caso, mantendo o calendarEventId em sincronia no Firebase.
+async function sincronizarEventoCalendar(id,caso){
+  try{
+    if(!caso.agendado){
+      if(caso.calendarEventId){
+        await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'excluir-evento-calendar',eventId:caso.calendarEventId})});
+        update(ref(db,`casos/${id}`),{calendarEventId:''});
+      }
+      return;
+    }
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({
+      acao:'sincronizar-evento-calendar',
+      nome:caso.nome,tipo:caso.tipo,
+      dataHora:caso.agendado,
+      descricao:caso.agendado_desc||caso.acao||'',
+      eventId:caso.calendarEventId||''
+    })});
+    const data=await r.json();
+    if(data.ok&&data.eventId)update(ref(db,`casos/${id}`),{calendarEventId:data.eventId});
+  }catch(e){}
+}
+
 const DEPS=['','Falta documentos','Aguardando cliente','Registro de Imóveis','Prefeitura','Pré-conferência','Jurídico Prime','Aguardando traslado','Falta assinatura','Travar agenda','Nota de exigência','Escritura assinada','Escritura pronta','Entregar para o cliente','Concluído'];
 
 const hoje=new Date();hoje.setHours(0,0,0,0);
@@ -871,6 +896,7 @@ window.mudarCampo=function(id,campo,valor){
   upd[campo]=valor;
   upd['atualizado']=isoHoje();
   update(ref(db,`casos/${id}`),upd);
+  if(campo==='agendado')sincronizarEventoCalendar(id,{...casos[id],agendado:valor});
 };
 window.toggleConcluido=function(id){
   const c=casos[id];
@@ -1201,8 +1227,13 @@ window.copiarRelatorio=function(){
   });
 };
 window.excluirCaso=function(id){
-  if(confirm('Tem certeza que deseja excluir este caso? Esta ação não pode ser desfeita.'))
+  if(confirm('Tem certeza que deseja excluir este caso? Esta ação não pode ser desfeita.')){
+    const c=casos[id];
+    if(c&&c.calendarEventId){
+      fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'excluir-evento-calendar',eventId:c.calendarEventId})}).catch(()=>{});
+    }
     remove(ref(db,'casos/'+id));
+  }
 };
 window.setFiltro=function(f,btn){
   filtro=f;
@@ -1219,7 +1250,7 @@ window.salvarNovo=function(){
   const nome=document.getElementById('f-nome').value.trim();
   if(!nome){document.getElementById('f-nome').focus();return;}
   const nr=push(casosRef);
-  set(nr,{
+  const novoCaso={
     id:nr.key,nome,
     tipo:document.getElementById('f-tipo').value.trim()||'—',
     status:document.getElementById('f-status').value,
@@ -1236,11 +1267,13 @@ window.salvarNovo=function(){
     obs:document.getElementById('f-obs').value.trim(),
     atualizado:isoHoje(),
     concluido:false
-  });
+  };
+  set(nr,novoCaso);
   // Criar pasta no Google Drive
   const driveNome = nome;
   const driveTipo = document.getElementById('f-tipo').value.trim()||'A classificar';
-  fetch('https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec',{method:'POST',body:JSON.stringify({nome:driveNome,tipo:driveTipo})}).catch(()=>{});
+  fetch(GAS_URL,{method:'POST',body:JSON.stringify({nome:driveNome,tipo:driveTipo})}).catch(()=>{});
+  if(novoCaso.agendado)sincronizarEventoCalendar(nr.key,novoCaso);
   ['f-nome','f-tipo','f-prazo','f-obs','f-agendado-desc','f-prenotacao','f-registroPrenotado','f-livro','f-folha','f-controle'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-dep').value='';
   document.getElementById('f-agendado').value='';
