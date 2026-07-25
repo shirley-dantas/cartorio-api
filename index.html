@@ -77,9 +77,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-input-row input:focus{border-color:#C9A876}
 .foco-input-row button{font-size:12px;padding:7px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600;transition:filter .15s ease}
 .foco-input-row button:hover{filter:brightness(1.12)}
-.foco-fab-wrap{position:fixed;right:22px;bottom:22px;left:auto;z-index:900}
-.foco-fab-wrap.walking{right:auto;animation:walk-across 9s linear infinite alternate,walk-bob .45s ease-in-out infinite alternate}
-@keyframes walk-across{0%{left:22px}100%{left:calc(100vw - 74px)}}
+.foco-fab-wrap{position:fixed;right:22px;bottom:22px;left:auto;top:auto;z-index:900}
+.foco-fab-wrap.walking{animation:walk-bob .45s ease-in-out infinite alternate}
 @keyframes walk-bob{0%{transform:translateY(0)}100%{transform:translateY(-4px)}}
 .foco-fab{position:relative;display:block;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#B71C1C,#E4534A);box-shadow:0 4px 14px rgba(22,40,58,.28);border:none;cursor:pointer;padding:0}
 .foco-fab::after{content:'';position:absolute;inset:-6px;border-radius:50%;background:linear-gradient(135deg,#B71C1C,#E4534A);opacity:.3;z-index:-1;animation:fab-pulse 2.6s ease-out infinite}
@@ -682,18 +681,65 @@ window.enviarFocoFab=function(){
   document.getElementById('foco-fab-ok').classList.add('show');
   setTimeout(()=>toggleFocoFab(false),1100);
 };
-// ── Robô caminha pela tela após 1min30 de inatividade ──
+// ── Joaninha caminha livremente pela tela após 1min30 de inatividade,
+//    e mexe as pernas acompanhando a direção da rolagem ──
 let focoBotIdleTimer=null;
 const FOCO_BOT_IDLE_MS=90000;
-function pararFocoBot(){
+let focoBotWandering=false;
+let focoBotWanderTimeout=null;
+
+function focoBotAncoraLivre(wrap){
+  const r=wrap.getBoundingClientRect();
+  wrap.style.right='auto';wrap.style.bottom='auto';
+  wrap.style.left=r.left+'px';wrap.style.top=r.top+'px';
+}
+function focoBotPassoAleatorio(){
+  if(!focoBotWandering)return;
   const wrap=document.getElementById('foco-fab-wrap');
-  if(wrap)wrap.classList.remove('walking');
+  if(!wrap)return;
+  const margin=16,tamanho=64;
+  const maxX=Math.max(margin,window.innerWidth-tamanho-margin);
+  const maxY=Math.max(margin,window.innerHeight-tamanho-margin);
+  const destX=margin+Math.random()*(maxX-margin);
+  const destY=margin+Math.random()*(maxY-margin);
+  const curX=parseFloat(wrap.style.left)||maxX;
+  const curY=parseFloat(wrap.style.top)||maxY;
+  const dist=Math.hypot(destX-curX,destY-curY);
+  const duracao=Math.max(900,Math.min(4200,dist/70*1000));
+  wrap.style.transition=`left ${duracao}ms linear, top ${duracao}ms linear`;
+  wrap.style.left=destX+'px';
+  wrap.style.top=destY+'px';
+  wrap.classList.add('walking');
+  focoBotWanderTimeout=setTimeout(focoBotPassoAleatorio,duracao+400);
 }
 function iniciarFocoBot(){
   const panel=document.getElementById('foco-fab-panel');
   const wrap=document.getElementById('foco-fab-wrap');
   if(!wrap||panel.classList.contains('show'))return;
-  wrap.classList.add('walking');
+  focoBotAncoraLivre(wrap);
+  focoBotWandering=true;
+  focoBotPassoAleatorio();
+}
+function pararFocoBot(){
+  focoBotWandering=false;
+  clearTimeout(focoBotWanderTimeout);
+  const wrap=document.getElementById('foco-fab-wrap');
+  if(!wrap)return;
+  if(wrap.style.left){
+    const homeX=window.innerWidth-74,homeY=window.innerHeight-74;
+    wrap.style.transition='left .5s ease,top .5s ease';
+    wrap.style.left=homeX+'px';
+    wrap.style.top=homeY+'px';
+    wrap.classList.add('walking');
+    setTimeout(()=>{
+      wrap.classList.remove('walking');
+      wrap.style.transition='';
+      wrap.style.left='';wrap.style.top='';
+      wrap.style.right='22px';wrap.style.bottom='22px';
+    },520);
+  }else{
+    wrap.classList.remove('walking');
+  }
 }
 function resetFocoBotIdle(){
   pararFocoBot();
@@ -703,6 +749,15 @@ function resetFocoBotIdle(){
 ['mousemove','mousedown','keydown','scroll','touchstart','wheel'].forEach(evt=>{
   window.addEventListener(evt,resetFocoBotIdle,{passive:true});
 });
+// Enquanto rola a página, ela "anda" no lugar (pernas em movimento) acompanhando o gesto
+let focoBotScrollStopTimer=null;
+window.addEventListener('scroll',()=>{
+  const wrap=document.getElementById('foco-fab-wrap');
+  if(!wrap||focoBotWandering)return;
+  wrap.classList.add('walking');
+  clearTimeout(focoBotScrollStopTimer);
+  focoBotScrollStopTimer=setTimeout(()=>wrap.classList.remove('walking'),400);
+},{passive:true});
 resetFocoBotIdle();
 window.toggleFoco=function(i){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
