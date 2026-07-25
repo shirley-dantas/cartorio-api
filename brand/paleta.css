@@ -1,0 +1,23 @@
+:root{
+  /* Neutros */
+  --prime-branco: #FFFFFF;
+  --prime-off-white: #F7F5F0;
+
+  /* Azul-petróleo (cor principal da marca — texto do logo, cabeçalhos, elementos de destaque) */
+  --prime-petroleo-profundo: #16283A;
+  --prime-petroleo: #1F3B4D;
+  --prime-petroleo-suave: #4A5C68;
+
+  /* Azul acinzentado (apoio, textos secundários, bordas) */
+  --prime-azul-acinzentado: #5B6B78;
+  --prime-azul-acinzentado-claro: #A9B4BC;
+
+  /* Champagne fosco (arco, detalhes, acentos, ícones de destaque) */
+  --prime-champagne-escuro: #A9895A;
+  --prime-champagne: #DCC493;
+  --prime-champagne-claro: #F1E4C6;
+
+  /* Neutros de apoio */
+  --prime-cinza-claro: #EDEAE3;
+  --prime-cinza-medio: #C9C4B8;
+}

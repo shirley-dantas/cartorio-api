@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200" role="img" aria-label="PRIME">
+  <path d="M40,112 Q300,24 560,112" fill="none" stroke="#16283A" stroke-width="3.2" stroke-linecap="round"/>
+  <text x="300" y="172" text-anchor="middle"
+        font-family="'Jost','Century Gothic','Futura',sans-serif"
+        font-weight="200" font-size="56" letter-spacing="19"
+        fill="#16283A">PRIME</text>
+</svg>

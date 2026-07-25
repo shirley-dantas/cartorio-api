@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200" role="img" aria-label="PRIME">
+  <defs>
+    <linearGradient id="arcoChampagneClaro" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#BE9E6C"/>
+      <stop offset="32%" stop-color="#E8D3A4"/>
+      <stop offset="50%" stop-color="#F8EDD3"/>
+      <stop offset="68%" stop-color="#E8D3A4"/>
+      <stop offset="100%" stop-color="#BE9E6C"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M40,112 Q300,24 560,112" fill="none" stroke="url(#arcoChampagneClaro)" stroke-width="3.2" stroke-linecap="round"/>
+
+  <text x="300" y="172" text-anchor="middle"
+        font-family="'Jost','Century Gothic','Futura',sans-serif"
+        font-weight="200" font-size="56" letter-spacing="19"
+        fill="#F7F5F0">PRIME</text>
+</svg>
