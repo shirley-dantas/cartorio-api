@@ -80,11 +80,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-fab-wrap{position:fixed;right:22px;bottom:22px;left:auto;top:auto;z-index:900}
 .foco-fab-wrap.walking{animation:walk-bob .45s ease-in-out infinite alternate}
 @keyframes walk-bob{0%{transform:translateY(0)}100%{transform:translateY(-4px)}}
-.foco-fab{position:relative;display:block;width:52px;height:52px;border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(22,40,58,.28);border:none;cursor:pointer;padding:0;overflow:visible}
-.foco-fab::after{content:'';position:absolute;inset:-6px;border-radius:50%;background:linear-gradient(135deg,#B71C1C,#E4534A);opacity:.3;z-index:-1;animation:fab-pulse 2.6s ease-out infinite}
-.foco-fab-photo{position:absolute;inset:0;border-radius:50%;overflow:hidden;display:block}
-.foco-fab-photo video{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.foco-fab{position:relative;display:block;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#A9895A,#DCC493);box-shadow:0 4px 14px rgba(22,40,58,.28);border:none;cursor:pointer;padding:0;overflow:visible}
+.foco-fab::after{content:'';position:absolute;inset:-6px;border-radius:50%;background:linear-gradient(135deg,#A9895A,#DCC493);opacity:.3;z-index:-1;animation:fab-pulse 2.6s ease-out infinite}
+.foco-fab-face{width:30px;height:30px;display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible}
 @keyframes fab-pulse{0%{transform:scale(.85);opacity:.3}100%{transform:scale(1.55);opacity:0}}
+.foco-fab-leg{display:none;position:absolute;bottom:-7px;width:6px;height:12px;background:#16283A;border-radius:3px;transform-origin:top center}
+.foco-fab-leg-l{left:15px}
+.foco-fab-leg-r{right:15px}
+.foco-fab-wrap.walking .foco-fab-leg{display:block;animation:leg-step .45s ease-in-out infinite alternate}
+.foco-fab-wrap.walking .foco-fab-leg-r{animation-delay:.225s}
+@keyframes leg-step{0%{transform:rotate(-20deg)}100%{transform:rotate(20deg)}}
 .foco-fab-panel{position:fixed;right:22px;bottom:84px;width:290px;max-width:calc(100vw - 44px);background:#fff;border:0.5px solid #ECECF2;border-radius:16px;padding:16px;box-shadow:0 10px 32px rgba(22,40,58,.18);z-index:901;display:none;flex-direction:column;gap:10px}
 .foco-fab-panel.show{display:flex}
 .foco-fab-panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
@@ -473,13 +478,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <div class="foco-fab-wrap" id="foco-fab-wrap">
+  <span class="foco-fab-leg foco-fab-leg-l"></span>
+  <span class="foco-fab-leg foco-fab-leg-r"></span>
   <button type="button" class="foco-fab" id="foco-fab-btn" onclick="toggleFocoFab()" aria-label="Adicionar ao Foco do dia" title="Adicionar ao Foco do dia">
-    <span class="foco-fab-photo">
-      <video poster="/brand/joaninha/joaninha-poster.jpg" autoplay loop muted playsinline>
-        <source src="/brand/joaninha/joaninha-andando.mp4" type="video/mp4">
-        <source src="/brand/joaninha/joaninha-andando.webm" type="video/webm">
-      </video>
-    </span>
+    <svg class="foco-fab-face" viewBox="0 0 60 60" aria-hidden="true">
+      <line x1="30" y1="4" x2="30" y2="13" stroke="#16283A" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="30" cy="4" r="3.2" fill="#16283A"/>
+      <rect x="10" y="13" width="40" height="34" rx="13" fill="#16283A"/>
+      <circle cx="22" cy="30" r="4.6" fill="#F1E4C6"/>
+      <circle cx="38" cy="30" r="4.6" fill="#F1E4C6"/>
+      <path d="M22,40 Q30,45 38,40" stroke="#F1E4C6" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    </svg>
   </button>
 </div>
 <div class="foco-fab-panel" id="foco-fab-panel">
