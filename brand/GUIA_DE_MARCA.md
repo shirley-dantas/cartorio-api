@@ -9,19 +9,20 @@ Guia de uso da marca PRIME, desenvolvido a partir da referência de logotipo for
 | `logo-primario.svg` | Logotipo colorido para fundos claros (branco, off-white). Uso principal em site, documentos, apresentações, papelaria. |
 | `logo-reverso.svg` | Logotipo em off-white/champagne para fundos escuros (petróleo, preto, fotos escuras). |
 | `logo-mono-petroleo.svg` | Versão em cor única, para aplicações de baixo contraste: carimbos, marca d'água, impressão em preto e branco, fax/scan. |
-| `marca-icone.svg` | Símbolo reduzido (arco + "P") para favicon, ícone de app, avatar de redes sociais e demais espaços quadrados/pequenos onde o wordmark completo perde legibilidade. |
+| `marca-icone.svg` | Versão do logotipo completo ("PRIME" + arco) ajustada para o formato quadrado — favicon, ícone de app, avatar de redes sociais. A marca não tem versão reduzida a uma letra isolada: em qualquer tamanho, "PRIME" por extenso é o único símbolo da PRIME. |
 | `paleta.css` | Tokens de cor em CSS custom properties, para uso em produtos digitais (site, app). |
 
 ## Logotipo
 
 - **Área de proteção**: mantenha ao redor do logotipo um espaço livre mínimo equivalente à altura da letra "P" do wordmark. Nenhum outro elemento (texto, imagem, borda) deve invadir essa área.
-- **Tamanho mínimo**: 120px de largura para o logotipo horizontal completo; 24px para o símbolo isolado (`marca-icone.svg`). Abaixo disso, o arco perde nitidez.
+- **Tamanho mínimo**: 120px de largura para o logotipo horizontal completo; 48px para a versão quadrada (`marca-icone.svg`). Em favicon (32px) a palavra "PRIME" fica pequena mas ainda legível — é uma limitação aceita conscientemente, já que a marca não usa uma versão reduzida a uma única letra.
 - **Não fazer**:
   - Não distorcer, inclinar ou espelhar o logotipo.
   - Não alterar as cores fora da paleta definida.
   - Não adicionar sombras, contornos, brilho ou efeitos 3D.
   - Não reduzir o espaçamento entre letras do wordmark.
   - Não usar o arco isoladamente como elemento decorativo genérico — ele pertence à marca e deve sempre remeter ao logotipo.
+  - Não usar nenhuma letra isolada (ex.: só o "P") como símbolo da marca, em nenhum contexto ou tamanho.
 
 ## Paleta de cores
 
