@@ -77,6 +77,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-input-row input:focus{border-color:#C9A876}
 .foco-input-row button{font-size:12px;padding:7px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600;transition:filter .15s ease}
 .foco-input-row button:hover{filter:brightness(1.12)}
+.foco-fab{position:fixed;right:22px;bottom:22px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#A9895A,#DCC493);box-shadow:0 4px 14px rgba(22,40,58,.28);border:none;cursor:pointer;z-index:900;display:flex;align-items:center;justify-content:center;padding:0}
+.foco-fab::after{content:'';position:absolute;inset:-6px;border-radius:50%;background:linear-gradient(135deg,#A9895A,#DCC493);opacity:.35;z-index:-1;animation:fab-pulse 2.6s ease-out infinite}
+.foco-fab svg{width:24px;height:24px;display:block}
+@keyframes fab-pulse{0%{transform:scale(.85);opacity:.35}100%{transform:scale(1.55);opacity:0}}
+.foco-fab-panel{position:fixed;right:22px;bottom:84px;width:290px;max-width:calc(100vw - 44px);background:#fff;border:0.5px solid #ECECF2;border-radius:16px;padding:16px;box-shadow:0 10px 32px rgba(22,40,58,.18);z-index:901;display:none;flex-direction:column;gap:10px}
+.foco-fab-panel.show{display:flex}
+.foco-fab-panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.foco-fab-panel-title{font-size:12.5px;font-weight:600;color:#16283A;line-height:1.4}
+.foco-fab-panel-close{background:none;border:none;color:#8E8EA0;font-size:18px;cursor:pointer;line-height:1;padding:0}
+.foco-fab-panel-close:hover{color:#1C1C1E}
+.foco-fab-panel-row{display:flex;gap:8px;align-items:center}
+.foco-fab-panel input{flex:1;font-size:13px;padding:8px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
+.foco-fab-panel input:focus{border-color:#C9A876}
+.foco-fab-panel-send{font-size:12px;padding:9px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600}
+.foco-fab-panel-send:hover{filter:brightness(1.12)}
+.foco-fab-panel-ok{font-size:12.5px;color:#1B7A3D;display:none;align-items:center;gap:6px}
+.foco-fab-panel-ok.show{display:flex}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
 .stat{background:#fff;border-radius:14px;padding:13px 15px;border:0.5px solid #ECECF2;box-shadow:0 1px 3px rgba(0,0,0,.03);transition:box-shadow .2s ease,transform .15s ease;display:flex;align-items:center;gap:11px}
 .stat:hover{box-shadow:0 6px 16px rgba(0,0,0,.07);transform:translateY(-2px)}
@@ -451,6 +468,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<button type="button" class="foco-fab" id="foco-fab-btn" onclick="toggleFocoFab()" aria-label="Adicionar ao Foco do dia" title="Adicionar ao Foco do dia">
+  <svg viewBox="0 0 60 60" aria-hidden="true">
+    <path d="M8,34 C16,16 44,16 52,34 C44,20 16,20 8,34 Z" fill="#16283A"/>
+  </svg>
+</button>
+<div class="foco-fab-panel" id="foco-fab-panel">
+  <div class="foco-fab-panel-header">
+    <div class="foco-fab-panel-title">O que você quer anotar no Foco do dia?</div>
+    <button type="button" class="foco-fab-panel-close" onclick="toggleFocoFab(false)">&times;</button>
+  </div>
+  <div class="foco-fab-panel-row">
+    <input type="text" id="fab-foco-input" placeholder="Ex: Ligar pro cliente Alfredo..." onkeydown="if(event.key==='Enter')enviarFocoFab()">
+    <button type="button" class="mic-btn mic-btn-dark" id="fab-foco-mic" onclick="toggleDitado('fab-foco-input','fab-foco-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
+  </div>
+  <button type="button" class="foco-fab-panel-send" onclick="enviarFocoFab()">Adicionar ao Foco do dia</button>
+  <div class="foco-fab-panel-ok" id="foco-fab-ok"><i class="ti ti-check"></i> Adicionado!</div>
+</div>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -593,14 +628,35 @@ window.toggleFocoInput=function(){
   r.style.display=r.style.display==='flex'?'none':'flex';
   if(r.style.display==='flex')setTimeout(()=>document.getElementById('foco-input').focus(),50);
 };
-window.addFoco=function(){
-  const v=document.getElementById('foco-input').value.trim();
-  if(!v)return;
+window.addFoco=function(textoDireto){
+  const v=(typeof textoDireto==='string')?textoDireto.trim():document.getElementById('foco-input').value.trim();
+  if(!v)return false;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  if(arr.length>=5){alert('Máximo 5 prioridades por dia.');return;}
+  if(arr.length>=5){alert('Máximo 5 prioridades por dia.');return false;}
   arr.push({text:v,done:false});
   set(focosRef,arr);
-  document.getElementById('foco-input').value='';
+  if(typeof textoDireto!=='string')document.getElementById('foco-input').value='';
+  return true;
+};
+window.toggleFocoFab=function(forceState){
+  const panel=document.getElementById('foco-fab-panel');
+  const show=(forceState!==undefined)?forceState:!panel.classList.contains('show');
+  panel.classList.toggle('show',show);
+  document.getElementById('foco-fab-ok').classList.remove('show');
+  document.querySelector('.foco-fab-panel-row').style.display='flex';
+  document.querySelector('.foco-fab-panel-send').style.display='block';
+  if(show)setTimeout(()=>document.getElementById('fab-foco-input').focus(),50);
+};
+window.enviarFocoFab=function(){
+  const input=document.getElementById('fab-foco-input');
+  const v=input.value.trim();
+  if(!v)return;
+  if(!addFoco(v))return;
+  input.value='';
+  document.querySelector('.foco-fab-panel-row').style.display='none';
+  document.querySelector('.foco-fab-panel-send').style.display='none';
+  document.getElementById('foco-fab-ok').classList.add('show');
+  setTimeout(()=>toggleFocoFab(false),1100);
 };
 window.toggleFoco=function(i){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
