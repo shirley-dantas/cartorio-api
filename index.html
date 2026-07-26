@@ -77,6 +77,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-input-row input:focus{border-color:#C9A876}
 .foco-input-row button{font-size:12px;padding:7px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600;transition:filter .15s ease}
 .foco-input-row button:hover{filter:brightness(1.12)}
+.foco-fab-wrap{position:fixed;right:22px;bottom:22px;left:auto;top:auto;z-index:900}
+.foco-fab-wrap.walking{animation:walk-bob .45s ease-in-out infinite alternate}
+@keyframes walk-bob{0%{transform:translateY(0)}100%{transform:translateY(-4px)}}
+.foco-fab{position:relative;display:block;width:52px;height:52px;border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(22,40,58,.28);border:none;cursor:pointer;padding:0;overflow:visible}
+.foco-fab::after{content:'';position:absolute;inset:-6px;border-radius:50%;background:#fff;opacity:.35;z-index:-1;animation:fab-pulse 2.6s ease-out infinite}
+.foco-fab-face{width:48px;height:48px;display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible}
+@keyframes fab-pulse{0%{transform:scale(.85);opacity:.35}100%{transform:scale(1.55);opacity:0}}
+.foco-fab-leg{display:none;position:absolute;bottom:-7px;width:6px;height:12px;background:#16283A;border-radius:3px;transform-origin:top center}
+.foco-fab-leg-l{left:15px}
+.foco-fab-leg-r{right:15px}
+.foco-fab-wrap.walking .foco-fab-leg{display:block;animation:leg-step .45s ease-in-out infinite alternate}
+.foco-fab-wrap.walking .foco-fab-leg-r{animation-delay:.225s}
+@keyframes leg-step{0%{transform:rotate(-20deg)}100%{transform:rotate(20deg)}}
+.foco-fab-panel{position:fixed;right:22px;bottom:84px;width:290px;max-width:calc(100vw - 44px);background:#fff;border:0.5px solid #ECECF2;border-radius:16px;padding:16px;box-shadow:0 10px 32px rgba(22,40,58,.18);z-index:901;display:none;flex-direction:column;gap:10px}
+.foco-fab-panel.show{display:flex}
+.foco-fab-panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.foco-fab-panel-title{font-size:12.5px;font-weight:600;color:#16283A;line-height:1.4}
+.foco-fab-panel-close{background:none;border:none;color:#8E8EA0;font-size:18px;cursor:pointer;line-height:1;padding:0}
+.foco-fab-panel-close:hover{color:#1C1C1E}
+.foco-fab-panel-row{display:flex;gap:8px;align-items:center}
+.foco-fab-panel input{flex:1;font-size:13px;padding:8px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
+.foco-fab-panel input:focus{border-color:#C9A876}
+.foco-fab-panel-send{font-size:12px;padding:9px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600}
+.foco-fab-panel-send:hover{filter:brightness(1.12)}
+.foco-fab-panel-ok{font-size:12.5px;color:#1B7A3D;display:none;align-items:center;gap:6px}
+.foco-fab-panel-ok.show{display:flex}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
 .stat{background:#fff;border-radius:14px;padding:13px 15px;border:0.5px solid #ECECF2;box-shadow:0 1px 3px rgba(0,0,0,.03);transition:box-shadow .2s ease,transform .15s ease;display:flex;align-items:center;gap:11px}
 .stat:hover{box-shadow:0 6px 16px rgba(0,0,0,.07);transform:translateY(-2px)}
@@ -451,6 +477,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<div class="foco-fab-wrap" id="foco-fab-wrap">
+  <span class="foco-fab-leg foco-fab-leg-l"></span>
+  <span class="foco-fab-leg foco-fab-leg-r"></span>
+  <button type="button" class="foco-fab" id="foco-fab-btn" onclick="toggleFocoFab()" aria-label="Adicionar ao Foco do dia" title="Adicionar ao Foco do dia">
+    <svg class="foco-fab-face" viewBox="0 0 60 60" aria-hidden="true">
+      <line x1="30" y1="5" x2="30" y2="11" stroke="#C7CAD1" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="30" cy="4" r="3" fill="#D8DAE0"/>
+      <circle cx="30" cy="34" r="22" fill="#F7F5F0" stroke="#E5E5EA" stroke-width="1.5"/>
+      <circle cx="21" cy="32" r="4.4" fill="#2D2D2D"/>
+      <circle cx="39" cy="32" r="4.4" fill="#2D2D2D"/>
+      <circle cx="22.4" cy="30.5" r="1.3" fill="#fff"/>
+      <circle cx="40.4" cy="30.5" r="1.3" fill="#fff"/>
+      <path d="M22,42 Q30,47 38,42" stroke="#2D2D2D" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <circle cx="13" cy="38" r="3.2" fill="#FF8FA3" opacity=".55"/>
+      <circle cx="47" cy="38" r="3.2" fill="#FF8FA3" opacity=".55"/>
+    </svg>
+  </button>
+</div>
+<div class="foco-fab-panel" id="foco-fab-panel">
+  <div class="foco-fab-panel-header">
+    <div class="foco-fab-panel-title">O que você quer anotar no Foco do dia?</div>
+    <button type="button" class="foco-fab-panel-close" onclick="toggleFocoFab(false)">&times;</button>
+  </div>
+  <div class="foco-fab-panel-row">
+    <input type="text" id="fab-foco-input" placeholder="Ex: Ligar pro cliente Alfredo..." onkeydown="if(event.key==='Enter')enviarFocoFab()">
+    <button type="button" class="mic-btn mic-btn-dark" id="fab-foco-mic" onclick="toggleDitado('fab-foco-input','fab-foco-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
+  </div>
+  <button type="button" class="foco-fab-panel-send" onclick="enviarFocoFab()">Adicionar ao Foco do dia</button>
+  <div class="foco-fab-panel-ok" id="foco-fab-ok"><i class="ti ti-check"></i> Adicionado!</div>
+</div>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -593,15 +650,114 @@ window.toggleFocoInput=function(){
   r.style.display=r.style.display==='flex'?'none':'flex';
   if(r.style.display==='flex')setTimeout(()=>document.getElementById('foco-input').focus(),50);
 };
-window.addFoco=function(){
-  const v=document.getElementById('foco-input').value.trim();
-  if(!v)return;
+window.addFoco=function(textoDireto){
+  const v=(typeof textoDireto==='string')?textoDireto.trim():document.getElementById('foco-input').value.trim();
+  if(!v)return false;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  if(arr.length>=5){alert('Máximo 5 prioridades por dia.');return;}
+  if(arr.length>=5){alert('Máximo 5 prioridades por dia.');return false;}
   arr.push({text:v,done:false});
   set(focosRef,arr);
-  document.getElementById('foco-input').value='';
+  if(typeof textoDireto!=='string')document.getElementById('foco-input').value='';
+  return true;
 };
+window.toggleFocoFab=function(forceState){
+  const panel=document.getElementById('foco-fab-panel');
+  const show=(forceState!==undefined)?forceState:!panel.classList.contains('show');
+  panel.classList.toggle('show',show);
+  document.getElementById('foco-fab-ok').classList.remove('show');
+  document.querySelector('.foco-fab-panel-row').style.display='flex';
+  document.querySelector('.foco-fab-panel-send').style.display='block';
+  if(show)setTimeout(()=>document.getElementById('fab-foco-input').focus(),50);
+};
+window.enviarFocoFab=function(){
+  const input=document.getElementById('fab-foco-input');
+  const v=input.value.trim();
+  if(!v)return;
+  if(!addFoco(v))return;
+  input.value='';
+  document.querySelector('.foco-fab-panel-row').style.display='none';
+  document.querySelector('.foco-fab-panel-send').style.display='none';
+  document.getElementById('foco-fab-ok').classList.add('show');
+  setTimeout(()=>toggleFocoFab(false),1100);
+};
+// ── Joaninha caminha livremente pela tela após 1min30 de inatividade,
+//    e mexe as pernas acompanhando a direção da rolagem ──
+let focoBotIdleTimer=null;
+const FOCO_BOT_IDLE_MS=90000;
+let focoBotWandering=false;
+let focoBotWanderTimeout=null;
+
+function focoBotAncoraLivre(wrap){
+  const r=wrap.getBoundingClientRect();
+  wrap.style.right='auto';wrap.style.bottom='auto';
+  wrap.style.left=r.left+'px';wrap.style.top=r.top+'px';
+}
+function focoBotPassoAleatorio(){
+  if(!focoBotWandering)return;
+  const wrap=document.getElementById('foco-fab-wrap');
+  if(!wrap)return;
+  const margin=16,tamanho=64;
+  const maxX=Math.max(margin,window.innerWidth-tamanho-margin);
+  const maxY=Math.max(margin,window.innerHeight-tamanho-margin);
+  const destX=margin+Math.random()*(maxX-margin);
+  const destY=margin+Math.random()*(maxY-margin);
+  const curX=parseFloat(wrap.style.left)||maxX;
+  const curY=parseFloat(wrap.style.top)||maxY;
+  const dist=Math.hypot(destX-curX,destY-curY);
+  const duracao=Math.max(900,Math.min(4200,dist/70*1000));
+  wrap.style.transition=`left ${duracao}ms linear, top ${duracao}ms linear`;
+  wrap.style.left=destX+'px';
+  wrap.style.top=destY+'px';
+  wrap.classList.add('walking');
+  focoBotWanderTimeout=setTimeout(focoBotPassoAleatorio,duracao+400);
+}
+function iniciarFocoBot(){
+  const panel=document.getElementById('foco-fab-panel');
+  const wrap=document.getElementById('foco-fab-wrap');
+  if(!wrap||panel.classList.contains('show'))return;
+  focoBotAncoraLivre(wrap);
+  focoBotWandering=true;
+  focoBotPassoAleatorio();
+}
+function pararFocoBot(){
+  focoBotWandering=false;
+  clearTimeout(focoBotWanderTimeout);
+  const wrap=document.getElementById('foco-fab-wrap');
+  if(!wrap)return;
+  if(wrap.style.left){
+    const homeX=window.innerWidth-74,homeY=window.innerHeight-74;
+    wrap.style.transition='left .5s ease,top .5s ease';
+    wrap.style.left=homeX+'px';
+    wrap.style.top=homeY+'px';
+    wrap.classList.add('walking');
+    setTimeout(()=>{
+      wrap.classList.remove('walking');
+      wrap.style.transition='';
+      wrap.style.left='';wrap.style.top='';
+      wrap.style.right='22px';wrap.style.bottom='22px';
+    },520);
+  }else{
+    wrap.classList.remove('walking');
+  }
+}
+function resetFocoBotIdle(){
+  pararFocoBot();
+  clearTimeout(focoBotIdleTimer);
+  focoBotIdleTimer=setTimeout(iniciarFocoBot,FOCO_BOT_IDLE_MS);
+}
+['mousemove','mousedown','keydown','scroll','touchstart','wheel'].forEach(evt=>{
+  window.addEventListener(evt,resetFocoBotIdle,{passive:true});
+});
+// Enquanto rola a página, ela "anda" no lugar (pernas em movimento) acompanhando o gesto
+let focoBotScrollStopTimer=null;
+window.addEventListener('scroll',()=>{
+  const wrap=document.getElementById('foco-fab-wrap');
+  if(!wrap||focoBotWandering)return;
+  wrap.classList.add('walking');
+  clearTimeout(focoBotScrollStopTimer);
+  focoBotScrollStopTimer=setTimeout(()=>wrap.classList.remove('walking'),400);
+},{passive:true});
+resetFocoBotIdle();
 window.toggleFoco=function(i){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   if(!arr[i])return;
