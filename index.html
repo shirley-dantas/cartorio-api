@@ -342,6 +342,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .joaninha-resposta.pensando{color:#B4718A;font-style:italic}
 .joaninha.jn-pensando .jn-antenna{animation-duration:1s}
 .joaninha.jn-atenta{transform:scale(1.08);filter:drop-shadow(0 10px 16px rgba(22,10,10,.28)) drop-shadow(0 0 16px rgba(201,168,118,.6));transition:transform .25s cubic-bezier(.34,1.56,.64,1),filter .25s ease}
+.joaninha.jn-dormindo{animation-duration:6s}
+.joaninha.jn-dormindo .jn-antenna{animation-duration:9s}
+.joaninha.jn-dormindo .jn-eyelid{transform:scaleY(1)}
+.joaninha.jn-dormindo .jn-mouth{d:path('M65,54 Q70,55 75,54')}
+@media(prefers-reduced-motion:reduce){
+  .joaninha,.joaninha.jn-andando,.joaninha.jn-voando,.joaninha.jn-pousando,.joaninha.jn-sorrindo,.joaninha.jn-comemorando{animation:none}
+  .jn-antenna{animation:none}
+  #joaninha-host{transition:none}
+}
 
 @media(max-width:600px){
   #joaninha-host{right:12px;bottom:14px}
@@ -583,17 +592,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <svg class="joaninha-svg" viewBox="0 0 140 140">
       <defs>
         <radialGradient id="jn-grad-body" cx="40%" cy="26%" r="78%">
-          <stop offset="0%" stop-color="#F5615D"/>
-          <stop offset="52%" stop-color="#D32F2F"/>
-          <stop offset="100%" stop-color="#8E1E1E"/>
+          <stop offset="0%" stop-color="#FF7A6E"/>
+          <stop offset="52%" stop-color="#FF3B30"/>
+          <stop offset="100%" stop-color="#B32B23"/>
         </radialGradient>
         <radialGradient id="jn-grad-head" cx="38%" cy="26%" r="78%">
-          <stop offset="0%" stop-color="#3A3A3C"/>
-          <stop offset="100%" stop-color="#0C0C0D"/>
+          <stop offset="0%" stop-color="#2C2C2E"/>
+          <stop offset="100%" stop-color="#1C1C1E"/>
         </radialGradient>
         <linearGradient id="jn-grad-wing" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#FFE3EA" stop-opacity=".85"/>
-          <stop offset="100%" stop-color="#F3B6C6" stop-opacity=".55"/>
+          <stop offset="0%" stop-color="#FFE0E6" stop-opacity=".85"/>
+          <stop offset="100%" stop-color="#FFB6C1" stop-opacity=".55"/>
         </linearGradient>
         <clipPath id="jn-body-clip"><ellipse cx="70" cy="85" rx="46" ry="43"/></clipPath>
       </defs>
@@ -603,7 +612,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <ellipse class="jn-wing jn-wing-r" cx="100" cy="70" rx="18" ry="30" fill="url(#jn-grad-wing)"/>
 
       <!-- patinhas -->
-      <g class="jn-patas" stroke="#0C0C0D" stroke-width="3" stroke-linecap="round">
+      <g class="jn-patas" stroke="#1C1C1E" stroke-width="3" stroke-linecap="round">
         <path d="M34,90 Q26,96 22,100"/>
         <path d="M32,104 Q24,108 19,110"/>
         <path d="M37,117 Q29,122 24,126"/>
@@ -613,11 +622,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </g>
 
       <!-- corpo: casco vermelho brilhante em cima, base preta fosca embaixo -->
-      <ellipse class="jn-body" cx="70" cy="85" rx="46" ry="43" fill="url(#jn-grad-body)" stroke="#5C1414" stroke-width="1.5"/>
-      <ellipse cx="70" cy="118" rx="46" ry="22" fill="#0C0C0D" opacity=".9" clip-path="url(#jn-body-clip)"/>
-      <line x1="70" y1="50" x2="70" y2="122" stroke="#5C1414" stroke-width="2" clip-path="url(#jn-body-clip)"/>
+      <ellipse class="jn-body" cx="70" cy="85" rx="46" ry="43" fill="url(#jn-grad-body)" stroke="#7A211B" stroke-width="1.5"/>
+      <ellipse cx="70" cy="118" rx="46" ry="22" fill="#1C1C1E" opacity=".9" clip-path="url(#jn-body-clip)"/>
+      <line x1="70" y1="50" x2="70" y2="122" stroke="#7A211B" stroke-width="2" clip-path="url(#jn-body-clip)"/>
       <ellipse cx="54" cy="64" rx="11" ry="7.5" fill="#fff" opacity=".2" clip-path="url(#jn-body-clip)"/>
-      <g fill="#1A0A0A" clip-path="url(#jn-body-clip)">
+      <g fill="#1C1C1E" clip-path="url(#jn-body-clip)">
         <circle cx="52" cy="68" r="5.5"/>
         <circle cx="46" cy="90" r="6"/>
         <circle cx="88" cy="68" r="5.5"/>
@@ -626,30 +635,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       <!-- cabeça: contínua com o corpo, sem divisão -->
       <circle cx="70" cy="38" r="28" fill="url(#jn-grad-head)"/>
-      <path class="jn-antenna jn-antenna-l" d="M58,18 Q50,6 46,2" stroke="#0C0C0D" stroke-width="3" stroke-linecap="round" fill="none"/>
-      <circle cx="46" cy="2" r="4" fill="#0C0C0D"/>
-      <path class="jn-antenna jn-antenna-r" d="M82,18 Q90,6 94,2" stroke="#0C0C0D" stroke-width="3" stroke-linecap="round" fill="none"/>
-      <circle cx="94" cy="2" r="4" fill="#0C0C0D"/>
+      <path class="jn-antenna jn-antenna-l" d="M58,18 Q50,6 46,2" stroke="#1C1C1E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="46" cy="2" r="4" fill="#1C1C1E"/>
+      <path class="jn-antenna jn-antenna-r" d="M82,18 Q90,6 94,2" stroke="#1C1C1E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="94" cy="2" r="4" fill="#1C1C1E"/>
 
-      <circle class="jn-cheek" cx="49" cy="48" r="6" fill="#FF9EB5" opacity=".5"/>
-      <circle class="jn-cheek" cx="91" cy="48" r="6" fill="#FF9EB5" opacity=".5"/>
+      <circle class="jn-cheek" cx="49" cy="48" r="6" fill="#FFB6C1" opacity=".55"/>
+      <circle class="jn-cheek" cx="91" cy="48" r="6" fill="#FFB6C1" opacity=".55"/>
 
       <g class="jn-eye">
         <ellipse cx="57" cy="35" rx="12" ry="14" fill="#fff"/>
-        <circle class="jn-pupil" cx="58.5" cy="36" r="7" fill="#0C0C0D"/>
+        <circle class="jn-pupil" cx="58.5" cy="36" r="7" fill="#1C1C1E"/>
         <circle cx="61.5" cy="31.5" r="2.2" fill="#fff"/>
         <circle cx="56" cy="41" r="1.1" fill="#fff" opacity=".8"/>
-        <path class="jn-eyelid" d="M45,22 a12,14 0 0 1 24,0 Z" fill="#0C0C0D"/>
+        <path class="jn-eyelid" d="M45,22 a12,14 0 0 1 24,0 Z" fill="#1C1C1E"/>
       </g>
       <g class="jn-eye">
         <ellipse cx="83" cy="35" rx="12" ry="14" fill="#fff"/>
-        <circle class="jn-pupil" cx="84.5" cy="36" r="7" fill="#0C0C0D"/>
+        <circle class="jn-pupil" cx="84.5" cy="36" r="7" fill="#1C1C1E"/>
         <circle cx="87.5" cy="31.5" r="2.2" fill="#fff"/>
         <circle cx="82" cy="41" r="1.1" fill="#fff" opacity=".8"/>
-        <path class="jn-eyelid" d="M71,22 a12,14 0 0 1 24,0 Z" fill="#0C0C0D"/>
+        <path class="jn-eyelid" d="M71,22 a12,14 0 0 1 24,0 Z" fill="#1C1C1E"/>
       </g>
 
-      <path class="jn-mouth" d="M64,53 Q70,57 76,53" stroke="#0C0C0D" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path class="jn-mouth" d="M64,53 Q70,57 76,53" stroke="#1C1C1E" stroke-width="2" stroke-linecap="round" fill="none"/>
     </svg>
     <span class="joaninha-heart" id="joaninha-heart">❤️</span>
   </button>
@@ -1589,12 +1598,25 @@ const JoaninhaMascote=(function(){
   if(!host||!joaninha)return{disponivel:false};
 
   const esperar=(ms)=>new Promise(r=>setTimeout(r,ms));
-  const estado={andando:false,voando:false,pausada:false};
+  const estado={andando:false,voando:false,pausada:false,dormindo:false};
   let ultimaAtividade=Date.now();
   let bolhaTimer=null;
 
+  function acordar(){
+    if(!estado.dormindo)return;
+    estado.dormindo=false;
+    joaninha.classList.remove('jn-dormindo');
+  }
+  function dormir(){
+    if(estado.dormindo)return;
+    estado.dormindo=true;
+    pararDeVagarAgora();
+    joaninha.classList.add('jn-dormindo');
+  }
+
   function registrarAtividade(){
     ultimaAtividade=Date.now();
+    acordar();
   }
   ['mousedown','keydown','scroll','touchstart','wheel'].forEach(evt=>{
     window.addEventListener(evt,registrarAtividade,{passive:true});
@@ -1621,7 +1643,7 @@ const JoaninhaMascote=(function(){
   // piscar de vez em quando
   (function agendarPiscada(){
     setTimeout(()=>{
-      if(!estado.voando&&!estado.andando){
+      if(!estado.voando&&!estado.andando&&!estado.dormindo){
         joaninha.classList.add('jn-piscando');
         setTimeout(()=>joaninha.classList.remove('jn-piscando'),200);
       }
@@ -1632,7 +1654,7 @@ const JoaninhaMascote=(function(){
   // de vez em quando abre e fecha as asinhas, mesmo parada
   (function agendarAsinha(){
     setTimeout(()=>{
-      if(!estado.voando&&!estado.andando&&!estado.pausada){
+      if(!estado.voando&&!estado.andando&&!estado.pausada&&!estado.dormindo){
         joaninha.classList.add('jn-asa-twitch');
         setTimeout(()=>joaninha.classList.remove('jn-asa-twitch'),900);
       }
@@ -1679,9 +1701,11 @@ const JoaninhaMascote=(function(){
   }
 
   setInterval(()=>{
-    if(estado.pausada||estado.andando||estado.voando)return;
+    if(estado.pausada||estado.andando||estado.voando||estado.dormindo)return;
     if(document.querySelector('.modal-overlay.open'))return;
-    if(Date.now()-ultimaAtividade>60000)vagar();
+    const idleMs=Date.now()-ultimaAtividade;
+    if(idleMs>300000){dormir();return;}
+    if(idleMs>60000)vagar();
   },5000);
 
   function falar(msg,duracaoMs){
@@ -1739,7 +1763,8 @@ const JoaninhaMascote=(function(){
     },2500);
   }
 
-  return{disponivel:true,registrarAtividade,pausarVagar,retomarVagar,reagir,falar,setHumor};
+  return{disponivel:true,registrarAtividade,pausarVagar,retomarVagar,reagir,falar,setHumor,
+    play:reagir,sleep:dormir,wake:acordar};
 })();
 
 // JoaninhaPRIME: integração com os dados do painel (Firebase, casos, focos) e
