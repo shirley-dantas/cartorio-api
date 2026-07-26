@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="PRIME">
+  <defs>
+    <linearGradient id="arcoChampagneIcone" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#A9895A"/>
+      <stop offset="40%" stop-color="#DCC493"/>
+      <stop offset="58%" stop-color="#F1E4C6"/>
+      <stop offset="78%" stop-color="#DCC493"/>
+      <stop offset="100%" stop-color="#A9895A"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" rx="104" fill="#F7F5F0"/>
+
+  <path d="M76,238 C158,182 336,174 436,220 C336,190 158,196 76,238 Z" fill="url(#arcoChampagneIcone)"/>
+
+  <text x="256" y="330" text-anchor="middle"
+        font-family="'Jost','Century Gothic','Futura',sans-serif"
+        font-weight="200" font-size="60"
+        fill="#16283A">
+    <tspan>P</tspan><tspan dx="26">R</tspan><tspan dx="22">I</tspan><tspan dx="22">M</tspan><tspan dx="28">E</tspan>
+  </text>
+</svg>
