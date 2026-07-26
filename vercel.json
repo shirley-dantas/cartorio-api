@@ -6,6 +6,7 @@
     "api/iniciar-minuta.js": { "maxDuration": 10 },
     "api/sugerir-proxima.js": { "maxDuration": 25 },
     "api/perguntar-joaninha.js": { "maxDuration": 25 },
+    "api/classificar-documento.js": { "maxDuration": 20 },
     "api/registrar-atendimento.js": { "maxDuration": 25 },
     "api/verificar-alertas.js": { "maxDuration": 40 }
   }
