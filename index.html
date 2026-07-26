@@ -1575,20 +1575,21 @@ window.salvarNovo=function(){
   window.toggleForm();
 };
 // ── JOANINHA — assistente flutuante ──
-(function(){
+// JoaninhaMascote: componente visual/comportamental puro. Não conhece Firebase,
+// casos, focos ou o conteúdo do painel — só o corpo, os estados de animação e a
+// bolha de fala. Pensado para que, se um dia o PRIME migrar para React/Framer
+// Motion, seja só esta parte que precisa virar componente (a integração com o
+// painel/dados fica isolada em JoaninhaPRIME, logo abaixo).
+const JoaninhaMascote=(function(){
   const host=document.getElementById('joaninha-host');
   const joaninha=document.getElementById('joaninha');
   const bubble=document.getElementById('joaninha-bubble');
-  const painel=document.getElementById('joaninha-panel');
   const heart=document.getElementById('joaninha-heart');
-  if(!host||!joaninha||!painel)return;
+  if(!host||!joaninha)return{disponivel:false};
 
   const esperar=(ms)=>new Promise(r=>setTimeout(r,ms));
-  const estado={andando:false,voando:false};
-  let painelAberto=false;
-  let contexto=null; // {tipo:'caso',id,nome} ou null (= Foco do dia)
+  const estado={andando:false,voando:false,pausada:false};
   let ultimaAtividade=Date.now();
-  let anexosPendentes=[];
   let bolhaTimer=null;
 
   function registrarAtividade(){
@@ -1630,7 +1631,7 @@ window.salvarNovo=function(){
   // de vez em quando abre e fecha as asinhas, mesmo parada
   (function agendarAsinha(){
     setTimeout(()=>{
-      if(!estado.voando&&!estado.andando&&!painelAberto){
+      if(!estado.voando&&!estado.andando&&!estado.pausada){
         joaninha.classList.add('jn-asa-twitch');
         setTimeout(()=>joaninha.classList.remove('jn-asa-twitch'),900);
       }
@@ -1646,15 +1647,14 @@ window.salvarNovo=function(){
     return{right,bottom};
   }
 
-  function pararDeVagar(){
+  function pararDeVagarAgora(){
     joaninha.classList.remove('jn-andando','jn-voando','jn-pousando');
     estado.andando=false;estado.voando=false;
-    host.classList.remove('jn-rapido');
     host.style.right='';host.style.bottom='';
   }
 
   async function vagar(){
-    if(painelAberto||document.querySelector('.modal-overlay.open'))return;
+    if(estado.pausada||document.querySelector('.modal-overlay.open'))return;
     estado.andando=true;
     joaninha.classList.add('jn-andando');
     const alvo1=posicaoAleatoria();
@@ -1663,7 +1663,7 @@ window.salvarNovo=function(){
     await esperar(1900);
     joaninha.classList.remove('jn-andando');
     estado.andando=false;
-    if(painelAberto||Date.now()-ultimaAtividade<1500)return;
+    if(estado.pausada||Date.now()-ultimaAtividade<1500)return;
     estado.voando=true;
     joaninha.classList.add('jn-voando');
     const alvo2=posicaoAleatoria();
@@ -1678,17 +1678,77 @@ window.salvarNovo=function(){
   }
 
   setInterval(()=>{
-    if(painelAberto||estado.andando||estado.voando)return;
+    if(estado.pausada||estado.andando||estado.voando)return;
     if(document.querySelector('.modal-overlay.open'))return;
     if(Date.now()-ultimaAtividade>60000)vagar();
   },5000);
 
-  function mostrarBolha(msg,duracaoMs){
+  function falar(msg,duracaoMs){
     bubble.textContent=msg;
     bubble.classList.add('show');
     clearTimeout(bolhaTimer);
     bolhaTimer=setTimeout(()=>bubble.classList.remove('show'),duracaoMs||3600);
   }
+
+  const MSGS_COMEMORACAO=['Anotado! 🐞','Salvo com carinho.','Prontinho!','Registrado, pode continuar.'];
+  function reagir(tipo){
+    if(tipo==='sorrir'){
+      joaninha.classList.add('jn-sorrindo');
+      setTimeout(()=>joaninha.classList.remove('jn-sorrindo'),650);
+    }else if(tipo==='comemorar'){
+      joaninha.classList.add('jn-comemorando');
+      heart.classList.remove('jn-pop');
+      void heart.offsetWidth;
+      heart.classList.add('jn-pop');
+      falar(MSGS_COMEMORACAO[Math.floor(Math.random()*MSGS_COMEMORACAO.length)],2200);
+      setTimeout(()=>joaninha.classList.remove('jn-comemorando'),1100);
+    }else if(tipo==='pensando-on'){
+      joaninha.classList.add('jn-pensando');
+    }else if(tipo==='pensando-off'){
+      joaninha.classList.remove('jn-pensando');
+    }
+  }
+
+  function setHumor(mood){
+    host.classList.remove('jn-mood-preocupada','jn-mood-feliz');
+    if(mood)host.classList.add('jn-mood-'+mood);
+  }
+
+  function pausarVagar(){
+    estado.pausada=true;
+    pararDeVagarAgora();
+  }
+  function retomarVagar(){
+    estado.pausada=false;
+  }
+
+  // espreguiçar na segunda-feira de manhã (uma vez por dia) — comportamento
+  // próprio da mascote, não depende de nenhum dado do painel
+  const hojeStr=new Date().toDateString();
+  if(new Date().getDay()===1&&new Date().getHours()<12&&sessionStorage.getItem('joaninha_esprei')!==hojeStr){
+    sessionStorage.setItem('joaninha_esprei',hojeStr);
+    setTimeout(()=>{
+      joaninha.classList.add('jn-asa-twitch');
+      falar('Bom dia! Vamos começar a semana? 🐞',3600);
+      setTimeout(()=>joaninha.classList.remove('jn-asa-twitch'),900);
+    },2500);
+  }
+
+  return{disponivel:true,registrarAtividade,pausarVagar,retomarVagar,reagir,falar,setHumor};
+})();
+
+// JoaninhaPRIME: integração com os dados do painel (Firebase, casos, focos) e
+// com o painel de captura rápida. Só fala com a mascote através da API pública
+// de JoaninhaMascote (reagir/falar/setHumor/pausarVagar/retomarVagar) — nunca
+// mexe direto nas classes ou no DOM dela.
+(function(){
+  const painel=document.getElementById('joaninha-panel');
+  if(!JoaninhaMascote.disponivel||!painel)return;
+  const{registrarAtividade,pausarVagar,retomarVagar,reagir,falar,setHumor}=JoaninhaMascote;
+
+  let painelAberto=false;
+  let contexto=null; // {tipo:'caso',id,nome} ou null (= Foco do dia)
+  let anexosPendentes=[];
 
   // ── contexto: caso em foco ou Foco do dia ──
   const casosList=document.getElementById('casos-list');
@@ -1723,12 +1783,12 @@ window.salvarNovo=function(){
     painel.classList.toggle('open',abrir);
     registrarAtividade();
     if(abrir){
-      pararDeVagar();
-      joaninha.classList.add('jn-sorrindo');
-      setTimeout(()=>joaninha.classList.remove('jn-sorrindo'),650);
+      pausarVagar();
+      reagir('sorrir');
       atualizarContextoUI();
       window.joaninhaTab('nota');
     }else{
+      retomarVagar();
       if(reconhecimentoVoz&&ditando)reconhecimentoVoz.stop();
     }
   };
@@ -1809,7 +1869,7 @@ window.salvarNovo=function(){
       ta.value='';
       anexosPendentes=[];
       renderAnexos();
-      comemorar();
+      reagir('comemorar');
       setTimeout(()=>window.toggleJoaninhaPainel(false),1000);
     }catch(e){
       alert('Não consegui salvar agora. Tente de novo em instantes.');
@@ -1817,32 +1877,19 @@ window.salvarNovo=function(){
     btn.disabled=false;
   };
 
-  const MSGS_COMEMORACAO=['Anotado! 🐞','Salvo com carinho.','Prontinho!','Registrado, pode continuar.'];
-  function comemorar(){
-    joaninha.classList.add('jn-comemorando');
-    heart.classList.remove('jn-pop');
-    void heart.offsetWidth;
-    heart.classList.add('jn-pop');
-    mostrarBolha(MSGS_COMEMORACAO[Math.floor(Math.random()*MSGS_COMEMORACAO.length)],2200);
-    setTimeout(()=>joaninha.classList.remove('jn-comemorando'),1100);
-  }
-
   // ── humor conforme o painel (chamado por renderStats) ──
   let ultimoCriticos=null,tudoEmDiaMostrado=false;
   window.joaninhaAtualizarHumor=function(ativos,criticos,atencao){
-    host.classList.remove('jn-mood-preocupada','jn-mood-feliz');
-    if(criticos>=3){
-      host.classList.add('jn-mood-preocupada');
-    }else if(ativos>0&&criticos===0&&atencao===0){
-      host.classList.add('jn-mood-feliz');
-    }
+    if(criticos>=3)setHumor('preocupada');
+    else if(ativos>0&&criticos===0&&atencao===0)setHumor('feliz');
+    else setHumor(null);
     if(ativos>0&&criticos===0&&atencao===0){
-      if(!tudoEmDiaMostrado){tudoEmDiaMostrado=true;mostrarBolha('Tudo em dia! Bom trabalho. 🎉',4200);}
+      if(!tudoEmDiaMostrado){tudoEmDiaMostrado=true;falar('Tudo em dia! Bom trabalho. 🎉',4200);}
     }else{
       tudoEmDiaMostrado=false;
     }
     if(ultimoCriticos!==null&&criticos<ultimoCriticos&&criticos>0){
-      mostrarBolha('As pendências críticas diminuíram.',3600);
+      falar('As pendências críticas diminuíram.',3600);
     }
     ultimoCriticos=criticos;
   };
@@ -1856,20 +1903,9 @@ window.salvarNovo=function(){
       _toggleConcluidoOriginal(id);
       if(vaiConcluir){
         registrarAtividade();
-        comemorar();
+        reagir('comemorar');
       }
     };
-  }
-
-  // espreguiçar na segunda-feira de manhã (uma vez por dia)
-  const hojeStr=new Date().toDateString();
-  if(new Date().getDay()===1&&new Date().getHours()<12&&sessionStorage.getItem('joaninha_esprei')!==hojeStr){
-    sessionStorage.setItem('joaninha_esprei',hojeStr);
-    setTimeout(()=>{
-      joaninha.classList.add('jn-asa-twitch');
-      mostrarBolha('Bom dia! Vamos começar a semana? 🐞',3600);
-      setTimeout(()=>joaninha.classList.remove('jn-asa-twitch'),900);
-    },2500);
   }
 
   // ── FASE 1: regras determinísticas, resumo, busca universal e lembretes ──
@@ -1986,7 +2022,7 @@ window.salvarNovo=function(){
     const novo={texto,quando:new Date(quando).toISOString(),casoId,criadoEm:new Date().toISOString(),notificado:false,feito:false};
     await push(ref(db,'lembretes'),novo);
     txtEl.value='';quandoEl.value='';
-    comemorar();
+    reagir('comemorar');
   };
   window.joaninhaConcluirLembrete=async function(key){
     await remove(ref(db,'lembretes/'+key));
@@ -2009,7 +2045,7 @@ window.salvarNovo=function(){
     const agora=Date.now();
     Object.entries(lembretes).forEach(([key,l])=>{
       if(l&&!l.feito&&!l.notificado&&new Date(l.quando).getTime()<=agora){
-        mostrarBolha('⏰ '+l.texto,5200);
+        falar('⏰ '+l.texto,5200);
         update(ref(db,'lembretes/'+key),{notificado:true});
       }
     });
@@ -2071,7 +2107,7 @@ window.salvarNovo=function(){
       return;
     }
     btn.disabled=true;
-    joaninha.classList.add('jn-pensando');
+    reagir('pensando-on');
     renderRespostaPergunta('Pensando...','pensando');
     try{
       const casosAtivos=casosAtivosList().map(c=>({nome:c.nome,tipo:c.tipo,status:c.status,resp:c.resp,prazo:c.prazo,dep:c.dep,diasParado:diasParado(c.atualizado),obs:c.obs}));
@@ -2087,7 +2123,7 @@ window.salvarNovo=function(){
     }catch(e){
       renderRespostaPergunta('Não consegui conectar para responder agora. Tente de novo em instantes.');
     }
-    joaninha.classList.remove('jn-pensando');
+    reagir('pensando-off');
     btn.disabled=false;
   };
 
