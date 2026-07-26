@@ -15,6 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="design-system/mascots/joaninha/joaninha.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F3F3F8;background-image:radial-gradient(circle at 8% 0%,rgba(31,59,77,.05),transparent 42%),radial-gradient(circle at 92% 6%,rgba(201,168,118,.06),transparent 40%);background-attachment:fixed;color:#1C1C1E;min-height:100vh;font-size:14px;letter-spacing:-.01em}
@@ -222,6 +223,82 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .container{padding:14px 12px}
   .search-wrap{margin-left:0;width:100%}
   .search-wrap input{width:100%}
+}
+
+/* ── JOANINHA — painel de captura rápida (a mascote em si é um componente
+   do design system: ver design-system/mascots/joaninha/joaninha.css) ── */
+.joaninha-panel{position:fixed;right:22px;bottom:106px;z-index:901;width:324px;background:#fff;border-radius:18px;box-shadow:0 18px 44px rgba(22,10,10,.22);border:0.5px solid #F5DEE3;padding:14px;opacity:0;transform:translateY(14px) scale(.97);pointer-events:none;transition:opacity .2s ease,transform .32s cubic-bezier(.34,1.56,.64,1)}
+.joaninha-panel.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.joaninha-panel-header{display:flex;align-items:flex-start;gap:9px;margin-bottom:10px}
+.joaninha-panel-avatar{font-size:20px;line-height:1}
+.joaninha-panel-title{font-size:13px;font-weight:700;color:#7A1F2B}
+.joaninha-panel-sub{font-size:10px;font-weight:500;color:#AEAEB2;margin-left:4px}
+.joaninha-panel-contexto{font-size:11px;color:#B4718A;margin-top:1px}
+.joaninha-panel-close{margin-left:auto;background:none;border:none;font-size:17px;color:#AEAEB2;cursor:pointer;line-height:1}
+.joaninha-panel-close:hover{color:#1C1C1E}
+.joaninha-textarea-wrap{position:relative}
+.joaninha-textarea-wrap textarea{width:100%;font-size:12.5px;padding:9px 40px 9px 10px;border-radius:10px;border:0.5px solid #F0D3D8;background:#FFF7F8;color:#1C1C1E;resize:vertical;font-family:inherit;outline:none;min-height:64px}
+.joaninha-textarea-wrap textarea:focus{border-color:#D68A9B;background:#fff}
+.joaninha-anexos{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.joaninha-anexo-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;background:#FDECEF;color:#7A1F2B;border-radius:20px;padding:3px 8px 3px 9px}
+.joaninha-anexo-chip button{background:none;border:none;color:#B4718A;cursor:pointer;font-size:13px;line-height:1;padding:0 1px}
+.joaninha-panel-actions{display:flex;align-items:center;gap:6px;margin-top:10px}
+.joaninha-icon-btn{width:30px;height:30px;border-radius:50%;border:0.5px solid #F0D3D8;background:#FFF7F8;color:#B4718A;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px}
+.joaninha-icon-btn:hover{background:#FDECEF}
+.joaninha-send-btn{margin-left:auto;width:34px;height:34px;border-radius:50%;border:none;background:linear-gradient(135deg,#C62828,#7A1F2B);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:filter .15s ease}
+.joaninha-send-btn:hover{filter:brightness(1.12)}
+
+.joaninha-tabs{display:flex;gap:3px;margin-bottom:11px;border-bottom:0.5px solid #F5DEE3;padding-bottom:8px}
+.joaninha-tab{flex:1;font-size:10.5px;font-weight:600;padding:6px 2px;border-radius:8px;border:none;background:transparent;color:#B4718A;cursor:pointer;white-space:nowrap}
+.joaninha-tab:hover{background:#FFF7F8}
+.joaninha-tab.active{background:#FDECEF;color:#7A1F2B}
+.joaninha-tab-content{max-height:280px;overflow-y:auto}
+
+.joaninha-lembrete-form{display:flex;flex-direction:column;gap:7px}
+.joaninha-lembrete-form input[type="text"]{font-size:12.5px;padding:8px 10px;border-radius:9px;border:0.5px solid #F0D3D8;background:#FFF7F8;color:#1C1C1E;font-family:inherit;outline:none}
+.joaninha-lembrete-form input[type="text"]:focus{border-color:#D68A9B;background:#fff}
+.joaninha-lembrete-form input[type="datetime-local"]{font-size:12px;padding:7px 9px;border-radius:9px;border:0.5px solid #F0D3D8;background:#FFF7F8;color:#1C1C1E;font-family:inherit;outline:none}
+.joaninha-lembrete-form button{align-self:flex-end;font-size:12px;padding:7px 14px;border-radius:9px;border:none;background:linear-gradient(135deg,#C62828,#7A1F2B);color:#fff;cursor:pointer;font-weight:600}
+.joaninha-lembretes-lista{display:flex;flex-direction:column;gap:6px;margin-top:11px}
+.joaninha-lembrete-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;background:#FFF7F8;border-radius:9px;padding:7px 9px}
+.joaninha-lembrete-item .jl-info{flex:1;min-width:0}
+.joaninha-lembrete-item .jl-texto{color:#1C1C1E;line-height:1.4}
+.joaninha-lembrete-item .jl-quando{color:#B4718A;font-size:10.5px;margin-top:1px}
+.joaninha-lembrete-item button{background:none;border:none;color:#B4718A;cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0}
+.joaninha-lembrete-item button:hover{color:#7A1F2B}
+.joaninha-vazio{font-size:11.5px;color:#B4718A;font-style:italic;padding:6px 2px}
+
+.joaninha-resumo-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
+.joaninha-resumo-tile{background:#FFF7F8;border-radius:10px;padding:9px 10px}
+.joaninha-resumo-num{font-size:18px;font-weight:700;color:#7A1F2B;line-height:1.1;font-variant-numeric:tabular-nums}
+.joaninha-resumo-label{font-size:10px;color:#B4718A;margin-top:2px;line-height:1.3}
+.joaninha-insights{display:flex;flex-direction:column;gap:5px;margin-top:2px}
+.joaninha-insight{font-size:11.5px;color:#1C1C1E;background:#FDECEF;border-radius:8px;padding:6px 9px;line-height:1.4}
+
+.joaninha-busca-input{width:100%;font-size:12.5px;padding:8px 10px;border-radius:9px;border:0.5px solid #F0D3D8;background:#FFF7F8;color:#1C1C1E;font-family:inherit;outline:none;margin-bottom:9px}
+.joaninha-busca-input:focus{border-color:#D68A9B;background:#fff}
+.joaninha-busca-grupo-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#B4718A;margin:9px 0 5px}
+.joaninha-busca-item{display:flex;align-items:center;gap:7px;font-size:12px;padding:7px 8px;border-radius:8px;cursor:pointer;color:#1C1C1E}
+.joaninha-busca-item:hover{background:#FFF7F8}
+.joaninha-busca-item .jb-tipo{font-size:10.5px;color:#B4718A}
+
+.card.jn-destaque{animation:jn-destaque-kf 1.8s ease}
+@keyframes jn-destaque-kf{0%{box-shadow:0 0 0 0 rgba(201,168,118,.55)}30%{box-shadow:0 0 0 6px rgba(201,168,118,.35)}100%{box-shadow:0 0 0 0 rgba(201,168,118,0)}}
+
+.joaninha-pergunta-form{display:flex;gap:6px;margin-bottom:10px}
+.joaninha-pergunta-form input{flex:1;font-size:12.5px;padding:8px 10px;border-radius:9px;border:0.5px solid #F0D3D8;background:#FFF7F8;color:#1C1C1E;font-family:inherit;outline:none}
+.joaninha-pergunta-form input:focus{border-color:#D68A9B;background:#fff}
+.joaninha-pergunta-form button{width:34px;border-radius:9px;border:none;background:linear-gradient(135deg,#C62828,#7A1F2B);color:#fff;cursor:pointer;font-size:14px;flex-shrink:0}
+.joaninha-pergunta-form button:disabled{opacity:.55;cursor:not-allowed}
+.joaninha-pergunta-exemplos{display:flex;flex-direction:column;gap:4px;margin-bottom:4px}
+.joaninha-pergunta-exemplo{font-size:11px;color:#B4718A;background:none;border:none;text-align:left;cursor:pointer;padding:3px 2px}
+.joaninha-pergunta-exemplo:hover{color:#7A1F2B;text-decoration:underline}
+.joaninha-resposta{font-size:12.5px;color:#1C1C1E;line-height:1.55;background:#FFF7F8;border-radius:10px;padding:10px 12px;margin-top:2px}
+.joaninha-resposta-origem{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#B4718A;margin-bottom:5px;display:block}
+.joaninha-resposta.pensando{color:#B4718A;font-style:italic}
+
+@media(max-width:600px){
+  .joaninha-panel{right:12px;left:12px;width:auto;bottom:98px}
 }
 </style>
 </head>
@@ -451,9 +528,79 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- A mascote em si (SVG, host, bolha de fala) é montada em runtime pelo
+     componente design-system/mascots/joaninha/joaninha.js — só o painel
+     de captura rápida (específico do PRIME) fica declarado aqui. -->
+<div class="joaninha-panel" id="joaninha-panel">
+  <div class="joaninha-panel-header">
+    <span class="joaninha-panel-avatar">🐞</span>
+    <div>
+      <div class="joaninha-panel-title">Joaninha<span class="joaninha-panel-sub">Captura rápida</span></div>
+      <div class="joaninha-panel-contexto" id="joaninha-contexto">Foco do dia</div>
+    </div>
+    <button type="button" class="joaninha-panel-close" onclick="toggleJoaninhaPainel(false)">&times;</button>
+  </div>
+
+  <div class="joaninha-tabs">
+    <button type="button" class="joaninha-tab active" data-tab="nota" onclick="joaninhaTab('nota')">Nota</button>
+    <button type="button" class="joaninha-tab" data-tab="lembrete" onclick="joaninhaTab('lembrete')">Lembrete</button>
+    <button type="button" class="joaninha-tab" data-tab="resumo" onclick="joaninhaTab('resumo')">Resumo</button>
+    <button type="button" class="joaninha-tab" data-tab="busca" onclick="joaninhaTab('busca')">Buscar</button>
+    <button type="button" class="joaninha-tab" data-tab="pergunta" onclick="joaninhaTab('pergunta')">Pergunte</button>
+  </div>
+
+  <div class="joaninha-tab-content" id="joaninha-tab-nota">
+    <div class="joaninha-textarea-wrap">
+      <textarea id="joaninha-texto" placeholder="Digite sua informação aqui..." rows="3"></textarea>
+      <button type="button" class="mic-btn" id="joaninha-mic" onclick="toggleDitado('joaninha-texto','joaninha-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
+    </div>
+    <div class="joaninha-anexos" id="joaninha-anexos"></div>
+    <input type="file" id="joaninha-file" style="display:none" onchange="joaninhaAnexar(this.files,'arquivo')">
+    <input type="file" id="joaninha-imagem" accept="image/*" style="display:none" onchange="joaninhaAnexar(this.files,'imagem')">
+    <div class="joaninha-panel-actions">
+      <button type="button" class="joaninha-icon-btn" title="Anexar arquivo" onclick="document.getElementById('joaninha-file').click()"><i class="ti ti-paperclip"></i></button>
+      <button type="button" class="joaninha-icon-btn" title="Anexar imagem" onclick="document.getElementById('joaninha-imagem').click()"><i class="ti ti-photo"></i></button>
+      <button type="button" class="joaninha-send-btn" id="joaninha-send" title="Salvar" onclick="joaninhaSalvar()"><i class="ti ti-send"></i></button>
+    </div>
+  </div>
+
+  <div class="joaninha-tab-content" id="joaninha-tab-lembrete" style="display:none">
+    <div class="joaninha-lembrete-form">
+      <input type="text" id="joaninha-lembrete-texto" placeholder="Lembrar de...">
+      <input type="datetime-local" id="joaninha-lembrete-quando">
+      <button type="button" onclick="joaninhaSalvarLembrete()">Criar lembrete</button>
+    </div>
+    <div class="joaninha-lembretes-lista" id="joaninha-lembretes-lista"></div>
+  </div>
+
+  <div class="joaninha-tab-content" id="joaninha-tab-resumo" style="display:none">
+    <div id="joaninha-resumo-corpo"></div>
+  </div>
+
+  <div class="joaninha-tab-content" id="joaninha-tab-busca" style="display:none">
+    <input type="text" class="joaninha-busca-input" id="joaninha-busca-input" placeholder="Buscar caso, observação, foco..." oninput="joaninhaBuscarDigitar(this.value)">
+    <div id="joaninha-busca-resultados"></div>
+  </div>
+
+  <div class="joaninha-tab-content" id="joaninha-tab-pergunta" style="display:none">
+    <div class="joaninha-pergunta-form">
+      <input type="text" id="joaninha-pergunta-texto" placeholder="O que devo fazer agora?" onkeydown="if(event.key==='Enter')joaninhaPerguntar()">
+      <button type="button" id="joaninha-pergunta-btn" title="Perguntar" onclick="joaninhaPerguntar()"><i class="ti ti-send"></i></button>
+    </div>
+    <div class="joaninha-pergunta-exemplos" id="joaninha-pergunta-exemplos">
+      <button type="button" class="joaninha-pergunta-exemplo" onclick="joaninhaPerguntarExemplo('O que devo fazer agora?')">O que devo fazer agora?</button>
+      <button type="button" class="joaninha-pergunta-exemplo" onclick="joaninhaPerguntarExemplo('Qual cliente espera há mais tempo?')">Qual cliente espera há mais tempo?</button>
+      <button type="button" class="joaninha-pergunta-exemplo" onclick="joaninhaPerguntarExemplo('Quais documentos estão faltando?')">Quais documentos estão faltando?</button>
+    </div>
+    <div id="joaninha-pergunta-resposta"></div>
+  </div>
+</div>
+
+<script src="design-system/mascots/joaninha/joaninha.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyA_tR17xeu0uhfonc1y1ksStmjGZtY_tcM",
@@ -467,6 +614,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const storage = getStorage(app);
 window._db = db;
 window._fbUtils = { ref, update };
 
@@ -791,6 +939,7 @@ function renderStats(){
     <div class="stat"><div class="stat-icon green"><i class="ti ti-circle-check"></i></div><div><div class="stat-label">Em dia</div><div class="stat-num green">${ok}</div></div></div>
     <div class="stat"><div class="stat-icon purple"><i class="ti ti-hourglass"></i></div><div><div class="stat-label">Parados +3d</div><div class="stat-num purple">${parados}</div></div></div>
   `;
+  if(window.joaninhaAtualizarHumor)window.joaninhaAtualizarHumor(ativos.length,cr,at);
 }
 
 // ── BADGES ──
@@ -1303,6 +1452,491 @@ window.salvarNovo=function(){
   document.getElementById('f-agendado').value='';
   window.toggleForm();
 };
+// ── JOANINHA — mascote montada a partir do componente do design system ──
+// A aparência e o comportamento puro vivem em design-system/mascots/joaninha/
+// (joaninha.css + joaninha.js), sem nenhum conhecimento de Firebase/casos/
+// painel. Aqui só montamos a instância e, mais abaixo (JoaninhaPRIME),
+// conectamos a integração específica do produto através da API pública dela
+// (play/look/notify/onInteragir/falar/setHumor/pausarVagar/retomarVagar).
+const joaninhaInstancia=window.JoaninhaMascote
+  ? window.JoaninhaMascote.montar(document.body)
+  : {disponivel:false};
+if(window.JoaninhaMascote)joaninhaInstancia.disponivel=true;
+window.joaninhaInstancia=joaninhaInstancia; // handle de depuração/testes
+
+// espreguiçar na segunda-feira de manhã (uma vez por dia) — comportamento
+// próprio da mascote; fica aqui só porque depende de sessionStorage/relógio
+// do navegador, não de nenhum dado do produto
+if(joaninhaInstancia.disponivel){
+  const hojeStr=new Date().toDateString();
+  if(new Date().getDay()===1&&new Date().getHours()<12&&sessionStorage.getItem('joaninha_esprei')!==hojeStr){
+    sessionStorage.setItem('joaninha_esprei',hojeStr);
+    setTimeout(()=>{
+      joaninhaInstancia.play('wave');
+      joaninhaInstancia.falar('Bom dia! Vamos começar a semana? 🐞',3600);
+    },2500);
+  }
+}
+
+// JoaninhaPRIME: integração com os dados do painel (Firebase, casos, focos) e
+// com o painel de captura rápida. Só fala com a mascote através da API pública
+// de JoaninhaMascote (reagir/falar/setHumor/pausarVagar/retomarVagar) — nunca
+// mexe direto nas classes ou no DOM dela.
+(function(){
+  const painel=document.getElementById('joaninha-panel');
+  if(!joaninhaInstancia.disponivel||!painel)return;
+  const{registrarAtividade,pausarVagar,retomarVagar,reagir,falar,setHumor}=joaninhaInstancia;
+  joaninhaInstancia.onInteragir(()=>window.toggleJoaninhaPainel());
+
+  let painelAberto=false;
+  let contexto=null; // {tipo:'caso',id,nome} ou null (= Foco do dia)
+  let anexosPendentes=[];
+
+  // ── contexto: caso em foco ou Foco do dia ──
+  const casosList=document.getElementById('casos-list');
+  if(casosList){
+    casosList.addEventListener('click',(e)=>{
+      const card=e.target.closest('.card');
+      if(!card)return;
+      const id=card.id.replace('card-','');
+      const c=casos[id];
+      if(c)contexto={tipo:'caso',id,nome:c.nome};
+    });
+  }
+  const focoCard=document.querySelector('.foco-card');
+  if(focoCard){
+    focoCard.addEventListener('click',()=>{contexto={tipo:'foco'};});
+    focoCard.addEventListener('focusin',()=>{contexto={tipo:'foco'};});
+  }
+
+  function atualizarContextoUI(){
+    const el=document.getElementById('joaninha-contexto');
+    if(contexto&&contexto.tipo==='caso'&&casos[contexto.id]){
+      el.textContent='Anotando em: '+casos[contexto.id].nome;
+    }else{
+      el.textContent='Foco do dia';
+    }
+  }
+
+  // ── abrir/fechar painel ──
+  window.toggleJoaninhaPainel=function(force){
+    const abrir=force!==undefined?force:!painelAberto;
+    painelAberto=abrir;
+    painel.classList.toggle('open',abrir);
+    registrarAtividade();
+    if(abrir){
+      pausarVagar();
+      reagir('sorrir');
+      atualizarContextoUI();
+      window.joaninhaTab('nota');
+    }else{
+      retomarVagar();
+      if(reconhecimentoVoz&&ditando)reconhecimentoVoz.stop();
+    }
+  };
+
+  // ── abas do painel: Nota / Lembrete / Resumo / Buscar ──
+  window.joaninhaTab=function(nome){
+    document.querySelectorAll('.joaninha-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===nome));
+    document.querySelectorAll('.joaninha-tab-content').forEach(el=>{
+      el.style.display=(el.id==='joaninha-tab-'+nome)?'block':'none';
+    });
+    if(nome==='resumo')renderResumo();
+    else if(nome==='lembrete')renderLembretes();
+    else if(nome==='busca'){renderBuscaResultados('');setTimeout(()=>{const i=document.getElementById('joaninha-busca-input');if(i){i.value='';i.focus();}},100);}
+    else if(nome==='pergunta')setTimeout(()=>{const i=document.getElementById('joaninha-pergunta-texto');if(i)i.focus();},100);
+    else if(nome==='nota')setTimeout(()=>{const ta=document.getElementById('joaninha-texto');if(ta)ta.focus();},100);
+  };
+
+  // ── anexos ──
+  window.joaninhaAnexar=function(files,tipo){
+    Array.from(files).forEach(f=>anexosPendentes.push({file:f,tipo}));
+    renderAnexos();
+    document.getElementById('joaninha-file').value='';
+    document.getElementById('joaninha-imagem').value='';
+  };
+  window.joaninhaRemoverAnexo=function(i){
+    anexosPendentes.splice(i,1);
+    renderAnexos();
+  };
+  function renderAnexos(){
+    const el=document.getElementById('joaninha-anexos');
+    el.innerHTML=anexosPendentes.map((a,i)=>`<span class="joaninha-anexo-chip"><i class="ti ${a.tipo==='imagem'?'ti-photo':'ti-paperclip'}"></i> ${a.file.name}<button type="button" onclick="joaninhaRemoverAnexo(${i})">&times;</button></span>`).join('');
+  }
+
+  // ── arrastar um arquivo até a Joaninha: ela sugere o processo, nunca decide sozinha ──
+  const jnHost=document.getElementById('joaninha-host');
+  function lerComoBase64(file){
+    return new Promise((resolve,reject)=>{
+      const r=new FileReader();
+      r.onload=()=>resolve(String(r.result).split(',')[1]||'');
+      r.onerror=reject;
+      r.readAsDataURL(file);
+    });
+  }
+  async function classificarESugerir(file){
+    const partes=file.name.split('.');
+    const ext=partes.length>1?partes.pop().toLowerCase():'';
+    const payload={nomeArquivo:file.name,ext,casosAtivos:casosAtivosList().map(c=>({id:c.id,nome:c.nome,tipo:c.tipo}))};
+    if(ext==='docx')payload.base64=await lerComoBase64(file);
+    try{
+      const r=await fetch('/api/classificar-documento',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const j=await r.json();
+      return j.ok?j.sugestao:null;
+    }catch(e){
+      return null;
+    }
+  }
+  async function receberArquivoSolto(files){
+    const lista=Array.from(files);
+    if(!lista.length)return;
+    if(!painelAberto)window.toggleJoaninhaPainel(true);
+    window.joaninhaTab('nota');
+    lista.forEach(f=>anexosPendentes.push({file:f,tipo:'arquivo'}));
+    renderAnexos();
+    reagir('pensando-on');
+    const sugestao=await classificarESugerir(lista[0]);
+    reagir('pensando-off');
+    if(sugestao){
+      contexto={tipo:'caso',id:sugestao.id,nome:sugestao.nome};
+      atualizarContextoUI();
+      falar(`Acho que isso é do processo "${sugestao.nome}" — confira antes de salvar. 🐞`,4600);
+    }else{
+      falar('Não consegui identificar o processo pelo arquivo — confira onde vai salvar. 🐞',4200);
+    }
+  }
+  if(jnHost){
+    let contadorArrasto=0;
+    jnHost.addEventListener('dragenter',(e)=>{
+      e.preventDefault();
+      contadorArrasto++;
+      reagir('atenta-on');
+    });
+    jnHost.addEventListener('dragover',(e)=>{e.preventDefault();});
+    jnHost.addEventListener('dragleave',(e)=>{
+      e.preventDefault();
+      contadorArrasto=Math.max(0,contadorArrasto-1);
+      if(contadorArrasto===0)reagir('atenta-off');
+    });
+    jnHost.addEventListener('drop',(e)=>{
+      e.preventDefault();
+      contadorArrasto=0;
+      reagir('atenta-off');
+      registrarAtividade();
+      if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length)receberArquivoSolto(e.dataTransfer.files);
+    });
+  }
+  async function subirAnexos(){
+    if(!anexosPendentes.length)return[];
+    const linhas=[];
+    for(const item of anexosPendentes){
+      try{
+        const caminho=`joaninha/${Date.now()}_${item.file.name}`;
+        const sref=storageRef(storage,caminho);
+        await uploadBytes(sref,item.file);
+        const url=await getDownloadURL(sref);
+        linhas.push(`${item.file.name}: ${url}`);
+      }catch(e){
+        linhas.push(`${item.file.name} (não consegui enviar o arquivo agora, mas a anotação foi salva)`);
+      }
+    }
+    return linhas;
+  }
+
+  // ── salvar captura rápida ──
+  window.joaninhaSalvar=async function(){
+    const ta=document.getElementById('joaninha-texto');
+    const texto=ta.value.trim();
+    if(!texto&&!anexosPendentes.length){ta.focus();return;}
+    const btn=document.getElementById('joaninha-send');
+    btn.disabled=true;
+    if(reconhecimentoVoz&&ditando)reconhecimentoVoz.stop();
+    try{
+      const anexosInfo=await subirAnexos();
+      let corpo=texto;
+      if(anexosInfo.length)corpo+=(corpo?'\n':'')+anexosInfo.map(a=>'📎 '+a).join('\n');
+      const alvo=(contexto&&contexto.tipo==='caso'&&casos[contexto.id])?contexto:{tipo:'foco'};
+      if(alvo.tipo==='caso'){
+        const c=casos[alvo.id];
+        const entrada={data:new Date().toISOString(),texto:corpo,resumo:corpo,pendencias:[]};
+        await push(ref(db,`casos/${alvo.id}/historico`),entrada);
+        const dataFmt=new Date(entrada.data).toLocaleDateString('pt-BR')+' '+new Date(entrada.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+        const linhaObs=`[${dataFmt}] 🐞 ${corpo}`;
+        const obsAtual=(c.obs||'').trim();
+        const novoObs=obsAtual?`${linhaObs}\n\n${obsAtual}`:linhaObs;
+        await update(ref(db,`casos/${alvo.id}`),{obs:novoObs,atualizado:isoHoje()});
+      }else{
+        const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+        arr.push({text:corpo,done:false});
+        if(arr.length>8)arr.splice(0,arr.length-8);
+        await set(focosRef,arr);
+      }
+      ta.value='';
+      anexosPendentes=[];
+      renderAnexos();
+      reagir('comemorar');
+      setTimeout(()=>window.toggleJoaninhaPainel(false),1000);
+    }catch(e){
+      alert('Não consegui salvar agora. Tente de novo em instantes.');
+    }
+    btn.disabled=false;
+  };
+
+  // ── humor conforme o painel (chamado por renderStats) ──
+  let ultimoCriticos=null,tudoEmDiaMostrado=false;
+  window.joaninhaAtualizarHumor=function(ativos,criticos,atencao){
+    if(criticos>=3)setHumor('preocupada');
+    else if(ativos>0&&criticos===0&&atencao===0)setHumor('feliz');
+    else setHumor(null);
+    if(ativos>0&&criticos===0&&atencao===0){
+      if(!tudoEmDiaMostrado){tudoEmDiaMostrado=true;falar('Tudo em dia! Bom trabalho. 🎉',4200);}
+    }else{
+      tudoEmDiaMostrado=false;
+    }
+    if(ultimoCriticos!==null&&criticos<ultimoCriticos&&criticos>0){
+      falar('As pendências críticas diminuíram.',3600);
+    }
+    ultimoCriticos=criticos;
+  };
+
+  // pequena comemoração ao concluir um caso
+  const _toggleConcluidoOriginal=window.toggleConcluido;
+  if(typeof _toggleConcluidoOriginal==='function'){
+    window.toggleConcluido=function(id){
+      const c=casos[id];
+      const vaiConcluir=c&&!c.concluido;
+      _toggleConcluidoOriginal(id);
+      if(vaiConcluir){
+        registrarAtividade();
+        reagir('comemorar');
+      }
+    };
+  }
+
+  // ── FASE 1: regras determinísticas, resumo, busca universal e lembretes ──
+  // Tudo aqui roda sobre dados já carregados em memória (casos/focos) — sem
+  // chamada de IA e sem requisição de rede nova.
+
+  function casosAtivosList(){
+    return Object.values(casos).filter(c=>c&&!c.concluido);
+  }
+
+  // sinais só são levantados quando inequívocos (texto de prazo livre tipo
+  // "30/05" sem ano não dá pra converter em data com segurança)
+  function insightsDoDia(){
+    const ativos=casosAtivosList();
+    const parados7=ativos.filter(c=>diasParado(c.atualizado)>=7);
+    const semDoc=ativos.filter(c=>c.dep==='Falta documentos');
+    const aguardCliente=ativos.filter(c=>c.dep==='Aguardando cliente');
+    const prazoUrgente=ativos.filter(c=>/hoje|amanh/i.test(c.prazo||''));
+    const linhas=[];
+    if(prazoUrgente.length)linhas.push(`⏰ ${prazoUrgente.length} processo${prazoUrgente.length>1?'s':''} com prazo hoje ou amanhã.`);
+    if(parados7.length)linhas.push(`🐢 ${parados7.length} processo${parados7.length>1?'s':''} parado${parados7.length>1?'s':''} há 7 dias ou mais.`);
+    if(semDoc.length)linhas.push(`📄 ${semDoc.length} processo${semDoc.length>1?'s':''} aguardando documento do cliente.`);
+    if(aguardCliente.length)linhas.push(`⏳ ${aguardCliente.length} processo${aguardCliente.length>1?'s':''} aguardando resposta do cliente.`);
+    if(!linhas.length)linhas.push('Nenhum sinal de atenção agora — tudo fluindo. 🎉');
+    return linhas.slice(0,4);
+  }
+
+  function computeResumo(){
+    const lista=Object.values(casos).filter(Boolean);
+    const ativos=lista.filter(c=>!c.concluido);
+    const hoje=isoHoje();
+    const concluidosHoje=lista.filter(c=>c.concluido&&c.atualizado===hoje).length;
+    const concluidosSemana=lista.filter(c=>c.concluido&&diasParado(c.atualizado)>=0&&diasParado(c.atualizado)<=6).length;
+    const criticos=ativos.filter(c=>c.status==='critico').length;
+    const aguardCliente=ativos.filter(c=>c.dep==='Aguardando cliente').length;
+    const aguardDocs=ativos.filter(c=>c.dep==='Falta documentos').length;
+    const mediaParado=ativos.length?Math.round(ativos.reduce((s,c)=>s+diasParado(c.atualizado),0)/ativos.length):0;
+    return{emAndamento:ativos.length,concluidosHoje,concluidosSemana,criticos,aguardCliente,aguardDocs,mediaParado};
+  }
+
+  function renderResumo(){
+    const r=computeResumo();
+    const el=document.getElementById('joaninha-resumo-corpo');
+    el.innerHTML=`
+      <div class="joaninha-resumo-grid">
+        <div class="joaninha-resumo-tile"><div class="joaninha-resumo-num">${r.concluidosHoje}</div><div class="joaninha-resumo-label">Concluídos hoje</div></div>
+        <div class="joaninha-resumo-tile"><div class="joaninha-resumo-num">${r.emAndamento}</div><div class="joaninha-resumo-label">Em andamento</div></div>
+        <div class="joaninha-resumo-tile"><div class="joaninha-resumo-num">${r.criticos}</div><div class="joaninha-resumo-label">Críticos</div></div>
+        <div class="joaninha-resumo-tile"><div class="joaninha-resumo-num">${r.concluidosSemana}</div><div class="joaninha-resumo-label">Concluídos na semana</div></div>
+        <div class="joaninha-resumo-tile"><div class="joaninha-resumo-num">${r.aguardCliente}</div><div class="joaninha-resumo-label">Aguard. cliente</div></div>
+        <div class="joaninha-resumo-tile"><div class="joaninha-resumo-num">${r.aguardDocs}</div><div class="joaninha-resumo-label">Aguard. documentos</div></div>
+      </div>
+      <div class="joaninha-busca-grupo-label">Sinais de atenção</div>
+      <div class="joaninha-insights">${insightsDoDia().map(l=>`<div class="joaninha-insight">${l}</div>`).join('')}</div>
+      <div class="joaninha-busca-grupo-label">Média de dias parado (casos ativos)</div>
+      <div class="joaninha-insight">${r.mediaParado} ${r.mediaParado===1?'dia':'dias'} em média</div>
+    `;
+  }
+
+  // ── busca universal (casos + Foco do dia, dados já em memória) ──
+  window.joaninhaBuscarDigitar=function(valor){
+    renderBuscaResultados(valor);
+  };
+  function buscarTudo(q){
+    const termo=(q||'').toLowerCase().trim();
+    if(!termo)return{casosEnc:[],focosEnc:[]};
+    const casosEnc=Object.values(casos).filter(Boolean).filter(c=>
+      [c.nome,c.tipo,c.acao,c.obs].some(t=>(t||'').toLowerCase().includes(termo))
+    ).slice(0,8);
+    const focosAtuais=Array.isArray(focos)?focos:Object.values(focos||{});
+    const focosEnc=focosAtuais.filter(f=>(f.text||'').toLowerCase().includes(termo)).slice(0,4);
+    return{casosEnc,focosEnc};
+  }
+  function renderBuscaResultados(q){
+    const el=document.getElementById('joaninha-busca-resultados');
+    if(!(q||'').trim()){el.innerHTML='<div class="joaninha-vazio">Digite para buscar em casos e no Foco do dia.</div>';return;}
+    const{casosEnc,focosEnc}=buscarTudo(q);
+    if(!casosEnc.length&&!focosEnc.length){el.innerHTML='<div class="joaninha-vazio">Nada encontrado.</div>';return;}
+    let html='';
+    if(casosEnc.length){
+      html+='<div class="joaninha-busca-grupo-label">Casos</div>';
+      html+=casosEnc.map(c=>`<div class="joaninha-busca-item" onclick="joaninhaIrParaCaso('${c.id}')"><i class="ti ti-briefcase"></i><span>${c.nome}</span><span class="jb-tipo">${c.tipo||''}</span></div>`).join('');
+    }
+    if(focosEnc.length){
+      html+='<div class="joaninha-busca-grupo-label">Foco do dia</div>';
+      html+=focosEnc.map(f=>`<div class="joaninha-busca-item"><i class="ti ti-bolt"></i><span>${f.text}</span></div>`).join('');
+    }
+    el.innerHTML=html;
+  }
+  window.joaninhaIrParaCaso=function(id){
+    window.toggleJoaninhaPainel(false);
+    const el=document.getElementById('card-'+id);
+    if(!el)return;
+    setTimeout(()=>{
+      el.scrollIntoView({behavior:'smooth',block:'center'});
+      el.classList.add('jn-destaque');
+      setTimeout(()=>el.classList.remove('jn-destaque'),1800);
+    },250);
+  };
+
+  // ── lembretes (novo nó no Firebase, aviso enquanto a aba estiver aberta) ──
+  let lembretes={};
+  onValue(ref(db,'lembretes'),(snap)=>{
+    lembretes=snap.val()||{};
+    if(painelAberto&&document.getElementById('joaninha-tab-lembrete').style.display!=='none')renderLembretes();
+  });
+  window.joaninhaSalvarLembrete=async function(){
+    const txtEl=document.getElementById('joaninha-lembrete-texto');
+    const quandoEl=document.getElementById('joaninha-lembrete-quando');
+    const texto=txtEl.value.trim();
+    const quando=quandoEl.value;
+    if(!texto||!quando){(texto?quandoEl:txtEl).focus();return;}
+    const casoId=(contexto&&contexto.tipo==='caso'&&casos[contexto.id])?contexto.id:null;
+    const novo={texto,quando:new Date(quando).toISOString(),casoId,criadoEm:new Date().toISOString(),notificado:false,feito:false};
+    await push(ref(db,'lembretes'),novo);
+    txtEl.value='';quandoEl.value='';
+    reagir('comemorar');
+  };
+  window.joaninhaConcluirLembrete=async function(key){
+    await remove(ref(db,'lembretes/'+key));
+  };
+  function renderLembretes(){
+    const el=document.getElementById('joaninha-lembretes-lista');
+    const pendentes=Object.entries(lembretes).filter(([,l])=>l&&!l.feito).sort((a,b)=>(a[1].quando||'').localeCompare(b[1].quando||''));
+    if(!pendentes.length){el.innerHTML='<div class="joaninha-vazio">Nenhum lembrete pendente.</div>';return;}
+    el.innerHTML=pendentes.map(([key,l])=>{
+      const d=new Date(l.quando);
+      const quandoFmt=isNaN(d)?'':d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const casoNome=l.casoId&&casos[l.casoId]?casos[l.casoId].nome:'';
+      return`<div class="joaninha-lembrete-item">
+        <div class="jl-info"><div class="jl-texto">${l.texto}</div><div class="jl-quando">${quandoFmt}${casoNome?' · '+casoNome:''}</div></div>
+        <button type="button" title="Concluir" onclick="joaninhaConcluirLembrete('${key}')"><i class="ti ti-check"></i></button>
+      </div>`;
+    }).join('');
+  }
+  setInterval(()=>{
+    const agora=Date.now();
+    Object.entries(lembretes).forEach(([key,l])=>{
+      if(l&&!l.feito&&!l.notificado&&new Date(l.quando).getTime()<=agora){
+        falar('⏰ '+l.texto,5200);
+        update(ref(db,'lembretes/'+key),{notificado:true});
+      }
+    });
+  },30000);
+
+  // ── FASE 2: "Pergunte" — regra determinística primeiro, Claude só quando precisa ──
+  window.joaninhaPerguntarExemplo=function(texto){
+    document.getElementById('joaninha-pergunta-texto').value=texto;
+    window.joaninhaPerguntar();
+  };
+
+  function tentarRegraPergunta(q){
+    const ativos=casosAtivosList();
+    if(/o que (eu )?(devo|posso) fazer|próxima tarefa|proxima tarefa|o que fazer agora/.test(q)){
+      const focosAtuais=(Array.isArray(focos)?focos:Object.values(focos||{})).filter(f=>!f.done);
+      if(focosAtuais.length)return`No Foco do dia, a próxima pendente é: "${focosAtuais[0].text}".`;
+      if(!ativos.length)return'Nenhum caso ativo no momento — tudo em dia.';
+      const ordem={critico:0,prioridade:1,atencao:2,emdia:3};
+      const top=[...ativos].sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5)||diasParado(b.atualizado)-diasParado(a.atualizado))[0];
+      return`Sugiro focar em "${top.nome}" (${top.tipo||'sem tipo'}) — status ${top.status||'—'}, parado há ${diasParado(top.atualizado)} dia(s).`;
+    }
+    if(/espera.*mais tempo|mais tempo parado|h[áa] mais tempo/.test(q)){
+      if(!ativos.length)return'Nenhum caso ativo no momento.';
+      const top=[...ativos].sort((a,b)=>diasParado(b.atualizado)-diasParado(a.atualizado))[0];
+      return`"${top.nome}" está parado há mais tempo: ${diasParado(top.atualizado)} dia(s)${top.dep?' — dependência: '+top.dep:''}.`;
+    }
+    if(/document.*falt|falt.*document/.test(q)){
+      const semDoc=ativos.filter(c=>c.dep==='Falta documentos');
+      if(!semDoc.length)return'Nenhum caso ativo está marcado como "Falta documentos" agora.';
+      return`Aguardando documento: ${semDoc.map(c=>c.nome).join(', ')}.`;
+    }
+    if(/prazo.*(hoje|amanh[ãa])|vence.*(hoje|amanh[ãa])/.test(q)){
+      const urgentes=ativos.filter(c=>/hoje|amanh/i.test(c.prazo||''));
+      if(!urgentes.length)return'Nenhum prazo marcado como "hoje" ou "amanhã" nos casos ativos.';
+      return`Com prazo hoje/amanhã: ${urgentes.map(c=>c.nome).join(', ')}.`;
+    }
+    if(/aguardando cliente|n[ãa]o respond/.test(q)){
+      const aguardCliente=ativos.filter(c=>c.dep==='Aguardando cliente');
+      if(!aguardCliente.length)return'Nenhum caso ativo está aguardando resposta do cliente agora.';
+      return`Aguardando resposta do cliente: ${aguardCliente.map(c=>c.nome).join(', ')}.`;
+    }
+    return null;
+  }
+
+  function renderRespostaPergunta(html,classe){
+    document.getElementById('joaninha-pergunta-resposta').innerHTML=`<div class="joaninha-resposta${classe?' '+classe:''}">${html}</div>`;
+  }
+
+  window.joaninhaPerguntar=async function(){
+    const input=document.getElementById('joaninha-pergunta-texto');
+    const pergunta=input.value.trim();
+    if(!pergunta){input.focus();return;}
+    const qNorm=pergunta.toLowerCase();
+    const btn=document.getElementById('joaninha-pergunta-btn');
+    const regraResposta=tentarRegraPergunta(qNorm);
+    if(regraResposta){
+      renderRespostaPergunta('<span class="joaninha-resposta-origem">Resposta instantânea</span>'+regraResposta);
+      registrarPergunta(pergunta,regraResposta,'regra');
+      return;
+    }
+    btn.disabled=true;
+    reagir('pensando-on');
+    renderRespostaPergunta('Pensando...','pensando');
+    try{
+      const casosAtivos=casosAtivosList().map(c=>({nome:c.nome,tipo:c.tipo,status:c.status,resp:c.resp,prazo:c.prazo,dep:c.dep,diasParado:diasParado(c.atualizado),obs:c.obs}));
+      const focosRestantes=(Array.isArray(focos)?focos:Object.values(focos||{})).filter(f=>!f.done).map(f=>f.text);
+      const r=await fetch('/api/perguntar-joaninha',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pergunta,casosAtivos,focosRestantes})});
+      const j=await r.json();
+      if(j.ok&&j.resposta){
+        renderRespostaPergunta('<span class="joaninha-resposta-origem">Joaninha (IA)</span>'+j.resposta);
+        registrarPergunta(pergunta,j.resposta,'claude');
+      }else{
+        renderRespostaPergunta('Não consegui responder agora ('+(j.erro||'erro desconhecido')+'). Tente de novo em instantes.');
+      }
+    }catch(e){
+      renderRespostaPergunta('Não consegui conectar para responder agora. Tente de novo em instantes.');
+    }
+    reagir('pensando-off');
+    btn.disabled=false;
+  };
+
+  function registrarPergunta(pergunta,resposta,origem){
+    push(ref(db,'joaninha_perguntas'),{pergunta,resposta,origem,data:new Date().toISOString()}).catch(()=>{});
+  }
+})();
+
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
 }
