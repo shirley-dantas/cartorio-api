@@ -266,7 +266,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 @keyframes jn-heart-pop{0%{opacity:0;transform:translateY(0) scale(.4)}25%{opacity:1;transform:translateY(-10px) scale(1.15)}100%{opacity:0;transform:translateY(-38px) scale(1)}}
 .joaninha-bubble{position:absolute;right:0;bottom:88px;max-width:190px;background:#fff;color:#3A3A3C;font-size:12px;line-height:1.4;padding:8px 12px;border-radius:12px 12px 4px 12px;box-shadow:0 6px 18px rgba(22,10,10,.18);border:0.5px solid #F3D9DE;opacity:0;transform:translateY(6px);transition:opacity .3s ease,transform .3s ease;pointer-events:none}
 .joaninha-bubble.show{opacity:1;transform:translateY(0)}
-.joaninha-panel{position:fixed;right:22px;bottom:106px;z-index:901;width:308px;background:#fff;border-radius:18px;box-shadow:0 18px 44px rgba(22,10,10,.22);border:0.5px solid #F5DEE3;padding:14px;opacity:0;transform:translateY(14px) scale(.97);pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+.joaninha-panel{position:fixed;right:22px;bottom:106px;z-index:901;width:324px;background:#fff;border-radius:18px;box-shadow:0 18px 44px rgba(22,10,10,.22);border:0.5px solid #F5DEE3;padding:14px;opacity:0;transform:translateY(14px) scale(.97);pointer-events:none;transition:opacity .2s ease,transform .2s ease}
 .joaninha-panel.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
 .joaninha-panel-header{display:flex;align-items:flex-start;gap:9px;margin-bottom:10px}
 .joaninha-panel-avatar{font-size:20px;line-height:1}
@@ -287,8 +287,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .joaninha-send-btn{margin-left:auto;width:34px;height:34px;border-radius:50%;border:none;background:linear-gradient(135deg,#C62828,#7A1F2B);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:filter .15s ease}
 .joaninha-send-btn:hover{filter:brightness(1.12)}
 
-.joaninha-tabs{display:flex;gap:4px;margin-bottom:11px;border-bottom:0.5px solid #F5DEE3;padding-bottom:8px}
-.joaninha-tab{flex:1;font-size:11px;font-weight:600;padding:6px 4px;border-radius:8px;border:none;background:transparent;color:#B4718A;cursor:pointer;white-space:nowrap}
+.joaninha-tabs{display:flex;gap:3px;margin-bottom:11px;border-bottom:0.5px solid #F5DEE3;padding-bottom:8px}
+.joaninha-tab{flex:1;font-size:10.5px;font-weight:600;padding:6px 2px;border-radius:8px;border:none;background:transparent;color:#B4718A;cursor:pointer;white-space:nowrap}
 .joaninha-tab:hover{background:#FFF7F8}
 .joaninha-tab.active{background:#FDECEF;color:#7A1F2B}
 .joaninha-tab-content{max-height:280px;overflow-y:auto}
@@ -323,6 +323,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 .card.jn-destaque{animation:jn-destaque-kf 1.8s ease}
 @keyframes jn-destaque-kf{0%{box-shadow:0 0 0 0 rgba(201,168,118,.55)}30%{box-shadow:0 0 0 6px rgba(201,168,118,.35)}100%{box-shadow:0 0 0 0 rgba(201,168,118,0)}}
+
+.joaninha-pergunta-form{display:flex;gap:6px;margin-bottom:10px}
+.joaninha-pergunta-form input{flex:1;font-size:12.5px;padding:8px 10px;border-radius:9px;border:0.5px solid #F0D3D8;background:#FFF7F8;color:#1C1C1E;font-family:inherit;outline:none}
+.joaninha-pergunta-form input:focus{border-color:#D68A9B;background:#fff}
+.joaninha-pergunta-form button{width:34px;border-radius:9px;border:none;background:linear-gradient(135deg,#C62828,#7A1F2B);color:#fff;cursor:pointer;font-size:14px;flex-shrink:0}
+.joaninha-pergunta-form button:disabled{opacity:.55;cursor:not-allowed}
+.joaninha-pergunta-exemplos{display:flex;flex-direction:column;gap:4px;margin-bottom:4px}
+.joaninha-pergunta-exemplo{font-size:11px;color:#B4718A;background:none;border:none;text-align:left;cursor:pointer;padding:3px 2px}
+.joaninha-pergunta-exemplo:hover{color:#7A1F2B;text-decoration:underline}
+.joaninha-resposta{font-size:12.5px;color:#1C1C1E;line-height:1.55;background:#FFF7F8;border-radius:10px;padding:10px 12px;margin-top:2px}
+.joaninha-resposta-origem{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#B4718A;margin-bottom:5px;display:block}
+.joaninha-resposta.pensando{color:#B4718A;font-style:italic}
+.joaninha.jn-pensando .jn-antenna{animation-duration:1s}
 
 @media(max-width:600px){
   #joaninha-host{right:12px;bottom:14px}
@@ -647,6 +660,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button type="button" class="joaninha-tab" data-tab="lembrete" onclick="joaninhaTab('lembrete')">Lembrete</button>
     <button type="button" class="joaninha-tab" data-tab="resumo" onclick="joaninhaTab('resumo')">Resumo</button>
     <button type="button" class="joaninha-tab" data-tab="busca" onclick="joaninhaTab('busca')">Buscar</button>
+    <button type="button" class="joaninha-tab" data-tab="pergunta" onclick="joaninhaTab('pergunta')">Pergunte</button>
   </div>
 
   <div class="joaninha-tab-content" id="joaninha-tab-nota">
@@ -680,6 +694,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="joaninha-tab-content" id="joaninha-tab-busca" style="display:none">
     <input type="text" class="joaninha-busca-input" id="joaninha-busca-input" placeholder="Buscar caso, observação, foco..." oninput="joaninhaBuscarDigitar(this.value)">
     <div id="joaninha-busca-resultados"></div>
+  </div>
+
+  <div class="joaninha-tab-content" id="joaninha-tab-pergunta" style="display:none">
+    <div class="joaninha-pergunta-form">
+      <input type="text" id="joaninha-pergunta-texto" placeholder="O que devo fazer agora?" onkeydown="if(event.key==='Enter')joaninhaPerguntar()">
+      <button type="button" id="joaninha-pergunta-btn" title="Perguntar" onclick="joaninhaPerguntar()"><i class="ti ti-send"></i></button>
+    </div>
+    <div class="joaninha-pergunta-exemplos" id="joaninha-pergunta-exemplos">
+      <button type="button" class="joaninha-pergunta-exemplo" onclick="joaninhaPerguntarExemplo('O que devo fazer agora?')">O que devo fazer agora?</button>
+      <button type="button" class="joaninha-pergunta-exemplo" onclick="joaninhaPerguntarExemplo('Qual cliente espera há mais tempo?')">Qual cliente espera há mais tempo?</button>
+      <button type="button" class="joaninha-pergunta-exemplo" onclick="joaninhaPerguntarExemplo('Quais documentos estão faltando?')">Quais documentos estão faltando?</button>
+    </div>
+    <div id="joaninha-pergunta-resposta"></div>
   </div>
 </div>
 
@@ -1706,6 +1733,7 @@ window.salvarNovo=function(){
     if(nome==='resumo')renderResumo();
     else if(nome==='lembrete')renderLembretes();
     else if(nome==='busca'){renderBuscaResultados('');setTimeout(()=>{const i=document.getElementById('joaninha-busca-input');if(i){i.value='';i.focus();}},100);}
+    else if(nome==='pergunta')setTimeout(()=>{const i=document.getElementById('joaninha-pergunta-texto');if(i)i.focus();},100);
     else if(nome==='nota')setTimeout(()=>{const ta=document.getElementById('joaninha-texto');if(ta)ta.focus();},100);
   };
 
@@ -1977,6 +2005,86 @@ window.salvarNovo=function(){
       }
     });
   },30000);
+
+  // ── FASE 2: "Pergunte" — regra determinística primeiro, Claude só quando precisa ──
+  window.joaninhaPerguntarExemplo=function(texto){
+    document.getElementById('joaninha-pergunta-texto').value=texto;
+    window.joaninhaPerguntar();
+  };
+
+  function tentarRegraPergunta(q){
+    const ativos=casosAtivosList();
+    if(/o que (eu )?(devo|posso) fazer|próxima tarefa|proxima tarefa|o que fazer agora/.test(q)){
+      const focosAtuais=(Array.isArray(focos)?focos:Object.values(focos||{})).filter(f=>!f.done);
+      if(focosAtuais.length)return`No Foco do dia, a próxima pendente é: "${focosAtuais[0].text}".`;
+      if(!ativos.length)return'Nenhum caso ativo no momento — tudo em dia.';
+      const ordem={critico:0,prioridade:1,atencao:2,emdia:3};
+      const top=[...ativos].sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5)||diasParado(b.atualizado)-diasParado(a.atualizado))[0];
+      return`Sugiro focar em "${top.nome}" (${top.tipo||'sem tipo'}) — status ${top.status||'—'}, parado há ${diasParado(top.atualizado)} dia(s).`;
+    }
+    if(/espera.*mais tempo|mais tempo parado|h[áa] mais tempo/.test(q)){
+      if(!ativos.length)return'Nenhum caso ativo no momento.';
+      const top=[...ativos].sort((a,b)=>diasParado(b.atualizado)-diasParado(a.atualizado))[0];
+      return`"${top.nome}" está parado há mais tempo: ${diasParado(top.atualizado)} dia(s)${top.dep?' — dependência: '+top.dep:''}.`;
+    }
+    if(/document.*falt|falt.*document/.test(q)){
+      const semDoc=ativos.filter(c=>c.dep==='Falta documentos');
+      if(!semDoc.length)return'Nenhum caso ativo está marcado como "Falta documentos" agora.';
+      return`Aguardando documento: ${semDoc.map(c=>c.nome).join(', ')}.`;
+    }
+    if(/prazo.*(hoje|amanh[ãa])|vence.*(hoje|amanh[ãa])/.test(q)){
+      const urgentes=ativos.filter(c=>/hoje|amanh/i.test(c.prazo||''));
+      if(!urgentes.length)return'Nenhum prazo marcado como "hoje" ou "amanhã" nos casos ativos.';
+      return`Com prazo hoje/amanhã: ${urgentes.map(c=>c.nome).join(', ')}.`;
+    }
+    if(/aguardando cliente|n[ãa]o respond/.test(q)){
+      const aguardCliente=ativos.filter(c=>c.dep==='Aguardando cliente');
+      if(!aguardCliente.length)return'Nenhum caso ativo está aguardando resposta do cliente agora.';
+      return`Aguardando resposta do cliente: ${aguardCliente.map(c=>c.nome).join(', ')}.`;
+    }
+    return null;
+  }
+
+  function renderRespostaPergunta(html,classe){
+    document.getElementById('joaninha-pergunta-resposta').innerHTML=`<div class="joaninha-resposta${classe?' '+classe:''}">${html}</div>`;
+  }
+
+  window.joaninhaPerguntar=async function(){
+    const input=document.getElementById('joaninha-pergunta-texto');
+    const pergunta=input.value.trim();
+    if(!pergunta){input.focus();return;}
+    const qNorm=pergunta.toLowerCase();
+    const btn=document.getElementById('joaninha-pergunta-btn');
+    const regraResposta=tentarRegraPergunta(qNorm);
+    if(regraResposta){
+      renderRespostaPergunta('<span class="joaninha-resposta-origem">Resposta instantânea</span>'+regraResposta);
+      registrarPergunta(pergunta,regraResposta,'regra');
+      return;
+    }
+    btn.disabled=true;
+    joaninha.classList.add('jn-pensando');
+    renderRespostaPergunta('Pensando...','pensando');
+    try{
+      const casosAtivos=casosAtivosList().map(c=>({nome:c.nome,tipo:c.tipo,status:c.status,resp:c.resp,prazo:c.prazo,dep:c.dep,diasParado:diasParado(c.atualizado),obs:c.obs}));
+      const focosRestantes=(Array.isArray(focos)?focos:Object.values(focos||{})).filter(f=>!f.done).map(f=>f.text);
+      const r=await fetch('/api/perguntar-joaninha',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pergunta,casosAtivos,focosRestantes})});
+      const j=await r.json();
+      if(j.ok&&j.resposta){
+        renderRespostaPergunta('<span class="joaninha-resposta-origem">Joaninha (IA)</span>'+j.resposta);
+        registrarPergunta(pergunta,j.resposta,'claude');
+      }else{
+        renderRespostaPergunta('Não consegui responder agora ('+(j.erro||'erro desconhecido')+'). Tente de novo em instantes.');
+      }
+    }catch(e){
+      renderRespostaPergunta('Não consegui conectar para responder agora. Tente de novo em instantes.');
+    }
+    joaninha.classList.remove('jn-pensando');
+    btn.disabled=false;
+  };
+
+  function registrarPergunta(pergunta,resposta,origem){
+    push(ref(db,'joaninha_perguntas'),{pergunta,resposta,origem,data:new Date().toISOString()}).catch(()=>{});
+  }
 })();
 
 if('serviceWorker' in navigator){
