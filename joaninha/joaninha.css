@@ -1,0 +1,49 @@
+/**
+ * Estilo da Joaninha - assistente do PRIME
+ * Ajuste os valores marcados com comentário conforme o gosto.
+ */
+
+#joaninha-wrapper {
+  position: fixed;
+  bottom: 24px;           /* distância da parte de baixo da tela */
+  right: 24px;            /* distância da lateral direita da tela */
+  width: 120px;           /* tamanho da joaninha - ajuste aqui */
+  height: auto;
+  z-index: 9999;          /* garante que ela fique por cima do resto do painel */
+  pointer-events: none;   /* não atrapalha cliques no painel por baixo dela */
+  perspective: 600px;     /* necessário para o efeito de "olhar" o cursor */
+}
+
+#joaninha-avatar {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: opacity 0.2s ease, transform 0.15s ease-out;
+  animation: joaninha-float 3.5s ease-in-out infinite;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.15));
+}
+
+/* fade usado na troca de estado (controlado pelo joaninha.js) */
+#joaninha-avatar.joaninha-fade-out {
+  opacity: 0;
+}
+
+/* flutuação leve e contínua, tipo "balão" */
+@keyframes joaninha-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* em telas pequenas, deixa ela um pouco menor */
+@media (max-width: 640px) {
+  #joaninha-wrapper {
+    width: 84px;
+    bottom: 16px;
+    right: 16px;
+  }
+}
