@@ -18,7 +18,8 @@
  *
  * Vocabulário de play(): idle, blink, breathe, sorrir/happy, comemorar/celebrate,
  * pensando-on/thinking, pensando-off, atenta-on, atenta-off, surprised, worried,
- * wave, walk, fly, land, sleep, wake, lookLeft, lookRight, lookUp, lookDown.
+ * chamarAtencao/attention, wave, walk, fly, land, sleep, wake, lookLeft, lookRight,
+ * lookUp, lookDown.
  *
  * O corpo é composto pelas 6 fotos oficiais do guia de marca (assets/*.png),
  * uma por pose — sem partes soltas animáveis (olho, antena, asa). Estados que
@@ -59,7 +60,7 @@
     const avatar = host.querySelector('[data-jn="avatar"]');
 
     const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-    const estado = { andando: false, voando: false, pausada: false, dormindo: false };
+    const estado = { andando: false, voando: false, pausada: false, dormindo: false, pensando: false, atentaExterna: false, observando: false };
     let ultimaAtividade = Date.now();
     let bolhaTimer = null;
     let aoInteragirCallback = null;
@@ -104,9 +105,39 @@
     // como no-op só para não quebrar quem já chama look()/lookLeft/etc.
     function apontarOffset() {}
     function look() {}
+
+    // jn-atenta pode ser ligada por dois motivos independentes: um evento
+    // externo do produto (ex.: arrastar arquivo) ou o cursor se aproximando/
+    // pousando em cima dela. Os dois convergem aqui pra nenhum apagar o outro
+    // por engano, e o estado "pensando" sempre suprime os dois.
+    function atualizarAtenta() {
+      const ativa = (estado.atentaExterna || estado.observando) && !estado.pensando;
+      joaninha.classList.toggle('jn-atenta', ativa);
+      joaninha.classList.toggle('jn-observando', estado.observando && !estado.pensando);
+    }
+
+    const RAIO_OBSERVAR = 120;
+    function pertoDoCursor(x, y) {
+      const r = host.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      return Math.hypot(x - cx, y - cy) < RAIO_OBSERVAR;
+    }
     window.addEventListener('mousemove', (e) => {
       registrarAtividade();
+      const perto = pertoDoCursor(e.clientX, e.clientY);
+      if (perto !== estado.observando) {
+        estado.observando = perto;
+        atualizarAtenta();
+      }
     }, { passive: true });
+    joaninha.addEventListener('mouseenter', () => {
+      estado.observando = true;
+      atualizarAtenta();
+    });
+    joaninha.addEventListener('mouseleave', () => {
+      estado.observando = false;
+      atualizarAtenta();
+    });
 
     function posicaoAleatoria() {
       const vw = window.innerWidth, vh = window.innerHeight;
@@ -147,9 +178,18 @@
       await esperar(550);
       joaninha.classList.remove('jn-pousando');
     }
+    let proximaVariacaoPostura = Date.now() + 12000 + Math.random() * 4000;
+    function talvezVariarPostura() {
+      if (estado.pensando || joaninha.classList.contains('jn-variando')) return;
+      if (Date.now() < proximaVariacaoPostura) return;
+      joaninha.classList.add('jn-variando');
+      setTimeout(() => joaninha.classList.remove('jn-variando'), 3600);
+      proximaVariacaoPostura = Date.now() + 12000 + Math.random() * 4000;
+    }
     setInterval(() => {
       if (estado.pausada || estado.andando || estado.voando || estado.dormindo) return;
       if (document.querySelector('.modal-overlay.open')) return;
+      talvezVariarPostura();
       const idleMs = Date.now() - ultimaAtividade;
       if (idleMs > 300000) { dormir(); return; }
       if (idleMs > 60000) vagar();
@@ -192,16 +232,24 @@
           setTimeout(() => { joaninha.classList.remove('jn-comemorando'); mostrarPose('idle'); }, 1100);
           break;
         case 'pensando-on': case 'thinking':
+          estado.pensando = true;
+          joaninha.classList.add('jn-pensando');
+          atualizarAtenta();
           mostrarPose('thinking');
           break;
         case 'pensando-off':
+          estado.pensando = false;
+          joaninha.classList.remove('jn-pensando');
+          atualizarAtenta();
           mostrarPose('idle');
           break;
         case 'atenta-on':
-          joaninha.classList.add('jn-atenta');
+          estado.atentaExterna = true;
+          atualizarAtenta();
           break;
         case 'atenta-off':
-          joaninha.classList.remove('jn-atenta');
+          estado.atentaExterna = false;
+          atualizarAtenta();
           break;
         case 'surprised':
           joaninha.classList.add('jn-surpresa');
@@ -210,6 +258,10 @@
         case 'worried':
           joaninha.classList.add('jn-preocupada-gesto');
           setTimeout(() => joaninha.classList.remove('jn-preocupada-gesto'), 2400);
+          break;
+        case 'chamarAtencao': case 'attention':
+          joaninha.classList.add('jn-chamar-atencao');
+          setTimeout(() => joaninha.classList.remove('jn-chamar-atencao'), 1800);
           break;
         case 'wave':
           mostrarPose('happy');
