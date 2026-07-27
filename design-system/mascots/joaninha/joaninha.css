@@ -1,9 +1,12 @@
 /* ══ Joaninha — componente de mascote do design system PRIME ══
    Só aparência e comportamento visual. Não sabe nada sobre o produto
    que a hospeda (nenhuma referência a casos, painel, Firebase etc.) —
-   veja joaninha.js para a API pública (play/look/notify/onInteragir). */
+   veja joaninha.js para a API pública (play/look/notify/onInteragir).
 
-:root{--jn-pupil-x:0px;--jn-pupil-y:0px}
+   O corpo é uma foto (uma das 6 poses oficiais do guia de marca, trocada
+   via joaninha.js), não um SVG com partes soltas — por isso não há mais
+   regras para olho/pupila/pálpebra/antena/asa aqui. As animações abaixo
+   afetam sempre o personagem inteiro (balançar, pular, brilhar). */
 
 /* ── tokens de cor (bíblia de personagem) ── */
 :root{
@@ -18,7 +21,8 @@
 
 .joaninha{width:74px;height:74px;padding:0;border:none;background:transparent;cursor:pointer;display:block;filter:drop-shadow(0 10px 16px rgba(22,10,10,.28));transform:translateY(0);animation:jn-idle-bob 3.6s cubic-bezier(.45,0,.4,1) infinite}
 .joaninha:focus-visible{outline:2px solid #C9A876;outline-offset:4px;border-radius:50%}
-.joaninha-svg{width:100%;height:100%;overflow:visible}
+.joaninha-avatar{width:100%;height:100%;object-fit:contain;display:block;transition:opacity .16s ease}
+.joaninha-avatar.jn-fading{opacity:0}
 @keyframes jn-idle-bob{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.012)}}
 
 .joaninha.jn-andando{animation:jn-andando-kf 1.9s cubic-bezier(.5,0,.5,1) infinite}
@@ -33,54 +37,31 @@
 @keyframes jn-comemorando-kf{0%{transform:rotate(0) scale(1)}18%{transform:rotate(-11deg) scale(1.1)}42%{transform:rotate(10deg) scale(1.12)}68%{transform:rotate(-5deg) scale(1.04)}100%{transform:rotate(0) scale(1)}}
 .joaninha.jn-surpresa{animation:jn-surpresa-kf .5s cubic-bezier(.34,1.56,.64,1)}
 @keyframes jn-surpresa-kf{0%{transform:scale(1)}35%{transform:scale(1.16)}100%{transform:scale(1)}}
-.joaninha.jn-acenando .jn-antenna-r{animation:jn-antenna-sway .3s ease-in-out 4}
-
-.jn-antenna{transform-origin:70px 26px;animation:jn-antenna-sway 4.2s cubic-bezier(.45,0,.4,1) infinite}
-.jn-antenna-r{animation-delay:.4s}
-@keyframes jn-antenna-sway{0%,100%{transform:rotate(0deg)}50%{transform:rotate(6deg)}}
-.joaninha.jn-preocupada-gesto .jn-antenna{animation-duration:2.4s;transform:rotate(-4deg)}
-
-.jn-pupil{transform:translate(var(--jn-pupil-x),var(--jn-pupil-y));transition:transform .22s cubic-bezier(.34,1.2,.64,1)}
-.jn-eyelid{transform-origin:center top;transform:scaleY(0);transition:transform .05s linear}
-.jn-mouth{transition:d .3s ease}
-.joaninha.jn-sorrindo .jn-mouth,.joaninha.jn-comemorando .jn-mouth{d:path('M62,52 Q70,60 78,52')}
-.joaninha.jn-pensando .jn-mouth{d:path('M65,54 Q70,55 75,54')}
-.joaninha.jn-surpresa .jn-mouth{d:path('M65,51 Q70,60 75,51 Q70,53 65,51')}
-.joaninha.jn-preocupada-gesto .jn-mouth{d:path('M64,55 Q70,53 76,55')}
-.joaninha.jn-piscando .jn-eyelid{animation:jn-blink-kf .18s ease-in-out}
-@keyframes jn-blink-kf{0%,100%{transform:scaleY(0)}50%{transform:scaleY(1)}}
-
-.jn-wing{opacity:0;transform:scale(.35);transition:opacity .5s ease,transform .5s ease}
-.jn-wing-l{transform-origin:60px 60px}
-.jn-wing-r{transform-origin:80px 60px}
-.joaninha.jn-voando .jn-wing,.joaninha.jn-asa-twitch .jn-wing{opacity:.92;transform:scale(1)}
-.joaninha.jn-voando .jn-wing-l{animation:jn-flap-l .32s ease-in-out infinite alternate}
-.joaninha.jn-voando .jn-wing-r{animation:jn-flap-r .32s ease-in-out infinite alternate}
-@keyframes jn-flap-l{0%{transform:scale(1) rotate(0deg)}100%{transform:scale(1) rotate(-16deg)}}
-@keyframes jn-flap-r{0%{transform:scale(1) rotate(0deg)}100%{transform:scale(1) rotate(16deg)}}
-
-.jn-cheek{transition:opacity .3s ease}
-.joaninha.jn-sorrindo .jn-cheek,.joaninha.jn-comemorando .jn-cheek{opacity:1}
-
-.jn-shadow{transition:opacity .3s ease,transform .3s ease;transform-origin:center}
-.joaninha.jn-voando .jn-shadow{opacity:.06;transform:scale(.6)}
-.joaninha.jn-andando .jn-shadow{opacity:.1;transform:scale(.85)}
+.joaninha.jn-preocupada-gesto{animation:jn-preocupada-kf 2s cubic-bezier(.34,1.56,.64,1)}
+@keyframes jn-preocupada-kf{0%{transform:translateY(0) scale(1)}35%{transform:translateY(3px) scale(.96)}100%{transform:translateY(0) scale(1)}}
 
 #joaninha-host.jn-mood-preocupada .joaninha{filter:drop-shadow(0 10px 16px rgba(22,10,10,.28)) drop-shadow(0 0 14px rgba(180,83,9,.35))}
 #joaninha-host.jn-mood-feliz .joaninha{filter:drop-shadow(0 10px 16px rgba(22,10,10,.28)) drop-shadow(0 0 14px rgba(46,125,50,.3))}
-#joaninha-host.jn-mood-feliz .jn-mouth{d:path('M63,52 Q70,58 77,52')}
-#joaninha-host.jn-mood-preocupada .jn-mouth{d:path('M64,55 Q70,53 76,55')}
 
-.joaninha.jn-atenta{transform:scale(1.08);filter:drop-shadow(0 10px 16px rgba(22,10,10,.28)) drop-shadow(0 0 16px rgba(201,168,118,.6));transition:transform .25s cubic-bezier(.34,1.56,.64,1),filter .25s ease}
+.joaninha.jn-atenta{animation:jn-atenta-kf .25s cubic-bezier(.34,1.56,.64,1) forwards;filter:drop-shadow(0 10px 16px rgba(22,10,10,.28)) drop-shadow(0 0 16px rgba(201,168,118,.6));transition:filter .25s ease}
+@keyframes jn-atenta-kf{from{transform:scale(1)}to{transform:scale(1.08)}}
+.joaninha.jn-observando{animation:jn-observando-kf .25s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes jn-observando-kf{from{transform:rotate(0deg)}to{transform:rotate(-2.5deg)}}
+.joaninha.jn-atenta.jn-observando{animation:jn-atenta-observando-kf .25s cubic-bezier(.34,1.56,.64,1) forwards;filter:drop-shadow(0 10px 16px rgba(22,10,10,.28)) drop-shadow(0 0 16px rgba(201,168,118,.6))}
+@keyframes jn-atenta-observando-kf{from{transform:scale(1) rotate(0deg)}to{transform:scale(1.08) rotate(-2.5deg)}}
 .joaninha.jn-dormindo{animation-duration:6s}
-.joaninha.jn-dormindo .jn-antenna{animation-duration:9s}
-.joaninha.jn-dormindo .jn-eyelid{transform:scaleY(1)}
-.joaninha.jn-dormindo .jn-mouth{d:path('M65,54 Q70,55 75,54')}
-.joaninha.jn-pensando .jn-antenna{animation-duration:1s}
+
+.joaninha.jn-pensando{animation:jn-pensando-kf 4.5s ease-in-out infinite}
+@keyframes jn-pensando-kf{0%,100%{transform:rotate(-3deg) translateY(0) scale(1)}50%{transform:rotate(-3deg) translateY(-3px) scale(1.008)}}
+
+.joaninha.jn-variando{animation:jn-idle-variacao-kf 3.6s cubic-bezier(.45,0,.4,1)}
+@keyframes jn-idle-variacao-kf{0%,100%{transform:translateY(0) rotate(0deg) scale(1)}50%{transform:translateY(-3px) rotate(-1.5deg) scale(1.012)}}
+
+.joaninha.jn-chamar-atencao{animation:jn-chamar-atencao-kf .6s ease-in-out 3}
+@keyframes jn-chamar-atencao-kf{0%,100%{filter:drop-shadow(0 10px 16px rgba(22,10,10,.28))}50%{filter:drop-shadow(0 10px 16px rgba(22,10,10,.28)) drop-shadow(0 0 18px rgba(201,168,118,.75))}}
 
 @media(prefers-reduced-motion:reduce){
-  .joaninha,.joaninha.jn-andando,.joaninha.jn-voando,.joaninha.jn-pousando,.joaninha.jn-sorrindo,.joaninha.jn-comemorando,.joaninha.jn-surpresa{animation:none}
-  .jn-antenna{animation:none}
+  .joaninha,.joaninha.jn-andando,.joaninha.jn-voando,.joaninha.jn-pousando,.joaninha.jn-sorrindo,.joaninha.jn-comemorando,.joaninha.jn-surpresa,.joaninha.jn-preocupada-gesto,.joaninha.jn-pensando,.joaninha.jn-variando,.joaninha.jn-chamar-atencao{animation:none}
   #joaninha-host{transition:none}
 }
 
