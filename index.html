@@ -112,6 +112,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .toolbar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .fbtn{font-size:12px;padding:6px 14px;border-radius:20px;border:0.5px solid #D1D1D6;background:#fff;color:#8E8EA0;cursor:pointer;white-space:nowrap;transition:background .15s ease,color .15s ease,border-color .15s ease}
 .fbtn.on,.fbtn:hover{background:linear-gradient(135deg,#16283A,#1F3B4D);color:#fff;border-color:#16283A}
+.fbtn-arquivo{margin-left:auto}
+.fbtn-arquivo.on,.fbtn-arquivo:hover{background:linear-gradient(135deg,#8A6B3D,#A9895A);border-color:#8A6B3D}
 .search-wrap{margin-left:auto;position:relative;display:flex;align-items:center}
 .search-wrap input{font-size:13px;padding:7px 14px;border-radius:20px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;width:190px;outline:none}
 .search-wrap input:focus{border-color:#16283A}
@@ -434,6 +436,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="fbtn" data-filtro="grazi" onclick="setFiltro('grazi',this)">Grazi</button>
       <button class="fbtn" data-filtro="gabriel" onclick="setFiltro('gabriel',this)">Gabriel</button>
       <button class="fbtn" data-filtro="terceiro" onclick="setFiltro('terceiro',this)">Aguard. terceiro</button>
+      <button class="fbtn fbtn-arquivo" data-filtro="concluido" onclick="setFiltro('concluido',this)"><i class="ti ti-archive" style="font-size:13px;vertical-align:-2px"></i> Arquivo</button>
     </div>
     <div class="add-section">
       <button class="add-toggle" onclick="toggleForm()"><i class="ti ti-plus" style="font-size:15px"></i> Adicionar novo caso</button>
@@ -1179,8 +1182,13 @@ function bResp(r){
   const v=(m[r]||'b-gray '+r).split(' ');
   return`<span class="badge ${v[0]}">${v.slice(1).join(' ')}</span>`;
 }
-function bDias(iso){
+function bDias(iso,concluido){
   const d=diasParado(iso);
+  if(concluido){
+    // iso vem sempre como "YYYY-MM-DD" (isoHoje()) — monta a data na mão pra não sofrer com fuso horário
+    const dataFmt=/^\d{4}-\d{2}-\d{2}$/.test(iso||'')?iso.split('-').reverse().join('/'):'—';
+    return`<span class="dias-badge dias-0"><i class="ti ti-archive" style="font-size:11px;vertical-align:-1px"></i> Concluído em ${dataFmt}</span>`;
+  }
   let cls,txt;
   if(d<=0){cls='dias-0';txt='Atualizado hoje';}
   else if(d<3){cls='dias-1';txt=d===1?'1 dia parado':`${d} dias parado`;}
@@ -1196,17 +1204,20 @@ function bDep(dep){
 
 // ── FILTRO ──
 function visivel(c){
-  if(filtro==='concluido')return c.concluido;
-  if(c.concluido)return false;
-  if(filtro==='prioridade'&&c.status!=='prioridade')return false;
-  if(filtro==='critico'&&c.status!=='critico')return false;
-  if(filtro==='atencao'&&c.status!=='atencao')return false;
-  if(filtro==='emdia'&&c.status!=='emdia')return false;
-  if(filtro==='shirley'&&c.resp!=='shirley')return false;
-  if(filtro==='grazi'&&c.resp!=='grazi')return false;
-  if(filtro==='gabriel'&&c.resp!=='gabriel')return false;
-  if(filtro==='parado'&&diasParado(c.atualizado)<3)return false;
-  if(filtro==='terceiro'&&!c.dep)return false;
+  if(filtro==='concluido'){
+    if(!c.concluido)return false;
+  }else{
+    if(c.concluido)return false;
+    if(filtro==='prioridade'&&c.status!=='prioridade')return false;
+    if(filtro==='critico'&&c.status!=='critico')return false;
+    if(filtro==='atencao'&&c.status!=='atencao')return false;
+    if(filtro==='emdia'&&c.status!=='emdia')return false;
+    if(filtro==='shirley'&&c.resp!=='shirley')return false;
+    if(filtro==='grazi'&&c.resp!=='grazi')return false;
+    if(filtro==='gabriel'&&c.resp!=='gabriel')return false;
+    if(filtro==='parado'&&diasParado(c.atualizado)<3)return false;
+    if(filtro==='terceiro'&&!c.dep)return false;
+  }
   if(busca){
     const q=busca.toLowerCase();
     if(![c.nome,c.tipo,c.acao,c.obs].some(t=>(t||'').toLowerCase().includes(q)))return false;
@@ -1218,10 +1229,19 @@ function visivel(c){
 function renderCasos(){
   const el=document.getElementById('casos-list');
   const lista=getCasosList().filter(visivel);
-  if(!lista.length){el.innerHTML='<div class="empty"><i class="ti ti-inbox" style="font-size:26px;display:block;margin-bottom:8px;opacity:.35"></i>Nenhum caso encontrado.</div>';return;}
-  // Ordenar: prioridade > critico > atencao > emdia
-  const ordem={prioridade:0,critico:1,atencao:2,emdia:3};
-  lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
+  if(!lista.length){
+    const msg=filtro==='concluido'?(busca?'Nenhum caso concluído encontrado pra essa busca.':'Nenhum caso concluído ainda — o que você concluir aparece aqui, fácil de achar depois.'):'Nenhum caso encontrado.';
+    el.innerHTML=`<div class="empty"><i class="ti ${filtro==='concluido'?'ti-archive':'ti-inbox'}" style="font-size:26px;display:block;margin-bottom:8px;opacity:.35"></i>${msg}</div>`;
+    return;
+  }
+  if(filtro==='concluido'){
+    // Arquivo: mais recém-concluído primeiro
+    lista.sort((a,b)=>(b.atualizado||'').localeCompare(a.atualizado||''));
+  }else{
+    // Ordenar: prioridade > critico > atencao > emdia
+    const ordem={prioridade:0,critico:1,atencao:2,emdia:3};
+    lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
+  }
   el.innerHTML=lista.map(c=>{
     return`
     <div class="card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
@@ -1274,7 +1294,7 @@ function renderCasos(){
           <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
         </select>
         <span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${c.prazo&&c.prazo!=='—'?c.prazo:'—'}</span>
-        ${bDias(c.atualizado)}
+        ${bDias(c.atualizado,c.concluido)}
       </div>
 
       <div class="card-buttons">
