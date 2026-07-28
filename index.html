@@ -1024,6 +1024,7 @@ function renderCasos(){
       <div class="card-obs">
         <span class="obs-label">Observações</span>
         <div class="obs-text" id="obs-txt-${c.id}" onclick="toggleObs('${c.id}')">${c.obs||'<em style="opacity:.5">Nenhuma observação registrada.</em>'}</div>
+        ${c.obsAnterior?`<button class="btn-sm" onclick="desfazerObs('${c.id}')" title="Volta pro texto anterior"><i class="ti ti-arrow-back-up" style="font-size:12px;vertical-align:-1px"></i> Desfazer última alteração</button>`:''}
         <div class="obs-edit" id="obs-edit-${c.id}">
           <textarea rows="2" id="obs-ta-${c.id}">${c.obs||''}</textarea>
           <div class="obs-edit-row">
@@ -1081,9 +1082,19 @@ window.toggleObs=function(id){
 };
 window.salvarObs=function(id){
   const v=document.getElementById('obs-ta-'+id).value;
-  update(ref(db,`casos/${id}`),{obs:v,atualizado:isoHoje()});
+  const c=casos[id];
+  const anterior=(c&&c.obs)||'';
+  if(anterior.trim()&&v.length>anterior.length*5){
+    if(!confirm('O novo texto ficou bem maior que a observação anterior — isso vai substituir tudo. Confirma que quer salvar assim mesmo?'))return;
+  }
+  update(ref(db,`casos/${id}`),{obs:v,obsAnterior:anterior,atualizado:isoHoje()});
   const s=document.getElementById('saved-'+id);s.style.display='inline';
   setTimeout(()=>{s.style.display='none';document.getElementById('obs-edit-'+id).style.display='none';},1400);
+};
+window.desfazerObs=function(id){
+  const c=casos[id];
+  if(!c||!c.obsAnterior)return;
+  update(ref(db,`casos/${id}`),{obs:c.obsAnterior,obsAnterior:'',atualizado:isoHoje()});
 };
 window.addAoFoco=function(id){
   const c=casos[id];if(!c)return;
