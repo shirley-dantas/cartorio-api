@@ -1098,6 +1098,10 @@ async function verificarAlertasSeNecessario(forcar){
     if(!casosAtivos.length)return;
     const aprendizados=await buscarAprendizadosRelevantes('alerta');
     const r=await fetch('/api/verificar-alertas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({casosAtivos,aprendizados})});
+    if(!r.ok){
+      const corpo=await r.text().catch(()=>'');
+      throw new Error(`Servidor respondeu ${r.status}${corpo?': '+corpo.slice(0,200):''}`);
+    }
     const j=await r.json();
     if(j.ok){
       const agora=new Date().toISOString();
@@ -1112,7 +1116,11 @@ async function verificarAlertasSeNecessario(forcar){
       if(forcar)alert('Não consegui verificar agora: '+(j.erro||'erro desconhecido')+'. Tente de novo em alguns segundos.');
     }
   }catch(e){
-    if(forcar)alert('Não consegui conectar para verificar. Tente de novo.');
+    console.error('Falha ao verificar alertas:',e);
+    if(forcar){
+      const motivo=e instanceof TypeError?'Não consegui conectar ao servidor.':(e.message||'Erro desconhecido.');
+      alert('Não consegui verificar agora: '+motivo+' Tente de novo em alguns segundos.');
+    }
   }
   if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
 }
