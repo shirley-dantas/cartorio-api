@@ -54,7 +54,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .saudacao-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#8E8EA0;font-size:18px;cursor:pointer;line-height:1}
 .saudacao-close:hover{color:#1C1C1E}
 .saudacao-corpo{color:#3A3A3C;font-size:13.5px;line-height:1.6}
-.saudacao-titulo{font-size:17px;font-weight:600;color:#16283A;margin-bottom:5px}
+.saudacao-titulo{font-size:17px;font-weight:600;color:#16283A;margin-bottom:5px;display:flex;align-items:center;gap:4px}
+.saudacao-clima-icone{display:inline-flex;align-items:center}
+.saudacao-clima-icone svg{display:block}
 .foco-card{background:#fff;border:0.5px solid #ECECF2;border-radius:16px;padding:18px 22px;margin-bottom:20px;box-shadow:0 1px 3px rgba(22,40,58,.04)}
 .foco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .foco-title{font-size:13px;font-weight:500;color:#16283A;display:flex;align-items:center;gap:7px}
@@ -872,23 +874,39 @@ function montarSaudacao(forcar){
   saudacaoMontada=true;
   if(sessionStorage.getItem('saudacao_fechada'))return;
   const agora=new Date();
-  document.getElementById('saudacao-titulo').textContent=`Bom dia, ${usuario}! ☀️`;
+  renderSaudacaoTitulo(usuario,'sol');
   const msg=`Hoje é ${DIAS_SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}. Vamos começar? Os compromissos e pendências de hoje já estão logo abaixo, no Foco do dia.`;
   document.getElementById('saudacao-texto').textContent=msg;
   document.getElementById('saudacao-card').style.display='block';
   posicionarJoaninhaNaSaudacao();
-  atualizarEmojiClima(usuario);
+  atualizarIconeClima(usuario);
   if(!climaIntervalIniciado){
     climaIntervalIniciado=true;
-    setInterval(()=>atualizarEmojiClima(usuario),30*60*1000);
+    setInterval(()=>atualizarIconeClima(usuario),30*60*1000);
   }
 }
 
-// ── Emoji da saudação segue o clima real de São Paulo (Open-Meteo, sem chave) ──
-// Busca de novo a cada 30min (setInterval acima) pra pegar mudança de sol pra
-// chuva ao longo do dia, sem precisar recarregar a página.
+// ── Ícone da saudação segue o clima real de São Paulo (Open-Meteo, sem chave) ──
+// SVG próprio (sol com halo, nuvem, chuva, floco de neve) — busca de novo a
+// cada 30min (setInterval acima) pra pegar mudança de sol pra chuva no dia.
+const ICONES_CLIMA={
+  sol:'<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#FFF3D6"/><circle cx="12" cy="12" r="5" fill="#E8A23C"/><g stroke="#E8A23C" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="5.2"/><line x1="12" y1="18.8" x2="12" y2="21"/><line x1="3" y1="12" x2="5.2" y2="12"/><line x1="18.8" y1="12" x2="21" y2="12"/><line x1="5.6" y1="5.6" x2="7.1" y2="7.1"/><line x1="16.9" y1="16.9" x2="18.4" y2="18.4"/><line x1="5.6" y1="18.4" x2="7.1" y2="16.9"/><line x1="16.9" y1="7.1" x2="18.4" y2="5.6"/></g></svg>',
+  nublado:'<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#EEF0F4"/><path d="M7 16a3.3 3.3 0 0 1-.3-6.58A4 4 0 0 1 15 8.7 3 3 0 0 1 14.5 14.7H7z" fill="#7C8794"/></svg>',
+  chuva:'<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#E3EDFB"/><path d="M7 13a3.2 3.2 0 0 1-.3-6.4A4 4 0 0 1 15 5.8 3 3 0 0 1 14.5 11.8H7z" fill="#3B6FC9"/><g stroke="#3B6FC9" stroke-width="1.4" stroke-linecap="round"><line x1="8.5" y1="15" x2="7.8" y2="17.2"/><line x1="12" y1="15" x2="11.3" y2="17.2"/><line x1="15.5" y1="15" x2="14.8" y2="17.2"/></g></svg>',
+  frio:'<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#E6F3FB"/><g stroke="#3592C4" stroke-width="1.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="6.5" y1="8" x2="17.5" y2="16"/><line x1="17.5" y1="8" x2="6.5" y2="16"/></g></svg>'
+};
+function renderSaudacaoTitulo(usuario,chaveIcone){
+  const el=document.getElementById('saudacao-titulo');
+  if(!el)return;
+  el.textContent='';
+  el.appendChild(document.createTextNode(`Bom dia, ${usuario}! `));
+  const span=document.createElement('span');
+  span.className='saudacao-clima-icone';
+  span.innerHTML=ICONES_CLIMA[chaveIcone]||ICONES_CLIMA.sol;
+  el.appendChild(span);
+}
 let climaIntervalIniciado=false;
-async function atualizarEmojiClima(usuario){
+async function atualizarIconeClima(usuario){
   try{
     const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.55&longitude=-46.63&current=temperature_2m,weather_code&timezone=America%2FSao_Paulo');
     const j=await r.json();
@@ -896,12 +914,11 @@ async function atualizarEmojiClima(usuario){
     const code=j.current.weather_code;
     const chovendo=[51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99].includes(code);
     const nublado=[1,2,3,45,48].includes(code);
-    let emoji='☀️';
-    if(chovendo)emoji='🌧️';
-    else if(temp<=15)emoji='❄️';
-    else if(nublado)emoji='☁️';
-    const el=document.getElementById('saudacao-titulo');
-    if(el)el.textContent=`Bom dia, ${usuario}! ${emoji}`;
+    let chave='sol';
+    if(chovendo)chave='chuva';
+    else if(temp<=15)chave='frio';
+    else if(nublado)chave='nublado';
+    renderSaudacaoTitulo(usuario,chave);
   }catch(e){
     // sem previsão disponível — mantém o sol padrão já mostrado
   }
