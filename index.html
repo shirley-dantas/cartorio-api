@@ -1106,12 +1106,17 @@ async function verificarAlertasSeNecessario(forcar){
     if(j.ok){
       const agora=new Date().toISOString();
       await set(ref(db,'alertas'),{geradoEm:agora,lista:j.alertas||[]});
-      await adicionarAgendaAoFoco([
+      const {adicionados,descartados}=await adicionarAgendaAoFoco([
         {itens:j.agendaHoje||[],marcador:'hoje'},
         {itens:j.agendaAmanha||[],marcador:'amanha'},
         {itens:j.alertas||[],marcador:'alerta'}
       ]);
       if(atualizadoEl)atualizadoEl.textContent='Verificado em '+new Date(agora).toLocaleDateString('pt-BR')+' '+new Date(agora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      if(forcar){
+        const totalNovos=(j.agendaHoje||[]).length+(j.agendaAmanha||[]).length+(j.alertas||[]).length;
+        if(!totalNovos)alert('Verifiquei tudo — nada novo para avisar hoje.');
+        else if(descartados>0)alert(`Adicionei ${adicionados} aviso(s) novo(s) ao Foco do dia. ${descartados} não coube(ram) porque o Foco já está no limite de ${LIMITE_FOCO} itens — conclua ou remova algo para abrir espaço.`);
+      }
     }else{
       if(forcar)alert('Não consegui verificar agora: '+(j.erro||'erro desconhecido')+'. Tente de novo em alguns segundos.');
     }
@@ -1130,15 +1135,18 @@ async function adicionarAgendaAoFoco(gruposOrdenados){
   const manuais=atual.filter(f=>!f.auto);
   const autoAntigos=atual.filter(f=>f.auto);
   const arr=[...manuais];
+  let adicionados=0,descartados=0;
   gruposOrdenados.forEach(({itens,marcador})=>{
     itens.forEach(item=>{
-      if(arr.length>=LIMITE_FOCO)return;
+      if(arr.length>=LIMITE_FOCO){descartados++;return;}
       const antigo=autoAntigos.find(f=>f.casoNome===item.nome&&f.marcador===marcador);
       const texto=`${ICONE_MARCADOR[marcador]||''} ${item.mensagem}`.trim();
       arr.push({text:texto,done:antigo?antigo.done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
+      adicionados++;
     });
   });
   await set(focosRef,arr);
+  return{adicionados,descartados};
 }
 
 // ── STATS ──
