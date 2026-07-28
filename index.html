@@ -878,9 +878,16 @@ function montarSaudacao(forcar){
   document.getElementById('saudacao-card').style.display='block';
   posicionarJoaninhaNaSaudacao();
   atualizarEmojiClima(usuario);
+  if(!climaIntervalIniciado){
+    climaIntervalIniciado=true;
+    setInterval(()=>atualizarEmojiClima(usuario),30*60*1000);
+  }
 }
 
 // ── Emoji da saudação segue o clima real de São Paulo (Open-Meteo, sem chave) ──
+// Busca de novo a cada 30min (setInterval acima) pra pegar mudança de sol pra
+// chuva ao longo do dia, sem precisar recarregar a página.
+let climaIntervalIniciado=false;
 async function atualizarEmojiClima(usuario){
   try{
     const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.55&longitude=-46.63&current=temperature_2m,weather_code&timezone=America%2FSao_Paulo');
