@@ -755,7 +755,6 @@ const defaultCasos=[
 let casos={};
 let focos=[];
 let filtro='todos';
-const LIMITE_FOCO=8; // teto único de itens no Foco do dia (manual + automático)
 let busca='';
 let inicializado=false;
 
@@ -854,7 +853,6 @@ window.addFoco=function(){
   const resp=document.getElementById('foco-resp').value||null;
   const urgente=document.getElementById('foco-urgente').checked;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  if(arr.length>=LIMITE_FOCO){alert(`Máximo ${LIMITE_FOCO} prioridades por dia.`);return;}
   arr.push({text:v,done:false,casoNome,resp,urgente});
   set(focosRef,arr);
   document.getElementById('foco-input').value='';
@@ -1083,13 +1081,7 @@ async function verificarAlertasSeNecessario(forcar){
   alertasVerificados=true;
   const btn=document.getElementById('alertas-refresh-btn');
   const atualizadoEl=document.getElementById('alertas-atualizado');
-  const LIMITE_MS=4*60*60*1000;
   try{
-    if(!forcar){
-      const snap=await fetch('https://painel-cartorio-default-rtdb.firebaseio.com/alertas/geradoEm.json');
-      const geradoEm=await snap.json();
-      if(geradoEm&&(Date.now()-new Date(geradoEm).getTime())<LIMITE_MS)return;
-    }
     if(btn){btn.disabled=true;btn.textContent='Verificando...';}
     const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
       nome:c.nome,tipo:c.tipo,resp:c.resp,prazo:c.prazo,dep:c.dep,agendado:c.agendado,
@@ -1106,7 +1098,7 @@ async function verificarAlertasSeNecessario(forcar){
     if(j.ok){
       const agora=new Date().toISOString();
       await set(ref(db,'alertas'),{geradoEm:agora,lista:j.alertas||[]});
-      const {adicionados,descartados}=await adicionarAgendaAoFoco([
+      await adicionarAgendaAoFoco([
         {itens:j.agendaHoje||[],marcador:'hoje'},
         {itens:j.agendaAmanha||[],marcador:'amanha'},
         {itens:j.alertas||[],marcador:'alerta'}
@@ -1115,7 +1107,6 @@ async function verificarAlertasSeNecessario(forcar){
       if(forcar){
         const totalNovos=(j.agendaHoje||[]).length+(j.agendaAmanha||[]).length+(j.alertas||[]).length;
         if(!totalNovos)alert('Verifiquei tudo — nada novo para avisar hoje.');
-        else if(descartados>0)alert(`Adicionei ${adicionados} aviso(s) novo(s) ao Foco do dia. ${descartados} não coube(ram) porque o Foco já está no limite de ${LIMITE_FOCO} itens — conclua ou remova algo para abrir espaço.`);
       }
     }else{
       if(forcar)alert('Não consegui verificar agora: '+(j.erro||'erro desconhecido')+'. Tente de novo em alguns segundos.');
@@ -1135,18 +1126,14 @@ async function adicionarAgendaAoFoco(gruposOrdenados){
   const manuais=atual.filter(f=>!f.auto);
   const autoAntigos=atual.filter(f=>f.auto);
   const arr=[...manuais];
-  let adicionados=0,descartados=0;
   gruposOrdenados.forEach(({itens,marcador})=>{
     itens.forEach(item=>{
-      if(arr.length>=LIMITE_FOCO){descartados++;return;}
       const antigo=autoAntigos.find(f=>f.casoNome===item.nome&&f.marcador===marcador);
       const texto=`${ICONE_MARCADOR[marcador]||''} ${item.mensagem}`.trim();
       arr.push({text:texto,done:antigo?antigo.done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
-      adicionados++;
     });
   });
   await set(focosRef,arr);
-  return{adicionados,descartados};
 }
 
 // ── STATS ──
@@ -1350,9 +1337,7 @@ window.desfazerObs=function(id){
 };
 window.addAoFoco=async function(id){
   const c=casos[id];if(!c)return;
-  const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   const irParaFoco=()=>document.querySelector('.foco-card')?.scrollIntoView({behavior:'smooth',block:'start'});
-  if(arr.length>=LIMITE_FOCO){alert(`Foco do dia já tem ${LIMITE_FOCO} itens.`);irParaFoco();return;}
   const btn=document.querySelector(`#card-${id} .btn-foco`);
   const btnHtml=btn?btn.innerHTML:'';
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader" style="font-size:12px;vertical-align:-1px"></i> Analisando...';}
@@ -1366,7 +1351,6 @@ window.addAoFoco=async function(id){
     if(!j.ok||!j.aviso)throw new Error(j.erro||'Sem resposta da IA');
     const txt=`${ICONE_MARCADOR.alerta} ${j.aviso}`;
     const arrAtual=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-    if(arrAtual.length>=LIMITE_FOCO){alert(`Foco do dia já tem ${LIMITE_FOCO} itens.`);irParaFoco();return;}
     arrAtual.push({text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente,marcador:'alerta'});
     await set(focosRef,arrAtual);
     irParaFoco();
