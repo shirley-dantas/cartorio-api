@@ -1332,16 +1332,33 @@ window.desfazerObs=function(id){
   if(!c||!c.obsAnterior)return;
   update(ref(db,`casos/${id}`),{obs:c.obsAnterior,obsAnterior:'',atualizado:isoHoje()});
 };
-window.addAoFoco=function(id){
+window.addAoFoco=async function(id){
   const c=casos[id];if(!c)return;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   const irParaFoco=()=>document.querySelector('.foco-card')?.scrollIntoView({behavior:'smooth',block:'start'});
   if(arr.length>=LIMITE_FOCO){alert(`Foco do dia já tem ${LIMITE_FOCO} itens.`);irParaFoco();return;}
-  const txt=`${c.tipo||'Caso'} — ${c.nome}`;
-  if(arr.some(f=>f.text===txt)){irParaFoco();return;}
+  const btn=document.querySelector(`#card-${id} .btn-foco`);
+  const btnHtml=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader" style="font-size:12px;vertical-align:-1px"></i> Analisando...';}
   const urgente=c.status==='critico'||c.status==='prioridade';
-  arr.push({text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente});
-  set(focosRef,arr).then(irParaFoco);
+  try{
+    const r=await fetch('/api/gerar-aviso-foco',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({caso:{
+      nome:c.nome,tipo:c.tipo,status:c.status,resp:c.resp,prazo:c.prazo,dep:c.dep,agendado:c.agendado,
+      diasParado:diasParado(c.atualizado),obs:c.obs
+    }})});
+    const j=await r.json();
+    if(!j.ok||!j.aviso)throw new Error(j.erro||'Sem resposta da IA');
+    const txt=`${ICONE_MARCADOR.alerta} ${j.aviso}`;
+    const arrAtual=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+    if(arrAtual.length>=LIMITE_FOCO){alert(`Foco do dia já tem ${LIMITE_FOCO} itens.`);irParaFoco();return;}
+    arrAtual.push({text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente,marcador:'alerta'});
+    await set(focosRef,arrAtual);
+    irParaFoco();
+  }catch(err){
+    alert('Não consegui gerar o aviso agora. Tente de novo em alguns segundos.');
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML=btnHtml;}
+  }
 };
 window.abrirMinuta=async function(id){
   const c=casos[id];if(!c)return;
