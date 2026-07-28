@@ -87,8 +87,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-input-row button{font-size:12px;padding:7px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600;transition:filter .15s ease}
 .foco-input-row button:hover{filter:brightness(1.12)}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
-.stat{background:#fff;border-radius:14px;padding:13px 15px;border:0.5px solid #ECECF2;box-shadow:0 1px 3px rgba(0,0,0,.03);transition:box-shadow .2s ease,transform .15s ease;display:flex;align-items:center;gap:11px}
+.stat{background:#fff;border-radius:14px;padding:13px 15px;border:0.5px solid #ECECF2;box-shadow:0 1px 3px rgba(0,0,0,.03);transition:box-shadow .2s ease,transform .15s ease;display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none}
 .stat:hover{box-shadow:0 6px 16px rgba(0,0,0,.07);transform:translateY(-2px)}
+.stat.on{box-shadow:0 0 0 2px #16283A,0 6px 16px rgba(22,40,58,.18)}
 .stat-icon{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .stat-icon.slate{background:#EEF0F4;color:#4B5563}
 .stat-icon.purple{background:#EDE9FE;color:#6B21A8}
@@ -101,9 +102,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .toolbar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .fbtn{font-size:12px;padding:6px 14px;border-radius:20px;border:0.5px solid #D1D1D6;background:#fff;color:#8E8EA0;cursor:pointer;white-space:nowrap;transition:background .15s ease,color .15s ease,border-color .15s ease}
 .fbtn.on,.fbtn:hover{background:linear-gradient(135deg,#16283A,#1F3B4D);color:#fff;border-color:#16283A}
-.search-wrap{margin-left:auto}
+.search-wrap{margin-left:auto;position:relative;display:flex;align-items:center}
 .search-wrap input{font-size:13px;padding:7px 14px;border-radius:20px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;width:190px;outline:none}
 .search-wrap input:focus{border-color:#16283A}
+.busca-row{margin-bottom:20px}
+.busca-row .search-wrap{margin-left:0;display:flex}
+.busca-row .search-wrap i{position:absolute;left:14px;color:#8E8EA0;font-size:15px;pointer-events:none}
+.busca-row .search-wrap input{width:100%;padding-left:38px;border-radius:14px;padding-top:11px;padding-bottom:11px;box-shadow:0 1px 3px rgba(0,0,0,.03)}
 .cases{display:flex;flex-direction:column;gap:9px}
 .card{background:#fff;border:0.5px solid #ECECF2;border-radius:15px;padding:16px 18px;border-left:7px solid transparent;box-shadow:0 1px 3px rgba(0,0,0,.03);transition:box-shadow .2s ease,transform .15s ease}
 .card:hover{box-shadow:0 6px 20px rgba(0,0,0,.08);transform:translateY(-2px)}
@@ -380,6 +385,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="stats" id="stats"><div class="loading-overlay">Carregando...</div></div>
 
+  <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)"></div></div>
+
   <div class="foco-card">
     <div class="foco-header">
       <div class="foco-title"><i class="ti ti-bolt"></i> Foco do dia <span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span> <span class="sync-inline"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span></div>
@@ -400,17 +407,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div id="view-casos">
     <div class="toolbar">
-      <button class="fbtn on" onclick="setFiltro('todos',this)">Todos</button>
-      <button class="fbtn" onclick="setFiltro('prioridade',this)">Prioridade</button>
-      <button class="fbtn" onclick="setFiltro('critico',this)">Crítico</button>
-      <button class="fbtn" onclick="setFiltro('atencao',this)">Atenção</button>
-      <button class="fbtn" onclick="setFiltro('emdia',this)">Em dia</button>
-      <button class="fbtn" onclick="setFiltro('parado',this)">Parados +3d</button>
-      <button class="fbtn" onclick="setFiltro('shirley',this)">Shirley</button>
-      <button class="fbtn" onclick="setFiltro('grazi',this)">Grazi</button>
-      <button class="fbtn" onclick="setFiltro('gabriel',this)">Gabriel</button>
-      <button class="fbtn" onclick="setFiltro('terceiro',this)">Aguard. terceiro</button>
-      <div class="search-wrap"><input type="text" placeholder="Buscar..." oninput="buscar(this.value)"></div>
+      <button class="fbtn on" data-filtro="todos" onclick="setFiltro('todos',this)">Todos</button>
+      <button class="fbtn" data-filtro="shirley" onclick="setFiltro('shirley',this)">Shirley</button>
+      <button class="fbtn" data-filtro="grazi" onclick="setFiltro('grazi',this)">Grazi</button>
+      <button class="fbtn" data-filtro="gabriel" onclick="setFiltro('gabriel',this)">Gabriel</button>
+      <button class="fbtn" data-filtro="terceiro" onclick="setFiltro('terceiro',this)">Aguard. terceiro</button>
     </div>
     <div class="add-section">
       <button class="add-toggle" onclick="toggleForm()"><i class="ti ti-plus" style="font-size:15px"></i> Adicionar novo caso</button>
@@ -1054,14 +1055,15 @@ function renderStats(){
   const ok=ativos.filter(x=>x.status==='emdia').length;
   const parados=ativos.filter(x=>diasParado(x.atualizado)>=3).length;
   document.getElementById('stats').innerHTML=`
-    <div class="stat"><div class="stat-icon slate"><i class="ti ti-briefcase"></i></div><div><div class="stat-label">Total ativos</div><div class="stat-num">${ativos.length}</div></div></div>
-    <div class="stat"><div class="stat-icon purple"><i class="ti ti-star"></i></div><div><div class="stat-label">Prioridade</div><div class="stat-num purple">${pr}</div></div></div>
-    <div class="stat"><div class="stat-icon red"><i class="ti ti-alert-octagon"></i></div><div><div class="stat-label">Críticos</div><div class="stat-num red">${cr}</div></div></div>
-    <div class="stat"><div class="stat-icon amber"><i class="ti ti-clock-exclamation"></i></div><div><div class="stat-label">Atenção</div><div class="stat-num amber">${at}</div></div></div>
-    <div class="stat"><div class="stat-icon green"><i class="ti ti-circle-check"></i></div><div><div class="stat-label">Em dia</div><div class="stat-num green">${ok}</div></div></div>
-    <div class="stat"><div class="stat-icon purple"><i class="ti ti-hourglass"></i></div><div><div class="stat-label">Parados +3d</div><div class="stat-num purple">${parados}</div></div></div>
+    <div class="stat" data-filtro="todos" onclick="setFiltro('todos',this)"><div class="stat-icon slate"><i class="ti ti-briefcase"></i></div><div><div class="stat-label">Total ativos</div><div class="stat-num">${ativos.length}</div></div></div>
+    <div class="stat" data-filtro="prioridade" onclick="setFiltro('prioridade',this)"><div class="stat-icon purple"><i class="ti ti-star"></i></div><div><div class="stat-label">Prioridade</div><div class="stat-num purple">${pr}</div></div></div>
+    <div class="stat" data-filtro="critico" onclick="setFiltro('critico',this)"><div class="stat-icon red"><i class="ti ti-alert-octagon"></i></div><div><div class="stat-label">Críticos</div><div class="stat-num red">${cr}</div></div></div>
+    <div class="stat" data-filtro="atencao" onclick="setFiltro('atencao',this)"><div class="stat-icon amber"><i class="ti ti-clock-exclamation"></i></div><div><div class="stat-label">Atenção</div><div class="stat-num amber">${at}</div></div></div>
+    <div class="stat" data-filtro="emdia" onclick="setFiltro('emdia',this)"><div class="stat-icon green"><i class="ti ti-circle-check"></i></div><div><div class="stat-label">Em dia</div><div class="stat-num green">${ok}</div></div></div>
+    <div class="stat" data-filtro="parado" onclick="setFiltro('parado',this)"><div class="stat-icon purple"><i class="ti ti-hourglass"></i></div><div><div class="stat-label">Parados +3d</div><div class="stat-num purple">${parados}</div></div></div>
   `;
   if(window.joaninhaAtualizarHumor)window.joaninhaAtualizarHumor(ativos.length,cr,at);
+  sincronizarFiltroAtivo();
 }
 
 // ── BADGES ──
@@ -1567,10 +1569,14 @@ window.excluirCaso=function(id){
     remove(ref(db,'casos/'+id));
   }
 };
-window.setFiltro=function(f,btn){
+function sincronizarFiltroAtivo(){
+  document.querySelectorAll('[data-filtro]').forEach(el=>{
+    el.classList.toggle('on',el.dataset.filtro===filtro);
+  });
+}
+window.setFiltro=function(f){
   filtro=f;
-  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
+  sincronizarFiltroAtivo();
   renderCasos();
 };
 window.buscar=function(v){busca=v;renderCasos();};
