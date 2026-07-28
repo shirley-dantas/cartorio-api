@@ -1026,7 +1026,8 @@ function renderCasos(){
         <div class="obs-text" id="obs-txt-${c.id}" onclick="toggleObs('${c.id}')">${c.obs||'<em style="opacity:.5">Nenhuma observação registrada.</em>'}</div>
         ${c.obsAnterior?`<button class="btn-sm" onclick="desfazerObs('${c.id}')" title="Volta pro texto anterior"><i class="ti ti-arrow-back-up" style="font-size:12px;vertical-align:-1px"></i> Desfazer última alteração</button>`:''}
         <div class="obs-edit" id="obs-edit-${c.id}">
-          <textarea rows="2" id="obs-ta-${c.id}">${c.obs||''}</textarea>
+          <span class="rascunho-msg" id="rascunho-${c.id}" style="display:none;font-size:11px;color:#B4718A;margin-bottom:4px"><i class="ti ti-note"></i> Rascunho recuperado de uma edição anterior não salva</span>
+          <textarea rows="2" id="obs-ta-${c.id}" oninput="rascunharObs('${c.id}')">${c.obs||''}</textarea>
           <div class="obs-edit-row">
             <span class="saved-msg" id="saved-${c.id}"><i class="ti ti-check"></i> Salvo</span>
             <button class="btn-sm" onclick="salvarObs('${c.id}')">Salvar</button>
@@ -1078,7 +1079,28 @@ window.toggleConcluido=function(id){
 };
 window.toggleObs=function(id){
   const e=document.getElementById('obs-edit-'+id);
-  e.style.display=e.style.display==='flex'?'none':'flex';
+  const abrindo=e.style.display!=='flex';
+  if(abrindo){
+    let rascunho=null;
+    try{rascunho=localStorage.getItem('rascunho-obs-'+id);}catch(err){}
+    const atual=(casos[id]&&casos[id].obs)||'';
+    const rascunhoMsg=document.getElementById('rascunho-'+id);
+    if(rascunho&&rascunho.trim()&&rascunho!==atual){
+      document.getElementById('obs-ta-'+id).value=rascunho;
+      if(rascunhoMsg)rascunhoMsg.style.display='block';
+    }else if(rascunhoMsg){
+      rascunhoMsg.style.display='none';
+    }
+  }
+  e.style.display=abrindo?'flex':'none';
+};
+let rascunhoTimers={};
+window.rascunharObs=function(id){
+  clearTimeout(rascunhoTimers[id]);
+  rascunhoTimers[id]=setTimeout(()=>{
+    const v=document.getElementById('obs-ta-'+id).value;
+    try{localStorage.setItem('rascunho-obs-'+id,v);}catch(err){}
+  },800);
 };
 window.salvarObs=function(id){
   const v=document.getElementById('obs-ta-'+id).value;
@@ -1088,6 +1110,9 @@ window.salvarObs=function(id){
     if(!confirm('O novo texto ficou bem maior que a observação anterior — isso vai substituir tudo. Confirma que quer salvar assim mesmo?'))return;
   }
   update(ref(db,`casos/${id}`),{obs:v,obsAnterior:anterior,atualizado:isoHoje()});
+  try{localStorage.removeItem('rascunho-obs-'+id);}catch(err){}
+  const rascunhoMsg=document.getElementById('rascunho-'+id);
+  if(rascunhoMsg)rascunhoMsg.style.display='none';
   const s=document.getElementById('saved-'+id);s.style.display='inline';
   setTimeout(()=>{s.style.display='none';document.getElementById('obs-edit-'+id).style.display='none';},1400);
 };
