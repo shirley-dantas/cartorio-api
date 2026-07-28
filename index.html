@@ -903,6 +903,33 @@ function montarSaudacao(forcar){
     climaIntervalIniciado=true;
     setInterval(()=>atualizarIconeClima(usuario),30*60*1000);
   }
+  if(!lembreteFocoIntervalIniciado){
+    lembreteFocoIntervalIniciado=true;
+    setInterval(lembrarFocoDoDia,60*60*1000);
+  }
+}
+
+// ── Lembrete carinhoso do Foco do dia — de vez em quando (a cada 1h), a
+// Joaninha lembra de uma pendência ainda não concluída, intercalando entre
+// elas (round-robin) e variando a frase, pra ajudar a cobrar sem ser chata ──
+const FRASES_LEMBRETE_FOCO=[
+  texto=>`Psiu... "${texto}" ainda tá esperando por você 💛`,
+  texto=>`Só um carinho: não esquece de "${texto}"? 🐞`,
+  texto=>`Lembrete gentil: "${texto}" continua no Foco do dia`,
+  texto=>`Ei, vamos dar uma olhada em "${texto}"? Você consegue! 💛`,
+  texto=>`Não esquece de "${texto}", tá? Confio em você 🐞`
+];
+let lembreteFocoIntervalIniciado=false;
+let indiceLembreteFoco=0;
+function lembrarFocoDoDia(){
+  if(!window.joaninhaInstancia||!window.joaninhaInstancia.disponivel)return;
+  if(document.querySelector('.modal-overlay.open'))return;
+  const arr=(Array.isArray(focos)?focos:Object.values(focos||{})).filter(f=>!f.done);
+  if(!arr.length)return;
+  const item=arr[indiceLembreteFoco%arr.length];
+  indiceLembreteFoco++;
+  const frase=FRASES_LEMBRETE_FOCO[Math.floor(Math.random()*FRASES_LEMBRETE_FOCO.length)];
+  window.joaninhaInstancia.falar(frase(item.text),5500);
 }
 
 // ── Ícone da saudação segue o clima real de São Paulo (Open-Meteo, sem chave) ──
