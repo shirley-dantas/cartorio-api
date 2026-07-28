@@ -95,6 +95,9 @@
     }
     function registrarAtividade() {
       ultimaAtividade = Date.now();
+      // além de andando/voando, cobre o rabinho de pouso (jn-pousando) e o caso
+      // de ela já ter terminado de vagar e ficado "morando" longe de casa
+      if (estado.andando || estado.voando || host.style.right || host.style.bottom) pararDeVagarAgora();
       acordar();
     }
     ['mousedown', 'keydown', 'scroll', 'touchstart', 'wheel'].forEach((evt) => {
@@ -146,7 +149,9 @@
       const bottom = 16 + Math.random() * Math.max(0, bottomMax - 16);
       return { right, bottom };
     }
+    let vagarGeracao = 0;
     function pararDeVagarAgora() {
+      vagarGeracao++;
       joaninha.classList.remove('jn-andando', 'jn-voando', 'jn-pousando');
       estado.andando = false; estado.voando = false;
       host.style.right = ''; host.style.bottom = '';
@@ -154,6 +159,7 @@
     }
     async function vagar() {
       if (estado.pausada || document.querySelector('.modal-overlay.open')) return;
+      const minhaGeracao = ++vagarGeracao;
       estado.andando = true;
       joaninha.classList.add('jn-andando');
       mostrarPose('walk');
@@ -161,9 +167,10 @@
       host.style.right = alvo1.right + 'px';
       host.style.bottom = alvo1.bottom + 'px';
       await esperar(1900);
+      if (minhaGeracao !== vagarGeracao) return; // interrompida por atividade no meio do trajeto
       joaninha.classList.remove('jn-andando');
       estado.andando = false;
-      if (estado.pausada || Date.now() - ultimaAtividade < 1500) { mostrarPose('idle'); return; }
+      if (estado.pausada || Date.now() - ultimaAtividade < 1500) { pararDeVagarAgora(); return; }
       estado.voando = true;
       joaninha.classList.add('jn-voando');
       mostrarPose('fly');
@@ -171,11 +178,13 @@
       host.style.right = alvo2.right + 'px';
       host.style.bottom = alvo2.bottom + 'px';
       await esperar(1600);
+      if (minhaGeracao !== vagarGeracao) return;
       joaninha.classList.remove('jn-voando');
       joaninha.classList.add('jn-pousando');
       mostrarPose('idle');
       estado.voando = false;
       await esperar(550);
+      if (minhaGeracao !== vagarGeracao) return;
       joaninha.classList.remove('jn-pousando');
     }
     let proximaVariacaoPostura = Date.now() + 12000 + Math.random() * 4000;
