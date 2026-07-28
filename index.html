@@ -75,7 +75,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-text{font-size:13px;color:#1C1C1E;flex:1;line-height:1.4}
 .foco-text.done{text-decoration:line-through;color:#6E6E8A}
 .foco-conteudo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.foco-caso-tag{display:inline-block;align-self:flex-start;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#16283A;background:#EDE6D6;padding:2px 8px;border-radius:6px}
+.foco-tags{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.foco-tags .badge{padding:2px 8px;font-size:10px}
+.foco-caso-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#16283A;background:#EDE6D6;padding:2px 8px;border-radius:6px}
 .foco-caso-tag.geral{color:#8E8EA0;background:#EEF0F4}
 .foco-del{font-size:16px;color:#6E6E8A;cursor:pointer;padding:0 2px;background:none;border:none;line-height:1}
 .foco-del:hover{color:#E57373}
@@ -88,6 +90,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-input-linha{display:flex;gap:8px}
 .foco-caso-select{font-size:13px;padding:7px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
 .foco-caso-select:focus{border-color:#C9A876}
+.foco-urgente-check{display:flex;align-items:center;gap:6px;font-size:12.5px;color:#3A3A3C;white-space:nowrap;padding:0 4px;cursor:pointer;user-select:none}
+.foco-urgente-check input{accent-color:#C62828;cursor:pointer}
 .foco-input-row input{flex:1;font-size:13px;padding:7px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
 .foco-input-row input:focus{border-color:#C9A876}
 .foco-input-row button{font-size:12px;padding:7px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600;transition:filter .15s ease}
@@ -405,7 +409,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="foco-items" id="foco-items"></div>
     <div class="foco-sugestao" id="foco-sugestao"></div>
     <div class="foco-input-row" id="foco-input-row" style="display:none">
-      <select id="foco-caso" class="foco-caso-select"></select>
+      <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
+      <div class="foco-input-linha">
+        <select id="foco-resp" class="foco-caso-select">
+          <option value="">Sem responsável definido</option>
+          <option value="shirley">Shirley</option>
+          <option value="grazi">Grazi</option>
+          <option value="gabriel">Gabriel</option>
+        </select>
+        <label class="foco-urgente-check"><input type="checkbox" id="foco-urgente"> Urgente</label>
+      </div>
       <div class="foco-input-linha">
         <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key==='Enter')addFoco()">
         <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado('foco-input','foco-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
@@ -799,11 +812,13 @@ function renderFoco(){
     const tipo=f.marcador==='alerta'?'tipo-alerta':(f.marcador==='hoje'||f.marcador==='amanha')?'tipo-agenda':'tipo-manual';
     const nomeCaso=f.casoNome||null;
     const tagCaso=nomeCaso?`<span class="foco-caso-tag">${esc(nomeCaso)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
+    const tagResp=f.resp?bResp(f.resp):'';
+    const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
     return`
     <div class="foco-item ${tipo}${f.done?' done':''}">
       <div class="foco-check${f.done?' checked':''}" onclick="toggleFoco(${i})"></div>
       <div class="foco-conteudo">
-        ${tagCaso}
+        <div class="foco-tags">${tagCaso}${tagResp}${tagUrgente}</div>
         <span class="foco-text${f.done?' done':''}">${f.text}</span>
       </div>
       <button class="foco-del" onclick="delFoco(${i})">&times;</button>
@@ -815,13 +830,20 @@ function popularFocoCasoSelect(){
   if(!sel)return;
   const ativos=getCasosList().filter(c=>!c.concluido).sort((a,b)=>a.nome.localeCompare(b.nome));
   sel.innerHTML=`<option value="">Geral (sem caso específico)</option>`+
-    ativos.map(c=>`<option value="${esc(c.nome)}">${esc(c.nome)}${c.tipo?' — '+esc(c.tipo):''}</option>`).join('');
+    ativos.map(c=>`<option value="${esc(c.nome)}" data-resp="${c.resp||''}">${esc(c.nome)}${c.tipo?' — '+esc(c.tipo):''}</option>`).join('');
 }
+window.autoPreencherRespFoco=function(){
+  const selCaso=document.getElementById('foco-caso');
+  const resp=selCaso.selectedOptions[0]&&selCaso.selectedOptions[0].dataset.resp;
+  if(resp)document.getElementById('foco-resp').value=resp;
+};
 window.toggleFocoInput=function(){
   const r=document.getElementById('foco-input-row');
   r.style.display=r.style.display==='flex'?'none':'flex';
   if(r.style.display==='flex'){
     popularFocoCasoSelect();
+    document.getElementById('foco-resp').value='';
+    document.getElementById('foco-urgente').checked=false;
     setTimeout(()=>document.getElementById('foco-input').focus(),50);
   }
 };
@@ -829,11 +851,15 @@ window.addFoco=function(){
   const v=document.getElementById('foco-input').value.trim();
   if(!v)return;
   const casoNome=document.getElementById('foco-caso').value||null;
+  const resp=document.getElementById('foco-resp').value||null;
+  const urgente=document.getElementById('foco-urgente').checked;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   if(arr.length>=LIMITE_FOCO){alert(`Máximo ${LIMITE_FOCO} prioridades por dia.`);return;}
-  arr.push({text:v,done:false,casoNome});
+  arr.push({text:v,done:false,casoNome,resp,urgente});
   set(focosRef,arr);
   document.getElementById('foco-input').value='';
+  document.getElementById('foco-resp').value='';
+  document.getElementById('foco-urgente').checked=false;
 };
 window.toggleFoco=function(i){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
@@ -1313,7 +1339,8 @@ window.addAoFoco=function(id){
   if(arr.length>=LIMITE_FOCO){alert(`Foco do dia já tem ${LIMITE_FOCO} itens.`);irParaFoco();return;}
   const txt=`${c.tipo||'Caso'} — ${c.nome}`;
   if(arr.some(f=>f.text===txt)){irParaFoco();return;}
-  arr.push({text:txt,done:false,casoNome:c.nome});
+  const urgente=c.status==='critico'||c.status==='prioridade';
+  arr.push({text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente});
   set(focosRef,arr).then(irParaFoco);
 };
 window.abrirMinuta=async function(id){
