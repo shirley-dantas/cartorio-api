@@ -742,6 +742,7 @@ const defaultCasos=[
 let casos={};
 let focos=[];
 let filtro='todos';
+const LIMITE_FOCO=8; // teto único de itens no Foco do dia (manual + automático)
 let busca='';
 let inicializado=false;
 
@@ -829,7 +830,7 @@ window.addFoco=function(){
   if(!v)return;
   const casoNome=document.getElementById('foco-caso').value||null;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  if(arr.length>=5){alert('Máximo 5 prioridades por dia.');return;}
+  if(arr.length>=LIMITE_FOCO){alert(`Máximo ${LIMITE_FOCO} prioridades por dia.`);return;}
   arr.push({text:v,done:false,casoNome});
   set(focosRef,arr);
   document.getElementById('foco-input').value='';
@@ -1090,7 +1091,6 @@ async function verificarAlertasSeNecessario(forcar){
   if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
 }
 async function adicionarAgendaAoFoco(gruposOrdenados){
-  const LIMITE_FOCO=8;
   const hoje=isoHoje();
   const atual=Array.isArray(focos)?focos:Object.values(focos||{});
   const manuais=atual.filter(f=>!f.auto);
@@ -1310,7 +1310,7 @@ window.addAoFoco=function(id){
   const c=casos[id];if(!c)return;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   const irParaFoco=()=>document.querySelector('.foco-card')?.scrollIntoView({behavior:'smooth',block:'start'});
-  if(arr.length>=5){alert('Foco do dia já tem 5 itens.');irParaFoco();return;}
+  if(arr.length>=LIMITE_FOCO){alert(`Foco do dia já tem ${LIMITE_FOCO} itens.`);irParaFoco();return;}
   const txt=`${c.tipo||'Caso'} — ${c.nome}`;
   if(arr.some(f=>f.text===txt)){irParaFoco();return;}
   arr.push({text:txt,done:false,casoNome:c.nome});
