@@ -890,11 +890,15 @@ function montarSaudacao(forcar){
   document.getElementById('saudacao-card').style.display='block';
   posicionarJoaninhaNaSaudacao();
   atualizarIconeClima(usuario);
-  setTimeout(()=>{
-    if(window.joaninhaInstancia&&window.joaninhaInstancia.disponivel){
-      window.joaninhaInstancia.falar('Sou sua assistente virtual! Vamos começar?',5200);
-    }
-  },900);
+  const hojeStr=new Date().toDateString();
+  if(localStorage.getItem('joaninha_saudacao_dia')!==hojeStr){
+    localStorage.setItem('joaninha_saudacao_dia',hojeStr);
+    setTimeout(()=>{
+      if(window.joaninhaInstancia&&window.joaninhaInstancia.disponivel){
+        window.joaninhaInstancia.falar('Sou sua assistente virtual! Vamos começar?',5200);
+      }
+    },900);
+  }
   if(!climaIntervalIniciado){
     climaIntervalIniciado=true;
     setInterval(()=>atualizarIconeClima(usuario),30*60*1000);
