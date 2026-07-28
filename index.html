@@ -310,8 +310,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* ── Reforma visual PRIME (menu lateral, atualizações recentes) ── */
 .app-shell{display:flex;align-items:flex-start}
 .sidebar{width:206px;flex-shrink:0;padding:22px 10px;position:sticky;top:0;align-self:flex-start}
-.sidebar-logo{padding:2px 14px 22px}
-.sidebar-logo-svg{height:26px;display:block}
+.sidebar-logo{padding:6px 14px 26px}
+.sidebar-logo-svg{height:44px;display:block}
 .sidebar-nav{display:flex;flex-direction:column;gap:2px}
 .sidebar-item{display:flex;align-items:center;gap:11px;font-size:13px;color:#5B6B78;background:none;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;width:100%;font-family:inherit;transition:background .15s ease,color .15s ease}
 .sidebar-item i{font-size:16px;width:18px;text-align:center;flex-shrink:0}
@@ -320,7 +320,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sidebar-item.active{background:linear-gradient(135deg,#16283A,#1F3B4D);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(22,40,58,.18)}
 .sidebar-item.disabled{opacity:.5}
 .sidebar-item .em-breve{font-size:8.5px;background:#F0EDE4;color:#A9895A;padding:2px 6px;border-radius:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
-.container{flex:1;min-width:0}
+.main-area{flex:1;min-width:0}
 @media(max-width:880px){.sidebar{display:none}}
 
 .nav-toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(12px);background:#16283A;color:#fff;font-size:12.5px;padding:10px 18px;border-radius:20px;box-shadow:0 6px 18px rgba(22,40,58,.25);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:1200}
@@ -329,31 +329,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </head>
 <body>
 
-<div class="topnav">
-  <div class="topnav-brand">
-    <p>Painel operacional · 20º Tabelião de Notas · Escrevente Shirley Dantas</p>
-  </div>
-  <div class="topnav-right">
-    <div class="sync-dot loading" id="sync-dot"></div>
-    <span class="sync-label" id="sync-label">Conectando...</span>
-  </div>
-</div>
-
 <div class="app-shell">
 <aside class="sidebar">
   <div class="sidebar-logo">
     <svg class="sidebar-logo-svg" viewBox="0 0 600 190" role="img" aria-label="PRIME">
       <defs>
         <linearGradient id="sidebarArco" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%"  stop-color="#A9895A"/>
-          <stop offset="40%" stop-color="#DCC493"/>
-          <stop offset="58%" stop-color="#F1E4C6"/>
-          <stop offset="78%" stop-color="#DCC493"/>
-          <stop offset="100%" stop-color="#A9895A"/>
+          <stop offset="0%"  stop-color="#8A6B3D"/>
+          <stop offset="40%" stop-color="#C9A876"/>
+          <stop offset="58%" stop-color="#DCC493"/>
+          <stop offset="78%" stop-color="#C9A876"/>
+          <stop offset="100%" stop-color="#8A6B3D"/>
         </linearGradient>
       </defs>
       <path d="M64,98 C184,26 388,20 536,68 C388,32 184,38 64,98 Z" fill="url(#sidebarArco)"/>
-      <text x="300" y="154" text-anchor="middle" font-family="'Jost','Century Gothic','Futura',sans-serif" font-weight="200" font-size="52" fill="#16283A">
+      <text x="300" y="154" text-anchor="middle" font-family="'Jost','Century Gothic','Futura',sans-serif" font-weight="400" font-size="52" fill="#16283A">
         <tspan>P</tspan><tspan dx="24">R</tspan><tspan dx="20">I</tspan><tspan dx="20">M</tspan><tspan dx="26">E</tspan>
       </text>
     </svg>
@@ -372,10 +362,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </nav>
 </aside>
 
+<div class="main-area">
+<div class="topnav">
+  <div class="topnav-brand">
+    <p>Painel operacional · 20º Tabelião de Notas · Escrevente Shirley Dantas</p>
+  </div>
+  <div class="topnav-right">
+    <div class="sync-dot loading" id="sync-dot"></div>
+    <span class="sync-label" id="sync-label">Conectando...</span>
+  </div>
+</div>
+
 <div class="container">
   <div class="saudacao-card" id="saudacao-card" style="display:none">
     <button class="saudacao-close" onclick="fecharSaudacao()">&times;</button>
-    <div class="saudacao-icon" id="saudacao-icon"><i class="ti ti-sun" id="saudacao-icone-el"></i></div>
+    <div class="saudacao-icon" id="saudacao-icon"></div>
     <div class="saudacao-corpo">
       <div class="saudacao-titulo" id="saudacao-titulo"></div>
       <div id="saudacao-texto"></div>
@@ -481,6 +482,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="updated" id="updated"></div>
+</div>
 </div>
 </div>
 
@@ -888,10 +890,38 @@ function montarSaudacao(forcar){
   const msg=`Hoje é ${DIAS_SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}. Vamos começar? Os compromissos e pendências de hoje já estão logo abaixo, no Foco do dia.`;
   document.getElementById('saudacao-texto').textContent=msg;
   document.getElementById('saudacao-card').style.display='block';
+  document.getElementById('saudacao-icon').innerHTML=ICONES_CLIMA.sol;
   atualizarIconeClima();
+  posicionarJoaninhaNaSaudacao();
 }
 
+// ── Posiciona a Joaninha (widget flutuante, sem mexer nas funções dela) dentro
+// da área do cartão de saudação, entre o texto e a borda direita do cartão ──
+function posicionarJoaninhaNaSaudacao(){
+  const card=document.getElementById('saudacao-card');
+  if(!card||card.style.display==='none')return;
+  const r=card.getBoundingClientRect();
+  if(!r.width)return;
+  const hostH=74;
+  const right=Math.max(20,window.innerWidth-r.right+90);
+  const bottom=Math.max(20,window.innerHeight-(r.top+r.height/2)-hostH/2);
+  document.documentElement.style.setProperty('--jn-right',right+'px');
+  document.documentElement.style.setProperty('--jn-bottom',bottom+'px');
+}
+let resizeJnTimer=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeJnTimer);
+  resizeJnTimer=setTimeout(posicionarJoaninhaNaSaudacao,150);
+});
+
 // ── Ícone da saudação segue o clima real de São Paulo (Open-Meteo, sem chave) ──
+// SVGs próprios (não usa a fonte de ícones) pra ficar mais nítido em tamanho pequeno.
+const ICONES_CLIMA={
+  sol:'<svg viewBox="0 0 24 24" width="26" height="26" fill="none"><circle cx="12" cy="12" r="5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/></g></svg>',
+  nublado:'<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M7 18a4.5 4.5 0 0 1-.4-8.98A5.5 5.5 0 0 1 17.3 8.1 4 4 0 0 1 17 16H7z"/></svg>',
+  chuva:'<svg viewBox="0 0 24 24" width="26" height="26" fill="none"><path d="M7 14.5a4.5 4.5 0 0 1-.4-8.98A5.5 5.5 0 0 1 17.3 4.6 4 4 0 0 1 17 12.5H7z" fill="currentColor"/><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="8" y1="17" x2="7" y2="20"/><line x1="12" y1="17" x2="11" y2="20"/><line x1="16" y1="17" x2="15" y2="20"/></g></svg>',
+  frio:'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="4" y1="7" x2="20" y2="17"/><line x1="20" y1="7" x2="4" y2="17"/></svg>'
+};
 async function atualizarIconeClima(){
   try{
     const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.55&longitude=-46.63&current=temperature_2m,weather_code&timezone=America%2FSao_Paulo');
@@ -900,14 +930,15 @@ async function atualizarIconeClima(){
     const code=j.current.weather_code;
     const chovendo=[51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99].includes(code);
     const nublado=[1,2,3,45,48].includes(code);
-    let icone='ti-sun',classe='';
-    if(chovendo){icone='ti-cloud-rain';classe='chuva';}
-    else if(temp<=15){icone='ti-temperature-minus';classe='frio';}
-    else if(nublado){icone='ti-cloud';classe='nublado';}
-    document.getElementById('saudacao-icone-el').className='ti '+icone;
-    document.getElementById('saudacao-icon').className='saudacao-icon '+classe;
+    let chave='sol',classe='';
+    if(chovendo){chave='chuva';classe='chuva';}
+    else if(temp<=15){chave='frio';classe='frio';}
+    else if(nublado){chave='nublado';classe='nublado';}
+    const el=document.getElementById('saudacao-icon');
+    el.innerHTML=ICONES_CLIMA[chave];
+    el.className='saudacao-icon '+classe;
   }catch(e){
-    // sem previsão disponível — mantém o sol padrão
+    // sem previsão disponível — mantém o sol padrão já mostrado
   }
 }
 

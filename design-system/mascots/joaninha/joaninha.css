@@ -17,7 +17,7 @@
   --jn-branco:#FFFFFF;
 }
 
-#joaninha-host{position:fixed;right:22px;bottom:22px;z-index:900;transition:right 1.9s cubic-bezier(.45,.05,.55,.95),bottom 1.9s cubic-bezier(.45,.05,.55,.95)}
+#joaninha-host{position:fixed;right:var(--jn-right,48px);bottom:var(--jn-bottom,max(20px,calc(100vh - 180px)));z-index:900;transition:right 1.9s cubic-bezier(.45,.05,.55,.95),bottom 1.9s cubic-bezier(.45,.05,.55,.95)}
 
 .joaninha{width:74px;height:74px;padding:0;border:none;background:transparent;cursor:pointer;display:block;filter:drop-shadow(0 10px 16px rgba(22,10,10,.28));transform:translateY(0);animation:jn-idle-bob 3.6s cubic-bezier(.45,0,.4,1) infinite}
 .joaninha:focus-visible{outline:2px solid #C9A876;outline-offset:4px;border-radius:50%}
