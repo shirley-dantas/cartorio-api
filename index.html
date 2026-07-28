@@ -1205,11 +1205,12 @@ window.desfazerObs=function(id){
 window.addAoFoco=function(id){
   const c=casos[id];if(!c)return;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  if(arr.length>=5){alert('Foco do dia já tem 5 itens.');return;}
+  const irParaFoco=()=>document.querySelector('.foco-card')?.scrollIntoView({behavior:'smooth',block:'start'});
+  if(arr.length>=5){alert('Foco do dia já tem 5 itens.');irParaFoco();return;}
   const txt=`${c.tipo||'Caso'} — ${c.nome}`;
-  if(arr.some(f=>f.text===txt)){alert('Já está no foco do dia.');return;}
+  if(arr.some(f=>f.text===txt)){irParaFoco();return;}
   arr.push({text:txt,done:false});
-  set(focosRef,arr);
+  set(focosRef,arr).then(irParaFoco);
 };
 window.abrirMinuta=async function(id){
   const c=casos[id];if(!c)return;
