@@ -69,10 +69,11 @@
 .joaninha-heart.jn-pop{animation:jn-heart-pop 1.3s ease-out}
 @keyframes jn-heart-pop{0%{opacity:0;transform:translateY(0) scale(.4)}25%{opacity:1;transform:translateY(-10px) scale(1.15)}100%{opacity:0;transform:translateY(-38px) scale(1)}}
 
-.joaninha-bubble{position:absolute;right:0;bottom:88px;max-width:190px;background:#fff;color:#3A3A3C;font-size:12px;line-height:1.4;padding:8px 12px;border-radius:12px 12px 4px 12px;box-shadow:0 6px 18px rgba(22,10,10,.18);border:0.5px solid #F3D9DE;opacity:0;transform:translateY(6px);transition:opacity .3s ease,transform .3s ease;pointer-events:none}
-.joaninha-bubble.show{opacity:1;transform:translateY(0)}
+.joaninha-bubble{position:absolute;left:100%;top:50%;margin-left:12px;bottom:auto;max-width:190px;background:#fff;color:#3A3A3C;font-size:12px;line-height:1.4;padding:8px 12px;border-radius:4px 12px 12px 12px;box-shadow:0 6px 18px rgba(22,10,10,.18);border:0.5px solid #F3D9DE;opacity:0;transform:translateY(-50%) translateX(8px);transition:opacity .3s ease,transform .3s ease;pointer-events:none}
+.joaninha-bubble.show{opacity:1;transform:translateY(-50%) translateX(0)}
 
 @media(max-width:600px){
   #joaninha-host{right:12px;bottom:14px}
-  .joaninha-bubble{right:12px}
+  .joaninha-bubble{left:auto;right:0;top:auto;bottom:88px;margin-left:0;border-radius:12px 12px 4px 12px;transform:translateY(6px)}
+  .joaninha-bubble.show{transform:translateY(0)}
 }
