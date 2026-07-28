@@ -300,6 +300,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 @media(max-width:600px){
   .joaninha-panel{right:12px;left:12px;width:auto;bottom:98px}
 }
+
+/* ── Reforma visual PRIME (menu lateral, atualizações recentes) ── */
+.app-shell{display:flex;align-items:flex-start}
+.sidebar{width:206px;flex-shrink:0;padding:22px 10px;position:sticky;top:0;align-self:flex-start}
+.sidebar-nav{display:flex;flex-direction:column;gap:2px}
+.sidebar-item{display:flex;align-items:center;gap:11px;font-size:13px;color:#5B6B78;background:none;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;width:100%;font-family:inherit;transition:background .15s ease,color .15s ease}
+.sidebar-item i{font-size:16px;width:18px;text-align:center;flex-shrink:0}
+.sidebar-item span{flex:1}
+.sidebar-item:not(.active):hover{background:#F5EFE0;color:#16283A}
+.sidebar-item.active{background:linear-gradient(135deg,#16283A,#1F3B4D);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(22,40,58,.18)}
+.sidebar-item.disabled{opacity:.5}
+.sidebar-item .em-breve{font-size:8.5px;background:#F0EDE4;color:#A9895A;padding:2px 6px;border-radius:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.container{flex:1;min-width:0}
+@media(max-width:880px){.sidebar{display:none}}
+
+.foco-recentes-row{display:flex;gap:16px;align-items:stretch;margin-bottom:20px}
+.foco-recentes-row .foco-card{flex:1.5;margin-bottom:0}
+.recentes-card{flex:1;min-width:0;background:#fff;border:0.5px solid #ECECF2;border-radius:16px;padding:18px 20px;box-shadow:0 1px 3px rgba(22,40,58,.04)}
+.recentes-title{font-size:13px;font-weight:500;color:#16283A;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.recentes-title i{font-size:15px;color:#A9895A}
+.recentes-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid #F3F3F8}
+.recentes-item:last-child{border-bottom:none;padding-bottom:0}
+.recentes-item:first-child{padding-top:0}
+.recentes-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px}
+.recentes-icon.critico{background:#FDECEA;color:#C62828}
+.recentes-icon.atencao{background:#FFF3D6;color:#B45309}
+.recentes-icon.emdia{background:#E3F5E7;color:#1B7A3D}
+.recentes-icon.prioridade{background:#EDE9FE;color:#6B21A8}
+.recentes-icon.gray{background:#EEF0F4;color:#5B6B78}
+.recentes-texto{flex:1;min-width:0;font-size:12.5px;color:#3A3A3C;line-height:1.4}
+.recentes-nome{font-weight:600;color:#1C1C1E}
+.recentes-tempo{font-size:10.5px;color:#8E8EA0;white-space:nowrap;margin-top:1px}
+.recentes-vazio{font-size:12.5px;color:#8E8EA0;padding:6px 0}
+@media(max-width:760px){.foco-recentes-row{flex-direction:column}}
+
+.nav-toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(12px);background:#16283A;color:#fff;font-size:12.5px;padding:10px 18px;border-radius:20px;box-shadow:0 6px 18px rgba(22,40,58,.25);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:1200}
+.nav-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
@@ -329,12 +366,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<div class="app-shell">
+<aside class="sidebar">
+  <nav class="sidebar-nav">
+    <button type="button" class="sidebar-item active"><i class="ti ti-home"></i><span>Início</span></button>
+    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Atividades')"><i class="ti ti-list-check"></i><span>Atividades</span><span class="em-breve">em breve</span></button>
+    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Processos')"><i class="ti ti-briefcase"></i><span>Processos</span><span class="em-breve">em breve</span></button>
+    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Minutas')"><i class="ti ti-file-text"></i><span>Minutas</span><span class="em-breve">em breve</span></button>
+    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Documentos')"><i class="ti ti-files"></i><span>Documentos</span><span class="em-breve">em breve</span></button>
+    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Agenda')"><i class="ti ti-calendar"></i><span>Agenda</span><span class="em-breve">em breve</span></button>
+    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Financeiro')"><i class="ti ti-currency-dollar"></i><span>Financeiro</span><span class="em-breve">em breve</span></button>
+    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Relatórios')"><i class="ti ti-chart-bar"></i><span>Relatórios</span><span class="em-breve">em breve</span></button>
+    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Contatos')"><i class="ti ti-users"></i><span>Contatos</span><span class="em-breve">em breve</span></button>
+    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Configurações')"><i class="ti ti-settings"></i><span>Configurações</span><span class="em-breve">em breve</span></button>
+  </nav>
+</aside>
+
 <div class="container">
   <div class="saudacao-card" id="saudacao-card" style="display:none">
     <button class="saudacao-close" onclick="fecharSaudacao()">&times;</button>
     <div id="saudacao-texto"></div>
   </div>
 
+  <div class="foco-recentes-row">
   <div class="foco-card">
     <div class="foco-header">
       <div class="foco-title"><i class="ti ti-bolt"></i> Foco do dia <span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span></div>
@@ -351,6 +405,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado('foco-input','foco-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
       <button onclick="addFoco()">Adicionar</button>
     </div>
+  </div>
+
+  <div class="recentes-card">
+    <div class="recentes-title"><i class="ti ti-history"></i> Atualizações recentes</div>
+    <div id="recentes-lista"><div class="recentes-vazio">Carregando...</div></div>
+  </div>
   </div>
 
   <div class="stats" id="stats"><div class="loading-overlay">Carregando...</div></div>
@@ -435,6 +495,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="updated" id="updated"></div>
 </div>
+</div>
+
+<div class="nav-toast" id="nav-toast"></div>
 
 <!-- Modal Assistente de Minutas -->
 <div class="modal-overlay" id="modal-minuta">
@@ -660,6 +723,15 @@ function esc(s){return(s||'').replace(/"/g,'&quot;')}
 const IA_LIVE='<span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span>';
 function tsStr(){const n=new Date();return`${n.toLocaleDateString('pt-BR')} ${n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;}
 
+let navToastTimer=null;
+window.navEmBreve=function(nome){
+  const el=document.getElementById('nav-toast');
+  el.textContent=`"${nome}" ainda não existe — em breve.`;
+  el.classList.add('show');
+  clearTimeout(navToastTimer);
+  navToastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+};
+
 const defaultCasos=[
   {nome:'Alfredo Patrão | ABG',tipo:'Inventário + Sobrepartilha',acao:'Elaborar minuta da sobrepartilha',status:'critico',resp:'shirley',prazo:'30/05',dep:'',obs:'Em aberto desde 2025. Minuta errada — tabelião exigiu sobrepartilha.',atualizado:'2026-05-21',agendado:'',agendado_desc:'',concluido:false},
   {nome:'Miguel | Un. 2216 Do It',tipo:'Escritura + Confissão de Dívida',acao:'Iniciar minuta + Grazi confirmar ao cliente',status:'critico',resp:'ambas',prazo:'Hoje',dep:'',obs:'Cliente perguntou hoje às 14h53. Minuta não iniciada.',atualizado:'2026-05-28',agendado:'',agendado_desc:'',concluido:false},
@@ -700,6 +772,7 @@ onValue(casosRef,(snap)=>{
     inicializado=true;
     renderStats();
     renderCasos();
+    renderRecentes();
     verificarAlertasSeNecessario();
     montarSaudacao();
   }
@@ -921,6 +994,36 @@ async function adicionarAgendaAoFoco(gruposOrdenados){
     });
   });
   await set(focosRef,arr);
+}
+
+// ── ATUALIZAÇÕES RECENTES (derivado dos casos, sem registro de eventos novo) ──
+function tempoRelativo(iso){
+  const d=diasParado(iso);
+  if(d<=0)return'Hoje';
+  if(d===1)return'Ontem';
+  return`há ${d} dias`;
+}
+const RECENTES_ICONE={critico:'ti-alert-octagon',atencao:'ti-clock-exclamation',emdia:'ti-circle-check',prioridade:'ti-star'};
+function renderRecentes(){
+  const el=document.getElementById('recentes-lista');
+  if(!el)return;
+  const lista=getCasosList()
+    .filter(c=>!c.concluido&&c.atualizado)
+    .sort((a,b)=>new Date(b.atualizado)-new Date(a.atualizado))
+    .slice(0,6);
+  if(!lista.length){el.innerHTML='<div class="recentes-vazio">Nenhuma atualização recente.</div>';return;}
+  el.innerHTML=lista.map(c=>{
+    const cls=RECENTES_ICONE[c.status]?c.status:'gray';
+    const icone=RECENTES_ICONE[c.status]||'ti-circle';
+    return`
+    <div class="recentes-item">
+      <div class="recentes-icon ${cls}"><i class="ti ${icone}"></i></div>
+      <div class="recentes-texto">
+        <span class="recentes-nome">${c.nome}</span> — ${c.tipo||'sem tipo'}
+      </div>
+      <div class="recentes-tempo">${tempoRelativo(c.atualizado)}</div>
+    </div>`;
+  }).join('');
 }
 
 // ── STATS ──
