@@ -74,6 +74,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-check.checked::after{content:'';width:8px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translateY(-1px);display:block}
 .foco-text{font-size:13px;color:#1C1C1E;flex:1;line-height:1.4}
 .foco-text.done{text-decoration:line-through;color:#6E6E8A}
+.foco-conteudo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.foco-caso-tag{display:inline-block;align-self:flex-start;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#16283A;background:#EDE6D6;padding:2px 8px;border-radius:6px}
+.foco-caso-tag.geral{color:#8E8EA0;background:#EEF0F4}
 .foco-del{font-size:16px;color:#6E6E8A;cursor:pointer;padding:0 2px;background:none;border:none;line-height:1}
 .foco-del:hover{color:#E57373}
 .foco-empty{font-size:12px;color:#6E6E8A;font-style:italic;padding:4px 0}
@@ -81,7 +84,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-sugestao.show{display:block}
 .foco-sugestao-label{font-size:10px;color:#8A6B3D;font-weight:600;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:4px;margin-bottom:5px}
 .foco-sugestao-loading{color:#8A6B3D;font-style:italic}
-.foco-input-row{display:flex;gap:8px;margin-top:8px}
+.foco-input-row{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.foco-input-linha{display:flex;gap:8px}
+.foco-caso-select{font-size:13px;padding:7px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
+.foco-caso-select:focus{border-color:#C9A876}
 .foco-input-row input{flex:1;font-size:13px;padding:7px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
 .foco-input-row input:focus{border-color:#C9A876}
 .foco-input-row button{font-size:12px;padding:7px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600;transition:filter .15s ease}
@@ -399,9 +405,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="foco-items" id="foco-items"></div>
     <div class="foco-sugestao" id="foco-sugestao"></div>
     <div class="foco-input-row" id="foco-input-row" style="display:none">
-      <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key==='Enter')addFoco()">
-      <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado('foco-input','foco-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
-      <button onclick="addFoco()">Adicionar</button>
+      <select id="foco-caso" class="foco-caso-select"></select>
+      <div class="foco-input-linha">
+        <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key==='Enter')addFoco()">
+        <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado('foco-input','foco-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
+        <button onclick="addFoco()">Adicionar</button>
+      </div>
     </div>
   </div>
 
@@ -787,25 +796,41 @@ function renderFoco(){
   if(!arr.length){el.innerHTML='<div class="foco-empty">Nenhuma prioridade definida para hoje.</div>';return;}
   el.innerHTML=arr.map((f,i)=>{
     const tipo=f.marcador==='alerta'?'tipo-alerta':(f.marcador==='hoje'||f.marcador==='amanha')?'tipo-agenda':'tipo-manual';
+    const nomeCaso=f.casoNome||null;
+    const tagCaso=nomeCaso?`<span class="foco-caso-tag">${esc(nomeCaso)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
     return`
     <div class="foco-item ${tipo}${f.done?' done':''}">
       <div class="foco-check${f.done?' checked':''}" onclick="toggleFoco(${i})"></div>
-      <span class="foco-text${f.done?' done':''}">${f.text}</span>
+      <div class="foco-conteudo">
+        ${tagCaso}
+        <span class="foco-text${f.done?' done':''}">${f.text}</span>
+      </div>
       <button class="foco-del" onclick="delFoco(${i})">&times;</button>
     </div>
   `;}).join('');
 }
+function popularFocoCasoSelect(){
+  const sel=document.getElementById('foco-caso');
+  if(!sel)return;
+  const ativos=getCasosList().filter(c=>!c.concluido).sort((a,b)=>a.nome.localeCompare(b.nome));
+  sel.innerHTML=`<option value="">Geral (sem caso específico)</option>`+
+    ativos.map(c=>`<option value="${esc(c.nome)}">${esc(c.nome)}${c.tipo?' — '+esc(c.tipo):''}</option>`).join('');
+}
 window.toggleFocoInput=function(){
   const r=document.getElementById('foco-input-row');
   r.style.display=r.style.display==='flex'?'none':'flex';
-  if(r.style.display==='flex')setTimeout(()=>document.getElementById('foco-input').focus(),50);
+  if(r.style.display==='flex'){
+    popularFocoCasoSelect();
+    setTimeout(()=>document.getElementById('foco-input').focus(),50);
+  }
 };
 window.addFoco=function(){
   const v=document.getElementById('foco-input').value.trim();
   if(!v)return;
+  const casoNome=document.getElementById('foco-caso').value||null;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   if(arr.length>=5){alert('Máximo 5 prioridades por dia.');return;}
-  arr.push({text:v,done:false});
+  arr.push({text:v,done:false,casoNome});
   set(focosRef,arr);
   document.getElementById('foco-input').value='';
 };
@@ -1288,7 +1313,7 @@ window.addAoFoco=function(id){
   if(arr.length>=5){alert('Foco do dia já tem 5 itens.');irParaFoco();return;}
   const txt=`${c.tipo||'Caso'} — ${c.nome}`;
   if(arr.some(f=>f.text===txt)){irParaFoco();return;}
-  arr.push({text:txt,done:false});
+  arr.push({text:txt,done:false,casoNome:c.nome});
   set(focosRef,arr).then(irParaFoco);
 };
 window.abrirMinuta=async function(id){
