@@ -881,10 +881,11 @@ function renderFoco(){
     const tagCaso=nomeCaso?`<span class="foco-caso-tag">${esc(nomeCaso)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
     const tagResp=f.resp?bResp(f.resp):'';
     const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
+    const clicavel=nomeCaso?` data-caso="${esc(nomeCaso)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`:'';
     return`
     <div class="foco-item ${tipo}${f.done?' done':''}">
       <div class="foco-check${f.done?' checked':''}" onclick="toggleFoco(${i})"></div>
-      <div class="foco-conteudo">
+      <div class="foco-conteudo"${clicavel}>
         <div class="foco-tags">${tagCaso}${tagResp}${tagUrgente}</div>
         <span class="foco-text${f.done?' done':''}">${f.text}</span>
       </div>
@@ -1228,6 +1229,25 @@ function visivel(c){
   }
   return true;
 }
+
+window.irParaCasoDoFoco=function(nomeCaso){
+  if(!nomeCaso)return;
+  const c=getCasosList().find(x=>x.nome===nomeCaso);
+  if(!c){alert('Não encontrei mais esse caso — pode ter sido excluído.');return;}
+  busca='';
+  const buscaInput=document.querySelector('.search-wrap input');
+  if(buscaInput)buscaInput.value='';
+  filtro=c.concluido?'concluido':'todos';
+  sincronizarFiltroAtivo();
+  renderCasos();
+  setTimeout(()=>{
+    const el=document.getElementById('card-'+c.id);
+    if(!el)return;
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.classList.add('jn-destaque');
+    setTimeout(()=>el.classList.remove('jn-destaque'),1800);
+  },50);
+};
 
 // ── RENDER CASOS ──
 function renderCasos(){
