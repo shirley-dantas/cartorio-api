@@ -1232,7 +1232,17 @@ function visivel(c){
 // ── RENDER CASOS ──
 function renderCasos(){
   const el=document.getElementById('casos-list');
-  const lista=getCasosList().filter(visivel);
+  let lista=getCasosList().filter(visivel);
+  if(!lista.length&&busca&&filtro!=='concluido'){
+    // Nada bateu no filtro atual — se a busca acha algo só no Arquivo, pula pra lá
+    const q=busca.toLowerCase();
+    const bateNoArquivo=getCasosList().some(c=>c.concluido&&[c.nome,c.tipo,c.acao,c.obs].some(t=>(t||'').toLowerCase().includes(q)));
+    if(bateNoArquivo){
+      filtro='concluido';
+      sincronizarFiltroAtivo();
+      lista=getCasosList().filter(visivel);
+    }
+  }
   if(!lista.length){
     const msg=filtro==='concluido'?(busca?'Nenhum caso concluído encontrado pra essa busca.':'Nenhum caso concluído ainda — o que você concluir aparece aqui, fácil de achar depois.'):'Nenhum caso encontrado.';
     el.innerHTML=`<div class="empty"><i class="ti ${filtro==='concluido'?'ti-archive':'ti-inbox'}" style="font-size:26px;display:block;margin-bottom:8px;opacity:.35"></i>${msg}</div>`;
