@@ -761,6 +761,72 @@ let filtro='todos';
 let busca='';
 let inicializado=false;
 
+// ── ALERTAS (tudo entra no Foco do Dia, com icone diferente por tipo) ──
+// Precisa vir antes dos listeners do Firebase: onValue(casosRef) pode disparar
+// seu callback antes do restante do script terminar de rodar, e esse callback
+// chama agendarVerificacaoAlertas() — que precisa de alertasTimer já inicializado.
+const ICONE_MARCADOR={alerta:'⚠️',hoje:'📅',amanha:'📅 (amanhã)'};
+let alertasRodando=false;
+let alertasPendente=false;
+let alertasTimer=null;
+const ALERTAS_DEBOUNCE_MS=3000; // agrupa mudanças em sequência (ex: vários campos salvos seguidos) numa só verificação
+function agendarVerificacaoAlertas(){
+  clearTimeout(alertasTimer);
+  alertasTimer=setTimeout(()=>verificarAlertasSeNecessario(),ALERTAS_DEBOUNCE_MS);
+}
+window.forcarVerificacaoAlertas=function(){
+  clearTimeout(alertasTimer);
+  verificarAlertasSeNecessario(true);
+};
+async function verificarAlertasSeNecessario(forcar){
+  if(alertasRodando){alertasPendente=true;return;}
+  alertasRodando=true;
+  const btn=document.getElementById('alertas-refresh-btn');
+  const atualizadoEl=document.getElementById('alertas-atualizado');
+  try{
+    if(btn){btn.disabled=true;btn.textContent='Verificando...';}
+    const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
+      nome:c.nome,tipo:c.tipo,resp:c.resp,prazo:c.prazo,dep:c.dep,agendado:c.agendado,
+      diasParado:diasParado(c.atualizado),obs:c.obs
+    }));
+    if(casosAtivos.length){
+      const aprendizados=await buscarAprendizadosRelevantes('alerta');
+      const r=await fetch('/api/verificar-alertas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({casosAtivos,aprendizados})});
+      if(!r.ok){
+        const corpo=await r.text().catch(()=>'');
+        throw new Error(`Servidor respondeu ${r.status}${corpo?': '+corpo.slice(0,200):''}`);
+      }
+      const j=await r.json();
+      if(j.ok){
+        const agora=new Date().toISOString();
+        await set(ref(db,'alertas'),{geradoEm:agora,lista:j.alertas||[]});
+        await adicionarAgendaAoFoco([
+          {itens:j.agendaHoje||[],marcador:'hoje'},
+          {itens:j.agendaAmanha||[],marcador:'amanha'},
+          {itens:j.alertas||[],marcador:'alerta'}
+        ]);
+        if(atualizadoEl)atualizadoEl.textContent='Verificado em '+new Date(agora).toLocaleDateString('pt-BR')+' '+new Date(agora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+        if(forcar){
+          const totalNovos=(j.agendaHoje||[]).length+(j.agendaAmanha||[]).length+(j.alertas||[]).length;
+          if(!totalNovos)alert('Verifiquei tudo — nada novo para avisar hoje.');
+        }
+      }else{
+        if(forcar)alert('Não consegui verificar agora: '+(j.erro||'erro desconhecido')+'. Tente de novo em alguns segundos.');
+      }
+    }
+  }catch(e){
+    console.error('Falha ao verificar alertas:',e);
+    if(forcar){
+      const motivo=e instanceof TypeError?'Não consegui conectar ao servidor.':(e.message||'Erro desconhecido.');
+      alert('Não consegui verificar agora: '+motivo+' Tente de novo em alguns segundos.');
+    }
+  }finally{
+    alertasRodando=false;
+    if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
+    if(alertasPendente){alertasPendente=false;agendarVerificacaoAlertas();}
+  }
+}
+
 // ── FIREBASE LISTENERS ──
 const casosRef=ref(db,'casos');
 const focosRef=ref(db,'focos');
@@ -1073,68 +1139,6 @@ window.darFeedbackFoco=async function(tipo){
   if(rowEl)rowEl.textContent=tipo==='positivo'?'Valeu, anotado!':'Obrigado, vou levar em conta.';
 };
 
-// ── ALERTAS (tudo entra no Foco do Dia, com icone diferente por tipo) ──
-const ICONE_MARCADOR={alerta:'⚠️',hoje:'📅',amanha:'📅 (amanhã)'};
-let alertasRodando=false;
-let alertasPendente=false;
-let alertasTimer=null;
-const ALERTAS_DEBOUNCE_MS=3000; // agrupa mudanças em sequência (ex: vários campos salvos seguidos) numa só verificação
-function agendarVerificacaoAlertas(){
-  clearTimeout(alertasTimer);
-  alertasTimer=setTimeout(()=>verificarAlertasSeNecessario(),ALERTAS_DEBOUNCE_MS);
-}
-window.forcarVerificacaoAlertas=function(){
-  clearTimeout(alertasTimer);
-  verificarAlertasSeNecessario(true);
-};
-async function verificarAlertasSeNecessario(forcar){
-  if(alertasRodando){alertasPendente=true;return;}
-  alertasRodando=true;
-  const btn=document.getElementById('alertas-refresh-btn');
-  const atualizadoEl=document.getElementById('alertas-atualizado');
-  try{
-    if(btn){btn.disabled=true;btn.textContent='Verificando...';}
-    const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
-      nome:c.nome,tipo:c.tipo,resp:c.resp,prazo:c.prazo,dep:c.dep,agendado:c.agendado,
-      diasParado:diasParado(c.atualizado),obs:c.obs
-    }));
-    if(casosAtivos.length){
-      const aprendizados=await buscarAprendizadosRelevantes('alerta');
-      const r=await fetch('/api/verificar-alertas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({casosAtivos,aprendizados})});
-      if(!r.ok){
-        const corpo=await r.text().catch(()=>'');
-        throw new Error(`Servidor respondeu ${r.status}${corpo?': '+corpo.slice(0,200):''}`);
-      }
-      const j=await r.json();
-      if(j.ok){
-        const agora=new Date().toISOString();
-        await set(ref(db,'alertas'),{geradoEm:agora,lista:j.alertas||[]});
-        await adicionarAgendaAoFoco([
-          {itens:j.agendaHoje||[],marcador:'hoje'},
-          {itens:j.agendaAmanha||[],marcador:'amanha'},
-          {itens:j.alertas||[],marcador:'alerta'}
-        ]);
-        if(atualizadoEl)atualizadoEl.textContent='Verificado em '+new Date(agora).toLocaleDateString('pt-BR')+' '+new Date(agora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-        if(forcar){
-          const totalNovos=(j.agendaHoje||[]).length+(j.agendaAmanha||[]).length+(j.alertas||[]).length;
-          if(!totalNovos)alert('Verifiquei tudo — nada novo para avisar hoje.');
-        }
-      }else{
-        if(forcar)alert('Não consegui verificar agora: '+(j.erro||'erro desconhecido')+'. Tente de novo em alguns segundos.');
-      }
-    }
-  }catch(e){
-    console.error('Falha ao verificar alertas:',e);
-    if(forcar){
-      const motivo=e instanceof TypeError?'Não consegui conectar ao servidor.':(e.message||'Erro desconhecido.');
-      alert('Não consegui verificar agora: '+motivo+' Tente de novo em alguns segundos.');
-    }
-  }finally{
-    alertasRodando=false;
-    if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
-    if(alertasPendente){alertasPendente=false;agendarVerificacaoAlertas();}
-  }
-}
 async function adicionarAgendaAoFoco(gruposOrdenados){
   const hoje=isoHoje();
   const atual=Array.isArray(focos)?focos:Object.values(focos||{});
