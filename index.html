@@ -729,6 +729,39 @@ const DEPS=['','Falta documentos','Aguardando cliente','Minutando','Registro de 
 const hoje=new Date();hoje.setHours(0,0,0,0);
 function diasParado(iso){if(!iso)return 0;const d=new Date(iso);d.setHours(0,0,0,0);return Math.floor((hoje-d)/(1000*60*60*24));}
 function isoHoje(){return new Date().toISOString().split('T')[0]}
+
+// Extrai data/hora de uma nota livre (ex: "hoje às 11h", "amanhã 14h30",
+// "05/08 às 10:00") só quando o dia é inequívoco (hoje/amanhã/data explícita)
+// E há um horário reconhecível — evita criar agendamento a partir de datas
+// vagas tipo "semana que vem" ou de números soltos no texto.
+function extrairAgendamentoDoTexto(texto){
+  const t=(texto||'').toLowerCase();
+  const agora=new Date();
+  let dataBase=null;
+  if(/\bhoje\b/.test(t)){
+    dataBase=new Date(agora);
+  }else if(/\bamanh[ãa]/.test(t)){
+    dataBase=new Date(agora);
+    dataBase.setDate(dataBase.getDate()+1);
+  }else{
+    const m=t.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+    if(m){
+      const dia=parseInt(m[1],10),mes=parseInt(m[2],10)-1;
+      let ano=m[3]?parseInt(m[3],10):agora.getFullYear();
+      if(ano<100)ano+=2000;
+      dataBase=new Date(ano,mes,dia);
+    }
+  }
+  if(!dataBase||isNaN(dataBase.getTime()))return null;
+  const mh=t.match(/\b([01]?\d|2[0-3])h([0-5]\d)?\b/)||t.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if(!mh)return null;
+  dataBase.setHours(parseInt(mh[1],10),mh[2]?parseInt(mh[2],10):0,0,0);
+  return dataBase;
+}
+function formatarDataHoraLocal(d){
+  const p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
 function esc(s){return(s||'').replace(/"/g,'&quot;')}
 const IA_LIVE='<span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span>';
 function tsStr(){const n=new Date();return`${n.toLocaleDateString('pt-BR')} ${n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;}
@@ -2000,7 +2033,18 @@ if(joaninhaInstancia.disponivel){
         const linhaObs=`[${dataFmt}] 🐞 ${corpo}`;
         const obsAtual=(c.obs||'').trim();
         const novoObs=obsAtual?`${linhaObs}\n\n${obsAtual}`:linhaObs;
-        await update(ref(db,`casos/${alvo.id}`),{obs:novoObs,atualizado:isoHoje()});
+        const patch={obs:novoObs,atualizado:isoHoje()};
+        let casoParaCalendar=null;
+        if(!c.agendado){
+          const dataDetectada=extrairAgendamentoDoTexto(corpo);
+          if(dataDetectada){
+            patch.agendado=formatarDataHoraLocal(dataDetectada);
+            patch.agendado_desc=corpo.slice(0,120);
+            casoParaCalendar={...c,...patch};
+          }
+        }
+        await update(ref(db,`casos/${alvo.id}`),patch);
+        if(casoParaCalendar)await sincronizarEventoCalendar(alvo.id,casoParaCalendar);
       }else{
         const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
         arr.push({text:corpo,done:false});
