@@ -571,7 +571,10 @@ module.exports = async (req, res) => {
 
   // ─── Já existe atendimento em curso: texto novo de saudação pergunta se quer sobrepor ───
   if (isTexto && ehSaudacao(texto) && sessao.etapa !== "aguardando_identificacao" && sessao.etapa !== "aguardando_confirmar_sobrepor") {
-    await setSessao({ ...sessao, etapaAntesDeSobrepor: sessao.etapa, etapa: "aguardando_confirmar_sobrepor" });
+    // Guarda a última pergunta feita (antes de ser sobrescrita pela pergunta de
+    // sobreposição) para poder repeti-la se a pessoa escolher "Continuar".
+    const ultimoEnvioAntes = await getUltimoEnvioBot();
+    await setSessao({ ...sessao, etapaAntesDeSobrepor: sessao.etapa, perguntaAntesDeSobrepor: ultimoEnvioAntes?.texto || null, etapa: "aguardando_confirmar_sobrepor" });
     await enviarBotoes(
       `Já tem um atendimento em andamento${sessao.nomeCaso ? ` (${sessao.nomeCaso})` : ""}. Quer continuar esse ou encerrar e começar outro?`,
       ["Continuar", "Encerrar e começar outro"]
@@ -586,8 +589,12 @@ module.exports = async (req, res) => {
       return res.status(200).send("Atendimento anterior encerrado");
     }
     // "Continuar": restaura a etapa que estava em curso antes da tentativa de sobreposição
-    const { etapaAntesDeSobrepor, ...resto } = sessao;
+    // e repete a última pergunta pendente — sem isso, o atendimento voltava ao
+    // normal por baixo dos panos, mas ninguém avisava a pessoa o que fazer, e
+    // parecia que o robô tinha travado.
+    const { etapaAntesDeSobrepor, perguntaAntesDeSobrepor, ...resto } = sessao;
     await setSessao({ ...resto, etapa: etapaAntesDeSobrepor || resto.etapa });
+    await enviarTexto(perguntaAntesDeSobrepor || "Ok, pode continuar de onde parou.");
     return res.status(200).send("Continuando atendimento anterior");
   }
 
