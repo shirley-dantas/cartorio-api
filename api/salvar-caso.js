@@ -177,12 +177,14 @@ async function criarPastaDrive(nome, tipo) {
   return httpReq(DRIVE_URL, "POST", { acao: "criar-pasta", nome, tipo });
 }
 
-// ══ MENSAGENS PARA O WHATSAPP (texto simples + botões) ═══════════
-// NOTA PARA TESTE: o endpoint /message/sendButtons abaixo segue o
-// formato documentado publicamente da Evolution API. Como não tenho
-// como testar contra a instância real daqui, o primeiro teste no
-// preview deve confirmar se os botões chegam certinho — se o formato
-// mudou de versão, é só ajustar o "options" desta função.
+// ══ MENSAGENS PARA O WHATSAPP (texto simples com opções numeradas) ═
+// Botões interativos (/message/sendButtons) foram tentados antes, mas
+// na conexão Baileys/WhatsApp Web da Evolution API eles têm um bug
+// conhecido: a API responde sucesso, mas a mensagem nunca chega no
+// celular. Por isso as opções são mandadas como texto numerado — o
+// destinatário pode responder digitando o número ou o nome da opção,
+// já que a leitura das respostas (respostaAfirmativa, detectarPessoa
+// etc.) sempre foi por texto livre, nunca por clique de botão.
 async function enviarTexto(texto) {
   return httpReq(
     `https://${EVOLUTION_HOST}/message/sendText/${EVOLUTION_INSTANCE}`,
@@ -192,16 +194,8 @@ async function enviarTexto(texto) {
   );
 }
 async function enviarBotoes(texto, opcoes) {
-  return httpReq(
-    `https://${EVOLUTION_HOST}/message/sendButtons/${EVOLUTION_INSTANCE}`,
-    "POST",
-    {
-      number: NUMERO_OPERACIONAL,
-      title: texto,
-      buttons: opcoes.map((o, i) => ({ id: `op${i}`, title: o }))
-    },
-    { apikey: EVOLUTION_API_KEY }
-  );
+  const lista = opcoes.map((o, i) => `${i + 1}. ${o}`).join("\n");
+  return enviarTexto(`${texto}\n${lista}`);
 }
 
 // ══ GERAÇÃO AUTOMÁTICA DE MINUTA (igual à versão anterior) ═══════
