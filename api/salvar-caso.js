@@ -114,18 +114,23 @@ function ehSaudacao(texto) {
 
 function detectarPessoa(texto) {
   const t = normalizar(texto);
-  if (/shirley/.test(t)) return "Shirley";
-  if (/grazi/.test(t)) return "Grazi";
+  // "1"/"2" respondem à ordem em que as opções são listadas em enviarBotoes.
+  if (/^1\b/.test(t) || /shirley/.test(t)) return "Shirley";
+  if (/^2\b/.test(t) || /grazi/.test(t)) return "Grazi";
   return null;
 }
 
 function respostaAfirmativa(texto) {
   const t = normalizar(texto);
-  return /^(sim|s|ok|pode|manda|continuar)\b/.test(t);
+  // "1" responde à primeira opção listada em enviarBotoes, que é sempre a
+  // afirmativa/principal (Sim, Tem mais, Continuar etc.).
+  return /^(1|sim|s|ok|pode|manda|continuar)\b/.test(t);
 }
 function respostaNegativa(texto) {
   const t = normalizar(texto);
-  return /^(nao|n|cancelar|parar)\b/.test(t);
+  // "2" responde à segunda opção listada em enviarBotoes, sempre a
+  // negativa/alternativa (Não, Pode seguir, Encerrar etc.).
+  return /^(2|nao|n|cancelar|parar)\b/.test(t);
 }
 
 // Similaridade simples por distância de edição — evita depender de
