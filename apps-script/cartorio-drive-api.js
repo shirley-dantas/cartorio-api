@@ -190,12 +190,20 @@ Cada pendência ou apontamento deve aparecer EXCLUSIVAMENTE como um marcador 【
 Esses marcadores serão automaticamente convertidos em balões de revisão no documento — portanto NÃO devem aparecer como texto solto, tabela ou lista separada.
 
 REGRA ABSOLUTA — MODELO DE MINUTA (REFERÊNCIA):
-Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (REFERÊNCIA", ele é apenas um EXEMPLO de estilo, estrutura, formatação e fraseado — vindo de outro caso, fornecido pela equipe ou aprendido de casos anteriores do mesmo tipo de ato.
-- Use esse modelo SOMENTE para orientar como organizar e redigir a minuta (ordem das cláusulas, tom, estrutura das frases)
+Documentos podem trazer dois tipos de referência de modelo, tratados de forma DIFERENTE quanto ao nível de fidelidade exigido:
+
+Se o cabeçalho for "MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE)": a equipe escolheu e enviou esse modelo manualmente porque confia nele. SIGA-O FIELMENTE — mesma estrutura, mesma ordem de cláusulas, mesmo nível de detalhe e abrangência (ver REGRAS DE FIDELIDADE abaixo).
+
+Se o cabeçalho for "MODELO DE MINUTA (REFERÊNCIA APRENDIDA AUTOMATICAMENTE)": é só um exemplo de estilo baseado num caso anterior do mesmo tipo de ato, sem revisão humana. Use apenas como referência leve de tom e organização — as REGRAS DE FIDELIDADE abaixo (nível de detalhe, não parar cedo) NÃO se aplicam a esse tipo de modelo; use seu próprio julgamento sobre o quanto detalhar.
+
+Em AMBOS os casos, sem exceção:
+- Use o modelo para orientar como organizar e redigir a minuta (ordem das cláusulas, tom, estrutura das frases)
 - NUNCA copie nomes, CPF, RG, matrícula, endereços, valores, datas ou qualquer dado específico do modelo
 - Todos os dados factuais da minuta devem vir EXCLUSIVAMENTE dos demais documentos e observações do caso atual
 - Se o modelo mencionar uma cláusula que não se aplica ao caso atual, não a inclua
 - IMPORTANTE — NÃO CONFUNDA as duas fontes: essa restrição vale APENAS para dados que aparecem dentro do bloco "MODELO DE MINUTA (REFERÊNCIA...)". Qualquer dado (nome, CPF, RG, endereço, valor, data) que apareça nos OUTROS documentos do caso (fora do bloco do modelo) é dado real do caso atual e deve ser usado normalmente, com total confiança — mesmo que esse mesmo tipo de campo também apareça preenchido no modelo. NÃO deixe um campo em branco (______) só porque um campo parecido existe no modelo; deixe em branco SOMENTE quando o dado não aparecer em nenhum lugar fora do bloco do modelo
+
+REGRAS DE FIDELIDADE — válidas SOMENTE para modelo "REFERÊNCIA FORNECIDA PELA EQUIPE":
 - MANTENHA O MESMO NÍVEL DE DETALHE E ABRANGÊNCIA do modelo — se o modelo tiver uma lista extensa e detalhada de poderes/cláusulas (ex: nomes de bancos específicos, órgãos públicos nomeados, poderes judiciais completos), a minuta nova deve ter uma lista igualmente extensa e detalhada, adaptada ao caso atual. NÃO resuma ou condense cláusulas do modelo em itens genéricos — reproduza a mesma quantidade e riqueza de detalhes, apenas trocando os dados específicos pelos do caso atual (ou removendo o item, se genuinamente não se aplicar)
 - REGRA DE CONCLUSÃO — NÃO PARE CEDO: antes de considerar a minuta finalizada, verifique mentalmente se você já escreveu uma cláusula ou seção correspondente a CADA cláusula/seção que existe no modelo (mesma numeração, mesmos títulos de cláusula, mesmo número aproximado de itens). Se o modelo tem cláusulas 1 a 13, ou subcláusulas 6.1 a 6.10, sua minuta também precisa chegar até lá — NÃO termine no meio (ex: só até a cláusula 6.5) só porque o texto já "parece" completo. Um documento de referência longo e detalhado exige uma minuta igualmente longa e detalhada. Só finalize (com encerramento e assinaturas) depois de cobrir TODO o conteúdo equivalente ao modelo.
 
@@ -374,11 +382,13 @@ function chamarClaude(mensagem) {
 // cada pedaço é rápido (uma chamada à IA), e só continua se realmente precisar.
 function gerarMinutaCompleta(mensagemBase) {
   var MAX_PEDACOS = 6;
-  // Quando há um modelo de referência, a IA tende a "achar" que terminou cedo demais
-  // (parar em ~1/3 do conteúdo do modelo). Por isso, sempre que houver modelo, forçamos
-  // pelo menos uma rodada extra de autoverificação de cobertura, mesmo que a IA não tenha
+  // Quando há um modelo de referência FORNECIDO PELA EQUIPE, a IA tende a "achar" que
+  // terminou cedo demais (parar em ~1/3 do conteúdo do modelo). Por isso, forçamos pelo
+  // menos uma rodada extra de autoverificação de cobertura, mesmo que a IA não tenha
   // batido no limite de tamanho — ela precisa confirmar explicitamente que terminou.
-  var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1;
+  // Não se aplica ao modelo aprendido automaticamente (sem revisão humana, não exigimos
+  // essa mesma fidelidade de cobertura).
+  var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE)") !== -1;
   var textoCompleto = "";
   var rodadas = 0;
   for (var i = 0; i < MAX_PEDACOS; i++) {
