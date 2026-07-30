@@ -701,15 +701,25 @@ module.exports = async (req, res) => {
       // a legenda não é considerada aqui. O único jeito de mandar um modelo
       // é pela etapa dedicada ("Devo usar um modelo específico?" → Sim).
       await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, "");
-      // Só repete a pergunta se já fez 15s+ desde a última vez que perguntou —
-      // evita perguntar de novo a cada arquivo quando vários chegam em sequência
-      // rápida (ex: encaminhando vários documentos de uma vez do WhatsApp).
-      const silencioMs = Date.now() - (sessao.ultimaPerguntaDocsEm ? new Date(sessao.ultimaPerguntaDocsEm).getTime() : 0);
-      if (!sessao.ultimaPerguntaDocsEm || silencioMs >= 15000) {
-        await setSessao({ ...sessao, etapa: "aguardando_mais_documentos", ultimaPerguntaDocsEm: new Date().toISOString() });
+
+      // Quando vários arquivos chegam quase juntos (ex: selecionados de uma vez
+      // na galeria), o WhatsApp entrega um webhook por arquivo, quase ao mesmo
+      // tempo — cada chamada roda em paralelo, sem saber das outras. Comparar
+      // só "quanto tempo faz desde a última pergunta" não bastava: todas liam
+      // o relógio ANTES de qualquer uma delas terminar de atualizá-lo, então
+      // todas concluíam "faz tempo" e todas respondiam.
+      // Correção: cada arquivo se marca como "o mais recente" (ultimoDocToken),
+      // espera 15s, e só manda a pergunta se, passado esse tempo, ainda for
+      // de fato o mais recente (nenhum outro arquivo chegou depois dele) — e
+      // se o atendimento ainda estiver esperando documentos (ela pode ter
+      // digitado "pode seguir" sozinha antes da espera terminar).
+      const meuToken = mensagemId || (Date.now() + "-" + Math.random().toString(36).slice(2, 8));
+      await setSessao({ ...sessao, etapa: "aguardando_mais_documentos", ultimoDocToken: meuToken });
+      await new Promise(resolve => setTimeout(resolve, 15000));
+      const sessaoAgora = await getSessao();
+      const aindaEsperandoDocs = sessaoAgora?.etapa === "aguardando_documentos" || sessaoAgora?.etapa === "aguardando_mais_documentos";
+      if (sessaoAgora?.ultimoDocToken === meuToken && aindaEsperandoDocs) {
         await enviarBotoes("Recebi. Mais algum documento, ou posso seguir?", ["Tem mais", "Pode seguir"]);
-      } else {
-        await setSessao({ ...sessao, etapa: "aguardando_mais_documentos" });
       }
       return res.status(200).send("Documento recebido");
     }
