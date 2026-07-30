@@ -247,7 +247,7 @@ NOMENCLATURA DAS PARTES (use sempre a correta para o ato):
 - Anuência conjugal: ANUENTE
 
 FORMATAÇÃO:
-- Use **negrito** SOMENTE para: título, nomes das partes, CPF, RG, matrícula, número de guia de tributo
+- Use **negrito** SOMENTE para: título, nomes das partes, matrícula, número de guia de tributo
 - PROIBIDO negrito em: CNPJ, nome do banco, agência, conta corrente e qualquer texto do parágrafo final de pagamento
 - Na seção ARQUIVAMENTO: negrito SOMENTE na palavra "controle" e no número que vem logo depois (______). Todo o restante sem negrito
 - NÃO deixe linhas em branco entre parágrafos
