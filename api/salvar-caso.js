@@ -236,262 +236,61 @@ async function enviarBotoes(texto, opcoes) {
   return enviarTexto(`${texto}\n${lista}`);
 }
 
-// ══ GERAÇÃO AUTOMÁTICA DE MINUTA (igual à versão anterior) ═══════
+// ══ GERAÇÃO DE MINUTA — delegada ao Apps Script (sem limite de tempo) ═══
+// Minutas fiéis a um modelo detalhado podem levar minutos para gerar (várias
+// rodadas de IA). O Vercel mata a função nesse meio tempo silenciosamente —
+// por isso a geração roda no Apps Script (mesmo motor do painel, sem esse
+// limite) de forma assíncrona: o WhatsApp dispara o job e segue a conversa;
+// o Apps Script avisa por WhatsApp quando a minuta terminar (ou falhar).
 
-const SYSTEM_PROMPT_MINUTA = `Você é o Assistente Jurídico-Cartorário do 20º Cartório de Notas de São Paulo.
-
-Ao analisar um caso, você simula simultaneamente o trabalho de um Registrador de Imóveis, Tabelião de Notas, Escrevente altamente qualificado e Analista Documental Imobiliário.
-
-Gere a minuta notarial completa e profissional do ato, no padrão de escritura pública brasileira, realizando análise documental completa com todos os apontamentos necessários.
-
-REGRAS FUNDAMENTAIS:
-- Nunca assuma informações inexistentes
-- Nunca preencha lacunas sem evidência documental
-- Preencha todos os campos que tiverem informação disponível
-- Campos desconhecidos: use apenas traços: ______
-- NÃO use colchetes ou texto descritivo para campos em branco — apenas ______
-
-NOMENCLATURA DAS PARTES (use sempre a correta para o ato):
-- Compra e Venda: VENDEDOR(A) e COMPRADOR(A)
-- Doação: DOADOR(A) e DONATÁRIO(A)
-- Procuração: OUTORGANTE e OUTORGADO(A)
-- Inventário: INVENTARIANTE, HERDEIRO(A), VIÚVO(A) MEEIRO(A)
-- Divórcio: PRIMEIRO(A) DIVORCIANDO(A) e SEGUNDO(A) DIVORCIANDO(A)
-- União Estável: PRIMEIRO(A) COMPANHEIRO(A) e SEGUNDO(A) COMPANHEIRO(A)
-- Cessão: CEDENTE e CESSIONÁRIO(A)
-- Renúncia: RENUNCIANTE
-- Dação em Pagamento: DEVEDOR(A) e CREDOR(A)
-- Ata Notarial: REQUERENTE
-- Anuência conjugal: ANUENTE
-
-FORMATAÇÃO:
-- Use **negrito** SOMENTE para: título, nomes das partes, matrícula, número de guia de tributo
-- PROIBIDO negrito em: CNPJ, nome do banco, agência, conta corrente e qualquer texto do parágrafo final de pagamento
-- Na seção ARQUIVAMENTO: negrito SOMENTE na palavra "controle" e no número que vem logo depois (______). Todo o restante sem negrito
-- NÃO deixe linhas em branco entre parágrafos
-- Use # para título principal e ## para seções/cláusulas
-
-REGRA ABSOLUTA — ANÁLISE DOCUMENTAL:
-NUNCA inclua no corpo do texto: tabelas, listas numeradas, seções "ANÁLISE DOCUMENTAL", "APONTAMENTOS TÉCNICOS", "PENDÊNCIAS DOCUMENTAIS" ou estrutura similar.
-Cada pendência deve aparecer EXCLUSIVAMENTE como marcador 【PENDÊNCIA: descrição objetiva】 inserido diretamente no texto, após o trecho ao qual se refere. Esses marcadores viram balões de revisão automaticamente.
-
-REGRA ABSOLUTA — MODELO DE MINUTA (REFERÊNCIA):
-Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (REFERÊNCIA" — seja "FORNECIDA PELA EQUIPE" (enviada manualmente) ou "APRENDIDA AUTOMATICAMENTE" (de um caso anterior do mesmo tipo de ato) — os dois exigem o MESMO nível de fidelidade:
-- SIGA O MODELO FIELMENTE — mesma estrutura, mesma ordem de cláusulas, mesmo nível de detalhe e abrangência. Se o modelo tem 13 cláusulas ou subcláusulas 6.1 a 6.10, a minuta nova também precisa cobrir esse mesmo escopo — não resuma, não condense, não pare cedo.
-- NUNCA copie nomes, CPF, RG, matrícula, endereços, valores, datas ou qualquer dado específico do modelo
-- Todos os dados factuais da minuta devem vir EXCLUSIVAMENTE dos demais documentos e observações do caso atual
-- Se o modelo mencionar uma cláusula que não se aplica ao caso atual, não a inclua
-
-ABERTURA DA MINUTA (escolha conforme MODALIDADE):
-
-Se DIGITAL:
-Aos ______ (______) dias do mês de ______ (______) do ano de dois mil e vinte e seis (2026), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, por meio de **VIDEOCONFERÊNCIA**, nos termos do **Provimento nº 149/2023** do Conselho Nacional de Justiça, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
-
-Se HÍBRIDA:
-Aos ______ (______) dias do mês de ______ (______) do ano de dois mil e vinte e seis (2026), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, por meio de **VIDEOCONFERÊNCIA**, e **PRESENCIALMENTE** nos termos do **Provimento nº 149/2023** do Conselho Nacional de Justiça, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
-
-Se PRESENCIAL:
-Aos ______ (______) dias do mês de ______ (______) do ano de dois mil e vinte e seis (2026), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
-
-ENCERRAMENTO (escolha conforme MODALIDADE):
-
-Se DIGITAL ou HÍBRIDA:
-**IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ **CERTIFICAÇÃO:** Escritura assinada digitalmente com certificado digital, pela plataforma do e-Notariado, por: ______ ///______[SE HÍBRIDA: e presencialmente por ______ /// ______]. Eu, escrevente autorizada indicada no fluxo de assinaturas, a lavrei, li realizei a videoconferência e assino com meu certificado digital. Eu, Substituto Legal do Tabelião, indicado no fluxo de assinaturas, subscrevo e assino com meu certificado digital padrão ICP-Brasil, encerrando este ato. Data e horário das assinaturas digitais, bem como matrícula notarial eletrônica (MNE) constantes do manifesto impresso na última página desta. De tudo dou fé. O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
-
-Se PRESENCIAL:
-**IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
-
-NOTA: Substitua "adquirente" pelo nome correto da parte principal do ato. Para atos sem transferência imobiliária (procuração, testamento, ata notarial), omita IMPOSTOS DE TRANSMISSÃO e DOI.`;
-
-const INSTRUCOES_MINUTA = {
-  "Inventário": "Verificar certidão de óbito, herdeiros, regime de bens, bens do espólio, ITCMD SP (4%), meação × herança.",
-  "Escritura de Compra e Venda": "Verificar matrícula, certidões negativas do vendedor, ITBI, forma de pagamento, anuência conjugal.",
-  "Procuração": "Identificar outorgante e outorgado, poderes específicos, substabelecimento, prazo, imóvel se aplicável.",
-  "Divórcio": "Verificar certidão de casamento, ausência de filhos menores, partilha de bens, nome após divórcio.",
-  "União Estável": "Verificar documentos dos companheiros, regime de bens, data de início, cláusulas especiais.",
-  "Doação": "Identificar bem doado, ITCMD, cláusulas restritivas, anuência conjugal, usufruto se aplicável.",
-  "Renúncia": "Identificar bem/direito, natureza da renúncia (translativa ou abdicativa), impacto registral, tributos.",
-  "Cessão de Direitos": "Identificar cedente, cessionário, direitos cedidos, valor, ITBI ou ITCMD conforme o caso.",
-  "Pacto Antenupcial": "Verificar regime de bens escolhido, bens pré-nupciais, data do casamento, registro no CRI.",
-  "Testamento": "Verificar capacidade civil, legítima (50%), quota disponível, legatários, testamenteiro.",
-  "Ata Notarial": "Identificar fato a ser constatado, requerente, finalidade. Descrever objetivamente, sem opinião jurídica.",
-  "Dação em Pagamento": "Identificar dívida original, bem dado em pagamento, ITBI, quitação expressa, certidões do devedor."
-};
-
-function instrucoesMinimasPorTipo(tipo) {
-  if (!tipo) return "";
-  const chave = Object.keys(INSTRUCOES_MINUTA).find(k => tipo.toLowerCase().includes(k.toLowerCase()));
-  return chave ? `ATENÇÃO — ATO: ${chave.toUpperCase()}\n${INSTRUCOES_MINUTA[chave]}` : "";
-}
-
-// Biblioteca de modelos aprendidos por tipo de ato (mesmo Firebase que o
-// Apps Script usa) — evita depender de alguém lembrar de mandar um modelo
-// manual toda vez: a cada minuta gerada com sucesso, ela vira a referência
-// automática de estilo do tipo de ato, tanto pra próxima geração pelo
-// WhatsApp quanto pelo painel.
-function chaveTipoModelo(tipo) {
-  if (!tipo) return "geral";
-  const chave = Object.keys(INSTRUCOES_MINUTA).find(k => tipo.toLowerCase().includes(k.toLowerCase()));
-  const base = (chave || tipo).toLowerCase().trim().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  return base.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "geral";
-}
-async function buscarModeloAprendido(tipo) {
-  const chave = chaveTipoModelo(tipo);
-  const data = await httpReq(`https://${FIREBASE_HOST}/modelos/${chave}.json`, "GET");
-  return (data && data.texto) ? data : null;
-}
-async function salvarModeloAprendido(tipo, texto, nomeCaso) {
-  const chave = chaveTipoModelo(tipo);
-  await httpReq(`https://${FIREBASE_HOST}/modelos/${chave}.json`, "PUT", {
-    texto: texto.slice(0, 6000),
-    origemCaso: nomeCaso || "",
-    atualizado: new Date().toISOString()
+async function montarDocumentosTexto(casoId) {
+  if (!casoId) return "";
+  const documentos = await httpReq(`https://${FIREBASE_HOST}/casos/${casoId}/documentos.json`, "GET");
+  if (!documentos || typeof documentos !== "object") return "";
+  const linhas = [];
+  Object.values(documentos).forEach(d => {
+    if (!d) return;
+    linhas.push(d.tipo === "modelo"
+      ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
+      : `\n=== DOCUMENTO: ${d.nome} ===`);
+    if (d.texto) linhas.push(d.texto);
   });
+  return linhas.join("\n");
 }
 
-function callClaudeMinuta(mensagem) {
+function dispararGeracaoMinutaAppsScript(payload) {
   return new Promise((resolve) => {
-    const body = JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 5000,
-      system: SYSTEM_PROMPT_MINUTA,
-      messages: [{ role: "user", content: mensagem }]
-    });
+    const body = JSON.stringify(payload);
+    const u = new URL(DRIVE_URL);
     const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
+      hostname: u.hostname, path: u.pathname + u.search, method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }
     };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
-        catch { resolve(null); }
-      });
-    });
-    req.on("error", () => resolve(null));
+    const req = https.request(options);
+    req.on("error", () => resolve());
+    req.on("finish", () => resolve()); // dados totalmente enviados — não espera o Apps Script terminar
     req.write(body);
     req.end();
   });
 }
 
-function httpPostComRedirect(url, body) {
-  return new Promise((resolve) => {
-    const payload = JSON.stringify(body);
-    const u = new URL(url);
-    const options = {
-      hostname: u.hostname, path: u.pathname + u.search, method: "POST",
-      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) }
-    };
-    const r = https.request(options, (res) => {
-      if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location) {
-        const lu = new URL(res.headers.location, url);
-        const gr = https.request({ hostname: lu.hostname, path: lu.pathname + lu.search, method: "GET" }, (gres) => {
-          let data = "";
-          gres.on("data", d => data += d);
-          gres.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
-        });
-        gr.on("error", () => resolve(null));
-        gr.end();
-        return;
-      }
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
-    });
-    r.on("error", () => resolve(null));
-    r.write(payload);
-    r.end();
+async function gerarMinutaAssincrona(sessao) {
+  if (!sessao.casoId) return;
+  const caso = await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}.json`, "GET");
+  if (!caso) return;
+  const documentosTexto = await montarDocumentosTexto(sessao.casoId);
+  const jobId = Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+  await dispararGeracaoMinutaAppsScript({
+    acao: "gerar-e-criar-minuta",
+    jobId,
+    nome: sessao.nomeCaso || caso.nome,
+    tipo: caso.tipo,
+    obs: caso.obs,
+    documentos: documentosTexto,
+    modalidade: caso.modalidade || "digital",
+    casoId: sessao.casoId,
+    notificarWhatsApp: true
   });
-}
-
-async function gerarECriarMinuta(caso) {
-  try {
-    const instrucoes = instrucoesMinimasPorTipo(caso.tipo);
-    const mod = (caso.modalidade || "digital").toUpperCase();
-
-    // Junta o texto já extraído de cada documento anexado ao card (antes só
-    // ficava guardado como registro, sem entrar na geração da minuta).
-    let documentosTexto = "";
-    if (caso.casoId) {
-      const documentos = await httpReq(`https://${FIREBASE_HOST}/casos/${caso.casoId}/documentos.json`, "GET");
-      if (documentos && typeof documentos === "object") {
-        const linhas = [];
-        Object.values(documentos).forEach(d => {
-          if (!d) return;
-          linhas.push(d.tipo === "modelo"
-            ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
-            : `\n=== DOCUMENTO: ${d.nome} ===`);
-          if (d.texto) linhas.push(d.texto);
-        });
-        documentosTexto = linhas.join("\n");
-      }
-    }
-
-    // Sem modelo mandado manualmente pelo WhatsApp: usa o último modelo
-    // aprendido automaticamente para esse tipo de ato, se existir.
-    if (!/MODELO DE MINUTA \(REFERÊNCIA FORNECIDA PELA EQUIPE\)/.test(documentosTexto)) {
-      const modeloAprendido = await buscarModeloAprendido(caso.tipo);
-      if (modeloAprendido) {
-        documentosTexto += `\n\n=== MODELO DE MINUTA (REFERÊNCIA APRENDIDA AUTOMATICAMENTE) — ${caso.tipo || ""} ===\n${modeloAprendido.texto}`;
-      }
-    }
-
-    const mensagem = `CASO: ${caso.nome}
-TIPO DE ATO: ${caso.tipo || "Não informado"}
-MODALIDADE: ${mod}
-${instrucoes ? instrucoes + "\n" : ""}
-OBSERVAÇÕES DO CASO: ${caso.obs || "Nenhuma"}
-
-DOCUMENTOS E INFORMAÇÕES FORNECIDAS:
-${documentosTexto.trim() || "Nenhum documento fornecido ainda."}
-
-Por favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade ${mod}.`;
-
-    const resposta = await callClaudeMinuta(mensagem);
-    if (!resposta) return { driveUrl: null, docUrl: null };
-
-    const comentarios = [];
-    let minuta = resposta;
-    const INICIO = "【PENDÊNCIA: ";
-    const FIM = "】";
-    let pos = 0; let num = 1;
-    while (true) { const s = minuta.indexOf(INICIO, pos); if (s === -1) break; const e = minuta.indexOf(FIM, s); if (e === -1) break; comentarios.push("Pendencia " + num + ": " + minuta.slice(s + INICIO.length, e).trim()); num++; pos = e + 1; }
-    let limpo = ""; pos = 0;
-    while (true) { const s = minuta.indexOf(INICIO, pos); if (s === -1) { limpo += minuta.slice(pos); break; } const e = minuta.indexOf(FIM, s); if (e === -1) { limpo += minuta.slice(pos); break; } limpo += minuta.slice(pos, s); pos = e + 1; }
-    minuta = limpo;
-    const cortes = ["---\nANALISE", "---\nANÁLISE", "\nANÁLISE DOCUMENTAL", "\nANALISE DOCUMENTAL", "\nAPONTAMENTOS TÉCNICOS"];
-    let idxCorte = -1;
-    for (let i = 0; i < cortes.length; i++) { const idx = minuta.indexOf(cortes[i]); if (idx !== -1 && (idxCorte === -1 || idx < idxCorte)) idxCorte = idx; }
-    if (idxCorte !== -1) minuta = minuta.slice(0, idxCorte);
-    minuta = minuta.replace(/\n\n\n+/g, "\n\n").trim();
-
-    const driveResp = await httpPostComRedirect(DRIVE_URL, {
-      acao: "criar-minuta-doc",
-      nome: caso.nome,
-      tipo: caso.tipo || "",
-      minuta,
-      comentarios
-    });
-
-    // Aprende com essa minuta: vira a referência automática do tipo para as
-    // próximas gerações (WhatsApp ou painel), sem precisar de tag manual.
-    if (minuta) await salvarModeloAprendido(caso.tipo, minuta, caso.nome);
-
-    return {
-      driveUrl: driveResp?.folderUrl || null,
-      docUrl: driveResp?.url || null
-    };
-  } catch (e) {
-    return { driveUrl: null, docUrl: null };
-  }
 }
 
 // Mesma extração jurídica usada para PDF/imagem (extrairTextoPDF), mas a
@@ -930,10 +729,10 @@ module.exports = async (req, res) => {
       await enviarTexto("Ok, sem gerar minuta agora. Mais alguma informação, ou já posso concluir?");
       return res.status(200).send("OK");
     }
-    await gerarMinutaDoCaso(sessao);
+    await gerarMinutaAssincrona(sessao);
     await setSessao({ ...sessao, etapa: "aguardando_mais_informacao" });
-    await enviarTexto("Minuta gerada e salva no Drive. Mais alguma informação, ou já posso concluir?");
-    return res.status(200).send("Minuta gerada");
+    await enviarTexto("Gerando a minuta com IA — pode levar alguns minutos em casos mais longos. Aviso por aqui assim que estiver pronta. Mais alguma informação, ou já posso concluir?");
+    return res.status(200).send("Minuta em geração");
   }
 
   // ─── 10. Mais informação ou concluir ───
@@ -955,18 +754,3 @@ module.exports = async (req, res) => {
 
   return res.status(200).send("Mensagem recebida, fora de fluxo reconhecido");
 };
-
-// Helper que junta "gerar minuta" ao caso já existente, reaproveitando
-// gerarECriarMinuta com os dados atualizados vindos do Firebase.
-async function gerarMinutaDoCaso(sessao) {
-  if (!sessao.casoId) return;
-  const caso = await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}.json`, "GET");
-  if (!caso) return;
-  const { driveUrl, docUrl } = await gerarECriarMinuta({ ...caso, nome: sessao.nomeCaso, casoId: sessao.casoId });
-  const patch = {};
-  if (driveUrl) patch.driveUrl = driveUrl;
-  if (docUrl) patch.docUrl = docUrl;
-  if (Object.keys(patch).length > 0) {
-    await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}.json`, "PATCH", patch);
-  }
-}
