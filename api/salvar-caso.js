@@ -261,6 +261,13 @@ REGRA ABSOLUTA — ANÁLISE DOCUMENTAL:
 NUNCA inclua no corpo do texto: tabelas, listas numeradas, seções "ANÁLISE DOCUMENTAL", "APONTAMENTOS TÉCNICOS", "PENDÊNCIAS DOCUMENTAIS" ou estrutura similar.
 Cada pendência deve aparecer EXCLUSIVAMENTE como marcador 【PENDÊNCIA: descrição objetiva】 inserido diretamente no texto, após o trecho ao qual se refere. Esses marcadores viram balões de revisão automaticamente.
 
+REGRA ABSOLUTA — MODELO DE MINUTA (REFERÊNCIA):
+Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (REFERÊNCIA", ele é apenas um EXEMPLO de estilo, estrutura e fraseado — vindo de outro caso ou aprendido automaticamente de casos anteriores do mesmo tipo de ato.
+- Use esse modelo SOMENTE para orientar como organizar e redigir a minuta (ordem das cláusulas, tom, estrutura das frases)
+- NUNCA copie nomes, CPF, RG, matrícula, endereços, valores, datas ou qualquer dado específico do modelo
+- Todos os dados factuais da minuta devem vir EXCLUSIVAMENTE dos demais documentos e observações do caso atual
+- Se o modelo mencionar uma cláusula que não se aplica ao caso atual, não a inclua
+
 ABERTURA DA MINUTA (escolha conforme MODALIDADE):
 
 Se DIGITAL:
@@ -301,6 +308,31 @@ function instrucoesMinimasPorTipo(tipo) {
   if (!tipo) return "";
   const chave = Object.keys(INSTRUCOES_MINUTA).find(k => tipo.toLowerCase().includes(k.toLowerCase()));
   return chave ? `ATENÇÃO — ATO: ${chave.toUpperCase()}\n${INSTRUCOES_MINUTA[chave]}` : "";
+}
+
+// Biblioteca de modelos aprendidos por tipo de ato (mesmo Firebase que o
+// Apps Script usa) — evita depender de alguém lembrar de mandar um modelo
+// manual toda vez: a cada minuta gerada com sucesso, ela vira a referência
+// automática de estilo do tipo de ato, tanto pra próxima geração pelo
+// WhatsApp quanto pelo painel.
+function chaveTipoModelo(tipo) {
+  if (!tipo) return "geral";
+  const chave = Object.keys(INSTRUCOES_MINUTA).find(k => tipo.toLowerCase().includes(k.toLowerCase()));
+  const base = (chave || tipo).toLowerCase().trim().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return base.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "geral";
+}
+async function buscarModeloAprendido(tipo) {
+  const chave = chaveTipoModelo(tipo);
+  const data = await httpReq(`https://${FIREBASE_HOST}/modelos/${chave}.json`, "GET");
+  return (data && data.texto) ? data : null;
+}
+async function salvarModeloAprendido(tipo, texto, nomeCaso) {
+  const chave = chaveTipoModelo(tipo);
+  await httpReq(`https://${FIREBASE_HOST}/modelos/${chave}.json`, "PUT", {
+    texto: texto.slice(0, 6000),
+    origemCaso: nomeCaso || "",
+    atualizado: new Date().toISOString()
+  });
 }
 
 function callClaudeMinuta(mensagem) {
@@ -370,11 +402,42 @@ async function gerarECriarMinuta(caso) {
   try {
     const instrucoes = instrucoesMinimasPorTipo(caso.tipo);
     const mod = (caso.modalidade || "digital").toUpperCase();
+
+    // Junta o texto já extraído de cada documento anexado ao card (antes só
+    // ficava guardado como registro, sem entrar na geração da minuta).
+    let documentosTexto = "";
+    if (caso.casoId) {
+      const documentos = await httpReq(`https://${FIREBASE_HOST}/casos/${caso.casoId}/documentos.json`, "GET");
+      if (documentos && typeof documentos === "object") {
+        const linhas = [];
+        Object.values(documentos).forEach(d => {
+          if (!d) return;
+          linhas.push(d.tipo === "modelo"
+            ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
+            : `\n=== DOCUMENTO: ${d.nome} ===`);
+          if (d.texto) linhas.push(d.texto);
+        });
+        documentosTexto = linhas.join("\n");
+      }
+    }
+
+    // Sem modelo mandado manualmente pelo WhatsApp: usa o último modelo
+    // aprendido automaticamente para esse tipo de ato, se existir.
+    if (!/MODELO DE MINUTA \(REFERÊNCIA FORNECIDA PELA EQUIPE\)/.test(documentosTexto)) {
+      const modeloAprendido = await buscarModeloAprendido(caso.tipo);
+      if (modeloAprendido) {
+        documentosTexto += `\n\n=== MODELO DE MINUTA (REFERÊNCIA APRENDIDA AUTOMATICAMENTE) — ${caso.tipo || ""} ===\n${modeloAprendido.texto}`;
+      }
+    }
+
     const mensagem = `CASO: ${caso.nome}
 TIPO DE ATO: ${caso.tipo || "Não informado"}
 MODALIDADE: ${mod}
 ${instrucoes ? instrucoes + "\n" : ""}
 OBSERVAÇÕES DO CASO: ${caso.obs || "Nenhuma"}
+
+DOCUMENTOS E INFORMAÇÕES FORNECIDAS:
+${documentosTexto.trim() || "Nenhum documento fornecido ainda."}
 
 Por favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade ${mod}.`;
 
@@ -403,6 +466,10 @@ Por favor, gere a minuta completa conforme as informações disponíveis, usando
       minuta,
       comentarios
     });
+
+    // Aprende com essa minuta: vira a referência automática do tipo para as
+    // próximas gerações (WhatsApp ou painel), sem precisar de tag manual.
+    if (minuta) await salvarModeloAprendido(caso.tipo, minuta, caso.nome);
 
     return {
       driveUrl: driveResp?.folderUrl || null,
@@ -872,7 +939,7 @@ async function gerarMinutaDoCaso(sessao) {
   if (!sessao.casoId) return;
   const caso = await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}.json`, "GET");
   if (!caso) return;
-  const { driveUrl, docUrl } = await gerarECriarMinuta({ ...caso, nome: sessao.nomeCaso });
+  const { driveUrl, docUrl } = await gerarECriarMinuta({ ...caso, nome: sessao.nomeCaso, casoId: sessao.casoId });
   const patch = {};
   if (driveUrl) patch.driveUrl = driveUrl;
   if (docUrl) patch.docUrl = docUrl;
