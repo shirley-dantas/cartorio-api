@@ -701,8 +701,16 @@ module.exports = async (req, res) => {
       // a legenda não é considerada aqui. O único jeito de mandar um modelo
       // é pela etapa dedicada ("Devo usar um modelo específico?" → Sim).
       await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, "");
-      await setSessao({ ...sessao, etapa: "aguardando_mais_documentos" });
-      await enviarBotoes("Recebi. Mais algum documento, ou posso seguir?", ["Tem mais", "Pode seguir"]);
+      // Só repete a pergunta se já fez 15s+ desde a última vez que perguntou —
+      // evita perguntar de novo a cada arquivo quando vários chegam em sequência
+      // rápida (ex: encaminhando vários documentos de uma vez do WhatsApp).
+      const silencioMs = Date.now() - (sessao.ultimaPerguntaDocsEm ? new Date(sessao.ultimaPerguntaDocsEm).getTime() : 0);
+      if (!sessao.ultimaPerguntaDocsEm || silencioMs >= 15000) {
+        await setSessao({ ...sessao, etapa: "aguardando_mais_documentos", ultimaPerguntaDocsEm: new Date().toISOString() });
+        await enviarBotoes("Recebi. Mais algum documento, ou posso seguir?", ["Tem mais", "Pode seguir"]);
+      } else {
+        await setSessao({ ...sessao, etapa: "aguardando_mais_documentos" });
+      }
       return res.status(200).send("Documento recebido");
     }
     if (isTexto && sessao.etapa === "aguardando_documentos" && ehPular(texto)) {
