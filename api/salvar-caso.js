@@ -132,6 +132,10 @@ function respostaNegativa(texto) {
   // negativa/alternativa (Não, Pode seguir, Encerrar etc.).
   return /^(2|nao|n|cancelar|parar)\b/.test(t);
 }
+function ehPular(texto) {
+  const t = normalizar(texto);
+  return /^(pular|pula|nenhum|nenhuma|nao tenho|sem documento|nao vou anexar)\b/.test(t);
+}
 
 // Similaridade simples por distância de edição — evita depender de
 // biblioteca externa só para tolerar erro de digitação/acento.
@@ -680,7 +684,7 @@ module.exports = async (req, res) => {
     const fbResp = await httpReq(`https://${FIREBASE_HOST}/casos.json`, "POST", caso);
     const casoId = fbResp?.name || null;
     await setSessao({ ...sessao, etapa: "aguardando_documentos", nomeCaso: caso.nome, casoId, cardNovo: true });
-    await enviarTexto("Pode anexar os documentos.");
+    await enviarTexto("Pode anexar os documentos, ou digite \"pular\" se não for anexar nada agora.");
     return res.status(200).send("Card criado");
   }
 
@@ -718,7 +722,7 @@ module.exports = async (req, res) => {
   // ─── 5. Tipo de atualização ───
   if (sessao.etapa === "aguardando_tipo_atualizacao" && isTexto) {
     await setSessao({ ...sessao, etapa: "aguardando_documentos", tipoAtualizacao: texto });
-    await enviarTexto("Pode anexar os documentos.");
+    await enviarTexto("Pode anexar os documentos, ou digite \"pular\" se não for anexar nada agora.");
     return res.status(200).send("OK");
   }
 
@@ -729,6 +733,11 @@ module.exports = async (req, res) => {
       await setSessao({ ...sessao, etapa: "aguardando_mais_documentos" });
       await enviarBotoes("Recebi. Mais algum documento, ou posso seguir?", ["Tem mais", "Pode seguir"]);
       return res.status(200).send("Documento recebido");
+    }
+    if (isTexto && sessao.etapa === "aguardando_documentos" && ehPular(texto)) {
+      await setSessao({ ...sessao, etapa: "aguardando_gerar_minuta" });
+      await enviarBotoes("Sem documentos por enquanto. Quer gerar/reeditar a minuta agora?", ["Sim", "Não"]);
+      return res.status(200).send("Documentos pulados, seguindo para minuta");
     }
     if (isTexto && sessao.etapa === "aguardando_mais_documentos") {
       if (respostaAfirmativa(texto) && !/pode seguir/i.test(texto)) {
