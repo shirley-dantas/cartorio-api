@@ -16,6 +16,7 @@
 // implantações > editar > Nova versão).
 
 const PASTA_RAIZ_ID = "1KDMZ-FJMoXEzpMXKSojeZgNeJ_p4lhSb";
+const NOME_PASTA_MINUTAS = "0 - MINUTAS IA";
 const FIREBASE_URL = "https://painel-cartorio-default-rtdb.firebaseio.com";
 
 // ── Prompts ────────────────────────────────────────────────────────────────
@@ -226,13 +227,22 @@ A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualific
 
 // ── Funções auxiliares ─────────────────────────────────────────────────────
 
-// Pasta única do cliente (documentos anexados E minuta gerada ficam juntos
-// aqui) — antes a minuta ia para uma pasta global separada ("0 - MINUTAS IA"),
-// espalhando o material do mesmo caso em dois lugares diferentes do Drive.
-function getPastaCliente(nomeCliente) {
+// Pasta "0 - MINUTAS IA" dentro da pasta raiz — é onde ficam as pastas de
+// cliente deste sistema, separadas das outras pastas que já existem na raiz
+// (que não têm relação com o painel).
+function getPastaMinutasIA() {
   const pastaRaiz = DriveApp.getFolderById(PASTA_RAIZ_ID);
-  const busca = pastaRaiz.getFoldersByName(nomeCliente);
-  return busca.hasNext() ? busca.next() : pastaRaiz.createFolder(nomeCliente);
+  const busca = pastaRaiz.getFoldersByName(NOME_PASTA_MINUTAS);
+  return busca.hasNext() ? busca.next() : pastaRaiz.createFolder(NOME_PASTA_MINUTAS);
+}
+
+// Pasta única do cliente, dentro de "0 - MINUTAS IA" — documentos anexados E
+// minuta gerada ficam juntos aqui (antes a minuta ia para uma pasta separada
+// e os documentos para outra, espalhando o material do mesmo caso).
+function getPastaCliente(nomeCliente) {
+  const pastaMinutas = getPastaMinutasIA();
+  const busca = pastaMinutas.getFoldersByName(nomeCliente);
+  return busca.hasNext() ? busca.next() : pastaMinutas.createFolder(nomeCliente);
 }
 
 function instrucoesPorTipo(tipo) {
