@@ -16,7 +16,31 @@
 // implantações > editar > Nova versão).
 
 const PASTA_RAIZ_ID = "1KDMZ-FJMoXEzpMXKSojeZgNeJ_p4lhSb";
+const NOME_PASTA_MINUTAS = "0 - MINUTAS IA";
 const FIREBASE_URL = "https://painel-cartorio-default-rtdb.firebaseio.com";
+
+// Usado só para avisar pelo WhatsApp quando uma minuta pedida por lá (dados.
+// notificarWhatsApp) termina de gerar — o Vercel não pode esperar isso (a
+// geração de uma minuta fiel a um modelo detalhado pode levar minutos).
+const EVOLUTION_INSTANCE = "escritorio";
+const EVOLUTION_API_KEY = "escritorio@2025#EvAPI";
+const EVOLUTION_HOST = "evolution-api-production-59b1.up.railway.app";
+const NUMERO_OPERACIONAL = "5511947851816";
+
+function enviarWhatsApp(texto) {
+  try {
+    UrlFetchApp.fetch(
+      "https://" + EVOLUTION_HOST + "/message/sendText/" + EVOLUTION_INSTANCE,
+      {
+        method: "post",
+        contentType: "application/json",
+        headers: { apikey: EVOLUTION_API_KEY },
+        payload: JSON.stringify({ number: NUMERO_OPERACIONAL, text: texto }),
+        muteHttpExceptions: true
+      }
+    );
+  } catch (e) {}
+}
 
 // ── Prompts ────────────────────────────────────────────────────────────────
 
@@ -226,13 +250,22 @@ A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualific
 
 // ── Funções auxiliares ─────────────────────────────────────────────────────
 
-// Pasta única do cliente (documentos anexados E minuta gerada ficam juntos
-// aqui) — antes a minuta ia para uma pasta global separada ("0 - MINUTAS IA"),
-// espalhando o material do mesmo caso em dois lugares diferentes do Drive.
-function getPastaCliente(nomeCliente) {
+// Pasta "0 - MINUTAS IA" dentro da pasta raiz — é onde ficam as pastas de
+// cliente deste sistema, separadas das outras pastas que já existem na raiz
+// (que não têm relação com o painel).
+function getPastaMinutasIA() {
   const pastaRaiz = DriveApp.getFolderById(PASTA_RAIZ_ID);
-  const busca = pastaRaiz.getFoldersByName(nomeCliente);
-  return busca.hasNext() ? busca.next() : pastaRaiz.createFolder(nomeCliente);
+  const busca = pastaRaiz.getFoldersByName(NOME_PASTA_MINUTAS);
+  return busca.hasNext() ? busca.next() : pastaRaiz.createFolder(NOME_PASTA_MINUTAS);
+}
+
+// Pasta única do cliente, dentro de "0 - MINUTAS IA" — documentos anexados E
+// minuta gerada ficam juntos aqui (antes a minuta ia para uma pasta separada
+// e os documentos para outra, espalhando o material do mesmo caso).
+function getPastaCliente(nomeCliente) {
+  const pastaMinutas = getPastaMinutasIA();
+  const busca = pastaMinutas.getFoldersByName(nomeCliente);
+  return busca.hasNext() ? busca.next() : pastaMinutas.createFolder(nomeCliente);
 }
 
 function instrucoesPorTipo(tipo) {
@@ -546,11 +579,26 @@ function gerarECriarMinuta(dados) {
       });
     }
 
+    if (dados.casoId) {
+      UrlFetchApp.fetch(FIREBASE_URL + "/casos/" + dados.casoId + ".json", {
+        method: "patch",
+        contentType: "application/json",
+        payload: JSON.stringify({ driveUrl: docResult.folderUrl, docUrl: docResult.url }),
+        muteHttpExceptions: true
+      });
+    }
+    if (dados.notificarWhatsApp) {
+      enviarWhatsApp("✅ Minuta de " + (dados.nome || "caso") + " pronta! " + docResult.url);
+    }
+
     return resp({ ok: true, url: docResult.url, folderUrl: docResult.folderUrl, nome: docResult.nome });
 
   } catch(err) {
     if (jobId) {
       salvarJobFirebase(jobId, { status: "done", ok: false, erro: err.message });
+    }
+    if (dados.notificarWhatsApp) {
+      enviarWhatsApp("⚠️ Não consegui gerar a minuta de " + (dados.nome || "caso") + " agora: " + err.message + ". Tente pedir de novo.");
     }
     return resp({ ok: false, erro: err.message });
   }
