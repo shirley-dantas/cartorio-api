@@ -442,7 +442,12 @@ async function extrairTextoPDF(base64, mimetype) {
 function extrairTipoDocumento(texto) {
   if (!texto) return null;
   const m = texto.match(/^TIPO_DOCUMENTO:\s*(.+)$/m);
-  return m ? m[1].trim().slice(0, 30) : null;
+  if (!m) return null;
+  let tipo = m[1].trim();
+  // Corta só em palavra inteira (nunca no meio, ex: "...DE_CO") quando o tipo
+  // identificado pela IA for longo demais para virar nome de arquivo.
+  if (tipo.length > 40) tipo = tipo.slice(0, 40).replace(/\s+\S*$/, "");
+  return tipo;
 }
 function nomeArquivoSeguro(s) {
   return (s || "")
@@ -471,9 +476,12 @@ async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLege
     ? await (isDocx ? extrairTextoDocx(resultado.base64, isModelo) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
     : null;
 
+  // Nome do arquivo é só o tipo do documento (ex: "CNH.pdf", "MATRICULA.pdf")
+  // — sem nome do card nem data/hora, já que cada cliente tem sua própria
+  // pasta no Drive (repetir o nome do card no arquivo era redundante). A
+  // minuta continua identificada pelo card (ver criarMinutaDoc no Apps Script).
   const tipoDoc = isModelo ? "MODELO" : (nomeArquivoSeguro(extrairTipoDocumento(textoExtraido)) || "DOCUMENTO");
-  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const nomeArquivo = `${sessao.nomeCaso.replace(/\s+/g, "_").toUpperCase()}_${tipoDoc}_${ts}.${ext}`;
+  const nomeArquivo = `${tipoDoc}.${ext}`;
 
   await salvarNoDrive(sessao.nomeCaso, nomeArquivo, resultado.base64, mime);
 
