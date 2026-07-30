@@ -899,7 +899,7 @@ module.exports = async (req, res) => {
   if (sessao.etapa === "aguardando_usar_modelo" && isTexto) {
     if (respostaAfirmativa(texto)) {
       await setSessao({ ...sessao, etapa: "aguardando_arquivo_modelo" });
-      await enviarTexto("Pode mandar o arquivo modelo (adicione a palavra \"modelo\" na legenda).");
+      await enviarTexto("Pode mandar o arquivo modelo — não precisa de legenda especial, é só enviar.");
       return res.status(200).send("OK");
     }
     // Sem modelo: minuta a partir do que já está no card (comportamento já existente)
