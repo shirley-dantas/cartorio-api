@@ -262,13 +262,8 @@ NUNCA inclua no corpo do texto: tabelas, listas numeradas, seções "ANÁLISE DO
 Cada pendência deve aparecer EXCLUSIVAMENTE como marcador 【PENDÊNCIA: descrição objetiva】 inserido diretamente no texto, após o trecho ao qual se refere. Esses marcadores viram balões de revisão automaticamente.
 
 REGRA ABSOLUTA — MODELO DE MINUTA (REFERÊNCIA):
-Documentos podem trazer dois tipos de referência de modelo, tratados de forma DIFERENTE:
-
-Se o cabeçalho for "MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE)": a equipe escolheu e enviou esse modelo manualmente porque confia nele. SIGA-O FIELMENTE — mesma estrutura, mesma ordem de cláusulas, mesmo nível de detalhe e abrangência. Se o modelo tem 13 cláusulas ou subcláusulas 6.1 a 6.10, a minuta nova também precisa cobrir esse mesmo escopo — não resuma, não condense, não pare cedo.
-
-Se o cabeçalho for "MODELO DE MINUTA (REFERÊNCIA APRENDIDA AUTOMATICAMENTE)": é só um exemplo de estilo baseado num caso anterior do mesmo tipo de ato, sem revisão humana. Use apenas como referência leve de tom e organização — não precisa seguir à risca.
-
-Em AMBOS os casos, sem exceção:
+Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (REFERÊNCIA" — seja "FORNECIDA PELA EQUIPE" (enviada manualmente) ou "APRENDIDA AUTOMATICAMENTE" (de um caso anterior do mesmo tipo de ato) — os dois exigem o MESMO nível de fidelidade:
+- SIGA O MODELO FIELMENTE — mesma estrutura, mesma ordem de cláusulas, mesmo nível de detalhe e abrangência. Se o modelo tem 13 cláusulas ou subcláusulas 6.1 a 6.10, a minuta nova também precisa cobrir esse mesmo escopo — não resuma, não condense, não pare cedo.
 - NUNCA copie nomes, CPF, RG, matrícula, endereços, valores, datas ou qualquer dado específico do modelo
 - Todos os dados factuais da minuta devem vir EXCLUSIVAMENTE dos demais documentos e observações do caso atual
 - Se o modelo mencionar uma cláusula que não se aplica ao caso atual, não a inclua
