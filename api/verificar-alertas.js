@@ -88,7 +88,10 @@ module.exports = async (req, res) => {
 
   const casosAtivos = Array.isArray(dados.casosAtivos) ? dados.casosAtivos : [];
   const aprendizados = Array.isArray(dados.aprendizados) ? dados.aprendizados : [];
-  const hoje = new Date().toISOString().split("T")[0];
+  // Fuso de Brasília, não UTC — entre 21h e meia-noite (horário de SP) o UTC
+  // já é o dia seguinte, fazendo a IA achar que um compromisso de hoje à
+  // noite já tinha passado (ou vice-versa, confundir ontem com hoje).
+  const hoje = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 
   if (!casosAtivos.length) {
     return res.status(200).json({ ok: true, alertas: [] });
