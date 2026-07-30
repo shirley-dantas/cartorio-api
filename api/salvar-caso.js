@@ -91,6 +91,16 @@ async function clearSessao() {
   return httpReq(`https://${FIREBASE_HOST}/sessao_ativa.json`, "DELETE");
 }
 
+// Guarda a última mensagem que o próprio bot mandou, para detectar e
+// ignorar o eco dela quando ela retorna pelo webhook (ver comentário
+// acima de enviarTexto).
+async function getUltimoEnvioBot() {
+  return httpReq(`https://${FIREBASE_HOST}/bot_ultimo_envio.json`, "GET");
+}
+async function marcarUltimoEnvioBot(texto) {
+  return httpReq(`https://${FIREBASE_HOST}/bot_ultimo_envio.json`, "PUT", { texto: texto.trim(), ts: new Date().toISOString() });
+}
+
 function sessaoExpirada(sessao) {
   if (!sessao?.ultimaInteracao) return false;
   const minutos = (Date.now() - new Date(sessao.ultimaInteracao).getTime()) / 60000;
@@ -186,6 +196,7 @@ async function criarPastaDrive(nome, tipo) {
 // já que a leitura das respostas (respostaAfirmativa, detectarPessoa
 // etc.) sempre foi por texto livre, nunca por clique de botão.
 async function enviarTexto(texto) {
+  await marcarUltimoEnvioBot(texto);
   return httpReq(
     `https://${EVOLUTION_HOST}/message/sendText/${EVOLUTION_INSTANCE}`,
     "POST",
@@ -535,15 +546,6 @@ module.exports = async (req, res) => {
 
   const dadosEvt = corpo?.data || corpo?.dados || {};
   const chaveEvt = dadosEvt?.key || dadosEvt?.chave || {};
-
-  // Mensagens enviadas pelo próprio bot (enviarTexto/enviarBotoes) voltam pelo
-  // mesmo webhook, já que instância e destinatário são o mesmo número. Sem
-  // esse filtro, o bot reprocessa a própria resposta como se fosse mensagem
-  // do usuário e entra em loop, disparando mensagem atrás de mensagem.
-  if (chaveEvt?.fromMe === true) {
-    return res.status(200).send("Mensagem própria do bot ignorada");
-  }
-
   const destinatario = chaveEvt?.remoteJid || chaveEvt?.remotoJid || "";
   const numeroDestino = destinatario.replace(/[^0-9]/g, "");
   if (numeroDestino !== NUMERO_OPERACIONAL) {
@@ -564,6 +566,22 @@ module.exports = async (req, res) => {
 
   const isMedia = ["imageMessage","documentMessage","videoMessage","audioMessage","documentWithCaptionMessage"].includes(tipoMensagem);
   const isTexto = !isMedia && texto.length > 0;
+
+  // Mensagens enviadas pelo próprio bot (enviarTexto/enviarBotoes) voltam pelo
+  // mesmo webhook, já que instância e destinatário são o mesmo número. Em vez
+  // de confiar em "fromMe" (que nesse tipo de conversa — instância falando com
+  // o próprio número — pode vir true tanto pro bot quanto pra pessoa digitando
+  // ali mesmo), compara com o texto que o bot acabou de mandar: só ignora se
+  // for idêntico e muito recente, o que nunca bloqueia uma mensagem real.
+  if (isTexto) {
+    const ultimoEnvio = await getUltimoEnvioBot();
+    if (ultimoEnvio?.texto === texto && ultimoEnvio?.ts) {
+      const segundosDesdeEnvio = (Date.now() - new Date(ultimoEnvio.ts).getTime()) / 1000;
+      if (segundosDesdeEnvio >= 0 && segundosDesdeEnvio < 30) {
+        return res.status(200).send("Eco da própria mensagem do bot ignorado");
+      }
+    }
+  }
 
   await httpReq(`https://${FIREBASE_HOST}/log_webhook.json`, "POST", {
     ts: new Date().toISOString(), tipoMensagem, isMedia, isTexto, texto: texto.slice(0, 100), destinatario
