@@ -277,6 +277,30 @@ function instrucoesPorTipo(tipo) {
   return chave ? INSTRUCOES_POR_TIPO[chave] : "";
 }
 
+// ── Abreviação do tipo de ato (usada só no nome do documento de minuta) ────
+const ABREVIACOES_TIPO_ATO = {
+  "Inventário": "INV.",
+  "Escritura de Compra e Venda": "V/C",
+  "Procuração": "PROC.",
+  "Divórcio": "DIV.",
+  "União Estável": "U.E.",
+  "Doação": "DOA",
+  "Renúncia": "RENÚNC.",
+  "Cessão de Direitos": "CESSÃO",
+  "Pacto Antenupcial": "PACTO",
+  "Testamento": "TEST.",
+  "Ata Notarial": "ATA",
+  "Dação em Pagamento": "DAÇÃO PGTO."
+};
+function abreviarTipoAto(tipo) {
+  if (!tipo) return "ATO";
+  const chaves = Object.keys(ABREVIACOES_TIPO_ATO);
+  const chave = chaves.find(function(k) {
+    return tipo.toLowerCase().indexOf(k.toLowerCase()) !== -1;
+  });
+  return chave ? ABREVIACOES_TIPO_ATO[chave] : tipo.toUpperCase();
+}
+
 // ── Biblioteca de modelos aprendidos por tipo de ato ────────────────────────
 // A cada minuta gerada com sucesso, guardamos o texto como modelo daquele
 // tipo de ato. Assim, com o tempo, a IA passa a ter uma referência de estilo
@@ -639,8 +663,7 @@ function _criarMinutaDocInterno(dados) {
   var nomeCliente = (dados.nome || "Caso").toUpperCase();
   var pastaCliente = getPastaCliente(nomeCliente);
 
-  var dataHoje = Utilities.formatDate(new Date(), "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
-  var nomeDoc = "MINUTA — " + dados.nome + " — " + dataHoje;
+  var nomeDoc = "MINUTA - " + abreviarTipoAto(dados.tipo) + " - " + dados.nome;
 
   var doc = DocumentApp.create(nomeDoc);
   var docId = doc.getId();

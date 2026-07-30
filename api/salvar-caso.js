@@ -301,7 +301,7 @@ function extrairDadosJuridicosDeTexto(texto) {
     max_tokens: 1024,
     messages: [{
       role: "user",
-      content: `Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: "TIPO_DOCUMENTO: <tipo>". Depois, numa nova linha, extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar.\n\nDOCUMENTO:\n${texto}`
+      content: `Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: "TIPO_DOCUMENTO: <tipo>". Na segunda linha, identifique o nome completo da pessoa a quem esse documento pertence/se refere (ex: titular do RG/CNH, parte citada na certidão), no formato exato: "NOME_PESSOA: <nome>" — ou "NOME_PESSOA: N/A" se o documento não for de uma pessoa específica (ex: matrícula de imóvel, IPTU, contrato social). Depois, numa nova linha, extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar.\n\nDOCUMENTO:\n${texto}`
     }]
   });
   return new Promise((resolve) => {
@@ -404,7 +404,7 @@ async function extrairTextoPDF(base64, mimetype) {
         },
         {
           type: "text",
-          text: "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Depois, numa nova linha, extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar."
+          text: "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Na segunda linha, identifique o nome completo da pessoa a quem esse documento pertence/se refere (ex: titular do RG/CNH, parte citada na certidão), no formato exato: \"NOME_PESSOA: <nome>\" — ou \"NOME_PESSOA: N/A\" se o documento não for de uma pessoa específica (ex: matrícula de imóvel, IPTU, contrato social). Depois, numa nova linha, extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar."
         }
       ]
     }]
@@ -442,7 +442,23 @@ async function extrairTextoPDF(base64, mimetype) {
 function extrairTipoDocumento(texto) {
   if (!texto) return null;
   const m = texto.match(/^TIPO_DOCUMENTO:\s*(.+)$/m);
-  return m ? m[1].trim().slice(0, 30) : null;
+  if (!m) return null;
+  let tipo = m[1].trim();
+  // Corta só em palavra inteira (nunca no meio, ex: "...DE_CO") quando o tipo
+  // identificado pela IA for longo demais para virar nome de arquivo.
+  if (tipo.length > 40) tipo = tipo.slice(0, 40).replace(/\s+\S*$/, "");
+  return tipo;
+}
+// Lê o "NOME_PESSOA: X" (segunda linha) — usado para diferenciar documentos
+// do mesmo tipo no mesmo caso (ex: RG de duas pessoas diferentes). "N/A"
+// (documento sem pessoa específica, ex: matrícula, IPTU) vira null.
+function extrairNomePessoa(texto) {
+  if (!texto) return null;
+  const m = texto.match(/^NOME_PESSOA:\s*(.+)$/m);
+  if (!m) return null;
+  const nome = m[1].trim();
+  if (!nome || /^n\/?a$/i.test(nome)) return null;
+  return nome;
 }
 function nomeArquivoSeguro(s) {
   return (s || "")
@@ -471,9 +487,15 @@ async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLege
     ? await (isDocx ? extrairTextoDocx(resultado.base64, isModelo) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
     : null;
 
+  // Nome do arquivo é o tipo do documento (ex: "CNH.pdf", "MATRICULA.pdf"),
+  // com o nome da pessoa quando a IA identificar uma (ex: "RG_JOAO_DA_SILVA.pdf")
+  // — diferencia documentos do mesmo tipo no mesmo caso (ex: RG de duas
+  // pessoas diferentes). Sem nome do card nem data/hora: cada cliente já tem
+  // sua própria pasta no Drive. A minuta continua identificada pelo card
+  // (ver criarMinutaDoc no Apps Script).
   const tipoDoc = isModelo ? "MODELO" : (nomeArquivoSeguro(extrairTipoDocumento(textoExtraido)) || "DOCUMENTO");
-  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const nomeArquivo = `${sessao.nomeCaso.replace(/\s+/g, "_").toUpperCase()}_${tipoDoc}_${ts}.${ext}`;
+  const nomePessoa = isModelo ? null : extrairNomePessoa(textoExtraido);
+  const nomeArquivo = nomePessoa ? `${tipoDoc}_${nomeArquivoSeguro(nomePessoa)}.${ext}` : `${tipoDoc}.${ext}`;
 
   await salvarNoDrive(sessao.nomeCaso, nomeArquivo, resultado.base64, mime);
 
