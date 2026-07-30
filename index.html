@@ -762,6 +762,12 @@ function formatarDataHoraLocal(d){
   const p=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
+// Só considera "sobre a assinatura" quando a nota menciona explicitamente o
+// ato de assinar/a assinatura — qualquer outra menção a data (pendência,
+// ligação marcada, tarefa) NUNCA é tratada como data de assinatura.
+function ehSobreAssinatura(texto){
+  return /assinatur|\bassinar\b|\bassinamos\b|\bassinou\b|\bassinado\b/.test((texto||'').toLowerCase());
+}
 function esc(s){return(s||'').replace(/"/g,'&quot;')}
 const IA_LIVE='<span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span>';
 function tsStr(){const n=new Date();return`${n.toLocaleDateString('pt-BR')} ${n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;}
@@ -2028,23 +2034,41 @@ if(joaninhaInstancia.disponivel){
       if(alvo.tipo==='caso'){
         const c=casos[alvo.id];
         const entrada={data:new Date().toISOString(),texto:corpo,resumo:corpo,pendencias:[]};
-        await push(ref(db,`casos/${alvo.id}/historico`),entrada);
         const dataFmt=new Date(entrada.data).toLocaleDateString('pt-BR')+' '+new Date(entrada.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
         const linhaObs=`[${dataFmt}] 🐞 ${corpo}`;
         const obsAtual=(c.obs||'').trim();
         const novoObs=obsAtual?`${linhaObs}\n\n${obsAtual}`:linhaObs;
         const patch={obs:novoObs,atualizado:isoHoje()};
-        let casoParaCalendar=null;
-        if(!c.agendado){
-          const dataDetectada=extrairAgendamentoDoTexto(corpo);
-          if(dataDetectada){
-            patch.agendado=formatarDataHoraLocal(dataDetectada);
+
+        // O campo "agendado" é reservado para a data de assinatura da escritura —
+        // nunca é preenchido sozinho a partir de uma nota. Só quando a nota parece
+        // claramente falar da assinatura (e o card ainda não tem data marcada) a
+        // Joaninha pergunta antes de aplicar. Qualquer outra data mencionada na nota
+        // (pendência, tarefa, ligação marcada etc.) vira um evento separado e
+        // identificado no Calendar, sem tocar no campo/evento da assinatura.
+        const dataDetectada=extrairAgendamentoDoTexto(corpo);
+        if(dataDetectada){
+          const dataFormatada=formatarDataHoraLocal(dataDetectada);
+          if(!c.agendado&&ehSobreAssinatura(corpo)&&confirm(`Essa nota parece falar da assinatura da escritura, em ${new Date(dataFormatada).toLocaleString('pt-BR')}. Marcar essa data como a assinatura deste card?`)){
+            patch.agendado=dataFormatada;
             patch.agendado_desc=corpo.slice(0,120);
-            casoParaCalendar={...c,...patch};
+          }else{
+            try{
+              const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({
+                acao:'sincronizar-evento-calendar',
+                nome:`Pendência: ${c.nome}`,
+                dataHora:dataFormatada,
+                descricao:corpo
+              })});
+              const dataCal=await r.json();
+              if(dataCal&&dataCal.ok)entrada.calendarEventId=dataCal.eventId;
+            }catch(e){}
           }
         }
+
+        await push(ref(db,`casos/${alvo.id}/historico`),entrada);
         await update(ref(db,`casos/${alvo.id}`),patch);
-        if(casoParaCalendar)await sincronizarEventoCalendar(alvo.id,casoParaCalendar);
+        if(patch.agendado)await sincronizarEventoCalendar(alvo.id,{...c,...patch});
       }else{
         const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
         arr.push({text:corpo,done:false});
