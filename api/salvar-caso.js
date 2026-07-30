@@ -535,6 +535,15 @@ module.exports = async (req, res) => {
 
   const dadosEvt = corpo?.data || corpo?.dados || {};
   const chaveEvt = dadosEvt?.key || dadosEvt?.chave || {};
+
+  // Mensagens enviadas pelo próprio bot (enviarTexto/enviarBotoes) voltam pelo
+  // mesmo webhook, já que instância e destinatário são o mesmo número. Sem
+  // esse filtro, o bot reprocessa a própria resposta como se fosse mensagem
+  // do usuário e entra em loop, disparando mensagem atrás de mensagem.
+  if (chaveEvt?.fromMe === true) {
+    return res.status(200).send("Mensagem própria do bot ignorada");
+  }
+
   const destinatario = chaveEvt?.remoteJid || chaveEvt?.remotoJid || "";
   const numeroDestino = destinatario.replace(/[^0-9]/g, "");
   if (numeroDestino !== NUMERO_OPERACIONAL) {
