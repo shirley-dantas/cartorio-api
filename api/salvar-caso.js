@@ -14,11 +14,15 @@ function normalizar(texto) {
   return (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
 }
 
-function detectarModalidade(texto) {
+// Lê a resposta da pergunta explícita de modalidade (nunca adivinha a partir
+// do texto do tipo de ato — modalidades erradas viravam abertura/encerramento
+// errado na minuta).
+function detectarModalidadeEscolhida(texto) {
   const t = normalizar(texto);
-  if (/hibrida|hibrido|videoconferencia.*presencial|presencial.*videoconferencia/.test(t)) return "hibrida";
-  if (/presencial/.test(t)) return "presencial";
-  return "digital"; // padrão
+  if (/^1\b/.test(t) || /\bdigital\b/.test(t)) return "digital";
+  if (/^2\b/.test(t) || /hibrid/.test(t)) return "hibrida";
+  if (/^3\b/.test(t) || /presencial/.test(t)) return "presencial";
+  return null;
 }
 
 function classificarServico(texto) {
@@ -666,17 +670,29 @@ module.exports = async (req, res) => {
     return res.status(200).send("OK");
   }
 
-  // ─── 3b. Tipo de ato → cria o card ───
+  // ─── 3b. Tipo de ato → pergunta modalidade ───
   if (sessao.etapa === "aguardando_tipo_ato" && isTexto) {
-    const urgencia = classificarUrgencia(texto);
+    await setSessao({ ...sessao, etapa: "aguardando_modalidade", tipoAtoNovo: texto });
+    await enviarBotoes("Qual a modalidade do ato?", ["Digital", "Híbrida", "Presencial"]);
+    return res.status(200).send("Perguntou modalidade");
+  }
+
+  // ─── 3c. Modalidade → cria o card ───
+  if (sessao.etapa === "aguardando_modalidade" && isTexto) {
+    const modalidade = detectarModalidadeEscolhida(texto);
+    if (!modalidade) {
+      await enviarBotoes("Não entendi — qual a modalidade do ato?", ["Digital", "Híbrida", "Presencial"]);
+      return res.status(200).send("Repetiu pergunta de modalidade");
+    }
+    const urgencia = classificarUrgencia(sessao.tipoAtoNovo);
     const caso = {
       nome: sessao.nomeCasoNovo,
-      tipo: texto,
-      modalidade: detectarModalidade(texto),
+      tipo: sessao.tipoAtoNovo,
+      modalidade,
       status: urgencia.status,
       resp: (sessao.pessoa || "Grazi").toLowerCase(),
       prazo: "Hoje",
-      obs: `${texto}\n\n[Urgência: ${urgencia.motivo}]`,
+      obs: `${sessao.tipoAtoNovo}\n\n[Urgência: ${urgencia.motivo}]`,
       atualizado: new Date().toISOString().split("T")[0],
       concluido: false,
       dep: ""
