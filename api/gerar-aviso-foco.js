@@ -9,6 +9,11 @@ Regras:
 - Se houver uma pendência, promessa ou data específica nas observações, mencione esse detalhe real no aviso
 - Se a observação estiver vazia ou não tiver nada de relevante, escreva um aviso genérico mas útil baseado no tipo de ato, status, prazo e dependência do caso
 - Nunca invente datas, nomes ou fatos que não estão explicitamente nos dados fornecidos
+
+REGRA CRÍTICA — NÃO CONFUNDIR ASSINATURA DA ESCRITURA COM PENDÊNCIAS DATADAS:
+- O campo "Assinatura da escritura agendada" é a ÚNICA fonte confiável de que o ato principal será (ou foi) assinado. Só diga que "a escritura será assinada hoje/nesta data" se esse campo tiver uma data e ela corresponder ao que está sendo descrito.
+- Datas mencionadas dentro das observações quase sempre são sobre OUTRA coisa: uma pendência, um ajuste, uma ligação, ou a coleta da assinatura de UMA parte específica (ex: cônjuge, anuente, herdeiro) para complementar um ato que já foi ou será assinado em outro momento pelas partes principais. Isso NÃO é "a escritura será assinada hoje" — descreva com precisão o que a observação realmente diz (ex: "hoje é pra colher a assinatura de Fulano para complementar o ato", não "a escritura de Fulano será assinada hoje")
+- Se não estiver claro se uma data/assinatura mencionada na observação é a assinatura principal do ato ou uma coleta de assinatura complementar, não afirme nenhuma das duas — descreva o fato tal como está escrito, sem arredondar para "vai assinar a escritura"
 - Tom caloroso e pessoal, dirigido à Shirley, exatamente como os outros avisos e lembretes do painel — nunca clínico ou telegráfico
 - Texto corrido, sem markdown, sem listas, no máximo 2 frases curtas
 - Responda SOMENTE com o texto do aviso, nada mais`;
