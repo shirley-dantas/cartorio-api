@@ -413,12 +413,55 @@ Por favor, gere a minuta completa conforme as informações disponíveis, usando
   }
 }
 
-async function extrairTextoDocx(base64) {
+// Mesma extração jurídica usada para PDF/imagem (extrairTextoPDF), mas a
+// partir de texto puro — usada depois do mammoth ler o .docx.
+function extrairDadosJuridicosDeTexto(texto) {
+  const body = JSON.stringify({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    messages: [{
+      role: "user",
+      content: `Extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar.\n\nDOCUMENTO:\n${texto}`
+    }]
+  });
+  return new Promise((resolve) => {
+    const options = {
+      hostname: "api.anthropic.com",
+      path: "/v1/messages",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Length": Buffer.byteLength(body)
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", d => data += d);
+      res.on("end", () => {
+        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
+        catch { resolve(null); }
+      });
+    });
+    req.on("error", () => resolve(null));
+    req.write(body);
+    req.end();
+  });
+}
+
+async function extrairTextoDocx(base64, isModelo) {
   try {
     const mammoth = require("mammoth");
     const buffer = Buffer.from(base64, "base64");
     const resultado = await mammoth.extractRawText({ buffer });
-    return (resultado && resultado.value && resultado.value.trim()) || null;
+    const textoBruto = (resultado && resultado.value && resultado.value.trim()) || null;
+    if (!textoBruto) return null;
+    // Modelo: o mammoth já dá o texto exato do .docx — não precisa (nem deve)
+    // passar pela extração jurídica, que resumiria em vez de transcrever.
+    if (isModelo) return textoBruto;
+    const dadosExtraidos = await extrairDadosJuridicosDeTexto(textoBruto);
+    return dadosExtraidos || textoBruto;
   } catch (e) {
     return null;
   }
@@ -529,7 +572,7 @@ async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLege
   const [, textoExtraido] = await Promise.all([
     salvarNoDrive(sessao.nomeCaso, nomeArquivo, resultado.base64, mime),
     podeExtrair
-      ? (isDocx ? extrairTextoDocx(resultado.base64) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
+      ? (isDocx ? extrairTextoDocx(resultado.base64, isModelo) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
       : Promise.resolve(null)
   ]);
 
