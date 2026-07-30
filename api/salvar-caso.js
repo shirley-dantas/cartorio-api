@@ -105,6 +105,20 @@ async function marcarUltimoEnvioBot(texto) {
   return httpReq(`https://${FIREBASE_HOST}/bot_ultimo_envio.json`, "PUT", { texto: texto.trim(), ts: new Date().toISOString() });
 }
 
+// A Evolution API pode reentregar o mesmo evento de mensagem mais de uma vez
+// (ex: quando o processamento demora e ela reenvia por segurança). Sem isso,
+// a mesma mensagem era processada de novo a cada reentrega, disparando
+// respostas duplicadas no meio do fluxo.
+async function jaProcessada(mensagemId) {
+  if (!mensagemId) return false;
+  const data = await httpReq(`https://${FIREBASE_HOST}/mensagens_processadas/${mensagemId}.json`, "GET");
+  return data === true;
+}
+async function marcarProcessada(mensagemId) {
+  if (!mensagemId) return;
+  await httpReq(`https://${FIREBASE_HOST}/mensagens_processadas/${mensagemId}.json`, "PUT", true);
+}
+
 function sessaoExpirada(sessao) {
   if (!sessao?.ultimaInteracao) return false;
   const minutos = (Date.now() - new Date(sessao.ultimaInteracao).getTime()) / 60000;
@@ -675,6 +689,14 @@ module.exports = async (req, res) => {
     return res.status(200).send("Mensagem ignorada");
   }
 
+  const mensagemId = chaveEvt?.id || chaveEvt?.chave?.id || "";
+  if (mensagemId) {
+    if (await jaProcessada(mensagemId)) {
+      return res.status(200).send("Mensagem repetida (reentrega) ignorada");
+    }
+    await marcarProcessada(mensagemId);
+  }
+
   const mensagemObj = dadosEvt?.message || dadosEvt?.mensagem || {};
   const tipoMensagem = dadosEvt?.messageType || dadosEvt?.tipoMensagem || "";
   const texto = (
@@ -809,8 +831,8 @@ module.exports = async (req, res) => {
     };
     const fbResp = await httpReq(`https://${FIREBASE_HOST}/casos.json`, "POST", caso);
     const casoId = fbResp?.name || null;
-    await setSessao({ ...sessao, etapa: "aguardando_documentos", nomeCaso: caso.nome, casoId, cardNovo: true });
-    await enviarTexto("Pode anexar os documentos, ou digite \"pular\" se não for anexar nada agora.");
+    await setSessao({ ...sessao, etapa: "aguardando_usar_modelo", nomeCaso: caso.nome, casoId, cardNovo: true });
+    await enviarBotoes("Devo usar um modelo específico?", ["Sim", "Não"]);
     return res.status(200).send("Card criado");
   }
 
@@ -847,8 +869,8 @@ module.exports = async (req, res) => {
 
   // ─── 5. Tipo de atualização ───
   if (sessao.etapa === "aguardando_tipo_atualizacao" && isTexto) {
-    await setSessao({ ...sessao, etapa: "aguardando_documentos", tipoAtualizacao: texto });
-    await enviarTexto("Pode anexar os documentos, ou digite \"pular\" se não for anexar nada agora.");
+    await setSessao({ ...sessao, etapa: "aguardando_usar_modelo", tipoAtualizacao: texto });
+    await enviarBotoes("Devo usar um modelo específico?", ["Sim", "Não"]);
     return res.status(200).send("OK");
   }
 
@@ -881,6 +903,26 @@ module.exports = async (req, res) => {
     return res.status(200).send("Aguardando documento ou confirmação");
   }
 
+  // ─── 4. Usar modelo específico? (perguntado antes de anexar os documentos) ───
+  if (sessao.etapa === "aguardando_usar_modelo" && isTexto) {
+    if (respostaAfirmativa(texto)) {
+      await setSessao({ ...sessao, etapa: "aguardando_arquivo_modelo" });
+      await enviarTexto("Pode mandar o arquivo modelo — não precisa de legenda especial, é só enviar.");
+      return res.status(200).send("OK");
+    }
+    await setSessao({ ...sessao, etapa: "aguardando_documentos" });
+    await enviarTexto("Pode anexar os documentos, ou digite \"pular\" se não for anexar nada agora.");
+    return res.status(200).send("OK");
+  }
+
+  // ─── 4b. Recebendo o arquivo-modelo ───
+  if (sessao.etapa === "aguardando_arquivo_modelo" && isMedia) {
+    await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, "modelo");
+    await setSessao({ ...sessao, etapa: "aguardando_documentos" });
+    await enviarTexto("Modelo recebido. Pode anexar os documentos do caso, ou digite \"pular\" se não for anexar nada agora.");
+    return res.status(200).send("Modelo recebido");
+  }
+
   // ─── 7. Quer gerar/reeditar minuta agora? ───
   if (sessao.etapa === "aguardando_gerar_minuta" && isTexto) {
     if (respostaNegativa(texto)) {
@@ -888,32 +930,10 @@ module.exports = async (req, res) => {
       await enviarTexto("Ok, sem gerar minuta agora. Mais alguma informação, ou já posso concluir?");
       return res.status(200).send("OK");
     }
-    await setSessao({ ...sessao, etapa: "aguardando_usar_modelo" });
-    await enviarBotoes("Devo usar um modelo específico?", ["Sim", "Não"]);
-    return res.status(200).send("OK");
-  }
-
-  // ─── 8. Usar modelo específico? ───
-  if (sessao.etapa === "aguardando_usar_modelo" && isTexto) {
-    if (respostaAfirmativa(texto)) {
-      await setSessao({ ...sessao, etapa: "aguardando_arquivo_modelo" });
-      await enviarTexto("Pode mandar o arquivo modelo — não precisa de legenda especial, é só enviar.");
-      return res.status(200).send("OK");
-    }
-    // Sem modelo: minuta a partir do que já está no card (comportamento já existente)
     await gerarMinutaDoCaso(sessao);
     await setSessao({ ...sessao, etapa: "aguardando_mais_informacao" });
     await enviarTexto("Minuta gerada e salva no Drive. Mais alguma informação, ou já posso concluir?");
     return res.status(200).send("Minuta gerada");
-  }
-
-  // ─── 9. Recebendo o arquivo-modelo ───
-  if (sessao.etapa === "aguardando_arquivo_modelo" && isMedia) {
-    await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, "modelo");
-    await gerarMinutaDoCaso(sessao);
-    await setSessao({ ...sessao, etapa: "aguardando_mais_informacao" });
-    await enviarTexto("Minuta gerada com base no modelo enviado e salva no Drive. Mais alguma informação, ou já posso concluir?");
-    return res.status(200).send("Minuta gerada com modelo");
   }
 
   // ─── 10. Mais informação ou concluir ───
