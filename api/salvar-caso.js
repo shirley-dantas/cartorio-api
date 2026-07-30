@@ -301,7 +301,7 @@ function extrairDadosJuridicosDeTexto(texto) {
     max_tokens: 1024,
     messages: [{
       role: "user",
-      content: `Extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar.\n\nDOCUMENTO:\n${texto}`
+      content: `Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: "TIPO_DOCUMENTO: <tipo>". Depois, numa nova linha, extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar.\n\nDOCUMENTO:\n${texto}`
     }]
   });
   return new Promise((resolve) => {
@@ -404,7 +404,7 @@ async function extrairTextoPDF(base64, mimetype) {
         },
         {
           type: "text",
-          text: "Extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar."
+          text: "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Depois, numa nova linha, extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar."
         }
       ]
     }]
@@ -435,6 +435,23 @@ async function extrairTextoPDF(base64, mimetype) {
   });
 }
 
+// Lê o "TIPO_DOCUMENTO: X" que a IA escreve na primeira linha (ver
+// extrairTextoPDF/extrairDadosJuridicosDeTexto) e transforma num nome de
+// arquivo seguro. Sem isso, vários documentos anexados na mesma sessão
+// ficavam com nomes idênticos (só cliente + minuto, sem indicar o que era).
+function extrairTipoDocumento(texto) {
+  if (!texto) return null;
+  const m = texto.match(/^TIPO_DOCUMENTO:\s*(.+)$/m);
+  return m ? m[1].trim().slice(0, 30) : null;
+}
+function nomeArquivoSeguro(s) {
+  return (s || "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase();
+}
+
 async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLegenda) {
   const resultado = await baixarMidia(dadosEvt);
   if (!resultado?.base64) return { ok: false };
@@ -445,16 +462,20 @@ async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLege
   const isDocx = mimeReal.indexOf("wordprocessingml.document") !== -1 || /\.docx$/i.test(nomeReal);
   const ext = isDocx ? "docx" : tipoMensagem.includes("image") ? "jpg" : tipoMensagem.includes("audio") ? "mp3" : tipoMensagem.includes("video") ? "mp4" : "pdf";
   const mime = isDocx ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : tipoMensagem.includes("image") ? "image/jpeg" : tipoMensagem.includes("audio") ? "audio/mpeg" : tipoMensagem.includes("video") ? "video/mp4" : "application/pdf";
-  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16);
-  const nomeArquivo = `${isModelo ? "MODELO_" : ""}${sessao.nomeCaso.replace(/\s+/g, "_").toUpperCase()}_${ts}.${ext}`;
   const podeExtrair = isDocx || mime === "application/pdf" || mime === "image/jpeg";
 
-  const [, textoExtraido] = await Promise.all([
-    salvarNoDrive(sessao.nomeCaso, nomeArquivo, resultado.base64, mime),
-    podeExtrair
-      ? (isDocx ? extrairTextoDocx(resultado.base64, isModelo) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
-      : Promise.resolve(null)
-  ]);
+  // Extrai antes de nomear o arquivo, pra poder usar o tipo do documento (RG,
+  // matrícula, etc.) no nome — sem isso, vários anexos na mesma sessão
+  // ficavam com nomes praticamente idênticos (só cliente + minuto).
+  const textoExtraido = podeExtrair
+    ? await (isDocx ? extrairTextoDocx(resultado.base64, isModelo) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
+    : null;
+
+  const tipoDoc = isModelo ? "MODELO" : (nomeArquivoSeguro(extrairTipoDocumento(textoExtraido)) || "DOCUMENTO");
+  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const nomeArquivo = `${sessao.nomeCaso.replace(/\s+/g, "_").toUpperCase()}_${tipoDoc}_${ts}.${ext}`;
+
+  await salvarNoDrive(sessao.nomeCaso, nomeArquivo, resultado.base64, mime);
 
   if (sessao.casoId) {
     await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}/documentos.json`, "POST", {
