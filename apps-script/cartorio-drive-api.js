@@ -16,7 +16,6 @@
 // implantações > editar > Nova versão).
 
 const PASTA_RAIZ_ID = "1KDMZ-FJMoXEzpMXKSojeZgNeJ_p4lhSb";
-const NOME_PASTA_MINUTAS = "0 - MINUTAS IA";
 const FIREBASE_URL = "https://painel-cartorio-default-rtdb.firebaseio.com";
 
 // ── Prompts ────────────────────────────────────────────────────────────────
@@ -225,9 +224,13 @@ A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualific
 
 // ── Funções auxiliares ─────────────────────────────────────────────────────
 
-function getPastaMinutasIA() {
-  const busca = DriveApp.getFoldersByName(NOME_PASTA_MINUTAS);
-  return busca.hasNext() ? busca.next() : DriveApp.createFolder(NOME_PASTA_MINUTAS);
+// Pasta única do cliente (documentos anexados E minuta gerada ficam juntos
+// aqui) — antes a minuta ia para uma pasta global separada ("0 - MINUTAS IA"),
+// espalhando o material do mesmo caso em dois lugares diferentes do Drive.
+function getPastaCliente(nomeCliente) {
+  const pastaRaiz = DriveApp.getFolderById(PASTA_RAIZ_ID);
+  const busca = pastaRaiz.getFoldersByName(nomeCliente);
+  return busca.hasNext() ? busca.next() : pastaRaiz.createFolder(nomeCliente);
 }
 
 function instrucoesPorTipo(tipo) {
@@ -555,16 +558,8 @@ function gerarECriarMinuta(dados) {
 
 function criarPasta(dados) {
   var nomeCliente = (dados.nome || "Sem nome").toUpperCase();
-  var tipoCaso = dados.tipo || "A classificar";
-  var pastaMinutas = getPastaMinutasIA();
-
-  var buscaCliente = pastaMinutas.getFoldersByName(nomeCliente);
-  var pastaCliente = buscaCliente.hasNext() ? buscaCliente.next() : pastaMinutas.createFolder(nomeCliente);
-
-  var buscaCaso = pastaCliente.getFoldersByName(tipoCaso);
-  var pastaCaso = buscaCaso.hasNext() ? buscaCaso.next() : pastaCliente.createFolder(tipoCaso);
-
-  return resp({ ok: true, url: pastaCaso.getUrl() });
+  var pastaCliente = getPastaCliente(nomeCliente);
+  return resp({ ok: true, url: pastaCliente.getUrl() });
 }
 
 // ── Salvar arquivo ─────────────────────────────────────────────────────────
@@ -575,9 +570,7 @@ function salvarArquivo(dados) {
   var base64 = dados.base64 || "";
   var mimetype = dados.mimetype || "application/octet-stream";
 
-  var pastaRaiz = DriveApp.getFolderById(PASTA_RAIZ_ID);
-  var busca = pastaRaiz.getFoldersByName(nomeCliente);
-  var pastaCliente = busca.hasNext() ? busca.next() : pastaRaiz.createFolder(nomeCliente);
+  var pastaCliente = getPastaCliente(nomeCliente);
 
   var blob = Utilities.newBlob(Utilities.base64Decode(base64), mimetype, nomeArquivo);
   var arquivo = pastaCliente.createFile(blob);
@@ -594,10 +587,7 @@ function criarMinutaDoc(dados) {
 
 function _criarMinutaDocInterno(dados) {
   var nomeCliente = (dados.nome || "Caso").toUpperCase();
-  var pastaMinutas = getPastaMinutasIA();
-
-  var buscaCliente = pastaMinutas.getFoldersByName(nomeCliente);
-  var pastaCliente = buscaCliente.hasNext() ? buscaCliente.next() : pastaMinutas.createFolder(nomeCliente);
+  var pastaCliente = getPastaCliente(nomeCliente);
 
   var dataHoje = Utilities.formatDate(new Date(), "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
   var nomeDoc = "MINUTA — " + dados.nome + " — " + dataHoje;
