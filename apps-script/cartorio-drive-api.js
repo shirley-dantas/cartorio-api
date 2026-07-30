@@ -16,7 +16,6 @@
 // implantações > editar > Nova versão).
 
 const PASTA_RAIZ_ID = "1KDMZ-FJMoXEzpMXKSojeZgNeJ_p4lhSb";
-const NOME_PASTA_MINUTAS = "0 - MINUTAS IA";
 const FIREBASE_URL = "https://painel-cartorio-default-rtdb.firebaseio.com";
 
 // ── Prompts ────────────────────────────────────────────────────────────────
@@ -178,7 +177,7 @@ NOMENCLATURA DAS PARTES (use sempre a nomenclatura correta para o ato):
 
 FORMATAÇÃO DA MINUTA:
 - Fonte e espaçamento serão aplicados automaticamente pelo sistema (Tahoma 12, espaçamento 1,15, texto justificado)
-- Use **negrito** SOMENTE para: título da escritura, nomes das partes, CPF, RG, matrícula, número de guia de tributo
+- Use **negrito** SOMENTE para: título da escritura, nomes das partes, matrícula, número de guia de tributo
 - PROIBIDO negrito em: CNPJ, nome do banco, agência, conta corrente, emolumentos, e qualquer texto do parágrafo final de pagamento
 - Na seção ARQUIVAMENTO: negrito SOMENTE na palavra "controle" e no valor/número que vem logo depois (______). Todo o restante dessa seção sem negrito
 - NÃO deixe linhas em branco entre os parágrafos — o texto deve fluir contínuo
@@ -191,12 +190,14 @@ Cada pendência ou apontamento deve aparecer EXCLUSIVAMENTE como um marcador 【
 Esses marcadores serão automaticamente convertidos em balões de revisão no documento — portanto NÃO devem aparecer como texto solto, tabela ou lista separada.
 
 REGRA ABSOLUTA — MODELO DE MINUTA (REFERÊNCIA):
-Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (REFERÊNCIA", ele é apenas um EXEMPLO de estilo, estrutura, formatação e fraseado — vindo de outro caso, fornecido pela equipe ou aprendido de casos anteriores do mesmo tipo de ato.
-- Use esse modelo SOMENTE para orientar como organizar e redigir a minuta (ordem das cláusulas, tom, estrutura das frases)
+Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (REFERÊNCIA" — seja "FORNECIDA PELA EQUIPE" (enviada manualmente) ou "APRENDIDA AUTOMATICAMENTE" (de um caso anterior do mesmo tipo de ato) — os dois exigem o MESMO nível de fidelidade (ver REGRAS DE FIDELIDADE abaixo). O objetivo é que o modelo aprendido automaticamente também vá ficando cada vez mais completo e confiável, reduzindo a necessidade de enviar um modelo manual no futuro.
+- Use o modelo para orientar como organizar e redigir a minuta (ordem das cláusulas, tom, estrutura das frases)
 - NUNCA copie nomes, CPF, RG, matrícula, endereços, valores, datas ou qualquer dado específico do modelo
 - Todos os dados factuais da minuta devem vir EXCLUSIVAMENTE dos demais documentos e observações do caso atual
 - Se o modelo mencionar uma cláusula que não se aplica ao caso atual, não a inclua
 - IMPORTANTE — NÃO CONFUNDA as duas fontes: essa restrição vale APENAS para dados que aparecem dentro do bloco "MODELO DE MINUTA (REFERÊNCIA...)". Qualquer dado (nome, CPF, RG, endereço, valor, data) que apareça nos OUTROS documentos do caso (fora do bloco do modelo) é dado real do caso atual e deve ser usado normalmente, com total confiança — mesmo que esse mesmo tipo de campo também apareça preenchido no modelo. NÃO deixe um campo em branco (______) só porque um campo parecido existe no modelo; deixe em branco SOMENTE quando o dado não aparecer em nenhum lugar fora do bloco do modelo
+
+REGRAS DE FIDELIDADE — válidas para QUALQUER modelo de referência, manual ou aprendido:
 - MANTENHA O MESMO NÍVEL DE DETALHE E ABRANGÊNCIA do modelo — se o modelo tiver uma lista extensa e detalhada de poderes/cláusulas (ex: nomes de bancos específicos, órgãos públicos nomeados, poderes judiciais completos), a minuta nova deve ter uma lista igualmente extensa e detalhada, adaptada ao caso atual. NÃO resuma ou condense cláusulas do modelo em itens genéricos — reproduza a mesma quantidade e riqueza de detalhes, apenas trocando os dados específicos pelos do caso atual (ou removendo o item, se genuinamente não se aplicar)
 - REGRA DE CONCLUSÃO — NÃO PARE CEDO: antes de considerar a minuta finalizada, verifique mentalmente se você já escreveu uma cláusula ou seção correspondente a CADA cláusula/seção que existe no modelo (mesma numeração, mesmos títulos de cláusula, mesmo número aproximado de itens). Se o modelo tem cláusulas 1 a 13, ou subcláusulas 6.1 a 6.10, sua minuta também precisa chegar até lá — NÃO termine no meio (ex: só até a cláusula 6.5) só porque o texto já "parece" completo. Um documento de referência longo e detalhado exige uma minuta igualmente longa e detalhada. Só finalize (com encerramento e assinaturas) depois de cobrir TODO o conteúdo equivalente ao modelo.
 
@@ -225,9 +226,13 @@ A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualific
 
 // ── Funções auxiliares ─────────────────────────────────────────────────────
 
-function getPastaMinutasIA() {
-  const busca = DriveApp.getFoldersByName(NOME_PASTA_MINUTAS);
-  return busca.hasNext() ? busca.next() : DriveApp.createFolder(NOME_PASTA_MINUTAS);
+// Pasta única do cliente (documentos anexados E minuta gerada ficam juntos
+// aqui) — antes a minuta ia para uma pasta global separada ("0 - MINUTAS IA"),
+// espalhando o material do mesmo caso em dois lugares diferentes do Drive.
+function getPastaCliente(nomeCliente) {
+  const pastaRaiz = DriveApp.getFolderById(PASTA_RAIZ_ID);
+  const busca = pastaRaiz.getFoldersByName(nomeCliente);
+  return busca.hasNext() ? busca.next() : pastaRaiz.createFolder(nomeCliente);
 }
 
 function instrucoesPorTipo(tipo) {
@@ -371,10 +376,10 @@ function chamarClaude(mensagem) {
 // cada pedaço é rápido (uma chamada à IA), e só continua se realmente precisar.
 function gerarMinutaCompleta(mensagemBase) {
   var MAX_PEDACOS = 6;
-  // Quando há um modelo de referência, a IA tende a "achar" que terminou cedo demais
-  // (parar em ~1/3 do conteúdo do modelo). Por isso, sempre que houver modelo, forçamos
-  // pelo menos uma rodada extra de autoverificação de cobertura, mesmo que a IA não tenha
-  // batido no limite de tamanho — ela precisa confirmar explicitamente que terminou.
+  // Quando há um modelo de referência (manual ou aprendido automaticamente), a IA tende
+  // a "achar" que terminou cedo demais (parar em ~1/3 do conteúdo do modelo). Por isso,
+  // forçamos pelo menos uma rodada extra de autoverificação de cobertura, mesmo que a IA
+  // não tenha batido no limite de tamanho — ela precisa confirmar explicitamente que terminou.
   var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1;
   var textoCompleto = "";
   var rodadas = 0;
@@ -555,16 +560,8 @@ function gerarECriarMinuta(dados) {
 
 function criarPasta(dados) {
   var nomeCliente = (dados.nome || "Sem nome").toUpperCase();
-  var tipoCaso = dados.tipo || "A classificar";
-  var pastaMinutas = getPastaMinutasIA();
-
-  var buscaCliente = pastaMinutas.getFoldersByName(nomeCliente);
-  var pastaCliente = buscaCliente.hasNext() ? buscaCliente.next() : pastaMinutas.createFolder(nomeCliente);
-
-  var buscaCaso = pastaCliente.getFoldersByName(tipoCaso);
-  var pastaCaso = buscaCaso.hasNext() ? buscaCaso.next() : pastaCliente.createFolder(tipoCaso);
-
-  return resp({ ok: true, url: pastaCaso.getUrl() });
+  var pastaCliente = getPastaCliente(nomeCliente);
+  return resp({ ok: true, url: pastaCliente.getUrl() });
 }
 
 // ── Salvar arquivo ─────────────────────────────────────────────────────────
@@ -575,9 +572,7 @@ function salvarArquivo(dados) {
   var base64 = dados.base64 || "";
   var mimetype = dados.mimetype || "application/octet-stream";
 
-  var pastaRaiz = DriveApp.getFolderById(PASTA_RAIZ_ID);
-  var busca = pastaRaiz.getFoldersByName(nomeCliente);
-  var pastaCliente = busca.hasNext() ? busca.next() : pastaRaiz.createFolder(nomeCliente);
+  var pastaCliente = getPastaCliente(nomeCliente);
 
   var blob = Utilities.newBlob(Utilities.base64Decode(base64), mimetype, nomeArquivo);
   var arquivo = pastaCliente.createFile(blob);
@@ -594,10 +589,7 @@ function criarMinutaDoc(dados) {
 
 function _criarMinutaDocInterno(dados) {
   var nomeCliente = (dados.nome || "Caso").toUpperCase();
-  var pastaMinutas = getPastaMinutasIA();
-
-  var buscaCliente = pastaMinutas.getFoldersByName(nomeCliente);
-  var pastaCliente = buscaCliente.hasNext() ? buscaCliente.next() : pastaMinutas.createFolder(nomeCliente);
+  var pastaCliente = getPastaCliente(nomeCliente);
 
   var dataHoje = Utilities.formatDate(new Date(), "America/Sao_Paulo", "dd/MM/yyyy HH:mm");
   var nomeDoc = "MINUTA — " + dados.nome + " — " + dataHoje;

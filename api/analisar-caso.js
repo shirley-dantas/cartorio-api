@@ -179,7 +179,7 @@ NOMENCLATURA DAS PARTES (use sempre a nomenclatura correta para o ato):
 
 FORMATAÇÃO DA MINUTA:
 - Fonte e espaçamento serão aplicados automaticamente pelo sistema (Tahoma 12, espaçamento 1,15, texto justificado)
-- Use **negrito** SOMENTE para: título da escritura, nomes das partes, CPF, RG, matrícula, número de guia de tributo
+- Use **negrito** SOMENTE para: título da escritura, nomes das partes, matrícula, número de guia de tributo
 - PROIBIDO negrito em: CNPJ, nome do banco, agência, conta corrente, emolumentos, e qualquer texto do parágrafo final de pagamento
 - Na seção ARQUIVAMENTO: negrito SOMENTE na palavra "controle" e no valor/número que vem logo depois (______). Todo o restante dessa seção sem negrito
 - NÃO deixe linhas em branco entre os parágrafos — o texto deve fluir contínuo

@@ -14,11 +14,15 @@ function normalizar(texto) {
   return (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
 }
 
-function detectarModalidade(texto) {
+// Lê a resposta da pergunta explícita de modalidade (nunca adivinha a partir
+// do texto do tipo de ato — modalidades erradas viravam abertura/encerramento
+// errado na minuta).
+function detectarModalidadeEscolhida(texto) {
   const t = normalizar(texto);
-  if (/hibrida|hibrido|videoconferencia.*presencial|presencial.*videoconferencia/.test(t)) return "hibrida";
-  if (/presencial/.test(t)) return "presencial";
-  return "digital"; // padrão
+  if (/^1\b/.test(t) || /\bdigital\b/.test(t)) return "digital";
+  if (/^2\b/.test(t) || /hibrid/.test(t)) return "hibrida";
+  if (/^3\b/.test(t) || /presencial/.test(t)) return "presencial";
+  return null;
 }
 
 function classificarServico(texto) {
@@ -247,7 +251,7 @@ NOMENCLATURA DAS PARTES (use sempre a correta para o ato):
 - Anuência conjugal: ANUENTE
 
 FORMATAÇÃO:
-- Use **negrito** SOMENTE para: título, nomes das partes, CPF, RG, matrícula, número de guia de tributo
+- Use **negrito** SOMENTE para: título, nomes das partes, matrícula, número de guia de tributo
 - PROIBIDO negrito em: CNPJ, nome do banco, agência, conta corrente e qualquer texto do parágrafo final de pagamento
 - Na seção ARQUIVAMENTO: negrito SOMENTE na palavra "controle" e no número que vem logo depois (______). Todo o restante sem negrito
 - NÃO deixe linhas em branco entre parágrafos
@@ -256,6 +260,13 @@ FORMATAÇÃO:
 REGRA ABSOLUTA — ANÁLISE DOCUMENTAL:
 NUNCA inclua no corpo do texto: tabelas, listas numeradas, seções "ANÁLISE DOCUMENTAL", "APONTAMENTOS TÉCNICOS", "PENDÊNCIAS DOCUMENTAIS" ou estrutura similar.
 Cada pendência deve aparecer EXCLUSIVAMENTE como marcador 【PENDÊNCIA: descrição objetiva】 inserido diretamente no texto, após o trecho ao qual se refere. Esses marcadores viram balões de revisão automaticamente.
+
+REGRA ABSOLUTA — MODELO DE MINUTA (REFERÊNCIA):
+Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (REFERÊNCIA" — seja "FORNECIDA PELA EQUIPE" (enviada manualmente) ou "APRENDIDA AUTOMATICAMENTE" (de um caso anterior do mesmo tipo de ato) — os dois exigem o MESMO nível de fidelidade:
+- SIGA O MODELO FIELMENTE — mesma estrutura, mesma ordem de cláusulas, mesmo nível de detalhe e abrangência. Se o modelo tem 13 cláusulas ou subcláusulas 6.1 a 6.10, a minuta nova também precisa cobrir esse mesmo escopo — não resuma, não condense, não pare cedo.
+- NUNCA copie nomes, CPF, RG, matrícula, endereços, valores, datas ou qualquer dado específico do modelo
+- Todos os dados factuais da minuta devem vir EXCLUSIVAMENTE dos demais documentos e observações do caso atual
+- Se o modelo mencionar uma cláusula que não se aplica ao caso atual, não a inclua
 
 ABERTURA DA MINUTA (escolha conforme MODALIDADE):
 
@@ -297,6 +308,31 @@ function instrucoesMinimasPorTipo(tipo) {
   if (!tipo) return "";
   const chave = Object.keys(INSTRUCOES_MINUTA).find(k => tipo.toLowerCase().includes(k.toLowerCase()));
   return chave ? `ATENÇÃO — ATO: ${chave.toUpperCase()}\n${INSTRUCOES_MINUTA[chave]}` : "";
+}
+
+// Biblioteca de modelos aprendidos por tipo de ato (mesmo Firebase que o
+// Apps Script usa) — evita depender de alguém lembrar de mandar um modelo
+// manual toda vez: a cada minuta gerada com sucesso, ela vira a referência
+// automática de estilo do tipo de ato, tanto pra próxima geração pelo
+// WhatsApp quanto pelo painel.
+function chaveTipoModelo(tipo) {
+  if (!tipo) return "geral";
+  const chave = Object.keys(INSTRUCOES_MINUTA).find(k => tipo.toLowerCase().includes(k.toLowerCase()));
+  const base = (chave || tipo).toLowerCase().trim().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return base.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "geral";
+}
+async function buscarModeloAprendido(tipo) {
+  const chave = chaveTipoModelo(tipo);
+  const data = await httpReq(`https://${FIREBASE_HOST}/modelos/${chave}.json`, "GET");
+  return (data && data.texto) ? data : null;
+}
+async function salvarModeloAprendido(tipo, texto, nomeCaso) {
+  const chave = chaveTipoModelo(tipo);
+  await httpReq(`https://${FIREBASE_HOST}/modelos/${chave}.json`, "PUT", {
+    texto: texto.slice(0, 6000),
+    origemCaso: nomeCaso || "",
+    atualizado: new Date().toISOString()
+  });
 }
 
 function callClaudeMinuta(mensagem) {
@@ -366,11 +402,42 @@ async function gerarECriarMinuta(caso) {
   try {
     const instrucoes = instrucoesMinimasPorTipo(caso.tipo);
     const mod = (caso.modalidade || "digital").toUpperCase();
+
+    // Junta o texto já extraído de cada documento anexado ao card (antes só
+    // ficava guardado como registro, sem entrar na geração da minuta).
+    let documentosTexto = "";
+    if (caso.casoId) {
+      const documentos = await httpReq(`https://${FIREBASE_HOST}/casos/${caso.casoId}/documentos.json`, "GET");
+      if (documentos && typeof documentos === "object") {
+        const linhas = [];
+        Object.values(documentos).forEach(d => {
+          if (!d) return;
+          linhas.push(d.tipo === "modelo"
+            ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
+            : `\n=== DOCUMENTO: ${d.nome} ===`);
+          if (d.texto) linhas.push(d.texto);
+        });
+        documentosTexto = linhas.join("\n");
+      }
+    }
+
+    // Sem modelo mandado manualmente pelo WhatsApp: usa o último modelo
+    // aprendido automaticamente para esse tipo de ato, se existir.
+    if (!/MODELO DE MINUTA \(REFERÊNCIA FORNECIDA PELA EQUIPE\)/.test(documentosTexto)) {
+      const modeloAprendido = await buscarModeloAprendido(caso.tipo);
+      if (modeloAprendido) {
+        documentosTexto += `\n\n=== MODELO DE MINUTA (REFERÊNCIA APRENDIDA AUTOMATICAMENTE) — ${caso.tipo || ""} ===\n${modeloAprendido.texto}`;
+      }
+    }
+
     const mensagem = `CASO: ${caso.nome}
 TIPO DE ATO: ${caso.tipo || "Não informado"}
 MODALIDADE: ${mod}
 ${instrucoes ? instrucoes + "\n" : ""}
 OBSERVAÇÕES DO CASO: ${caso.obs || "Nenhuma"}
+
+DOCUMENTOS E INFORMAÇÕES FORNECIDAS:
+${documentosTexto.trim() || "Nenhum documento fornecido ainda."}
 
 Por favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade ${mod}.`;
 
@@ -400,6 +467,10 @@ Por favor, gere a minuta completa conforme as informações disponíveis, usando
       comentarios
     });
 
+    // Aprende com essa minuta: vira a referência automática do tipo para as
+    // próximas gerações (WhatsApp ou painel), sem precisar de tag manual.
+    if (minuta) await salvarModeloAprendido(caso.tipo, minuta, caso.nome);
+
     return {
       driveUrl: driveResp?.folderUrl || null,
       docUrl: driveResp?.url || null
@@ -409,12 +480,55 @@ Por favor, gere a minuta completa conforme as informações disponíveis, usando
   }
 }
 
-async function extrairTextoDocx(base64) {
+// Mesma extração jurídica usada para PDF/imagem (extrairTextoPDF), mas a
+// partir de texto puro — usada depois do mammoth ler o .docx.
+function extrairDadosJuridicosDeTexto(texto) {
+  const body = JSON.stringify({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    messages: [{
+      role: "user",
+      content: `Extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar.\n\nDOCUMENTO:\n${texto}`
+    }]
+  });
+  return new Promise((resolve) => {
+    const options = {
+      hostname: "api.anthropic.com",
+      path: "/v1/messages",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Length": Buffer.byteLength(body)
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", d => data += d);
+      res.on("end", () => {
+        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
+        catch { resolve(null); }
+      });
+    });
+    req.on("error", () => resolve(null));
+    req.write(body);
+    req.end();
+  });
+}
+
+async function extrairTextoDocx(base64, isModelo) {
   try {
     const mammoth = require("mammoth");
     const buffer = Buffer.from(base64, "base64");
     const resultado = await mammoth.extractRawText({ buffer });
-    return (resultado && resultado.value && resultado.value.trim()) || null;
+    const textoBruto = (resultado && resultado.value && resultado.value.trim()) || null;
+    if (!textoBruto) return null;
+    // Modelo: o mammoth já dá o texto exato do .docx — não precisa (nem deve)
+    // passar pela extração jurídica, que resumiria em vez de transcrever.
+    if (isModelo) return textoBruto;
+    const dadosExtraidos = await extrairDadosJuridicosDeTexto(textoBruto);
+    return dadosExtraidos || textoBruto;
   } catch (e) {
     return null;
   }
@@ -525,7 +639,7 @@ async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLege
   const [, textoExtraido] = await Promise.all([
     salvarNoDrive(sessao.nomeCaso, nomeArquivo, resultado.base64, mime),
     podeExtrair
-      ? (isDocx ? extrairTextoDocx(resultado.base64) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
+      ? (isDocx ? extrairTextoDocx(resultado.base64, isModelo) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
       : Promise.resolve(null)
   ]);
 
@@ -666,17 +780,29 @@ module.exports = async (req, res) => {
     return res.status(200).send("OK");
   }
 
-  // ─── 3b. Tipo de ato → cria o card ───
+  // ─── 3b. Tipo de ato → pergunta modalidade ───
   if (sessao.etapa === "aguardando_tipo_ato" && isTexto) {
-    const urgencia = classificarUrgencia(texto);
+    await setSessao({ ...sessao, etapa: "aguardando_modalidade", tipoAtoNovo: texto });
+    await enviarBotoes("Qual a modalidade do ato?", ["Digital", "Híbrida", "Presencial"]);
+    return res.status(200).send("Perguntou modalidade");
+  }
+
+  // ─── 3c. Modalidade → cria o card ───
+  if (sessao.etapa === "aguardando_modalidade" && isTexto) {
+    const modalidade = detectarModalidadeEscolhida(texto);
+    if (!modalidade) {
+      await enviarBotoes("Não entendi — qual a modalidade do ato?", ["Digital", "Híbrida", "Presencial"]);
+      return res.status(200).send("Repetiu pergunta de modalidade");
+    }
+    const urgencia = classificarUrgencia(sessao.tipoAtoNovo);
     const caso = {
       nome: sessao.nomeCasoNovo,
-      tipo: texto,
-      modalidade: detectarModalidade(texto),
+      tipo: sessao.tipoAtoNovo,
+      modalidade,
       status: urgencia.status,
       resp: (sessao.pessoa || "Grazi").toLowerCase(),
       prazo: "Hoje",
-      obs: `${texto}\n\n[Urgência: ${urgencia.motivo}]`,
+      obs: `${sessao.tipoAtoNovo}\n\n[Urgência: ${urgencia.motivo}]`,
       atualizado: new Date().toISOString().split("T")[0],
       concluido: false,
       dep: ""
@@ -729,7 +855,10 @@ module.exports = async (req, res) => {
   // ─── 6. Recebendo documentos ───
   if (sessao.etapa === "aguardando_documentos" || sessao.etapa === "aguardando_mais_documentos") {
     if (isMedia) {
-      await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, texto);
+      // Nesta etapa todo anexo é sempre documento do caso (nunca modelo) —
+      // a legenda não é considerada aqui. O único jeito de mandar um modelo
+      // é pela etapa dedicada ("Devo usar um modelo específico?" → Sim).
+      await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, "");
       await setSessao({ ...sessao, etapa: "aguardando_mais_documentos" });
       await enviarBotoes("Recebi. Mais algum documento, ou posso seguir?", ["Tem mais", "Pode seguir"]);
       return res.status(200).send("Documento recebido");
@@ -768,7 +897,7 @@ module.exports = async (req, res) => {
   if (sessao.etapa === "aguardando_usar_modelo" && isTexto) {
     if (respostaAfirmativa(texto)) {
       await setSessao({ ...sessao, etapa: "aguardando_arquivo_modelo" });
-      await enviarTexto("Pode mandar o arquivo modelo (adicione a palavra \"modelo\" na legenda).");
+      await enviarTexto("Pode mandar o arquivo modelo — não precisa de legenda especial, é só enviar.");
       return res.status(200).send("OK");
     }
     // Sem modelo: minuta a partir do que já está no card (comportamento já existente)
@@ -813,7 +942,7 @@ async function gerarMinutaDoCaso(sessao) {
   if (!sessao.casoId) return;
   const caso = await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}.json`, "GET");
   if (!caso) return;
-  const { driveUrl, docUrl } = await gerarECriarMinuta({ ...caso, nome: sessao.nomeCaso });
+  const { driveUrl, docUrl } = await gerarECriarMinuta({ ...caso, nome: sessao.nomeCaso, casoId: sessao.casoId });
   const patch = {};
   if (driveUrl) patch.driveUrl = driveUrl;
   if (docUrl) patch.docUrl = docUrl;
