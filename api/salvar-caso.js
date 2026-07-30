@@ -2,23 +2,27 @@ const https = require("https");
 
 // ══ CONFIGURAÇÕES ══════════════════════════════════════════════
 const EVOLUTION_INSTANCE = "escritorio";
-const EVOLUTION_API_KEY  = "escritorio@2025#EvAPI";
-const EVOLUTION_HOST     = "evolution-api-production-59b1.up.railway.app";
-const FIREBASE_HOST      = "painel-cartorio-default-rtdb.firebaseio.com";
-const DRIVE_URL          = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
+const EVOLUTION_API_KEY = "escritorio@2025#EvAPI";
+const EVOLUTION_HOST = "evolution-api-production-59b1.up.railway.app";
+const FIREBASE_HOST = "painel-cartorio-default-rtdb.firebaseio.com";
+const DRIVE_URL = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
 const NUMERO_OPERACIONAL = "5511947851816";
-const ANTHROPIC_API_KEY  = process.env.ANTHROPIC_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 // ═══════════════════════════════════════════════════════════════
 
+function normalizar(texto) {
+  return (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+}
+
 function detectarModalidade(texto) {
-  const t = (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const t = normalizar(texto);
   if (/hibrida|hibrido|videoconferencia.*presencial|presencial.*videoconferencia/.test(t)) return "hibrida";
   if (/presencial/.test(t)) return "presencial";
   return "digital"; // padrão
 }
 
 function classificarServico(texto) {
-  const t = (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const t = normalizar(texto);
   if (/inventario|espolio|faleceu|falecimento|heranca|herdeiro|partilha|sobrepartilha/.test(t)) return "Inventário";
   if (/compra|venda|escritura|imovel|apartamento|terreno|casa/.test(t)) return "Escritura de Compra e Venda";
   if (/procuracao|procurador/.test(t)) return "Procuração";
@@ -40,13 +44,13 @@ function classificarServico(texto) {
 }
 
 function ehLegendaModelo(texto) {
-  const t = (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  const t = normalizar(texto);
   return /\bmodelo\b/.test(t);
 }
 
 function classificarUrgencia(texto) {
-  const t = (texto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  const alta  = ["urgente","urgencia","hoje","agora","imediato","imediata","amanha","prazo","vencendo","vencido","vence","emergencia","rapido","rapida","preciso ja","preciso hoje"];
+  const t = normalizar(texto);
+  const alta = ["urgente","urgencia","hoje","agora","imediato","imediata","amanha","prazo","vencendo","vencido","vence","emergencia","rapido","rapida","preciso ja","preciso hoje"];
   const baixa = ["quando puder","sem pressa","consulta","informacao","quanto custa","valor","preco","tabela","gostaria de saber","quero saber"];
   const a = alta.find(p => t.includes(p));
   if (a) return { status: "critico", motivo: `Urgência alta: "${a}"` };
@@ -71,25 +75,93 @@ function httpReq(url, method, body, headers = {}) {
   });
 }
 
+// ══ SESSÃO DO DIÁLOGO GUIADO ═════════════════════════════════════
+// Só existe UM atendimento guiado ativo por vez na janela (o WhatsApp
+// não distingue de qual PC/pessoa partiu a mensagem). A identificação
+// de quem está falando serve para registrar o responsável no card, e
+// para o sistema perguntar antes de sobrepor um atendimento em curso.
+
 async function getSessao() {
   return httpReq(`https://${FIREBASE_HOST}/sessao_ativa.json`, "GET");
 }
 async function setSessao(sessao) {
-  return httpReq(`https://${FIREBASE_HOST}/sessao_ativa.json`, "PUT", sessao);
+  return httpReq(`https://${FIREBASE_HOST}/sessao_ativa.json`, "PUT", { ...sessao, ultimaInteracao: new Date().toISOString() });
 }
 async function clearSessao() {
   return httpReq(`https://${FIREBASE_HOST}/sessao_ativa.json`, "DELETE");
 }
-async function buscarCasoPorNome(texto) {
-  const data = await httpReq(`https://${FIREBASE_HOST}/casos.json`, "GET");
-  if (!data || typeof data !== "object") return null;
-  const norm = texto.toLowerCase().trim();
-  const entrada = Object.entries(data).find(([, c]) =>
-    c && !c.concluido && c.nome && c.nome.toLowerCase().includes(norm)
-  );
-  if (!entrada) return null;
-  return { ...entrada[1], id: entrada[0] };
+
+function sessaoExpirada(sessao) {
+  if (!sessao?.ultimaInteracao) return false;
+  const minutos = (Date.now() - new Date(sessao.ultimaInteracao).getTime()) / 60000;
+  return minutos > 30;
 }
+
+function ehSaudacao(texto) {
+  const t = normalizar(texto);
+  return /^(oi|ola|bom dia|boa tarde|boa noite|inicio|iniciar)\b/.test(t);
+}
+
+function detectarPessoa(texto) {
+  const t = normalizar(texto);
+  if (/shirley/.test(t)) return "Shirley";
+  if (/grazi/.test(t)) return "Grazi";
+  return null;
+}
+
+function respostaAfirmativa(texto) {
+  const t = normalizar(texto);
+  return /^(sim|s|ok|pode|manda|continuar)\b/.test(t);
+}
+function respostaNegativa(texto) {
+  const t = normalizar(texto);
+  return /^(nao|n|cancelar|parar)\b/.test(t);
+}
+
+// Similaridade simples por distância de edição — evita depender de
+// biblioteca externa só para tolerar erro de digitação/acento.
+function distanciaEdicao(a, b) {
+  const m = a.length, n = b.length;
+  const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      d[i][j] = a[i - 1] === b[j - 1]
+        ? d[i - 1][j - 1]
+        : 1 + Math.min(d[i - 1][j], d[i][j - 1], d[i - 1][j - 1]);
+    }
+  }
+  return d[m][n];
+}
+
+async function buscarTodosCasosAbertos() {
+  const data = await httpReq(`https://${FIREBASE_HOST}/casos.json`, "GET");
+  if (!data || typeof data !== "object") return [];
+  return Object.entries(data)
+    .filter(([, c]) => c && !c.concluido && c.nome)
+    .map(([id, c]) => ({ ...c, id }));
+}
+
+// Retorna: { tipo: "exato" } | { tipo: "aproximado", caso } | { tipo: "nenhum" }
+async function buscarCasoPorNome(texto) {
+  const casos = await buscarTodosCasosAbertos();
+  const norm = normalizar(texto);
+  const exato = casos.find(c => normalizar(c.nome).includes(norm) || norm.includes(normalizar(c.nome)));
+  if (exato) return { tipo: "exato", caso: exato };
+
+  let melhor = null;
+  let melhorDist = Infinity;
+  for (const c of casos) {
+    const dist = distanciaEdicao(norm, normalizar(c.nome));
+    if (dist < melhorDist) { melhorDist = dist; melhor = c; }
+  }
+  // tolera até ~35% de diferença de caracteres
+  if (melhor && melhorDist <= Math.ceil(norm.length * 0.35)) {
+    return { tipo: "aproximado", caso: melhor };
+  }
+  return { tipo: "nenhum" };
+}
+
 async function baixarMidia(dadosEvt) {
   return httpReq(
     `https://${EVOLUTION_HOST}/chat/getBase64FromMediaMessage/${EVOLUTION_INSTANCE}`,
@@ -105,7 +177,34 @@ async function criarPastaDrive(nome, tipo) {
   return httpReq(DRIVE_URL, "POST", { acao: "criar-pasta", nome, tipo });
 }
 
-// ══ GERAÇÃO AUTOMÁTICA DE MINUTA ════════════════════════════════
+// ══ MENSAGENS PARA O WHATSAPP (texto simples + botões) ═══════════
+// NOTA PARA TESTE: o endpoint /message/sendButtons abaixo segue o
+// formato documentado publicamente da Evolution API. Como não tenho
+// como testar contra a instância real daqui, o primeiro teste no
+// preview deve confirmar se os botões chegam certinho — se o formato
+// mudou de versão, é só ajustar o "options" desta função.
+async function enviarTexto(texto) {
+  return httpReq(
+    `https://${EVOLUTION_HOST}/message/sendText/${EVOLUTION_INSTANCE}`,
+    "POST",
+    { number: NUMERO_OPERACIONAL, text: texto },
+    { apikey: EVOLUTION_API_KEY }
+  );
+}
+async function enviarBotoes(texto, opcoes) {
+  return httpReq(
+    `https://${EVOLUTION_HOST}/message/sendButtons/${EVOLUTION_INSTANCE}`,
+    "POST",
+    {
+      number: NUMERO_OPERACIONAL,
+      title: texto,
+      buttons: opcoes.map((o, i) => ({ id: `op${i}`, title: o }))
+    },
+    { apikey: EVOLUTION_API_KEY }
+  );
+}
+
+// ══ GERAÇÃO AUTOMÁTICA DE MINUTA (igual à versão anterior) ═══════
 
 const SYSTEM_PROMPT_MINUTA = `Você é o Assistente Jurídico-Cartorário do 20º Cartório de Notas de São Paulo.
 
@@ -351,8 +450,6 @@ async function extrairTextoModelo(base64, mimetype) {
   });
 }
 
-// ════════════════════════════════════════════════════════════════
-
 async function extrairTextoPDF(base64, mimetype) {
   const body = JSON.stringify({
     model: "claude-sonnet-4-6",
@@ -397,7 +494,39 @@ async function extrairTextoPDF(base64, mimetype) {
   });
 }
 
-// ══ HANDLER VERCEL ══════════════════════════════════════════════
+async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLegenda) {
+  const resultado = await baixarMidia(dadosEvt);
+  if (!resultado?.base64) return { ok: false };
+
+  const isModelo = ehLegendaModelo(textoLegenda);
+  const mimeReal = resultado.mimetype || "";
+  const nomeReal = resultado.fileName || "";
+  const isDocx = mimeReal.indexOf("wordprocessingml.document") !== -1 || /\.docx$/i.test(nomeReal);
+  const ext = isDocx ? "docx" : tipoMensagem.includes("image") ? "jpg" : tipoMensagem.includes("audio") ? "mp3" : tipoMensagem.includes("video") ? "mp4" : "pdf";
+  const mime = isDocx ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : tipoMensagem.includes("image") ? "image/jpeg" : tipoMensagem.includes("audio") ? "audio/mpeg" : tipoMensagem.includes("video") ? "video/mp4" : "application/pdf";
+  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16);
+  const nomeArquivo = `${isModelo ? "MODELO_" : ""}${sessao.nomeCaso.replace(/\s+/g, "_").toUpperCase()}_${ts}.${ext}`;
+  const podeExtrair = isDocx || mime === "application/pdf" || mime === "image/jpeg";
+
+  const [, textoExtraido] = await Promise.all([
+    salvarNoDrive(sessao.nomeCaso, nomeArquivo, resultado.base64, mime),
+    podeExtrair
+      ? (isDocx ? extrairTextoDocx(resultado.base64) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
+      : Promise.resolve(null)
+  ]);
+
+  if (sessao.casoId) {
+    await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}/documentos.json`, "POST", {
+      nome: nomeArquivo,
+      tipo: isModelo ? "modelo" : ext,
+      salvoEm: new Date().toISOString(),
+      ...(textoExtraido ? { texto: textoExtraido } : {})
+    });
+  }
+  return { ok: true, isModelo, textoExtraido };
+}
+
+// ══ HANDLER VERCEL — DIÁLOGO GUIADO ═══════════════════════════════
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
     return res.status(405).send("Método não permitido");
@@ -410,16 +539,15 @@ module.exports = async (req, res) => {
     return res.status(400).send("JSON inválido");
   }
 
-  // Suporta tanto campo em português (dados/chave) quanto inglês (data/key)
-  const dadosEvt    = corpo?.data   || corpo?.dados   || {};
-  const chaveEvt    = dadosEvt?.key || dadosEvt?.chave || {};
+  const dadosEvt = corpo?.data || corpo?.dados || {};
+  const chaveEvt = dadosEvt?.key || dadosEvt?.chave || {};
   const destinatario = chaveEvt?.remoteJid || chaveEvt?.remotoJid || "";
   const numeroDestino = destinatario.replace(/[^0-9]/g, "");
   if (numeroDestino !== NUMERO_OPERACIONAL) {
     return res.status(200).send("Mensagem ignorada");
   }
 
-  const mensagemObj  = dadosEvt?.message  || dadosEvt?.mensagem  || {};
+  const mensagemObj = dadosEvt?.message || dadosEvt?.mensagem || {};
   const tipoMensagem = dadosEvt?.messageType || dadosEvt?.tipoMensagem || "";
   const texto = (
     mensagemObj?.conversation ||
@@ -432,103 +560,229 @@ module.exports = async (req, res) => {
   ).trim();
 
   const isMedia = ["imageMessage","documentMessage","videoMessage","audioMessage","documentWithCaptionMessage"].includes(tipoMensagem);
-  const isFim   = texto.toLowerCase() === "fim";
   const isTexto = !isMedia && texto.length > 0;
 
-  // LOG TEMPORÁRIO DE DIAGNÓSTICO
   await httpReq(`https://${FIREBASE_HOST}/log_webhook.json`, "POST", {
-    ts: new Date().toISOString(),
-    tipoMensagem,
-    isMedia,
-    isTexto,
-    isFim,
-    texto: texto.slice(0, 100),
-    destinatario,
-    chaves: Object.keys(mensagemObj)
+    ts: new Date().toISOString(), tipoMensagem, isMedia, isTexto, texto: texto.slice(0, 100), destinatario
   });
 
-  if (isFim) {
+  let sessao = await getSessao();
+  if (sessao && sessaoExpirada(sessao)) {
     await clearSessao();
-    return res.status(200).send("Sessão encerrada");
+    sessao = null;
   }
 
-  if (isMedia) {
-    const sessao = await getSessao();
-    if (!sessao?.nome) return res.status(200).send("Sem sessão ativa");
-    const resultado = await baixarMidia(dadosEvt);
-    await httpReq(`https://${FIREBASE_HOST}/log_webhook.json`, "POST", {
-      ts: new Date().toISOString(), etapa: "apos-baixar-midia",
-      temBase64: !!(resultado?.base64),
-      tamanhoBase64: resultado?.base64?.length || 0,
-      chavesResultado: resultado ? Object.keys(resultado) : [],
-      sessaoNome: sessao?.nome, sessaoCasoId: sessao?.casoId
-    });
-    if (resultado?.base64) {
-      const isModelo = ehLegendaModelo(texto);
-      // Usa o tipo/nome reais devolvidos pela Evolution API (mais confiável que o tipo genérico da mensagem)
-      const mimeReal = resultado.mimetype || "";
-      const nomeReal = resultado.fileName || "";
-      const isDocx = mimeReal.indexOf("wordprocessingml.document") !== -1 || /\.docx$/i.test(nomeReal);
-      const ext  = isDocx ? "docx" : tipoMensagem.includes("image") ? "jpg" : tipoMensagem.includes("audio") ? "mp3" : tipoMensagem.includes("video") ? "mp4" : "pdf";
-      const mime = isDocx ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : tipoMensagem.includes("image") ? "image/jpeg" : tipoMensagem.includes("audio") ? "audio/mpeg" : tipoMensagem.includes("video") ? "video/mp4" : "application/pdf";
-      const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16);
-      const nomeArquivo = `${isModelo ? "MODELO_" : ""}${sessao.nome.replace(/\s+/g, "_").toUpperCase()}_${ts}.${ext}`;
-      const podeExtrair = isDocx || mime === "application/pdf" || mime === "image/jpeg";
-      const [, textoExtraido] = await Promise.all([
-        salvarNoDrive(sessao.nome, nomeArquivo, resultado.base64, mime),
-        podeExtrair
-          ? (isDocx ? extrairTextoDocx(resultado.base64) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
-          : Promise.resolve(null)
-      ]);
-      if (sessao.casoId) {
-        await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}/documentos.json`, "POST", {
-          nome: nomeArquivo,
-          tipo: isModelo ? "modelo" : ext,
-          salvoEm: new Date().toISOString(),
-          ...(textoExtraido ? { texto: textoExtraido } : {})
-        });
-      }
+  // ─── Sem sessão: só "Olá" inicia o atendimento ───
+  if (!sessao || !sessao.etapa) {
+    if (isTexto && ehSaudacao(texto)) {
+      await setSessao({ etapa: "aguardando_identificacao" });
+      await enviarBotoes("Oi! Quem está falando?", ["Shirley", "Grazi"]);
+      return res.status(200).send("Diálogo iniciado");
     }
-    return res.status(200).send("Arquivo salvo no Drive");
+    // Texto solto ou documento sem "Olá" antes: não faz nada sozinho.
+    return res.status(200).send("Sem atendimento ativo — mande 'Olá' para começar");
   }
 
-  if (isTexto) {
-    const existente = await buscarCasoPorNome(texto);
-    if (existente) {
-      await setSessao({ nome: existente.nome, casoId: existente.id, timestamp: new Date().toISOString() });
-      return res.status(200).send("Caso reaberto");
+  // ─── Já existe atendimento em curso: texto novo de saudação pergunta se quer sobrepor ───
+  if (isTexto && ehSaudacao(texto) && sessao.etapa !== "aguardando_identificacao" && sessao.etapa !== "aguardando_confirmar_sobrepor") {
+    await setSessao({ ...sessao, etapaAntesDeSobrepor: sessao.etapa, etapa: "aguardando_confirmar_sobrepor" });
+    await enviarBotoes(
+      `Já tem um atendimento em andamento${sessao.nomeCaso ? ` (${sessao.nomeCaso})` : ""}. Quer continuar esse ou encerrar e começar outro?`,
+      ["Continuar", "Encerrar e começar outro"]
+    );
+    return res.status(200).send("Perguntou sobre sobrepor atendimento");
+  }
+  if (sessao.etapa === "aguardando_confirmar_sobrepor" && isTexto) {
+    if (/encerrar/i.test(texto) || respostaNegativa(texto)) {
+      await clearSessao();
+      await setSessao({ etapa: "aguardando_identificacao" });
+      await enviarBotoes("Ok, atendimento anterior encerrado. Quem está falando?", ["Shirley", "Grazi"]);
+      return res.status(200).send("Atendimento anterior encerrado");
     }
+    // "Continuar": restaura a etapa que estava em curso antes da tentativa de sobreposição
+    const { etapaAntesDeSobrepor, ...resto } = sessao;
+    await setSessao({ ...resto, etapa: etapaAntesDeSobrepor || resto.etapa });
+    return res.status(200).send("Continuando atendimento anterior");
+  }
 
+  // ─── 1. Identificação ───
+  if (sessao.etapa === "aguardando_identificacao") {
+    const pessoa = isTexto ? detectarPessoa(texto) : null;
+    if (!pessoa) {
+      await enviarBotoes("Não entendi — quem está falando?", ["Shirley", "Grazi"]);
+      return res.status(200).send("Repetiu pergunta de identificação");
+    }
+    await setSessao({ etapa: "aguardando_novo_ou_existente", pessoa });
+    await enviarBotoes("Quer abrir um novo card?", ["Sim", "Não"]);
+    return res.status(200).send("Identificado, perguntou novo/existente");
+  }
+
+  // ─── 2. Novo ou existente ───
+  if (sessao.etapa === "aguardando_novo_ou_existente" && isTexto) {
+    if (respostaAfirmativa(texto)) {
+      await setSessao({ ...sessao, etapa: "aguardando_nome_novo" });
+      await enviarTexto("Dê o nome ao card:");
+    } else {
+      await setSessao({ ...sessao, etapa: "aguardando_nome_existente" });
+      await enviarTexto("Em qual card quer atualizar informações?");
+    }
+    return res.status(200).send("OK");
+  }
+
+  // ─── 3a. Nome do card novo ───
+  if (sessao.etapa === "aguardando_nome_novo" && isTexto) {
+    await setSessao({ ...sessao, etapa: "aguardando_tipo_ato", nomeCasoNovo: texto });
+    await enviarTexto("Qual tipo de ato?");
+    return res.status(200).send("OK");
+  }
+
+  // ─── 3b. Tipo de ato → cria o card ───
+  if (sessao.etapa === "aguardando_tipo_ato" && isTexto) {
     const urgencia = classificarUrgencia(texto);
     const caso = {
-      nome: texto,
-      tipo: classificarServico(texto),
+      nome: sessao.nomeCasoNovo,
+      tipo: texto,
       modalidade: detectarModalidade(texto),
-      cacau: texto,
       status: urgencia.status,
-      resp: "grazi",
+      resp: (sessao.pessoa || "Grazi").toLowerCase(),
       prazo: "Hoje",
       obs: `${texto}\n\n[Urgência: ${urgencia.motivo}]`,
       atualizado: new Date().toISOString().split("T")[0],
       concluido: false,
       dep: ""
     };
-
     const fbResp = await httpReq(`https://${FIREBASE_HOST}/casos.json`, "POST", caso);
     const casoId = fbResp?.name || null;
-    await setSessao({ nome: caso.nome, casoId, timestamp: new Date().toISOString() });
-
-    // Gerar minuta automaticamente e salvar no Drive (MINUTAS IA)
-    if (casoId) {
-      const { driveUrl, docUrl } = await gerarECriarMinuta(caso);
-      const patch = {};
-      if (driveUrl) patch.driveUrl = driveUrl;
-      if (docUrl) patch.docUrl = docUrl;
-      if (Object.keys(patch).length > 0) {
-        await httpReq(`https://${FIREBASE_HOST}/casos/${casoId}.json`, "PATCH", patch);
-      }
-    }
+    await setSessao({ ...sessao, etapa: "aguardando_documentos", nomeCaso: caso.nome, casoId, cardNovo: true });
+    await enviarTexto("Pode anexar os documentos.");
+    return res.status(200).send("Card criado");
   }
 
-  return res.status(200).send("OK");
+  // ─── 4a. Nome do card existente ───
+  if (sessao.etapa === "aguardando_nome_existente" && isTexto) {
+    const achado = await buscarCasoPorNome(texto);
+    if (achado.tipo === "nenhum") {
+      await enviarBotoes(`Não encontrei nenhum card parecido com "${texto}". Quer criar um novo?`, ["Sim", "Não"]);
+      await setSessao({ ...sessao, etapa: "aguardando_novo_ou_existente" });
+      return res.status(200).send("Card não encontrado");
+    }
+    if (achado.tipo === "aproximado") {
+      await setSessao({ ...sessao, etapa: "aguardando_confirmar_nome", casoCandidato: achado.caso });
+      await enviarBotoes(`Quis dizer "${achado.caso.nome}"?`, ["Sim", "Não, buscar de novo"]);
+      return res.status(200).send("Perguntou confirmação por aproximação");
+    }
+    await setSessao({ ...sessao, etapa: "aguardando_tipo_atualizacao", nomeCaso: achado.caso.nome, casoId: achado.caso.id });
+    await enviarTexto("Qual seria a informação (reeditar a minuta / inserir informações / anexar documentos)?");
+    return res.status(200).send("Card localizado");
+  }
+
+  // ─── 4b. Confirmação do nome aproximado ───
+  if (sessao.etapa === "aguardando_confirmar_nome" && isTexto) {
+    if (respostaAfirmativa(texto)) {
+      const c = sessao.casoCandidato;
+      await setSessao({ ...sessao, etapa: "aguardando_tipo_atualizacao", nomeCaso: c.nome, casoId: c.id, casoCandidato: null });
+      await enviarTexto("Qual seria a informação (reeditar a minuta / inserir informações / anexar documentos)?");
+    } else {
+      await setSessao({ ...sessao, etapa: "aguardando_nome_existente", casoCandidato: null });
+      await enviarTexto("Ok, em qual card quer atualizar informações?");
+    }
+    return res.status(200).send("OK");
+  }
+
+  // ─── 5. Tipo de atualização ───
+  if (sessao.etapa === "aguardando_tipo_atualizacao" && isTexto) {
+    await setSessao({ ...sessao, etapa: "aguardando_documentos", tipoAtualizacao: texto });
+    await enviarTexto("Pode anexar os documentos.");
+    return res.status(200).send("OK");
+  }
+
+  // ─── 6. Recebendo documentos ───
+  if (sessao.etapa === "aguardando_documentos" || sessao.etapa === "aguardando_mais_documentos") {
+    if (isMedia) {
+      await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, texto);
+      await setSessao({ ...sessao, etapa: "aguardando_mais_documentos" });
+      await enviarBotoes("Recebi. Mais algum documento, ou posso seguir?", ["Tem mais", "Pode seguir"]);
+      return res.status(200).send("Documento recebido");
+    }
+    if (isTexto && sessao.etapa === "aguardando_mais_documentos") {
+      if (respostaAfirmativa(texto) && !/pode seguir/i.test(texto)) {
+        await setSessao({ ...sessao, etapa: "aguardando_documentos" });
+        await enviarTexto("Pode mandar.");
+        return res.status(200).send("Aguardando mais documentos");
+      }
+      await setSessao({ ...sessao, etapa: "aguardando_gerar_minuta" });
+      await enviarBotoes("Quer gerar/reeditar a minuta agora?", ["Sim", "Não"]);
+      return res.status(200).send("Seguindo para minuta");
+    }
+    return res.status(200).send("Aguardando documento ou confirmação");
+  }
+
+  // ─── 7. Quer gerar/reeditar minuta agora? ───
+  if (sessao.etapa === "aguardando_gerar_minuta" && isTexto) {
+    if (respostaNegativa(texto)) {
+      await setSessao({ ...sessao, etapa: "aguardando_mais_informacao" });
+      await enviarTexto("Ok, sem gerar minuta agora. Mais alguma informação, ou já posso concluir?");
+      return res.status(200).send("OK");
+    }
+    await setSessao({ ...sessao, etapa: "aguardando_usar_modelo" });
+    await enviarBotoes("Devo usar um modelo específico?", ["Sim", "Não"]);
+    return res.status(200).send("OK");
+  }
+
+  // ─── 8. Usar modelo específico? ───
+  if (sessao.etapa === "aguardando_usar_modelo" && isTexto) {
+    if (respostaAfirmativa(texto)) {
+      await setSessao({ ...sessao, etapa: "aguardando_arquivo_modelo" });
+      await enviarTexto("Pode mandar o arquivo modelo (adicione a palavra \"modelo\" na legenda).");
+      return res.status(200).send("OK");
+    }
+    // Sem modelo: minuta a partir do que já está no card (comportamento já existente)
+    await gerarMinutaDoCaso(sessao);
+    await setSessao({ ...sessao, etapa: "aguardando_mais_informacao" });
+    await enviarTexto("Minuta gerada e salva no Drive. Mais alguma informação, ou já posso concluir?");
+    return res.status(200).send("Minuta gerada");
+  }
+
+  // ─── 9. Recebendo o arquivo-modelo ───
+  if (sessao.etapa === "aguardando_arquivo_modelo" && isMedia) {
+    await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, "modelo");
+    await gerarMinutaDoCaso(sessao);
+    await setSessao({ ...sessao, etapa: "aguardando_mais_informacao" });
+    await enviarTexto("Minuta gerada com base no modelo enviado e salva no Drive. Mais alguma informação, ou já posso concluir?");
+    return res.status(200).send("Minuta gerada com modelo");
+  }
+
+  // ─── 10. Mais informação ou concluir ───
+  if (sessao.etapa === "aguardando_mais_informacao" && isTexto) {
+    if (/conclu/i.test(texto)) {
+      await clearSessao();
+      return res.status(200).send("Atendimento concluído");
+    }
+    // Qualquer outra coisa vira observação anexada ao card
+    if (sessao.casoId) {
+      await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}.json`, "PATCH", {
+        obs: texto,
+        atualizado: new Date().toISOString().split("T")[0]
+      });
+    }
+    await enviarTexto("Anotado. Mais alguma informação, ou já posso concluir?");
+    return res.status(200).send("OK");
+  }
+
+  return res.status(200).send("Mensagem recebida, fora de fluxo reconhecido");
 };
+
+// Helper que junta "gerar minuta" ao caso já existente, reaproveitando
+// gerarECriarMinuta com os dados atualizados vindos do Firebase.
+async function gerarMinutaDoCaso(sessao) {
+  if (!sessao.casoId) return;
+  const caso = await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}.json`, "GET");
+  if (!caso) return;
+  const { driveUrl, docUrl } = await gerarECriarMinuta({ ...caso, nome: sessao.nomeCaso });
+  const patch = {};
+  if (driveUrl) patch.driveUrl = driveUrl;
+  if (docUrl) patch.docUrl = docUrl;
+  if (Object.keys(patch).length > 0) {
+    await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}.json`, "PATCH", patch);
+  }
+}
