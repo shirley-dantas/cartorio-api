@@ -855,7 +855,10 @@ module.exports = async (req, res) => {
   // ─── 6. Recebendo documentos ───
   if (sessao.etapa === "aguardando_documentos" || sessao.etapa === "aguardando_mais_documentos") {
     if (isMedia) {
-      await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, texto);
+      // Nesta etapa todo anexo é sempre documento do caso (nunca modelo) —
+      // a legenda não é considerada aqui. O único jeito de mandar um modelo
+      // é pela etapa dedicada ("Devo usar um modelo específico?" → Sim).
+      await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, "");
       await setSessao({ ...sessao, etapa: "aguardando_mais_documentos" });
       await enviarBotoes("Recebi. Mais algum documento, ou posso seguir?", ["Tem mais", "Pode seguir"]);
       return res.status(200).send("Documento recebido");
