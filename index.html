@@ -1462,7 +1462,9 @@ function renderPerguntaSegundaParte(){
         <button class="btn-sm" onclick="spResponder('lembrete_nao')">2. Não</button>
       </div>`;
   }else if(passo==='form_lembrete'){
-    area.innerHTML=`<div class="sp-bubble">Pra quando quer o lembrete?</div>
+    area.innerHTML=`<div class="sp-bubble">Travar a agenda com quem, e pra quando quer o lembrete?</div>
+      <label class="modal-label">Travar a agenda com</label>
+      <input type="text" id="sp-lembrete-quem" placeholder="Ex: Construtora, Dr. Fulano...">
       <label class="modal-label">Data do lembrete</label>
       <input type="date" id="sp-lembrete-data">
       <div class="modal-btn-row"><button class="btn-gerar" onclick="spSalvarLembrete()">Salvar</button></div>`;
@@ -1521,10 +1523,11 @@ window.spSalvarComData=async function(){
 };
 window.spSalvarLembrete=async function(){
   const id=spEstado.id;const c=casos[id];if(!c)return;
+  const quem=document.getElementById('sp-lembrete-quem').value.trim();
   const lembreteData=document.getElementById('sp-lembrete-data').value;
-  if(!lembreteData)return;
-  await spRegistrarObs(id,`Lembrete criado para travar a agenda da segunda parte em ${new Date(lembreteData+'T00:00').toLocaleDateString('pt-BR')}.`);
-  await update(ref(db,`casos/${id}`),{segundaParte:{status:'lembrete',lembreteData,atualizadoEm:new Date().toISOString()}});
+  if(!quem||!lembreteData)return;
+  await spRegistrarObs(id,`Travar a agenda com: ${quem} — lembrete em ${new Date(lembreteData+'T00:00').toLocaleDateString('pt-BR')}.`);
+  await update(ref(db,`casos/${id}`),{segundaParte:{status:'lembrete',quem,lembreteData,atualizadoEm:new Date().toISOString()}});
   fecharSegundaParte();
 };
 window.toggleConcluido=function(id){

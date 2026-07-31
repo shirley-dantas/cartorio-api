@@ -24,6 +24,7 @@ Para ALERTAS, gere SOMENTE quando houver uma razão objetiva e específica de al
 - Uma promessa ou prazo mencionado nas observações cuja data já deveria ter passado, sem confirmação de que aconteceu
 - Um caso com dependência de terceiro ou pendência clara, parado há muitos dias sem NADA programado
 - Um prazo formal (campo prazo) que parece vencido pela quantidade de dias parado
+- Um "lembrete para travar agenda com [alguém]" cuja data já passou sem que a assinatura da segunda parte tenha sido definida — gerencie isso de forma ativa e crescente: quanto mais dias passaram do lembrete, mais urgente e direto o tom do alerta (ex: "já se passaram 3 dias desde o prazo pra travar a agenda com a Construtora X — vale ligar hoje pra não perder mais tempo"), sempre nomeando quem precisa ser contatado
 
 Para AGENDA DE HOJE e AGENDA DE AMANHÃ, gere um item por caso, escrito como mensagem calorosa e pessoal dirigida à Shirley, mencionando os detalhes reais da observação (quem está envolvido, horário), terminando com uma pergunta de confirmação. Deixe claro no texto se é hoje ou amanhã. Exemplos de tom (adapte aos dados reais, nunca copie o exemplo): "Oi Shirley, a escritura do Carlos Cesar vai ser assinada hoje pelo Reinaldo às 14:30 — já está tudo certo?" ou "Lembrete: amanhã tem a assinatura do Reinaldo no caso do Carlos Cesar, às 14:30 — já está tudo encaminhado?"
 
@@ -131,7 +132,7 @@ module.exports = async (req, res) => {
       return ` | assinatura de segunda parte (${sp.quem || "não identificado"}): ${new Date(sp.data).toLocaleString("pt-BR")}${relacaoComHoje(sp.data)}`;
     }
     if (sp.status === "lembrete" && sp.lembreteData) {
-      return ` | lembrete para travar agenda da segunda parte: ${new Date(sp.lembreteData).toLocaleDateString("pt-BR")}${relacaoComHoje(sp.lembreteData)} (data da assinatura em si ainda não definida)`;
+      return ` | lembrete para travar agenda com ${sp.quem || "não identificado"}: ${new Date(sp.lembreteData).toLocaleDateString("pt-BR")}${relacaoComHoje(sp.lembreteData)} (data da assinatura em si ainda não definida)`;
     }
     return "";
   };
