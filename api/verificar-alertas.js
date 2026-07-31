@@ -18,6 +18,7 @@ REGRA MAIS IMPORTANTE — leia a observação inteira, com atenção a QUALQUER 
 - Se alguma dessas datas for AMANHÃ, gere um aviso em AGENDA DE AMANHÃ.
 - Se uma data mencionada já passou e não há nenhum registro mais recente confirmando que aconteceu, aí sim é um ALERTA de verdade sobre aquela pendência específica.
 - Nunca invente datas, nomes ou fatos que não estão explicitamente no texto fornecido.
+- Para datas mencionadas só no texto das observações (não vêm com a comparação já calculada, diferente do campo estruturado): confira dígito por dígito o dia, mês E ano dessa data contra a "DATA DE HOJE" informada no início antes de decidir se é hoje, amanhã ou já passou — datas de dias/semanas atrás são um erro comum de se confundir com "hoje".
 
 Para ALERTAS, gere SOMENTE quando houver uma razão objetiva e específica de algo parado/esquecido:
 - Uma promessa ou prazo mencionado nas observações cuja data já deveria ter passado, sem confirmação de que aconteceu
@@ -107,9 +108,23 @@ module.exports = async (req, res) => {
     lotes.push(casosAtivos.slice(i, i + TAMANHO_LOTE));
   }
 
+  // Calcula em código a relação da data agendada com hoje, em vez de deixar
+  // a IA comparar as datas sozinha — ela errava essa conta (ex: tratava uma
+  // data de 7 dias atrás como "hoje"), mesmo com a data de hoje informada.
+  const relacaoComHoje = (agendadoISO) => {
+    if (!agendadoISO) return "";
+    const dataAgendada = agendadoISO.slice(0, 10);
+    const diffDias = Math.round((new Date(dataAgendada) - new Date(hoje)) / 86400000);
+    if (diffDias === 0) return " — ATENÇÃO: ISSO É HOJE";
+    if (diffDias === 1) return " — ATENÇÃO: ISSO É AMANHÃ";
+    if (diffDias > 1) return ` — isso é daqui a ${diffDias} dias`;
+    if (diffDias === -1) return " — isso foi ONTEM";
+    return ` — isso já passou há ${Math.abs(diffDias)} dias`;
+  };
+
   const montarMensagem = (lote) => {
     const listaCasos = lote.map(c =>
-      `- ${c.nome} (${c.tipo || "tipo não definido"}) | responsável: ${c.resp || "—"} | prazo: ${c.prazo || "—"} | dias parado: ${c.diasParado ?? 0} | dependência: ${c.dep || "nenhuma"} | assinatura da escritura agendada: ${c.agendado ? new Date(c.agendado).toLocaleString("pt-BR") : "não marcada"}\n  observações: ${(c.obs || "nenhuma").slice(0, 400)}`
+      `- ${c.nome} (${c.tipo || "tipo não definido"}) | responsável: ${c.resp || "—"} | prazo: ${c.prazo || "—"} | dias parado: ${c.diasParado ?? 0} | dependência: ${c.dep || "nenhuma"} | assinatura da escritura agendada: ${c.agendado ? new Date(c.agendado).toLocaleString("pt-BR") + relacaoComHoje(c.agendado) : "não marcada"}\n  observações: ${(c.obs || "nenhuma").slice(0, 400)}`
     ).join("\n\n");
 
     return `DATA DE HOJE: ${hoje}
