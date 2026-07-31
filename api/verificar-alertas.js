@@ -18,13 +18,15 @@ REGRA MAIS IMPORTANTE — leia a observação inteira, com atenção a QUALQUER 
 - Se alguma dessas datas for AMANHÃ, gere um aviso em AGENDA DE AMANHÃ.
 - Se uma data mencionada já passou e não há nenhum registro mais recente confirmando que aconteceu, aí sim é um ALERTA de verdade sobre aquela pendência específica.
 - Nunca invente datas, nomes ou fatos que não estão explicitamente no texto fornecido.
-- Para datas mencionadas só no texto das observações (não vêm com a comparação já calculada, diferente do campo estruturado): confira dígito por dígito o dia, mês E ano dessa data contra a "DATA DE HOJE" informada no início antes de decidir se é hoje, amanhã ou já passou — datas de dias/semanas atrás são um erro comum de se confundir com "hoje".
+- Datas no formato DD/MM ou DD/MM/AAAA mencionadas no texto das observações já vêm anotadas automaticamente logo em seguida com a relação correta (ex: "03/08 — isso é daqui a 3 dias") — CONFIE nessa anotação, nunca recalcule por conta própria. Só para datas escritas por extenso ou como dia da semana (sem essa anotação), confira com cuidado redobrado contra a "DATA DE HOJE" antes de decidir se é hoje, amanhã ou já passou.
 
 Para ALERTAS, gere SOMENTE quando houver uma razão objetiva e específica de algo parado/esquecido:
 - Uma promessa ou prazo mencionado nas observações cuja data já deveria ter passado, sem confirmação de que aconteceu
 - Um caso com dependência de terceiro ou pendência clara, parado há muitos dias sem NADA programado
 - Um prazo formal (campo prazo) que parece vencido pela quantidade de dias parado
 - Um "lembrete para travar agenda com [alguém]" cuja data já passou sem que a assinatura da segunda parte tenha sido definida — gerencie isso de forma ativa e crescente: quanto mais dias passaram do lembrete, mais urgente e direto o tom do alerta (ex: "já se passaram 3 dias desde o prazo pra travar a agenda com a Construtora X — vale ligar hoje pra não perder mais tempo"), sempre nomeando quem precisa ser contatado
+
+ATENÇÃO — data agendada antiga não é a mesma coisa que pendência aberta: se a "assinatura da escritura agendada" já passou há muitos dias (a anotação já vem calculada, ex: "isso já passou há 296 dias") e o caso ainda tem uma dependência clara (ex: "Nota de exigência", "Falta assinatura"), essa data antiga é HISTÓRICO — foi quando algo JÁ FOI assinado no passado, não algo que ainda precisa acontecer nela. NUNCA escreva o alerta como se essa data velha precisasse ser "travada" ou fosse uma data futura a confirmar. O alerta deve focar EXCLUSIVAMENTE na dependência em si (o que falta fazer agora, ex: providenciar/assinar uma retificação pra cumprir a nota de exigência) — pode citar a data antiga só como contexto de quanto tempo já se passou, nunca como algo ainda pendente de agendar.
 
 Para AGENDA DE HOJE e AGENDA DE AMANHÃ, gere um item por caso, escrito como mensagem calorosa e pessoal dirigida à Shirley, mencionando os detalhes reais da observação (quem está envolvido, horário), terminando com uma pergunta de confirmação. Deixe claro no texto se é hoje ou amanhã. Exemplos de tom (adapte aos dados reais, nunca copie o exemplo): "Oi Shirley, a escritura do Carlos Cesar vai ser assinada hoje pelo Reinaldo às 14:30 — já está tudo certo?" ou "Lembrete: amanhã tem a assinatura do Reinaldo no caso do Carlos Cesar, às 14:30 — já está tudo encaminhado?"
 
@@ -123,6 +125,26 @@ module.exports = async (req, res) => {
     return ` — isso já passou há ${Math.abs(diffDias)} dias`;
   };
 
+  // Mesmo princípio do relacaoComHoje, mas para datas soltas dentro do texto
+  // livre das observações (ex: "...cobrar aprovação até 03/08..."). Antes,
+  // só as datas em campos estruturados eram calculadas em código — datas
+  // mencionadas apenas no texto ficavam por conta da IA, que errava a conta
+  // (ex: tratou "03/08" como "amanhã" quando faltavam 3 dias). Anota toda
+  // data em formato DD/MM ou DD/MM/AAAA encontrada no texto, na hora, com a
+  // relação já calculada — sem exigir que a IA faça essa aritmética sozinha.
+  const anotarDatasNoTexto = (texto) => {
+    if (!texto) return texto;
+    const anoAtual = hoje.slice(0, 4);
+    return texto.replace(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g, (match, d, m, y) => {
+      const dia = d.padStart(2, "0");
+      const mes = m.padStart(2, "0");
+      const ano = y ? (y.length === 2 ? "20" + y : y) : anoAtual;
+      const iso = `${ano}-${mes}-${dia}`;
+      if (isNaN(new Date(iso).getTime())) return match;
+      return match + relacaoComHoje(iso);
+    });
+  };
+
   // Descreve a "assinatura de segunda parte" (estruturada pelo fluxo guiado
   // do card) em texto pronto pra IA, com a mesma relação-com-hoje calculada
   // em código — nunca deixa a IA fazer essa conta sozinha.
@@ -139,7 +161,7 @@ module.exports = async (req, res) => {
 
   const montarMensagem = (lote) => {
     const listaCasos = lote.map(c =>
-      `- ${c.nome} (${c.tipo || "tipo não definido"}) | responsável: ${c.resp || "—"} | prazo: ${c.prazo || "—"} | dias parado: ${c.diasParado ?? 0} | dependência: ${c.dep || "nenhuma"} | assinatura da escritura agendada: ${c.agendado ? new Date(c.agendado).toLocaleString("pt-BR") + relacaoComHoje(c.agendado) : "não marcada"}${linhaSegundaParte(c.segundaParte)}\n  observações: ${(c.obs || "nenhuma").slice(0, 400)}`
+      `- ${c.nome} (${c.tipo || "tipo não definido"}) | responsável: ${c.resp || "—"} | prazo: ${c.prazo || "—"} | dias parado: ${c.diasParado ?? 0} | dependência: ${c.dep || "nenhuma"} | assinatura da escritura agendada: ${c.agendado ? new Date(c.agendado).toLocaleString("pt-BR") + relacaoComHoje(c.agendado) : "não marcada"}${linhaSegundaParte(c.segundaParte)}\n  observações: ${anotarDatasNoTexto((c.obs || "nenhuma").slice(0, 400))}`
     ).join("\n\n");
 
     return `DATA DE HOJE: ${hoje}
