@@ -228,7 +228,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .atend-item-form{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .atend-item-form textarea{width:100%;font-size:12px;padding:6px 8px;border-radius:6px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;outline:none}
 .atend-item-form-row{display:flex;gap:6px;justify-content:flex-end}
-.obs-text{font-size:12px;font-weight:600;color:#3A3A3C;line-height:1.55;cursor:pointer}
+.obs-text{font-size:12px;font-weight:600;color:#3A3A3C;line-height:1.55;cursor:pointer;white-space:pre-wrap;max-height:110px;overflow-y:auto}
 .obs-text:hover{color:#1C1C1E}
 .obs-edit{display:none;flex-direction:column;gap:6px;margin-top:7px}
 .obs-edit textarea{width:100%;font-size:12px;padding:7px 10px;border-radius:7px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;min-height:54px;outline:none}
@@ -1375,7 +1375,7 @@ function renderCasos(){
         ${c.obsAnterior?`<button class="btn-sm" onclick="desfazerObs('${c.id}')" title="Volta pro texto anterior"><i class="ti ti-arrow-back-up" style="font-size:12px;vertical-align:-1px"></i> Desfazer última alteração</button>`:''}
         <div class="obs-edit" id="obs-edit-${c.id}">
           <span class="rascunho-msg" id="rascunho-${c.id}" style="display:none;font-size:11px;color:#B4718A;margin-bottom:4px"><i class="ti ti-note"></i> Rascunho recuperado de uma edição anterior não salva</span>
-          <textarea rows="2" id="obs-ta-${c.id}" oninput="rascunharObs('${c.id}')">${c.obs||''}</textarea>
+          <textarea rows="2" id="obs-ta-${c.id}" placeholder="Digite a nova informação — ela entra numerada no topo do histórico acima" oninput="rascunharObs('${c.id}')"></textarea>
           <div class="obs-edit-row">
             <span class="saved-msg" id="saved-${c.id}"><i class="ti ti-check"></i> Salvo</span>
             <button class="btn-sm" onclick="salvarObs('${c.id}')">Salvar</button>
@@ -1551,9 +1551,8 @@ window.toggleObs=function(id){
   if(abrindo){
     let rascunho=null;
     try{rascunho=localStorage.getItem('rascunho-obs-'+id);}catch(err){}
-    const atual=(casos[id]&&casos[id].obs)||'';
     const rascunhoMsg=document.getElementById('rascunho-'+id);
-    if(rascunho&&rascunho.trim()&&rascunho!==atual){
+    if(rascunho&&rascunho.trim()){
       document.getElementById('obs-ta-'+id).value=rascunho;
       if(rascunhoMsg)rascunhoMsg.style.display='block';
     }else if(rascunhoMsg){
@@ -1570,20 +1569,56 @@ window.rascunharObs=function(id){
     try{localStorage.setItem('rascunho-obs-'+id,v);}catch(err){}
   },800);
 };
+// Acha o maior número já usado nas linhas "N - texto" do histórico, pra
+// numerar a próxima entrada sempre em sequência (mais recente = maior número,
+// fica no topo). Texto antigo sem numeração (de antes dessa mudança) fica
+// preservado embaixo, sem tentar renumerar.
+function proximoNumeroObs(obsAtual){
+  const linhas=(obsAtual||'').split('\n');
+  let maior=0;
+  linhas.forEach(l=>{
+    const m=l.match(/^(\d+)\s*-\s*/);
+    if(m)maior=Math.max(maior,parseInt(m[1],10));
+  });
+  return maior+1;
+}
 window.salvarObs=function(id){
-  const v=document.getElementById('obs-ta-'+id).value;
+  const novoTexto=document.getElementById('obs-ta-'+id).value.trim();
+  if(!novoTexto)return;
   const c=casos[id];
   const anterior=(c&&c.obs)||'';
-  if(anterior.trim()&&v.length>anterior.length*5){
-    if(!confirm('O novo texto ficou bem maior que a observação anterior — isso vai substituir tudo. Confirma que quer salvar assim mesmo?'))return;
-  }
-  update(ref(db,`casos/${id}`),{obs:v,obsAnterior:anterior,atualizado:isoHoje()});
+  const numero=proximoNumeroObs(anterior);
+  const novoObs=`${numero} - ${novoTexto}`+(anterior?`\n${anterior}`:'');
+  update(ref(db,`casos/${id}`),{obs:novoObs,obsAnterior:anterior,atualizado:isoHoje()});
   try{localStorage.removeItem('rascunho-obs-'+id);}catch(err){}
+  document.getElementById('obs-ta-'+id).value='';
   const rascunhoMsg=document.getElementById('rascunho-'+id);
   if(rascunhoMsg)rascunhoMsg.style.display='none';
   const s=document.getElementById('saved-'+id);s.style.display='inline';
   setTimeout(()=>{s.style.display='none';document.getElementById('obs-edit-'+id).style.display='none';},1400);
+  gerarLembreteDaObs(id,{...c,obs:novoObs},novoTexto);
 };
+// Depois de acrescentar uma informação nova, a IA lê ela (com o resto do
+// contexto do card) e, SE identificar algo genuinamente acionável, já cria um
+// lembrete no Foco do dia — sem esperar a próxima verificação automática de
+// 4h. Roda em segundo plano, silenciosamente (não interrompe o fluxo de
+// salvar), e fica em silêncio pra notas de rotina (ver automatico:true no
+// endpoint, que troca a regra de "sempre gerar" por "só se for acionável").
+async function gerarLembreteDaObs(id,c,novoTexto){
+  try{
+    const r=await fetch('/api/gerar-aviso-foco',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({automatico:true,caso:{
+      nome:c.nome,tipo:c.tipo,status:c.status,resp:c.resp,prazo:c.prazo,dep:c.dep,agendado:c.agendado,
+      diasParado:diasParado(c.atualizado),obs:c.obs,ultimaAtualizacao:novoTexto
+    }})});
+    const j=await r.json();
+    if(!j.ok||!j.aviso)return;
+    const urgente=c.status==='critico'||c.status==='prioridade';
+    const txt=`${ICONE_MARCADOR.alerta} ${j.aviso}`;
+    const arrAtual=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+    arrAtual.push({text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente,marcador:'alerta'});
+    await set(focosRef,arrAtual);
+  }catch(e){}
+}
 window.desfazerObs=function(id){
   const c=casos[id];
   if(!c||!c.obsAnterior)return;

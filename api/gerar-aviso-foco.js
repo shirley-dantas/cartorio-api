@@ -18,12 +18,27 @@ REGRA CRÍTICA — NÃO CONFUNDIR ASSINATURA DA ESCRITURA COM PENDÊNCIAS DATADA
 - Texto corrido, sem markdown, sem listas, no máximo 2 frases curtas
 - Responda SOMENTE com o texto do aviso, nada mais`;
 
-function chamarClaude(mensagem) {
+// Variante usada quando uma nova observação é registrada automaticamente
+// (não foi um pedido manual da equipe) — ao contrário da regra acima, aqui
+// SILÊNCIO é o padrão: só gera aviso se a informação nova for genuinamente
+// acionável, senão a maioria das notas de rotina (ex: "Documentos enviados")
+// viraria alerta desnecessário no Foco do dia.
+const SYSTEM_PROMPT_AUTOMATICO = `Você é o coordenador operacional do 20º Cartório de Notas de São Paulo. Alguém da equipe acabou de registrar uma NOVA informação nas observações de um caso, e sua tarefa é decidir se isso merece virar um lembrete no Foco do Dia.
+
+Regras:
+- Olhe primeiro para "ÚLTIMA INFORMAÇÃO REGISTRADA AGORA" — é sobre ela que você decide, o resto (histórico e dados do card) é só contexto de apoio
+- Gere um aviso SOMENTE se essa última informação for genuinamente acionável: revelar uma pendência nova, uma promessa com prazo, algo que destrava ou trava o caso, ou uma mudança que muda o que precisa ser feito a seguir
+- Se for só uma confirmação de rotina sem nada de novo pra agir (ex: "documento enviado", "orçamento enviado", sem pendência nem prazo associado), responda EXATAMENTE com a palavra NADA, sem mais nada — silêncio é melhor que alerta forçado
+- Nunca invente datas, nomes ou fatos que não estão explicitamente nos dados fornecidos
+- Se gerar aviso: tom caloroso e pessoal dirigido à Shirley, texto corrido sem markdown, no máximo 2 frases curtas
+- Responda SOMENTE com o texto do aviso (ou a palavra NADA), nada mais`;
+
+function chamarClaude(mensagem, systemPrompt) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       model: "claude-sonnet-4-6",
       max_tokens: 300,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt || SYSTEM_PROMPT,
       messages: [{ role: "user", content: mensagem }]
     });
     const options = {
@@ -68,16 +83,30 @@ module.exports = async (req, res) => {
   const caso = dados.caso || {};
   if (!caso.nome) return res.status(400).json({ ok: false, erro: "Caso não informado" });
 
-  const mensagem = `CASO: ${caso.nome} (${caso.tipo || "tipo não definido"})
+  const automatico = !!dados.automatico;
+  const dadosBase = `CASO: ${caso.nome} (${caso.tipo || "tipo não definido"})
 Status: ${caso.status || "—"} | Responsável: ${caso.resp || "—"} | Prazo: ${caso.prazo || "—"} | Dias parado: ${caso.diasParado ?? 0} | Dependência: ${caso.dep || "nenhuma"}
-Assinatura da escritura agendada: ${caso.agendado ? new Date(caso.agendado).toLocaleString("pt-BR") : "não marcada"}
+Assinatura da escritura agendada: ${caso.agendado ? new Date(caso.agendado).toLocaleString("pt-BR") : "não marcada"}`;
+
+  const mensagem = automatico
+    ? `${dadosBase}
+ÚLTIMA INFORMAÇÃO REGISTRADA AGORA: ${caso.ultimaAtualizacao || "(não informada)"}
+
+HISTÓRICO COMPLETO DAS OBSERVAÇÕES (contexto de apoio):
+${caso.obs || "nenhuma"}
+
+Decida se a última informação registrada merece virar um lembrete no Foco do Dia.`
+    : `${dadosBase}
 Observações: ${caso.obs || "nenhuma"}
 
 Escreva o aviso para subir esse caso ao Foco do Dia.`;
 
   try {
-    const texto = await chamarClaude(mensagem);
-    res.status(200).json({ ok: true, aviso: texto.trim() });
+    const texto = (await chamarClaude(mensagem, automatico ? SYSTEM_PROMPT_AUTOMATICO : SYSTEM_PROMPT)).trim();
+    if (automatico && /^nada\.?$/i.test(texto.normalize("NFD").replace(/[̀-ͯ]/g, ""))) {
+      return res.status(200).json({ ok: true, aviso: null });
+    }
+    res.status(200).json({ ok: true, aviso: texto });
   } catch (err) {
     res.status(500).json({ ok: false, erro: err.message });
   }
