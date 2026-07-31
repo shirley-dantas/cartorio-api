@@ -626,6 +626,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- Modal Responder item do Foco do dia -->
+<div class="modal-overlay" id="modal-responder-foco">
+  <div class="modal-box" style="max-width:420px">
+    <button class="modal-close" onclick="fecharResponderFoco()">&times;</button>
+    <div class="modal-title"><i class="ti ti-message-reply" style="font-size:15px;vertical-align:-2px;color:#0D47A1"></i> Responder</div>
+    <div class="modal-sub" id="rf-caso-info">—</div>
+    <div id="rf-pergunta" style="font-size:12.5px;color:#48484A;background:#F5F5F7;border-radius:8px;padding:10px 12px;margin-bottom:12px"></div>
+    <div class="modal-btn-row" style="margin-bottom:8px">
+      <button class="btn-sm" style="border-color:#A8D5B5;color:#1E8E3E" onclick="rfPreencherRapido('Sim, já está tudo encaminhado.')">✅ Sim, tudo certo</button>
+      <button class="btn-sm" style="border-color:#FCD34D;color:#B45309" onclick="document.getElementById('rf-texto').focus()">❌ Ainda falta algo</button>
+    </div>
+    <textarea class="modal-textarea" id="rf-texto" placeholder="Ex: Sim, já está tudo encaminhado / Ex: Não, falta o RG do comprador" style="min-height:70px"></textarea>
+    <div class="modal-btn-row">
+      <button class="btn-gerar" id="rf-btn-enviar" onclick="enviarRespostaFoco()"><i class="ti ti-send" style="font-size:13px;vertical-align:-1px"></i> Enviar</button>
+    </div>
+    <div class="modal-loading" id="rf-loading">
+      <i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>
+      Registrando e avaliando se precisa de lembrete novo...
+    </div>
+  </div>
+</div>
+
 <!-- A mascote em si (SVG, host, bolha de fala) é montada em runtime pelo
      componente design-system/mascots/joaninha/joaninha.js — só o painel
      de captura rápida (específico do PRIME) fica declarado aqui. -->
@@ -950,12 +972,14 @@ function renderFoco(){
     const tagResp=f.resp?bResp(f.resp):'';
     const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
     const clicavel=nomeCaso?` data-caso="${esc(nomeCaso)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`:'';
+    const btnResponder=(nomeCaso&&!f.done)?`<button class="btn-sm" style="margin-top:6px" onclick="event.stopPropagation();abrirResponderFoco(${i})"><i class="ti ti-message-reply" style="font-size:12px;vertical-align:-1px"></i> Responder</button>`:'';
     return`
     <div class="foco-item ${tipo}${f.done?' done':''}">
       <div class="foco-check${f.done?' checked':''}" onclick="toggleFoco(${i})"></div>
       <div class="foco-conteudo"${clicavel}>
         <div class="foco-tags">${tagCaso}${tagResp}${tagUrgente}</div>
         <span class="foco-text${f.done?' done':''}">${f.text}</span>
+        ${btnResponder}
       </div>
       <button class="foco-del" onclick="delFoco(${i})">&times;</button>
     </div>
@@ -1046,6 +1070,51 @@ window.delFoco=function(i){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   arr.splice(i,1);
   set(focosRef,arr);
+};
+
+// ── RESPONDER ITEM DO FOCO (registra a resposta no card + IA decide se vira lembrete) ──
+let rfItemIndex=null;
+window.abrirResponderFoco=function(i){
+  const arr=Array.isArray(focos)?focos:Object.values(focos||{});
+  const item=arr[i];
+  if(!item||!item.casoNome)return;
+  rfItemIndex=i;
+  document.getElementById('rf-caso-info').textContent=item.casoNome;
+  const prefixoIcone=ICONE_MARCADOR[item.marcador];
+  const perguntaLimpa=prefixoIcone&&item.text.startsWith(prefixoIcone)?item.text.slice(prefixoIcone.length).trim():item.text;
+  document.getElementById('rf-pergunta').textContent=perguntaLimpa;
+  document.getElementById('rf-texto').value='';
+  document.getElementById('rf-loading').style.display='none';
+  document.getElementById('rf-btn-enviar').disabled=false;
+  document.getElementById('modal-responder-foco').classList.add('open');
+  setTimeout(()=>document.getElementById('rf-texto').focus(),50);
+};
+window.fecharResponderFoco=function(){
+  document.getElementById('modal-responder-foco').classList.remove('open');
+};
+window.rfPreencherRapido=function(texto){
+  document.getElementById('rf-texto').value=texto;
+};
+window.enviarRespostaFoco=async function(){
+  const texto=document.getElementById('rf-texto').value.trim();
+  if(!texto){document.getElementById('rf-texto').focus();return;}
+  const arr=Array.isArray(focos)?focos:Object.values(focos||{});
+  const item=arr[rfItemIndex];
+  if(!item)return;
+  const c=getCasosList().find(x=>x.nome===item.casoNome);
+  if(!c){alert('Não encontrei mais esse caso — pode ter sido excluído.');fecharResponderFoco();return;}
+  document.getElementById('rf-btn-enviar').disabled=true;
+  document.getElementById('rf-loading').style.display='block';
+  try{
+    const anterior=c.obs||'';
+    const numero=proximoNumeroObs(anterior);
+    const novoObs=`${numero} - ${texto}`+(anterior?`\n${anterior}`:'');
+    await update(ref(db,`casos/${c.id}`),{obs:novoObs,obsAnterior:anterior,atualizado:isoHoje()});
+    await gerarLembreteDaObs(c.id,{...c,obs:novoObs},texto);
+    if(!item.done)toggleFoco(rfItemIndex);
+  }finally{
+    fecharResponderFoco();
+  }
 };
 
 // ── SAUDAÇÃO / IDENTIDADE ──
