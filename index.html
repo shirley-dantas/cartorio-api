@@ -959,6 +959,16 @@ function setSyncStatus(ok){
 function getCasosList(){
   return Object.values(casos).filter(Boolean);
 }
+// A IA que gera itens do Foco do dia às vezes acrescenta o tipo do ato entre
+// parênteses no fim do nome (ex: "Elizabete Botisaris (venda e compra)"),
+// mesmo isso não fazendo parte do nome real salvo no card — busca exata
+// falhava nesse caso. Aceita como válido quando o nome do foco começa
+// exatamente com o nome real do card (prefixo), não só igualdade exata.
+function encontrarCasoPorNomeFoco(nomeFoco){
+  if(!nomeFoco)return null;
+  const lista=getCasosList();
+  return lista.find(x=>x.nome===nomeFoco)||lista.find(x=>nomeFoco.startsWith(x.nome))||null;
+}
 
 // ── FOCO DO DIA ──
 function renderFoco(){
@@ -1101,7 +1111,7 @@ window.enviarRespostaFoco=async function(){
   const arr=Array.isArray(focos)?focos:Object.values(focos||{});
   const item=arr[rfItemIndex];
   if(!item)return;
-  const c=getCasosList().find(x=>x.nome===item.casoNome);
+  const c=encontrarCasoPorNomeFoco(item.casoNome);
   if(!c){alert('Não encontrei mais esse caso — pode ter sido excluído.');fecharResponderFoco();return;}
   document.getElementById('rf-btn-enviar').disabled=true;
   document.getElementById('rf-loading').style.display='block';
@@ -1369,7 +1379,7 @@ function visivel(c){
 
 window.irParaCasoDoFoco=function(nomeCaso){
   if(!nomeCaso)return;
-  const c=getCasosList().find(x=>x.nome===nomeCaso);
+  const c=encontrarCasoPorNomeFoco(nomeCaso);
   if(!c){alert('Não encontrei mais esse caso — pode ter sido excluído.');return;}
   busca='';
   const buscaInput=document.querySelector('.search-wrap input');
