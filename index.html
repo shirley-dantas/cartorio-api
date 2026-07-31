@@ -277,6 +277,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .joaninha-anexos{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .joaninha-anexo-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;background:#FDECEF;color:#7A1F2B;border-radius:20px;padding:3px 8px 3px 9px}
 .joaninha-anexo-chip button{background:none;border:none;color:#B4718A;cursor:pointer;font-size:13px;line-height:1;padding:0 1px}
+.btn-anexar-reeditar{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px dashed #C7C7CC;border-radius:8px;background:#fff;color:#3A3A3C;font-size:12.5px;cursor:pointer}
+.btn-anexar-reeditar:hover{background:#F5F5F7}
 .joaninha-panel-actions{display:flex;align-items:center;gap:6px;margin-top:10px}
 .joaninha-icon-btn{width:30px;height:30px;border-radius:50%;border:0.5px solid #F0D3D8;background:#FFF7F8;color:#B4718A;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px}
 .joaninha-icon-btn:hover{background:#FDECEF}
@@ -551,8 +553,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="modal-close" onclick="fecharReeditar()">&times;</button>
     <div class="modal-title"><i class="ti ti-edit" style="font-size:15px;vertical-align:-2px;color:#6A1B9A"></i> Reeditar Minuta</div>
     <div class="modal-sub" id="reeditar-caso-info">—</div>
-    <label class="modal-label">O que você quer alterar ou acrescentar na minuta?</label>
+    <label class="modal-label">O que você quer alterar, acrescentar ou retirar na minuta?</label>
     <textarea class="modal-textarea" id="reeditar-instrucao" placeholder="Ex: Acrescentar cláusula de usufruto vitalício em favor do vendedor&#10;Ex: Alterar forma de pagamento para financiamento bancário&#10;Ex: Incluir dados do imóvel: matrícula 12345, Cartório do 5º RI"></textarea>
+    <label class="modal-label">Minuta pronta atual (Word/PDF) — opcional, mas se anexar será seguida à risca, sem tirar nada</label>
+    <input type="file" id="reeditar-arquivo-minuta-input" accept=".docx,.pdf,image/*" multiple style="display:none">
+    <button type="button" class="btn-anexar-reeditar" onclick="document.getElementById('reeditar-arquivo-minuta-input').click()"><i class="ti ti-paperclip" style="font-size:12px;vertical-align:-1px"></i> Anexar arquivo(s) da minuta</button>
+    <div id="reeditar-chips-minuta" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px"></div>
+    <label class="modal-label">Documentos referentes a essa alteração (opcional — pode anexar quantos precisar, um de cada vez ou vários juntos)</label>
+    <input type="file" id="reeditar-arquivo-doc-input" accept=".docx,.pdf,image/*" multiple style="display:none">
+    <button type="button" class="btn-anexar-reeditar" onclick="document.getElementById('reeditar-arquivo-doc-input').click()"><i class="ti ti-paperclip" style="font-size:12px;vertical-align:-1px"></i> Anexar documento(s)</button>
+    <div id="reeditar-chips-doc" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px"></div>
     <div class="modal-btn-row">
       <button class="btn-gerar" id="btn-reeditar-gerar" onclick="gerarReeditar()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Gerar nova versão</button>
     </div>
@@ -562,7 +572,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span style="font-size:11px;color:#AEAEB2">Isso pode levar até 60 segundos</span>
     </div>
     <div class="modal-result" id="reeditar-result" style="text-align:center;padding:16px">
-      <div style="font-size:15px;font-weight:600;color:#1B5E20;margin-bottom:8px">✅ Nova versão gerada com sucesso!</div>
+      <div style="font-size:15px;font-weight:600;color:#1B5E20;margin-bottom:8px" id="reeditar-result-titulo">✅ Nova versão gerada com sucesso!</div>
       <div style="font-size:12px;color:#636366;margin-bottom:14px" id="reeditar-doc-nome"></div>
       <a id="btn-abrir-reeditar" href="#" target="_blank" style="display:inline-block;background:#6A1B9A;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">
         <i class="ti ti-brand-google-drive" style="font-size:13px;vertical-align:-1px"></i> Abrir nova versão no Drive
@@ -685,6 +695,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <script src="design-system/mascots/joaninha/joaninha.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -1649,12 +1660,40 @@ window.abrirMinuta=async function(id){
 window.fecharMinuta=function(){
   document.getElementById('modal-minuta').classList.remove('open');
 };
+let reeditarArquivosMinuta=[];
+let reeditarArquivosDoc=[];
+function renderReeditarChips(){
+  const elM=document.getElementById('reeditar-chips-minuta');
+  if(elM) elM.innerHTML=reeditarArquivosMinuta.map((f,i)=>`<span class="joaninha-anexo-chip"><i class="ti ti-file-text"></i> ${f.name}<button type="button" onclick="reeditarRemoverArquivo('minuta',${i})">&times;</button></span>`).join('');
+  const elD=document.getElementById('reeditar-chips-doc');
+  if(elD) elD.innerHTML=reeditarArquivosDoc.map((f,i)=>`<span class="joaninha-anexo-chip"><i class="ti ti-paperclip"></i> ${f.name}<button type="button" onclick="reeditarRemoverArquivo('doc',${i})">&times;</button></span>`).join('');
+}
+window.reeditarRemoverArquivo=function(campo,i){
+  (campo==='minuta'?reeditarArquivosMinuta:reeditarArquivosDoc).splice(i,1);
+  renderReeditarChips();
+};
+document.getElementById('reeditar-arquivo-minuta-input').addEventListener('change',function(){
+  reeditarArquivosMinuta.push(...Array.from(this.files));
+  this.value='';
+  renderReeditarChips();
+});
+document.getElementById('reeditar-arquivo-doc-input').addEventListener('change',function(){
+  reeditarArquivosDoc.push(...Array.from(this.files));
+  this.value='';
+  renderReeditarChips();
+});
 window.abrirReeditar=async function(id){
   const c=casos[id];if(!c)return;
   document.getElementById('reeditar-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
   document.getElementById('reeditar-instrucao').value='';
+  reeditarArquivosMinuta=[];
+  reeditarArquivosDoc=[];
+  renderReeditarChips();
   document.getElementById('reeditar-loading').style.display='none';
   document.getElementById('reeditar-result').style.display='none';
+  document.getElementById('reeditar-result-titulo').textContent='✅ Nova versão gerada com sucesso!';
+  document.getElementById('reeditar-result-titulo').style.color='#1B5E20';
+  document.getElementById('btn-abrir-reeditar').style.display='inline-block';
   document.getElementById('btn-reeditar-gerar').disabled=false;
   document.getElementById('btn-reeditar-gerar').dataset.id=id;
   document.getElementById('modal-reeditar').classList.add('open');
@@ -1817,25 +1856,116 @@ window.gerarReeditar=async function(){
   document.getElementById('reeditar-result').style.display='none';
   const rLoad=document.getElementById('reeditar-loading');
   const setRLoad=(txt)=>{rLoad.style.display='block';rLoad.innerHTML=`<i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>${txt}`;};
-  const setRErro=(msg)=>{rLoad.style.display='none';document.getElementById('reeditar-result').style.display='block';document.getElementById('btn-abrir-reeditar').href='#';document.getElementById('reeditar-doc-nome').textContent='⚠️ '+msg;};
+  const setRErro=(msg)=>{
+    rLoad.style.display='none';
+    document.getElementById('reeditar-result').style.display='block';
+    document.getElementById('reeditar-result-titulo').textContent='⚠️ Não deu certo';
+    document.getElementById('reeditar-result-titulo').style.color='#B71C1C';
+    document.getElementById('btn-abrir-reeditar').style.display='none';
+    document.getElementById('btn-abrir-reeditar').href='#';
+    document.getElementById('reeditar-doc-nome').textContent=msg;
+  };
   try{
-    // Buscar documentos existentes do caso
-    let docsTexto='';
-    try{
-      const snap=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/documentos.json`);
-      const docs=await snap.json();
-      const linhas=[];
-      if(c.obs) linhas.push('=== INFORMAÇÕES DO CASO ===\n'+c.obs);
-      if(docs && typeof docs==='object'){
-        Object.values(docs).forEach(d=>{
-          linhas.push(d.tipo==='modelo'
-            ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
-            : `\n=== DOCUMENTO: ${d.nome} ===`);
-          if(d.texto) linhas.push(d.texto);
-        });
+    const arqsMinuta=reeditarArquivosMinuta;
+    const arqsDoc=reeditarArquivosDoc;
+
+    const lerBase64Reeditar=(file)=>new Promise((resolve,reject)=>{
+      const r=new FileReader();
+      r.onload=()=>resolve(String(r.result).split(',')[1]||'');
+      r.onerror=reject;
+      r.readAsDataURL(file);
+    });
+    const isDocxReeditar=(file)=>/wordprocessingml\.document/.test(file.type||'')||/\.docx$/i.test(file.name||'');
+    // .docx é extraído no PRÓPRIO NAVEGADOR (mammoth.browser) — o Word já é
+    // texto puro internamente, então isso evita enviar o arquivo inteiro (que
+    // pode vir com imagens embutidas e passar de 4MB) só pra extrair texto.
+    // Só o texto (bem menor) segue pro servidor quando ainda precisa da IA.
+    const extrairDocxCliente=(file)=>new Promise((resolve,reject)=>{
+      const r=new FileReader();
+      r.onload=async()=>{
+        try{
+          const resultado=await window.mammoth.extractRawText({arrayBuffer:r.result});
+          resolve((resultado&&resultado.value&&resultado.value.trim())||'');
+        }catch(e){reject(e);}
+      };
+      r.onerror=reject;
+      r.readAsArrayBuffer(file);
+    });
+    const extrairArquivo=async(file,preservarIntegral)=>{
+      if(isDocxReeditar(file)){
+        let textoBruto;
+        try{ textoBruto=await extrairDocxCliente(file); }
+        catch(e){ throw new Error(`Não consegui ler o arquivo Word "${file.name}".`); }
+        if(!textoBruto) return '';
+        if(preservarIntegral) return textoBruto; // minuta pronta: usa o texto tal como está, sem passar pela IA
+        // Documento de apoio: ainda passa por uma extração jurídica objetiva —
+        // mas envia só o TEXTO (pequeno), não o arquivo, então o limite de
+        // tamanho de envio não se aplica aqui.
+        const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({textoBruto,nomeArquivo:file.name})});
+        const j=await resp.json();
+        if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
+        return j.texto||textoBruto;
       }
-      docsTexto=linhas.join('\n');
-    }catch(e){docsTexto=c.obs||'';}
+      // PDF/imagem: precisa mesmo enviar o arquivo (a IA lê o documento visualmente).
+      if(file.size>3.5*1024*1024){
+        throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui. Escaneie/salve em resolução menor (até ~3MB) e tente de novo.`);
+      }
+      const base64=await lerBase64Reeditar(file);
+      let resp;
+      try{
+        resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,mimetype:file.type,nomeArquivo:file.name,preservarIntegral})});
+      }catch(e){
+        throw new Error(`Não consegui enviar o arquivo "${file.name}". Tente de novo.`);
+      }
+      let j;
+      try{ j=await resp.json(); }
+      catch(e){ throw new Error(`O arquivo "${file.name}" é grande demais ou o servidor recusou o envio. Tente um arquivo menor.`); }
+      if(!j.ok) throw new Error(j.erro||`Não consegui ler o arquivo "${file.name}".`);
+      return j.texto||'';
+    };
+
+    let docsTexto='';
+    if(arqsMinuta.length){
+      // Minuta pronta anexada: a base é ELA, não os documentos antigos do card —
+      // evita misturar dados antigos/desatualizados com o que está sendo pedido agora.
+      // Se vier em mais de um arquivo (ex: minuta dividida em partes), o texto de
+      // todos é unido num único bloco MINUTA ATUAL, na ordem em que foram anexados.
+      const partesMinuta=[];
+      for(let i=0;i<arqsMinuta.length;i++){
+        setRLoad(`Lendo a minuta pronta anexada (${i+1} de ${arqsMinuta.length})…`);
+        partesMinuta.push(await extrairArquivo(arqsMinuta[i],true));
+      }
+      const nomesMinuta=arqsMinuta.map(f=>f.name).join(', ');
+      const blocos=[`=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${nomesMinuta} ===\n${partesMinuta.join('\n\n')}`];
+      for(let i=0;i<arqsDoc.length;i++){
+        setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
+        const textoDoc=await extrairArquivo(arqsDoc[i],false);
+        blocos.push(`=== DOCUMENTO: ${arqsDoc[i].name} ===\n${textoDoc}`);
+      }
+      docsTexto=blocos.join('\n\n');
+    } else {
+      // Sem minuta pronta anexada: comportamento de antes (documentos já salvos no card)
+      try{
+        const snap=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/documentos.json`);
+        const docs=await snap.json();
+        const linhas=[];
+        if(c.obs) linhas.push('=== INFORMAÇÕES DO CASO ===\n'+c.obs);
+        if(docs && typeof docs==='object'){
+          Object.values(docs).forEach(d=>{
+            linhas.push(d.tipo==='modelo'
+              ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
+              : `\n=== DOCUMENTO: ${d.nome} ===`);
+            if(d.texto) linhas.push(d.texto);
+          });
+        }
+        docsTexto=linhas.join('\n');
+      }catch(e){docsTexto=c.obs||'';}
+      for(let i=0;i<arqsDoc.length;i++){
+        setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
+        const textoDoc=await extrairArquivo(arqsDoc[i],false);
+        docsTexto+=`\n\n=== DOCUMENTO: ${arqsDoc[i].name} ===\n${textoDoc}`;
+      }
+    }
     setRLoad('Iniciando geração da minuta…');
     const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade||'digital'})});
     const di=await ri.json();
@@ -1847,9 +1977,12 @@ window.gerarReeditar=async function(){
     rLoad.style.display='none';
     document.getElementById('reeditar-result').style.display='block';
     if(d2.ok&&d2.docUrl){
+      document.getElementById('reeditar-result-titulo').textContent='✅ Nova versão gerada com sucesso!';
+      document.getElementById('reeditar-result-titulo').style.color='#1B5E20';
+      document.getElementById('btn-abrir-reeditar').style.display='inline-block';
       document.getElementById('btn-abrir-reeditar').href=d2.docUrl;
       document.getElementById('reeditar-doc-nome').textContent=d2.docNome||'';
-      if(d2.folderUrl) update(ref(db,'casos/'+id),{driveUrl:d2.folderUrl}).catch(()=>{});
+      update(ref(db,'casos/'+id),{...(d2.folderUrl?{driveUrl:d2.folderUrl}:{}),docUrl:d2.docUrl}).catch(()=>{});
     } else {
       setRErro(d2.erro||'Não foi possível salvar no Drive.');
     }
@@ -1891,7 +2024,7 @@ window.gerarAnalise=async function(){
       document.getElementById('modal-doc-nome').textContent=d2.docNome||'';
       document.getElementById('modal-result-text').style.display='none';
       document.getElementById('btn-copiar-rel').style.display='none';
-      if(d2.folderUrl) update(ref(db,'casos/'+id),{driveUrl:d2.folderUrl}).catch(()=>{});
+      update(ref(db,'casos/'+id),{...(d2.folderUrl?{driveUrl:d2.folderUrl}:{}),docUrl:d2.docUrl}).catch(()=>{});
     } else {
       setErro(d2.erro||'Não foi possível salvar no Drive.');
     }
