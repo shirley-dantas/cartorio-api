@@ -181,6 +181,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-drive{color:#1E8E3E;border-color:#A8D5B5}.btn-drive:hover{background:#F0FAF3}
 .btn-reeditar{color:#6A1B9A;border-color:#CE93D8}.btn-reeditar:hover{background:#F3E5F5}
 .btn-minuta:hover{background:#E3F2FD}
+.btn-sp{color:#B45309;border-color:#FCD34D}.btn-sp:hover{background:#FFFBEB}
+.sp-bubble{background:#F5F5F7;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:10px}
+.sp-opcoes{display:flex;gap:8px;margin-bottom:4px}
+.sp-opcoes button{flex:1}
+#sp-pergunta-area input{width:100%;font-size:13px;padding:9px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;font-family:inherit;outline:none;margin-bottom:10px}
+#sp-pergunta-area input:focus{border-color:#16283A;background:#fff}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(13,25,34,.6);backdrop-filter:blur(2px);z-index:1000;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
 .modal-overlay.open{display:flex}
 .modal-box{background:#fff;border-radius:20px;width:100%;max-width:780px;padding:26px;position:relative;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
@@ -601,6 +607,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-segunda-parte">
+  <div class="modal-box" style="max-width:420px">
+    <button class="modal-close" onclick="fecharSegundaParte()">&times;</button>
+    <div class="modal-title"><i class="ti ti-users" style="font-size:15px;vertical-align:-2px;color:#B45309"></i> Assinatura de segunda parte</div>
+    <div class="modal-sub" id="sp-caso-info">—</div>
+    <div id="sp-pergunta-area"></div>
+  </div>
+</div>
+
 <!-- A mascote em si (SVG, host, bolha de fala) é montada em runtime pelo
      componente design-system/mascots/joaninha/joaninha.js — só o painel
      de captura rápida (específico do PRIME) fica declarado aqui. -->
@@ -829,7 +844,7 @@ async function verificarAlertasSeNecessario(forcar){
     if(btn){btn.disabled=true;btn.textContent='Verificando...';}
     const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
       nome:c.nome,tipo:c.tipo,resp:c.resp,prazo:c.prazo,dep:c.dep,agendado:c.agendado,
-      diasParado:diasParado(c.atualizado),obs:c.obs
+      diasParado:diasParado(c.atualizado),obs:c.obs,segundaParte:c.segundaParte||null
     }));
     if(casosAtivos.length){
       const aprendizados=await buscarAprendizadosRelevantes('alerta');
@@ -1378,6 +1393,7 @@ function renderCasos(){
         ${c.driveUrl?`<button class="btn-sm btn-drive" onclick="window.open('${c.driveUrl}','_blank')"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Drive</button>`:''}
         <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
         <button class="btn-sm btn-foco" onclick="addAoFoco('${c.id}')"><i class="ti ti-bolt" style="font-size:12px;vertical-align:-1px"></i> Foco</button>
+        ${c.segundaParte&&(c.segundaParte.status==='pendente'||c.segundaParte.status==='lembrete')?`<button class="btn-sm btn-sp" onclick="abrirSegundaParte('${c.id}')"><i class="ti ti-users" style="font-size:12px;vertical-align:-1px"></i> Atualizar assinatura da 2ª parte</button>`:''}
         <button class="btn-sm btn-reeditar" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit" style="font-size:12px;vertical-align:-1px"></i> Reeditar</button>
         <button class="btn-sm" onclick="abrirAtendimento('${c.id}')"><i class="ti ti-headset" style="font-size:12px;vertical-align:-1px"></i> Atendimento</button>
         <button class="btn-sm ${c.concluido?'':'btn-concluir'}" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
@@ -1393,7 +1409,123 @@ window.mudarCampo=function(id,campo,valor){
   upd[campo]=valor;
   upd['atualizado']=isoHoje();
   update(ref(db,`casos/${id}`),upd);
-  if(campo==='agendado')sincronizarEventoCalendar(id,{...casos[id],agendado:valor});
+  if(campo==='agendado'){
+    sincronizarEventoCalendar(id,{...casos[id],agendado:valor});
+    if(valor)abrirSegundaParte(id);
+  }
+};
+
+// ── ASSINATURA DE SEGUNDA PARTE ──
+// Pergunta guiada (uma pergunta por vez, estilo bot do WhatsApp) disparada ao
+// salvar a data de "Assinatura da escritura". Objetivo: capturar a data de
+// uma eventual segunda assinatura (construtora, escritório, fundo, pessoa
+// física...) de forma estruturada, em vez de deixar essa informação só
+// dentro do texto solto de Observações — foi exatamente isso que causou os
+// avisos errados no Foco do dia que corrigimos hoje.
+let spEstado={};
+window.abrirSegundaParte=function(id){
+  const c=casos[id];if(!c)return;
+  spEstado={id,passo:'juntos'};
+  document.getElementById('sp-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
+  renderPerguntaSegundaParte();
+  document.getElementById('modal-segunda-parte').classList.add('open');
+};
+window.fecharSegundaParte=function(){
+  document.getElementById('modal-segunda-parte').classList.remove('open');
+};
+function renderPerguntaSegundaParte(){
+  const area=document.getElementById('sp-pergunta-area');
+  const passo=spEstado.passo;
+  if(passo==='juntos'){
+    area.innerHTML=`<div class="sp-bubble">Todos vão assinar juntos na data agendada?</div>
+      <div class="sp-opcoes">
+        <button class="btn-sm" onclick="spResponder('juntos_sim')">1. Sim</button>
+        <button class="btn-sm" onclick="spResponder('juntos_nao')">2. Não</button>
+      </div>`;
+  }else if(passo==='tem_data'){
+    area.innerHTML=`<div class="sp-bubble">Já tem a data de assinatura da segunda parte?</div>
+      <div class="sp-opcoes">
+        <button class="btn-sm" onclick="spResponder('tem_data_sim')">1. Sim</button>
+        <button class="btn-sm" onclick="spResponder('tem_data_nao')">2. Não</button>
+      </div>`;
+  }else if(passo==='form_data'){
+    area.innerHTML=`<div class="sp-bubble">Quando e quem vai assinar?</div>
+      <label class="modal-label">Quem assina</label>
+      <input type="text" id="sp-quem" placeholder="Ex: Construtora, Dr. Fulano...">
+      <label class="modal-label">Data e horário</label>
+      <input type="datetime-local" id="sp-data">
+      <div class="modal-btn-row"><button class="btn-gerar" onclick="spSalvarComData()">Salvar</button></div>`;
+  }else if(passo==='lembrete_pergunta'){
+    area.innerHTML=`<div class="sp-bubble">Quer criar um lembrete para travar essa agenda?</div>
+      <div class="sp-opcoes">
+        <button class="btn-sm" onclick="spResponder('lembrete_sim')">1. Sim</button>
+        <button class="btn-sm" onclick="spResponder('lembrete_nao')">2. Não</button>
+      </div>`;
+  }else if(passo==='form_lembrete'){
+    area.innerHTML=`<div class="sp-bubble">Pra quando quer o lembrete?</div>
+      <label class="modal-label">Data do lembrete</label>
+      <input type="date" id="sp-lembrete-data">
+      <div class="modal-btn-row"><button class="btn-gerar" onclick="spSalvarLembrete()">Salvar</button></div>`;
+  }
+}
+window.spResponder=async function(opcao){
+  const id=spEstado.id;const c=casos[id];if(!c)return;
+  if(opcao==='juntos_sim'){
+    await spRegistrarObs(id,'Assinatura única — todos assinam juntos na data agendada.');
+    await update(ref(db,`casos/${id}`),{segundaParte:{status:'juntos',atualizadoEm:new Date().toISOString()}});
+    fecharSegundaParte();
+  }else if(opcao==='juntos_nao'){
+    spEstado.passo='tem_data';renderPerguntaSegundaParte();
+  }else if(opcao==='tem_data_sim'){
+    spEstado.passo='form_data';renderPerguntaSegundaParte();
+  }else if(opcao==='tem_data_nao'){
+    spEstado.passo='lembrete_pergunta';renderPerguntaSegundaParte();
+  }else if(opcao==='lembrete_sim'){
+    spEstado.passo='form_lembrete';renderPerguntaSegundaParte();
+  }else if(opcao==='lembrete_nao'){
+    await spRegistrarObs(id,'Segunda parte ainda sem data de assinatura definida (sem lembrete criado).');
+    await update(ref(db,`casos/${id}`),{segundaParte:{status:'pendente',atualizadoEm:new Date().toISOString()}});
+    fecharSegundaParte();
+  }
+};
+async function spRegistrarObs(id,linha){
+  const c=casos[id];
+  const dataFmt=new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const obsAtual=(c.obs||'').trim();
+  const novoObs=obsAtual?`[${dataFmt}] ${linha}\n\n${obsAtual}`:`[${dataFmt}] ${linha}`;
+  await update(ref(db,`casos/${id}`),{obs:novoObs,atualizado:isoHoje()});
+}
+window.spSalvarComData=async function(){
+  const id=spEstado.id;const c=casos[id];if(!c)return;
+  const quem=document.getElementById('sp-quem').value.trim();
+  const dataHora=document.getElementById('sp-data').value;
+  if(!quem||!dataHora)return;
+  const btn=document.querySelector('#sp-pergunta-area .btn-gerar');if(btn)btn.disabled=true;
+  let calendarEventId=null;
+  try{
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({
+      acao:'sincronizar-evento-calendar',
+      nome:`${c.nome} — assinatura de ${quem}`,tipo:c.tipo,
+      dataHora,descricao:`Assinatura da segunda parte (${quem}) do caso ${c.nome}.`,
+      eventId:''
+    })});
+    const data=await r.json();
+    if(data&&data.ok)calendarEventId=data.eventId;
+    else alert('Salvei no card, mas não consegui criar o evento no Calendar agora.');
+  }catch(e){
+    alert('Salvei no card, mas houve erro de conexão com o Calendar: '+e.message);
+  }
+  await spRegistrarObs(id,`Assinatura da segunda parte (${quem}) marcada para ${new Date(dataHora).toLocaleString('pt-BR')}.`);
+  await update(ref(db,`casos/${id}`),{segundaParte:{status:'data_definida',data:dataHora,quem,calendarEventId,atualizadoEm:new Date().toISOString()}});
+  fecharSegundaParte();
+};
+window.spSalvarLembrete=async function(){
+  const id=spEstado.id;const c=casos[id];if(!c)return;
+  const lembreteData=document.getElementById('sp-lembrete-data').value;
+  if(!lembreteData)return;
+  await spRegistrarObs(id,`Lembrete criado para travar a agenda da segunda parte em ${new Date(lembreteData+'T00:00').toLocaleDateString('pt-BR')}.`);
+  await update(ref(db,`casos/${id}`),{segundaParte:{status:'lembrete',lembreteData,atualizadoEm:new Date().toISOString()}});
+  fecharSegundaParte();
 };
 window.toggleConcluido=function(id){
   const c=casos[id];

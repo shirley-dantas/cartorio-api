@@ -8,12 +8,12 @@ const SYSTEM_PROMPT = `Você é o coordenador operacional do 20º Cartório de N
 2. AGENDA DE HOJE — casos que JÁ TÊM algo programado para hoje (assinatura de escritura, compromisso combinado) e só precisam de uma checagem rápida, não de um alerta de atraso
 3. AGENDA DE AMANHÃ — casos com algo programado para amanhã, para avisar com 1 dia de antecedência e ninguém ser pego de surpresa
 
-Você recebe, para cada caso: nome, tipo de ato, responsável, prazo, dias parado sem movimento, dependência, a data de "assinatura da escritura" agendada (se houver — é só a PRIMEIRA/principal data, pode haver outras datas de outros assinantes mencionadas só no texto) e o texto de observações (que inclui registros datados de atendimentos, ligações e pendências/promessas feitas a clientes, no formato "[DD/MM HH:MM] resumo — Pendência: ...").
+Você recebe, para cada caso: nome, tipo de ato, responsável, prazo, dias parado sem movimento, dependência, a data de "assinatura da escritura" agendada (se houver — é só a PRIMEIRA/principal data), a "assinatura de segunda parte" quando o caso tiver uma (construtora, escritório, fundo, pessoa física etc — já vem com a relação com hoje calculada, igual a principal) e o texto de observações (que inclui registros datados de atendimentos, ligações e pendências/promessas feitas a clientes, no formato "[DD/MM HH:MM] resumo — Pendência: ...").
 
 ATENÇÃO — o campo "prazo" NÃO é uma data de assinatura: é só um rótulo genérico de urgência do card, e vem como o texto literal "Hoje" por padrão em todo card novo, mesmo sem nenhuma data real definida. NUNCA use o campo "prazo" para decidir se uma assinatura é hoje ou amanhã — use SOMENTE a "assinatura da escritura agendada" e datas explícitas mencionadas no texto das observações.
 
 REGRA MAIS IMPORTANTE — leia a observação inteira, com atenção a QUALQUER data mencionada:
-- Casos podem ter MAIS DE UM assinante em datas diferentes (ex: assinatura principal já feita, e uma assinatura complementar de outra pessoa em outra data). A data adicional só aparece escrita no texto da observação, não no campo estruturado — procure por qualquer menção a uma data de assinatura/compromisso futuro no texto, mesmo que já exista uma data diferente no campo estruturado. As duas podem estar certas ao mesmo tempo (datas diferentes, pessoas diferentes).
+- Casos podem ter MAIS DE UM assinante em datas diferentes (ex: assinatura principal já feita, e uma assinatura complementar de outra pessoa em outra data). Quando o caso tiver "assinatura de segunda parte" já estruturada, use ela (já vem com a relação com hoje calculada, é a fonte mais confiável) — só procure datas adicionais soltas no texto da observação quando NÃO houver segunda parte estruturada. As duas datas (principal e segunda parte) podem estar certas ao mesmo tempo (datas diferentes, pessoas diferentes).
 - Se alguma dessas datas (do campo OU do texto) for HOJE, isso NUNCA é um alerta de atraso — vai para AGENDA DE HOJE, mesmo que a dependência diga "Falta assinatura"/"Aguardando cliente" ou o caso esteja com dias parados.
 - Se alguma dessas datas for AMANHÃ, gere um aviso em AGENDA DE AMANHÃ.
 - Se uma data mencionada já passou e não há nenhum registro mais recente confirmando que aconteceu, aí sim é um ALERTA de verdade sobre aquela pendência específica.
@@ -122,9 +122,23 @@ module.exports = async (req, res) => {
     return ` — isso já passou há ${Math.abs(diffDias)} dias`;
   };
 
+  // Descreve a "assinatura de segunda parte" (estruturada pelo fluxo guiado
+  // do card) em texto pronto pra IA, com a mesma relação-com-hoje calculada
+  // em código — nunca deixa a IA fazer essa conta sozinha.
+  const linhaSegundaParte = (sp) => {
+    if (!sp || !sp.status || sp.status === "juntos" || sp.status === "pendente") return "";
+    if (sp.status === "data_definida" && sp.data) {
+      return ` | assinatura de segunda parte (${sp.quem || "não identificado"}): ${new Date(sp.data).toLocaleString("pt-BR")}${relacaoComHoje(sp.data)}`;
+    }
+    if (sp.status === "lembrete" && sp.lembreteData) {
+      return ` | lembrete para travar agenda da segunda parte: ${new Date(sp.lembreteData).toLocaleDateString("pt-BR")}${relacaoComHoje(sp.lembreteData)} (data da assinatura em si ainda não definida)`;
+    }
+    return "";
+  };
+
   const montarMensagem = (lote) => {
     const listaCasos = lote.map(c =>
-      `- ${c.nome} (${c.tipo || "tipo não definido"}) | responsável: ${c.resp || "—"} | prazo: ${c.prazo || "—"} | dias parado: ${c.diasParado ?? 0} | dependência: ${c.dep || "nenhuma"} | assinatura da escritura agendada: ${c.agendado ? new Date(c.agendado).toLocaleString("pt-BR") + relacaoComHoje(c.agendado) : "não marcada"}\n  observações: ${(c.obs || "nenhuma").slice(0, 400)}`
+      `- ${c.nome} (${c.tipo || "tipo não definido"}) | responsável: ${c.resp || "—"} | prazo: ${c.prazo || "—"} | dias parado: ${c.diasParado ?? 0} | dependência: ${c.dep || "nenhuma"} | assinatura da escritura agendada: ${c.agendado ? new Date(c.agendado).toLocaleString("pt-BR") + relacaoComHoje(c.agendado) : "não marcada"}${linhaSegundaParte(c.segundaParte)}\n  observações: ${(c.obs || "nenhuma").slice(0, 400)}`
     ).join("\n\n");
 
     return `DATA DE HOJE: ${hoje}
