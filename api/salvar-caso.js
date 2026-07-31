@@ -47,11 +47,6 @@ function classificarServico(texto) {
   return "A classificar";
 }
 
-function ehLegendaModelo(texto) {
-  const t = normalizar(texto);
-  return /\bmodelo\b/.test(t);
-}
-
 function classificarUrgencia(texto) {
   const t = normalizar(texto);
   const alta = ["urgente","urgencia","hoje","agora","imediato","imediata","amanha","prazo","vencendo","vencido","vence","emergencia","rapido","rapida","preciso ja","preciso hoje"];
@@ -155,6 +150,21 @@ function ehPular(texto) {
   return /^(pular|pula|nenhum|nenhuma|nao tenho|sem documento|nao vou anexar)\b/.test(t);
 }
 
+// Resposta à pergunta de 3 opções feita só ao reeditar caso existente
+// (distingue "minuta pronta a seguir à risca" de "modelo de estilo comum").
+function respostaMinutaProntaRisca(texto) {
+  const t = normalizar(texto);
+  return /^(1|minuta|pronta|integra|risca)\b/.test(t);
+}
+function respostaModeloDeEstilo(texto) {
+  const t = normalizar(texto);
+  return /^(2|modelo|estilo)\b/.test(t);
+}
+function respostaSemAnexo(texto) {
+  const t = normalizar(texto);
+  return /^(3|nao|n|nenhum|nenhuma)\b/.test(t);
+}
+
 // Similaridade simples por distância de edição — evita depender de
 // biblioteca externa só para tolerar erro de digitação/acento.
 function distanciaEdicao(a, b) {
@@ -252,6 +262,8 @@ async function montarDocumentosTexto(casoId) {
     if (!d) return;
     linhas.push(d.tipo === "modelo"
       ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
+      : d.tipo === "minuta_atual"
+      ? `\n=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${d.nome} ===`
       : `\n=== DOCUMENTO: ${d.nome} ===`);
     if (d.texto) linhas.push(d.texto);
   });
@@ -287,6 +299,7 @@ async function gerarMinutaAssincrona(sessao) {
     tipo: caso.tipo,
     obs: caso.obs,
     documentos: documentosTexto,
+    instrucao: sessao.tipoAtualizacao || "",
     modalidade: caso.modalidade || "digital",
     casoId: sessao.casoId,
     notificarWhatsApp: true
@@ -360,7 +373,7 @@ async function extrairTextoModelo(base64, mimetype) {
         bloco,
         {
           type: "text",
-          text: "Este documento é uma MINUTA MODELO — uma escritura ou ato notarial já pronto, que será usado como referência de estilo e estrutura para redigir uma nova minuta. Transcreva o texto completo do documento, na íntegra, sem resumir e sem comentar. Apenas o texto puro da minuta."
+          text: "Este documento é uma escritura ou ato notarial já pronto (pode ser usado depois como referência de estilo, ou como a própria minuta deste caso a ser atualizada — isso será decidido em outra etapa). Transcreva o texto completo do documento, na íntegra, sem resumir, sem comentar e sem omitir nenhuma parte. Apenas o texto puro da minuta."
         }
       ]
     }]
@@ -468,11 +481,16 @@ function nomeArquivoSeguro(s) {
     .toUpperCase();
 }
 
-async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLegenda) {
+// tipoForcado: "" (documento comum) | "modelo" (referência de estilo, dados
+// nunca copiados) | "minuta_atual" (a própria minuta pronta deste caso, que
+// precisa ser seguida palavra por palavra). Ambos "modelo" e "minuta_atual"
+// exigem transcrição fiel (sem resumir) na extração — só diverge no rótulo
+// salvo no Firebase, que depois muda a regra que a IA aplica em cada um.
+async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, tipoForcado) {
   const resultado = await baixarMidia(dadosEvt);
   if (!resultado?.base64) return { ok: false };
 
-  const isModelo = ehLegendaModelo(textoLegenda);
+  const preservarIntegral = tipoForcado === "modelo" || tipoForcado === "minuta_atual";
   const mimeReal = resultado.mimetype || "";
   const nomeReal = resultado.fileName || "";
   const isDocx = mimeReal.indexOf("wordprocessingml.document") !== -1 || /\.docx$/i.test(nomeReal);
@@ -484,7 +502,7 @@ async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLege
   // matrícula, etc.) no nome — sem isso, vários anexos na mesma sessão
   // ficavam com nomes praticamente idênticos (só cliente + minuto).
   const textoExtraido = podeExtrair
-    ? await (isDocx ? extrairTextoDocx(resultado.base64, isModelo) : (isModelo ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
+    ? await (isDocx ? extrairTextoDocx(resultado.base64, preservarIntegral) : (preservarIntegral ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
     : null;
 
   // Nome do arquivo é o tipo do documento (ex: "CNH.pdf", "MATRICULA.pdf"),
@@ -493,8 +511,8 @@ async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLege
   // pessoas diferentes). Sem nome do card nem data/hora: cada cliente já tem
   // sua própria pasta no Drive. A minuta continua identificada pelo card
   // (ver criarMinutaDoc no Apps Script).
-  const tipoDoc = isModelo ? "MODELO" : (nomeArquivoSeguro(extrairTipoDocumento(textoExtraido)) || "DOCUMENTO");
-  const nomePessoa = isModelo ? null : extrairNomePessoa(textoExtraido);
+  const tipoDoc = tipoForcado === "modelo" ? "MODELO" : tipoForcado === "minuta_atual" ? "MINUTA_ATUAL" : (nomeArquivoSeguro(extrairTipoDocumento(textoExtraido)) || "DOCUMENTO");
+  const nomePessoa = preservarIntegral ? null : extrairNomePessoa(textoExtraido);
   const nomeArquivo = nomePessoa ? `${tipoDoc}_${nomeArquivoSeguro(nomePessoa)}.${ext}` : `${tipoDoc}.${ext}`;
 
   await salvarNoDrive(sessao.nomeCaso, nomeArquivo, resultado.base64, mime);
@@ -502,12 +520,12 @@ async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, textoLege
   if (sessao.casoId) {
     await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}/documentos.json`, "POST", {
       nome: nomeArquivo,
-      tipo: isModelo ? "modelo" : ext,
+      tipo: tipoForcado === "modelo" ? "modelo" : tipoForcado === "minuta_atual" ? "minuta_atual" : ext,
       salvoEm: new Date().toISOString(),
       ...(textoExtraido ? { texto: textoExtraido } : {})
     });
   }
-  return { ok: true, isModelo, textoExtraido };
+  return { ok: true, preservarIntegral, textoExtraido };
 }
 
 // ══ HANDLER VERCEL — DIÁLOGO GUIADO ═══════════════════════════════
@@ -718,9 +736,46 @@ module.exports = async (req, res) => {
 
   // ─── 5. Tipo de atualização ───
   if (sessao.etapa === "aguardando_tipo_atualizacao" && isTexto) {
-    await setSessao({ ...sessao, etapa: "aguardando_usar_modelo", tipoAtualizacao: texto });
-    await enviarBotoes("Devo usar um modelo específico?", ["Sim", "Não"]);
+    await setSessao({ ...sessao, etapa: "aguardando_tipo_anexo_reedicao", tipoAtualizacao: texto });
+    await enviarBotoes("Vai anexar algum arquivo agora?", [
+      "Minuta pronta — seguir à risca, sem tirar nada",
+      "Modelo de estilo — só de referência",
+      "Não vou anexar"
+    ]);
     return res.status(200).send("OK");
+  }
+
+  // ─── 5b. Que tipo de arquivo é (só ao reeditar caso existente) ───
+  if (sessao.etapa === "aguardando_tipo_anexo_reedicao" && isTexto) {
+    if (respostaMinutaProntaRisca(texto)) {
+      await setSessao({ ...sessao, etapa: "aguardando_arquivo_minuta_atual" });
+      await enviarTexto("Pode mandar o arquivo Word da minuta pronta — vou seguir ela à risca, sem tirar nenhuma palavra, só aplicando o que você pediu.");
+      return res.status(200).send("OK");
+    }
+    if (respostaModeloDeEstilo(texto)) {
+      await setSessao({ ...sessao, etapa: "aguardando_arquivo_modelo" });
+      await enviarTexto("Pode mandar o arquivo modelo — não precisa de legenda especial, é só enviar.");
+      return res.status(200).send("OK");
+    }
+    if (respostaSemAnexo(texto)) {
+      await setSessao({ ...sessao, etapa: "aguardando_documentos" });
+      await enviarTexto("Pode anexar os documentos, ou digite \"pular\" se não for anexar nada agora.");
+      return res.status(200).send("OK");
+    }
+    await enviarBotoes("Não entendi. Vai anexar algum arquivo agora?", [
+      "Minuta pronta — seguir à risca, sem tirar nada",
+      "Modelo de estilo — só de referência",
+      "Não vou anexar"
+    ]);
+    return res.status(200).send("Não reconhecido, repetiu pergunta");
+  }
+
+  // ─── 5c. Recebendo o arquivo da minuta pronta (reedição) ───
+  if (sessao.etapa === "aguardando_arquivo_minuta_atual" && isMedia) {
+    await salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, "minuta_atual");
+    await setSessao({ ...sessao, etapa: "aguardando_documentos" });
+    await enviarTexto("Minuta recebida. Pode anexar mais documentos do caso (ex: dados do novo imóvel, certidões), ou digite \"pular\" se não tiver mais nada.");
+    return res.status(200).send("Minuta atual recebida");
   }
 
   // ─── 6. Recebendo documentos ───

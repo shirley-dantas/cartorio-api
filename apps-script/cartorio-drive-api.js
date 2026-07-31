@@ -225,6 +225,13 @@ REGRAS DE FIDELIDADE — válidas para QUALQUER modelo de referência, manual ou
 - MANTENHA O MESMO NÍVEL DE DETALHE E ABRANGÊNCIA do modelo — se o modelo tiver uma lista extensa e detalhada de poderes/cláusulas (ex: nomes de bancos específicos, órgãos públicos nomeados, poderes judiciais completos), a minuta nova deve ter uma lista igualmente extensa e detalhada, adaptada ao caso atual. NÃO resuma ou condense cláusulas do modelo em itens genéricos — reproduza a mesma quantidade e riqueza de detalhes, apenas trocando os dados específicos pelos do caso atual (ou removendo o item, se genuinamente não se aplicar)
 - REGRA DE CONCLUSÃO — NÃO PARE CEDO: antes de considerar a minuta finalizada, verifique mentalmente se você já escreveu uma cláusula ou seção correspondente a CADA cláusula/seção que existe no modelo (mesma numeração, mesmos títulos de cláusula, mesmo número aproximado de itens). Se o modelo tem cláusulas 1 a 13, ou subcláusulas 6.1 a 6.10, sua minuta também precisa chegar até lá — NÃO termine no meio (ex: só até a cláusula 6.5) só porque o texto já "parece" completo. Um documento de referência longo e detalhado exige uma minuta igualmente longa e detalhada. Só finalize (com encerramento e assinaturas) depois de cobrir TODO o conteúdo equivalente ao modelo.
 
+REGRA ABSOLUTA — MINUTA ATUAL (documento já pronto sendo atualizado, NÃO é um modelo de estilo):
+Se algum documento fornecido tiver cabeçalho começando com "MINUTA ATUAL", esse texto é a MINUTA JÁ PRONTA E FINALIZADA deste mesmo caso — não é uma referência de outro caso. As regras de MODELO DE MINUTA acima (não copiar dados específicos, pode omitir cláusula que não se aplica) NÃO valem aqui — são o oposto do que fazer.
+- Reproduza a MINUTA ATUAL INTEIRA, do início ao fim, palavra por palavra — nenhuma cláusula, nome, dado, valor ou trecho pode ficar de fora ou ser resumido
+- Aplique SOMENTE a mudança pedida em "INSTRUÇÃO DE ATUALIZAÇÃO DA MINUTA" (ex: acrescentar mais um imóvel, mais uma parte, um dado novo) — não invente nem altere mais nada além do que foi pedido
+- Sempre que a mudança pedida afetar quantidade (ex: passar de um imóvel para dois ou mais), ajuste a concordância singular/plural em TODO o texto onde fizer sentido — artigos, substantivos, adjetivos, pronomes e verbos relacionados (ex: "o imóvel" → "os imóveis", "a matrícula" → "as matrículas", "certidão apresentada" → "certidões apresentadas", "o vendedor vende o imóvel" → "os vendedores vendem os imóveis"). Não mude concordância de partes/trechos que não têm relação com a mudança pedida
+- Dados novos (ex: do imóvel acrescentado) vêm apenas da instrução e dos outros documentos fornecidos — campo não informado: ______
+
 ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
 
 Se DIGITAL (videoconferência):
@@ -433,11 +440,12 @@ function chamarClaude(mensagem) {
 // cada pedaço é rápido (uma chamada à IA), e só continua se realmente precisar.
 function gerarMinutaCompleta(mensagemBase) {
   var MAX_PEDACOS = 6;
-  // Quando há um modelo de referência (manual ou aprendido automaticamente), a IA tende
-  // a "achar" que terminou cedo demais (parar em ~1/3 do conteúdo do modelo). Por isso,
-  // forçamos pelo menos uma rodada extra de autoverificação de cobertura, mesmo que a IA
-  // não tenha batido no limite de tamanho — ela precisa confirmar explicitamente que terminou.
-  var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1;
+  // Quando há um modelo de referência (manual ou aprendido automaticamente) OU uma
+  // MINUTA ATUAL sendo seguida à risca, a IA tende a "achar" que terminou cedo demais
+  // (parar em ~1/3 do conteúdo). Por isso, forçamos pelo menos uma rodada extra de
+  // autoverificação de cobertura, mesmo que a IA não tenha batido no limite de
+  // tamanho — ela precisa confirmar explicitamente que terminou.
+  var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1 || mensagemBase.indexOf("MINUTA ATUAL") !== -1;
   var textoCompleto = "";
   var rodadas = 0;
   for (var i = 0; i < MAX_PEDACOS; i++) {
@@ -559,9 +567,11 @@ function gerarECriarMinuta(dados) {
       documentosTexto = documentosTexto.slice(0, 100000) + "\n\n[...texto truncado por limite de tamanho...]";
     }
 
-    // Se a equipe não enviou um modelo explícito ("MODELO" no WhatsApp), busca
-    // automaticamente o último modelo aprendido para esse tipo de ato.
-    if (documentosTexto.indexOf("MODELO DE MINUTA (REFERÊNCIA") === -1) {
+    // Se a equipe não enviou um modelo explícito ("MODELO" no WhatsApp) nem uma
+    // MINUTA ATUAL a seguir à risca, busca automaticamente o último modelo
+    // aprendido para esse tipo de ato. Com MINUTA ATUAL presente, NÃO soma modelo
+    // de estilo — misturaria a regra de "não copiar dados" com a de "seguir à risca".
+    if (documentosTexto.indexOf("MODELO DE MINUTA (REFERÊNCIA") === -1 && documentosTexto.indexOf("MINUTA ATUAL") === -1) {
       var modeloAprendido = buscarModeloAprendido(dados.tipo);
       if (modeloAprendido) {
         documentosTexto += "\n\n=== MODELO DE MINUTA (REFERÊNCIA APRENDIDA AUTOMATICAMENTE) — " + (dados.tipo || "") + " ===\n" + modeloAprendido.texto;
@@ -576,7 +586,9 @@ function gerarECriarMinuta(dados) {
       (dados.instrucao ? "\nINSTRUÇÃO DE ATUALIZAÇÃO DA MINUTA: " + dados.instrucao + "\n" : "") +
       "\nDOCUMENTOS E INFORMAÇÕES FORNECIDAS:\n" +
       documentosTexto +
-      "\n\nPor favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade " + mod.toUpperCase() + " conforme as instruções do sistema.";
+      (documentosTexto.indexOf("MINUTA ATUAL") !== -1
+        ? "\n\nPor favor, ATUALIZE a MINUTA ATUAL acima conforme a INSTRUÇÃO DE ATUALIZAÇÃO DA MINUTA, reproduzindo-a por inteiro e ajustando concordância onde a mudança pedida exigir, conforme as instruções do sistema."
+        : "\n\nPor favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade " + mod.toUpperCase() + " conforme as instruções do sistema.");
 
     var geracao = gerarMinutaCompleta(mensagem);
     var parsed = parsearResposta(geracao.texto);
