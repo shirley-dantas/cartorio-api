@@ -572,7 +572,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span style="font-size:11px;color:#AEAEB2">Isso pode levar até 60 segundos</span>
     </div>
     <div class="modal-result" id="reeditar-result" style="text-align:center;padding:16px">
-      <div style="font-size:15px;font-weight:600;color:#1B5E20;margin-bottom:8px">✅ Nova versão gerada com sucesso!</div>
+      <div style="font-size:15px;font-weight:600;color:#1B5E20;margin-bottom:8px" id="reeditar-result-titulo">✅ Nova versão gerada com sucesso!</div>
       <div style="font-size:12px;color:#636366;margin-bottom:14px" id="reeditar-doc-nome"></div>
       <a id="btn-abrir-reeditar" href="#" target="_blank" style="display:inline-block;background:#6A1B9A;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">
         <i class="ti ti-brand-google-drive" style="font-size:13px;vertical-align:-1px"></i> Abrir nova versão no Drive
@@ -1690,6 +1690,9 @@ window.abrirReeditar=async function(id){
   renderReeditarChips();
   document.getElementById('reeditar-loading').style.display='none';
   document.getElementById('reeditar-result').style.display='none';
+  document.getElementById('reeditar-result-titulo').textContent='✅ Nova versão gerada com sucesso!';
+  document.getElementById('reeditar-result-titulo').style.color='#1B5E20';
+  document.getElementById('btn-abrir-reeditar').style.display='inline-block';
   document.getElementById('btn-reeditar-gerar').disabled=false;
   document.getElementById('btn-reeditar-gerar').dataset.id=id;
   document.getElementById('modal-reeditar').classList.add('open');
@@ -1852,7 +1855,15 @@ window.gerarReeditar=async function(){
   document.getElementById('reeditar-result').style.display='none';
   const rLoad=document.getElementById('reeditar-loading');
   const setRLoad=(txt)=>{rLoad.style.display='block';rLoad.innerHTML=`<i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>${txt}`;};
-  const setRErro=(msg)=>{rLoad.style.display='none';document.getElementById('reeditar-result').style.display='block';document.getElementById('btn-abrir-reeditar').href='#';document.getElementById('reeditar-doc-nome').textContent='⚠️ '+msg;};
+  const setRErro=(msg)=>{
+    rLoad.style.display='none';
+    document.getElementById('reeditar-result').style.display='block';
+    document.getElementById('reeditar-result-titulo').textContent='⚠️ Não deu certo';
+    document.getElementById('reeditar-result-titulo').style.color='#B71C1C';
+    document.getElementById('btn-abrir-reeditar').style.display='none';
+    document.getElementById('btn-abrir-reeditar').href='#';
+    document.getElementById('reeditar-doc-nome').textContent=msg;
+  };
   try{
     const arqsMinuta=reeditarArquivosMinuta;
     const arqsDoc=reeditarArquivosDoc;
@@ -1864,9 +1875,22 @@ window.gerarReeditar=async function(){
       r.readAsDataURL(file);
     });
     const extrairArquivo=async(file,preservarIntegral)=>{
+      // Limite prático de envio (a plataforma recusa requisições grandes — o erro
+      // que aparece nesse caso é "Request Entity Too Large", sem JSON, então
+      // verificamos ANTES de tentar enviar pra dar uma mensagem clara).
+      if(file.size>3.5*1024*1024){
+        throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui. Escaneie/salve em resolução menor (até ~3MB) e tente de novo.`);
+      }
       const base64=await lerBase64Reeditar(file);
-      const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,mimetype:file.type,nomeArquivo:file.name,preservarIntegral})});
-      const j=await resp.json();
+      let resp;
+      try{
+        resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,mimetype:file.type,nomeArquivo:file.name,preservarIntegral})});
+      }catch(e){
+        throw new Error(`Não consegui enviar o arquivo "${file.name}". Tente de novo.`);
+      }
+      let j;
+      try{ j=await resp.json(); }
+      catch(e){ throw new Error(`O arquivo "${file.name}" é grande demais ou o servidor recusou o envio. Tente um arquivo menor.`); }
       if(!j.ok) throw new Error(j.erro||`Não consegui ler o arquivo "${file.name}".`);
       return j.texto||'';
     };
@@ -1924,6 +1948,9 @@ window.gerarReeditar=async function(){
     rLoad.style.display='none';
     document.getElementById('reeditar-result').style.display='block';
     if(d2.ok&&d2.docUrl){
+      document.getElementById('reeditar-result-titulo').textContent='✅ Nova versão gerada com sucesso!';
+      document.getElementById('reeditar-result-titulo').style.color='#1B5E20';
+      document.getElementById('btn-abrir-reeditar').style.display='inline-block';
       document.getElementById('btn-abrir-reeditar').href=d2.docUrl;
       document.getElementById('reeditar-doc-nome').textContent=d2.docNome||'';
       if(d2.folderUrl) update(ref(db,'casos/'+id),{driveUrl:d2.folderUrl}).catch(()=>{});
