@@ -277,6 +277,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .joaninha-anexos{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .joaninha-anexo-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;background:#FDECEF;color:#7A1F2B;border-radius:20px;padding:3px 8px 3px 9px}
 .joaninha-anexo-chip button{background:none;border:none;color:#B4718A;cursor:pointer;font-size:13px;line-height:1;padding:0 1px}
+.btn-anexar-reeditar{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px dashed #C7C7CC;border-radius:8px;background:#fff;color:#3A3A3C;font-size:12.5px;cursor:pointer}
+.btn-anexar-reeditar:hover{background:#F5F5F7}
 .joaninha-panel-actions{display:flex;align-items:center;gap:6px;margin-top:10px}
 .joaninha-icon-btn{width:30px;height:30px;border-radius:50%;border:0.5px solid #F0D3D8;background:#FFF7F8;color:#B4718A;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px}
 .joaninha-icon-btn:hover{background:#FDECEF}
@@ -554,9 +556,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <label class="modal-label">O que você quer alterar, acrescentar ou retirar na minuta?</label>
     <textarea class="modal-textarea" id="reeditar-instrucao" placeholder="Ex: Acrescentar cláusula de usufruto vitalício em favor do vendedor&#10;Ex: Alterar forma de pagamento para financiamento bancário&#10;Ex: Incluir dados do imóvel: matrícula 12345, Cartório do 5º RI"></textarea>
     <label class="modal-label">Minuta pronta atual (Word/PDF) — opcional, mas se anexar será seguida à risca, sem tirar nada</label>
-    <input type="file" id="reeditar-arquivo-minuta" accept=".docx,.pdf,image/*" style="width:100%;margin-bottom:10px">
-    <label class="modal-label">Documentos referentes a essa alteração (opcional, pode selecionar vários)</label>
-    <input type="file" id="reeditar-arquivos-doc" accept=".docx,.pdf,image/*" multiple style="width:100%;margin-bottom:10px">
+    <input type="file" id="reeditar-arquivo-minuta-input" accept=".docx,.pdf,image/*" multiple style="display:none">
+    <button type="button" class="btn-anexar-reeditar" onclick="document.getElementById('reeditar-arquivo-minuta-input').click()"><i class="ti ti-paperclip" style="font-size:12px;vertical-align:-1px"></i> Anexar arquivo(s) da minuta</button>
+    <div id="reeditar-chips-minuta" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px"></div>
+    <label class="modal-label">Documentos referentes a essa alteração (opcional — pode anexar quantos precisar, um de cada vez ou vários juntos)</label>
+    <input type="file" id="reeditar-arquivo-doc-input" accept=".docx,.pdf,image/*" multiple style="display:none">
+    <button type="button" class="btn-anexar-reeditar" onclick="document.getElementById('reeditar-arquivo-doc-input').click()"><i class="ti ti-paperclip" style="font-size:12px;vertical-align:-1px"></i> Anexar documento(s)</button>
+    <div id="reeditar-chips-doc" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px"></div>
     <div class="modal-btn-row">
       <button class="btn-gerar" id="btn-reeditar-gerar" onclick="gerarReeditar()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Gerar nova versão</button>
     </div>
@@ -1653,12 +1659,35 @@ window.abrirMinuta=async function(id){
 window.fecharMinuta=function(){
   document.getElementById('modal-minuta').classList.remove('open');
 };
+let reeditarArquivosMinuta=[];
+let reeditarArquivosDoc=[];
+function renderReeditarChips(){
+  const elM=document.getElementById('reeditar-chips-minuta');
+  if(elM) elM.innerHTML=reeditarArquivosMinuta.map((f,i)=>`<span class="joaninha-anexo-chip"><i class="ti ti-file-text"></i> ${f.name}<button type="button" onclick="reeditarRemoverArquivo('minuta',${i})">&times;</button></span>`).join('');
+  const elD=document.getElementById('reeditar-chips-doc');
+  if(elD) elD.innerHTML=reeditarArquivosDoc.map((f,i)=>`<span class="joaninha-anexo-chip"><i class="ti ti-paperclip"></i> ${f.name}<button type="button" onclick="reeditarRemoverArquivo('doc',${i})">&times;</button></span>`).join('');
+}
+window.reeditarRemoverArquivo=function(campo,i){
+  (campo==='minuta'?reeditarArquivosMinuta:reeditarArquivosDoc).splice(i,1);
+  renderReeditarChips();
+};
+document.getElementById('reeditar-arquivo-minuta-input').addEventListener('change',function(){
+  reeditarArquivosMinuta.push(...Array.from(this.files));
+  this.value='';
+  renderReeditarChips();
+});
+document.getElementById('reeditar-arquivo-doc-input').addEventListener('change',function(){
+  reeditarArquivosDoc.push(...Array.from(this.files));
+  this.value='';
+  renderReeditarChips();
+});
 window.abrirReeditar=async function(id){
   const c=casos[id];if(!c)return;
   document.getElementById('reeditar-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
   document.getElementById('reeditar-instrucao').value='';
-  document.getElementById('reeditar-arquivo-minuta').value='';
-  document.getElementById('reeditar-arquivos-doc').value='';
+  reeditarArquivosMinuta=[];
+  reeditarArquivosDoc=[];
+  renderReeditarChips();
   document.getElementById('reeditar-loading').style.display='none';
   document.getElementById('reeditar-result').style.display='none';
   document.getElementById('btn-reeditar-gerar').disabled=false;
@@ -1825,8 +1854,8 @@ window.gerarReeditar=async function(){
   const setRLoad=(txt)=>{rLoad.style.display='block';rLoad.innerHTML=`<i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>${txt}`;};
   const setRErro=(msg)=>{rLoad.style.display='none';document.getElementById('reeditar-result').style.display='block';document.getElementById('btn-abrir-reeditar').href='#';document.getElementById('reeditar-doc-nome').textContent='⚠️ '+msg;};
   try{
-    const arqMinuta=document.getElementById('reeditar-arquivo-minuta').files[0]||null;
-    const arqsDoc=Array.from(document.getElementById('reeditar-arquivos-doc').files||[]);
+    const arqsMinuta=reeditarArquivosMinuta;
+    const arqsDoc=reeditarArquivosDoc;
 
     const lerBase64Reeditar=(file)=>new Promise((resolve,reject)=>{
       const r=new FileReader();
@@ -1843,12 +1872,18 @@ window.gerarReeditar=async function(){
     };
 
     let docsTexto='';
-    if(arqMinuta){
+    if(arqsMinuta.length){
       // Minuta pronta anexada: a base é ELA, não os documentos antigos do card —
       // evita misturar dados antigos/desatualizados com o que está sendo pedido agora.
-      setRLoad('Lendo a minuta pronta anexada…');
-      const textoMinuta=await extrairArquivo(arqMinuta,true);
-      const blocos=[`=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${arqMinuta.name} ===\n${textoMinuta}`];
+      // Se vier em mais de um arquivo (ex: minuta dividida em partes), o texto de
+      // todos é unido num único bloco MINUTA ATUAL, na ordem em que foram anexados.
+      const partesMinuta=[];
+      for(let i=0;i<arqsMinuta.length;i++){
+        setRLoad(`Lendo a minuta pronta anexada (${i+1} de ${arqsMinuta.length})…`);
+        partesMinuta.push(await extrairArquivo(arqsMinuta[i],true));
+      }
+      const nomesMinuta=arqsMinuta.map(f=>f.name).join(', ');
+      const blocos=[`=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${nomesMinuta} ===\n${partesMinuta.join('\n\n')}`];
       for(let i=0;i<arqsDoc.length;i++){
         setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
         const textoDoc=await extrairArquivo(arqsDoc[i],false);
