@@ -551,8 +551,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="modal-close" onclick="fecharReeditar()">&times;</button>
     <div class="modal-title"><i class="ti ti-edit" style="font-size:15px;vertical-align:-2px;color:#6A1B9A"></i> Reeditar Minuta</div>
     <div class="modal-sub" id="reeditar-caso-info">—</div>
-    <label class="modal-label">O que você quer alterar ou acrescentar na minuta?</label>
+    <label class="modal-label">O que você quer alterar, acrescentar ou retirar na minuta?</label>
     <textarea class="modal-textarea" id="reeditar-instrucao" placeholder="Ex: Acrescentar cláusula de usufruto vitalício em favor do vendedor&#10;Ex: Alterar forma de pagamento para financiamento bancário&#10;Ex: Incluir dados do imóvel: matrícula 12345, Cartório do 5º RI"></textarea>
+    <label class="modal-label">Minuta pronta atual (Word/PDF) — opcional, mas se anexar será seguida à risca, sem tirar nada</label>
+    <input type="file" id="reeditar-arquivo-minuta" accept=".docx,.pdf,image/*" style="width:100%;margin-bottom:10px">
+    <label class="modal-label">Documentos referentes a essa alteração (opcional, pode selecionar vários)</label>
+    <input type="file" id="reeditar-arquivos-doc" accept=".docx,.pdf,image/*" multiple style="width:100%;margin-bottom:10px">
     <div class="modal-btn-row">
       <button class="btn-gerar" id="btn-reeditar-gerar" onclick="gerarReeditar()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Gerar nova versão</button>
     </div>
@@ -1653,6 +1657,8 @@ window.abrirReeditar=async function(id){
   const c=casos[id];if(!c)return;
   document.getElementById('reeditar-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
   document.getElementById('reeditar-instrucao').value='';
+  document.getElementById('reeditar-arquivo-minuta').value='';
+  document.getElementById('reeditar-arquivos-doc').value='';
   document.getElementById('reeditar-loading').style.display='none';
   document.getElementById('reeditar-result').style.display='none';
   document.getElementById('btn-reeditar-gerar').disabled=false;
@@ -1819,23 +1825,59 @@ window.gerarReeditar=async function(){
   const setRLoad=(txt)=>{rLoad.style.display='block';rLoad.innerHTML=`<i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>${txt}`;};
   const setRErro=(msg)=>{rLoad.style.display='none';document.getElementById('reeditar-result').style.display='block';document.getElementById('btn-abrir-reeditar').href='#';document.getElementById('reeditar-doc-nome').textContent='⚠️ '+msg;};
   try{
-    // Buscar documentos existentes do caso
+    const arqMinuta=document.getElementById('reeditar-arquivo-minuta').files[0]||null;
+    const arqsDoc=Array.from(document.getElementById('reeditar-arquivos-doc').files||[]);
+
+    const lerBase64Reeditar=(file)=>new Promise((resolve,reject)=>{
+      const r=new FileReader();
+      r.onload=()=>resolve(String(r.result).split(',')[1]||'');
+      r.onerror=reject;
+      r.readAsDataURL(file);
+    });
+    const extrairArquivo=async(file,preservarIntegral)=>{
+      const base64=await lerBase64Reeditar(file);
+      const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,mimetype:file.type,nomeArquivo:file.name,preservarIntegral})});
+      const j=await resp.json();
+      if(!j.ok) throw new Error(j.erro||`Não consegui ler o arquivo "${file.name}".`);
+      return j.texto||'';
+    };
+
     let docsTexto='';
-    try{
-      const snap=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/documentos.json`);
-      const docs=await snap.json();
-      const linhas=[];
-      if(c.obs) linhas.push('=== INFORMAÇÕES DO CASO ===\n'+c.obs);
-      if(docs && typeof docs==='object'){
-        Object.values(docs).forEach(d=>{
-          linhas.push(d.tipo==='modelo'
-            ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
-            : `\n=== DOCUMENTO: ${d.nome} ===`);
-          if(d.texto) linhas.push(d.texto);
-        });
+    if(arqMinuta){
+      // Minuta pronta anexada: a base é ELA, não os documentos antigos do card —
+      // evita misturar dados antigos/desatualizados com o que está sendo pedido agora.
+      setRLoad('Lendo a minuta pronta anexada…');
+      const textoMinuta=await extrairArquivo(arqMinuta,true);
+      const blocos=[`=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${arqMinuta.name} ===\n${textoMinuta}`];
+      for(let i=0;i<arqsDoc.length;i++){
+        setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
+        const textoDoc=await extrairArquivo(arqsDoc[i],false);
+        blocos.push(`=== DOCUMENTO: ${arqsDoc[i].name} ===\n${textoDoc}`);
       }
-      docsTexto=linhas.join('\n');
-    }catch(e){docsTexto=c.obs||'';}
+      docsTexto=blocos.join('\n\n');
+    } else {
+      // Sem minuta pronta anexada: comportamento de antes (documentos já salvos no card)
+      try{
+        const snap=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/documentos.json`);
+        const docs=await snap.json();
+        const linhas=[];
+        if(c.obs) linhas.push('=== INFORMAÇÕES DO CASO ===\n'+c.obs);
+        if(docs && typeof docs==='object'){
+          Object.values(docs).forEach(d=>{
+            linhas.push(d.tipo==='modelo'
+              ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
+              : `\n=== DOCUMENTO: ${d.nome} ===`);
+            if(d.texto) linhas.push(d.texto);
+          });
+        }
+        docsTexto=linhas.join('\n');
+      }catch(e){docsTexto=c.obs||'';}
+      for(let i=0;i<arqsDoc.length;i++){
+        setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
+        const textoDoc=await extrairArquivo(arqsDoc[i],false);
+        docsTexto+=`\n\n=== DOCUMENTO: ${arqsDoc[i].name} ===\n${textoDoc}`;
+      }
+    }
     setRLoad('Iniciando geração da minuta…');
     const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade||'digital'})});
     const di=await ri.json();
