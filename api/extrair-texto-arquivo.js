@@ -104,6 +104,19 @@ module.exports = async (req, res) => {
   try { dados = typeof req.body === "string" ? JSON.parse(req.body) : req.body; }
   catch { return res.status(400).json({ ok: false, erro: "JSON inválido" }); }
 
+  // Caminho leve: o .docx já foi lido no navegador (mammoth.browser) — só o
+  // texto (bem menor que o arquivo original) chega aqui pra passar pela
+  // extração jurídica objetiva. Evita reenviar o arquivo inteiro (que pode vir
+  // com imagens embutidas e passar do limite de tamanho de requisição).
+  if (dados.textoBruto) {
+    try {
+      const dadosExtraidos = await chamarClaudeTexto(dados.textoBruto);
+      return res.status(200).json({ ok: true, texto: dadosExtraidos || dados.textoBruto });
+    } catch (err) {
+      return res.status(500).json({ ok: false, erro: err.message });
+    }
+  }
+
   const base64 = dados.base64 || "";
   const mimetype = dados.mimetype || "application/pdf";
   const nomeArquivo = dados.nomeArquivo || "";

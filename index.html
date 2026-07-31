@@ -695,6 +695,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <script src="design-system/mascots/joaninha/joaninha.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -1874,10 +1875,38 @@ window.gerarReeditar=async function(){
       r.onerror=reject;
       r.readAsDataURL(file);
     });
+    const isDocxReeditar=(file)=>/wordprocessingml\.document/.test(file.type||'')||/\.docx$/i.test(file.name||'');
+    // .docx é extraído no PRÓPRIO NAVEGADOR (mammoth.browser) — o Word já é
+    // texto puro internamente, então isso evita enviar o arquivo inteiro (que
+    // pode vir com imagens embutidas e passar de 4MB) só pra extrair texto.
+    // Só o texto (bem menor) segue pro servidor quando ainda precisa da IA.
+    const extrairDocxCliente=(file)=>new Promise((resolve,reject)=>{
+      const r=new FileReader();
+      r.onload=async()=>{
+        try{
+          const resultado=await window.mammoth.extractRawText({arrayBuffer:r.result});
+          resolve((resultado&&resultado.value&&resultado.value.trim())||'');
+        }catch(e){reject(e);}
+      };
+      r.onerror=reject;
+      r.readAsArrayBuffer(file);
+    });
     const extrairArquivo=async(file,preservarIntegral)=>{
-      // Limite prático de envio (a plataforma recusa requisições grandes — o erro
-      // que aparece nesse caso é "Request Entity Too Large", sem JSON, então
-      // verificamos ANTES de tentar enviar pra dar uma mensagem clara).
+      if(isDocxReeditar(file)){
+        let textoBruto;
+        try{ textoBruto=await extrairDocxCliente(file); }
+        catch(e){ throw new Error(`Não consegui ler o arquivo Word "${file.name}".`); }
+        if(!textoBruto) return '';
+        if(preservarIntegral) return textoBruto; // minuta pronta: usa o texto tal como está, sem passar pela IA
+        // Documento de apoio: ainda passa por uma extração jurídica objetiva —
+        // mas envia só o TEXTO (pequeno), não o arquivo, então o limite de
+        // tamanho de envio não se aplica aqui.
+        const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({textoBruto,nomeArquivo:file.name})});
+        const j=await resp.json();
+        if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
+        return j.texto||textoBruto;
+      }
+      // PDF/imagem: precisa mesmo enviar o arquivo (a IA lê o documento visualmente).
       if(file.size>3.5*1024*1024){
         throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui. Escaneie/salve em resolução menor (até ~3MB) e tente de novo.`);
       }
