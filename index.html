@@ -1982,7 +1982,7 @@ window.gerarReeditar=async function(){
       document.getElementById('btn-abrir-reeditar').style.display='inline-block';
       document.getElementById('btn-abrir-reeditar').href=d2.docUrl;
       document.getElementById('reeditar-doc-nome').textContent=d2.docNome||'';
-      if(d2.folderUrl) update(ref(db,'casos/'+id),{driveUrl:d2.folderUrl}).catch(()=>{});
+      update(ref(db,'casos/'+id),{...(d2.folderUrl?{driveUrl:d2.folderUrl}:{}),docUrl:d2.docUrl}).catch(()=>{});
     } else {
       setRErro(d2.erro||'Não foi possível salvar no Drive.');
     }
@@ -2024,7 +2024,7 @@ window.gerarAnalise=async function(){
       document.getElementById('modal-doc-nome').textContent=d2.docNome||'';
       document.getElementById('modal-result-text').style.display='none';
       document.getElementById('btn-copiar-rel').style.display='none';
-      if(d2.folderUrl) update(ref(db,'casos/'+id),{driveUrl:d2.folderUrl}).catch(()=>{});
+      update(ref(db,'casos/'+id),{...(d2.folderUrl?{driveUrl:d2.folderUrl}:{}),docUrl:d2.docUrl}).catch(()=>{});
     } else {
       setErro(d2.erro||'Não foi possível salvar no Drive.');
     }
