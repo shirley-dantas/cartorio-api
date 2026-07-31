@@ -131,7 +131,7 @@ module.exports = async (req, res) => {
       return ` | assinatura de segunda parte (${sp.quem || "não identificado"}): ${new Date(sp.data).toLocaleString("pt-BR")}${relacaoComHoje(sp.data)}`;
     }
     if (sp.status === "lembrete" && sp.lembreteData) {
-      return ` | lembrete para travar agenda da segunda parte: ${new Date(sp.lembreteData).toLocaleDateString("pt-BR")}${relacaoComHoje(sp.lembreteData)} (data da assinatura em si ainda não definida)`;
+      return ` | lembrete para travar agenda com ${sp.quem || "não identificado"}: ${new Date(sp.lembreteData).toLocaleDateString("pt-BR")}${relacaoComHoje(sp.lembreteData)} (data da assinatura em si ainda não definida)`;
     }
     return "";
   };
