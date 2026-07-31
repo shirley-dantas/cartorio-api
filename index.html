@@ -1117,8 +1117,7 @@ window.enviarRespostaFoco=async function(){
   document.getElementById('rf-loading').style.display='block';
   try{
     const anterior=c.obs||'';
-    const numero=proximoNumeroObs(anterior);
-    const novoObs=`${numero} - ${texto}`+(anterior?`\n${anterior}`:'');
+    const novoObs=montarNovoObs(anterior,texto);
     await update(ref(db,`casos/${c.id}`),{obs:novoObs,obsAnterior:anterior,atualizado:isoHoje()});
     await gerarLembreteDaObs(c.id,{...c,obs:novoObs},texto);
     if(!item.done)toggleFoco(rfItemIndex);
@@ -1582,9 +1581,8 @@ window.spResponder=async function(opcao){
 };
 async function spRegistrarObs(id,linha){
   const c=casos[id];
-  const dataFmt=new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   const obsAtual=(c.obs||'').trim();
-  const novoObs=obsAtual?`[${dataFmt}] ${linha}\n\n${obsAtual}`:`[${dataFmt}] ${linha}`;
+  const novoObs=montarNovoObs(obsAtual,linha);
   await update(ref(db,`casos/${id}`),{obs:novoObs,atualizado:isoHoje()});
 }
 window.spSalvarComData=async function(){
@@ -1661,13 +1659,24 @@ function proximoNumeroObs(obsAtual){
   });
   return maior+1;
 }
+// Formato único pra QUALQUER entrada nova nas Observações, não importa de
+// onde venha (Obs manual, Responder do Foco, Registrar Atendimento, 2ª
+// Parte) — antes cada um escrevia diferente (uns com número, uns só com
+// data entre colchetes, uns nem isso), deixando o histórico visualmente
+// tumultuado e sem padrão. Texto antigo (de antes dessa unificação) fica
+// preservado embaixo, sem tentar reformatar o que já existia.
+function montarNovoObs(obsAtual,texto){
+  const numero=proximoNumeroObs(obsAtual);
+  const dataFmt=new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const linha=`${numero} - [${dataFmt}] ${texto}`;
+  return obsAtual?`${linha}\n${obsAtual}`:linha;
+}
 window.salvarObs=function(id){
   const novoTexto=document.getElementById('obs-ta-'+id).value.trim();
   if(!novoTexto)return;
   const c=casos[id];
   const anterior=(c&&c.obs)||'';
-  const numero=proximoNumeroObs(anterior);
-  const novoObs=`${numero} - ${novoTexto}`+(anterior?`\n${anterior}`:'');
+  const novoObs=montarNovoObs(anterior,novoTexto);
   update(ref(db,`casos/${id}`),{obs:novoObs,obsAnterior:anterior,atualizado:isoHoje()});
   try{localStorage.removeItem('rascunho-obs-'+id);}catch(err){}
   document.getElementById('obs-ta-'+id).value='';
@@ -1928,11 +1937,10 @@ window.registrarAtendimento=async function(){
     if(!j.ok)throw new Error(j.erro||'Erro ao organizar o registro.');
     const entrada={data:new Date().toISOString(),texto,resumo:j.resumo||'',pendencias:j.pendencias||[]};
     await push(ref(db,`casos/${id}/historico`),entrada);
-    const dataFmt=new Date(entrada.data).toLocaleDateString('pt-BR')+' '+new Date(entrada.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    let linhaObs=`[${dataFmt}] ${entrada.resumo}`;
+    let linhaObs=entrada.resumo;
     if(entrada.pendencias.length)linhaObs+=' — Pendência: '+entrada.pendencias.join('; ');
     const obsAtual=(c.obs||'').trim();
-    const novoObs=obsAtual?`${linhaObs}\n\n${obsAtual}`:linhaObs;
+    const novoObs=montarNovoObs(obsAtual,linhaObs);
     await update(ref(db,`casos/${id}`),{obs:novoObs,atualizado:isoHoje()});
     document.getElementById('atend-texto').value='';
     await carregarHistoricoAtendimento(id);
@@ -2419,10 +2427,8 @@ if(joaninhaInstancia.disponivel){
       if(alvo.tipo==='caso'){
         const c=casos[alvo.id];
         const entrada={data:new Date().toISOString(),texto:corpo,resumo:corpo,pendencias:[]};
-        const dataFmt=new Date(entrada.data).toLocaleDateString('pt-BR')+' '+new Date(entrada.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-        const linhaObs=`[${dataFmt}] 🐞 ${corpo}`;
         const obsAtual=(c.obs||'').trim();
-        const novoObs=obsAtual?`${linhaObs}\n\n${obsAtual}`:linhaObs;
+        const novoObs=montarNovoObs(obsAtual,'🐞 '+corpo);
         const patch={obs:novoObs,atualizado:isoHoje()};
 
         // O campo "agendado" é reservado para a data de assinatura da escritura —
