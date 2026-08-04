@@ -920,6 +920,7 @@ async function verificarAlertasSeNecessario(forcar){
 // ── FIREBASE LISTENERS ──
 const casosRef=ref(db,'casos');
 const focosRef=ref(db,'focos');
+const focoDispensadosRef=ref(db,'focoDispensados');
 
 onValue(casosRef,(snap)=>{
   const data=snap.val();
@@ -948,6 +949,21 @@ onValue(focosRef,(snap)=>{
   renderFoco();
 });
 
+let focoDispensados=[];
+onValue(focoDispensadosRef,(snap)=>{
+  focoDispensados=snap.val()||[];
+});
+// Guarda, por caso+tipo de aviso, que hoje o item foi excluído de propósito —
+// pra "Verificar agora" (ou qualquer edição de caso, que redispara a
+// verificação) não recriar o mesmo aviso automático no mesmo dia. Amanhã,
+// se a situação ainda for real, o aviso pode voltar normalmente.
+function registrarDispensaFoco(casoNome,marcador){
+  const hoje=isoHoje();
+  const atuais=(Array.isArray(focoDispensados)?focoDispensados:Object.values(focoDispensados||{})).filter(d=>d.data===hoje);
+  atuais.push({casoNome,marcador,data:hoje});
+  set(focoDispensadosRef,atuais);
+}
+
 function setSyncStatus(ok){
   const dot=document.getElementById('sync-dot');
   const lbl=document.getElementById('sync-label');
@@ -973,22 +989,28 @@ function encontrarCasoPorNomeFoco(nomeFoco){
 // ── FOCO DO DIA ──
 function renderFoco(){
   const el=document.getElementById('foco-items');
-  const arr=Array.isArray(focos)?focos:Object.values(focos||{});
-  if(!arr.length){el.innerHTML='<div class="foco-empty">Nenhuma prioridade definida para hoje.</div>';return;}
-  el.innerHTML=arr.map((f,i)=>{
+  const full=Array.isArray(focos)?focos:Object.values(focos||{});
+  if(!full.length){el.innerHTML='<div class="foco-empty">Nenhuma prioridade definida para hoje.</div>';return;}
+  // Concluídos (✓) somem da lista em vez de ficar riscados ocupando espaço —
+  // o estado continua salvo (por isso os índices reais são preservados em
+  // _idx), só não é mais exibido, pra não poluir a lista do que falta fazer.
+  const arr=full.map((f,i)=>({...f,_idx:i})).filter(f=>!f.done);
+  if(!arr.length){el.innerHTML='<div class="foco-empty">Tudo em dia! Nenhuma pendência no momento.</div>';return;}
+  el.innerHTML=arr.map((f)=>{
+    const i=f._idx;
     const tipo=f.marcador==='alerta'?'tipo-alerta':(f.marcador==='hoje'||f.marcador==='amanha')?'tipo-agenda':'tipo-manual';
     const nomeCaso=f.casoNome||null;
     const tagCaso=nomeCaso?`<span class="foco-caso-tag">${esc(nomeCaso)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
     const tagResp=f.resp?bResp(f.resp):'';
     const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
     const clicavel=nomeCaso?` data-caso="${esc(nomeCaso)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`:'';
-    const btnResponder=(nomeCaso&&!f.done)?`<button class="btn-sm" style="margin-top:6px" onclick="event.stopPropagation();abrirResponderFoco(${i})"><i class="ti ti-message-reply" style="font-size:12px;vertical-align:-1px"></i> Responder</button>`:'';
+    const btnResponder=nomeCaso?`<button class="btn-sm" style="margin-top:6px" onclick="event.stopPropagation();abrirResponderFoco(${i})"><i class="ti ti-message-reply" style="font-size:12px;vertical-align:-1px"></i> Responder</button>`:'';
     return`
-    <div class="foco-item ${tipo}${f.done?' done':''}">
-      <div class="foco-check${f.done?' checked':''}" onclick="toggleFoco(${i})"></div>
+    <div class="foco-item ${tipo}">
+      <div class="foco-check" onclick="toggleFoco(${i})"></div>
       <div class="foco-conteudo"${clicavel}>
         <div class="foco-tags">${tagCaso}${tagResp}${tagUrgente}</div>
-        <span class="foco-text${f.done?' done':''}">${f.text}</span>
+        <span class="foco-text">${f.text}</span>
         ${btnResponder}
       </div>
       <button class="foco-del" onclick="delFoco(${i})">&times;</button>
@@ -1078,6 +1100,8 @@ async function sugerirProximaTarefa(tarefaConcluida,arrAtual){
 }
 window.delFoco=function(i){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+  const item=arr[i];
+  if(item&&item.auto&&item.casoNome&&item.marcador)registrarDispensaFoco(item.casoNome,item.marcador);
   arr.splice(i,1);
   set(focosRef,arr);
 };
@@ -1291,9 +1315,12 @@ async function adicionarAgendaAoFoco(gruposOrdenados){
   const atual=Array.isArray(focos)?focos:Object.values(focos||{});
   const manuais=atual.filter(f=>!f.auto);
   const autoAntigos=atual.filter(f=>f.auto);
+  const dispensadosHoje=(Array.isArray(focoDispensados)?focoDispensados:Object.values(focoDispensados||{})).filter(d=>d.data===hoje);
+  const foiDispensadoHoje=(nome,marcador)=>dispensadosHoje.some(d=>d.casoNome===nome&&d.marcador===marcador);
   const arr=[...manuais];
   gruposOrdenados.forEach(({itens,marcador})=>{
     itens.forEach(item=>{
+      if(foiDispensadoHoje(item.nome,marcador))return;
       const antigo=autoAntigos.find(f=>f.casoNome===item.nome&&f.marcador===marcador);
       const texto=`${ICONE_MARCADOR[marcador]||''} ${item.mensagem}`.trim();
       arr.push({text:texto,done:antigo?antigo.done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
