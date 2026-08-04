@@ -1143,7 +1143,9 @@ window.enviarRespostaFoco=async function(){
     const anterior=c.obs||'';
     const novoObs=montarNovoObs(anterior,texto);
     await update(ref(db,`casos/${c.id}`),{obs:novoObs,obsAnterior:anterior,atualizado:isoHoje()});
-    await gerarLembreteDaObs(c.id,{...c,obs:novoObs},texto);
+    // Responder já É a forma de fechar esse lembrete — não gera um aviso novo
+    // automático em cima da própria resposta (isso fazia o item "sumir e
+    // voltar" na hora, com a IA tratando a confirmação como pendência nova).
     if(!item.done)toggleFoco(rfItemIndex);
   }finally{
     fecharResponderFoco();
