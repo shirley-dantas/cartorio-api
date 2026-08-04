@@ -28,7 +28,7 @@ Para ALERTAS, gere SOMENTE quando houver uma razão objetiva e específica de al
 
 ATENÇÃO — data agendada antiga não é a mesma coisa que pendência aberta: se a "assinatura da escritura agendada" já passou há muitos dias (a anotação já vem calculada, ex: "isso já passou há 296 dias") e o caso ainda tem uma dependência clara (ex: "Nota de exigência", "Falta assinatura"), essa data antiga é HISTÓRICO — foi quando algo JÁ FOI assinado no passado, não algo que ainda precisa acontecer nela. NUNCA escreva o alerta como se essa data velha precisasse ser "travada" ou fosse uma data futura a confirmar. O alerta deve focar EXCLUSIVAMENTE na dependência em si (o que falta fazer agora, ex: providenciar/assinar uma retificação pra cumprir a nota de exigência) — pode citar a data antiga só como contexto de quanto tempo já se passou, nunca como algo ainda pendente de agendar.
 
-Para AGENDA DE HOJE e AGENDA DE AMANHÃ, gere um item por caso, escrito como mensagem calorosa e pessoal dirigida à Shirley, mencionando os detalhes reais da observação (quem está envolvido, horário), terminando com uma pergunta de confirmação. Deixe claro no texto se é hoje ou amanhã. Exemplos de tom (adapte aos dados reais, nunca copie o exemplo): "Oi Shirley, a escritura do Carlos Cesar vai ser assinada hoje pelo Reinaldo às 14:30 — já está tudo certo?" ou "Lembrete: amanhã tem a assinatura do Reinaldo no caso do Carlos Cesar, às 14:30 — já está tudo encaminhado?"
+Para AGENDA DE HOJE e AGENDA DE AMANHÃ, gere um item por caso com SOMENTE o contexto e uma pergunta de confirmação, tom caloroso e pessoal dirigido à Shirley, mencionando os detalhes reais da observação (quem está envolvido, o que falta). NÃO escreva a data, o dia da semana, o horário nem as palavras "hoje"/"amanhã" no seu texto — o sistema já escreve essa parte sozinho, em código, logo antes da sua frase (ex: já vem pronto algo como "A assinatura está agendada para amanhã, dia 07/08, às 14:30." antes do que você escrever), então comece direto pelo contexto, sem repetir isso. Exemplos de tom pra SÓ a parte que você escreve (adapte aos dados reais, nunca copie o exemplo, e lembre que uma frase com a data já veio antes da sua): "Já está tudo certo pra receber o Reinaldo?" ou "A documentação do Carlos Cesar já está toda encaminhada?"
 
 Regras gerais:
 - Se não houver nada preocupante ou programado em um caso, não gere nada para ele — silêncio é melhor que alerta forçado
@@ -208,28 +208,61 @@ Revise e separe em alertas (coisa parada), agenda de hoje e agenda de amanhã (c
     return res.status(500).json({ ok: false, erro: primeiroErro || "Erro desconhecido" });
   }
 
-  // Confere a classificação da IA contra a data real do card antes de aceitar
-  // um item em "hoje"/"amanhã" — ela já errou essa conta antes (ex: escreveu
-  // "amanhã, dia 05/08" pra um caso agendado de verdade pra 07/08). Só valida
-  // quando o caso tem uma data estruturada (agendado ou segunda parte com
-  // data definida) pra comparar; sem isso, mantém a classificação da IA.
   // Nome "bate" mesmo se não for idêntico — a IA às vezes reformula o nome
   // do caso (ex: acrescenta o tipo do ato) e uma igualdade estrita não
   // encontrava o card pra conferir, deixando passar sem checagem nenhuma.
   const nomeBate = (a, b) => !!a && !!b && (a === b || a.startsWith(b) || b.startsWith(a));
-  const bateComDiaEsperado = (nomeCaso, diaEsperado) => {
-    const c = casosAtivos.find(x => nomeBate(x.nome, nomeCaso));
-    if (!c) return true;
-    const diffs = [diffDiasNum(c.agendado)];
-    if (c.segundaParte && c.segundaParte.status === "data_definida" && c.segundaParte.data) {
-      diffs.push(diffDiasNum(c.segundaParte.data));
-    }
-    const diffsValidos = diffs.filter(d => d !== null);
-    if (!diffsValidos.length) return true;
-    return diffsValidos.includes(diaEsperado);
+  const horarioDe = (iso) => {
+    if (!iso) return "";
+    const t = String(iso).split("T")[1];
+    return t ? t.slice(0, 5) : "";
   };
-  const agendaHojeConferida = agendaHoje.filter(item => bateComDiaEsperado(item.nome, 0));
-  const agendaAmanhaConferida = agendaAmanha.filter(item => bateComDiaEsperado(item.nome, 1));
+  const dataDdMm = (iso) => {
+    const p = String(iso || "").slice(0, 10).split("-");
+    return p.length === 3 ? `${p[2]}/${p[1]}` : "";
+  };
+  // Escreve a frase da data em código, nunca deixa a IA compor isso — ela já
+  // escreveu uma data errada dentro do texto livre antes (ex: "amanhã, dia
+  // 05/08" pra um caso agendado de verdade pra 07/08, três dias depois).
+  const construirFraseData = (c, diaEsperado) => {
+    const candidatos = [
+      { iso: c && c.agendado, diff: c ? diffDiasNum(c.agendado) : null, quem: null },
+      {
+        iso: c && c.segundaParte && c.segundaParte.status === "data_definida" ? c.segundaParte.data : null,
+        diff: c && c.segundaParte && c.segundaParte.status === "data_definida" ? diffDiasNum(c.segundaParte.data) : null,
+        quem: c && c.segundaParte ? c.segundaParte.quem : null
+      }
+    ];
+    const certo = candidatos.find(x => x.diff === diaEsperado);
+    const horario = certo ? horarioDe(certo.iso) : "";
+    const quemTxt = certo && certo.quem ? ` (${certo.quem})` : "";
+    if (diaEsperado === 0) {
+      return `A assinatura${quemTxt} está agendada para hoje${horario ? `, às ${horario}` : ""}.`;
+    }
+    const dataTxt = certo ? dataDdMm(certo.iso) : "";
+    return `A assinatura${quemTxt} está agendada para amanhã${dataTxt ? `, dia ${dataTxt}` : ""}${horario ? `, às ${horario}` : ""}.`;
+  };
+  // Confere a classificação da IA contra a data real do card antes de aceitar
+  // um item em "hoje"/"amanhã"; sem data estruturada pra comparar, mantém a
+  // classificação da IA. Nos itens que passam, a frase com a data é
+  // reescrita em código (ver construirFraseData), a IA só contribui o resto.
+  const processarAgenda = (lista, diaEsperado) => lista
+    .map(item => ({ item, c: casosAtivos.find(x => nomeBate(x.nome, item.nome)) }))
+    .filter(({ c }) => {
+      if (!c) return true;
+      const diffs = [diffDiasNum(c.agendado)];
+      if (c.segundaParte && c.segundaParte.status === "data_definida" && c.segundaParte.data) {
+        diffs.push(diffDiasNum(c.segundaParte.data));
+      }
+      const diffsValidos = diffs.filter(d => d !== null);
+      return !diffsValidos.length || diffsValidos.includes(diaEsperado);
+    })
+    .map(({ item, c }) => ({
+      ...item,
+      mensagem: `${construirFraseData(c, diaEsperado)} ${(item.mensagem || "").trim()}`.trim()
+    }));
+  const agendaHojeConferida = processarAgenda(agendaHoje, 0);
+  const agendaAmanhaConferida = processarAgenda(agendaAmanha, 1);
 
   res.status(200).json({
     ok: true,
