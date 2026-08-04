@@ -213,8 +213,12 @@ Revise e separe em alertas (coisa parada), agenda de hoje e agenda de amanhã (c
   // "amanhã, dia 05/08" pra um caso agendado de verdade pra 07/08). Só valida
   // quando o caso tem uma data estruturada (agendado ou segunda parte com
   // data definida) pra comparar; sem isso, mantém a classificação da IA.
+  // Nome "bate" mesmo se não for idêntico — a IA às vezes reformula o nome
+  // do caso (ex: acrescenta o tipo do ato) e uma igualdade estrita não
+  // encontrava o card pra conferir, deixando passar sem checagem nenhuma.
+  const nomeBate = (a, b) => !!a && !!b && (a === b || a.startsWith(b) || b.startsWith(a));
   const bateComDiaEsperado = (nomeCaso, diaEsperado) => {
-    const c = casosAtivos.find(x => x.nome === nomeCaso);
+    const c = casosAtivos.find(x => nomeBate(x.nome, nomeCaso));
     if (!c) return true;
     const diffs = [diffDiasNum(c.agendado)];
     if (c.segundaParte && c.segundaParte.status === "data_definida" && c.segundaParte.data) {
