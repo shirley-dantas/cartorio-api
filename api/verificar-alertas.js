@@ -111,13 +111,21 @@ module.exports = async (req, res) => {
     lotes.push(casosAtivos.slice(i, i + TAMANHO_LOTE));
   }
 
+  // Calcula em código a diferença em dias entre uma data agendada e hoje —
+  // usado tanto pra anotar o texto que vai pra IA quanto (em diffDiasNum)
+  // pra conferir depois se a IA classificou certo em hoje/amanhã.
+  const diffDiasNum = (agendadoISO) => {
+    if (!agendadoISO) return null;
+    const dataAgendada = agendadoISO.slice(0, 10);
+    return Math.round((new Date(dataAgendada) - new Date(hoje)) / 86400000);
+  };
+
   // Calcula em código a relação da data agendada com hoje, em vez de deixar
   // a IA comparar as datas sozinha — ela errava essa conta (ex: tratava uma
   // data de 7 dias atrás como "hoje"), mesmo com a data de hoje informada.
   const relacaoComHoje = (agendadoISO) => {
-    if (!agendadoISO) return "";
-    const dataAgendada = agendadoISO.slice(0, 10);
-    const diffDias = Math.round((new Date(dataAgendada) - new Date(hoje)) / 86400000);
+    const diffDias = diffDiasNum(agendadoISO);
+    if (diffDias === null) return "";
     if (diffDias === 0) return " — ATENÇÃO: ISSO É HOJE";
     if (diffDias === 1) return " — ATENÇÃO: ISSO É AMANHÃ";
     if (diffDias > 1) return ` — isso é daqui a ${diffDias} dias`;
@@ -200,10 +208,29 @@ Revise e separe em alertas (coisa parada), agenda de hoje e agenda de amanhã (c
     return res.status(500).json({ ok: false, erro: primeiroErro || "Erro desconhecido" });
   }
 
+  // Confere a classificação da IA contra a data real do card antes de aceitar
+  // um item em "hoje"/"amanhã" — ela já errou essa conta antes (ex: escreveu
+  // "amanhã, dia 05/08" pra um caso agendado de verdade pra 07/08). Só valida
+  // quando o caso tem uma data estruturada (agendado ou segunda parte com
+  // data definida) pra comparar; sem isso, mantém a classificação da IA.
+  const bateComDiaEsperado = (nomeCaso, diaEsperado) => {
+    const c = casosAtivos.find(x => x.nome === nomeCaso);
+    if (!c) return true;
+    const diffs = [diffDiasNum(c.agendado)];
+    if (c.segundaParte && c.segundaParte.status === "data_definida" && c.segundaParte.data) {
+      diffs.push(diffDiasNum(c.segundaParte.data));
+    }
+    const diffsValidos = diffs.filter(d => d !== null);
+    if (!diffsValidos.length) return true;
+    return diffsValidos.includes(diaEsperado);
+  };
+  const agendaHojeConferida = agendaHoje.filter(item => bateComDiaEsperado(item.nome, 0));
+  const agendaAmanhaConferida = agendaAmanha.filter(item => bateComDiaEsperado(item.nome, 1));
+
   res.status(200).json({
     ok: true,
     alertas: alertas.slice(0, 6),
-    agendaHoje: agendaHoje.slice(0, 4),
-    agendaAmanha: agendaAmanha.slice(0, 4)
+    agendaHoje: agendaHojeConferida.slice(0, 4),
+    agendaAmanha: agendaAmanhaConferida.slice(0, 4)
   });
 };
