@@ -850,6 +850,14 @@ let focos=[];
 let filtro='todos';
 let busca='';
 let inicializado=false;
+// Cada item do Foco do dia precisa de um id fixo pra Responder/✓/✕ acertarem
+// o item certo mesmo se a lista for reordenada em segundo plano enquanto o
+// modal de Responder está aberto (a verificação automática reescreve a lista
+// inteira a cada edição de caso, em qualquer card, feita por qualquer pessoa
+// da equipe) — usar só a posição (índice) fazia o clique acertar outro item.
+function gerarIdFoco(){
+  return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'f'+Date.now()+Math.random().toString(36).slice(2,9);
+}
 
 // ── ALERTAS (tudo entra no Foco do Dia, com icone diferente por tipo) ──
 // Precisa vir antes dos listeners do Firebase: onValue(casosRef) pode disparar
@@ -945,7 +953,16 @@ onValue(casosRef,(snap)=>{
 },()=>setSyncStatus(false));
 
 onValue(focosRef,(snap)=>{
-  focos=snap.val()||[];
+  const val=snap.val()||[];
+  const arr=Array.isArray(val)?val:Object.values(val);
+  if(arr.some(f=>f&&!f.id)){
+    // Itens antigos, salvos antes do id existir — recebem um id agora, uma
+    // vez só (essa própria escrita volta pelo listener já sem faltar nenhum).
+    focos=arr.map(f=>f&&!f.id?{...f,id:gerarIdFoco()}:f);
+    set(focosRef,focos);
+    return;
+  }
+  focos=arr;
   renderFoco();
 });
 
@@ -992,28 +1009,27 @@ function renderFoco(){
   const full=Array.isArray(focos)?focos:Object.values(focos||{});
   if(!full.length){el.innerHTML='<div class="foco-empty">Nenhuma prioridade definida para hoje.</div>';return;}
   // Concluídos (✓) somem da lista em vez de ficar riscados ocupando espaço —
-  // o estado continua salvo (por isso os índices reais são preservados em
-  // _idx), só não é mais exibido, pra não poluir a lista do que falta fazer.
-  const arr=full.map((f,i)=>({...f,_idx:i})).filter(f=>!f.done);
+  // o estado continua salvo, só não é mais exibido, pra não poluir a lista
+  // do que falta fazer.
+  const arr=full.filter(f=>f&&!f.done);
   if(!arr.length){el.innerHTML='<div class="foco-empty">Tudo em dia! Nenhuma pendência no momento.</div>';return;}
   el.innerHTML=arr.map((f)=>{
-    const i=f._idx;
     const tipo=f.marcador==='alerta'?'tipo-alerta':(f.marcador==='hoje'||f.marcador==='amanha')?'tipo-agenda':'tipo-manual';
     const nomeCaso=f.casoNome||null;
     const tagCaso=nomeCaso?`<span class="foco-caso-tag">${esc(nomeCaso)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
     const tagResp=f.resp?bResp(f.resp):'';
     const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
     const clicavel=nomeCaso?` data-caso="${esc(nomeCaso)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`:'';
-    const btnResponder=nomeCaso?`<button class="btn-sm" style="margin-top:6px" onclick="event.stopPropagation();abrirResponderFoco(${i})"><i class="ti ti-message-reply" style="font-size:12px;vertical-align:-1px"></i> Responder</button>`:'';
+    const btnResponder=nomeCaso?`<button class="btn-sm" style="margin-top:6px" onclick="event.stopPropagation();abrirResponderFoco('${f.id}')"><i class="ti ti-message-reply" style="font-size:12px;vertical-align:-1px"></i> Responder</button>`:'';
     return`
     <div class="foco-item ${tipo}">
-      <div class="foco-check" onclick="toggleFoco(${i})"></div>
+      <div class="foco-check" onclick="toggleFoco('${f.id}')"></div>
       <div class="foco-conteudo"${clicavel}>
         <div class="foco-tags">${tagCaso}${tagResp}${tagUrgente}</div>
         <span class="foco-text">${f.text}</span>
         ${btnResponder}
       </div>
-      <button class="foco-del" onclick="delFoco(${i})">&times;</button>
+      <button class="foco-del" onclick="delFoco('${f.id}')">&times;</button>
     </div>
   `;}).join('');
 }
@@ -1046,15 +1062,16 @@ window.addFoco=function(){
   const resp=document.getElementById('foco-resp').value||null;
   const urgente=document.getElementById('foco-urgente').checked;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  arr.push({text:v,done:false,casoNome,resp,urgente});
+  arr.push({id:gerarIdFoco(),text:v,done:false,casoNome,resp,urgente});
   set(focosRef,arr);
   document.getElementById('foco-input').value='';
   document.getElementById('foco-resp').value='';
   document.getElementById('foco-urgente').checked=false;
 };
-window.toggleFoco=function(i){
+window.toggleFoco=function(id){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  if(!arr[i])return;
+  const i=arr.findIndex(f=>f&&f.id===id);
+  if(i===-1)return;
   const ficandoConcluida=!arr[i].done;
   arr[i].done=!arr[i].done;
   set(focosRef,arr);
@@ -1098,21 +1115,23 @@ async function sugerirProximaTarefa(tarefaConcluida,arrAtual){
     el.className='foco-sugestao';
   }
 }
-window.delFoco=function(i){
+window.delFoco=function(id){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+  const i=arr.findIndex(f=>f&&f.id===id);
+  if(i===-1)return;
   const item=arr[i];
-  if(item&&item.auto&&item.casoNome&&item.marcador)registrarDispensaFoco(item.casoNome,item.marcador);
+  if(item.auto&&item.casoNome&&item.marcador)registrarDispensaFoco(item.casoNome,item.marcador);
   arr.splice(i,1);
   set(focosRef,arr);
 };
 
 // ── RESPONDER ITEM DO FOCO (registra a resposta no card + IA decide se vira lembrete) ──
-let rfItemIndex=null;
-window.abrirResponderFoco=function(i){
+let rfItemId=null;
+window.abrirResponderFoco=function(id){
   const arr=Array.isArray(focos)?focos:Object.values(focos||{});
-  const item=arr[i];
+  const item=arr.find(f=>f&&f.id===id);
   if(!item||!item.casoNome)return;
-  rfItemIndex=i;
+  rfItemId=id;
   document.getElementById('rf-caso-info').textContent=item.casoNome;
   const prefixoIcone=ICONE_MARCADOR[item.marcador];
   const perguntaLimpa=prefixoIcone&&item.text.startsWith(prefixoIcone)?item.text.slice(prefixoIcone.length).trim():item.text;
@@ -1133,7 +1152,7 @@ window.enviarRespostaFoco=async function(){
   const texto=document.getElementById('rf-texto').value.trim();
   if(!texto){document.getElementById('rf-texto').focus();return;}
   const arr=Array.isArray(focos)?focos:Object.values(focos||{});
-  const item=arr[rfItemIndex];
+  const item=arr.find(f=>f&&f.id===rfItemId);
   if(!item)return;
   const c=encontrarCasoPorNomeFoco(item.casoNome);
   if(!c){alert('Não encontrei mais esse caso — pode ter sido excluído.');fecharResponderFoco();return;}
@@ -1146,7 +1165,7 @@ window.enviarRespostaFoco=async function(){
     // Responder já É a forma de fechar esse lembrete — não gera um aviso novo
     // automático em cima da própria resposta (isso fazia o item "sumir e
     // voltar" na hora, com a IA tratando a confirmação como pendência nova).
-    if(!item.done)toggleFoco(rfItemIndex);
+    if(!item.done)toggleFoco(rfItemId);
   }finally{
     fecharResponderFoco();
   }
@@ -1318,14 +1337,19 @@ async function adicionarAgendaAoFoco(gruposOrdenados){
   const manuais=atual.filter(f=>!f.auto);
   const autoAntigos=atual.filter(f=>f.auto);
   const dispensadosHoje=(Array.isArray(focoDispensados)?focoDispensados:Object.values(focoDispensados||{})).filter(d=>d.data===hoje);
-  const foiDispensadoHoje=(nome,marcador)=>dispensadosHoje.some(d=>d.casoNome===nome&&d.marcador===marcador);
+  // Nome "bate" mesmo se não for idêntico — a IA às vezes reformula o nome
+  // do caso de uma verificação pra outra (ex: acrescenta o tipo do ato entre
+  // parênteses), e uma igualdade estrita perderia o vínculo com o item
+  // anterior, fazendo um aviso já concluído/dispensado voltar do zero.
+  const nomeBate=(a,b)=>!!a&&!!b&&(a===b||a.startsWith(b)||b.startsWith(a));
+  const foiDispensadoHoje=(nome,marcador)=>dispensadosHoje.some(d=>nomeBate(d.casoNome,nome)&&d.marcador===marcador);
   const arr=[...manuais];
   gruposOrdenados.forEach(({itens,marcador})=>{
     itens.forEach(item=>{
       if(foiDispensadoHoje(item.nome,marcador))return;
-      const antigo=autoAntigos.find(f=>f.casoNome===item.nome&&f.marcador===marcador);
+      const antigo=autoAntigos.find(f=>nomeBate(f.casoNome,item.nome)&&f.marcador===marcador);
       const texto=`${ICONE_MARCADOR[marcador]||''} ${item.mensagem}`.trim();
-      arr.push({text:texto,done:antigo?antigo.done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
+      arr.push({id:antigo?antigo.id:gerarIdFoco(),text:texto,done:antigo?antigo.done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
     });
   });
   await set(focosRef,arr);
@@ -1732,7 +1756,7 @@ async function gerarLembreteDaObs(id,c,novoTexto){
     const urgente=c.status==='critico'||c.status==='prioridade';
     const txt=`${ICONE_MARCADOR.alerta} ${j.aviso}`;
     const arrAtual=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-    arrAtual.push({text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente,marcador:'alerta'});
+    arrAtual.push({id:gerarIdFoco(),text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente,marcador:'alerta'});
     await set(focosRef,arrAtual);
   }catch(e){}
 }
@@ -1757,7 +1781,7 @@ window.addAoFoco=async function(id){
     if(!j.ok||!j.aviso)throw new Error(j.erro||'Sem resposta da IA');
     const txt=`${ICONE_MARCADOR.alerta} ${j.aviso}`;
     const arrAtual=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-    arrAtual.push({text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente,marcador:'alerta'});
+    arrAtual.push({id:gerarIdFoco(),text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente,marcador:'alerta'});
     await set(focosRef,arrAtual);
     irParaFoco();
   }catch(err){
@@ -2491,7 +2515,7 @@ if(joaninhaInstancia.disponivel){
         if(patch.agendado)await sincronizarEventoCalendar(alvo.id,{...c,...patch});
       }else{
         const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-        arr.push({text:corpo,done:false});
+        arr.push({id:gerarIdFoco(),text:corpo,done:false});
         if(arr.length>8)arr.splice(0,arr.length-8);
         await set(focosRef,arr);
       }
