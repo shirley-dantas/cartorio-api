@@ -1184,9 +1184,13 @@ window.retomarCentral=function(chave){
   remove(ref(db,`resolucoesCentral/${chave}`));
 };
 window.abrirSnoozeCentral=function(chave){
-  const data=prompt('Vou fazer depois — pra quando? (formato AAAA-MM-DD)',isoHoje());
+  const[ano,mes,dia]=isoHoje().split('-');
+  const data=prompt('Vou fazer depois — pra quando? (formato DD/MM/AAAA)',`${dia}/${mes}/${ano}`);
   if(!data)return;
-  resolverCentral(chave,'snooze',{ate:data});
+  const m=data.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m){alert('Data inválida — use o formato DD/MM/AAAA, por exemplo 06/08/2026.');return;}
+  const iso=`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  resolverCentral(chave,'snooze',{ate:iso});
 };
 window.registrarNotaCentral=function(casoId){
   const input=document.getElementById('cdc-nota-'+casoId);
