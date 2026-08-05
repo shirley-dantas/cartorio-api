@@ -784,7 +784,7 @@ const DEP_CONFIG={
   'ITBI aguardando pagamento':            {quemSegura:'cliente', normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Cobrar pagamento do ITBI'},
   'Travar agenda':                        {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Travar agenda de assinatura'},
   'Falta assinatura':                     {quemSegura:'terceiro',normalAte:5,    criticoDesde:6,    tag:'visibilidade_equipe',proximaAcao:'Cobrar assinatura da outra parte'},
-  'Aguardando traslado':                  {quemSegura:'terceiro',normalAte:3,    criticoDesde:5,    tag:null,                 proximaAcao:'Verificar com o registro se o traslado já saiu'},
+  'Aguardando traslado':                  {quemSegura:'cartorio',normalAte:3,    criticoDesde:5,    tag:null,                 proximaAcao:'Verificar se já solicitamos o traslado ou se ele já está pronto'},
   'Traslado pronto — providenciar envio': {quemSegura:'cartorio',normalAte:3,    criticoDesde:4,    tag:'promessa_cliente',   proximaAcao:'Enviar traslado ao cliente'},
   'Pré-conferência':                      {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:null,                 proximaAcao:'Concluir pré-conferência e enviar ao registro'},
   'Registro de Imóveis':                  {quemSegura:'terceiro',normalAte:30,   criticoDesde:31,   tag:null,                 proximaAcao:'Acompanhar protocolo no Registro de Imóveis'},
