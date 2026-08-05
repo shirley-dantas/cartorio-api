@@ -1058,7 +1058,11 @@ function renderCentralComando(){
 // usada pelos botões, e se mostra ações ou o botão de retomar.
 function linhaCaso(it,opts){
   const c=it.caso,md=it.md,classe=opts.classe||'',chave=opts.chave;
-  const respBadge=c.resp?bResp(c.resp):'';
+  const respSelect=`<select class="sel" onclick="event.stopPropagation()" onchange="event.stopPropagation();mudarCampo('${c.id}','resp',this.value)">
+    <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
+    <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
+    <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
+  </select>`;
   const diasTxt=md.diasNaEtapaAtual>0?`${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual>1?'s':''} em "${esc(c.dep||'—')}"`:`Entrou hoje em "${esc(c.dep||'—')}"`;
   const bloqueio=md.bloqueado?`<div class="cdc-bloqueio">⚠ ${esc(md.motivoBloqueio)}</div>`:'';
   const acoes=opts.mostrarAcoes?`
@@ -1076,7 +1080,7 @@ function linhaCaso(it,opts){
   return`
   <div class="cdc-linha ${classe}" onclick="irParaCasoPorId('${c.id}')" style="cursor:pointer">
     <div class="cdc-conteudo">
-      <div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${respBadge}</div>
+      <div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${respSelect}</div>
       <span class="cdc-texto">${esc(md.proximaAcao)}</span>
       <span class="cdc-meta">${diasTxt}</span>
       ${bloqueio}
