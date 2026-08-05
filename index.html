@@ -1098,13 +1098,31 @@ function linhaCaso(it,opts){
   <div class="cdc-linha ${classe}" onclick="irParaCasoPorId('${c.id}')" style="cursor:pointer">
     <div class="cdc-conteudo">
       <div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${respSelect}</div>
-      <span class="cdc-texto">${esc(md.proximaAcao)}</span>
+      <span class="cdc-texto">${esc(opts.textoOverride||md.proximaAcao)}</span>
       <span class="cdc-meta">${diasTxt}</span>
       ${obsSnippet}
       ${bloqueio}
       ${acoes}${retomar}
     </div>
   </div>`;
+}
+
+// Um card entra na banda "hoje" por causa da data (agendado/segunda parte),
+// não da etapa (dep) — mostrar md.proximaAcao aí seria enganoso (às vezes
+// nem faz sentido, tipo quando dep está vazio). Descreve em código, com a
+// data/hora reais, por que esse card é urgente hoje especificamente.
+function fraseHoje(it){
+  const c=it.caso;
+  if(it.diffAgendado===0){
+    const hr=c.agendado?new Date(c.agendado).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    return`Assinatura da escritura agendada para hoje${hr?`, às ${hr}`:''}.`;
+  }
+  if(it.diffSegunda===0){
+    const hr=c.segundaParte&&c.segundaParte.data?new Date(c.segundaParte.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    const quem=c.segundaParte&&c.segundaParte.quem?` (${c.segundaParte.quem})`:'';
+    return`Assinatura da segunda parte${quem} agendada para hoje${hr?`, às ${hr}`:''}.`;
+  }
+  return it.md.proximaAcao;
 }
 
 function renderIncendios(itens){
@@ -1115,7 +1133,7 @@ function renderIncendios(itens){
   if(!hoje.length&&!esquecidos.length){html+='<div class="cdc-vazio">Nada pegando fogo agora.</div>';el.innerHTML=html;return;}
   const hojeTop=hoje.slice(0,10);
   const esqTop=esquecidos.slice(0,Math.max(0,10-hojeTop.length));
-  if(hojeTop.length)html+=hojeTop.map(it=>linhaCaso(it,{classe:'hoje',chave:it.chaveAgenda,mostrarAcoes:true})).join('');
+  if(hojeTop.length)html+=hojeTop.map(it=>linhaCaso(it,{classe:'hoje',chave:it.chaveAgenda,mostrarAcoes:true,textoOverride:fraseHoje(it)})).join('');
   if(esqTop.length)html+='<div class="cdc-sub-titulo">Esquecidos</div>'+esqTop.map(it=>linhaCaso(it,{classe:'critico',chave:it.chaveDep,mostrarAcoes:true})).join('');
   el.innerHTML=html;
 }
