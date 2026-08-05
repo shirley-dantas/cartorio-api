@@ -826,7 +826,12 @@ function motorDecisao(caso){
   let bloqueado=false,motivoBloqueio=null;
   if(caso.segundaParte){
     if(caso.segundaParte.status==='pendente'){bloqueado=true;motivoBloqueio='Segunda parte ainda sem data de assinatura definida.';}
-    else if(caso.segundaParte.status==='lembrete'){bloqueado=true;motivoBloqueio=`Lembrete de travar agenda com ${caso.segundaParte.quem||'—'} ainda pendente.`;}
+    else if(caso.segundaParte.status==='lembrete'){
+      // Só vira lembrete de verdade no dia marcado — antes disso não aparece,
+      // pra não avisar sobre algo que só precisa de atenção dali a dias.
+      const chegouODia=caso.segundaParte.lembreteData&&isoHoje()>=caso.segundaParte.lembreteData;
+      if(chegouODia){bloqueado=true;motivoBloqueio=`Lembrete de travar agenda com ${caso.segundaParte.quem||'—'} chegou — ainda pendente.`;}
+    }
   }
   return{
     dep, quemSegura: cfg?cfg.quemSegura:null, diasNaEtapaAtual, nivel,
