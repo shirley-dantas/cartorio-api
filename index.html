@@ -1075,7 +1075,7 @@ function linhaCaso(it,opts){
   // aqui só interessa o texto da nota em si; a data automática ao lado da
   // data real que às vezes já vem escrita na própria nota (ex: "lembrete em
   // 06/08") só duplicava e confundia.
-  const ultimaObs=(c.obs||'').split('\n')[0].replace(/^\d+\s*-\s*\[[^\]]*\]\s*/,'').trim();
+  const ultimaObs=(c.obs||'').split('\n')[0].replace(/^(?:\d+\s*-\s*)?\[[^\]]*\]\s*/,'').trim();
   const obsSnippet=ultimaObs?`<div class="cdc-obs-snippet">📝 ${esc(ultimaObs.length>160?ultimaObs.slice(0,160)+'…':ultimaObs)}</div>`:'';
   const acoes=opts.mostrarAcoes?`
     <div class="cdc-acoes">
