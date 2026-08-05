@@ -425,7 +425,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="stats" id="stats"><div class="loading-overlay">Carregando...</div></div>
 
-  <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)"></div></div>
+  <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)" onkeydown="if(event.key==='Enter')irParaPrimeiroResultado()"></div></div>
 
   <div class="cdc-card foco-card">
     <div class="foco-header">
@@ -2355,6 +2355,15 @@ window.setFiltro=function(f){
   renderCasos();
 };
 window.buscar=function(v){busca=v;renderCasos();};
+// Enter na busca principal pula direto pro primeiro card já filtrado na tela
+// (mesmo padrão de scroll+destaque usado em irParaCasoDoFoco/irParaCasoPorId).
+window.irParaPrimeiroResultado=function(){
+  const el=document.querySelector('#casos-list .card');
+  if(!el)return;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.add('jn-destaque');
+  setTimeout(()=>el.classList.remove('jn-destaque'),1800);
+};
 window.toggleForm=function(){
   const f=document.getElementById('add-form');
   f.style.display=f.style.display==='block'?'none':'block';
