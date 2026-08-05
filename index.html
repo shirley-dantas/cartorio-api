@@ -21,11 +21,7 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F3F3F8;background-image:radial-gradient(circle at 8% 0%,rgba(31,59,77,.05),transparent 42%),radial-gradient(circle at 92% 6%,rgba(201,168,118,.06),transparent 40%);background-attachment:fixed;color:#1C1C1E;min-height:100vh;font-size:14px;letter-spacing:-.01em}
 .topnav{background:#FFFFFF;border-bottom:1px solid #ECECF2;padding:15px 26px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;box-shadow:0 1px 3px rgba(22,40,58,.04)}
 .topnav-logo{height:26px;display:block;margin-bottom:6px}
-.ia-live{display:inline-flex;align-items:center;gap:5px;font-size:9px;color:#4ADE80;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
 .sync-inline{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:400;color:#8E8EA0;text-transform:none;letter-spacing:0;margin-left:2px}
-.ia-live-dot{width:6px;height:6px;border-radius:50%;background:#4ADE80;position:relative;flex-shrink:0}
-.ia-live-dot::after{content:'';position:absolute;inset:-4px;border-radius:50%;background:#4ADE80;opacity:.55;animation:ia-pulse 1.8s ease-out infinite}
-@keyframes ia-pulse{0%{transform:scale(.5);opacity:.55}100%{transform:scale(2.4);opacity:0}}
 .topnav-brand p{font-size:11px;color:#5B6B78;margin-top:2px}
 .topnav-right{display:flex;align-items:center;gap:10px}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#4ADE80;flex-shrink:0}
@@ -33,20 +29,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.loading{background:#FBBF24}
 .sync-label{font-size:11px;color:#6E6E8A}
 .container{max-width:1080px;margin:0 auto;padding:24px 18px}
-.alertas-atualizado{font-size:10px;color:#8E8EA0}
-.alertas-refresh{font-size:10px;padding:4px 10px;border-radius:7px;border:0.5px solid #E6DCC3;background:transparent;color:#8A6B3D;cursor:pointer;transition:background .15s ease}
-.alertas-refresh:hover{background:#F5EFE0}
-.alertas-refresh:disabled{opacity:.6;cursor:not-allowed}
-.feedback-row{display:flex;gap:6px;margin-top:6px;align-items:center}
-.feedback-btn{font-size:13px;padding:2px 7px;border-radius:6px;border:0.5px solid #D1D1D6;background:#fff;cursor:pointer;line-height:1.4}
-.feedback-btn:hover{background:#F5F5F7}
-.foco-sugestao .feedback-btn{border-color:#E6DCC3;background:#F5EFE0}
-.foco-sugestao .feedback-btn:hover{background:#EDE0C4}
-.feedback-status{font-size:11px;color:#2E7D32;margin-left:2px}
-.foco-sugestao .feedback-status{color:#8A6B3D}
-.feedback-neg-form{display:none;gap:6px;margin-top:6px;align-items:center}
-.feedback-neg-form input{flex:1;font-size:12px;padding:5px 9px;border-radius:6px;border:0.5px solid #D1D1D6;font-family:inherit;outline:none}
-.foco-sugestao .feedback-neg-form input{background:#fff;border-color:#E6DCC3;color:#1C1C1E}
 .identidade-opcoes{display:flex;flex-direction:column;gap:8px;margin-top:14px}
 .identidade-btn{font-size:14px;padding:12px;border-radius:12px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;cursor:pointer;font-weight:600;transition:background .15s ease,color .15s ease}
 .identidade-btn:hover{background:#16283A;color:#fff;border-color:#16283A}
@@ -82,10 +64,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-del{font-size:16px;color:#6E6E8A;cursor:pointer;padding:0 2px;background:none;border:none;line-height:1}
 .foco-del:hover{color:#E57373}
 .foco-empty{font-size:12px;color:#6E6E8A;font-style:italic;padding:4px 0}
-.foco-sugestao{display:none;margin-top:10px;padding:10px 12px;background:#F5F6F8;border-radius:8px;border:0.5px solid #ECECF2;font-size:12.5px;color:#1C1C1E;line-height:1.55}
-.foco-sugestao.show{display:block}
-.foco-sugestao-label{font-size:10px;color:#8A6B3D;font-weight:600;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:4px;margin-bottom:5px}
-.foco-sugestao-loading{color:#8A6B3D;font-style:italic}
 .foco-input-row{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .foco-input-linha{display:flex;gap:8px}
 .foco-caso-select{font-size:13px;padding:7px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
@@ -96,6 +74,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-input-row input:focus{border-color:#C9A876}
 .foco-input-row button{font-size:12px;padding:7px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600;transition:filter .15s ease}
 .foco-input-row button:hover{filter:brightness(1.12)}
+.cdc-bloco{margin-bottom:16px}
+.cdc-bloco:last-child{margin-bottom:0}
+.cdc-bloco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cdc-bloco-titulo{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8E8EA0;display:flex;align-items:center;gap:5px;margin-bottom:8px}
+.cdc-bloco-titulo i{font-size:13px}
+.cdc-sub-titulo{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8E8EA0;margin:10px 0 6px}
+.cdc-linha{display:flex;gap:10px;padding:9px 12px;background:#F5F6F8;border-radius:8px;border-left:4px solid transparent;margin-bottom:6px}
+.cdc-linha:last-child{margin-bottom:0}
+.cdc-linha.critico{border-left-color:#C62828;background:#FDECEA;box-shadow:0 0 0 1px rgba(198,40,40,.16)}
+.cdc-linha.hoje{border-left-color:#B45309;background:#FFF8ED;box-shadow:0 0 0 1px rgba(180,83,9,.16)}
+.cdc-linha.esquecido{border-left-color:#8D4600;background:#FFF3E0}
+.cdc-linha.atencao{border-left-color:#C9A876;box-shadow:0 0 0 1px rgba(169,137,90,.14)}
+.cdc-linha.parado{border-left-color:#8E8EA0;background:#F2F2F7;opacity:.85}
+.cdc-linha.agenda{cursor:pointer}
+.cdc-conteudo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.cdc-texto{font-size:13px;color:#1C1C1E;line-height:1.4}
+.cdc-meta{font-size:11px;color:#6E6E8A}
+.cdc-bloqueio{font-size:11px;color:#B45309;font-style:italic}
+.cdc-acoes{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.cdc-acao-btn{font-size:10.5px;padding:4px 9px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;white-space:nowrap}
+.cdc-acao-btn:hover{background:#F5F5F7}
+.cdc-registro-rapido{display:flex;gap:6px;margin-top:6px}
+.cdc-registro-rapido input{flex:1;font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
+.cdc-registro-rapido button{font-size:11px;padding:5px 11px;border-radius:7px;border:none;background:#EDE6D6;color:#16283A;cursor:pointer;font-weight:600}
+.cdc-vazio{font-size:12px;color:#6E6E8A;font-style:italic;padding:4px 0}
+.cdc-inline-form{display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap}
+.cdc-inline-form input,.cdc-inline-form select{font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #D1D1D6;font-family:inherit;outline:none}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
 .stat{background:#fff;border-radius:14px;padding:13px 15px;border:0.5px solid #ECECF2;box-shadow:0 1px 3px rgba(0,0,0,.03);transition:box-shadow .2s ease,transform .15s ease;display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none}
 .stat:hover{box-shadow:0 6px 16px rgba(0,0,0,.07);transform:translateY(-2px)}
@@ -175,8 +180,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-concluir{color:#2E7D32;border-color:#A5D6A7}
 .btn-excluir{color:#C62828;border-color:#FFCDD2}
 .btn-excluir:hover{background:#FDECEA}
-.btn-foco{color:#6B21A8;border-color:#DDD6FE}
-.btn-foco:hover{background:#F5F3FF}
 .btn-minuta{color:#0D47A1;border-color:#BBDEFB}
 .btn-drive{color:#1E8E3E;border-color:#A8D5B5}.btn-drive:hover{background:#F0FAF3}
 .btn-reeditar{color:#6A1B9A;border-color:#CE93D8}.btn-reeditar:hover{background:#F3E5F5}
@@ -407,32 +410,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)"></div></div>
 
-  <div class="foco-card">
+  <div class="cdc-card foco-card">
     <div class="foco-header">
-      <div class="foco-title"><i class="ti ti-bolt"></i> Foco do dia <span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span> <span class="sync-inline"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span></div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="alertas-atualizado" id="alertas-atualizado"></span>
-        <button class="alertas-refresh" id="alertas-refresh-btn" onclick="forcarVerificacaoAlertas()">Verificar agora</button>
+      <div class="foco-title"><i class="ti ti-flame"></i> Central de Comando <span class="sync-inline"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span></div>
+    </div>
+
+    <div class="cdc-bloco" id="cdc-incendios"></div>
+    <div class="cdc-bloco" id="cdc-proximas-acoes"></div>
+    <div class="cdc-bloco" id="cdc-agenda"></div>
+    <div class="cdc-bloco" id="cdc-parados"></div>
+
+    <div class="cdc-bloco cdc-lembretes">
+      <div class="cdc-bloco-header">
+        <span class="cdc-bloco-titulo"><i class="ti ti-note"></i> Lembretes manuais</span>
         <button class="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar</button>
       </div>
-    </div>
-    <div class="foco-items" id="foco-items"></div>
-    <div class="foco-sugestao" id="foco-sugestao"></div>
-    <div class="foco-input-row" id="foco-input-row" style="display:none">
-      <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
-      <div class="foco-input-linha">
-        <select id="foco-resp" class="foco-caso-select">
-          <option value="">Sem responsável definido</option>
-          <option value="shirley">Shirley</option>
-          <option value="grazi">Grazi</option>
-          <option value="gabriel">Gabriel</option>
-        </select>
-        <label class="foco-urgente-check"><input type="checkbox" id="foco-urgente"> Urgente</label>
-      </div>
-      <div class="foco-input-linha">
-        <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key==='Enter')addFoco()">
-        <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado('foco-input','foco-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
-        <button onclick="addFoco()">Adicionar</button>
+      <div class="foco-items" id="foco-items"></div>
+      <div class="foco-input-row" id="foco-input-row" style="display:none">
+        <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
+        <div class="foco-input-linha">
+          <select id="foco-resp" class="foco-caso-select">
+            <option value="">Sem responsável definido</option>
+            <option value="shirley">Shirley</option>
+            <option value="grazi">Grazi</option>
+            <option value="gabriel">Gabriel</option>
+          </select>
+          <label class="foco-urgente-check"><input type="checkbox" id="foco-urgente"> Urgente</label>
+        </div>
+        <div class="foco-input-linha">
+          <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key==='Enter')addFoco()">
+          <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado('foco-input','foco-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
+          <button onclick="addFoco()">Adicionar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -471,19 +480,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <input type="text" id="f-prazo" placeholder="Prazo (ex: 30/05)">
           <select id="f-dep">
             <option value="">Sem dependência externa</option>
-            <option value="Falta documentos">Falta documentos</option>
-            <option value="Aguardando cliente">Aguardando cliente</option>
-            <option value="Registro de Imóveis">Registro de Imóveis</option>
-            <option value="Prefeitura">Prefeitura</option>
-            <option value="Pré-conferência">Pré-conferência</option>
-            <option value="Jurídico Prime">Jurídico Prime</option>
-            <option value="Aguardando traslado">Aguardando traslado</option>
-            <option value="Falta assinatura">Falta assinatura</option>
+            <option value="Orçamento a enviar">Orçamento a enviar</option>
+            <option value="Aguardando aprovação do orçamento">Aguardando aprovação do orçamento</option>
+            <option value="Minutando">Minutando</option>
+            <option value="Aguardando aprovação da minuta">Aguardando aprovação da minuta</option>
+            <option value="Aguardando cliente (outro)">Aguardando cliente (outro)</option>
+            <option value="Aguardando gerar ITBI">Aguardando gerar ITBI</option>
+            <option value="ITBI aguardando pagamento">ITBI aguardando pagamento</option>
             <option value="Travar agenda">Travar agenda</option>
+            <option value="Falta assinatura">Falta assinatura</option>
+            <option value="Aguardando traslado">Aguardando traslado</option>
+            <option value="Traslado pronto — providenciar envio">Traslado pronto — providenciar envio</option>
+            <option value="Pré-conferência">Pré-conferência</option>
+            <option value="Registro de Imóveis">Registro de Imóveis</option>
             <option value="Nota de exigência">Nota de exigência</option>
-            <option value="Escritura assinada">Escritura assinada</option>
-            <option value="Escritura pronta">Escritura pronta</option>
+            <option value="Prefeitura">Prefeitura</option>
             <option value="Entregar para o cliente">Entregar para o cliente</option>
+            <option value="Falta documentos">Falta documentos</option>
+            <option value="Jurídico Prime">Jurídico Prime</option>
             <option value="Concluído">Concluído</option>
           </select>
         </div>
@@ -626,27 +640,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
-<!-- Modal Responder item do Foco do dia -->
-<div class="modal-overlay" id="modal-responder-foco">
-  <div class="modal-box" style="max-width:420px">
-    <button class="modal-close" onclick="fecharResponderFoco()">&times;</button>
-    <div class="modal-title"><i class="ti ti-message-reply" style="font-size:15px;vertical-align:-2px;color:#0D47A1"></i> Responder</div>
-    <div class="modal-sub" id="rf-caso-info">—</div>
-    <div id="rf-pergunta" style="font-size:12.5px;color:#48484A;background:#F5F5F7;border-radius:8px;padding:10px 12px;margin-bottom:12px"></div>
-    <div class="modal-btn-row" style="margin-bottom:8px">
-      <button class="btn-sm" style="border-color:#A8D5B5;color:#1E8E3E" onclick="rfPreencherRapido('Sim, já está tudo encaminhado.')">✅ Sim, tudo certo</button>
-      <button class="btn-sm" style="border-color:#FCD34D;color:#B45309" onclick="document.getElementById('rf-texto').focus()">❌ Ainda falta algo</button>
-    </div>
-    <textarea class="modal-textarea" id="rf-texto" placeholder="Ex: Sim, já está tudo encaminhado / Ex: Não, falta o RG do comprador" style="min-height:70px"></textarea>
-    <div class="modal-btn-row">
-      <button class="btn-gerar" id="rf-btn-enviar" onclick="enviarRespostaFoco()"><i class="ti ti-send" style="font-size:13px;vertical-align:-1px"></i> Enviar</button>
-    </div>
-    <div class="modal-loading" id="rf-loading">
-      <i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>
-      Registrando e avaliando se precisa de lembrete novo...
-    </div>
-  </div>
-</div>
 
 <!-- A mascote em si (SVG, host, bolha de fala) é montada em runtime pelo
      componente design-system/mascots/joaninha/joaninha.js — só o painel
@@ -772,7 +765,36 @@ async function sincronizarEventoCalendar(id,caso){
   }
 }
 
-const DEPS=['','Falta documentos','Aguardando cliente','Minutando','Registro de Imóveis','Prefeitura','Pré-conferência','Jurídico Prime','Aguardando traslado','Falta assinatura','Travar agenda','Nota de exigência','Escritura assinada','Escritura pronta','Entregar para o cliente','Concluído'];
+const DEPS=['','Orçamento a enviar','Aguardando aprovação do orçamento','Minutando','Aguardando aprovação da minuta','Aguardando cliente (outro)','Aguardando gerar ITBI','ITBI aguardando pagamento','Travar agenda','Falta assinatura','Aguardando traslado','Traslado pronto — providenciar envio','Pré-conferência','Registro de Imóveis','Nota de exigência','Prefeitura','Entregar para o cliente','Falta documentos','Jurídico Prime','Concluído'];
+
+// normalAte/criticoDesde em dias PARADO NA ETAPA ATUAL (via depDesde, não
+// atualizado — ver mudarCampo). tag marca os 3 padrões que a Shirley
+// identificou como "pega de surpresa": ponto_cego (procrastinação dela
+// mesma), visibilidade_equipe (falta de visibilidade sobre o time),
+// promessa_cliente (algo já prometido ao cliente que precisa acompanhamento
+// ativo, não só um timer).
+const DEP_CONFIG={
+  '':                                     {quemSegura:null,      normalAte:null, criticoDesde:null, tag:null,                 proximaAcao:null},
+  'Orçamento a enviar':                   {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:'ponto_cego',         proximaAcao:'Enviar orçamento ao cliente'},
+  'Aguardando aprovação do orçamento':    {quemSegura:'cliente', normalAte:5,    criticoDesde:7,    tag:null,                 proximaAcao:'Cobrar aprovação do orçamento'},
+  'Minutando':                            {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:'visibilidade_equipe',proximaAcao:'Confirmar com a Grazi o andamento da minuta'},
+  'Aguardando aprovação da minuta':       {quemSegura:'cliente', normalAte:3,    criticoDesde:4,    tag:null,                 proximaAcao:'Cobrar aprovação da minuta'},
+  'Aguardando cliente (outro)':           {quemSegura:'cliente', normalAte:5,    criticoDesde:7,    tag:null,                 proximaAcao:'Cobrar retorno do cliente'},
+  'Aguardando gerar ITBI':                {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Gerar guia de ITBI'},
+  'ITBI aguardando pagamento':            {quemSegura:'cliente', normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Cobrar pagamento do ITBI'},
+  'Travar agenda':                        {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Travar agenda de assinatura'},
+  'Falta assinatura':                     {quemSegura:'terceiro',normalAte:5,    criticoDesde:6,    tag:'visibilidade_equipe',proximaAcao:'Cobrar assinatura da outra parte'},
+  'Aguardando traslado':                  {quemSegura:'terceiro',normalAte:3,    criticoDesde:5,    tag:null,                 proximaAcao:'Verificar com o registro se o traslado já saiu'},
+  'Traslado pronto — providenciar envio': {quemSegura:'cartorio',normalAte:3,    criticoDesde:4,    tag:'promessa_cliente',   proximaAcao:'Enviar traslado ao cliente'},
+  'Pré-conferência':                      {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:null,                 proximaAcao:'Concluir pré-conferência e enviar ao registro'},
+  'Registro de Imóveis':                  {quemSegura:'terceiro',normalAte:2,    criticoDesde:3,    tag:null,                 proximaAcao:'Acompanhar protocolo no Registro de Imóveis'},
+  'Nota de exigência':                    {quemSegura:'variavel',normalAte:0,    criticoDesde:1,    tag:'ponto_cego',         proximaAcao:'Verificar status da nota de exigência hoje'},
+  'Prefeitura':                           {quemSegura:'terceiro',normalAte:1,    criticoDesde:3,    tag:'ponto_cego',         proximaAcao:'Acompanhar retorno da Prefeitura'},
+  'Entregar para o cliente':              {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:'ponto_cego',         proximaAcao:'Preparar e entregar arquivos físicos ao cliente'},
+  'Falta documentos':                     {quemSegura:'cliente', normalAte:5,    criticoDesde:7,    tag:null,                 proximaAcao:'Cobrar documentos pendentes do cliente'},
+  'Jurídico Prime':                       {quemSegura:'terceiro',normalAte:5,    criticoDesde:8,    tag:null,                 proximaAcao:'Acompanhar retorno do Jurídico Prime'},
+  'Concluído':                            {quemSegura:null,      normalAte:null, criticoDesde:null, tag:null,                 proximaAcao:null}
+};
 
 const hoje=new Date();hoje.setHours(0,0,0,0);
 function diasParado(iso){if(!iso)return 0;const d=new Date(iso);d.setHours(0,0,0,0);return Math.floor((hoje-d)/(1000*60*60*24));}
@@ -780,6 +802,37 @@ function diasParado(iso){if(!iso)return 0;const d=new Date(iso);d.setHours(0,0,0
 // de SP) o sistema já achava que era o dia seguinte (UTC está 3h à frente),
 // confundindo compromissos de "hoje à noite" com "ontem" no dia seguinte.
 function isoHoje(){return new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'})}
+
+// Diferença em dias (inteiro, pode ser negativo) entre uma data ISO e hoje —
+// cálculo sempre em código, nunca delegado a texto gerado (IA ou não).
+function diffDiasNum(iso){
+  if(!iso)return null;
+  return Math.round((new Date(String(iso).slice(0,10))-new Date(isoHoje()))/86400000);
+}
+
+// ── MOTOR DE DECISÃO ──
+// Função pura, sem rede, sem IA: dado um caso, devolve o veredito objetivo
+// sobre a etapa atual (dep). Não olha agendado/segundaParte.data — isso é
+// responsabilidade separada do agregador da Central de Comando.
+function motorDecisao(caso){
+  const dep=caso.dep||'';
+  const cfg=DEP_CONFIG[dep]||null;
+  const depDesde=caso.depDesde||caso.atualizado||isoHoje();
+  const diasNaEtapaAtual=diasParado(depDesde);
+  let nivel='normal';
+  if(cfg&&cfg.criticoDesde!=null&&diasNaEtapaAtual>=cfg.criticoDesde)nivel='critico';
+  else if(cfg&&cfg.normalAte!=null&&diasNaEtapaAtual>cfg.normalAte)nivel='atencao';
+  let bloqueado=false,motivoBloqueio=null;
+  if(caso.segundaParte){
+    if(caso.segundaParte.status==='pendente'){bloqueado=true;motivoBloqueio='Segunda parte ainda sem data de assinatura definida.';}
+    else if(caso.segundaParte.status==='lembrete'){bloqueado=true;motivoBloqueio=`Lembrete de travar agenda com ${caso.segundaParte.quem||'—'} ainda pendente.`;}
+  }
+  return{
+    dep, quemSegura: cfg?cfg.quemSegura:null, diasNaEtapaAtual, nivel,
+    proximaAcao: cfg&&cfg.proximaAcao?cfg.proximaAcao:(dep?`Verificar andamento: ${dep}`:'Definir próxima etapa/dependência do caso'),
+    bloqueado, motivoBloqueio
+  };
+}
 
 // Extrai data/hora de uma nota livre (ex: "hoje às 11h", "amanhã 14h30",
 // "05/08 às 10:00") só quando o dia é inequívoco (hoje/amanhã/data explícita)
@@ -820,7 +873,6 @@ function ehSobreAssinatura(texto){
   return /assinatur|\bassinar\b|\bassinamos\b|\bassinou\b|\bassinado\b/.test((texto||'').toLowerCase());
 }
 function esc(s){return(s||'').replace(/"/g,'&quot;')}
-const IA_LIVE='<span class="ia-live"><span class="ia-live-dot"></span>IA ativa</span>';
 function tsStr(){const n=new Date();return`${n.toLocaleDateString('pt-BR')} ${n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;}
 
 let navToastTimer=null;
@@ -859,76 +911,10 @@ function gerarIdFoco(){
   return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'f'+Date.now()+Math.random().toString(36).slice(2,9);
 }
 
-// ── ALERTAS (tudo entra no Foco do Dia, com icone diferente por tipo) ──
-// Precisa vir antes dos listeners do Firebase: onValue(casosRef) pode disparar
-// seu callback antes do restante do script terminar de rodar, e esse callback
-// chama agendarVerificacaoAlertas() — que precisa de alertasTimer já inicializado.
-const ICONE_MARCADOR={alerta:'⚠️',hoje:'📅',amanha:'📅 (amanhã)'};
-let alertasRodando=false;
-let alertasPendente=false;
-let alertasTimer=null;
-const ALERTAS_DEBOUNCE_MS=3000; // agrupa mudanças em sequência (ex: vários campos salvos seguidos) numa só verificação
-function agendarVerificacaoAlertas(){
-  clearTimeout(alertasTimer);
-  alertasTimer=setTimeout(()=>verificarAlertasSeNecessario(),ALERTAS_DEBOUNCE_MS);
-}
-window.forcarVerificacaoAlertas=function(){
-  clearTimeout(alertasTimer);
-  verificarAlertasSeNecessario(true);
-};
-async function verificarAlertasSeNecessario(forcar){
-  if(alertasRodando){alertasPendente=true;return;}
-  alertasRodando=true;
-  const btn=document.getElementById('alertas-refresh-btn');
-  const atualizadoEl=document.getElementById('alertas-atualizado');
-  try{
-    if(btn){btn.disabled=true;btn.textContent='Verificando...';}
-    const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
-      nome:c.nome,tipo:c.tipo,resp:c.resp,prazo:c.prazo,dep:c.dep,agendado:c.agendado,
-      diasParado:diasParado(c.atualizado),obs:c.obs,segundaParte:c.segundaParte||null
-    }));
-    if(casosAtivos.length){
-      const aprendizados=await buscarAprendizadosRelevantes('alerta');
-      const r=await fetch('/api/verificar-alertas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({casosAtivos,aprendizados})});
-      if(!r.ok){
-        const corpo=await r.text().catch(()=>'');
-        throw new Error(`Servidor respondeu ${r.status}${corpo?': '+corpo.slice(0,200):''}`);
-      }
-      const j=await r.json();
-      if(j.ok){
-        const agora=new Date().toISOString();
-        await set(ref(db,'alertas'),{geradoEm:agora,lista:j.alertas||[]});
-        await adicionarAgendaAoFoco([
-          {itens:j.agendaHoje||[],marcador:'hoje'},
-          {itens:j.agendaAmanha||[],marcador:'amanha'},
-          {itens:j.alertas||[],marcador:'alerta'}
-        ]);
-        if(atualizadoEl)atualizadoEl.textContent='Verificado em '+new Date(agora).toLocaleDateString('pt-BR')+' '+new Date(agora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-        if(forcar){
-          const totalNovos=(j.agendaHoje||[]).length+(j.agendaAmanha||[]).length+(j.alertas||[]).length;
-          if(!totalNovos)alert('Verifiquei tudo — nada novo para avisar hoje.');
-        }
-      }else{
-        if(forcar)alert('Não consegui verificar agora: '+(j.erro||'erro desconhecido')+'. Tente de novo em alguns segundos.');
-      }
-    }
-  }catch(e){
-    console.error('Falha ao verificar alertas:',e);
-    if(forcar){
-      const motivo=e instanceof TypeError?'Não consegui conectar ao servidor.':(e.message||'Erro desconhecido.');
-      alert('Não consegui verificar agora: '+motivo+' Tente de novo em alguns segundos.');
-    }
-  }finally{
-    alertasRodando=false;
-    if(btn){btn.disabled=false;btn.textContent='Verificar agora';}
-    if(alertasPendente){alertasPendente=false;agendarVerificacaoAlertas();}
-  }
-}
-
 // ── FIREBASE LISTENERS ──
 const casosRef=ref(db,'casos');
 const focosRef=ref(db,'focos');
-const focoDispensadosRef=ref(db,'focoDispensados');
+const resolucoesCentralRef=ref(db,'resolucoesCentral');
 
 onValue(casosRef,(snap)=>{
   const data=snap.val();
@@ -942,11 +928,20 @@ onValue(casosRef,(snap)=>{
   } else if(data){
     // Garante que todo caso tenha o campo id preenchido com a chave do Firebase
     Object.keys(data).forEach(k=>{ if(data[k] && !data[k].id) data[k].id=k; });
+    // Backfill de depDesde pra casos antigos (inclui os criados pelo WhatsApp,
+    // que nunca vão ter esse campo) — sem isso "dias na etapa atual" não tem
+    // de onde partir. Aproxima com atualizado; converge uma única vez.
+    const semDepDesde=Object.keys(data).filter(k=>data[k]&&!data[k].depDesde);
+    if(semDepDesde.length){
+      const upd={};
+      semDepDesde.forEach(k=>{ upd[`${k}/depDesde`]=data[k].atualizado||isoHoje(); data[k].depDesde=data[k].atualizado||isoHoje(); });
+      update(casosRef,upd);
+    }
     casos=data;
     inicializado=true;
     renderStats();
     renderCasos();
-    agendarVerificacaoAlertas();
+    renderCentralComando();
     montarSaudacao();
   }
   setSyncStatus(true);
@@ -966,20 +961,11 @@ onValue(focosRef,(snap)=>{
   renderFoco();
 });
 
-let focoDispensados=[];
-onValue(focoDispensadosRef,(snap)=>{
-  focoDispensados=snap.val()||[];
+let resolucoesCentral={};
+onValue(resolucoesCentralRef,(snap)=>{
+  resolucoesCentral=snap.val()||{};
+  renderCentralComando();
 });
-// Guarda, por caso+tipo de aviso, que hoje o item foi excluído de propósito —
-// pra "Verificar agora" (ou qualquer edição de caso, que redispara a
-// verificação) não recriar o mesmo aviso automático no mesmo dia. Amanhã,
-// se a situação ainda for real, o aviso pode voltar normalmente.
-function registrarDispensaFoco(casoNome,marcador){
-  const hoje=isoHoje();
-  const atuais=(Array.isArray(focoDispensados)?focoDispensados:Object.values(focoDispensados||{})).filter(d=>d.data===hoje);
-  atuais.push({casoNome,marcador,data:hoje});
-  set(focoDispensadosRef,atuais);
-}
 
 function setSyncStatus(ok){
   const dot=document.getElementById('sync-dot');
@@ -992,6 +978,20 @@ function setSyncStatus(ok){
 function getCasosList(){
   return Object.values(casos).filter(Boolean);
 }
+// Migração única da Fase 1 (Central de Comando): "Aguardando cliente" virou
+// ambíguo (usado tanto pra orçamento quanto pra minuta), então o dep antigo
+// vira o novo balde genérico; "Escritura pronta" foi absorvido por "Entregar
+// para o cliente". Rodar uma vez no console do navegador contra produção,
+// depois pode remover esta função.
+window.migrarDepsFase1=function(){
+  const upd={};
+  getCasosList().forEach(c=>{
+    if(c.dep==='Aguardando cliente')upd[`${c.id}/dep`]='Aguardando cliente (outro)';
+    if(c.dep==='Escritura pronta')upd[`${c.id}/dep`]='Entregar para o cliente';
+  });
+  if(!Object.keys(upd).length){console.log('Nada para migrar.');return;}
+  update(casosRef,upd).then(()=>console.log('Migrados:',Object.keys(upd).length));
+};
 // A IA que gera itens do Foco do dia às vezes acrescenta o tipo do ato entre
 // parênteses no fim do nome (ex: "Elizabete Botisaris (venda e compra)"),
 // mesmo isso não fazendo parte do nome real salvo no card — busca exata
@@ -1003,7 +1003,192 @@ function encontrarCasoPorNomeFoco(nomeFoco){
   return lista.find(x=>x.nome===nomeFoco)||lista.find(x=>nomeFoco.startsWith(x.nome))||null;
 }
 
-// ── FOCO DO DIA ──
+// ── CENTRAL DE COMANDO ──
+// Chave de resolução derivada do CONTEÚDO sendo resolvido (caso+etapa, ou
+// caso+dia), não uma posição em array — assim a resolução para de valer
+// sozinha quando o fato muda (etapa muda, ou vira outro dia), sem precisar
+// de faxina manual de tombstone (era exatamente isso que causava os avisos
+// "excluídos" voltando sozinhos no antigo Foco do dia).
+function chaveResolucaoDep(casoId,dep){ return `${casoId}__dep__${dep||'_'}`; }
+function chaveResolucaoAgenda(casoId){ return `${casoId}__agenda__${isoHoje()}`; }
+
+function estaSuprimido(chave){
+  const r=resolucoesCentral[chave];
+  if(!r)return false;
+  if(r.estado==='ignorado')return true;
+  if(r.estado==='ja_fiz')return true;
+  if(r.estado==='snooze')return!!(r.ate&&isoHoje()<r.ate);
+  if(r.estado==='delegado'){
+    const passouPrazo=diasParado(r.baselineAtualizado)>=(r.prazoDelegacaoDias||3);
+    const casoAvancou=r.casoId&&casos[r.casoId]&&casos[r.casoId].atualizado>r.baselineAtualizado;
+    return!(passouPrazo||casoAvancou);
+  }
+  return false; // 'parado' não suprime a linha, só realoca pro bloco "Aguardando retorno"
+}
+
+// Uma passada só sobre os casos ativos — evita o tipo de bug que corrigimos
+// hoje no Foco do dia antigo, onde um item aparecia numa lista e não sumia
+// da outra por terem sido calculados em momentos/critérios diferentes.
+function calcularCentralComando(){
+  return getCasosList().filter(c=>!c.concluido).map(c=>{
+    const md=motorDecisao(c);
+    const diffAgendado=diffDiasNum(c.agendado);
+    const diffSegunda=c.segundaParte&&c.segundaParte.status==='data_definida'?diffDiasNum(c.segundaParte.data):null;
+    const chaveDep=chaveResolucaoDep(c.id,c.dep);
+    const chaveAgenda=chaveResolucaoAgenda(c.id);
+    const resDep=resolucoesCentral[chaveDep];
+    return{
+      caso:c, md,
+      ehHoje:diffAgendado===0||diffSegunda===0,
+      ehAmanha:diffAgendado===1||diffSegunda===1,
+      diffAgendado, diffSegunda, chaveDep, chaveAgenda,
+      parado:!!(resDep&&resDep.estado==='parado'),
+      suprimidoDep:estaSuprimido(chaveDep),
+      suprimidoAgenda:estaSuprimido(chaveAgenda)
+    };
+  });
+}
+
+function renderCentralComando(){
+  if(!Object.keys(casos).length)return;
+  const itens=calcularCentralComando();
+  renderIncendios(itens);
+  renderProximasAcoes(itens);
+  renderAgenda(itens);
+  renderParados(itens);
+}
+
+// Uma linha de caso reutilizada pelos blocos de Incêndios/Esquecidos/Próximas
+// ações/Aguardando retorno — só muda a classe visual, a chave de resolução
+// usada pelos botões, e se mostra ações ou o botão de retomar.
+function linhaCaso(it,opts){
+  const c=it.caso,md=it.md,classe=opts.classe||'',chave=opts.chave;
+  const respBadge=c.resp?bResp(c.resp):'';
+  const diasTxt=md.diasNaEtapaAtual>0?`${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual>1?'s':''} em "${esc(c.dep||'—')}"`:`Entrou hoje em "${esc(c.dep||'—')}"`;
+  const bloqueio=md.bloqueado?`<div class="cdc-bloqueio">⚠ ${esc(md.motivoBloqueio)}</div>`:'';
+  const acoes=opts.mostrarAcoes?`
+    <div class="cdc-acoes">
+      <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','ja_fiz')">✓ Já fiz</button>
+      <button class="cdc-acao-btn" onclick="event.stopPropagation();abrirSnoozeCentral('${chave}')">⏰ Depois</button>
+      <button class="cdc-acao-btn" onclick="event.stopPropagation();abrirDelegarCentral('${chave}','${c.id}')">👤 Deleguei</button>
+      <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','parado')">⏸ Aguardando</button>
+      <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','ignorado')">✕ Ignorar</button>
+    </div>
+    <div class="cdc-registro-rapido">
+      <input type="text" id="cdc-nota-${c.id}" onclick="event.stopPropagation()" placeholder="Registrar rapidinho...">
+      <button onclick="event.stopPropagation();registrarNotaCentral('${c.id}')">Registrar</button>
+    </div>`:'';
+  const retomar=opts.mostrarRetomar?`<div class="cdc-acoes"><button class="cdc-acao-btn" onclick="event.stopPropagation();retomarCentral('${chave}')">▶ Retomar</button></div>`:'';
+  return`
+  <div class="cdc-linha ${classe}" onclick="irParaCasoPorId('${c.id}')" style="cursor:pointer">
+    <div class="cdc-conteudo">
+      <div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${respBadge}</div>
+      <span class="cdc-texto">${esc(md.proximaAcao)}</span>
+      <span class="cdc-meta">${diasTxt}</span>
+      ${bloqueio}
+      ${acoes}${retomar}
+    </div>
+  </div>`;
+}
+
+function renderIncendios(itens){
+  const el=document.getElementById('cdc-incendios');
+  const hoje=itens.filter(it=>!it.parado&&!it.suprimidoAgenda&&it.ehHoje).sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
+  const esquecidos=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel==='critico').sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
+  let html='<div class="cdc-bloco-titulo"><i class="ti ti-flame"></i> Incêndios</div>';
+  if(!hoje.length&&!esquecidos.length){html+='<div class="cdc-vazio">Nada pegando fogo agora.</div>';el.innerHTML=html;return;}
+  const hojeTop=hoje.slice(0,10);
+  const esqTop=esquecidos.slice(0,Math.max(0,10-hojeTop.length));
+  if(hojeTop.length)html+=hojeTop.map(it=>linhaCaso(it,{classe:'hoje',chave:it.chaveAgenda,mostrarAcoes:true})).join('');
+  if(esqTop.length)html+='<div class="cdc-sub-titulo">Esquecidos</div>'+esqTop.map(it=>linhaCaso(it,{classe:'critico',chave:it.chaveDep,mostrarAcoes:true})).join('');
+  el.innerHTML=html;
+}
+
+function renderProximasAcoes(itens){
+  const el=document.getElementById('cdc-proximas-acoes');
+  const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel!=='critico'&&(it.md.nivel==='atencao'||it.md.bloqueado));
+  const top=pool.sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual).slice(0,12);
+  let html='<div class="cdc-bloco-titulo"><i class="ti ti-list-check"></i> Próximas ações</div>';
+  if(!top.length){html+='<div class="cdc-vazio">Nada de olho no momento.</div>';el.innerHTML=html;return;}
+  html+=top.map(it=>linhaCaso(it,{classe:'atencao',chave:it.chaveDep,mostrarAcoes:true})).join('');
+  el.innerHTML=html;
+}
+
+function renderAgenda(itens){
+  const el=document.getElementById('cdc-agenda');
+  const dentroDaJanela=(v)=>v!=null&&v>=0&&v<=7;
+  const comData=itens.filter(it=>dentroDaJanela(it.diffAgendado)||dentroDaJanela(it.diffSegunda));
+  const grupo=(min,max)=>comData.filter(it=>[it.diffAgendado,it.diffSegunda].some(v=>v!=null&&v>=min&&v<=max));
+  const hoje=grupo(0,0),amanha=grupo(1,1),semana=grupo(2,7);
+  let html='<div class="cdc-bloco-titulo"><i class="ti ti-calendar"></i> Agenda dos próximos dias</div>';
+  if(!hoje.length&&!amanha.length&&!semana.length){html+='<div class="cdc-vazio">Nada agendado pros próximos 7 dias.</div>';el.innerHTML=html;return;}
+  const linhaAgenda=(it)=>{
+    const c=it.caso;
+    const usaSegunda=dentroDaJanela(it.diffSegunda)&&!dentroDaJanela(it.diffAgendado);
+    const dt=usaSegunda?c.segundaParte.data:c.agendado;
+    const dataFmt=dt?new Date(dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span></div><span class="cdc-meta">${dataFmt}</span></div></div>`;
+  };
+  if(hoje.length)html+='<div class="cdc-sub-titulo">Hoje</div>'+hoje.map(linhaAgenda).join('');
+  if(amanha.length)html+='<div class="cdc-sub-titulo">Amanhã</div>'+amanha.map(linhaAgenda).join('');
+  if(semana.length)html+='<div class="cdc-sub-titulo">Próximos 7 dias</div>'+semana.map(linhaAgenda).join('');
+  el.innerHTML=html;
+}
+
+function renderParados(itens){
+  const el=document.getElementById('cdc-parados');
+  const pool=itens.filter(it=>it.parado);
+  if(!pool.length){el.innerHTML='';return;}
+  el.innerHTML='<div class="cdc-bloco-titulo"><i class="ti ti-player-pause"></i> Aguardando retorno</div>'+
+    pool.map(it=>linhaCaso(it,{classe:'parado',chave:it.chaveDep,mostrarRetomar:true})).join('');
+}
+
+window.resolverCentral=function(chave,estado,extra){
+  set(ref(db,`resolucoesCentral/${chave}`),{estado,criadoEm:new Date().toISOString(),...(extra||{})});
+};
+window.retomarCentral=function(chave){
+  remove(ref(db,`resolucoesCentral/${chave}`));
+};
+window.abrirSnoozeCentral=function(chave){
+  const data=prompt('Vou fazer depois — pra quando? (formato AAAA-MM-DD)',isoHoje());
+  if(!data)return;
+  resolverCentral(chave,'snooze',{ate:data});
+};
+window.abrirDelegarCentral=function(chave,casoId){
+  const quem=prompt('Deleguei para quem? (nome)');
+  if(!quem)return;
+  const c=casos[casoId];
+  resolverCentral(chave,'delegado',{delegadoPara:quem,casoId,baselineAtualizado:(c&&c.atualizado)||isoHoje(),prazoDelegacaoDias:3});
+};
+window.registrarNotaCentral=function(casoId){
+  const input=document.getElementById('cdc-nota-'+casoId);
+  const texto=input&&input.value.trim();
+  if(!texto)return;
+  const c=casos[casoId];if(!c)return;
+  const anterior=c.obs||'';
+  const novoObs=montarNovoObs(anterior,texto);
+  update(ref(db,`casos/${casoId}`),{obs:novoObs,obsAnterior:anterior,atualizado:isoHoje()});
+  input.value='';
+};
+window.irParaCasoPorId=function(id){
+  const c=casos[id];
+  if(!c){alert('Não encontrei mais esse caso — pode ter sido excluído.');return;}
+  busca='';
+  const buscaInput=document.querySelector('.search-wrap input');
+  if(buscaInput)buscaInput.value='';
+  filtro=c.concluido?'concluido':'todos';
+  sincronizarFiltroAtivo();
+  renderCasos();
+  setTimeout(()=>{
+    const el=document.getElementById('card-'+c.id);
+    if(!el)return;
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.classList.add('jn-destaque');
+    setTimeout(()=>el.classList.remove('jn-destaque'),1800);
+  },50);
+};
+
+// ── FOCO DO DIA (lembretes manuais) ──
 function renderFoco(){
   const el=document.getElementById('foco-items');
   const full=Array.isArray(focos)?focos:Object.values(focos||{});
@@ -1020,14 +1205,12 @@ function renderFoco(){
     const tagResp=f.resp?bResp(f.resp):'';
     const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
     const clicavel=nomeCaso?` data-caso="${esc(nomeCaso)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`:'';
-    const btnResponder=nomeCaso?`<button class="btn-sm" style="margin-top:6px" onclick="event.stopPropagation();abrirResponderFoco('${f.id}')"><i class="ti ti-message-reply" style="font-size:12px;vertical-align:-1px"></i> Responder</button>`:'';
     return`
     <div class="foco-item ${tipo}">
       <div class="foco-check" onclick="toggleFoco('${f.id}')"></div>
       <div class="foco-conteudo"${clicavel}>
         <div class="foco-tags">${tagCaso}${tagResp}${tagUrgente}</div>
         <span class="foco-text">${f.text}</span>
-        ${btnResponder}
       </div>
       <button class="foco-del" onclick="delFoco('${f.id}')">&times;</button>
     </div>
@@ -1072,103 +1255,15 @@ window.toggleFoco=function(id){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   const i=arr.findIndex(f=>f&&f.id===id);
   if(i===-1)return;
-  const ficandoConcluida=!arr[i].done;
   arr[i].done=!arr[i].done;
   set(focosRef,arr);
-  if(ficandoConcluida) sugerirProximaTarefa(arr[i].text,arr);
 };
-let focoSugestaoAtual='';
-async function sugerirProximaTarefa(tarefaConcluida,arrAtual){
-  const restantes=arrAtual.filter(f=>!f.done).map(f=>f.text);
-  const el=document.getElementById('foco-sugestao');
-  if(!restantes.length){
-    el.className='foco-sugestao show';
-    el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente '+IA_LIVE+'</div>Foco do dia concluído! Bom trabalho.';
-    return;
-  }
-  el.className='foco-sugestao show';
-  el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente '+IA_LIVE+'</div><span class="foco-sugestao-loading">Analisando o painel...</span>';
-  const casosAtivos=getCasosList().filter(c=>!c.concluido).map(c=>({
-    nome:c.nome,tipo:c.tipo,status:c.status,resp:c.resp,prazo:c.prazo,dep:c.dep,
-    diasParado:diasParado(c.atualizado),obs:c.obs
-  }));
-  try{
-    const aprendizados=await buscarAprendizadosRelevantes('foco');
-    const r=await fetch('/api/sugerir-proxima',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tarefaConcluida,focosRestantes:restantes,casosAtivos,aprendizados})});
-    const j=await r.json();
-    if(j.ok&&j.sugestao){
-      focoSugestaoAtual=j.sugestao;
-      el.innerHTML='<div class="foco-sugestao-label"><i class="ti ti-sparkles"></i> Assistente '+IA_LIVE+'</div>'+j.sugestao+`
-        <div class="feedback-row">
-          <button class="feedback-btn" onclick="darFeedbackFoco('positivo')" title="Faz sentido">👍</button>
-          <button class="feedback-btn" onclick="toggleFeedbackNeg('foco')" title="Não é bem assim">👎</button>
-          <span class="feedback-status" id="feedback-status-foco"></span>
-        </div>
-        <div class="feedback-neg-form" id="feedback-neg-foco">
-          <input type="text" id="feedback-motivo-foco" placeholder="Por quê? (ajuda a IA a aprender)">
-          <button class="feedback-btn" onclick="darFeedbackFoco('negativo')">Enviar</button>
-        </div>`;
-    }else{
-      el.className='foco-sugestao';
-    }
-  }catch(e){
-    el.className='foco-sugestao';
-  }
-}
 window.delFoco=function(id){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   const i=arr.findIndex(f=>f&&f.id===id);
   if(i===-1)return;
-  const item=arr[i];
-  if(item.auto&&item.casoNome&&item.marcador)registrarDispensaFoco(item.casoNome,item.marcador);
   arr.splice(i,1);
   set(focosRef,arr);
-};
-
-// ── RESPONDER ITEM DO FOCO (registra a resposta no card + IA decide se vira lembrete) ──
-let rfItemId=null;
-window.abrirResponderFoco=function(id){
-  const arr=Array.isArray(focos)?focos:Object.values(focos||{});
-  const item=arr.find(f=>f&&f.id===id);
-  if(!item||!item.casoNome)return;
-  rfItemId=id;
-  document.getElementById('rf-caso-info').textContent=item.casoNome;
-  const prefixoIcone=ICONE_MARCADOR[item.marcador];
-  const perguntaLimpa=prefixoIcone&&item.text.startsWith(prefixoIcone)?item.text.slice(prefixoIcone.length).trim():item.text;
-  document.getElementById('rf-pergunta').textContent=perguntaLimpa;
-  document.getElementById('rf-texto').value='';
-  document.getElementById('rf-loading').style.display='none';
-  document.getElementById('rf-btn-enviar').disabled=false;
-  document.getElementById('modal-responder-foco').classList.add('open');
-  setTimeout(()=>document.getElementById('rf-texto').focus(),50);
-};
-window.fecharResponderFoco=function(){
-  document.getElementById('modal-responder-foco').classList.remove('open');
-};
-window.rfPreencherRapido=function(texto){
-  document.getElementById('rf-texto').value=texto;
-};
-window.enviarRespostaFoco=async function(){
-  const texto=document.getElementById('rf-texto').value.trim();
-  if(!texto){document.getElementById('rf-texto').focus();return;}
-  const arr=Array.isArray(focos)?focos:Object.values(focos||{});
-  const item=arr.find(f=>f&&f.id===rfItemId);
-  if(!item)return;
-  const c=encontrarCasoPorNomeFoco(item.casoNome);
-  if(!c){alert('Não encontrei mais esse caso — pode ter sido excluído.');fecharResponderFoco();return;}
-  document.getElementById('rf-btn-enviar').disabled=true;
-  document.getElementById('rf-loading').style.display='block';
-  try{
-    const anterior=c.obs||'';
-    const novoObs=montarNovoObs(anterior,texto);
-    await update(ref(db,`casos/${c.id}`),{obs:novoObs,obsAnterior:anterior,atualizado:isoHoje()});
-    // Responder já É a forma de fechar esse lembrete — não gera um aviso novo
-    // automático em cima da própria resposta (isso fazia o item "sumir e
-    // voltar" na hora, com a IA tratando a confirmação como pendência nova).
-    if(!item.done)toggleFoco(rfItemId);
-  }finally{
-    fecharResponderFoco();
-  }
 };
 
 // ── SAUDAÇÃO / IDENTIDADE ──
@@ -1195,7 +1290,7 @@ function montarSaudacao(forcar){
   if(sessionStorage.getItem('saudacao_fechada'))return;
   const agora=new Date();
   renderSaudacaoTitulo(usuario,'sol');
-  const msg=`Hoje é ${DIAS_SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}. Vamos começar? Os compromissos e pendências de hoje já estão logo abaixo, no Foco do dia.`;
+  const msg=`Hoje é ${DIAS_SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}. Vamos começar? Os compromissos e pendências de hoje já estão logo abaixo, na Central de Comando.`;
   document.getElementById('saudacao-texto').textContent=msg;
   document.getElementById('saudacao-card').style.display='block';
   posicionarJoaninhaNaSaudacao();
@@ -1225,7 +1320,7 @@ function montarSaudacao(forcar){
 const FRASES_LEMBRETE_FOCO=[
   texto=>`Psiu... "${texto}" ainda tá esperando por você 💛`,
   texto=>`Só um carinho: não esquece de "${texto}"? 🐞`,
-  texto=>`Lembrete gentil: "${texto}" continua no Foco do dia`,
+  texto=>`Lembrete gentil: "${texto}" continua nos seus lembretes`,
   texto=>`Ei, vamos dar uma olhada em "${texto}"? Você consegue! 💛`,
   texto=>`Não esquece de "${texto}", tá? Confio em você 🐞`
 ];
@@ -1298,62 +1393,6 @@ window.addEventListener('resize',()=>{
   clearTimeout(resizeJnTimer);
   resizeJnTimer=setTimeout(posicionarJoaninhaNaSaudacao,150);
 });
-
-// ── APRENDIZADO (feedback) ──
-async function buscarAprendizadosRelevantes(categoria){
-  try{
-    const snap=await fetch('https://painel-cartorio-default-rtdb.firebaseio.com/aprendizados.json');
-    const data=await snap.json();
-    if(!data)return[];
-    return Object.values(data)
-      .filter(a=>a.feedback==='negativo'&&a.motivo&&a.categoria===categoria)
-      .sort((a,b)=>(b.data||'').localeCompare(a.data||''))
-      .slice(0,8)
-      .map(a=>`- Sobre "${a.contexto}": ${a.motivo}`);
-  }catch(e){return[];}
-}
-window.toggleFeedbackNeg=function(id){
-  const el=document.getElementById('feedback-neg-'+id);
-  if(!el)return;
-  el.style.display=el.style.display==='none'?'flex':'none';
-};
-async function registrarAprendizado(categoria,contexto,feedback,motivo){
-  await push(ref(db,'aprendizados'),{categoria,contexto,feedback,motivo:motivo||'',data:new Date().toISOString()});
-}
-window.darFeedbackFoco=async function(tipo){
-  const motivoEl=document.getElementById('feedback-motivo-foco');
-  const motivo=motivoEl?motivoEl.value.trim():'';
-  await registrarAprendizado('foco',focoSugestaoAtual,tipo,motivo);
-  if(motivoEl)motivoEl.value='';
-  const negForm=document.getElementById('feedback-neg-foco');
-  if(negForm)negForm.style.display='none';
-  const rowEl=document.getElementById('feedback-status-foco');
-  if(rowEl)rowEl.textContent=tipo==='positivo'?'Valeu, anotado!':'Obrigado, vou levar em conta.';
-};
-
-async function adicionarAgendaAoFoco(gruposOrdenados){
-  const hoje=isoHoje();
-  const atual=Array.isArray(focos)?focos:Object.values(focos||{});
-  const manuais=atual.filter(f=>!f.auto);
-  const autoAntigos=atual.filter(f=>f.auto);
-  const dispensadosHoje=(Array.isArray(focoDispensados)?focoDispensados:Object.values(focoDispensados||{})).filter(d=>d.data===hoje);
-  // Nome "bate" mesmo se não for idêntico — a IA às vezes reformula o nome
-  // do caso de uma verificação pra outra (ex: acrescenta o tipo do ato entre
-  // parênteses), e uma igualdade estrita perderia o vínculo com o item
-  // anterior, fazendo um aviso já concluído/dispensado voltar do zero.
-  const nomeBate=(a,b)=>!!a&&!!b&&(a===b||a.startsWith(b)||b.startsWith(a));
-  const foiDispensadoHoje=(nome,marcador)=>dispensadosHoje.some(d=>nomeBate(d.casoNome,nome)&&d.marcador===marcador);
-  const arr=[...manuais];
-  gruposOrdenados.forEach(({itens,marcador})=>{
-    itens.forEach(item=>{
-      if(foiDispensadoHoje(item.nome,marcador))return;
-      const antigo=autoAntigos.find(f=>nomeBate(f.casoNome,item.nome)&&f.marcador===marcador);
-      const texto=`${ICONE_MARCADOR[marcador]||''} ${item.mensagem}`.trim();
-      arr.push({id:antigo?antigo.id:gerarIdFoco(),text:texto,done:antigo?antigo.done:false,auto:true,casoNome:item.nome,dataRef:hoje,marcador});
-    });
-  });
-  await set(focosRef,arr);
-}
 
 // ── STATS ──
 function renderStats(){
@@ -1534,7 +1573,6 @@ function renderCasos(){
         <button class="btn-sm btn-minuta" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text" style="font-size:12px;vertical-align:-1px"></i> Minuta</button>
         ${c.driveUrl?`<button class="btn-sm btn-drive" onclick="window.open('${c.driveUrl}','_blank')"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Drive</button>`:''}
         <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
-        <button class="btn-sm btn-foco" onclick="addAoFoco('${c.id}')"><i class="ti ti-bolt" style="font-size:12px;vertical-align:-1px"></i> Foco</button>
         ${c.segundaParte&&(c.segundaParte.status==='pendente'||c.segundaParte.status==='lembrete')?`<button class="btn-sm btn-sp" onclick="abrirSegundaParte('${c.id}')"><i class="ti ti-users" style="font-size:12px;vertical-align:-1px"></i> Atualizar assinatura da 2ª parte</button>`:''}
         <button class="btn-sm btn-reeditar" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit" style="font-size:12px;vertical-align:-1px"></i> Reeditar</button>
         <button class="btn-sm" onclick="abrirAtendimento('${c.id}')"><i class="ti ti-headset" style="font-size:12px;vertical-align:-1px"></i> Atendimento</button>
@@ -1550,6 +1588,7 @@ window.mudarCampo=function(id,campo,valor){
   const upd={};
   upd[campo]=valor;
   upd['atualizado']=isoHoje();
+  if(campo==='dep'&&casos[id]&&casos[id].dep!==valor)upd['depDesde']=isoHoje();
   update(ref(db,`casos/${id}`),upd);
   if(campo==='agendado'){
     sincronizarEventoCalendar(id,{...casos[id],agendado:valor});
@@ -1737,58 +1776,11 @@ window.salvarObs=function(id){
   if(rascunhoMsg)rascunhoMsg.style.display='none';
   const s=document.getElementById('saved-'+id);s.style.display='inline';
   setTimeout(()=>{s.style.display='none';document.getElementById('obs-edit-'+id).style.display='none';},1400);
-  gerarLembreteDaObs(id,{...c,obs:novoObs},novoTexto);
 };
-// Depois de acrescentar uma informação nova, a IA lê ela (com o resto do
-// contexto do card) e, SE identificar algo genuinamente acionável, já cria um
-// lembrete no Foco do dia — sem esperar a próxima verificação automática de
-// 4h. Roda em segundo plano, silenciosamente (não interrompe o fluxo de
-// salvar), e fica em silêncio pra notas de rotina (ver automatico:true no
-// endpoint, que troca a regra de "sempre gerar" por "só se for acionável").
-async function gerarLembreteDaObs(id,c,novoTexto){
-  try{
-    const r=await fetch('/api/gerar-aviso-foco',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({automatico:true,caso:{
-      nome:c.nome,tipo:c.tipo,status:c.status,resp:c.resp,prazo:c.prazo,dep:c.dep,agendado:c.agendado,
-      diasParado:diasParado(c.atualizado),obs:c.obs,ultimaAtualizacao:novoTexto
-    }})});
-    const j=await r.json();
-    if(!j.ok||!j.aviso)return;
-    const urgente=c.status==='critico'||c.status==='prioridade';
-    const txt=`${ICONE_MARCADOR.alerta} ${j.aviso}`;
-    const arrAtual=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-    arrAtual.push({id:gerarIdFoco(),text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente,marcador:'alerta'});
-    await set(focosRef,arrAtual);
-  }catch(e){}
-}
 window.desfazerObs=function(id){
   const c=casos[id];
   if(!c||!c.obsAnterior)return;
   update(ref(db,`casos/${id}`),{obs:c.obsAnterior,obsAnterior:'',atualizado:isoHoje()});
-};
-window.addAoFoco=async function(id){
-  const c=casos[id];if(!c)return;
-  const irParaFoco=()=>document.querySelector('.foco-card')?.scrollIntoView({behavior:'smooth',block:'start'});
-  const btn=document.querySelector(`#card-${id} .btn-foco`);
-  const btnHtml=btn?btn.innerHTML:'';
-  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader" style="font-size:12px;vertical-align:-1px"></i> Analisando...';}
-  const urgente=c.status==='critico'||c.status==='prioridade';
-  try{
-    const r=await fetch('/api/gerar-aviso-foco',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({caso:{
-      nome:c.nome,tipo:c.tipo,status:c.status,resp:c.resp,prazo:c.prazo,dep:c.dep,agendado:c.agendado,
-      diasParado:diasParado(c.atualizado),obs:c.obs
-    }})});
-    const j=await r.json();
-    if(!j.ok||!j.aviso)throw new Error(j.erro||'Sem resposta da IA');
-    const txt=`${ICONE_MARCADOR.alerta} ${j.aviso}`;
-    const arrAtual=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-    arrAtual.push({id:gerarIdFoco(),text:txt,done:false,casoNome:c.nome,resp:c.resp||null,urgente,marcador:'alerta'});
-    await set(focosRef,arrAtual);
-    irParaFoco();
-  }catch(err){
-    alert('Não consegui gerar o aviso agora. Tente de novo em alguns segundos.');
-  }finally{
-    if(btn){btn.disabled=false;btn.innerHTML=btnHtml;}
-  }
 };
 window.abrirMinuta=async function(id){
   const c=casos[id];if(!c)return;
@@ -2251,6 +2243,7 @@ window.salvarNovo=function(){
     resp:document.getElementById('f-resp').value,
     prazo:document.getElementById('f-prazo').value.trim()||'—',
     dep:document.getElementById('f-dep').value,
+    depDesde:isoHoje(),
     agendado:document.getElementById('f-agendado').value||'',
     agendado_desc:document.getElementById('f-agendado-desc').value.trim()||'',
     prenotacao:document.getElementById('f-prenotacao').value.trim(),
@@ -2335,7 +2328,7 @@ if(joaninhaInstancia.disponivel){
     if(contexto&&contexto.tipo==='caso'&&casos[contexto.id]){
       el.textContent='Anotando em: '+casos[contexto.id].nome;
     }else{
-      el.textContent='Foco do dia';
+      el.textContent='Central de Comando';
     }
   }
 
@@ -2575,7 +2568,7 @@ if(joaninhaInstancia.disponivel){
     const ativos=casosAtivosList();
     const parados7=ativos.filter(c=>diasParado(c.atualizado)>=7);
     const semDoc=ativos.filter(c=>c.dep==='Falta documentos');
-    const aguardCliente=ativos.filter(c=>c.dep==='Aguardando cliente');
+    const aguardCliente=ativos.filter(c=>['Aguardando aprovação do orçamento','Aguardando aprovação da minuta','Aguardando cliente (outro)'].includes(c.dep));
     const prazoUrgente=ativos.filter(c=>/hoje|amanh/i.test(c.prazo||''));
     const linhas=[];
     if(prazoUrgente.length)linhas.push(`⏰ ${prazoUrgente.length} processo${prazoUrgente.length>1?'s':''} com prazo hoje ou amanhã.`);
@@ -2593,7 +2586,7 @@ if(joaninhaInstancia.disponivel){
     const concluidosHoje=lista.filter(c=>c.concluido&&c.atualizado===hoje).length;
     const concluidosSemana=lista.filter(c=>c.concluido&&diasParado(c.atualizado)>=0&&diasParado(c.atualizado)<=6).length;
     const criticos=ativos.filter(c=>c.status==='critico').length;
-    const aguardCliente=ativos.filter(c=>c.dep==='Aguardando cliente').length;
+    const aguardCliente=ativos.filter(c=>['Aguardando aprovação do orçamento','Aguardando aprovação da minuta','Aguardando cliente (outro)'].includes(c.dep)).length;
     const aguardDocs=ativos.filter(c=>c.dep==='Falta documentos').length;
     const mediaParado=ativos.length?Math.round(ativos.reduce((s,c)=>s+diasParado(c.atualizado),0)/ativos.length):0;
     return{emAndamento:ativos.length,concluidosHoje,concluidosSemana,criticos,aguardCliente,aguardDocs,mediaParado};
@@ -2634,7 +2627,7 @@ if(joaninhaInstancia.disponivel){
   }
   function renderBuscaResultados(q){
     const el=document.getElementById('joaninha-busca-resultados');
-    if(!(q||'').trim()){el.innerHTML='<div class="joaninha-vazio">Digite para buscar em casos e no Foco do dia.</div>';return;}
+    if(!(q||'').trim()){el.innerHTML='<div class="joaninha-vazio">Digite para buscar em casos e nos lembretes manuais.</div>';return;}
     const{casosEnc,focosEnc}=buscarTudo(q);
     if(!casosEnc.length&&!focosEnc.length){el.innerHTML='<div class="joaninha-vazio">Nada encontrado.</div>';return;}
     let html='';
@@ -2643,7 +2636,7 @@ if(joaninhaInstancia.disponivel){
       html+=casosEnc.map(c=>`<div class="joaninha-busca-item" onclick="joaninhaIrParaCaso('${c.id}')"><i class="ti ti-briefcase"></i><span>${c.nome}</span><span class="jb-tipo">${c.tipo||''}</span></div>`).join('');
     }
     if(focosEnc.length){
-      html+='<div class="joaninha-busca-grupo-label">Foco do dia</div>';
+      html+='<div class="joaninha-busca-grupo-label">Lembretes manuais</div>';
       html+=focosEnc.map(f=>`<div class="joaninha-busca-item"><i class="ti ti-bolt"></i><span>${f.text}</span></div>`).join('');
     }
     el.innerHTML=html;
@@ -2714,7 +2707,7 @@ if(joaninhaInstancia.disponivel){
     const ativos=casosAtivosList();
     if(/o que (eu )?(devo|posso) fazer|próxima tarefa|proxima tarefa|o que fazer agora/.test(q)){
       const focosAtuais=(Array.isArray(focos)?focos:Object.values(focos||{})).filter(f=>!f.done);
-      if(focosAtuais.length)return`No Foco do dia, a próxima pendente é: "${focosAtuais[0].text}".`;
+      if(focosAtuais.length)return`Nos lembretes manuais, a próxima pendente é: "${focosAtuais[0].text}".`;
       if(!ativos.length)return'Nenhum caso ativo no momento — tudo em dia.';
       const ordem={critico:0,prioridade:1,atencao:2,emdia:3};
       const top=[...ativos].sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5)||diasParado(b.atualizado)-diasParado(a.atualizado))[0];
@@ -2736,7 +2729,7 @@ if(joaninhaInstancia.disponivel){
       return`Com prazo hoje/amanhã: ${urgentes.map(c=>c.nome).join(', ')}.`;
     }
     if(/aguardando cliente|n[ãa]o respond/.test(q)){
-      const aguardCliente=ativos.filter(c=>c.dep==='Aguardando cliente');
+      const aguardCliente=ativos.filter(c=>['Aguardando aprovação do orçamento','Aguardando aprovação da minuta','Aguardando cliente (outro)'].includes(c.dep));
       if(!aguardCliente.length)return'Nenhum caso ativo está aguardando resposta do cliente agora.';
       return`Aguardando resposta do cliente: ${aguardCliente.map(c=>c.nome).join(', ')}.`;
     }
