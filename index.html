@@ -100,8 +100,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cdc-registro-rapido input{flex:1;font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
 .cdc-registro-rapido button{font-size:11px;padding:5px 11px;border-radius:7px;border:none;background:#EDE6D6;color:#16283A;cursor:pointer;font-weight:600}
 .cdc-vazio{font-size:12px;color:#6E6E8A;font-style:italic;padding:4px 0}
-.cdc-grupo{margin-bottom:6px}
-.cdc-grupo-titulo{font-size:12px;font-weight:600;color:#3A3A3C;background:#ECEDF1;padding:7px 12px;border-radius:8px 8px 0 0;border-left:4px solid #C9A876}
+.cdc-grupo{margin-bottom:10px}
+.cdc-grupo-titulo{font-size:14px;font-weight:700;color:#7A4A00;background:#FFF3E0;padding:10px 14px;border-radius:8px 8px 0 0;border-left:4px solid #C9A876;line-height:1.35}
+.cdc-grupo.critico .cdc-grupo-titulo{color:#8D2F00;background:#FDECEA;border-left-color:#C62828}
 .cdc-grupo .cdc-linha{border-radius:0;margin-bottom:0;border-top:1px solid rgba(0,0,0,.05)}
 .cdc-grupo .cdc-linha:first-of-type{border-top:none}
 .cdc-grupo .cdc-linha:last-child{border-radius:0 0 8px 8px;margin-bottom:6px}
@@ -782,28 +783,44 @@ const DEPS=['','Orçamento a enviar','Aguardando aprovação do orçamento','Min
 // mesma), visibilidade_equipe (falta de visibilidade sobre o time),
 // promessa_cliente (algo já prometido ao cliente que precisa acompanhamento
 // ativo, não só um timer).
+// perguntaGrupo: usado só no título do grupo (2+ casos da mesma etapa juntos
+// na Central de Comando) — sempre no formato "{NOME}, pergunta natural?",
+// pra soar como a Joaninha chamando pelo nome de quem é responsável por
+// aqueles casos. Quando os casos do grupo têm responsáveis diferentes
+// misturados, perguntaGrupoTexto() tira o "{NOME}, " e usa a frase genérica.
 const DEP_CONFIG={
-  '':                                     {quemSegura:null,      normalAte:null, criticoDesde:null, tag:null,                 proximaAcao:null},
-  'Orçamento a enviar':                   {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:'ponto_cego',         proximaAcao:'Enviar orçamento ao cliente'},
-  'Aguardando aprovação do orçamento':    {quemSegura:'cliente', normalAte:5,    criticoDesde:7,    tag:null,                 proximaAcao:'Cobrar aprovação do orçamento'},
-  'Minutando':                            {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:'visibilidade_equipe',proximaAcao:'Confirmar com a Grazi o andamento da minuta'},
-  'Aguardando aprovação da minuta':       {quemSegura:'cliente', normalAte:3,    criticoDesde:4,    tag:null,                 proximaAcao:'Cobrar aprovação da minuta'},
-  'Aguardando cliente (outro)':           {quemSegura:'cliente', normalAte:5,    criticoDesde:7,    tag:null,                 proximaAcao:'Cobrar retorno do cliente'},
-  'Aguardando gerar ITBI':                {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Gerar guia de ITBI'},
-  'ITBI aguardando pagamento':            {quemSegura:'cliente', normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Cobrar pagamento do ITBI'},
-  'Travar agenda':                        {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Travar agenda de assinatura'},
-  'Falta assinatura':                     {quemSegura:'terceiro',normalAte:5,    criticoDesde:6,    tag:'visibilidade_equipe',proximaAcao:'Cobrar assinatura da outra parte'},
-  'Aguardando traslado':                  {quemSegura:'cartorio',normalAte:3,    criticoDesde:5,    tag:null,                 proximaAcao:'Verificar se já solicitamos o traslado ou se ele já está pronto'},
-  'Traslado pronto — providenciar envio': {quemSegura:'cartorio',normalAte:3,    criticoDesde:4,    tag:'promessa_cliente',   proximaAcao:'Enviar traslado ao cliente'},
-  'Pré-conferência':                      {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:null,                 proximaAcao:'Concluir pré-conferência e enviar ao registro'},
-  'Registro de Imóveis':                  {quemSegura:'terceiro',normalAte:30,   criticoDesde:31,   tag:null,                 proximaAcao:'Acompanhar protocolo no Registro de Imóveis'},
-  'Nota de exigência':                    {quemSegura:'variavel',normalAte:0,    criticoDesde:1,    tag:'ponto_cego',         proximaAcao:'Verificar status da nota de exigência hoje'},
-  'Prefeitura':                           {quemSegura:'terceiro',normalAte:1,    criticoDesde:3,    tag:'ponto_cego',         proximaAcao:'Acompanhar retorno da Prefeitura'},
-  'Entregar para o cliente':              {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:'ponto_cego',         proximaAcao:'Preparar e entregar arquivos físicos ao cliente'},
-  'Falta documentos':                     {quemSegura:'cliente', normalAte:5,    criticoDesde:7,    tag:null,                 proximaAcao:'Cobrar documentos pendentes do cliente'},
-  'Jurídico Prime':                       {quemSegura:'terceiro',normalAte:5,    criticoDesde:8,    tag:null,                 proximaAcao:'Acompanhar retorno do Jurídico Prime'},
-  'Concluído':                            {quemSegura:null,      normalAte:null, criticoDesde:null, tag:null,                 proximaAcao:null}
+  '':                                     {quemSegura:null,      normalAte:null, criticoDesde:null, tag:null,                 proximaAcao:null,                                                          perguntaGrupo:null},
+  'Orçamento a enviar':                   {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:'ponto_cego',         proximaAcao:'Enviar orçamento ao cliente',                                 perguntaGrupo:'{NOME}, já enviou o orçamento pro cliente desses casos abaixo?'},
+  'Aguardando aprovação do orçamento':    {quemSegura:'cliente', normalAte:5,    criticoDesde:7,    tag:null,                 proximaAcao:'Cobrar aprovação do orçamento',                               perguntaGrupo:'{NOME}, conseguiu cobrar a aprovação do orçamento desses casos?'},
+  'Minutando':                            {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:'visibilidade_equipe',proximaAcao:'Confirmar com a Grazi o andamento da minuta',                perguntaGrupo:'{NOME}, como está o andamento da minuta desses casos?'},
+  'Aguardando aprovação da minuta':       {quemSegura:'cliente', normalAte:3,    criticoDesde:4,    tag:null,                 proximaAcao:'Cobrar aprovação da minuta',                                  perguntaGrupo:'{NOME}, conseguiu cobrar a aprovação da minuta desses casos?'},
+  'Aguardando cliente (outro)':           {quemSegura:'cliente', normalAte:5,    criticoDesde:7,    tag:null,                 proximaAcao:'Cobrar retorno do cliente',                                   perguntaGrupo:'{NOME}, conseguiu um retorno do cliente nesses casos?'},
+  'Aguardando gerar ITBI':                {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Gerar guia de ITBI',                                          perguntaGrupo:'{NOME}, já gerou a guia de ITBI desses casos?'},
+  'ITBI aguardando pagamento':            {quemSegura:'cliente', normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Cobrar pagamento do ITBI',                                    perguntaGrupo:'{NOME}, conseguiu cobrar o pagamento do ITBI desses casos?'},
+  'Travar agenda':                        {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Travar agenda de assinatura',                                 perguntaGrupo:'{NOME}, já travou a agenda de assinatura desses casos?'},
+  'Falta assinatura':                     {quemSegura:'terceiro',normalAte:5,    criticoDesde:6,    tag:'visibilidade_equipe',proximaAcao:'Cobrar assinatura da outra parte',                            perguntaGrupo:'{NOME}, conseguiu cobrar a assinatura da outra parte nesses casos?'},
+  'Aguardando traslado':                  {quemSegura:'cartorio',normalAte:3,    criticoDesde:5,    tag:null,                 proximaAcao:'Verificar se já solicitamos o traslado ou se ele já está pronto', perguntaGrupo:'{NOME}, já verificou se o traslado desses casos foi pedido ou já ficou pronto?'},
+  'Traslado pronto — providenciar envio': {quemSegura:'cartorio',normalAte:3,    criticoDesde:4,    tag:'promessa_cliente',   proximaAcao:'Enviar traslado ao cliente',                                  perguntaGrupo:'{NOME}, já enviou o traslado pronto desses casos pro cliente?'},
+  'Pré-conferência':                      {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:null,                 proximaAcao:'Concluir pré-conferência e enviar ao registro',               perguntaGrupo:'{NOME}, conseguiu concluir a pré-conferência e mandar pro registro nesses casos?'},
+  'Registro de Imóveis':                  {quemSegura:'terceiro',normalAte:30,   criticoDesde:31,   tag:null,                 proximaAcao:'Acompanhar protocolo no Registro de Imóveis',                 perguntaGrupo:'{NOME}, já checou o andamento desses casos no Registro de Imóveis?'},
+  'Nota de exigência':                    {quemSegura:'variavel',normalAte:0,    criticoDesde:1,    tag:'ponto_cego',         proximaAcao:'Verificar status da nota de exigência hoje',                 perguntaGrupo:'{NOME}, dá uma olhada nessas notas de exigência?'},
+  'Prefeitura':                           {quemSegura:'terceiro',normalAte:1,    criticoDesde:3,    tag:'ponto_cego',         proximaAcao:'Acompanhar retorno da Prefeitura',                            perguntaGrupo:'{NOME}, já teve retorno da Prefeitura nesses casos?'},
+  'Entregar para o cliente':              {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:'ponto_cego',         proximaAcao:'Preparar e entregar arquivos físicos ao cliente',             perguntaGrupo:'{NOME}, já separou e entregou os arquivos físicos desses casos pro cliente?'},
+  'Falta documentos':                     {quemSegura:'cliente', normalAte:5,    criticoDesde:7,    tag:null,                 proximaAcao:'Cobrar documentos pendentes do cliente',                      perguntaGrupo:'{NOME}, conseguiu cobrar os documentos faltantes desses casos abaixo?'},
+  'Jurídico Prime':                       {quemSegura:'terceiro',normalAte:5,    criticoDesde:8,    tag:null,                 proximaAcao:'Acompanhar retorno do Jurídico Prime',                        perguntaGrupo:'{NOME}, já teve retorno do Jurídico Prime nesses casos?'},
+  'Concluído':                            {quemSegura:null,      normalAte:null, criticoDesde:null, tag:null,                 proximaAcao:null,                                                          perguntaGrupo:null}
 };
+
+const NOMES_RESP={shirley:'Shirley',grazi:'Grazi',gabriel:'Gabriel'};
+// Sempre no formato "{NOME}, pergunta?" — com um responsável só, troca o
+// token pelo nome; com o grupo misto (ou sem responsável reconhecido), tira
+// o token e capitaliza a frase pra ela continuar fazendo sentido sem nome.
+function perguntaGrupoTexto(template,nome){
+  if(!template)return null;
+  if(nome)return template.replace('{NOME}',nome);
+  const semNome=template.replace('{NOME}, ','');
+  return semNome.charAt(0).toUpperCase()+semNome.slice(1);
+}
 
 const hoje=new Date();hoje.setHours(0,0,0,0);
 function diasParado(iso){if(!iso)return 0;const d=new Date(iso);d.setHours(0,0,0,0);return Math.floor((hoje-d)/(1000*60*60*24));}
@@ -1152,8 +1169,11 @@ function renderListaComGrupos(itensOrdenados,classe){
   return ordem.map(dep=>{
     const grupo=porDep[dep];
     if(dep&&grupo.length>=2){
-      const titulo=esc(grupo[0].md.proximaAcao||dep);
-      return`<div class="cdc-grupo"><div class="cdc-grupo-titulo">${titulo}</div>${
+      const resps=new Set(grupo.map(it=>it.caso.resp));
+      const nome=resps.size===1?NOMES_RESP[[...resps][0]]:null;
+      const cfg=DEP_CONFIG[dep];
+      const titulo=esc(perguntaGrupoTexto(cfg&&cfg.perguntaGrupo,nome)||grupo[0].md.proximaAcao||dep);
+      return`<div class="cdc-grupo ${classe}"><div class="cdc-grupo-titulo">🐞 ${titulo}</div>${
         grupo.map(it=>linhaCasoCompacta(it,{classe,chave:it.chaveDep})).join('')
       }</div>`;
     }
