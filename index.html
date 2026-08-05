@@ -649,7 +649,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <span class="joaninha-panel-avatar">🐞</span>
     <div>
       <div class="joaninha-panel-title">Joaninha<span class="joaninha-panel-sub">Captura rápida</span></div>
-      <div class="joaninha-panel-contexto" id="joaninha-contexto">Foco do dia</div>
+      <div class="joaninha-panel-contexto" id="joaninha-contexto">Central de Comando</div>
     </div>
     <button type="button" class="joaninha-panel-close" onclick="toggleJoaninhaPainel(false)">&times;</button>
   </div>
@@ -1018,11 +1018,6 @@ function estaSuprimido(chave){
   if(r.estado==='ignorado')return true;
   if(r.estado==='ja_fiz')return true;
   if(r.estado==='snooze')return!!(r.ate&&isoHoje()<r.ate);
-  if(r.estado==='delegado'){
-    const passouPrazo=diasParado(r.baselineAtualizado)>=(r.prazoDelegacaoDias||3);
-    const casoAvancou=r.casoId&&casos[r.casoId]&&casos[r.casoId].atualizado>r.baselineAtualizado;
-    return!(passouPrazo||casoAvancou);
-  }
   return false; // 'parado' não suprime a linha, só realoca pro bloco "Aguardando retorno"
 }
 
@@ -1070,7 +1065,6 @@ function linhaCaso(it,opts){
     <div class="cdc-acoes">
       <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','ja_fiz')">✓ Já fiz</button>
       <button class="cdc-acao-btn" onclick="event.stopPropagation();abrirSnoozeCentral('${chave}')">⏰ Depois</button>
-      <button class="cdc-acao-btn" onclick="event.stopPropagation();abrirDelegarCentral('${chave}','${c.id}')">👤 Deleguei</button>
       <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','parado')">⏸ Aguardando</button>
       <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','ignorado')">✕ Ignorar</button>
     </div>
@@ -1153,12 +1147,6 @@ window.abrirSnoozeCentral=function(chave){
   const data=prompt('Vou fazer depois — pra quando? (formato AAAA-MM-DD)',isoHoje());
   if(!data)return;
   resolverCentral(chave,'snooze',{ate:data});
-};
-window.abrirDelegarCentral=function(chave,casoId){
-  const quem=prompt('Deleguei para quem? (nome)');
-  if(!quem)return;
-  const c=casos[casoId];
-  resolverCentral(chave,'delegado',{delegadoPara:quem,casoId,baselineAtualizado:(c&&c.atualizado)||isoHoje(),prazoDelegacaoDias:3});
 };
 window.registrarNotaCentral=function(casoId){
   const input=document.getElementById('cdc-nota-'+casoId);
