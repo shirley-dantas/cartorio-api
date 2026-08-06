@@ -61,6 +61,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-tags .badge{padding:2px 8px;font-size:10px}
 .foco-caso-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#16283A;background:#EDE6D6;padding:2px 8px;border-radius:6px}
 .foco-caso-tag.geral{color:#8E8EA0;background:#EEF0F4}
+.tag-segunda{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#8D4600;background:#FFF3E0;border:0.5px solid #FCD34D;padding:1.5px 8px;border-radius:6px}
 .foco-del{font-size:16px;color:#6E6E8A;cursor:pointer;padding:0 2px;background:none;border:none;line-height:1}
 .foco-del:hover{color:#E57373}
 .foco-empty{font-size:12px;color:#6E6E8A;font-style:italic;padding:4px 0}
@@ -1267,17 +1268,32 @@ function renderProximasAcoes(itens){
 function renderAgenda(itens){
   const el=document.getElementById('cdc-agenda');
   const dentroDaJanela=(v)=>v!=null&&v>=0&&v<=7;
-  const comData=itens.filter(it=>dentroDaJanela(it.diffAgendado)||dentroDaJanela(it.diffSegunda));
-  const grupo=(min,max)=>comData.filter(it=>[it.diffAgendado,it.diffSegunda].some(v=>v!=null&&v>=min&&v<=max));
+  // Um caso pode ter DUAS datas reais e independentes (escritura principal e
+  // segunda parte, ex: 07/08 e 12/08 do mesmo caso) — cada uma vira seu
+  // próprio evento aqui, com seu próprio dia/etiqueta. Antes o caso inteiro
+  // era tratado como 1 bloco só, então quando as duas datas caíam em janelas
+  // diferentes (uma em "Amanhã", outra em "Próximos 7 dias"), a 2ª linha
+  // repetia por engano a data da 1ª (a checagem "é hoje/amanhã" comparava
+  // com a janela geral de 7 dias, não com o intervalo do bloco sendo
+  // montado no momento).
+  const eventos=[];
+  itens.forEach(it=>{
+    const c=it.caso;
+    if(dentroDaJanela(it.diffAgendado))eventos.push({c,diff:it.diffAgendado,dt:c.agendado,segunda:false});
+    if(dentroDaJanela(it.diffSegunda))eventos.push({c,diff:it.diffSegunda,dt:c.segundaParte.data,segunda:true});
+  });
+  const grupo=(min,max)=>eventos.filter(ev=>ev.diff>=min&&ev.diff<=max);
   const hoje=grupo(0,0),amanha=grupo(1,1),semana=grupo(2,7);
   let html='<div class="cdc-bloco-titulo"><i class="ti ti-calendar"></i> Agenda dos próximos dias</div>';
   if(!hoje.length&&!amanha.length&&!semana.length){html+='<div class="cdc-vazio">Nada agendado pros próximos 7 dias.</div>';el.innerHTML=html;return;}
-  const linhaAgenda=(it)=>{
-    const c=it.caso;
-    const usaSegunda=dentroDaJanela(it.diffSegunda)&&!dentroDaJanela(it.diffAgendado);
-    const dt=usaSegunda?c.segundaParte.data:c.agendado;
-    const dataFmt=dt?new Date(dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
-    return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span></div><span class="cdc-meta">${dataFmt}</span></div></div>`;
+  const linhaAgenda=(ev)=>{
+    const c=ev.c;
+    const dataFmt=ev.dt?new Date(ev.dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    // Diferencia visualmente da assinatura principal da escritura — sem essa
+    // etiqueta, dava pra confundir com "hoje é a escritura" só de bater o olho.
+    const quemSegunda=ev.segunda&&c.segundaParte&&c.segundaParte.quem?': '+esc(c.segundaParte.quem):'';
+    const tagSegunda=ev.segunda?`<span class="tag-segunda">2ª parte${quemSegunda}</span>`:'';
+    return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${tagSegunda}</div><span class="cdc-meta">${dataFmt}</span></div></div>`;
   };
   if(hoje.length)html+='<div class="cdc-sub-titulo">Hoje</div>'+hoje.map(linhaAgenda).join('');
   if(amanha.length)html+='<div class="cdc-sub-titulo">Amanhã</div>'+amanha.map(linhaAgenda).join('');
