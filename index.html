@@ -61,6 +61,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-tags .badge{padding:2px 8px;font-size:10px}
 .foco-caso-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#16283A;background:#EDE6D6;padding:2px 8px;border-radius:6px}
 .foco-caso-tag.geral{color:#8E8EA0;background:#EEF0F4}
+.tag-segunda{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#8D4600;background:#FFF3E0;border:0.5px solid #FCD34D;padding:1.5px 8px;border-radius:6px}
 .foco-del{font-size:16px;color:#6E6E8A;cursor:pointer;padding:0 2px;background:none;border:none;line-height:1}
 .foco-del:hover{color:#E57373}
 .foco-empty{font-size:12px;color:#6E6E8A;font-style:italic;padding:4px 0}
@@ -1277,7 +1278,11 @@ function renderAgenda(itens){
     const usaSegunda=dentroDaJanela(it.diffSegunda)&&!dentroDaJanela(it.diffAgendado);
     const dt=usaSegunda?c.segundaParte.data:c.agendado;
     const dataFmt=dt?new Date(dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
-    return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span></div><span class="cdc-meta">${dataFmt}</span></div></div>`;
+    // Diferencia visualmente da assinatura principal da escritura — sem essa
+    // etiqueta, dava pra confundir com "hoje é a escritura" só de bater o olho.
+    const quemSegunda=usaSegunda&&c.segundaParte&&c.segundaParte.quem?': '+esc(c.segundaParte.quem):'';
+    const tagSegunda=usaSegunda?`<span class="tag-segunda">2ª parte${quemSegunda}</span>`:'';
+    return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${tagSegunda}</div><span class="cdc-meta">${dataFmt}</span></div></div>`;
   };
   if(hoje.length)html+='<div class="cdc-sub-titulo">Hoje</div>'+hoje.map(linhaAgenda).join('');
   if(amanha.length)html+='<div class="cdc-sub-titulo">Amanhã</div>'+amanha.map(linhaAgenda).join('');
