@@ -441,7 +441,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <span class="cdc-bloco-titulo"><i class="ti ti-note"></i> Lembretes manuais</span>
         <button class="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar</button>
       </div>
-      <div class="foco-items" id="foco-items"></div>
+      <div class="foco-items cdc-scroll" id="foco-items"></div>
       <div class="foco-input-row" id="foco-input-row" style="display:none">
         <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
         <div class="foco-input-linha">
@@ -1210,16 +1210,40 @@ function fraseHoje(it){
 // ver [[project_cartorio]] "Dois bugs corrigidos no Foco do dia"). Em vez de
 // cortar a lista, o bloco ganha rolagem própria (.cdc-scroll) — todo caso
 // crítico/em atenção real aparece, só que rolando em vez de esticar a tela.
+
+// Mede a distância entre o topo do 1º e do 2º item pra descobrir a altura de
+// UM card (funciona tanto com espaçamento por margin quanto por gap do flex)
+// e limita a caixa a esse tamanho — só o primeiro card aparece inteiro, o
+// resto fica escondido atrás da rolagem, deixando óbvio que tem mais casos.
+function limitarScrollUmCard(scrollEl){
+  if(!scrollEl)return;
+  const itens=scrollEl.children;
+  if(itens.length<2){scrollEl.style.maxHeight='';return;}
+  const altura=itens[1].getBoundingClientRect().top-itens[0].getBoundingClientRect().top;
+  if(altura>0)scrollEl.style.maxHeight=Math.round(altura)+'px';
+}
+function limitarTodosScrolls(container){
+  container.querySelectorAll('.cdc-scroll').forEach(limitarScrollUmCard);
+}
 function renderIncendios(itens){
   const el=document.getElementById('cdc-incendios');
   const hoje=itens.filter(it=>!it.parado&&!it.suprimidoAgenda&&it.ehHoje).sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
   const esquecidos=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel==='critico').sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
   let html='<div class="cdc-bloco-titulo"><i class="ti ti-flame"></i> Incêndios</div>';
   if(!hoje.length&&!esquecidos.length){html+='<div class="cdc-vazio">Nada pegando fogo agora.</div>';el.innerHTML=html;return;}
-  let corpo='';
-  if(hoje.length)corpo+=hoje.map(it=>linhaCaso(it,{classe:'hoje',chave:it.chaveAgenda,mostrarAcoes:true,textoOverride:fraseHoje(it)})).join('');
-  if(esquecidos.length)corpo+='<div class="cdc-sub-titulo">Esquecidos</div>'+renderListaComGrupos(esquecidos,'critico');
-  el.innerHTML=html+`<div class="cdc-scroll">${corpo}</div>`;
+  // Hoje e Esquecidos ganham rolagem própria e independente uma da outra —
+  // antes dividiam a mesma caixa de rolagem, escondendo a intuição de que
+  // cada bloco pode ter mais casos abaixo.
+  if(hoje.length){
+    const corpoHoje=hoje.map(it=>linhaCaso(it,{classe:'hoje',chave:it.chaveAgenda,mostrarAcoes:true,textoOverride:fraseHoje(it)})).join('');
+    html+=`<div class="cdc-scroll">${corpoHoje}</div>`;
+  }
+  if(esquecidos.length){
+    const corpoEsquecidos=renderListaComGrupos(esquecidos,'critico');
+    html+='<div class="cdc-sub-titulo">Esquecidos</div>'+`<div class="cdc-scroll">${corpoEsquecidos}</div>`;
+  }
+  el.innerHTML=html;
+  limitarTodosScrolls(el);
 }
 
 function renderProximasAcoes(itens){
@@ -1229,6 +1253,7 @@ function renderProximasAcoes(itens){
   let html='<div class="cdc-bloco-titulo"><i class="ti ti-list-check"></i> Próximas ações</div>';
   if(!top.length){html+='<div class="cdc-vazio">Nada de olho no momento.</div>';el.innerHTML=html;return;}
   el.innerHTML=html+`<div class="cdc-scroll">${renderListaComGrupos(top,'atencao')}</div>`;
+  limitarTodosScrolls(el);
 }
 
 function renderAgenda(itens){
@@ -1256,8 +1281,9 @@ function renderParados(itens){
   const el=document.getElementById('cdc-parados');
   const pool=itens.filter(it=>it.parado);
   if(!pool.length){el.innerHTML='';return;}
-  el.innerHTML='<div class="cdc-bloco-titulo"><i class="ti ti-player-pause"></i> Aguardando retorno</div>'+
-    pool.map(it=>linhaCaso(it,{classe:'parado',chave:it.chaveDep,mostrarRetomar:true})).join('');
+  const corpo=pool.map(it=>linhaCaso(it,{classe:'parado',chave:it.chaveDep,mostrarRetomar:true})).join('');
+  el.innerHTML='<div class="cdc-bloco-titulo"><i class="ti ti-player-pause"></i> Aguardando retorno</div>'+`<div class="cdc-scroll">${corpo}</div>`;
+  limitarTodosScrolls(el);
 }
 
 window.resolverCentral=function(chave,estado,extra){
@@ -1307,12 +1333,12 @@ window.irParaCasoPorId=function(id){
 function renderFoco(){
   const el=document.getElementById('foco-items');
   const full=Array.isArray(focos)?focos:Object.values(focos||{});
-  if(!full.length){el.innerHTML='<div class="foco-empty">Nenhuma prioridade definida para hoje.</div>';return;}
+  if(!full.length){el.innerHTML='<div class="foco-empty">Nenhuma prioridade definida para hoje.</div>';limitarScrollUmCard(el);return;}
   // Concluídos (✓) somem da lista em vez de ficar riscados ocupando espaço —
   // o estado continua salvo, só não é mais exibido, pra não poluir a lista
   // do que falta fazer.
   const arr=full.filter(f=>f&&!f.done);
-  if(!arr.length){el.innerHTML='<div class="foco-empty">Tudo em dia! Nenhuma pendência no momento.</div>';return;}
+  if(!arr.length){el.innerHTML='<div class="foco-empty">Tudo em dia! Nenhuma pendência no momento.</div>';limitarScrollUmCard(el);return;}
   el.innerHTML=arr.map((f)=>{
     const tipo=f.marcador==='alerta'?'tipo-alerta':(f.marcador==='hoje'||f.marcador==='amanha')?'tipo-agenda':'tipo-manual';
     const nomeCaso=f.casoNome||null;
@@ -1330,6 +1356,7 @@ function renderFoco(){
       <button class="foco-del" onclick="delFoco('${f.id}')">&times;</button>
     </div>
   `;}).join('');
+  limitarScrollUmCard(el);
 }
 function popularFocoCasoSelect(){
   const sel=document.getElementById('foco-caso');
@@ -1518,7 +1545,10 @@ function posicionarJoaninhaNaSaudacao(){
 let resizeJnTimer=null;
 window.addEventListener('resize',()=>{
   clearTimeout(resizeJnTimer);
-  resizeJnTimer=setTimeout(posicionarJoaninhaNaSaudacao,150);
+  resizeJnTimer=setTimeout(()=>{
+    posicionarJoaninhaNaSaudacao();
+    document.querySelectorAll('.cdc-scroll').forEach(limitarScrollUmCard);
+  },150);
 });
 
 // ── STATS ──
