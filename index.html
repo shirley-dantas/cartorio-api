@@ -244,8 +244,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .atend-item-form{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .atend-item-form textarea{width:100%;font-size:12px;padding:6px 8px;border-radius:6px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;outline:none}
 .atend-item-form-row{display:flex;gap:6px;justify-content:flex-end}
-.obs-text{font-size:12px;font-weight:600;color:#3A3A3C;line-height:1.55;cursor:pointer;white-space:pre-wrap;max-height:110px;overflow-y:auto}
-.obs-text:hover{color:#1C1C1E}
+.obs-text{cursor:pointer;white-space:pre-wrap}
+.obs-text:hover .obs-ultima-texto{color:#1C1C1E}
+.obs-ultima{background:#FFF8ED;border-left:4px solid #B45309;border-radius:0 8px 8px 0;padding:7px 10px;margin-bottom:8px}
+.obs-ultima-cab{font-size:10.5px;font-weight:700;color:#8D4600;margin-bottom:2px;text-transform:uppercase;letter-spacing:.3px}
+.obs-ultima-texto{font-size:13px;font-weight:600;color:#3A3A3C;line-height:1.5;max-height:90px;overflow-y:auto;padding-right:4px;margin-right:-4px;cursor:pointer}
+.obs-hist-titulo{font-size:10px;font-weight:700;color:#8E8EA0;text-transform:uppercase;letter-spacing:.3px;margin:2px 0 4px}
+.obs-hist{font-size:12px;font-weight:600;color:#6E6E8A;line-height:1.55;max-height:90px;overflow-y:auto;padding-right:4px;margin-right:-4px;cursor:pointer}
+.obs-ultima-texto::-webkit-scrollbar,.obs-hist::-webkit-scrollbar{width:6px}
+.obs-ultima-texto::-webkit-scrollbar-thumb,.obs-hist::-webkit-scrollbar-thumb{background:#D1D1D6;border-radius:3px}
+.obs-ultima-texto.obs-expandido,.obs-hist.obs-expandido{max-height:none;overflow:visible;cursor:default}
 .obs-edit{display:none;flex-direction:column;gap:6px;margin-top:7px}
 .obs-edit textarea{width:100%;font-size:12px;padding:7px 10px;border-radius:7px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;resize:vertical;font-family:inherit;min-height:54px;outline:none}
 .obs-edit-row{display:flex;gap:6px;justify-content:flex-end;align-items:center}
@@ -1698,7 +1706,7 @@ function renderCasos(){
 
       <div class="card-obs">
         <span class="obs-label">Observações</span>
-        <div class="obs-text" id="obs-txt-${c.id}" onclick="toggleObs('${c.id}')">${c.obs||'<em style="opacity:.5">Nenhuma observação registrada.</em>'}</div>
+        <div class="obs-text" id="obs-txt-${c.id}" onclick="toggleObs('${c.id}')">${renderObsBloco(c.obs)}</div>
         ${c.obsAnterior?`<button class="btn-sm" onclick="desfazerObs('${c.id}')" title="Volta pro texto anterior"><i class="ti ti-arrow-back-up" style="font-size:12px;vertical-align:-1px"></i> Desfazer última alteração</button>`:''}
         <div class="obs-edit" id="obs-edit-${c.id}">
           <span class="rascunho-msg" id="rascunho-${c.id}" style="display:none;font-size:11px;color:#B4718A;margin-bottom:4px"><i class="ti ti-note"></i> Rascunho recuperado de uma edição anterior não salva</span>
@@ -1920,6 +1928,38 @@ function montarNovoObs(obsAtual,texto){
   const linha=`${numero} - [${dataFmt}] ${texto}`;
   return obsAtual?`${linha}\n${obsAtual}`:linha;
 }
+// Separa a 1ª entrada (a mais nova, sempre no topo — ver montarNovoObs) do
+// resto do histórico, pra destacar só ela numa faixa colorida. Só funciona
+// quando o texto já segue o formato padronizado ("N - [data hora] texto" ou
+// "[data hora] texto"); texto antigo sem esse padrão não é separado, fica
+// exibido como sempre foi (evita cortar um parágrafo livre no meio errado).
+function partesObs(obsTexto){
+  const linhas=obsTexto.split('\n');
+  const inicioEntrada=/^(?:\d+\s*-\s*)?\[[^\]]+\]/;
+  if(!inicioEntrada.test(linhas[0]))return null;
+  let fim=1;
+  while(fim<linhas.length&&!inicioEntrada.test(linhas[fim]))fim++;
+  return{ultima:linhas.slice(0,fim).join('\n'),resto:linhas.slice(fim).join('\n')};
+}
+function renderObsBloco(obsTexto){
+  if(!obsTexto)return'<em style="opacity:.5">Nenhuma observação registrada.</em>';
+  const partes=partesObs(obsTexto);
+  if(!partes)return obsTexto;
+  const m=partes.ultima.match(/^(?:\d+\s*-\s*)?\[([^\]]+)\]\s*([\s\S]*)$/);
+  const rotulo=m?m[1]:'';
+  const corpo=(m?m[2]:partes.ultima)||'(sem texto)';
+  let html=`<div class="obs-ultima"><div class="obs-ultima-cab">Última nota${rotulo?' — '+esc(rotulo):''}</div><div class="obs-ultima-texto" onclick="event.stopPropagation();toggleExpandirObs(this)">${corpo}</div></div>`;
+  if(partes.resto.trim()){
+    html+=`<div class="obs-hist-titulo">Histórico</div><div class="obs-hist" onclick="event.stopPropagation();toggleExpandirObs(this)">${partes.resto}</div>`;
+  }
+  return html;
+}
+// Clicar em cima do texto (última nota ou histórico) expande pra mostrar
+// tudo sem rolar, em vez de abrir a edição — por isso o clique tem
+// stopPropagation antes de chamar essa função (ver renderObsBloco).
+window.toggleExpandirObs=function(el){
+  if(el)el.classList.toggle('obs-expandido');
+};
 window.salvarObs=function(id){
   const novoTexto=document.getElementById('obs-ta-'+id).value.trim();
   if(!novoTexto)return;
