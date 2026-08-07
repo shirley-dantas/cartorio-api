@@ -88,7 +88,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cdc-linha.esquecido{border-left-color:#8D4600;background:#FFF3E0}
 .cdc-linha.atencao{border-left-color:#C9A876;box-shadow:0 0 0 1px rgba(169,137,90,.14)}
 .cdc-linha.parado{border-left-color:#8E8EA0;background:#F2F2F7;opacity:.85}
-.cdc-linha.agenda{cursor:pointer}
+.cdc-linha.agenda{cursor:pointer;align-items:center}
+.cdc-agenda-acoes{display:flex;gap:5px;flex-shrink:0}
+.cdc-agenda-btn{width:26px;height:26px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px}
+.cdc-agenda-btn:hover{background:#F5F5F7}
+.cdc-agenda-btn.concluir:hover{background:#E8F5E9;border-color:#66BB6A;color:#2E7D32}
+.cdc-agenda-btn.excluir:hover{background:#FDECEA;border-color:#E57373;color:#C62828}
 .cdc-conteudo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .cdc-texto{font-size:13px;color:#1C1C1E;line-height:1.4}
 .cdc-meta{font-size:11px;color:#6E6E8A}
@@ -1057,6 +1062,11 @@ function encontrarCasoPorNomeFoco(nomeFoco){
 // "excluídos" voltando sozinhos no antigo Foco do dia).
 function chaveResolucaoDep(casoId,dep){ return `${casoId}__dep__${dep||'_'}`; }
 function chaveResolucaoAgenda(casoId){ return `${casoId}__agenda__${isoHoje()}`; }
+// Amarrada à data REAL do compromisso (não ao dia de hoje) — assim, se o caso
+// for remarcado depois, a data muda, a chave muda junto, e o item some do
+// "excluído"/"concluído" sozinho e volta a aparecer na agenda pra nova data,
+// sem precisar de faxina manual (mesmo princípio de [[chaveResolucaoAgenda]]).
+function chaveAgendaEvento(casoId,tipo,data){ return `${casoId}__agendaEvento__${tipo}__${data||'_'}`; }
 
 function estaSuprimido(chave){
   const r=resolucoesCentral[chave];
@@ -1282,7 +1292,11 @@ function renderAgenda(itens){
     if(dentroDaJanela(it.diffAgendado))eventos.push({c,diff:it.diffAgendado,dt:c.agendado,segunda:false});
     if(dentroDaJanela(it.diffSegunda))eventos.push({c,diff:it.diffSegunda,dt:c.segundaParte.data,segunda:true});
   });
-  const grupo=(min,max)=>eventos.filter(ev=>ev.diff>=min&&ev.diff<=max);
+  // Concluído ou excluído aqui na agenda some da lista (ver botões abaixo) —
+  // a chave usa a data real do evento, então volta a aparecer sozinho se essa
+  // data mudar (reagendamento).
+  const eventosVisiveis=eventos.filter(ev=>!resolucoesCentral[chaveAgendaEvento(ev.c.id,ev.segunda?'segunda':'principal',ev.dt)]);
+  const grupo=(min,max)=>eventosVisiveis.filter(ev=>ev.diff>=min&&ev.diff<=max);
   const hoje=grupo(0,0),amanha=grupo(1,1),semana=grupo(2,7);
   let html='<div class="cdc-bloco-titulo"><i class="ti ti-calendar"></i> Agenda dos próximos dias</div>';
   if(!hoje.length&&!amanha.length&&!semana.length){html+='<div class="cdc-vazio">Nada agendado pros próximos 7 dias.</div>';el.innerHTML=html;return;}
@@ -1293,7 +1307,8 @@ function renderAgenda(itens){
     // etiqueta, dava pra confundir com "hoje é a escritura" só de bater o olho.
     const quemSegunda=ev.segunda&&c.segundaParte&&c.segundaParte.quem?': '+esc(c.segundaParte.quem):'';
     const tagSegunda=ev.segunda?`<span class="tag-segunda">2ª parte${quemSegunda}</span>`:'';
-    return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${tagSegunda}</div><span class="cdc-meta">${dataFmt}</span></div></div>`;
+    const chave=chaveAgendaEvento(c.id,ev.segunda?'segunda':'principal',ev.dt);
+    return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${tagSegunda}</div><span class="cdc-meta">${dataFmt}</span></div><div class="cdc-agenda-acoes"><button class="cdc-agenda-btn concluir" title="Já concluí — tirar da agenda" onclick="event.stopPropagation();concluirAgendaEvento('${chave}')"><i class="ti ti-check"></i></button><button class="cdc-agenda-btn excluir" title="Excluir da agenda" onclick="event.stopPropagation();excluirAgendaEvento('${chave}')"><i class="ti ti-trash"></i></button></div></div>`;
   };
   if(hoje.length)html+='<div class="cdc-sub-titulo">Hoje</div>'+hoje.map(linhaAgenda).join('');
   if(amanha.length)html+='<div class="cdc-sub-titulo">Amanhã</div>'+amanha.map(linhaAgenda).join('');
@@ -1315,6 +1330,13 @@ window.resolverCentral=function(chave,estado,extra){
 };
 window.retomarCentral=function(chave){
   remove(ref(db,`resolucoesCentral/${chave}`));
+};
+window.concluirAgendaEvento=function(chave){
+  resolverCentral(chave,'concluido');
+};
+window.excluirAgendaEvento=function(chave){
+  if(!confirm('Excluir esse compromisso da agenda? Se a data for alterada de novo no card, ele volta a aparecer.'))return;
+  resolverCentral(chave,'excluido');
 };
 window.abrirSnoozeCentral=function(chave){
   const[ano,mes,dia]=isoHoje().split('-');
