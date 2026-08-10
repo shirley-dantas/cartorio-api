@@ -1692,11 +1692,6 @@ function renderHeroResumo(){
   const lembreteSub=topLembrete?(pendentes.length>1?`+${pendentes.length-1} outro${pendentes.length>2?'s':''} pendente${pendentes.length>2?'s':''}`:(topLembrete.casoNome||'Geral')):'';
 
   el.innerHTML=`
-    <div class="hero-card critico" onclick="abrirStatusModal('critico')">
-      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Crítico agora</span><span class="hero-num">${criticos.length}</span></div>
-      <div class="hero-body">${criticoBody}</div>
-      <div class="hero-sub">${esc(criticoSub)}</div>
-    </div>
     <div class="hero-card agenda" onclick="scrollParaId('cdc-agenda')">
       <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Agenda hoje</span><span class="hero-num">${hoje.length}</span></div>
       <div class="hero-body">${agendaBody}</div>
@@ -1706,6 +1701,11 @@ function renderHeroResumo(){
       <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Lembretes</span><span class="hero-num">${pendentes.length}</span></div>
       <div class="hero-body">${esc(lembreteBody)}</div>
       <div class="hero-sub">${esc(lembreteSub)}</div>
+    </div>
+    <div class="hero-card critico" onclick="abrirStatusModal('critico')">
+      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Crítico agora</span><span class="hero-num">${criticos.length}</span></div>
+      <div class="hero-body">${criticoBody}</div>
+      <div class="hero-sub">${esc(criticoSub)}</div>
     </div>
   `;
 }
