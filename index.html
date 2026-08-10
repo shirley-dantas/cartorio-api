@@ -538,6 +538,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option value="ITBI aguardando pagamento">ITBI aguardando pagamento</option>
             <option value="Travar agenda">Travar agenda</option>
             <option value="Falta assinatura">Falta assinatura</option>
+            <option value="Aguardando TQ">Aguardando TQ</option>
             <option value="Aguardando traslado">Aguardando traslado</option>
             <option value="Traslado pronto — providenciar envio">Traslado pronto — providenciar envio</option>
             <option value="Pré-conferência">Pré-conferência</option>
@@ -823,7 +824,7 @@ async function sincronizarEventoCalendar(id,caso){
   }
 }
 
-const DEPS=['','Orçamento a enviar','Aguardando aprovação do orçamento','Minutando','Aguardando aprovação da minuta','Aguardando cliente (outro)','Aguardando gerar ITBI','ITBI aguardando pagamento','Travar agenda','Falta assinatura','Aguardando traslado','Traslado pronto — providenciar envio','Pré-conferência','Registro de Imóveis','Nota de exigência','Prefeitura','Entregar para o cliente','Falta documentos','Jurídico Prime','Concluído'];
+const DEPS=['','Orçamento a enviar','Aguardando aprovação do orçamento','Minutando','Aguardando aprovação da minuta','Aguardando cliente (outro)','Aguardando gerar ITBI','ITBI aguardando pagamento','Travar agenda','Falta assinatura','Aguardando TQ','Aguardando traslado','Traslado pronto — providenciar envio','Pré-conferência','Registro de Imóveis','Nota de exigência','Prefeitura','Entregar para o cliente','Falta documentos','Jurídico Prime','Concluído'];
 
 // normalAte/criticoDesde em dias PARADO NA ETAPA ATUAL (via depDesde, não
 // atualizado — ver mudarCampo). tag marca os 3 padrões que a Shirley
@@ -847,6 +848,7 @@ const DEP_CONFIG={
   'ITBI aguardando pagamento':            {quemSegura:'cliente', normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Cobrar pagamento do ITBI',                                    perguntaGrupo:'{NOME}, conseguiu cobrar o pagamento do ITBI desses casos?'},
   'Travar agenda':                        {quemSegura:'cartorio',normalAte:1,    criticoDesde:2,    tag:null,                 proximaAcao:'Travar agenda de assinatura',                                 perguntaGrupo:'{NOME}, já travou a agenda de assinatura desses casos?'},
   'Falta assinatura':                     {quemSegura:'terceiro',normalAte:5,    criticoDesde:6,    tag:'visibilidade_equipe',proximaAcao:'Cobrar assinatura da outra parte',                            perguntaGrupo:'{NOME}, conseguiu cobrar a assinatura da outra parte nesses casos?'},
+  'Aguardando TQ':                        {quemSegura:'terceiro',normalAte:5,    criticoDesde:7,    tag:null,                 proximaAcao:'Cobrar a construtora pelo Termo de Quitação (TQ)',            perguntaGrupo:'{NOME}, já cobrou a construtora pelo Termo de Quitação (TQ) desses casos?'},
   'Aguardando traslado':                  {quemSegura:'cartorio',normalAte:3,    criticoDesde:5,    tag:null,                 proximaAcao:'Verificar se já solicitamos o traslado ou se ele já está pronto', perguntaGrupo:'{NOME}, já verificou se o traslado desses casos foi pedido ou já ficou pronto?'},
   'Traslado pronto — providenciar envio': {quemSegura:'cartorio',normalAte:3,    criticoDesde:4,    tag:'promessa_cliente',   proximaAcao:'Enviar traslado ao cliente',                                  perguntaGrupo:'{NOME}, já enviou o traslado pronto desses casos pro cliente?'},
   'Pré-conferência':                      {quemSegura:'cartorio',normalAte:2,    criticoDesde:3,    tag:null,                 proximaAcao:'Concluir pré-conferência e enviar ao registro',               perguntaGrupo:'{NOME}, conseguiu concluir a pré-conferência e mandar pro registro nesses casos?'},
