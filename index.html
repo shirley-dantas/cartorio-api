@@ -470,10 +470,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="hero-row" id="hero-row"></div>
 
-  <div class="cdc-card foco-card">
-    <div class="cdc-bloco" id="cdc-agenda"></div>
-  </div>
-
   <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)" onkeydown="if(event.key==='Enter')irParaPrimeiroResultado()"></div></div>
 
   <div class="cdc-card foco-card">
@@ -712,6 +708,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="modal-title" id="modal-etapa-title">—</div>
     <div class="modal-sub" id="modal-etapa-sub">—</div>
     <div id="modal-etapa-body"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-agenda">
+  <div class="modal-box">
+    <button class="modal-close" onclick="fecharAgendaModal()">&times;</button>
+    <div class="cdc-bloco" id="cdc-agenda"></div>
   </div>
 </div>
 
@@ -1682,7 +1685,19 @@ function renderHeroResumo(){
   const hoje=itens.filter(it=>it.ehHoje).sort((a,b)=>horaHojeDoItem(a).localeCompare(horaHojeDoItem(b)));
   const topHoje=hoje[0];
   const agendaBody=topHoje?esc(topHoje.caso.nome):'Nada agendado';
-  const agendaSub=topHoje?(hoje.length>1?`+${hoje.length-1} outro${hoje.length>2?'s':''} compromisso${hoje.length>2?'s':''} hoje`:'compromisso de hoje'):'pros próximos 7 dias';
+  // Quando não tem nada hoje, mostra se tem algo chegando (amanhã/semana) em
+  // vez de só "pros próximos 7 dias" sem dizer se tem algo ali dentro — mesmo
+  // critério de janela E de exclusão (resolucoesCentral) que renderAgenda usa,
+  // senão o número daqui não bate com o que a janela cheia mostra.
+  let futuros=0;
+  itens.forEach(it=>{
+    const c=it.caso;
+    if(it.diffAgendado>=1&&it.diffAgendado<=7&&!resolucoesCentral[chaveAgendaEvento(c.id,'principal',c.agendado)])futuros++;
+    if(it.diffSegunda>=1&&it.diffSegunda<=7&&c.segundaParte&&!resolucoesCentral[chaveAgendaEvento(c.id,'segunda',c.segundaParte.data)])futuros++;
+  });
+  const agendaSub=topHoje
+    ?(hoje.length>1?`+${hoje.length-1} outro${hoje.length>2?'s':''} compromisso${hoje.length>2?'s':''} hoje`:'compromisso de hoje')
+    :(futuros?`nada hoje · ${futuros} nos próximos 7 dias`:'nada nos próximos 7 dias');
 
   const full=Array.isArray(focos)?focos:Object.values(focos||{});
   const pendentes=full.filter(f=>f&&!f.done);
@@ -1692,7 +1707,7 @@ function renderHeroResumo(){
   const lembreteSub=topLembrete?(pendentes.length>1?`+${pendentes.length-1} outro${pendentes.length>2?'s':''} pendente${pendentes.length>2?'s':''}`:(topLembrete.casoNome||'Geral')):'';
 
   el.innerHTML=`
-    <div class="hero-card agenda" onclick="scrollParaId('cdc-agenda')">
+    <div class="hero-card agenda" onclick="abrirAgendaModal()">
       <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Agenda hoje</span><span class="hero-num">${hoje.length}</span></div>
       <div class="hero-body">${agendaBody}</div>
       <div class="hero-sub">${esc(agendaSub)}</div>
@@ -1788,6 +1803,12 @@ function abrirListaCasosModal(titulo,icone,pred){
 }
 window.fecharEtapaModal=function(){
   document.getElementById('modal-etapa').classList.remove('open');
+};
+window.abrirAgendaModal=function(){
+  document.getElementById('modal-agenda').classList.add('open');
+};
+window.fecharAgendaModal=function(){
+  document.getElementById('modal-agenda').classList.remove('open');
 };
 
 // ── BADGES ──
