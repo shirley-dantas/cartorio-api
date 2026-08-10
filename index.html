@@ -120,19 +120,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cdc-linha.compacta .cdc-bloqueio{flex-basis:100%}
 .cdc-inline-form{display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap}
 .cdc-inline-form input,.cdc-inline-form select{font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #D1D1D6;font-family:inherit;outline:none}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
-.stat{background:#fff;border-radius:14px;padding:13px 15px;border:0.5px solid #ECECF2;box-shadow:0 1px 3px rgba(0,0,0,.03);transition:box-shadow .2s ease,transform .15s ease;display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none}
-.stat:hover{box-shadow:0 6px 16px rgba(0,0,0,.07);transform:translateY(-2px)}
-.stat.on{box-shadow:0 0 0 2px #16283A,0 6px 16px rgba(22,40,58,.18)}
-.stat-icon{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.stat-icon.slate{background:#EEF0F4;color:#4B5563}
-.stat-icon.purple{background:#EDE9FE;color:#6B21A8}
-.stat-icon.red{background:#FDECEA;color:#C62828}
-.stat-icon.amber{background:#FFF3D6;color:#B45309}
-.stat-icon.green{background:#E3F5E7;color:#1B7A3D}
-.stat-label{font-size:11px;color:#8E8EA0;margin-bottom:2px}
-.stat-num{font-size:22px;font-weight:700;color:#1C1C1E;letter-spacing:-.02em}
-.stat-num.red{color:#C62828}.stat-num.amber{color:#B45309}.stat-num.green{color:#2E7D32}.stat-num.purple{color:#6B21A8}
 .toolbar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .fbtn{font-size:12px;padding:6px 14px;border-radius:20px;border:0.5px solid #D1D1D6;background:#fff;color:#8E8EA0;cursor:pointer;white-space:nowrap;transition:background .15s ease,color .15s ease,border-color .15s ease}
 .fbtn.on,.fbtn:hover{background:linear-gradient(135deg,#16283A,#1F3B4D);color:#fff;border-color:#16283A}
@@ -381,6 +368,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sidebar-item.active{background:linear-gradient(135deg,#16283A,#1F3B4D);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(22,40,58,.18)}
 .sidebar-item.disabled{opacity:.5}
 .sidebar-item .em-breve{font-size:8.5px;background:#F0EDE4;color:#A9895A;padding:2px 6px;border-radius:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.sidebar-divider{height:1px;background:#ECECF2;margin:10px 14px}
+.sidebar-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#A9895A;padding:4px 14px 6px}
+.sidebar-item.on{background:#F0EDE4;color:#16283A;font-weight:600}
+.sidebar-count{font-size:11.5px;font-weight:700;background:#EEF0F4;color:#4B5563;padding:2px 9px;border-radius:10px;flex-shrink:0;min-width:22px;text-align:center}
+.sidebar-count.purple{background:#EDE9FE;color:#6B21A8}
+.sidebar-count.red{background:#FDECEA;color:#C62828}
+.sidebar-count.amber{background:#FFF3D6;color:#B45309}
+.sidebar-count.green{background:#E3F5E7;color:#1B7A3D}
+.sidebar-loading{font-size:11.5px;color:#8E8EA0;padding:8px 14px}
 .main-area{flex:1;min-width:0}
 @media(max-width:880px){.sidebar{display:none}}
 
@@ -421,6 +417,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Contatos')"><i class="ti ti-users"></i><span>Contatos</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Configurações')"><i class="ti ti-settings"></i><span>Configurações</span><span class="em-breve">em breve</span></button>
   </nav>
+
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section-title">Painel</div>
+  <nav class="sidebar-nav" id="sidebar-stats"><div class="sidebar-loading">Carregando...</div></nav>
+
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section-title">Por etapa</div>
+  <nav class="sidebar-nav" id="sidebar-etapas"><div class="sidebar-loading">Carregando...</div></nav>
 </aside>
 
 <div class="main-area">
@@ -436,8 +440,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="cdc-card foco-card">
     <div class="cdc-bloco" id="cdc-agenda"></div>
   </div>
-
-  <div class="stats" id="stats"><div class="loading-overlay">Carregando...</div></div>
 
   <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)" onkeydown="if(event.key==='Enter')irParaPrimeiroResultado()"></div></div>
 
@@ -667,6 +669,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="modal-title"><i class="ti ti-users" style="font-size:15px;vertical-align:-2px;color:#B45309"></i> Assinatura de segunda parte</div>
     <div class="modal-sub" id="sp-caso-info">—</div>
     <div id="sp-pergunta-area"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-etapa">
+  <div class="modal-box">
+    <button class="modal-close" onclick="fecharEtapaModal()">&times;</button>
+    <div class="modal-title" id="modal-etapa-title">—</div>
+    <div class="modal-sub" id="modal-etapa-sub">—</div>
+    <div id="modal-etapa-body"></div>
   </div>
 </div>
 
@@ -1605,17 +1616,56 @@ function renderStats(){
   const at=ativos.filter(x=>x.status==='atencao').length;
   const ok=ativos.filter(x=>x.status==='emdia').length;
   const parados=ativos.filter(x=>diasParado(x.atualizado)>=3).length;
-  document.getElementById('stats').innerHTML=`
-    <div class="stat" data-filtro="todos" onclick="setFiltro('todos',this)"><div class="stat-icon slate"><i class="ti ti-briefcase"></i></div><div><div class="stat-label">Total ativos</div><div class="stat-num">${ativos.length}</div></div></div>
-    <div class="stat" data-filtro="prioridade" onclick="setFiltro('prioridade',this)"><div class="stat-icon purple"><i class="ti ti-star"></i></div><div><div class="stat-label">Prioridade</div><div class="stat-num purple">${pr}</div></div></div>
-    <div class="stat" data-filtro="critico" onclick="setFiltro('critico',this)"><div class="stat-icon red"><i class="ti ti-alert-octagon"></i></div><div><div class="stat-label">Críticos</div><div class="stat-num red">${cr}</div></div></div>
-    <div class="stat" data-filtro="atencao" onclick="setFiltro('atencao',this)"><div class="stat-icon amber"><i class="ti ti-clock-exclamation"></i></div><div><div class="stat-label">Atenção</div><div class="stat-num amber">${at}</div></div></div>
-    <div class="stat" data-filtro="emdia" onclick="setFiltro('emdia',this)"><div class="stat-icon green"><i class="ti ti-circle-check"></i></div><div><div class="stat-label">Em dia</div><div class="stat-num green">${ok}</div></div></div>
-    <div class="stat" data-filtro="parado" onclick="setFiltro('parado',this)"><div class="stat-icon purple"><i class="ti ti-hourglass"></i></div><div><div class="stat-label">Parados +3d</div><div class="stat-num purple">${parados}</div></div></div>
+  document.getElementById('sidebar-stats').innerHTML=`
+    <button type="button" class="sidebar-item" data-filtro="todos" onclick="setFiltro('todos',this)"><i class="ti ti-briefcase"></i><span>Total ativos</span><span class="sidebar-count">${ativos.length}</span></button>
+    <button type="button" class="sidebar-item" data-filtro="prioridade" onclick="setFiltro('prioridade',this)"><i class="ti ti-star"></i><span>Prioridade</span><span class="sidebar-count purple">${pr}</span></button>
+    <button type="button" class="sidebar-item" data-filtro="critico" onclick="setFiltro('critico',this)"><i class="ti ti-alert-octagon"></i><span>Críticos</span><span class="sidebar-count red">${cr}</span></button>
+    <button type="button" class="sidebar-item" data-filtro="atencao" onclick="setFiltro('atencao',this)"><i class="ti ti-clock-exclamation"></i><span>Atenção</span><span class="sidebar-count amber">${at}</span></button>
+    <button type="button" class="sidebar-item" data-filtro="emdia" onclick="setFiltro('emdia',this)"><i class="ti ti-circle-check"></i><span>Em dia</span><span class="sidebar-count green">${ok}</span></button>
+    <button type="button" class="sidebar-item" data-filtro="parado" onclick="setFiltro('parado',this)"><i class="ti ti-hourglass"></i><span>Parados +3d</span><span class="sidebar-count purple">${parados}</span></button>
   `;
   if(window.joaninhaAtualizarHumor)window.joaninhaAtualizarHumor(ativos.length,cr,at);
   sincronizarFiltroAtivo();
+  renderEtapasSidebar();
 }
+
+// ── CONTADORES POR ETAPA (lateral) ──
+// Etapas físicas que a Shirley acompanha fora do sistema (ex: pasta de
+// traslados aguardando na mesa) e queria ver contadas aqui também — usam o
+// mesmo campo c.dep das etapas do Central de Comando (ver DEPS/DEP_CONFIG).
+const ETAPAS_SIDEBAR=[
+  {dep:'Aguardando traslado',    label:'Aguardando traslado', icon:'ti-truck-delivery'},
+  {dep:'Minutando',              label:'Minutando',           icon:'ti-file-text'},
+  {dep:'Registro de Imóveis',    label:'No registro',         icon:'ti-building-bank'},
+  {dep:'Nota de exigência',      label:'Nota de exigência',   icon:'ti-alert-triangle'},
+];
+function renderEtapasSidebar(){
+  const ativos=getCasosList().filter(x=>!x.concluido);
+  document.getElementById('sidebar-etapas').innerHTML=ETAPAS_SIDEBAR.map(e=>{
+    const n=ativos.filter(c=>c.dep===e.dep).length;
+    return`<button type="button" class="sidebar-item" onclick="abrirEtapaModal('${e.dep}')"><i class="ti ${e.icon}"></i><span>${e.label}</span><span class="sidebar-count amber">${n}</span></button>`;
+  }).join('');
+}
+window.abrirEtapaModal=function(dep){
+  const meta=ETAPAS_SIDEBAR.find(e=>e.dep===dep);
+  const lista=getCasosList().filter(x=>!x.concluido&&x.dep===dep).sort((a,b)=>diasParado(b.atualizado)-diasParado(a.atualizado));
+  document.getElementById('modal-etapa-title').innerHTML=`<i class="ti ${meta?meta.icon:'ti-folder'}" style="font-size:15px;vertical-align:-2px;color:#B45309"></i> ${esc(meta?meta.label:dep)}`;
+  document.getElementById('modal-etapa-sub').textContent=lista.length?`${lista.length} caso${lista.length>1?'s':''} nessa etapa`:'Nenhum caso nessa etapa no momento';
+  document.getElementById('modal-etapa-body').innerHTML=lista.length?lista.map(c=>{
+    const dias=diasParado(c.atualizado);
+    return`
+    <div class="cdc-linha compacta" onclick="irParaCasoPorId('${c.id}');fecharEtapaModal()" style="cursor:pointer">
+      <div class="cdc-conteudo">
+        <div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${respSelectHtml(c)}</div>
+        <span class="cdc-meta">${dias>0?dias+' dia'+(dias>1?'s':''):'Entrou hoje'}</span>
+      </div>
+    </div>`;
+  }).join(''):'<div class="foco-empty">Nenhum caso nessa etapa no momento.</div>';
+  document.getElementById('modal-etapa').classList.add('open');
+};
+window.fecharEtapaModal=function(){
+  document.getElementById('modal-etapa').classList.remove('open');
+};
 
 // ── BADGES ──
 function bStatus(s){
