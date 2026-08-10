@@ -50,8 +50,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .hero-label{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--hero-acento,#A9895A)}
 .hero-label .ponto{width:6px;height:6px;border-radius:999px;background:currentColor;flex-shrink:0}
 .hero-num{font-size:21px;font-weight:700;color:#1C1C1E;font-variant-numeric:tabular-nums}
+.hero-num-wrap{display:flex;align-items:center;gap:5px}
+.hero-chevron{font-size:13px;color:var(--hero-acento,#8E8EA0);transition:transform .15s ease;flex-shrink:0}
+.hero-card.open{box-shadow:0 0 0 2px var(--hero-acento,#DCC493),0 6px 16px rgba(0,0,0,.08)}
+.hero-card.open .hero-chevron{transform:rotate(180deg)}
 .hero-body{font-size:13px;font-weight:600;color:#1C1C1E;line-height:1.4}
 .hero-sub{font-size:11.5px;color:#8E8EA0;margin-top:2px}
+.hero-expand{background:#fff;border:0.5px solid #ECECF2;border-radius:20px;padding:14px 18px;margin-bottom:20px}
 @media(max-width:880px){.hero-row{grid-template-columns:1fr}}
 .foco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .foco-title{font-size:13px;font-weight:500;color:#16283A;display:flex;align-items:center;gap:7px}
@@ -469,6 +474,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="hero-row" id="hero-row"></div>
+  <div class="hero-expand" id="hero-expand-agenda" style="display:none"><div class="cdc-bloco" id="cdc-agenda"></div></div>
+  <div class="hero-expand" id="hero-expand-lembretes" style="display:none"></div>
+  <div class="hero-expand" id="hero-expand-critico" style="display:none"></div>
 
   <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)" onkeydown="if(event.key==='Enter')irParaPrimeiroResultado()"></div></div>
 
@@ -708,13 +716,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="modal-title" id="modal-etapa-title">—</div>
     <div class="modal-sub" id="modal-etapa-sub">—</div>
     <div id="modal-etapa-body"></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-agenda">
-  <div class="modal-box">
-    <button class="modal-close" onclick="fecharAgendaModal()">&times;</button>
-    <div class="cdc-bloco" id="cdc-agenda"></div>
   </div>
 </div>
 
@@ -1706,23 +1707,43 @@ function renderHeroResumo(){
   const lembreteBody=lembreteTxt.length>68?lembreteTxt.slice(0,68)+'…':lembreteTxt;
   const lembreteSub=topLembrete?(pendentes.length>1?`+${pendentes.length-1} outro${pendentes.length>2?'s':''} pendente${pendentes.length>2?'s':''}`:(topLembrete.casoNome||'Geral')):'';
 
+  const chevron='<i class="ti ti-chevron-down hero-chevron"></i>';
   el.innerHTML=`
-    <div class="hero-card agenda" onclick="abrirAgendaModal()">
-      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Agenda hoje</span><span class="hero-num">${hoje.length}</span></div>
+    <div class="hero-card agenda${heroAberto.agenda?' open':''}" onclick="toggleHeroExpand('agenda')">
+      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Agenda hoje</span><span class="hero-num-wrap"><span class="hero-num">${hoje.length}</span>${chevron}</span></div>
       <div class="hero-body">${agendaBody}</div>
       <div class="hero-sub">${esc(agendaSub)}</div>
     </div>
-    <div class="hero-card lembretes" onclick="scrollParaId('foco-items')">
-      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Lembretes</span><span class="hero-num">${pendentes.length}</span></div>
+    <div class="hero-card lembretes${heroAberto.lembretes?' open':''}" onclick="toggleHeroExpand('lembretes')">
+      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Lembretes</span><span class="hero-num-wrap"><span class="hero-num">${pendentes.length}</span>${chevron}</span></div>
       <div class="hero-body">${esc(lembreteBody)}</div>
       <div class="hero-sub">${esc(lembreteSub)}</div>
     </div>
-    <div class="hero-card critico" onclick="abrirStatusModal('critico')">
-      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Crítico agora</span><span class="hero-num">${criticos.length}</span></div>
+    <div class="hero-card critico${heroAberto.critico?' open':''}" onclick="toggleHeroExpand('critico')">
+      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Crítico agora</span><span class="hero-num-wrap"><span class="hero-num">${criticos.length}</span>${chevron}</span></div>
       <div class="hero-body">${criticoBody}</div>
       <div class="hero-sub">${esc(criticoSub)}</div>
     </div>
   `;
+
+  // Painéis que abrem/fecham junto com cada cartão — mesmo formato de linha
+  // usado nos outros popups (Por etapa, contadores da lateral).
+  const linhaCasoSimples=(c)=>{
+    const dias=diasParado(c.atualizado);
+    return`<div class="cdc-linha compacta" onclick="irParaCasoPorId('${c.id}')" style="cursor:pointer"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${respSelectHtml(c)}</div><span class="cdc-meta">${dias>0?dias+' dia'+(dias>1?'s':''):'Entrou hoje'}</span></div></div>`;
+  };
+  const criticoPainel=document.getElementById('hero-expand-critico');
+  if(criticoPainel)criticoPainel.innerHTML=criticos.length?criticos.map(linhaCasoSimples).join(''):'<div class="foco-empty">Nenhum caso crítico agora.</div>';
+
+  const lembretesPainel=document.getElementById('hero-expand-lembretes');
+  if(lembretesPainel)lembretesPainel.innerHTML=pendentes.length?pendentes.map(f=>{
+    const nomeCaso=f.casoNome||null;
+    const tagCaso=nomeCaso?`<span class="foco-caso-tag">${esc(nomeCaso)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
+    const clicavel=nomeCaso?` onclick="irParaCasoDoFoco('${esc(nomeCaso)}')" style="cursor:pointer"`:'';
+    return`<div class="cdc-linha compacta"${clicavel}><div class="cdc-conteudo"><div class="foco-tags">${tagCaso}${f.resp?bResp(f.resp):''}</div><span class="cdc-meta">${esc(f.text||'')}</span></div></div>`;
+  }).join(''):'<div class="foco-empty">Nenhum lembrete pendente.</div>';
+  // Agenda (hero-expand-agenda) já é populada por renderAgenda(), chamada
+  // separadamente — só o painel de fora (abrir/fechar) é controlado aqui.
 }
 window.scrollParaId=function(id){
   document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
@@ -1804,11 +1825,16 @@ function abrirListaCasosModal(titulo,icone,pred){
 window.fecharEtapaModal=function(){
   document.getElementById('modal-etapa').classList.remove('open');
 };
-window.abrirAgendaModal=function(){
-  document.getElementById('modal-agenda').classList.add('open');
-};
-window.fecharAgendaModal=function(){
-  document.getElementById('modal-agenda').classList.remove('open');
+// Sanfona única pros 3 cartões do topo — mesma mecânica do "Total ativos"
+// da lateral: clique alterna aberto/fechado, o painel some/aparece sem
+// recarregar nada, e o estado sobrevive aos re-renders (heroAberto fica de
+// fora do template, senão fecharia sozinho a cada dado novo do Firebase).
+let heroAberto={agenda:false,lembretes:false,critico:false};
+window.toggleHeroExpand=function(chave){
+  heroAberto[chave]=!heroAberto[chave];
+  const painel=document.getElementById('hero-expand-'+chave);
+  if(painel)painel.style.display=heroAberto[chave]?'block':'none';
+  document.querySelector('.hero-card.'+chave)?.classList.toggle('open',heroAberto[chave]);
 };
 
 // ── BADGES ──
