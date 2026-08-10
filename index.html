@@ -377,6 +377,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sidebar-count.amber{background:#FFF3D6;color:#B45309}
 .sidebar-count.green{background:#E3F5E7;color:#1B7A3D}
 .sidebar-loading{font-size:11.5px;color:#8E8EA0;padding:8px 14px}
+.sidebar-toggle-mais{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:11.5px;color:#8E8EA0;background:none;border:none;padding:8px 14px;cursor:pointer;font-family:inherit;transition:color .15s ease}
+.sidebar-toggle-mais:hover{color:#16283A}
+.sidebar-toggle-mais i{font-size:13px;transition:transform .15s ease}
+.sidebar-toggle-mais.open i{transform:rotate(180deg)}
+.sidebar-mais .sidebar-item{padding:7px 14px;font-size:12px}
+.sidebar-mais .sidebar-item i{font-size:14px}
 .main-area{flex:1;min-width:0}
 @media(max-width:880px){.sidebar{display:none}}
 
@@ -407,6 +413,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
   <nav class="sidebar-nav">
     <button type="button" class="sidebar-item active"><i class="ti ti-home"></i><span>Início</span></button>
+  </nav>
+
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section-title">Painel</div>
+  <nav class="sidebar-nav" id="sidebar-stats"><div class="sidebar-loading">Carregando...</div></nav>
+
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section-title">Por etapa</div>
+  <nav class="sidebar-nav" id="sidebar-etapas"><div class="sidebar-loading">Carregando...</div></nav>
+
+  <div class="sidebar-divider"></div>
+  <button type="button" class="sidebar-toggle-mais" id="sidebar-mais-toggle" onclick="toggleSidebarMais()">
+    <span id="sidebar-mais-label">Mais opções</span>
+    <i class="ti ti-chevron-down"></i>
+  </button>
+  <nav class="sidebar-nav sidebar-mais" id="sidebar-mais" style="display:none">
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Atividades')"><i class="ti ti-list-check"></i><span>Atividades</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Processos')"><i class="ti ti-briefcase"></i><span>Processos</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Minutas')"><i class="ti ti-file-text"></i><span>Minutas</span><span class="em-breve">em breve</span></button>
@@ -417,14 +439,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Contatos')"><i class="ti ti-users"></i><span>Contatos</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Configurações')"><i class="ti ti-settings"></i><span>Configurações</span><span class="em-breve">em breve</span></button>
   </nav>
-
-  <div class="sidebar-divider"></div>
-  <div class="sidebar-section-title">Painel</div>
-  <nav class="sidebar-nav" id="sidebar-stats"><div class="sidebar-loading">Carregando...</div></nav>
-
-  <div class="sidebar-divider"></div>
-  <div class="sidebar-section-title">Por etapa</div>
-  <nav class="sidebar-nav" id="sidebar-etapas"><div class="sidebar-loading">Carregando...</div></nav>
 </aside>
 
 <div class="main-area">
@@ -944,6 +958,13 @@ window.navEmBreve=function(nome){
   el.classList.add('show');
   clearTimeout(navToastTimer);
   navToastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+};
+window.toggleSidebarMais=function(){
+  const nav=document.getElementById('sidebar-mais');
+  const aberto=nav.style.display!=='none';
+  nav.style.display=aberto?'none':'';
+  document.getElementById('sidebar-mais-toggle').classList.toggle('open',!aberto);
+  document.getElementById('sidebar-mais-label').textContent=aberto?'Mais opções':'Menos opções';
 };
 
 const defaultCasos=[
