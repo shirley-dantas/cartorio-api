@@ -61,8 +61,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .foco-title{font-size:13px;font-weight:500;color:#16283A;display:flex;align-items:center;gap:7px}
 .foco-title i{font-size:15px;color:#A9895A}
-.foco-add-btn{font-size:12px;padding:4px 11px;border-radius:7px;border:0.5px solid #E6DCC3;background:transparent;color:#8A6B3D;cursor:pointer}
+.foco-add-btn{font-size:12px;padding:4px 11px;border-radius:7px;border:0.5px solid #E6DCC3;background:transparent;color:#8A6B3D;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 .foco-add-btn:hover{background:#F5EFE0}
+.foco-add-chevron{font-size:12px;transition:transform .15s ease}
+.foco-add-btn.open .foco-add-chevron{transform:rotate(180deg)}
 .foco-items{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;padding-right:4px}
 .foco-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#F5F6F8;border-radius:8px;border-left:4px solid transparent}
 .foco-item.done{opacity:.45}
@@ -484,7 +486,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="cdc-bloco cdc-lembretes">
       <div class="cdc-bloco-header">
         <span class="cdc-bloco-titulo"><i class="ti ti-note"></i> Lembretes manuais</span>
-        <button class="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar</button>
+        <button class="foco-add-btn" id="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar<i class="ti ti-chevron-down foco-add-chevron"></i></button>
       </div>
       <div class="foco-items cdc-scroll" id="foco-items"></div>
       <div class="foco-input-row" id="foco-input-row" style="display:none">
@@ -1480,6 +1482,7 @@ window.autoPreencherRespFoco=function(){
 window.toggleFocoInput=function(){
   const r=document.getElementById('foco-input-row');
   r.style.display=r.style.display==='flex'?'none':'flex';
+  document.getElementById('foco-add-btn')?.classList.toggle('open',r.style.display==='flex');
   if(r.style.display==='flex'){
     popularFocoCasoSelect();
     document.getElementById('foco-resp').value='';
@@ -1501,6 +1504,7 @@ window.addFoco=function(){
   document.getElementById('foco-urgente').checked=false;
   document.getElementById('foco-caso').value='';
   document.getElementById('foco-input-row').style.display='none';
+  document.getElementById('foco-add-btn')?.classList.remove('open');
 };
 window.toggleFoco=function(id){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
