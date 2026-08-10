@@ -1675,7 +1675,11 @@ function renderHeroResumo(){
   const criticoSub=topCritico?`${diasParado(topCritico.atualizado)} dias parado`+(criticos.length>1?` · +${criticos.length-1} outro${criticos.length>2?'s':''} crítico${criticos.length>2?'s':''}`:''):'Tudo em dia por aqui';
 
   const itens=typeof calcularCentralComando==='function'?calcularCentralComando():[];
-  const hoje=itens.filter(it=>it.ehHoje);
+  // Ordena pelo horário do compromisso de hoje (assinatura principal ou 2ª
+  // parte, o que for o motivo do ehHoje) — assim o card mostra sempre o
+  // próximo compromisso, não o primeiro caso que aparecer na lista.
+  const horaHojeDoItem=(it)=>(it.diffAgendado===0?it.caso.agendado:(it.diffSegunda===0&&it.caso.segundaParte?it.caso.segundaParte.data:''))||'';
+  const hoje=itens.filter(it=>it.ehHoje).sort((a,b)=>horaHojeDoItem(a).localeCompare(horaHojeDoItem(b)));
   const topHoje=hoje[0];
   const agendaBody=topHoje?esc(topHoje.caso.nome):'Nada agendado';
   const agendaSub=topHoje?(hoje.length>1?`+${hoje.length-1} outro${hoje.length>2?'s':''} compromisso${hoje.length>2?'s':''} hoje`:'compromisso de hoje'):'pros próximos 7 dias';
