@@ -383,6 +383,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sidebar-toggle-mais.open i{transform:rotate(180deg)}
 .sidebar-mais .sidebar-item{padding:7px 14px;font-size:12px}
 .sidebar-mais .sidebar-item i{font-size:14px}
+.sidebar-chevron{font-size:13px;color:#8E8EA0;transition:transform .15s ease;flex-shrink:0}
+.sidebar-toggle-total.open .sidebar-chevron{transform:rotate(180deg)}
+.sidebar-total-sub .sidebar-item{padding-left:30px;font-size:12.5px}
 .main-area{flex:1;min-width:0}
 @media(max-width:880px){.sidebar{display:none}}
 
@@ -1630,25 +1633,42 @@ window.addEventListener('resize',()=>{
 });
 
 // ── STATS ──
+// "Total ativos" funciona como sanfona: recolhido por padrão, abre pra
+// revelar os 5 contadores por status. sidebarTotalAberto guarda esse estado
+// à parte porque renderStats() reconstrói o HTML inteiro a cada mudança nos
+// dados (Firebase) — sem isso a sanfona fecharia sozinha toda vez que
+// alguém do WhatsApp criasse ou atualizasse um caso.
+let sidebarTotalAberto=false;
+const STATUS_SIDEBAR=[
+  {key:'prioridade', label:'Prioridade',   icon:'ti-star',              cor:'purple', pred:c=>c.status==='prioridade'},
+  {key:'critico',     label:'Críticos',     icon:'ti-alert-octagon',     cor:'red',    pred:c=>c.status==='critico'},
+  {key:'atencao',     label:'Atenção',      icon:'ti-clock-exclamation', cor:'amber',  pred:c=>c.status==='atencao'},
+  {key:'emdia',       label:'Em dia',       icon:'ti-circle-check',      cor:'green',  pred:c=>c.status==='emdia'},
+  {key:'parado',      label:'Parados +3d',  icon:'ti-hourglass',         cor:'purple', pred:c=>diasParado(c.atualizado)>=3},
+];
 function renderStats(){
   const ativos=getCasosList().filter(x=>!x.concluido);
-  const pr=ativos.filter(x=>x.status==='prioridade').length;
   const cr=ativos.filter(x=>x.status==='critico').length;
   const at=ativos.filter(x=>x.status==='atencao').length;
-  const ok=ativos.filter(x=>x.status==='emdia').length;
-  const parados=ativos.filter(x=>diasParado(x.atualizado)>=3).length;
   document.getElementById('sidebar-stats').innerHTML=`
-    <button type="button" class="sidebar-item" data-filtro="todos" onclick="setFiltro('todos',this)"><i class="ti ti-briefcase"></i><span>Total ativos</span><span class="sidebar-count">${ativos.length}</span></button>
-    <button type="button" class="sidebar-item" data-filtro="prioridade" onclick="setFiltro('prioridade',this)"><i class="ti ti-star"></i><span>Prioridade</span><span class="sidebar-count purple">${pr}</span></button>
-    <button type="button" class="sidebar-item" data-filtro="critico" onclick="setFiltro('critico',this)"><i class="ti ti-alert-octagon"></i><span>Críticos</span><span class="sidebar-count red">${cr}</span></button>
-    <button type="button" class="sidebar-item" data-filtro="atencao" onclick="setFiltro('atencao',this)"><i class="ti ti-clock-exclamation"></i><span>Atenção</span><span class="sidebar-count amber">${at}</span></button>
-    <button type="button" class="sidebar-item" data-filtro="emdia" onclick="setFiltro('emdia',this)"><i class="ti ti-circle-check"></i><span>Em dia</span><span class="sidebar-count green">${ok}</span></button>
-    <button type="button" class="sidebar-item" data-filtro="parado" onclick="setFiltro('parado',this)"><i class="ti ti-hourglass"></i><span>Parados +3d</span><span class="sidebar-count purple">${parados}</span></button>
+    <button type="button" class="sidebar-item sidebar-toggle-total${sidebarTotalAberto?' open':''}" id="sidebar-total-toggle" onclick="toggleSidebarTotal()"><i class="ti ti-briefcase"></i><span>Total ativos</span><span class="sidebar-count">${ativos.length}</span><i class="ti ti-chevron-down sidebar-chevron"></i></button>
+    <nav class="sidebar-nav sidebar-total-sub" id="sidebar-total-sub" style="display:${sidebarTotalAberto?'flex':'none'}">
+      ${STATUS_SIDEBAR.map(s=>`<button type="button" class="sidebar-item" onclick="abrirStatusModal('${s.key}')"><i class="ti ${s.icon}"></i><span>${s.label}</span><span class="sidebar-count ${s.cor}">${ativos.filter(s.pred).length}</span></button>`).join('')}
+    </nav>
   `;
   if(window.joaninhaAtualizarHumor)window.joaninhaAtualizarHumor(ativos.length,cr,at);
-  sincronizarFiltroAtivo();
   renderEtapasSidebar();
 }
+window.toggleSidebarTotal=function(){
+  sidebarTotalAberto=!sidebarTotalAberto;
+  document.getElementById('sidebar-total-sub').style.display=sidebarTotalAberto?'flex':'none';
+  document.getElementById('sidebar-total-toggle').classList.toggle('open',sidebarTotalAberto);
+};
+window.abrirStatusModal=function(key){
+  const meta=STATUS_SIDEBAR.find(s=>s.key===key);
+  if(!meta)return;
+  abrirListaCasosModal(meta.label,meta.icon,meta.pred);
+};
 
 // ── CONTADORES POR ETAPA (lateral) ──
 // Etapas físicas que a Shirley acompanha fora do sistema (ex: pasta de
@@ -1669,9 +1689,14 @@ function renderEtapasSidebar(){
 }
 window.abrirEtapaModal=function(dep){
   const meta=ETAPAS_SIDEBAR.find(e=>e.dep===dep);
-  const lista=getCasosList().filter(x=>!x.concluido&&x.dep===dep).sort((a,b)=>diasParado(b.atualizado)-diasParado(a.atualizado));
-  document.getElementById('modal-etapa-title').innerHTML=`<i class="ti ${meta?meta.icon:'ti-folder'}" style="font-size:15px;vertical-align:-2px;color:#B45309"></i> ${esc(meta?meta.label:dep)}`;
-  document.getElementById('modal-etapa-sub').textContent=lista.length?`${lista.length} caso${lista.length>1?'s':''} nessa etapa`:'Nenhum caso nessa etapa no momento';
+  abrirListaCasosModal(meta?meta.label:dep,meta?meta.icon:'ti-folder',c=>c.dep===dep);
+};
+// Popup compartilhado pelos contadores de status e de etapa: lista os casos
+// que batem no critério (pred), e clicar no nome já leva direto pro card.
+function abrirListaCasosModal(titulo,icone,pred){
+  const lista=getCasosList().filter(x=>!x.concluido&&pred(x)).sort((a,b)=>diasParado(b.atualizado)-diasParado(a.atualizado));
+  document.getElementById('modal-etapa-title').innerHTML=`<i class="ti ${icone}" style="font-size:15px;vertical-align:-2px;color:#B45309"></i> ${esc(titulo)}`;
+  document.getElementById('modal-etapa-sub').textContent=lista.length?`${lista.length} caso${lista.length>1?'s':''}`:'Nenhum caso no momento';
   document.getElementById('modal-etapa-body').innerHTML=lista.length?lista.map(c=>{
     const dias=diasParado(c.atualizado);
     return`
@@ -1683,7 +1708,7 @@ window.abrirEtapaModal=function(dep){
     </div>`;
   }).join(''):'<div class="foco-empty">Nenhum caso nessa etapa no momento.</div>';
   document.getElementById('modal-etapa').classList.add('open');
-};
+}
 window.fecharEtapaModal=function(){
   document.getElementById('modal-etapa').classList.remove('open');
 };
