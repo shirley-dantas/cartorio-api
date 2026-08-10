@@ -1499,6 +1499,8 @@ window.addFoco=function(){
   document.getElementById('foco-input').value='';
   document.getElementById('foco-resp').value='';
   document.getElementById('foco-urgente').checked=false;
+  document.getElementById('foco-caso').value='';
+  document.getElementById('foco-input-row').style.display='none';
 };
 window.toggleFoco=function(id){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
