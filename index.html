@@ -40,6 +40,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .saudacao-clima-icone{display:inline-flex;align-items:center}
 .saudacao-clima-icone svg{display:block}
 .foco-card{background:#fff;border:0.5px solid #ECECF2;border-radius:24px;padding:18px 22px;margin-bottom:20px;box-shadow:0 1px 3px rgba(22,40,58,.04)}
+.hero-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.hero-card{background:#fff;border:0.5px solid #ECECF2;border-radius:20px;padding:15px 18px;border-left:4px solid var(--hero-acento,#DCC493);box-shadow:0 1px 3px rgba(22,40,58,.04);cursor:pointer;transition:box-shadow .2s ease,transform .15s ease}
+.hero-card:hover{box-shadow:0 6px 16px rgba(0,0,0,.07);transform:translateY(-2px)}
+.hero-card.critico{--hero-acento:#C62828}
+.hero-card.agenda{--hero-acento:#2f6fb0}
+.hero-card.lembretes{--hero-acento:#A9895A}
+.hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hero-label{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--hero-acento,#A9895A)}
+.hero-label .ponto{width:6px;height:6px;border-radius:999px;background:currentColor;flex-shrink:0}
+.hero-num{font-size:21px;font-weight:700;color:#1C1C1E;font-variant-numeric:tabular-nums}
+.hero-body{font-size:13px;font-weight:600;color:#1C1C1E;line-height:1.4}
+.hero-sub{font-size:11.5px;color:#8E8EA0;margin-top:2px}
+@media(max-width:880px){.hero-row{grid-template-columns:1fr}}
 .foco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .foco-title{font-size:13px;font-weight:500;color:#16283A;display:flex;align-items:center;gap:7px}
 .foco-title i{font-size:15px;color:#A9895A}
@@ -136,7 +149,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card{background:#fff;border:0.5px solid #ECECF2;border-radius:20px;padding:16px 18px;border-left:7px solid transparent;box-shadow:0 1px 3px rgba(0,0,0,.03);transition:box-shadow .2s ease,transform .15s ease}
 .card:hover{box-shadow:0 6px 20px rgba(0,0,0,.08);transform:translateY(-2px)}
 .card.prioridade{border-color:rgba(124,58,237,.35);border-left-color:#7C3AED;box-shadow:0 0 0 2px rgba(124,58,237,.4),0 6px 22px rgba(124,58,237,.3)}
-.card.critico{border-color:rgba(198,40,40,.35);border-left-color:#C62828;box-shadow:0 0 0 2px rgba(198,40,40,.42),0 6px 22px rgba(198,40,40,.32)}
+.card.critico{background:#FDF4F3;border-color:rgba(198,40,40,.35);border-left-color:#C62828;box-shadow:0 0 0 2px rgba(198,40,40,.42),0 6px 22px rgba(198,40,40,.32)}
 .card.atencao{border-color:rgba(180,83,9,.35);border-left-color:#B45309;box-shadow:0 0 0 2px rgba(180,83,9,.42),0 6px 22px rgba(180,83,9,.3)}
 .card.emdia{border-color:rgba(46,125,50,.35);border-left-color:#2E7D32;box-shadow:0 0 0 2px rgba(46,125,50,.4),0 6px 22px rgba(46,125,50,.26)}
 .card.prioridade:hover{box-shadow:0 0 0 2px rgba(124,58,237,.55),0 10px 28px rgba(124,58,237,.4)}
@@ -149,7 +162,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card-aguardando .reg-label{font-size:11px;color:#7A4F00}
 .reg-date{font-size:12px;padding:3px 7px;border-radius:5px;border:0.5px solid #FFD180;background:#FFF8E1;color:#1C1C1E;font-family:inherit;outline:none}
 .reg-date:focus{border-color:#B45309}
-.card-name{font-size:15px;font-weight:700;color:#1C1C1E;margin-bottom:1px;letter-spacing:-.01em}
+.card-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1px}
+.card-name{font-size:15px;font-weight:700;color:#1C1C1E;letter-spacing:-.01em}
 .card-tipo{font-size:11px;color:#AEAEB2;text-transform:uppercase;letter-spacing:.3px;border:none;border-bottom:1px dashed transparent;background:transparent;font-family:inherit;padding:0;outline:none;cursor:text;width:100%}
 .card-tipo:hover,.card-tipo:focus{color:#1C1C1E;border-bottom-color:#D1D1D6}
 .card-registro{display:flex;flex-wrap:wrap;gap:10px 16px;background:#F8F9FC;border:0.5px solid #ECECF2;border-radius:12px;padding:9px 12px;margin-bottom:10px}
@@ -453,6 +467,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="saudacao-texto"></div>
     </div>
   </div>
+
+  <div class="hero-row" id="hero-row"></div>
 
   <div class="cdc-card foco-card">
     <div class="cdc-bloco" id="cdc-agenda"></div>
@@ -1030,6 +1046,7 @@ onValue(casosRef,(snap)=>{
     renderStats();
     renderCasos();
     renderCentralComando();
+    renderHeroResumo();
     montarSaudacao();
   }
   setSyncStatus(true);
@@ -1047,12 +1064,14 @@ onValue(focosRef,(snap)=>{
   }
   focos=arr;
   renderFoco();
+  renderHeroResumo();
 });
 
 let resolucoesCentral={};
 onValue(resolucoesCentralRef,(snap)=>{
   resolucoesCentral=snap.val()||{};
   renderCentralComando();
+  renderHeroResumo();
 });
 
 function setSyncStatus(ok){
@@ -1640,6 +1659,56 @@ window.addEventListener('resize',()=>{
 // à parte porque renderStats() reconstrói o HTML inteiro a cada mudança nos
 // dados (Firebase) — sem isso a sanfona fecharia sozinha toda vez que
 // alguém do WhatsApp criasse ou atualizasse um caso.
+// ── RESUMO DO DIA (3 cartões no topo) ──
+// Cada cartão é um "espia" pra uma seção que já existe embaixo — reaproveita
+// os mesmos dados/critérios (não inventa uma 4ª definição de "crítico"):
+// contagem igual à da lateral, "hoje" igual ao de Incêndios/Agenda, e os
+// mesmos lembretes manuais pendentes.
+function renderHeroResumo(){
+  const el=document.getElementById('hero-row');
+  if(!el)return;
+  const ativos=getCasosList().filter(x=>!x.concluido);
+
+  const criticos=ativos.filter(c=>c.status==='critico').sort((a,b)=>diasParado(b.atualizado)-diasParado(a.atualizado));
+  const topCritico=criticos[0];
+  const criticoBody=topCritico?`${esc(topCritico.nome)} — ${esc(topCritico.tipo)||'sem tipo definido'}`:'Nenhum caso crítico agora';
+  const criticoSub=topCritico?`${diasParado(topCritico.atualizado)} dias parado`+(criticos.length>1?` · +${criticos.length-1} outro${criticos.length>2?'s':''} crítico${criticos.length>2?'s':''}`:''):'Tudo em dia por aqui';
+
+  const itens=typeof calcularCentralComando==='function'?calcularCentralComando():[];
+  const hoje=itens.filter(it=>it.ehHoje);
+  const topHoje=hoje[0];
+  const agendaBody=topHoje?esc(topHoje.caso.nome):'Nada agendado';
+  const agendaSub=topHoje?(hoje.length>1?`+${hoje.length-1} outro${hoje.length>2?'s':''} compromisso${hoje.length>2?'s':''} hoje`:'compromisso de hoje'):'pros próximos 7 dias';
+
+  const full=Array.isArray(focos)?focos:Object.values(focos||{});
+  const pendentes=full.filter(f=>f&&!f.done);
+  const topLembrete=pendentes[0];
+  const lembreteTxt=topLembrete?(topLembrete.text||''):'Nenhum lembrete pendente';
+  const lembreteBody=lembreteTxt.length>68?lembreteTxt.slice(0,68)+'…':lembreteTxt;
+  const lembreteSub=topLembrete?(pendentes.length>1?`+${pendentes.length-1} outro${pendentes.length>2?'s':''} pendente${pendentes.length>2?'s':''}`:(topLembrete.casoNome||'Geral')):'';
+
+  el.innerHTML=`
+    <div class="hero-card critico" onclick="abrirStatusModal('critico')">
+      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Crítico agora</span><span class="hero-num">${criticos.length}</span></div>
+      <div class="hero-body">${criticoBody}</div>
+      <div class="hero-sub">${esc(criticoSub)}</div>
+    </div>
+    <div class="hero-card agenda" onclick="scrollParaId('cdc-agenda')">
+      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Agenda hoje</span><span class="hero-num">${hoje.length}</span></div>
+      <div class="hero-body">${agendaBody}</div>
+      <div class="hero-sub">${esc(agendaSub)}</div>
+    </div>
+    <div class="hero-card lembretes" onclick="scrollParaId('foco-items')">
+      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Lembretes</span><span class="hero-num">${pendentes.length}</span></div>
+      <div class="hero-body">${esc(lembreteBody)}</div>
+      <div class="hero-sub">${esc(lembreteSub)}</div>
+    </div>
+  `;
+}
+window.scrollParaId=function(id){
+  document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+};
+
 let sidebarTotalAberto=false;
 const STATUS_SIDEBAR=[
   {key:'prioridade', label:'Prioridade',   icon:'ti-star',              cor:'purple', pred:c=>c.status==='prioridade'},
@@ -1822,7 +1891,7 @@ function renderCasos(){
     <div class="card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
       <div class="card-header">
         <div>
-          <div class="card-name">${c.nome}</div>
+          <div class="card-name-row"><span class="card-name">${c.nome}</span>${c.concluido?'':bStatus(c.status)}</div>
           <input type="text" class="card-tipo" value="${esc(c.tipo)}" placeholder="Tipo de ato (clique para classificar)" onchange="mudarCampo('${c.id}','tipo',this.value)">
         </div>
         <div class="card-aguardando">
