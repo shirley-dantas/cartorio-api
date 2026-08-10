@@ -1358,7 +1358,7 @@ function renderAgenda(itens){
   const eventosVisiveis=eventos.filter(ev=>!resolucoesCentral[chaveAgendaEvento(ev.c.id,ev.segunda?'segunda':'principal',ev.dt)]);
   const grupo=(min,max)=>eventosVisiveis.filter(ev=>ev.diff>=min&&ev.diff<=max);
   const hoje=grupo(0,0),amanha=grupo(1,1),semana=grupo(2,7);
-  let html='<div class="cdc-bloco-titulo"><i class="ti ti-calendar"></i> Agenda dos próximos dias</div>';
+  let html='';
   if(!hoje.length&&!amanha.length&&!semana.length){html+='<div class="cdc-vazio">Nada agendado pros próximos 7 dias.</div>';el.innerHTML=html;return;}
   const linhaAgenda=(ev)=>{
     const c=ev.c;
