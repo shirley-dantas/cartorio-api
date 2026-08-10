@@ -1149,7 +1149,12 @@ function calcularCentralComando(){
       ehHoje:diffAgendado===0||diffSegunda===0,
       ehAmanha:diffAgendado===1||diffSegunda===1,
       diffAgendado, diffSegunda, chaveDep, chaveAgenda,
-      parado:!!(resDep&&resDep.estado==='parado'),
+      // "Aguardando" fica escondido só por 3 dias — depois disso volta
+      // sozinho pro Incêndios/Próximas ações (sem precisar de "Retomar" manual),
+      // pra Joaninha cobrar a equipe de novo em vez de ficar esquecido pra sempre.
+      // Fallback pro criadoEm (data+hora) nos "Aguardando" marcados antes dessa
+      // mudança, que não tinham o campo "desde" — sem isso ficariam parados pra sempre.
+      parado:!!(resDep&&resDep.estado==='parado'&&diasParado(resDep.desde||(resDep.criadoEm&&resDep.criadoEm.slice(0,10)))<3),
       suprimidoDep:estaSuprimido(chaveDep),
       suprimidoAgenda:estaSuprimido(chaveAgenda)
     };
@@ -1179,7 +1184,7 @@ function acoesBotoesHtml(chave){
   return`<div class="cdc-acoes">
       <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','ja_fiz')">✓ Já fiz</button>
       <button class="cdc-acao-btn" onclick="event.stopPropagation();abrirSnoozeCentral('${chave}')">⏰ Depois</button>
-      <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','parado')">⏸ Aguardando</button>
+      <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','parado',{desde:isoHoje()})">⏸ Aguardando</button>
       <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','ignorado')">✕ Ignorar</button>
     </div>`;
 }
