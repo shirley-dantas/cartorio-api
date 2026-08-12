@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "anthropic.claude-code",
+    "ritwickdey.liveserver",
+    "ms-ceintl.vscode-language-pack-pt-br",
+    "esbenp.prettier-vscode"
+  ]
+}

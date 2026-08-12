@@ -1,0 +1,17 @@
+{
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "editor.formatOnSave": false,
+  "editor.wordWrap": "on",
+  "editor.minimap.enabled": false,
+  "explorer.confirmDelete": true,
+  "git.confirmSync": false,
+  "git.autofetch": true,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/package-lock.json": true
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on"
+  }
+}
