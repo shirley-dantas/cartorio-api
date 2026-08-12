@@ -189,21 +189,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card.atencao:hover{box-shadow:0 0 0 2px rgba(180,83,9,.58),0 10px 28px rgba(180,83,9,.4)}
 .card.emdia:hover{box-shadow:0 0 0 2px rgba(46,125,50,.55),0 10px 28px rgba(46,125,50,.36)}
 .card.concluido{opacity:.45;border-left-color:#D1D1D6}
-/* Card fechado por padrão: nome + etapa + última nota. Toda a ficha continua
-   ali, a um toque. Antes, cada card ocupava ~470px com os 5 campos de registro
-   e os 6 botões abertos o tempo todo — no iPhone a lista virava 6 telas de
-   rolagem com 8 casos, e não dava pra ver a operação inteira de uma vez. */
-.card-topo{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
-.card-topo-info{flex:1;min-width:0}
-.card-chevron{font-size:16px;color:#8E8EA0;flex-shrink:0;padding:2px 0;transition:transform .15s ease}
-.card.aberto .card-chevron{transform:rotate(180deg)}
-.card-resumo{display:flex;flex-direction:column;gap:2px;margin-top:5px}
-.card.aberto .card-resumo{display:none}
-.card-resumo-etapa{font-size:12px;color:#4A5C68}
-.card-resumo-etapa b{font-weight:600;color:#16283A}
-.card-resumo-obs{font-size:12px;color:#7C8A94;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-detalhe{display:none;margin-top:12px}
-.card.aberto .card-detalhe{display:block}
 .card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .card-aguardando{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .card-aguardando .reg-label{font-size:11px;color:#7A4F00}
@@ -1519,9 +1504,6 @@ window.irParaCasoPorId=function(id){
   setTimeout(()=>{
     const el=document.getElementById('card-'+c.id);
     if(!el)return;
-    // Chegar num caso vindo da Central/busca abre a ficha — quem clicou quer
-    // ver o caso, não só saber onde ele está na lista.
-    abrirCard(c.id);
     el.scrollIntoView({behavior:'smooth',block:'center'});
     el.classList.add('jn-destaque');
     setTimeout(()=>el.classList.remove('jn-destaque'),1800);
@@ -2022,9 +2004,6 @@ window.irParaCasoDoFoco=function(nomeCaso){
   setTimeout(()=>{
     const el=document.getElementById('card-'+c.id);
     if(!el)return;
-    // Chegar num caso vindo da Central/busca abre a ficha — quem clicou quer
-    // ver o caso, não só saber onde ele está na lista.
-    abrirCard(c.id);
     el.scrollIntoView({behavior:'smooth',block:'center'});
     el.classList.add('jn-destaque');
     setTimeout(()=>el.classList.remove('jn-destaque'),1800);
@@ -2059,28 +2038,11 @@ function renderCasos(){
     lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
   }
   el.innerHTML=lista.map(c=>{
-    const aberto=cardsAbertos.has(c.id);
-    // Resumo do card fechado: onde o caso está e a última coisa anotada — é o
-    // que evita ter que abrir pra lembrar do contexto.
-    const dias=diasParado(c.depDesde||c.atualizado);
-    const etapaTxt=c.dep?`<b>${esc(c.dep)}</b> · ${dias>0?dias+' dia'+(dias>1?'s':''):'entrou hoje'}`:'<b>Sem etapa definida</b>';
-    const obsResumo=(c.obs||'').split('\n')[0].replace(/^(?:\d+\s*-\s*)?\[[^\]]*\]\s*/,'').trim();
     return`
-    <div class="card ${c.concluido?'concluido':c.status}${aberto?' aberto':''}" id="card-${c.id}">
-      <div class="card-topo" onclick="toggleCard('${c.id}')">
-        <div class="card-topo-info">
-          <div class="card-name-row"><span class="card-name">${c.nome}</span>${c.concluido?'':bStatus(c.status)}</div>
-          <div class="card-resumo">
-            <span class="card-resumo-etapa">${etapaTxt}</span>
-            ${obsResumo?`<span class="card-resumo-obs">${esc(obsResumo)}</span>`:''}
-          </div>
-        </div>
-        <i class="ti ti-chevron-down card-chevron"></i>
-      </div>
-
-      <div class="card-detalhe">
+    <div class="card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
       <div class="card-header">
         <div>
+          <div class="card-name-row"><span class="card-name">${c.nome}</span>${c.concluido?'':bStatus(c.status)}</div>
           <input type="text" class="card-tipo" value="${esc(c.tipo)}" placeholder="Tipo de ato (clique para classificar)" onchange="mudarCampo('${c.id}','tipo',this.value)">
         </div>
         <div class="card-aguardando">
@@ -2140,22 +2102,9 @@ function renderCasos(){
         <button class="btn-sm ${c.concluido?'':'btn-concluir'}" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
         <button class="btn-sm btn-excluir" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash" style="font-size:12px;vertical-align:-1px"></i> Excluir</button>
       </div>
-      </div>
     </div>`;
   }).join('');
 }
-// Quais cards estão abertos vive fora do render: a lista inteira é redesenhada
-// a cada evento do Firebase (edição de qualquer pessoa, em qualquer card), e
-// sem isso o card que você acabou de abrir fecharia sozinho no meio do uso.
-const cardsAbertos=new Set();
-window.toggleCard=function(id){
-  if(cardsAbertos.has(id))cardsAbertos.delete(id);else cardsAbertos.add(id);
-  document.getElementById('card-'+id)?.classList.toggle('aberto',cardsAbertos.has(id));
-};
-window.abrirCard=function(id){
-  cardsAbertos.add(id);
-  document.getElementById('card-'+id)?.classList.add('aberto');
-};
 
 // ── AÇÕES ──
 window.mudarCampo=function(id,campo,valor){
@@ -2839,7 +2788,6 @@ window.buscar=function(v){busca=v;renderCasos();};
 window.irParaPrimeiroResultado=function(){
   const el=document.querySelector('#casos-list .card');
   if(!el)return;
-  abrirCard(el.id.replace('card-',''));
   el.scrollIntoView({behavior:'smooth',block:'center'});
   el.classList.add('jn-destaque');
   setTimeout(()=>el.classList.remove('jn-destaque'),1800);
