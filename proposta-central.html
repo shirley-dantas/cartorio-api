@@ -1,0 +1,359 @@
+<title>Central de Comando Prime</title>
+<style>
+  :root{
+    --ground:#F7F5F0;
+    --surface:#FFFFFF;
+    --surface-2:#F1EDE4;
+    --ink:#16283A;
+    --ink-2:#4A5C68;
+    --ink-3:#8494A0;
+    --rule:#E4DED1;
+    --rule-2:#EFEAE0;
+    --champagne:#A9895A;
+    --champagne-2:#DCC493;
+    --champagne-bg:#F6EFE0;
+    --fogo:#A32E2E;
+    --fogo-bg:#FAEDEA;
+    --espera:#6B6357;
+    --espera-bg:#F0EDE7;
+    --feito:#2C6049;
+    --feito-bg:#E6EFE9;
+    --sombra:0 1px 2px rgba(22,40,58,.05);
+    --sombra-alta:0 8px 30px rgba(22,40,58,.10);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#121C25;
+      --surface:#1A2530;
+      --surface-2:#22303B;
+      --ink:#EDE7DB;
+      --ink-2:#B2BFC7;
+      --ink-3:#7E8D97;
+      --rule:#2F3E4A;
+      --rule-2:#28353F;
+      --champagne:#D6B884;
+      --champagne-2:#B49A6B;
+      --champagne-bg:#2E2718;
+      --fogo:#E9A196;
+      --fogo-bg:#37221F;
+      --espera:#A99F8E;
+      --espera-bg:#262218;
+      --feito:#8FC3A8;
+      --feito-bg:#1B2C24;
+      --sombra:0 1px 2px rgba(0,0,0,.3);
+      --sombra-alta:0 8px 30px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#121C25;--surface:#1A2530;--surface-2:#22303B;
+    --ink:#EDE7DB;--ink-2:#B2BFC7;--ink-3:#7E8D97;
+    --rule:#2F3E4A;--rule-2:#28353F;
+    --champagne:#D6B884;--champagne-2:#B49A6B;--champagne-bg:#2E2718;
+    --fogo:#E9A196;--fogo-bg:#37221F;
+    --espera:#A99F8E;--espera-bg:#262218;
+    --feito:#8FC3A8;--feito-bg:#1B2C24;
+    --sombra:0 1px 2px rgba(0,0,0,.3);--sombra-alta:0 8px 30px rgba(0,0,0,.45);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:0 0 60px;background:var(--ground);color:var(--ink);
+    font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%;
+  }
+  .tela{max-width:30rem;margin:0 auto;padding:0 16px}
+
+  /* ── Cabeçalho: a forma do dia, antes de qualquer item ── */
+  .dia{padding:26px 0 18px}
+  .dia-topo{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:14px}
+  .dia-saud{font-size:20px;font-weight:640;letter-spacing:-.015em}
+  .dia-data{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
+  .barra{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-bottom:9px}
+  .barra i{display:block;height:100%;background:linear-gradient(90deg,var(--champagne),var(--champagne-2));border-radius:99px;transition:width .45s cubic-bezier(.4,0,.2,1)}
+  .dia-conta{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--ink-2)}
+  .dia-conta b{font-weight:650;color:var(--ink)}
+
+  /* ── AGORA: um item por vez, grande ── */
+  .rotulo{
+    font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--champagne);margin:26px 0 9px;display:flex;align-items:center;gap:9px;
+  }
+  .rotulo::after{content:'';flex:1;height:1px;background:var(--rule)}
+  .rotulo.sub{color:var(--ink-3)}
+
+  .agora{
+    background:var(--surface);border:1px solid var(--rule);border-radius:16px;
+    padding:20px;box-shadow:var(--sombra-alta);position:relative;overflow:hidden;
+  }
+  .agora::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--champagne)}
+  .agora.fogo::before{background:var(--fogo)}
+  .agora-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .selo{
+    font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+    padding:4px 9px;border-radius:5px;background:var(--surface-2);color:var(--ink-2);
+  }
+  .selo.fogo{background:var(--fogo-bg);color:var(--fogo)}
+  .selo.pessoa{background:var(--champagne-bg);color:var(--champagne)}
+  .agora-cliente{font-size:13px;font-weight:650;color:var(--ink-2);margin-bottom:5px}
+  .agora-acao{font-size:23px;line-height:1.25;font-weight:640;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+  .agora-meta{font-size:13px;color:var(--ink-3);margin-bottom:14px}
+  .agora-meta b{color:var(--ink-2);font-weight:600}
+  .nota{
+    font-size:14px;line-height:1.5;color:var(--ink-2);background:var(--surface-2);
+    border-radius:10px;padding:11px 13px;margin-bottom:18px;
+  }
+  .nota span{display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+
+  .acoes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .btn{
+    appearance:none;font:inherit;font-size:14px;font-weight:620;cursor:pointer;
+    min-height:48px;border-radius:11px;border:1px solid var(--rule);
+    background:var(--surface);color:var(--ink);display:flex;align-items:center;
+    justify-content:center;gap:6px;padding:0 6px;transition:transform .1s ease,background .15s ease;
+  }
+  .btn:hover{background:var(--surface-2)}
+  .btn:active{transform:scale(.97)}
+  .btn:focus-visible{outline:2px solid var(--champagne);outline-offset:2px}
+  .btn.feito{background:var(--feito-bg);border-color:transparent;color:var(--feito)}
+  .btn.espera{background:var(--espera-bg);border-color:transparent;color:var(--espera)}
+  .btn.depois{background:var(--champagne-bg);border-color:transparent;color:var(--champagne)}
+
+  /* Adiar: 3 opções em vez de digitar data */
+  .adiar{display:none;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+  .adiar.on{display:grid}
+  .adiar .btn{font-size:13px;min-height:44px}
+
+  .anota{display:flex;gap:8px;margin-top:10px}
+  .anota input{
+    flex:1;min-width:0;font:inherit;font-size:14px;padding:0 13px;min-height:44px;
+    border-radius:11px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);
+  }
+  .anota input:focus{outline:2px solid var(--champagne);outline-offset:-1px;border-color:transparent}
+  .anota button{
+    font:inherit;font-size:13.5px;font-weight:620;min-height:44px;padding:0 16px;
+    border-radius:11px;border:none;background:var(--ink);color:var(--ground);cursor:pointer;
+  }
+
+  /* ── Fila: o resto, quieto ── */
+  .fila{display:flex;flex-direction:column;gap:7px}
+  .item{
+    display:flex;align-items:center;gap:11px;background:var(--surface);
+    border:1px solid var(--rule-2);border-radius:11px;padding:12px 14px;
+    cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%;
+    min-height:48px;transition:border-color .15s ease,transform .1s ease;
+  }
+  .item:hover{border-color:var(--champagne-2)}
+  .item:active{transform:scale(.995)}
+  .item:focus-visible{outline:2px solid var(--champagne);outline-offset:2px}
+  .item-marca{width:7px;height:7px;border-radius:99px;background:var(--ink-3);flex-shrink:0}
+  .item-marca.fogo{background:var(--fogo)}
+  .item-txt{flex:1;min-width:0}
+  /* display:block é o que faz o corte com reticências funcionar — em span
+     inline o overflow não constrange nada e a linha estoura a tela. */
+  .item-cli{display:block;font-size:12px;color:var(--ink-3);margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item-aco{display:block;font-size:14.5px;font-weight:560;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item-dias{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0}
+
+  .mais{
+    width:100%;font:inherit;font-size:13.5px;font-weight:600;color:var(--ink-2);
+    background:none;border:1px dashed var(--rule);border-radius:11px;min-height:44px;
+    cursor:pointer;margin-top:2px;
+  }
+  .mais:hover{background:var(--surface)}
+
+  /* ── Blocos de apoio ── */
+  .bloco{background:var(--surface);border:1px solid var(--rule-2);border-radius:14px;padding:15px 16px;margin-top:9px}
+  .bloco-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:11px}
+  .bloco-tit{font-size:13.5px;font-weight:650}
+  .bloco-num{font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .linha{display:flex;gap:11px;align-items:baseline;padding:8px 0;border-top:1px solid var(--rule-2);font-size:14px}
+  .linha:first-of-type{border-top:0;padding-top:0}
+  .linha-h{font-variant-numeric:tabular-nums;color:var(--champagne);font-weight:650;font-size:13px;flex-shrink:0;min-width:3.1rem}
+  .linha-t{flex:1;min-width:0}
+  .linha-t b{font-weight:600;display:block}
+  .linha-t span{font-size:12.5px;color:var(--ink-3)}
+  .atrasado .linha-h{color:var(--fogo)}
+
+  /* ── Fim do dia ── */
+  .fim{
+    display:none;background:var(--surface);border:1px solid var(--rule);border-radius:16px;
+    padding:34px 24px;text-align:center;box-shadow:var(--sombra-alta);
+  }
+  .fim.on{display:block}
+  .fim-num{
+    font-family:'Iowan Old Style',Palatino,Georgia,serif;font-size:52px;line-height:1;
+    color:var(--champagne);margin-bottom:10px;font-variant-numeric:tabular-nums;
+  }
+  .fim-t{font-size:19px;font-weight:640;margin-bottom:7px;letter-spacing:-.015em}
+  .fim-s{font-size:14.5px;color:var(--ink-2);margin-bottom:20px}
+  .fim button{
+    font:inherit;font-size:14px;font-weight:620;min-height:46px;padding:0 22px;
+    border-radius:11px;border:1px solid var(--rule);background:var(--surface);
+    color:var(--ink-2);cursor:pointer;
+  }
+
+  .oculto{display:none!important}
+  .saiu{opacity:0;transform:translateX(-14px);transition:opacity .22s ease,transform .22s ease}
+
+  .rodape{margin-top:34px;padding-top:18px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--ink-3);line-height:1.55}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="tela">
+
+  <div class="dia">
+    <div class="dia-topo">
+      <span class="dia-saud">Boa tarde, Shirley</span>
+      <span class="dia-data">quarta, 12 de agosto</span>
+    </div>
+    <div class="barra"><i id="barra" style="width:0%"></i></div>
+    <div class="dia-conta">
+      <span><b id="tratadas">0</b> tratadas hoje</span>
+      <span><b id="faltam">5</b> na fila</span>
+    </div>
+  </div>
+
+  <div id="area-agora">
+    <div class="rotulo">Agora</div>
+    <div class="agora" id="agora"></div>
+  </div>
+
+  <div id="area-fila">
+    <div class="rotulo sub">Depois disso</div>
+    <div class="fila" id="fila"></div>
+    <button class="mais" id="mais"></button>
+  </div>
+
+  <div class="fim" id="fim">
+    <div class="fim-num" id="fim-num">5</div>
+    <div class="fim-t">Está tudo tratado.</div>
+    <div class="fim-s" id="fim-s">Pode desligar. O painel segura o resto.</div>
+    <button onclick="reiniciar()">Recomeçar a demonstração</button>
+  </div>
+
+  <div class="rotulo sub">Compromissos</div>
+  <div class="bloco">
+    <div class="bloco-cab"><span class="bloco-tit">Hoje e amanhã</span><span class="bloco-num">3</span></div>
+    <div class="linha atrasado">
+      <span class="linha-h">Atrasado</span>
+      <span class="linha-t"><b>Ligar pra Bel do 20º Cartório</b><span>era 10/08, 10:00 · lembrete</span></span>
+    </div>
+    <div class="linha">
+      <span class="linha-h">15:00</span>
+      <span class="linha-t"><b>Alfredo Patrão | ABG</b><span>Assinatura da escritura</span></span>
+    </div>
+    <div class="linha">
+      <span class="linha-h">Amanhã</span>
+      <span class="linha-t"><b>Fabio / Julia | Un. 2011</b><span>Assinatura · 09:30</span></span>
+    </div>
+  </div>
+
+  <div class="rotulo sub">Aguardando retorno</div>
+  <div class="bloco">
+    <div class="bloco-cab"><span class="bloco-tit">Volta sozinho em 3 dias</span><span class="bloco-num" id="num-espera">1</span></div>
+    <div id="espera-lista">
+      <div class="linha">
+        <span class="linha-h">2 dias</span>
+        <span class="linha-t"><b>B3 | Procuração PROC-039.26</b><span>Aguardando cliente (outro)</span></span>
+      </div>
+    </div>
+  </div>
+
+  <p class="rodape">Protótipo navegável da Central de Comando. Os dados são de exemplo e nada aqui grava no banco — pode tocar em tudo à vontade.</p>
+</div>
+
+<script>
+const BASE=[
+  {cli:'Alfredo Patrão | ABG',aco:'Confirmar a assinatura de hoje, às 15:00',etapa:'Minutando',dias:9,resp:'Shirley',fogo:true,
+   nota:'Tabelião exigiu sobrepartilha, minuta anterior estava errada. Em aberto desde 2025.'},
+  {cli:'Rejane Gregorio',aco:'Cobrar a construtora pelo Termo de Quitação',etapa:'Aguardando TQ',dias:12,resp:'Gabriel',fogo:true,
+   nota:'Faltam dados bancários pro ofício. Construtora não respondeu ainda.'},
+  {cli:'Miguel | Un. 2216 Do It',aco:'Cobrar aprovação da minuta',etapa:'Aguardando aprovação da minuta',dias:6,resp:'Grazi',fogo:true,
+   nota:'Cliente perguntou ontem às 14h53 se já dava pra assinar.'},
+  {cli:'Juliana Halabi | BL01-2412',aco:'Verificar se o traslado já está pronto',etapa:'Aguardando traslado',dias:4,resp:'Grazi',fogo:false,
+   nota:'Baixa recebida via Rhailton / Direcional.'},
+  {cli:'Gustavo Bertola',aco:'Cobrar documentos pendentes do cliente',etapa:'Falta documentos',dias:3,resp:'Shirley',fogo:false,
+   nota:'Docs recebidos em parte. Compradora: Dona Rosa (avó).'},
+];
+let fila=[],tratadas=0,mostrando=3,espera=1;
+const $=id=>document.getElementById(id);
+
+function pintarAgora(){
+  const it=fila[0];
+  if(!it)return;
+  $('agora').className='agora'+(it.fogo?' fogo':'');
+  $('agora').innerHTML=`
+    <div class="agora-topo">
+      ${it.fogo?'<span class="selo fogo">Pegando fogo</span>':''}
+      <span class="selo pessoa">${it.resp}</span>
+    </div>
+    <div class="agora-cliente">${it.cli}</div>
+    <h2 class="agora-acao">${it.aco}</h2>
+    <div class="agora-meta"><b>${it.dias} dias</b> em "${it.etapa}"</div>
+    <div class="nota"><span>Última nota</span>${it.nota}</div>
+    <div class="acoes">
+      <button class="btn feito" onclick="resolver()">Feito</button>
+      <button class="btn depois" onclick="abrirAdiar()">Depois</button>
+      <button class="btn espera" onclick="aguardar()">Aguardando</button>
+    </div>
+    <div class="adiar" id="adiar">
+      <button class="btn" onclick="resolver()">Amanhã</button>
+      <button class="btn" onclick="resolver()">Semana que vem</button>
+      <button class="btn" onclick="resolver()">Escolher…</button>
+    </div>
+    <div class="anota">
+      <input placeholder="Registrar rapidinho…" aria-label="Registrar uma nota neste caso">
+      <button onclick="this.previousElementSibling.value=''">Registrar</button>
+    </div>`;
+}
+
+function pintarFila(){
+  const resto=fila.slice(1);
+  $('area-fila').classList.toggle('oculto',!resto.length);
+  $('fila').innerHTML=resto.slice(0,mostrando).map((it,i)=>`
+    <button class="item" onclick="promover(${i+1})">
+      <span class="item-marca${it.fogo?' fogo':''}"></span>
+      <span class="item-txt">
+        <span class="item-cli">${it.cli}</span>
+        <span class="item-aco">${it.aco}</span>
+      </span>
+      <span class="item-dias">${it.dias}d</span>
+    </button>`).join('');
+  const escondidos=Math.max(0,resto.length-mostrando);
+  $('mais').classList.toggle('oculto',!escondidos);
+  $('mais').textContent=`Ver os outros ${escondidos}`;
+}
+
+function pintarConta(){
+  const total=BASE.length;
+  $('tratadas').textContent=tratadas;
+  $('faltam').textContent=fila.length;
+  $('barra').style.width=(tratadas/total*100)+'%';
+  $('num-espera').textContent=espera;
+}
+
+function pintar(){
+  const vazio=!fila.length;
+  $('area-agora').classList.toggle('oculto',vazio);
+  $('fim').classList.toggle('on',vazio);
+  if(vazio){ $('fim-num').textContent=tratadas;
+    $('fim-s').textContent=espera?`Pode desligar. ${espera} ${espera>1?'casos voltam':'caso volta'} sozinho quando o prazo virar.`:'Pode desligar. O painel segura o resto.'; }
+  else { pintarAgora(); }
+  pintarFila(); pintarConta();
+}
+
+function sair(depois){
+  const el=$('agora');
+  el.classList.add('saiu');
+  setTimeout(()=>{el.classList.remove('saiu');depois();},210);
+}
+window.resolver=function(){ sair(()=>{fila.shift();tratadas++;pintar();}); };
+window.aguardar=function(){ sair(()=>{fila.shift();tratadas++;espera++;pintar();}); };
+window.abrirAdiar=function(){ $('adiar').classList.toggle('on'); };
+window.promover=function(i){ const [it]=fila.splice(i,1); fila.unshift(it); mostrando=3; pintar(); };
+$('mais').onclick=()=>{ mostrando=99; pintarFila(); };
+window.reiniciar=function(){ fila=BASE.map(o=>({...o})); tratadas=0; mostrando=3; espera=1; pintar(); };
+reiniciar();
+</script>
