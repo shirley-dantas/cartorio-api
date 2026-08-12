@@ -81,6 +81,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-tags .badge{padding:2px 8px;font-size:10px}
 .foco-caso-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#16283A;background:#EDE6D6;padding:2px 8px;border-radius:6px}
 .foco-caso-tag.geral{color:#8E8EA0;background:#EEF0F4}
+/* Etiqueta de data/hora do lembrete manual — usa o azul da Agenda pra deixar
+   claro, só de bater o olho, que esse lembrete também aparece lá. */
+.foco-quando-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#2f6fb0;background:#EAF2FB;padding:2px 8px;border-radius:6px}
+.foco-quando-tag.atrasado{color:#C62828;background:#FDECEA}
 .tag-segunda{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#8D4600;background:#FFF3E0;border:0.5px solid #FCD34D;padding:1.5px 8px;border-radius:6px}
 .foco-del{font-size:16px;color:#6E6E8A;cursor:pointer;padding:0 2px;background:none;border:none;line-height:1}
 .foco-del:hover{color:#E57373}
@@ -93,6 +97,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .foco-urgente-check input{accent-color:#C62828;cursor:pointer}
 .foco-input-row input{flex:1;font-size:13px;padding:7px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
 .foco-input-row input:focus{border-color:#C9A876}
+/* min-width:0 nos dois: campo de data tem largura mínima natural grande e não
+   encolhe sozinho dentro do flex — sem isso, no celular a linha estoura o card
+   e o botão "Sem data" fica cortado pra fora. */
+.foco-quando-campo{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.foco-quando-campo>span{font-size:12px;color:#6E6E8A;white-space:nowrap}
+.foco-input-row input[type="datetime-local"]{font-size:12.5px;color:#3A3A3C;min-width:0}
+/* Especificidade acima de ".foco-input-row button", senão herda o gradiente
+   dourado do botão Adicionar — aqui é ação secundária, tem que ser discreta. */
+.foco-input-row button.foco-quando-limpar{font-size:11px;padding:6px 10px;border-radius:8px;border:0.5px solid #D1D1D6;background:#fff;color:#6E6E8A;font-weight:500;flex-shrink:0}
+.foco-input-row button.foco-quando-limpar:hover{background:#F5F5F7;color:#1C1C1E;filter:none}
 .foco-input-row button{font-size:12px;padding:7px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600;transition:filter .15s ease}
 .foco-input-row button:hover{filter:brightness(1.12)}
 .cdc-bloco{margin-bottom:16px}
@@ -109,6 +123,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cdc-linha.atencao{border-left-color:#C9A876;box-shadow:0 0 0 1px rgba(169,137,90,.14)}
 .cdc-linha.parado{border-left-color:#8E8EA0;background:#F2F2F7;opacity:.85}
 .cdc-linha.agenda{cursor:pointer;align-items:center}
+/* Lembrete manual dentro da Agenda — mantém o dourado dos Lembretes pra não
+   se confundir com compromisso de escritura, que é o azul dos casos. */
+.cdc-linha.agenda.lembrete{border-left-color:#A9895A;background:#FAF7F1}
+.cdc-linha.agenda.lembrete.atrasado{border-left-color:#C62828;background:#FDECEA}
+.cdc-sub-titulo.atrasado{color:#C62828}
 .cdc-agenda-acoes{display:flex;gap:5px;flex-shrink:0}
 .cdc-agenda-btn{width:26px;height:26px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px}
 .cdc-agenda-btn:hover{background:#F5F5F7}
@@ -499,6 +518,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option value="gabriel">Gabriel</option>
           </select>
           <label class="foco-urgente-check"><input type="checkbox" id="foco-urgente"> Urgente</label>
+        </div>
+        <div class="foco-input-linha">
+          <div class="foco-quando-campo">
+            <span>Quando</span>
+            <input type="datetime-local" id="foco-quando" title="Opcional — com data preenchida, o lembrete também aparece na Agenda">
+          </div>
+          <button type="button" class="foco-quando-limpar" onclick="document.getElementById('foco-quando').value=''">Sem data</button>
         </div>
         <div class="foco-input-linha">
           <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key==='Enter')addFoco()">
@@ -1066,6 +1092,10 @@ onValue(focosRef,(snap)=>{
   }
   focos=arr;
   renderFoco();
+  // Lembrete com data agora também é linha da Agenda, então mexer nos focos
+  // precisa redesenhar a Central de Comando junto — senão a Agenda só
+  // atualizaria no próximo evento vindo dos casos.
+  renderCentralComando();
   renderHeroResumo();
 });
 
@@ -1338,6 +1368,21 @@ function renderProximasAcoes(itens){
   limitarTodosScrolls(el);
 }
 
+// Lembrete manual com data preenchida (campo "quando") vira evento de agenda,
+// lado a lado com os compromissos dos casos. Só entram os pendentes: ao marcar
+// o ✓ o lembrete sai da lista de Lembretes e sai daqui junto, sem precisar de
+// chave de resolução própria (diferente dos casos, o lembrete já tem "done").
+function eventosDeFocos(){
+  const full=Array.isArray(focos)?focos:Object.values(focos||{});
+  return full.filter(f=>f&&!f.done&&f.quando)
+    .map(f=>({foco:f,diff:diffDiasNum(f.quando),dt:f.quando}))
+    .filter(ev=>ev.diff!=null&&ev.diff<=7)
+    .sort((a,b)=>String(a.dt).localeCompare(String(b.dt)));
+}
+function fmtQuando(dt){
+  return dt?new Date(dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+}
+
 function renderAgenda(itens){
   const el=document.getElementById('cdc-agenda');
   const dentroDaJanela=(v)=>v!=null&&v>=0&&v<=7;
@@ -1361,8 +1406,15 @@ function renderAgenda(itens){
   const eventosVisiveis=eventos.filter(ev=>!resolucoesCentral[chaveAgendaEvento(ev.c.id,ev.segunda?'segunda':'principal',ev.dt)]);
   const grupo=(min,max)=>eventosVisiveis.filter(ev=>ev.diff>=min&&ev.diff<=max);
   const hoje=grupo(0,0),amanha=grupo(1,1),semana=grupo(2,7);
+  // Compromisso de caso vencido some da janela (o caso continua cobrado pelo
+  // Incêndios). Lembrete vencido, não — tarefa marcada pra ontem e não feita
+  // tem que continuar na cara, senão a data serviu só pra esconder o item.
+  const focosEv=eventosDeFocos();
+  const grupoFoco=(min,max)=>focosEv.filter(ev=>ev.diff>=min&&ev.diff<=max);
+  const atrasadosF=focosEv.filter(ev=>ev.diff<0);
+  const hojeF=grupoFoco(0,0),amanhaF=grupoFoco(1,1),semanaF=grupoFoco(2,7);
   let html='';
-  if(!hoje.length&&!amanha.length&&!semana.length){html+='<div class="cdc-vazio">Nada agendado pros próximos 7 dias.</div>';el.innerHTML=html;return;}
+  if(!hoje.length&&!amanha.length&&!semana.length&&!focosEv.length){html+='<div class="cdc-vazio">Nada agendado pros próximos 7 dias.</div>';el.innerHTML=html;return;}
   const linhaAgenda=(ev)=>{
     const c=ev.c;
     const dataFmt=ev.dt?new Date(ev.dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
@@ -1373,9 +1425,23 @@ function renderAgenda(itens){
     const chave=chaveAgendaEvento(c.id,ev.segunda?'segunda':'principal',ev.dt);
     return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${tagSegunda}</div><span class="cdc-meta">${dataFmt}</span></div><div class="cdc-agenda-acoes"><button class="cdc-agenda-btn concluir" title="Já concluí — tirar da agenda" onclick="event.stopPropagation();concluirAgendaEvento('${chave}')"><i class="ti ti-check"></i></button><button class="cdc-agenda-btn excluir" title="Excluir da agenda" onclick="event.stopPropagation();excluirAgendaEvento('${chave}')"><i class="ti ti-trash"></i></button></div></div>`;
   };
-  if(hoje.length)html+='<div class="cdc-sub-titulo">Hoje</div>'+hoje.map(linhaAgenda).join('');
-  if(amanha.length)html+='<div class="cdc-sub-titulo">Amanhã</div>'+amanha.map(linhaAgenda).join('');
-  if(semana.length)html+='<div class="cdc-sub-titulo">Próximos 7 dias</div>'+semana.map(linhaAgenda).join('');
+  const linhaFocoAgenda=(ev)=>{
+    const f=ev.foco,atrasado=ev.diff<0;
+    const tagCaso=f.casoNome?`<span class="foco-caso-tag">${esc(f.casoNome)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
+    const tagResp=f.resp?bResp(f.resp):'';
+    const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
+    // Clique leva ao caso, igual às linhas de compromisso — mas só quando o
+    // lembrete está amarrado a um caso; "Geral" não tem pra onde ir.
+    const clicavel=f.casoNome?` data-caso="${esc(f.casoNome)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer"`:'';
+    return`<div class="cdc-linha agenda lembrete${atrasado?' atrasado':''}"><div class="cdc-conteudo"${clicavel}><div class="foco-tags"><span class="foco-quando-tag${atrasado?' atrasado':''}"><i class="ti ti-note"></i>Lembrete</span>${tagCaso}${tagResp}${tagUrgente}</div><span class="cdc-texto">${esc(f.text||'')}</span><span class="cdc-meta">${fmtQuando(ev.dt)}</span></div><div class="cdc-agenda-acoes"><button class="cdc-agenda-btn concluir" title="Concluir lembrete" onclick="event.stopPropagation();toggleFoco('${f.id}')"><i class="ti ti-check"></i></button><button class="cdc-agenda-btn excluir" title="Excluir lembrete" onclick="event.stopPropagation();delFoco('${f.id}')"><i class="ti ti-trash"></i></button></div></div>`;
+  };
+  const bloco=(titulo,evs,fevs,classe)=>(evs.length||fevs.length)
+    ?`<div class="cdc-sub-titulo${classe?' '+classe:''}">${titulo}</div>`+evs.map(linhaAgenda).join('')+fevs.map(linhaFocoAgenda).join('')
+    :'';
+  html+=bloco('Atrasado',[],atrasadosF,'atrasado');
+  html+=bloco('Hoje',hoje,hojeF);
+  html+=bloco('Amanhã',amanha,amanhaF);
+  html+=bloco('Próximos 7 dias',semana,semanaF);
   el.innerHTML=html;
 }
 
@@ -1454,12 +1520,16 @@ function renderFoco(){
     const tagCaso=nomeCaso?`<span class="foco-caso-tag">${esc(nomeCaso)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
     const tagResp=f.resp?bResp(f.resp):'';
     const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
+    // Lembrete com data mostra a etiqueta aqui também, não só na Agenda —
+    // senão, olhando a lista, não dá pra saber qual tem data marcada.
+    const atrasado=f.quando&&diffDiasNum(f.quando)<0;
+    const tagQuando=f.quando?`<span class="foco-quando-tag${atrasado?' atrasado':''}"><i class="ti ti-calendar"></i>${atrasado?'Atrasado · ':''}${fmtQuando(f.quando)}</span>`:'';
     const clicavel=nomeCaso?` data-caso="${esc(nomeCaso)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`:'';
     return`
     <div class="foco-item ${tipo}">
       <div class="foco-check" onclick="toggleFoco('${f.id}')"></div>
       <div class="foco-conteudo"${clicavel}>
-        <div class="foco-tags">${tagCaso}${tagResp}${tagUrgente}</div>
+        <div class="foco-tags">${tagCaso}${tagResp}${tagUrgente}${tagQuando}</div>
         <span class="foco-text">${f.text}</span>
       </div>
       <button class="foco-del" onclick="delFoco('${f.id}')">&times;</button>
@@ -1487,6 +1557,7 @@ window.toggleFocoInput=function(){
     popularFocoCasoSelect();
     document.getElementById('foco-resp').value='';
     document.getElementById('foco-urgente').checked=false;
+    document.getElementById('foco-quando').value='';
     setTimeout(()=>document.getElementById('foco-input').focus(),50);
   }
 };
@@ -1496,12 +1567,16 @@ window.addFoco=function(){
   const casoNome=document.getElementById('foco-caso').value||null;
   const resp=document.getElementById('foco-resp').value||null;
   const urgente=document.getElementById('foco-urgente').checked;
+  // Data é opcional: sem ela o lembrete continua sendo só lembrete, como
+  // sempre foi. Com ela, aparece também na Agenda (ver eventosDeFocos).
+  const quando=document.getElementById('foco-quando').value||null;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  arr.push({id:gerarIdFoco(),text:v,done:false,casoNome,resp,urgente});
+  arr.push({id:gerarIdFoco(),text:v,done:false,casoNome,resp,urgente,quando});
   set(focosRef,arr);
   document.getElementById('foco-input').value='';
   document.getElementById('foco-resp').value='';
   document.getElementById('foco-urgente').checked=false;
+  document.getElementById('foco-quando').value='';
   document.getElementById('foco-caso').value='';
   document.getElementById('foco-input-row').style.display='none';
   document.getElementById('foco-add-btn')?.classList.remove('open');
@@ -1691,8 +1766,13 @@ function renderHeroResumo(){
   // próximo compromisso, não o primeiro caso que aparecer na lista.
   const horaHojeDoItem=(it)=>(it.diffAgendado===0?it.caso.agendado:(it.diffSegunda===0&&it.caso.segundaParte?it.caso.segundaParte.data:''))||'';
   const hoje=itens.filter(it=>it.ehHoje).sort((a,b)=>horaHojeDoItem(a).localeCompare(horaHojeDoItem(b)));
+  // Lembrete manual com data de hoje conta como compromisso de hoje, senão o
+  // número do cartão não bate com a lista que abre logo abaixo dele.
+  const focosEv=typeof eventosDeFocos==='function'?eventosDeFocos():[];
+  const focosHoje=focosEv.filter(ev=>ev.diff===0);
+  const totalHoje=hoje.length+focosHoje.length;
   const topHoje=hoje[0];
-  const agendaBody=topHoje?esc(topHoje.caso.nome):'Nada agendado';
+  const agendaBody=topHoje?esc(topHoje.caso.nome):(focosHoje.length?esc(focosHoje[0].foco.text||''):'Nada agendado');
   // Quando não tem nada hoje, mostra se tem algo chegando (amanhã/semana) em
   // vez de só "pros próximos 7 dias" sem dizer se tem algo ali dentro — mesmo
   // critério de janela E de exclusão (resolucoesCentral) que renderAgenda usa,
@@ -1703,9 +1783,14 @@ function renderHeroResumo(){
     if(it.diffAgendado>=1&&it.diffAgendado<=7&&!resolucoesCentral[chaveAgendaEvento(c.id,'principal',c.agendado)])futuros++;
     if(it.diffSegunda>=1&&it.diffSegunda<=7&&c.segundaParte&&!resolucoesCentral[chaveAgendaEvento(c.id,'segunda',c.segundaParte.data)])futuros++;
   });
-  const agendaSub=topHoje
-    ?(hoje.length>1?`+${hoje.length-1} outro${hoje.length>2?'s':''} compromisso${hoje.length>2?'s':''} hoje`:'compromisso de hoje')
-    :(futuros?`nada hoje · ${futuros} nos próximos 7 dias`:'nada nos próximos 7 dias');
+  futuros+=focosEv.filter(ev=>ev.diff>=1&&ev.diff<=7).length;
+  // Lembrete vencido não entra no número de "hoje" (o cartão é Agenda hoje),
+  // mas é avisado aqui — ele continua visível na lista, no bloco "Atrasado".
+  const atrasados=focosEv.filter(ev=>ev.diff<0).length;
+  const avisoAtrasado=atrasados?` · ${atrasados} atrasado${atrasados>1?'s':''}`:'';
+  const agendaSub=(totalHoje
+    ?(totalHoje>1?`+${totalHoje-1} outro${totalHoje>2?'s':''} compromisso${totalHoje>2?'s':''} hoje`:'compromisso de hoje')
+    :(futuros?`nada hoje · ${futuros} nos próximos 7 dias`:'nada nos próximos 7 dias'))+avisoAtrasado;
 
   const full=Array.isArray(focos)?focos:Object.values(focos||{});
   const pendentes=full.filter(f=>f&&!f.done);
@@ -1717,7 +1802,7 @@ function renderHeroResumo(){
   const chevron='<i class="ti ti-chevron-down hero-chevron"></i>';
   el.innerHTML=`
     <div class="hero-card agenda${heroAberto.agenda?' open':''}" onclick="toggleHeroExpand('agenda')">
-      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Agenda hoje</span><span class="hero-num-wrap"><span class="hero-num">${hoje.length}</span>${chevron}</span></div>
+      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Agenda hoje</span><span class="hero-num-wrap"><span class="hero-num">${totalHoje}</span>${chevron}</span></div>
       <div class="hero-body">${agendaBody}</div>
       <div class="hero-sub">${esc(agendaSub)}</div>
     </div>
@@ -1747,7 +1832,9 @@ function renderHeroResumo(){
     const nomeCaso=f.casoNome||null;
     const tagCaso=nomeCaso?`<span class="foco-caso-tag">${esc(nomeCaso)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
     const clicavel=nomeCaso?` onclick="irParaCasoDoFoco('${esc(nomeCaso)}')" style="cursor:pointer"`:'';
-    return`<div class="cdc-linha compacta"${clicavel}><div class="cdc-conteudo"><div class="foco-tags">${tagCaso}${f.resp?bResp(f.resp):''}</div><span class="cdc-meta">${esc(f.text||'')}</span></div></div>`;
+    const atrasadoF=f.quando&&diffDiasNum(f.quando)<0;
+    const tagQuando=f.quando?`<span class="foco-quando-tag${atrasadoF?' atrasado':''}"><i class="ti ti-calendar"></i>${atrasadoF?'Atrasado · ':''}${fmtQuando(f.quando)}</span>`:'';
+    return`<div class="cdc-linha compacta"${clicavel}><div class="cdc-conteudo"><div class="foco-tags">${tagCaso}${f.resp?bResp(f.resp):''}${tagQuando}</div><span class="cdc-meta">${esc(f.text||'')}</span></div></div>`;
   }).join(''):'<div class="foco-empty">Nenhum lembrete pendente.</div>';
   // Agenda (hero-expand-agenda) já é populada por renderAgenda(), chamada
   // separadamente — só o painel de fora (abrir/fechar) é controlado aqui.
