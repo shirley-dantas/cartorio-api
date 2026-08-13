@@ -72,18 +72,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .foco-add-btn:hover{background:#F5EFE0}
 .foco-add-chevron{font-size:12px;transition:transform .15s ease}
 .foco-add-btn.open .foco-add-chevron{transform:rotate(180deg)}
-.foco-items{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;padding-right:4px}
-.foco-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#F5F6F8;border-radius:8px;border-left:4px solid transparent}
-.foco-item.done{opacity:.45}
-.foco-item.tipo-alerta{border-left-color:#B45309;background:#FFF8ED;box-shadow:0 0 0 1px rgba(180,83,9,.16)}
-.foco-item.tipo-agenda{border-left-color:#3B6FC9;background:#F0F5FD;box-shadow:0 0 0 1px rgba(59,111,201,.16)}
-.foco-item.tipo-manual{border-left-color:#A9895A;box-shadow:0 0 0 1px rgba(169,137,90,.14)}
-.foco-check{width:16px;height:16px;border-radius:4px;border:1.5px solid #6E6E8A;background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.foco-check.checked{background:#C9A876;border-color:#C9A876}
-.foco-check.checked::after{content:'';width:8px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translateY(-1px);display:block}
-.foco-text{font-size:13px;color:#1C1C1E;flex:1;line-height:1.4}
-.foco-text.done{text-decoration:line-through;color:#6E6E8A}
-.foco-conteudo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .foco-tags{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
 .foco-tags .badge{padding:2px 8px;font-size:10px}
 .foco-caso-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#16283A;background:#EDE6D6;padding:2px 8px;border-radius:6px}
@@ -93,8 +81,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .foco-quando-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#2f6fb0;background:#EAF2FB;padding:2px 8px;border-radius:6px}
 .foco-quando-tag.atrasado{color:#C62828;background:#FDECEA}
 .tag-segunda{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#8D4600;background:#FFF3E0;border:0.5px solid #FCD34D;padding:1.5px 8px;border-radius:6px}
-.foco-del{font-size:16px;color:#6E6E8A;cursor:pointer;padding:0 2px;background:none;border:none;line-height:1}
-.foco-del:hover{color:#E57373}
 .foco-empty{font-size:12px;color:#6E6E8A;font-style:italic;padding:4px 0}
 .foco-input-row{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .foco-input-linha{display:flex;gap:8px}
@@ -329,6 +315,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 #agenda-edit-campos input:focus{border-color:#16283A;background:#fff}
 #agenda-edit-campos .modal-label{margin-top:2px}
 .agenda-edit-check{display:flex;align-items:center;gap:7px;font-size:12px;color:#636366;cursor:pointer}
+.agenda-edit-nota{font-size:11.5px;color:#8E8EA0;line-height:1.45;margin-top:2px}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(13,25,34,.6);backdrop-filter:blur(2px);z-index:1000;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
 .modal-overlay.open{display:flex}
 .modal-box{background:#fff;border-radius:26px;width:100%;max-width:780px;padding:26px;position:relative;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
@@ -670,12 +657,18 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    O único lugar da tela com esse peso tipográfico — é onde o olho
    pousa primeiro ao abrir o painel de manhã. */
 .cc-mesa{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px}
+/* Era um <button> inteiro; virou <article> porque agora tem botões DENTRO
+   (agendar/editar/concluir/excluir) e botão dentro de botão não é HTML
+   válido. O que abre o caso passou a ser só o corpo do cartão. */
 .cc-mesa-card{position:relative;background:var(--cc-sup);border:1px solid var(--cc-linha);
   border-radius:16px;padding:16px 20px 17px;text-align:left;width:100%;font-family:inherit;
-  cursor:pointer;display:flex;flex-direction:column;
+  display:flex;flex-direction:column;
   transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
 .cc-mesa-card:hover{border-color:var(--cc-linha-forte);box-shadow:0 8px 22px rgba(31,42,51,.07);transform:translateY(-2px)}
-.cc-mesa-card:focus-visible{outline:2px solid var(--cc-champagne);outline-offset:2px}
+.cc-mesa-corpo{display:flex;flex-direction:column;min-width:0}
+.cc-mesa-corpo:focus-visible{outline:2px solid var(--cc-champagne);outline-offset:2px;border-radius:6px}
+.cc-mesa-tags{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-bottom:13px}
+.cc-mesa-tags .badge{padding:2px 8px;font-size:10px}
 /* O "01 / 02 / 03" do planner como marcador no topo, com um filete que
    atravessa o cartão. Estático, então nome nenhum passa por baixo dele. */
 .cc-mesa-topo{display:flex;align-items:center;gap:10px;margin-bottom:11px}
@@ -684,13 +677,21 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cc-mesa-fio{flex:1;height:1px;background:var(--cc-linha)}
 .cc-mesa-nome{font-family:'Jost',sans-serif;font-weight:400;font-size:19.5px;line-height:1.26;
   color:var(--cc-tinta);margin-bottom:5px}
-.cc-mesa-tipo{font-size:12px;color:var(--cc-tinta-2);margin-bottom:13px;line-height:1.35}
 /* margin-top:auto encosta o rodapé na base: os cartões da grade têm alturas
    de texto diferentes e, sem isso, a linha de hora fica flutuando em alturas
    diferentes de um cartão pro outro. */
 .cc-mesa-rodape{display:flex;align-items:center;gap:7px;margin-top:auto;padding-top:11px;
-  border-top:1px solid var(--cc-linha);font-size:11.5px;color:var(--cc-tinta-3)}
+  border-top:1px solid var(--cc-linha);font-size:11.5px;color:var(--cc-tinta-3);flex-wrap:wrap}
 .cc-mesa-hora{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--cc-tinta)}
+/* Os quatro botões encostam na direita e mantêm o mesmo desenho dos da
+   Agenda — é a mesma gramática de ação em toda a Central. */
+.cc-mesa-acoes{display:flex;gap:5px;margin-left:auto;flex-shrink:0}
+/* Marcado = já tem data e já aparece na Agenda; o botão vira "mudar a data"
+   e fica aceso, pra distinguir de quem ainda não foi agendado. */
+.cdc-agenda-btn.agendar:hover{background:#EAF2FB;border-color:#7FA9DC;color:#2f6fb0}
+.cdc-agenda-btn.agendar.marcado{background:#EAF2FB;border-color:#7FA9DC;color:#2f6fb0}
+/* O formulário de criar lembrete, herdado da gaveta, agora fecha a seção. */
+.cc-mesa-novo{margin-top:14px;padding-top:14px;border-top:1px solid var(--cc-linha)}
 .cc-mesa-hora i{font-size:13px;color:var(--cc-champagne)}
 .cc-mesa-card.critico .cc-mesa-hora{color:var(--cc-critico)}
 .cc-mesa-card.critico .cc-mesa-hora i{color:var(--cc-critico)}
@@ -1035,6 +1036,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </div>
   </section>
 
+  <!-- A mesa é dos lembretes manuais, e só deles. Compromisso com data mora
+       na Agenda ali em cima; caso crítico e caso parado moram em Incêndios e
+       Esquecidos, logo abaixo. A gaveta "Lembretes" que existia aqui embaixo
+       foi absorvida por esta seção — lista e formulário de criar vieram
+       inteiros pra cá, pra a mesma lista não aparecer em dois lugares. -->
   <section class="cc-secao">
     <div class="cc-secao-head">
       <span class="cc-secao-label"><i class="ti ti-coffee"></i> A mesa de hoje</span>
@@ -1042,6 +1048,33 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <span class="cc-secao-cont" id="cc-mesa-cont"></span>
     </div>
     <div class="cc-mesa" id="cc-mesa"></div>
+    <div class="cc-mesa-novo">
+      <button class="foco-add-btn" id="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar lembrete<i class="ti ti-chevron-down foco-add-chevron"></i></button>
+      <div class="foco-input-row" id="foco-input-row" style="display:none">
+        <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
+        <div class="foco-input-linha">
+          <select id="foco-resp" class="foco-caso-select">
+            <option value="">Sem responsável definido</option>
+            <option value="shirley">Shirley</option>
+            <option value="grazi">Grazi</option>
+            <option value="gabriel">Gabriel</option>
+          </select>
+          <label class="foco-urgente-check"><input type="checkbox" id="foco-urgente"> Urgente</label>
+        </div>
+        <div class="foco-input-linha">
+          <div class="foco-quando-campo">
+            <span>Quando</span>
+            <input type="datetime-local" id="foco-quando" title="Opcional — com data preenchida, o lembrete também aparece na Agenda">
+          </div>
+          <button type="button" class="foco-quando-limpar" onclick="document.getElementById(&#39;foco-quando&#39;).value=&#39;&#39;">Sem data</button>
+        </div>
+        <div class="foco-input-linha">
+          <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key===&#39;Enter&#39;)addFoco()">
+          <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado(&#39;foco-input&#39;,&#39;foco-mic&#39;)" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
+          <button onclick="addFoco()">Adicionar</button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <div class="cc-kpis" id="cc-kpis"></div>
@@ -1057,42 +1090,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
   <!-- Gavetas: o que é consulta, não ação. Fechadas por padrão. -->
   <div class="cc-gavetas">
-    <div class="cc-gaveta" id="gaveta-lembretes">
-      <button type="button" class="cc-gaveta-btn" onclick="ccToggleGaveta(&#39;lembretes&#39;)">
-        <i class="ti ti-note"></i> Lembretes
-        <span class="cc-gaveta-cont" id="cc-cont-lembretes"></span>
-        <i class="ti ti-chevron-down cc-gaveta-chevron"></i>
-      </button>
-      <div class="cc-gaveta-corpo">
-        <div class="foco-items" id="foco-items"></div>
-        <button class="foco-add-btn" id="foco-add-btn" onclick="toggleFocoInput()" style="margin-top:10px">+ Adicionar<i class="ti ti-chevron-down foco-add-chevron"></i></button>
-        <div class="foco-input-row" id="foco-input-row" style="display:none">
-          <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
-          <div class="foco-input-linha">
-            <select id="foco-resp" class="foco-caso-select">
-              <option value="">Sem responsável definido</option>
-              <option value="shirley">Shirley</option>
-              <option value="grazi">Grazi</option>
-              <option value="gabriel">Gabriel</option>
-            </select>
-            <label class="foco-urgente-check"><input type="checkbox" id="foco-urgente"> Urgente</label>
-          </div>
-          <div class="foco-input-linha">
-            <div class="foco-quando-campo">
-              <span>Quando</span>
-              <input type="datetime-local" id="foco-quando" title="Opcional — com data preenchida, o lembrete também aparece na Agenda">
-            </div>
-            <button type="button" class="foco-quando-limpar" onclick="document.getElementById(&#39;foco-quando&#39;).value=&#39;&#39;">Sem data</button>
-          </div>
-          <div class="foco-input-linha">
-            <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key===&#39;Enter&#39;)addFoco()">
-            <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado(&#39;foco-input&#39;,&#39;foco-mic&#39;)" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
-            <button onclick="addFoco()">Adicionar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="cc-gaveta" id="gaveta-parados">
       <button type="button" class="cc-gaveta-btn" onclick="ccToggleGaveta(&#39;parados&#39;)">
         <i class="ti ti-player-pause"></i> Aguardando retorno
@@ -1316,7 +1313,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <div class="modal-overlay" id="modal-agenda-edit">
   <div class="modal-box" style="max-width:420px">
     <button class="modal-close" onclick="fecharEditarAgenda()">&times;</button>
-    <div class="modal-title"><i class="ti ti-pencil" style="font-size:15px;vertical-align:-2px;color:#2f6fb0"></i> Editar na agenda</div>
+    <div class="modal-title" id="agenda-edit-titulo"><i class="ti ti-pencil" style="font-size:15px;vertical-align:-2px;color:#2f6fb0"></i> Editar na agenda</div>
     <div class="modal-sub" id="agenda-edit-sub">—</div>
     <div id="agenda-edit-campos"></div>
     <div class="modal-btn-row">
@@ -1694,10 +1691,9 @@ onValue(focosRef,(snap)=>{
     return;
   }
   focos=arr;
-  renderFoco();
-  // Lembrete com data agora também é linha da Agenda, então mexer nos focos
-  // precisa redesenhar a Central de Comando junto — senão a Agenda só
-  // atualizaria no próximo evento vindo dos casos.
+  // Os lembretes são a Mesa e também linhas da Agenda, e as duas coisas são
+  // desenhadas pela Central — então mexer nos focos redesenha a Central
+  // inteira, senão nada disso atualizaria até o próximo evento dos casos.
   renderCentralComando();
 });
 
@@ -2125,7 +2121,7 @@ function renderCentralComando(){
   // A Mesa devolve os ids que já colocou em destaque; cada seção seguinte
   // desconta esse conjunto, pra um caso não aparecer em duas áreas ao mesmo
   // tempo. A ordem aqui É a hierarquia da tela.
-  const usados=renderMesaHoje(itens);
+  const usados=renderMesaHoje();
   renderKpis(itens);
   renderIncendios(itens,usados);
   renderEsquecidos(itens,usados);
@@ -2154,7 +2150,7 @@ function respSelectHtml(c){
 // momento — o que está aberto precisa viver FORA do HTML, senão o painel de
 // ações fecharia sozinho na cara de quem estivesse usando.
 const ccItensAbertos=new Set();
-let ccGavetas={lembretes:false,parados:false,quadro:false};
+let ccGavetas={parados:false,quadro:false};
 try{
   const g=JSON.parse(localStorage.getItem('cc-gavetas')||'null');
   if(g&&typeof g==='object')ccGavetas={...ccGavetas,...g};
@@ -2332,86 +2328,84 @@ function limitarTodosScrolls(container){
 
 // ── A MESA DE HOJE ──
 // A área de maior peso tipográfico da tela: é onde o olho pousa ao abrir o
-// painel de manhã. Não inventa critério nenhum — junta, em ordem de urgência
-// real, três coisas que o motor já calculava e que antes ficavam espalhadas:
-// compromisso de hoje (com a hora real), lembrete manual vencido ou marcado
-// urgente, e o caso crítico parado há mais tempo. Teto de 5 cartões; o que
-// passar disso continua nas seções abaixo, que é de onde veio.
-const CC_MESA_MAX=4;
-function calcularMesaHoje(itens){
-  const horaDoItem=(it)=>(it.diffAgendado===0?it.caso.agendado:(it.diffSegunda===0&&it.caso.segundaParte?it.caso.segundaParte.data:''))||'';
-  const hoje=itens.filter(it=>!it.parado&&!it.suprimidoAgenda&&it.ehHoje)
-    .sort((a,b)=>horaDoItem(a).localeCompare(horaDoItem(b)));
-  const cartoes=hoje.map(it=>{
-    const hora=horaDoItem(it);
-    const hh=hora?new Date(hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-    return{
-      chaveId:it.caso.id, critico:false,
-      nome:it.caso.nome, sub:it.caso.tipo||'Compromisso de hoje',
-      icone:'ti-clock', quando:hh?`Hoje, ${hh}`:'Hoje',
-      onclick:`irParaCasoPorId('${it.caso.id}')`
-    };
-  });
-
-  const focosEv=typeof eventosDeFocos==='function'?eventosDeFocos():[];
-  const todosFocos=Array.isArray(focos)?focos:Object.values(focos||{});
-  const urgentes=todosFocos.filter(f=>f&&!f.done&&f.urgente&&!f.quando);
-  // Vencido primeiro, depois o de hoje, depois o urgente sem data.
-  // Lembrete preso a um caso herda o id DESSE caso como chave, pra a Mesa não
-  // mostrar o mesmo cliente duas vezes (uma pelo lembrete, outra pelo caso).
-  const idDoFoco=(f)=>{
-    const c=f.casoNome?encontrarCasoPorNomeFoco(f.casoNome):null;
-    return c?c.id:'foco-'+f.id;
+// painel de manhã. Ela é dos LEMBRETES MANUAIS, e só deles — o que a equipe
+// escreveu à mão como "isso aqui precisa ser feito". O que tem data marcada
+// já é mostrado pela Agenda, no topo; caso crítico e caso parado têm as
+// seções Incêndios e Esquecidos logo abaixo. Aqui não entra nada calculado
+// pelo motor: entra o que alguém digitou.
+//
+// Aparecem todos os lembretes abertos, com ou sem data, porque esta virou a
+// única lista deles na tela (a gaveta "Lembretes" foi absorvida). Cortar em
+// N esconderia lembrete sem ter pra onde mandar quem procura.
+function calcularMesaLembretes(){
+  const todos=(Array.isArray(focos)?focos:Object.values(focos||{})).filter(f=>f&&!f.done);
+  // Ordem: o que venceu primeiro, depois o urgente sem data, depois o resto
+  // com data em ordem de chegada, e por último o que não tem data marcada.
+  const peso=(f)=>{
+    const d=f.quando?diffDiasNum(f.quando):null;
+    if(d!=null&&d<0)return 0;
+    if(f.urgente)return 1;
+    if(d!=null)return 2;
+    return 3;
   };
-  const lembretes=[
-    ...focosEv.filter(ev=>ev.diff<0).map(ev=>({ev,atrasado:true})),
-    ...focosEv.filter(ev=>ev.diff===0).map(ev=>({ev,atrasado:false}))
-  ].map(({ev,atrasado})=>({
-    chaveId:idDoFoco(ev.foco), critico:atrasado,
-    nome:ev.foco.text||'Lembrete', sub:ev.foco.casoNome||'Lembrete geral',
-    icone:atrasado?'ti-alert-triangle':'ti-note',
-    quando:(atrasado?'Atrasado · ':'')+fmtQuando(ev.dt),
-    onclick:ev.foco.casoNome?`irParaCasoDoFoco('${esc(ev.foco.casoNome)}')`:''
-  })).concat(urgentes.map(f=>({
-    chaveId:idDoFoco(f), critico:true,
-    nome:f.text||'Lembrete', sub:f.casoNome||'Lembrete geral',
-    icone:'ti-flag', quando:'Marcado urgente',
-    onclick:f.casoNome?`irParaCasoDoFoco('${esc(f.casoNome)}')`:''
-  })));
-
-  const criticos=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel==='critico')
-    .sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual)
-    .map(it=>({
-      chaveId:it.caso.id, critico:true,
-      nome:it.caso.nome, sub:it.md.proximaAcao,
-      icone:'ti-flame', quando:`${it.md.diasNaEtapaAtual} ${ccPlural(it.md.diasNaEtapaAtual,'dia')} em "${it.caso.dep||'—'}"`,
-      onclick:`irParaCasoPorId('${it.caso.id}')`
-    }));
-
-  const todos=[...lembretes.filter(l=>l.critico),...cartoes,...lembretes.filter(l=>!l.critico),...criticos];
-  const vistos=new Set(),unicos=[];
-  todos.forEach(c=>{if(!vistos.has(c.chaveId)){vistos.add(c.chaveId);unicos.push(c);}});
-  return{cartoes:unicos.slice(0,CC_MESA_MAX),total:unicos.length};
+  return todos.map(f=>{
+    const d=f.quando?diffDiasNum(f.quando):null;
+    const atrasado=d!=null&&d<0;
+    return{
+      f, atrasado, temData:!!f.quando,
+      critico:atrasado||!!f.urgente,
+      quando:f.quando?(atrasado?'Atrasado · ':'')+fmtQuando(f.quando):'Sem data',
+      icone:atrasado?'ti-alert-triangle':(f.quando?'ti-calendar':(f.urgente?'ti-flag':'ti-note'))
+    };
+  }).sort((a,b)=>{
+    const pa=peso(a.f),pb=peso(b.f);
+    if(pa!==pb)return pa-pb;
+    return String(a.f.quando||'').localeCompare(String(b.f.quando||''));
+  });
 }
 
-function renderMesaHoje(itens){
+function renderMesaHoje(){
   const el=document.getElementById('cc-mesa');
   if(!el)return new Set();
-  const{cartoes,total}=calcularMesaHoje(itens);
+  const cartoes=calcularMesaLembretes();
   const cont=document.getElementById('cc-mesa-cont');
-  if(cont)cont.textContent=total?`${total} ${ccPlural(total,'item','itens')}${total>CC_MESA_MAX?` · ${CC_MESA_MAX} em destaque`:''}`:'';
+  if(cont)cont.textContent=cartoes.length?`${cartoes.length} ${ccPlural(cartoes.length,'lembrete')}`:'';
   if(!cartoes.length){
-    el.innerHTML=`<div class="cc-mesa-vazia">Nada exigindo você agora. Bom dia tranquilo.</div>`;
+    el.innerHTML=`<div class="cc-mesa-vazia">Nenhum lembrete aberto. Bom dia tranquilo.</div>`;
     return new Set();
   }
-  el.innerHTML=cartoes.map((c,i)=>`
-    <button type="button" class="cc-mesa-card${c.critico?' critico':''}"${c.onclick?` onclick="${c.onclick}"`:''}>
+  el.innerHTML=cartoes.map((c,i)=>{
+    const f=c.f;
+    const tagCaso=f.casoNome?`<span class="foco-caso-tag">${esc(f.casoNome)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
+    const tagResp=f.resp?bResp(f.resp):'';
+    const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
+    // Clicar no corpo leva ao caso, como já levava — mas só quando o lembrete
+    // está amarrado a um caso; "Geral" não tem pra onde ir.
+    const clicavel=f.casoNome
+      ? ` data-caso="${esc(f.casoNome)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`
+      : '';
+    // Com data, o lembrete já está na Agenda e o botão vira "mudar a data".
+    const tituloAgendar=c.temData?'Mudar a data na agenda':'Colocar na agenda';
+    return`
+    <article class="cc-mesa-card${c.critico?' critico':''}">
       <span class="cc-mesa-topo"><span class="cc-mesa-num">${String(i+1).padStart(2,'0')}</span><span class="cc-mesa-fio"></span></span>
-      <span class="cc-mesa-nome">${esc(c.nome.length>58?c.nome.slice(0,58)+'…':c.nome)}</span>
-      <span class="cc-mesa-tipo">${esc(c.sub||'')}</span>
-      <span class="cc-mesa-rodape"><span class="cc-mesa-hora"><i class="ti ${c.icone}"></i>${esc(c.quando)}</span></span>
-    </button>`).join('');
-  return new Set(cartoes.map(c=>c.chaveId));
+      <div class="cc-mesa-corpo"${clicavel}>
+        <span class="cc-mesa-nome">${esc(f.text||'Lembrete')}</span>
+        <span class="cc-mesa-tags">${tagCaso}${tagResp}${tagUrgente}</span>
+      </div>
+      <span class="cc-mesa-rodape">
+        <span class="cc-mesa-hora"><i class="ti ${c.icone}"></i>${esc(c.quando)}</span>
+        <span class="cc-mesa-acoes">
+          <button class="cdc-agenda-btn agendar${c.temData?' marcado':''}" title="${tituloAgendar}" onclick="abrirEditarAgenda('foco','${f.id}','agendar')"><i class="ti ti-calendar-plus"></i></button>
+          <button class="cdc-agenda-btn editar" title="Editar lembrete" onclick="abrirEditarAgenda('foco','${f.id}')"><i class="ti ti-pencil"></i></button>
+          <button class="cdc-agenda-btn concluir" title="Concluir lembrete" onclick="toggleFoco('${f.id}')"><i class="ti ti-check"></i></button>
+          <button class="cdc-agenda-btn excluir" title="Excluir lembrete" onclick="delFoco('${f.id}')"><i class="ti ti-trash"></i></button>
+        </span>
+      </span>
+    </article>`;}).join('');
+  // A Mesa não consome mais id de caso: ela não mostra caso nenhum, então
+  // Incêndios e Esquecidos voltam a receber a lista inteira.
+  return new Set();
 }
 
 // ── INDICADORES ──
@@ -2694,21 +2688,46 @@ function paraCampoDataHora(v){
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)?s.slice(0,16):'';
 }
 
-window.abrirEditarAgenda=function(tipo,id){
+// Sugestão de horário pra quem está só jogando o lembrete na agenda: amanhã
+// de manhã, que é quando a tarefa sem data costuma caber.
+function proximaDataSugerida(){
+  const d=new Date();
+  d.setDate(d.getDate()+1);
+  d.setHours(9,0,0,0);
+  const p=(n)=>String(n).padStart(2,'0');
+  return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// modo 'agendar' é o mesmo modal enxugado: só a data, porque quem clicou no
+// calendário da Mesa quer marcar o dia, não reescrever o lembrete.
+window.abrirEditarAgenda=function(tipo,id,modo){
   const campos=document.getElementById('agenda-edit-campos');
   const sub=document.getElementById('agenda-edit-sub');
+  const titulo=document.getElementById('agenda-edit-titulo');
   if(!campos||!sub)return;
+  const agendando=modo==='agendar';
+  if(titulo)titulo.innerHTML=agendando
+    ?`<i class="ti ti-calendar-plus" style="font-size:15px;vertical-align:-2px;color:#2f6fb0"></i> Colocar na agenda`
+    :`<i class="ti ti-pencil" style="font-size:15px;vertical-align:-2px;color:#2f6fb0"></i> Editar na agenda`;
   if(tipo==='foco'){
     const arr=Array.isArray(focos)?focos:Object.values(focos||{});
     const f=arr.find(x=>x&&x.id===id);
     if(!f)return;
-    sub.textContent=f.casoNome?`Lembrete · ${f.casoNome}`:'Lembrete geral';
-    campos.innerHTML=`
-      <label class="modal-label">Lembrete</label>
-      <input type="text" id="agenda-edit-texto" value="${escTxt(f.text)}" placeholder="O que precisa ser feito">
-      <label class="modal-label">Quando</label>
-      <input type="datetime-local" id="agenda-edit-quando" value="${paraCampoDataHora(f.quando)}">
-      <label class="agenda-edit-check"><input type="checkbox" id="agenda-edit-urgente"${f.urgente?' checked':''}> Urgente</label>`;
+    if(agendando){
+      sub.textContent=f.text||'Lembrete';
+      campos.innerHTML=`
+        <label class="modal-label">Dia e hora na agenda</label>
+        <input type="datetime-local" id="agenda-edit-quando" value="${paraCampoDataHora(f.quando)||proximaDataSugerida()}">
+        <div class="agenda-edit-nota">Com data marcada, o lembrete passa a aparecer também na Agenda, lá no topo do painel.</div>`;
+    }else{
+      sub.textContent=f.casoNome?`Lembrete · ${f.casoNome}`:'Lembrete geral';
+      campos.innerHTML=`
+        <label class="modal-label">Lembrete</label>
+        <input type="text" id="agenda-edit-texto" value="${escTxt(f.text)}" placeholder="O que precisa ser feito">
+        <label class="modal-label">Quando</label>
+        <input type="datetime-local" id="agenda-edit-quando" value="${paraCampoDataHora(f.quando)}">
+        <label class="agenda-edit-check"><input type="checkbox" id="agenda-edit-urgente"${f.urgente?' checked':''}> Urgente</label>`;
+    }
   }else{
     const c=casos[id];
     if(!c)return;
@@ -2748,12 +2767,19 @@ window.salvarEditarAgenda=async function(){
       const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
       const i=arr.findIndex(f=>f&&f.id===id);
       if(i===-1)return;
-      const texto=document.getElementById('agenda-edit-texto').value.trim();
-      if(!texto){alert('O lembrete precisa de um texto.');return;}
-      arr[i]={...arr[i],
-        text:texto,
-        quando:document.getElementById('agenda-edit-quando').value||null,
-        urgente:document.getElementById('agenda-edit-urgente').checked};
+      const quando=document.getElementById('agenda-edit-quando').value||null;
+      // No modo 'agendar' o formulário só tem a data, então texto e urgência
+      // não aparecem e ficam como estavam.
+      const campoTexto=document.getElementById('agenda-edit-texto');
+      const campoUrgente=document.getElementById('agenda-edit-urgente');
+      if(campoTexto){
+        const texto=campoTexto.value.trim();
+        if(!texto){alert('O lembrete precisa de um texto.');return;}
+        arr[i]={...arr[i],text:texto,quando,urgente:campoUrgente.checked};
+      }else{
+        if(!quando){alert('Escolha o dia e a hora.');return;}
+        arr[i]={...arr[i],quando};
+      }
       await set(focosRef,arr);
     }else{
       const c=casos[id];
@@ -2842,41 +2868,10 @@ window.irParaCasoPorId=function(id){
   },50);
 };
 
-// ── FOCO DO DIA (lembretes manuais) ──
-function renderFoco(){
-  const el=document.getElementById('foco-items');
-  const full=Array.isArray(focos)?focos:Object.values(focos||{});
-  const contEl=document.getElementById('cc-cont-lembretes');
-  if(contEl){const n=full.filter(f=>f&&!f.done).length;contEl.textContent=n?String(n):'nenhum';}
-  if(!full.length){el.innerHTML='<div class="foco-empty">Nenhuma prioridade definida para hoje.</div>';limitarScrollUmCard(el);return;}
-  // Concluídos (✓) somem da lista em vez de ficar riscados ocupando espaço —
-  // o estado continua salvo, só não é mais exibido, pra não poluir a lista
-  // do que falta fazer.
-  const arr=full.filter(f=>f&&!f.done);
-  if(!arr.length){el.innerHTML='<div class="foco-empty">Tudo em dia! Nenhuma pendência no momento.</div>';limitarScrollUmCard(el);return;}
-  el.innerHTML=arr.map((f)=>{
-    const tipo=f.marcador==='alerta'?'tipo-alerta':(f.marcador==='hoje'||f.marcador==='amanha')?'tipo-agenda':'tipo-manual';
-    const nomeCaso=f.casoNome||null;
-    const tagCaso=nomeCaso?`<span class="foco-caso-tag">${esc(nomeCaso)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
-    const tagResp=f.resp?bResp(f.resp):'';
-    const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
-    // Lembrete com data mostra a etiqueta aqui também, não só na Agenda —
-    // senão, olhando a lista, não dá pra saber qual tem data marcada.
-    const atrasado=f.quando&&diffDiasNum(f.quando)<0;
-    const tagQuando=f.quando?`<span class="foco-quando-tag${atrasado?' atrasado':''}"><i class="ti ti-calendar"></i>${atrasado?'Atrasado · ':''}${fmtQuando(f.quando)}</span>`:'';
-    const clicavel=nomeCaso?` data-caso="${esc(nomeCaso)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`:'';
-    return`
-    <div class="foco-item ${tipo}">
-      <div class="foco-check" onclick="toggleFoco('${f.id}')"></div>
-      <div class="foco-conteudo"${clicavel}>
-        <div class="foco-tags">${tagCaso}${tagResp}${tagUrgente}${tagQuando}</div>
-        <span class="foco-text">${f.text}</span>
-      </div>
-      <button class="foco-del" onclick="delFoco('${f.id}')">&times;</button>
-    </div>
-  `;}).join('');
-  limitarScrollUmCard(el);
-}
+// ── LEMBRETES MANUAIS ──
+// A lista deles é a Mesa de hoje (ver renderMesaHoje), desenhada junto com o
+// resto da Central. O que sobrou aqui é o formulário de criar, que mora no
+// rodapé da Mesa.
 function popularFocoCasoSelect(){
   const sel=document.getElementById('foco-caso');
   if(!sel)return;
