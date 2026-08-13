@@ -282,7 +282,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .obs-label{font-size:11px;font-weight:500;color:#8E8EA0;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}
 .card-info{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:9px}
 .card-buttons{display:flex;flex-wrap:wrap;gap:6px}
-.badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;white-space:nowrap}
+.badge{font-size:9.5px;padding:3px 8px;border-radius:5px;font-weight:600;white-space:nowrap;
+  letter-spacing:.09em;text-transform:uppercase;border:1px solid transparent}
 .b-prioridade{background:#EDE9FE;color:#4C1D95}
 .b-critico{background:#FDECEA;color:#B71C1C}
 .b-atencao{background:#FFF8E1;color:#7A4F00}
@@ -291,12 +292,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .b-grazi{background:#E8F5E9;color:#1B5E20}
 .b-gabriel{background:#F3E5F5;color:#4A148C}
 .b-gray{background:#F2F2F7;color:#636366}
-.dias-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;white-space:nowrap}
-.dias-0{background:#E8F5E9;color:#1B5E20}
-.dias-1{background:#FFF8E1;color:#7A4F00}
-.dias-3{background:#FFF3E0;color:#8D4600}
-.dias-7{background:#FDECEA;color:#B71C1C}
-.dias-15{background:#880E4F;color:#fff}
+/* Tempo parado é escala, não categoria: um só tom que escurece conforme o
+   caso envelhece, em vez de cinco cápsulas de cores diferentes. */
+.dias-badge{font-size:10.5px;padding:2px 0;font-weight:500;white-space:nowrap;background:none}
+.dias-0{color:#6B7680}
+.dias-1{color:#5B6B78}
+.dias-3{color:#8A5A0B}
+.dias-7{color:#B3261E}
+.dias-15{color:#8A1610;font-weight:700}
 .dep-badge{font-size:11px;padding:3px 11px;border-radius:20px;font-weight:600;white-space:nowrap;background:#EDE9FE;color:#4C1D95}
 .prazo{font-size:11px;color:#8E8EA0;display:flex;gap:3px;align-items:center}
 .sel{font-size:12px;padding:5px 8px;border-radius:9px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;cursor:pointer;outline:none;max-width:130px}
@@ -758,6 +761,135 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .cc-item,.cc-mesa-card,.cc-gaveta-chevron,.cc-item-gatilho i{transition:none}
   .cc-item.resolvido{animation:none;opacity:0}
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   LISTA DE CASOS + LATERAL — mesma linguagem da Central
+   ══════════════════════════════════════════════════════════════════
+   O card era um formulário aberto: 5 campos de registro, 3 selects, um
+   datetime, o bloco de observações e 8 botões, tudo visível ao mesmo
+   tempo, em cima de um fundo colorido com anel e sombra da cor do
+   status (o crítico tinha fundo vermelho + anel vermelho + sombra
+   vermelha). Aqui a gravidade vira filete, os campos ganham rótulo e
+   viram uma grade, e o que é referência — dados do registro — só abre
+   quando pedido. Nenhum campo, botão ou ação saiu: tudo continua ali.
+   ────────────────────────────────────────────────────────────────── */
+.cx-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.cx-fbtn{font-family:'Jost',sans-serif;font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;
+  padding:8px 17px;border-radius:999px;border:1px solid var(--cc-linha-forte);background:var(--cc-sup);
+  color:var(--cc-tinta-2);cursor:pointer;white-space:nowrap;transition:background .16s ease,color .16s ease,border-color .16s ease}
+.cx-fbtn:hover{border-color:var(--cc-tinta-3);color:var(--cc-tinta)}
+.cx-fbtn.on{background:var(--cc-tinta);border-color:var(--cc-tinta);color:#fff}
+.cx-fbtn-arquivo{margin-left:auto}
+.cx-fbtn-arquivo.on{background:var(--cc-champagne);border-color:var(--cc-champagne);color:#fff}
+
+/* Cartão de caso */
+.cx-card{background:var(--cc-sup);border:1px solid var(--cc-linha);border-left:3px solid var(--cc-linha-forte);
+  border-radius:16px;padding:18px 20px;transition:border-color .18s ease,box-shadow .18s ease}
+.cx-card:hover{box-shadow:0 6px 20px rgba(31,42,51,.06)}
+.cx-card.critico{border-left-color:var(--cc-critico)}
+.cx-card.atencao{border-left-color:var(--cc-atencao)}
+.cx-card.emdia{border-left-color:var(--cc-ok)}
+.cx-card.prioridade{border-left-color:#5B3FA0}
+.cx-card.concluido{opacity:.55;border-left-color:var(--cc-linha-forte);background:var(--cc-sup-2)}
+.cx-card.jn-destaque{border-color:var(--cc-champagne);box-shadow:0 0 0 3px rgba(220,196,147,.4)}
+
+.cx-topo{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:15px}
+.cx-ident{flex:1;min-width:210px}
+.cx-nome-linha{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:2px}
+.cx-nome{font-family:'Jost',sans-serif;font-weight:400;font-size:19px;line-height:1.25;color:var(--cc-tinta)}
+/* Continua sendo um input editável — só deixou de parecer um campo até
+   receber o foco, que é o que enchia o card de caixinhas. */
+.cx-tipo{font-size:12px;color:var(--cc-tinta-2);border:none;border-bottom:1px solid transparent;
+  background:transparent;font-family:inherit;padding:1px 0;outline:none;cursor:text;width:100%;max-width:420px}
+.cx-tipo::placeholder{color:var(--cc-tinta-3);font-style:italic}
+.cx-tipo:hover{border-bottom-color:var(--cc-linha)}
+.cx-tipo:focus{border-bottom-color:var(--cc-champagne);color:var(--cc-tinta)}
+.cx-meta-dir{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--cc-tinta-3)}
+
+/* Grade de campos com rótulo: mesma informação de antes, mas legível
+   sem precisar adivinhar o que cada select significa. */
+.cx-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px 16px;
+  padding:14px 0;border-top:1px solid var(--cc-linha);border-bottom:1px solid var(--cc-linha);margin-bottom:14px}
+.cx-campo{display:flex;flex-direction:column;gap:5px;min-width:0}
+.cx-campo-rot{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cc-tinta-3);text-indent:.14em}
+.cx-campo select,.cx-campo input{width:100%;font-family:inherit;font-size:12.5px;padding:7px 9px;border-radius:8px;
+  border:1px solid var(--cc-linha);background:var(--cc-sup-2);color:var(--cc-tinta);outline:none;cursor:pointer;min-width:0}
+.cx-campo input{cursor:text}
+.cx-campo select:focus,.cx-campo input:focus{border-color:var(--cc-champagne);background:var(--cc-sup)}
+
+/* Dados do registro: referência, não trabalho do dia. Quando preenchidos
+   aparecem como texto; a edição abre no clique. Cinco inputs vazios em
+   todo card eram metade da aparência de formulário. */
+.cx-reg-resumo{background:none;border:none;padding:0;font-family:inherit;font-size:11.5px;color:var(--cc-tinta-3);
+  cursor:pointer;display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;text-align:left;margin-bottom:12px}
+.cx-reg-resumo:hover{color:var(--cc-tinta)}
+.cx-reg-resumo b{font-weight:600;color:var(--cc-tinta-2)}
+.cx-reg-resumo i{font-size:13px;transition:transform .18s ease}
+.cx-reg-resumo.aberto i{transform:rotate(180deg)}
+.cx-reg-campos{display:none;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px 14px;
+  background:var(--cc-sup-2);border:1px solid var(--cc-linha);border-radius:12px;padding:13px 15px;margin-bottom:13px}
+.cx-reg-campos.aberto{display:grid}
+
+.cx-acoes{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:13px;border-top:1px solid var(--cc-linha)}
+.cx-btn{font-family:inherit;font-size:11.5px;padding:6px 12px;border-radius:8px;border:1px solid var(--cc-linha);
+  background:var(--cc-sup);color:var(--cc-tinta-2);cursor:pointer;white-space:nowrap;display:inline-flex;
+  align-items:center;gap:5px;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.cx-btn i{font-size:13px}
+.cx-btn:hover{background:var(--cc-sup-2);color:var(--cc-tinta);border-color:var(--cc-tinta-3)}
+.cx-btn:active{transform:scale(.97)}
+.cx-btn.destaque{border-color:var(--cc-champagne);color:#7A5F35}
+.cx-btn.destaque:hover{background:#FBF6EC;border-color:var(--cc-champagne)}
+.cx-btn.concluir{background:var(--cc-tinta);border-color:var(--cc-tinta);color:#fff;margin-left:auto}
+.cx-btn.concluir:hover{background:#2C3A45;color:#fff}
+.cx-btn.perigo{color:var(--cc-tinta-3)}
+.cx-btn.perigo:hover{color:var(--cc-critico);border-color:var(--cc-critico);background:#FCF3F2}
+
+.cx-vazio{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:16px;padding:44px 22px;
+  text-align:center;color:var(--cc-tinta-3);font-family:'Jost',sans-serif;font-weight:300;font-size:16px}
+
+.cx-add{width:100%;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  padding:15px;border-radius:14px;border:1px dashed var(--cc-linha-forte);background:none;color:var(--cc-tinta-3);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .16s ease,color .16s ease,border-color .16s ease}
+.cx-add:hover{background:var(--cc-sup);color:var(--cc-tinta);border-color:var(--cc-champagne)}
+
+/* ── LATERAL ──
+   Some o pílula-com-borda em cada item (207 bordas numa lateral de 20
+   linhas) em favor de linhas com filete separando grupos. */
+.sidebar{width:246px;padding:26px 14px}
+.sidebar-logo{padding:2px 8px 22px}
+.sidebar-section-title{font-family:'Jost',sans-serif;font-size:10px;font-weight:400;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--cc-tinta-3);padding:6px 10px 9px;text-indent:.22em}
+.sidebar-divider{height:1px;background:var(--cc-linha);margin:14px 10px}
+.sidebar-nav{gap:1px}
+.sidebar-item{display:flex;align-items:center;gap:10px;font-family:inherit;font-size:12.5px;color:var(--cc-tinta-2);
+  background:none;border:none;padding:8px 10px;border-radius:9px;cursor:pointer;text-align:left;width:100%;
+  transition:background .15s ease,color .15s ease}
+.sidebar-item i{font-size:15px;width:17px;text-align:center;flex-shrink:0;color:var(--cc-tinta-3)}
+/* Uma linha só, dimensionado pelo TEXTO (flex-basis:auto) e sem elipse. Com
+   flex:1 o basis vira 0 e o rótulo quebra mesmo sobrando espaço; com elipse,
+   "Aguardando TQ" e "Aguardando traslado" viravam dois "Aguardand…" iguais,
+   o que é pior que quebrar. A lateral é larga o bastante pro maior rótulo. */
+.sidebar-item>span:not(.sidebar-count):not(.em-breve){flex:1 1 auto;white-space:nowrap}
+.sidebar-item:not(.active):hover{background:var(--cc-sup);color:var(--cc-tinta)}
+.sidebar-item:not(.active):hover i{color:var(--cc-champagne)}
+.sidebar-item.active,.sidebar-item.on{background:var(--cc-sup);color:var(--cc-tinta);font-weight:500;box-shadow:none}
+.sidebar-item.disabled{opacity:.45}
+.sidebar-item .em-breve{font-size:8px;background:none;border:1px solid var(--cc-linha-forte);color:var(--cc-tinta-3);
+  padding:1px 5px;border-radius:4px;font-weight:500;letter-spacing:.06em}
+/* Contagem sem cápsula colorida: número tabular alinhado à direita, e a
+   cor só aparece quando há motivo (crítico > 0). */
+.sidebar-count{font-size:11.5px;font-weight:600;background:none;color:var(--cc-tinta-3);padding:0;
+  min-width:20px;text-align:right;font-variant-numeric:tabular-nums}
+.sidebar-count.red{color:var(--cc-critico);background:none}
+.sidebar-count.amber{color:var(--cc-atencao);background:none}
+.sidebar-count.green{color:var(--cc-ok);background:none}
+.sidebar-count.purple{color:#5B3FA0;background:none}
+.sidebar-count.zero{color:var(--cc-linha-forte);background:none}
+.sidebar-loading{font-size:11.5px;color:var(--cc-tinta-3);padding:8px 10px;font-style:italic}
+.sidebar-toggle-mais{font-family:'Jost',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--cc-tinta-3);padding:8px 10px;text-indent:.18em}
+.sidebar-toggle-mais:hover{color:var(--cc-tinta)}
+.sidebar-total-sub .sidebar-item{padding-left:27px;font-size:12px}
 </style>
 </head>
 <body>
@@ -911,16 +1043,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div id="view-casos">
-    <div class="toolbar">
-      <button class="fbtn on" data-filtro="todos" onclick="setFiltro('todos',this)">Todos</button>
-      <button class="fbtn" data-filtro="shirley" onclick="setFiltro('shirley',this)">Shirley</button>
-      <button class="fbtn" data-filtro="grazi" onclick="setFiltro('grazi',this)">Grazi</button>
-      <button class="fbtn" data-filtro="gabriel" onclick="setFiltro('gabriel',this)">Gabriel</button>
-      <button class="fbtn" data-filtro="terceiro" onclick="setFiltro('terceiro',this)">Aguard. terceiro</button>
-      <button class="fbtn fbtn-arquivo" data-filtro="concluido" onclick="setFiltro('concluido',this)"><i class="ti ti-archive" style="font-size:13px;vertical-align:-2px"></i> Arquivo</button>
+    <div class="cx-toolbar">
+      <button class="cx-fbtn on" data-filtro="todos" onclick="setFiltro('todos',this)">Todos</button>
+      <button class="cx-fbtn" data-filtro="shirley" onclick="setFiltro('shirley',this)">Shirley</button>
+      <button class="cx-fbtn" data-filtro="grazi" onclick="setFiltro('grazi',this)">Grazi</button>
+      <button class="cx-fbtn" data-filtro="gabriel" onclick="setFiltro('gabriel',this)">Gabriel</button>
+      <button class="cx-fbtn" data-filtro="terceiro" onclick="setFiltro('terceiro',this)">Aguard. terceiro</button>
+      <button class="cx-fbtn cx-fbtn-arquivo" data-filtro="concluido" onclick="setFiltro('concluido',this)"><i class="ti ti-archive" style="font-size:13px;vertical-align:-2px"></i> Arquivo</button>
     </div>
     <div class="add-section">
-      <button class="add-toggle" onclick="toggleForm()"><i class="ti ti-plus" style="font-size:15px"></i> Adicionar novo caso</button>
+      <button class="cx-add" onclick="toggleForm()"><i class="ti ti-plus" style="font-size:15px"></i> Adicionar novo caso</button>
       <div class="add-form" id="add-form">
         <h3>Novo caso</h3>
         <div class="form-grid">
@@ -2697,7 +2829,7 @@ function renderStats(){
   document.getElementById('sidebar-stats').innerHTML=`
     <button type="button" class="sidebar-item sidebar-toggle-total${sidebarTotalAberto?' open':''}" id="sidebar-total-toggle" onclick="toggleSidebarTotal()"><i class="ti ti-briefcase"></i><span>Total ativos</span><span class="sidebar-count">${ativos.length}</span><i class="ti ti-chevron-down sidebar-chevron"></i></button>
     <nav class="sidebar-nav sidebar-total-sub" id="sidebar-total-sub" style="display:${sidebarTotalAberto?'flex':'none'}">
-      ${STATUS_SIDEBAR.map(s=>`<button type="button" class="sidebar-item" onclick="abrirStatusModal('${s.key}')"><i class="ti ${s.icon}"></i><span>${s.label}</span><span class="sidebar-count ${s.cor}">${ativos.filter(s.pred).length}</span></button>`).join('')}
+      ${STATUS_SIDEBAR.map(s=>{const n=ativos.filter(s.pred).length;return`<button type="button" class="sidebar-item" onclick="abrirStatusModal('${s.key}')"><i class="ti ${s.icon}"></i><span>${s.label}</span><span class="sidebar-count ${n?s.cor:'zero'}">${n}</span></button>`;}).join('')}
     </nav>
   `;
   if(window.joaninhaAtualizarHumor)window.joaninhaAtualizarHumor(ativos.length,cr,at);
@@ -2730,7 +2862,7 @@ function renderEtapasSidebar(){
   const ativos=getCasosList().filter(x=>!x.concluido);
   document.getElementById('sidebar-etapas').innerHTML=ETAPAS_SIDEBAR.map(e=>{
     const n=ativos.filter(c=>c.dep===e.dep).length;
-    return`<button type="button" class="sidebar-item" onclick="abrirEtapaModal('${e.dep}')"><i class="ti ${e.icon}"></i><span>${e.label}</span><span class="sidebar-count amber">${n}</span></button>`;
+    return`<button type="button" class="sidebar-item" onclick="abrirEtapaModal('${e.dep}')"><i class="ti ${e.icon}"></i><span>${e.label}</span><span class="sidebar-count ${n?'amber':'zero'}">${n}</span></button>`;
   }).join('');
 }
 window.abrirEtapaModal=function(dep){
@@ -2844,6 +2976,25 @@ window.irParaCasoDoFoco=function(nomeCaso){
 };
 
 // ── RENDER CASOS ──
+// Dados do registro ficam recolhidos por caso. Fora do HTML pelo mesmo motivo
+// das ações da Central: renderCasos() redesenha a lista inteira a cada
+// mudança no Firebase, feita por qualquer pessoa da equipe.
+const cxRegAbertos=new Set();
+window.cxToggleReg=function(id){
+  if(cxRegAbertos.has(id))cxRegAbertos.delete(id); else cxRegAbertos.add(id);
+  const campos=document.getElementById('cx-reg-'+id);
+  const botao=document.getElementById('cx-reg-btn-'+id);
+  if(campos)campos.classList.toggle('aberto',cxRegAbertos.has(id));
+  if(botao)botao.classList.toggle('aberto',cxRegAbertos.has(id));
+};
+const CX_REG=[
+  {campo:'registroPrenotado',rot:'Registro'},
+  {campo:'prenotacao',       rot:'Prenotação'},
+  {campo:'livro',            rot:'Livro'},
+  {campo:'folha',            rot:'Folha'},
+  {campo:'controle',         rot:'Controle'}
+];
+
 function renderCasos(){
   const el=document.getElementById('casos-list');
   let lista=getCasosList().filter(visivel);
@@ -2859,7 +3010,7 @@ function renderCasos(){
   }
   if(!lista.length){
     const msg=filtro==='concluido'?(busca?'Nenhum caso concluído encontrado pra essa busca.':'Nenhum caso concluído ainda — o que você concluir aparece aqui, fácil de achar depois.'):'Nenhum caso encontrado.';
-    el.innerHTML=`<div class="empty"><i class="ti ${filtro==='concluido'?'ti-archive':'ti-inbox'}" style="font-size:26px;display:block;margin-bottom:8px;opacity:.35"></i>${msg}</div>`;
+    el.innerHTML=`<div class="cx-vazio">${msg}</div>`;
     return;
   }
   if(filtro==='concluido'){
@@ -2871,73 +3022,82 @@ function renderCasos(){
     lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
   }
   el.innerHTML=lista.map(c=>{
+    const regAberto=cxRegAbertos.has(c.id);
+    const preenchidos=CX_REG.filter(r=>(c[r.campo]||'').trim());
+    const resumoReg=preenchidos.length
+      ? preenchidos.map(r=>`${r.rot} <b>${esc(c[r.campo])}</b>`).join(' &nbsp;·&nbsp; ')
+      : 'Dados do registro';
     return`
-    <div class="card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
-      <div class="card-header">
-        <div>
-          <div class="card-name-row"><span class="card-name">${c.nome}</span>${c.concluido?'':bStatus(c.status)}</div>
-          <input type="text" class="card-tipo" value="${esc(c.tipo)}" placeholder="Tipo de ato (clique para classificar)" onchange="mudarCampo('${c.id}','tipo',this.value)">
+    <div class="cx-card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
+      <div class="cx-topo">
+        <div class="cx-ident">
+          <div class="cx-nome-linha"><span class="cx-nome">${c.nome}</span>${c.concluido?'':bStatus(c.status)}</div>
+          <input type="text" class="cx-tipo" value="${esc(c.tipo)}" placeholder="Tipo de ato (clique para classificar)" onchange="mudarCampo('${c.id}','tipo',this.value)">
         </div>
-        <div class="card-aguardando">
-          <select class="sel" onchange="mudarCampo('${c.id}','dep',this.value)">
-            ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
-          </select>
-          <span class="reg-label">Assinatura da escritura</span>
-          <input type="datetime-local" class="reg-date" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)">
+        <div class="cx-meta-dir">
+          ${c.prazo&&c.prazo!=='—'?`<span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${esc(c.prazo)}</span>`:''}
+          ${bDias(c.atualizado,c.concluido)}
         </div>
       </div>
 
-      <div class="card-registro">
-        <div class="reg-field"><span class="reg-label">Registro</span><input type="text" value="${esc(c.registroPrenotado)}" placeholder="—" onchange="mudarCampo('${c.id}','registroPrenotado',this.value)"></div>
-        <div class="reg-field"><span class="reg-label">Prenotação</span><input type="text" value="${esc(c.prenotacao)}" placeholder="—" onchange="mudarCampo('${c.id}','prenotacao',this.value)"></div>
-        <div class="reg-field"><span class="reg-label">Livro</span><input type="text" value="${esc(c.livro)}" placeholder="—" onchange="mudarCampo('${c.id}','livro',this.value)"></div>
-        <div class="reg-field"><span class="reg-label">Folha</span><input type="text" value="${esc(c.folha)}" placeholder="—" onchange="mudarCampo('${c.id}','folha',this.value)"></div>
-        <div class="reg-field"><span class="reg-label">Controle</span><input type="text" value="${esc(c.controle)}" placeholder="—" onchange="mudarCampo('${c.id}','controle',this.value)"></div>
+      <div class="cx-campos">
+        <label class="cx-campo"><span class="cx-campo-rot">Status</span>
+          <select onchange="mudarCampo('${c.id}','status',this.value)">
+            <option value="prioridade"${c.status==='prioridade'?' selected':''}>Prioridade</option>
+            <option value="critico"${c.status==='critico'?' selected':''}>Crítico</option>
+            <option value="atencao"${c.status==='atencao'?' selected':''}>Atenção</option>
+            <option value="emdia"${c.status==='emdia'?' selected':''}>Em dia</option>
+          </select></label>
+        <label class="cx-campo"><span class="cx-campo-rot">Etapa</span>
+          <select onchange="mudarCampo('${c.id}','dep',this.value)">
+            ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
+          </select></label>
+        <label class="cx-campo"><span class="cx-campo-rot">Responsável</span>
+          <select onchange="mudarCampo('${c.id}','resp',this.value)">
+            <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
+            <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
+            <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
+          </select></label>
+        <label class="cx-campo"><span class="cx-campo-rot">Assinatura da escritura</span>
+          <input type="datetime-local" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)"></label>
+      </div>
+
+      <button type="button" class="cx-reg-resumo${regAberto?' aberto':''}" id="cx-reg-btn-${c.id}" onclick="cxToggleReg('${c.id}')">
+        <i class="ti ti-chevron-down"></i><span>${resumoReg}</span>
+      </button>
+      <div class="cx-reg-campos${regAberto?' aberto':''}" id="cx-reg-${c.id}">
+        ${CX_REG.map(r=>`<label class="cx-campo"><span class="cx-campo-rot">${r.rot}</span>
+          <input type="text" value="${esc(c[r.campo])}" placeholder="—" onchange="mudarCampo('${c.id}','${r.campo}',this.value)"></label>`).join('')}
       </div>
 
       <div class="card-obs">
         <span class="obs-label">Observações</span>
         <div class="obs-text" id="obs-txt-${c.id}" onclick="toggleObs('${c.id}')">${renderObsBloco(c.obs)}</div>
-        ${c.obsAnterior?`<button class="btn-sm" onclick="desfazerObs('${c.id}')" title="Volta pro texto anterior"><i class="ti ti-arrow-back-up" style="font-size:12px;vertical-align:-1px"></i> Desfazer última alteração</button>`:''}
+        ${c.obsAnterior?`<button class="cx-btn" style="margin-top:8px" onclick="desfazerObs('${c.id}')" title="Volta pro texto anterior"><i class="ti ti-arrow-back-up"></i> Desfazer última alteração</button>`:''}
         <div class="obs-edit" id="obs-edit-${c.id}">
           <span class="rascunho-msg" id="rascunho-${c.id}" style="display:none;font-size:11px;color:#B4718A;margin-bottom:4px"><i class="ti ti-note"></i> Rascunho recuperado de uma edição anterior não salva</span>
           <textarea rows="2" id="obs-ta-${c.id}" placeholder="Digite a nova informação — ela entra numerada no topo do histórico acima" oninput="rascunharObs('${c.id}')"></textarea>
           <div class="obs-edit-row">
             <span class="saved-msg" id="saved-${c.id}"><i class="ti ti-check"></i> Salvo</span>
-            <button class="btn-sm" onclick="salvarObs('${c.id}')">Salvar</button>
+            <button class="cx-btn destaque" onclick="salvarObs('${c.id}')">Salvar</button>
           </div>
         </div>
       </div>
 
-      <div class="card-info">
-        <select class="sel" onchange="mudarCampo('${c.id}','status',this.value)">
-          <option value="prioridade"${c.status==='prioridade'?' selected':''}>Prioridade</option>
-          <option value="critico"${c.status==='critico'?' selected':''}>Crítico</option>
-          <option value="atencao"${c.status==='atencao'?' selected':''}>Atenção</option>
-          <option value="emdia"${c.status==='emdia'?' selected':''}>Em dia</option>
-        </select>
-        <select class="sel" onchange="mudarCampo('${c.id}','resp',this.value)">
-          <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
-          <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
-          <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
-        </select>
-        <span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${c.prazo&&c.prazo!=='—'?c.prazo:'—'}</span>
-        ${bDias(c.atualizado,c.concluido)}
-      </div>
-
-      <div class="card-buttons">
-        <button class="btn-sm btn-minuta" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text" style="font-size:12px;vertical-align:-1px"></i> Minuta</button>
-        ${c.driveUrl?`<button class="btn-sm btn-drive" onclick="window.open('${c.driveUrl}','_blank')"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Drive</button>`:''}
-        <button class="btn-sm" onclick="toggleObs('${c.id}')"><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Obs</button>
-        ${c.segundaParte&&(c.segundaParte.status==='pendente'||c.segundaParte.status==='lembrete')?`<button class="btn-sm btn-sp" onclick="abrirSegundaParte('${c.id}')"><i class="ti ti-users" style="font-size:12px;vertical-align:-1px"></i> Atualizar assinatura da 2ª parte</button>`:''}
-        <button class="btn-sm btn-reeditar" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit" style="font-size:12px;vertical-align:-1px"></i> Reeditar</button>
-        <button class="btn-sm" onclick="abrirAtendimento('${c.id}')"><i class="ti ti-headset" style="font-size:12px;vertical-align:-1px"></i> Atendimento</button>
-        <button class="btn-sm ${c.concluido?'':'btn-concluir'}" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
-        <button class="btn-sm btn-excluir" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash" style="font-size:12px;vertical-align:-1px"></i> Excluir</button>
+      <div class="cx-acoes">
+        <button class="cx-btn destaque" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text"></i> Minuta</button>
+        ${c.driveUrl?`<button class="cx-btn" onclick="window.open('${c.driveUrl}','_blank')"><i class="ti ti-brand-google-drive"></i> Drive</button>`:''}
+        <button class="cx-btn" onclick="toggleObs('${c.id}')"><i class="ti ti-notes"></i> Obs</button>
+        ${c.segundaParte&&(c.segundaParte.status==='pendente'||c.segundaParte.status==='lembrete')?`<button class="cx-btn destaque" onclick="abrirSegundaParte('${c.id}')"><i class="ti ti-users"></i> Assinatura da 2ª parte</button>`:''}
+        <button class="cx-btn" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit"></i> Reeditar</button>
+        <button class="cx-btn" onclick="abrirAtendimento('${c.id}')"><i class="ti ti-headset"></i> Atendimento</button>
+        <button class="cx-btn perigo" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash"></i> Excluir</button>
+        <button class="cx-btn concluir" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
       </div>
     </div>`;
   }).join('');
 }
+
 
 // ── AÇÕES ──
 window.mudarCampo=function(id,campo,valor){
@@ -2970,6 +3130,7 @@ window.abrirSegundaParte=function(id){
 window.fecharSegundaParte=function(){
   document.getElementById('modal-segunda-parte').classList.remove('open');
 };
+
 function renderPerguntaSegundaParte(){
   const area=document.getElementById('sp-pergunta-area');
   const passo=spEstado.passo;
