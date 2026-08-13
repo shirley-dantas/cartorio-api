@@ -4,5 +4,11 @@
   "dependencies": {
     "firebase": "^12.14.0",
     "mammoth": "^1.8.0"
+  },
+  "scripts": {
+    "verificar": "node dev/verificar-painel.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
   }
 }
