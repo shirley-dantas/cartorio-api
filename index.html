@@ -555,27 +555,31 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    grande), mas o arco carrega o ícone do clima e a Joaninha em vez de
    uma foto. Mantém o id saudacao-card: posicionarJoaninhaNaSaudacao()
    mede esse elemento pra ancorar a mascote. */
-.cc-header{position:relative;text-align:center;padding:30px 20px 24px}
-.cc-arco{width:104px;height:78px;margin:0 auto 16px;border-radius:999px 999px 14px 14px;
+/* Encolhido: a composição é a mesma, só que ocupando pouco mais da metade da
+   altura de antes. Era bonita e custava uma tela inteira de rolagem antes de
+   o primeiro compromisso aparecer. A joaninha não precisa de ajuste —
+   posicionarJoaninhaNaSaudacao() mede a caixa em tempo real e acompanha. */
+.cc-header{position:relative;text-align:center;padding:18px 20px 15px}
+.cc-arco{width:64px;height:48px;margin:0 auto 10px;border-radius:999px 999px 10px 10px;
   background:linear-gradient(170deg,#FFFDF9,#F4EEE2);border:1px solid var(--cc-linha);
   display:flex;align-items:center;justify-content:center;position:relative}
 /* Fio champagne acompanhando a curva — é o arco do logotipo, na mesma
    direção do gradiente que o SVG da marca usa. */
-.cc-arco::after{content:'';position:absolute;inset:7px 9px auto;height:34px;
+.cc-arco::after{content:'';position:absolute;inset:5px 6px auto;height:21px;
   border-radius:999px 999px 0 0;border:1px solid transparent;
   border-top:1.5px solid var(--cc-champagne-claro);border-left:1.5px solid rgba(169,137,90,.42);border-right:1.5px solid rgba(169,137,90,.42)}
-.cc-arco i,.cc-arco svg{font-size:27px;color:var(--cc-champagne);position:relative;z-index:1}
-.cc-eyebrow{font-family:'Jost',sans-serif;font-weight:400;font-size:11px;letter-spacing:.34em;
-  text-transform:uppercase;color:var(--cc-tinta-2);margin-bottom:7px;text-indent:.34em}
-.cc-saudacao{font-family:'Jost',sans-serif;font-weight:200;font-size:41px;line-height:1.08;
-  letter-spacing:-.005em;color:var(--cc-tinta);margin-bottom:11px}
+.cc-arco i,.cc-arco svg{font-size:18px;color:var(--cc-champagne);position:relative;z-index:1}
+.cc-eyebrow{font-family:'Jost',sans-serif;font-weight:400;font-size:10px;letter-spacing:.34em;
+  text-transform:uppercase;color:var(--cc-tinta-2);margin-bottom:5px;text-indent:.34em}
+.cc-saudacao{font-family:'Jost',sans-serif;font-weight:200;font-size:29px;line-height:1.08;
+  letter-spacing:-.005em;color:var(--cc-tinta);margin-bottom:7px}
 .cc-datalinha{font-size:12px;color:var(--cc-tinta-3);display:inline-flex;align-items:center;
   gap:9px;flex-wrap:wrap;justify-content:center}
 .cc-datalinha .cc-ponto{width:3px;height:3px;border-radius:50%;background:var(--cc-linha-forte)}
 .cc-header-fechar{position:absolute;top:8px;right:8px;background:none;border:none;
   color:var(--cc-tinta-3);font-size:19px;line-height:1;cursor:pointer;padding:4px 7px;border-radius:8px}
 .cc-header-fechar:hover{background:var(--cc-sup-2);color:var(--cc-tinta)}
-@media(max-width:640px){.cc-header{padding:22px 14px 18px}.cc-saudacao{font-size:31px}}
+@media(max-width:640px){.cc-header{padding:14px 14px 12px}.cc-saudacao{font-size:24px}}
 
 /* ── FAIXA-AGENDA ───────────────────────────────────────────────────
    A banda larga e baixa da referência continua, mas deixou de ser um
@@ -742,8 +746,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 /* O aviso de lista vazia não é cartão: ocupa a faixa inteira em vez de virar
    uma coluna de um quarto da largura. */
 .cc-mesa>.cc-mesa-vazia{flex:1 1 100%}
-.cc-mesa-vazia{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:16px;
-  padding:26px;text-align:center;font-family:'Jost',sans-serif;font-weight:300;font-size:16px;color:var(--cc-tinta-2)}
+.cc-mesa-vazia{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:12px;
+  padding:12px 16px;text-align:left;font-family:'Jost',sans-serif;font-weight:300;font-size:14px;color:var(--cc-tinta-2)}
 
 /* ── DUAS COLUNAS ───────────────────────────────────────────────────
    Incêndios e Esquecidos são de naturezas diferentes; lado a lado se
@@ -825,8 +829,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cc-grupo .cc-item:last-child{border-bottom:none}
 .cc-grupo .cc-item:hover{box-shadow:none;background:var(--cc-sup-2)}
 
-.cc-vazio{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:12px;
-  padding:22px;text-align:center;font-size:12.5px;color:var(--cc-tinta-3);font-style:italic}
+/* "Nada aqui" não merece uma caixa do tamanho de uma cheia. Vira uma linha:
+   a pílula da seção acima já diz do que se trata, e o espaço volta pra quem
+   tem conteúdo de verdade. */
+.cc-vazio{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:10px;
+  padding:9px 14px;text-align:left;font-size:12px;color:var(--cc-tinta-3);font-style:italic}
 
 /* ── GAVETAS ────────────────────────────────────────────────────────
    O que é consulta, não ação, fica fechado por padrão: Lembretes,
