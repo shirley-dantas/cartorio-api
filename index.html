@@ -679,6 +679,15 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    lista descer a tela inteira quando a semana tem muito lembrete. O número
    de colunas visíveis vive numa variável porque muda com a largura da tela —
    a conta da largura do cartão é sempre a mesma. */
+/* Uma faixa por pessoa, empilhadas. O nome fica num rótulo pequeno acima da
+   tira — a etiqueta de responsável saiu dos cartões, porque a faixa inteira
+   já diz de quem é. */
+.cc-mesa-faixa{margin-bottom:16px}
+.cc-mesa-faixa:last-child{margin-bottom:0}
+.cc-mesa-faixa-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.cc-mesa-faixa-nome{font-family:'Jost',sans-serif;font-weight:400;font-size:11.5px;
+  letter-spacing:.17em;text-transform:uppercase;text-indent:.17em;color:var(--cc-tinta-2)}
+.cc-mesa-faixa-cont{font-size:11px;color:var(--cc-tinta-3);font-variant-numeric:tabular-nums}
 .cc-mesa-trilha{position:relative;--cc-mesa-vis:4;--cc-mesa-gap:14px}
 .cc-mesa{display:flex;gap:var(--cc-mesa-gap);overflow-x:auto;padding-bottom:2px;
   scroll-snap-type:x proximity;scrollbar-width:none;overscroll-behavior-x:contain}
@@ -1117,19 +1126,20 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <span class="cc-secao-fio"></span>
       <span class="cc-secao-cont" id="cc-mesa-cont"></span>
     </div>
-    <div class="cc-mesa-trilha">
-      <div class="cc-mesa" id="cc-mesa"></div>
-      <div class="cc-mesa-barra" id="cc-mesa-barra"><div class="cc-mesa-thumb" id="cc-mesa-thumb"></div></div>
-    </div>
+    <!-- Uma faixa por pessoa. Os lembretes são lista de mão dupla — Shirley
+         escreve pra Grazi e Grazi escreve pra Shirley —, então misturar as
+         duas obrigava a ler cartão por cartão pra saber o que era de quem.
+         As faixas são montadas por renderMesaHoje: a de quem está no painel
+         vem primeiro. -->
+    <div id="cc-mesa-faixas"></div>
     <div class="cc-mesa-novo">
       <div class="foco-input-row" id="foco-input-row" style="display:none">
         <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
         <div class="foco-input-linha">
           <select id="foco-resp" class="foco-caso-select">
-            <option value="">Sem responsável definido</option>
             <option value="shirley">Shirley</option>
             <option value="grazi">Grazi</option>
-            <option value="gabriel">Gabriel</option>
+            <option value="">Sem responsável definido</option>
           </select>
           <label class="foco-urgente-check"><input type="checkbox" id="foco-urgente"> Urgente</label>
         </div>
@@ -2546,51 +2556,100 @@ function calcularMesaLembretes(){
   });
 }
 
+function cartaoMesaHtml(c,i){
+  const f=c.f;
+  const tagCaso=f.casoNome?`<span class="foco-caso-tag">${esc(f.casoNome)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
+  const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
+  // A etiqueta do responsável saiu do cartão: agora é a faixa inteira que
+  // diz de quem é, e repetir o nome em cada cartão seria ruído.
+  const clicavel=f.casoNome
+    ? ` data-caso="${esc(f.casoNome)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`
+    : '';
+  const tituloAgendar=c.temData?'Mudar a data na agenda':'Colocar na agenda';
+  return`
+  <article class="cc-mesa-card${c.critico?' critico':''}" data-foco-id="${esc(f.id)}">
+    <span class="cc-mesa-topo">
+      <span class="cc-mesa-pegar" title="Arraste o cartão para mudar a ordem"></span>
+      <span class="cc-mesa-num">${String(i+1).padStart(2,'0')}</span><span class="cc-mesa-fio"></span>
+    </span>
+    <div class="cc-mesa-corpo"${clicavel}>
+      <span class="cc-mesa-nome">${esc(f.text||'Lembrete')}</span>
+      <span class="cc-mesa-tags">${tagCaso}${tagUrgente}</span>
+    </div>
+    <span class="cc-mesa-rodape">
+      <span class="cc-mesa-hora"><i class="ti ${c.icone}"></i>${esc(c.quando)}</span>
+      <span class="cc-mesa-acoes">
+        <button class="cdc-agenda-btn agendar${c.temData?' marcado':''}" title="${tituloAgendar}" onclick="abrirEditarAgenda('foco','${f.id}','agendar')"><i class="ti ti-calendar-plus"></i></button>
+        <button class="cdc-agenda-btn editar" title="Editar lembrete" onclick="abrirEditarAgenda('foco','${f.id}')"><i class="ti ti-pencil"></i></button>
+        <button class="cdc-agenda-btn concluir" title="Concluir lembrete" onclick="toggleFoco('${f.id}')"><i class="ti ti-check"></i></button>
+        <button class="cdc-agenda-btn excluir" title="Excluir lembrete" onclick="delFoco('${f.id}')"><i class="ti ti-trash"></i></button>
+      </span>
+    </span>
+  </article>`;
+}
+
+// Uma faixa por pessoa: a de quem está no painel vem primeiro, a da outra
+// logo abaixo. A terceira, dos lembretes sem responsável, só existe quando
+// houver algum — são os antigos, de antes de o formulário passar a marcar o
+// dono sozinho.
 function renderMesaHoje(){
-  const el=document.getElementById('cc-mesa');
-  if(!el)return new Set();
+  const host=document.getElementById('cc-mesa-faixas');
+  if(!host)return new Set();
   const cartoes=calcularMesaLembretes();
   const cont=document.getElementById('cc-mesa-cont');
   if(cont)cont.textContent=cartoes.length?`${cartoes.length} ${ccPlural(cartoes.length,'lembrete')}`:'';
-  ligarBarraMesa();
-  if(!cartoes.length){
-    el.innerHTML=`<div class="cc-mesa-vazia">Nenhum lembrete aberto. Bom dia tranquilo.</div>`;
-    if(medirBarraMesa)medirBarraMesa();
-    return new Set();
-  }
-  el.innerHTML=cartoes.map((c,i)=>{
-    const f=c.f;
-    const tagCaso=f.casoNome?`<span class="foco-caso-tag">${esc(f.casoNome)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
-    const tagResp=f.resp?bResp(f.resp):'';
-    const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
-    // Clicar no corpo leva ao caso, como já levava — mas só quando o lembrete
-    // está amarrado a um caso; "Geral" não tem pra onde ir.
-    const clicavel=f.casoNome
-      ? ` data-caso="${esc(f.casoNome)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`
-      : '';
-    // Com data, o lembrete já está na Agenda e o botão vira "mudar a data".
-    const tituloAgendar=c.temData?'Mudar a data na agenda':'Colocar na agenda';
-    return`
-    <article class="cc-mesa-card${c.critico?' critico':''}" data-foco-id="${esc(f.id)}">
-      <span class="cc-mesa-topo">
-        <span class="cc-mesa-pegar" title="Arraste o cartão para mudar a ordem"></span>
-        <span class="cc-mesa-num">${String(i+1).padStart(2,'0')}</span><span class="cc-mesa-fio"></span>
-      </span>
-      <div class="cc-mesa-corpo"${clicavel}>
-        <span class="cc-mesa-nome">${esc(f.text||'Lembrete')}</span>
-        <span class="cc-mesa-tags">${tagCaso}${tagResp}${tagUrgente}</span>
-      </div>
-      <span class="cc-mesa-rodape">
-        <span class="cc-mesa-hora"><i class="ti ${c.icone}"></i>${esc(c.quando)}</span>
-        <span class="cc-mesa-acoes">
-          <button class="cdc-agenda-btn agendar${c.temData?' marcado':''}" title="${tituloAgendar}" onclick="abrirEditarAgenda('foco','${f.id}','agendar')"><i class="ti ti-calendar-plus"></i></button>
-          <button class="cdc-agenda-btn editar" title="Editar lembrete" onclick="abrirEditarAgenda('foco','${f.id}')"><i class="ti ti-pencil"></i></button>
-          <button class="cdc-agenda-btn concluir" title="Concluir lembrete" onclick="toggleFoco('${f.id}')"><i class="ti ti-check"></i></button>
-          <button class="cdc-agenda-btn excluir" title="Excluir lembrete" onclick="delFoco('${f.id}')"><i class="ti ti-trash"></i></button>
-        </span>
-      </span>
-    </article>`;}).join('');
-  if(medirBarraMesa)medirBarraMesa();
+
+  const eu=donoAtual();
+  const outro=DONOS_MESA.find(d=>d!==eu);
+  const doDono=(chave)=>cartoes.filter(c=>(c.f.resp||'')===chave);
+  const semDono=cartoes.filter(c=>!DONOS_MESA.includes(c.f.resp||''));
+  const faixas=[
+    {chave:eu,    titulo:'Meus',                  itens:doDono(eu),    sempre:true},
+    {chave:outro, titulo:'Da '+nomeDono(outro),   itens:doDono(outro), sempre:true},
+    {chave:'',    titulo:'Sem responsável',       itens:semDono,       sempre:false}
+  ];
+
+  // A casca de cada faixa é montada uma vez e reaproveitada: refazê-la a cada
+  // render penduraria um ouvinte novo de rolagem e de arrasto por passada.
+  faixas.forEach(fx=>{
+    if(!fx.sempre&&!fx.itens.length){
+      const antiga=host.querySelector(`[data-faixa="${fx.chave||'sem'}"]`);
+      if(antiga)antiga.remove();
+      return;
+    }
+    const id=fx.chave||'sem';
+    let bloco=host.querySelector(`[data-faixa="${id}"]`);
+    if(!bloco){
+      bloco=document.createElement('div');
+      bloco.className='cc-mesa-faixa';
+      bloco.dataset.faixa=id;
+      bloco.innerHTML=`
+        <div class="cc-mesa-faixa-head">
+          <span class="cc-mesa-faixa-nome"></span>
+          <span class="cc-mesa-faixa-cont"></span>
+        </div>
+        <div class="cc-mesa-trilha">
+          <div class="cc-mesa"></div>
+          <div class="cc-mesa-barra"><div class="cc-mesa-thumb"></div></div>
+        </div>`;
+      host.appendChild(bloco);
+      ligarFaixaMesa(bloco);
+    }
+    bloco.querySelector('.cc-mesa-faixa-nome').textContent=fx.titulo;
+    bloco.querySelector('.cc-mesa-faixa-cont').textContent=fx.itens.length
+      ?`${fx.itens.length} ${ccPlural(fx.itens.length,'lembrete')}`:'';
+    const tira=bloco.querySelector('.cc-mesa');
+    tira.innerHTML=fx.itens.length
+      ? fx.itens.map(cartaoMesaHtml).join('')
+      : `<div class="cc-mesa-vazia">${fx.chave===eu?'Nada pra você agora.':'Nada pra '+nomeDono(fx.chave)+' agora.'}</div>`;
+    if(bloco._medirBarra)bloco._medirBarra();
+  });
+  // Ordem das faixas na tela, caso o dono do aparelho mude entre renders.
+  faixas.forEach(fx=>{
+    const b=host.querySelector(`[data-faixa="${fx.chave||'sem'}"]`);
+    if(b)host.appendChild(b);
+  });
+
   // A Mesa não consome mais id de caso: ela não mostra caso nenhum, então
   // Incêndios e Esquecidos voltam a receber a lista inteira.
   return new Set();
@@ -2735,7 +2794,7 @@ function ligarBarraRolagem({alvo,barra,thumb,eixo,minimo,aoMedir}){
   return medir;
 }
 
-let medirBarraAgenda=null,medirBarraMesa=null;
+let medirBarraAgenda=null;
 function atualizarBarraAgenda(){
   if(medirBarraAgenda)medirBarraAgenda();
 }
@@ -2755,8 +2814,7 @@ function atualizarBarraAgenda(){
 // Mouse pega depois de 6px de movimento; dedo pega segurando 260ms parado. É a
 // separação que deixa o deslize do dedo continuar rolando a faixa: quem
 // deslizou de imediato queria rolar, quem segurou queria carregar o cartão.
-function ligarReordenarMesa(){
-  const faixa=document.getElementById('cc-mesa');
+function ligarReordenarMesa(faixa){
   if(!faixa||faixa.dataset.reordenar)return;
   faixa.dataset.reordenar='1';
   let card=null,candidato=null,arrastou=false;
@@ -2856,10 +2914,24 @@ function ligarReordenarMesa(){
 // A ordem é gravada como número dentro de cada lembrete, e não deduzida da
 // posição no array: o array é reescrito inteiro a cada mudança nos focos, e a
 // ordem escolhida à mão precisa sobreviver a isso.
+// Reordenar uma faixa não pode mexer na outra. A conta: pega a fila como ela
+// está hoje, descobre quais POSIÇÕES os cartões desta faixa ocupam nela, e
+// redistribui esses mesmos cartões nessas mesmas posições, na sequência nova.
+// As posições de quem está na outra faixa ficam intactas.
+//
+// No fim, todo lembrete recebe `ordem` explícita — a fila deixa de depender
+// de empate no critério automático e passa a ser o que a mão decidiu.
 function salvarOrdemMesa(ids){
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+  // Lê a fila ANTES do arrasto: calcularMesaLembretes olha os dados, que só
+  // mudam quando esta função grava.
+  const fila=calcularMesaLembretes().map(c=>c.f.id);
+  const daFaixa=ids.filter(id=>fila.includes(id));
+  const posicoes=daFaixa.map(id=>fila.indexOf(id)).sort((a,b)=>a-b);
+  const novaFila=[...fila];
+  daFaixa.forEach((id,k)=>{novaFila[posicoes[k]]=id;});
   let mudou=false;
-  ids.forEach((id,i)=>{
+  novaFila.forEach((id,i)=>{
     const j=arr.findIndex(f=>f&&f.id===id);
     if(j===-1||arr[j].ordem===i)return;
     arr[j]={...arr[j],ordem:i};
@@ -2868,15 +2940,18 @@ function salvarOrdemMesa(ids){
   if(mudou)set(focosRef,arr);
 }
 
-function ligarBarraMesa(){
-  if(medirBarraMesa)return;
-  medirBarraMesa=ligarBarraRolagem({
-    alvo:document.getElementById('cc-mesa'),
-    barra:document.getElementById('cc-mesa-barra'),
-    thumb:document.getElementById('cc-mesa-thumb'),
+
+// Cada faixa tem barra e arrasto próprios. Antes havia uma tira só, com ids
+// fixos; com uma faixa por pessoa, tudo passa a ser por elemento.
+function ligarFaixaMesa(bloco){
+  const tira=bloco.querySelector('.cc-mesa');
+  bloco._medirBarra=ligarBarraRolagem({
+    alvo:tira,
+    barra:bloco.querySelector('.cc-mesa-barra'),
+    thumb:bloco.querySelector('.cc-mesa-thumb'),
     eixo:'x',minimo:36
   });
-  ligarReordenarMesa();
+  ligarReordenarMesa(tira);
 }
 
 function ligarBarraAgenda(){
@@ -3189,6 +3264,19 @@ function popularFocoCasoSelect(){
   sel.innerHTML=`<option value="">Geral (sem caso específico)</option>`+
     ativos.map(c=>`<option value="${esc(c.nome)}" data-resp="${c.resp||''}">${esc(c.nome)}${c.tipo?' — '+esc(c.tipo):''}</option>`).join('');
 }
+// Quem está usando o painel, na mesma chave que os lembretes usam. Vem da
+// identidade escolhida no aparelho — a mesma que dá o nome na saudação.
+const DONOS_MESA=['shirley','grazi'];
+function donoAtual(){
+  const u=(localStorage.getItem('painel_usuario')||'').trim().toLowerCase();
+  return DONOS_MESA.includes(u)?u:DONOS_MESA[0];
+}
+function nomeDono(chave){
+  if(chave==='shirley')return 'Shirley';
+  if(chave==='grazi')return 'Grazi';
+  return 'Sem responsável';
+}
+
 window.autoPreencherRespFoco=function(){
   const selCaso=document.getElementById('foco-caso');
   const resp=selCaso.selectedOptions[0]&&selCaso.selectedOptions[0].dataset.resp;
@@ -3200,7 +3288,7 @@ window.toggleFocoInput=function(){
   document.getElementById('foco-add-btn')?.classList.toggle('open',r.style.display==='flex');
   if(r.style.display==='flex'){
     popularFocoCasoSelect();
-    document.getElementById('foco-resp').value='';
+    document.getElementById('foco-resp').value=donoAtual();
     document.getElementById('foco-urgente').checked=false;
     document.getElementById('foco-quando').value='';
     setTimeout(()=>document.getElementById('foco-input').focus(),50);
@@ -3219,7 +3307,7 @@ window.addFoco=function(){
   arr.push({id:gerarIdFoco(),text:v,done:false,casoNome,resp,urgente,quando});
   set(focosRef,arr);
   document.getElementById('foco-input').value='';
-  document.getElementById('foco-resp').value='';
+  document.getElementById('foco-resp').value=donoAtual();
   document.getElementById('foco-urgente').checked=false;
   document.getElementById('foco-quando').value='';
   document.getElementById('foco-caso').value='';
