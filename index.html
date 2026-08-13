@@ -666,9 +666,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cc-mesa::-webkit-scrollbar{display:none}
 .cc-mesa>*{flex:0 0 calc((100% - (var(--cc-mesa-vis) - 1) * var(--cc-mesa-gap)) / var(--cc-mesa-vis));
   scroll-snap-align:start}
-/* Enquanto se arrasta a faixa, o texto não pode ir junto virando seleção. */
-.cc-mesa.arrastando{cursor:grabbing;user-select:none;scroll-snap-type:none}
-.cc-mesa.arrastando .cc-mesa-corpo{cursor:grabbing}
 /* Mesma barra da Agenda, deitada. Só aparece quando sobra cartão. */
 .cc-mesa-barra{position:relative;height:9px;margin-top:12px;display:none;
   background:var(--cc-sup-2);border:1px solid var(--cc-linha);border-radius:999px}
@@ -723,16 +720,24 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    qualquer outro lugar empurra a faixa pro lado, e os dois arrastos não
    podem disputar o mesmo gesto. touch-action:none porque no celular o
    navegador rolaria a faixa em vez de deixar o cartão vir junto. */
-/* Tamanho explícito, e não herdado do glifo: além de virar alvo decente pro
-   dedo, a alça continua pegável se a fonte de ícones demorar ou falhar. */
-.cc-mesa-pegar{display:inline-flex;align-items:center;justify-content:center;
-  width:22px;height:22px;margin-left:-5px;margin-right:1px;padding:0;border:0;background:none;
-  line-height:1;flex-shrink:0;color:var(--cc-tinta-3);cursor:grab;touch-action:none;font-size:15px}
-.cc-mesa-pegar:hover{color:var(--cc-tinta)}
+/* A alça não é o alvo do arrasto — o cartão inteiro é. Ela é só o sinal de
+   que o cartão se mexe. Por isso é desenhada em CSS, e não com a fonte de
+   ícones: um sinal de "pode arrastar" que some quando o CDN falha não serve
+   pra nada, e foi exatamente o que aconteceu na primeira versão. */
+.cc-mesa-pegar{width:11px;height:16px;margin-left:-2px;margin-right:2px;flex-shrink:0;
+  background-image:radial-gradient(circle,var(--cc-linha-forte) 1.4px,transparent 1.5px);
+  background-size:5px 5px;background-position:0 1px;opacity:.85}
+.cc-mesa-card{cursor:grab}
+.cc-mesa-card:active{cursor:grabbing}
 .cc-mesa-card.pegando{cursor:grabbing;box-shadow:0 14px 30px rgba(31,42,51,.16);
-  border-color:var(--cc-champagne);transform:none}
-.cc-mesa.reordenando{scroll-snap-type:none}
-.cc-mesa.reordenando .cc-mesa-card{transition:none}
+  border-color:var(--cc-champagne);transform:none;opacity:.97}
+.cc-mesa-card.pegando .cc-mesa-pegar{opacity:1;
+  background-image:radial-gradient(circle,var(--cc-champagne) 1.4px,transparent 1.5px)}
+/* Com um cartão no ar, nada de encaixe puxando ele de volta, nada de seleção
+   de texto arrastando junto, e o toque para de rolar a faixa pra o cartão
+   poder acompanhar o dedo. */
+.cc-mesa.reordenando{scroll-snap-type:none;user-select:none}
+.cc-mesa.reordenando .cc-mesa-card{transition:none;touch-action:none}
 .cc-mesa-hora i{font-size:13px;color:var(--cc-champagne)}
 .cc-mesa-card.critico .cc-mesa-hora{color:var(--cc-critico)}
 .cc-mesa-card.critico .cc-mesa-hora i{color:var(--cc-critico)}
@@ -2451,7 +2456,7 @@ function renderMesaHoje(){
     return`
     <article class="cc-mesa-card${c.critico?' critico':''}" data-foco-id="${esc(f.id)}">
       <span class="cc-mesa-topo">
-        <button class="cc-mesa-pegar" title="Arrastar para mudar a ordem" aria-label="Mudar a ordem deste lembrete"><i class="ti ti-grip-vertical"></i></button>
+        <span class="cc-mesa-pegar" title="Arraste o cartão para mudar a ordem"></span>
         <span class="cc-mesa-num">${String(i+1).padStart(2,'0')}</span><span class="cc-mesa-fio"></span>
       </span>
       <div class="cc-mesa-corpo"${clicavel}>
@@ -2650,15 +2655,26 @@ function atualizarBarraAgenda(){
 }
 
 // ── REORDENAR A MESA ──
-// A ordem dos cartões vira decisão de quem usa: arrastando pela alça, o
-// cartão muda de lugar e a posição fica gravada em `ordem`, dentro do próprio
-// lembrete. A alça existe pra não brigar com o outro arrasto — pegar pela
-// alça reordena, pegar em qualquer outro ponto empurra a faixa pro lado.
+// A ordem dos cartões é decisão de quem usa: arrastando o cartão pro lado, ele
+// muda de lugar na fila e a posição fica gravada em `ordem`, dentro do próprio
+// lembrete.
+//
+// O cartão INTEIRO é a área de arrasto — a alça é só o sinal visual de que ele
+// se mexe. A primeira versão só reordenava pela alça, com o arrasto no resto do
+// cartão empurrando a faixa pro lado, e na prática ninguém acerta o alvo certo:
+// pega-se o cartão, e a faixa andava em vez de reordenar. Empurrar a faixa
+// agora é papel da barra de rolagem (que arrasta), da roda do mouse e, no
+// celular, do deslize normal do dedo.
+//
+// Mouse pega depois de 6px de movimento; dedo pega segurando 260ms parado. É a
+// separação que deixa o deslize do dedo continuar rolando a faixa: quem
+// deslizou de imediato queria rolar, quem segurou queria carregar o cartão.
 function ligarReordenarMesa(){
   const faixa=document.getElementById('cc-mesa');
   if(!faixa||faixa.dataset.reordenar)return;
   faixa.dataset.reordenar='1';
-  let card=null,autoTimer=null;
+  let card=null,candidato=null,arrastou=false;
+  let origemX=0,origemY=0,timerToque=null,autoTimer=null;
   const cartoes=()=>[...faixa.querySelectorAll('.cc-mesa-card')];
 
   // Põe o cartão arrastado antes do primeiro cujo meio já passou do ponteiro
@@ -2672,8 +2688,8 @@ function ligarReordenarMesa(){
     else faixa.appendChild(card);
   };
 
-  // Sem isto, não daria pra mandar um cartão pra uma posição que está fora da
-  // vista: chegando perto da borda, a faixa anda sozinha.
+  // Sem isto, não daria pra mandar um cartão pra uma posição fora da vista:
+  // chegando perto da borda, a faixa anda sozinha.
   const autoRolar=(x)=>{
     const r=faixa.getBoundingClientRect();
     const passo=x<r.left+70?-14:(x>r.right-70?14:0);
@@ -2681,20 +2697,22 @@ function ligarReordenarMesa(){
     if(passo)autoTimer=setInterval(()=>{faixa.scrollLeft+=passo;},16);
   };
 
-  const mover=(e)=>{
-    if(!card)return;
-    e.preventDefault();
-    posicionar(e.clientX);
-    autoRolar(e.clientX);
+  const pegar=()=>{
+    if(!candidato)return;
+    card=candidato;
+    arrastou=true;
+    card.classList.add('pegando');
+    faixa.classList.add('reordenando');
   };
-  const soltar=()=>{
-    if(!card)return;
+
+  const encerrar=()=>{
+    clearTimeout(timerToque);timerToque=null;
     clearInterval(autoTimer);autoTimer=null;
+    candidato=null;
+    if(!card)return;
     card.classList.remove('pegando');
     faixa.classList.remove('reordenando');
     card=null;
-    document.removeEventListener('pointermove',mover);
-    document.removeEventListener('pointerup',soltar);
     // Renumera na hora: o 01/02/03 vem do render, e esperar a ida e volta do
     // Firebase deixaria a fila com a numeração antiga por um instante.
     const fila=cartoes();
@@ -2704,17 +2722,49 @@ function ligarReordenarMesa(){
     });
     salvarOrdemMesa(fila.map(c=>c.dataset.focoId));
   };
-  faixa.addEventListener('pointerdown',(e)=>{
-    const alca=e.target.closest('.cc-mesa-pegar');
-    if(!alca)return;
+
+  const mover=(e)=>{
+    if(!card){
+      if(!candidato)return;
+      const dx=Math.abs(e.clientX-origemX),dy=Math.abs(e.clientY-origemY);
+      if(e.pointerType==='mouse'){
+        if(dx>6)pegar();
+      }else if(dx>10||dy>10){
+        // Mexeu antes de o tempo fechar: é deslize pra rolar a faixa, não
+        // intenção de carregar o cartão. Sai de cena e deixa o navegador rolar.
+        clearTimeout(timerToque);timerToque=null;candidato=null;
+      }
+      if(!card)return;
+    }
     e.preventDefault();
-    card=alca.closest('.cc-mesa-card');
-    if(!card)return;
-    card.classList.add('pegando');
-    faixa.classList.add('reordenando');
-    document.addEventListener('pointermove',mover);
-    document.addEventListener('pointerup',soltar);
+    posicionar(e.clientX);
+    autoRolar(e.clientX);
+  };
+
+  faixa.addEventListener('pointerdown',(e)=>{
+    // Zera a marca ANTES de qualquer desvio: se ela só zerasse no caminho do
+    // arrasto, um clique em botão logo depois de reordenar seria comido pelo
+    // ouvinte lá embaixo, que ainda veria a marca do arrasto anterior.
+    arrastou=false;
+    if(e.target.closest('button'))return;
+    const alvo=e.target.closest('.cc-mesa-card');
+    if(!alvo)return;
+    candidato=alvo;origemX=e.clientX;origemY=e.clientY;
+    if(e.pointerType!=='mouse'){
+      clearTimeout(timerToque);
+      timerToque=setTimeout(pegar,260);
+    }
+    document.addEventListener('pointermove',mover,{passive:false});
+    document.addEventListener('pointerup',encerrar);
+    document.addEventListener('pointercancel',encerrar);
   });
+
+  // Terminado o arrasto o navegador ainda dispara um clique, que abriria o
+  // caso sem querer. Este ouvinte come esse clique — e só ele, porque o
+  // próximo pointerdown zera a marca.
+  faixa.addEventListener('click',(e)=>{
+    if(arrastou){e.stopPropagation();e.preventDefault();}
+  },true);
 }
 
 // A ordem é gravada como número dentro de cada lembrete, e não deduzida da
@@ -2740,45 +2790,9 @@ function ligarBarraMesa(){
     thumb:document.getElementById('cc-mesa-thumb'),
     eixo:'x',minimo:36
   });
-  ligarArrastoMesa();
   ligarReordenarMesa();
 }
 
-// Arrastar a própria faixa com o mouse, e não só a barra — é o gesto que se
-// faz sem pensar. No toque o navegador já rola sozinho, então isto é só pro
-// mouse. Só vira arrasto depois de 6px: sem essa folga, todo clique tremido
-// em cima de um botão viraria arrasto e o clique se perderia.
-function ligarArrastoMesa(){
-  const el=document.getElementById('cc-mesa');
-  if(!el||el.dataset.arrasto)return;
-  el.dataset.arrasto='1';
-  let xInicial=0,scrollInicial=0,ativo=false,arrastou=false;
-  el.addEventListener('pointerdown',(e)=>{
-    // A marca zera ANTES de qualquer desvio: se ela só zerasse no caminho do
-    // arrasto, um clique em botão logo depois de arrastar seria comido pelo
-    // ouvinte lá embaixo, que ainda veria a marca do arrasto anterior.
-    arrastou=false;
-    if(e.pointerType!=='mouse'||e.target.closest('button'))return;
-    ativo=true;xInicial=e.clientX;scrollInicial=el.scrollLeft;
-  });
-  el.addEventListener('pointermove',(e)=>{
-    if(!ativo)return;
-    const d=e.clientX-xInicial;
-    if(!arrastou&&Math.abs(d)<6)return;
-    arrastou=true;
-    el.classList.add('arrastando');
-    el.scrollLeft=scrollInicial-d;
-  });
-  const soltar=()=>{ativo=false;el.classList.remove('arrastando');};
-  el.addEventListener('pointerup',soltar);
-  el.addEventListener('pointerleave',soltar);
-  // Terminado o arrasto o navegador ainda dispara um clique, que abriria o
-  // caso sem querer. Este ouvinte come esse clique — e só ele, porque o
-  // próximo pointerdown zera a marca.
-  el.addEventListener('click',(e)=>{
-    if(arrastou){e.stopPropagation();e.preventDefault();}
-  },true);
-}
 function ligarBarraAgenda(){
   if(medirBarraAgenda)return;
   const faixa=document.getElementById('cc-faixa');
