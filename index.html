@@ -316,6 +316,22 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 #agenda-edit-campos .modal-label{margin-top:2px}
 .agenda-edit-check{display:flex;align-items:center;gap:7px;font-size:12px;color:#636366;cursor:pointer}
 .agenda-edit-nota{font-size:11.5px;color:#8E8EA0;line-height:1.45;margin-top:2px}
+
+/* ── ARQUIVO ── */
+.sidebar-item-arquivo{margin-top:8px;border-top:1px solid var(--cc-linha);border-radius:0;padding-top:12px}
+.arquivo-busca{display:flex;align-items:center;gap:9px;border:0.5px solid #D1D1D6;background:#F5F5F7;
+  border-radius:10px;padding:0 12px;margin-bottom:12px}
+.arquivo-busca i{font-size:15px;color:#8E8EA0;flex-shrink:0}
+.arquivo-busca input{flex:1;border:none;background:none;outline:none;font-family:inherit;
+  font-size:13px;color:#1C1C1E;padding:10px 0}
+#arquivo-lista{max-height:52vh;overflow-y:auto}
+.arquivo-item{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;cursor:pointer;
+  background:#F5F6F8;border:none;border-left:4px solid #D1D1D6;border-radius:10px;
+  padding:10px 13px;margin-bottom:6px;font-family:inherit}
+.arquivo-item:hover{background:#EDEFF3;border-left-color:#A9895A}
+.arquivo-nome{font-size:13.5px;color:#1C1C1E;font-weight:500}
+.arquivo-meta{font-size:11.5px;color:#6E6E8A}
+.arquivo-vazio{font-size:12.5px;color:#6E6E8A;font-style:italic;padding:10px 2px}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(13,25,34,.6);backdrop-filter:blur(2px);z-index:1000;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
 .modal-overlay.open{display:flex}
 .modal-box{background:#fff;border-radius:26px;width:100%;max-width:780px;padding:26px;position:relative;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
@@ -1155,7 +1171,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <button class="cx-fbtn" data-filtro="grazi" onclick="setFiltro('grazi',this)">Grazi</button>
       <button class="cx-fbtn" data-filtro="gabriel" onclick="setFiltro('gabriel',this)">Gabriel</button>
       <button class="cx-fbtn" data-filtro="terceiro" onclick="setFiltro('terceiro',this)">Aguard. terceiro</button>
-      <button class="cx-fbtn cx-fbtn-arquivo" data-filtro="concluido" onclick="setFiltro('concluido',this)"><i class="ti ti-archive" style="font-size:13px;vertical-align:-2px"></i> Arquivo</button>
+      <button class="cx-fbtn cx-fbtn-arquivo" id="cx-modo-arquivo" style="display:none" onclick="setFiltro('todos')"><i class="ti ti-archive" style="font-size:13px;vertical-align:-2px"></i> Arquivo &middot; voltar aos ativos</button>
     </div>
     <div class="add-section">
       <button class="cx-add" onclick="toggleForm()"><i class="ti ti-plus" style="font-size:15px"></i> Adicionar novo caso</button>
@@ -1233,6 +1249,22 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 </div>
 
 <div class="nav-toast" id="nav-toast"></div>
+<!-- Arquivo: a lista de concluidos saiu da barra de filtros e virou consulta
+     de lateral, com busca propria. Clicar num resultado leva ao card, que e
+     onde mora o botao de reabrir. -->
+<div class="modal-overlay" id="modal-arquivo">
+  <div class="modal-box" style="max-width:620px">
+    <button class="modal-close" onclick="fecharArquivo()">&times;</button>
+    <div class="modal-title"><i class="ti ti-archive" style="font-size:15px;vertical-align:-2px;color:#A9895A"></i> Arquivo</div>
+    <div class="modal-sub" id="arquivo-sub">—</div>
+    <div class="arquivo-busca">
+      <i class="ti ti-search"></i>
+      <input type="text" id="arquivo-input" placeholder="Buscar por nome, tipo de ato, observação..." oninput="renderArquivo(this.value)">
+    </div>
+    <div id="arquivo-lista"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-quadro">
   <div class="modal-box" style="max-width:940px">
     <button class="modal-close" onclick="fecharQuadro()">&times;</button>
@@ -2215,6 +2247,56 @@ window.ccToggleItem=function(btn){
 // consulta não precisa ocupar a tela de trabalho. O bloco fica sempre no DOM,
 // só escondido: renderQuadro escreve nele a cada render da Central, e o balão
 // dos gráficos se prende a ele uma vez só, na carga da página.
+// ── ARQUIVO ──
+// Os concluídos deixaram de ser um filtro da lista de trabalho e viraram
+// consulta: quem procura um caso arquivado sabe o nome, não a posição numa
+// lista. Daí a busca aqui dentro, em vez da pílula que trocava o conteúdo da
+// tela inteira. Clicar num resultado leva ao card — é lá que mora o botão de
+// reabrir, e é lá que se decide retomar de verdade.
+function arquivoData(v){
+  if(!v)return '';
+  const s=String(v);
+  const d=new Date(s.length===10?s+'T00:00':s);
+  return isNaN(d)?'':d.toLocaleDateString('pt-BR');
+}
+window.abrirArquivo=function(){
+  const inp=document.getElementById('arquivo-input');
+  if(inp)inp.value='';
+  renderArquivo('');
+  document.getElementById('modal-arquivo').classList.add('open');
+  setTimeout(()=>inp&&inp.focus(),60);
+};
+window.fecharArquivo=function(){
+  document.getElementById('modal-arquivo').classList.remove('open');
+};
+window.renderArquivo=function(q){
+  const el=document.getElementById('arquivo-lista');
+  const sub=document.getElementById('arquivo-sub');
+  if(!el)return;
+  const termo=(q||'').trim().toLowerCase();
+  // Mais recém-concluído primeiro, que é a ordem em que se costuma procurar.
+  const todos=getCasosList().filter(c=>c.concluido)
+    .sort((a,b)=>String(b.concluidoEm||b.atualizado||'').localeCompare(String(a.concluidoEm||a.atualizado||'')));
+  const lista=termo
+    ? todos.filter(c=>[c.nome,c.tipo,c.acao,c.obs].some(t=>(t||'').toLowerCase().includes(termo)))
+    : todos;
+  if(sub)sub.textContent=!todos.length?'Nenhum caso concluído ainda.'
+    :(termo?`${lista.length} de ${todos.length} ${ccPlural(todos.length,'caso')}`
+           :`${todos.length} ${ccPlural(todos.length,'caso')} ${ccPlural(todos.length,'concluído')}`);
+  el.innerHTML=lista.length
+    ? lista.map(c=>{
+        const quando=arquivoData(c.concluidoEm||c.atualizado);
+        return`<button type="button" class="arquivo-item" onclick="irParaCasoDoArquivo('${c.id}')">
+          <span class="arquivo-nome">${escTxt(c.nome)}</span>
+          <span class="arquivo-meta">${escTxt(c.tipo||'—')}${quando?' · concluído em '+quando:''}</span>
+        </button>`;}).join('')
+    : `<div class="arquivo-vazio">${termo?'Nada no arquivo bate com essa busca.':'Nenhum caso concluído ainda — o que você concluir aparece aqui.'}</div>`;
+};
+window.irParaCasoDoArquivo=function(id){
+  fecharArquivo();
+  irParaCasoPorId(id);
+};
+
 window.abrirQuadro=function(){document.getElementById('modal-quadro').classList.add('open');};
 window.fecharQuadro=function(){document.getElementById('modal-quadro').classList.remove('open');};
 
@@ -3364,10 +3446,14 @@ const ETAPAS_SIDEBAR=[
 ];
 function renderEtapasSidebar(){
   const ativos=getCasosList().filter(x=>!x.concluido);
+  const arquivados=getCasosList().filter(c=>c.concluido).length;
   document.getElementById('sidebar-etapas').innerHTML=ETAPAS_SIDEBAR.map(e=>{
     const n=ativos.filter(c=>c.dep===e.dep).length;
     return`<button type="button" class="sidebar-item" onclick="abrirEtapaModal('${e.dep}')"><i class="ti ${e.icon}"></i><span>${e.label}</span><span class="sidebar-count ${n?'amber':'zero'}">${n}</span></button>`;
-  }).join('');
+  }).join('')
+  // O arquivo fecha a lista das etapas: é o fim da esteira, depois que o caso
+  // sai dela. Vem separado por um fio pra não se confundir com etapa ativa.
+  +`<button type="button" class="sidebar-item sidebar-item-arquivo" onclick="abrirArquivo()"><i class="ti ti-archive"></i><span>Arquivo</span><span class="sidebar-count ${arquivados?'':'zero'}">${arquivados}</span></button>`;
 }
 window.abrirEtapaModal=function(dep){
   const meta=ETAPAS_SIDEBAR.find(e=>e.dep===dep);
@@ -4271,6 +4357,11 @@ function sincronizarFiltroAtivo(){
   document.querySelectorAll('[data-filtro]').forEach(el=>{
     el.classList.toggle('on',el.dataset.filtro===filtro);
   });
+  // Sem pílula de Arquivo na barra, nada indicaria que a lista está mostrando
+  // concluídos — nem como sair de lá. Esta faixa faz as duas coisas, e some
+  // sozinha quando o filtro volta pros ativos.
+  const modo=document.getElementById('cx-modo-arquivo');
+  if(modo)modo.style.display=filtro==='concluido'?'inline-flex':'none';
 }
 window.setFiltro=function(f){
   filtro=f;
