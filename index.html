@@ -654,6 +654,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    planner separa seções sem desenhar caixa em volta de tudo. */
 .cc-secao-fio{flex:1;height:1px;background:linear-gradient(90deg,var(--cc-linha),transparent)}
 .cc-secao-cont{font-size:11.5px;color:var(--cc-tinta-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* O recorte grave do cabeçalho. Vermelho e não cinza porque ele existe pra
+   ser lido de longe — é o que a lista, rolando por dentro, esconde. */
+.cc-secao-alerta{color:var(--cc-critico);font-weight:600}
 
 /* ── A MESA DE HOJE ─────────────────────────────────────────────────
    O único lugar da tela com esse peso tipográfico — é onde o olho
@@ -2273,11 +2276,25 @@ function secaoRolavel(el,titulo,icone,contagem){
       eixo:'y'
     });
   }
+  // innerHTML, e não textContent: a contagem carrega o <b> do destaque. O
+  // conteúdo é montado por ccContagemSecao a partir de números, não de texto
+  // vindo do banco.
   const cont=el.querySelector('.cc-secao-cont');
-  if(cont)cont.textContent=contagem||'';
+  if(cont)cont.innerHTML=contagem||'';
   return el.querySelector('.cc-lista-rolagem');
 }
 function ccVazio(txt){return`<div class="cc-vazio">${esc(txt)}</div>`;}
+
+// "12 casos" responde quantos, mas não quão grave — e com a lista rolando por
+// dentro, os mais antigos ficam abaixo da dobra justamente quando são eles
+// que deveriam assustar. O segundo número traz essa gravidade pro cabeçalho:
+// quantos desses já passaram do ponto em que ainda dava pra chamar de atraso
+// normal. Some quando não há nenhum, pra não virar um "0" decorativo.
+function ccContagemSecao(total,destaque,rotulo){
+  if(!total)return '';
+  const base=`${total} ${ccPlural(total,'caso')}`;
+  return destaque?`${base} · <b class="cc-secao-alerta">${destaque} ${rotulo}</b>`:base;
+}
 function ccPlural(n,s,p){return n===1?s:(p||s+'s');}
 
 function acoesBotoesHtml(chave){
@@ -2514,6 +2531,13 @@ function renderMesaHoje(){
   return new Set();
 }
 
+// Duas semanas na mesma etapa, e uma semana sem movimento nenhum: os dois
+// cortes que separam "atrasado" de "encalhado". São mais altos que os
+// critérios de ENTRADA das seções de propósito — repetir o critério de
+// entrada como destaque só diria "todos", que não informa nada.
+const CC_LIMITE_ANTIGO=14;
+const CC_LIMITE_SEM_MOVIMENTO=7;
+
 // ── INCÊNDIOS · ESQUECIDOS · PRÓXIMAS AÇÕES ──
 // Três áreas, três conjuntos que o motor já produzia. A única novidade é que
 // um caso não aparece mais em duas áreas ao mesmo tempo: cada seção recebe o
@@ -2525,7 +2549,9 @@ function renderIncendios(itens,usados){
   const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel==='critico'&&!usados.has(it.caso.id))
     .sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
   pool.forEach(it=>usados.add(it.caso.id));
-  const caixa=secaoRolavel(el,'Incêndios','ti-flame',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'');
+  const parados2sem=pool.filter(it=>it.md.diasNaEtapaAtual>=CC_LIMITE_ANTIGO).length;
+  const caixa=secaoRolavel(el,'Incêndios','ti-flame',
+    ccContagemSecao(pool.length,parados2sem,'há mais de 2 semanas'));
   caixa.innerHTML=pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'critico')}</div>`
                              :ccVazio('Nada pegando fogo agora.');
   if(el._medirBarra)el._medirBarra();
@@ -2540,7 +2566,9 @@ function renderEsquecidos(itens,usados){
       &&!usados.has(it.caso.id)&&diasParado(it.caso.atualizado)>=3)
     .sort((a,b)=>diasParado(a.caso.atualizado)<diasParado(b.caso.atualizado)?1:-1);
   pool.forEach(it=>usados.add(it.caso.id));
-  const caixa=secaoRolavel(el,'Esquecidos','ti-eye',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'');
+  const semana=pool.filter(it=>diasParado(it.caso.atualizado)>=CC_LIMITE_SEM_MOVIMENTO).length;
+  const caixa=secaoRolavel(el,'Esquecidos','ti-eye',
+    ccContagemSecao(pool.length,semana,'há mais de 1 semana'));
   caixa.innerHTML=pool.length?`<div class="cc-lista">${pool.map(it=>linhaCaso(it,{
         classe:'atencao',chave:it.chaveDep,mostrarAcoes:true,
         textoOverride:`Sem movimento há ${diasParado(it.caso.atualizado)} dias. ${it.md.proximaAcao}`
@@ -2556,7 +2584,9 @@ function renderProximasAcoes(itens,usados){
       &&(it.md.nivel==='atencao'||it.md.bloqueado)&&!usados.has(it.caso.id))
     .sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
   pool.forEach(it=>usados.add(it.caso.id));
-  const caixa=secaoRolavel(el,'Próximas ações','ti-bookmark',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'');
+  const parados2sem=pool.filter(it=>it.md.diasNaEtapaAtual>=CC_LIMITE_ANTIGO).length;
+  const caixa=secaoRolavel(el,'Próximas ações','ti-bookmark',
+    ccContagemSecao(pool.length,parados2sem,'há mais de 2 semanas'));
   caixa.innerHTML=pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'atencao')}</div>`
                              :ccVazio('Nada de olho no momento.');
   if(el._medirBarra)el._medirBarra();
