@@ -64,7 +64,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .hero-card.open .hero-chevron{transform:rotate(180deg)}
 .hero-body{font-size:13px;font-weight:600;color:#1C1C1E;line-height:1.4}
 .hero-sub{font-size:11.5px;color:#8E8EA0;margin-top:2px}
-.hero-expand{background:#fff;border:0.5px solid #ECECF2;border-radius:20px;padding:14px 18px;margin-bottom:20px}
 @media(max-width:880px){.hero-row{grid-template-columns:1fr}}
 .foco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .foco-title{font-size:13px;font-weight:500;color:#16283A;display:flex;align-items:center;gap:7px}
@@ -140,6 +139,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc-agenda-btn{width:26px;height:26px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px}
 .cdc-agenda-btn:hover{background:#F5F5F7}
 .cdc-agenda-btn.concluir:hover{background:#E8F5E9;border-color:#66BB6A;color:#2E7D32}
+.cdc-agenda-btn.editar:hover{background:#EAF2FB;border-color:#7FA9DC;color:#2f6fb0}
 .cdc-agenda-btn.excluir:hover{background:#FDECEA;border-color:#E57373;color:#C62828}
 .cdc-conteudo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .cdc-texto{font-size:13px;color:#1C1C1E;line-height:1.4}
@@ -325,6 +325,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .sp-opcoes button{flex:1}
 #sp-pergunta-area input{width:100%;font-size:13px;padding:9px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;font-family:inherit;outline:none;margin-bottom:10px}
 #sp-pergunta-area input:focus{border-color:#16283A;background:#fff}
+#agenda-edit-campos input[type=text],#agenda-edit-campos input[type=datetime-local]{width:100%;font-size:13px;padding:9px 11px;border-radius:8px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;font-family:inherit;outline:none;margin-bottom:10px}
+#agenda-edit-campos input:focus{border-color:#16283A;background:#fff}
+#agenda-edit-campos .modal-label{margin-top:2px}
+.agenda-edit-check{display:flex;align-items:center;gap:7px;font-size:12px;color:#636366;cursor:pointer}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(13,25,34,.6);backdrop-filter:blur(2px);z-index:1000;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
 .modal-overlay.open{display:flex}
 .modal-box{background:#fff;border-radius:26px;width:100%;max-width:780px;padding:26px;position:relative;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
@@ -586,15 +590,43 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cc-header-fechar:hover{background:var(--cc-sup-2);color:var(--cc-tinta)}
 @media(max-width:640px){.cc-header{padding:22px 14px 18px}.cc-saudacao{font-size:31px}}
 
-/* ── FAIXA-RESUMO ───────────────────────────────────────────────────
-   Adaptação da faixa de afirmação da referência ("a new era of me"):
-   mesma forma — banda larga, baixa, centrada — com uma frase factual
-   sobre o dia no lugar do mantra. */
+/* ── FAIXA-AGENDA ───────────────────────────────────────────────────
+   A banda larga e baixa da referência continua, mas deixou de ser um
+   mantra/resumo: o espaço todo é da agenda — hoje e os próximos 7 dias.
+   Conteúdo alinhado à esquerda, porque agora é lista e não frase, e a
+   linha de sincronização virou nota de rodapé do cabeçalho em vez de
+   ocupar uma linha só dela. */
 .cc-faixa{background:var(--cc-sup);border:1px solid var(--cc-linha);border-radius:14px;
-  padding:15px 22px;text-align:center;margin-bottom:30px}
-.cc-faixa-txt{font-family:'Jost',sans-serif;font-weight:300;font-size:16.5px;color:var(--cc-tinta);letter-spacing:.005em}
-.cc-faixa-txt b{font-weight:500}
-.cc-faixa-sync{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:10.5px;color:var(--cc-tinta-3)}
+  padding:15px 20px 16px;text-align:left;margin-bottom:30px}
+.cc-faixa-topo{display:flex;align-items:center;gap:11px;margin-bottom:4px}
+.cc-faixa-titulo{display:inline-flex;align-items:center;gap:7px;font-family:'Jost',sans-serif;
+  font-weight:400;font-size:12px;letter-spacing:.2em;text-transform:uppercase;text-indent:.2em;
+  color:var(--cc-tinta);white-space:nowrap}
+.cc-faixa-titulo i{font-size:14px;color:var(--cc-champagne);text-indent:0}
+.cc-faixa-cont{flex:1;font-size:11.5px;color:var(--cc-tinta-3);font-variant-numeric:tabular-nums}
+.cc-faixa-sync{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--cc-tinta-3);white-space:nowrap}
+/* Numa semana cheia a agenda cresceria a ponto de empurrar o resto do
+   painel pra fora da tela, então a lista rola por dentro em vez de esticar
+   a faixa. Não usa a classe .cdc-scroll de propósito: aquela é medida por
+   limitarScrollUmCard(), que corta a caixa na altura de UM item — regra
+   certa pra uma lista de casos, errada pra uma agenda de 7 dias. */
+.cc-faixa-corpo{max-height:380px;overflow-y:auto;padding-right:6px;margin-right:-6px}
+.cc-faixa-corpo::-webkit-scrollbar{width:6px}
+.cc-faixa-corpo::-webkit-scrollbar-thumb{background:#D1D1D6;border-radius:3px}
+/* Rolando, o dia some do topo e as linhas viram uma lista sem referência —
+   por isso o nome da faixa gruda. O padding no lugar da margem superior
+   evita a fresta por onde apareceria o item passando por trás. */
+.cc-faixa-corpo .cdc-sub-titulo{position:sticky;top:0;z-index:1;
+  background:var(--cc-sup);margin:0 0 6px;padding:9px 0 5px}
+/* O indicador "Hoje" não abre mais nada — a agenda já está aberta. Ele só
+   traz o olho até aqui, e esse brilho de 1,4s diz onde o olho pousou. */
+@keyframes cc-faixa-piscar{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 3px var(--cc-champagne)}}
+.cc-faixa.piscar{animation:cc-faixa-piscar 1.4s ease}
+@media(max-width:640px){
+  .cc-faixa-topo{flex-wrap:wrap;gap:7px}
+  .cc-faixa-cont{flex:0 0 auto}
+  .cc-faixa-corpo{max-height:300px}
+}
 
 /* ── PÍLULA DE SEÇÃO ────────────────────────────────────────────────
    O device mais característico da referência: o nome da seção mora
@@ -765,6 +797,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 @media(prefers-reduced-motion:reduce){
   .cc-item,.cc-mesa-card,.cc-gaveta-chevron,.cc-item-gatilho i{transition:none}
   .cc-item.resolvido{animation:none;opacity:0}
+  .cc-faixa.piscar{animation:none;box-shadow:0 0 0 3px var(--cc-champagne)}
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -959,13 +992,22 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="cc-datalinha" id="saudacao-texto"></div>
   </div>
 
-  <!-- O ponto de sincronização vive AQUI, e não no cabeçalho, porque o
-       cabeçalho é dispensável (fecharSaudacao) — e saber se o painel está
-       conectado ao banco não pode depender de a saudação estar aberta. -->
-  <div class="cc-faixa" id="cc-faixa">
-    <div class="cc-faixa-txt" id="cc-faixa-txt">Carregando...</div>
-    <div class="cc-faixa-sync"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></div>
-  </div>
+  <!-- Esta faixa é a Agenda, e só ela: hoje e os próximos 7 dias. O resumo
+       do dia que ficava aqui ("3 compromissos · 4 urgentes...") saiu porque
+       repetia, em prosa, exatamente o que os indicadores logo abaixo já
+       dizem em número.
+       O ponto de sincronização continua morando AQUI, e não no cabeçalho,
+       porque o cabeçalho é dispensável (fecharSaudacao) — e saber se o
+       painel está conectado ao banco não pode depender de a saudação estar
+       aberta. -->
+  <section class="cc-faixa" id="cc-faixa">
+    <div class="cc-faixa-topo">
+      <span class="cc-faixa-titulo"><i class="ti ti-calendar"></i> Agenda</span>
+      <span class="cc-faixa-cont" id="cc-faixa-cont"></span>
+      <span class="cc-faixa-sync"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span>
+    </div>
+    <div class="cdc-bloco cc-faixa-corpo" id="cdc-agenda"></div>
+  </section>
 
   <section class="cc-secao">
     <div class="cc-secao-head">
@@ -977,7 +1019,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </section>
 
   <div class="cc-kpis" id="cc-kpis"></div>
-  <div class="hero-expand" id="hero-expand-agenda" style="display:none"><div class="cdc-bloco" id="cdc-agenda"></div></div>
 
   <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)" onkeydown="if(event.key===&#39;Enter&#39;)irParaPrimeiroResultado()"></div></div>
 
@@ -1240,6 +1281,22 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="modal-title"><i class="ti ti-users" style="font-size:15px;vertical-align:-2px;color:#B45309"></i> Assinatura de segunda parte</div>
     <div class="modal-sub" id="sp-caso-info">—</div>
     <div id="sp-pergunta-area"></div>
+  </div>
+</div>
+
+<!-- Edição direto da Agenda. Não inventa campo novo: escreve exatamente nos
+     mesmos lugares que o card do caso e o formulário de lembretes já usam
+     (agendado / agendado_desc, segundaParte, focos). -->
+<div class="modal-overlay" id="modal-agenda-edit">
+  <div class="modal-box" style="max-width:420px">
+    <button class="modal-close" onclick="fecharEditarAgenda()">&times;</button>
+    <div class="modal-title"><i class="ti ti-pencil" style="font-size:15px;vertical-align:-2px;color:#2f6fb0"></i> Editar na agenda</div>
+    <div class="modal-sub" id="agenda-edit-sub">—</div>
+    <div id="agenda-edit-campos"></div>
+    <div class="modal-btn-row">
+      <button class="btn-sm" onclick="fecharEditarAgenda()">Cancelar</button>
+      <button class="btn-gerar" id="agenda-edit-salvar" onclick="salvarEditarAgenda()">Salvar</button>
+    </div>
   </div>
 </div>
 
@@ -2347,7 +2404,7 @@ function renderKpis(itens){
   const aguardando=itens.filter(it=>it.md.quemSegura==='cliente'||it.md.quemSegura==='terceiro').length;
   const dados=[
     {n:urgentes,label:'Urgentes',alerta:urgentes>0,acao:"abrirStatusModal('critico')"},
-    {n:hoje,label:'Hoje',alerta:false,acao:"toggleHeroExpand('agenda')"},
+    {n:hoje,label:'Hoje',alerta:false,acao:"ccIrParaAgenda()"},
     {n:aguardando,label:'Aguardando',alerta:false,acao:"ccAbrirKpi('aguardando')"},
     {n:ativos.length,label:'Em andamento',alerta:false,acao:"ccAbrirKpi('ativos')"}
   ];
@@ -2356,16 +2413,19 @@ function renderKpis(itens){
       <div class="cc-kpi-num">${String(d.n).padStart(2,'0')}</div>
       <div class="cc-kpi-label">${d.label}</div>
     </button>`).join('');
-
-  const faixa=document.getElementById('cc-faixa-txt');
-  if(faixa){
-    const partes=[];
-    if(hoje)partes.push(`<b>${hoje}</b> ${ccPlural(hoje,'compromisso')} hoje`);
-    if(urgentes)partes.push(`<b>${urgentes}</b> ${ccPlural(urgentes,'caso')} ${ccPlural(urgentes,'urgente')}`);
-    if(aguardando)partes.push(`<b>${aguardando}</b> na mão de terceiros`);
-    faixa.innerHTML=partes.length?partes.join(' &nbsp;·&nbsp; '):'Nenhuma pendência aberta no momento.';
-  }
 }
+
+// O indicador "Hoje" não abre mais sanfona nenhuma: a agenda mora aberta na
+// faixa, lá em cima. O clique só leva o olho até ela.
+window.ccIrParaAgenda=function(){
+  const el=document.getElementById('cc-faixa');
+  if(!el)return;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('piscar');
+  void el.offsetWidth; // reinicia a animação quando se clica duas vezes seguidas
+  el.classList.add('piscar');
+  setTimeout(()=>el.classList.remove('piscar'),1500);
+};
 window.ccAbrirKpi=function(qual){
   if(qual==='aguardando')return abrirListaCasosModal('Aguardando terceiros','ti-hourglass',
     c=>{const q=motorDecisao(c).quemSegura;return q==='cliente'||q==='terceiro';});
@@ -2462,6 +2522,13 @@ function renderAgenda(itens){
   const grupoFoco=(min,max)=>focosEv.filter(ev=>ev.diff>=min&&ev.diff<=max);
   const atrasadosF=focosEv.filter(ev=>ev.diff<0);
   const hojeF=grupoFoco(0,0),amanhaF=grupoFoco(1,1),semanaF=grupoFoco(2,7);
+  // A agenda mora na faixa do topo, então ela mesma anuncia o próprio tamanho
+  // ali no cabeçalho — quem olha de longe já sabe se a semana está cheia.
+  const cont=document.getElementById('cc-faixa-cont');
+  const totalVisivel=hoje.length+amanha.length+semana.length+focosEv.length;
+  if(cont)cont.textContent=totalVisivel
+    ?`${totalVisivel} ${ccPlural(totalVisivel,'compromisso')} · hoje e os próximos 7 dias`
+    :'hoje e os próximos 7 dias';
   let html='';
   if(!hoje.length&&!amanha.length&&!semana.length&&!focosEv.length){html+='<div class="cdc-vazio">Nada agendado pros próximos 7 dias.</div>';el.innerHTML=html;return;}
   const linhaAgenda=(ev)=>{
@@ -2472,7 +2539,7 @@ function renderAgenda(itens){
     const quemSegunda=ev.segunda&&c.segundaParte&&c.segundaParte.quem?': '+esc(c.segundaParte.quem):'';
     const tagSegunda=ev.segunda?`<span class="tag-segunda">2ª parte${quemSegunda}</span>`:'';
     const chave=chaveAgendaEvento(c.id,ev.segunda?'segunda':'principal',ev.dt);
-    return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${tagSegunda}</div><span class="cdc-meta">${dataFmt}</span></div><div class="cdc-agenda-acoes"><button class="cdc-agenda-btn concluir" title="Já concluí — tirar da agenda" onclick="event.stopPropagation();concluirAgendaEvento('${chave}')"><i class="ti ti-check"></i></button><button class="cdc-agenda-btn excluir" title="Excluir da agenda" onclick="event.stopPropagation();excluirAgendaEvento('${chave}')"><i class="ti ti-trash"></i></button></div></div>`;
+    return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${tagSegunda}</div><span class="cdc-meta">${dataFmt}</span></div><div class="cdc-agenda-acoes"><button class="cdc-agenda-btn editar" title="Editar data e descrição" onclick="event.stopPropagation();abrirEditarAgenda('${ev.segunda?'segunda':'principal'}','${c.id}')"><i class="ti ti-pencil"></i></button><button class="cdc-agenda-btn concluir" title="Já concluí — tirar da agenda" onclick="event.stopPropagation();concluirAgendaEvento('${chave}')"><i class="ti ti-check"></i></button><button class="cdc-agenda-btn excluir" title="Excluir da agenda" onclick="event.stopPropagation();excluirAgendaEvento('${chave}')"><i class="ti ti-trash"></i></button></div></div>`;
   };
   const linhaFocoAgenda=(ev)=>{
     const f=ev.foco,atrasado=ev.diff<0;
@@ -2482,10 +2549,15 @@ function renderAgenda(itens){
     // Clique leva ao caso, igual às linhas de compromisso — mas só quando o
     // lembrete está amarrado a um caso; "Geral" não tem pra onde ir.
     const clicavel=f.casoNome?` data-caso="${esc(f.casoNome)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer"`:'';
-    return`<div class="cdc-linha agenda lembrete${atrasado?' atrasado':''}"><div class="cdc-conteudo"${clicavel}><div class="foco-tags"><span class="foco-quando-tag${atrasado?' atrasado':''}"><i class="ti ti-note"></i>Lembrete</span>${tagCaso}${tagResp}${tagUrgente}</div><span class="cdc-texto">${esc(f.text||'')}</span><span class="cdc-meta">${fmtQuando(ev.dt)}</span></div><div class="cdc-agenda-acoes"><button class="cdc-agenda-btn concluir" title="Concluir lembrete" onclick="event.stopPropagation();toggleFoco('${f.id}')"><i class="ti ti-check"></i></button><button class="cdc-agenda-btn excluir" title="Excluir lembrete" onclick="event.stopPropagation();delFoco('${f.id}')"><i class="ti ti-trash"></i></button></div></div>`;
+    return`<div class="cdc-linha agenda lembrete${atrasado?' atrasado':''}"><div class="cdc-conteudo"${clicavel}><div class="foco-tags"><span class="foco-quando-tag${atrasado?' atrasado':''}"><i class="ti ti-note"></i>Lembrete</span>${tagCaso}${tagResp}${tagUrgente}</div><span class="cdc-texto">${esc(f.text||'')}</span><span class="cdc-meta">${fmtQuando(ev.dt)}</span></div><div class="cdc-agenda-acoes"><button class="cdc-agenda-btn editar" title="Editar lembrete" onclick="event.stopPropagation();abrirEditarAgenda('foco','${f.id}')"><i class="ti ti-pencil"></i></button><button class="cdc-agenda-btn concluir" title="Concluir lembrete" onclick="event.stopPropagation();toggleFoco('${f.id}')"><i class="ti ti-check"></i></button><button class="cdc-agenda-btn excluir" title="Excluir lembrete" onclick="event.stopPropagation();delFoco('${f.id}')"><i class="ti ti-trash"></i></button></div></div>`;
   };
+  // Cada faixa do dia vem embrulhada no próprio grupo, e não solta na lista,
+  // porque é isso que faz o título grudado funcionar: irmãos sticky se
+  // empilham todos no topo, enquanto num grupo o título seguinte empurra o
+  // anterior pra fora quando a faixa dele acaba.
   const bloco=(titulo,evs,fevs,classe)=>(evs.length||fevs.length)
-    ?`<div class="cdc-sub-titulo${classe?' '+classe:''}">${titulo}</div>`+evs.map(linhaAgenda).join('')+fevs.map(linhaFocoAgenda).join('')
+    ?`<div class="cc-faixa-grupo"><div class="cdc-sub-titulo${classe?' '+classe:''}">${titulo}</div>`
+      +evs.map(linhaAgenda).join('')+fevs.map(linhaFocoAgenda).join('')+`</div>`
     :'';
   html+=bloco('Atrasado',[],atrasadosF,'atrasado');
   html+=bloco('Hoje',hoje,hojeF);
@@ -2519,6 +2591,135 @@ window.excluirAgendaEvento=function(chave){
   if(!confirm('Excluir esse compromisso da agenda? Se a data for alterada de novo no card, ele volta a aparecer.'))return;
   resolverCentral(chave,'excluido');
 };
+
+// ── EDITAR NA AGENDA ──
+// Uma linha da agenda pode ser três coisas diferentes — a assinatura
+// principal do caso, a assinatura da segunda parte e o lembrete manual — e
+// cada uma mora num canto diferente do banco. O modal escolhe os campos pelo
+// tipo e devolve o dado exatamente pra onde ele veio: nada aqui abre caminho
+// novo de gravação, é o mesmo que o card do caso e o formulário de lembretes
+// já faziam.
+let agendaEdit=null;
+
+// O valor guardado veio de um <input type="datetime-local">, então já está no
+// formato certo; a fatia só protege registros antigos que tenham segundos ou
+// fuso grudados no fim.
+function paraCampoDataHora(v){
+  const s=String(v||'');
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)?s.slice(0,16):'';
+}
+
+window.abrirEditarAgenda=function(tipo,id){
+  const campos=document.getElementById('agenda-edit-campos');
+  const sub=document.getElementById('agenda-edit-sub');
+  if(!campos||!sub)return;
+  if(tipo==='foco'){
+    const arr=Array.isArray(focos)?focos:Object.values(focos||{});
+    const f=arr.find(x=>x&&x.id===id);
+    if(!f)return;
+    sub.textContent=f.casoNome?`Lembrete · ${f.casoNome}`:'Lembrete geral';
+    campos.innerHTML=`
+      <label class="modal-label">Lembrete</label>
+      <input type="text" id="agenda-edit-texto" value="${escTxt(f.text)}" placeholder="O que precisa ser feito">
+      <label class="modal-label">Quando</label>
+      <input type="datetime-local" id="agenda-edit-quando" value="${paraCampoDataHora(f.quando)}">
+      <label class="agenda-edit-check"><input type="checkbox" id="agenda-edit-urgente"${f.urgente?' checked':''}> Urgente</label>`;
+  }else{
+    const c=casos[id];
+    if(!c)return;
+    if(tipo==='segunda'){
+      const sp=c.segundaParte||{};
+      sub.textContent=`${c.nome} — assinatura da 2ª parte`;
+      campos.innerHTML=`
+        <label class="modal-label">Quem assina</label>
+        <input type="text" id="agenda-edit-quem" value="${escTxt(sp.quem)}" placeholder="Ex: Construtora, Dr. Fulano...">
+        <label class="modal-label">Data e hora</label>
+        <input type="datetime-local" id="agenda-edit-data" value="${paraCampoDataHora(sp.data)}">`;
+    }else{
+      sub.textContent=c.tipo?`${c.nome} — ${c.tipo}`:c.nome;
+      campos.innerHTML=`
+        <label class="modal-label">Data e hora</label>
+        <input type="datetime-local" id="agenda-edit-data" value="${paraCampoDataHora(c.agendado)}">
+        <label class="modal-label">Descrição do evento no Calendar</label>
+        <input type="text" id="agenda-edit-desc" value="${escTxt(c.agendado_desc)}" placeholder="Ex: Assinatura da escritura">`;
+    }
+  }
+  agendaEdit={tipo,id};
+  document.getElementById('modal-agenda-edit').classList.add('open');
+};
+
+window.fecharEditarAgenda=function(){
+  document.getElementById('modal-agenda-edit').classList.remove('open');
+  agendaEdit=null;
+};
+
+window.salvarEditarAgenda=async function(){
+  if(!agendaEdit)return;
+  const{tipo,id}=agendaEdit;
+  const btn=document.getElementById('agenda-edit-salvar');
+  if(btn)btn.disabled=true;
+  try{
+    if(tipo==='foco'){
+      const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+      const i=arr.findIndex(f=>f&&f.id===id);
+      if(i===-1)return;
+      const texto=document.getElementById('agenda-edit-texto').value.trim();
+      if(!texto){alert('O lembrete precisa de um texto.');return;}
+      arr[i]={...arr[i],
+        text:texto,
+        quando:document.getElementById('agenda-edit-quando').value||null,
+        urgente:document.getElementById('agenda-edit-urgente').checked};
+      await set(focosRef,arr);
+    }else{
+      const c=casos[id];
+      if(!c)return;
+      const dataHora=document.getElementById('agenda-edit-data').value;
+      // Apagar a data aqui deixaria o compromisso sem lugar nenhum na tela.
+      // Quem quer tirar da agenda tem o botão de excluir, ao lado.
+      if(!dataHora){alert('Escolha a data e a hora. Pra tirar da agenda, use o botão de excluir.');return;}
+      if(tipo==='segunda'){
+        const quem=document.getElementById('agenda-edit-quem').value.trim();
+        const sp=c.segundaParte||{};
+        const novaSp={...sp,status:'data_definida',data:dataHora,quem,atualizadoEm:new Date().toISOString()};
+        await update(ref(db,`casos/${id}`),{segundaParte:novaSp});
+        await sincronizarEventoSegundaParte(id,{...c,segundaParte:novaSp});
+      }else{
+        const desc=document.getElementById('agenda-edit-desc').value.trim();
+        await update(ref(db,`casos/${id}`),{agendado:dataHora,agendado_desc:desc,atualizado:isoHoje()});
+        await sincronizarEventoCalendar(id,{...c,agendado:dataHora,agendado_desc:desc});
+      }
+    }
+    fecharEditarAgenda();
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+};
+
+// A segunda parte tem evento próprio no Calendar (o id fica em
+// segundaParte.calendarEventId), então reagendar por aqui ATUALIZA esse
+// evento — passar o eventId é o que impede de criar um segundo evento
+// solto pra mesma assinatura.
+async function sincronizarEventoSegundaParte(id,caso){
+  const sp=caso.segundaParte||{};
+  try{
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({
+      acao:'sincronizar-evento-calendar',
+      nome:`${caso.nome} — assinatura de ${sp.quem||'segunda parte'}`,tipo:caso.tipo,
+      dataHora:sp.data,
+      descricao:`Assinatura da segunda parte (${sp.quem||'—'}) do caso ${caso.nome}.`,
+      eventId:sp.calendarEventId||''
+    })});
+    const data=await r.json();
+    if(data&&data.ok&&data.eventId){
+      if(data.eventId!==sp.calendarEventId)
+        await update(ref(db,`casos/${id}/segundaParte`),{calendarEventId:data.eventId});
+    }else{
+      alert('Salvei a nova data, mas não consegui atualizar o evento no Calendar: '+((data&&data.erro)||'motivo desconhecido'));
+    }
+  }catch(e){
+    alert('Salvei a nova data, mas houve erro de conexão com o Calendar: '+e.message);
+  }
+}
 window.abrirSnoozeCentral=function(chave){
   const[ano,mes,dia]=isoHoje().split('-');
   const data=prompt('Vou fazer depois — pra quando? (formato DD/MM/AAAA)',`${dia}/${mes}/${ano}`);
@@ -2882,18 +3083,6 @@ function abrirListaCasosModal(titulo,icone,pred){
 window.fecharEtapaModal=function(){
   document.getElementById('modal-etapa').classList.remove('open');
 };
-// Sanfona única pros 3 cartões do topo — mesma mecânica do "Total ativos"
-// da lateral: clique alterna aberto/fechado, o painel some/aparece sem
-// recarregar nada, e o estado sobrevive aos re-renders (heroAberto fica de
-// fora do template, senão fecharia sozinho a cada dado novo do Firebase).
-let heroAberto={agenda:false,lembretes:false,critico:false};
-window.toggleHeroExpand=function(chave){
-  heroAberto[chave]=!heroAberto[chave];
-  const painel=document.getElementById('hero-expand-'+chave);
-  if(painel)painel.style.display=heroAberto[chave]?'block':'none';
-  document.querySelector('.hero-card.'+chave)?.classList.toggle('open',heroAberto[chave]);
-};
-
 // ── BADGES ──
 function bStatus(s){
   const m={prioridade:'b-prioridade Prioridade',critico:'b-critico Crítico',atencao:'b-atencao Atenção',emdia:'b-emdia Em dia'};
