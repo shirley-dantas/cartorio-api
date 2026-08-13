@@ -715,8 +715,24 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    e fica aceso, pra distinguir de quem ainda não foi agendado. */
 .cdc-agenda-btn.agendar:hover{background:#EAF2FB;border-color:#7FA9DC;color:#2f6fb0}
 .cdc-agenda-btn.agendar.marcado{background:#EAF2FB;border-color:#7FA9DC;color:#2f6fb0}
-/* O formulário de criar lembrete, herdado da gaveta, agora fecha a seção. */
-.cc-mesa-novo{margin-top:14px;padding-top:14px;border-top:1px solid var(--cc-linha)}
+/* O botão de criar mora no cabeçalho, ao lado da pílula; só o formulário que
+   ele abre fica aqui embaixo. O filete é do formulário, e não da caixa, pra
+   não sobrar um risco solto na tela enquanto ele está fechado. */
+.cc-mesa-novo .foco-input-row{margin-top:16px;padding-top:16px;border-top:1px solid var(--cc-linha)}
+/* Alça de arrastar. É o único ponto do cartão que reordena — pegar em
+   qualquer outro lugar empurra a faixa pro lado, e os dois arrastos não
+   podem disputar o mesmo gesto. touch-action:none porque no celular o
+   navegador rolaria a faixa em vez de deixar o cartão vir junto. */
+/* Tamanho explícito, e não herdado do glifo: além de virar alvo decente pro
+   dedo, a alça continua pegável se a fonte de ícones demorar ou falhar. */
+.cc-mesa-pegar{display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;margin-left:-5px;margin-right:1px;padding:0;border:0;background:none;
+  line-height:1;flex-shrink:0;color:var(--cc-tinta-3);cursor:grab;touch-action:none;font-size:15px}
+.cc-mesa-pegar:hover{color:var(--cc-tinta)}
+.cc-mesa-card.pegando{cursor:grabbing;box-shadow:0 14px 30px rgba(31,42,51,.16);
+  border-color:var(--cc-champagne);transform:none}
+.cc-mesa.reordenando{scroll-snap-type:none}
+.cc-mesa.reordenando .cc-mesa-card{transition:none}
 .cc-mesa-hora i{font-size:13px;color:var(--cc-champagne)}
 .cc-mesa-card.critico .cc-mesa-hora{color:var(--cc-critico)}
 .cc-mesa-card.critico .cc-mesa-hora i{color:var(--cc-critico)}
@@ -1072,6 +1088,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <section class="cc-secao">
     <div class="cc-secao-head">
       <span class="cc-secao-label"><i class="ti ti-coffee"></i> A mesa de hoje</span>
+      <button class="foco-add-btn" id="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar lembrete<i class="ti ti-chevron-down foco-add-chevron"></i></button>
       <span class="cc-secao-fio"></span>
       <span class="cc-secao-cont" id="cc-mesa-cont"></span>
     </div>
@@ -1080,7 +1097,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <div class="cc-mesa-barra" id="cc-mesa-barra"><div class="cc-mesa-thumb" id="cc-mesa-thumb"></div></div>
     </div>
     <div class="cc-mesa-novo">
-      <button class="foco-add-btn" id="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar lembrete<i class="ti ti-chevron-down foco-add-chevron"></i></button>
       <div class="foco-input-row" id="foco-input-row" style="display:none">
         <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
         <div class="foco-input-linha">
@@ -2379,7 +2395,7 @@ function calcularMesaLembretes(){
     if(d!=null)return 2;
     return 3;
   };
-  return todos.map(f=>{
+  const lista=todos.map(f=>{
     const d=f.quando?diffDiasNum(f.quando):null;
     const atrasado=d!=null&&d<0;
     return{
@@ -2388,10 +2404,23 @@ function calcularMesaLembretes(){
       quando:f.quando?(atrasado?'Atrasado · ':'')+fmtQuando(f.quando):'Sem data',
       icone:atrasado?'ti-alert-triangle':(f.quando?'ti-calendar':(f.urgente?'ti-flag':'ti-note'))
     };
-  }).sort((a,b)=>{
-    const pa=peso(a.f),pb=peso(b.f);
-    if(pa!==pb)return pa-pb;
-    return String(a.f.quando||'').localeCompare(String(b.f.quando||''));
+  });
+  // `ordem` é a posição escolhida à mão, arrastando o cartão pela alça. Quem
+  // ainda não foi arrastado não tem ordem e cai no Infinity, então enquanto
+  // ninguém mexeu a Mesa se ordena sozinha pelo peso; a partir do primeiro
+  // arrasto, quem manda é a mão, e lembrete novo entra no fim da fila.
+  const chave=(x)=>[
+    Number.isFinite(x.f.ordem)?x.f.ordem:Infinity,
+    peso(x.f),
+    String(x.f.quando||'')
+  ];
+  return lista.sort((a,b)=>{
+    const ka=chave(a),kb=chave(b);
+    for(let i=0;i<ka.length;i++){
+      if(ka[i]<kb[i])return -1;
+      if(ka[i]>kb[i])return 1;
+    }
+    return 0;
   });
 }
 
@@ -2420,8 +2449,11 @@ function renderMesaHoje(){
     // Com data, o lembrete já está na Agenda e o botão vira "mudar a data".
     const tituloAgendar=c.temData?'Mudar a data na agenda':'Colocar na agenda';
     return`
-    <article class="cc-mesa-card${c.critico?' critico':''}">
-      <span class="cc-mesa-topo"><span class="cc-mesa-num">${String(i+1).padStart(2,'0')}</span><span class="cc-mesa-fio"></span></span>
+    <article class="cc-mesa-card${c.critico?' critico':''}" data-foco-id="${esc(f.id)}">
+      <span class="cc-mesa-topo">
+        <button class="cc-mesa-pegar" title="Arrastar para mudar a ordem" aria-label="Mudar a ordem deste lembrete"><i class="ti ti-grip-vertical"></i></button>
+        <span class="cc-mesa-num">${String(i+1).padStart(2,'0')}</span><span class="cc-mesa-fio"></span>
+      </span>
       <div class="cc-mesa-corpo"${clicavel}>
         <span class="cc-mesa-nome">${esc(f.text||'Lembrete')}</span>
         <span class="cc-mesa-tags">${tagCaso}${tagResp}${tagUrgente}</span>
@@ -2617,6 +2649,89 @@ function atualizarBarraAgenda(){
   if(medirBarraAgenda)medirBarraAgenda();
 }
 
+// ── REORDENAR A MESA ──
+// A ordem dos cartões vira decisão de quem usa: arrastando pela alça, o
+// cartão muda de lugar e a posição fica gravada em `ordem`, dentro do próprio
+// lembrete. A alça existe pra não brigar com o outro arrasto — pegar pela
+// alça reordena, pegar em qualquer outro ponto empurra a faixa pro lado.
+function ligarReordenarMesa(){
+  const faixa=document.getElementById('cc-mesa');
+  if(!faixa||faixa.dataset.reordenar)return;
+  faixa.dataset.reordenar='1';
+  let card=null,autoTimer=null;
+  const cartoes=()=>[...faixa.querySelectorAll('.cc-mesa-card')];
+
+  // Põe o cartão arrastado antes do primeiro cujo meio já passou do ponteiro
+  // — o mesmo critério de qualquer lista arrastável, só que deitado.
+  const posicionar=(x)=>{
+    const alvo=cartoes().filter(c=>c!==card).find(c=>{
+      const r=c.getBoundingClientRect();
+      return x<r.left+r.width/2;
+    });
+    if(alvo)faixa.insertBefore(card,alvo);
+    else faixa.appendChild(card);
+  };
+
+  // Sem isto, não daria pra mandar um cartão pra uma posição que está fora da
+  // vista: chegando perto da borda, a faixa anda sozinha.
+  const autoRolar=(x)=>{
+    const r=faixa.getBoundingClientRect();
+    const passo=x<r.left+70?-14:(x>r.right-70?14:0);
+    clearInterval(autoTimer);autoTimer=null;
+    if(passo)autoTimer=setInterval(()=>{faixa.scrollLeft+=passo;},16);
+  };
+
+  const mover=(e)=>{
+    if(!card)return;
+    e.preventDefault();
+    posicionar(e.clientX);
+    autoRolar(e.clientX);
+  };
+  const soltar=()=>{
+    if(!card)return;
+    clearInterval(autoTimer);autoTimer=null;
+    card.classList.remove('pegando');
+    faixa.classList.remove('reordenando');
+    card=null;
+    document.removeEventListener('pointermove',mover);
+    document.removeEventListener('pointerup',soltar);
+    // Renumera na hora: o 01/02/03 vem do render, e esperar a ida e volta do
+    // Firebase deixaria a fila com a numeração antiga por um instante.
+    const fila=cartoes();
+    fila.forEach((c,i)=>{
+      const n=c.querySelector('.cc-mesa-num');
+      if(n)n.textContent=String(i+1).padStart(2,'0');
+    });
+    salvarOrdemMesa(fila.map(c=>c.dataset.focoId));
+  };
+  faixa.addEventListener('pointerdown',(e)=>{
+    const alca=e.target.closest('.cc-mesa-pegar');
+    if(!alca)return;
+    e.preventDefault();
+    card=alca.closest('.cc-mesa-card');
+    if(!card)return;
+    card.classList.add('pegando');
+    faixa.classList.add('reordenando');
+    document.addEventListener('pointermove',mover);
+    document.addEventListener('pointerup',soltar);
+  });
+}
+
+// A ordem é gravada como número dentro de cada lembrete, e não deduzida da
+// posição no array: o array é reescrito inteiro a cada mudança nos focos, e a
+// ordem escolhida à mão precisa sobreviver a isso.
+function salvarOrdemMesa(ids){
+  const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+  let mudou=false;
+  ids.forEach((id,i)=>{
+    const j=arr.findIndex(f=>f&&f.id===id);
+    if(j===-1||arr[j].ordem===i)return;
+    arr[j]={...arr[j],ordem:i};
+    mudou=true;
+  });
+  if(mudou)set(focosRef,arr);
+}
+
 function ligarBarraMesa(){
   if(medirBarraMesa)return;
   medirBarraMesa=ligarBarraRolagem({
@@ -2626,6 +2741,7 @@ function ligarBarraMesa(){
     eixo:'x',minimo:36
   });
   ligarArrastoMesa();
+  ligarReordenarMesa();
 }
 
 // Arrastar a própria faixa com o mouse, e não só a barra — é o gesto que se
