@@ -656,7 +656,32 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 /* ── A MESA DE HOJE ─────────────────────────────────────────────────
    O único lugar da tela com esse peso tipográfico — é onde o olho
    pousa primeiro ao abrir o painel de manhã. */
-.cc-mesa{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px}
+/* Quatro cartões à vista e os demais a um arrasto de distância, em vez de a
+   lista descer a tela inteira quando a semana tem muito lembrete. O número
+   de colunas visíveis vive numa variável porque muda com a largura da tela —
+   a conta da largura do cartão é sempre a mesma. */
+.cc-mesa-trilha{position:relative;--cc-mesa-vis:4;--cc-mesa-gap:14px}
+.cc-mesa{display:flex;gap:var(--cc-mesa-gap);overflow-x:auto;padding-bottom:2px;
+  scroll-snap-type:x proximity;scrollbar-width:none;overscroll-behavior-x:contain}
+.cc-mesa::-webkit-scrollbar{display:none}
+.cc-mesa>*{flex:0 0 calc((100% - (var(--cc-mesa-vis) - 1) * var(--cc-mesa-gap)) / var(--cc-mesa-vis));
+  scroll-snap-align:start}
+/* Enquanto se arrasta a faixa, o texto não pode ir junto virando seleção. */
+.cc-mesa.arrastando{cursor:grabbing;user-select:none;scroll-snap-type:none}
+.cc-mesa.arrastando .cc-mesa-corpo{cursor:grabbing}
+/* Mesma barra da Agenda, deitada. Só aparece quando sobra cartão. */
+.cc-mesa-barra{position:relative;height:9px;margin-top:12px;display:none;
+  background:var(--cc-sup-2);border:1px solid var(--cc-linha);border-radius:999px}
+.cc-mesa-trilha.rolavel .cc-mesa-barra{display:block}
+.cc-mesa-thumb{position:absolute;top:0;bottom:0;min-width:36px;border-radius:999px;
+  background:#B9B9C2;cursor:grab;transition:background .15s ease}
+.cc-mesa-thumb:hover{background:#9A9AA6}
+.cc-mesa-barra.arrastando .cc-mesa-thumb{background:#8A8A96;cursor:grabbing}
+@media(max-width:1180px){.cc-mesa-trilha{--cc-mesa-vis:3}}
+@media(max-width:860px){.cc-mesa-trilha{--cc-mesa-vis:2}}
+/* No celular o cartão seguinte fica espiando na borda: é o que conta que a
+   faixa anda pro lado, já que não há barra pra arrastar com o dedo. */
+@media(max-width:560px){.cc-mesa-trilha{--cc-mesa-vis:1.15}}
 /* Era um <button> inteiro; virou <article> porque agora tem botões DENTRO
    (agendar/editar/concluir/excluir) e botão dentro de botão não é HTML
    válido. O que abre o caso passou a ser só o corpo do cartão. */
@@ -695,6 +720,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cc-mesa-hora i{font-size:13px;color:var(--cc-champagne)}
 .cc-mesa-card.critico .cc-mesa-hora{color:var(--cc-critico)}
 .cc-mesa-card.critico .cc-mesa-hora i{color:var(--cc-critico)}
+/* O aviso de lista vazia não é cartão: ocupa a faixa inteira em vez de virar
+   uma coluna de um quarto da largura. */
+.cc-mesa>.cc-mesa-vazia{flex:1 1 100%}
 .cc-mesa-vazia{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:16px;
   padding:26px;text-align:center;font-family:'Jost',sans-serif;font-weight:300;font-size:16px;color:var(--cc-tinta-2)}
 
@@ -1047,7 +1075,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <span class="cc-secao-fio"></span>
       <span class="cc-secao-cont" id="cc-mesa-cont"></span>
     </div>
-    <div class="cc-mesa" id="cc-mesa"></div>
+    <div class="cc-mesa-trilha">
+      <div class="cc-mesa" id="cc-mesa"></div>
+      <div class="cc-mesa-barra" id="cc-mesa-barra"><div class="cc-mesa-thumb" id="cc-mesa-thumb"></div></div>
+    </div>
     <div class="cc-mesa-novo">
       <button class="foco-add-btn" id="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar lembrete<i class="ti ti-chevron-down foco-add-chevron"></i></button>
       <div class="foco-input-row" id="foco-input-row" style="display:none">
@@ -2370,8 +2401,10 @@ function renderMesaHoje(){
   const cartoes=calcularMesaLembretes();
   const cont=document.getElementById('cc-mesa-cont');
   if(cont)cont.textContent=cartoes.length?`${cartoes.length} ${ccPlural(cartoes.length,'lembrete')}`:'';
+  ligarBarraMesa();
   if(!cartoes.length){
     el.innerHTML=`<div class="cc-mesa-vazia">Nenhum lembrete aberto. Bom dia tranquilo.</div>`;
+    if(medirBarraMesa)medirBarraMesa();
     return new Set();
   }
   el.innerHTML=cartoes.map((c,i)=>{
@@ -2403,6 +2436,7 @@ function renderMesaHoje(){
         </span>
       </span>
     </article>`;}).join('');
+  if(medirBarraMesa)medirBarraMesa();
   // A Mesa não consome mais id de caso: ela não mostra caso nenhum, então
   // Incêndios e Esquecidos voltam a receber a lista inteira.
   return new Set();
@@ -2512,40 +2546,47 @@ function fmtQuando(dt){
   return dt?new Date(dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
 }
 
-// Mede a lista e desenha a barra: ela só existe quando sobra compromisso por
-// baixo da dobra, e o tamanho do polegar é a proporção do que está à vista.
-// O degradê do rodapé acende junto, pra avisar de perto o que a barra avisa
-// de longe, e apaga quando a lista chega ao fim.
-function atualizarBarraAgenda(){
-  const el=document.getElementById('cdc-agenda');
-  const barra=document.getElementById('cc-faixa-barra');
-  const thumb=document.getElementById('cc-faixa-thumb');
-  const faixa=document.getElementById('cc-faixa');
-  if(!el||!barra||!thumb||!faixa||!el.parentElement)return;
-  const sobra=el.scrollHeight-el.clientHeight;
-  el.parentElement.classList.toggle('rolavel',sobra>4);
-  faixa.classList.toggle('tem-mais',sobra-el.scrollTop>4);
-  if(sobra<=4)return;
-  const trilho=barra.clientHeight;
-  const alt=Math.max(28,Math.round(trilho*el.clientHeight/el.scrollHeight));
-  thumb.style.height=alt+'px';
-  thumb.style.top=Math.round((trilho-alt)*(el.scrollTop/sobra))+'px';
-}
+// ── BARRA DE ROLAGEM DESENHADA PELO PAINEL ──
+// As barras nativas são flutuantes no Mac e no iPhone: aparecem durante o
+// gesto e somem, então quem só bate o olho não descobre que a lista continua.
+// Estilizar a nativa não resolve — o Chromium descarta as regras
+// ::-webkit-scrollbar quando scrollbar-width está declarado, e no iOS nenhuma
+// das duas vale. Daí esta, que fica à vista o tempo todo em que houver o que
+// rolar, mostra pelo tamanho do polegar quanto falta, e arrasta como a de
+// verdade. Serve a Agenda (na vertical) e a Mesa (na horizontal).
+const EIXOS={
+  y:{pos:'scrollTop', tamVisivel:'clientHeight',tamTotal:'scrollHeight',
+     trilho:'clientHeight',tamThumb:'offsetHeight',ladoCss:'height',inicioCss:'top',
+     coord:(e)=>e.clientY, inicioThumb:(t)=>t.offsetTop, borda:(r)=>r.top},
+  x:{pos:'scrollLeft',tamVisivel:'clientWidth', tamTotal:'scrollWidth',
+     trilho:'clientWidth', tamThumb:'offsetWidth', ladoCss:'width', inicioCss:'left',
+     coord:(e)=>e.clientX, inicioThumb:(t)=>t.offsetLeft,borda:(r)=>r.left}
+};
 
-// Arrasto do polegar e clique no trilho. Preso uma vez só, na primeira vez
-// que a agenda é desenhada.
-function ligarBarraAgenda(){
-  const el=document.getElementById('cdc-agenda');
-  const barra=document.getElementById('cc-faixa-barra');
-  const thumb=document.getElementById('cc-faixa-thumb');
-  if(!el||!barra||!thumb||thumb.dataset.ligado)return;
+// Devolve a função que remede tudo; guarde-a pra chamar depois de redesenhar
+// a lista. `aoMedir` recebe quanto ainda falta rolar — a Agenda usa pra
+// acender o degradê do rodapé.
+function ligarBarraRolagem({alvo,barra,thumb,eixo,minimo,aoMedir}){
+  const E=EIXOS[eixo];
+  const medir=()=>{
+    if(!alvo||!barra||!thumb||!alvo.parentElement)return;
+    const sobra=alvo[E.tamTotal]-alvo[E.tamVisivel];
+    alvo.parentElement.classList.toggle('rolavel',sobra>4);
+    if(aoMedir)aoMedir(sobra-alvo[E.pos],sobra);
+    if(sobra<=4)return;
+    const trilho=barra[E.trilho];
+    const tam=Math.max(minimo||28,Math.round(trilho*alvo[E.tamVisivel]/alvo[E.tamTotal]));
+    thumb.style[E.ladoCss]=tam+'px';
+    thumb.style[E.inicioCss]=Math.round((trilho-tam)*(alvo[E.pos]/sobra))+'px';
+  };
+  if(!alvo||!barra||!thumb||thumb.dataset.ligado)return medir;
   thumb.dataset.ligado='1';
-  let yInicial=0,topoInicial=0;
+  let coordInicial=0,inicioInicial=0;
   const mover=(e)=>{
-    const sobra=el.scrollHeight-el.clientHeight;
-    const curso=barra.clientHeight-thumb.offsetHeight;
+    const sobra=alvo[E.tamTotal]-alvo[E.tamVisivel];
+    const curso=barra[E.trilho]-thumb[E.tamThumb];
     if(curso<=0)return;
-    el.scrollTop=(topoInicial+(e.clientY-yInicial))/curso*sobra;
+    alvo[E.pos]=(inicioInicial+(E.coord(e)-coordInicial))/curso*sobra;
   };
   const soltar=()=>{
     barra.classList.remove('arrastando');
@@ -2554,7 +2595,7 @@ function ligarBarraAgenda(){
   };
   thumb.addEventListener('pointerdown',(e)=>{
     e.preventDefault();
-    yInicial=e.clientY;topoInicial=thumb.offsetTop;
+    coordInicial=E.coord(e);inicioInicial=E.inicioThumb(thumb);
     barra.classList.add('arrastando');
     document.addEventListener('pointermove',mover);
     document.addEventListener('pointerup',soltar);
@@ -2562,11 +2603,78 @@ function ligarBarraAgenda(){
   // Clique no trilho, fora do polegar, salta uma tela na direção do clique.
   barra.addEventListener('pointerdown',(e)=>{
     if(e.target===thumb)return;
-    const acima=e.clientY<thumb.getBoundingClientRect().top;
-    el.scrollBy({top:acima?-el.clientHeight:el.clientHeight,behavior:'smooth'});
+    const antes=E.coord(e)<E.borda(thumb.getBoundingClientRect());
+    const passo=antes?-alvo[E.tamVisivel]:alvo[E.tamVisivel];
+    alvo.scrollBy(eixo==='y'?{top:passo,behavior:'smooth'}:{left:passo,behavior:'smooth'});
   });
-  el.addEventListener('scroll',atualizarBarraAgenda,{passive:true});
-  window.addEventListener('resize',atualizarBarraAgenda);
+  alvo.addEventListener('scroll',medir,{passive:true});
+  window.addEventListener('resize',medir);
+  return medir;
+}
+
+let medirBarraAgenda=null,medirBarraMesa=null;
+function atualizarBarraAgenda(){
+  if(medirBarraAgenda)medirBarraAgenda();
+}
+
+function ligarBarraMesa(){
+  if(medirBarraMesa)return;
+  medirBarraMesa=ligarBarraRolagem({
+    alvo:document.getElementById('cc-mesa'),
+    barra:document.getElementById('cc-mesa-barra'),
+    thumb:document.getElementById('cc-mesa-thumb'),
+    eixo:'x',minimo:36
+  });
+  ligarArrastoMesa();
+}
+
+// Arrastar a própria faixa com o mouse, e não só a barra — é o gesto que se
+// faz sem pensar. No toque o navegador já rola sozinho, então isto é só pro
+// mouse. Só vira arrasto depois de 6px: sem essa folga, todo clique tremido
+// em cima de um botão viraria arrasto e o clique se perderia.
+function ligarArrastoMesa(){
+  const el=document.getElementById('cc-mesa');
+  if(!el||el.dataset.arrasto)return;
+  el.dataset.arrasto='1';
+  let xInicial=0,scrollInicial=0,ativo=false,arrastou=false;
+  el.addEventListener('pointerdown',(e)=>{
+    // A marca zera ANTES de qualquer desvio: se ela só zerasse no caminho do
+    // arrasto, um clique em botão logo depois de arrastar seria comido pelo
+    // ouvinte lá embaixo, que ainda veria a marca do arrasto anterior.
+    arrastou=false;
+    if(e.pointerType!=='mouse'||e.target.closest('button'))return;
+    ativo=true;xInicial=e.clientX;scrollInicial=el.scrollLeft;
+  });
+  el.addEventListener('pointermove',(e)=>{
+    if(!ativo)return;
+    const d=e.clientX-xInicial;
+    if(!arrastou&&Math.abs(d)<6)return;
+    arrastou=true;
+    el.classList.add('arrastando');
+    el.scrollLeft=scrollInicial-d;
+  });
+  const soltar=()=>{ativo=false;el.classList.remove('arrastando');};
+  el.addEventListener('pointerup',soltar);
+  el.addEventListener('pointerleave',soltar);
+  // Terminado o arrasto o navegador ainda dispara um clique, que abriria o
+  // caso sem querer. Este ouvinte come esse clique — e só ele, porque o
+  // próximo pointerdown zera a marca.
+  el.addEventListener('click',(e)=>{
+    if(arrastou){e.stopPropagation();e.preventDefault();}
+  },true);
+}
+function ligarBarraAgenda(){
+  if(medirBarraAgenda)return;
+  const faixa=document.getElementById('cc-faixa');
+  medirBarraAgenda=ligarBarraRolagem({
+    alvo:document.getElementById('cdc-agenda'),
+    barra:document.getElementById('cc-faixa-barra'),
+    thumb:document.getElementById('cc-faixa-thumb'),
+    eixo:'y',
+    // O degradê do rodapé avisa de perto o que a barra avisa de longe, e
+    // apaga quando a lista chega ao fim.
+    aoMedir:(falta)=>faixa&&faixa.classList.toggle('tem-mais',falta>4)
+  });
 }
 
 function renderAgenda(itens){
