@@ -749,6 +749,25 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cc-mesa-vazia{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:12px;
   padding:12px 16px;text-align:left;font-family:'Jost',sans-serif;font-weight:300;font-size:14px;color:var(--cc-tinta-2)}
 
+/* ── SEÇÃO QUE ROLA POR DENTRO ──────────────────────────────────────
+   Incêndios, Esquecidos e Próximas ações crescem com o movimento do
+   cartório. Sem teto, empurram tudo o que vem depois pra fora da tela;
+   com teto, mostram os primeiros por inteiro e o resto a uma rolagem.
+   Mesma barra desenhada da Agenda e da Mesa. */
+.cc-lista-trilha{position:relative}
+.cc-lista-rolagem{max-height:340px;overflow-y:auto;padding-right:15px;scrollbar-width:none}
+.cc-lista-rolagem::-webkit-scrollbar{display:none}
+.cc-lista-barra{position:absolute;top:2px;right:0;bottom:2px;width:9px;display:none;
+  background:var(--cc-sup-2);border:1px solid var(--cc-linha);border-radius:999px}
+.cc-lista-trilha.rolavel .cc-lista-barra{display:block}
+.cc-lista-thumb{position:absolute;left:0;right:0;min-height:28px;border-radius:999px;
+  background:#B9B9C2;cursor:grab;transition:background .15s ease}
+.cc-lista-thumb:hover{background:#9A9AA6}
+.cc-lista-barra.arrastando .cc-lista-thumb{background:#8A8A96;cursor:grabbing}
+/* Sem lista, sem teto: a linha de "nada aqui" não precisa de caixa alta
+   nem de espaço reservado pra uma barra que não vai existir. */
+.cc-lista-trilha:not(.rolavel) .cc-lista-rolagem{padding-right:0}
+
 /* ── DUAS COLUNAS ───────────────────────────────────────────────────
    Incêndios e Esquecidos são de naturezas diferentes; lado a lado se
    lê mais rápido do que rolando um atrás do outro. */
@@ -2221,12 +2240,42 @@ window.ccResolver=function(btn,chave,estado,extra){
   setTimeout(()=>resolverCentral(chave,estado,extra),190);
 };
 
+// A contagem vem sempre, mesmo vazia: secaoRolavel() monta o cabeçalho uma
+// vez só e depois só troca o texto desse span a cada render.
 function ccSecaoHead(titulo,icone,contagem){
   return`<div class="cc-secao-head">
     <span class="cc-secao-label"><i class="ti ${icone}"></i> ${esc(titulo)}</span>
     <span class="cc-secao-fio"></span>
-    ${contagem?`<span class="cc-secao-cont">${esc(contagem)}</span>`:''}
+    <span class="cc-secao-cont">${contagem?esc(contagem):''}</span>
   </div>`;
+}
+
+// Incêndios, Esquecidos e Próximas ações crescem com o movimento do cartório
+// e chegam a empurrar tudo o que vem depois pra fora da tela. Cada uma passa
+// a rolar por dentro, com a mesma barra desenhada da Agenda.
+//
+// A casca (cabeçalho + caixa de rolagem + barra) é montada UMA vez e
+// reaproveitada; só o miolo é reescrito a cada render. Se ela fosse refeita
+// junto, cada passada penduraria um ouvinte novo de rolagem e de
+// redimensionamento no mesmo lugar.
+function secaoRolavel(el,titulo,icone,contagem){
+  if(!el.dataset.casca){
+    el.dataset.casca='1';
+    el.innerHTML=ccSecaoHead(titulo,icone,'')
+      +`<div class="cc-lista-trilha">
+          <div class="cc-lista-rolagem"></div>
+          <div class="cc-lista-barra"><div class="cc-lista-thumb"></div></div>
+        </div>`;
+    el._medirBarra=ligarBarraRolagem({
+      alvo:el.querySelector('.cc-lista-rolagem'),
+      barra:el.querySelector('.cc-lista-barra'),
+      thumb:el.querySelector('.cc-lista-thumb'),
+      eixo:'y'
+    });
+  }
+  const cont=el.querySelector('.cc-secao-cont');
+  if(cont)cont.textContent=contagem||'';
+  return el.querySelector('.cc-lista-rolagem');
 }
 function ccVazio(txt){return`<div class="cc-vazio">${esc(txt)}</div>`;}
 function ccPlural(n,s,p){return n===1?s:(p||s+'s');}
@@ -2476,9 +2525,10 @@ function renderIncendios(itens,usados){
   const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel==='critico'&&!usados.has(it.caso.id))
     .sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
   pool.forEach(it=>usados.add(it.caso.id));
-  el.innerHTML=ccSecaoHead('Incêndios','ti-flame',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'')
-    +(pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'critico')}</div>`
-                 :ccVazio('Nada pegando fogo agora.'));
+  const caixa=secaoRolavel(el,'Incêndios','ti-flame',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'');
+  caixa.innerHTML=pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'critico')}</div>`
+                             :ccVazio('Nada pegando fogo agora.');
+  if(el._medirBarra)el._medirBarra();
 }
 
 // "Parado há 3 dias ou mais" não é um limite novo: é exatamente o critério do
@@ -2490,12 +2540,13 @@ function renderEsquecidos(itens,usados){
       &&!usados.has(it.caso.id)&&diasParado(it.caso.atualizado)>=3)
     .sort((a,b)=>diasParado(a.caso.atualizado)<diasParado(b.caso.atualizado)?1:-1);
   pool.forEach(it=>usados.add(it.caso.id));
-  el.innerHTML=ccSecaoHead('Esquecidos','ti-eye',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'')
-    +(pool.length?`<div class="cc-lista">${pool.map(it=>linhaCaso(it,{
+  const caixa=secaoRolavel(el,'Esquecidos','ti-eye',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'');
+  caixa.innerHTML=pool.length?`<div class="cc-lista">${pool.map(it=>linhaCaso(it,{
         classe:'atencao',chave:it.chaveDep,mostrarAcoes:true,
         textoOverride:`Sem movimento há ${diasParado(it.caso.atualizado)} dias. ${it.md.proximaAcao}`
       })).join('')}</div>`
-    :ccVazio('Nenhum caso esquecido — tudo teve movimento nos últimos 3 dias.'));
+    :ccVazio('Nenhum caso esquecido — tudo teve movimento nos últimos 3 dias.');
+  if(el._medirBarra)el._medirBarra();
 }
 
 function renderProximasAcoes(itens,usados){
@@ -2505,9 +2556,10 @@ function renderProximasAcoes(itens,usados){
       &&(it.md.nivel==='atencao'||it.md.bloqueado)&&!usados.has(it.caso.id))
     .sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
   pool.forEach(it=>usados.add(it.caso.id));
-  el.innerHTML=ccSecaoHead('Próximas ações','ti-bookmark',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'')
-    +(pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'atencao')}</div>`
-                 :ccVazio('Nada de olho no momento.'));
+  const caixa=secaoRolavel(el,'Próximas ações','ti-bookmark',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'');
+  caixa.innerHTML=pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'atencao')}</div>`
+                             :ccVazio('Nada de olho no momento.');
+  if(el._medirBarra)el._medirBarra();
 }
 
 // Lembrete manual com data preenchida (campo "quando") vira evento de agenda,
