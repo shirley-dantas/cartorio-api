@@ -159,6 +159,84 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cdc-linha.compacta .cdc-bloqueio{flex-basis:100%}
 .cdc-inline-form{display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap}
 .cdc-inline-form input,.cdc-inline-form select{font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #D1D1D6;font-family:inherit;outline:none}
+
+/* ── O QUADRO (dashboard da Central de Comando) ──
+   Barras em HTML/CSS, não SVG: a largura do painel é fluida, e SVG esticado
+   por viewBox distorceria o texto dos rótulos. Com div + flex a barra
+   acompanha a coluna e a tipografia continua nítida em qualquer largura.
+   As cores saíram do validador de paleta (contraste, daltonismo e faixa de
+   luminosidade conferidos por script, não no olho) — ver DASH_QUEM,
+   DASH_STATUS e DASH_IDADE no JS, que são a fonte da verdade das cores. */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:880px){.dash-grid{grid-template-columns:1fr}}
+.dash-card{background:#FBFBFD;border:0.5px solid #ECECF2;border-radius:14px;padding:13px 15px 15px}
+.dash-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:2px}
+.dash-card-titulo{font-size:12px;font-weight:700;color:#16283A;letter-spacing:-.01em}
+.dash-card-nota{font-size:10.5px;color:#8E8EA0;white-space:nowrap}
+.dash-card-sub{font-size:10.5px;color:#8E8EA0;line-height:1.35;margin-bottom:10px}
+.dash-vazio{font-size:11.5px;color:#8E8EA0;font-style:italic;padding:10px 0 4px}
+
+/* Uma linha = um rótulo, a barra, e o valor logo na ponta dela (não numa
+   coluna à direita) — o número acompanha o fim da barra, que é onde o olho
+   já está quando termina de medir o comprimento. */
+.dash-linhas{display:flex;flex-direction:column;gap:7px}
+.dash-linha{display:flex;align-items:center;gap:9px;border:none;background:none;padding:2px 0;width:100%;text-align:left;font-family:inherit;cursor:pointer;border-radius:6px}
+.dash-linha:hover{background:#F2F4F7}
+.dash-linha:focus-visible{outline:2px solid #2f6fb0;outline-offset:1px}
+.dash-rotulo{flex:0 0 142px;font-size:11.5px;color:#3A3A3C;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash-trilho{flex:1;min-width:0;display:flex;align-items:center;gap:7px}
+/* O valor mora DENTRO do trilho, logo depois da barra, pra acompanhar a ponta
+   dela. Isso quer dizer que a barra não pode usar 100% do trilho, senão o
+   número é empurrado pra fora do cartão (aconteceu: a barra mais alta jogava
+   "321d" pra fora na primeira renderização). A escala inteira é calculada
+   sobre o trilho MENOS esta reserva — proporção entre as barras preservada,
+   sem capar a maior, que achataria só o topo da escala. */
+.dash-trilho{--dash-reserva:58px}
+@media(max-width:520px){.dash-rotulo{flex:0 0 104px}}
+/* Ponta arredondada só do lado do dado (4px), quadrada na linha de base —
+   a barra tem que parecer que nasce do eixo, não flutuar solta. */
+.dash-barra{height:14px;border-radius:0 4px 4px 0;flex-shrink:0;min-width:3px;max-width:100%}
+.dash-valor{font-size:11.5px;font-weight:700;color:#1C1C1E;font-variant-numeric:tabular-nums;flex-shrink:0;white-space:nowrap}
+.dash-valor-meta{font-size:10.5px;font-weight:400;color:#8E8EA0;margin-left:3px}
+
+/* Empilhada: o respiro de 2px entre segmentos é o gap do flex, não borda —
+   borda somaria tinta que não é dado. Cada segmento cresce proporcional
+   à contagem (flex-grow), então a barra inteira sempre preenche o trilho. */
+.dash-pilha{display:flex;gap:2px;height:16px;flex-shrink:0;min-width:6px;max-width:100%}
+.dash-seg{border-radius:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;overflow:visible;min-width:2px}
+.dash-seg:first-child{border-radius:4px 0 0 4px}
+.dash-seg:last-child{border-radius:0 4px 4px 0}
+
+.dash-legenda{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:11px;padding-top:9px;border-top:1px solid #EDEFF3}
+.dash-legenda-item{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:#5B6B78}
+.dash-legenda-cor{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+.dash-legenda-num{font-weight:700;color:#1C1C1E;font-variant-numeric:tabular-nums}
+
+/* Colunas do Ritmo — mesma gramática das barras, virada 90°. */
+/* align-items:stretch (não flex-end) é o que faz a coluna ter altura: com
+   flex-end cada semana encolhe pro tamanho do conteúdo, a altura em % das
+   barras não tem contra o que resolver e todas viram o min-height de 2px.
+   Quem ancora as barras embaixo é o align-items:flex-end do .dash-par. */
+.dash-colunas{display:flex;align-items:stretch;gap:9px;height:104px;padding-top:4px}
+.dash-semana{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
+.dash-par{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:2px}
+.dash-col{width:11px;max-width:44%;border-radius:4px 4px 0 0;min-height:2px}
+.dash-semana-rot{font-size:9.5px;color:#8E8EA0;white-space:nowrap}
+
+/* Um só balão, reposicionado no mousemove — evita criar/destruir nó a cada
+   passada do mouse em cima de dezenas de barras. */
+.dash-tip{position:fixed;z-index:900;pointer-events:none;opacity:0;transition:opacity .12s ease;background:#16283A;color:#fff;font-size:11px;line-height:1.4;padding:7px 10px;border-radius:8px;max-width:250px;box-shadow:0 6px 18px rgba(22,40,58,.22)}
+.dash-tip.on{opacity:1}
+.dash-tip b{font-weight:700}
+
+.dash-tabela-toggle{margin-top:12px;font-size:10.5px;color:#5B6B78;background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;font-family:inherit}
+.dash-tabela-toggle:hover{color:#16283A}
+.dash-tabela{width:100%;border-collapse:collapse;margin-top:9px;font-size:11px}
+.dash-tabela caption{text-align:left;font-size:10.5px;color:#8E8EA0;padding-bottom:5px}
+.dash-tabela th,.dash-tabela td{text-align:left;padding:4px 8px 4px 0;border-bottom:1px solid #EDEFF3}
+.dash-tabela th{font-weight:700;color:#5B6B78}
+.dash-tabela td{color:#3A3A3C}
+.dash-tabela td.num,.dash-tabela th.num{text-align:right;font-variant-numeric:tabular-nums}
 .toolbar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .fbtn{font-size:12px;padding:6px 14px;border-radius:20px;border:0.5px solid #D1D1D6;background:#fff;color:#8E8EA0;cursor:pointer;white-space:nowrap;transition:background .15s ease,color .15s ease,border-color .15s ease}
 .fbtn.on,.fbtn:hover{background:linear-gradient(135deg,#16283A,#1F3B4D);color:#fff;border-color:#16283A}
@@ -502,6 +580,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="foco-title"><i class="ti ti-flame"></i> Central de Comando <span class="sync-inline"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span></div>
     </div>
 
+    <div class="cdc-bloco" id="cdc-quadro"></div>
+
     <div class="cdc-bloco cdc-lembretes">
       <div class="cdc-bloco-header">
         <span class="cdc-bloco-titulo"><i class="ti ti-note"></i> Lembretes manuais</span>
@@ -624,6 +704,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <div class="nav-toast" id="nav-toast"></div>
+<div class="dash-tip" id="dash-tip" role="tooltip" aria-hidden="true"></div>
 
 <!-- Modal Assistente de Minutas -->
 <div class="modal-overlay" id="modal-minuta">
@@ -1048,6 +1129,18 @@ const casosRef=ref(db,'casos');
 const focosRef=ref(db,'focos');
 const resolucoesCentralRef=ref(db,'resolucoesCentral');
 
+// Data em que o painel começou a gravar entrada/saída de casos. Serve pro
+// quadro "Ritmo" poder dizer desde quando o número é confiável, em vez de
+// mostrar semanas vazias como se nada tivesse acontecido nelas. Gravada uma
+// única vez, no primeiro carregamento depois desta versão entrar no ar.
+let historicoDesde=null;
+onValue(ref(db,'meta/historicoDesde'),(snap)=>{
+  const v=snap.val();
+  if(v){historicoDesde=v;return;}
+  historicoDesde=isoHoje();
+  set(ref(db,'meta/historicoDesde'),historicoDesde);
+});
+
 onValue(casosRef,(snap)=>{
   const data=snap.val();
   if(!data&&!inicializado){
@@ -1193,9 +1286,348 @@ function calcularCentralComando(){
   });
 }
 
+// ── O QUADRO ──
+// A Central de Comando responde "o que eu faço agora". O quadro responde
+// "como estamos indo" — a mesma base de casos, lida em quatro cortes, antes
+// das listas de tarefas. Não é decoração: cada barra é clicável e abre a
+// lista de casos por trás dela, pelo mesmo popup que a lateral já usa.
+//
+// As cores NÃO foram escolhidas no olho. Saíram do validador de paleta
+// (scripts/validate_palette.js do guia de dataviz), conferindo faixa de
+// luminosidade, chroma, separação sob daltonismo (protanopia/deuteranopia) e
+// contraste sobre o branco do cartão. Duas descobertas que mudaram valores:
+//   · o vermelho #C62828 e o âmbar #B45309 que o painel usa nos badges têm
+//     ΔE 8,3 entre si — colados numa barra empilhada, "crítico" e "atenção"
+//     viravam a mesma cor. Reescalonados para #BC2020 e #EDA100 (ΔE 29).
+//   · o champagne #A9895A da marca tem chroma 0,075, abaixo do piso de 0,10:
+//     como preenchimento de barra ele lê como cinza e para de identificar
+//     coisa alguma. Trocado por #A9761A, o tom da mesma família que passa.
+// Mexer nesses hexadecimais sem rodar o validador de novo quebra a leitura
+// pra quem tem daltonismo — que é ~8% dos homens.
+const DASH_QUEM={
+  cartorio:  {cor:'#2f6fb0',label:'Nós (cartório)'},
+  cliente:   {cor:'#A9761A',label:'Cliente'},
+  terceiro:  {cor:'#0e9b86',label:'Terceiro'},
+  // Cinza escuro, não claro: o cinza médio que parecia óbvio (#8E9BA6) some
+  // dentro do verde-azulado de "Terceiro" pra quem tem deuteranopia (ΔE 2,0)
+  // e ainda ficava abaixo do contraste mínimo. Este separa das três cores
+  // (ΔE 12,2) e, de quebra, dá peso visual a uma etapa indefinida — que é
+  // mesmo coisa pra reparar, não pra ignorar.
+  indefinido:{cor:'#414C55',label:'Indefinido'}
+};
+// Ordem de empilhamento por severidade — é essa sequência que o validador
+// aprovou (só vizinhos se tocam numa barra empilhada, então é a adjacência
+// que precisa passar). Reordenar exige revalidar.
+const DASH_STATUS=[
+  {key:'critico',   label:'Crítico',   cor:'#BC2020',ink:'#fff'},
+  {key:'atencao',   label:'Atenção',   cor:'#EDA100',ink:'#3A2A00'},
+  {key:'prioridade',label:'Prioridade',cor:'#5B3FA0',ink:'#fff'},
+  {key:'emdia',     label:'Em dia',    cor:'#2F8F4E',ink:'#fff'}
+];
+// Faixas de idade são ordinais (trocar a ordem muda o sentido), então levam
+// uma rampa de um tom só, clareando pro escuro — a ordem se enxerga na cor.
+const DASH_IDADE=[
+  {label:'0–2 dias', cor:'#94AFC2',min:0, max:2},
+  {label:'3–7 dias', cor:'#63859E',min:3, max:7},
+  {label:'8–15 dias',cor:'#3A5F7C',min:8, max:15},
+  {label:'+15 dias', cor:'#1B3648',min:16,max:Infinity}
+];
+const DASH_RITMO={entradas:{cor:'#2f6fb0',label:'Entraram'},saidas:{cor:'#2F8F4E',label:'Concluídos'}};
+
+let quadroAberto=true;
+let quadroTabela=false;
+let quadroFunilTodas=false;
+try{
+  const s=localStorage.getItem('quadro-aberto');
+  if(s!==null)quadroAberto=s==='1';
+}catch(e){}
+
+// esc() do painel escapa só aspas, porque nasceu pra preencher atributos.
+// O balão do quadro é montado com innerHTML e leva <b>/<br> de propósito, então
+// o que vem dos dados (nome de caso, etapa) precisa ter o < neutralizado antes
+// de entrar — senão um nome com "<" comeria o resto do balão.
+function escTxt(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// O painel guarda 'ambas' e responsáveis fora da lista fixa em casos antigos —
+// monta os nomes a partir do que existe de verdade nos dados, em vez de assumir
+// só Shirley/Grazi/Gabriel e sumir com a carga de quem não estivesse na lista.
+function dashNomeResp(r){
+  if(!r)return'Sem responsável';
+  if(NOMES_RESP[r])return NOMES_RESP[r];
+  if(r==='ambas')return'Compartilhado';
+  return r.charAt(0).toUpperCase()+r.slice(1);
+}
+function dashQuemDaEtapa(dep){
+  const cfg=DEP_CONFIG[dep];
+  const q=cfg&&cfg.quemSegura;
+  return(q==='cartorio'||q==='cliente'||q==='terceiro')?q:'indefinido';
+}
+function dashPlural(n,s,p){return n===1?s:(p||s+'s');}
+// Rótulo direto dentro de um segmento empilhado só quando cabe de verdade —
+// texto cortado no meio é pior que rótulo nenhum. Abaixo desse tamanho o
+// número continua na legenda e na tabela, então nada fica inacessível.
+function dashCabeRotulo(fracao){return fracao>=0.12;}
+
+function quadroCartao(titulo,nota,sub,corpo,legenda){
+  return`<div class="dash-card">
+    <div class="dash-card-head"><span class="dash-card-titulo">${titulo}</span>${nota?`<span class="dash-card-nota">${nota}</span>`:''}</div>
+    ${sub?`<div class="dash-card-sub">${sub}</div>`:''}
+    ${corpo}
+    ${legenda||''}
+  </div>`;
+}
+function quadroLegenda(itens){
+  if(itens.length<2)return'';
+  return`<div class="dash-legenda">${itens.map(i=>
+    `<span class="dash-legenda-item"><span class="dash-legenda-cor" style="background:${i.cor}"></span>${esc(i.label)} <span class="dash-legenda-num">${i.n}</span></span>`
+  ).join('')}</div>`;
+}
+
+// 1. ONDE OS CASOS TRAVAM — barras por etapa, tingidas por quem segura a bola.
+// Esse é o corte que responde a pergunta que o painel nunca respondeu: o
+// gargalo é nosso ou é de terceiro? Empilhar 12 casos em "Aguardando TQ"
+// (construtora) pede cobrança; 12 em "Minutando" (nós) pede gente.
+function quadroFunil(ativos){
+  const porDep={};
+  ativos.forEach(c=>{
+    const dep=c.dep||'';
+    if(!porDep[dep])porDep[dep]={n:0,maisAntigo:0};
+    porDep[dep].n++;
+    const d=diasParado(c.depDesde||c.atualizado);
+    if(d>porDep[dep].maisAntigo)porDep[dep].maisAntigo=d;
+  });
+  const linhas=Object.entries(porDep).map(([dep,v])=>({dep,...v,quem:dashQuemDaEtapa(dep)}))
+    .sort((a,b)=>b.n-a.n||b.maisAntigo-a.maisAntigo);
+  if(!linhas.length)return quadroCartao('Onde os casos travam','','','<div class="dash-vazio">Nenhum caso ativo no momento.</div>');
+
+  const max=linhas[0].n;
+  const mostrar=quadroFunilTodas?linhas:linhas.slice(0,8);
+  const corpo=`<div class="dash-linhas">${mostrar.map(l=>{
+    const q=DASH_QUEM[l.quem];
+    const nome=l.dep||'Sem etapa definida';
+    const tip=`<b>${escTxt(nome)}</b><br>${l.n} ${dashPlural(l.n,'caso')} · ${q.label}<br>Mais antigo: ${l.maisAntigo} ${dashPlural(l.maisAntigo,'dia')} na etapa`;
+    return`<button type="button" class="dash-linha" data-tip="${esc(tip)}" onclick="dashAbrirEtapa('${esc(l.dep)}')">
+      <span class="dash-rotulo" title="${esc(nome)}">${esc(nome)}</span>
+      <span class="dash-trilho">
+        <span class="dash-barra" style="flex-basis:calc((100% - var(--dash-reserva)) * ${(l.n/max).toFixed(3)});background:${q.cor}"></span>
+        <span class="dash-valor">${l.n}${l.maisAntigo>0?`<span class="dash-valor-meta">${l.maisAntigo}d</span>`:''}</span>
+      </span>
+    </button>`;
+  }).join('')}</div>${
+    linhas.length>8?`<button type="button" class="dash-tabela-toggle" onclick="dashToggleFunilTodas()">${quadroFunilTodas?'Ver só as 8 maiores':`Ver todas as ${linhas.length} etapas`}</button>`:''
+  }`;
+
+  const porQuem={};
+  linhas.forEach(l=>{porQuem[l.quem]=(porQuem[l.quem]||0)+l.n;});
+  const legenda=quadroLegenda(Object.keys(DASH_QUEM).filter(k=>porQuem[k])
+    .map(k=>({cor:DASH_QUEM[k].cor,label:DASH_QUEM[k].label,n:porQuem[k]})));
+  return quadroCartao('Onde os casos travam',`${linhas.length} ${dashPlural(linhas.length,'etapa')}`,
+    'Casos parados por etapa. A cor diz quem segura a bola — o número menor é o caso mais antigo ali.',corpo,legenda);
+}
+
+// 2. CARGA DA EQUIPE — 12 casos tranquilos e 12 casos pegando fogo são cargas
+// muito diferentes, então a barra é empilhada por status em vez de só contar.
+function quadroCarga(ativos){
+  const porResp={};
+  ativos.forEach(c=>{
+    const r=c.resp||'';
+    if(!porResp[r])porResp[r]={total:0,critico:0,atencao:0,prioridade:0,emdia:0};
+    porResp[r].total++;
+    if(porResp[r][c.status]!==undefined)porResp[r][c.status]++;
+  });
+  const linhas=Object.entries(porResp).map(([r,v])=>({r,...v})).sort((a,b)=>b.critico-a.critico||b.total-a.total);
+  if(!linhas.length)return quadroCartao('Carga da equipe','','','<div class="dash-vazio">Nenhum caso ativo no momento.</div>');
+
+  const maxTotal=Math.max(...linhas.map(l=>l.total));
+  const corpo=`<div class="dash-linhas">${linhas.map(l=>{
+    const detalhe=DASH_STATUS.filter(s=>l[s.key]).map(s=>`${l[s.key]} ${s.label.toLowerCase()}`).join(' · ');
+    const tip=`<b>${escTxt(dashNomeResp(l.r))}</b><br>${l.total} ${dashPlural(l.total,'caso')} ${dashPlural(l.total,'ativo')}<br>${detalhe||'sem status definido'}`;
+    return`<button type="button" class="dash-linha" data-tip="${esc(tip)}" onclick="dashAbrirResp('${esc(l.r)}')">
+      <span class="dash-rotulo">${esc(dashNomeResp(l.r))}</span>
+      <span class="dash-trilho"><span class="dash-pilha" style="flex-basis:calc((100% - var(--dash-reserva)) * ${(l.total/maxTotal).toFixed(3)})">${DASH_STATUS.filter(s=>l[s.key]).map(s=>
+        `<span class="dash-seg" style="flex:${l[s.key]} 0 0;background:${s.cor};color:${s.ink}">${dashCabeRotulo(l[s.key]/l.total)?l[s.key]:''}</span>`
+      ).join('')}</span><span class="dash-valor">${l.total}</span></span>
+    </button>`;
+  }).join('')}</div>`;
+
+  const tot={};
+  DASH_STATUS.forEach(s=>{tot[s.key]=linhas.reduce((a,l)=>a+l[s.key],0);});
+  const legenda=quadroLegenda(DASH_STATUS.filter(s=>tot[s.key]).map(s=>({cor:s.cor,label:s.label,n:tot[s.key]})));
+  return quadroCartao('Carga da equipe',`${ativos.length} ${dashPlural(ativos.length,'caso')}`,
+    'Quantos casos cada um carrega, e o peso deles. A barra inteira é o total; os pedaços são o status.',corpo,legenda);
+}
+
+// 3. ESQUECIDOS — conta dias NA ETAPA ATUAL (depDesde), não desde a criação:
+// um caso de seis meses que mudou de etapa ontem não está esquecido, e é essa
+// a diferença que o contador "Parados +3d" da lateral não faz.
+function quadroIdade(itens){
+  const faixas=DASH_IDADE.map(f=>({...f,n:0}));
+  itens.forEach(it=>{
+    const d=it.md.diasNaEtapaAtual;
+    const f=faixas.find(x=>d>=x.min&&d<=x.max);
+    if(f)f.n++;
+  });
+  const total=faixas.reduce((a,f)=>a+f.n,0);
+  if(!total)return quadroCartao('Esquecidos','','','<div class="dash-vazio">Nenhum caso ativo no momento.</div>');
+  const max=Math.max(...faixas.map(f=>f.n));
+  const velhos=faixas[2].n+faixas[3].n;
+
+  const corpo=`<div class="dash-linhas">${faixas.map((f,i)=>{
+    const pct=total?Math.round(f.n/total*100):0;
+    const tip=`<b>${escTxt(f.label)} na etapa atual</b><br>${f.n} ${dashPlural(f.n,'caso')} · ${pct}% do total`;
+    return`<button type="button" class="dash-linha" data-tip="${esc(tip)}" onclick="dashAbrirIdade(${i})">
+      <span class="dash-rotulo">${esc(f.label)}</span>
+      <span class="dash-trilho">
+        <span class="dash-barra" style="flex-basis:calc((100% - var(--dash-reserva)) * ${max?(f.n/max).toFixed(3):0});background:${f.cor}"></span>
+        <span class="dash-valor">${f.n}<span class="dash-valor-meta">${pct}%</span></span>
+      </span>
+    </button>`;
+  }).join('')}</div>`;
+  return quadroCartao('Esquecidos',velhos?`${velhos} ${dashPlural(velhos,'caso')} +8d`:'tudo fresco',
+    'Há quanto tempo cada caso está parado na etapa em que está agora.',corpo);
+}
+
+// 4. RITMO — entra x sai. Só passa a ter dados a partir do dia em que o painel
+// começou a gravar criadoEm/concluidoEm: não dá pra inventar retroativamente
+// quando um caso antigo entrou, e chutar produziria um gráfico bonito e falso.
+function quadroRitmo(){
+  const todos=getCasosList();
+  const inicioSemana=(d)=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x;};
+  const semanaAtual=inicioSemana(new Date());
+  const SEMANAS=8;
+  const buckets=[];
+  for(let i=SEMANAS-1;i>=0;i--){
+    const ini=new Date(semanaAtual);ini.setDate(ini.getDate()-i*7);
+    buckets.push({ini,entradas:0,saidas:0});
+  }
+  const indice=(iso)=>{
+    if(!iso)return-1;
+    const d=new Date(iso);
+    if(isNaN(d.getTime()))return-1;
+    const diff=Math.round((semanaAtual-inicioSemana(d))/604800000);
+    return(diff>=0&&diff<SEMANAS)?SEMANAS-1-diff:-1;
+  };
+  todos.forEach(c=>{
+    const ie=indice(c.criadoEm);if(ie>=0)buckets[ie].entradas++;
+    const is=indice(c.concluidoEm);if(is>=0)buckets[is].saidas++;
+  });
+  const totalE=buckets.reduce((a,b)=>a+b.entradas,0),totalS=buckets.reduce((a,b)=>a+b.saidas,0);
+
+  if(!totalE&&!totalS){
+    const desde=historicoDesde?new Date(historicoDesde).toLocaleDateString('pt-BR'):'hoje';
+    return quadroCartao('Ritmo do cartório','','Quanto entra e quanto fecha, por semana.',
+      `<div class="dash-vazio">Medindo desde ${esc(desde)}. Os casos antigos não têm data de entrada gravada, e chutar uma inventaria um gráfico falso — então este quadro se preenche sozinho conforme casos novos entram e casos são concluídos.</div>`);
+  }
+  const max=Math.max(1,...buckets.map(b=>Math.max(b.entradas,b.saidas)));
+  const corpo=`<div class="dash-colunas">${buckets.map(b=>{
+    const rot=b.ini.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    const tip=`<b>Semana de ${rot}</b><br>${b.entradas} ${dashPlural(b.entradas,'entrou','entraram')}<br>${b.saidas} ${dashPlural(b.saidas,'concluído','concluídos')}`;
+    return`<span class="dash-semana" data-tip="${esc(tip)}">
+      <span class="dash-par">
+        <span class="dash-col" style="height:${(b.entradas/max*100).toFixed(1)}%;background:${DASH_RITMO.entradas.cor}"></span>
+        <span class="dash-col" style="height:${(b.saidas/max*100).toFixed(1)}%;background:${DASH_RITMO.saidas.cor}"></span>
+      </span>
+      <span class="dash-semana-rot">${rot}</span>
+    </span>`;
+  }).join('')}</div>`;
+  const legenda=quadroLegenda([
+    {cor:DASH_RITMO.entradas.cor,label:DASH_RITMO.entradas.label,n:totalE},
+    {cor:DASH_RITMO.saidas.cor,  label:DASH_RITMO.saidas.label,  n:totalS}
+  ]);
+  return quadroCartao('Ritmo do cartório','últimas 8 semanas',
+    'Quanto entra e quanto fecha, por semana. Barras de entrada acima das de conclusão, semana após semana, significam fila crescendo.',corpo,legenda);
+}
+
+// Tabela com os mesmos números das barras. Não é enfeite de acessibilidade:
+// o âmbar de "Atenção" fica em 2,17:1 contra o branco, abaixo do piso de 3:1,
+// e o validador só libera esse tom com um caminho alternativo de leitura.
+// Ela é esse caminho — junto com os rótulos direto nos segmentos.
+function quadroTabelaHtml(ativos,itens){
+  const linha=(a,b)=>`<tr><td>${esc(a)}</td><td class="num">${b}</td></tr>`;
+  const porDep={};ativos.forEach(c=>{const d=c.dep||'Sem etapa definida';porDep[d]=(porDep[d]||0)+1;});
+  const porResp={};ativos.forEach(c=>{const r=dashNomeResp(c.resp);porResp[r]=(porResp[r]||0)+1;});
+  const faixas=DASH_IDADE.map(f=>({...f,n:0}));
+  itens.forEach(it=>{const f=faixas.find(x=>it.md.diasNaEtapaAtual>=x.min&&it.md.diasNaEtapaAtual<=x.max);if(f)f.n++;});
+  const tab=(cap,cab,linhas)=>`<table class="dash-tabela"><caption>${cap}</caption><thead><tr><th>${cab}</th><th class="num">Casos</th></tr></thead><tbody>${linhas}</tbody></table>`;
+  return`<div class="dash-grid" style="margin-top:12px">
+    <div>${tab('Onde os casos travam','Etapa',Object.entries(porDep).sort((a,b)=>b[1]-a[1]).map(([k,v])=>linha(k,v)).join(''))}</div>
+    <div>${tab('Carga da equipe','Responsável',Object.entries(porResp).sort((a,b)=>b[1]-a[1]).map(([k,v])=>linha(k,v)).join(''))}</div>
+    <div>${tab('Esquecidos','Tempo na etapa atual',faixas.map(f=>linha(f.label,f.n)).join(''))}</div>
+  </div>`;
+}
+
+window.dashToggleFunilTodas=function(){quadroFunilTodas=!quadroFunilTodas;renderCentralComando();};
+window.dashToggleQuadro=function(){
+  quadroAberto=!quadroAberto;
+  try{localStorage.setItem('quadro-aberto',quadroAberto?'1':'0');}catch(e){}
+  renderCentralComando();
+};
+window.dashToggleTabela=function(){quadroTabela=!quadroTabela;renderCentralComando();};
+window.dashAbrirEtapa=function(dep){
+  abrirListaCasosModal(dep||'Sem etapa definida','ti-git-branch',c=>(c.dep||'')===dep);
+};
+window.dashAbrirResp=function(r){
+  abrirListaCasosModal(dashNomeResp(r),'ti-user',c=>(c.resp||'')===r);
+};
+window.dashAbrirIdade=function(i){
+  const f=DASH_IDADE[i];if(!f)return;
+  abrirListaCasosModal(f.label+' na etapa atual','ti-hourglass',c=>{
+    const d=motorDecisao(c).diasNaEtapaAtual;
+    return d>=f.min&&d<=f.max;
+  });
+};
+
+function renderQuadro(itens){
+  const el=document.getElementById('cdc-quadro');
+  if(!el)return;
+  const ativos=getCasosList().filter(c=>!c.concluido);
+  const cabecalho=`<div class="cdc-bloco-header">
+      <span class="cdc-bloco-titulo"><i class="ti ti-chart-histogram"></i> O quadro</span>
+      <button class="foco-add-btn${quadroAberto?' open':''}" onclick="dashToggleQuadro()">${quadroAberto?'Ocultar':'Mostrar'}<i class="ti ti-chevron-down foco-add-chevron"></i></button>
+    </div>`;
+  if(!quadroAberto){el.innerHTML=cabecalho;return;}
+  el.innerHTML=cabecalho+`<div class="dash-grid">
+      ${quadroFunil(ativos)}
+      ${quadroCarga(ativos)}
+      ${quadroIdade(itens)}
+      ${quadroRitmo()}
+    </div>
+    <button type="button" class="dash-tabela-toggle" onclick="dashToggleTabela()">${quadroTabela?'Ocultar os números em tabela':'Ver os números em tabela'}</button>
+    ${quadroTabela?quadroTabelaHtml(ativos,itens):''}`;
+}
+
+// Um balão só pro quadro inteiro, por delegação — dezenas de barras não
+// precisam de dezenas de listeners, e o balão segue o mouse em vez de ficar
+// preso a um canto.
+(function montarDashTip(){
+  const tip=document.getElementById('dash-tip');
+  const host=document.getElementById('cdc-quadro');
+  if(!tip||!host)return;
+  let alvo=null;
+  const esconder=()=>{alvo=null;tip.classList.remove('on');tip.setAttribute('aria-hidden','true');};
+  host.addEventListener('mousemove',(e)=>{
+    const el=e.target.closest('[data-tip]');
+    if(!el){esconder();return;}
+    if(el!==alvo){alvo=el;tip.innerHTML=el.dataset.tip;tip.classList.add('on');tip.setAttribute('aria-hidden','false');}
+    // Vira pro outro lado do cursor quando encosta na borda direita/inferior,
+    // senão o balão sai da tela justo nas barras mais compridas.
+    const r=tip.getBoundingClientRect();
+    const x=e.clientX+14+r.width>window.innerWidth?e.clientX-14-r.width:e.clientX+14;
+    const y=e.clientY+14+r.height>window.innerHeight?e.clientY-14-r.height:e.clientY+14;
+    tip.style.left=Math.max(6,x)+'px';
+    tip.style.top=Math.max(6,y)+'px';
+  });
+  host.addEventListener('mouseleave',esconder);
+  host.addEventListener('click',esconder);
+  window.addEventListener('scroll',esconder,{passive:true});
+})();
+
 function renderCentralComando(){
   if(!Object.keys(casos).length)return;
   const itens=calcularCentralComando();
+  renderQuadro(itens);
   renderIncendios(itens);
   renderProximasAcoes(itens);
   renderAgenda(itens);
@@ -2229,7 +2661,16 @@ window.spSalvarLembrete=async function(){
 };
 window.toggleConcluido=function(id){
   const c=casos[id];
-  if(c)update(ref(db,`casos/${id}`),{concluido:!c.concluido,atualizado:isoHoje()});
+  if(!c)return;
+  const concluindo=!c.concluido;
+  // concluidoEm é a data de saída que o "Ritmo" conta. Reabrir um caso limpa
+  // o carimbo — senão ele seguiria contado como concluído numa semana em que
+  // voltou a estar aberto, inflando a saída daquela semana pra sempre.
+  update(ref(db,`casos/${id}`),{
+    concluido:concluindo,
+    concluidoEm:concluindo?new Date().toISOString():null,
+    atualizado:isoHoje()
+  });
 };
 window.toggleObs=function(id){
   const e=document.getElementById('obs-edit-'+id);
@@ -2811,6 +3252,11 @@ window.salvarNovo=function(){
     controle:document.getElementById('f-controle').value.trim(),
     obs:document.getElementById('f-obs').value.trim(),
     atualizado:isoHoje(),
+    // Data de entrada do caso — é o que alimenta o "Ritmo" do quadro. Só
+    // existe em casos criados a partir daqui: pros antigos não há como saber
+    // quando entraram, e preencher com a data de hoje inventaria um pico de
+    // entradas que nunca aconteceu.
+    criadoEm:new Date().toISOString(),
     concluido:false
   };
   set(nr,novoCaso);

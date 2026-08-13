@@ -693,6 +693,10 @@ module.exports = async (req, res) => {
       prazo: "Hoje",
       obs: `${sessao.tipoAtoNovo}\n\n[Urgência: ${urgencia.motivo}]`,
       atualizado: new Date().toISOString().split("T")[0],
+      // Data de entrada do caso — alimenta o quadro "Ritmo" do painel. Card
+      // criado pelo WhatsApp conta igual ao criado no formulário; sem isso,
+      // toda entrada vinda daqui ficaria fora da contagem semanal.
+      criadoEm: new Date().toISOString(),
       concluido: false,
       dep: ""
     };
