@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Equipe Prime">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400&family=Caprasimo&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Inter:wght@400;500;600&family=Caprasimo&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="stylesheet" href="design-system/mascots/joaninha/joaninha.css">
 <style>
@@ -28,7 +28,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.off{background:#EF4444}
 .sync-dot.loading{background:#FBBF24}
 .sync-label{font-size:11px;color:#6E6E8A}
-.container{max-width:1080px;margin:0 auto;padding:24px 18px}
+.container{max-width:1360px;margin:0 auto;padding:24px 22px}
+/* A lista de casos continua estreita de propósito: linha de texto longa
+   demais cansa a leitura. Só a Central usa a largura toda. */
+#view-casos{max-width:1080px;margin:0 auto}
 .identidade-opcoes{display:flex;flex-direction:column;gap:8px;margin-top:14px}
 .identidade-btn{font-size:14px;padding:12px;border-radius:12px;border:0.5px solid #D1D1D6;background:#F5F5F7;color:#1C1C1E;cursor:pointer;font-weight:600;transition:background .15s ease,color .15s ease}
 .identidade-btn:hover{background:#16283A;color:#fff;border-color:#16283A}
@@ -509,6 +512,252 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 .nav-toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(12px);background:#16283A;color:#fff;font-size:12.5px;padding:10px 18px;border-radius:20px;box-shadow:0 6px 18px rgba(22,40,58,.25);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:1200}
 .nav-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ══════════════════════════════════════════════════════════════════
+   CENTRAL DE COMANDO — camada visual "planner"
+   ══════════════════════════════════════════════════════════════════
+   A referência é um planner pessoal: base neutra quente, arco como
+   forma-assinatura, títulos de seção dentro de pílulas contornadas,
+   tipografia com personalidade e muito respiro. Duas adaptações
+   deliberadas para o ambiente do cartório:
+
+   · O arco da referência JÁ É a marca PRIME ("um arco fino sobre o
+     wordmark, remetendo a proteção e acolhimento" — GUIA_DE_MARCA).
+     Então ele não é enfeite emprestado: é o próprio símbolo da casa.
+   · A referência é monocromática, porque planner pessoal não tem
+     urgência. Aqui tem. A cor de status sobrevive, mas sai do FUNDO
+     (era ~40% dos pixels da tela em vermelho) e vira um filete de 3px
+     mais uma etiqueta pequena — perto de 2% dos pixels. Dá pra achar
+     o incêndio batendo o olho sem a tela inteira gritar.
+
+   Todas as cores de status foram conferidas em contraste (mínimo
+   4.5:1 sobre branco E sobre o off-white do fundo).
+   ────────────────────────────────────────────────────────────────── */
+:root{
+  --cc-fundo:#F2EFE9;        /* off-white quente — bege da referência ∩ off-white da marca */
+  --cc-sup:#FFFFFF;          /* superfície principal */
+  --cc-sup-2:#FAF8F4;        /* superfície recuada (gavetas, campos) */
+  --cc-linha:#E6E0D5;        /* filete delicado — divisor, contorno de pílula */
+  --cc-linha-forte:#D8D0C1;
+  --cc-tinta:#1F2A33;        /* 14.6:1 */
+  --cc-tinta-2:#5B6B78;      /* 5.5:1  */
+  --cc-tinta-3:#6B7680;      /* 4.6:1 — metadados, sempre sobre branco */
+  --cc-champagne:#A9895A;
+  --cc-champagne-claro:#DCC493;
+  --cc-critico:#B3261E;      /* 6.5:1 */
+  --cc-atencao:#8A5A0B;      /* 5.9:1 */
+  --cc-ok:#2F7A4F;           /* 5.2:1 */
+  --cc-info:#2A6099;         /* 6.5:1 */
+}
+.central-nova{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+
+/* ── CABEÇALHO EDITORIAL ────────────────────────────────────────────
+   Espelha a composição da referência (arco / título pequeno / nome
+   grande), mas o arco carrega o ícone do clima e a Joaninha em vez de
+   uma foto. Mantém o id saudacao-card: posicionarJoaninhaNaSaudacao()
+   mede esse elemento pra ancorar a mascote. */
+.cc-header{position:relative;text-align:center;padding:30px 20px 24px}
+.cc-arco{width:104px;height:78px;margin:0 auto 16px;border-radius:999px 999px 14px 14px;
+  background:linear-gradient(170deg,#FFFDF9,#F4EEE2);border:1px solid var(--cc-linha);
+  display:flex;align-items:center;justify-content:center;position:relative}
+/* Fio champagne acompanhando a curva — é o arco do logotipo, na mesma
+   direção do gradiente que o SVG da marca usa. */
+.cc-arco::after{content:'';position:absolute;inset:7px 9px auto;height:34px;
+  border-radius:999px 999px 0 0;border:1px solid transparent;
+  border-top:1.5px solid var(--cc-champagne-claro);border-left:1.5px solid rgba(169,137,90,.42);border-right:1.5px solid rgba(169,137,90,.42)}
+.cc-arco i,.cc-arco svg{font-size:27px;color:var(--cc-champagne);position:relative;z-index:1}
+.cc-eyebrow{font-family:'Jost',sans-serif;font-weight:400;font-size:11px;letter-spacing:.34em;
+  text-transform:uppercase;color:var(--cc-tinta-2);margin-bottom:7px;text-indent:.34em}
+.cc-saudacao{font-family:'Jost',sans-serif;font-weight:200;font-size:41px;line-height:1.08;
+  letter-spacing:-.005em;color:var(--cc-tinta);margin-bottom:11px}
+.cc-datalinha{font-size:12px;color:var(--cc-tinta-3);display:inline-flex;align-items:center;
+  gap:9px;flex-wrap:wrap;justify-content:center}
+.cc-datalinha .cc-ponto{width:3px;height:3px;border-radius:50%;background:var(--cc-linha-forte)}
+.cc-header-fechar{position:absolute;top:8px;right:8px;background:none;border:none;
+  color:var(--cc-tinta-3);font-size:19px;line-height:1;cursor:pointer;padding:4px 7px;border-radius:8px}
+.cc-header-fechar:hover{background:var(--cc-sup-2);color:var(--cc-tinta)}
+@media(max-width:640px){.cc-header{padding:22px 14px 18px}.cc-saudacao{font-size:31px}}
+
+/* ── FAIXA-RESUMO ───────────────────────────────────────────────────
+   Adaptação da faixa de afirmação da referência ("a new era of me"):
+   mesma forma — banda larga, baixa, centrada — com uma frase factual
+   sobre o dia no lugar do mantra. */
+.cc-faixa{background:var(--cc-sup);border:1px solid var(--cc-linha);border-radius:14px;
+  padding:15px 22px;text-align:center;margin-bottom:30px}
+.cc-faixa-txt{font-family:'Jost',sans-serif;font-weight:300;font-size:16.5px;color:var(--cc-tinta);letter-spacing:.005em}
+.cc-faixa-txt b{font-weight:500}
+.cc-faixa-sync{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:10.5px;color:var(--cc-tinta-3)}
+
+/* ── PÍLULA DE SEÇÃO ────────────────────────────────────────────────
+   O device mais característico da referência: o nome da seção mora
+   dentro de um retângulo contornado, não solto sobre o fundo. */
+.cc-secao{margin-bottom:30px}
+.cc-secao-head{display:flex;align-items:center;gap:13px;margin-bottom:15px}
+.cc-secao-label{display:inline-flex;align-items:center;gap:8px;font-family:'Jost',sans-serif;
+  font-weight:400;font-size:12px;letter-spacing:.2em;text-transform:uppercase;text-indent:.2em;
+  color:var(--cc-tinta);background:var(--cc-sup);border:1px solid var(--cc-linha-forte);
+  border-radius:999px;padding:8px 19px;white-space:nowrap}
+.cc-secao-label i{font-size:14px;color:var(--cc-champagne);text-indent:0}
+/* Filete que puxa o olho da pílula até a contagem, do jeito que um
+   planner separa seções sem desenhar caixa em volta de tudo. */
+.cc-secao-fio{flex:1;height:1px;background:linear-gradient(90deg,var(--cc-linha),transparent)}
+.cc-secao-cont{font-size:11.5px;color:var(--cc-tinta-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ── A MESA DE HOJE ─────────────────────────────────────────────────
+   O único lugar da tela com esse peso tipográfico — é onde o olho
+   pousa primeiro ao abrir o painel de manhã. */
+.cc-mesa{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px}
+.cc-mesa-card{position:relative;background:var(--cc-sup);border:1px solid var(--cc-linha);
+  border-radius:16px;padding:16px 20px 17px;text-align:left;width:100%;font-family:inherit;
+  cursor:pointer;display:flex;flex-direction:column;
+  transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.cc-mesa-card:hover{border-color:var(--cc-linha-forte);box-shadow:0 8px 22px rgba(31,42,51,.07);transform:translateY(-2px)}
+.cc-mesa-card:focus-visible{outline:2px solid var(--cc-champagne);outline-offset:2px}
+/* O "01 / 02 / 03" do planner como marcador no topo, com um filete que
+   atravessa o cartão. Estático, então nome nenhum passa por baixo dele. */
+.cc-mesa-topo{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.cc-mesa-num{font-family:'Jost',sans-serif;font-weight:400;font-size:11px;letter-spacing:.2em;
+  color:var(--cc-champagne);flex-shrink:0}
+.cc-mesa-fio{flex:1;height:1px;background:var(--cc-linha)}
+.cc-mesa-nome{font-family:'Jost',sans-serif;font-weight:400;font-size:19.5px;line-height:1.26;
+  color:var(--cc-tinta);margin-bottom:5px}
+.cc-mesa-tipo{font-size:12px;color:var(--cc-tinta-2);margin-bottom:13px;line-height:1.35}
+/* margin-top:auto encosta o rodapé na base: os cartões da grade têm alturas
+   de texto diferentes e, sem isso, a linha de hora fica flutuando em alturas
+   diferentes de um cartão pro outro. */
+.cc-mesa-rodape{display:flex;align-items:center;gap:7px;margin-top:auto;padding-top:11px;
+  border-top:1px solid var(--cc-linha);font-size:11.5px;color:var(--cc-tinta-3)}
+.cc-mesa-hora{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--cc-tinta)}
+.cc-mesa-hora i{font-size:13px;color:var(--cc-champagne)}
+.cc-mesa-card.critico .cc-mesa-hora{color:var(--cc-critico)}
+.cc-mesa-card.critico .cc-mesa-hora i{color:var(--cc-critico)}
+.cc-mesa-vazia{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:16px;
+  padding:26px;text-align:center;font-family:'Jost',sans-serif;font-weight:300;font-size:16px;color:var(--cc-tinta-2)}
+
+/* ── INDICADORES ────────────────────────────────────────────────────
+   Compactos e sem caixa própria: quatro colunas separadas por filete,
+   como uma régua. Caixa em cada um traria de volta o ar de sistema. */
+.cc-kpis{display:grid;grid-template-columns:repeat(4,1fr);background:var(--cc-sup);
+  border:1px solid var(--cc-linha);border-radius:14px;overflow:hidden;margin-bottom:30px}
+.cc-kpi{padding:16px 12px;text-align:center;border-left:1px solid var(--cc-linha);background:none;
+  font-family:inherit;cursor:pointer;transition:background .16s ease}
+.cc-kpi:first-child{border-left:none}
+.cc-kpi:hover{background:var(--cc-sup-2)}
+.cc-kpi-num{font-family:'Jost',sans-serif;font-weight:300;font-size:30px;line-height:1;color:var(--cc-tinta);margin-bottom:6px}
+.cc-kpi.alerta .cc-kpi-num{color:var(--cc-critico)}
+.cc-kpi-label{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--cc-tinta-3);text-indent:.16em}
+@media(max-width:640px){.cc-kpis{grid-template-columns:repeat(2,1fr)}
+  .cc-kpi:nth-child(3){border-left:none}
+  .cc-kpi:nth-child(n+3){border-top:1px solid var(--cc-linha)}}
+
+/* ── DUAS COLUNAS ───────────────────────────────────────────────────
+   Incêndios e Esquecidos são de naturezas diferentes; lado a lado se
+   lê mais rápido do que rolando um atrás do outro. */
+.cc-duo{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+@media(max-width:900px){.cc-duo{grid-template-columns:1fr;gap:30px}}
+
+/* ── ITEM DE CASO ───────────────────────────────────────────────────
+   Substitui o .cdc-linha de fundo colorido. A gravidade agora é o
+   filete de 3px na borda; o fundo é branco em todos os estados. */
+.cc-lista{display:flex;flex-direction:column;gap:9px}
+.cc-item{position:relative;background:var(--cc-sup);border:1px solid var(--cc-linha);
+  border-left:3px solid var(--cc-linha-forte);border-radius:12px;padding:14px 16px;
+  transition:border-color .18s ease,box-shadow .18s ease}
+.cc-item:hover{box-shadow:0 4px 14px rgba(31,42,51,.06)}
+.cc-item.critico{border-left-color:var(--cc-critico)}
+.cc-item.hoje{border-left-color:var(--cc-info)}
+.cc-item.atencao{border-left-color:var(--cc-atencao)}
+.cc-item.parado{border-left-color:var(--cc-linha-forte);background:var(--cc-sup-2)}
+/* Nome do cliente é o maior elemento da linha — hoje é o menor (10px
+   maiúsculo dentro de uma pílula cinza, igual aos metadados). */
+.cc-item-nome{font-family:'Jost',sans-serif;font-weight:400;font-size:16.5px;line-height:1.25;
+  color:var(--cc-tinta);cursor:pointer;display:block;text-align:left;background:none;border:none;
+  padding:0;font-family:'Jost',sans-serif;width:100%}
+.cc-item-nome:hover{color:var(--cc-champagne)}
+.cc-item-linha1{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.cc-item-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;
+  font-size:11.5px;color:var(--cc-tinta-3)}
+.cc-item-meta .cc-sep{width:3px;height:3px;border-radius:50%;background:var(--cc-linha-forte);flex-shrink:0}
+.cc-etiqueta{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:600;
+  letter-spacing:.09em;text-transform:uppercase;padding:3px 8px;border-radius:5px;white-space:nowrap;
+  background:var(--cc-sup-2);color:var(--cc-tinta-2);border:1px solid var(--cc-linha)}
+/* Sem variante por gravidade de propósito — ver comentário em linhaCaso. */
+/* A pergunta da etapa (md.proximaAcao) é a informação mais acionável
+   da linha e hoje some no meio do resto — aqui ela ganha voz própria. */
+.cc-item-acao{font-size:13px;color:var(--cc-tinta);line-height:1.4;margin-top:9px}
+.cc-item-obs{font-size:11.5px;color:var(--cc-tinta-2);line-height:1.4;margin-top:6px;
+  padding-left:9px;border-left:1px solid var(--cc-linha)}
+.cc-item-bloqueio{font-size:11.5px;color:var(--cc-atencao);margin-top:6px}
+.cc-item-resp{flex-shrink:0}
+.cc-item-resp select{font-family:inherit;font-size:11px;color:var(--cc-tinta-2);background:var(--cc-sup-2);
+  border:1px solid var(--cc-linha);border-radius:6px;padding:4px 7px;cursor:pointer;outline:none}
+.cc-item-resp select:focus{border-color:var(--cc-champagne)}
+
+/* Ações escondidas atrás de um gatilho: eram 6 controles por linha,
+   sempre visíveis — 10 linhas davam 60 controles disputando a tela. */
+.cc-item-gatilho{margin-top:11px;background:none;border:1px solid var(--cc-linha);border-radius:7px;
+  padding:4px 10px;font-family:inherit;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--cc-tinta-3);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.cc-item-gatilho:hover{color:var(--cc-tinta);border-color:var(--cc-tinta-3);background:var(--cc-sup-2)}
+.cc-item-gatilho i{font-size:13px;transition:transform .18s ease}
+.cc-item.aberto .cc-item-gatilho i{transform:rotate(180deg)}
+.cc-item-acoes{display:none;margin-top:11px;padding-top:12px;border-top:1px solid var(--cc-linha)}
+.cc-item.aberto .cc-item-acoes{display:block}
+.cc-botoes{display:flex;flex-wrap:wrap;gap:6px}
+.cc-btn{font-family:inherit;font-size:11.5px;padding:6px 12px;border-radius:8px;
+  border:1px solid var(--cc-linha-forte);background:var(--cc-sup);color:var(--cc-tinta-2);
+  cursor:pointer;white-space:nowrap;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.cc-btn:hover{background:var(--cc-sup-2);color:var(--cc-tinta);border-color:var(--cc-tinta-3)}
+.cc-btn.feito:hover{color:var(--cc-ok);border-color:var(--cc-ok);background:#F1F8F3}
+.cc-btn.ignorar:hover{color:var(--cc-critico);border-color:var(--cc-critico);background:#FCF3F2}
+.cc-nota{display:flex;gap:7px;margin-top:9px}
+.cc-nota input{flex:1;min-width:0;font-family:inherit;font-size:12px;padding:7px 11px;border-radius:8px;
+  border:1px solid var(--cc-linha);background:var(--cc-sup-2);color:var(--cc-tinta);outline:none}
+.cc-nota input:focus{border-color:var(--cc-champagne);background:var(--cc-sup)}
+.cc-nota button{font-family:inherit;font-size:11.5px;padding:7px 14px;border-radius:8px;border:none;
+  background:var(--cc-tinta);color:#fff;cursor:pointer;font-weight:500;white-space:nowrap}
+.cc-nota button:hover{background:#2C3A45}
+
+/* Grupo por etapa — mantém o agrupamento que já existia (evita repetir
+   a mesma pergunta 10 vezes), mas como cabeçalho leve em vez de barra. */
+.cc-grupo{border:1px solid var(--cc-linha);border-radius:12px;overflow:hidden;background:var(--cc-sup)}
+.cc-grupo-titulo{font-size:12.5px;color:var(--cc-tinta);background:var(--cc-sup-2);
+  padding:11px 15px;border-bottom:1px solid var(--cc-linha);line-height:1.35}
+.cc-grupo-titulo b{font-weight:600}
+.cc-grupo .cc-item{border:none;border-left:3px solid var(--cc-linha-forte);border-radius:0;border-bottom:1px solid var(--cc-linha)}
+.cc-grupo .cc-item.critico{border-left-color:var(--cc-critico)}
+.cc-grupo .cc-item.atencao{border-left-color:var(--cc-atencao)}
+.cc-grupo .cc-item:last-child{border-bottom:none}
+.cc-grupo .cc-item:hover{box-shadow:none;background:var(--cc-sup-2)}
+
+.cc-vazio{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:12px;
+  padding:22px;text-align:center;font-size:12.5px;color:var(--cc-tinta-3);font-style:italic}
+
+/* ── GAVETAS ────────────────────────────────────────────────────────
+   O que é consulta, não ação, fica fechado por padrão: Lembretes,
+   Aguardando retorno e o quadro de gráficos. */
+.cc-gavetas{display:flex;flex-direction:column;gap:9px;margin-top:8px}
+.cc-gaveta{border:1px solid var(--cc-linha);border-radius:12px;background:var(--cc-sup);overflow:hidden}
+.cc-gaveta-btn{width:100%;display:flex;align-items:center;gap:11px;padding:14px 17px;background:none;
+  border:none;font-family:inherit;font-size:12px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--cc-tinta-2);cursor:pointer;text-align:left}
+.cc-gaveta-btn:hover{background:var(--cc-sup-2)}
+.cc-gaveta-btn i:first-child{font-size:15px;color:var(--cc-champagne)}
+.cc-gaveta-cont{font-size:11px;letter-spacing:0;text-transform:none;color:var(--cc-tinta-3);
+  margin-left:auto;font-variant-numeric:tabular-nums}
+.cc-gaveta-chevron{font-size:14px;color:var(--cc-tinta-3);transition:transform .2s ease}
+.cc-gaveta.aberta .cc-gaveta-chevron{transform:rotate(180deg)}
+.cc-gaveta-corpo{display:none;padding:4px 17px 17px;border-top:1px solid var(--cc-linha)}
+.cc-gaveta.aberta .cc-gaveta-corpo{display:block}
+
+/* Sinal de "feito" — feedback discreto ao resolver um item, em vez de
+   ele simplesmente sumir sem explicação no próximo render. */
+@keyframes cc-resolvido{0%{opacity:1;transform:none}100%{opacity:0;transform:translateX(10px)}}
+.cc-item.resolvido{animation:cc-resolvido .32s ease forwards;pointer-events:none}
+@media(prefers-reduced-motion:reduce){
+  .cc-item,.cc-mesa-card,.cc-gaveta-chevron,.cc-item-gatilho i{transition:none}
+  .cc-item.resolvido{animation:none;opacity:0}
+}
 </style>
 </head>
 <body>
@@ -560,63 +809,105 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div class="main-area">
 <div class="container">
-  <div class="saudacao-card" id="saudacao-card" style="display:none">
-    <button class="saudacao-close" onclick="fecharSaudacao()">&times;</button>
-    <div class="saudacao-corpo">
-      <div class="saudacao-titulo" id="saudacao-titulo"></div>
-      <div id="saudacao-texto"></div>
+  <div class="central-nova">
+
+  <!-- Cabeçalho editorial. Mantém id="saudacao-card" de propósito:
+       posicionarJoaninhaNaSaudacao() mede ESTE elemento pra ancorar a
+       mascote, e fecharSaudacao() esconde ele. Só o visual mudou. -->
+  <div class="cc-header" id="saudacao-card" style="display:none">
+    <button class="cc-header-fechar" onclick="fecharSaudacao()" title="Fechar">&times;</button>
+    <div class="cc-arco"><span id="saudacao-clima"></span></div>
+    <div class="cc-eyebrow">Central de Comando</div>
+    <div class="cc-saudacao" id="saudacao-titulo"></div>
+    <div class="cc-datalinha" id="saudacao-texto"></div>
+  </div>
+
+  <!-- O ponto de sincronização vive AQUI, e não no cabeçalho, porque o
+       cabeçalho é dispensável (fecharSaudacao) — e saber se o painel está
+       conectado ao banco não pode depender de a saudação estar aberta. -->
+  <div class="cc-faixa" id="cc-faixa">
+    <div class="cc-faixa-txt" id="cc-faixa-txt">Carregando...</div>
+    <div class="cc-faixa-sync"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></div>
+  </div>
+
+  <section class="cc-secao">
+    <div class="cc-secao-head">
+      <span class="cc-secao-label"><i class="ti ti-coffee"></i> A mesa de hoje</span>
+      <span class="cc-secao-fio"></span>
+      <span class="cc-secao-cont" id="cc-mesa-cont"></span>
+    </div>
+    <div class="cc-mesa" id="cc-mesa"></div>
+  </section>
+
+  <div class="cc-kpis" id="cc-kpis"></div>
+  <div class="hero-expand" id="hero-expand-agenda" style="display:none"><div class="cdc-bloco" id="cdc-agenda"></div></div>
+
+  <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)" onkeydown="if(event.key===&#39;Enter&#39;)irParaPrimeiroResultado()"></div></div>
+
+  <div class="cc-duo">
+    <section class="cc-secao" id="cdc-incendios"></section>
+    <section class="cc-secao" id="cdc-esquecidos"></section>
+  </div>
+
+  <section class="cc-secao" id="cdc-proximas-acoes"></section>
+
+  <!-- Gavetas: o que é consulta, não ação. Fechadas por padrão. -->
+  <div class="cc-gavetas">
+    <div class="cc-gaveta" id="gaveta-lembretes">
+      <button type="button" class="cc-gaveta-btn" onclick="ccToggleGaveta(&#39;lembretes&#39;)">
+        <i class="ti ti-note"></i> Lembretes
+        <span class="cc-gaveta-cont" id="cc-cont-lembretes"></span>
+        <i class="ti ti-chevron-down cc-gaveta-chevron"></i>
+      </button>
+      <div class="cc-gaveta-corpo">
+        <div class="foco-items" id="foco-items"></div>
+        <button class="foco-add-btn" id="foco-add-btn" onclick="toggleFocoInput()" style="margin-top:10px">+ Adicionar<i class="ti ti-chevron-down foco-add-chevron"></i></button>
+        <div class="foco-input-row" id="foco-input-row" style="display:none">
+          <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
+          <div class="foco-input-linha">
+            <select id="foco-resp" class="foco-caso-select">
+              <option value="">Sem responsável definido</option>
+              <option value="shirley">Shirley</option>
+              <option value="grazi">Grazi</option>
+              <option value="gabriel">Gabriel</option>
+            </select>
+            <label class="foco-urgente-check"><input type="checkbox" id="foco-urgente"> Urgente</label>
+          </div>
+          <div class="foco-input-linha">
+            <div class="foco-quando-campo">
+              <span>Quando</span>
+              <input type="datetime-local" id="foco-quando" title="Opcional — com data preenchida, o lembrete também aparece na Agenda">
+            </div>
+            <button type="button" class="foco-quando-limpar" onclick="document.getElementById(&#39;foco-quando&#39;).value=&#39;&#39;">Sem data</button>
+          </div>
+          <div class="foco-input-linha">
+            <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key===&#39;Enter&#39;)addFoco()">
+            <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado(&#39;foco-input&#39;,&#39;foco-mic&#39;)" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
+            <button onclick="addFoco()">Adicionar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cc-gaveta" id="gaveta-parados">
+      <button type="button" class="cc-gaveta-btn" onclick="ccToggleGaveta(&#39;parados&#39;)">
+        <i class="ti ti-player-pause"></i> Aguardando retorno
+        <span class="cc-gaveta-cont" id="cc-cont-parados"></span>
+        <i class="ti ti-chevron-down cc-gaveta-chevron"></i>
+      </button>
+      <div class="cc-gaveta-corpo"><div id="cdc-parados"></div></div>
+    </div>
+
+    <div class="cc-gaveta" id="gaveta-quadro">
+      <button type="button" class="cc-gaveta-btn" onclick="ccToggleGaveta(&#39;quadro&#39;)">
+        <i class="ti ti-chart-histogram"></i> O quadro
+        <span class="cc-gaveta-cont">gráficos</span>
+        <i class="ti ti-chevron-down cc-gaveta-chevron"></i>
+      </button>
+      <div class="cc-gaveta-corpo"><div id="cdc-quadro"></div></div>
     </div>
   </div>
 
-  <div class="hero-row" id="hero-row"></div>
-  <div class="hero-expand" id="hero-expand-agenda" style="display:none"><div class="cdc-bloco" id="cdc-agenda"></div></div>
-  <div class="hero-expand" id="hero-expand-lembretes" style="display:none"></div>
-  <div class="hero-expand" id="hero-expand-critico" style="display:none"></div>
-
-  <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)" onkeydown="if(event.key==='Enter')irParaPrimeiroResultado()"></div></div>
-
-  <div class="cdc-card foco-card">
-    <div class="foco-header">
-      <div class="foco-title"><i class="ti ti-flame"></i> Central de Comando <span class="sync-inline"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span></div>
-    </div>
-
-    <div class="cdc-bloco" id="cdc-quadro"></div>
-
-    <div class="cdc-bloco cdc-lembretes">
-      <div class="cdc-bloco-header">
-        <span class="cdc-bloco-titulo"><i class="ti ti-note"></i> Lembretes manuais</span>
-        <button class="foco-add-btn" id="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar<i class="ti ti-chevron-down foco-add-chevron"></i></button>
-      </div>
-      <div class="foco-items cdc-scroll" id="foco-items"></div>
-      <div class="foco-input-row" id="foco-input-row" style="display:none">
-        <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
-        <div class="foco-input-linha">
-          <select id="foco-resp" class="foco-caso-select">
-            <option value="">Sem responsável definido</option>
-            <option value="shirley">Shirley</option>
-            <option value="grazi">Grazi</option>
-            <option value="gabriel">Gabriel</option>
-          </select>
-          <label class="foco-urgente-check"><input type="checkbox" id="foco-urgente"> Urgente</label>
-        </div>
-        <div class="foco-input-linha">
-          <div class="foco-quando-campo">
-            <span>Quando</span>
-            <input type="datetime-local" id="foco-quando" title="Opcional — com data preenchida, o lembrete também aparece na Agenda">
-          </div>
-          <button type="button" class="foco-quando-limpar" onclick="document.getElementById('foco-quando').value=''">Sem data</button>
-        </div>
-        <div class="foco-input-linha">
-          <input type="text" id="foco-input" placeholder="Ex: Concluir minuta Alfredo..." onkeydown="if(event.key==='Enter')addFoco()">
-          <button type="button" class="mic-btn mic-btn-dark" id="foco-mic" onclick="toggleDitado('foco-input','foco-mic')" title="Ditar por voz"><i class="ti ti-microphone"></i></button>
-          <button onclick="addFoco()">Adicionar</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="cdc-bloco" id="cdc-incendios"></div>
-    <div class="cdc-bloco" id="cdc-proximas-acoes"></div>
-    <div class="cdc-bloco" id="cdc-parados"></div>
   </div>
 
   <div id="view-casos">
@@ -1167,7 +1458,6 @@ onValue(casosRef,(snap)=>{
     renderStats();
     renderCasos();
     renderCentralComando();
-    renderHeroResumo();
     montarSaudacao();
   }
   setSyncStatus(true);
@@ -1189,14 +1479,12 @@ onValue(focosRef,(snap)=>{
   // precisa redesenhar a Central de Comando junto — senão a Agenda só
   // atualizaria no próximo evento vindo dos casos.
   renderCentralComando();
-  renderHeroResumo();
 });
 
 let resolucoesCentral={};
 onValue(resolucoesCentralRef,(snap)=>{
   resolucoesCentral=snap.val()||{};
   renderCentralComando();
-  renderHeroResumo();
 });
 
 function setSyncStatus(ok){
@@ -1627,88 +1915,151 @@ function renderQuadro(itens){
 function renderCentralComando(){
   if(!Object.keys(casos).length)return;
   const itens=calcularCentralComando();
-  renderQuadro(itens);
-  renderIncendios(itens);
-  renderProximasAcoes(itens);
+  // A Mesa devolve os ids que já colocou em destaque; cada seção seguinte
+  // desconta esse conjunto, pra um caso não aparecer em duas áreas ao mesmo
+  // tempo. A ordem aqui É a hierarquia da tela.
+  const usados=renderMesaHoje(itens);
+  renderKpis(itens);
+  renderIncendios(itens,usados);
+  renderEsquecidos(itens,usados);
+  renderProximasAcoes(itens,usados);
   renderAgenda(itens);
   renderParados(itens);
+  renderQuadro(itens);
+  ccAplicarGavetas();
 }
 
 // Uma linha de caso reutilizada pelos blocos de Incêndios/Esquecidos/Próximas
 // ações/Aguardando retorno — só muda a classe visual, a chave de resolução
 // usada pelos botões, e se mostra ações ou o botão de retomar.
 function respSelectHtml(c){
-  return`<select class="sel" onclick="event.stopPropagation()" onchange="event.stopPropagation();mudarCampo('${c.id}','resp',this.value)">
+  return`<span class="cc-item-resp"><select onclick="event.stopPropagation()" onchange="event.stopPropagation();mudarCampo('${c.id}','resp',this.value)">
     <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
     <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
     <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
-  </select>`;
+  </select></span>`;
 }
+
+// ── ESTADO VISUAL DA CENTRAL ──
+// As 4 ações deixaram de ficar sempre à mostra (eram ~6 controles por linha,
+// 60 numa tela de 10 casos). Como o painel re-renderiza inteiro a cada
+// mudança no Firebase — feita por qualquer pessoa da equipe, a qualquer
+// momento — o que está aberto precisa viver FORA do HTML, senão o painel de
+// ações fecharia sozinho na cara de quem estivesse usando.
+const ccItensAbertos=new Set();
+let ccGavetas={lembretes:false,parados:false,quadro:false};
+try{
+  const g=JSON.parse(localStorage.getItem('cc-gavetas')||'null');
+  if(g&&typeof g==='object')ccGavetas={...ccGavetas,...g};
+}catch(e){}
+
+window.ccToggleItem=function(btn){
+  const item=btn.closest('.cc-item');
+  if(!item)return;
+  const chave=item.dataset.chave;
+  const abrindo=!item.classList.contains('aberto');
+  item.classList.toggle('aberto',abrindo);
+  if(chave){ if(abrindo)ccItensAbertos.add(chave); else ccItensAbertos.delete(chave); }
+};
+window.ccToggleGaveta=function(nome){
+  ccGavetas[nome]=!ccGavetas[nome];
+  try{localStorage.setItem('cc-gavetas',JSON.stringify(ccGavetas));}catch(e){}
+  ccAplicarGavetas();
+};
+function ccAplicarGavetas(){
+  Object.keys(ccGavetas).forEach(n=>{
+    document.getElementById('gaveta-'+n)?.classList.toggle('aberta',!!ccGavetas[n]);
+  });
+}
+// Some com a linha antes de gravar, pra resolver um item dar retorno visual
+// em vez de a linha simplesmente evaporar no próximo render. A gravação é a
+// mesma de sempre — só ganhou 190ms de fade na frente.
+window.ccResolver=function(btn,chave,estado,extra){
+  const item=btn.closest('.cc-item');
+  if(item)item.classList.add('resolvido');
+  setTimeout(()=>resolverCentral(chave,estado,extra),190);
+};
+
+function ccSecaoHead(titulo,icone,contagem){
+  return`<div class="cc-secao-head">
+    <span class="cc-secao-label"><i class="ti ${icone}"></i> ${esc(titulo)}</span>
+    <span class="cc-secao-fio"></span>
+    ${contagem?`<span class="cc-secao-cont">${esc(contagem)}</span>`:''}
+  </div>`;
+}
+function ccVazio(txt){return`<div class="cc-vazio">${esc(txt)}</div>`;}
+function ccPlural(n,s,p){return n===1?s:(p||s+'s');}
+
 function acoesBotoesHtml(chave){
-  return`<div class="cdc-acoes">
-      <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','ja_fiz')">✓ Já fiz</button>
-      <button class="cdc-acao-btn" onclick="event.stopPropagation();abrirSnoozeCentral('${chave}')">⏰ Depois</button>
-      <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','parado',{desde:isoHoje()})">⏸ Aguardando</button>
-      <button class="cdc-acao-btn" onclick="event.stopPropagation();resolverCentral('${chave}','ignorado')">✕ Ignorar</button>
+  return`<div class="cc-botoes">
+      <button class="cc-btn feito" onclick="event.stopPropagation();ccResolver(this,'${chave}','ja_fiz')">✓ Já fiz</button>
+      <button class="cc-btn" onclick="event.stopPropagation();abrirSnoozeCentral('${chave}')">⏰ Depois</button>
+      <!-- A data é resolvida AQUI, na montagem do HTML, e entra já como texto.
+           Antes o atributo trazia a chamada isoHoje() literal, avaliada só no
+           clique — e onclick roda no escopo GLOBAL, onde isoHoje (função de
+           módulo) não existe. O botão lançava "isoHoje is not defined" e não
+           gravava nada; era o motivo real de "desde" nunca aparecer. -->
+      <button class="cc-btn" onclick="event.stopPropagation();ccResolver(this,'${chave}','parado',{desde:'${isoHoje()}'})">⏸ Aguardando</button>
+      <button class="cc-btn ignorar" onclick="event.stopPropagation();ccResolver(this,'${chave}','ignorado')">✕ Ignorar</button>
     </div>`;
 }
+
+// A hierarquia inverteu: o nome do cliente era o menor elemento da linha
+// (10px, maiúsculo, dentro de uma pílula cinza igual à dos metadados) e
+// agora é o maior. A gravidade saiu do fundo — que pintava a linha inteira
+// de vermelho — e virou o filete de 3px na borda esquerda mais a etiqueta.
 function linhaCaso(it,opts){
   const c=it.caso,md=it.md,classe=opts.classe||'',chave=opts.chave;
-  const diasTxt=md.diasNaEtapaAtual>0?`${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual>1?'s':''} em "${esc(c.dep||'—')}"`:`Entrou hoje em "${esc(c.dep||'—')}"`;
-  const bloqueio=md.bloqueado?`<div class="cdc-bloqueio">⚠ ${esc(md.motivoBloqueio)}</div>`:'';
-  // A ação da etapa (proximaAcao) é genérica, a mesma pra todo caso nessa
-  // dependência — a última observação anotada no card é o detalhe específico
-  // desse caso (ex: "falta assinatura do Yhuri"), sem precisar de IA pra
-  // interpretar nada, só mostrando a nota mais recente como ela foi escrita.
-  // Tira o número e o carimbo de data/hora automáticos (formato "N - [data
-  // hora] texto") que o Salvar Obs/Registrar Atendimento sempre acrescentam —
-  // aqui só interessa o texto da nota em si; a data automática ao lado da
-  // data real que às vezes já vem escrita na própria nota (ex: "lembrete em
-  // 06/08") só duplicava e confundia.
+  const aberto=ccItensAbertos.has(chave)?' aberto':'';
+  const diasTxt=md.diasNaEtapaAtual>0?`${md.diasNaEtapaAtual} ${ccPlural(md.diasNaEtapaAtual,'dia')} parado`:'Entrou hoje';
+  const etapa=c.dep?`<span class="cc-etiqueta">${esc(c.dep)}</span><span class="cc-sep"></span>`:'';
+  const bloqueio=md.bloqueado?`<div class="cc-item-bloqueio">⚠ ${esc(md.motivoBloqueio)}</div>`:'';
   const ultimaObs=(c.obs||'').split('\n')[0].replace(/^(?:\d+\s*-\s*)?\[[^\]]*\]\s*/,'').trim();
-  const obsSnippet=ultimaObs?`<div class="cdc-obs-snippet">📝 ${esc(ultimaObs.length>160?ultimaObs.slice(0,160)+'…':ultimaObs)}</div>`:'';
+  const obsSnippet=ultimaObs?`<div class="cc-item-obs">${esc(ultimaObs.length>150?ultimaObs.slice(0,150)+'…':ultimaObs)}</div>`:'';
   const acoes=opts.mostrarAcoes?`
-    ${acoesBotoesHtml(chave)}
-    <div class="cdc-registro-rapido">
-      <input type="text" id="cdc-nota-${c.id}" onclick="event.stopPropagation()" placeholder="Registrar rapidinho...">
-      <button onclick="event.stopPropagation();registrarNotaCentral('${c.id}')">Registrar</button>
+    <button type="button" class="cc-item-gatilho" onclick="ccToggleItem(this)">Ações <i class="ti ti-chevron-down"></i></button>
+    <div class="cc-item-acoes">
+      ${acoesBotoesHtml(chave)}
+      <div class="cc-nota">
+        <input type="text" id="cdc-nota-${c.id}" onclick="event.stopPropagation()" placeholder="Registrar rapidinho...">
+        <button onclick="event.stopPropagation();registrarNotaCentral('${c.id}')">Registrar</button>
+      </div>
     </div>`:'';
-  const retomar=opts.mostrarRetomar?`<div class="cdc-acoes"><button class="cdc-acao-btn" onclick="event.stopPropagation();retomarCentral('${chave}')">▶ Retomar</button></div>`:'';
+  const retomar=opts.mostrarRetomar?`<div class="cc-botoes" style="margin-top:10px"><button class="cc-btn" onclick="event.stopPropagation();retomarCentral('${chave}')">▶ Retomar</button></div>`:'';
   return`
-  <div class="cdc-linha ${classe}" onclick="irParaCasoPorId('${c.id}')" style="cursor:pointer">
-    <div class="cdc-conteudo">
-      <div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${respSelectHtml(c)}</div>
-      <span class="cdc-texto">${esc(opts.textoOverride||md.proximaAcao)}</span>
-      <span class="cdc-meta">${diasTxt}</span>
-      ${obsSnippet}
-      ${bloqueio}
-      ${acoes}${retomar}
+  <div class="cc-item ${classe}${aberto}" data-chave="${esc(chave||'')}">
+    <div class="cc-item-linha1">
+      <button type="button" class="cc-item-nome" onclick="irParaCasoPorId('${c.id}')">${esc(c.nome)}</button>
+      ${respSelectHtml(c)}
     </div>
+    <div class="cc-item-meta">${etapa}<span>${diasTxt}</span></div>
+    <div class="cc-item-acao">${esc(opts.textoOverride||md.proximaAcao)}</div>
+    ${obsSnippet}
+    ${bloqueio}
+    ${acoes}${retomar}
   </div>`;
 }
-// Versão compacta de linhaCaso, usada dentro de um grupo por etapa (dep) —
-// não repete o texto da próxima ação (já está no título do grupo) e não
-// mostra observação/registro rápido, que ficariam apertados numa lista de
-// vários nomes; pra ver isso, é só clicar no nome e abrir o card.
+
+// Dentro de um grupo por etapa a pergunta já está no cabeçalho do grupo, então
+// a linha não repete nem a ação nem a observação — só nome, tempo e ações.
 function linhaCasoCompacta(it,opts){
   const c=it.caso,md=it.md,classe=opts.classe||'',chave=opts.chave;
-  const diasTxt=md.diasNaEtapaAtual>0?`${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual>1?'s':''}`:'Entrou hoje';
-  const bloqueio=md.bloqueado?`<div class="cdc-bloqueio">⚠ ${esc(md.motivoBloqueio)}</div>`:'';
+  const aberto=ccItensAbertos.has(chave)?' aberto':'';
+  const diasTxt=md.diasNaEtapaAtual>0?`${md.diasNaEtapaAtual} ${ccPlural(md.diasNaEtapaAtual,'dia')}`:'Entrou hoje';
+  const bloqueio=md.bloqueado?`<div class="cc-item-bloqueio">⚠ ${esc(md.motivoBloqueio)}</div>`:'';
   return`
-  <div class="cdc-linha compacta ${classe}" onclick="irParaCasoPorId('${c.id}')" style="cursor:pointer">
-    <div class="cdc-conteudo">
-      <div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${respSelectHtml(c)}</div>
-      <span class="cdc-meta">${diasTxt}</span>
-      ${bloqueio}
-      ${acoesBotoesHtml(chave)}
+  <div class="cc-item ${classe}${aberto}" data-chave="${esc(chave||'')}">
+    <div class="cc-item-linha1">
+      <button type="button" class="cc-item-nome" onclick="irParaCasoPorId('${c.id}')">${esc(c.nome)}</button>
+      ${respSelectHtml(c)}
     </div>
+    <div class="cc-item-meta"><span>${diasTxt}</span></div>
+    ${bloqueio}
+    <button type="button" class="cc-item-gatilho" onclick="ccToggleItem(this)">Ações <i class="ti ti-chevron-down"></i></button>
+    <div class="cc-item-acoes">${acoesBotoesHtml(chave)}</div>
   </div>`;
 }
-// Junta na mesma etapa (dep) quando 2+ casos da seção compartilham ela —
-// evita repetir a mesma "próxima ação" várias vezes seguidas (chegava a 10
-// linhas idênticas em "Nota de exigência", por exemplo). Uma etapa com um
-// único caso na seção continua na linha detalhada de sempre (com observação
-// e registro rápido) — só agrupa quando isso resolve poluição de verdade.
+
 function renderListaComGrupos(itensOrdenados,classe){
   const porDep={},ordem=[];
   itensOrdenados.forEach(it=>{
@@ -1723,7 +2074,7 @@ function renderListaComGrupos(itensOrdenados,classe){
       const nome=resps.size===1?NOMES_RESP[[...resps][0]]:null;
       const cfg=DEP_CONFIG[dep];
       const titulo=esc(perguntaGrupoTexto(cfg&&cfg.perguntaGrupo,nome)||grupo[0].md.proximaAcao||dep);
-      return`<div class="cdc-grupo ${classe}"><div class="cdc-grupo-titulo">🐞 ${titulo}</div>${
+      return`<div class="cc-grupo"><div class="cc-grupo-titulo"><b>${esc(dep)}</b> · ${titulo}</div>${
         grupo.map(it=>linhaCasoCompacta(it,{classe,chave:it.chaveDep})).join('')
       }</div>`;
     }
@@ -1749,6 +2100,7 @@ function fraseHoje(it){
   return it.md.proximaAcao;
 }
 
+
 // Sem limite de quantidade escondendo casos de verdade — já causou bug real
 // nesse projeto (compromissos sumindo em silêncio quando o limite enchia,
 // ver [[project_cartorio]] "Dois bugs corrigidos no Foco do dia"). Em vez de
@@ -1769,35 +2121,176 @@ function limitarScrollUmCard(scrollEl){
 function limitarTodosScrolls(container){
   container.querySelectorAll('.cdc-scroll').forEach(limitarScrollUmCard);
 }
-function renderIncendios(itens){
-  const el=document.getElementById('cdc-incendios');
-  const hoje=itens.filter(it=>!it.parado&&!it.suprimidoAgenda&&it.ehHoje).sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
-  const esquecidos=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel==='critico').sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
-  let html='<div class="cdc-bloco-titulo"><i class="ti ti-flame"></i> Incêndios</div>';
-  if(!hoje.length&&!esquecidos.length){html+='<div class="cdc-vazio">Nada pegando fogo agora.</div>';el.innerHTML=html;return;}
-  // Hoje e Esquecidos ganham rolagem própria e independente uma da outra —
-  // antes dividiam a mesma caixa de rolagem, escondendo a intuição de que
-  // cada bloco pode ter mais casos abaixo.
-  if(hoje.length){
-    const corpoHoje=hoje.map(it=>linhaCaso(it,{classe:'hoje',chave:it.chaveAgenda,mostrarAcoes:true,textoOverride:fraseHoje(it)})).join('');
-    html+=`<div class="cdc-scroll">${corpoHoje}</div>`;
-  }
-  if(esquecidos.length){
-    const corpoEsquecidos=renderListaComGrupos(esquecidos,'critico');
-    html+='<div class="cdc-sub-titulo">Esquecidos</div>'+`<div class="cdc-scroll">${corpoEsquecidos}</div>`;
-  }
-  el.innerHTML=html;
-  limitarTodosScrolls(el);
+
+
+// ── A MESA DE HOJE ──
+// A área de maior peso tipográfico da tela: é onde o olho pousa ao abrir o
+// painel de manhã. Não inventa critério nenhum — junta, em ordem de urgência
+// real, três coisas que o motor já calculava e que antes ficavam espalhadas:
+// compromisso de hoje (com a hora real), lembrete manual vencido ou marcado
+// urgente, e o caso crítico parado há mais tempo. Teto de 5 cartões; o que
+// passar disso continua nas seções abaixo, que é de onde veio.
+const CC_MESA_MAX=4;
+function calcularMesaHoje(itens){
+  const horaDoItem=(it)=>(it.diffAgendado===0?it.caso.agendado:(it.diffSegunda===0&&it.caso.segundaParte?it.caso.segundaParte.data:''))||'';
+  const hoje=itens.filter(it=>!it.parado&&!it.suprimidoAgenda&&it.ehHoje)
+    .sort((a,b)=>horaDoItem(a).localeCompare(horaDoItem(b)));
+  const cartoes=hoje.map(it=>{
+    const hora=horaDoItem(it);
+    const hh=hora?new Date(hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    return{
+      chaveId:it.caso.id, critico:false,
+      nome:it.caso.nome, sub:it.caso.tipo||'Compromisso de hoje',
+      icone:'ti-clock', quando:hh?`Hoje, ${hh}`:'Hoje',
+      onclick:`irParaCasoPorId('${it.caso.id}')`
+    };
+  });
+
+  const focosEv=typeof eventosDeFocos==='function'?eventosDeFocos():[];
+  const todosFocos=Array.isArray(focos)?focos:Object.values(focos||{});
+  const urgentes=todosFocos.filter(f=>f&&!f.done&&f.urgente&&!f.quando);
+  // Vencido primeiro, depois o de hoje, depois o urgente sem data.
+  // Lembrete preso a um caso herda o id DESSE caso como chave, pra a Mesa não
+  // mostrar o mesmo cliente duas vezes (uma pelo lembrete, outra pelo caso).
+  const idDoFoco=(f)=>{
+    const c=f.casoNome?encontrarCasoPorNomeFoco(f.casoNome):null;
+    return c?c.id:'foco-'+f.id;
+  };
+  const lembretes=[
+    ...focosEv.filter(ev=>ev.diff<0).map(ev=>({ev,atrasado:true})),
+    ...focosEv.filter(ev=>ev.diff===0).map(ev=>({ev,atrasado:false}))
+  ].map(({ev,atrasado})=>({
+    chaveId:idDoFoco(ev.foco), critico:atrasado,
+    nome:ev.foco.text||'Lembrete', sub:ev.foco.casoNome||'Lembrete geral',
+    icone:atrasado?'ti-alert-triangle':'ti-note',
+    quando:(atrasado?'Atrasado · ':'')+fmtQuando(ev.dt),
+    onclick:ev.foco.casoNome?`irParaCasoDoFoco('${esc(ev.foco.casoNome)}')`:''
+  })).concat(urgentes.map(f=>({
+    chaveId:idDoFoco(f), critico:true,
+    nome:f.text||'Lembrete', sub:f.casoNome||'Lembrete geral',
+    icone:'ti-flag', quando:'Marcado urgente',
+    onclick:f.casoNome?`irParaCasoDoFoco('${esc(f.casoNome)}')`:''
+  })));
+
+  const criticos=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel==='critico')
+    .sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual)
+    .map(it=>({
+      chaveId:it.caso.id, critico:true,
+      nome:it.caso.nome, sub:it.md.proximaAcao,
+      icone:'ti-flame', quando:`${it.md.diasNaEtapaAtual} ${ccPlural(it.md.diasNaEtapaAtual,'dia')} em "${it.caso.dep||'—'}"`,
+      onclick:`irParaCasoPorId('${it.caso.id}')`
+    }));
+
+  const todos=[...lembretes.filter(l=>l.critico),...cartoes,...lembretes.filter(l=>!l.critico),...criticos];
+  const vistos=new Set(),unicos=[];
+  todos.forEach(c=>{if(!vistos.has(c.chaveId)){vistos.add(c.chaveId);unicos.push(c);}});
+  return{cartoes:unicos.slice(0,CC_MESA_MAX),total:unicos.length};
 }
 
-function renderProximasAcoes(itens){
+function renderMesaHoje(itens){
+  const el=document.getElementById('cc-mesa');
+  if(!el)return new Set();
+  const{cartoes,total}=calcularMesaHoje(itens);
+  const cont=document.getElementById('cc-mesa-cont');
+  if(cont)cont.textContent=total?`${total} ${ccPlural(total,'item','itens')}${total>CC_MESA_MAX?` · ${CC_MESA_MAX} em destaque`:''}`:'';
+  if(!cartoes.length){
+    el.innerHTML=`<div class="cc-mesa-vazia">Nada exigindo você agora. Bom dia tranquilo.</div>`;
+    return new Set();
+  }
+  el.innerHTML=cartoes.map((c,i)=>`
+    <button type="button" class="cc-mesa-card${c.critico?' critico':''}"${c.onclick?` onclick="${c.onclick}"`:''}>
+      <span class="cc-mesa-topo"><span class="cc-mesa-num">${String(i+1).padStart(2,'0')}</span><span class="cc-mesa-fio"></span></span>
+      <span class="cc-mesa-nome">${esc(c.nome.length>58?c.nome.slice(0,58)+'…':c.nome)}</span>
+      <span class="cc-mesa-tipo">${esc(c.sub||'')}</span>
+      <span class="cc-mesa-rodape"><span class="cc-mesa-hora"><i class="ti ${c.icone}"></i>${esc(c.quando)}</span></span>
+    </button>`).join('');
+  return new Set(cartoes.map(c=>c.chaveId));
+}
+
+// ── INDICADORES ──
+// Substituem os 3 cartões que ficavam no topo da página. Compactos e sem
+// caixa individual: quatro colunas separadas por filete, como uma régua —
+// caixa em cada um traria de volta a cara de sistema.
+function renderKpis(itens){
+  const el=document.getElementById('cc-kpis');
+  if(!el)return;
+  const ativos=getCasosList().filter(c=>!c.concluido);
+  const urgentes=ativos.filter(c=>c.status==='critico').length;
+  const focosEv=typeof eventosDeFocos==='function'?eventosDeFocos():[];
+  const hoje=itens.filter(it=>!it.parado&&!it.suprimidoAgenda&&it.ehHoje).length+focosEv.filter(ev=>ev.diff===0).length;
+  // "Aguardando" = a bola está com cliente ou terceiro, não conosco. Sai do
+  // quemSegura que o DEP_CONFIG já define pra cada etapa.
+  const aguardando=itens.filter(it=>it.md.quemSegura==='cliente'||it.md.quemSegura==='terceiro').length;
+  const dados=[
+    {n:urgentes,label:'Urgentes',alerta:urgentes>0,acao:"abrirStatusModal('critico')"},
+    {n:hoje,label:'Hoje',alerta:false,acao:"toggleHeroExpand('agenda')"},
+    {n:aguardando,label:'Aguardando',alerta:false,acao:"ccAbrirKpi('aguardando')"},
+    {n:ativos.length,label:'Em andamento',alerta:false,acao:"ccAbrirKpi('ativos')"}
+  ];
+  el.innerHTML=dados.map(d=>`
+    <button type="button" class="cc-kpi${d.alerta?' alerta':''}" onclick="${d.acao}">
+      <div class="cc-kpi-num">${String(d.n).padStart(2,'0')}</div>
+      <div class="cc-kpi-label">${d.label}</div>
+    </button>`).join('');
+
+  const faixa=document.getElementById('cc-faixa-txt');
+  if(faixa){
+    const partes=[];
+    if(hoje)partes.push(`<b>${hoje}</b> ${ccPlural(hoje,'compromisso')} hoje`);
+    if(urgentes)partes.push(`<b>${urgentes}</b> ${ccPlural(urgentes,'caso')} ${ccPlural(urgentes,'urgente')}`);
+    if(aguardando)partes.push(`<b>${aguardando}</b> na mão de terceiros`);
+    faixa.innerHTML=partes.length?partes.join(' &nbsp;·&nbsp; '):'Nenhuma pendência aberta no momento.';
+  }
+}
+window.ccAbrirKpi=function(qual){
+  if(qual==='aguardando')return abrirListaCasosModal('Aguardando terceiros','ti-hourglass',
+    c=>{const q=motorDecisao(c).quemSegura;return q==='cliente'||q==='terceiro';});
+  return abrirListaCasosModal('Em andamento','ti-briefcase',()=>true);
+};
+
+// ── INCÊNDIOS · ESQUECIDOS · PRÓXIMAS AÇÕES ──
+// Três áreas, três conjuntos que o motor já produzia. A única novidade é que
+// um caso não aparece mais em duas áreas ao mesmo tempo: cada seção recebe o
+// conjunto de ids já usados acima e desconta. Nada some — o que sai de uma
+// área é porque já está sendo mostrado, com mais destaque, em outra.
+function renderIncendios(itens,usados){
+  const el=document.getElementById('cdc-incendios');
+  if(!el)return;
+  const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel==='critico'&&!usados.has(it.caso.id))
+    .sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
+  pool.forEach(it=>usados.add(it.caso.id));
+  el.innerHTML=ccSecaoHead('Incêndios','ti-flame',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'')
+    +(pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'critico')}</div>`
+                 :ccVazio('Nada pegando fogo agora.'));
+}
+
+// "Parado há 3 dias ou mais" não é um limite novo: é exatamente o critério do
+// contador "Parados +3d" que já existe na barra lateral (STATUS_SIDEBAR).
+function renderEsquecidos(itens,usados){
+  const el=document.getElementById('cdc-esquecidos');
+  if(!el)return;
+  const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje
+      &&!usados.has(it.caso.id)&&diasParado(it.caso.atualizado)>=3)
+    .sort((a,b)=>diasParado(a.caso.atualizado)<diasParado(b.caso.atualizado)?1:-1);
+  pool.forEach(it=>usados.add(it.caso.id));
+  el.innerHTML=ccSecaoHead('Esquecidos','ti-eye',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'')
+    +(pool.length?`<div class="cc-lista">${pool.map(it=>linhaCaso(it,{
+        classe:'atencao',chave:it.chaveDep,mostrarAcoes:true,
+        textoOverride:`Sem movimento há ${diasParado(it.caso.atualizado)} dias. ${it.md.proximaAcao}`
+      })).join('')}</div>`
+    :ccVazio('Nenhum caso esquecido — tudo teve movimento nos últimos 3 dias.'));
+}
+
+function renderProximasAcoes(itens,usados){
   const el=document.getElementById('cdc-proximas-acoes');
-  const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel!=='critico'&&(it.md.nivel==='atencao'||it.md.bloqueado));
-  const top=pool.sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
-  let html='<div class="cdc-bloco-titulo"><i class="ti ti-list-check"></i> Próximas ações</div>';
-  if(!top.length){html+='<div class="cdc-vazio">Nada de olho no momento.</div>';el.innerHTML=html;return;}
-  el.innerHTML=html+`<div class="cdc-scroll">${renderListaComGrupos(top,'atencao')}</div>`;
-  limitarTodosScrolls(el);
+  if(!el)return;
+  const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel!=='critico'
+      &&(it.md.nivel==='atencao'||it.md.bloqueado)&&!usados.has(it.caso.id))
+    .sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
+  pool.forEach(it=>usados.add(it.caso.id));
+  el.innerHTML=ccSecaoHead('Próximas ações','ti-bookmark',pool.length?`${pool.length} ${ccPlural(pool.length,'caso')}`:'')
+    +(pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'atencao')}</div>`
+                 :ccVazio('Nada de olho no momento.'));
 }
 
 // Lembrete manual com data preenchida (campo "quando") vira evento de agenda,
@@ -1877,13 +2370,16 @@ function renderAgenda(itens){
   el.innerHTML=html;
 }
 
+
 function renderParados(itens){
   const el=document.getElementById('cdc-parados');
+  const cont=document.getElementById('cc-cont-parados');
+  if(!el)return;
   const pool=itens.filter(it=>it.parado);
-  if(!pool.length){el.innerHTML='';return;}
-  const corpo=pool.map(it=>linhaCaso(it,{classe:'parado',chave:it.chaveDep,mostrarRetomar:true})).join('');
-  el.innerHTML='<div class="cdc-bloco-titulo"><i class="ti ti-player-pause"></i> Aguardando retorno</div>'+`<div class="cdc-scroll">${corpo}</div>`;
-  limitarTodosScrolls(el);
+  if(cont)cont.textContent=pool.length?String(pool.length):'nenhum';
+  el.innerHTML=pool.length
+    ?`<div class="cc-lista">${pool.map(it=>linhaCaso(it,{classe:'parado',chave:it.chaveDep,mostrarRetomar:true})).join('')}</div>`
+    :ccVazio('Nada aguardando retorno no momento.');
 }
 
 window.resolverCentral=function(chave,estado,extra){
@@ -1940,6 +2436,8 @@ window.irParaCasoPorId=function(id){
 function renderFoco(){
   const el=document.getElementById('foco-items');
   const full=Array.isArray(focos)?focos:Object.values(focos||{});
+  const contEl=document.getElementById('cc-cont-lembretes');
+  if(contEl){const n=full.filter(f=>f&&!f.done).length;contEl.textContent=n?String(n):'nenhum';}
   if(!full.length){el.innerHTML='<div class="foco-empty">Nenhuma prioridade definida para hoje.</div>';limitarScrollUmCard(el);return;}
   // Concluídos (✓) somem da lista em vez de ficar riscados ocupando espaço —
   // o estado continua salvo, só não é mais exibido, pra não poluir a lista
@@ -2052,7 +2550,7 @@ function montarSaudacao(forcar){
   if(sessionStorage.getItem('saudacao_fechada'))return;
   const agora=new Date();
   renderSaudacaoTitulo(usuario,'sol');
-  const msg=`Hoje é ${DIAS_SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}. Vamos começar? Os compromissos e pendências de hoje já estão logo abaixo, na Central de Comando.`;
+  const msg=`${DIAS_SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}`;
   document.getElementById('saudacao-texto').textContent=msg;
   document.getElementById('saudacao-card').style.display='block';
   posicionarJoaninhaNaSaudacao();
@@ -2122,13 +2620,11 @@ function saudacaoPorHora(){
 }
 function renderSaudacaoTitulo(usuario,chaveIcone){
   const el=document.getElementById('saudacao-titulo');
-  if(!el)return;
-  el.textContent='';
-  el.appendChild(document.createTextNode(`${saudacaoPorHora()}, ${usuario}! `));
-  const span=document.createElement('span');
-  span.className='saudacao-clima-icone';
-  span.innerHTML=ICONES_CLIMA[chaveIcone]||ICONES_CLIMA.sol;
-  el.appendChild(span);
+  if(el)el.textContent=`${saudacaoPorHora()}, ${usuario}`;
+  // O ícone do clima passou a morar dentro do arco do cabeçalho, no lugar
+  // da foto que a referência de planner usa. Mesma lógica de clima de antes.
+  const arco=document.getElementById('saudacao-clima');
+  if(arco)arco.innerHTML=ICONES_CLIMA[chaveIcone]||ICONES_CLIMA.sol;
 }
 let climaIntervalIniciado=false;
 async function atualizarIconeClima(usuario){
@@ -2182,95 +2678,6 @@ window.addEventListener('resize',()=>{
 // os mesmos dados/critérios (não inventa uma 4ª definição de "crítico"):
 // contagem igual à da lateral, "hoje" igual ao de Incêndios/Agenda, e os
 // mesmos lembretes manuais pendentes.
-function renderHeroResumo(){
-  const el=document.getElementById('hero-row');
-  if(!el)return;
-  const ativos=getCasosList().filter(x=>!x.concluido);
-
-  const criticos=ativos.filter(c=>c.status==='critico').sort((a,b)=>diasParado(b.atualizado)-diasParado(a.atualizado));
-  const topCritico=criticos[0];
-  const criticoBody=topCritico?`${esc(topCritico.nome)} — ${esc(topCritico.tipo)||'sem tipo definido'}`:'Nenhum caso crítico agora';
-  const criticoSub=topCritico?`${diasParado(topCritico.atualizado)} dias parado`+(criticos.length>1?` · +${criticos.length-1} outro${criticos.length>2?'s':''} crítico${criticos.length>2?'s':''}`:''):'Tudo em dia por aqui';
-
-  const itens=typeof calcularCentralComando==='function'?calcularCentralComando():[];
-  // Ordena pelo horário do compromisso de hoje (assinatura principal ou 2ª
-  // parte, o que for o motivo do ehHoje) — assim o card mostra sempre o
-  // próximo compromisso, não o primeiro caso que aparecer na lista.
-  const horaHojeDoItem=(it)=>(it.diffAgendado===0?it.caso.agendado:(it.diffSegunda===0&&it.caso.segundaParte?it.caso.segundaParte.data:''))||'';
-  const hoje=itens.filter(it=>it.ehHoje).sort((a,b)=>horaHojeDoItem(a).localeCompare(horaHojeDoItem(b)));
-  // Lembrete manual com data de hoje conta como compromisso de hoje, senão o
-  // número do cartão não bate com a lista que abre logo abaixo dele.
-  const focosEv=typeof eventosDeFocos==='function'?eventosDeFocos():[];
-  const focosHoje=focosEv.filter(ev=>ev.diff===0);
-  const totalHoje=hoje.length+focosHoje.length;
-  const topHoje=hoje[0];
-  const agendaBody=topHoje?esc(topHoje.caso.nome):(focosHoje.length?esc(focosHoje[0].foco.text||''):'Nada agendado');
-  // Quando não tem nada hoje, mostra se tem algo chegando (amanhã/semana) em
-  // vez de só "pros próximos 7 dias" sem dizer se tem algo ali dentro — mesmo
-  // critério de janela E de exclusão (resolucoesCentral) que renderAgenda usa,
-  // senão o número daqui não bate com o que a janela cheia mostra.
-  let futuros=0;
-  itens.forEach(it=>{
-    const c=it.caso;
-    if(it.diffAgendado>=1&&it.diffAgendado<=7&&!resolucoesCentral[chaveAgendaEvento(c.id,'principal',c.agendado)])futuros++;
-    if(it.diffSegunda>=1&&it.diffSegunda<=7&&c.segundaParte&&!resolucoesCentral[chaveAgendaEvento(c.id,'segunda',c.segundaParte.data)])futuros++;
-  });
-  futuros+=focosEv.filter(ev=>ev.diff>=1&&ev.diff<=7).length;
-  // Lembrete vencido não entra no número de "hoje" (o cartão é Agenda hoje),
-  // mas é avisado aqui — ele continua visível na lista, no bloco "Atrasado".
-  const atrasados=focosEv.filter(ev=>ev.diff<0).length;
-  const avisoAtrasado=atrasados?` · ${atrasados} atrasado${atrasados>1?'s':''}`:'';
-  const agendaSub=(totalHoje
-    ?(totalHoje>1?`+${totalHoje-1} outro${totalHoje>2?'s':''} compromisso${totalHoje>2?'s':''} hoje`:'compromisso de hoje')
-    :(futuros?`nada hoje · ${futuros} nos próximos 7 dias`:'nada nos próximos 7 dias'))+avisoAtrasado;
-
-  const full=Array.isArray(focos)?focos:Object.values(focos||{});
-  const pendentes=full.filter(f=>f&&!f.done);
-  const topLembrete=pendentes[0];
-  const lembreteTxt=topLembrete?(topLembrete.text||''):'Nenhum lembrete pendente';
-  const lembreteBody=lembreteTxt.length>68?lembreteTxt.slice(0,68)+'…':lembreteTxt;
-  const lembreteSub=topLembrete?(pendentes.length>1?`+${pendentes.length-1} outro${pendentes.length>2?'s':''} pendente${pendentes.length>2?'s':''}`:(topLembrete.casoNome||'Geral')):'';
-
-  const chevron='<i class="ti ti-chevron-down hero-chevron"></i>';
-  el.innerHTML=`
-    <div class="hero-card agenda${heroAberto.agenda?' open':''}" onclick="toggleHeroExpand('agenda')">
-      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Agenda hoje</span><span class="hero-num-wrap"><span class="hero-num">${totalHoje}</span>${chevron}</span></div>
-      <div class="hero-body">${agendaBody}</div>
-      <div class="hero-sub">${esc(agendaSub)}</div>
-    </div>
-    <div class="hero-card lembretes${heroAberto.lembretes?' open':''}" onclick="toggleHeroExpand('lembretes')">
-      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Lembretes</span><span class="hero-num-wrap"><span class="hero-num">${pendentes.length}</span>${chevron}</span></div>
-      <div class="hero-body">${esc(lembreteBody)}</div>
-      <div class="hero-sub">${esc(lembreteSub)}</div>
-    </div>
-    <div class="hero-card critico${heroAberto.critico?' open':''}" onclick="toggleHeroExpand('critico')">
-      <div class="hero-top"><span class="hero-label"><span class="ponto"></span>Crítico agora</span><span class="hero-num-wrap"><span class="hero-num">${criticos.length}</span>${chevron}</span></div>
-      <div class="hero-body">${criticoBody}</div>
-      <div class="hero-sub">${esc(criticoSub)}</div>
-    </div>
-  `;
-
-  // Painéis que abrem/fecham junto com cada cartão — mesmo formato de linha
-  // usado nos outros popups (Por etapa, contadores da lateral).
-  const linhaCasoSimples=(c)=>{
-    const dias=diasParado(c.atualizado);
-    return`<div class="cdc-linha compacta" onclick="irParaCasoPorId('${c.id}')" style="cursor:pointer"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${respSelectHtml(c)}</div><span class="cdc-meta">${dias>0?dias+' dia'+(dias>1?'s':''):'Entrou hoje'}</span></div></div>`;
-  };
-  const criticoPainel=document.getElementById('hero-expand-critico');
-  if(criticoPainel)criticoPainel.innerHTML=criticos.length?criticos.map(linhaCasoSimples).join(''):'<div class="foco-empty">Nenhum caso crítico agora.</div>';
-
-  const lembretesPainel=document.getElementById('hero-expand-lembretes');
-  if(lembretesPainel)lembretesPainel.innerHTML=pendentes.length?pendentes.map(f=>{
-    const nomeCaso=f.casoNome||null;
-    const tagCaso=nomeCaso?`<span class="foco-caso-tag">${esc(nomeCaso)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
-    const clicavel=nomeCaso?` onclick="irParaCasoDoFoco('${esc(nomeCaso)}')" style="cursor:pointer"`:'';
-    const atrasadoF=f.quando&&diffDiasNum(f.quando)<0;
-    const tagQuando=f.quando?`<span class="foco-quando-tag${atrasadoF?' atrasado':''}"><i class="ti ti-calendar"></i>${atrasadoF?'Atrasado · ':''}${fmtQuando(f.quando)}</span>`:'';
-    return`<div class="cdc-linha compacta"${clicavel}><div class="cdc-conteudo"><div class="foco-tags">${tagCaso}${f.resp?bResp(f.resp):''}${tagQuando}</div><span class="cdc-meta">${esc(f.text||'')}</span></div></div>`;
-  }).join(''):'<div class="foco-empty">Nenhum lembrete pendente.</div>';
-  // Agenda (hero-expand-agenda) já é populada por renderAgenda(), chamada
-  // separadamente — só o painel de fora (abrir/fechar) é controlado aqui.
-}
 window.scrollParaId=function(id){
   document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
 };
