@@ -629,8 +629,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   background:var(--cc-sup);margin:0 0 6px;padding:9px 0 5px}
 /* O indicador "Hoje" não abre mais nada — a agenda já está aberta. Ele só
    traz o olho até aqui, e esse brilho de 1,4s diz onde o olho pousou. */
-@keyframes cc-faixa-piscar{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 3px var(--cc-champagne)}}
-.cc-faixa.piscar{animation:cc-faixa-piscar 1.4s ease}
 @media(max-width:640px){
   .cc-faixa-topo{flex-wrap:wrap;gap:7px}
   .cc-faixa-cont{flex:0 0 auto}
@@ -747,22 +745,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cc-mesa-vazia{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:16px;
   padding:26px;text-align:center;font-family:'Jost',sans-serif;font-weight:300;font-size:16px;color:var(--cc-tinta-2)}
 
-/* ── INDICADORES ────────────────────────────────────────────────────
-   Compactos e sem caixa própria: quatro colunas separadas por filete,
-   como uma régua. Caixa em cada um traria de volta o ar de sistema. */
-.cc-kpis{display:grid;grid-template-columns:repeat(4,1fr);background:var(--cc-sup);
-  border:1px solid var(--cc-linha);border-radius:14px;overflow:hidden;margin-bottom:30px}
-.cc-kpi{padding:16px 12px;text-align:center;border-left:1px solid var(--cc-linha);background:none;
-  font-family:inherit;cursor:pointer;transition:background .16s ease}
-.cc-kpi:first-child{border-left:none}
-.cc-kpi:hover{background:var(--cc-sup-2)}
-.cc-kpi-num{font-family:'Jost',sans-serif;font-weight:300;font-size:30px;line-height:1;color:var(--cc-tinta);margin-bottom:6px}
-.cc-kpi.alerta .cc-kpi-num{color:var(--cc-critico)}
-.cc-kpi-label{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--cc-tinta-3);text-indent:.16em}
-@media(max-width:640px){.cc-kpis{grid-template-columns:repeat(2,1fr)}
-  .cc-kpi:nth-child(3){border-left:none}
-  .cc-kpi:nth-child(n+3){border-top:1px solid var(--cc-linha)}}
-
 /* ── DUAS COLUNAS ───────────────────────────────────────────────────
    Incêndios e Esquecidos são de naturezas diferentes; lado a lado se
    lê mais rápido do que rolando um atrás do outro. */
@@ -870,7 +852,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 @media(prefers-reduced-motion:reduce){
   .cc-item,.cc-mesa-card,.cc-gaveta-chevron,.cc-item-gatilho i{transition:none}
   .cc-item.resolvido{animation:none;opacity:0}
-  .cc-faixa.piscar{animation:none;box-shadow:0 0 0 3px var(--cc-champagne)}
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1129,7 +1110,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </div>
   </section>
 
-  <div class="cc-kpis" id="cc-kpis"></div>
 
   <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)" onkeydown="if(event.key===&#39;Enter&#39;)irParaPrimeiroResultado()"></div></div>
 
@@ -2174,7 +2154,6 @@ function renderCentralComando(){
   // desconta esse conjunto, pra um caso não aparecer em duas áreas ao mesmo
   // tempo. A ordem aqui É a hierarquia da tela.
   const usados=renderMesaHoje();
-  renderKpis(itens);
   renderIncendios(itens,usados);
   renderEsquecidos(itens,usados);
   renderProximasAcoes(itens,usados);
@@ -2478,50 +2457,6 @@ function renderMesaHoje(){
   // Incêndios e Esquecidos voltam a receber a lista inteira.
   return new Set();
 }
-
-// ── INDICADORES ──
-// Substituem os 3 cartões que ficavam no topo da página. Compactos e sem
-// caixa individual: quatro colunas separadas por filete, como uma régua —
-// caixa em cada um traria de volta a cara de sistema.
-function renderKpis(itens){
-  const el=document.getElementById('cc-kpis');
-  if(!el)return;
-  const ativos=getCasosList().filter(c=>!c.concluido);
-  const urgentes=ativos.filter(c=>c.status==='critico').length;
-  const focosEv=typeof eventosDeFocos==='function'?eventosDeFocos():[];
-  const hoje=itens.filter(it=>!it.parado&&!it.suprimidoAgenda&&it.ehHoje).length+focosEv.filter(ev=>ev.diff===0).length;
-  // "Aguardando" = a bola está com cliente ou terceiro, não conosco. Sai do
-  // quemSegura que o DEP_CONFIG já define pra cada etapa.
-  const aguardando=itens.filter(it=>it.md.quemSegura==='cliente'||it.md.quemSegura==='terceiro').length;
-  const dados=[
-    {n:urgentes,label:'Urgentes',alerta:urgentes>0,acao:"abrirStatusModal('critico')"},
-    {n:hoje,label:'Hoje',alerta:false,acao:"ccIrParaAgenda()"},
-    {n:aguardando,label:'Aguardando',alerta:false,acao:"ccAbrirKpi('aguardando')"},
-    {n:ativos.length,label:'Em andamento',alerta:false,acao:"ccAbrirKpi('ativos')"}
-  ];
-  el.innerHTML=dados.map(d=>`
-    <button type="button" class="cc-kpi${d.alerta?' alerta':''}" onclick="${d.acao}">
-      <div class="cc-kpi-num">${String(d.n).padStart(2,'0')}</div>
-      <div class="cc-kpi-label">${d.label}</div>
-    </button>`).join('');
-}
-
-// O indicador "Hoje" não abre mais sanfona nenhuma: a agenda mora aberta na
-// faixa, lá em cima. O clique só leva o olho até ela.
-window.ccIrParaAgenda=function(){
-  const el=document.getElementById('cc-faixa');
-  if(!el)return;
-  el.scrollIntoView({behavior:'smooth',block:'center'});
-  el.classList.remove('piscar');
-  void el.offsetWidth; // reinicia a animação quando se clica duas vezes seguidas
-  el.classList.add('piscar');
-  setTimeout(()=>el.classList.remove('piscar'),1500);
-};
-window.ccAbrirKpi=function(qual){
-  if(qual==='aguardando')return abrirListaCasosModal('Aguardando terceiros','ti-hourglass',
-    c=>{const q=motorDecisao(c).quemSegura;return q==='cliente'||q==='terceiro';});
-  return abrirListaCasosModal('Em andamento','ti-briefcase',()=>true);
-};
 
 // ── INCÊNDIOS · ESQUECIDOS · PRÓXIMAS AÇÕES ──
 // Três áreas, três conjuntos que o motor já produzia. A única novidade é que
