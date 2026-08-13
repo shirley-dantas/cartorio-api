@@ -1151,15 +1151,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
   <!-- Gavetas: o que é consulta, não ação. Fechadas por padrão. -->
   <div class="cc-gavetas">
-    <div class="cc-gaveta" id="gaveta-parados">
-      <button type="button" class="cc-gaveta-btn" onclick="ccToggleGaveta(&#39;parados&#39;)">
-        <i class="ti ti-player-pause"></i> Aguardando retorno
-        <span class="cc-gaveta-cont" id="cc-cont-parados"></span>
-        <i class="ti ti-chevron-down cc-gaveta-chevron"></i>
-      </button>
-      <div class="cc-gaveta-corpo"><div id="cdc-parados"></div></div>
-    </div>
-
     <div class="cc-gaveta" id="gaveta-quadro">
       <button type="button" class="cc-gaveta-btn" onclick="ccToggleGaveta(&#39;quadro&#39;)">
         <i class="ti ti-chart-histogram"></i> O quadro
@@ -1820,7 +1811,10 @@ function estaSuprimido(chave){
   if(r.estado==='ignorado')return true;
   if(r.estado==='ja_fiz')return true;
   if(r.estado==='snooze')return!!(r.ate&&isoHoje()<r.ate);
-  return false; // 'parado' não suprime a linha, só realoca pro bloco "Aguardando retorno"
+  // 'parado' não passa por aqui: ele tem prazo de validade próprio (3 dias,
+  // ver o campo `parado` em calcularCentralComando) e some da Central sozinho,
+  // sem depender desta supressão.
+  return false;
 }
 
 // Uma passada só sobre os casos ativos — evita o tipo de bug que corrigimos
@@ -1839,9 +1833,13 @@ function calcularCentralComando(){
       ehHoje:diffAgendado===0||diffSegunda===0,
       ehAmanha:diffAgendado===1||diffSegunda===1,
       diffAgendado, diffSegunda, chaveDep, chaveAgenda,
-      // "Aguardando" fica escondido só por 3 dias — depois disso volta
-      // sozinho pro Incêndios/Próximas ações (sem precisar de "Retomar" manual),
-      // pra Joaninha cobrar a equipe de novo em vez de ficar esquecido pra sempre.
+      // "Aguardando" some da Central e não vai pra lugar nenhum: fica
+      // escondido por 3 dias e depois volta sozinho pro Incêndios/Próximas
+      // ações, pra Joaninha cobrar a equipe de novo em vez de o caso ficar
+      // esquecido pra sempre. Não há botão de retomar porque não há onde
+      // clicar nele — quem quiser trazer o caso de volta antes disso muda a
+      // etapa no card: a chave inclui o dep, então a marcação deixa de valer
+      // na hora e o caso reaparece já na etapa nova.
       // Fallback pro criadoEm (data+hora) nos "Aguardando" marcados antes dessa
       // mudança, que não tinham o campo "desde" — sem isso ficariam parados pra sempre.
       parado:!!(resDep&&resDep.estado==='parado'&&diasParado(resDep.desde||(resDep.criadoEm&&resDep.criadoEm.slice(0,10)))<3),
@@ -2187,7 +2185,6 @@ function renderCentralComando(){
   renderEsquecidos(itens,usados);
   renderProximasAcoes(itens,usados);
   renderAgenda(itens);
-  renderParados(itens);
   renderQuadro(itens);
   ccAplicarGavetas();
 }
@@ -2210,7 +2207,7 @@ function respSelectHtml(c){
 // momento — o que está aberto precisa viver FORA do HTML, senão o painel de
 // ações fecharia sozinho na cara de quem estivesse usando.
 const ccItensAbertos=new Set();
-let ccGavetas={parados:false,quadro:false};
+let ccGavetas={quadro:false};
 try{
   const g=JSON.parse(localStorage.getItem('cc-gavetas')||'null');
   if(g&&typeof g==='object')ccGavetas={...ccGavetas,...g};
@@ -2332,7 +2329,6 @@ function linhaCaso(it,opts){
         <button onclick="event.stopPropagation();registrarNotaCentral('${c.id}')">Registrar</button>
       </div>
     </div>`:'';
-  const retomar=opts.mostrarRetomar?`<div class="cc-botoes" style="margin-top:10px"><button class="cc-btn" onclick="event.stopPropagation();retomarCentral('${chave}')">▶ Retomar</button></div>`:'';
   return`
   <div class="cc-item ${classe}${aberto}" data-chave="${esc(chave||'')}">
     <div class="cc-item-linha1">
@@ -2343,7 +2339,7 @@ function linhaCaso(it,opts){
     <div class="cc-item-acao">${esc(opts.textoOverride||md.proximaAcao)}</div>
     ${obsSnippet}
     ${bloqueio}
-    ${acoes}${retomar}
+    ${acoes}
   </div>`;
 }
 
@@ -2908,22 +2904,8 @@ function renderAgenda(itens){
 }
 
 
-function renderParados(itens){
-  const el=document.getElementById('cdc-parados');
-  const cont=document.getElementById('cc-cont-parados');
-  if(!el)return;
-  const pool=itens.filter(it=>it.parado);
-  if(cont)cont.textContent=pool.length?String(pool.length):'nenhum';
-  el.innerHTML=pool.length
-    ?`<div class="cc-lista">${pool.map(it=>linhaCaso(it,{classe:'parado',chave:it.chaveDep,mostrarRetomar:true})).join('')}</div>`
-    :ccVazio('Nada aguardando retorno no momento.');
-}
-
 window.resolverCentral=function(chave,estado,extra){
   set(ref(db,`resolucoesCentral/${chave}`),{estado,criadoEm:new Date().toISOString(),...(extra||{})});
-};
-window.retomarCentral=function(chave){
-  remove(ref(db,`resolucoesCentral/${chave}`));
 };
 window.concluirAgendaEvento=function(chave){
   resolverCentral(chave,'concluido');
