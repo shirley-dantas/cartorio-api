@@ -567,35 +567,33 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .central-nova{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 
 /* ── CABEÇALHO EDITORIAL ────────────────────────────────────────────
-   Espelha a composição da referência (arco / título pequeno / nome
-   grande), mas o arco carrega o ícone do clima e a Joaninha em vez de
-   uma foto. Mantém o id saudacao-card: posicionarJoaninhaNaSaudacao()
-   mede esse elemento pra ancorar a mascote. */
-/* Encolhido: a composição é a mesma, só que ocupando pouco mais da metade da
-   altura de antes. Era bonita e custava uma tela inteira de rolagem antes de
-   o primeiro compromisso aparecer. A joaninha não precisa de ajuste —
-   posicionarJoaninhaNaSaudacao() mede a caixa em tempo real e acompanha. */
-.cc-header{position:relative;text-align:center;padding:18px 20px 15px}
-.cc-arco{width:64px;height:48px;margin:0 auto 10px;border-radius:999px 999px 10px 10px;
-  background:linear-gradient(170deg,#FFFDF9,#F4EEE2);border:1px solid var(--cc-linha);
-  display:flex;align-items:center;justify-content:center;position:relative}
-/* Fio champagne acompanhando a curva — é o arco do logotipo, na mesma
-   direção do gradiente que o SVG da marca usa. */
-.cc-arco::after{content:'';position:absolute;inset:5px 6px auto;height:21px;
-  border-radius:999px 999px 0 0;border:1px solid transparent;
-  border-top:1.5px solid var(--cc-champagne-claro);border-left:1.5px solid rgba(169,137,90,.42);border-right:1.5px solid rgba(169,137,90,.42)}
-.cc-arco i,.cc-arco svg{font-size:18px;color:var(--cc-champagne);position:relative;z-index:1}
-.cc-eyebrow{font-family:'Jost',sans-serif;font-weight:400;font-size:10px;letter-spacing:.34em;
-  text-transform:uppercase;color:var(--cc-tinta-2);margin-bottom:5px;text-indent:.34em}
-.cc-saudacao{font-family:'Jost',sans-serif;font-weight:200;font-size:29px;line-height:1.08;
-  letter-spacing:-.005em;color:var(--cc-tinta);margin-bottom:7px}
-.cc-datalinha{font-size:12px;color:var(--cc-tinta-3);display:inline-flex;align-items:center;
+   O arco saiu: ele era a moldura do ícone do clima e custava a maior
+   parte da altura do bloco. O clima virou o que sempre foi de fato —
+   uma nota do dia — e foi morar ao lado da data.
+   Com o arco fora, o texto pôde crescer: a saudação acompanha a largura
+   da caixa, em vez de ficar uma linha pequena no meio de muito vazio.
+   O tamanho é fluido de propósito. Fixo, ou estouraria a linha em tela
+   estreita, ou ficaria perdido numa tela larga — e o nome varia
+   ("Bom dia, Grazi" é bem mais curto que "Boa tarde, Shirley"). */
+.cc-header{position:relative;text-align:center;padding:16px 20px 20px}
+.cc-eyebrow{font-family:'Jost',sans-serif;font-weight:400;font-size:13px;letter-spacing:.34em;
+  text-transform:uppercase;color:var(--cc-tinta-2);margin-bottom:10px;text-indent:.34em}
+.cc-saudacao{font-family:'Jost',sans-serif;font-weight:200;font-size:clamp(34px,8.3vw,132px);
+  line-height:1.02;letter-spacing:-.018em;color:var(--cc-tinta);margin-bottom:12px}
+.cc-datalinha{font-size:16px;color:var(--cc-tinta-3);display:inline-flex;align-items:center;
   gap:9px;flex-wrap:wrap;justify-content:center}
 .cc-datalinha .cc-ponto{width:3px;height:3px;border-radius:50%;background:var(--cc-linha-forte)}
+/* A nuvem acompanha a altura da linha da data, sem puxar atenção pra si. */
+.cc-clima{display:inline-flex;align-items:center;flex-shrink:0}
+.cc-clima svg{display:block;width:21px;height:21px}
 .cc-header-fechar{position:absolute;top:8px;right:8px;background:none;border:none;
   color:var(--cc-tinta-3);font-size:19px;line-height:1;cursor:pointer;padding:4px 7px;border-radius:8px}
 .cc-header-fechar:hover{background:var(--cc-sup-2);color:var(--cc-tinta)}
-@media(max-width:640px){.cc-header{padding:14px 14px 12px}.cc-saudacao{font-size:24px}}
+@media(max-width:640px){
+  .cc-header{padding:12px 14px 15px}
+  .cc-eyebrow{font-size:11px;letter-spacing:.28em;text-indent:.28em}
+  .cc-datalinha{font-size:14px}
+}
 
 /* ── FAIXA-AGENDA ───────────────────────────────────────────────────
    A banda larga e baixa da referência continua, mas deixou de ser um
@@ -1082,10 +1080,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
        mascote, e fecharSaudacao() esconde ele. Só o visual mudou. -->
   <div class="cc-header" id="saudacao-card" style="display:none">
     <button class="cc-header-fechar" onclick="fecharSaudacao()" title="Fechar">&times;</button>
-    <div class="cc-arco"><span id="saudacao-clima"></span></div>
     <div class="cc-eyebrow">Central de Comando</div>
     <div class="cc-saudacao" id="saudacao-titulo"></div>
-    <div class="cc-datalinha" id="saudacao-texto"></div>
+    <div class="cc-datalinha"><span class="cc-clima" id="saudacao-clima"></span><span id="saudacao-texto"></span></div>
   </div>
 
   <!-- Esta faixa é a Agenda, e só ela: hoje e os próximos 7 dias. O resumo
@@ -3339,10 +3336,10 @@ function saudacaoPorHora(){
 function renderSaudacaoTitulo(usuario,chaveIcone){
   const el=document.getElementById('saudacao-titulo');
   if(el)el.textContent=`${saudacaoPorHora()}, ${usuario}`;
-  // O ícone do clima passou a morar dentro do arco do cabeçalho, no lugar
-  // da foto que a referência de planner usa. Mesma lógica de clima de antes.
-  const arco=document.getElementById('saudacao-clima');
-  if(arco)arco.innerHTML=ICONES_CLIMA[chaveIcone]||ICONES_CLIMA.sol;
+  // O clima é uma nota do dia, não um brasão: mora na linha da data, do
+  // tamanho dela. Mesma lógica de clima de antes.
+  const clima=document.getElementById('saudacao-clima');
+  if(clima)clima.innerHTML=ICONES_CLIMA[chaveIcone]||ICONES_CLIMA.sol;
 }
 let climaIntervalIniciado=false;
 async function atualizarIconeClima(usuario){
