@@ -851,11 +851,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cc-grupo .cc-item:last-child{border-bottom:none}
 .cc-grupo .cc-item:hover{box-shadow:none;background:var(--cc-sup-2)}
 
-/* "Nada aqui" não merece uma caixa do tamanho de uma cheia. Vira uma linha:
    a pílula da seção acima já diz do que se trata, e o espaço volta pra quem
-   tem conteúdo de verdade. */
-.cc-vazio{background:var(--cc-sup);border:1px dashed var(--cc-linha-forte);border-radius:10px;
-  padding:9px 14px;text-align:left;font-size:12px;color:var(--cc-tinta-3);font-style:italic}
 
 /* ── GAVETAS ────────────────────────────────────────────────────────
    O que é consulta, não ação, fica fechado por padrão: Lembretes,
@@ -1048,6 +1044,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <i class="ti ti-chevron-down"></i>
   </button>
   <nav class="sidebar-nav sidebar-mais" id="sidebar-mais" style="display:none">
+    <button type="button" class="sidebar-item" onclick="abrirQuadro()"><i class="ti ti-chart-histogram"></i><span>O quadro</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Atividades')"><i class="ti ti-list-check"></i><span>Atividades</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Processos')"><i class="ti ti-briefcase"></i><span>Processos</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Minutas')"><i class="ti ti-file-text"></i><span>Minutas</span><span class="em-breve">em breve</span></button>
@@ -1149,18 +1146,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
   <section class="cc-secao" id="cdc-proximas-acoes"></section>
 
-  <!-- Gavetas: o que é consulta, não ação. Fechadas por padrão. -->
-  <div class="cc-gavetas">
-    <div class="cc-gaveta" id="gaveta-quadro">
-      <button type="button" class="cc-gaveta-btn" onclick="ccToggleGaveta(&#39;quadro&#39;)">
-        <i class="ti ti-chart-histogram"></i> O quadro
-        <span class="cc-gaveta-cont">gráficos</span>
-        <i class="ti ti-chevron-down cc-gaveta-chevron"></i>
-      </button>
-      <div class="cc-gaveta-corpo"><div id="cdc-quadro"></div></div>
-    </div>
-  </div>
-
   </div>
 
   <div id="view-casos">
@@ -1248,6 +1233,15 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 </div>
 
 <div class="nav-toast" id="nav-toast"></div>
+<div class="modal-overlay" id="modal-quadro">
+  <div class="modal-box" style="max-width:940px">
+    <button class="modal-close" onclick="fecharQuadro()">&times;</button>
+    <div class="modal-title"><i class="ti ti-chart-histogram" style="font-size:15px;vertical-align:-2px;color:#B45309"></i> O quadro</div>
+    <div class="modal-sub">Como estamos indo — os casos ativos lidos em quatro cortes.</div>
+    <div id="cdc-quadro"></div>
+  </div>
+</div>
+
 <div class="dash-tip" id="dash-tip" role="tooltip" aria-hidden="true"></div>
 
 <!-- Modal Assistente de Minutas -->
@@ -2186,7 +2180,6 @@ function renderCentralComando(){
   renderProximasAcoes(itens,usados);
   renderAgenda(itens);
   renderQuadro(itens);
-  ccAplicarGavetas();
 }
 
 // Uma linha de caso reutilizada pelos blocos de Incêndios/Esquecidos/Próximas
@@ -2207,11 +2200,6 @@ function respSelectHtml(c){
 // momento — o que está aberto precisa viver FORA do HTML, senão o painel de
 // ações fecharia sozinho na cara de quem estivesse usando.
 const ccItensAbertos=new Set();
-let ccGavetas={quadro:false};
-try{
-  const g=JSON.parse(localStorage.getItem('cc-gavetas')||'null');
-  if(g&&typeof g==='object')ccGavetas={...ccGavetas,...g};
-}catch(e){}
 
 window.ccToggleItem=function(btn){
   const item=btn.closest('.cc-item');
@@ -2221,16 +2209,15 @@ window.ccToggleItem=function(btn){
   item.classList.toggle('aberto',abrindo);
   if(chave){ if(abrindo)ccItensAbertos.add(chave); else ccItensAbertos.delete(chave); }
 };
-window.ccToggleGaveta=function(nome){
-  ccGavetas[nome]=!ccGavetas[nome];
-  try{localStorage.setItem('cc-gavetas',JSON.stringify(ccGavetas));}catch(e){}
-  ccAplicarGavetas();
-};
-function ccAplicarGavetas(){
-  Object.keys(ccGavetas).forEach(n=>{
-    document.getElementById('gaveta-'+n)?.classList.toggle('aberta',!!ccGavetas[n]);
-  });
-}
+
+// O quadro saiu do corpo do painel e virou item da lateral, em "Mais opções".
+// Ele responde "como estamos indo", não "o que eu faço agora" — é consulta, e
+// consulta não precisa ocupar a tela de trabalho. O bloco fica sempre no DOM,
+// só escondido: renderQuadro escreve nele a cada render da Central, e o balão
+// dos gráficos se prende a ele uma vez só, na carga da página.
+window.abrirQuadro=function(){document.getElementById('modal-quadro').classList.add('open');};
+window.fecharQuadro=function(){document.getElementById('modal-quadro').classList.remove('open');};
+
 // Some com a linha antes de gravar, pra resolver um item dar retorno visual
 // em vez de a linha simplesmente evaporar no próximo render. A gravação é a
 // mesma de sempre — só ganhou 190ms de fade na frente.
@@ -2253,6 +2240,10 @@ function ccSecaoHead(titulo,icone,contagem){
 // Incêndios, Esquecidos e Próximas ações crescem com o movimento do cartório
 // e chegam a empurrar tudo o que vem depois pra fora da tela. Cada uma passa
 // a rolar por dentro, com a mesma barra desenhada da Agenda.
+//
+// Vazia, a seção fica só no cabeçalho: a caixa tracejada dizendo "nada aqui"
+// gastava três linhas pra informar ausência. A própria pílula sem contagem
+// do lado já diz isso.
 //
 // A casca (cabeçalho + caixa de rolagem + barra) é montada UMA vez e
 // reaproveitada; só o miolo é reescrito a cada render. Se ela fosse refeita
@@ -2280,7 +2271,6 @@ function secaoRolavel(el,titulo,icone,contagem){
   if(cont)cont.innerHTML=contagem||'';
   return el.querySelector('.cc-lista-rolagem');
 }
-function ccVazio(txt){return`<div class="cc-vazio">${esc(txt)}</div>`;}
 
 // "12 casos" responde quantos, mas não quão grave — e com a lista rolando por
 // dentro, os mais antigos ficam abaixo da dobra justamente quando são eles
@@ -2548,8 +2538,7 @@ function renderIncendios(itens,usados){
   const parados2sem=pool.filter(it=>it.md.diasNaEtapaAtual>=CC_LIMITE_ANTIGO).length;
   const caixa=secaoRolavel(el,'Incêndios','ti-flame',
     ccContagemSecao(pool.length,parados2sem,'há mais de 2 semanas'));
-  caixa.innerHTML=pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'critico')}</div>`
-                             :ccVazio('Nada pegando fogo agora.');
+  caixa.innerHTML=pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'critico')}</div>`:'';
   if(el._medirBarra)el._medirBarra();
 }
 
@@ -2568,8 +2557,7 @@ function renderEsquecidos(itens,usados){
   caixa.innerHTML=pool.length?`<div class="cc-lista">${pool.map(it=>linhaCaso(it,{
         classe:'atencao',chave:it.chaveDep,mostrarAcoes:true,
         textoOverride:`Sem movimento há ${diasParado(it.caso.atualizado)} dias. ${it.md.proximaAcao}`
-      })).join('')}</div>`
-    :ccVazio('Nenhum caso esquecido — tudo teve movimento nos últimos 3 dias.');
+      })).join('')}</div>`:'';
   if(el._medirBarra)el._medirBarra();
 }
 
@@ -2583,8 +2571,7 @@ function renderProximasAcoes(itens,usados){
   const parados2sem=pool.filter(it=>it.md.diasNaEtapaAtual>=CC_LIMITE_ANTIGO).length;
   const caixa=secaoRolavel(el,'Próximas ações','ti-bookmark',
     ccContagemSecao(pool.length,parados2sem,'há mais de 2 semanas'));
-  caixa.innerHTML=pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'atencao')}</div>`
-                             :ccVazio('Nada de olho no momento.');
+  caixa.innerHTML=pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'atencao')}</div>`:'';
   if(el._medirBarra)el._medirBarra();
 }
 
