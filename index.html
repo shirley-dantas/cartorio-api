@@ -3362,16 +3362,59 @@ async function atualizarIconeClima(usuario){
 
 // ── Posiciona a Joaninha (widget flutuante, sem mexer nas funções dela) dentro
 // da área do cartão de saudação, entre o texto e a borda direita do cartão ──
+// A mascote se ancorava na borda do cartão da saudação. Isso bastava enquanto
+// o nome era uma linha pequena no meio de muito vazio — mas a saudação cresceu
+// pra acompanhar a largura da Agenda, as letras chegaram perto da borda, e a
+// joaninha passou a pousar em cima da última delas.
+//
+// Agora a conta parte de onde as LETRAS terminam, e não de onde a caixa
+// termina. Se sobra espaço à direita do nome, ela fica ali, na altura dele.
+// Se não sobra, desce pra altura da data — linha curta e centralizada, onde
+// não há o que atropelar — e mantém a posição horizontal de sempre, que é a
+// que deixa espaço pro balão de fala abrir à direita.
 function posicionarJoaninhaNaSaudacao(){
   const card=document.getElementById('saudacao-card');
   if(!card||card.style.display==='none')return;
   const r=card.getBoundingClientRect();
   if(!r.width)return;
-  const hostH=74;
-  const right=Math.max(20,window.innerWidth-r.right+90);
-  const bottom=Math.max(20,window.innerHeight-(r.top+r.height/2)-hostH/2);
-  document.documentElement.style.setProperty('--jn-right',right+'px');
-  document.documentElement.style.setProperty('--jn-bottom',bottom+'px');
+  const HOST=74, FOLGA=22, MARGEM_TELA=12, LARGURA_BALAO=215;
+  const rightPadrao=Math.max(20,window.innerWidth-r.right+90);
+
+  const titulo=document.getElementById('saudacao-titulo');
+  let fimDoTexto=null,baseDoTexto=null;
+  if(titulo&&titulo.textContent.trim()){
+    const range=document.createRange();
+    range.selectNodeContents(titulo);
+    const rt=range.getBoundingClientRect();
+    if(rt.width){fimDoTexto=rt.right;baseDoTexto=rt.bottom;}
+  }
+
+  const rightAoLado=window.innerWidth-fimDoTexto-FOLGA-HOST;
+  const cabeAoLado=fimDoTexto!=null&&rightAoLado>=MARGEM_TELA;
+  const right=cabeAoLado?rightAoLado:rightPadrao;
+
+  // Encostada na direita, o balão de fala (que abre pra direita) ficaria fora
+  // da tela. Nesse caso ele vira pro outro lado — ver .jn-balao-esquerda.
+  const host=document.getElementById('joaninha-host');
+  if(host)host.classList.toggle('jn-balao-esquerda',right<LARGURA_BALAO);
+  // Sem espaço ao lado do nome, ela desce. E desce o suficiente pra o corpo
+  // dela começar ABAIXO da última linha de letras — parar na altura da data
+  // não bastava: a mascote tem 74px e a metade de cima dela ainda alcançava
+  // o nome.
+  let centroY=r.top+r.height/2;
+  if(!cabeAoLado){
+    const naData=r.bottom-22;
+    const livreDasLetras=(baseDoTexto!=null)?baseDoTexto+HOST/2+6:naData;
+    centroY=Math.max(naData,livreDasLetras);
+  }
+  document.documentElement.style.setProperty('--jn-right',Math.round(right)+'px');
+  // centroY vem de getBoundingClientRect, que é relativo à janela: com a
+  // página rolada pra baixo do cabeçalho ele fica negativo, e a mascote (que é
+  // fixed) subia pra fora da tela e só voltava no próximo redimensionamento.
+  // O teto prende ela na tela; o piso, que já existia, prende embaixo.
+  const bottom=Math.min(window.innerHeight-HOST-12,
+    Math.max(20,window.innerHeight-centroY-HOST/2));
+  document.documentElement.style.setProperty('--jn-bottom',Math.round(bottom)+'px');
 }
 let resizeJnTimer=null;
 window.addEventListener('resize',()=>{
@@ -4369,7 +4412,9 @@ window.buscar=function(v){busca=v;renderCasos();};
 // Enter na busca principal pula direto pro primeiro card já filtrado na tela
 // (mesmo padrão de scroll+destaque usado em irParaCasoDoFoco/irParaCasoPorId).
 window.irParaPrimeiroResultado=function(){
-  const el=document.querySelector('#casos-list .card');
+  // A classe do card é cx-card. Com '.card' o seletor nunca achava nada e o
+  // Enter na busca não fazia absolutamente nada, sem erro nenhum na tela.
+  const el=document.querySelector('#casos-list .cx-card');
   if(!el)return;
   el.scrollIntoView({behavior:'smooth',block:'center'});
   el.classList.add('jn-destaque');
