@@ -2,6 +2,11 @@ const https = require("https");
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
+// A mesma lista de verificação por tipo de ato que o analisar-caso e o Apps
+// Script já usam pra guiar a geração. As perguntas saem dela: é o roteiro que
+// o cartório de fato confere em cada escritura, não uma lista inventada aqui.
+const { instrucoesPorTipo } = require("../lib/instrucoes-por-tipo");
+
 // Monta a lista de perguntas que a escrevente precisa responder ANTES de gerar
 // a minuta. Existe porque boa parte do que a minuta pede não está em documento
 // nenhum: profissão, regime de bens, se há outorga uxória, como o pagamento foi
@@ -15,8 +20,9 @@ Você recebe o tipo de ato e TODO o material já disponível do caso (observaç�
 
 REGRAS:
 - Pergunte SOMENTE o que ainda NÃO está no material recebido. Se o dado já aparece em qualquer parte do material, não pergunte de novo — essa é a regra mais importante.
+- A CHECAGEM DO ATO, quando vier abaixo, é o roteiro que este cartório já usa para conferir esse tipo de escritura. Percorra item por item: cada item que o material não cobre e que só uma pessoa pode responder vira uma pergunta sua. Não pergunte o que se resolve lendo um documento que já foi anexado.
 - Priorize o que documento nenhum costuma trazer: estado civil e regime de bens, data e cartório do casamento, profissão, nacionalidade, endereço completo com CEP, necessidade de outorga uxória/anuência conjugal, forma e prazo de pagamento, dados bancários usados na transação, quem comparece e como (presencial, videoconferência ou híbrido), existência de procurador e poderes, usufruto ou cláusulas restritivas, valores e guias de imposto, quem retira o traslado.
-- Adapte ao tipo de ato: inventário pergunta sobre herdeiros, meação e testamento; divórcio sobre filhos menores e partilha; procuração sobre poderes específicos e prazo; doação sobre reserva de usufruto e cláusulas; compra e venda sobre pagamento, quitação e entrega de chaves.
+- Quando a checagem do ato não vier (tipo de ato fora da lista), use os itens equivalentes que a prática notarial pede para esse ato.
 - No máximo 10 perguntas, da mais importante para a menos importante. Um assunto por pergunta.
 - Escreva como quem fala com uma colega de cartório: direto, em português claro, sem juridiquês desnecessário e sem numerar a pergunta.
 - "porque" é uma frase curta dizendo onde esse dado entra na minuta.
@@ -89,10 +95,12 @@ module.exports = async (req, res) => {
   let materialTexto = String(material || "").trim() || "Nenhum material disponível ainda — o caso está começando do zero.";
   if (materialTexto.length > 40000) materialTexto = materialTexto.slice(0, 40000) + "\n\n[...material truncado por limite de tamanho...]";
 
+  const checagem = instrucoesPorTipo(tipo);
+
   const mensagem = `CASO: ${nome || "Não informado"}
 TIPO DE ATO: ${tipo || "Não informado"}
 MODALIDADE: ${(modalidade || "digital").toUpperCase()}
-
+${checagem ? `\nCHECAGEM DO ATO (roteiro do cartório para esse tipo de escritura):${checagem}\n` : ""}
 MATERIAL JÁ DISPONÍVEL DO CASO:
 ${materialTexto}`;
 

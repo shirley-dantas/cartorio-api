@@ -451,6 +451,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .mb-trilho{height:4px;border-radius:4px;background:#EFEFF4;overflow:hidden;margin-bottom:14px}
 .mb-preenchido{display:block;height:100%;width:0;border-radius:4px;background:#A9895A;transition:width .25s ease}
 .mb-porque{font-size:11.5px;color:#8E8EA0;line-height:1.5;margin:-4px 0 10px}
+.mb-opcoes{display:none;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.mb-opcoes.on{display:flex}
+.mb-opcoes .btn-sm.escolhida{background:#16283A;border-color:#16283A;color:#fff}
 .mb-acoes{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center;margin-top:12px}
 .mb-acoes .btn-gerar{padding:9px 20px}
 .mb-resumo{background:#F5F5F7;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#3A3A3C;line-height:1.6;
@@ -1362,6 +1365,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <div class="mb-trilho"><span class="mb-preenchido" id="mb-preenchido"></span></div>
       <div class="sp-bubble" id="mb-pergunta">—</div>
       <div class="mb-porque" id="mb-porque"></div>
+      <div class="mb-opcoes" id="mb-opcoes"></div>
       <textarea class="modal-textarea" id="mb-resposta" style="min-height:74px"></textarea>
       <div class="mb-acoes">
         <button type="button" class="btn-sm" id="mb-voltar" onclick="mbVoltar()">Voltar</button>
@@ -4392,10 +4396,21 @@ window.iniciarPerguntasMinuta=async function(){
       const d=await snap.json();
       if(d&&typeof d==='object')salvas=d;
     }catch{}
+    // Modalidade entra como primeira pergunta, com as mesmas três opções que o
+    // bot do WhatsApp já faz ao abrir um card. Cartão criado pelo painel nunca
+    // teve esse campo, e a geração assumia "digital" calada — o que troca a
+    // abertura e o encerramento inteiros de uma escritura presencial.
+    const perguntas=[...j.perguntas];
+    if(!c.modalidade)perguntas.unshift({
+      campo:'modalidade',
+      pergunta:'Qual a modalidade do ato?',
+      porque:'Decide a abertura e o encerramento da escritura — videoconferência, presencial ou os dois.',
+      opcoes:['Digital','Híbrida','Presencial']
+    });
     mbEstado={
       id,
-      perguntas:j.perguntas,
-      respostas:j.perguntas.map(p=>salvas[mbChave(p.pergunta)]||''),
+      perguntas,
+      respostas:perguntas.map(p=>p.campo==='modalidade'?'':(salvas[mbChave(p.pergunta)]||'')),
       i:0
     };
     mbMostrarBot(true);
@@ -4407,6 +4422,15 @@ window.iniciarPerguntasMinuta=async function(){
     btn.innerHTML=antes;
   }
 };
+// Mesma leitura do detectarModalidadeEscolhida do bot do WhatsApp: aceita o
+// número da opção, o nome escrito de qualquer jeito, com ou sem acento.
+function lerModalidade(texto){
+  const t=String(texto||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  if(/^1\b/.test(t)||/\bdigital\b/.test(t))return'digital';
+  if(/^2\b/.test(t)||/hibrid/.test(t))return'hibrida';
+  if(/^3\b/.test(t)||/presencial/.test(t))return'presencial';
+  return null;
+}
 // Chave estável pra guardar a resposta: a própria pergunta, sem acento e sem
 // pontuação, porque a IA pode reescrevê-la levemente entre uma rodada e outra.
 function mbChave(pergunta){
@@ -4423,16 +4447,22 @@ function mbRender(){
   document.getElementById('mb-preenchido').style.width=Math.round(i/total*100)+'%';
   document.getElementById('mb-pergunta').textContent=p.pergunta;
   document.getElementById('mb-porque').textContent=[p.porque,p.exemplo?`Ex.: ${p.exemplo}`:''].filter(Boolean).join(' · ');
+  const opc=document.getElementById('mb-opcoes');
+  opc.classList.toggle('on',!!(p.opcoes&&p.opcoes.length));
+  opc.innerHTML=(p.opcoes||[]).map(o=>
+    `<button type="button" class="btn-sm${(mbEstado.respostas[i]||'')===o?' escolhida':''}" onclick="mbEscolher('${escTxt(o).replace(/'/g,'&#39;')}')">${escTxt(o)}</button>`
+  ).join('');
   const ta=document.getElementById('mb-resposta');
   ta.style.display='block';
   ta.value=mbEstado.respostas[i]||'';
-  ta.placeholder=p.exemplo?`Ex.: ${p.exemplo}`:'Digite a resposta';
+  ta.placeholder=p.exemplo?`Ex.: ${p.exemplo}`:(p.opcoes?'Escolha acima, ou escreva do seu jeito':'Digite a resposta');
   document.getElementById('mb-voltar').style.display=i>0?'inline-block':'none';
   document.getElementById('mb-pular').style.display='inline-block';
   document.getElementById('mb-proxima').textContent=i===total-1?'Concluir':'Próxima';
   ta.focus();
 }
 function mbRenderResumo(){
+  document.getElementById('mb-opcoes').classList.remove('on');
   const itens=mbEstado.perguntas.map((p,i)=>{
     const r=(mbEstado.respostas[i]||'').trim();
     return`<dt>${escTxt(p.pergunta)}</dt><dd class="${r?'':'vazia'}">${r?escTxt(r):'sem resposta — não entra na minuta'}</dd>`;
@@ -4447,6 +4477,12 @@ function mbRenderResumo(){
   document.getElementById('mb-pular').style.display='none';
   document.getElementById('mb-proxima').textContent='Escrever no caso';
 }
+// Clicar numa opção responde e já avança — é o ritmo que a equipe conhece do
+// WhatsApp, onde a resposta é o número da opção.
+window.mbEscolher=function(valor){
+  document.getElementById('mb-resposta').value=valor;
+  mbProxima();
+};
 window.mbVoltar=function(){
   if(mbEstado.i>0)mbEstado.i--;
   mbRender();
@@ -4471,9 +4507,20 @@ window.mbSair=function(){
 // Escreve o bloco no campo de texto (trocando o de uma rodada anterior, se
 // houver) e guarda as respostas no caso, pra próxima rodada já vir preenchida.
 function mbConcluir(){
+  // Modalidade é campo do caso, não linha de texto: sai do bloco e vai pro
+  // Firebase, de onde a geração já lê. Aceita o clique na opção ou o texto
+  // digitado, com a mesma leitura do bot do WhatsApp.
+  const iMod=mbEstado.perguntas.findIndex(p=>p.campo==='modalidade');
+  if(iMod>=0&&mbEstado.id){
+    const mod=lerModalidade(mbEstado.respostas[iMod]);
+    if(mod){
+      update(ref(db,`casos/${mbEstado.id}`),{modalidade:mod}).catch(()=>{});
+      if(casos[mbEstado.id])casos[mbEstado.id].modalidade=mod;
+    }
+  }
   const respondidas=mbEstado.perguntas
-    .map((p,i)=>({p:p.pergunta,r:(mbEstado.respostas[i]||'').trim()}))
-    .filter(x=>x.r);
+    .map((p,i)=>({p:p.pergunta,r:(mbEstado.respostas[i]||'').trim(),campo:p.campo}))
+    .filter(x=>x.r&&!x.campo);
   const ta=document.getElementById('modal-docs');
   let texto=ta.value;
   const anterior=new RegExp(`\\n*${MB_INICIO}[\\s\\S]*?${MB_FIM}\\n*`,'g');
