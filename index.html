@@ -2655,6 +2655,23 @@ function renderMesaHoje(){
 const CC_LIMITE_ANTIGO=14;
 const CC_LIMITE_SEM_MOVIMENTO=7;
 
+// Quantos dias sem movimento uma etapa aguenta antes de o caso ser "esquecido".
+// Três dias fixos tratavam toda etapa como se tivesse o mesmo ritmo, e o
+// Registro de Imóveis pagava a conta: é a esteira mais longa que existe aqui
+// (30 dias de janela normal), a Grazi confere o andamento junto ao registro
+// todo dia, e ainda assim todo caso protocolado caía em Esquecidos na primeira
+// semana — dizendo que está largado justamente o que está sendo acompanhado.
+// Então o limite passa a ser a janela normal da própria etapa (DEP_CONFIG),
+// com piso de 3 dias, que é o critério antigo e continua valendo pras etapas
+// rápidas. O que estoura a janela da etapa não some: vira crítico pelo motor
+// de decisão e aparece em Incêndios.
+const CC_ESQUECIDO_PISO=3;
+function limiteEsquecido(caso){
+  const cfg=DEP_CONFIG[caso.dep||''];
+  const janela=cfg&&cfg.normalAte!=null?cfg.normalAte:CC_ESQUECIDO_PISO;
+  return Math.max(CC_ESQUECIDO_PISO,janela);
+}
+
 // ── INCÊNDIOS · ESQUECIDOS · PRÓXIMAS AÇÕES ──
 // Três áreas, três conjuntos que o motor já produzia. A única novidade é que
 // um caso não aparece mais em duas áreas ao mesmo tempo: cada seção recebe o
@@ -2673,13 +2690,14 @@ function renderIncendios(itens,usados){
   if(el._medirBarra)el._medirBarra();
 }
 
-// "Parado há 3 dias ou mais" não é um limite novo: é exatamente o critério do
-// contador "Parados +3d" que já existe na barra lateral (STATUS_SIDEBAR).
+// O corte de entrada é o limiteEsquecido() de cada etapa: 3 dias nas etapas
+// rápidas (o mesmo critério do contador "Parados +3d" da barra lateral) e a
+// janela cheia nas esteiras longas, como os 30 dias do Registro de Imóveis.
 function renderEsquecidos(itens,usados){
   const el=document.getElementById('cdc-esquecidos');
   if(!el)return;
   const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje
-      &&!usados.has(it.caso.id)&&diasParado(it.caso.atualizado)>=3)
+      &&!usados.has(it.caso.id)&&diasParado(it.caso.atualizado)>=limiteEsquecido(it.caso))
     .sort((a,b)=>diasParado(a.caso.atualizado)<diasParado(b.caso.atualizado)?1:-1);
   pool.forEach(it=>usados.add(it.caso.id));
   const semana=pool.filter(it=>diasParado(it.caso.atualizado)>=CC_LIMITE_SEM_MOVIMENTO).length;
