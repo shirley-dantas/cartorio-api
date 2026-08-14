@@ -957,18 +957,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-campo input{cursor:text}
 .cx-campo select:focus,.cx-campo input:focus{border-color:var(--cc-champagne);background:var(--cc-sup)}
 
-/* Dados do registro: referência, não trabalho do dia. Quando preenchidos
-   aparecem como texto; a edição abre no clique. Cinco inputs vazios em
-   todo card eram metade da aparência de formulário. */
-.cx-reg-resumo{background:none;border:none;padding:0;font-family:inherit;font-size:11.5px;color:var(--cc-tinta-3);
-  cursor:pointer;display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;text-align:left;margin-bottom:12px}
-.cx-reg-resumo:hover{color:var(--cc-tinta)}
-.cx-reg-resumo b{font-weight:600;color:var(--cc-tinta-2)}
-.cx-reg-resumo i{font-size:13px;transition:transform .18s ease}
-.cx-reg-resumo.aberto i{transform:rotate(180deg)}
-.cx-reg-campos{display:none;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px 14px;
+/* Dados do registro: ficam sempre à vista em todo card. Já foram uma
+   sanfona, mas esconder atrás de uma setinha só somava um clique pra ler
+   Livro/Folha/Controle, que é justamente o que se confere o tempo todo. */
+.cx-reg-titulo{font-family:inherit;font-size:11.5px;color:var(--cc-tinta-3);display:block;margin-bottom:8px}
+.cx-reg-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px 14px;
   background:var(--cc-sup-2);border:1px solid var(--cc-linha);border-radius:12px;padding:13px 15px;margin-bottom:13px}
-.cx-reg-campos.aberto{display:grid}
 
 .cx-acoes{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:13px;border-top:1px solid var(--cc-linha)}
 .cx-btn{font-family:inherit;font-size:11.5px;padding:6px 12px;border-radius:8px;border:1px solid var(--cc-linha);
@@ -3680,17 +3674,7 @@ window.irParaCasoDoFoco=function(nomeCaso){
 };
 
 // ── RENDER CASOS ──
-// Dados do registro ficam recolhidos por caso. Fora do HTML pelo mesmo motivo
-// das ações da Central: renderCasos() redesenha a lista inteira a cada
-// mudança no Firebase, feita por qualquer pessoa da equipe.
-const cxRegAbertos=new Set();
-window.cxToggleReg=function(id){
-  if(cxRegAbertos.has(id))cxRegAbertos.delete(id); else cxRegAbertos.add(id);
-  const campos=document.getElementById('cx-reg-'+id);
-  const botao=document.getElementById('cx-reg-btn-'+id);
-  if(campos)campos.classList.toggle('aberto',cxRegAbertos.has(id));
-  if(botao)botao.classList.toggle('aberto',cxRegAbertos.has(id));
-};
+// Campos dos dados do registro, desenhados abertos em todo card.
 const CX_REG=[
   {campo:'registroPrenotado',rot:'Registro'},
   {campo:'prenotacao',       rot:'Prenotação'},
@@ -3726,11 +3710,6 @@ function renderCasos(){
     lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
   }
   el.innerHTML=lista.map(c=>{
-    const regAberto=cxRegAbertos.has(c.id);
-    const preenchidos=CX_REG.filter(r=>(c[r.campo]||'').trim());
-    const resumoReg=preenchidos.length
-      ? preenchidos.map(r=>`${r.rot} <b>${esc(c[r.campo])}</b>`).join(' &nbsp;·&nbsp; ')
-      : 'Dados do registro';
     return`
     <div class="cx-card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
       <div class="cx-topo">
@@ -3766,10 +3745,8 @@ function renderCasos(){
           <input type="datetime-local" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)"></label>
       </div>
 
-      <button type="button" class="cx-reg-resumo${regAberto?' aberto':''}" id="cx-reg-btn-${c.id}" onclick="cxToggleReg('${c.id}')">
-        <i class="ti ti-chevron-down"></i><span>${resumoReg}</span>
-      </button>
-      <div class="cx-reg-campos${regAberto?' aberto':''}" id="cx-reg-${c.id}">
+      <span class="cx-reg-titulo">Dados do registro</span>
+      <div class="cx-reg-campos" id="cx-reg-${c.id}">
         ${CX_REG.map(r=>`<label class="cx-campo"><span class="cx-campo-rot">${r.rot}</span>
           <input type="text" value="${esc(c[r.campo])}" placeholder="—" onchange="mudarCampo('${c.id}','${r.campo}',this.value)"></label>`).join('')}
       </div>
