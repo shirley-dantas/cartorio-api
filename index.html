@@ -1003,6 +1003,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .16s ease,color .16s ease,border-color .16s ease}
 .cx-add:hover{background:var(--cc-sup);color:var(--cc-tinta);border-color:var(--cc-champagne)}
 
+/* Criação de pastas em massa: ação de manutenção, não do dia a dia. Fica
+   abaixo do "Adicionar novo caso" e mais discreta que ele, e só aparece
+   quando existe caso sem pasta na lista que está na tela. */
+.cx-massa{width:100%;font-family:inherit;font-size:11.5px;padding:9px;margin-top:8px;border-radius:12px;
+  border:1px solid var(--cc-linha);background:none;color:var(--cc-tinta-3);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;transition:background .16s ease,color .16s ease,border-color .16s ease}
+.cx-massa i{font-size:14px}
+.cx-massa:hover:not(:disabled){background:var(--cc-sup);color:var(--cc-tinta);border-color:var(--cc-tinta-3)}
+.cx-massa:disabled{cursor:progress;opacity:.75}
+
 /* ── LATERAL ──
    Some o pílula-com-borda em cada item (207 bordas numa lateral de 20
    linhas) em favor de linhas com filete separando grupos. */
@@ -1192,6 +1202,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </div>
     <div class="add-section">
       <button class="cx-add" onclick="toggleForm()"><i class="ti ti-plus" style="font-size:15px"></i> Adicionar novo caso</button>
+      <button class="cx-massa" id="cx-drive-massa" style="display:none" onclick="criarPastasEmMassa()">
+        <i class="ti ti-folder-plus"></i> <span id="cx-drive-massa-label">Criar pastas no Drive</span>
+      </button>
       <div class="add-form" id="add-form">
         <h3>Novo caso</h3>
         <div class="form-grid">
@@ -3750,6 +3763,7 @@ function renderCasos(){
       lista=getCasosList().filter(visivel);
     }
   }
+  atualizarBotaoPastasMassa(lista);
   if(!lista.length){
     const msg=filtro==='concluido'?(busca?'Nenhum caso concluído encontrado pra essa busca.':'Nenhum caso concluído ainda — o que você concluir aparece aqui, fácil de achar depois.'):'Nenhum caso encontrado.';
     el.innerHTML=`<div class="cx-vazio">${msg}</div>`;
@@ -3877,6 +3891,13 @@ window.mudarCampo=function(id,campo,valor){
 function driveTextoCurto(url){
   return String(url||'').replace(/^https?:\/\//,'').replace(/\/$/,'');
 }
+// Grava só o driveUrl, sem passar pelo mudarCampo — de propósito. Ligar uma
+// pasta ao card não é andamento do caso, e mexer no 'atualizado' aqui faria a
+// criação em massa carimbar dezenas de casos como "mexidos hoje", zerando de
+// uma vez o relógio de Esquecidos justamente de quem está parado.
+function salvarPastaDrive(id,url){
+  return update(ref(db,`casos/${id}`),{driveUrl:url});
+}
 window.abrirColarDrive=function(id){
   const box=document.getElementById('cx-drive-colar-'+id);
   if(!box)return;
@@ -3896,11 +3917,11 @@ window.salvarLinkDrive=function(id){
   // do caso estar a um clique, e um dia isso pode ser outro serviço.
   if(!/^https?:\/\//i.test(url)){alert('O link precisa começar com https:// — copie a barra de endereço da pasta no Drive.');return;}
   if(!/^https:\/\/(drive|docs)\.google\.com\//i.test(url)&&!confirm('Esse link não parece ser do Google Drive. Salvar assim mesmo?'))return;
-  mudarCampo(id,'driveUrl',url);
+  salvarPastaDrive(id,url);
 };
 window.removerLinkDrive=function(id){
   if(!confirm('Tirar o link da pasta deste card? A pasta continua existindo no Drive.'))return;
-  mudarCampo(id,'driveUrl','');
+  salvarPastaDrive(id,'');
 };
 window.copiarLinkDrive=function(id,btn){
   const url=(casos[id]||{}).driveUrl;
@@ -3911,6 +3932,56 @@ window.copiarLinkDrive=function(id,btn){
     setTimeout(()=>{btn.innerHTML=antes;},2000);
   }).catch(()=>prompt('Copie o link da pasta:',url));
 };
+// Casos da lista que está na tela (mesmo filtro e mesma busca) e ainda sem
+// pasta ligada. Trabalhar sobre a lista visível é o que dá controle: filtrando
+// por responsável ou por status, o botão em massa passa a valer só pra aquele
+// recorte, em vez de sair criando pasta pro cartório inteiro.
+function casosSemPasta(lista){
+  return lista.filter(c=>!c.concluido&&!String(c.driveUrl||'').trim());
+}
+function atualizarBotaoPastasMassa(lista){
+  const btn=document.getElementById('cx-drive-massa');
+  if(!btn||btn.dataset.rodando==='1')return;
+  const n=casosSemPasta(lista).length;
+  btn.style.display=n?'flex':'none';
+  const lab=document.getElementById('cx-drive-massa-label');
+  if(lab)lab.textContent=n===1?'Criar pasta no Drive do caso sem pasta'
+                              :`Criar pastas no Drive dos ${n} casos sem pasta`;
+}
+// Uma pasta por vez, em fila: o Apps Script executa uma chamada de cada vez, e
+// disparar tudo junto só renderia erro de concorrência. O progresso vai no
+// próprio botão, e o que falhar é listado no fim — o que deu certo já está
+// salvo, então repetir o botão retoma de onde parou.
+window.criarPastasEmMassa=async function(){
+  const pendentes=casosSemPasta(getCasosList().filter(visivel));
+  if(!pendentes.length){alert('Todos os casos desta lista já têm pasta ligada.');return;}
+  if(!confirm(`Criar pasta no Drive para ${pendentes.length} ${pendentes.length>1?'casos':'caso'} desta lista?\n\nOnde já existir pasta com o nome do caso, ela é reaproveitada — nada é duplicado.`))return;
+  const btn=document.getElementById('cx-drive-massa');
+  const lab=document.getElementById('cx-drive-massa-label');
+  if(btn){btn.disabled=true;btn.dataset.rodando='1';}
+  let ok=0;const falhas=[];
+  for(let i=0;i<pendentes.length;i++){
+    const c=pendentes[i];
+    if(lab)lab.textContent=`Criando pastas… ${i+1} de ${pendentes.length}`;
+    try{
+      const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({
+        acao:'criar-pasta',nome:c.nome,tipo:c.tipo||''
+      })});
+      const d=await r.json();
+      if(d&&d.ok&&d.url){await salvarPastaDrive(c.id,d.url);ok++;}
+      else falhas.push(`${c.nome}: ${(d&&d.erro)||'motivo desconhecido'}`);
+    }catch(e){
+      falhas.push(`${c.nome}: ${e.message}`);
+    }
+  }
+  if(btn){btn.disabled=false;delete btn.dataset.rodando;}
+  renderCasos();
+  const resumo=`${ok} ${ok===1?'pasta criada e ligada':'pastas criadas e ligadas'}.`;
+  alert(falhas.length
+    ? `${resumo}\n\n${falhas.length} não deu certo:\n• ${falhas.slice(0,8).join('\n• ')}${falhas.length>8?`\n• …e mais ${falhas.length-8}`:''}\n\nDá pra apertar o botão de novo pra tentar só o que faltou.`
+    : resumo);
+};
+
 // O Apps Script reaproveita a pasta se já existir uma com o nome do caso
 // (getPastaCliente), então pedir de novo liga o card à pasta que já está lá em
 // vez de criar uma duplicada.
@@ -3926,7 +3997,7 @@ window.criarPastaDrive=async function(id){
     })});
     const d=await r.json();
     if(d&&d.ok&&d.url){
-      mudarCampo(id,'driveUrl',d.url);
+      salvarPastaDrive(id,d.url);
     }else{
       alert('Não consegui criar a pasta no Drive: '+((d&&d.erro)||'motivo desconhecido'));
       restaurar();
