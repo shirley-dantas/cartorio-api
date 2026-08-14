@@ -1626,6 +1626,21 @@ function motorDecisao(caso){
   };
 }
 
+// Janela normal da etapa, em dias — o mesmo normalAte que o motor usa. Etapa
+// vazia (ou sem config) não tem prazo próprio e conta como 0: o que se espera
+// dela é justamente que alguém defina a próxima etapa.
+function janelaNormalEtapa(caso){
+  const cfg=DEP_CONFIG[(caso&&caso.dep)||''];
+  return cfg&&cfg.normalAte!=null?cfg.normalAte:0;
+}
+// Dias que o caso já passou da janela da etapa. Negativo/zero = dentro do
+// curso normal. É essa a medida honesta pra comparar esteiras de ritmos
+// diferentes: 20 dias no Registro de Imóveis (janela de 30) é andamento
+// normal, enquanto 2 dias numa etapa de 1 dia já é atraso.
+function diasAlemDaEtapa(caso,diasNaEtapaAtual){
+  return diasNaEtapaAtual-janelaNormalEtapa(caso);
+}
+
 // Extrai data/hora de uma nota livre (ex: "hoje às 11h", "amanhã 14h30",
 // "05/08 às 10:00") só quando o dia é inequívoco (hoje/amanhã/data explícita)
 // E há um horário reconhecível — evita criar agendamento a partir de datas
@@ -1913,13 +1928,17 @@ const DASH_STATUS=[
   {key:'prioridade',label:'Prioridade',cor:'#5B3FA0',ink:'#fff'},
   {key:'emdia',     label:'Em dia',    cor:'#2F8F4E',ink:'#fff'}
 ];
-// Faixas de idade são ordinais (trocar a ordem muda o sentido), então levam
-// uma rampa de um tom só, clareando pro escuro — a ordem se enxerga na cor.
+// Faixas medidas em dias ALÉM da janela normal da etapa (diasAlemDaEtapa), não
+// em dias corridos. Em dias corridos, todo caso protocolado no Registro de
+// Imóveis — esteira de 30 dias, acompanhada todo dia — caía nas faixas escuras
+// já na segunda semana, ao lado de casos realmente largados numa etapa de 1
+// dia. As faixas são ordinais (trocar a ordem muda o sentido), então levam uma
+// rampa de um tom só, clareando pro escuro — a ordem se enxerga na cor.
 const DASH_IDADE=[
-  {label:'0–2 dias', cor:'#94AFC2',min:0, max:2},
-  {label:'3–7 dias', cor:'#63859E',min:3, max:7},
-  {label:'8–15 dias',cor:'#3A5F7C',min:8, max:15},
-  {label:'+15 dias', cor:'#1B3648',min:16,max:Infinity}
+  {label:'No prazo da etapa',cor:'#94AFC2',min:-Infinity,max:0},
+  {label:'Até 7 dias além',  cor:'#63859E',min:1, max:7},
+  {label:'8–15 dias além',   cor:'#3A5F7C',min:8, max:15},
+  {label:'+15 dias além',    cor:'#1B3648',min:16,max:Infinity}
 ];
 const DASH_RITMO={entradas:{cor:'#2f6fb0',label:'Entraram'},saidas:{cor:'#2F8F4E',label:'Concluídos'}};
 
@@ -2044,22 +2063,24 @@ function quadroCarga(ativos){
 
 // 3. ESQUECIDOS — conta dias NA ETAPA ATUAL (depDesde), não desde a criação:
 // um caso de seis meses que mudou de etapa ontem não está esquecido, e é essa
-// a diferença que o contador "Parados +3d" da lateral não faz.
+// a diferença que o contador "Parados +3d" da lateral não faz. E conta esses
+// dias contra a janela da própria etapa, não contra um número fixo: cada
+// esteira tem seu ritmo, e o Registro de Imóveis leva 30 dias por natureza.
 function quadroIdade(itens){
   const faixas=DASH_IDADE.map(f=>({...f,n:0}));
   itens.forEach(it=>{
-    const d=it.md.diasNaEtapaAtual;
+    const d=diasAlemDaEtapa(it.caso,it.md.diasNaEtapaAtual);
     const f=faixas.find(x=>d>=x.min&&d<=x.max);
     if(f)f.n++;
   });
   const total=faixas.reduce((a,f)=>a+f.n,0);
   if(!total)return quadroCartao('Esquecidos','','','<div class="dash-vazio">Nenhum caso ativo no momento.</div>');
   const max=Math.max(...faixas.map(f=>f.n));
-  const velhos=faixas[2].n+faixas[3].n;
+  const velhos=faixas[1].n+faixas[2].n+faixas[3].n;
 
   const corpo=`<div class="dash-linhas">${faixas.map((f,i)=>{
     const pct=total?Math.round(f.n/total*100):0;
-    const tip=`<b>${escTxt(f.label)} na etapa atual</b><br>${f.n} ${dashPlural(f.n,'caso')} · ${pct}% do total`;
+    const tip=`<b>${escTxt(f.label)}</b><br>${f.n} ${dashPlural(f.n,'caso')} · ${pct}% do total`;
     return`<button type="button" class="dash-linha" data-tip="${esc(tip)}" onclick="dashAbrirIdade(${i})">
       <span class="dash-rotulo">${esc(f.label)}</span>
       <span class="dash-trilho">
@@ -2068,8 +2089,8 @@ function quadroIdade(itens){
       </span>
     </button>`;
   }).join('')}</div>`;
-  return quadroCartao('Esquecidos',velhos?`${velhos} ${dashPlural(velhos,'caso')} +8d`:'tudo fresco',
-    'Há quanto tempo cada caso está parado na etapa em que está agora.',corpo);
+  return quadroCartao('Esquecidos',velhos?`${velhos} ${dashPlural(velhos,'caso')} além do prazo`:'tudo no prazo',
+    'Quanto cada caso já passou do prazo normal da etapa em que está agora — cada etapa medida pelo próprio ritmo.',corpo);
 }
 
 // 4. RITMO — entra x sai. Só passa a ter dados a partir do dia em que o painel
@@ -2132,12 +2153,12 @@ function quadroTabelaHtml(ativos,itens){
   const porDep={};ativos.forEach(c=>{const d=c.dep||'Sem etapa definida';porDep[d]=(porDep[d]||0)+1;});
   const porResp={};ativos.forEach(c=>{const r=dashNomeResp(c.resp);porResp[r]=(porResp[r]||0)+1;});
   const faixas=DASH_IDADE.map(f=>({...f,n:0}));
-  itens.forEach(it=>{const f=faixas.find(x=>it.md.diasNaEtapaAtual>=x.min&&it.md.diasNaEtapaAtual<=x.max);if(f)f.n++;});
+  itens.forEach(it=>{const d=diasAlemDaEtapa(it.caso,it.md.diasNaEtapaAtual);const f=faixas.find(x=>d>=x.min&&d<=x.max);if(f)f.n++;});
   const tab=(cap,cab,linhas)=>`<table class="dash-tabela"><caption>${cap}</caption><thead><tr><th>${cab}</th><th class="num">Casos</th></tr></thead><tbody>${linhas}</tbody></table>`;
   return`<div class="dash-grid" style="margin-top:12px">
     <div>${tab('Onde os casos travam','Etapa',Object.entries(porDep).sort((a,b)=>b[1]-a[1]).map(([k,v])=>linha(k,v)).join(''))}</div>
     <div>${tab('Carga da equipe','Responsável',Object.entries(porResp).sort((a,b)=>b[1]-a[1]).map(([k,v])=>linha(k,v)).join(''))}</div>
-    <div>${tab('Esquecidos','Tempo na etapa atual',faixas.map(f=>linha(f.label,f.n)).join(''))}</div>
+    <div>${tab('Esquecidos','Prazo da etapa atual',faixas.map(f=>linha(f.label,f.n)).join(''))}</div>
   </div>`;
 }
 
@@ -2151,8 +2172,8 @@ window.dashAbrirResp=function(r){
 };
 window.dashAbrirIdade=function(i){
   const f=DASH_IDADE[i];if(!f)return;
-  abrirListaCasosModal(f.label+' na etapa atual','ti-hourglass',c=>{
-    const d=motorDecisao(c).diasNaEtapaAtual;
+  abrirListaCasosModal(f.label,'ti-hourglass',c=>{
+    const d=diasAlemDaEtapa(c,motorDecisao(c).diasNaEtapaAtual);
     return d>=f.min&&d<=f.max;
   });
 };
@@ -2667,9 +2688,7 @@ const CC_LIMITE_SEM_MOVIMENTO=7;
 // de decisão e aparece em Incêndios.
 const CC_ESQUECIDO_PISO=3;
 function limiteEsquecido(caso){
-  const cfg=DEP_CONFIG[caso.dep||''];
-  const janela=cfg&&cfg.normalAte!=null?cfg.normalAte:CC_ESQUECIDO_PISO;
-  return Math.max(CC_ESQUECIDO_PISO,janela);
+  return Math.max(CC_ESQUECIDO_PISO,janelaNormalEtapa(caso));
 }
 
 // ── INCÊNDIOS · ESQUECIDOS · PRÓXIMAS AÇÕES ──
