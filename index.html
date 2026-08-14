@@ -964,6 +964,23 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-reg-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px 14px;
   background:var(--cc-sup-2);border:1px solid var(--cc-linha);border-radius:12px;padding:13px 15px;margin-bottom:13px}
 
+/* Pasta do caso no Drive. O link fica à vista quando existe — é ele que se
+   manda pro cliente ou pro despachante — e, quando não existe, ficam os dois
+   caminhos pra ter uma: criar pelo painel ou colar o link de uma pasta que já
+   foi feita à mão lá no Drive. */
+.cx-drive{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:13px}
+.cx-drive-rot{font-size:11.5px;color:var(--cc-tinta-3);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.cx-drive-rot i{font-size:13px}
+.cx-drive-link{font-size:12px;color:#1E8E3E;text-decoration:none;border-bottom:1px solid #A8D5B5;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cx-drive-link:hover{color:#14682C;border-bottom-color:#1E8E3E}
+.cx-drive-vazio{font-size:11.5px;color:var(--cc-tinta-3)}
+.cx-drive-colar{display:none;width:100%;gap:8px;align-items:center;flex-wrap:wrap}
+.cx-drive-colar.aberto{display:flex}
+.cx-drive-colar input{flex:1;min-width:180px;font-family:inherit;font-size:12.5px;padding:7px 9px;border-radius:8px;
+  border:1px solid var(--cc-linha);background:var(--cc-sup-2);color:var(--cc-tinta);outline:none}
+.cx-drive-colar input:focus{border-color:var(--cc-champagne);background:var(--cc-sup)}
+
 .cx-acoes{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:13px;border-top:1px solid var(--cc-linha)}
 .cx-btn{font-family:inherit;font-size:11.5px;padding:6px 12px;border-radius:8px;border:1px solid var(--cc-linha);
   background:var(--cc-sup);color:var(--cc-tinta-2);cursor:pointer;white-space:nowrap;display:inline-flex;
@@ -3788,6 +3805,26 @@ function renderCasos(){
           <input type="text" value="${esc(c[r.campo])}" placeholder="—" onchange="mudarCampo('${c.id}','${r.campo}',this.value)"></label>`).join('')}
       </div>
 
+      <div class="cx-drive">
+        <span class="cx-drive-rot"><i class="ti ti-brand-google-drive"></i> Pasta no Drive</span>
+        ${c.driveUrl?`
+          <a class="cx-drive-link" href="${esc(c.driveUrl)}" target="_blank" rel="noopener" title="${esc(c.driveUrl)}">${escTxt(driveTextoCurto(c.driveUrl))}</a>
+          <button class="cx-btn" onclick="copiarLinkDrive('${c.id}',this)"><i class="ti ti-copy"></i> Copiar link</button>
+          <button class="cx-btn" onclick="abrirColarDrive('${c.id}')"><i class="ti ti-link"></i> Trocar link</button>
+        `:`
+          <span class="cx-drive-vazio">Nenhuma pasta ligada a este caso.</span>
+          <button class="cx-btn" id="cx-drive-criar-${c.id}" onclick="criarPastaDrive('${c.id}')"><i class="ti ti-folder-plus"></i> Criar pasta no Drive</button>
+          <button class="cx-btn" onclick="abrirColarDrive('${c.id}')"><i class="ti ti-link"></i> Colar link da pasta</button>
+        `}
+        <div class="cx-drive-colar" id="cx-drive-colar-${c.id}">
+          <input type="url" id="cx-drive-input-${c.id}" value="${esc(c.driveUrl||'')}"
+            placeholder="Cole aqui o link da pasta que você criou no Drive"
+            onkeydown="if(event.key==='Enter')salvarLinkDrive('${c.id}')">
+          <button class="cx-btn destaque" onclick="salvarLinkDrive('${c.id}')">Salvar link</button>
+          ${c.driveUrl?`<button class="cx-btn perigo" onclick="removerLinkDrive('${c.id}')">Tirar do card</button>`:''}
+        </div>
+      </div>
+
       <div class="card-obs">
         <span class="obs-label">Observações</span>
         <div class="obs-text" id="obs-txt-${c.id}" onclick="toggleObs('${c.id}')">${renderObsBloco(c.obs)}</div>
@@ -3804,7 +3841,6 @@ function renderCasos(){
 
       <div class="cx-acoes">
         <button class="cx-btn destaque" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text"></i> Minuta</button>
-        ${c.driveUrl?`<button class="cx-btn" onclick="window.open('${c.driveUrl}','_blank')"><i class="ti ti-brand-google-drive"></i> Drive</button>`:''}
         <button class="cx-btn" onclick="toggleObs('${c.id}')"><i class="ti ti-notes"></i> Obs</button>
         ${c.segundaParte&&(c.segundaParte.status==='pendente'||c.segundaParte.status==='lembrete')?`<button class="cx-btn destaque" onclick="abrirSegundaParte('${c.id}')"><i class="ti ti-users"></i> Assinatura da 2ª parte</button>`:''}
         <button class="cx-btn" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit"></i> Reeditar</button>
@@ -3827,6 +3863,77 @@ window.mudarCampo=function(id,campo,valor){
   if(campo==='agendado'){
     sincronizarEventoCalendar(id,{...casos[id],agendado:valor});
     if(valor)abrirSegundaParte(id);
+  }
+};
+
+// ── PASTA DO CASO NO DRIVE ──
+// A pasta não nasce mais junto com o caso. Antes, todo cadastro disparava um
+// "criar-pasta" no Apps Script e o painel nem guardava o link de volta: sobrava
+// pasta vazia no Drive e nenhum link no card. Agora ela aparece por pedido —
+// pelo botão daqui, ou pela geração da minuta, que precisa de uma pasta pra
+// guardar o documento e grava o driveUrl no caso. Nos dois casos o link fica
+// visível no card, pronto pra copiar e mandar. E quando a pasta foi criada na
+// mão lá no Drive, dá pra colar o link aqui, que é o mesmo campo.
+function driveTextoCurto(url){
+  return String(url||'').replace(/^https?:\/\//,'').replace(/\/$/,'');
+}
+window.abrirColarDrive=function(id){
+  const box=document.getElementById('cx-drive-colar-'+id);
+  if(!box)return;
+  const abrindo=!box.classList.contains('aberto');
+  box.classList.toggle('aberto',abrindo);
+  if(abrindo){
+    const inp=document.getElementById('cx-drive-input-'+id);
+    if(inp){inp.focus();inp.select();}
+  }
+};
+window.salvarLinkDrive=function(id){
+  const inp=document.getElementById('cx-drive-input-'+id);
+  if(!inp)return;
+  const url=inp.value.trim();
+  if(!url){alert('Cole o link da pasta do Drive antes de salvar.');return;}
+  // Não bloqueia link de fora do Drive, só confirma: o que importa é a pasta
+  // do caso estar a um clique, e um dia isso pode ser outro serviço.
+  if(!/^https?:\/\//i.test(url)){alert('O link precisa começar com https:// — copie a barra de endereço da pasta no Drive.');return;}
+  if(!/^https:\/\/(drive|docs)\.google\.com\//i.test(url)&&!confirm('Esse link não parece ser do Google Drive. Salvar assim mesmo?'))return;
+  mudarCampo(id,'driveUrl',url);
+};
+window.removerLinkDrive=function(id){
+  if(!confirm('Tirar o link da pasta deste card? A pasta continua existindo no Drive.'))return;
+  mudarCampo(id,'driveUrl','');
+};
+window.copiarLinkDrive=function(id,btn){
+  const url=(casos[id]||{}).driveUrl;
+  if(!url)return;
+  navigator.clipboard.writeText(url).then(()=>{
+    const antes=btn.innerHTML;
+    btn.innerHTML='<i class="ti ti-check"></i> Copiado!';
+    setTimeout(()=>{btn.innerHTML=antes;},2000);
+  }).catch(()=>prompt('Copie o link da pasta:',url));
+};
+// O Apps Script reaproveita a pasta se já existir uma com o nome do caso
+// (getPastaCliente), então pedir de novo liga o card à pasta que já está lá em
+// vez de criar uma duplicada.
+window.criarPastaDrive=async function(id){
+  const c=casos[id];if(!c)return;
+  const btn=document.getElementById('cx-drive-criar-'+id);
+  const antes=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Criando…';}
+  const restaurar=()=>{if(btn){btn.disabled=false;btn.innerHTML=antes;}};
+  try{
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({
+      acao:'criar-pasta',nome:c.nome,tipo:c.tipo||''
+    })});
+    const d=await r.json();
+    if(d&&d.ok&&d.url){
+      mudarCampo(id,'driveUrl',d.url);
+    }else{
+      alert('Não consegui criar a pasta no Drive: '+((d&&d.erro)||'motivo desconhecido'));
+      restaurar();
+    }
+  }catch(e){
+    alert('Erro de conexão com o Drive: '+e.message);
+    restaurar();
   }
 };
 
@@ -4553,10 +4660,8 @@ window.salvarNovo=function(){
     concluido:false
   };
   set(nr,novoCaso);
-  // Criar pasta no Google Drive
-  const driveNome = nome;
-  const driveTipo = document.getElementById('f-tipo').value.trim()||'A classificar';
-  fetch(GAS_URL,{method:'POST',body:JSON.stringify({nome:driveNome,tipo:driveTipo})}).catch(()=>{});
+  // Nada de pasta no Drive aqui: ela é criada pelo botão do card, quando
+  // alguém precisar dela de verdade (ver PASTA DO CASO NO DRIVE).
   if(novoCaso.agendado)sincronizarEventoCalendar(nr.key,novoCaso);
   ['f-nome','f-tipo','f-prazo','f-obs','f-agendado-desc','f-prenotacao','f-registroPrenotado','f-livro','f-folha','f-controle'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-dep').value='';
