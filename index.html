@@ -1379,7 +1379,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <span style="font-size:11px;color:#AEAEB2">Isso pode levar até 60 segundos</span>
     </div>
     <div class="modal-result" id="modal-result" style="text-align:center;padding:16px">
-      <div style="font-size:15px;font-weight:600;color:#1B5E20;margin-bottom:8px">✅ Minuta gerada com sucesso!</div>
+      <div style="font-size:15px;font-weight:600;color:#1B5E20;margin-bottom:8px" id="modal-result-titulo">✅ Minuta gerada com sucesso!</div>
       <div style="font-size:12px;color:#636366;margin-bottom:14px" id="modal-doc-nome"></div>
       <a id="btn-abrir-doc" href="#" target="_blank" style="display:inline-block;background:#1B5E20;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">
         <i class="ti ti-brand-google-drive" style="font-size:13px;vertical-align:-1px"></i> Abrir documento no Drive
@@ -4745,10 +4745,25 @@ window.registrarAtendimento=async function(){
 // da função de gerar). preservarIntegral=true devolve o texto tal como está,
 // sem passar pela IA — é o que se quer de uma minuta pronta ou de um modelo,
 // onde resumir seria justamente perder a estrutura que se quer copiar.
+// Um erro de leitura do FileReader chega como ProgressEvent, que NÃO tem
+// .message — e quem trata só olhava e.message, caindo no texto genérico
+// "Erro ao conectar. Tente novamente." para uma falha que não tinha nada a
+// ver com conexão. Por isso todo reject aqui vira um Error de verdade,
+// dizendo o arquivo e o passo.
+const erroDeLeitura=(file)=>new Error(`Não consegui ler o arquivo "${file.name}" aqui no navegador. Verifique se ele ainda está no lugar (não foi movido, renomeado nem apagado depois de anexado) e anexe de novo.`);
+// Transforma qualquer coisa que tenha sido lançada num texto que ajude quem
+// está na tela — e deixa o erro cru no console pra investigação depois.
+function descreverErro(e,ondeEstava){
+  console.error('[minuta] falha em: '+ondeEstava,e);
+  if(e&&typeof e.message==='string'&&e.message.trim())return e.message;
+  if(typeof e==='string'&&e.trim())return e;
+  if(e&&e.type==='error')return 'A leitura de um dos arquivos anexados falhou no navegador. Tire o anexo, anexe de novo e repita.';
+  return `Parou em "${ondeEstava}" sem dizer o motivo. Se repetir, me mande print desta tela.`;
+}
 const lerBase64Arquivo=(file)=>new Promise((resolve,reject)=>{
   const r=new FileReader();
   r.onload=()=>resolve(String(r.result).split(',')[1]||'');
-  r.onerror=reject;
+  r.onerror=()=>reject(erroDeLeitura(file));
   r.readAsDataURL(file);
 });
 const ehDocx=(file)=>/wordprocessingml\.document/.test(file.type||'')||/\.docx$/i.test(file.name||'');
@@ -4760,11 +4775,12 @@ const extrairDocxNoNavegador=(file)=>new Promise((resolve,reject)=>{
   const r=new FileReader();
   r.onload=async()=>{
     try{
+      if(!window.mammoth)throw new Error(`O leitor de Word não carregou nesta página, então não consigo abrir "${file.name}". Recarregue o painel e tente de novo.`);
       const resultado=await window.mammoth.extractRawText({arrayBuffer:r.result});
       resolve((resultado&&resultado.value&&resultado.value.trim())||'');
-    }catch(e){reject(e);}
+    }catch(e){reject(e instanceof Error?e:erroDeLeitura(file));}
   };
-  r.onerror=reject;
+  r.onerror=()=>reject(erroDeLeitura(file));
   r.readAsArrayBuffer(file);
 });
 async function extrairArquivo(file,preservarIntegral){
@@ -4903,7 +4919,7 @@ window.gerarReeditar=async function(){
       setRErro(d2.erro||'Não foi possível salvar no Drive.');
     }
   }catch(e){
-    setRErro(e.message||'Erro ao conectar. Tente novamente.');
+    setRErro(descreverErro(e,'gerar nova versão da minuta'));
   }
   document.getElementById('btn-reeditar-gerar').disabled=false;
 };
@@ -4913,15 +4929,24 @@ window.gerarAnalise=async function(){
   const docs=document.getElementById('modal-docs').value.trim();
   document.getElementById('btn-gerar').disabled=true;
   document.getElementById('modal-result').style.display='none';
-  document.getElementById('modal-result').style.display='none';
   const loading=document.getElementById('modal-loading');
   const setLoading=(txt)=>{loading.style.display='block';loading.innerHTML=`<i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>${txt}`;};
+  // O título era um texto fixo de sucesso, sem id: qualquer erro aparecia
+  // logo abaixo de "✅ Minuta gerada com sucesso!", dizendo as duas coisas ao
+  // mesmo tempo. Agora o título acompanha o resultado, como no Reeditar.
+  const titulo=document.getElementById('modal-result-titulo');
+  const setOk=()=>{
+    titulo.textContent='✅ Minuta gerada com sucesso!';
+    titulo.style.color='#1B5E20';
+  };
   const setErro=(msg)=>{
     loading.style.display='none';
     document.getElementById('modal-result').style.display='block';
+    titulo.textContent='⚠️ Não deu certo';
+    titulo.style.color='#B71C1C';
     document.getElementById('btn-abrir-doc').style.display='none';
     document.getElementById('btn-copiar-rel').style.display='none';
-    document.getElementById('modal-doc-nome').textContent='⚠️ '+msg;
+    document.getElementById('modal-doc-nome').textContent=msg;
     document.getElementById('modal-result-text').style.display='none';
   };
   try{
@@ -4929,17 +4954,39 @@ window.gerarAnalise=async function(){
     // reconhece: o modelo com as regras de fidelidade, os documentos como
     // fonte de dado do caso.
     const blocos=docs?[docs]:[];
+    const falhas=[];
     for(let i=0;i<minutaArquivosModelo.length;i++){
       setLoading(`Lendo a minuta modelo (${i+1} de ${minutaArquivosModelo.length})…`);
-      const texto=await textoDoAnexo(minutaArquivosModelo[i],true);
-      if(texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${minutaArquivosModelo[i].name} ===\n${texto}`);
+      try{
+        const texto=await textoDoAnexo(minutaArquivosModelo[i],true);
+        if(texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${minutaArquivosModelo[i].name} ===\n${texto}`);
+      }catch(e){falhas.push(`${minutaArquivosModelo[i].name}: ${descreverErro(e,'ler a minuta modelo')}`);}
     }
     for(let i=0;i<minutaArquivosDoc.length;i++){
       setLoading(`Lendo documento ${i+1} de ${minutaArquivosDoc.length}…`);
-      const texto=await textoDoAnexo(minutaArquivosDoc[i],false);
-      if(texto)blocos.push(`=== DOCUMENTO: ${minutaArquivosDoc[i].name} ===\n${texto}`);
+      try{
+        const texto=await textoDoAnexo(minutaArquivosDoc[i],false);
+        if(texto)blocos.push(`=== DOCUMENTO: ${minutaArquivosDoc[i].name} ===\n${texto}`);
+      }catch(e){falhas.push(`${minutaArquivosDoc[i].name}: ${descreverErro(e,'ler um documento anexado')}`);}
     }
-    const documentos=blocos.join('\n\n');
+    // Um anexo ilegível derrubava a geração inteira. Agora ela pode seguir sem
+    // ele — mas nunca em silêncio: uma minuta feita sem um documento que você
+    // achou que entrou é pior que uma minuta que não saiu.
+    if(falhas.length){
+      const seguir=confirm(`Não consegui ler ${falhas.length===1?'este anexo':'estes anexos'}:\n\n• ${falhas.join('\n• ')}\n\nGerar a minuta sem ${falhas.length===1?'ele':'eles'}?`);
+      if(!seguir){
+        setErro(`Geração cancelada. ${falhas.length===1?'O anexo não pôde ser lido':'Os anexos não puderam ser lidos'}: ${falhas.join(' | ')}`);
+        document.getElementById('btn-gerar').disabled=false;
+        return;
+      }
+    }
+    // O Apps Script já corta o material em 100 mil caracteres antes de mandar
+    // pra IA. Cortar aqui também não muda nada no resultado e evita um envio
+    // gigante que o servidor recusaria com um erro sem explicação nenhuma.
+    let documentos=blocos.join('\n\n');
+    if(documentos.length>100000){
+      documentos=documentos.slice(0,100000)+'\n\n[...material cortado por limite de tamanho — se algo importante ficou de fora, tire um anexo e gere de novo...]';
+    }
     if(!documentos.trim()){
       setErro('Não há nada pra IA ler ainda. Escreva as informações do caso, responda as perguntas ou anexe um documento.');
       document.getElementById('btn-gerar').disabled=false;
@@ -4956,6 +5003,7 @@ window.gerarAnalise=async function(){
     loading.style.display='none';
     document.getElementById('modal-result').style.display='block';
     if(d2.ok&&d2.docUrl){
+      setOk();
       document.getElementById('btn-abrir-doc').href=d2.docUrl;
       document.getElementById('btn-abrir-doc').style.display='inline-block';
       document.getElementById('modal-doc-nome').textContent=d2.docNome||'';
@@ -4966,7 +5014,7 @@ window.gerarAnalise=async function(){
       setErro(d2.erro||'Não foi possível salvar no Drive.');
     }
   }catch(e){
-    setErro(e.message||'Erro ao conectar. Tente novamente.');
+    setErro(descreverErro(e,'gerar a minuta'));
   }
   document.getElementById('btn-gerar').disabled=false;
 };
