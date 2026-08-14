@@ -3825,6 +3825,7 @@ function renderCasos(){
           <a class="cx-drive-link" href="${esc(c.driveUrl)}" target="_blank" rel="noopener" title="${esc(c.driveUrl)}">${escTxt(driveTextoCurto(c.driveUrl))}</a>
           <button class="cx-btn" onclick="copiarLinkDrive('${c.id}',this)"><i class="ti ti-copy"></i> Copiar link</button>
           <button class="cx-btn" onclick="abrirColarDrive('${c.id}')"><i class="ti ti-link"></i> Trocar link</button>
+          <button class="cx-btn perigo" onclick="excluirPastaDrive('${c.id}',this)"><i class="ti ti-trash"></i> Excluir pasta</button>
         `:`
           <span class="cx-drive-vazio">Nenhuma pasta ligada a este caso.</span>
           <button class="cx-btn" id="cx-drive-criar-${c.id}" onclick="criarPastaDrive('${c.id}')"><i class="ti ti-folder-plus"></i> Criar pasta no Drive</button>
@@ -3932,6 +3933,40 @@ window.copiarLinkDrive=function(id,btn){
     setTimeout(()=>{btn.innerHTML=antes;},2000);
   }).catch(()=>prompt('Copie o link da pasta:',url));
 };
+// Exclui a pasta no Drive, diferente do "Tirar do card" ali do lado, que só
+// desfaz a ligação. A pasta vai pra lixeira do Drive (não some de vez), e o
+// docUrl também é limpo aqui: a minuta gerada mora dentro dessa pasta, então
+// deixar o link dela no caso apontaria pra um documento que foi junto.
+window.excluirPastaDrive=async function(id,btn){
+  const c=casos[id];
+  if(!c||!c.driveUrl)return;
+  if(!confirm(`Excluir no Drive a pasta do caso ${c.nome}?\n\nEla vai pra lixeira do Drive com tudo que estiver dentro, inclusive a minuta gerada — dá pra restaurar por lá em até 30 dias. O link sai do card.`))return;
+  const antes=btn?btn.innerHTML:'';
+  const restaurar=()=>{if(btn){btn.disabled=false;btn.innerHTML=antes;}};
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Excluindo…';}
+  try{
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({
+      acao:'excluir-pasta',folderUrl:c.driveUrl
+    })});
+    const d=await r.json();
+    if(d&&d.ok){
+      await update(ref(db,`casos/${id}`),{driveUrl:'',docUrl:''});
+    }else{
+      const erro=(d&&d.erro)||'motivo desconhecido';
+      // O Apps Script publicado é atualizado à mão (script.google.com). Se ele
+      // ainda for de antes desta ação, o erro que volta é esse — e o recado
+      // precisa dizer o que fazer, não só que deu errado.
+      alert(/a[çc][ãa]o desconhecida/i.test(erro)
+        ? 'O Apps Script publicado ainda não conhece a exclusão de pasta.\n\nAtualize o código lá em script.google.com com o arquivo apps-script/cartorio-drive-api.js e implante uma nova versão (Implantar > Gerenciar implantações > editar > Nova versão).'
+        : 'Não consegui excluir a pasta no Drive: '+erro);
+      restaurar();
+    }
+  }catch(e){
+    alert('Erro de conexão com o Drive: '+e.message);
+    restaurar();
+  }
+};
+
 // Casos da lista que está na tela (mesmo filtro e mesma busca) e ainda sem
 // pasta ligada. Trabalhar sobre a lista visível é o que dá controle: filtrando
 // por responsável ou por status, o botão em massa passa a valer só pra aquele

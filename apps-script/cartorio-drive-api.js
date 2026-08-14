@@ -496,6 +496,7 @@ function doPost(e) {
     var dados = JSON.parse(e.postData.contents);
     var acao = dados.acao || "criar-pasta";
     if (acao === "criar-pasta") return criarPasta(dados);
+    if (acao === "excluir-pasta") return excluirPasta(dados);
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
@@ -646,6 +647,33 @@ function criarPasta(dados) {
   var nomeCliente = (dados.nome || "Sem nome").toUpperCase();
   var pastaCliente = getPastaCliente(nomeCliente);
   return resp({ ok: true, url: pastaCliente.getUrl() });
+}
+
+// ── Excluir pasta ──────────────────────────────────────────────────────────
+// Manda a pasta do caso para a LIXEIRA do Drive (setTrashed), não apaga de
+// vez: a lixeira segura por 30 dias, então um clique errado continua sendo
+// reversível pelo próprio Drive, sem precisar de backup nenhum aqui.
+// Aceita o link (é o que o painel guarda em driveUrl) ou o id direto.
+function excluirPasta(dados) {
+  var id = extrairIdPasta(dados.folderId || dados.folderUrl || "");
+  if (!id) return resp({ ok: false, erro: "Não reconheci o link da pasta." });
+  var pasta = DriveApp.getFolderById(id);
+  var nome = pasta.getName();
+  pasta.setTrashed(true);
+  return resp({ ok: true, nome: nome });
+}
+
+// Formatos que aparecem na prática: .../folders/ID, .../folders/ID?usp=...,
+// ...open?id=ID, ou o id colado sozinho.
+function extrairIdPasta(referencia) {
+  var s = String(referencia || "").trim();
+  if (!s) return "";
+  var m = s.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  m = s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
+  return "";
 }
 
 // ── Salvar arquivo ─────────────────────────────────────────────────────────
