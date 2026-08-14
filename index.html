@@ -1177,7 +1177,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <button class="cx-fbtn" data-filtro="shirley" onclick="setFiltro('shirley',this)">Shirley</button>
       <button class="cx-fbtn" data-filtro="grazi" onclick="setFiltro('grazi',this)">Grazi</button>
       <button class="cx-fbtn" data-filtro="gabriel" onclick="setFiltro('gabriel',this)">Gabriel</button>
-      <button class="cx-fbtn" data-filtro="terceiro" onclick="setFiltro('terceiro',this)">Aguard. terceiro</button>
       <button class="cx-fbtn cx-fbtn-arquivo" id="cx-modo-arquivo" style="display:none" onclick="setFiltro('todos')"><i class="ti ti-archive" style="font-size:13px;vertical-align:-2px"></i> Arquivo &middot; voltar aos ativos</button>
     </div>
     <div class="add-section">
@@ -3653,7 +3652,6 @@ function visivel(c){
     if(filtro==='grazi'&&c.resp!=='grazi')return false;
     if(filtro==='gabriel'&&c.resp!=='gabriel')return false;
     if(filtro==='parado'&&diasParado(c.atualizado)<3)return false;
-    if(filtro==='terceiro'&&!c.dep)return false;
   }
   if(busca){
     const q=busca.toLowerCase();
