@@ -432,6 +432,33 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .joaninha-anexo-chip button{background:none;border:none;color:#B4718A;cursor:pointer;font-size:13px;line-height:1;padding:0 1px}
 .btn-anexar-reeditar{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px dashed #C7C7CC;border-radius:8px;background:#fff;color:#3A3A3C;font-size:12.5px;cursor:pointer}
 .btn-anexar-reeditar:hover{background:#F5F5F7}
+.btn-anexar-reeditar:disabled{opacity:.55;cursor:progress}
+
+/* ── BOT DE PERGUNTAS DA MINUTA ──
+   Metade da minuta não está em documento nenhum: profissão, regime de bens,
+   como o pagamento foi combinado. Antes isso só existia se alguém lembrasse de
+   digitar tudo no campo de texto. Aqui a IA olha o que já tem e pergunta só o
+   que falta, uma pergunta por vez — as respostas caem no mesmo campo de texto,
+   ainda editável antes de gerar. */
+.minuta-bot-chamada{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+  background:#F8F5EE;border:1px solid #E6DCC3;border-radius:12px;padding:12px 14px;margin:12px 0 16px}
+.minuta-bot-texto{font-size:12px;color:#636366;line-height:1.5;max-width:52ch}
+.minuta-bot-texto b{display:block;font-size:12.5px;color:#1C1C1E;font-weight:600;margin-bottom:2px}
+.mb-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.mb-progresso{font-size:11.5px;color:#8E8EA0;letter-spacing:.04em}
+.mb-sair{background:none;border:none;font-family:inherit;font-size:11.5px;color:#8E8EA0;cursor:pointer;text-decoration:underline;padding:0}
+.mb-sair:hover{color:#1C1C1E}
+.mb-trilho{height:4px;border-radius:4px;background:#EFEFF4;overflow:hidden;margin-bottom:14px}
+.mb-preenchido{display:block;height:100%;width:0;border-radius:4px;background:#A9895A;transition:width .25s ease}
+.mb-porque{font-size:11.5px;color:#8E8EA0;line-height:1.5;margin:-4px 0 10px}
+.mb-acoes{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center;margin-top:12px}
+.mb-acoes .btn-gerar{padding:9px 20px}
+.mb-resumo{background:#F5F5F7;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#3A3A3C;line-height:1.6;
+  max-height:260px;overflow-y:auto;margin-bottom:12px}
+.mb-resumo dt{font-weight:600;color:#1C1C1E;margin-top:8px}
+.mb-resumo dt:first-child{margin-top:0}
+.mb-resumo dd{margin:2px 0 0}
+.mb-resumo dd.vazia{color:#AEAEB2;font-style:italic}
 .joaninha-panel-actions{display:flex;align-items:center;gap:6px;margin-top:10px}
 .joaninha-icon-btn{width:30px;height:30px;border-radius:50%;border:0.5px solid #F0D3D8;background:#FFF7F8;color:#B4718A;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px}
 .joaninha-icon-btn:hover{background:#FDECEF}
@@ -1299,10 +1326,48 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <button class="modal-close" onclick="fecharMinuta()">&times;</button>
     <div class="modal-title"><i class="ti ti-file-text" style="font-size:15px;vertical-align:-2px;color:#0D47A1"></i> Assistente de Análise e Minuta</div>
     <div class="modal-sub" id="modal-caso-info">—</div>
-    <label class="modal-label" id="modal-label-docs">Documentos e informações do caso (carregando...)</label>
-    <textarea class="modal-textarea" id="modal-docs" placeholder="Ex: Matrícula nº 12345 — Proprietário: João da Silva, CPF 000.000.000-00, casado com Maria Silva em comunhão parcial de bens...&#10;&#10;Cole quantas informações tiver. Quanto mais detalhes, melhor a análise."></textarea>
-    <div class="modal-btn-row">
-      <button class="btn-gerar" id="btn-gerar" onclick="gerarAnalise()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Gerar Minuta no Drive</button>
+    <div id="minuta-form">
+      <label class="modal-label" id="modal-label-docs">Documentos e informações do caso (carregando...)</label>
+      <textarea class="modal-textarea" id="modal-docs" placeholder="Ex: Matrícula nº 12345 — Proprietário: João da Silva, CPF 000.000.000-00, casado com Maria Silva em comunhão parcial de bens...&#10;&#10;Cole quantas informações tiver. Quanto mais detalhes, melhor a análise."></textarea>
+
+      <div class="minuta-bot-chamada">
+        <div class="minuta-bot-texto">
+          <b>Falta dado que documento nenhum traz?</b>
+          Profissão, estado civil e regime de bens, endereço, outorga uxória, forma de pagamento, dados bancários… Eu pergunto um de cada vez e escrevo as respostas aí em cima.
+        </div>
+        <button type="button" class="btn-anexar-reeditar" id="btn-minuta-perguntas" onclick="iniciarPerguntasMinuta()"><i class="ti ti-message-question" style="font-size:13px;vertical-align:-1px"></i> Responder perguntas do caso</button>
+      </div>
+
+      <label class="modal-label">Minuta modelo (Word/PDF) — opcional; se anexar, a IA segue a estrutura e o nível de detalhe dela</label>
+      <input type="file" id="minuta-arquivo-modelo-input" accept=".docx,.pdf,image/*" multiple style="display:none">
+      <button type="button" class="btn-anexar-reeditar" onclick="document.getElementById('minuta-arquivo-modelo-input').click()"><i class="ti ti-paperclip" style="font-size:12px;vertical-align:-1px"></i> Anexar minuta modelo</button>
+      <div id="minuta-chips-modelo" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px"></div>
+
+      <label class="modal-label">Documentos do caso (opcional — pode anexar quantos precisar, um de cada vez ou vários juntos)</label>
+      <input type="file" id="minuta-arquivo-doc-input" accept=".docx,.pdf,image/*" multiple style="display:none">
+      <button type="button" class="btn-anexar-reeditar" onclick="document.getElementById('minuta-arquivo-doc-input').click()"><i class="ti ti-paperclip" style="font-size:12px;vertical-align:-1px"></i> Anexar documento(s)</button>
+      <div id="minuta-chips-doc" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px"></div>
+
+      <div class="modal-btn-row">
+        <button class="btn-gerar" id="btn-gerar" onclick="gerarAnalise()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Gerar Minuta no Drive</button>
+      </div>
+    </div>
+
+    <!-- Bot de perguntas: ocupa o lugar do formulário enquanto está rodando -->
+    <div id="minuta-bot" style="display:none">
+      <div class="mb-topo">
+        <span class="mb-progresso" id="mb-progresso">—</span>
+        <button type="button" class="mb-sair" onclick="mbSair()">Sair das perguntas</button>
+      </div>
+      <div class="mb-trilho"><span class="mb-preenchido" id="mb-preenchido"></span></div>
+      <div class="sp-bubble" id="mb-pergunta">—</div>
+      <div class="mb-porque" id="mb-porque"></div>
+      <textarea class="modal-textarea" id="mb-resposta" style="min-height:74px"></textarea>
+      <div class="mb-acoes">
+        <button type="button" class="btn-sm" id="mb-voltar" onclick="mbVoltar()">Voltar</button>
+        <button type="button" class="btn-sm" id="mb-pular" onclick="mbPular()">Não se aplica / não sei</button>
+        <button type="button" class="btn-gerar" id="mb-proxima" onclick="mbProxima()">Próxima</button>
+      </div>
     </div>
     <div class="modal-loading" id="modal-loading">
       <i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>
@@ -4220,6 +4285,11 @@ window.abrirMinuta=async function(id){
   document.getElementById('modal-doc-nome').textContent='';
   document.getElementById('btn-gerar').disabled=true;
   document.getElementById('btn-gerar').dataset.id=id;
+  minutaArquivosModelo=[];
+  minutaArquivosDoc=[];
+  renderMinutaChips();
+  mbEstado={id,perguntas:[],respostas:[],i:0};
+  mbMostrarBot(false);
   document.getElementById('modal-minuta').classList.add('open');
 
   try {
@@ -4242,8 +4312,8 @@ window.abrirMinuta=async function(id){
     document.getElementById('modal-docs').value=linhas.join('\n');
     document.getElementById('modal-label-docs').textContent=
       (docs && Object.keys(docs).length>0)
-        ? 'Documentos carregados automaticamente do WhatsApp — adicione informações extras se necessário:'
-        : 'Nenhum documento recebido via WhatsApp. Cole aqui os dados do caso manualmente:';
+        ? 'Informações do caso e documentos já recebidos — pode editar e acrescentar o que faltar:'
+        : 'Informações do caso — escreva o que já souber, responda as perguntas abaixo ou anexe documentos:';
   } catch {
     document.getElementById('modal-label-docs').textContent='Documentos e informações do caso:';
     if(c.obs) document.getElementById('modal-docs').value=c.obs;
@@ -4253,6 +4323,175 @@ window.abrirMinuta=async function(id){
 window.fecharMinuta=function(){
   document.getElementById('modal-minuta').classList.remove('open');
 };
+
+// ── ANEXOS DO MODAL DE MINUTA ──
+// Mesmas duas gavetas do Reeditar: a minuta modelo (referência de estrutura) e
+// os documentos do caso. Com o pedido de minuta concentrado no painel, não dá
+// pra depender de o arquivo ter chegado antes pelo WhatsApp.
+let minutaArquivosModelo=[];
+let minutaArquivosDoc=[];
+function renderMinutaChips(){
+  const elM=document.getElementById('minuta-chips-modelo');
+  if(elM) elM.innerHTML=minutaArquivosModelo.map((f,i)=>`<span class="joaninha-anexo-chip"><i class="ti ti-file-text"></i> ${escTxt(f.name)}<button type="button" title="Tirar este arquivo" onclick="minutaRemoverArquivo('modelo',${i})">&times;</button></span>`).join('');
+  const elD=document.getElementById('minuta-chips-doc');
+  if(elD) elD.innerHTML=minutaArquivosDoc.map((f,i)=>`<span class="joaninha-anexo-chip"><i class="ti ti-paperclip"></i> ${escTxt(f.name)}<button type="button" title="Tirar este arquivo" onclick="minutaRemoverArquivo('doc',${i})">&times;</button></span>`).join('');
+}
+window.minutaRemoverArquivo=function(campo,i){
+  (campo==='modelo'?minutaArquivosModelo:minutaArquivosDoc).splice(i,1);
+  renderMinutaChips();
+};
+document.getElementById('minuta-arquivo-modelo-input').addEventListener('change',function(){
+  minutaArquivosModelo.push(...Array.from(this.files));
+  this.value='';
+  renderMinutaChips();
+});
+document.getElementById('minuta-arquivo-doc-input').addEventListener('change',function(){
+  minutaArquivosDoc.push(...Array.from(this.files));
+  this.value='';
+  renderMinutaChips();
+});
+
+// ── BOT DE PERGUNTAS DA MINUTA ──
+// A IA lê tudo que o caso já tem e devolve só as perguntas que ainda fazem
+// falta. A escrevente responde uma por vez, e o bloco de respostas entra no
+// mesmo campo de texto que alimenta a geração — continua editável, e o resto
+// do caminho (iniciar-minuta > Apps Script) não muda em nada.
+const MB_INICIO='=== RESPOSTAS ÀS PERGUNTAS DO CASO ===';
+const MB_FIM='=== FIM DAS RESPOSTAS ===';
+let mbEstado={id:null,perguntas:[],respostas:[],i:0};
+
+function mbMostrarBot(mostrar){
+  document.getElementById('minuta-form').style.display=mostrar?'none':'block';
+  document.getElementById('minuta-bot').style.display=mostrar?'block':'none';
+}
+window.iniciarPerguntasMinuta=async function(){
+  const id=document.getElementById('btn-gerar').dataset.id;
+  const c=casos[id];if(!c)return;
+  const btn=document.getElementById('btn-minuta-perguntas');
+  const antes=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML='<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> Montando as perguntas…';
+  try{
+    // O material inclui os anexos ainda não lidos? Não: aqui vale o que já
+    // está escrito no campo. Anexo só vira texto na hora de gerar, e fazer a
+    // IA ler tudo duas vezes deixaria o botão lento à toa.
+    const material=document.getElementById('modal-docs').value.trim();
+    const r=await fetch('/api/perguntas-minuta',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nome:c.nome,tipo:c.tipo,modalidade:c.modalidade||'digital',material})});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.erro||'Não consegui montar as perguntas agora.');
+    if(!j.perguntas.length){
+      alert('Pelo que já está escrito aí, a IA não sentiu falta de nenhum dado. Se souber de algo que falta, escreva direto no campo de texto.');
+      return;
+    }
+    // Respostas de uma rodada anterior voltam preenchidas: reabrir o bot pra
+    // corrigir uma resposta não pode custar redigitar todas as outras.
+    let salvas={};
+    try{
+      const snap=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/questionario.json`);
+      const d=await snap.json();
+      if(d&&typeof d==='object')salvas=d;
+    }catch{}
+    mbEstado={
+      id,
+      perguntas:j.perguntas,
+      respostas:j.perguntas.map(p=>salvas[mbChave(p.pergunta)]||''),
+      i:0
+    };
+    mbMostrarBot(true);
+    mbRender();
+  }catch(e){
+    alert(e.message||'Não consegui montar as perguntas agora.');
+  }finally{
+    btn.disabled=false;
+    btn.innerHTML=antes;
+  }
+};
+// Chave estável pra guardar a resposta: a própria pergunta, sem acento e sem
+// pontuação, porque a IA pode reescrevê-la levemente entre uma rodada e outra.
+function mbChave(pergunta){
+  return String(pergunta||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80);
+}
+function mbRender(){
+  const total=mbEstado.perguntas.length;
+  const i=mbEstado.i;
+  // Passou da última: tela de conferência antes de escrever no campo
+  if(i>=total){mbRenderResumo();return;}
+  const p=mbEstado.perguntas[i];
+  document.getElementById('mb-progresso').textContent=`Pergunta ${i+1} de ${total}`;
+  document.getElementById('mb-preenchido').style.width=Math.round(i/total*100)+'%';
+  document.getElementById('mb-pergunta').textContent=p.pergunta;
+  document.getElementById('mb-porque').textContent=[p.porque,p.exemplo?`Ex.: ${p.exemplo}`:''].filter(Boolean).join(' · ');
+  const ta=document.getElementById('mb-resposta');
+  ta.style.display='block';
+  ta.value=mbEstado.respostas[i]||'';
+  ta.placeholder=p.exemplo?`Ex.: ${p.exemplo}`:'Digite a resposta';
+  document.getElementById('mb-voltar').style.display=i>0?'inline-block':'none';
+  document.getElementById('mb-pular').style.display='inline-block';
+  document.getElementById('mb-proxima').textContent=i===total-1?'Concluir':'Próxima';
+  ta.focus();
+}
+function mbRenderResumo(){
+  const itens=mbEstado.perguntas.map((p,i)=>{
+    const r=(mbEstado.respostas[i]||'').trim();
+    return`<dt>${escTxt(p.pergunta)}</dt><dd class="${r?'':'vazia'}">${r?escTxt(r):'sem resposta — não entra na minuta'}</dd>`;
+  }).join('');
+  document.getElementById('mb-progresso').textContent='Conferência';
+  document.getElementById('mb-preenchido').style.width='100%';
+  document.getElementById('mb-pergunta').textContent='Confira as respostas antes de escrever no caso:';
+  document.getElementById('mb-porque').innerHTML=`<dl class="mb-resumo">${itens}</dl>`;
+  document.getElementById('mb-resposta').style.display='none';
+  document.getElementById('mb-voltar').style.display='inline-block';
+  // Na conferência não há pergunta aberta pra pular — só voltar ou escrever.
+  document.getElementById('mb-pular').style.display='none';
+  document.getElementById('mb-proxima').textContent='Escrever no caso';
+}
+window.mbVoltar=function(){
+  if(mbEstado.i>0)mbEstado.i--;
+  mbRender();
+};
+window.mbPular=function(){
+  if(mbEstado.i<mbEstado.perguntas.length)mbEstado.respostas[mbEstado.i]='';
+  mbEstado.i++;
+  mbRender();
+};
+window.mbProxima=function(){
+  const total=mbEstado.perguntas.length;
+  if(mbEstado.i>=total){mbConcluir();return;}
+  mbEstado.respostas[mbEstado.i]=document.getElementById('mb-resposta').value.trim();
+  mbEstado.i++;
+  mbRender();
+};
+window.mbSair=function(){
+  if(mbEstado.respostas.some(r=>(r||'').trim())&&
+     !confirm('Sair sem escrever as respostas no caso? O que você já respondeu aqui se perde.'))return;
+  mbMostrarBot(false);
+};
+// Escreve o bloco no campo de texto (trocando o de uma rodada anterior, se
+// houver) e guarda as respostas no caso, pra próxima rodada já vir preenchida.
+function mbConcluir(){
+  const respondidas=mbEstado.perguntas
+    .map((p,i)=>({p:p.pergunta,r:(mbEstado.respostas[i]||'').trim()}))
+    .filter(x=>x.r);
+  const ta=document.getElementById('modal-docs');
+  let texto=ta.value;
+  const anterior=new RegExp(`\\n*${MB_INICIO}[\\s\\S]*?${MB_FIM}\\n*`,'g');
+  texto=texto.replace(anterior,'\n').trimEnd();
+  if(respondidas.length){
+    const bloco=respondidas.map(x=>`${x.p}\nR: ${x.r}`).join('\n\n');
+    texto=`${texto}\n\n${MB_INICIO}\n${bloco}\n${MB_FIM}`.trim();
+  }
+  ta.value=texto;
+  const guardar={};
+  mbEstado.perguntas.forEach((p,i)=>{
+    const r=(mbEstado.respostas[i]||'').trim();
+    if(r)guardar[mbChave(p.pergunta)]=r;
+  });
+  if(mbEstado.id)update(ref(db,`casos/${mbEstado.id}/questionario`),guardar).catch(()=>{});
+  mbMostrarBot(false);
+  ta.scrollTop=ta.scrollHeight;
+}
 let reeditarArquivosMinuta=[];
 let reeditarArquivosDoc=[];
 function renderReeditarChips(){
@@ -4421,6 +4660,67 @@ window.registrarAtendimento=async function(){
   document.getElementById('btn-atend-gerar').disabled=false;
 };
 
+// ── LEITURA DE ARQUIVO ANEXADO ──
+// Compartilhado por Minuta e Reeditar: os dois anexam minuta modelo e
+// documentos, e antes só o Reeditar sabia fazer isso (a lógica vivia dentro
+// da função de gerar). preservarIntegral=true devolve o texto tal como está,
+// sem passar pela IA — é o que se quer de uma minuta pronta ou de um modelo,
+// onde resumir seria justamente perder a estrutura que se quer copiar.
+const lerBase64Arquivo=(file)=>new Promise((resolve,reject)=>{
+  const r=new FileReader();
+  r.onload=()=>resolve(String(r.result).split(',')[1]||'');
+  r.onerror=reject;
+  r.readAsDataURL(file);
+});
+const ehDocx=(file)=>/wordprocessingml\.document/.test(file.type||'')||/\.docx$/i.test(file.name||'');
+// .docx é extraído no PRÓPRIO NAVEGADOR (mammoth.browser) — o Word já é
+// texto puro internamente, então isso evita enviar o arquivo inteiro (que
+// pode vir com imagens embutidas e passar de 4MB) só pra extrair texto.
+// Só o texto (bem menor) segue pro servidor quando ainda precisa da IA.
+const extrairDocxNoNavegador=(file)=>new Promise((resolve,reject)=>{
+  const r=new FileReader();
+  r.onload=async()=>{
+    try{
+      const resultado=await window.mammoth.extractRawText({arrayBuffer:r.result});
+      resolve((resultado&&resultado.value&&resultado.value.trim())||'');
+    }catch(e){reject(e);}
+  };
+  r.onerror=reject;
+  r.readAsArrayBuffer(file);
+});
+async function extrairArquivo(file,preservarIntegral){
+  if(ehDocx(file)){
+    let textoBruto;
+    try{ textoBruto=await extrairDocxNoNavegador(file); }
+    catch(e){ throw new Error(`Não consegui ler o arquivo Word "${file.name}".`); }
+    if(!textoBruto) return '';
+    if(preservarIntegral) return textoBruto;
+    // Documento de apoio: ainda passa por uma extração jurídica objetiva —
+    // mas envia só o TEXTO (pequeno), não o arquivo, então o limite de
+    // tamanho de envio não se aplica aqui.
+    const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({textoBruto,nomeArquivo:file.name})});
+    const j=await resp.json();
+    if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
+    return j.texto||textoBruto;
+  }
+  // PDF/imagem: precisa mesmo enviar o arquivo (a IA lê o documento visualmente).
+  if(file.size>3.5*1024*1024){
+    throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui. Escaneie/salve em resolução menor (até ~3MB) e tente de novo.`);
+  }
+  const base64=await lerBase64Arquivo(file);
+  let resp;
+  try{
+    resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,mimetype:file.type,nomeArquivo:file.name,preservarIntegral})});
+  }catch(e){
+    throw new Error(`Não consegui enviar o arquivo "${file.name}". Tente de novo.`);
+  }
+  let j;
+  try{ j=await resp.json(); }
+  catch(e){ throw new Error(`O arquivo "${file.name}" é grande demais ou o servidor recusou o envio. Tente um arquivo menor.`); }
+  if(!j.ok) throw new Error(j.erro||`Não consegui ler o arquivo "${file.name}".`);
+  return j.texto||'';
+}
+
 async function aguardarJobFirebase(jobId,onTick){
   const url='https://painel-cartorio-default-rtdb.firebaseio.com/jobs/'+jobId+'.json';
   const limite=140;// max ~7 minutos (documentos longos podem levar mais tempo para gerar)
@@ -4460,61 +4760,6 @@ window.gerarReeditar=async function(){
   try{
     const arqsMinuta=reeditarArquivosMinuta;
     const arqsDoc=reeditarArquivosDoc;
-
-    const lerBase64Reeditar=(file)=>new Promise((resolve,reject)=>{
-      const r=new FileReader();
-      r.onload=()=>resolve(String(r.result).split(',')[1]||'');
-      r.onerror=reject;
-      r.readAsDataURL(file);
-    });
-    const isDocxReeditar=(file)=>/wordprocessingml\.document/.test(file.type||'')||/\.docx$/i.test(file.name||'');
-    // .docx é extraído no PRÓPRIO NAVEGADOR (mammoth.browser) — o Word já é
-    // texto puro internamente, então isso evita enviar o arquivo inteiro (que
-    // pode vir com imagens embutidas e passar de 4MB) só pra extrair texto.
-    // Só o texto (bem menor) segue pro servidor quando ainda precisa da IA.
-    const extrairDocxCliente=(file)=>new Promise((resolve,reject)=>{
-      const r=new FileReader();
-      r.onload=async()=>{
-        try{
-          const resultado=await window.mammoth.extractRawText({arrayBuffer:r.result});
-          resolve((resultado&&resultado.value&&resultado.value.trim())||'');
-        }catch(e){reject(e);}
-      };
-      r.onerror=reject;
-      r.readAsArrayBuffer(file);
-    });
-    const extrairArquivo=async(file,preservarIntegral)=>{
-      if(isDocxReeditar(file)){
-        let textoBruto;
-        try{ textoBruto=await extrairDocxCliente(file); }
-        catch(e){ throw new Error(`Não consegui ler o arquivo Word "${file.name}".`); }
-        if(!textoBruto) return '';
-        if(preservarIntegral) return textoBruto; // minuta pronta: usa o texto tal como está, sem passar pela IA
-        // Documento de apoio: ainda passa por uma extração jurídica objetiva —
-        // mas envia só o TEXTO (pequeno), não o arquivo, então o limite de
-        // tamanho de envio não se aplica aqui.
-        const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({textoBruto,nomeArquivo:file.name})});
-        const j=await resp.json();
-        if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
-        return j.texto||textoBruto;
-      }
-      // PDF/imagem: precisa mesmo enviar o arquivo (a IA lê o documento visualmente).
-      if(file.size>3.5*1024*1024){
-        throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui. Escaneie/salve em resolução menor (até ~3MB) e tente de novo.`);
-      }
-      const base64=await lerBase64Reeditar(file);
-      let resp;
-      try{
-        resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,mimetype:file.type,nomeArquivo:file.name,preservarIntegral})});
-      }catch(e){
-        throw new Error(`Não consegui enviar o arquivo "${file.name}". Tente de novo.`);
-      }
-      let j;
-      try{ j=await resp.json(); }
-      catch(e){ throw new Error(`O arquivo "${file.name}" é grande demais ou o servidor recusou o envio. Tente um arquivo menor.`); }
-      if(!j.ok) throw new Error(j.erro||`Não consegui ler o arquivo "${file.name}".`);
-      return j.texto||'';
-    };
 
     let docsTexto='';
     if(arqsMinuta.length){
@@ -4589,6 +4834,7 @@ window.gerarAnalise=async function(){
   const docs=document.getElementById('modal-docs').value.trim();
   document.getElementById('btn-gerar').disabled=true;
   document.getElementById('modal-result').style.display='none';
+  document.getElementById('modal-result').style.display='none';
   const loading=document.getElementById('modal-loading');
   const setLoading=(txt)=>{loading.style.display='block';loading.innerHTML=`<i class="ti ti-loader" style="font-size:24px;display:block;margin-bottom:8px"></i>${txt}`;};
   const setErro=(msg)=>{
@@ -4600,8 +4846,28 @@ window.gerarAnalise=async function(){
     document.getElementById('modal-result-text').style.display='none';
   };
   try{
+    // Anexos entram como blocos com o mesmo cabeçalho que o Apps Script já
+    // reconhece: o modelo com as regras de fidelidade, os documentos como
+    // fonte de dado do caso.
+    const blocos=docs?[docs]:[];
+    for(let i=0;i<minutaArquivosModelo.length;i++){
+      setLoading(`Lendo a minuta modelo (${i+1} de ${minutaArquivosModelo.length})…`);
+      const texto=await extrairArquivo(minutaArquivosModelo[i],true);
+      if(texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${minutaArquivosModelo[i].name} ===\n${texto}`);
+    }
+    for(let i=0;i<minutaArquivosDoc.length;i++){
+      setLoading(`Lendo documento ${i+1} de ${minutaArquivosDoc.length}…`);
+      const texto=await extrairArquivo(minutaArquivosDoc[i],false);
+      if(texto)blocos.push(`=== DOCUMENTO: ${minutaArquivosDoc[i].name} ===\n${texto}`);
+    }
+    const documentos=blocos.join('\n\n');
+    if(!documentos.trim()){
+      setErro('Não há nada pra IA ler ainda. Escreva as informações do caso, responda as perguntas ou anexe um documento.');
+      document.getElementById('btn-gerar').disabled=false;
+      return;
+    }
     setLoading('Iniciando geração da minuta…');
-    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docs,modalidade:c.modalidade||'digital'})});
+    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos,modalidade:c.modalidade||'digital'})});
     const di=await ri.json();
     if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
     const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
