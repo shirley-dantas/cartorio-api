@@ -4291,6 +4291,7 @@ window.abrirMinuta=async function(id){
   document.getElementById('btn-gerar').dataset.id=id;
   minutaArquivosModelo=[];
   minutaArquivosDoc=[];
+  minutaTextoExtraido.clear();
   renderMinutaChips();
   mbEstado={id,perguntas:[],respostas:[],i:0};
   mbMostrarBot(false);
@@ -4334,6 +4335,21 @@ window.fecharMinuta=function(){
 // pra depender de o arquivo ter chegado antes pelo WhatsApp.
 let minutaArquivosModelo=[];
 let minutaArquivosDoc=[];
+// Texto já extraído de cada anexo. O bot de perguntas precisa LER os
+// documentos antes de perguntar (senão pergunta justamente o que está na
+// certidão), e a geração precisa do mesmo texto logo em seguida — sem este
+// cache o mesmo arquivo passaria duas vezes pela IA de extração.
+const minutaTextoExtraido=new Map();
+function chaveAnexo(f,preservarIntegral){
+  return `${f.name}|${f.size||0}|${f.lastModified||0}|${preservarIntegral?1:0}`;
+}
+async function textoDoAnexo(file,preservarIntegral){
+  const k=chaveAnexo(file,preservarIntegral);
+  if(minutaTextoExtraido.has(k))return minutaTextoExtraido.get(k);
+  const texto=await extrairArquivo(file,preservarIntegral);
+  minutaTextoExtraido.set(k,texto);
+  return texto;
+}
 function renderMinutaChips(){
   const elM=document.getElementById('minuta-chips-modelo');
   if(elM) elM.innerHTML=minutaArquivosModelo.map((f,i)=>`<span class="joaninha-anexo-chip"><i class="ti ti-file-text"></i> ${escTxt(f.name)}<button type="button" title="Tirar este arquivo" onclick="minutaRemoverArquivo('modelo',${i})">&times;</button></span>`).join('');
@@ -4376,10 +4392,26 @@ window.iniciarPerguntasMinuta=async function(){
   btn.disabled=true;
   btn.innerHTML='<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> Montando as perguntas…';
   try{
-    // O material inclui os anexos ainda não lidos? Não: aqui vale o que já
-    // está escrito no campo. Anexo só vira texto na hora de gerar, e fazer a
-    // IA ler tudo duas vezes deixaria o botão lento à toa.
-    const material=document.getElementById('modal-docs').value.trim();
+    // Lê os anexos ANTES de montar as perguntas. Sem isso a IA perguntava
+    // nome completo, data de nascimento e nacionalidade de gente cuja certidão
+    // estava anexada ali do lado — ela não tinha como saber. O texto lido fica
+    // no cache e é reaproveitado na geração, então essa leitura não é perdida.
+    const partes=[document.getElementById('modal-docs').value.trim()];
+    const naoLidos=[];
+    const anexos=[...minutaArquivosModelo.map(f=>({f,integral:true,rot:'MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE)'})),
+                  ...minutaArquivosDoc.map(f=>({f,integral:false,rot:'DOCUMENTO'}))];
+    for(let i=0;i<anexos.length;i++){
+      btn.innerHTML=`<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> Lendo anexo ${i+1} de ${anexos.length}…`;
+      try{
+        const texto=await textoDoAnexo(anexos[i].f,anexos[i].integral);
+        if(texto)partes.push(`=== ${anexos[i].rot}: ${anexos[i].f.name} ===\n${texto}`);
+      }catch(e){
+        naoLidos.push(anexos[i].f.name);
+      }
+    }
+    if(naoLidos.length&&!confirm(`Não consegui ler ${naoLidos.length===1?'este anexo':'estes anexos'}: ${naoLidos.join(', ')}.\n\nPosso montar as perguntas sem ${naoLidos.length===1?'ele':'eles'}? Aí talvez eu pergunte algo que já está nesse documento.`))return;
+    btn.innerHTML='<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> Montando as perguntas…';
+    const material=partes.filter(Boolean).join('\n\n');
     const r=await fetch('/api/perguntas-minuta',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({nome:c.nome,tipo:c.tipo,modalidade:c.modalidade||'digital',material})});
     const j=await r.json();
@@ -4899,12 +4931,12 @@ window.gerarAnalise=async function(){
     const blocos=docs?[docs]:[];
     for(let i=0;i<minutaArquivosModelo.length;i++){
       setLoading(`Lendo a minuta modelo (${i+1} de ${minutaArquivosModelo.length})…`);
-      const texto=await extrairArquivo(minutaArquivosModelo[i],true);
+      const texto=await textoDoAnexo(minutaArquivosModelo[i],true);
       if(texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${minutaArquivosModelo[i].name} ===\n${texto}`);
     }
     for(let i=0;i<minutaArquivosDoc.length;i++){
       setLoading(`Lendo documento ${i+1} de ${minutaArquivosDoc.length}…`);
-      const texto=await extrairArquivo(minutaArquivosDoc[i],false);
+      const texto=await textoDoAnexo(minutaArquivosDoc[i],false);
       if(texto)blocos.push(`=== DOCUMENTO: ${minutaArquivosDoc[i].name} ===\n${texto}`);
     }
     const documentos=blocos.join('\n\n');

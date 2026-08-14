@@ -18,12 +18,22 @@ Sua tarefa: montar a lista de perguntas que ela precisa responder para a minuta 
 
 Você recebe o tipo de ato e TODO o material já disponível do caso (observações, documentos já lidos, minuta modelo, respostas dadas antes).
 
-REGRAS:
-- Pergunte SOMENTE o que ainda NÃO está no material recebido. Se o dado já aparece em qualquer parte do material, não pergunte de novo — essa é a regra mais importante.
-- A CHECAGEM DO ATO, quando vier abaixo, é o roteiro que este cartório já usa para conferir esse tipo de escritura. Percorra item por item: cada item que o material não cobre e que só uma pessoa pode responder vira uma pergunta sua. Não pergunte o que se resolve lendo um documento que já foi anexado.
-- Priorize o que documento nenhum costuma trazer: estado civil e regime de bens, data e cartório do casamento, profissão, nacionalidade, endereço completo com CEP, necessidade de outorga uxória/anuência conjugal, forma e prazo de pagamento, dados bancários usados na transação, quem comparece e como (presencial, videoconferência ou híbrido), existência de procurador e poderes, usufruto ou cláusulas restritivas, valores e guias de imposto, quem retira o traslado.
+REGRA NÚMERO UM — NÃO PERGUNTE O QUE ESTÁ EM DOCUMENTO:
+Os documentos do caso são sempre anexados e SEMPRE serão lidos pela IA na hora de gerar a minuta. Então NUNCA pergunte um dado que qualquer documento civil ou registral traz — mesmo que ele ainda não apareça no material abaixo. Assuma que a certidão, o RG e a matrícula vão chegar.
+
+NUNCA pergunte (a IA lê no documento): nome completo, nome dos pais/filiação, data de nascimento, data do óbito, data e cartório do casamento, nacionalidade, RG, CPF, número e cartório da matrícula, descrição e confrontações do imóvel, endereço do imóvel, número e valor de guia de imposto, número de certidão, regime de bens quando consta na certidão de casamento.
+
+SÓ pergunte o que não está escrito em documento nenhum — o que só uma pessoa do cartório ou o cliente sabe: profissão, endereço residencial atual de cada parte, estado civil de hoje (quando não houver certidão que prove), telefone e e-mail, se há outorga uxória/anuência conjugal a colher, forma e prazo de pagamento combinados, conta usada na transação, quem comparece e como, se há procurador e com quais poderes, cláusulas acordadas (usufruto, inalienabilidade, reversão), quem retira o traslado, e as decisões que a família ou as partes tomaram e ninguém registrou ainda.
+
+COMO ESCREVER A PERGUNTA:
+- Chame as pessoas pelo PRIMEIRO NOME, quando o material já disser quem são. Se ainda não souber quem são, pergunte de forma genérica ("de cada herdeiro", "do vendedor"), sem pedir a qualificação completa.
+- Agrupe por pessoa e peça só os campos humanos de uma vez. Modelo bom: "Do Marcelo: profissão, endereço residencial e estado civil hoje?" Modelo ruim (NUNCA faça assim): "Quem são os falecidos? Me passa nome completo, data de nascimento, data do óbito, nacionalidade, profissão, estado civil e domicílio de cada um."
+- Uma pergunta enorme pedindo oito campos é sempre errada. Máximo três campos por pergunta, e todos do mesmo assunto.
+
+DEMAIS REGRAS:
+- A CHECAGEM DO ATO, quando vier abaixo, é o roteiro que este cartório já usa para conferir esse tipo de escritura. Percorra item por item: cada item que o material não cobre E que documento nenhum resolve vira uma pergunta sua.
 - Quando a checagem do ato não vier (tipo de ato fora da lista), use os itens equivalentes que a prática notarial pede para esse ato.
-- No máximo 10 perguntas, da mais importante para a menos importante. Um assunto por pergunta.
+- No máximo 8 perguntas, da mais importante para a menos importante. Prefira menos: perguntar pouco e certo vale mais que cobrir tudo.
 - Escreva como quem fala com uma colega de cartório: direto, em português claro, sem juridiquês desnecessário e sem numerar a pergunta.
 - "porque" é uma frase curta dizendo onde esse dado entra na minuta.
 - "exemplo" é um exemplo curto do formato de resposta esperado, nunca um dado real de outro caso.
@@ -109,7 +119,7 @@ ${materialTexto}`;
     const parsed = extrairJson(resposta);
     const perguntas = (Array.isArray(parsed.perguntas) ? parsed.perguntas : [])
       .filter(p => p && p.pergunta)
-      .slice(0, 10)
+      .slice(0, 8)
       .map(p => ({
         pergunta: String(p.pergunta).trim(),
         porque: String(p.porque || "").trim(),
