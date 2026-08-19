@@ -4163,10 +4163,39 @@ window.spSalvarLembrete=async function(){
   await update(ref(db,`casos/${id}`),{segundaParte:{status:'lembrete',quem,lembreteData,atualizadoEm:new Date().toISOString()}});
   fecharSegundaParte();
 };
+// A lista só se redesenha quando a gravação volta pelo onValue, e isso pode
+// levar mais de um frame. Em vez de um setTimeout fixo torcendo pra dar
+// tempo, procura o card por uma janela curta e destaca assim que ele existir.
+function destacarCardQuandoAparecer(id,tentativa){
+  const n=tentativa||0;
+  const el=document.getElementById('card-'+id);
+  if(!el){
+    if(n<20)setTimeout(()=>destacarCardQuandoAparecer(id,n+1),50);
+    return;
+  }
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.add('jn-destaque');
+  setTimeout(()=>el.classList.remove('jn-destaque'),1800);
+}
 window.toggleConcluido=function(id){
   const c=casos[id];
   if(!c)return;
   const concluindo=!c.concluido;
+  // Reabrir tira o caso do balde que a tela está mostrando. Quem clica em
+  // Reabrir chegou ali pelo Arquivo, ou seja, com a lista no filtro
+  // 'concluido' — e o card saía dela no mesmo instante em que deixava de ser
+  // concluído, sem nada na tela dizendo pra onde tinha ido. Parecia apagado.
+  // Agora a tela acompanha o card: volta pros ativos e destaca ele lá, que é
+  // pra onde ele foi. O filtro troca antes da gravação pro render do onValue
+  // já sair na lista certa.
+  if(!concluindo){
+    busca='';
+    const buscaInput=document.querySelector('.search-wrap input');
+    if(buscaInput)buscaInput.value='';
+    filtro='todos';
+    sincronizarFiltroAtivo();
+    renderCasos();
+  }
   // concluidoEm é a data de saída que o "Ritmo" conta. Reabrir um caso limpa
   // o carimbo — senão ele seguiria contado como concluído numa semana em que
   // voltou a estar aberto, inflando a saída daquela semana pra sempre.
@@ -4175,6 +4204,7 @@ window.toggleConcluido=function(id){
     concluidoEm:concluindo?new Date().toISOString():null,
     atualizado:isoHoje()
   });
+  if(!concluindo)destacarCardQuandoAparecer(id);
 };
 window.toggleObs=function(id){
   const e=document.getElementById('obs-edit-'+id);
