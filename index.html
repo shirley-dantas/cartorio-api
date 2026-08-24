@@ -1164,6 +1164,34 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .fin-codigo{font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:15px;letter-spacing:.14em;
   background:#F5F5F7;border:0.5px dashed #C7C7CC;border-radius:12px;padding:13px;color:#1C1C1E;word-break:break-all;margin:10px 0}
 .fin-mini{font-size:11px;color:#8E8EA0;line-height:1.5}
+/* No celular a lateral inteira some (.sidebar{display:none} lá em cima), e o
+   Financeiro só morava lá dentro — daí este par de botões, que só existe
+   abaixo dos 880px. */
+.fin-atalho-mobile{display:none;gap:8px;margin-bottom:16px}
+@media(max-width:880px){.fin-atalho-mobile{display:flex}}
+.fin-atalho{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  font-family:'Jost',sans-serif;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  padding:13px 12px;border-radius:14px;border:0.5px solid #E9E4DA;background:#fff;color:#16283A;
+  cursor:pointer;box-shadow:0 2px 8px rgba(22,40,58,.05)}
+.fin-atalho:active{transform:scale(.98)}
+.fin-atalho i{font-size:15px;color:#C9A876}
+/* Tela estreita: o modal encosta nas bordas e as linhas que eram colunas
+   viram pilha, senão nome e valor brigam pelo mesmo espaço. */
+@media(max-width:600px){
+  #modal-financeiro .modal-box,#modal-meu-financeiro .modal-box{padding:18px 14px;border-radius:20px}
+  .modal-overlay{padding:14px 8px}
+  .fin-abas{gap:0}
+  .fin-aba{padding:9px 8px;font-size:10px;letter-spacing:.08em}
+  .fin-resumo{grid-template-columns:1fr 1fr;gap:7px}
+  .fin-div-linha{flex-wrap:wrap}
+  .fin-div-bruto{min-width:0}
+  .fin-div-cab{display:none}
+  .fin-pessoa-linha{display:flex;flex-wrap:wrap;gap:6px}
+  .fin-pessoa-linha .cfg-nome{flex:1 1 100%}
+  .fin-pessoa-linha.fin-cfg-cab{display:none}
+  .fin-arranjo-topo .arr-nome{width:100%}
+  .fin-item-acoes .btn-sm{flex:1}
+}
 </style>
 </head>
 <body>
@@ -1217,6 +1245,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
 <div class="main-area">
 <div class="container">
+  <div class="fin-atalho-mobile">
+    <button type="button" class="fin-atalho" onclick="abrirFinanceiro()"><i class="ti ti-currency-dollar"></i><span>Financeiro</span></button>
+    <button type="button" class="fin-atalho" id="fin-atalho-meu" style="display:none" onclick="abrirMeuFinanceiro()"><i class="ti ti-lock"></i><span>Meu financeiro</span></button>
+  </div>
   <div class="central-nova">
 
   <!-- Cabeçalho editorial. Mantém id="saudacao-card" de propósito:
@@ -7249,9 +7281,13 @@ function finEhShirley(){
   return (localStorage.getItem('painel_usuario')||'').trim().toLowerCase()==='shirley';
 }
 function atualizarSidebarFinanceiro(){
+  const mostra=finEhShirley()?'':'none';
   const b=document.getElementById('sidebar-meu-financeiro');
-  if(b)b.style.display=finEhShirley()?'':'none';
+  if(b)b.style.display=mostra;
+  const m=document.getElementById('fin-atalho-meu');
+  if(m)m.style.display=mostra;
 }
+window.atualizarSidebarFinanceiro=atualizarSidebarFinanceiro;
 const _finDefinirIdentidade=window.definirIdentidade;
 window.definirIdentidade=function(nome){
   _finDefinirIdentidade(nome);
