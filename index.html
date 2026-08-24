@@ -6892,11 +6892,37 @@ window.finDestrancarUI=async function(viaRecuperacao){
 };
 
 // ── Meu financeiro: o extrato de dentro do cofre ──
+// O salário não se digita: ele é a soma das comissões do fechamento, e o
+// painel já tem cada uma delas. O que sobra para a mão são os trabalhos de
+// fora e as despesas — e um ajuste manual, para quando o cartório pagar algo
+// que não passou por lançamento nenhum.
 const FIN_TIPOS_PESSOAIS=[
-  {v:'salario', r:'Salário do cartório'},
-  {v:'extra',   r:'Serviço extra'},
-  {v:'despesa', r:'Despesa'}
+  {v:'extra',   r:'Serviço extra (fora do cartório)'},
+  {v:'despesa', r:'Despesa'},
+  {v:'salario', r:'Ajuste de salário (à mão)'}
 ];
+// A parte da Shirley em cada escritura já paga do fechamento. É calculada na
+// hora, não copiada: se um lançamento for corrigido no painel, o salário aqui
+// se corrige junto, sem ninguém precisar puxar nada de novo.
+function finMeuSalario(ciclo){
+  const eu=finSouEu();
+  if(!eu)return {total:0,itens:[],semDono:true};
+  const itens=[];
+  Object.keys(finLanc).forEach(k=>{
+    const l=finLanc[k];
+    if(!l||l.status!=='pago')return;
+    if(ciclo&&finCicloDoLanc(l)!==ciclo)return;
+    const minha=finConta(l).linhas.find(d=>d.id===eu.id);
+    if(!minha||!minha.liquido)return;
+    itens.push({
+      descricao:l.descricao||l.casoNome||'Escritura',
+      data:l.dataPagamento||'',valor:minha.liquido,
+      bruto:minha.bruto,ir:minha.ir,repassado:minha.repassado
+    });
+  });
+  itens.sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+  return {total:finCent(itens.reduce((s,x)=>s+x.valor,0)),itens,semDono:false};
+}
 let finCicloPessoal=null;
 let finFormPessoal=false;
 let finEditandoPessoal=null;
@@ -6916,16 +6942,19 @@ function finSomaPessoal(arr,tipo){return finCent(arr.filter(x=>x.tipo===tipo).re
 function finHtmlPessoal(){
   if(!finCicloPessoal)finCicloPessoal=finCicloCorrente();
   const lista=finPessoalDoCiclo();
-  const salario=finSomaPessoal(lista,'salario');
+  const sal=finMeuSalario(finCicloPessoal);
+  const salario=finCent(sal.total+finSomaPessoal(lista,'salario'));
   const extras=finSomaPessoal(lista,'extra');
   const despesas=finSomaPessoal(lista,'despesa');
   const ci=finCicloPessoal?finCicloPorChave(finCicloPessoal):null;
   const ano=(finCicloPessoal||finCicloCorrente()).slice(0,4);
   const doAno=(finDadosPessoais.lancamentos||[]).filter(x=>String(x&&x.data||'').slice(0,4)===ano);
-  const aSal=finSomaPessoal(doAno,'salario'), aExt=finSomaPessoal(doAno,'extra'), aDes=finSomaPessoal(doAno,'despesa');
+  const ciclosDoAno=[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`${ano}-${String(m).padStart(2,'0')}`);
+  const aSal=finCent(ciclosDoAno.reduce((s,c)=>s+finMeuSalario(c).total,0)+finSomaPessoal(doAno,'salario'));
+  const aExt=finSomaPessoal(doAno,'extra'), aDes=finSomaPessoal(doAno,'despesa');
   return `
     <div class="fin-resumo">
-      <div class="fin-card"><div class="fin-card-rot">Salário do cartório</div><div class="fin-card-num">${finMoeda(salario)}</div><div class="fin-card-pe">${ci?ci.rotulo.toLowerCase():'todos'}</div></div>
+      <div class="fin-card"><div class="fin-card-rot">Salário do cartório</div><div class="fin-card-num">${finMoeda(salario)}</div><div class="fin-card-pe">${sal.itens.length} escritura${sal.itens.length===1?'':'s'} no fechamento</div></div>
       <div class="fin-card verde"><div class="fin-card-rot">Serviços extras</div><div class="fin-card-num">${finMoeda(extras)}</div><div class="fin-card-pe">${lista.filter(x=>x.tipo==='extra').length} lançamento${lista.filter(x=>x.tipo==='extra').length===1?'':'s'}</div></div>
       <div class="fin-card"><div class="fin-card-rot">Despesas</div><div class="fin-card-num">− ${finMoeda(despesas)}</div><div class="fin-card-pe">no ciclo</div></div>
       <div class="fin-card"><div class="fin-card-rot">Sobrou</div><div class="fin-card-num">${finMoeda(finCent(salario+extras-despesas))}</div><div class="fin-card-pe">salário + extras − despesas</div></div>
@@ -6939,14 +6968,32 @@ function finHtmlPessoal(){
         <option value=""${finCicloPessoal?'':' selected'}>Todos os fechamentos</option>
         ${finCiclosPessoais().map(k=>{const c=finCicloPorChave(k);return `<option value="${k}"${k===finCicloPessoal?' selected':''}>${c.rotulo} · ${c.periodo}</option>`;}).join('')}
       </select>
-      <button type="button" class="btn-sm" onclick="finImportarComissoes()" title="Traz para cá a sua parte das escrituras já pagas neste fechamento"><i class="ti ti-download" style="font-size:12px;vertical-align:-1px"></i> Puxar minha parte do fechamento</button>
       <button type="button" class="btn-sm" onclick="finTrocarSenhaUI()"><i class="ti ti-key" style="font-size:12px;vertical-align:-1px"></i> Trocar senha</button>
       <button type="button" class="btn-sm" onclick="finTrancarAgora()"><i class="ti ti-lock" style="font-size:12px;vertical-align:-1px"></i> Trancar</button>
       <button type="button" class="btn-save" style="margin-left:auto" onclick="finNovoPessoal()"><i class="ti ti-plus" style="vertical-align:-1px"></i> Lançar</button>
     </div>
     ${finFormPessoal?finHtmlFormPessoal():''}
+    ${sal.semDono?'<div class="fin-aviso">Marque a sua linha como <b>“sou eu”</b> em Financeiro › Ajustes para o painel saber qual parte das escrituras é a sua.</div>':''}
+    <div class="fin-cfg-cab" style="margin:2px 0 7px">De onde vem o salário</div>
+    ${sal.itens.length?`<div class="fin-item" style="padding:6px 14px 10px">
+      <div class="fin-divisao" style="border:none;padding:0;margin:0">
+        ${sal.itens.map(x=>`
+          <div class="fin-div-linha">
+            <span class="fin-div-nome">${escTxt(x.descricao)}</span>
+            <span class="fin-div-pct">${finDataBr(x.data)}${x.ir?' · − IR '+finMoeda(x.ir):''}${x.repassado?' · repassado':''}</span>
+            <span class="fin-div-valor">${finMoeda(x.valor)}</span>
+          </div>`).join('')}
+        <div class="fin-div-linha" style="border-top:0.5px solid #F0EEEA;margin-top:4px;padding-top:7px">
+          <span class="fin-div-nome"><b>Soma do fechamento</b></span>
+          <span class="fin-div-valor"><b>${finMoeda(sal.total)}</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="fin-mini" style="margin:6px 0 14px">Calculado na hora a partir das escrituras já pagas. Corrigiu um lançamento no painel? Este número se corrige junto.</div>`
+    :'<div class="fin-vazio" style="padding:16px">Nenhuma escritura paga neste fechamento ainda.</div>'}
+    <div class="fin-cfg-cab" style="margin:14px 0 7px">Meus lançamentos</div>
     ${lista.length?`<div class="fin-lista">${lista.map(finHtmlItemPessoal).join('')}</div>`
-                  :'<div class="fin-vazio">Nada lançado neste fechamento.</div>'}`;
+                  :'<div class="fin-vazio" style="padding:16px">Nada lançado à mão neste fechamento.</div>'}`;
 }
 function finHtmlItemPessoal(x){
   const rot=(FIN_TIPOS_PESSOAIS.find(t=>t.v===x.tipo)||{}).r||x.tipo;
@@ -6956,7 +7003,7 @@ function finHtmlItemPessoal(x){
       <div class="fin-item-topo">
         <div style="min-width:0">
           <div class="fin-item-nome">${escTxt(x.descricao||rot)}</div>
-          <div class="fin-item-meta">${rot} · ${finDataBr(x.data)}${x.origemId?' · puxado do painel':''}${x.bruto?' · bruto '+finMoeda(x.bruto)+', IR '+finMoeda(x.ir||0):''}</div>
+          <div class="fin-item-meta">${rot} · ${finDataBr(x.data)}</div>
         </div>
         <div class="fin-item-valor">
           <div class="fin-item-num" style="color:${despesa?'#C62828':'#2E7D32'}">${despesa?'− ':''}${finMoeda(finNum(x.valor))}</div>
@@ -6990,7 +7037,7 @@ function finHtmlFormPessoal(){
         </div>
         <div class="fin-campo" style="grid-column:1/-1">
           <label class="fin-rot">Descrição</label>
-          <input class="fin-input" id="fin-p-descricao" placeholder="Ex: Salário de agosto" value="${esc(x.descricao||'')}">
+          <input class="fin-input" id="fin-p-descricao" placeholder="Ex: Parecer para o escritório do Dr. Vitor" value="${esc(x.descricao||'')}">
         </div>
       </div>
       <div class="modal-btn-row">
@@ -7030,36 +7077,6 @@ window.finExcluirPessoal=async function(id){
   finDadosPessoais.lancamentos=(finDadosPessoais.lancamentos||[]).filter(x=>x.id!==id);
   await finGravarCofre();
   renderMeuFinanceiro();
-};
-// Traz a parte líquida da pessoa marcada como "sou eu" nas escrituras já pagas
-// do fechamento. Cada escritura entra uma vez só — a origem fica guardada e
-// serve de trava contra puxar duas vezes.
-window.finImportarComissoes=async function(){
-  const eu=finSouEu();
-  if(!eu){finToast('Marque a sua linha como "sou eu" em Financeiro › Ajustes.');return;}
-  const jaTem={};
-  (finDadosPessoais.lancamentos||[]).forEach(x=>{if(x.origemId)jaTem[x.origemId]=1;});
-  const novos=[];
-  Object.keys(finLanc).forEach(k=>{
-    const l=finLanc[k];
-    if(!l||l.status!=='pago')return;
-    if(finCicloPessoal&&finCicloDoLanc(l)!==finCicloPessoal)return;
-    if(jaTem[l.id||k])return;
-    const minha=finConta(l).linhas.find(d=>d.id===eu.id);
-    if(!minha||!minha.liquido)return;
-    novos.push({
-      id:finIdPessoal(),tipo:'extra',
-      valor:minha.liquido,bruto:minha.bruto,ir:minha.ir,
-      data:l.dataPagamento||isoHoje(),
-      descricao:l.descricao||l.casoNome||'Escritura',
-      origemId:l.id||k
-    });
-  });
-  if(!novos.length){finToast('Nada novo para puxar neste fechamento.');return;}
-  finDadosPessoais.lancamentos=(finDadosPessoais.lancamentos||[]).concat(novos);
-  await finGravarCofre();
-  renderMeuFinanceiro();
-  finToast(`${novos.length} escritura${novos.length===1?'':'s'} puxada${novos.length===1?'':'s'}.`);
 };
 window.finTrocarSenhaUI=function(){
   const alvo=document.getElementById('meu-fin-conteudo');
