@@ -6161,15 +6161,16 @@ function finQuotas(arranjo){
   });
   return Object.keys(por).sort((a,b)=>a-b).map(k=>por[k]);
 }
-// Divide centavos sem sumir com nenhum: as sobras de um centavo caem nas
-// primeiras partes, em vez de evaporarem no arredondamento.
+// Cada parte é arredondada por si, como na planilha que a Shirley conferia à
+// mão: metade de R$ 621,69 vira R$ 310,85 para as duas, e não 310,85 e
+// 310,84. Isso faz as partes somarem até um centavo a mais (ou a menos) que
+// o repasse — a diferença aparece na escada do lançamento, porque é dinheiro
+// que sai (ou fica) do bolso de quem repassa, e sumir com ela em silêncio
+// seria pior do que ela existir.
 function finDividirCentavos(total,n){
   if(n<=0)return [];
-  const neg=total<0, t=Math.abs(total);
-  const base=Math.floor(t/n), resto=t-base*n;
-  const partes=[];
-  for(let i=0;i<n;i++)partes.push((base+(i<resto?1:0))*(neg?-1:1));
-  return partes;
+  const parte=Math.round(Math.abs(total)/n)*(total<0?-1:1);
+  return Array.from({length:n},()=>parte);
 }
 function finConta(l){
   l=l||{};
@@ -6214,8 +6215,10 @@ function finConta(l){
     // o que nunca chegou ao tabelião: emolumentos, tributos, o que o cartório retém
     naoTabeliao:finCent(escritura-tabeliao),
     pctRepasse,pctIR,manual,
-    bruto:somaBruto,
-    ficaTabeliao:finCent(tabeliao-somaBruto),
+    bruto,                                  // o que o tabelião repassou
+    distribuido:somaBruto,                  // o que as partes somam depois de arredondadas
+    ficaTabeliao:finCent(tabeliao-bruto),
+    arredondamento:finCent(somaBruto-bruto),
     irTotal,liquido:finCent(somaBruto-irTotal),
     arranjo,linhas,
     registro:{
@@ -6391,6 +6394,7 @@ function finHtmlItem(l){
         <div class="fin-degrau"><span>Fica com o tabelião</span><b>${finMoeda(c.ficaTabeliao)}</b></div>
         <div class="fin-degrau forte"><span>Repasse ${c.pctRepasse}%${c.manual?' (à mão)':''}</span><b>${finMoeda(c.bruto)}</b></div>
         ${c.irTotal?`<div class="fin-degrau"><span>IR ${finPct(c.pctIR)}% retido nos repasses</span><b>− ${finMoeda(c.irTotal)}</b></div>`:''}
+        ${c.arredondamento?`<div class="fin-degrau"><span>Arredondamento das partes</span><b>${c.arredondamento>0?'+ ':'− '}${finMoeda(Math.abs(c.arredondamento))}</b></div>`:''}
       </div>
       ${c.linhas.length?`<div class="fin-divisao">${c.linhas.map(d=>`
         <div class="fin-div-linha ${d.tipo==='parceiro'?'fin-div-parceiro':''}">
@@ -6554,6 +6558,7 @@ function finPrevia(){
         <input class="fin-input" style="width:118px;text-align:right" inputmode="decimal" value="${finBr(d.bruto)}" oninput="finAjusteManual('${d.id}',this.value)" title="Valor bruto desta pessoa — corrigir aqui vale só nesta escritura">
       </div>`).join('')}
     ${c.irTotal?`<div class="fin-preview-linha"><span>IR retido no total</span><b>− ${finMoeda(c.irTotal)}</b></div>`:''}
+    ${c.arredondamento?`<div class="fin-preview-linha"><span>Arredondamento — as partes somam ${c.arredondamento>0?'mais':'menos'} que o repasse</span><b>${c.arredondamento>0?'+ ':'− '}${finMoeda(Math.abs(c.arredondamento))}</b></div>`:''}
     ${c.registro.valor?`<div class="fin-preview-linha" style="border-top:0.5px solid #E5E5EA;margin-top:5px;padding-top:7px"><span>Registro de imóveis — carteira virtual, sem comissão</span><b>${finMoeda(c.registro.valor)}</b></div>`:''}
     ${ciclo?`<div class="fin-mini" style="margin-top:7px">Entra no <b>${ciclo.rotulo}</b> (${ciclo.periodo}).</div>`:''}`;
 }
