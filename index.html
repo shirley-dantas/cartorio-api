@@ -102,13 +102,19 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .foco-input-row button.foco-quando-limpar:hover{background:#F5F5F7;color:#1C1C1E;filter:none}
 .foco-input-row button{font-size:12px;padding:7px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#A9895A,#DCC493);color:#16283A;cursor:pointer;font-weight:600;transition:filter .15s ease}
 .foco-input-row button:hover{filter:brightness(1.12)}
-.cdc-bloco{margin-bottom:16px}
+.cdc-bloco{margin-bottom:10px}
 .cdc-bloco:last-child{margin-bottom:0}
 .cdc-bloco-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.cdc-bloco-titulo{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8E8EA0;display:flex;align-items:center;gap:5px;margin-bottom:8px}
+.cdc-bloco-titulo{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8E8EA0;display:flex;align-items:center;gap:5px;margin-bottom:4px}
 .cdc-bloco-titulo i{font-size:13px}
-.cdc-sub-titulo{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8E8EA0;margin:10px 0 6px}
-.cdc-linha{display:flex;gap:10px;padding:9px 12px;background:#F5F6F8;border-radius:14px;border-left:4px solid transparent;margin-bottom:6px}
+.cdc-sub-titulo{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#8E8EA0;margin:6px 0 4px}
+/* O select de responsável era o único elemento a forçar a faixa do nome a 28px
+   (o nome precisa de 15) — fora do fluxo ele custa 0px de altura e continua
+   clicável no mesmo lugar. O :not(.compacta) é obrigatório: nas linhas de grupo
+   por etapa o select absoluto tapa o "N dias" do .cdc-meta. */
+.cdc-linha{display:flex;gap:10px;padding:6px 10px;background:#F5F6F8;border-radius:14px;border-left:4px solid transparent;margin-bottom:6px;position:relative}
+.cdc-linha:not(.compacta)>.cdc-conteudo>.foco-tags{padding-right:86px;min-height:15px}
+.cdc-linha:not(.compacta) select.sel{position:absolute;top:7px;right:11px;font-size:11px;padding:1px 5px;border-radius:6px;max-width:80px}
 .cdc-linha:last-child{margin-bottom:0}
 .cdc-linha.critico{border-left-color:#C62828;background:#FDECEA;box-shadow:0 0 0 1px rgba(198,40,40,.16)}
 .cdc-linha.hoje{border-left-color:#B45309;background:#FFF8ED;box-shadow:0 0 0 1px rgba(180,83,9,.16)}
@@ -127,17 +133,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc-agenda-btn.concluir:hover{background:#E8F5E9;border-color:#66BB6A;color:#2E7D32}
 .cdc-agenda-btn.editar:hover{background:#EAF2FB;border-color:#7FA9DC;color:#2f6fb0}
 .cdc-agenda-btn.excluir:hover{background:#FDECEA;border-color:#E57373;color:#C62828}
-.cdc-conteudo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.cdc-conteudo{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .cdc-texto{font-size:13px;color:#1C1C1E;line-height:1.4}
 .cdc-meta{font-size:11px;color:#6E6E8A}
-.cdc-obs-snippet{font-size:11.5px;color:#3A3A3C;background:#fff;border-radius:6px;padding:4px 8px;margin-top:2px;line-height:1.35}
+.cdc-obs-snippet{font-size:11.5px;color:#3A3A3C;background:#fff;border-radius:6px;padding:3px 8px;margin-top:0;line-height:1.3}
 .cdc-bloqueio{font-size:11px;color:#B45309;font-style:italic}
-.cdc-acoes{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
-.cdc-acao-btn{font-size:10.5px;padding:4px 9px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;white-space:nowrap}
+.cdc-acoes{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.cdc-acao-btn{font-size:10.5px;padding:3px 8px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#636366;cursor:pointer;white-space:nowrap}
 .cdc-acao-btn:hover{background:#F5F5F7}
-.cdc-registro-rapido{display:flex;gap:6px;margin-top:6px}
-.cdc-registro-rapido input{flex:1;font-size:12px;padding:5px 9px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
-.cdc-registro-rapido button{font-size:11px;padding:5px 11px;border-radius:7px;border:none;background:#EDE6D6;color:#16283A;cursor:pointer;font-weight:600}
+.cdc-registro-rapido{display:flex;gap:6px;margin-top:4px}
+.cdc-registro-rapido input{flex:1;font-size:12px;padding:3px 9px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#1C1C1E;font-family:inherit;outline:none}
+.cdc-registro-rapido button{font-size:11px;padding:3px 11px;border-radius:7px;border:none;background:#EDE6D6;color:#16283A;cursor:pointer;font-weight:600}
 .cdc-vazio{font-size:12px;color:#6E6E8A;font-style:italic;padding:4px 0}
 .cdc-scroll{max-height:480px;overflow-y:auto;padding-right:4px;margin-right:-4px}
 .cdc-scroll::-webkit-scrollbar{width:6px}
