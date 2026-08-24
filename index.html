@@ -6333,8 +6333,14 @@ function finHtmlLancamentos(){
     <div class="fin-resumo">
       <div class="fin-card"><div class="fin-card-rot">Escrituras pagas</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.escritura))}</div><div class="fin-card-pe">${pagos.length} de ${lista.length} no ciclo</div></div>
       <div class="fin-card"><div class="fin-card-rot">Parte do tabelião</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.tabeliao))}</div><div class="fin-card-pe">base da comissão</div></div>
-      <div class="fin-card verde"><div class="fin-card-rot">Repasse ${Number(finCfg.percentualRepasse)||0}%</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.bruto))}</div><div class="fin-card-pe">antes do IR</div></div>
-      <div class="fin-card"><div class="fin-card-rot">IR retido</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.irTotal))}</div><div class="fin-card-pe">${finPct(finCfg.percentualIR)}% sobre o que é repassado</div></div>
+      ${finPessoas().filter(p=>p.tipo!=='parceiro').map(p=>{
+        const parte=finParteNoCiclo(pagos,p.id);
+        return `<div class="fin-card verde">
+          <div class="fin-card-rot">${escTxt(p.nome)}</div>
+          <div class="fin-card-num">${finMoeda(parte.liquido)}</div>
+          <div class="fin-card-pe">${parte.ir?`já sem ${finMoeda(parte.ir)} de IR`:'no fechamento, sem IR retido'}</div>
+        </div>`;
+      }).join('')}
       ${pend.length?`<div class="fin-card ambar"><div class="fin-card-rot">Ainda não pago</div><div class="fin-card-num">${finMoeda(som(pend,c=>c.escritura))}</div><div class="fin-card-pe">${pend.length} escritura${pend.length===1?'':'s'}</div></div>`:''}
     </div>
     <div class="fin-filtros">
@@ -6349,6 +6355,18 @@ function finHtmlLancamentos(){
     ${finEditando?finHtmlForm():''}
     ${lista.length?`<div class="fin-lista">${lista.map(finHtmlItem).join('')}</div>`
                   :'<div class="fin-vazio">Nenhuma escritura neste fechamento.</div>'}`;
+}
+// Quanto uma pessoa levou nas escrituras já pagas do ciclo. Os cartões do
+// topo mostram o líquido — é o número que a Shirley confere na hora do
+// fechamento, e para a Grazi ele já vem sem o IR retido.
+function finParteNoCiclo(pagos,pessoaId){
+  let bruto=0,ir=0,liquido=0;
+  pagos.forEach(l=>{
+    const d=finConta(l).linhas.find(x=>x.id===pessoaId);
+    if(!d)return;
+    bruto=finCent(bruto+d.bruto);ir=finCent(ir+d.ir);liquido=finCent(liquido+d.liquido);
+  });
+  return {bruto,ir,liquido};
 }
 function finHtmlItem(l){
   const c=finConta(l);
