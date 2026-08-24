@@ -1164,6 +1164,57 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .fin-codigo{font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:15px;letter-spacing:.14em;
   background:#F5F5F7;border:0.5px dashed #C7C7CC;border-radius:12px;padding:13px;color:#1C1C1E;word-break:break-all;margin:10px 0}
 .fin-mini{font-size:11px;color:#8E8EA0;line-height:1.5}
+/* ══ A planilha ══
+   Uma linha por escritura, colunas fixas, número tabular alinhado à direita
+   e uma linha de total no rodapé — a mesma leitura da planilha que ela
+   conferia à mão, só que somando sozinha. */
+.fin-planilha-wrap{overflow-x:auto;border:0.5px solid #E9E4DA;border-radius:14px;background:#fff;
+  box-shadow:0 1px 6px rgba(22,40,58,.04)}
+.fin-planilha{width:100%;border-collapse:collapse;font-size:12.5px;min-width:760px}
+.fin-planilha th{font-family:'Jost',sans-serif;font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:#8E8EA0;text-align:left;padding:10px;border-bottom:0.5px solid #E9E4DA;background:#FAF8F4;
+  position:sticky;top:0;z-index:2;white-space:nowrap}
+.fin-planilha td{padding:9px 10px;border-bottom:0.5px solid #F3F0EA;color:#1C1C1E;vertical-align:middle}
+.fin-planilha .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-planilha tbody tr{cursor:pointer}
+.fin-planilha tbody tr:hover{background:#FAF8F4}
+/* A cor não é enfeite: é o único lugar onde o status aparece agora. */
+.fin-planilha tbody tr.pago td:first-child{box-shadow:inset 3px 0 0 #2E7D32}
+.fin-planilha tbody tr.pendente td:first-child{box-shadow:inset 3px 0 0 #E8A33D}
+.fin-planilha tbody tr.pendente td{color:#6B6B70}
+.fin-col-nome{min-width:200px;white-space:normal}
+.fin-col-nome b{font-weight:600;display:block;line-height:1.3}
+.fin-col-nome span{display:block;font-size:10.5px;color:#8E8EA0;margin-top:1px}
+.fin-col-parceiro{font-size:11.5px;color:#6A1B9A;white-space:nowrap}
+.fin-col-parceiro b{font-variant-numeric:tabular-nums;color:#4A1470}
+.fin-col-acoes{width:1%;white-space:nowrap}
+.fin-acoes-linha{display:flex;gap:3px;opacity:0;transition:opacity .12s ease}
+.fin-planilha tbody tr:hover .fin-acoes-linha,.fin-planilha tbody tr.aberta .fin-acoes-linha{opacity:1}
+.fin-ic{width:26px;height:26px;border-radius:8px;border:0.5px solid #E5E5EA;background:#fff;color:#8E8EA0;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px;padding:0}
+.fin-ic:hover{background:#F5F5F7;color:#1C1C1E}
+.fin-ic.ok:hover{color:#2E7D32;border-color:#A5D6A7}
+.fin-ic.del:hover{color:#C62828;border-color:#FFCDD2}
+.fin-planilha tfoot td{padding:11px 10px;border-top:1px solid #DCD5C8;font-weight:600;background:#FAF8F4;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-planilha tfoot td:first-child{font-family:'Jost',sans-serif;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;font-weight:400;color:#8E8EA0}
+.fin-linha-detalhe td{background:#FAF8F4;padding:0 10px 12px}
+/* Segmentado bruto/líquido: dois estados, sem menu. */
+.fin-seg{display:inline-flex;border:0.5px solid #D1D1D6;border-radius:9px;overflow:hidden;background:#F5F5F7}
+.fin-seg button{font-family:'Jost',sans-serif;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  padding:8px 12px;border:none;background:none;color:#8E8EA0;cursor:pointer}
+.fin-seg button.on{background:#16283A;color:#fff}
+@media(max-width:600px){
+  /* No celular a planilha rola dentro da própria caixa, com o nome ancorado
+     à esquerda — é o que deixa a leitura possível numa tela estreita. */
+  .fin-planilha{min-width:640px;font-size:12px}
+  .fin-col-nome{position:sticky;left:0;background:#fff;z-index:1;min-width:150px;box-shadow:1px 0 0 #F3F0EA}
+  .fin-planilha tbody tr:hover .fin-col-nome{background:#FAF8F4}
+  .fin-planilha tfoot td:first-child{position:sticky;left:0;background:#FAF8F4;z-index:1}
+  .fin-planilha th.fin-col-nome{background:#FAF8F4;z-index:3}
+  .fin-acoes-linha{opacity:1}
+}
 /* No celular a lateral inteira some (.sidebar{display:none} lá em cima), e o
    Financeiro só morava lá dentro — daí este par de botões, que só existe
    abaixo dos 880px. */
@@ -6230,6 +6281,8 @@ function finConta(l){
 }
 function finDataOrd(l){return (l.status==='pago'?(l.dataPagamento||l.vencimento):(l.vencimento||l.dataPagamento))||l.criadoEm||'';}
 function finCicloDoLanc(l){return finCicloDaData(finDataOrd(l));}
+let finLinhaAberta=null;
+let finVerBruto=false;
 
 // ── Abrir/fechar ──
 function finLigarEscuta(){
@@ -6330,91 +6383,99 @@ function finHtmlLancamentos(){
   const lista=finListaFiltrada();
   const pagos=lista.filter(l=>l.status==='pago');
   const pend=lista.filter(l=>l.status!=='pago');
-  const som=(arr,f)=>finCent(arr.reduce((s,l)=>s+f(finConta(l)),0));
+  const equipe=finPessoas().filter(p=>p.tipo!=='parceiro');
+  const bruto=finVerBruto;
+  const val=d=>bruto?d.bruto:d.liquido;
+  // Totais de rodapé, como a linha amarela da planilha dela.
+  const tot={tabeliao:0,registro:0,parceiro:0,pessoas:{}};
+  equipe.forEach(p=>tot.pessoas[p.id]=0);
+  const linhas=lista.map(l=>{
+    const c=finConta(l);
+    const pago=l.status==='pago';
+    if(pago){
+      tot.tabeliao=finCent(tot.tabeliao+c.tabeliao);
+      tot.registro=finCent(tot.registro+c.registro.valor);
+    }
+    const parceiros=c.linhas.filter(d=>d.tipo==='parceiro');
+    if(pago)tot.parceiro=finCent(tot.parceiro+parceiros.reduce((s,d)=>s+val(d),0));
+    const celulas=equipe.map(p=>{
+      const d=c.linhas.find(x=>x.id===p.id);
+      if(d&&pago)tot.pessoas[p.id]=finCent(tot.pessoas[p.id]+val(d));
+      return `<td class="num">${d?finMoeda(val(d)):'—'}</td>`;
+    }).join('');
+    return `
+      <tr class="${pago?'pago':'pendente'}" onclick="finAbrirLinha('${l.id}')">
+        <td class="fin-col-nome">
+          <b>${escTxt(l.descricao||'Sem descrição')}</b>
+          <span>${finDataBr(pago?l.dataPagamento:l.vencimento)}${l.tipoAto?' · '+escTxt(l.tipoAto):''}${pago?'':' · a receber'}</span>
+        </td>
+        <td class="num">${finMoeda(c.tabeliao)}</td>
+        ${celulas}
+        <td class="fin-col-parceiro">${parceiros.length?parceiros.map(d=>`${escTxt(d.nome)} <b>${finMoeda(val(d))}</b>`).join('<br>'):'—'}</td>
+        <td class="num">${c.registro.valor?finMoeda(c.registro.valor)+(c.registro.pago?'':' <i class="ti ti-wallet" title="na carteira"></i>'):'—'}</td>
+        <td class="fin-col-acoes" onclick="event.stopPropagation()">
+          <div class="fin-acoes-linha">
+            <button type="button" class="fin-ic ${pago?'':'ok'}" title="${pago?'Voltar para pendente':'Marcar como paga'}" onclick="finAlternarPago('${l.id}')"><i class="ti ${pago?'ti-rotate-2':'ti-check'}"></i></button>
+            <button type="button" class="fin-ic" title="Editar" onclick="finEditar('${l.id}')"><i class="ti ti-pencil"></i></button>
+            <button type="button" class="fin-ic del" title="Excluir" onclick="finExcluir('${l.id}')"><i class="ti ti-trash"></i></button>
+          </div>
+        </td>
+      </tr>
+      ${finLinhaAberta===l.id?`<tr class="fin-linha-detalhe"><td colspan="${5+equipe.length}">${finHtmlEscada(c,l)}</td></tr>`:''}`;
+  }).join('');
   return `
-    ${finCfgSalva?'':'<div class="fin-aviso"><b>Confira os Ajustes antes de lançar.</b> Deixei preenchidos o repasse de 25%, o IR de 27,5% e os arranjos que você me passou (direto, Renato, Basiotti e Vinicius) — mas eles só valem depois que você salvar.</div>'}
-    <div class="fin-resumo">
-      <div class="fin-card"><div class="fin-card-rot">Escrituras pagas</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.escritura))}</div><div class="fin-card-pe">${pagos.length} de ${lista.length} no ciclo</div></div>
-      <div class="fin-card"><div class="fin-card-rot">Parte do tabelião</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.tabeliao))}</div><div class="fin-card-pe">base da comissão</div></div>
-      ${finPessoas().filter(p=>p.tipo!=='parceiro').map(p=>{
-        const parte=finParteNoCiclo(pagos,p.id);
-        return `<div class="fin-card verde">
-          <div class="fin-card-rot">${escTxt(p.nome)}</div>
-          <div class="fin-card-num">${finMoeda(parte.liquido)}</div>
-          <div class="fin-card-pe">${parte.ir?`já sem ${finMoeda(parte.ir)} de IR`:'no fechamento, sem IR retido'}</div>
-        </div>`;
-      }).join('')}
-      ${pend.length?`<div class="fin-card ambar"><div class="fin-card-rot">Ainda não pago</div><div class="fin-card-num">${finMoeda(som(pend,c=>c.escritura))}</div><div class="fin-card-pe">${pend.length} escritura${pend.length===1?'':'s'}</div></div>`:''}
-    </div>
+    ${finCfgSalva?'':'<div class="fin-aviso"><b>Confira os Ajustes antes de lançar.</b> O repasse de 25%, o IR de 27,5% e os arranjos já estão preenchidos — mas só valem depois que você salvar.</div>'}
     <div class="fin-filtros">
       ${finSeletorCiclo()}
-      <select class="fin-select" onchange="finMudarStatus(this.value)">
-        <option value=""${finFiltroStatus?'':' selected'}>Pagas e pendentes</option>
-        <option value="pago"${finFiltroStatus==='pago'?' selected':''}>Só pagas</option>
-        <option value="pendente"${finFiltroStatus==='pendente'?' selected':''}>Só pendentes</option>
-      </select>
+      <div class="fin-seg">
+        <button type="button" class="${bruto?'':'on'}" onclick="finVerValores(false)">Líquido</button>
+        <button type="button" class="${bruto?'on':''}" onclick="finVerValores(true)">Bruto</button>
+      </div>
+      <span class="fin-mini">${pagos.length} paga${pagos.length===1?'':'s'}${pend.length?` · ${pend.length} a receber (${finMoeda(pend.reduce((s,l)=>s+finConta(l).tabeliao,0))})`:''}</span>
       <button type="button" class="btn-save" style="margin-left:auto" onclick="finNovo()"><i class="ti ti-plus" style="vertical-align:-1px"></i> Nova escritura</button>
     </div>
     ${finEditando?finHtmlForm():''}
-    ${lista.length?`<div class="fin-lista">${lista.map(finHtmlItem).join('')}</div>`
-                  :'<div class="fin-vazio">Nenhuma escritura neste fechamento.</div>'}`;
+    ${lista.length?`
+    <div class="fin-planilha-wrap">
+      <table class="fin-planilha">
+        <thead><tr>
+          <th class="fin-col-nome">Outorgado</th>
+          <th class="num">Ao tabelião</th>
+          ${equipe.map(p=>`<th class="num">${escTxt(p.nome)}</th>`).join('')}
+          <th class="fin-col-parceiro">Parceiro</th>
+          <th class="num">Registro</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${linhas}</tbody>
+        <tfoot><tr>
+          <td>Total pago no fechamento</td>
+          <td class="num">${finMoeda(tot.tabeliao)}</td>
+          ${equipe.map(p=>`<td class="num">${finMoeda(tot.pessoas[p.id])}</td>`).join('')}
+          <td class="fin-col-parceiro">${tot.parceiro?finMoeda(tot.parceiro):'—'}</td>
+          <td class="num">${tot.registro?finMoeda(tot.registro):'—'}</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+    </div>
+    <div class="fin-mini" style="margin-top:8px">Clique numa linha para ver a conta dela por inteiro. Os valores das pessoas estão em <b>${bruto?'bruto':'líquido'}</b>${bruto?' — como na planilha antiga, antes do IR':' — o que cai na mão, já sem o IR'}.</div>`
+    :'<div class="fin-vazio">Nenhuma escritura neste fechamento.</div>'}`;
 }
-// Quanto uma pessoa levou nas escrituras já pagas do ciclo. Os cartões do
-// topo mostram o líquido — é o número que a Shirley confere na hora do
-// fechamento, e para a Grazi ele já vem sem o IR retido.
-function finParteNoCiclo(pagos,pessoaId){
-  let bruto=0,ir=0,liquido=0;
-  pagos.forEach(l=>{
-    const d=finConta(l).linhas.find(x=>x.id===pessoaId);
-    if(!d)return;
-    bruto=finCent(bruto+d.bruto);ir=finCent(ir+d.ir);liquido=finCent(liquido+d.liquido);
-  });
-  return {bruto,ir,liquido};
-}
-function finHtmlItem(l){
-  const c=finConta(l);
-  const pago=l.status==='pago';
+// A escada saiu de dentro de todo cartão e virou o detalhe de uma linha só:
+// ela serve para conferir uma escritura, não para ler a lista inteira.
+function finHtmlEscada(c,l){
   return `
-    <div class="fin-item">
-      <div class="fin-item-topo">
-        <div style="min-width:0">
-          <div class="fin-item-nome">${escTxt(l.descricao||'Sem descrição')}</div>
-          <div class="fin-item-meta">
-            ${l.casoNome?escTxt(l.casoNome)+' · ':''}${l.tipoAto?escTxt(l.tipoAto)+' · ':''}${escTxt(c.arranjo.nome)} ·
-            ${pago?`pago em ${finDataBr(l.dataPagamento)}`:`previsto para ${finDataBr(l.vencimento)}`}
-          </div>
-        </div>
-        <div class="fin-item-valor">
-          <div class="fin-item-num">${finMoeda(c.escritura)}</div>
-          <span class="fin-pill ${pago?'pago':'pendente'}">${pago?'PAGO':'PENDENTE'}</span>
-        </div>
-      </div>
-      <div class="fin-escada">
-        <div class="fin-degrau"><span>Parte do tabelião</span><b>${finMoeda(c.tabeliao)}</b></div>
-        <div class="fin-degrau"><span>Fica com o tabelião</span><b>${finMoeda(c.ficaTabeliao)}</b></div>
-        <div class="fin-degrau forte"><span>Repasse ${c.pctRepasse}%${c.manual?' (à mão)':''}</span><b>${finMoeda(c.bruto)}</b></div>
-        ${c.irTotal?`<div class="fin-degrau"><span>IR ${finPct(c.pctIR)}% retido nos repasses</span><b>− ${finMoeda(c.irTotal)}</b></div>`:''}
-        ${c.arredondamento?`<div class="fin-degrau"><span>Arredondamento das partes</span><b>${c.arredondamento>0?'+ ':'− '}${finMoeda(Math.abs(c.arredondamento))}</b></div>`:''}
-      </div>
-      ${c.linhas.length?`<div class="fin-divisao">${c.linhas.map(d=>`
-        <div class="fin-div-linha ${d.tipo==='parceiro'?'fin-div-parceiro':''}">
-          ${pago?`<button type="button" class="btn-sm ${d.repassado?'btn-concluir':''}" style="padding:2px 8px" title="${d.repassado?'Repassado'+(d.repassadoEm?' em '+finDataBr(d.repassadoEm):''):'Marcar como repassado'}" onclick="finToggleRepasse('${l.id}','${d.id}')"><i class="ti ${d.repassado?'ti-check':'ti-circle'}" style="font-size:12px"></i></button>`:''}
-          <span class="fin-div-nome">${escTxt(d.nome)}</span>
-          <span class="fin-div-pct">${d.ajustado?'<span class="fin-tag-ajustado">à mão</span>':d.quotaRot}${d.descontaIR?` · − IR ${finMoeda(d.ir)}`:' · sem IR'}</span>
-          <span class="fin-div-bruto">${finMoeda(d.bruto)}</span>
-          <span class="fin-div-valor">${finMoeda(d.liquido)}</span>
-        </div>`).join('')}
-        <div class="fin-div-linha fin-div-cab"><span class="fin-div-nome"></span><span class="fin-div-pct"></span><span class="fin-div-bruto">bruto</span><span class="fin-div-valor">líquido</span></div>
-      </div>`:'<div class="fin-item-meta" style="margin-top:8px">Sem divisão — confira o arranjo em Ajustes.</div>'}
-      ${c.registro.valor?`<div class="fin-item-meta" style="margin-top:8px"><i class="ti ti-wallet" style="font-size:12px;vertical-align:-1px"></i> Registro de imóveis ${finMoeda(c.registro.valor)} — ${c.registro.pago?'pago ao RI em '+finDataBr(c.registro.pagoEm):'na carteira virtual'} · sem comissão</div>`:''}
-      ${l.obs?`<div class="fin-item-meta" style="margin-top:6px;white-space:pre-wrap">${escTxt(l.obs)}</div>`:''}
-      <div class="fin-item-acoes">
-        <button type="button" class="btn-sm ${pago?'':'btn-concluir'}" onclick="finAlternarPago('${l.id}')"><i class="ti ${pago?'ti-arrow-back-up':'ti-cash'}" style="font-size:12px;vertical-align:-1px"></i> ${pago?'Voltar para pendente':'Marcar como pago'}</button>
-        <button type="button" class="btn-sm" onclick="finEditar('${l.id}')"><i class="ti ti-pencil" style="font-size:12px;vertical-align:-1px"></i> Editar</button>
-        <button type="button" class="btn-sm btn-excluir" onclick="finExcluir('${l.id}')"><i class="ti ti-trash" style="font-size:12px;vertical-align:-1px"></i> Excluir</button>
-      </div>
+    <div class="fin-escada">
+      <div class="fin-degrau"><span>Parte do tabelião</span><b>${finMoeda(c.tabeliao)}</b></div>
+      <div class="fin-degrau"><span>Fica com o tabelião</span><b>${finMoeda(c.ficaTabeliao)}</b></div>
+      <div class="fin-degrau forte"><span>Repasse ${c.pctRepasse}%${c.manual?' (à mão)':''}</span><b>${finMoeda(c.bruto)}</b></div>
+      ${c.linhas.map(d=>`<div class="fin-degrau"><span>${escTxt(d.nome)} <span class="fin-div-pct">${d.quotaRot}${d.descontaIR?` · − IR ${finMoeda(d.ir)}`:' · sem IR'}</span></span><b>${finMoeda(d.liquido)}</b></div>`).join('')}
+      ${c.arredondamento?`<div class="fin-degrau"><span>Arredondamento das partes</span><b>${c.arredondamento>0?'+ ':'− '}${finMoeda(Math.abs(c.arredondamento))}</b></div>`:''}
+      ${c.registro.valor?`<div class="fin-degrau"><span>Registro de imóveis — ${c.registro.pago?'pago ao RI':'na carteira'}, sem comissão</span><b>${finMoeda(c.registro.valor)}</b></div>`:''}
+      ${l.obs?`<div class="fin-degrau"><span>${escTxt(l.obs)}</span><b></b></div>`:''}
     </div>`;
 }
+window.finAbrirLinha=function(id){finLinhaAberta=finLinhaAberta===id?null:id;renderFinanceiro();};
+window.finVerValores=function(b){finVerBruto=b;renderFinanceiro();};
 window.finMudarCiclo=function(v){finCiclo=v;renderFinanceiro();};
 window.finMudarStatus=function(v){finFiltroStatus=v;renderFinanceiro();};
 
@@ -6450,11 +6511,7 @@ function finHtmlForm(){
           <input class="fin-input" id="fin-f-tipo" placeholder="Ex: Compra e venda" value="${esc(l.tipoAto||'')}">
         </div>
         <div class="fin-campo">
-          <label class="fin-rot">Valor da escritura <span class="fin-mini">— o que a cliente pagou</span></label>
-          <input class="fin-input" id="fin-f-escritura" inputmode="decimal" placeholder="5.755,61" value="${l.valorEscritura?finBr(finNum(l.valorEscritura)):''}" oninput="finPrevia()">
-        </div>
-        <div class="fin-campo">
-          <label class="fin-rot">Parte do tabelião <span class="fin-mini">— só sobre isto incide comissão</span></label>
+          <label class="fin-rot">Parte do tabelião <span class="fin-mini">— é daqui que sai a comissão</span></label>
           <input class="fin-input" id="fin-f-tabeliao" inputmode="decimal" placeholder="3.427,23" value="${l.parteTabeliao?finBr(finNum(l.parteTabeliao)):''}" oninput="finPrevia()">
         </div>
         <div class="fin-campo">
@@ -6527,7 +6584,6 @@ function finFormParaObj(){
     casoId:sel?sel.value:'',
     casoNome:op&&op.value?(op.dataset.nome||''):'',
     tipoAto:document.getElementById('fin-f-tipo').value.trim(),
-    valorEscritura:finCent(finNum(document.getElementById('fin-f-escritura').value)),
     parteTabeliao:finCent(finNum(document.getElementById('fin-f-tabeliao').value)),
     arranjoId:document.getElementById('fin-f-arranjo').value,
     status,
@@ -6547,8 +6603,6 @@ function finPrevia(){
   const dataRef=obj.status==='pago'?obj.dataPagamento:obj.vencimento;
   const ciclo=dataRef?finCicloPorChave(finCicloDaData(dataRef)):null;
   box.innerHTML=`
-    <div class="fin-preview-linha"><span>Escritura paga pela cliente</span><b>${finMoeda(c.escritura)}</b></div>
-    <div class="fin-preview-linha"><span>Não é do tabelião (emolumentos, tributos)</span><b>− ${finMoeda(c.naoTabeliao)}</b></div>
     <div class="fin-preview-linha"><span>Parte do tabelião</span><b>${finMoeda(c.tabeliao)}</b></div>
     <div class="fin-preview-linha"><span>Fica com o tabelião</span><b>${finMoeda(c.ficaTabeliao)}</b></div>
     <div class="fin-preview-linha sobra"><span>Repasse de ${c.pctRepasse}% a dividir — ${escTxt(c.arranjo.nome)} <span class="fin-mini">(DSR fora da conta)</span></span><b>${finMoeda(c.bruto)}</b></div>
@@ -6586,13 +6640,9 @@ window.finSalvarLancamento=function(){
     const el=document.getElementById('fin-f-descricao');el.classList.add('erro');el.focus();
     finToast('Diga de quem é a escritura, pra você achar depois.');return;
   }
-  if(!obj.valorEscritura){
-    const el=document.getElementById('fin-f-escritura');el.classList.add('erro');el.focus();
-    finToast('Falta o valor da escritura.');return;
-  }
-  if(obj.parteTabeliao>obj.valorEscritura){
+  if(!obj.parteTabeliao){
     const el=document.getElementById('fin-f-tabeliao');el.classList.add('erro');el.focus();
-    finToast('A parte do tabelião não pode ser maior que a escritura.');return;
+    finToast('Falta a parte do tabelião — é dela que sai a comissão.');return;
   }
   const antigo=finLancEmEdicao()||{};
   const dados={...antigo,...obj,
