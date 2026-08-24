@@ -5822,7 +5822,14 @@ const FIN_ERROS_LOGIN={
   'auth/user-disabled':'Essa conta está desativada.',
   'auth/too-many-requests':'Muitas tentativas seguidas. Espere um minuto e tente de novo.',
   'auth/network-request-failed':'Sem conexão agora.',
-  'auth/operation-not-allowed':'O login por e-mail e senha ainda não foi habilitado no Firebase.'
+  'auth/operation-not-allowed':'O login por e-mail e senha ainda não foi habilitado no Firebase: Authentication › Sign-in method › E-mail/senha › Ativar.',
+  // Este não é senha errada: é a Authentication que nunca foi ligada no
+  // projeto. Sem a explicação, o código cru manda procurar no lugar errado.
+  'auth/configuration-not-found':'A Authentication ainda não foi ligada neste projeto do Firebase. No console: Criar › Authentication › Começar, e habilite E-mail/senha.',
+  'auth/missing-password':'Falta a senha.',
+  'auth/missing-email':'Falta o e-mail.',
+  'auth/api-key-not-valid':'A chave do Firebase neste painel não confere com a do projeto.',
+  'auth/internal-error':'O Firebase recusou o pedido. Se acabou de habilitar o login, espere um minuto e tente de novo.'
 };
 function finNomeLogado(){
   if(!finAuth)return '';
