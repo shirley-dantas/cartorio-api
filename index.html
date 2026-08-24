@@ -1076,7 +1076,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    A tela do dinheiro reaproveita a linguagem do resto do painel: cartão
    claro sobre bege, número tabular, e cor só quando ela quer dizer alguma
    coisa (verde = entrou, âmbar = ainda não). */
-.fin-abas{display:flex;gap:4px;border-bottom:0.5px solid #E5E5EA;margin:2px 0 16px}
+.fin-abas{display:flex;gap:4px;border-bottom:0.5px solid #E5E5EA;margin:2px 0 16px;flex-wrap:wrap}
 .fin-aba{font-family:'Jost',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
   padding:9px 13px;border:none;background:none;color:#8E8EA0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .fin-aba:hover{color:#1C1C1E}
@@ -1093,21 +1093,20 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   background:#F5F5F7;color:#1C1C1E;outline:none;font-family:inherit;max-width:100%}
 .fin-input:focus,.fin-select:focus{border-color:#16283A;background:#fff}
 .fin-input.erro{border-color:#C62828;background:#FDECEA}
-.fin-cresce{flex:1;min-width:120px}
-.fin-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:11px}
+.fin-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:11px}
 .fin-campo{display:flex;flex-direction:column;gap:4px}
 .fin-rot{font-size:11.5px;font-weight:500;color:#636366}
 .fin-form{background:#fff;border:0.5px solid #E9E4DA;border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 2px 10px rgba(22,40,58,.05)}
 .fin-form-titulo{font-size:13.5px;font-weight:600;color:#1C1C1E;margin-bottom:12px}
-.fin-custo-linha{display:flex;gap:7px;align-items:center;margin-bottom:6px}
 .fin-check{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#3A3A3C;
   border:0.5px solid #D1D1D6;border-radius:9px;padding:7px 10px;cursor:pointer;background:#fff}
-.fin-check input{margin:0;accent-color:#16283A}
-.fin-check.marcada{border-color:#16283A;background:#F5F5F7}
+.fin-check input[type=checkbox]{margin:0;accent-color:#16283A}
+.fin-check input[type=number]{width:44px;font-size:12.5px;padding:2px 4px;border:0.5px solid #D1D1D6;
+  border-radius:6px;background:#F5F5F7;color:#1C1C1E;font-family:inherit;text-align:center}
 .fin-preview{background:#FAF8F4;border:0.5px solid #E9E4DA;border-radius:12px;padding:11px 13px;margin-top:4px}
 .fin-preview-linha{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:4px 0;color:#3A3A3C}
 .fin-preview-linha b{font-variant-numeric:tabular-nums;color:#1C1C1E}
-.fin-preview-linha.sobra{border-top:0.5px solid #E5E5EA;margin-top:5px;padding-top:7px;color:#636366}
+.fin-preview-linha.sobra{border-top:0.5px solid #E5E5EA;margin-top:5px;padding-top:7px;font-weight:600;color:#1C1C1E}
 .fin-lista{display:flex;flex-direction:column;gap:8px}
 .fin-item{background:#fff;border:0.5px solid #E9E4DA;border-radius:14px;padding:12px 14px}
 .fin-item-topo{display:flex;align-items:flex-start;gap:10px}
@@ -1119,23 +1118,39 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .fin-pill.pago{background:#E8F5E9;color:#1B5E20}
 .fin-pill.pendente{background:#FFF4E5;color:#8A5200}
 .fin-item-acoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+/* A escada: a conta desce um degrau por vez, e cada degrau tem dono. É o
+   desenho da regra em si — por isso ela aparece em todo cartão, e não só na
+   prévia do formulário. */
+.fin-escada{margin-top:9px;padding:8px 10px;background:#FAF8F4;border-radius:10px;display:flex;flex-direction:column;gap:1px}
+.fin-degrau{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#636366;padding:2px 0}
+.fin-degrau b{font-variant-numeric:tabular-nums;color:#1C1C1E;font-weight:500}
+.fin-degrau.forte{border-top:0.5px solid #E9E4DA;margin-top:3px;padding-top:5px;color:#1C1C1E;font-weight:600}
+.fin-degrau.forte b{font-weight:600}
 .fin-divisao{margin-top:10px;padding-top:10px;border-top:0.5px solid #F0EEEA;display:flex;flex-direction:column;gap:2px}
 .fin-div-linha{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:4px 0}
 .fin-div-nome{color:#3A3A3C}
 .fin-div-pct{font-size:10.5px;color:#8E8EA0}
-.fin-div-valor{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600;color:#1C1C1E}
+.fin-div-bruto{margin-left:auto;font-variant-numeric:tabular-nums;color:#8E8EA0;min-width:86px;text-align:right}
+.fin-div-valor{font-variant-numeric:tabular-nums;font-weight:600;color:#1C1C1E;min-width:86px;text-align:right}
+.fin-div-cab{padding:0;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#B9B4AA;order:9}
+.fin-div-cab .fin-div-bruto,.fin-div-cab .fin-div-valor{color:#B9B4AA;font-weight:400;font-size:9.5px}
 .fin-div-parceiro .fin-div-nome{color:#6A1B9A}
 .fin-tag-ajustado{font-size:9.5px;background:#F3E5F5;color:#6A1B9A;padding:1px 6px;border-radius:20px}
 .fin-vazio{text-align:center;color:#8E8EA0;font-size:12.5px;padding:26px 10px;font-style:italic}
 .fin-pessoa{background:#fff;border:0.5px solid #E9E4DA;border-radius:14px;padding:13px 15px;margin-bottom:9px}
 .fin-pessoa-topo{display:flex;align-items:center;gap:9px}
 .fin-pessoa-nome{font-size:13.5px;font-weight:600;color:#1C1C1E}
-.fin-pessoa-tipo{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8E8EA0;font-family:'Jost',sans-serif}
+.fin-pessoa-tipo{font-size:10.5px;color:#8E8EA0;margin-top:2px}
 .fin-pessoa-num{margin-left:auto;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:#2E7D32}
 .fin-pessoa-barra{display:flex;gap:14px;margin-top:8px;font-size:11.5px;color:#636366;flex-wrap:wrap}
 .fin-pessoa-barra b{font-variant-numeric:tabular-nums;color:#1C1C1E}
-.fin-cfg-linha{display:grid;grid-template-columns:1.4fr .8fr 1fr .9fr auto;gap:7px;align-items:center;margin-bottom:7px}
+.fin-pessoa-linha{display:grid;grid-template-columns:1.4fr .9fr auto auto auto;gap:7px;align-items:center;margin-bottom:7px}
 .fin-cfg-cab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8EA0;font-family:'Jost',sans-serif}
+.fin-arranjo{background:#fff;border:0.5px solid #E9E4DA;border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.fin-arranjo-topo{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.fin-arranjo-topo .arr-nome{width:190px}
+.fin-arranjo-resumo{flex:1;min-width:160px}
+.fin-arranjo-pessoas{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .fin-aviso{background:#FFFBEB;border:0.5px solid #FCD34D;border-radius:12px;padding:11px 13px;font-size:12px;color:#8A5200;line-height:1.55;margin-bottom:14px}
 .fin-aviso b{color:#6B3F00}
 /* Cofre pessoal: a tela de senha ocupa o corpo inteiro do modal, pra não
@@ -1649,10 +1664,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="modal-box" style="max-width:960px">
     <button class="modal-close" onclick="fecharFinanceiro()">&times;</button>
     <div class="modal-title"><i class="ti ti-currency-real" style="font-size:15px;vertical-align:-2px;color:#2E7D32"></i> Financeiro</div>
-    <div class="modal-sub">Pagamentos feitos, pendentes e quanto cabe a cada um.</div>
+    <div class="modal-sub">Escrituras pagas e pendentes, e quanto cabe a cada um no fechamento.</div>
     <div class="fin-abas">
       <button type="button" class="fin-aba" data-fin-aba="lancamentos" onclick="finIrPara('lancamentos')">Lançamentos</button>
       <button type="button" class="fin-aba" data-fin-aba="pessoas" onclick="finIrPara('pessoas')">Quem recebe</button>
+      <button type="button" class="fin-aba" data-fin-aba="carteira" onclick="finIrPara('carteira')">Carteira do registro</button>
       <button type="button" class="fin-aba" data-fin-aba="ajustes" onclick="finIrPara('ajustes')">Ajustes</button>
     </div>
     <div id="fin-conteudo"></div>
@@ -5752,50 +5768,78 @@ if(joaninhaInstancia.disponivel){
 })();
 
 // ══════════════════════════════════════════════════════════════════════════
-// FINANCEIRO — a esteira do dinheiro
+// FINANCEIRO — a esteira do dinheiro do 20º
 //
-// Um lançamento é uma cobrança: o valor cheio, os custos que são só passagem
-// (emolumentos, ITBI, registro — dinheiro que entra e sai) e a divisão entre
-// quem recebe. O caso é opcional de propósito: nem toda receita nasce de um
-// card, e nem todo card vira cobrança.
+// O dinheiro não se reparte num bolo só: ele desce uma escada, e cada degrau
+// tem dono. Do que a cliente paga pela escritura, uma parte fica com o
+// cartório/tributos e outra é a parte do tabelião. Sobre a PARTE DO TABELIÃO
+// (nunca sobre o valor cheio) ele repassa 25% + DSR à Shirley — e o DSR não
+// entra em conta nenhuma aqui, a pedido dela.
 //
-// Um pagamento conta como RECEBIDO quando o cliente paga — foi assim que a
-// Shirley descreveu a esteira. O repasse a cada pessoa é controle separado
-// (o risco não é esquecer que entrou, é esquecer de repassar).
+//   Escritura da Tania      R$ 5.755,61   ← a cliente pagou
+//   Parte do tabelião       R$ 3.427,23   ← só sobre isto incide comissão
+//   Repasse de 25%          R$   856,80   ← é o que vem para a mesa
+//   IR de 27,5%             R$   235,62
+//   Sobra para dividir      R$   621,18
 //
-// As comissões saem da tabela de Ajustes (percentual e base de cada um) e
-// podem ser corrigidas à mão num lançamento específico, sem mexer na tabela.
-// Quem participa é escolhido por lançamento: parceiro de reserva técnica só
-// entra no caso que ele indicou.
+// A divisão do que sobra é por QUOTAS iguais, e quem entra depende do
+// parceiro que trouxe o caso — não é percentual fixo por pessoa:
+//
+//   sem parceiro  →  Shirley | Grazi                  (metade cada)
+//   Renato        →  Shirley | Grazi | Renato         (um terço cada)
+//   Vinicius      →  Shirley | Grazi | Vinicius       (um terço cada)
+//   Basiotti      →  (Shirley + Grazi) | Basiotti | Renato
+//                    ↑ as duas dividem UMA quota: um sexto para cada
+//
+// O registro de imóveis é outra bolsa: a cliente paga junto, não incide
+// comissão nenhuma, e o valor fica na carteira virtual até o registro ficar
+// pronto e ser pago. Por isso ele mora numa aba só dele, e nunca encosta na
+// conta das comissões.
+//
+// O mês aqui não é o do calendário: o fechamento abre dia 26 e fecha dia 25,
+// antecipando quando o 25 cai em fim de semana ou feriado.
 // ══════════════════════════════════════════════════════════════════════════
 
 const finLancRef=ref(db,'financeiro/lancamentos');
 const finCfgRef=ref(db,'financeiro/config');
 const finPessoalRef=ref(db,'financeiro/pessoal');
 
-// Ninguém começa com percentual preenchido: chutar número de comissão seria
-// pior que pedir pra cadastrar. A tabela nasce com os nomes e 0%.
-const FIN_PESSOAS_PADRAO=[
-  {id:'tabeliao',nome:'Tabelião',tipo:'equipe',percentual:0,base:'liquido',ativo:true,souEu:false},
-  {id:'shirley', nome:'Shirley', tipo:'equipe',percentual:0,base:'liquido',ativo:true,souEu:true},
-  {id:'grazi',   nome:'Grazi',   tipo:'equipe',percentual:0,base:'liquido',ativo:true,souEu:false}
-];
-const FIN_FORMAS=['PIX','Transferência','Dinheiro','Cartão','Boleto','Outro'];
-const FIN_CUSTOS_SUGERIDOS=['Emolumentos','ITBI','Registro de Imóveis','ISS','Outro'];
+// Já nasce com os arranjos reais da Shirley — cadastrar tudo do zero seria
+// pedir pra ela redigitar o que já me contou.
+const FIN_CFG_PADRAO={
+  percentualRepasse:25,
+  percentualIR:27.5,
+  pessoas:[
+    {id:'shirley', nome:'Shirley', tipo:'equipe',   descontaIR:true, souEu:true},
+    {id:'grazi',   nome:'Grazi',   tipo:'equipe',   descontaIR:true},
+    {id:'renato',  nome:'Renato',  tipo:'parceiro', descontaIR:true},
+    {id:'basiotti',nome:'Basiotti',tipo:'parceiro', descontaIR:true},
+    {id:'vinicius',nome:'Vinicius',tipo:'parceiro', descontaIR:true}
+  ],
+  // grupos: quem tem o mesmo número divide a MESMA quota entre si.
+  arranjos:[
+    {id:'direto',  nome:'Direto — sem parceiro', grupos:{shirley:1,grazi:2}},
+    {id:'renato',  nome:'Renato',                grupos:{shirley:1,grazi:2,renato:3}},
+    {id:'basiotti',nome:'Basiotti',              grupos:{shirley:1,grazi:1,basiotti:2,renato:3}},
+    {id:'vinicius',nome:'Vinicius',              grupos:{shirley:1,grazi:2,vinicius:3}}
+  ]
+};
 
 let finLanc={};
-let finCfg={pessoas:FIN_PESSOAS_PADRAO.map(p=>({...p})),naoSalvo:true};
+let finCfg=JSON.parse(JSON.stringify(FIN_CFG_PADRAO));
+let finCfgSalva=false;
 let finAba='lancamentos';
-let finMes=finMesCorrente();
+let finCiclo=null;            // chave 'AAAA-MM' do fechamento, ou '' pra todos
 let finFiltroStatus='';
 let finEditando=null;
 let finAberto=false;
 let finOuvindo=false;
 
-// ── Dinheiro e datas ──
+// ── Dinheiro ──
 function finMoeda(v){return (Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
 function finCent(v){return Math.round((Number(v)||0)*100)/100;}
-// Aceita o que a mão digita: "1.234,56", "1234,56", "1234.56" ou "1234".
+function finTrunc(v){return Math.floor((Number(v)||0)*100+1e-6)/100;}
+// Aceita o que a mão digita: "5.755,61", "5755,61", "5755.61" ou "5755".
 // O caso perigoso é "2.000" sem centavos: em português isso é dois mil, e ler
 // como dois reais estragaria a conta inteira em silêncio. Por isso o ponto só
 // vira separador de milhar quando o número tem a cara disso (grupos de três).
@@ -5808,14 +5852,9 @@ function finNum(s){
   const n=parseFloat(t);
   return isNaN(n)?0:n;
 }
-function finMesCorrente(){return new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'}).slice(0,7);}
-function finDataOrd(l){return (l.status==='pago'?(l.dataPagamento||l.vencimento):(l.vencimento||l.dataPagamento))||l.criadoEm||'';}
-function finMesDoLanc(l){return (finDataOrd(l)||'').slice(0,7);}
-function finMesLabel(m){
-  if(!m)return'Todos os meses';
-  const p=m.split('-');
-  return `${MESES[(+p[1])-1]||m} de ${p[0]}`;
-}
+function finBr(v){return String(finCent(v).toFixed(2)).replace('.',',');}
+// Percentual não é dinheiro: 27,5% não vira 27,50%, e 25% não vira 25,00%.
+function finPct(v){return String(Number(v)||0).replace('.',',');}
 function finDataBr(d){
   if(!d)return'—';
   const p=String(d).slice(0,10).split('-');
@@ -5827,50 +5866,167 @@ function finToast(msg){
   el.textContent=msg;
   el.classList.add('show');
   clearTimeout(navToastTimer);
-  navToastTimer=setTimeout(()=>el.classList.remove('show'),2400);
+  navToastTimer=setTimeout(()=>el.classList.remove('show'),2600);
 }
 
-// ── Cálculo da divisão ──
-function finPessoas(){return (finCfg&&Array.isArray(finCfg.pessoas)?finCfg.pessoas:[]).filter(p=>p&&p.nome);}
-function finPessoaPorId(id){return finPessoas().find(p=>p.id===id)||null;}
+// ── Calendário do fechamento (26 → 25, antecipando fim de semana e feriado) ──
+// A Páscoa manda no Carnaval, na Sexta-feira Santa e em Corpus Christi, então
+// ela é calculada; o resto é data fixa, nacional e de São Paulo.
+function finPascoa(ano){
+  const a=ano%19,b=Math.floor(ano/100),c=ano%100,d=Math.floor(b/4),e=b%4;
+  const f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30;
+  const i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
+  const mes=Math.floor((h+l-7*m+114)/31),dia=((h+l-7*m+114)%31)+1;
+  return new Date(Date.UTC(ano,mes-1,dia));
+}
+function finDiasDe(base,n){const d=new Date(base.getTime());d.setUTCDate(d.getUTCDate()+n);return d;}
+function finISO(d){return d.toISOString().slice(0,10);}
+const _finFeriadosCache={};
+function finFeriados(ano){
+  if(_finFeriadosCache[ano])return _finFeriadosCache[ano];
+  const p=finPascoa(ano);
+  const set={};
+  [`${ano}-01-01`,`${ano}-01-25`,`${ano}-04-21`,`${ano}-05-01`,`${ano}-07-09`,
+   `${ano}-09-07`,`${ano}-10-12`,`${ano}-11-02`,`${ano}-11-15`,`${ano}-11-20`,
+   `${ano}-12-25`].forEach(d=>set[d]=1);
+  [finDiasDe(p,-48),finDiasDe(p,-47),finDiasDe(p,-2),finDiasDe(p,60)].forEach(d=>set[finISO(d)]=1);
+  _finFeriadosCache[ano]=set;
+  return set;
+}
+function finEhUtil(d){
+  const s=d.getUTCDay();
+  if(s===0||s===6)return false;
+  return !finFeriados(d.getUTCFullYear())[finISO(d)];
+}
+// O fechamento do mês: dia 25, recuando até o último dia útil antes dele.
+function finDataFechamento(ano,mes){
+  let d=new Date(Date.UTC(ano,mes-1,25));
+  let voltas=0;
+  while(!finEhUtil(d)&&voltas++<10)d=finDiasDe(d,-1);
+  return finISO(d);
+}
+// O ciclo é batizado pelo mês em que fecha: o "fechamento de setembro" começa
+// no dia seguinte ao fechamento de agosto e termina no de setembro.
+function finCicloPorChave(chave){
+  const a=+chave.slice(0,4), m=+chave.slice(5,7);
+  const fim=finDataFechamento(a,m);
+  const ant=m===1?finDataFechamento(a-1,12):finDataFechamento(a,m-1);
+  const inicio=finISO(finDiasDe(new Date(ant+'T00:00:00Z'),1));
+  return {chave,inicio,fim,rotulo:`Fechamento de ${MESES[m-1]}`,periodo:`${finDataBr(inicio)} a ${finDataBr(fim)}`};
+}
+function finCicloDaData(iso){
+  if(!iso)return '';
+  const d=String(iso).slice(0,10);
+  const a=+d.slice(0,4), m=+d.slice(5,7);
+  // Depois do fechamento deste mês, o lançamento já pertence ao ciclo seguinte.
+  if(d>finDataFechamento(a,m))return m===12?`${a+1}-01`:`${a}-${String(m+1).padStart(2,'0')}`;
+  return `${a}-${String(m).padStart(2,'0')}`;
+}
+function finCicloCorrente(){return finCicloDaData(isoHoje());}
+
+// ── A conta ──
+function finPessoas(){return (finCfg&&Array.isArray(finCfg.pessoas)?finCfg.pessoas:[]).filter(p=>p&&p.id);}
+function finPessoa(id){return finPessoas().find(p=>p.id===id)||{id,nome:id,tipo:'equipe',descontaIR:true};}
 function finSouEu(){return finPessoas().find(p=>p.souEu)||null;}
-function finParticipa(l,p){
-  if(Array.isArray(l.participantes))return l.participantes.indexOf(p.id)>-1;
-  return p.tipo==='equipe'; // lançamento antigo, antes do campo existir
-}
-function finBases(l){
-  const bruto=finCent(finNum(l.valorTotal));
-  const custos=finCent((Array.isArray(l.custos)?l.custos:[]).reduce((s,c)=>s+finNum(c&&c.valor),0));
-  return {bruto,custos,liquido:finCent(bruto-custos)};
-}
-// Devolve uma linha por pessoa que participa do lançamento, já com o valor
-// calculado (ou o ajustado à mão, quando existe) e o estado do repasse.
-function finDivisao(l){
-  const b=finBases(l);
-  return finPessoas().filter(p=>p.ativo!==false&&finParticipa(l,p)).map(p=>{
-    const salvo=(l.comissoes||{})[p.id]||{};
-    const base=p.base==='bruto'?b.bruto:b.liquido;
-    const calculado=finCent(base*(Number(p.percentual)||0)/100);
-    const ajustado=salvo.ajustado===true;
-    return {
-      id:p.id,nome:p.nome,tipo:p.tipo,percentual:Number(p.percentual)||0,
-      baseNome:p.base==='bruto'?'valor cheio':'líquido',
-      calculado,valor:ajustado?finCent(finNum(salvo.valor)):calculado,
-      ajustado,repassado:salvo.repassado===true,repassadoEm:salvo.repassadoEm||''
-    };
+function finArranjos(){return (finCfg&&Array.isArray(finCfg.arranjos)?finCfg.arranjos:[]).filter(a=>a&&a.id);}
+function finArranjo(id){return finArranjos().find(a=>a.id===id)||finArranjos()[0]||{id:'',nome:'—',grupos:{}};}
+// Quem tem o mesmo número divide a mesma quota; número 0 ou ausente fica fora.
+function finQuotas(arranjo){
+  const por={};
+  const g=(arranjo&&arranjo.grupos)||{};
+  Object.keys(g).forEach(pid=>{
+    const n=Number(g[pid])||0;
+    if(n>0)(por[n]=por[n]||[]).push(pid);
   });
+  return Object.keys(por).sort((a,b)=>a-b).map(k=>por[k]);
 }
-function finTotalDivisao(l){return finCent(finDivisao(l).reduce((s,d)=>s+d.valor,0));}
+// Divide centavos sem sumir com nenhum: as sobras de um centavo caem nas
+// primeiras partes, em vez de evaporarem no arredondamento.
+function finDividirCentavos(total,n){
+  if(n<=0)return [];
+  const neg=total<0, t=Math.abs(total);
+  const base=Math.floor(t/n), resto=t-base*n;
+  const partes=[];
+  for(let i=0;i<n;i++)partes.push((base+(i<resto?1:0))*(neg?-1:1));
+  return partes;
+}
+function finConta(l){
+  l=l||{};
+  const escritura=finCent(finNum(l.valorEscritura));
+  const tabeliao=finCent(finNum(l.parteTabeliao));
+  const pctRepasse=Number(finCfg.percentualRepasse)||0;
+  const pctIR=Number(finCfg.percentualIR)||0;
+  // Truncado, não arredondado: 25% de R$ 3.427,23 dá R$ 856,8075 e o que a
+  // Shirley recebe de fato é R$ 856,80. Arredondar para cima inventaria um
+  // centavo que o tabelião não repassou, e o erro apareceria no fechamento.
+  const brutoAuto=finTrunc(tabeliao*pctRepasse/100);
+  const manual=l.repasseManual!==undefined&&l.repasseManual!==''&&l.repasseManual!==null;
+  const bruto=manual?finCent(finNum(l.repasseManual)):brutoAuto;
+  const arranjo=finArranjo(l.arranjoId);
+  const quotas=finQuotas(arranjo);
+  const ajustes=l.ajustes||{};
+
+  const brutoCent=Math.round(bruto*100);
+  const porQuota=finDividirCentavos(brutoCent,quotas.length);
+  const linhas=[];
+  quotas.forEach((grupo,qi)=>{
+    const partes=finDividirCentavos(porQuota[qi]||0,grupo.length);
+    grupo.forEach((pid,gi)=>{
+      const p=finPessoa(pid);
+      const ajustado=ajustes[pid]!==undefined&&ajustes[pid]!==''&&ajustes[pid]!==null;
+      const bCent=ajustado?Math.round(finNum(ajustes[pid])*100):(partes[gi]||0);
+      const irCent=p.descontaIR===false?0:Math.round(bCent*pctIR/100);
+      const rep=(l.repasses||{})[pid]||{};
+      linhas.push({
+        id:pid,nome:p.nome||pid,tipo:p.tipo||'equipe',
+        quotaRot:quotas.length?`1/${quotas.length}${grupo.length>1?` ÷ ${grupo.length}`:''}`:'—',
+        bruto:bCent/100, ir:irCent/100, liquido:(bCent-irCent)/100,
+        descontaIR:p.descontaIR!==false, ajustado,
+        repassado:rep.repassado===true, repassadoEm:rep.repassadoEm||''
+      });
+    });
+  });
+  const somaBruto=finCent(linhas.reduce((s,x)=>s+x.bruto,0));
+  const irTotal=finCent(linhas.reduce((s,x)=>s+x.ir,0));
+  return {
+    escritura,tabeliao,
+    // o que nunca chegou ao tabelião: emolumentos, tributos, o que o cartório retém
+    naoTabeliao:finCent(escritura-tabeliao),
+    pctRepasse,pctIR,manual,
+    bruto:somaBruto,
+    ficaTabeliao:finCent(tabeliao-somaBruto),
+    irTotal,liquido:finCent(somaBruto-irTotal),
+    arranjo,linhas,
+    registro:{
+      valor:finCent(finNum(l.valorRegistro)),
+      pago:l.registroStatus==='pago',
+      pagoEm:l.registroPagoEm||''
+    }
+  };
+}
+function finDataOrd(l){return (l.status==='pago'?(l.dataPagamento||l.vencimento):(l.vencimento||l.dataPagamento))||l.criadoEm||'';}
+function finCicloDoLanc(l){return finCicloDaData(finDataOrd(l));}
 
 // ── Abrir/fechar ──
 function finLigarEscuta(){
   if(finOuvindo)return;
   finOuvindo=true;
+  if(!finCiclo)finCiclo=finCicloCorrente();
   onValue(finLancRef,snap=>{finLanc=snap.val()||{};if(finAberto)renderFinanceiro();});
   onValue(finCfgRef,snap=>{
     const v=snap.val();
-    finCfg=(v&&Array.isArray(v.pessoas)&&v.pessoas.length)?{pessoas:v.pessoas}
-          :{pessoas:FIN_PESSOAS_PADRAO.map(p=>({...p})),naoSalvo:true};
+    if(v&&Array.isArray(v.pessoas)&&v.pessoas.length){
+      finCfg={
+        percentualRepasse:v.percentualRepasse!==undefined?v.percentualRepasse:FIN_CFG_PADRAO.percentualRepasse,
+        percentualIR:v.percentualIR!==undefined?v.percentualIR:FIN_CFG_PADRAO.percentualIR,
+        pessoas:v.pessoas,
+        arranjos:Array.isArray(v.arranjos)&&v.arranjos.length?v.arranjos:FIN_CFG_PADRAO.arranjos
+      };
+      finCfgSalva=true;
+    }else{
+      finCfg=JSON.parse(JSON.stringify(FIN_CFG_PADRAO));
+      finCfgSalva=false;
+    }
     if(finAberto)renderFinanceiro();
   });
 }
@@ -5881,104 +6037,109 @@ window.abrirFinanceiro=function(){
   renderFinanceiro();
 };
 window.fecharFinanceiro=function(){
-  finAberto=false;
-  finEditando=null;
+  finAberto=false;finEditando=null;
   document.getElementById('modal-financeiro').classList.remove('open');
 };
-window.finIrPara=function(aba){
-  finAba=aba;
-  finEditando=null;
-  renderFinanceiro();
-};
-
+window.finIrPara=function(aba){finAba=aba;finEditando=null;renderFinanceiro();};
 function renderFinanceiro(){
   document.querySelectorAll('.fin-aba').forEach(b=>b.classList.toggle('ativa',b.dataset.finAba===finAba));
   const alvo=document.getElementById('fin-conteudo');
   if(!alvo)return;
-  if(finAba==='lancamentos')alvo.innerHTML=finHtmlLancamentos();
-  else if(finAba==='pessoas')alvo.innerHTML=finHtmlPessoas();
-  else alvo.innerHTML=finHtmlAjustes();
-  if(finAba==='lancamentos'&&finEditando)finPreviewDivisao();
+  alvo.innerHTML=finAba==='lancamentos'?finHtmlLancamentos()
+               :finAba==='pessoas'    ?finHtmlPessoas()
+               :finAba==='carteira'   ?finHtmlCarteira()
+               :                       finHtmlAjustes();
+  if(finAba==='lancamentos'&&finEditando)finPrevia();
 }
 
 // ── Lançamentos ──
 function finListaFiltrada(){
   return Object.keys(finLanc).map(k=>finLanc[k]).filter(l=>l&&typeof l==='object')
-    .filter(l=>(!finMes||finMesDoLanc(l)===finMes)&&(!finFiltroStatus||(l.status||'pendente')===finFiltroStatus))
+    .filter(l=>(!finCiclo||finCicloDoLanc(l)===finCiclo)&&(!finFiltroStatus||(l.status||'pendente')===finFiltroStatus))
     .sort((a,b)=>String(finDataOrd(b)).localeCompare(String(finDataOrd(a))));
 }
-function finMesesDisponiveis(){
+function finCiclosDisponiveis(){
   const set={};
-  set[finMesCorrente()]=1;
-  Object.keys(finLanc).forEach(k=>{const m=finMesDoLanc(finLanc[k]||{});if(m)set[m]=1;});
+  set[finCicloCorrente()]=1;
+  Object.keys(finLanc).forEach(k=>{const c=finCicloDoLanc(finLanc[k]||{});if(c)set[c]=1;});
   return Object.keys(set).sort().reverse();
+}
+function finSeletorCiclo(){
+  const c=finCiclo?finCicloPorChave(finCiclo):null;
+  return `
+    <select class="fin-select" onchange="finMudarCiclo(this.value)">
+      <option value=""${finCiclo?'':' selected'}>Todos os fechamentos</option>
+      ${finCiclosDisponiveis().map(k=>{
+        const ci=finCicloPorChave(k);
+        return `<option value="${k}"${k===finCiclo?' selected':''}>${ci.rotulo} · ${ci.periodo}</option>`;
+      }).join('')}
+    </select>
+    ${c?`<span class="fin-mini">Fecha em ${finDataBr(c.fim)}${c.fim.slice(8)!=='25'?' (antecipado — dia 25 não é útil)':''}</span>`:''}`;
 }
 function finHtmlLancamentos(){
   const lista=finListaFiltrada();
   const pagos=lista.filter(l=>l.status==='pago');
   const pend=lista.filter(l=>l.status!=='pago');
-  const soma=arr=>finCent(arr.reduce((s,l)=>s+finNum(l.valorTotal),0));
-  const custos=finCent(lista.reduce((s,l)=>s+finBases(l).custos,0));
-  const meses=finMesesDisponiveis();
+  const som=(arr,f)=>finCent(arr.reduce((s,l)=>s+f(finConta(l)),0));
   return `
+    ${finCfgSalva?'':'<div class="fin-aviso"><b>Confira os Ajustes antes de lançar.</b> Deixei preenchidos o repasse de 25%, o IR de 27,5% e os arranjos que você me passou (direto, Renato, Basiotti e Vinicius) — mas eles só valem depois que você salvar.</div>'}
     <div class="fin-resumo">
-      <div class="fin-card verde"><div class="fin-card-rot">Recebido</div><div class="fin-card-num">${finMoeda(soma(pagos))}</div><div class="fin-card-pe">${pagos.length} pagamento${pagos.length===1?'':'s'}</div></div>
-      <div class="fin-card ambar"><div class="fin-card-rot">A receber</div><div class="fin-card-num">${finMoeda(soma(pend))}</div><div class="fin-card-pe">${pend.length} pendente${pend.length===1?'':'s'}</div></div>
-      <div class="fin-card"><div class="fin-card-rot">Total lançado</div><div class="fin-card-num">${finMoeda(soma(lista))}</div><div class="fin-card-pe">${finMesLabel(finMes)}</div></div>
-      <div class="fin-card"><div class="fin-card-rot">Custos de passagem</div><div class="fin-card-num">${finMoeda(custos)}</div><div class="fin-card-pe">emolumentos, ITBI, registro…</div></div>
+      <div class="fin-card"><div class="fin-card-rot">Escrituras pagas</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.escritura))}</div><div class="fin-card-pe">${pagos.length} de ${lista.length} no ciclo</div></div>
+      <div class="fin-card"><div class="fin-card-rot">Parte do tabelião</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.tabeliao))}</div><div class="fin-card-pe">base da comissão</div></div>
+      <div class="fin-card verde"><div class="fin-card-rot">Repasse ${Number(finCfg.percentualRepasse)||0}%</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.bruto))}</div><div class="fin-card-pe">antes do IR</div></div>
+      <div class="fin-card verde"><div class="fin-card-rot">Líquido a dividir</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.liquido))}</div><div class="fin-card-pe">já sem os ${finPct(finCfg.percentualIR)}% de IR</div></div>
+      ${pend.length?`<div class="fin-card ambar"><div class="fin-card-rot">Ainda não pago</div><div class="fin-card-num">${finMoeda(som(pend,c=>c.escritura))}</div><div class="fin-card-pe">${pend.length} escritura${pend.length===1?'':'s'}</div></div>`:''}
     </div>
     <div class="fin-filtros">
-      <select class="fin-select" onchange="finMudarMes(this.value)">
-        <option value=""${finMes?'':' selected'}>Todos os meses</option>
-        ${meses.map(m=>`<option value="${m}"${m===finMes?' selected':''}>${finMesLabel(m)}</option>`).join('')}
-      </select>
+      ${finSeletorCiclo()}
       <select class="fin-select" onchange="finMudarStatus(this.value)">
-        <option value=""${finFiltroStatus?'':' selected'}>Pagos e pendentes</option>
-        <option value="pago"${finFiltroStatus==='pago'?' selected':''}>Só pagos</option>
+        <option value=""${finFiltroStatus?'':' selected'}>Pagas e pendentes</option>
+        <option value="pago"${finFiltroStatus==='pago'?' selected':''}>Só pagas</option>
         <option value="pendente"${finFiltroStatus==='pendente'?' selected':''}>Só pendentes</option>
       </select>
-      <button type="button" class="btn-save" style="margin-left:auto" onclick="finNovo()"><i class="ti ti-plus" style="vertical-align:-1px"></i> Novo lançamento</button>
+      <button type="button" class="btn-save" style="margin-left:auto" onclick="finNovo()"><i class="ti ti-plus" style="vertical-align:-1px"></i> Nova escritura</button>
     </div>
     ${finEditando?finHtmlForm():''}
     ${lista.length?`<div class="fin-lista">${lista.map(finHtmlItem).join('')}</div>`
-                  :'<div class="fin-vazio">Nenhum lançamento neste filtro.</div>'}`;
+                  :'<div class="fin-vazio">Nenhuma escritura neste fechamento.</div>'}`;
 }
 function finHtmlItem(l){
-  const b=finBases(l);
-  const div=finDivisao(l);
+  const c=finConta(l);
   const pago=l.status==='pago';
-  const totalDiv=finCent(div.reduce((s,d)=>s+d.valor,0));
-  const sobra=finCent(b.liquido-totalDiv);
   return `
     <div class="fin-item">
       <div class="fin-item-topo">
         <div style="min-width:0">
           <div class="fin-item-nome">${escTxt(l.descricao||'Sem descrição')}</div>
           <div class="fin-item-meta">
-            ${l.casoNome?escTxt(l.casoNome)+' · ':''}${l.tipoAto?escTxt(l.tipoAto)+' · ':''}
+            ${l.casoNome?escTxt(l.casoNome)+' · ':''}${l.tipoAto?escTxt(l.tipoAto)+' · ':''}${escTxt(c.arranjo.nome)} ·
             ${pago?`pago em ${finDataBr(l.dataPagamento)}`:`previsto para ${finDataBr(l.vencimento)}`}
-            ${l.forma?' · '+escTxt(l.forma):''}
           </div>
         </div>
         <div class="fin-item-valor">
-          <div class="fin-item-num">${finMoeda(b.bruto)}</div>
+          <div class="fin-item-num">${finMoeda(c.escritura)}</div>
           <span class="fin-pill ${pago?'pago':'pendente'}">${pago?'PAGO':'PENDENTE'}</span>
         </div>
       </div>
-      ${b.custos?`<div class="fin-item-meta" style="margin-top:6px">Custos de passagem ${finMoeda(b.custos)} · líquido ${finMoeda(b.liquido)}</div>`:''}
-      ${div.length?`<div class="fin-divisao">${div.map(d=>`
+      <div class="fin-escada">
+        <div class="fin-degrau"><span>Parte do tabelião</span><b>${finMoeda(c.tabeliao)}</b></div>
+        <div class="fin-degrau"><span>Fica com o tabelião</span><b>${finMoeda(c.ficaTabeliao)}</b></div>
+        <div class="fin-degrau"><span>Repasse ${c.pctRepasse}%${c.manual?' (à mão)':''}</span><b>${finMoeda(c.bruto)}</b></div>
+        <div class="fin-degrau"><span>IR ${finPct(c.pctIR)}%</span><b>− ${finMoeda(c.irTotal)}</b></div>
+        <div class="fin-degrau forte"><span>Sobra para dividir</span><b>${finMoeda(c.liquido)}</b></div>
+      </div>
+      ${c.linhas.length?`<div class="fin-divisao">${c.linhas.map(d=>`
         <div class="fin-div-linha ${d.tipo==='parceiro'?'fin-div-parceiro':''}">
           ${pago?`<button type="button" class="btn-sm ${d.repassado?'btn-concluir':''}" style="padding:2px 8px" title="${d.repassado?'Repassado'+(d.repassadoEm?' em '+finDataBr(d.repassadoEm):''):'Marcar como repassado'}" onclick="finToggleRepasse('${l.id}','${d.id}')"><i class="ti ${d.repassado?'ti-check':'ti-circle'}" style="font-size:12px"></i></button>`:''}
-          <span class="fin-div-nome">${escTxt(d.nome)}${d.tipo==='parceiro'?' <span class="fin-div-pct">reserva técnica</span>':''}</span>
-          <span class="fin-div-pct">${d.ajustado?'<span class="fin-tag-ajustado">ajustado</span>':d.percentual+'% do '+d.baseNome}</span>
-          <span class="fin-div-valor">${finMoeda(d.valor)}</span>
+          <span class="fin-div-nome">${escTxt(d.nome)}</span>
+          <span class="fin-div-pct">${d.ajustado?'<span class="fin-tag-ajustado">à mão</span>':d.quotaRot}${d.descontaIR?'':' · sem IR'}</span>
+          <span class="fin-div-bruto">${finMoeda(d.bruto)}</span>
+          <span class="fin-div-valor">${finMoeda(d.liquido)}</span>
         </div>`).join('')}
-        <div class="fin-div-linha" style="border-top:0.5px solid #F0EEEA;margin-top:4px;padding-top:7px">
-          <span class="fin-div-nome" style="color:#8E8EA0">Sobra para o cartório</span>
-          <span class="fin-div-valor" style="color:${sobra<0?'#C62828':'#636366'}">${finMoeda(sobra)}</span>
-        </div>
-      </div>`:'<div class="fin-item-meta" style="margin-top:8px">Sem divisão — cadastre os percentuais em Ajustes.</div>'}
-      ${l.obs?`<div class="fin-item-meta" style="margin-top:8px;white-space:pre-wrap">${escTxt(l.obs)}</div>`:''}
+        <div class="fin-div-linha fin-div-cab"><span class="fin-div-nome"></span><span class="fin-div-pct"></span><span class="fin-div-bruto">bruto</span><span class="fin-div-valor">líquido</span></div>
+      </div>`:'<div class="fin-item-meta" style="margin-top:8px">Sem divisão — confira o arranjo em Ajustes.</div>'}
+      ${c.registro.valor?`<div class="fin-item-meta" style="margin-top:8px"><i class="ti ti-wallet" style="font-size:12px;vertical-align:-1px"></i> Registro de imóveis ${finMoeda(c.registro.valor)} — ${c.registro.pago?'pago ao RI em '+finDataBr(c.registro.pagoEm):'na carteira virtual'} · sem comissão</div>`:''}
+      ${l.obs?`<div class="fin-item-meta" style="margin-top:6px;white-space:pre-wrap">${escTxt(l.obs)}</div>`:''}
       <div class="fin-item-acoes">
         <button type="button" class="btn-sm ${pago?'':'btn-concluir'}" onclick="finAlternarPago('${l.id}')"><i class="ti ${pago?'ti-arrow-back-up':'ti-cash'}" style="font-size:12px;vertical-align:-1px"></i> ${pago?'Voltar para pendente':'Marcar como pago'}</button>
         <button type="button" class="btn-sm" onclick="finEditar('${l.id}')"><i class="ti ti-pencil" style="font-size:12px;vertical-align:-1px"></i> Editar</button>
@@ -5986,35 +6147,28 @@ function finHtmlItem(l){
       </div>
     </div>`;
 }
-window.finMudarMes=function(v){finMes=v;renderFinanceiro();};
+window.finMudarCiclo=function(v){finCiclo=v;renderFinanceiro();};
 window.finMudarStatus=function(v){finFiltroStatus=v;renderFinanceiro();};
 
-// ── Formulário do lançamento ──
-// finAjustesTmp guarda o que foi digitado à mão na divisão enquanto o
-// formulário está aberto: sem isso, redesenhar a prévia (ao mexer no valor,
-// num custo ou em quem participa) apagaria a correção que a mão acabou de
-// fazer.
+// ── Formulário ──
+// finAjustesTmp guarda o que foi corrigido à mão na divisão enquanto o
+// formulário está aberto: sem isso, redesenhar a prévia (ao mexer no valor ou
+// trocar de arranjo) apagaria a correção que a mão acabou de fazer.
 let finAjustesTmp={};
-function finLancEmEdicao(){
-  return finEditando&&finEditando!=='novo'?(finLanc[finEditando]||null):null;
-}
+function finLancEmEdicao(){return finEditando&&finEditando!=='novo'?(finLanc[finEditando]||null):null;}
 function finHtmlForm(){
   const l=finLancEmEdicao()||{};
   const casos=(typeof getCasosList==='function'?getCasosList():[]).filter(c=>c&&!c.concluido);
-  const custos=Array.isArray(l.custos)&&l.custos.length?l.custos:[{nome:'',valor:''}];
-  const equipe=finPessoas().filter(p=>p.tipo==='equipe'&&p.ativo!==false);
-  const parceiros=finPessoas().filter(p=>p.tipo==='parceiro'&&p.ativo!==false);
-  const parts=Array.isArray(l.participantes)?l.participantes:equipe.map(p=>p.id);
-  const parceiroSel=parceiros.filter(p=>parts.indexOf(p.id)>-1).map(p=>p.id)[0]||'';
   const status=l.status||'pendente';
+  const arranjos=finArranjos();
+  const arrSel=l.arranjoId||(arranjos[0]&&arranjos[0].id)||'';
   return `
     <div class="fin-form">
-      <div class="fin-form-titulo">${finEditando==='novo'?'Novo lançamento':'Editar lançamento'}</div>
-      <datalist id="fin-custos-lista">${FIN_CUSTOS_SUGERIDOS.map(c=>`<option value="${c}">`).join('')}</datalist>
+      <div class="fin-form-titulo">${finEditando==='novo'?'Nova escritura':'Editar escritura'}</div>
       <div class="fin-grade">
         <div class="fin-campo" style="grid-column:1/-1">
-          <label class="fin-rot">Descrição da cobrança</label>
-          <input class="fin-input" id="fin-f-descricao" placeholder="Ex: Honorários — escritura de compra e venda" value="${esc(l.descricao||'')}">
+          <label class="fin-rot">Cliente / descrição</label>
+          <input class="fin-input" id="fin-f-descricao" placeholder="Ex: Tania — escritura de compra e venda" value="${esc(l.descricao||'')}">
         </div>
         <div class="fin-campo">
           <label class="fin-rot">Caso (opcional)</label>
@@ -6025,396 +6179,455 @@ function finHtmlForm(){
         </div>
         <div class="fin-campo">
           <label class="fin-rot">Tipo de ato</label>
-          <input class="fin-input" id="fin-f-tipo" placeholder="Ex: Inventário" value="${esc(l.tipoAto||'')}">
+          <input class="fin-input" id="fin-f-tipo" placeholder="Ex: Compra e venda" value="${esc(l.tipoAto||'')}">
         </div>
         <div class="fin-campo">
-          <label class="fin-rot">Valor cheio cobrado do cliente</label>
-          <input class="fin-input" id="fin-f-valor" inputmode="decimal" placeholder="0,00" value="${l.valorTotal?String(finNum(l.valorTotal)).replace('.',','):''}" oninput="finPreviewDivisao()">
+          <label class="fin-rot">Valor da escritura <span class="fin-mini">— o que a cliente pagou</span></label>
+          <input class="fin-input" id="fin-f-escritura" inputmode="decimal" placeholder="5.755,61" value="${l.valorEscritura?finBr(finNum(l.valorEscritura)):''}" oninput="finPrevia()">
         </div>
         <div class="fin-campo">
-          <label class="fin-rot">Forma de pagamento</label>
-          <select class="fin-select" id="fin-f-forma">
-            <option value="">—</option>
-            ${FIN_FORMAS.map(f=>`<option value="${f}"${l.forma===f?' selected':''}>${f}</option>`).join('')}
+          <label class="fin-rot">Parte do tabelião <span class="fin-mini">— só sobre isto incide comissão</span></label>
+          <input class="fin-input" id="fin-f-tabeliao" inputmode="decimal" placeholder="3.427,23" value="${l.parteTabeliao?finBr(finNum(l.parteTabeliao)):''}" oninput="finPrevia()">
+        </div>
+        <div class="fin-campo">
+          <label class="fin-rot">Arranjo da divisão</label>
+          <select class="fin-select" id="fin-f-arranjo" onchange="finTrocarArranjo()">
+            ${arranjos.map(a=>`<option value="${esc(a.id)}"${arrSel===a.id?' selected':''}>${escTxt(a.nome)}</option>`).join('')}
           </select>
         </div>
         <div class="fin-campo">
           <label class="fin-rot">Situação</label>
           <select class="fin-select" id="fin-f-status" onchange="finTrocarStatusForm()">
             <option value="pendente"${status!=='pago'?' selected':''}>Pendente</option>
-            <option value="pago"${status==='pago'?' selected':''}>Pago pelo cliente</option>
+            <option value="pago"${status==='pago'?' selected':''}>Paga pela cliente</option>
           </select>
         </div>
-        <div class="fin-campo" id="fin-f-data-box">
+        <div class="fin-campo">
           <label class="fin-rot" id="fin-f-data-rot">${status==='pago'?'Data do pagamento':'Previsão de pagamento'}</label>
-          <input class="fin-input" type="date" id="fin-f-data" value="${esc(status==='pago'?(l.dataPagamento||isoHoje()):(l.vencimento||''))}">
-        </div>
-      </div>
-      <div class="fin-campo" style="margin-bottom:11px">
-        <label class="fin-rot">Custos de passagem — o que sai do valor antes da divisão</label>
-        <div id="fin-f-custos">
-          ${custos.map((c,i)=>finHtmlCustoLinha(c,i)).join('')}
-        </div>
-        <button type="button" class="btn-sm" style="align-self:flex-start;margin-top:4px" onclick="finAddCusto()"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px"></i> Outro custo</button>
-      </div>
-      <div class="fin-grade">
-        <div class="fin-campo">
-          <label class="fin-rot">Quem participa deste lançamento</label>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${equipe.length?equipe.map(p=>`<label class="fin-check ${parts.indexOf(p.id)>-1?'marcada':''}"><input type="checkbox" class="fin-part" value="${p.id}" ${parts.indexOf(p.id)>-1?'checked':''} onchange="finPreviewDivisao()">${escTxt(p.nome)}</label>`).join(''):'<span class="fin-mini">Ninguém cadastrado ainda — veja a aba Ajustes.</span>'}
-          </div>
+          <input class="fin-input" type="date" id="fin-f-data" value="${esc(status==='pago'?(l.dataPagamento||isoHoje()):(l.vencimento||''))}" onchange="finPrevia()">
         </div>
         <div class="fin-campo">
-          <label class="fin-rot">Parceiro com reserva técnica</label>
-          <select class="fin-select" id="fin-f-parceiro" onchange="finPreviewDivisao()">
-            <option value="">Nenhum</option>
-            ${parceiros.map(p=>`<option value="${p.id}"${parceiroSel===p.id?' selected':''}>${escTxt(p.nome)} — ${Number(p.percentual)||0}%</option>`).join('')}
+          <label class="fin-rot">Registro de imóveis <span class="fin-mini">— entra na carteira, sem comissão</span></label>
+          <input class="fin-input" id="fin-f-registro" inputmode="decimal" placeholder="0,00" value="${l.valorRegistro?finBr(finNum(l.valorRegistro)):''}" oninput="finPrevia()">
+        </div>
+        <div class="fin-campo">
+          <label class="fin-rot">Situação do registro</label>
+          <select class="fin-select" id="fin-f-registro-status">
+            <option value="carteira"${l.registroStatus!=='pago'?' selected':''}>Guardado na carteira</option>
+            <option value="pago"${l.registroStatus==='pago'?' selected':''}>Já pago ao RI</option>
           </select>
         </div>
       </div>
       <div class="fin-campo" style="margin-bottom:11px">
         <label class="fin-rot">Observação (opcional)</label>
-        <input class="fin-input" id="fin-f-obs" placeholder="Ex: cliente pediu boleto para 10/09" value="${esc(l.obs||'')}">
+        <input class="fin-input" id="fin-f-obs" placeholder="Ex: DSR de R$ 42,15 recebido junto — fora da conta" value="${esc(l.obs||'')}">
       </div>
-      <label class="fin-rot">Como fica a divisão</label>
+      <label class="fin-rot">Como a conta desce</label>
       <div class="fin-preview" id="fin-preview"></div>
       <div class="modal-btn-row">
         <button type="button" class="btn-cancel" onclick="finCancelarForm()">Cancelar</button>
-        <button type="button" class="btn-save" onclick="finSalvarLancamento()">Salvar lançamento</button>
+        <button type="button" class="btn-save" onclick="finSalvarLancamento()">Salvar</button>
       </div>
     </div>`;
 }
-function finHtmlCustoLinha(c,i){
-  return `<div class="fin-custo-linha">
-    <input class="fin-input fin-cresce fin-custo-nome" list="fin-custos-lista" placeholder="Ex: Emolumentos" value="${esc((c&&c.nome)||'')}">
-    <input class="fin-input fin-custo-valor" style="width:120px" inputmode="decimal" placeholder="0,00" value="${c&&c.valor?String(finNum(c.valor)).replace('.',','):''}" oninput="finPreviewDivisao()">
-    <button type="button" class="btn-sm btn-excluir" onclick="finRemoverCusto(this)" title="Remover"><i class="ti ti-x" style="font-size:12px"></i></button>
-  </div>`;
-}
-window.finAddCusto=function(){
-  document.getElementById('fin-f-custos').insertAdjacentHTML('beforeend',finHtmlCustoLinha({},0));
-};
-window.finRemoverCusto=function(btn){
-  const box=document.getElementById('fin-f-custos');
-  btn.closest('.fin-custo-linha').remove();
-  if(!box.children.length)box.insertAdjacentHTML('beforeend',finHtmlCustoLinha({},0));
-  finPreviewDivisao();
-};
 window.finCasoEscolhido=function(){
-  const sel=document.getElementById('fin-f-caso');
-  const op=sel.selectedOptions[0];
+  const op=document.getElementById('fin-f-caso').selectedOptions[0];
   if(!op||!op.value)return;
-  const tipo=document.getElementById('fin-f-tipo');
-  const desc=document.getElementById('fin-f-descricao');
+  const tipo=document.getElementById('fin-f-tipo'), desc=document.getElementById('fin-f-descricao');
   if(tipo&&!tipo.value)tipo.value=op.dataset.tipo||'';
-  if(desc&&!desc.value)desc.value='Honorários — '+(op.dataset.nome||'');
+  if(desc&&!desc.value)desc.value=op.dataset.nome||'';
 };
 window.finTrocarStatusForm=function(){
   const pago=document.getElementById('fin-f-status').value==='pago';
   document.getElementById('fin-f-data-rot').textContent=pago?'Data do pagamento':'Previsão de pagamento';
   const d=document.getElementById('fin-f-data');
   if(pago&&!d.value)d.value=isoHoje();
+  finPrevia();
 };
-// Monta um lançamento a partir do que está na tela — serve tanto pra prévia
-// quanto pra gravação, então prévia e gravado nunca divergem.
+// Trocar de arranjo troca quem está na divisão — manter correções feitas para
+// outra gente seria o jeito mais silencioso de errar um repasse.
+window.finTrocarArranjo=function(){finAjustesTmp={};finPrevia();};
 function finFormParaObj(){
   const sel=document.getElementById('fin-f-caso');
   const op=sel&&sel.selectedOptions[0];
   const status=document.getElementById('fin-f-status').value;
   const data=document.getElementById('fin-f-data').value||'';
-  const custos=Array.from(document.querySelectorAll('#fin-f-custos .fin-custo-linha')).map(li=>({
-    nome:li.querySelector('.fin-custo-nome').value.trim(),
-    valor:finCent(finNum(li.querySelector('.fin-custo-valor').value))
-  })).filter(c=>c.nome||c.valor);
-  const parts=Array.from(document.querySelectorAll('.fin-part:checked')).map(i=>i.value);
-  const parc=document.getElementById('fin-f-parceiro').value;
-  if(parc)parts.push(parc);
+  const ajustes={};
+  Object.keys(finAjustesTmp).forEach(k=>{if(finAjustesTmp[k]!=='')ajustes[k]=finCent(finNum(finAjustesTmp[k]));});
   return {
     descricao:document.getElementById('fin-f-descricao').value.trim(),
     casoId:sel?sel.value:'',
     casoNome:op&&op.value?(op.dataset.nome||''):'',
     tipoAto:document.getElementById('fin-f-tipo').value.trim(),
-    valorTotal:finCent(finNum(document.getElementById('fin-f-valor').value)),
-    custos,participantes:parts,
+    valorEscritura:finCent(finNum(document.getElementById('fin-f-escritura').value)),
+    parteTabeliao:finCent(finNum(document.getElementById('fin-f-tabeliao').value)),
+    arranjoId:document.getElementById('fin-f-arranjo').value,
     status,
     dataPagamento:status==='pago'?data:'',
     vencimento:status==='pago'?'':data,
-    forma:document.getElementById('fin-f-forma').value,
+    valorRegistro:finCent(finNum(document.getElementById('fin-f-registro').value)),
+    registroStatus:document.getElementById('fin-f-registro-status').value,
+    ajustes,
     obs:document.getElementById('fin-f-obs').value.trim()
   };
 }
-function finPreviewDivisao(){
+function finPrevia(){
   const box=document.getElementById('fin-preview');
   if(!box)return;
-  document.querySelectorAll('.fin-part').forEach(i=>i.closest('.fin-check').classList.toggle('marcada',i.checked));
   const obj=finFormParaObj();
-  const b=finBases(obj);
-  const linhas=finDivisao(obj).map(d=>{
-    const v=finAjustesTmp[d.id]!==undefined?finCent(finNum(finAjustesTmp[d.id])):d.valor;
-    return {...d,valor:v};
-  });
-  const total=finCent(linhas.reduce((s,d)=>s+d.valor,0));
-  const sobra=finCent(b.liquido-total);
+  const c=finConta(obj);
+  const dataRef=obj.status==='pago'?obj.dataPagamento:obj.vencimento;
+  const ciclo=dataRef?finCicloPorChave(finCicloDaData(dataRef)):null;
   box.innerHTML=`
-    <div class="fin-preview-linha"><span>Valor cheio</span><b>${finMoeda(b.bruto)}</b></div>
-    <div class="fin-preview-linha"><span>Custos de passagem</span><b>− ${finMoeda(b.custos)}</b></div>
-    <div class="fin-preview-linha"><span>Líquido a dividir</span><b>${finMoeda(b.liquido)}</b></div>
-    ${linhas.length?linhas.map(d=>`
+    <div class="fin-preview-linha"><span>Escritura paga pela cliente</span><b>${finMoeda(c.escritura)}</b></div>
+    <div class="fin-preview-linha"><span>Não é do tabelião (emolumentos, tributos)</span><b>− ${finMoeda(c.naoTabeliao)}</b></div>
+    <div class="fin-preview-linha"><span>Parte do tabelião</span><b>${finMoeda(c.tabeliao)}</b></div>
+    <div class="fin-preview-linha"><span>Repasse de ${c.pctRepasse}% <span class="fin-mini">(DSR fora da conta)</span></span><b>${finMoeda(c.bruto)}</b></div>
+    <div class="fin-preview-linha"><span>Fica com o tabelião</span><b>${finMoeda(c.ficaTabeliao)}</b></div>
+    <div class="fin-preview-linha"><span>IR de ${finPct(c.pctIR)}%</span><b>− ${finMoeda(c.irTotal)}</b></div>
+    <div class="fin-preview-linha sobra"><span>Sobra para dividir — ${escTxt(c.arranjo.nome)}</span><b>${finMoeda(c.liquido)}</b></div>
+    ${c.linhas.map(d=>`
       <div class="fin-preview-linha" style="align-items:center">
-        <span>${escTxt(d.nome)} <span class="fin-div-pct">${d.percentual}% do ${d.baseNome}${d.tipo==='parceiro'?' · reserva técnica':''}</span></span>
-        <input class="fin-input" style="width:118px;text-align:right" inputmode="decimal" value="${String(d.valor.toFixed(2)).replace('.',',')}" oninput="finAjusteManual('${d.id}',this.value)">
-      </div>`).join(''):'<div class="fin-preview-linha"><span class="fin-mini">Ninguém participa deste lançamento.</span></div>'}
-    <div class="fin-preview-linha sobra"><span>Sobra para o cartório</span><b style="color:${sobra<0?'#C62828':'#1C1C1E'}">${finMoeda(sobra)}</b></div>
-    ${Object.keys(finAjustesTmp).length?'<div class="fin-mini" style="margin-top:6px">Valor corrigido à mão vale só neste lançamento — a tabela de Ajustes não muda.</div>':''}`;
+        <span>${escTxt(d.nome)} <span class="fin-div-pct">${d.quotaRot}${d.descontaIR?'':' · sem IR'} · líquido ${finMoeda(d.liquido)}</span></span>
+        <input class="fin-input" style="width:118px;text-align:right" inputmode="decimal" value="${finBr(d.bruto)}" oninput="finAjusteManual('${d.id}',this.value)" title="Valor bruto desta pessoa — corrigir aqui vale só nesta escritura">
+      </div>`).join('')}
+    ${c.registro.valor?`<div class="fin-preview-linha" style="border-top:0.5px solid #E5E5EA;margin-top:5px;padding-top:7px"><span>Registro de imóveis — carteira virtual, sem comissão</span><b>${finMoeda(c.registro.valor)}</b></div>`:''}
+    ${ciclo?`<div class="fin-mini" style="margin-top:7px">Entra no <b>${ciclo.rotulo}</b> (${ciclo.periodo}).</div>`:''}`;
 }
-window.finPreviewDivisao=finPreviewDivisao;
+window.finPrevia=finPrevia;
 window.finAjusteManual=function(id,valor){
   finAjustesTmp[id]=valor;
-  const obj=finFormParaObj();
-  const b=finBases(obj);
-  const linhas=finDivisao(obj).map(d=>({...d,valor:finAjustesTmp[d.id]!==undefined?finCent(finNum(finAjustesTmp[d.id])):d.valor}));
-  const sobra=finCent(b.liquido-finCent(linhas.reduce((s,d)=>s+d.valor,0)));
-  const pe=document.querySelector('#fin-preview .fin-preview-linha.sobra b');
-  if(pe){pe.textContent=finMoeda(sobra);pe.style.color=sobra<0?'#C62828':'#1C1C1E';}
+  const c=finConta(finFormParaObj());
+  const alvo=document.querySelector('#fin-preview .fin-preview-linha.sobra b');
+  if(alvo)alvo.textContent=finMoeda(c.liquido);
 };
 window.finNovo=function(){finEditando='novo';finAjustesTmp={};renderFinanceiro();};
 window.finEditar=function(id){
   finEditando=id;
   finAjustesTmp={};
   const l=finLanc[id]||{};
-  Object.keys(l.comissoes||{}).forEach(pid=>{
-    if(l.comissoes[pid]&&l.comissoes[pid].ajustado)finAjustesTmp[pid]=l.comissoes[pid].valor;
-  });
+  Object.keys(l.ajustes||{}).forEach(pid=>{finAjustesTmp[pid]=finBr(finNum(l.ajustes[pid]));});
   renderFinanceiro();
-  document.getElementById('modal-financeiro').scrollTop=0;
+  const m=document.getElementById('modal-financeiro');
+  if(m)m.scrollTop=0;
 };
 window.finCancelarForm=function(){finEditando=null;finAjustesTmp={};renderFinanceiro();};
 window.finSalvarLancamento=function(){
   const obj=finFormParaObj();
   if(!obj.descricao){
-    const el=document.getElementById('fin-f-descricao');
-    el.classList.add('erro');el.focus();
-    finToast('Dê um nome à cobrança para poder achá-la depois.');
-    return;
+    const el=document.getElementById('fin-f-descricao');el.classList.add('erro');el.focus();
+    finToast('Diga de quem é a escritura, pra você achar depois.');return;
   }
-  if(!obj.valorTotal){
-    const el=document.getElementById('fin-f-valor');
-    el.classList.add('erro');el.focus();
-    finToast('Falta o valor cobrado do cliente.');
-    return;
+  if(!obj.valorEscritura){
+    const el=document.getElementById('fin-f-escritura');el.classList.add('erro');el.focus();
+    finToast('Falta o valor da escritura.');return;
+  }
+  if(obj.parteTabeliao>obj.valorEscritura){
+    const el=document.getElementById('fin-f-tabeliao');el.classList.add('erro');el.focus();
+    finToast('A parte do tabelião não pode ser maior que a escritura.');return;
   }
   const antigo=finLancEmEdicao()||{};
-  // Só grava a comissão de quem foi corrigido à mão: o resto continua saindo
-  // da tabela, e muda junto se o percentual mudar depois.
-  const comissoes={};
-  finDivisao(obj).forEach(d=>{
-    const manual=finAjustesTmp[d.id];
-    const anterior=(antigo.comissoes||{})[d.id]||{};
-    const ajustado=manual!==undefined&&Math.abs(finCent(finNum(manual))-d.calculado)>0.004;
-    if(ajustado||anterior.repassado){
-      comissoes[d.id]={
-        ...(ajustado?{valor:finCent(finNum(manual)),ajustado:true}:{}),
-        ...(anterior.repassado?{repassado:true,repassadoEm:anterior.repassadoEm||''}:{})
-      };
-    }
-  });
-  const dados={...antigo,...obj,comissoes,
+  const dados={...antigo,...obj,
+    repasses:antigo.repasses||{},
     atualizadoEm:new Date().toISOString(),
     atualizadoPor:(localStorage.getItem('painel_usuario')||'')};
   if(finEditando==='novo'){
     const nr=push(finLancRef);
-    dados.id=nr.key;
-    dados.criadoEm=new Date().toISOString();
+    dados.id=nr.key;dados.criadoEm=new Date().toISOString();
     set(nr,dados);
   }else{
     dados.id=finEditando;
     update(ref(db,'financeiro/lancamentos/'+finEditando),dados);
   }
-  finEditando=null;
-  finAjustesTmp={};
-  finToast('Lançamento salvo.');
+  finEditando=null;finAjustesTmp={};
+  finToast('Escritura salva.');
   renderFinanceiro();
 };
 window.finAlternarPago=function(id){
-  const l=finLanc[id];
-  if(!l)return;
+  const l=finLanc[id];if(!l)return;
   const vira=l.status==='pago'?'pendente':'pago';
   update(ref(db,'financeiro/lancamentos/'+id),vira==='pago'
     ?{status:'pago',dataPagamento:l.dataPagamento||isoHoje(),atualizadoEm:new Date().toISOString()}
     :{status:'pendente',vencimento:l.vencimento||l.dataPagamento||isoHoje(),dataPagamento:'',atualizadoEm:new Date().toISOString()});
-  finToast(vira==='pago'?'Marcado como pago pelo cliente.':'Voltou para pendente.');
+  finToast(vira==='pago'?'Marcada como paga.':'Voltou para pendente.');
 };
 window.finToggleRepasse=function(id,pessoaId){
-  const l=finLanc[id];
-  if(!l)return;
-  const atual=((l.comissoes||{})[pessoaId])||{};
+  const l=finLanc[id];if(!l)return;
+  const atual=((l.repasses||{})[pessoaId])||{};
   const virou=!atual.repassado;
-  update(ref(db,`financeiro/lancamentos/${id}/comissoes/${pessoaId}`),
-    {...atual,repassado:virou,repassadoEm:virou?isoHoje():''});
+  update(ref(db,`financeiro/lancamentos/${id}/repasses/${pessoaId}`),{repassado:virou,repassadoEm:virou?isoHoje():''});
   finToast(virou?'Repasse marcado.':'Repasse desmarcado.');
 };
 window.finExcluir=function(id){
   const l=finLanc[id]||{};
-  if(!confirm(`Excluir o lançamento "${l.descricao||''}" de ${finMoeda(finNum(l.valorTotal))}? Isso não volta.`))return;
+  if(!confirm(`Excluir a escritura "${l.descricao||''}" de ${finMoeda(finNum(l.valorEscritura))}? Isso não volta.`))return;
   remove(ref(db,'financeiro/lancamentos/'+id));
-  finToast('Lançamento excluído.');
+  finToast('Excluída.');
 };
 
 // ── Quem recebe ──
-// Duas perguntas diferentes, lado a lado: quanto já é devido a cada um
-// (cliente pagou) e quanto disso ainda não saiu daqui (repasse).
+// Duas perguntas diferentes lado a lado: quanto já é devido a cada um (a
+// cliente pagou) e quanto disso ainda não saiu daqui (o repasse do fechamento).
 function finApuracao(){
   const lista=finListaFiltrada();
   const mapa={};
-  finPessoas().forEach(p=>{mapa[p.id]={pessoa:p,devido:0,previsto:0,repassado:0,itens:[]};});
+  finPessoas().forEach(p=>{mapa[p.id]={pessoa:p,bruto:0,ir:0,liquido:0,repassado:0,previsto:0,itens:[]};});
+  let tabeliao=0, tabeliaoPrev=0;
   lista.forEach(l=>{
+    const c=finConta(l);
     const pago=l.status==='pago';
-    finDivisao(l).forEach(d=>{
+    if(pago)tabeliao=finCent(tabeliao+c.ficaTabeliao);else tabeliaoPrev=finCent(tabeliaoPrev+c.ficaTabeliao);
+    c.linhas.forEach(d=>{
       const m=mapa[d.id];
       if(!m)return;
       if(pago){
-        m.devido=finCent(m.devido+d.valor);
-        if(d.repassado)m.repassado=finCent(m.repassado+d.valor);
+        m.bruto=finCent(m.bruto+d.bruto);
+        m.ir=finCent(m.ir+d.ir);
+        m.liquido=finCent(m.liquido+d.liquido);
+        if(d.repassado)m.repassado=finCent(m.repassado+d.liquido);
       }else{
-        m.previsto=finCent(m.previsto+d.valor);
+        m.previsto=finCent(m.previsto+d.liquido);
       }
       m.itens.push({l,d,pago});
     });
   });
-  return Object.keys(mapa).map(k=>mapa[k]).filter(m=>m.itens.length);
+  return {pessoas:Object.keys(mapa).map(k=>mapa[k]).filter(m=>m.itens.length),tabeliao,tabeliaoPrev};
 }
 function finHtmlPessoas(){
   const ap=finApuracao();
-  const meses=finMesesDisponiveis();
-  const equipe=ap.filter(m=>m.pessoa.tipo==='equipe');
-  const parceiros=ap.filter(m=>m.pessoa.tipo==='parceiro');
+  const equipe=ap.pessoas.filter(m=>m.pessoa.tipo!=='parceiro');
+  const parceiros=ap.pessoas.filter(m=>m.pessoa.tipo==='parceiro');
   const bloco=(m)=>{
-    const aRepassar=finCent(m.devido-m.repassado);
+    const aRepassar=finCent(m.liquido-m.repassado);
     return `
       <div class="fin-pessoa">
         <div class="fin-pessoa-topo">
           <div>
             <div class="fin-pessoa-nome">${escTxt(m.pessoa.nome)}</div>
-            <div class="fin-pessoa-tipo">${m.pessoa.tipo==='parceiro'?'Reserva técnica':'Equipe'} · ${Number(m.pessoa.percentual)||0}% do ${m.pessoa.base==='bruto'?'valor cheio':'líquido'}</div>
+            <div class="fin-pessoa-tipo">${m.pessoa.tipo==='parceiro'?'Parceiro':'Equipe'} · bruto ${finMoeda(m.bruto)} · IR ${finMoeda(m.ir)}</div>
           </div>
-          <div class="fin-pessoa-num">${finMoeda(m.devido)}</div>
+          <div class="fin-pessoa-num">${finMoeda(m.liquido)}</div>
         </div>
         <div class="fin-pessoa-barra">
           <span>Já repassado <b>${finMoeda(m.repassado)}</b></span>
           <span>A repassar <b style="color:${aRepassar>0?'#B45309':'#1C1C1E'}">${finMoeda(aRepassar)}</b></span>
-          <span>Previsto (ainda não pago pelo cliente) <b>${finMoeda(m.previsto)}</b></span>
-          <span>${m.itens.length} lançamento${m.itens.length===1?'':'s'}</span>
+          <span>Previsto <b>${finMoeda(m.previsto)}</b></span>
+          <span>${m.itens.length} escritura${m.itens.length===1?'':'s'}</span>
         </div>
         <div class="fin-divisao">
           ${m.itens.sort((a,b)=>String(finDataOrd(b.l)).localeCompare(String(finDataOrd(a.l)))).map(it=>`
             <div class="fin-div-linha">
               <span class="fin-div-nome">${escTxt(it.l.descricao||'Sem descrição')}</span>
               <span class="fin-pill ${it.pago&&it.d.repassado?'pago':'pendente'}">${it.pago?(it.d.repassado?'REPASSADO':'A REPASSAR'):'PENDENTE'}</span>
-              <span class="fin-div-valor">${finMoeda(it.d.valor)}</span>
+              <span class="fin-div-valor">${finMoeda(it.d.liquido)}</span>
             </div>`).join('')}
         </div>
       </div>`;
   };
   return `
-    <div class="fin-filtros">
-      <select class="fin-select" onchange="finMudarMes(this.value)">
-        <option value=""${finMes?'':' selected'}>Todos os meses</option>
-        ${meses.map(m=>`<option value="${m}"${m===finMes?' selected':''}>${finMesLabel(m)}</option>`).join('')}
-      </select>
-      <span class="fin-mini">O valor grande é o que já é devido — o cliente pagou.</span>
-    </div>
+    <div class="fin-filtros">${finSeletorCiclo()}</div>
+    <div class="fin-mini" style="margin:-4px 0 12px">O número grande é o <b>líquido</b>, já sem o IR. O bruto e o IR aparecem logo abaixo do nome.</div>
     ${equipe.length?`<div class="fin-cfg-cab" style="margin-bottom:7px">Equipe</div>${equipe.map(bloco).join('')}`:''}
-    ${parceiros.length?`<div class="fin-cfg-cab" style="margin:16px 0 7px">Parceiros — reserva técnica</div>${parceiros.map(bloco).join('')}`:''}
-    ${ap.length?'':'<div class="fin-vazio">Nada apurado neste filtro. Lance uma cobrança e escolha quem participa dela.</div>'}`;
+    ${parceiros.length?`<div class="fin-cfg-cab" style="margin:16px 0 7px">Parceiros</div>${parceiros.map(bloco).join('')}`:''}
+    <div class="fin-cfg-cab" style="margin:16px 0 7px">Tabelião</div>
+    <div class="fin-pessoa">
+      <div class="fin-pessoa-topo">
+        <div>
+          <div class="fin-pessoa-nome">20º Tabelião</div>
+          <div class="fin-pessoa-tipo">O que sobra da parte dele depois do repasse</div>
+        </div>
+        <div class="fin-pessoa-num">${finMoeda(ap.tabeliao)}</div>
+      </div>
+      ${ap.tabeliaoPrev?`<div class="fin-pessoa-barra"><span>Previsto nas escrituras ainda não pagas <b>${finMoeda(ap.tabeliaoPrev)}</b></span></div>`:''}
+    </div>
+    ${ap.pessoas.length?'':'<div class="fin-vazio">Nada apurado neste fechamento.</div>'}`;
 }
 
-// ── Ajustes: quem recebe quanto ──
-function finHtmlAjustes(){
-  // Aqui a lista vem crua de propósito: finPessoas() descarta quem ainda não
-  // tem nome, e é exatamente esse o estado da linha recém-adicionada — pela
-  // lista filtrada, ela nasceria e sumiria no mesmo clique.
-  const ps=(finCfg&&Array.isArray(finCfg.pessoas)?finCfg.pessoas:[]);
+// ── Carteira virtual do registro ──
+// Dinheiro de terceiro em trânsito: entrou junto com a escritura, não é
+// receita de ninguém e só sai quando o registro fica pronto. Fica longe da
+// conta das comissões de propósito.
+function finHtmlCarteira(){
+  const todos=Object.keys(finLanc).map(k=>finLanc[k]).filter(l=>l&&finNum(l.valorRegistro)>0);
+  const doCiclo=finCiclo?todos.filter(l=>finCicloDoLanc(l)===finCiclo):todos;
+  const emCarteira=todos.filter(l=>l.registroStatus!=='pago');
+  const saldo=finCent(emCarteira.reduce((s,l)=>s+finNum(l.valorRegistro),0));
+  const pagoNoCiclo=finCent(doCiclo.filter(l=>l.registroStatus==='pago').reduce((s,l)=>s+finNum(l.valorRegistro),0));
+  const entrouNoCiclo=finCent(doCiclo.reduce((s,l)=>s+finNum(l.valorRegistro),0));
+  const lista=doCiclo.sort((a,b)=>String(finDataOrd(b)).localeCompare(String(finDataOrd(a))));
   return `
     <div class="fin-aviso">
-      <b>É daqui que sai toda a conta.</b> O percentual de cada um vale para todo lançamento
-      em que a pessoa participa; a <b>base</b> diz se ele incide sobre o valor cheio cobrado do
-      cliente ou sobre o líquido (depois de emolumentos, ITBI e demais custos de passagem).
-      Um caso que fuja da regra continua ajustável à mão, no próprio lançamento.
+      <b>Isto não é receita.</b> O valor do registro a cliente paga junto, mas ele passa por aqui a caminho
+      do Registro de Imóveis — nenhuma comissão incide sobre ele. O saldo abaixo é o que ainda está guardado.
     </div>
-    <div class="fin-cfg-linha fin-cfg-cab">
-      <span>Nome</span><span>Papel</span><span>Percentual</span><span>Base de cálculo</span><span></span>
+    <div class="fin-resumo">
+      <div class="fin-card ambar"><div class="fin-card-rot">Saldo em carteira</div><div class="fin-card-num">${finMoeda(saldo)}</div><div class="fin-card-pe">${emCarteira.length} registro${emCarteira.length===1?'':'s'} a pagar · todos os ciclos</div></div>
+      <div class="fin-card"><div class="fin-card-rot">Entrou no ciclo</div><div class="fin-card-num">${finMoeda(entrouNoCiclo)}</div><div class="fin-card-pe">${finCiclo?finCicloPorChave(finCiclo).periodo:'todos'}</div></div>
+      <div class="fin-card verde"><div class="fin-card-rot">Pago ao RI no ciclo</div><div class="fin-card-num">${finMoeda(pagoNoCiclo)}</div><div class="fin-card-pe">já saiu da carteira</div></div>
     </div>
-    <div id="fin-cfg-linhas">
-      ${ps.map(finHtmlCfgLinha).join('')}
+    <div class="fin-filtros">${finSeletorCiclo()}</div>
+    ${lista.length?`<div class="fin-lista">${lista.map(l=>{
+      const pago=l.registroStatus==='pago';
+      return `<div class="fin-item">
+        <div class="fin-item-topo">
+          <div style="min-width:0">
+            <div class="fin-item-nome">${escTxt(l.descricao||'Sem descrição')}</div>
+            <div class="fin-item-meta">${pago?'pago ao RI em '+finDataBr(l.registroPagoEm):'guardado na carteira'}${l.casoNome?' · '+escTxt(l.casoNome):''}</div>
+          </div>
+          <div class="fin-item-valor">
+            <div class="fin-item-num">${finMoeda(finNum(l.valorRegistro))}</div>
+            <span class="fin-pill ${pago?'pago':'pendente'}">${pago?'PAGO AO RI':'EM CARTEIRA'}</span>
+          </div>
+        </div>
+        <div class="fin-item-acoes">
+          <button type="button" class="btn-sm ${pago?'':'btn-concluir'}" onclick="finAlternarRegistro('${l.id}')"><i class="ti ${pago?'ti-arrow-back-up':'ti-building-bank'}" style="font-size:12px;vertical-align:-1px"></i> ${pago?'Voltar para a carteira':'Marcar como pago ao RI'}</button>
+        </div>
+      </div>`;}).join('')}</div>`
+    :'<div class="fin-vazio">Nenhum registro lançado neste filtro.</div>'}`;
+}
+window.finAlternarRegistro=function(id){
+  const l=finLanc[id];if(!l)return;
+  const vira=l.registroStatus==='pago'?'carteira':'pago';
+  update(ref(db,'financeiro/lancamentos/'+id),{registroStatus:vira,registroPagoEm:vira==='pago'?isoHoje():'',atualizadoEm:new Date().toISOString()});
+  finToast(vira==='pago'?'Registro pago — saiu da carteira.':'Voltou para a carteira.');
+};
+
+// ── Ajustes ──
+function finHtmlAjustes(){
+  // As listas vêm cruas de propósito: uma pessoa ou arranjo recém-criado ainda
+  // não tem nome, e por uma lista filtrada nasceria e sumiria no mesmo clique.
+  const ps=(finCfg&&Array.isArray(finCfg.pessoas)?finCfg.pessoas:[]);
+  const ars=(finCfg&&Array.isArray(finCfg.arranjos)?finCfg.arranjos:[]);
+  return `
+    <div class="fin-aviso">
+      <b>É daqui que sai toda a conta.</b> O repasse incide sobre a parte do tabelião — nunca sobre o valor
+      cheio da escritura. O DSR fica fora, como você pediu. Nos arranjos, <b>quem tem o mesmo número divide
+      a mesma parte</b>: é assim que Shirley e Grazi entram juntas como uma sócia só nos casos do Basiotti.
     </div>
-    <button type="button" class="btn-sm" style="margin-top:8px" onclick="finAddPessoa()"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px"></i> Adicionar pessoa ou parceiro</button>
+    <div class="fin-grade" style="max-width:460px">
+      <div class="fin-campo">
+        <label class="fin-rot">Repasse do tabelião</label>
+        <div style="display:flex;align-items:center;gap:6px"><input class="fin-input" id="fin-cfg-repasse" inputmode="decimal" style="width:90px" value="${finPct(finCfg.percentualRepasse)}"><span class="fin-mini">% da parte dele</span></div>
+      </div>
+      <div class="fin-campo">
+        <label class="fin-rot">Imposto de renda</label>
+        <div style="display:flex;align-items:center;gap:6px"><input class="fin-input" id="fin-cfg-ir" inputmode="decimal" style="width:90px" value="${finPct(finCfg.percentualIR)}"><span class="fin-mini">% sobre o repasse</span></div>
+      </div>
+    </div>
+    <div class="fin-cfg-cab" style="margin:18px 0 7px">Quem pode entrar na divisão</div>
+    <div class="fin-pessoa-linha fin-cfg-cab"><span>Nome</span><span>Papel</span><span>IR</span><span>Sou eu</span><span></span></div>
+    <div id="fin-cfg-pessoas">${ps.map(finHtmlCfgPessoa).join('')}</div>
+    <button type="button" class="btn-sm" style="margin-top:6px" onclick="finAddPessoa()"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px"></i> Adicionar pessoa</button>
+
+    <div class="fin-cfg-cab" style="margin:20px 0 7px">Arranjos da divisão</div>
+    <div id="fin-cfg-arranjos">${ars.map(a=>finHtmlCfgArranjo(a,ps)).join('')}</div>
+    <button type="button" class="btn-sm" style="margin-top:6px" onclick="finAddArranjo()"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px"></i> Adicionar arranjo</button>
+
     <div class="fin-mini" style="margin-top:12px">
-      Marque <b>“sou eu”</b> na sua linha: é assim que o painel sabe quais comissões são suas
-      na hora de puxar os serviços extras para o seu financeiro particular.
+      Marque <b>“sou eu”</b> na sua linha: é assim que o painel sabe qual parte é sua na hora de puxar os
+      serviços extras para o seu financeiro particular.
     </div>
     <div class="modal-btn-row">
       <button type="button" class="btn-save" onclick="finSalvarAjustes()">Salvar ajustes</button>
     </div>`;
 }
-function finHtmlCfgLinha(p){
-  return `<div class="fin-cfg-linha" data-id="${esc(p.id)}">
+function finHtmlCfgPessoa(p){
+  return `<div class="fin-pessoa-linha" data-id="${esc(p.id)}">
     <input class="fin-input cfg-nome" value="${esc(p.nome||'')}" placeholder="Nome">
     <select class="fin-select cfg-tipo">
       <option value="equipe"${p.tipo!=='parceiro'?' selected':''}>Equipe</option>
       <option value="parceiro"${p.tipo==='parceiro'?' selected':''}>Parceiro</option>
     </select>
-    <input class="fin-input cfg-pct" inputmode="decimal" value="${p.percentual!==undefined&&p.percentual!==null?String(p.percentual).replace('.',','):''}" placeholder="0">
-    <select class="fin-select cfg-base">
-      <option value="liquido"${p.base!=='bruto'?' selected':''}>Líquido</option>
-      <option value="bruto"${p.base==='bruto'?' selected':''}>Valor cheio</option>
-    </select>
-    <span style="display:flex;gap:6px;align-items:center">
-      <label class="fin-check" title="Marque na sua própria linha"><input type="checkbox" class="cfg-eu" ${p.souEu?'checked':''}>sou eu</label>
-      <button type="button" class="btn-sm btn-excluir" onclick="finRemoverPessoa(this)" title="Remover"><i class="ti ti-x" style="font-size:12px"></i></button>
-    </span>
+    <label class="fin-check" title="Descontar IR da parte desta pessoa"><input type="checkbox" class="cfg-ir" ${p.descontaIR!==false?'checked':''}>desconta</label>
+    <label class="fin-check"><input type="checkbox" class="cfg-eu" ${p.souEu?'checked':''}>sou eu</label>
+    <button type="button" class="btn-sm btn-excluir" onclick="finRemoverPessoa(this)" title="Remover"><i class="ti ti-x" style="font-size:12px"></i></button>
   </div>`;
 }
-// Antes de redesenhar a tabela (ao adicionar ou remover linha) o que já foi
-// digitado precisa voltar pra memória — senão some.
-function finColherAjustes(){
-  const linhas=Array.from(document.querySelectorAll('#fin-cfg-linhas .fin-cfg-linha'));
-  if(!linhas.length)return;
-  finCfg={pessoas:linhas.map(li=>{
-    const pct=finNum(li.querySelector('.cfg-pct').value);
-    return {
-      id:li.dataset.id,
-      nome:li.querySelector('.cfg-nome').value.trim(),
-      tipo:li.querySelector('.cfg-tipo').value,
-      percentual:Math.max(0,Math.min(100,pct)),
-      base:li.querySelector('.cfg-base').value,
-      souEu:li.querySelector('.cfg-eu').checked,
-      ativo:true
-    };
-  })};
+function finHtmlCfgArranjo(a,ps){
+  const g=a.grupos||{};
+  const quotas=finQuotas(a);
+  return `<div class="fin-arranjo" data-id="${esc(a.id)}">
+    <div class="fin-arranjo-topo">
+      <input class="fin-input arr-nome" value="${esc(a.nome||'')}" placeholder="Nome do arranjo (ex: Renato)">
+      <span class="fin-mini fin-arranjo-resumo">${quotas.length?quotas.map(q=>q.map(id=>escTxt(finPessoa(id).nome)).join(' + ')).join('  |  ')+`  →  ${quotas.length} parte${quotas.length===1?'':'s'} iguais`:'ninguém escolhido'}</span>
+      <button type="button" class="btn-sm btn-excluir" onclick="finRemoverArranjo(this)" title="Remover"><i class="ti ti-x" style="font-size:12px"></i></button>
+    </div>
+    <div class="fin-arranjo-pessoas">
+      ${ps.filter(p=>p.nome).map(p=>`
+        <label class="fin-check" title="0 = fora da divisão. Mesmo número = dividem a mesma parte.">
+          ${escTxt(p.nome)}
+          <input type="number" min="0" max="9" class="arr-grupo" data-pessoa="${esc(p.id)}" value="${Number(g[p.id])||0}" onchange="finRedesenharAjustes()">
+        </label>`).join('')}
+    </div>
+  </div>`;
 }
+// Antes de redesenhar, o que já foi digitado precisa voltar pra memória.
+function finColherAjustes(){
+  const linhas=Array.from(document.querySelectorAll('#fin-cfg-pessoas .fin-pessoa-linha'));
+  if(!linhas.length)return;
+  const rep=document.getElementById('fin-cfg-repasse'), ir=document.getElementById('fin-cfg-ir');
+  finCfg.percentualRepasse=Math.max(0,Math.min(100,finNum(rep?rep.value:finCfg.percentualRepasse)));
+  finCfg.percentualIR=Math.max(0,Math.min(100,finNum(ir?ir.value:finCfg.percentualIR)));
+  finCfg.pessoas=linhas.map(li=>({
+    id:li.dataset.id,
+    nome:li.querySelector('.cfg-nome').value.trim(),
+    tipo:li.querySelector('.cfg-tipo').value,
+    descontaIR:li.querySelector('.cfg-ir').checked,
+    souEu:li.querySelector('.cfg-eu').checked
+  }));
+  finCfg.arranjos=Array.from(document.querySelectorAll('#fin-cfg-arranjos .fin-arranjo')).map(el=>{
+    const grupos={};
+    el.querySelectorAll('.arr-grupo').forEach(i=>{
+      const n=Number(i.value)||0;
+      if(n>0)grupos[i.dataset.pessoa]=n;
+    });
+    return {id:el.dataset.id,nome:el.querySelector('.arr-nome').value.trim(),grupos};
+  });
+}
+window.finRedesenharAjustes=function(){finColherAjustes();renderFinanceiro();};
 window.finAddPessoa=function(){
   finColherAjustes();
-  finCfg.pessoas.push({id:'p'+Date.now().toString(36),nome:'',tipo:'parceiro',percentual:0,base:'liquido',ativo:true,souEu:false});
+  finCfg.pessoas.push({id:'p'+Date.now().toString(36),nome:'',tipo:'parceiro',descontaIR:true,souEu:false});
   renderFinanceiro();
 };
 window.finRemoverPessoa=function(btn){
-  const li=btn.closest('.fin-cfg-linha');
-  const id=li.dataset.id;
+  const id=btn.closest('.fin-pessoa-linha').dataset.id;
   const usado=Object.keys(finLanc).some(k=>{
     const l=finLanc[k]||{};
-    return Array.isArray(l.participantes)&&l.participantes.indexOf(id)>-1;
+    const a=finArranjo(l.arranjoId);
+    return a&&a.grupos&&a.grupos[id];
   });
-  if(usado&&!confirm('Essa pessoa já participa de lançamentos existentes. Remover vai tirá-la da divisão deles. Continuar?'))return;
+  if(usado&&!confirm('Essa pessoa já entra em escrituras lançadas. Remover vai tirá-la da divisão delas. Continuar?'))return;
   finColherAjustes();
   finCfg.pessoas=finCfg.pessoas.filter(p=>p.id!==id);
+  finCfg.arranjos.forEach(a=>{if(a.grupos)delete a.grupos[id];});
+  renderFinanceiro();
+};
+window.finAddArranjo=function(){
+  finColherAjustes();
+  finCfg.arranjos.push({id:'a'+Date.now().toString(36),nome:'',grupos:{}});
+  renderFinanceiro();
+};
+window.finRemoverArranjo=function(btn){
+  const id=btn.closest('.fin-arranjo').dataset.id;
+  const usado=Object.keys(finLanc).some(k=>(finLanc[k]||{}).arranjoId===id);
+  if(usado&&!confirm('Já existem escrituras usando este arranjo. Removê-lo muda a divisão delas. Continuar?'))return;
+  finColherAjustes();
+  finCfg.arranjos=finCfg.arranjos.filter(a=>a.id!==id);
   renderFinanceiro();
 };
 window.finSalvarAjustes=function(){
   finColherAjustes();
   const pessoas=finCfg.pessoas.filter(p=>p.nome);
-  const eus=pessoas.filter(p=>p.souEu);
-  if(eus.length>1){finToast('Só uma linha pode ser marcada como "sou eu".');return;}
-  set(finCfgRef,{pessoas,atualizadoEm:new Date().toISOString()});
+  if(!pessoas.length){finToast('Cadastre ao menos uma pessoa.');return;}
+  if(pessoas.filter(p=>p.souEu).length>1){finToast('Só uma linha pode ser marcada como "sou eu".');return;}
+  const arranjos=finCfg.arranjos.filter(a=>a.nome&&finQuotas(a).length);
+  set(finCfgRef,{
+    percentualRepasse:finCfg.percentualRepasse,
+    percentualIR:finCfg.percentualIR,
+    pessoas,arranjos,
+    atualizadoEm:new Date().toISOString()
+  });
   finToast('Ajustes salvos.');
 };
 
@@ -6535,16 +6748,7 @@ function finAdiarTranca(){
   },FIN_MINUTOS_ATE_TRANCAR*60*1000);
 }
 
-// ── Meu financeiro: telas ──
-const FIN_TIPOS_PESSOAIS=[
-  {v:'salario', r:'Salário do cartório'},
-  {v:'extra',   r:'Serviço extra'},
-  {v:'despesa', r:'Despesa'}
-];
-let finMesPessoal=finMesCorrente();
-let finFormPessoal=false;
-let finEditandoPessoal=null;
-
+// ── Meu financeiro: destrancar, criar, recuperar ──
 window.abrirMeuFinanceiro=function(){
   finLigarEscuta();
   document.getElementById('modal-meu-financeiro').classList.add('open');
@@ -6683,49 +6887,61 @@ window.finDestrancarUI=async function(viaRecuperacao){
 };
 
 // ── Meu financeiro: o extrato de dentro do cofre ──
-function finPessoalDoMes(){
-  const l=(finDadosPessoais.lancamentos||[]).filter(x=>x&&(!finMesPessoal||String(x.data||'').slice(0,7)===finMesPessoal));
-  return l.sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
-}
-function finSomaPessoal(arr,tipo){return finCent(arr.filter(x=>x.tipo===tipo).reduce((s,x)=>s+finNum(x.valor),0));}
-function finMesesPessoais(){
+const FIN_TIPOS_PESSOAIS=[
+  {v:'salario', r:'Salário do cartório'},
+  {v:'extra',   r:'Serviço extra'},
+  {v:'despesa', r:'Despesa'}
+];
+let finCicloPessoal=null;
+let finFormPessoal=false;
+let finEditandoPessoal=null;
+
+function finCiclosPessoais(){
   const set={};
-  set[finMesCorrente()]=1;
-  (finDadosPessoais.lancamentos||[]).forEach(x=>{const m=String(x&&x.data||'').slice(0,7);if(m)set[m]=1;});
+  set[finCicloCorrente()]=1;
+  (finDadosPessoais.lancamentos||[]).forEach(x=>{const c=finCicloDaData(x&&x.data);if(c)set[c]=1;});
   return Object.keys(set).sort().reverse();
 }
+function finPessoalDoCiclo(){
+  return (finDadosPessoais.lancamentos||[])
+    .filter(x=>x&&(!finCicloPessoal||finCicloDaData(x.data)===finCicloPessoal))
+    .sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
+}
+function finSomaPessoal(arr,tipo){return finCent(arr.filter(x=>x.tipo===tipo).reduce((s,x)=>s+finNum(x.valor),0));}
 function finHtmlPessoal(){
-  const lista=finPessoalDoMes();
+  if(!finCicloPessoal)finCicloPessoal=finCicloCorrente();
+  const lista=finPessoalDoCiclo();
   const salario=finSomaPessoal(lista,'salario');
   const extras=finSomaPessoal(lista,'extra');
   const despesas=finSomaPessoal(lista,'despesa');
-  const ano=(finMesPessoal||finMesCorrente()).slice(0,4);
+  const ci=finCicloPessoal?finCicloPorChave(finCicloPessoal):null;
+  const ano=(finCicloPessoal||finCicloCorrente()).slice(0,4);
   const doAno=(finDadosPessoais.lancamentos||[]).filter(x=>String(x&&x.data||'').slice(0,4)===ano);
-  const anoSal=finSomaPessoal(doAno,'salario'), anoExtra=finSomaPessoal(doAno,'extra'), anoDesp=finSomaPessoal(doAno,'despesa');
+  const aSal=finSomaPessoal(doAno,'salario'), aExt=finSomaPessoal(doAno,'extra'), aDes=finSomaPessoal(doAno,'despesa');
   return `
     <div class="fin-resumo">
-      <div class="fin-card"><div class="fin-card-rot">Salário do cartório</div><div class="fin-card-num">${finMoeda(salario)}</div><div class="fin-card-pe">${finMesLabel(finMesPessoal)}</div></div>
+      <div class="fin-card"><div class="fin-card-rot">Salário do cartório</div><div class="fin-card-num">${finMoeda(salario)}</div><div class="fin-card-pe">${ci?ci.rotulo.toLowerCase():'todos'}</div></div>
       <div class="fin-card verde"><div class="fin-card-rot">Serviços extras</div><div class="fin-card-num">${finMoeda(extras)}</div><div class="fin-card-pe">${lista.filter(x=>x.tipo==='extra').length} lançamento${lista.filter(x=>x.tipo==='extra').length===1?'':'s'}</div></div>
-      <div class="fin-card"><div class="fin-card-rot">Despesas</div><div class="fin-card-num">− ${finMoeda(despesas)}</div><div class="fin-card-pe">no mês</div></div>
-      <div class="fin-card"><div class="fin-card-rot">Sobrou no mês</div><div class="fin-card-num">${finMoeda(finCent(salario+extras-despesas))}</div><div class="fin-card-pe">salário + extras − despesas</div></div>
+      <div class="fin-card"><div class="fin-card-rot">Despesas</div><div class="fin-card-num">− ${finMoeda(despesas)}</div><div class="fin-card-pe">no ciclo</div></div>
+      <div class="fin-card"><div class="fin-card-rot">Sobrou</div><div class="fin-card-num">${finMoeda(finCent(salario+extras-despesas))}</div><div class="fin-card-pe">salário + extras − despesas</div></div>
     </div>
     <div class="fin-mini" style="margin:-6px 0 14px">
-      No ano de ${ano}: salário ${finMoeda(anoSal)} · extras ${finMoeda(anoExtra)} · despesas ${finMoeda(anoDesp)} ·
-      <b>total ${finMoeda(finCent(anoSal+anoExtra-anoDesp))}</b>
+      No ano de ${ano}: salário ${finMoeda(aSal)} · extras ${finMoeda(aExt)} · despesas ${finMoeda(aDes)} ·
+      <b>total ${finMoeda(finCent(aSal+aExt-aDes))}</b>
     </div>
     <div class="fin-filtros">
-      <select class="fin-select" onchange="finMudarMesPessoal(this.value)">
-        <option value=""${finMesPessoal?'':' selected'}>Todos os meses</option>
-        ${finMesesPessoais().map(m=>`<option value="${m}"${m===finMesPessoal?' selected':''}>${finMesLabel(m)}</option>`).join('')}
+      <select class="fin-select" onchange="finMudarCicloPessoal(this.value)">
+        <option value=""${finCicloPessoal?'':' selected'}>Todos os fechamentos</option>
+        ${finCiclosPessoais().map(k=>{const c=finCicloPorChave(k);return `<option value="${k}"${k===finCicloPessoal?' selected':''}>${c.rotulo} · ${c.periodo}</option>`;}).join('')}
       </select>
-      <button type="button" class="btn-sm" onclick="finImportarComissoes()" title="Traz para cá as comissões dos lançamentos já pagos em que você participa"><i class="ti ti-download" style="font-size:12px;vertical-align:-1px"></i> Puxar minhas comissões do mês</button>
+      <button type="button" class="btn-sm" onclick="finImportarComissoes()" title="Traz para cá a sua parte líquida das escrituras já pagas neste fechamento"><i class="ti ti-download" style="font-size:12px;vertical-align:-1px"></i> Puxar minha parte do fechamento</button>
       <button type="button" class="btn-sm" onclick="finTrocarSenhaUI()"><i class="ti ti-key" style="font-size:12px;vertical-align:-1px"></i> Trocar senha</button>
       <button type="button" class="btn-sm" onclick="finTrancarAgora()"><i class="ti ti-lock" style="font-size:12px;vertical-align:-1px"></i> Trancar</button>
       <button type="button" class="btn-save" style="margin-left:auto" onclick="finNovoPessoal()"><i class="ti ti-plus" style="vertical-align:-1px"></i> Lançar</button>
     </div>
     ${finFormPessoal?finHtmlFormPessoal():''}
     ${lista.length?`<div class="fin-lista">${lista.map(finHtmlItemPessoal).join('')}</div>`
-                  :'<div class="fin-vazio">Nada lançado neste mês.</div>'}`;
+                  :'<div class="fin-vazio">Nada lançado neste fechamento.</div>'}`;
 }
 function finHtmlItemPessoal(x){
   const rot=(FIN_TIPOS_PESSOAIS.find(t=>t.v===x.tipo)||{}).r||x.tipo;
@@ -6735,7 +6951,7 @@ function finHtmlItemPessoal(x){
       <div class="fin-item-topo">
         <div style="min-width:0">
           <div class="fin-item-nome">${escTxt(x.descricao||rot)}</div>
-          <div class="fin-item-meta">${rot} · ${finDataBr(x.data)}${x.origemId?' · puxado do painel':''}${x.obs?' · '+escTxt(x.obs):''}</div>
+          <div class="fin-item-meta">${rot} · ${finDataBr(x.data)}${x.origemId?' · puxado do painel':''}${x.bruto?' · bruto '+finMoeda(x.bruto)+', IR '+finMoeda(x.ir||0):''}</div>
         </div>
         <div class="fin-item-valor">
           <div class="fin-item-num" style="color:${despesa?'#C62828':'#2E7D32'}">${despesa?'− ':''}${finMoeda(finNum(x.valor))}</div>
@@ -6761,7 +6977,7 @@ function finHtmlFormPessoal(){
         </div>
         <div class="fin-campo">
           <label class="fin-rot">Valor</label>
-          <input class="fin-input" id="fin-p-valor" inputmode="decimal" placeholder="0,00" value="${x.valor?String(finNum(x.valor)).replace('.',','):''}">
+          <input class="fin-input" id="fin-p-valor" inputmode="decimal" placeholder="0,00" value="${x.valor?finBr(finNum(x.valor)):''}">
         </div>
         <div class="fin-campo">
           <label class="fin-rot">Data</label>
@@ -6769,7 +6985,7 @@ function finHtmlFormPessoal(){
         </div>
         <div class="fin-campo" style="grid-column:1/-1">
           <label class="fin-rot">Descrição</label>
-          <input class="fin-input" id="fin-p-descricao" placeholder="Ex: Salário de agosto / Comissão do inventário Bertola" value="${esc(x.descricao||'')}">
+          <input class="fin-input" id="fin-p-descricao" placeholder="Ex: Salário de agosto" value="${esc(x.descricao||'')}">
         </div>
       </div>
       <div class="modal-btn-row">
@@ -6778,7 +6994,7 @@ function finHtmlFormPessoal(){
       </div>
     </div>`;
 }
-window.finMudarMesPessoal=function(v){finMesPessoal=v;renderMeuFinanceiro();};
+window.finMudarCicloPessoal=function(v){finCicloPessoal=v;renderMeuFinanceiro();};
 window.finNovoPessoal=function(){finFormPessoal=true;finEditandoPessoal=null;renderMeuFinanceiro();};
 window.finEditarPessoal=function(id){finFormPessoal=true;finEditandoPessoal=id;renderMeuFinanceiro();};
 window.finCancelarPessoal=function(){finFormPessoal=false;finEditandoPessoal=null;renderMeuFinanceiro();};
@@ -6796,22 +7012,23 @@ window.finSalvarPessoal=async function(){
     const i=arr.findIndex(x=>x.id===finEditandoPessoal);
     if(i>-1)arr[i]={...arr[i],...dados};
   }else{
-    arr.push({id:'mp'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),...dados});
+    arr.push({id:finIdPessoal(),...dados});
   }
   finFormPessoal=false;finEditandoPessoal=null;
   await finGravarCofre();
   renderMeuFinanceiro();
   finToast('Lançado.');
 };
+function finIdPessoal(){return 'mp'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);}
 window.finExcluirPessoal=async function(id){
   if(!confirm('Excluir este lançamento?'))return;
   finDadosPessoais.lancamentos=(finDadosPessoais.lancamentos||[]).filter(x=>x.id!==id);
   await finGravarCofre();
   renderMeuFinanceiro();
 };
-// Traz as comissões já devidas (cliente pagou) da pessoa marcada como "sou eu"
-// na tabela de Ajustes. Cada lançamento entra uma vez só — a origem fica
-// guardada e serve de trava contra puxar duas vezes.
+// Traz a parte líquida da pessoa marcada como "sou eu" nas escrituras já pagas
+// do fechamento. Cada escritura entra uma vez só — a origem fica guardada e
+// serve de trava contra puxar duas vezes.
 window.finImportarComissoes=async function(){
   const eu=finSouEu();
   if(!eu){finToast('Marque a sua linha como "sou eu" em Financeiro › Ajustes.');return;}
@@ -6821,23 +7038,23 @@ window.finImportarComissoes=async function(){
   Object.keys(finLanc).forEach(k=>{
     const l=finLanc[k];
     if(!l||l.status!=='pago')return;
-    if(finMesPessoal&&finMesDoLanc(l)!==finMesPessoal)return;
+    if(finCicloPessoal&&finCicloDoLanc(l)!==finCicloPessoal)return;
     if(jaTem[l.id||k])return;
-    const minha=finDivisao(l).find(d=>d.id===eu.id);
-    if(!minha||!minha.valor)return;
+    const minha=finConta(l).linhas.find(d=>d.id===eu.id);
+    if(!minha||!minha.liquido)return;
     novos.push({
-      id:'mp'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),
-      tipo:'extra',valor:minha.valor,
+      id:finIdPessoal(),tipo:'extra',
+      valor:minha.liquido,bruto:minha.bruto,ir:minha.ir,
       data:l.dataPagamento||isoHoje(),
-      descricao:'Comissão — '+(l.descricao||l.casoNome||'lançamento'),
+      descricao:l.descricao||l.casoNome||'Escritura',
       origemId:l.id||k
     });
   });
-  if(!novos.length){finToast('Nada novo para puxar neste mês.');return;}
+  if(!novos.length){finToast('Nada novo para puxar neste fechamento.');return;}
   finDadosPessoais.lancamentos=(finDadosPessoais.lancamentos||[]).concat(novos);
   await finGravarCofre();
   renderMeuFinanceiro();
-  finToast(`${novos.length} comissão${novos.length===1?'':'ões'} puxada${novos.length===1?'':'s'}.`);
+  finToast(`${novos.length} escritura${novos.length===1?'':'s'} puxada${novos.length===1?'':'s'}.`);
 };
 window.finTrocarSenhaUI=function(){
   const alvo=document.getElementById('meu-fin-conteudo');
@@ -6861,9 +7078,9 @@ window.finTrocarSenha=async function(){
   const err=document.getElementById('fin-cofre-erro');
   if(a.length<8){err.textContent='Use pelo menos 8 caracteres.';return;}
   if(a!==b){err.textContent='As duas senhas não são iguais.';return;}
-  if(!finChaveMestra){err.textContent='Destranque antes de trocar a senha.';return;}
+  if(!finChaveMestra||!finMestraB64){err.textContent='Destranque antes de trocar a senha.';return;}
   try{
-    // Re-embrulha a mesma chave mestra com a senha nova: os dados cifrados
+    // Reembrulha a mesma chave mestra com a senha nova: os dados cifrados
     // continuam como estão, só a fechadura muda. A chave de recuperação
     // embrulha a mesma chave e por isso segue valendo.
     const salt=finB64(crypto.getRandomValues(new Uint8Array(16)));
@@ -6893,6 +7110,7 @@ window.definirIdentidade=function(nome){
   atualizarSidebarFinanceiro();
 };
 atualizarSidebarFinanceiro();
+
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
