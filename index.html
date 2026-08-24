@@ -5779,8 +5779,13 @@ if(joaninhaInstancia.disponivel){
 //   Escritura da Tania      R$ 5.755,61   ← a cliente pagou
 //   Parte do tabelião       R$ 3.427,23   ← só sobre isto incide comissão
 //   Repasse de 25%          R$   856,80   ← é o que vem para a mesa
-//   IR de 27,5%             R$   235,62
-//   Sobra para dividir      R$   621,18
+//     Shirley, metade       R$   428,40   ← passa inteira: o IR dela é dela
+//     Grazi,   metade       R$   428,40   − IR 27,5% → R$ 310,59 na mão
+//
+// O IR não sai do bolo antes da divisão: ele é retido no que é REPASSADO a
+// outra pessoa. Por isso ele é um atributo de quem recebe, e não do
+// lançamento — a parte da Shirley passa bruta, a da Grazi e a dos parceiros
+// saem já descontadas.
 //
 // A divisão do que sobra é por QUOTAS iguais, e quem entra depende do
 // parceiro que trouxe o caso — não é percentual fixo por pessoa:
@@ -5810,7 +5815,7 @@ const FIN_CFG_PADRAO={
   percentualRepasse:25,
   percentualIR:27.5,
   pessoas:[
-    {id:'shirley', nome:'Shirley', tipo:'equipe',   descontaIR:true, souEu:true},
+    {id:'shirley', nome:'Shirley', tipo:'equipe',   descontaIR:false, souEu:true},
     {id:'grazi',   nome:'Grazi',   tipo:'equipe',   descontaIR:true},
     {id:'renato',  nome:'Renato',  tipo:'parceiro', descontaIR:true},
     {id:'basiotti',nome:'Basiotti',tipo:'parceiro', descontaIR:true},
@@ -6087,7 +6092,7 @@ function finHtmlLancamentos(){
       <div class="fin-card"><div class="fin-card-rot">Escrituras pagas</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.escritura))}</div><div class="fin-card-pe">${pagos.length} de ${lista.length} no ciclo</div></div>
       <div class="fin-card"><div class="fin-card-rot">Parte do tabelião</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.tabeliao))}</div><div class="fin-card-pe">base da comissão</div></div>
       <div class="fin-card verde"><div class="fin-card-rot">Repasse ${Number(finCfg.percentualRepasse)||0}%</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.bruto))}</div><div class="fin-card-pe">antes do IR</div></div>
-      <div class="fin-card verde"><div class="fin-card-rot">Líquido a dividir</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.liquido))}</div><div class="fin-card-pe">já sem os ${finPct(finCfg.percentualIR)}% de IR</div></div>
+      <div class="fin-card"><div class="fin-card-rot">IR retido</div><div class="fin-card-num">${finMoeda(som(pagos,c=>c.irTotal))}</div><div class="fin-card-pe">${finPct(finCfg.percentualIR)}% sobre o que é repassado</div></div>
       ${pend.length?`<div class="fin-card ambar"><div class="fin-card-rot">Ainda não pago</div><div class="fin-card-num">${finMoeda(som(pend,c=>c.escritura))}</div><div class="fin-card-pe">${pend.length} escritura${pend.length===1?'':'s'}</div></div>`:''}
     </div>
     <div class="fin-filtros">
@@ -6124,15 +6129,14 @@ function finHtmlItem(l){
       <div class="fin-escada">
         <div class="fin-degrau"><span>Parte do tabelião</span><b>${finMoeda(c.tabeliao)}</b></div>
         <div class="fin-degrau"><span>Fica com o tabelião</span><b>${finMoeda(c.ficaTabeliao)}</b></div>
-        <div class="fin-degrau"><span>Repasse ${c.pctRepasse}%${c.manual?' (à mão)':''}</span><b>${finMoeda(c.bruto)}</b></div>
-        <div class="fin-degrau"><span>IR ${finPct(c.pctIR)}%</span><b>− ${finMoeda(c.irTotal)}</b></div>
-        <div class="fin-degrau forte"><span>Sobra para dividir</span><b>${finMoeda(c.liquido)}</b></div>
+        <div class="fin-degrau forte"><span>Repasse ${c.pctRepasse}%${c.manual?' (à mão)':''}</span><b>${finMoeda(c.bruto)}</b></div>
+        ${c.irTotal?`<div class="fin-degrau"><span>IR ${finPct(c.pctIR)}% retido nos repasses</span><b>− ${finMoeda(c.irTotal)}</b></div>`:''}
       </div>
       ${c.linhas.length?`<div class="fin-divisao">${c.linhas.map(d=>`
         <div class="fin-div-linha ${d.tipo==='parceiro'?'fin-div-parceiro':''}">
           ${pago?`<button type="button" class="btn-sm ${d.repassado?'btn-concluir':''}" style="padding:2px 8px" title="${d.repassado?'Repassado'+(d.repassadoEm?' em '+finDataBr(d.repassadoEm):''):'Marcar como repassado'}" onclick="finToggleRepasse('${l.id}','${d.id}')"><i class="ti ${d.repassado?'ti-check':'ti-circle'}" style="font-size:12px"></i></button>`:''}
           <span class="fin-div-nome">${escTxt(d.nome)}</span>
-          <span class="fin-div-pct">${d.ajustado?'<span class="fin-tag-ajustado">à mão</span>':d.quotaRot}${d.descontaIR?'':' · sem IR'}</span>
+          <span class="fin-div-pct">${d.ajustado?'<span class="fin-tag-ajustado">à mão</span>':d.quotaRot}${d.descontaIR?` · − IR ${finMoeda(d.ir)}`:' · sem IR'}</span>
           <span class="fin-div-bruto">${finMoeda(d.bruto)}</span>
           <span class="fin-div-valor">${finMoeda(d.liquido)}</span>
         </div>`).join('')}
@@ -6282,15 +6286,14 @@ function finPrevia(){
     <div class="fin-preview-linha"><span>Escritura paga pela cliente</span><b>${finMoeda(c.escritura)}</b></div>
     <div class="fin-preview-linha"><span>Não é do tabelião (emolumentos, tributos)</span><b>− ${finMoeda(c.naoTabeliao)}</b></div>
     <div class="fin-preview-linha"><span>Parte do tabelião</span><b>${finMoeda(c.tabeliao)}</b></div>
-    <div class="fin-preview-linha"><span>Repasse de ${c.pctRepasse}% <span class="fin-mini">(DSR fora da conta)</span></span><b>${finMoeda(c.bruto)}</b></div>
     <div class="fin-preview-linha"><span>Fica com o tabelião</span><b>${finMoeda(c.ficaTabeliao)}</b></div>
-    <div class="fin-preview-linha"><span>IR de ${finPct(c.pctIR)}%</span><b>− ${finMoeda(c.irTotal)}</b></div>
-    <div class="fin-preview-linha sobra"><span>Sobra para dividir — ${escTxt(c.arranjo.nome)}</span><b>${finMoeda(c.liquido)}</b></div>
+    <div class="fin-preview-linha sobra"><span>Repasse de ${c.pctRepasse}% a dividir — ${escTxt(c.arranjo.nome)} <span class="fin-mini">(DSR fora da conta)</span></span><b>${finMoeda(c.bruto)}</b></div>
     ${c.linhas.map(d=>`
       <div class="fin-preview-linha" style="align-items:center">
-        <span>${escTxt(d.nome)} <span class="fin-div-pct">${d.quotaRot}${d.descontaIR?'':' · sem IR'} · líquido ${finMoeda(d.liquido)}</span></span>
+        <span>${escTxt(d.nome)} <span class="fin-div-pct">${d.quotaRot}${d.descontaIR?` · − IR ${finPct(c.pctIR)}% (${finMoeda(d.ir)}) · repassa ${finMoeda(d.liquido)}`:' · sem IR, passa inteiro'}</span></span>
         <input class="fin-input" style="width:118px;text-align:right" inputmode="decimal" value="${finBr(d.bruto)}" oninput="finAjusteManual('${d.id}',this.value)" title="Valor bruto desta pessoa — corrigir aqui vale só nesta escritura">
       </div>`).join('')}
+    ${c.irTotal?`<div class="fin-preview-linha"><span>IR retido no total</span><b>− ${finMoeda(c.irTotal)}</b></div>`:''}
     ${c.registro.valor?`<div class="fin-preview-linha" style="border-top:0.5px solid #E5E5EA;margin-top:5px;padding-top:7px"><span>Registro de imóveis — carteira virtual, sem comissão</span><b>${finMoeda(c.registro.valor)}</b></div>`:''}
     ${ciclo?`<div class="fin-mini" style="margin-top:7px">Entra no <b>${ciclo.rotulo}</b> (${ciclo.periodo}).</div>`:''}`;
 }
@@ -6501,8 +6504,10 @@ function finHtmlAjustes(){
   return `
     <div class="fin-aviso">
       <b>É daqui que sai toda a conta.</b> O repasse incide sobre a parte do tabelião — nunca sobre o valor
-      cheio da escritura. O DSR fica fora, como você pediu. Nos arranjos, <b>quem tem o mesmo número divide
-      a mesma parte</b>: é assim que Shirley e Grazi entram juntas como uma sócia só nos casos do Basiotti.
+      cheio da escritura. O DSR fica fora, como você pediu. O <b>IR é retido no repasse</b>, não no bolo:
+      a sua parte passa bruta, a de quem recebe de você sai descontada. Nos arranjos, <b>quem tem o mesmo
+      número divide a mesma parte</b> — é assim que Shirley e Grazi entram juntas como uma sócia só nos
+      casos do Basiotti.
     </div>
     <div class="fin-grade" style="max-width:460px">
       <div class="fin-campo">
@@ -6515,7 +6520,7 @@ function finHtmlAjustes(){
       </div>
     </div>
     <div class="fin-cfg-cab" style="margin:18px 0 7px">Quem pode entrar na divisão</div>
-    <div class="fin-pessoa-linha fin-cfg-cab"><span>Nome</span><span>Papel</span><span>IR</span><span>Sou eu</span><span></span></div>
+    <div class="fin-pessoa-linha fin-cfg-cab"><span>Nome</span><span>Papel</span><span>IR no repasse</span><span>Sou eu</span><span></span></div>
     <div id="fin-cfg-pessoas">${ps.map(finHtmlCfgPessoa).join('')}</div>
     <button type="button" class="btn-sm" style="margin-top:6px" onclick="finAddPessoa()"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px"></i> Adicionar pessoa</button>
 
@@ -6538,7 +6543,7 @@ function finHtmlCfgPessoa(p){
       <option value="equipe"${p.tipo!=='parceiro'?' selected':''}>Equipe</option>
       <option value="parceiro"${p.tipo==='parceiro'?' selected':''}>Parceiro</option>
     </select>
-    <label class="fin-check" title="Descontar IR da parte desta pessoa"><input type="checkbox" class="cfg-ir" ${p.descontaIR!==false?'checked':''}>desconta</label>
+    <label class="fin-check" title="Reter os 27,5% ao repassar para esta pessoa. Deixe desmarcado na sua própria linha: a sua parte passa bruta."><input type="checkbox" class="cfg-ir" ${p.descontaIR!==false?'checked':''}>retém</label>
     <label class="fin-check"><input type="checkbox" class="cfg-eu" ${p.souEu?'checked':''}>sou eu</label>
     <button type="button" class="btn-sm btn-excluir" onclick="finRemoverPessoa(this)" title="Remover"><i class="ti ti-x" style="font-size:12px"></i></button>
   </div>`;
@@ -6934,7 +6939,7 @@ function finHtmlPessoal(){
         <option value=""${finCicloPessoal?'':' selected'}>Todos os fechamentos</option>
         ${finCiclosPessoais().map(k=>{const c=finCicloPorChave(k);return `<option value="${k}"${k===finCicloPessoal?' selected':''}>${c.rotulo} · ${c.periodo}</option>`;}).join('')}
       </select>
-      <button type="button" class="btn-sm" onclick="finImportarComissoes()" title="Traz para cá a sua parte líquida das escrituras já pagas neste fechamento"><i class="ti ti-download" style="font-size:12px;vertical-align:-1px"></i> Puxar minha parte do fechamento</button>
+      <button type="button" class="btn-sm" onclick="finImportarComissoes()" title="Traz para cá a sua parte das escrituras já pagas neste fechamento"><i class="ti ti-download" style="font-size:12px;vertical-align:-1px"></i> Puxar minha parte do fechamento</button>
       <button type="button" class="btn-sm" onclick="finTrocarSenhaUI()"><i class="ti ti-key" style="font-size:12px;vertical-align:-1px"></i> Trocar senha</button>
       <button type="button" class="btn-sm" onclick="finTrancarAgora()"><i class="ti ti-lock" style="font-size:12px;vertical-align:-1px"></i> Trancar</button>
       <button type="button" class="btn-save" style="margin-left:auto" onclick="finNovoPessoal()"><i class="ti ti-plus" style="vertical-align:-1px"></i> Lançar</button>
