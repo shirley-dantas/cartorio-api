@@ -1723,7 +1723,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, get, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js';
 
 const firebaseConfig = {
@@ -5864,8 +5864,28 @@ function finHtmlLogin(texto){
       <input class="fin-input" type="password" id="fin-login-senha" placeholder="Sua senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')finEntrar()">
       <div class="fin-cofre-erro" id="fin-login-erro"></div>
       <button type="button" class="btn-save" id="fin-btn-entrar" onclick="finEntrar()">Entrar</button>
+      <div class="fin-mini" style="margin-top:14px">
+        <a href="#" onclick="finEsqueciSenha();return false;" style="color:#16283A">Esqueci minha senha</a>
+      </div>
     </div>`;
 }
+// Quem entra pela primeira vez com uma senha provisória precisa de um jeito
+// de definir a sua — e sem isto o jeito era o console, que é justamente o
+// que este painel tenta poupar.
+window.finEsqueciSenha=async function(){
+  const email=(document.getElementById('fin-login-email').value||'').trim();
+  const err=document.getElementById('fin-login-erro');
+  if(!email){err.textContent='Escreva o e-mail acima e clique de novo.';return;}
+  err.textContent='Enviando…';
+  try{
+    await sendPasswordResetEmail(auth,email);
+    err.style.color='#2E7D32';
+    err.textContent='Link enviado para '+email+'. Veja a caixa de entrada (e o spam).';
+  }catch(e){
+    err.style.color='';
+    err.textContent=FIN_ERROS_LOGIN[e&&e.code]||('Não consegui enviar: '+(e&&e.code||e));
+  }
+};
 window.finEntrar=async function(){
   if(finEntrando)return;
   const email=(document.getElementById('fin-login-email').value||'').trim();
@@ -5902,6 +5922,62 @@ function finHtmlSemAcesso(){
       <button type="button" class="btn-sm" onclick="finSair()">Sair</button>
     </div>`;
 }
+
+// ── Liberar a própria conta, sem console ──
+// Escrever /acesso à mão no console do Firebase é o passo em que dá vontade
+// de desistir. Como as regras só fecham /acesso depois de publicadas, dá
+// para o próprio painel gravar a liberação enquanto a porta ainda está
+// aberta — e é o que este botão faz, para a conta que está logada e mais
+// nenhuma. A primeira conta liberada vira a dona do financeiro particular,
+// porque quem faz esta configuração é quem está montando o painel.
+function finPrecisaLiberar(){return !!finAuth&&!(finAcesso&&finAcesso.nome);}
+function finHtmlLiberar(){
+  const sugestao=(localStorage.getItem('painel_usuario')||'').trim()||'';
+  return `
+    <div class="fin-cofre" style="max-width:460px">
+      <i class="ti ti-key fin-cofre-icone"></i>
+      <div class="fin-cofre-titulo">Falta liberar esta conta</div>
+      <div class="fin-cofre-texto">
+        Você entrou como <b>${escTxt(finAuth.email||'')}</b>, mas ela ainda não está na lista de quem
+        pode ver o financeiro. Diga o seu nome e eu gravo a liberação — é o passo que evita ter que
+        mexer no console do Firebase.
+      </div>
+      <input class="fin-input" id="fin-liberar-nome" placeholder="Seu nome (ex: Shirley)" value="${esc(sugestao)}" onkeydown="if(event.key==='Enter')finLiberarConta()">
+      <div class="fin-cofre-erro" id="fin-liberar-erro"></div>
+      <button type="button" class="btn-save" id="fin-btn-liberar" onclick="finLiberarConta()">Liberar esta conta</button>
+      <div class="fin-mini" style="margin-top:14px">
+        Só funciona enquanto as regras do banco não estiverem publicadas. Depois disso, liberar uma
+        conta nova passa a ser tarefa do console — de propósito.
+      </div>
+    </div>`;
+}
+window.finLiberarConta=async function(){
+  const campo=document.getElementById('fin-liberar-nome');
+  const err=document.getElementById('fin-liberar-erro');
+  const btn=document.getElementById('fin-btn-liberar');
+  const nome=(campo.value||'').trim();
+  if(!nome){err.textContent='Diga o nome que deve aparecer no painel.';campo.focus();return;}
+  btn.disabled=true;btn.textContent='Liberando…';
+  try{
+    // Dona é quem chega primeiro: nesta altura, quem está configurando é a
+    // Shirley. Depois disso ninguém mais se promove por aqui.
+    const jaTem=await get(ref(db,'acesso'));
+    const primeira=!jaTem.exists();
+    const dados={nome,email:finAuth.email||'',criadoEm:new Date().toISOString()};
+    if(primeira)dados.dono=true;
+    await set(ref(db,'acesso/'+finAuth.uid),dados);
+    finAcesso=dados;
+    finOuvindo=false;
+    finLigarEscuta();
+    finToast(primeira?'Conta liberada como dona do financeiro.':'Conta liberada.');
+    renderFinanceiro();
+    const mp=document.getElementById('modal-meu-financeiro');
+    if(mp&&mp.classList.contains('open'))renderMeuFinanceiro();
+  }catch(e){
+    err.textContent='Não consegui gravar: as regras do banco já devem estar publicadas. Aí a liberação tem que ser feita no console (veja o FIREBASE.md).';
+    btn.disabled=false;btn.textContent='Liberar esta conta';
+  }
+};
 // ══════════════════════════════════════════════════════════════════════════
 // FINANCEIRO — a esteira do dinheiro do 20º
 //
@@ -6200,6 +6276,12 @@ function renderFinanceiro(){
     if(sub)sub.textContent='Escrituras pagas e pendentes, e quanto cabe a cada um no fechamento.';
     alvo.innerHTML=finAuthPronto?finHtmlLogin():'<div class="fin-vazio">Verificando…</div>';
     setTimeout(()=>{const i=document.getElementById('fin-login-email');if(i)i.focus();},60);
+    return;
+  }
+  if(finPrecisaLiberar()){
+    if(abas)abas.style.display='none';
+    alvo.innerHTML=finHtmlLiberar();
+    setTimeout(()=>{const i=document.getElementById('fin-liberar-nome');if(i)i.focus();},60);
     return;
   }
   if(abas)abas.style.display='';
@@ -6939,6 +7021,11 @@ function renderMeuFinanceiro(){
     sub.textContent='Salário do cartório e serviços extras — particular.';
     alvo.innerHTML=finAuthPronto?finHtmlLogin('Aqui são duas fechaduras: a conta do painel abre a porta, e a sua senha pessoal abre o cofre.'):'<div class="fin-vazio">Verificando…</div>';
     setTimeout(()=>{const i=document.getElementById('fin-login-email');if(i)i.focus();},60);
+    return;
+  }
+  if(finPrecisaLiberar()){
+    sub.textContent='Salário do cartório e serviços extras — particular.';
+    alvo.innerHTML=finHtmlLiberar();
     return;
   }
   if(finChaveMestra&&finCodigoNovo){alvo.innerHTML=finHtmlCodigo();return;}

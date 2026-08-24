@@ -16,20 +16,27 @@ Ainda em **Authentication** → *Users* → *Add user*. Uma para você e uma par
 a Grazi, com senhas que vocês escolherem. Copie o **UID** de cada uma (a
 coluna da direita).
 
-## 3. Liberar as contas no banco
+## 3. Liberar as contas — pelo próprio painel
 
-**Realtime Database** → *Data* → criar o nó `acesso` à mão:
+Não precisa mexer no banco à mão. Abra o painel, clique em **Financeiro** e
+entre com a conta recém-criada: como ela ainda não está liberada, aparece a
+tela **"Falta liberar esta conta"**. Escreva o nome e clique em
+**Liberar esta conta** — o painel grava o `/acesso/{uid}` sozinho.
+
+**A ordem importa:** a *primeira* conta liberada vira a dona do financeiro
+particular (`dono: true`). Faça a sua antes de avisar a Grazi.
+
+Isso só funciona enquanto as regras não estiverem publicadas — depois do
+passo 4, `/acesso` fica somente-leitura e liberar conta nova volta a ser
+tarefa do console:
 
 ```
 acesso
-  └─ COLE_AQUI_O_UID_DA_SHIRLEY
-       nome: "Shirley"
-       dono: true
-  └─ COLE_AQUI_O_UID_DA_GRAZI
+  └─ UID_DA_PESSOA
        nome: "Grazi"
 ```
 
-`dono: true` marca quem pode abrir o **Meu financeiro**. Só na sua conta.
+(`dono: true` só na sua linha.)
 
 ## 4. Publicar as regras
 
