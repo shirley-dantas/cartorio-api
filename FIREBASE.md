@@ -23,8 +23,11 @@ entre com a conta recém-criada: como ela ainda não está liberada, aparece a
 tela **"Falta liberar esta conta"**. Escreva o nome e clique em
 **Liberar esta conta** — o painel grava o `/acesso/{uid}` sozinho.
 
-**A ordem importa:** a *primeira* conta liberada vira a dona do financeiro
-particular (`dono: true`). Faça a sua antes de avisar a Grazi.
+Quem é a dona do financeiro particular não depende da ordem: o painel marca
+`dono: true` só na conta cujo e-mail está em `FIN_EMAIL_DONA` (hoje
+`cartorio@shirleydantas.com`). Qualquer outra conta se libera para o
+financeiro do escritório e nada mais. Se um dia esse e-mail mudar, troque a
+constante no `index.html` ou edite o `dono` pelo console.
 
 Isso só funciona enquanto as regras não estiverem publicadas — depois do
 passo 4, `/acesso` fica somente-leitura e liberar conta nova volta a ser

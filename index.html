@@ -5924,6 +5924,12 @@ function finHtmlSemAcesso(){
 }
 
 // ── Liberar a própria conta, sem console ──
+// A dona do financeiro particular é decidida pelo e-mail, não por quem
+// chegar primeiro: "primeiro a liberar vira dona" abriria uma corrida em que
+// a conta errada poderia levar o cofre da Shirley, e é justamente isso que o
+// painel inteiro existe para impedir.
+const FIN_EMAIL_DONA='cartorio@shirleydantas.com';
+function finEhEmailDaDona(){return (finAuth&&finAuth.email||'').trim().toLowerCase()===FIN_EMAIL_DONA;}
 // Escrever /acesso à mão no console do Firebase é o passo em que dá vontade
 // de desistir. Como as regras só fecham /acesso depois de publicadas, dá
 // para o próprio painel gravar a liberação enquanto a porta ainda está
@@ -5946,6 +5952,8 @@ function finHtmlLiberar(){
       <div class="fin-cofre-erro" id="fin-liberar-erro"></div>
       <button type="button" class="btn-save" id="fin-btn-liberar" onclick="finLiberarConta()">Liberar esta conta</button>
       <div class="fin-mini" style="margin-top:14px">
+        ${finEhEmailDaDona()?'Esta conta é a dona do financeiro particular — o <b>Meu financeiro</b> vai abrir só nela.'
+                            :'Esta conta entra no financeiro do escritório. O <b>Meu financeiro</b> continua fora do alcance dela.'}<br>
         Só funciona enquanto as regras do banco não estiverem publicadas. Depois disso, liberar uma
         conta nova passa a ser tarefa do console — de propósito.
       </div>
@@ -5959,17 +5967,14 @@ window.finLiberarConta=async function(){
   if(!nome){err.textContent='Diga o nome que deve aparecer no painel.';campo.focus();return;}
   btn.disabled=true;btn.textContent='Liberando…';
   try{
-    // Dona é quem chega primeiro: nesta altura, quem está configurando é a
-    // Shirley. Depois disso ninguém mais se promove por aqui.
-    const jaTem=await get(ref(db,'acesso'));
-    const primeira=!jaTem.exists();
+    const dona=finEhEmailDaDona();
     const dados={nome,email:finAuth.email||'',criadoEm:new Date().toISOString()};
-    if(primeira)dados.dono=true;
+    if(dona)dados.dono=true;
     await set(ref(db,'acesso/'+finAuth.uid),dados);
     finAcesso=dados;
     finOuvindo=false;
     finLigarEscuta();
-    finToast(primeira?'Conta liberada como dona do financeiro.':'Conta liberada.');
+    finToast(dona?'Conta liberada como dona do financeiro.':'Conta liberada.');
     renderFinanceiro();
     const mp=document.getElementById('modal-meu-financeiro');
     if(mp&&mp.classList.contains('open'))renderMeuFinanceiro();
