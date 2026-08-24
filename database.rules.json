@@ -1,0 +1,68 @@
+{
+  "rules": {
+    // ══════════════════════════════════════════════════════════════════════
+    // REGRAS DO BANCO — 20º Tabelião
+    //
+    // Antes: o banco inteiro respondia a quem soubesse o endereço. Agora só
+    // responde nos caminhos listados aqui — o que não está nesta lista é
+    // negado por padrão, inclusive caminho novo criado por engano.
+    //
+    // O painel operacional continua sem login de propósito: o bot do
+    // WhatsApp (api/salvar-caso.js) e o Apps Script das minutas escrevem
+    // por REST, sem conta nenhuma. Fechar /casos hoje derrubaria os dois.
+    // Para fechar também esses caminhos é preciso dar uma conta de serviço
+    // aos dois — está anotado no FIREBASE.md.
+    //
+    // O /financeiro é outra história: só o painel escreve nele, então ele
+    // exige conta e senha, e só de quem estiver em /acesso.
+    // ══════════════════════════════════════════════════════════════════════
+
+    // ── Quem tem acesso ao financeiro ──
+    // Escrito à mão no console do Firebase (o painel nunca escreve aqui).
+    //   /acesso/{uid} = { "nome": "Shirley", "dono": true }
+    //   /acesso/{uid} = { "nome": "Grazi" }
+    // "dono" marca quem pode abrir o cofre pessoal.
+    "acesso": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+
+    // ── O dinheiro ──
+    "financeiro": {
+      "lancamentos": {
+        ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+        ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+      },
+      "config": {
+        ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+        ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+      },
+      // O cofre pessoal já vai cifrado, mas nem o embrulho precisa circular:
+      // só a conta marcada como dona chega até ele.
+      "pessoal": {
+        ".read":  "auth != null && root.child('acesso').child(auth.uid).child('dono').val() === true",
+        ".write": "auth != null && root.child('acesso').child(auth.uid).child('dono').val() === true"
+      }
+    },
+
+    // ── Painel operacional (segue aberto — ver o aviso lá em cima) ──
+    "casos":                 { ".read": true, ".write": true },
+    "focos":                 { ".read": true, ".write": true },
+    "resolucoesCentral":     { ".read": true, ".write": true },
+    "lembretes":             { ".read": true, ".write": true },
+    "meta":                  { ".read": true, ".write": true },
+    "joaninha_perguntas":    { ".read": true, ".write": true },
+
+    // ── Minutas (Apps Script) ──
+    "jobs":                  { ".read": true, ".write": true },
+    "modelos":               { ".read": true, ".write": true },
+
+    // ── Bot do WhatsApp (api/salvar-caso.js) ──
+    "sessao_ativa":          { ".read": true, ".write": true },
+    "bot_ultimo_envio":      { ".read": true, ".write": true },
+    "mensagens_processadas": { ".read": true, ".write": true },
+    "log_webhook":           { ".read": true, ".write": true }
+  }
+}
