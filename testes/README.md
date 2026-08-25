@@ -6,8 +6,8 @@ em vez de manter uma cópia que envelheceria em silêncio.
 
 ```bash
 node testes/montar.mjs        # recorta o bloco e monta as páginas
-node testes/calculo.gerado.mjs   # a conta: 60 verificações, sem navegador
-node testes/navegador.mjs        # 22 caminhos completos no Chromium
+node testes/calculo.gerado.mjs   # a conta: 93 verificações, sem navegador
+node testes/navegador.mjs        # 24 caminhos completos no Chromium
 node testes/celular.mjs          # a mesma tela num iPhone 13
 ```
 
@@ -29,6 +29,11 @@ node testes/montar.mjs && node -e "import('./testes/servidor.mjs').then(m=>m.ser
   se recalcula quando um lançamento muda.
 - **celular** — que nada estoure a largura da tela e que a planilha role
   dentro da própria caixa.
+
+O quadro do dinheiro (a seção **O mês em dinheiro**) entra nas três: a conta
+dos fechamentos no `calculo`, o "não mostra valor sem login" e a leitura do
+ciclo no `navegador`, e a largura no `celular`. Para olhar o desenho dele com
+dois fechamentos no banco, abra o `preview-quadro.html` do mesmo servidor.
 
 ## Faz-de-conta
 

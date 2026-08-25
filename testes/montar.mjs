@@ -25,6 +25,12 @@ const atalho  = entre('<div class="fin-atalho-mobile">', '<div class="central-no
 // o bloco de código começa no comentário de acesso e termina no service worker
 const iJs = html.lastIndexOf('\n', html.indexOf('// ── Quem pode ver o dinheiro')) + 1;
 const codigo = html.slice(iJs, html.indexOf("\n\nif('serviceWorker' in navigator){"));
+// O quadro mora fora do bloco financeiro, mas os cartões do dinheiro se
+// penduram nele — daqui saem só os quatro ajudantes de que eles precisam
+// (o cartão, a legenda, o plural e o estado da tabela), recortados do mesmo
+// index.html pra não virarem cópia.
+const doQuadro = entre('let quadroTabela=false;', '// esc() do painel')
+               + entre('function dashPlural(', '// 1. ONDE OS CASOS TRAVAM');
 
 const fazDeContaNav = readFileSync(join(AQUI, 'faz-de-conta-navegador.js'), 'utf8');
 const fazDeContaNode = readFileSync(join(AQUI, 'faz-de-conta-node.js'), 'utf8');
@@ -34,16 +40,22 @@ const CABECA = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
 const FONTES = '<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">'
   + '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">';
 
-function pagina({fontes = '', corpo = '', semente = ''}) {
+function pagina({fontes = '', corpo = '', semente = '', rodape = ''}) {
   return CABECA + fontes + estilo + '</head><body><div class="nav-toast" id="nav-toast"></div>'
-    + corpo + markup + '<script type="module">' + fazDeContaNav + semente + codigo
+    + corpo + markup + '<script type="module">' + fazDeContaNav + semente + doQuadro + codigo + rodape
     + '\nwindow.__pronto=true;\n</script></body></html>';
 }
 
 // A casca do painel, com um card de mentira: é por ele que o teste digita o
 // número de controle e confere a faixa do financeiro.
+// O #cdc-quadro é o mesmo buraco em que o painel escreve o quadro: lá o
+// renderQuadro despeja o que finQuadroHtml() devolve, e aqui o teste despeja
+// a mesma coisa — sem arrastar os quatro cartões de casos, que não são deste
+// bloco.
 const casca = '<div class="app-shell"><aside class="sidebar"></aside><div class="main-area"><div class="container">'
-  + atalho + '<div class="central-nova"><div class="cx-fin" id="cartao-teste"></div></div></div></div></div>';
+  + atalho + '<div class="central-nova"><div class="cx-fin" id="cartao-teste"></div></div>'
+  + '<div class="modal-box" style="max-width:940px;margin-top:20px"><div id="cdc-quadro"></div></div>'
+  + '</div></div></div>';
 
 writeFileSync(join(AQUI, 'harness.html'), pagina({corpo: casca}));
 
@@ -51,6 +63,23 @@ writeFileSync(join(AQUI, 'harness.html'), pagina({corpo: casca}));
 // que a Shirley conferiu à mão. É com ele que se olha o desenho da tela.
 const semente = readFileSync(join(AQUI, 'fechamento-de-agosto.js'), 'utf8');
 writeFileSync(join(AQUI, 'preview.html'), pagina({fontes: FONTES, semente}));
+
+// O quadro do dinheiro, com dois fechamentos no banco — sem um mês anterior
+// não há evolução que desenhar. A senha do login de mentira é 'certa'.
+writeFileSync(join(AQUI, 'preview-quadro.html'), pagina({
+  fontes: FONTES,
+  // Sem a lateral do painel: no ar o quadro é um modal por cima da tela
+  // inteira, e desenhar num container estreito daria uma medida que não é a
+  // que ela vai ver.
+  corpo: '<div style="min-height:100vh;padding:26px 20px;display:flex;justify-content:center;align-items:flex-start;background:rgba(22,40,58,.35)">'
+    + '<div class="modal-box" style="max-width:940px;width:100%"><div class="modal-title">O quadro</div>'
+    + '<div class="modal-sub">Como estamos indo — os casos ativos lidos em quatro cortes, e o fechamento em dinheiro.</div>'
+    + '<div id="cdc-quadro"></div></div></div>',
+  semente: semente + readFileSync(join(AQUI, 'fechamento-de-julho.js'), 'utf8'),
+  rodape: `
+await signInWithEmailAndPassword(auth,'cartorio@shirleydantas.com','certa');
+setTimeout(()=>{document.getElementById('cdc-quadro').innerHTML=finQuadroHtml();},60);
+`}));
 
 // E a versão sem navegador, para as verificações de conta.
 writeFileSync(join(AQUI, 'calculo.gerado.mjs'),
