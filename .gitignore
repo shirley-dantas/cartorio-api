@@ -1,1 +1,5 @@
 node_modules/
+testes/harness.html
+testes/preview.html
+testes/*.gerado.mjs
+testes/saida/
