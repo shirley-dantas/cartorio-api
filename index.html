@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Equipe Prime">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Inter:wght@400;500;600&family=Caprasimo&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Inter:wght@400;500;600&family=Caprasimo&family=Cormorant+Garamond:ital,wght@0,300;0,500;0,600;1,400&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="stylesheet" href="design-system/mascots/joaninha/joaninha.css">
 <style>
@@ -1310,6 +1310,189 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   .fin-arranjo-topo .arr-nome{width:100%}
   .fin-item-acoes .btn-sm{flex:1}
 }
+
+/* ══ A REDE ═══════════════════════════════════════════════════════════
+   A prospecção. Vive dentro de um modal como o Meu financeiro, e como ele
+   só abre para a conta dona — aqui moram nome, profissão e endereço de
+   cliente, lidos das minutas.
+
+   A letra é outra de propósito, e só aqui dentro: serifa de alto contraste
+   no título (Cormorant), serifa de tela no texto (Spectral) e o Inter
+   guardado para número, botão e etiqueta. O resto do painel não muda.
+   ═════════════════════════════════════════════════════════════════════ */
+.rede{
+  --r-fundo:#F2EFE9; --r-sup:#FFFFFF; --r-sup-2:#FAF8F4;
+  --r-linha:#E6E0D5; --r-linha-forte:#D8D0C1;
+  --r-tinta:#1F2A33; --r-tinta-2:#5B6B78; --r-tinta-3:#6B7680;
+  --r-champagne:#A9895A; --r-petroleo:#16283A; --r-petroleo-2:#1F3B4D;
+  --r-atencao:#8A5A0B; --r-ok:#2F7A4F;
+  --br-verde:#009C3B; --br-verde-fundo:#0A5B2A;
+  --br-amarelo:#FFDF00; --br-azul:#002776; --br-azul-fundo:#001B4D;
+  --rf-titulo:'Cormorant Garamond',Georgia,serif;
+  --rf-texto:'Spectral',Georgia,serif;
+  --rf-dado:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-family:var(--rf-texto);font-size:15px;line-height:1.6;color:var(--r-tinta);
+}
+.rede p{text-wrap:pretty}
+
+.rede-abas{display:flex;gap:4px;background:var(--r-sup-2);border:1px solid var(--r-linha);
+  border-radius:999px;padding:4px;margin-bottom:18px}
+.rede-aba{flex:1;appearance:none;border:none;background:none;cursor:pointer;
+  font-family:var(--rf-dado);font-size:12px;font-weight:600;color:var(--r-tinta-3);
+  padding:9px 4px;border-radius:999px;transition:background .15s,color .15s}
+.rede-aba:hover{color:var(--r-tinta)}
+.rede-aba.on{background:var(--r-sup);color:var(--r-tinta);box-shadow:0 1px 2px rgba(31,42,51,.07)}
+.rede-aba:focus-visible{outline:2px solid var(--r-champagne);outline-offset:2px}
+@media(max-width:420px){.rede-aba{font-size:11px;padding:9px 2px}}
+
+.rede-rotulo{display:flex;align-items:baseline;gap:10px;margin:0 0 13px;flex-wrap:wrap}
+.rede-rotulo h3{font-family:var(--rf-titulo);font-weight:600;font-size:16px;letter-spacing:.2em;
+  text-transform:uppercase;text-indent:.2em;margin:0;font-variant-numeric:lining-nums}
+.rede-rotulo .cont{font-family:var(--rf-dado);font-size:11px;color:var(--r-tinta-3);font-variant-numeric:tabular-nums}
+
+.rede-vazio{background:var(--r-sup-2);border:1px dashed var(--r-linha-forte);border-radius:14px;
+  padding:22px 18px;text-align:center}
+.rede-vazio b{display:block;font-family:var(--rf-titulo);font-size:21px;font-weight:600;margin-bottom:6px}
+.rede-vazio span{font-size:14px;color:var(--r-tinta-3)}
+
+/* ── card de pessoa ── */
+.rede-fila{display:flex;flex-direction:column;gap:13px}
+.rp{background:var(--r-sup);border:1px solid var(--r-linha);border-radius:14px;padding:15px}
+.rp.fora{background:var(--r-sup-2);opacity:.75}
+.rp-topo{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.rp-nome{font-family:var(--rf-titulo);font-weight:500;font-size:27px;line-height:1.08;margin:0;
+  font-variant-numeric:lining-nums}
+.rp-ato{flex-shrink:0;background:var(--r-sup-2);border:1px solid var(--r-linha-forte);border-radius:999px;
+  padding:5px 11px;font-family:var(--rf-dado);font-size:9.5px;font-weight:600;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--r-tinta-2)}
+.rp-meta{font-family:var(--rf-dado);font-size:11px;color:var(--r-tinta-3);margin:0 0 12px}
+.rp-qualif{background:var(--r-sup-2);border:1px solid var(--r-linha);border-radius:10px;padding:4px 11px 8px}
+.rp-linha{display:grid;grid-template-columns:76px 1fr auto;gap:9px;align-items:baseline;
+  padding:6px 0;border-bottom:1px solid var(--r-linha)}
+.rp-linha:last-child{border-bottom:none}
+.rp-rot{font-family:var(--rf-dado);font-size:9px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--r-tinta-3)}
+.rp-val{font-size:14px;line-height:1.45;min-width:0;word-break:break-word}
+.rp-val .vazio{color:var(--r-atencao);font-weight:600}
+.rp-corr{display:inline-flex;align-items:center;gap:3px;margin-left:6px;font-family:var(--rf-dado);
+  font-size:9.5px;font-weight:600;color:var(--r-ok);white-space:nowrap}
+.rp-lapis{appearance:none;background:none;border:none;cursor:pointer;padding:3px;border-radius:6px;
+  color:var(--r-tinta-3);line-height:0;flex-shrink:0}
+.rp-lapis:hover{background:var(--r-linha);color:var(--r-tinta)}
+.rp-lapis:focus-visible{outline:2px solid var(--r-champagne);outline-offset:1px}
+.rp-editor{display:flex;gap:6px;align-items:center;flex-wrap:wrap;grid-column:2 / -1}
+.rp-editor input,.rede-area{flex:1;min-width:130px;font-family:var(--rf-texto);font-size:14px;
+  padding:6px 9px;border:1px solid var(--r-champagne);border-radius:7px;background:var(--r-sup);
+  color:var(--r-tinta);outline:none}
+.rede-area{width:100%;min-height:64px;resize:vertical;margin:10px 0 8px}
+.rp-motivo{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.5;margin:11px 0 12px}
+.rp-motivo i{color:var(--r-champagne);font-size:15px;flex-shrink:0;margin-top:2px}
+.rp-fonte{display:block;margin-top:8px;padding-top:7px;border-top:1px solid var(--r-linha);
+  font-family:var(--rf-dado);font-size:10px;color:var(--r-tinta-3)}
+.rp-acoes{display:flex;flex-wrap:wrap;gap:7px}
+.rbt{appearance:none;cursor:pointer;font-family:var(--rf-dado);font-size:12px;font-weight:600;
+  border-radius:9px;padding:9px 12px;display:inline-flex;align-items:center;gap:6px}
+.rbt:focus-visible{outline:2px solid var(--r-champagne);outline-offset:2px}
+.rbt-1{background:var(--r-petroleo);color:#fff;border:1px solid var(--r-petroleo)}
+.rbt-1:hover{background:var(--r-petroleo-2)}
+.rbt-2{background:var(--r-sup);color:var(--r-tinta);border:1px solid var(--r-linha-forte)}
+.rbt-2:hover{background:var(--r-sup-2)}
+.rbt-3{background:none;color:var(--r-tinta-3);border:1px solid transparent}
+.rbt-3:hover{background:var(--r-sup-2);color:var(--r-tinta)}
+.rp-nota{margin-top:11px;background:#F6F2EA;border-left:3px solid var(--r-champagne);
+  border-radius:0 9px 9px 0;padding:9px 11px}
+.rp-nota .cab{font-family:var(--rf-dado);font-size:9px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--r-champagne);margin-bottom:3px}
+.rp-nota p{margin:0;font-style:italic;font-size:13.5px;line-height:1.45}
+
+/* ── construtoras ── */
+.re{background:var(--r-sup);border:1px solid var(--r-linha);border-radius:14px;padding:15px;margin-bottom:12px}
+.re-nome{font-family:var(--rf-titulo);font-weight:600;font-size:22px;line-height:1.12;margin:0 0 2px}
+.re-meta{font-family:var(--rf-dado);font-size:11px;color:var(--r-tinta-3);margin:0 0 12px}
+.re-pes{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--r-linha)}
+.re-pes:last-child{border-bottom:none}
+.re-corpo{flex:1;min-width:0}
+.re-pnome{font-family:var(--rf-titulo);font-weight:600;font-size:17px;line-height:1.2;display:block}
+.re-cargo{font-size:13px;color:var(--r-tinta-2);display:block;line-height:1.4}
+.re-cont{font-family:var(--rf-dado);font-size:10px;color:var(--r-tinta-3);display:block;margin-top:2px;
+  font-variant-numeric:tabular-nums}
+.rselo{flex-shrink:0;font-family:var(--rf-dado);font-size:9px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;padding:4px 8px;border-radius:999px;white-space:nowrap}
+.rselo-novo{background:#FBF0DC;color:var(--r-atencao)}
+.rselo-teia{background:#E8F1E9;color:var(--r-ok)}
+.rselo-fora{background:var(--r-sup-2);color:var(--r-tinta-3);border:1px solid var(--r-linha)}
+.re-lupa{flex-shrink:0;appearance:none;cursor:pointer;background:var(--r-petroleo);border:1px solid var(--r-petroleo);
+  color:#fff;border-radius:8px;padding:7px 8px;line-height:0}
+.re-lupa:hover{background:var(--r-petroleo-2)}
+.rede-duv{background:var(--r-sup-2);border:1px dashed var(--r-linha-forte);border-radius:14px;padding:14px 15px}
+.rede-duv h4{font-family:var(--rf-titulo);font-weight:600;font-size:15px;letter-spacing:.14em;
+  text-transform:uppercase;margin:0 0 4px}
+.rede-duv>p{margin:0 0 10px;font-size:13px;color:var(--r-tinta-3)}
+.rede-fora-teia{margin-top:14px;padding-top:12px;border-top:1px solid var(--r-linha);
+  font-family:var(--rf-dado);font-size:11px;color:var(--r-tinta-3);line-height:1.6}
+
+/* ── mapa ── */
+.rede-mapa{background:var(--br-azul-fundo);border-radius:16px;overflow:hidden;border:1px solid #0A2E6B}
+.rede-mapa-barra{display:flex;align-items:center;gap:10px;padding:11px 13px;
+  border-bottom:1px solid rgba(255,223,0,.16);flex-wrap:wrap}
+.rede-onde{font-family:var(--rf-titulo);font-weight:600;font-size:17px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--br-amarelo);margin:0;flex:1;min-width:0;
+  font-variant-numeric:lining-nums}
+.rede-onde small{display:block;font-family:var(--rf-dado);font-weight:400;font-size:10.5px;
+  letter-spacing:0;text-transform:none;color:#9FB4D6;margin-top:3px}
+.rede-voltar{appearance:none;cursor:pointer;background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,223,0,.3);color:var(--br-amarelo);border-radius:8px;padding:6px 10px;
+  font-family:var(--rf-dado);font-size:11px;font-weight:600}
+.rede-voltar:hover{background:rgba(255,223,0,.14)}
+#rede-svg{display:block;width:100%;height:auto;max-height:56vh}
+.rede-uf{fill:var(--br-verde-fundo);stroke:#0E7A38;stroke-width:.7;cursor:pointer;transition:fill .18s}
+.rede-uf:hover{fill:#12874A}
+.rede-uf.tem{fill:var(--br-verde)}
+.rede-uf.forte{fill:var(--br-amarelo)}
+.rede-uf.sel{stroke:#fff;stroke-width:1.6}
+.rede-uf:focus{outline:none}
+.rede-uf:focus-visible{outline:none;stroke:#fff;stroke-width:2.2}
+.rede-pin circle{fill:var(--br-amarelo);stroke:var(--br-azul);stroke-width:1}
+.rede-pin .fio{stroke:rgba(255,223,0,.5);fill:none}
+.rede-pin text{font-family:'Inter',sans-serif;font-weight:600;fill:#FFF4C2;
+  font-variant-numeric:tabular-nums;paint-order:stroke;stroke:rgba(0,27,77,.92);
+  stroke-width:2.8;stroke-linejoin:round}
+.rede-pin.abre{cursor:pointer}
+.rede-zona{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:13px;
+  letter-spacing:.26em;fill:rgba(255,223,0,.5);text-anchor:middle}
+.rede-anel{fill:none;stroke:rgba(255,223,0,.13);stroke-width:1}
+.rede-eixo{stroke:rgba(255,223,0,.08);stroke-width:1}
+.rede-legenda{display:flex;flex-wrap:wrap;gap:7px 16px;padding:12px 14px;border-top:1px solid rgba(255,223,0,.16)}
+.rede-leg{display:inline-flex;align-items:center;gap:6px;font-family:var(--rf-dado);font-size:11px;color:#C3D2EA}
+.rede-leg i{width:11px;height:11px;border-radius:3px;flex-shrink:0;display:inline-block}
+.rede-mlista{margin-top:14px;background:var(--r-sup);border:1px solid var(--r-linha);border-radius:14px;padding:4px 13px}
+.rede-mitem{display:flex;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid var(--r-linha);font-size:14px}
+.rede-mitem:last-child{border-bottom:none}
+.rede-mitem b{font-weight:500;flex:1}
+.rede-mbarra{width:60px;height:6px;border-radius:999px;background:var(--r-linha);overflow:hidden;flex-shrink:0}
+.rede-mbarra i{display:block;height:100%;background:var(--r-champagne);border-radius:999px}
+.rede-mqtd{font-family:var(--rf-dado);font-size:11px;color:var(--r-tinta-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ── lista ── */
+.rede-rolo{overflow-x:auto;background:var(--r-sup);border:1px solid var(--r-linha);border-radius:14px}
+.rede-tab{border-collapse:collapse;width:100%;min-width:780px;font-size:13.5px}
+.rede-tab thead th{text-align:left;font-family:var(--rf-dado);font-size:9px;font-weight:600;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--r-tinta-3);padding:11px 13px;
+  border-bottom:1px solid var(--r-linha);white-space:nowrap;background:var(--r-sup-2)}
+.rede-tab td{padding:11px 13px;border-bottom:1px solid var(--r-linha);vertical-align:top}
+.rede-tab tr:last-child td{border-bottom:none}
+.rede-tab .nome{font-family:var(--rf-titulo);font-weight:600;font-size:16px;white-space:nowrap;
+  font-variant-numeric:lining-nums}
+.rede-tab .sub{display:block;font-family:var(--rf-dado);font-size:10px;color:var(--r-tinta-3);margin-top:2px}
+.rpill{display:inline-block;font-family:var(--rf-dado);font-size:9.5px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.rpill-olhar{background:#FBF0DC;color:var(--r-atencao)}
+.rpill-anotado{background:#E8F1E9;color:var(--r-ok)}
+.rpill-conversado{background:#E5EDF6;color:#2A6099}
+.rpill-fora{background:var(--r-sup-2);color:var(--r-tinta-3);border:1px solid var(--r-linha)}
+.rede-nota{font-size:13.5px;color:var(--r-tinta-3);margin:14px 2px 0;line-height:1.55}
+.rede-rodape{margin-top:16px;padding-top:13px;border-top:1px solid var(--r-linha);
+  font-family:var(--rf-dado);font-size:10.5px;color:var(--r-tinta-3);line-height:1.6}
 </style>
 </head>
 <body>
@@ -1356,7 +1539,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <button type="button" class="sidebar-item" onclick="abrirFinanceiro()"><i class="ti ti-currency-dollar"></i><span>Financeiro</span></button>
     <button type="button" class="sidebar-item" id="sidebar-meu-financeiro" style="display:none" onclick="abrirMeuFinanceiro()"><i class="ti ti-lock"></i><span>Meu financeiro</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Relatórios')"><i class="ti ti-chart-bar"></i><span>Relatórios</span><span class="em-breve">em breve</span></button>
-    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Contatos')"><i class="ti ti-users"></i><span>Contatos</span><span class="em-breve">em breve</span></button>
+    <button type="button" class="sidebar-item" id="sidebar-rede" style="display:none" onclick="abrirRede()"><i class="ti ti-affiliate"></i><span>Rede</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Configurações')"><i class="ti ti-settings"></i><span>Configurações</span><span class="em-breve">em breve</span></button>
   </nav>
 </aside>
@@ -1367,6 +1550,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <button type="button" class="fin-atalho" onclick="abrirFinanceiro()"><i class="ti ti-currency-dollar"></i><span>Financeiro</span></button>
     <button type="button" class="fin-atalho" id="fin-atalho-meu" style="display:none" onclick="abrirMeuFinanceiro()"><i class="ti ti-lock"></i><span>Meu financeiro</span></button>
     <button type="button" class="fin-atalho" onclick="abrirQuadro()"><i class="ti ti-chart-histogram"></i><span>O quadro</span></button>
+    <button type="button" class="fin-atalho" id="fin-atalho-rede" style="display:none" onclick="abrirRede()"><i class="ti ti-affiliate"></i><span>Rede</span></button>
   </div>
   <div class="central-nova">
 
@@ -1844,6 +2028,18 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="modal-title"><i class="ti ti-lock" style="font-size:15px;vertical-align:-2px;color:#C9A876"></i> Meu financeiro</div>
     <div class="modal-sub" id="meu-fin-sub">Salário do cartório e serviços extras — particular.</div>
     <div id="meu-fin-conteudo"></div>
+  </div>
+</div>
+
+<!-- A Rede — prospecção. Mesma tranca do Meu financeiro (conta dona), e
+     pelo mesmo motivo: aqui moram nome, profissão e endereço de cliente,
+     lidos das minutas do Drive. -->
+<div class="modal-overlay" id="modal-rede">
+  <div class="modal-box" style="max-width:820px">
+    <button class="modal-close" onclick="fecharRede()">&times;</button>
+    <div class="modal-title"><i class="ti ti-affiliate" style="font-size:15px;vertical-align:-2px;color:#C9A876"></i> Rede</div>
+    <div class="modal-sub" id="rede-sub">Quem você já atendeu e ainda não virou conversa.</div>
+    <div class="rede" id="rede-conteudo"></div>
   </div>
 </div>
 
@@ -8068,6 +8264,788 @@ atualizarSidebarFinanceiro();
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
 }
+
+// ══ A REDE ═══════════════════════════════════════════════════════════════
+// A prospecção: quem já foi atendido e nunca virou conversa.
+//
+// Mora depois do registro do service worker de propósito. O testes/montar.mjs
+// recorta o bloco do financeiro do começo dele até esta linha, e a Rede não
+// tem por que entrar naquele recorte — ela tem teste próprio.
+//
+// O que a Rede NÃO faz: não entra no LinkedIn, não raspa perfil, não guarda
+// CPF. O botão só abre a busca pelo nome numa aba nova; quem olha o perfil,
+// as conexões em comum e decide falar é a Shirley.
+//
+// De onde vêm os dados: quem varre as minutas é o Apps Script
+// (apps-script/cartorio-drive-api.js, função varrerRede), que escreve em
+// /rede/pessoas. Este arquivo só lê, e grava de volta as três coisas que são
+// dela: a correção à mão, a anotação e a situação.
+//
+//   /rede/pessoas/{id}          id = impressão digital do CPF (o número não
+//                                    vem para cá — fica na minuta, no Drive)
+//     nome, cargo, empresa, origem, bairro, cidade, uf
+//     ramo: 'sim' | 'nao' | 'duvidoso'      ← julgado na leitura
+//     motivo                                ← por que vale a conversa
+//     atos, primeira, ultima, ultimoAto
+//     correcoes: {campo: valor}             ← dela; a leitura nunca sobrescreve
+//     situacao: 'olhar' | 'anotado' | 'conversado' | 'fora'
+//     anotacao
+//   /rede/meta/ultimaVarredura
+// ═════════════════════════════════════════════════════════════════════════
+
+const REDE_NA_FILA = 3;
+const REDE_CAMPOS = [
+  {k:'cargo',   r:'O que faz'},
+  {k:'empresa', r:'Onde'},
+  {k:'origem',  r:'De onde veio'},
+  {k:'bairro',  r:'Bairro'}
+];
+
+let redePessoas = {};
+let redeMeta = {};
+// A Rede lê o /acesso por conta própria em vez de esperar o finAcesso do
+// financeiro. Os dois ouvem o mesmo onAuthStateChanged, e quem chegasse
+// primeiro decidia: dava para a Shirley entrar e ver "a Rede é só da
+// Shirley", porque o desenho acontecia antes de a liberação ter sido lida.
+let redeAcesso = null;
+let redeLendoAcesso = null;
+// O onValue devolve a função que desliga a escuta. Sem guardar isso, trocar
+// de conta deixava o ouvinte anterior pendurado no banco — com o token de
+// outra pessoa e escrevendo por cima do que a conta nova acabou de ler.
+let redeDesligar = [];
+let redeOuvindo = false;
+let redeAba = 'fila';
+let redeUFDados = null;
+let redeMapaNivel = 'brasil';
+let redeMapaUF = null;
+
+// O esc() do painel só cuida de aspas, que basta para atributo. Aqui entra
+// nome de cliente lido de documento, e isso vai para dentro do texto da
+// página — precisa dos sinais de maior e menor também.
+function redeEsc(v){
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+// A correção dela vale mais que a leitura da máquina, sempre.
+function redeValor(p, campo){
+  if(p && p.correcoes && p.correcoes[campo] != null && p.correcoes[campo] !== '') return p.correcoes[campo];
+  return (p && p[campo]) || '';
+}
+function redeFoiCorrigido(p, campo){
+  return !!(p && p.correcoes && p.correcoes[campo] != null && p.correcoes[campo] !== '');
+}
+function redeLista(){
+  return Object.keys(redePessoas).map(id => Object.assign({id}, redePessoas[id]));
+}
+function redeDataCurta(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d)) return String(iso);
+  return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+}
+function redePlural(n, um, muitos){ return n + ' ' + (n === 1 ? um : muitos); }
+
+function redeRef(){ return ref(db,'rede/pessoas'); }
+
+function redeEhDona(){ return !!(redeAcesso && redeAcesso.dono === true); }
+
+// Devolve a mesma promessa enquanto a leitura estiver em curso, para dois
+// caminhos ao mesmo tempo (abrir a aba e trocar de conta) não pedirem duas.
+function redeGarantirAcesso(){
+  if(!finAuth){ redeAcesso = null; return Promise.resolve(); }
+  if(redeAcesso) return Promise.resolve();
+  if(redeLendoAcesso) return redeLendoAcesso;
+  redeLendoAcesso = get(ref(db,'acesso/' + finAuth.uid))
+    .then(snap => { redeAcesso = snap.val() || {}; })
+    .catch(() => { redeAcesso = {}; })
+    .finally(() => { redeLendoAcesso = null; });
+  return redeLendoAcesso;
+}
+
+function redeSoltarEscuta(){
+  redeDesligar.forEach(f => { try{ f(); }catch(e){} });
+  redeDesligar = [];
+  redeOuvindo = false;
+}
+
+function redeLigarEscuta(){
+  if(redeOuvindo || !finAuth || !redeEhDona()) return;
+  redeOuvindo = true;
+  redeDesligar.push(onValue(redeRef(), snap => {
+    redePessoas = snap.val() || {};
+    if(document.getElementById('modal-rede').classList.contains('open')) renderRede();
+  }, () => {
+    // Sem permissão: a tela explica, em vez de ficar vazia sem motivo.
+    redeOuvindo = false;
+    const alvo = document.getElementById('rede-conteudo');
+    if(alvo) alvo.innerHTML = finHtmlSemAcesso();
+  }));
+  redeDesligar.push(onValue(ref(db,'rede/meta'), snap => { redeMeta = snap.val() || {}; }, () => {}));
+}
+
+window.abrirRede = async function(){
+  document.getElementById('modal-rede').classList.add('open');
+  renderRede();
+  await redeGarantirAcesso();
+  redeLigarEscuta();
+  renderRede();
+};
+window.fecharRede = function(){
+  document.getElementById('modal-rede').classList.remove('open');
+};
+window.redeTrocarAba = function(qual){
+  redeAba = qual;
+  renderRede();
+};
+
+function renderRede(){
+  const alvo = document.getElementById('rede-conteudo');
+  const sub = document.getElementById('rede-sub');
+  if(!alvo) return;
+
+  if(!finAuth){
+    sub.textContent = 'Quem você já atendeu e ainda não virou conversa.';
+    alvo.innerHTML = finHtmlLogin('A Rede tem nome, profissão e endereço de cliente, lidos das minutas. Por isso ela pede conta e senha, como o Meu financeiro.');
+    return;
+  }
+  if(!redeEhDona()){
+    sub.textContent = 'Quem você já atendeu e ainda não virou conversa.';
+    alvo.innerHTML = `
+      <div class="fin-cofre">
+        <i class="ti ti-lock fin-cofre-icone"></i>
+        <div class="fin-cofre-titulo">A Rede é só da Shirley</div>
+        <div class="fin-cofre-texto">Diferente do Financeiro, este caminho abre só para a conta dona — é o que as regras do banco dizem.</div>
+      </div>`;
+    return;
+  }
+
+  const todos = redeLista();
+  const quando = redeMeta && redeMeta.ultimaVarredura
+    ? 'última leitura em ' + redeDataCurta(redeMeta.ultimaVarredura)
+    : 'a leitura ainda não passou';
+  sub.textContent = redePlural(todos.length, 'pessoa lida', 'pessoas lidas') + ' · ' + quando;
+
+  const aba = (id, rotulo) =>
+    `<button type="button" class="rede-aba${redeAba===id?' on':''}" onclick="redeTrocarAba('${id}')">${rotulo}</button>`;
+
+  let corpo;
+  if(redeAba === 'fila') corpo = redeHtmlFila(todos);
+  else if(redeAba === 'constr') corpo = redeHtmlConstrutoras(todos);
+  else if(redeAba === 'mapa') corpo = redeHtmlMapa(todos);
+  else corpo = redeHtmlListaTudo(todos);
+
+  alvo.innerHTML =
+    `<div class="rede-abas">${aba('fila','A fila')}${aba('constr','Construtoras')}${aba('mapa','Mapa')}${aba('lista','Lista')}</div>` +
+    corpo +
+    `<div class="rede-rodape">
+       O botão do LinkedIn só abre a busca pelo nome — nenhum robô entra lá dentro.
+       CPF e RG não moram aqui: ficam na minuta, no Drive.
+     </div>`;
+
+  if(redeAba === 'mapa') redeMontarMapa(todos);
+}
+
+// ── A fila ──────────────────────────────────────────────────────────────
+// Três por dia, não uma lista de cento e tantos: lista grande é lista que
+// ninguém abre. Sobe quem assinou mais recentemente — com o traslado na mão
+// a pessoa está satisfeita, e é a melhor hora de falar.
+function redeHtmlFila(todos){
+  const fila = todos
+    .filter(p => p.ramo === 'sim' && (p.situacao || 'olhar') === 'olhar')
+    .sort((a,b) => String(b.ultima||'').localeCompare(String(a.ultima||'')) || (b.atos||0) - (a.atos||0))
+    .slice(0, REDE_NA_FILA);
+
+  if(!todos.length){
+    return `<div class="rede-vazio">
+      <b>A leitura ainda não passou</b>
+      <span>Quando o Apps Script varrer as minutas do Drive, as pessoas aparecem aqui.</span>
+    </div>`;
+  }
+  if(!fila.length){
+    return `<div class="rede-vazio">
+      <b>Fila vazia por hoje</b>
+      <span>Ninguém do ramo esperando. Veja a Lista para o resto.</span>
+    </div>`;
+  }
+
+  const anotadas = todos.filter(p => (p.situacao||'') === 'anotado').length;
+  const foraDoRamo = todos.filter(p => p.ramo === 'nao').length;
+
+  return `
+    <div class="rede-rotulo">
+      <h3>Vale os seus 2 minutos</h3>
+      <span class="cont">${fila.length} de ${todos.length} · refeita toda manhã</span>
+    </div>
+    <div class="rede-fila">${fila.map(redeHtmlCard).join('')}</div>
+    <p class="rede-nota">
+      ${redePlural(foraDoRamo,'pessoa está','pessoas estão')} fora do ramo e
+      ${redePlural(anotadas,'já foi anotada','já foram anotadas')} — nenhuma some, todas ficam na Lista.
+    </p>`;
+}
+
+function redeHtmlCard(p){
+  const linhas = REDE_CAMPOS.map(c => {
+    const v = redeValor(p, c.k);
+    const corr = redeFoiCorrigido(p, c.k)
+      ? '<span class="rp-corr"><i class="ti ti-check"></i>corrigido à mão</span>' : '';
+    const txt = v ? redeEsc(v) + corr : '<span class="vazio">não consta na minuta</span>' + corr;
+    return `<div class="rp-linha" id="rl-${redeEsc(p.id)}-${c.k}">
+      <span class="rp-rot">${c.r}</span>
+      <span class="rp-val">${txt}</span>
+      <button type="button" class="rp-lapis" title="Corrigir" aria-label="Corrigir ${c.r}" onclick="redeEditar('${redeEsc(p.id)}','${c.k}')"><i class="ti ti-pencil"></i></button>
+    </div>`;
+  }).join('');
+
+  const nota = p.anotacao ? `
+    <div class="rp-nota">
+      <div class="cab">Sua anotação</div>
+      <p>${redeEsc(p.anotacao)}</p>
+    </div>` : '';
+
+  const atos = (p.atos || 1) > 1
+    ? redePlural(p.atos, 'ato', 'atos') + ' com você'
+    : (p.ultimoAto || 'Escritura');
+
+  return `
+    <article class="rp">
+      <div class="rp-topo">
+        <h4 class="rp-nome">${redeEsc(p.nome)}</h4>
+        <span class="rp-ato">${redeEsc(atos)}</span>
+      </div>
+      <p class="rp-meta">${p.ultima ? 'última em ' + redeDataCurta(p.ultima) : ''}${p.primeira && p.primeira !== p.ultima ? ' · primeira em ' + redeDataCurta(p.primeira) : ''}</p>
+      <div class="rp-qualif">
+        ${linhas}
+        <span class="rp-fonte">Qualificação da minuta · pasta do Drive</span>
+      </div>
+      ${p.motivo ? `<p class="rp-motivo"><i class="ti ti-sparkles"></i><span>${redeEsc(p.motivo)}</span></p>` : ''}
+      ${nota}
+      <div class="rp-acoes" style="margin-top:11px">
+        <button type="button" class="rbt rbt-1" onclick="redeLinkedin('${redeEsc(p.id)}')"><i class="ti ti-brand-linkedin"></i>Abrir no LinkedIn</button>
+        <button type="button" class="rbt rbt-2" onclick="redeAnotar('${redeEsc(p.id)}')"><i class="ti ti-pencil"></i>Anotar o que achei</button>
+        <button type="button" class="rbt rbt-3" onclick="redeDispensar('${redeEsc(p.id)}')">Não é caso</button>
+      </div>
+      <div id="rede-nota-${redeEsc(p.id)}"></div>
+    </article>`;
+}
+
+// ── As construtoras ─────────────────────────────────────────────────────
+// Cadastro único: cada pessoa entra uma vez. Quem já está aqui não é relido
+// na próxima varredura — só ganha mais um ato no contador.
+function redeHtmlConstrutoras(todos){
+  const porEmpresa = {};
+  todos.forEach(p => {
+    const e = redeValor(p, 'empresa');
+    if(!e || p.ramo === 'nao') return;
+    (porEmpresa[e] = porEmpresa[e] || []).push(p);
+  });
+  const empresas = Object.keys(porEmpresa).sort((a,b) => porEmpresa[b].length - porEmpresa[a].length);
+  const duvidosos = todos.filter(p => p.ramo === 'duvidoso');
+
+  if(!empresas.length && !duvidosos.length){
+    return `<div class="rede-vazio">
+      <b>Nenhuma empresa ainda</b>
+      <span>As pessoas das construtoras aparecem aqui quando a leitura passar pelas minutas de empreendimento.</span>
+    </div>`;
+  }
+
+  const cartaoEmpresa = nome => {
+    const gente = porEmpresa[nome].slice().sort((a,b) => (b.atos||0) - (a.atos||0));
+    const novos = gente.filter(p => (p.atos||1) <= 1).length;
+    return `
+      <article class="re">
+        <h4 class="re-nome">${redeEsc(nome)}</h4>
+        <p class="re-meta">${redePlural(gente.length,'pessoa','pessoas')}${novos ? ' · ' + novos + ' novo' + (novos>1?'s':'') : ''}</p>
+        ${gente.map(p => `
+          <div class="re-pes">
+            <div class="re-corpo">
+              <span class="re-pnome">${redeEsc(p.nome)}</span>
+              <span class="re-cargo">${redeEsc(redeValor(p,'cargo') || 'cargo não consta')}</span>
+              <span class="re-cont">${redePlural(p.atos||1,'escritura lida','escrituras lidas')}${p.primeira ? ' · primeira vez em ' + redeDataCurta(p.primeira) : ''}</span>
+            </div>
+            <span class="rselo ${(p.atos||1) > 1 ? 'rselo-teia' : 'rselo-novo'}">${(p.atos||1) > 1 ? 'na teia' : 'novo'}</span>
+            <button type="button" class="re-lupa" title="Abrir no LinkedIn" aria-label="Abrir ${redeEsc(p.nome)} no LinkedIn" onclick="redeLinkedin('${redeEsc(p.id)}')"><i class="ti ti-brand-linkedin"></i></button>
+          </div>`).join('')}
+      </article>`;
+  };
+
+  const bloco = duvidosos.length ? `
+    <div class="rede-duv">
+      <h4>Os duvidosos</h4>
+      <p>Cargo que a leitura não soube julgar. Ficam de lado para você bater o olho, em vez de sumirem calados.</p>
+      ${duvidosos.map(p => `
+        <div class="re-pes">
+          <div class="re-corpo">
+            <span class="re-pnome">${redeEsc(p.nome)}</span>
+            <span class="re-cargo">${redeEsc(redeValor(p,'cargo') || 'profissão em branco na minuta')}</span>
+          </div>
+          <button type="button" class="rbt rbt-2" onclick="redeMarcarRamo('${redeEsc(p.id)}','sim')">É do ramo</button>
+          <button type="button" class="rbt rbt-3" onclick="redeMarcarRamo('${redeEsc(p.id)}','nao')">Não é</button>
+        </div>`).join('')}
+    </div>` : '';
+
+  return `
+    <div class="rede-rotulo">
+      <h3>Cadastro único</h3>
+      <span class="cont">cada pessoa entra uma vez só</span>
+    </div>
+    ${empresas.map(cartaoEmpresa).join('')}
+    ${bloco}
+    <p class="rede-fora-teia">
+      <b>Nunca entram na teia:</b> você e o substituto do tabelião, que assinam toda
+      minuta, e as serventias que aparecem como cartório do ato. Quem já está
+      cadastrado não é relido — só ganha mais um ato no contador.
+    </p>`;
+}
+
+// ── A lista ─────────────────────────────────────────────────────────────
+function redeHtmlListaTudo(todos){
+  if(!todos.length){
+    return `<div class="rede-vazio"><b>Nada lido ainda</b><span>A varredura das minutas ainda não rodou.</span></div>`;
+  }
+  const pill = p => {
+    if(p.ramo === 'nao') return '<span class="rpill rpill-fora">Fora do ramo</span>';
+    if(p.ramo === 'duvidoso') return '<span class="rpill rpill-fora">Duvidoso</span>';
+    const s = p.situacao || 'olhar';
+    if(s === 'anotado') return '<span class="rpill rpill-anotado">Anotado</span>';
+    if(s === 'conversado') return '<span class="rpill rpill-conversado">Conversado</span>';
+    if(s === 'fora') return '<span class="rpill rpill-fora">Não é caso</span>';
+    return '<span class="rpill rpill-olhar">A olhar</span>';
+  };
+  const ordenado = todos.slice().sort((a,b) =>
+    String(b.ultima||'').localeCompare(String(a.ultima||'')));
+
+  return `
+    <div class="rede-rotulo">
+      <h3>Todas as conexões</h3>
+      <span class="cont">${redePlural(todos.length,'pessoa','pessoas')} · ${todos.filter(p=>p.ramo==='sim').length} do ramo</span>
+    </div>
+    <div class="rede-rolo">
+      <table class="rede-tab">
+        <thead><tr><th>Pessoa</th><th>O que faz</th><th>De onde veio</th><th>Onde mora</th><th>Ato</th><th>Situação</th></tr></thead>
+        <tbody>
+          ${ordenado.map(p => `
+            <tr>
+              <td class="nome">${redeEsc(p.nome)}</td>
+              <td>${redeEsc(redeValor(p,'cargo') || 'não consta')}${redeValor(p,'empresa') ? `<span class="sub">${redeEsc(redeValor(p,'empresa'))}</span>` : ''}</td>
+              <td>${redeEsc(redeValor(p,'origem') || 'direto')}</td>
+              <td>${redeEsc(redeValor(p,'bairro') || 'não consta')}${p.cidade ? `<span class="sub">${redeEsc(p.cidade)}${p.uf ? ', ' + redeEsc(p.uf) : ''}</span>` : ''}</td>
+              <td>${redeEsc(p.ultimoAto || '—')}<span class="sub">${redeDataCurta(p.ultima)}</span></td>
+              <td>${pill(p)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <p class="rede-nota">Quem está <b>fora do ramo</b> não some: continua no mapa e nesta lista, só não ocupa a sua fila da manhã.</p>`;
+}
+
+// ── O mapa ──────────────────────────────────────────────────────────────
+// Não é globo: os casos são quase todos de São Paulo, e num globo cada pino
+// cairia no mesmo ponto. Aqui o Brasil abre por estado, o estado mostra as
+// cidades e a capital desce para os bairros.
+//
+// Duas honestidades no desenho:
+// 1. No nível do estado o pino fica no meio do estado, com o total. Não
+//    existe coordenada de cidade aqui, e inventar posição seria mentir a
+//    geografia — as cidades vêm nomeadas na lista abaixo do mapa.
+// 2. No nível da capital não existe desenho de bairro disponível, então o
+//    mapa vira uma rosa dos ventos: cada bairro fica no rumo certo em
+//    relação ao centro. Bairro que não está na tabela de rumos aparece na
+//    lista, sem pino — em vez de ganhar um lugar inventado.
+
+// Rumo de cada bairro em relação ao centro. Serve só para o esquema.
+const REDE_RUMOS = {
+  'santana':[0,-1],'tucuruvi':[0,-1.25],'casa verde':[-.4,-1],'vila guilherme':[.3,-.9],
+  'freguesia do o':[-.6,-1],'jacana':[.2,-1.25],'horto florestal':[.15,-1.3],
+  'tatuape':[1,-.15],'mooca':[.85,.15],'penha':[1.2,-.35],'itaquera':[1.35,.1],
+  'vila prudente':[.95,.5],'sao miguel paulista':[1.4,-.2],'belem':[.7,-.05],
+  'anhangabau':[0,0],'centro':[0,0],'se':[0,.05],'republica':[-.1,-.05],'bela vista':[-.05,.25],
+  'liberdade':[.1,.3],'consolacao':[-.25,.05],'higienopolis':[-.3,-.2],'santa cecilia':[-.25,-.1],
+  'pinheiros':[-.8,.05],'itaim bibi':[-.6,.35],'vila olimpia':[-.5,.5],'moema':[-.25,.65],
+  'vila mariana':[.1,.6],'ipiranga':[.5,.7],'saude':[.15,.8],'jabaquara':[.2,1.05],
+  'santo amaro':[-.35,1.05],'brooklin':[-.45,.8],'campo belo':[-.3,.85],'morumbi':[-.95,.55],
+  'vila andrade':[-.9,.8],'butanta':[-1.05,.25],'lapa':[-.8,-.45],'perdizes':[-.5,-.25],
+  'pompeia':[-.6,-.3],'vila leopoldina':[-1,-.35],'boacava':[-.95,-.3],'alto de pinheiros':[-.95,-.15],
+  'jardim paulista':[-.35,.25],'jardins':[-.35,.2],'paraiso':[0,.4],'aclimacao':[.2,.4],
+  'barra funda':[-.45,-.5],'agua branca':[-.6,-.45],'cambuci':[.35,.35],'tremembe':[.05,-1.35]
+};
+function redeChave(t){
+  return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+function redeRumo(bairro){ return REDE_RUMOS[redeChave(bairro)] || null; }
+
+function redeHtmlMapa(){
+  return `
+    <div class="rede-rotulo">
+      <h3>O mapa</h3>
+      <span class="cont">toque num estado para abrir</span>
+    </div>
+    <div class="rede-mapa">
+      <div class="rede-mapa-barra">
+        <h4 class="rede-onde" id="rede-onde">Brasil <small id="rede-onde-sub">carregando…</small></h4>
+        <button type="button" class="rede-voltar" id="rede-voltar" style="display:none" onclick="redeVoltarMapa()">‹ Voltar</button>
+      </div>
+      <svg id="rede-svg" viewBox="0 0 613 639" role="img" aria-label="Mapa do Brasil por estado. A mesma informação está escrita na aba Lista."></svg>
+      <div class="rede-legenda">
+        <span class="rede-leg"><i style="background:#FFDF00"></i>Onde você tem mais gente</span>
+        <span class="rede-leg"><i style="background:#009C3B"></i>Tem alguém</span>
+        <span class="rede-leg"><i style="background:#0A5B2A"></i>Nunca atendeu</span>
+      </div>
+    </div>
+    <div class="rede-mlista" id="rede-mlista"></div>
+    <p class="rede-nota" id="rede-mnota"></p>`;
+}
+
+async function redeMontarMapa(todos){
+  const svg = document.getElementById('rede-svg');
+  if(!svg) return;
+  if(!redeUFDados){
+    try{
+      const r = await fetch('lib/br-uf.json');
+      redeUFDados = await r.json();
+    }catch(e){
+      document.getElementById('rede-onde-sub').textContent = 'não consegui carregar o desenho dos estados';
+      return;
+    }
+    if(!document.getElementById('rede-svg')) return;
+  }
+  redeMapaNivel = 'brasil';
+  redeMapaUF = null;
+  redeDesenharUFs(todos);
+  redeVerBrasil(todos);
+}
+
+function redePorUF(todos){
+  const c = {};
+  todos.forEach(p => { const u = (p.uf||'').toUpperCase(); if(u) c[u] = (c[u]||0) + 1; });
+  return c;
+}
+
+function redeDesenharUFs(todos){
+  const svg = document.getElementById('rede-svg');
+  const NS = 'http://www.w3.org/2000/svg';
+  svg.textContent = '';
+  const conta = redePorUF(todos);
+  // Amarelo é o estado com mais gente, seja qual for o número: um corte fixo
+  // deixaria o mapa todo verde enquanto a leitura ainda é pequena.
+  const maior = Math.max.apply(null, [0].concat(Object.keys(conta).map(k => conta[k])));
+  const gUF = document.createElementNS(NS,'g');
+  const gPin = document.createElementNS(NS,'g');
+  gPin.setAttribute('id','rede-pins');
+  svg.appendChild(gUF); svg.appendChild(gPin);
+
+  redeUFDados.ufs.forEach(u => {
+    const n = conta[u.id] || 0;
+    const path = document.createElementNS(NS,'path');
+    path.setAttribute('d', u.d);
+    path.setAttribute('class', 'rede-uf' + (n ? ' tem' : '') + (n && n === maior ? ' forte' : ''));
+    path.setAttribute('tabindex','0');
+    path.setAttribute('role','button');
+    path.setAttribute('aria-label', u.nome + (n ? ' — ' + redePlural(n,'pessoa','pessoas') : ' — nenhum caso'));
+    path.dataset.uf = u.id;
+    path.addEventListener('click', () => redeVerUF(u.id, todos));
+    path.addEventListener('keydown', ev => {
+      if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); redeVerUF(u.id, todos); }
+    });
+    gUF.appendChild(path);
+  });
+}
+
+function redeIrPara(vb){
+  const svg = document.getElementById('rede-svg');
+  if(svg) svg.setAttribute('viewBox', vb.join(' '));
+}
+function redeComFolga(bb, f){
+  const m = f == null ? .12 : f;
+  return [bb[0]-bb[2]*m, bb[1]-bb[3]*m, bb[2]*(1+m*2), bb[3]*(1+m*2)];
+}
+function redePinos(itens, escala){
+  const NS = 'http://www.w3.org/2000/svg';
+  const g = document.getElementById('rede-pins');
+  if(!g) return;
+  g.textContent = '';
+  itens.forEach(it => {
+    const grupo = document.createElementNS(NS,'g');
+    grupo.setAttribute('class','rede-pin' + (it.abre ? ' abre' : ''));
+    const r = Math.max(2, Math.sqrt(it.n) * .6) * escala;
+    if(it.dx || it.dy){
+      const fio = document.createElementNS(NS,'line');
+      fio.setAttribute('x1',it.x); fio.setAttribute('y1',it.y);
+      fio.setAttribute('x2',it.x + it.dx*escala); fio.setAttribute('y2',it.y + it.dy*escala);
+      fio.setAttribute('class','fio'); fio.setAttribute('stroke-width', .6*escala);
+      grupo.appendChild(fio);
+    }
+    const c = document.createElementNS(NS,'circle');
+    c.setAttribute('cx',it.x); c.setAttribute('cy',it.y); c.setAttribute('r',r);
+    grupo.appendChild(c);
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x', it.x + (it.dx||0)*escala + (it.lado==='end' ? -2*escala : it.lado==='start' ? 2*escala : 0));
+    t.setAttribute('y', it.y + (it.dy||0)*escala + (it.lado==='middle' ? (it.dy<0 ? -1*escala : 3.4*escala) : 1.4*escala));
+    t.setAttribute('text-anchor', it.lado || 'middle');
+    t.setAttribute('font-size', 4.6*escala);
+    t.textContent = it.nome + ' · ' + it.n;
+    grupo.appendChild(t);
+    if(it.abre) grupo.addEventListener('click', ev => { ev.stopPropagation(); it.abre(); });
+    g.appendChild(grupo);
+  });
+}
+function redeMLista(itens, rotulo, nota){
+  const alvo = document.getElementById('rede-mlista');
+  const eNota = document.getElementById('rede-mnota');
+  if(eNota) eNota.innerHTML = nota || '';
+  if(!alvo) return;
+  if(!itens.length){ alvo.innerHTML = '<div class="rede-mitem"><b>Nenhum caso aqui ainda.</b></div>'; return; }
+  const max = Math.max.apply(null, itens.map(i => i.n));
+  alvo.innerHTML = itens.slice().sort((a,b)=>b.n-a.n).map(i =>
+    `<div class="rede-mitem"><b>${redeEsc(i.nome)}</b>
+       <span class="rede-mbarra"><i style="width:${Math.round(i.n/max*100)}%"></i></span>
+       <span class="rede-mqtd">${redePlural(i.n,rotulo[0],rotulo[1])}</span></div>`).join('');
+}
+
+function redeVerBrasil(todos){
+  redeMapaNivel = 'brasil'; redeMapaUF = null;
+  const svg = document.getElementById('rede-svg');
+  if(svg) svg.querySelectorAll('.rede-uf').forEach(p => p.classList.remove('sel'));
+  const g = document.getElementById('rede-pins'); if(g) g.textContent = '';
+  redeIrPara([0,0,613,639]);
+  const conta = redePorUF(todos);
+  const nomes = {};
+  (redeUFDados ? redeUFDados.ufs : []).forEach(u => nomes[u.id] = u.nome);
+  const itens = Object.keys(conta).map(id => ({nome: nomes[id] || id, n: conta[id]}));
+  document.getElementById('rede-onde').childNodes[0].nodeValue = 'Brasil ';
+  document.getElementById('rede-onde-sub').textContent =
+    redePlural(todos.filter(p=>p.uf).length,'pessoa','pessoas') + ' em ' + redePlural(itens.length,'estado','estados');
+  document.getElementById('rede-voltar').style.display = 'none';
+  redeMLista(itens, ['pessoa','pessoas'], '');
+}
+
+function redeVerUF(id, todos){
+  const u = redeUFDados.ufs.filter(x => x.id === id)[0];
+  if(!u) return;
+  redeMapaNivel = 'uf'; redeMapaUF = id;
+  const svg = document.getElementById('rede-svg');
+  svg.querySelectorAll('.rede-uf').forEach(p => p.classList.toggle('sel', p.dataset.uf === id));
+  const daUF = todos.filter(p => (p.uf||'').toUpperCase() === id);
+  const vb = redeComFolga(u.bb);
+  redeIrPara(vb);
+  const escala = Math.max(vb[2], vb[3]) / 613 * 3.6;
+
+  const porCidade = {};
+  daUF.forEach(p => { const c = p.cidade || 'cidade não consta'; porCidade[c] = (porCidade[c]||0)+1; });
+  const cidades = Object.keys(porCidade).map(c => ({nome:c, n:porCidade[c]}));
+  const capital = Object.keys(porCidade).filter(c => redeChave(c) === 'sao paulo')[0];
+
+  redePinos(daUF.length ? [{
+    nome: u.nome, n: daUF.length,
+    x: u.bb[0] + u.bb[2]/2, y: u.bb[1] + u.bb[3]/2,
+    dx: 6, dy: 0, lado: 'start',
+    abre: (id === 'SP' && capital) ? (() => redeVerCapital(todos)) : null
+  }] : [], escala);
+
+  document.getElementById('rede-onde').childNodes[0].nodeValue = u.nome + ' ';
+  document.getElementById('rede-onde-sub').textContent =
+    redePlural(daUF.length,'pessoa','pessoas') + ' · ' + redePlural(cidades.length,'cidade','cidades');
+  document.getElementById('rede-voltar').style.display = '';
+  redeMLista(cidades, ['pessoa','pessoas'],
+    (id === 'SP' && capital) ? 'Toque no pino de São Paulo para descer aos bairros da capital.' : '');
+}
+
+function redeVerCapital(todos){
+  redeMapaNivel = 'capital';
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('rede-svg');
+  const daCapital = todos.filter(p => redeChave(p.cidade) === 'sao paulo');
+  const porBairro = {};
+  daCapital.forEach(p => {
+    const b = redeValor(p,'bairro') || 'bairro não consta';
+    porBairro[b] = (porBairro[b]||0)+1;
+  });
+
+  svg.textContent = '';
+  const gFundo = document.createElementNS(NS,'g');
+  const gPin = document.createElementNS(NS,'g'); gPin.setAttribute('id','rede-pins');
+  svg.appendChild(gFundo); svg.appendChild(gPin);
+  redeIrPara([0,0,400,330]);
+
+  const cx = 200, cy = 168;
+  [148,100,52].forEach(r => {
+    const e = document.createElementNS(NS,'ellipse');
+    e.setAttribute('cx',cx); e.setAttribute('cy',cy);
+    e.setAttribute('rx',r); e.setAttribute('ry',r*.84);
+    e.setAttribute('class','rede-anel'); gFundo.appendChild(e);
+  });
+  [[cx-152,cy,cx+152,cy],[cx,cy-130,cx,cy+130]].forEach(l => {
+    const e = document.createElementNS(NS,'line');
+    e.setAttribute('x1',l[0]); e.setAttribute('y1',l[1]);
+    e.setAttribute('x2',l[2]); e.setAttribute('y2',l[3]);
+    e.setAttribute('class','rede-eixo'); gFundo.appendChild(e);
+  });
+  [['NORTE',cx,30],['LESTE',cx+150,cy+4],['SUL',cx,320],['OESTE',cx-150,cy+4]].forEach(z => {
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x',z[1]); t.setAttribute('y',z[2]); t.setAttribute('class','rede-zona');
+    t.textContent = z[0]; gFundo.appendChild(t);
+  });
+
+  const comRumo = [], semRumo = [];
+  Object.keys(porBairro).forEach(b => {
+    const r = redeRumo(b);
+    if(r) comRumo.push({nome:b, n:porBairro[b], rumo:r});
+    else semRumo.push({nome:b, n:porBairro[b]});
+  });
+
+  redePinos(comRumo.map(b => {
+    const x = cx + b.rumo[0]*115, y = cy + b.rumo[1]*105;
+    const esq = x < cx;
+    return {nome:b.nome, n:b.n, x, y, dx: esq ? -8 : 8, dy: 2, lado: esq ? 'end' : 'start'};
+  }), 1.9);
+
+  document.getElementById('rede-onde').childNodes[0].nodeValue = 'São Paulo, capital ';
+  document.getElementById('rede-onde-sub').textContent =
+    redePlural(daCapital.length,'pessoa','pessoas') + ' · ' + redePlural(Object.keys(porBairro).length,'bairro','bairros') + ' · esquema por região';
+  document.getElementById('rede-voltar').style.display = '';
+  redeMLista(comRumo.concat(semRumo), ['pessoa','pessoas'],
+    semRumo.length
+      ? '<b>' + redePlural(semRumo.length,'bairro ficou','bairros ficaram') + ' sem pino</b> — não estão na tabela de rumos, e um lugar inventado no mapa seria pior que nenhum. Estão nomeados na lista acima.'
+      : 'O esquema é por região, não a planta da cidade: cada bairro fica no rumo certo em relação ao centro.');
+}
+
+window.redeVoltarMapa = function(){
+  const todos = redeLista();
+  if(redeMapaNivel === 'capital'){ redeDesenharUFs(todos); redeVerUF('SP', todos); }
+  else { redeVerBrasil(todos); }
+};
+
+// ── O que ela grava ─────────────────────────────────────────────────────
+window.redeLinkedin = function(id){
+  const p = redePessoas[id];
+  if(!p) return;
+  // Só a busca pelo nome. Nenhum robô entra no LinkedIn: quem olha o perfil,
+  // vê as conexões em comum e decide falar é ela.
+  const alvo = 'https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(p.nome || '');
+  window.open(alvo, '_blank', 'noopener');
+};
+
+window.redeEditar = function(id, campo){
+  const linha = document.getElementById('rl-' + id + '-' + campo);
+  if(!linha || linha.querySelector('.rp-editor')) return;
+  const val = linha.querySelector('.rp-val');
+  const lapis = linha.querySelector('.rp-lapis');
+  const atual = redeValor(redePessoas[id], campo);
+
+  const cx = document.createElement('div');
+  cx.className = 'rp-editor';
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.value = atual; inp.setAttribute('aria-label','Novo valor');
+  const ok = document.createElement('button');
+  ok.type = 'button'; ok.className = 'rbt rbt-1'; ok.textContent = 'Salvar';
+  const nao = document.createElement('button');
+  nao.type = 'button'; nao.className = 'rbt rbt-2'; nao.textContent = 'Cancelar';
+  cx.appendChild(inp); cx.appendChild(ok); cx.appendChild(nao);
+  val.style.display = 'none'; lapis.style.display = 'none';
+  linha.appendChild(cx);
+  inp.focus(); inp.select();
+
+  const fechar = () => { cx.remove(); val.style.display = ''; lapis.style.display = ''; };
+  const salvar = async () => {
+    const novo = inp.value.trim();
+    try{
+      await update(ref(db,'rede/pessoas/' + id + '/correcoes'), {[campo]: novo});
+      finToast('Corrigido.');
+    }catch(e){ finToast('Não consegui salvar: ' + (e && e.code || e)); fechar(); }
+    // o onValue redesenha
+  };
+  ok.addEventListener('click', salvar);
+  nao.addEventListener('click', fechar);
+  inp.addEventListener('keydown', ev => {
+    if(ev.key === 'Enter') salvar();
+    if(ev.key === 'Escape') fechar();
+  });
+};
+
+window.redeAnotar = function(id){
+  const caixa = document.getElementById('rede-nota-' + id);
+  if(!caixa || caixa.querySelector('textarea')) return;
+  const p = redePessoas[id] || {};
+  caixa.innerHTML = `
+    <textarea class="rede-area" id="rede-ta-${redeEsc(id)}" placeholder="O que você viu no LinkedIn? Ex.: é gerente na Coelho da Fonseca, combinei de mandar a tabela de custas.">${redeEsc(p.anotacao||'')}</textarea>
+    <div class="rp-acoes">
+      <button type="button" class="rbt rbt-1" onclick="redeSalvarNota('${redeEsc(id)}')">Salvar anotação</button>
+      <button type="button" class="rbt rbt-3" onclick="document.getElementById('rede-nota-${redeEsc(id)}').innerHTML=''">Cancelar</button>
+    </div>`;
+  const ta = document.getElementById('rede-ta-' + id);
+  if(ta) ta.focus();
+};
+
+window.redeSalvarNota = async function(id){
+  const ta = document.getElementById('rede-ta-' + id);
+  if(!ta) return;
+  const txt = ta.value.trim();
+  try{
+    await update(ref(db,'rede/pessoas/' + id), {
+      anotacao: txt,
+      situacao: txt ? 'anotado' : 'olhar'
+    });
+    finToast(txt ? 'Anotado.' : 'Anotação apagada.');
+  }catch(e){ finToast('Não consegui salvar: ' + (e && e.code || e)); }
+};
+
+window.redeDispensar = async function(id){
+  try{
+    await update(ref(db,'rede/pessoas/' + id), {situacao:'fora'});
+    finToast('Fora da fila. Continua na Lista.');
+  }catch(e){ finToast('Não consegui salvar: ' + (e && e.code || e)); }
+};
+
+// O duvidoso decidido à mão vira correção: a próxima varredura não desfaz.
+window.redeMarcarRamo = async function(id, valor){
+  try{
+    await update(ref(db,'rede/pessoas/' + id), {ramo: valor, ramoManual: true});
+    finToast(valor === 'sim' ? 'Entrou na fila.' : 'Fora do ramo.');
+  }catch(e){ finToast('Não consegui salvar: ' + (e && e.code || e)); }
+};
+
+// ── Entrada pela lateral ────────────────────────────────────────────────
+// Como o Meu financeiro: o botão só aparece para quem se identificou como
+// Shirley. É conforto, não segurança — quem for atrás do botão escondido
+// esbarra nas regras do banco do mesmo jeito.
+function atualizarSidebarRede(){
+  const mostra = finEhShirley() ? '' : 'none';
+  const b = document.getElementById('sidebar-rede');
+  if(b) b.style.display = mostra;
+  const m = document.getElementById('fin-atalho-rede');
+  if(m) m.style.display = mostra;
+}
+window.atualizarSidebarRede = atualizarSidebarRede;
+const _redeDefinirIdentidade = window.definirIdentidade;
+window.definirIdentidade = function(nome){
+  // Guardado porque este bloco é recortado sozinho pelos testes, onde o
+  // definirIdentidade do painel não existe: sem o guarda, trocar de nome
+  // derrubaria a página inteira por causa da Rede.
+  if(typeof _redeDefinirIdentidade === 'function') _redeDefinirIdentidade(nome);
+  atualizarSidebarRede();
+};
+atualizarSidebarRede();
+
+// Entrar ou sair da conta redesenha a Rede, se ela estiver aberta.
+onAuthStateChanged(auth, async () => {
+  // Conta nova, leitura nova: o que estava em memória era da conta anterior.
+  redeSoltarEscuta();
+  redeAcesso = null;
+  redePessoas = {};
+  redeMeta = {};
+  const m = document.getElementById('modal-rede');
+  if(!(m && m.classList.contains('open'))) return;
+  renderRede();
+  await redeGarantirAcesso();
+  redeLigarEscuta();
+  renderRede();
+});
+
+// Exposto porque os manipuladores em linha do modal chamam por nome, e é
+// por ele que o teste redesenha depois de mexer no banco de mentira.
+window.renderRede = renderRede;
+
+
 </script>
 </body>
 </html>

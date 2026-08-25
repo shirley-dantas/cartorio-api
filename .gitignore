@@ -1,5 +1,6 @@
 node_modules/
 testes/harness.html
+testes/harness-rede.html
 testes/preview.html
 testes/preview-quadro.html
 testes/*.gerado.mjs

@@ -7,16 +7,25 @@ import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
-const TIPOS = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.png': 'image/png'};
+const TIPOS = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.png': 'image/png',
+  '.json': 'application/json; charset=utf-8'};
+// A Rede busca lib/br-uf.json — o desenho dos estados — como o painel no ar
+// busca. Esse arquivo mora na raiz do projeto, não aqui, então quando o nome
+// não estiver em testes/ o servidor procura um andar acima.
+const RAIZ = join(AQUI, '..');
 
 export function servir(porta = 8199) {
   const s = createServer((req, res) => {
     const nome = (req.url || '/').split('?')[0].replace(/^\//, '') || 'harness.html';
-    try {
-      const corpo = readFileSync(join(AQUI, nome));
-      res.writeHead(200, {'Content-Type': TIPOS[nome.slice(nome.lastIndexOf('.'))] || 'text/plain'});
+    const tipo = TIPOS[nome.slice(nome.lastIndexOf('.'))] || 'text/plain';
+    let corpo = null;
+    for (const base of [AQUI, RAIZ]) {
+      try { corpo = readFileSync(join(base, nome)); break; } catch { /* tenta o próximo */ }
+    }
+    if (corpo) {
+      res.writeHead(200, {'Content-Type': tipo});
       res.end(corpo);
-    } catch {
+    } else {
       res.writeHead(404).end('não achei');
     }
   });

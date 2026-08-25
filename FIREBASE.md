@@ -61,6 +61,43 @@ https://painel-cartorio-default-rtdb.firebaseio.com/financeiro.json
 Antes isso devolvia os valores. Agora tem que devolver
 `{ "error" : "Permission denied" }`.
 
+## 6. A Rede (prospecção)
+
+O `/rede` é fechado como o cofre pessoal: **só a conta dona** lê e escreve, nem
+a Grazi entra. Como as regras do passo 4 já trazem esse caminho, do lado do
+painel não há nada a fazer — a aba aparece na lateral e funciona.
+
+Falta o outro lado: quem lê as minutas do Drive e enche o `/rede`. É o
+`apps-script/cartorio-rede.js`, e ele mora **no mesmo projeto do Apps Script**
+das minutas, porque usa o `PASTA_RAIZ_ID` e o `FIREBASE_URL` de lá.
+
+1. Em script.google.com, abra o projeto `cartorio-drive-api` → **Arquivo › Novo
+   › Script**, nome `cartorio-rede`, e cole o conteúdo do arquivo.
+2. **Configurações do projeto › Propriedades do script**, adicione:
+   `REDE_CHAVE` = um texto longo e aleatório. É a chave que embaralha o CPF.
+   Escolha uma e **não troque**: trocar faz todo mundo virar gente nova e o
+   cadastro duplicar.
+3. Ainda em Configurações, marque **"Mostrar arquivo de manifesto
+   appsscript.json"** e acrescente em `oauthScopes`:
+
+   ```
+   "https://www.googleapis.com/auth/firebase.database",
+   "https://www.googleapis.com/auth/userinfo.email"
+   ```
+
+   É isso que permite gravar num caminho fechado sem criar conta de serviço: o
+   token sai da sua própria conta, que é dona do projeto do Firebase. Sem esses
+   escopos, tudo volta 401 — e a mensagem de erro do script diz exatamente isso.
+4. Rode `varrerRede()` uma vez, na mão, e aceite a permissão nova. Veja o
+   resultado em **Execuções**. A primeira rodada demora (lê tudo); as seguintes
+   são rápidas, porque quem já foi lido não é lido de novo.
+5. Rode `criarGatilhoDaRede()` uma vez, e a varredura passa a acontecer sozinha
+   toda madrugada.
+
+Se precisar recomeçar do zero, `zerarRede()` apaga o cadastro — **e leva junto
+as correções e anotações feitas à mão na tela**. As minutas no Drive não são
+tocadas.
+
 ## O que ainda fica aberto, e por quê
 
 `/casos`, `/jobs`, `/modelos` e os caminhos do bot continuam sem exigir conta

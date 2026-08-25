@@ -47,6 +47,19 @@
       }
     },
 
+    // ── A Rede (prospecção) ──
+    // Mesma tranca do cofre pessoal, e pelo mesmo motivo: aqui moram nomes,
+    // profissões e endereços de clientes, lidos das minutas. Só a conta dona
+    // lê e escreve — nem a Grazi, que abre o Financeiro, chega neste caminho.
+    //
+    // Quem varre as minutas (apps-script/cartorio-drive-api.js) NÃO passa por
+    // estas regras: ele escreve com a chave da conta de serviço, que age como
+    // administrador. Ver FIREBASE.md.
+    "rede": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).child('dono').val() === true",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).child('dono').val() === true"
+    },
+
     // ── Painel operacional (segue aberto — ver o aviso lá em cima) ──
     "casos":                 { ".read": true, ".write": true },
     "focos":                 { ".read": true, ".write": true },
