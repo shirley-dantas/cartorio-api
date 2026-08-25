@@ -1144,6 +1144,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .fin-pessoa-num{margin-left:auto;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:#2E7D32}
 .fin-pessoa-barra{display:flex;gap:14px;margin-top:8px;font-size:11.5px;color:#636366;flex-wrap:wrap}
 .fin-pessoa-barra b{font-variant-numeric:tabular-nums;color:#1C1C1E}
+.fin-pessoa-nota{font-size:11.5px;color:#6B6B70;line-height:1.5;margin-top:7px;padding:7px 10px;
+  background:#FAF8F4;border-radius:9px;border:0.5px solid #F0EBE1}
+.fin-pessoa-nota.com-ir{background:#FFF8E7;border-color:#F0DFB8;color:#7A5B12}
+.fin-pessoa-nota b{color:#1C1C1E}
 .fin-pessoa-linha{display:grid;grid-template-columns:1.4fr .9fr auto auto auto;gap:7px;align-items:center;margin-bottom:7px}
 .fin-cfg-cab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E8EA0;font-family:'Jost',sans-serif}
 .fin-arranjo{background:#fff;border:0.5px solid #E9E4DA;border-radius:12px;padding:10px 12px;margin-bottom:8px}
@@ -1205,11 +1209,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .fin-ic.del:hover{color:#C62828;border-color:#FFCDD2}
 /* O total vem antes dos nomes: é a primeira coisa que se olha no
    fechamento, e no rodapé ele ficava a quinze linhas de distância. */
-.fin-planilha .fin-total td{padding:11px 10px;border-bottom:1px solid #DCD5C8;font-weight:600;
-  background:#F4F0E7;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13px;
+/* Vermelho porque é a linha que se procura ao abrir o fechamento: no bege
+   de todo o painel ela some, e no vermelho o olho vai direto. */
+.fin-planilha .fin-total td{padding:11px 10px;border-bottom:1px solid #F1B0AB;font-weight:700;
+  background:#FDECEA;color:#B3261E;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13.5px;
   position:sticky;top:36px;z-index:2}
 .fin-planilha .fin-total td:first-child{font-family:'Jost',sans-serif;font-size:10px;letter-spacing:.12em;
-  text-transform:uppercase;font-weight:400;color:#8E8EA0}
+  text-transform:uppercase;font-weight:500;color:#C0392B}
 .fin-linha-detalhe td{background:#FAF8F4;padding:0 10px 12px}
 /* Segmentado bruto/líquido: dois estados, sem menu. */
 .fin-seg{display:inline-flex;border:0.5px solid #D1D1D6;border-radius:9px;overflow:hidden;background:#F5F5F7}
@@ -1222,7 +1228,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   .fin-planilha{min-width:640px;font-size:12px}
   .fin-col-nome{position:sticky;left:0;background:#fff;z-index:1;min-width:150px;box-shadow:1px 0 0 #F3F0EA}
   .fin-planilha tbody tr:hover .fin-col-nome{background:#FAF8F4}
-  .fin-planilha .fin-total td:first-child{position:sticky;left:0;background:#F4F0E7;z-index:3}
+  .fin-planilha .fin-total td:first-child{position:sticky;left:0;background:#FDECEA;z-index:3}
   .fin-planilha th.fin-col-nome{background:#FAF8F4;z-index:3}
   .fin-acoes-linha{opacity:1}
 }
@@ -6746,9 +6752,7 @@ function finApuracao(){
 }
 function finHtmlPessoas(){
   const ap=finApuracao();
-  // Shirley e Grazi já têm coluna própria na planilha; repetir as duas aqui
-  // era ler o mesmo número duas vezes. Esta aba ficou sendo o que só ela faz:
-  // quanto cabe a cada parceiro e o que ainda não foi repassado.
+  const equipe=ap.pessoas.filter(m=>m.pessoa.tipo!=='parceiro');
   const parceiros=ap.pessoas.filter(m=>m.pessoa.tipo==='parceiro');
   const bloco=(m)=>{
     const aRepassar=finCent(m.liquido-m.repassado);
@@ -6761,6 +6765,9 @@ function finHtmlPessoas(){
           </div>
           <div class="fin-pessoa-num">${finMoeda(m.liquido)}</div>
         </div>
+        <div class="fin-pessoa-nota${m.ir?' com-ir':''}">${m.ir
+          ?`Este é o <b>líquido</b>: os ${finPct(finCfg.percentualIR)}% de IR já foram descontados no repasse — ${finMoeda(m.ir)} retidos sobre ${finMoeda(m.bruto)}.`
+          :`Valor cheio, sem IR retido no repasse${m.pessoa.souEu?' — o seu imposto você recolhe por fora':''}.`}</div>
         <div class="fin-pessoa-barra">
           <span>Já repassado <b>${finMoeda(m.repassado)}</b></span>
           <span>A repassar <b style="color:${aRepassar>0?'#B45309':'#1C1C1E'}">${finMoeda(aRepassar)}</b></span>
@@ -6779,8 +6786,9 @@ function finHtmlPessoas(){
   };
   return `
     <div class="fin-filtros">${finSeletorCiclo()}</div>
-    <div class="fin-mini" style="margin:-4px 0 12px">Só os parceiros — a sua parte e a da Grazi estão nas colunas da planilha. O número grande é o <b>líquido</b>, já sem o IR.</div>
-    ${parceiros.map(bloco).join('')}
+    <div class="fin-mini" style="margin:-4px 0 12px">Quanto fica para cada um neste fechamento. O número grande é sempre o que a pessoa recebe de fato.</div>
+    ${equipe.length?`<div class="fin-cfg-cab" style="margin-bottom:7px">No mês, para cada uma</div>${equipe.map(bloco).join('')}`:''}
+    ${parceiros.length?`<div class="fin-cfg-cab" style="margin:16px 0 7px">Parceiros do fechamento</div>${parceiros.map(bloco).join('')}`:''}
     <div class="fin-cfg-cab" style="margin:16px 0 7px">Tabelião</div>
     <div class="fin-pessoa">
       <div class="fin-pessoa-topo">
@@ -6792,7 +6800,7 @@ function finHtmlPessoas(){
       </div>
       ${ap.tabeliaoPrev?`<div class="fin-pessoa-barra"><span>Previsto nas escrituras ainda não pagas <b>${finMoeda(ap.tabeliaoPrev)}</b></span></div>`:''}
     </div>
-    ${parceiros.length?'':'<div class="fin-vazio">Nenhum parceiro entrou neste fechamento.</div>'}`;
+    ${ap.pessoas.length?'':'<div class="fin-vazio">Nada apurado neste fechamento.</div>'}`;
 }
 
 // ── Carteira virtual do registro ──
