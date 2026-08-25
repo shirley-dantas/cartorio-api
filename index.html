@@ -1218,8 +1218,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    fechamento, e no rodapé ele ficava a quinze linhas de distância. */
 /* Vermelho porque é a linha que se procura ao abrir o fechamento: no bege
    de todo o painel ela some, e no vermelho o olho vai direto. */
-.fin-planilha .fin-total td{padding:11px 10px;border-bottom:1px solid #F1B0AB;font-weight:700;
-  background:#FDECEA;color:#B3261E;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13.5px;
+.fin-planilha .fin-total td{padding:11px 10px;border-bottom:1px solid #F1B0AB;font-weight:600;
+  background:#FDECEA;color:#B3261E;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12.5px;
   position:sticky;top:36px;z-index:2}
 .fin-planilha .fin-total td:first-child{font-family:'Jost',sans-serif;font-size:10px;letter-spacing:.12em;
   text-transform:uppercase;font-weight:500;color:#C0392B}
@@ -6140,7 +6140,6 @@ const FIN_CFG_PADRAO={
 
 let finLanc={};
 let finCfg=JSON.parse(JSON.stringify(FIN_CFG_PADRAO));
-let finCfgSalva=false;
 let finAba='lancamentos';
 let finCiclo=null;            // chave 'AAAA-MM' do fechamento, ou '' pra todos
 let finFiltroStatus='';
@@ -6345,10 +6344,8 @@ function finLigarEscuta(){
         pessoas:v.pessoas,
         arranjos:Array.isArray(v.arranjos)&&v.arranjos.length?v.arranjos:FIN_CFG_PADRAO.arranjos
       };
-      finCfgSalva=true;
     }else{
       finCfg=JSON.parse(JSON.stringify(FIN_CFG_PADRAO));
-      finCfgSalva=false;
     }
     if(finAberto)renderFinanceiro();
   },erro=>finErroPermissao(erro));
@@ -6470,7 +6467,6 @@ function finHtmlLancamentos(){
       ${finLinhaAberta===l.id?`<tr class="fin-linha-detalhe"><td colspan="${5+equipe.length}">${finHtmlEscada(c,l)}</td></tr>`:''}`;
   }).join('');
   return `
-    ${finCfgSalva?'':'<div class="fin-aviso"><b>Confira os Ajustes antes de lançar.</b> O repasse de 25%, o IR de 27,5% e os arranjos já estão preenchidos — mas só valem depois que você salvar.</div>'}
     <div class="fin-filtros">
       ${finSeletorCiclo()}
       <div class="fin-seg">
