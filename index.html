@@ -1203,9 +1203,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .fin-ic:hover{background:#F5F5F7;color:#1C1C1E}
 .fin-ic.ok:hover{color:#2E7D32;border-color:#A5D6A7}
 .fin-ic.del:hover{color:#C62828;border-color:#FFCDD2}
-.fin-planilha tfoot td{padding:11px 10px;border-top:1px solid #DCD5C8;font-weight:600;background:#FAF8F4;
-  font-variant-numeric:tabular-nums;white-space:nowrap}
-.fin-planilha tfoot td:first-child{font-family:'Jost',sans-serif;font-size:10px;letter-spacing:.12em;
+/* O total vem antes dos nomes: é a primeira coisa que se olha no
+   fechamento, e no rodapé ele ficava a quinze linhas de distância. */
+.fin-planilha .fin-total td{padding:11px 10px;border-bottom:1px solid #DCD5C8;font-weight:600;
+  background:#F4F0E7;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13px;
+  position:sticky;top:36px;z-index:2}
+.fin-planilha .fin-total td:first-child{font-family:'Jost',sans-serif;font-size:10px;letter-spacing:.12em;
   text-transform:uppercase;font-weight:400;color:#8E8EA0}
 .fin-linha-detalhe td{background:#FAF8F4;padding:0 10px 12px}
 /* Segmentado bruto/líquido: dois estados, sem menu. */
@@ -1219,7 +1222,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   .fin-planilha{min-width:640px;font-size:12px}
   .fin-col-nome{position:sticky;left:0;background:#fff;z-index:1;min-width:150px;box-shadow:1px 0 0 #F3F0EA}
   .fin-planilha tbody tr:hover .fin-col-nome{background:#FAF8F4}
-  .fin-planilha tfoot td:first-child{position:sticky;left:0;background:#FAF8F4;z-index:1}
+  .fin-planilha .fin-total td:first-child{position:sticky;left:0;background:#F4F0E7;z-index:3}
   .fin-planilha th.fin-col-nome{background:#FAF8F4;z-index:3}
   .fin-acoes-linha{opacity:1}
 }
@@ -6475,16 +6478,16 @@ function finHtmlLancamentos(){
           <th class="fin-col-parceiro">Parceiro</th>
           <th class="num">Registro</th>
           <th></th>
-        </tr></thead>
-        <tbody>${linhas}</tbody>
-        <tfoot><tr>
+        </tr>
+        <tr class="fin-total">
           <td>Total pago no fechamento</td>
           <td class="num">${finMoeda(tot.tabeliao)}</td>
           ${equipe.map(p=>`<td class="num">${finMoeda(tot.pessoas[p.id])}</td>`).join('')}
           <td class="fin-col-parceiro">${tot.parceiro?finMoeda(tot.parceiro):'—'}</td>
           <td class="num">${tot.registro?finMoeda(tot.registro):'—'}</td>
           <td></td>
-        </tr></tfoot>
+        </tr></thead>
+        <tbody>${linhas}</tbody>
       </table>
     </div>
     <div class="fin-mini" style="margin-top:8px">Clique numa linha para ver a conta dela por inteiro. Os valores das pessoas estão em <b>${bruto?'bruto':'líquido'}</b>${bruto?' — como na planilha antiga, antes do IR':' — o que cai na mão, já sem o IR'}.</div>`
