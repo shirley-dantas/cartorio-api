@@ -86,6 +86,23 @@ await passo('Quem recebe e a Carteira também cabem',async()=>{
   await pg.waitForTimeout(150);
   await pg.screenshot({path:SAIDA('cel-pessoas.png')});
 });
+await passo('o quadro do dinheiro cabe na tela do celular',async()=>{
+  await pg.evaluate(()=>{fecharFinanceiro();document.getElementById('cdc-quadro').innerHTML=finQuadroHtml();});
+  await pg.waitForSelector('#cdc-quadro .dash-card');
+  const larg=await pg.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1);
+  if(!larg)throw new Error('a página passou a rolar de lado');
+  const estoura=await pg.evaluate(()=>{
+    const caixa=document.getElementById('cdc-quadro').getBoundingClientRect();
+    return [...document.querySelectorAll('#cdc-quadro *')]
+      .filter(e=>e.getBoundingClientRect().right>caixa.right+1)
+      .map(e=>e.className+' → '+e.textContent.trim().slice(0,30));
+  });
+  if(estoura.length)throw new Error('saiu da caixa: '+estoura.join(' | '));
+  // uma coluna só, não duas espremidas
+  const cols=await pg.evaluate(()=>getComputedStyle(document.querySelector('#cdc-quadro .dash-grid')).gridTemplateColumns.split(' ').length);
+  if(cols!==1)throw new Error('os cartões do dinheiro vieram em '+cols+' colunas no celular');
+  await pg.screenshot({path:SAIDA('cel-quadro.png'),fullPage:true});
+});
 await b.close();
 servidor.close();
 console.log(erros.length?('\n'+erros.length+' PROBLEMA(S):\n'+erros.join('\n')):'\nCabe no celular.');

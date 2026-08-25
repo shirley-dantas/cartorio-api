@@ -90,6 +90,42 @@ A aba Financeiro é onde se **lê o fechamento**:
 - **Carteira do registro** — o saldo que ainda não foi pago ao RI.
 - **Ajustes** — percentuais, pessoas e arranjos.
 
+### O mês no quadro
+
+O quadro (lateral, em *Mais opções*) lia os casos em quatro cortes e não sabia
+nada de dinheiro. Agora leva embaixo uma seção **O mês em dinheiro**, com o
+fechamento escolhido num seletor:
+
+- **Quanto entrou** — o repasse recebido, a parte do tabelião e o que ainda
+  está a receber, cada um com a variação contra o fechamento anterior.
+- **Escrituras do fechamento** — quantas saíram, de quantos clientes, e a
+  escritura média (parte do tabelião ÷ escrituras), que separa mês que cresceu
+  por volume de mês que cresceu por tamanho.
+- **Clientes do fechamento** — quem mais voltou, as cinco maiores e quanto do
+  mês depende do maior deles.
+- **De onde veio o repasse** — quanto veio de cada arranjo.
+
+Três regras que **não devem ser mexidas sem perguntar**:
+
+- **A comparação é da parte do tabelião e do repasse**, nunca do valor cheio da
+  escritura — esse campo não é mais pedido, e uma série montada em cima dele
+  despencaria sozinha no mês em que ele saiu.
+- **Meio ciclo se compara com meio ciclo.** Enquanto o fechamento está aberto,
+  o anterior é cortado no mesmo número de dias corridos; senão a seta ficaria
+  vermelha todo dia 26, sem nada ter piorado. O total cheio do mês anterior
+  aparece do lado, escrito.
+- **Sem mês anterior não existe "subiu 100%"** — o cartão diz que não há com o
+  que comparar.
+- **O dinheiro só aparece para quem entrou no Financeiro.** Sem login, a seção
+  mostra o convite para entrar e nenhum valor. O painel operacional não tem
+  senha de propósito, e um cartão de receita solto seria a única coisa dele a
+  vazar valor.
+
+O cliente é agrupado pelo **nome escrito antes do travessão** na descrição
+("TANIA — compra e venda" é a Tania), sem acento e sem caixa. Dois jeitos de
+escrever o mesmo cliente continuam sendo dois clientes: quem agrupa é o nome,
+não um cadastro que não existe.
+
 ### Meu financeiro (só da Shirley)
 
 O salário **não se digita**: é a soma das comissões do fechamento, calculada
@@ -137,6 +173,8 @@ o `testes/montar.mjs` recorta.
 | Calendário do fechamento | `finCicloPorChave()`, `finDataFechamento()`, `finFeriados()` |
 | A planilha | `finHtmlLancamentos()` |
 | A janela do card | `renderFinanceiroDoCaso()`, `finFaixaDoCaso()` |
+| O mês no quadro | `finQuadroHtml()`, `finResumoCiclo()`, `finComparativoCiclo()` |
+| Quem é o cliente | `finClienteDe()` |
 | Cofre pessoal | `finCriarCofre()`, `finDestrancar()`, `finMeuSalario()` |
 | Regras do banco | `database.rules.json` · passo a passo em `FIREBASE.md` |
 
@@ -146,6 +184,9 @@ o `testes/montar.mjs` recorta.
 node testes/montar.mjs && node testes/calculo.gerado.mjs
 node testes/navegador.mjs && node testes/celular.mjs
 ```
+
+O `montar.mjs` também gera o `preview-quadro.html`, que é o desenho da seção
+do dinheiro com dois fechamentos no banco.
 
 Rodam por cima do `index.html` publicado. Ver `testes/README.md`.
 
@@ -169,3 +210,8 @@ criada, o salário que não acompanhava a correção do lançamento.
 - Trazer Carteira e Meu financeiro para a mesma cara de planilha.
 - O controle de repasse ("já repassado / a repassar") saiu junto com a lista
   do Quem recebe; o dado continua gravado e pode voltar como botão na pílula.
+- No quadro, o que ainda dá pra medir e ainda não é medido: **quanto tempo o
+  caso leva do começo até virar dinheiro** (a esteira já grava as datas), **o
+  mix por tipo de ato**, **quanto do repasse vem de cliente que já era da
+  casa** e a **comparação com o mesmo mês do ano passado** — esta só faz
+  sentido quando houver um ano de lançamento no banco.

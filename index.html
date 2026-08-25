@@ -215,6 +215,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .dash-semana{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
 .dash-par{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:2px}
 .dash-col{width:11px;max-width:44%;border-radius:4px 4px 0 0;min-height:2px}
+/* A série dos fechamentos tem uma coluna por mês, não duas: sem o par ao
+   lado, 11px viram um fiapo perdido no meio do cartão. */
+.dash-col.mes{width:20px;max-width:56%}
 .dash-semana-rot{font-size:9.5px;color:#8E8EA0;white-space:nowrap}
 
 /* Um só balão, reposicionado no mousemove — evita criar/destruir nó a cada
@@ -231,6 +234,43 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .dash-tabela th{font-weight:700;color:#5B6B78}
 .dash-tabela td{color:#3A3A3C}
 .dash-tabela td.num,.dash-tabela th.num{text-align:right;font-variant-numeric:tabular-nums}
+/* ── O MÊS EM DINHEIRO (a parte financeira do quadro) ──
+   Aqui a pergunta é "quanto entrou", que é UM número — e um gráfico de uma
+   barra só é sempre pior que o número escrito grande. Daí os números-manchete
+   em cima e a série dos fechamentos embaixo, que é a única parte com forma de
+   gráfico porque é a única que fala de tempo.
+   A variação nunca vai só na cor: o verde #2F8F4E e o vermelho #BC2020 têm
+   ΔE 29 com visão normal mas só 6,6 sob deuteranopia, então cada uma leva
+   seta e sinal ao lado — quem não separa as duas cores lê do mesmo jeito. */
+.dash-secao{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:18px 0 10px;padding-top:14px;border-top:1px solid #EDEFF3}
+.dash-secao-titulo{font-size:12.5px;font-weight:700;color:#16283A;letter-spacing:-.01em}
+.dash-secao-sub{font-size:10.5px;color:#8E8EA0;line-height:1.35}
+.dash-secao select{font-size:11px;padding:4px 9px;border-radius:7px;border:0.5px solid #D1D1D6;background:#fff;color:#3A3A3C;font-family:inherit;outline:none;max-width:100%}
+/* Valor de manchete usa os algarismos proporcionais da fonte, não os
+   tabulares: tabular dá a todo dígito a largura do zero, e num número grande
+   e solto isso deixa "R$ 1.284" com cara de frouxo. Tabular fica para as
+   colunas, onde alinhar importa. */
+.dash-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:11px;margin-bottom:13px}
+.dash-tile-rot{font-size:10.5px;color:#8E8EA0;line-height:1.3}
+.dash-tile-val{font-size:19px;font-weight:700;color:#16283A;line-height:1.15;margin-top:3px;letter-spacing:-.02em}
+.dash-tile-val.menor{font-size:15px;line-height:1.25}
+.dash-delta{display:flex;align-items:center;gap:3px;font-size:10.5px;line-height:1.3;margin-top:3px}
+.dash-delta i{font-size:12px;flex-shrink:0}
+.dash-delta.alta{color:#2F8F4E}
+.dash-delta.queda{color:#BC2020}
+.dash-delta.neutro{color:#8E8EA0}
+/* Linha sem clique: o quadro do dinheiro é leitura, e sublinhar hover num
+   lugar onde nada abre é prometer o que a tela não cumpre. */
+.dash-linha.estatica{cursor:default}
+.dash-linha.estatica:hover{background:none}
+/* No celular o nome do cliente É o conteúdo da linha — cortar "GUSTAVO
+   BERT…" numa barra que não abre nada deixaria a pessoa sem saber de quem
+   ela é. Estas linhas não têm botão na ponta, então sobra espaço pro rótulo. */
+@media(max-width:520px){.dash-linha.estatica .dash-rotulo{flex:0 0 128px}}
+.dash-fechado{background:#FBFBFD;border:0.5px solid #ECECF2;border-radius:14px;padding:14px 15px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.dash-fechado-txt{flex:1;min-width:180px;font-size:11.5px;color:#5B6B78;line-height:1.45}
+.dash-fechado button{font-size:11.5px;padding:6px 13px;border-radius:20px;border:0.5px solid #16283A;background:#16283A;color:#fff;cursor:pointer;font-family:inherit;white-space:nowrap}
+
 .toolbar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .fbtn{font-size:12px;padding:6px 14px;border-radius:20px;border:0.5px solid #D1D1D6;background:#fff;color:#8E8EA0;cursor:pointer;white-space:nowrap;transition:background .15s ease,color .15s ease,border-color .15s ease}
 .fbtn.on,.fbtn:hover{background:linear-gradient(135deg,#16283A,#1F3B4D);color:#fff;border-color:#16283A}
@@ -1518,7 +1558,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="modal-box" style="max-width:940px">
     <button class="modal-close" onclick="fecharQuadro()">&times;</button>
     <div class="modal-title"><i class="ti ti-chart-histogram" style="font-size:15px;vertical-align:-2px;color:#B45309"></i> O quadro</div>
-    <div class="modal-sub">Como estamos indo — os casos ativos lidos em quatro cortes.</div>
+    <div class="modal-sub">Como estamos indo — os casos ativos lidos em quatro cortes, e o fechamento em dinheiro.</div>
     <div id="cdc-quadro"></div>
   </div>
 </div>
@@ -2521,6 +2561,7 @@ function renderQuadro(itens){
       ${quadroIdade(itens)}
       ${quadroRitmo()}
     </div>
+    ${typeof finQuadroHtml==='function'?finQuadroHtml():''}
     <button type="button" class="dash-tabela-toggle" onclick="dashToggleTabela()">${quadroTabela?'Ocultar os números em tabela':'Ver os números em tabela'}</button>
     ${quadroTabela?quadroTabelaHtml(ativos,itens):''}`;
 }
@@ -2648,7 +2689,13 @@ window.irParaCasoDoArquivo=function(id){
   irParaCasoPorId(id);
 };
 
-window.abrirQuadro=function(){document.getElementById('modal-quadro').classList.add('open');};
+window.abrirQuadro=function(){
+  // Redesenha na abertura: o quadro só é reescrito quando um caso muda, e a
+  // parte do dinheiro depende de quem entrou no Financeiro e de lançamento
+  // que pode ter chegado no meio.
+  if(typeof calcularCentralComando==='function')renderQuadro(calcularCentralComando());
+  document.getElementById('modal-quadro').classList.add('open');
+};
 window.fecharQuadro=function(){document.getElementById('modal-quadro').classList.remove('open');};
 
 // Some com a linha antes de gravar, pra resolver um item dar retorno visual
@@ -5945,6 +5992,7 @@ onAuthStateChanged(auth,async(u)=>{
   if(mp&&mp.classList.contains('open'))renderMeuFinanceiro();
   if(finCasoAtual)renderFinanceiroDoCaso();
   finRedesenharCards();
+  finRedesenharQuadro();
   atualizarSidebarFinanceiro();
 });
 function finHtmlLogin(texto){
@@ -6335,6 +6383,7 @@ function finLigarEscuta(){
     if(finAberto)renderFinanceiro();
     if(finCasoAtual)renderFinanceiroDoCaso();
     finRedesenharCards();
+    finRedesenharQuadro();
   },erro=>finErroPermissao(erro));
   onValue(finCfgRef,snap=>{
     const v=snap.val();
@@ -6349,6 +6398,7 @@ function finLigarEscuta(){
       finCfg=JSON.parse(JSON.stringify(FIN_CFG_PADRAO));
     }
     if(finAberto)renderFinanceiro();
+    finRedesenharQuadro();
   },erro=>finErroPermissao(erro));
 }
 // Regra fechada devolve permission_denied em vez de dados. Sem isto a tela
@@ -7668,6 +7718,326 @@ function finRedesenharCards(){
   clearTimeout(_finRedesenhoCards);
   _finRedesenhoCards=setTimeout(()=>{if(typeof renderCasos==='function')renderCasos();},200);
 }
+
+// ── O mês em dinheiro — a parte financeira do quadro ──
+// O quadro respondia "como estamos indo" só em casos: quantos travaram, com
+// quem estão, há quanto tempo. Faltava a outra metade da mesma pergunta —
+// entrou mais ou menos dinheiro que no fechamento passado, saíram mais ou
+// menos escrituras, e quem foi o cliente que mais voltou.
+//
+// Três decisões que valem mais que o código:
+//
+//  1. O que se compara é a PARTE DO TABELIÃO e o REPASSE, não o valor cheio
+//     da escritura — esse não é pedido nem guardado desde que a janela do
+//     card virou a porta de entrada, e comparar um campo que só existe em
+//     lançamento antigo daria uma linha do tempo que despenca sozinha no dia
+//     em que o campo saiu.
+//  2. O ciclo corrente está pela metade. Comparar meio fechamento com um
+//     fechamento inteiro dá queda TODO mês, e a seta vermelha mentiria a
+//     cada 26 do mês. Enquanto o ciclo está aberto, o anterior é cortado no
+//     mesmo trecho: mesmo número de dias corridos desde a abertura.
+//  3. O dinheiro só aparece pra quem entrou no Financeiro. O painel
+//     operacional não tem login de propósito; um cartão de receita solto na
+//     tela de trabalho seria a única coisa do painel a vazar valor pra
+//     qualquer um que abrisse o quadro.
+//
+// As cores passaram pelo validador de paleta de novo (light, sobre o #FBFBFD
+// do cartão), e não pelo olho:
+//   · destaque/apagado #2f6fb0 sobre #94AFC2 — ΔE 22,3: é ênfase (um sujeito
+//     em foco, o resto recuado), não escala de valor. O #94AFC2 fica em
+//     2,22:1 contra o cartão, abaixo do piso de 3:1, e o validador só libera
+//     esse tom com leitura alternativa — por isso toda barra dele leva o
+//     número escrito ao lado e a tabela do quadro repete tudo.
+//   · alta/queda #2F8F4E e #BC2020 — ΔE 29 com visão normal, mas 6,6 sob
+//     deuteranopia: a variação sempre sai com seta e sinal, nunca só na cor.
+// Uma medida por cartão, uma cor por medida: as barras de cliente e de
+// arranjo medem todas a mesma coisa, então pintar cada uma de um tom
+// diferente seria repetir na cor o que a barra já diz no comprimento.
+const FIN_DASH={destaque:'#2f6fb0', apagado:'#94AFC2', alta:'#2F8F4E', queda:'#BC2020'};
+const FIN_QUADRO_CICLOS=6;   // quantos fechamentos a série mostra
+let finQuadroCiclo=null;     // qual fechamento o quadro está lendo
+
+function finCicloAntes(chave){
+  const a=+String(chave).slice(0,4), m=+String(chave).slice(5,7);
+  return m===1?`${a-1}-12`:`${a}-${String(m-1).padStart(2,'0')}`;
+}
+function finMesDoCiclo(chave){return MESES[(+String(chave).slice(5,7))-1]||chave;}
+
+// O nome do cliente é o que vem antes do travessão da descrição: foi assim
+// que ela escreveu desde a primeira linha ("TANIA — compra e venda"), e a
+// janela do card preenche a descrição com o nome do caso, que também é o do
+// cliente. A chave de agrupamento tira acento e caixa, pra "José" e "JOSE"
+// não virarem dois clientes; o nome que aparece é o jeito que ela escreveu.
+function finClienteDe(l){
+  const bruto=String((l&&(l.descricao||l.casoNome))||'').trim();
+  const nome=(bruto.split(/\s+[—–]\s+|\s+-\s+|\s*[\/:]\s*/)[0]||'').trim()||bruto;
+  const chave=nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase();
+  return {nome,chave};
+}
+
+// A foto de um fechamento inteiro, sem os filtros da tela: a aba Lançamentos
+// filtra por situação, e o quadro precisa das pagas e das a receber juntas
+// pra saber quantas escrituras saíram. O `limite` corta o ciclo numa data —
+// é ele que permite comparar meio ciclo com meio ciclo.
+function finResumoCiclo(chave,limite){
+  const lista=Object.keys(finLanc).map(k=>finLanc[k])
+    .filter(l=>l&&typeof l==='object'&&finCicloDoLanc(l)===chave)
+    .filter(l=>!limite||String(finDataOrd(l)).slice(0,10)<=limite);
+  const r={chave,ciclo:finCicloPorChave(chave),limite:limite||'',
+    n:0,pagas:0,pendentes:0,tabeliao:0,repasse:0,tabeliaoAReceber:0,repasseAReceber:0,
+    registro:0,movimento:0,ticket:0,clientes:[],arranjos:[]};
+  const porCliente={}, porArranjo={};
+  lista.forEach(l=>{
+    const c=finConta(l);
+    const pago=l.status==='pago';
+    r.n++;
+    r.movimento=finCent(r.movimento+c.tabeliao);
+    if(pago){
+      r.pagas++;
+      r.tabeliao=finCent(r.tabeliao+c.tabeliao);
+      r.repasse=finCent(r.repasse+c.bruto);
+    }else{
+      r.pendentes++;
+      r.tabeliaoAReceber=finCent(r.tabeliaoAReceber+c.tabeliao);
+      r.repasseAReceber=finCent(r.repasseAReceber+c.bruto);
+    }
+    // Só o que ainda não foi pago ao RI: o resto já saiu da carteira.
+    if(c.registro.valor&&!c.registro.pago)r.registro=finCent(r.registro+c.registro.valor);
+    const cli=finClienteDe(l);
+    if(cli.chave){
+      const m=porCliente[cli.chave]||(porCliente[cli.chave]={nome:cli.nome,chave:cli.chave,n:0,movimento:0});
+      m.n++; m.movimento=finCent(m.movimento+c.tabeliao);
+    }
+    const id=(c.arranjo&&c.arranjo.id)||'';
+    const a=porArranjo[id]||(porArranjo[id]={id,nome:(c.arranjo&&c.arranjo.nome)||'—',n:0,repasse:0});
+    a.n++; if(pago)a.repasse=finCent(a.repasse+c.bruto);
+  });
+  r.clientes=Object.keys(porCliente).map(k=>porCliente[k]).sort((a,b)=>b.n-a.n||b.movimento-a.movimento);
+  r.arranjos=Object.keys(porArranjo).map(k=>porArranjo[k]).sort((a,b)=>b.repasse-a.repasse||b.n-a.n);
+  // O ticket médio conta TODAS as escrituras do ciclo, pagas ou não: ele mede
+  // o tamanho do negócio, não o caixa — uma escritura que a cliente ainda não
+  // pagou saiu do mesmo jeito.
+  r.ticket=r.n?finCent(r.movimento/r.n):0;
+  return r;
+}
+
+// Sem base não existe "subiu 100%": existe "não dá pra comparar", e é isso
+// que volta daqui.
+function finVariacao(agora,antes){
+  const dif=finCent(agora-antes);
+  if(!antes)return {dir:agora?'sembase':'igual',dif,pct:null};
+  const pct=dif/antes*100;
+  return {dir:Math.abs(pct)<0.5?'igual':(dif>0?'alta':'queda'),dif,pct};
+}
+
+// O fechamento escolhido, o anterior cortado no mesmo trecho, e o anterior
+// inteiro — os três, porque a comparação justa é com o trecho e a referência
+// honesta é o mês fechado.
+function finComparativoCiclo(chave){
+  const ci=finCicloPorChave(chave);
+  const hoje=isoHoje();
+  const aberto=hoje>=ci.inicio&&hoje<ci.fim;
+  const dias=aberto?Math.round((Date.parse(hoje+'T00:00:00Z')-Date.parse(ci.inicio+'T00:00:00Z'))/86400000):0;
+  const antesChave=finCicloAntes(chave);
+  const antes=finCicloPorChave(antesChave);
+  const corte=aberto?finISO(finDiasDe(new Date(antes.inicio+'T00:00:00Z'),dias)):'';
+  return {
+    chave, ciclo:ci, aberto, dias, antesChave, mesAntes:finMesDoCiclo(antesChave),
+    atual:finResumoCiclo(chave,aberto?hoje:''),
+    anterior:finResumoCiclo(antesChave,corte&&corte<antes.fim?corte:''),
+    anteriorCheio:finResumoCiclo(antesChave,'')
+  };
+}
+
+// Os últimos fechamentos até o escolhido, sem os vazios do começo: enquanto o
+// painel só tiver dois meses de lançamento, quatro colunas zeradas na frente
+// só fariam parecer que o cartório afundou.
+function finSerieCiclos(chave,quantos){
+  const chaves=[];
+  let k=chave;
+  for(let i=0;i<quantos;i++){chaves.unshift(k);k=finCicloAntes(k);}
+  const serie=chaves.map(c=>finResumoCiclo(c,''));
+  while(serie.length>1&&serie[0].n===0)serie.shift();
+  return serie;
+}
+
+// ── Os cartões ──
+function finPodeVerDinheiro(){return !!finAuth&&!finPrecisaLiberar();}
+function finQuadroCicloAtivo(){
+  const disponiveis=finCiclosDisponiveis();
+  if(finQuadroCiclo&&disponiveis.indexOf(finQuadroCiclo)>-1)return finQuadroCiclo;
+  return finCicloCorrente();
+}
+function finDashTile(rot,valor,delta,menor){
+  return `<div><div class="dash-tile-rot">${rot}</div>
+    <div class="dash-tile-val${menor?' menor':''}">${valor}</div>${delta||''}</div>`;
+}
+// A seta e o sinal são obrigatórios, não enfeite: ver a nota de cor lá em cima.
+function finDashDelta(v,mes,dizer){
+  if(v.dir==='sembase')return `<div class="dash-delta neutro"><i class="ti ti-minus"></i>${mes} não teve com que comparar</div>`;
+  if(v.dir==='igual')return `<div class="dash-delta neutro"><i class="ti ti-equal"></i>igual a ${mes}</div>`;
+  const alta=v.dir==='alta';
+  const pct=Math.min(999,Math.round(Math.abs(v.pct)));
+  return `<div class="dash-delta ${alta?'alta':'queda'}" title="${esc(dizer||'')}">
+    <i class="ti ti-arrow-${alta?'up':'down'}-right"></i>${alta?'+':'−'}${pct}% ${alta?'acima':'abaixo'} de ${mes}</div>`;
+}
+// A série dos fechamentos: uma coluna por mês, o escolhido em azul cheio e os
+// anteriores recuados. Sem número em cima de cada coluna — o valor do mês já
+// está escrito grande logo acima, e o resto vive no balão e na tabela.
+function finDashColunas(serie,chave,valor,formatar,oQue){
+  const max=Math.max(1,...serie.map(valor));
+  return `<div class="dash-colunas">${serie.map(r=>{
+    const v=valor(r);
+    const eh=r.chave===chave;
+    const emCurso=r.ciclo.fim>isoHoje();
+    const tip=`<b>${escTxt(r.ciclo.rotulo)}</b><br>${escTxt(oQue)}: ${escTxt(formatar(v))}<br>${r.n} ${dashPlural(r.n,'escritura')}${emCurso?'<br><i>fechamento em curso</i>':''}`;
+    return `<span class="dash-semana" data-tip="${esc(tip)}">
+      <span class="dash-par"><span class="dash-col mes" style="height:${(v/max*100).toFixed(1)}%;background:${eh?FIN_DASH.destaque:FIN_DASH.apagado}"></span></span>
+      <span class="dash-semana-rot">${escTxt(finMesDoCiclo(r.chave).slice(0,3))}</span>
+    </span>`;
+  }).join('')}</div>`;
+}
+
+// 5. O MÊS EM DINHEIRO — entrou mais ou menos que no fechamento passado.
+function finQuadroDinheiro(cmp,serie){
+  const a=cmp.atual, b=cmp.anterior;
+  const vRepasse=finVariacao(a.repasse,b.repasse);
+  const vTabeliao=finVariacao(a.tabeliao,b.tabeliao);
+  const dizer=(x,y)=>`${finMoeda(x)} agora · ${finMoeda(y)} em ${cmp.mesAntes}${cmp.aberto?' até o mesmo dia':''}`;
+  const tiles=`<div class="dash-tiles">
+    ${finDashTile('Veio para a mesa',finMoeda(a.repasse),finDashDelta(vRepasse,cmp.mesAntes,dizer(a.repasse,b.repasse)))}
+    ${finDashTile('Parte do tabelião',finMoeda(a.tabeliao),finDashDelta(vTabeliao,cmp.mesAntes,dizer(a.tabeliao,b.tabeliao)))}
+    ${finDashTile('Ainda a receber',finMoeda(a.repasseAReceber),
+      `<div class="dash-delta neutro"><i class="ti ti-clock"></i>${a.pendentes} ${dashPlural(a.pendentes,'escritura')} ${dashPlural(a.pendentes,'pendente')}</div>`,true)}
+  </div>`;
+  const sub=`O repasse de ${finPct(finCfg.percentualRepasse)}% sobre a parte do tabelião, das escrituras já pagas.`
+    +(cmp.aberto?` Comparado com ${cmp.mesAntes} <b>até o mesmo dia do ciclo</b> — ${cmp.mesAntes} inteiro deu ${finMoeda(cmp.anteriorCheio.repasse)}.`
+                :` Comparado com ${cmp.mesAntes} inteiro.`);
+  return quadroCartao('Quanto entrou',`${a.pagas} ${dashPlural(a.pagas,'escritura')} ${dashPlural(a.pagas,'paga')}`,sub,
+    tiles+finDashColunas(serie,cmp.chave,r=>r.repasse,finMoeda,'Veio para a mesa'));
+}
+
+// 6. ESCRITURAS DO FECHAMENTO — mais ou menos trabalho que no mês passado, e
+// se ele veio de mais clientes ou de escritura maior.
+function finQuadroVolume(cmp,serie){
+  const a=cmp.atual, b=cmp.anterior;
+  const tiles=`<div class="dash-tiles">
+    ${finDashTile('Escrituras',String(a.n),finDashDelta(finVariacao(a.n,b.n),cmp.mesAntes,`${a.n} agora · ${b.n} em ${cmp.mesAntes}`))}
+    ${finDashTile('Clientes',String(a.clientes.length),finDashDelta(finVariacao(a.clientes.length,b.clientes.length),cmp.mesAntes,`${a.clientes.length} agora · ${b.clientes.length} em ${cmp.mesAntes}`))}
+    ${finDashTile('Escritura média',finMoeda(a.ticket),finDashDelta(finVariacao(a.ticket,b.ticket),cmp.mesAntes,`${finMoeda(a.ticket)} agora · ${finMoeda(b.ticket)} em ${cmp.mesAntes}`),true)}
+  </div>`;
+  return quadroCartao('Escrituras do fechamento',`${a.n} no ciclo`,
+    `Quantas saíram no ciclo, pagas ou não, e de quantos clientes diferentes vieram. A escritura média é a parte do tabelião dividida pelo número de escrituras — ela diz se o mês cresceu por volume ou por tamanho.`,
+    tiles+finDashColunas(serie,cmp.chave,r=>r.n,v=>`${v} ${dashPlural(v,'escritura')}`,'Escrituras'));
+}
+
+// 7. CLIENTES DO FECHAMENTO — quem voltou mais vezes, e quanto do mês depende
+// de um nome só. Ênfase (um em foco, o resto recuado), não escala de valor:
+// os nomes não têm ordem natural entre si.
+function finQuadroClientes(cmp){
+  const a=cmp.atual;
+  if(!a.clientes.length)return quadroCartao('Clientes do fechamento','','',
+    '<div class="dash-vazio">Nenhuma escritura lançada neste fechamento.</div>');
+  const repetiu=a.clientes[0].n>1;
+  const lista=(repetiu?a.clientes:a.clientes.slice().sort((x,y)=>y.movimento-x.movimento)).slice(0,5);
+  const valor=r=>repetiu?r.n:r.movimento;
+  const max=Math.max(...lista.map(valor));
+  const primeiro=a.clientes[0];
+  const fatia=a.movimento?Math.round((repetiu?primeiro.movimento:lista[0].movimento)/a.movimento*100):0;
+  const corpo=`<div class="dash-linhas">${lista.map((r,i)=>{
+    const tip=`<b>${escTxt(r.nome)}</b><br>${r.n} ${dashPlural(r.n,'escritura')} neste fechamento<br>${finMoeda(r.movimento)} de parte do tabelião`;
+    return `<span class="dash-linha estatica" data-tip="${esc(tip)}">
+      <span class="dash-rotulo" title="${esc(r.nome)}">${escTxt(r.nome)}</span>
+      <span class="dash-trilho">
+        <span class="dash-barra" style="flex-basis:calc((100% - var(--dash-reserva)) * ${(valor(r)/max).toFixed(3)});background:${i===0?FIN_DASH.destaque:FIN_DASH.apagado}"></span>
+        <span class="dash-valor">${repetiu?`${r.n}${'<span class="dash-valor-meta">'+dashPlural(r.n,'escritura')+'</span>'}`:finMoeda(r.movimento)}</span>
+      </span>
+    </span>`;
+  }).join('')}</div>`;
+  const nota=repetiu
+    ? `<b>${escTxt(primeiro.nome)}</b> foi quem mais voltou: ${primeiro.n} escrituras. As cinco maiores aparecem aqui — o resto está na aba Lançamentos.`
+    : `Nenhum cliente repetiu neste fechamento, então a ordem aqui é por movimento, não por recorrência.`;
+  return quadroCartao('Clientes do fechamento',
+    `${a.clientes.length} ${dashPlural(a.clientes.length,'cliente')}`,
+    `${nota} O maior deles responde por ${fatia}% da parte do tabelião do mês.`,corpo);
+}
+
+// 8. DE ONDE VEIO O REPASSE — quanto do mês depende de cada parceiro. Aqui a
+// cor é identidade (cada arranjo tem a sua e não troca quando a ordem muda),
+// e por isso vem com legenda.
+function finQuadroArranjos(cmp){
+  const a=cmp.atual;
+  const lista=a.arranjos.filter(x=>x.repasse>0);
+  if(!lista.length)return quadroCartao('De onde veio o repasse','','',
+    '<div class="dash-vazio">Nenhuma escritura paga neste fechamento ainda.</div>');
+  const max=Math.max(...lista.map(x=>x.repasse));
+  const corpo=`<div class="dash-linhas">${lista.map(x=>{
+    const pct=a.repasse?Math.round(x.repasse/a.repasse*100):0;
+    const tip=`<b>${escTxt(x.nome)}</b><br>${finMoeda(x.repasse)} · ${pct}% do repasse do mês<br>${x.n} ${dashPlural(x.n,'escritura')} no fechamento`;
+    return `<span class="dash-linha estatica" data-tip="${esc(tip)}">
+      <span class="dash-rotulo" title="${esc(x.nome)}">${escTxt(x.nome)}</span>
+      <span class="dash-trilho">
+        <span class="dash-barra" style="flex-basis:calc((100% - var(--dash-reserva)) * ${(x.repasse/max).toFixed(3)});background:${FIN_DASH.destaque}"></span>
+        <span class="dash-valor">${finMoeda(x.repasse)}</span>
+      </span>
+    </span>`;
+  }).join('')}</div>`;
+  return quadroCartao('De onde veio o repasse',`${finMoeda(a.repasse)} no total`,
+    'Quanto do repasse já recebido veio de cada arranjo — é a leitura de quanto o mês depende de um parceiro só.',corpo);
+}
+
+// A mesma tabela de números do quadro, para a parte do dinheiro: é ela que
+// libera o tom recuado das colunas, que fica abaixo do contraste mínimo.
+function finQuadroTabela(serie){
+  return `<table class="dash-tabela"><caption>O mês em dinheiro</caption>
+    <thead><tr><th>Fechamento</th><th class="num">Escrituras</th><th class="num">Parte do tabelião</th><th class="num">Veio para a mesa</th></tr></thead>
+    <tbody>${serie.slice().reverse().map(r=>`<tr>
+      <td>${escTxt(finMesDoCiclo(r.chave))}${r.ciclo.fim>isoHoje()?' <i>(em curso)</i>':''}</td>
+      <td class="num">${r.n}</td><td class="num">${finMoeda(r.tabeliao)}</td><td class="num">${finMoeda(r.repasse)}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function finQuadroSecao(sub,direita){
+  return `<div class="dash-secao">
+    <div><div class="dash-secao-titulo">O mês em dinheiro</div><div class="dash-secao-sub">${sub}</div></div>
+    ${direita||''}
+  </div>`;
+}
+// O bloco inteiro, do jeito que o quadro pendura embaixo dos casos.
+function finQuadroHtml(){
+  if(!finPodeVerDinheiro())
+    return finQuadroSecao('Fechado — o painel operacional não tem login, e o dinheiro não fica solto na tela de trabalho.')
+      +`<div class="dash-fechado">
+         <div class="dash-fechado-txt">Entre no Financeiro para ver a evolução do fechamento, o volume de escrituras e os clientes do mês.</div>
+         <button type="button" onclick="abrirFinanceiro()">Entrar no Financeiro</button>
+       </div>`;
+  const chave=finQuadroCicloAtivo();
+  const cmp=finComparativoCiclo(chave);
+  const serie=finSerieCiclos(chave,FIN_QUADRO_CICLOS);
+  const seletor=`<select onchange="finQuadroMudarCiclo(this.value)" aria-label="Fechamento">
+    ${finCiclosDisponiveis().map(k=>`<option value="${k}"${k===chave?' selected':''}>${finCicloPorChave(k).rotulo}</option>`).join('')}
+  </select>`;
+  const sub=`${cmp.ciclo.rotulo} · ${cmp.ciclo.periodo}${cmp.aberto?` — em curso, ${cmp.dias} ${dashPlural(cmp.dias,'dia')} corrido${cmp.dias===1?'':'s'}`:''}`;
+  return finQuadroSecao(sub,seletor)+`<div class="dash-grid">
+      ${finQuadroDinheiro(cmp,serie)}
+      ${finQuadroVolume(cmp,serie)}
+      ${finQuadroClientes(cmp)}
+      ${finQuadroArranjos(cmp)}
+    </div>`+(quadroTabela?`<div class="dash-grid" style="margin-top:12px"><div>${finQuadroTabela(serie)}</div></div>`:'');
+}
+// Exposto pelo mesmo motivo que finPrevia: o teste do navegador escreve o
+// quadro no #cdc-quadro por aqui, que é exatamente o que renderQuadro faz.
+window.finQuadroHtml=finQuadroHtml;
+window.finQuadroMudarCiclo=function(v){finQuadroCiclo=v;finRedesenharQuadro();};
+// O quadro é uma consulta aberta o tempo todo: quando um lançamento muda (ou
+// quando alguém acaba de entrar no Financeiro), ele precisa se redesenhar sem
+// esperar o próximo mexido num caso.
+function finRedesenharQuadro(){
+  const m=document.getElementById('modal-quadro');
+  if(!m||!m.classList.contains('open'))return;
+  if(typeof renderQuadro==='function'&&typeof calcularCentralComando==='function')renderQuadro(calcularCentralComando());
+}
+window.finRedesenharQuadro=finRedesenharQuadro;
 
 // ── Entrada pela lateral ──
 // "Meu financeiro" só aparece pra quem entrou como Shirley. Isso é conforto,

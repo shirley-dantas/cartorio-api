@@ -20,6 +20,16 @@ await pg.waitForFunction(()=>window.__pronto===true);
 const limpo=s=>s.replace(/ /g,' ').replace(/\s+/g,' ');
 const passo=async(nome,fn)=>{try{await fn();console.log('  ok  '+nome);}catch(e){erros.push(nome+' → '+e.message);console.log('FALHA '+nome+' → '+e.message);}};
 
+// O #cdc-quadro do harness é o mesmo buraco em que o painel escreve o quadro:
+// renderQuadro despeja lá o que finQuadroHtml() devolve, e é isso que estes
+// dois passos fazem à mão — o resto do quadro (os quatro cartões de casos)
+// não é deste bloco.
+await passo('o quadro não mostra dinheiro para quem não entrou',async()=>{
+  await pg.evaluate(()=>{document.getElementById('cdc-quadro').innerHTML=finQuadroHtml();});
+  const t=limpo(await pg.textContent('#cdc-quadro'));
+  if(/R\$/.test(t))throw new Error('mostrou valor sem login → '+t.slice(0,200));
+  if(!t.includes('Entrar no Financeiro'))throw new Error('não ofereceu a porta de entrada → '+t.slice(0,200));
+});
 await passo('o Financeiro pede login antes de mostrar qualquer número',async()=>{
   await pg.evaluate(()=>abrirFinanceiro());
   await pg.waitForSelector('#fin-login-email');
@@ -332,6 +342,26 @@ await passo('outra conta não vira dona do financeiro particular',async()=>{
   await pg.waitForTimeout(300);
   const mf=limpo(await pg.textContent('#modal-meu-financeiro'));
   if(mf.includes('Crie a senha'))throw new Error('deixou ela criar o cofre da Shirley');
+});
+await passo('o quadro lê o fechamento: dinheiro, volume e o cliente que mais voltou',async()=>{
+  await pg.evaluate(()=>{fecharFinanceiro();document.getElementById('cdc-quadro').innerHTML=finQuadroHtml();});
+  const t=limpo(await pg.textContent('#cdc-quadro'));
+  // três escrituras pagas no ciclo: 3.427,23 + 4.000 + 3.427,23 = 10.854,46,
+  // e o repasse 856,80 + 1.000 + 856,80 = 2.713,60 (o primeiro truncado)
+  if(!t.includes('R$ 2.713,60'))throw new Error('não somou o repasse do ciclo → '+t.slice(0,400));
+  if(!t.includes('R$ 10.854,46'))throw new Error('não somou a parte do tabelião → '+t.slice(0,400));
+  // As três foram para nomes diferentes — "TANIA MARIA DA SILVA" e "Tania"
+  // são clientes distintos, porque é o nome escrito que agrupa. Sem ninguém
+  // repetindo, a lista vira ranking por movimento e o cartão diz isso.
+  if(!t.includes('Nenhum cliente repetiu'))throw new Error('inventou recorrência que não houve → '+t.slice(0,400));
+  const barras=await pg.$$eval('#cdc-quadro .dash-linha .dash-valor',e=>e.map(x=>x.textContent.replace(/\u00a0/g,' ').trim()));
+  if(barras[0]!=='R$ 4.000,00')throw new Error('o maior cliente do mês não veio na frente: '+barras.join(' | '));
+  // sem mês anterior no banco, não existe "subiu 100%"
+  if(/acima de|abaixo de/.test(t))throw new Error('inventou variação sem mês anterior → '+t.slice(0,400));
+  if(!t.includes('não teve com que comparar'))throw new Error('não avisou que falta base → '+t.slice(0,400));
+  // o registro de imóveis não pode virar receita de ninguém
+  if(t.includes('R$ 1.200,00'))throw new Error('o registro entrou na conta do quadro → '+t.slice(0,400));
+  await pg.screenshot({path:SAIDA('n-quadro.png')});
 });
 await passo('sair fecha o financeiro e tranca o cofre',async()=>{
   await pg.evaluate(()=>finSair());

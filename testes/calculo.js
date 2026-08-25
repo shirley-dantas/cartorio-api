@@ -133,6 +133,63 @@ finCfg.pessoas=finCfg.pessoas.map(p=>({...p,souEu:false}));
 ok('sem "sou eu" marcado, avisa em vez de chutar',finMeuSalario('2026-08').semDono===true);
 finCfg=semDono;
 
+console.log('\n— O mês em dinheiro (a parte financeira do quadro) —');
+ok('o nome do cliente sai antes do travessão',finClienteDe({descricao:'Tania — escritura de compra e venda'}).nome==='Tania',
+   finClienteDe({descricao:'Tania — escritura de compra e venda'}));
+ok('acento e caixa não criam dois clientes',
+   finClienteDe({descricao:'José da Silva'}).chave===finClienteDe({descricao:'JOSE DA SILVA'}).chave);
+ok('sem descrição, o nome do caso serve',finClienteDe({casoNome:'ABG'}).chave==='ABG');
+ok('o mês anterior a janeiro é dezembro do ano passado',finCicloAntes('2026-01')==='2025-12',finCicloAntes('2026-01'));
+
+finLanc={
+  // Julho: duas escrituras pagas, R$ 2.000 de parte do tabelião cada.
+  j1:{id:'j1',descricao:'ABG — Un. 41',parteTabeliao:2000,arranjoId:'direto',status:'pago',dataPagamento:'2026-07-02'},
+  j2:{id:'j2',descricao:'PEDRO WAGNER',parteTabeliao:2000,arranjoId:'direto',status:'pago',dataPagamento:'2026-07-20'},
+  // Agosto: três pagas — duas do mesmo cliente, escrito de dois jeitos — e
+  // uma ainda a receber.
+  a1:{id:'a1',descricao:'GUSTAVO BERTOLA — compra e venda',parteTabeliao:3427.23,arranjoId:'direto',status:'pago',dataPagamento:'2026-08-03'},
+  a2:{id:'a2',descricao:'Gustavo Bertola',parteTabeliao:3427.23,arranjoId:'renato',status:'pago',dataPagamento:'2026-08-10'},
+  a3:{id:'a3',descricao:'THAIS DO COUTO DANTAS',parteTabeliao:2486.77,arranjoId:'direto',status:'pago',dataPagamento:'2026-08-18',valorRegistro:1348.42,registroStatus:'carteira'},
+  a4:{id:'a4',descricao:'JULIANA MOREIRA',parteTabeliao:366.39,arranjoId:'direto',status:'pendente',vencimento:'2026-08-21'}
+};
+finCiclo='2026-08';finFiltroStatus='pago';   // o filtro da aba não vale aqui
+const rAgo=finResumoCiclo('2026-08',''), rJul=finResumoCiclo('2026-07','');
+ok('conta as quatro escrituras do fechamento, pagas e a receber',rAgo.n===4&&rAgo.pagas===3&&rAgo.pendentes===1,
+   [rAgo.n,rAgo.pagas,rAgo.pendentes]);
+ok('o filtro de situação da aba não muda o quadro',finFiltroStatus==='pago'&&rAgo.n===4);
+ok('parte do tabelião paga: 9.341,23',perto(rAgo.tabeliao,9341.23),rAgo.tabeliao);
+ok('veio para a mesa: 856,80 + 856,80 + 621,69 = 2.335,29',perto(rAgo.repasse,2335.29),rAgo.repasse);
+ok('a pendente fica no "ainda a receber", não no recebido',perto(rAgo.repasseAReceber,91.59),rAgo.repasseAReceber);
+ok('o registro de imóveis fica na carteira, sem virar receita',perto(rAgo.registro,1348.42)&&rAgo.repasse<rAgo.tabeliao,rAgo.registro);
+ok('escritura média sobre todas as quatro: 2.426,91',perto(rAgo.ticket,2426.91),rAgo.ticket);
+
+ok('o cliente mais recorrente é o Gustavo, escrito de dois jeitos',
+   rAgo.clientes[0].chave==='GUSTAVO BERTOLA'&&rAgo.clientes[0].n===2,rAgo.clientes.map(c=>c.nome+':'+c.n));
+ok('três clientes diferentes no fechamento',rAgo.clientes.length===3,rAgo.clientes.map(c=>c.nome));
+ok('o arranjo direto vem na frente, com o repasse dele',
+   rAgo.arranjos[0].id==='direto'&&perto(rAgo.arranjos[0].repasse,1478.49),rAgo.arranjos.map(a=>a.id+':'+a.repasse));
+ok('o caso do Renato aparece à parte',
+   rAgo.arranjos[1].id==='renato'&&perto(rAgo.arranjos[1].repasse,856.80),rAgo.arranjos[1]);
+
+const cmp=finComparativoCiclo('2026-08');
+ok('julho fechou com 1.000,00 na mesa',perto(rJul.repasse,1000),rJul.repasse);
+ok('agosto está aberto — o quadro sabe disso',cmp.aberto===true&&cmp.dias===30,[cmp.aberto,cmp.dias]);
+ok('a comparação é com julho',cmp.antesChave==='2026-07'&&cmp.mesAntes==='julho',[cmp.antesChave,cmp.mesAntes]);
+const vRep=finVariacao(cmp.atual.repasse,cmp.anterior.repasse);
+ok('subiu: 2.335,29 contra 1.000,00',vRep.dir==='alta'&&Math.round(vRep.pct)===134,[vRep.dir,vRep.pct]);
+ok('a diferença em reais também volta',perto(vRep.dif,1335.29),vRep.dif);
+ok('caiu é caiu',finVariacao(500,1000).dir==='queda'&&Math.round(finVariacao(500,1000).pct)===-50);
+ok('mês anterior zerado não vira "subiu 100%"',finVariacao(800,0).dir==='sembase'&&finVariacao(800,0).pct===null);
+ok('dois meses zerados são iguais, não sem base',finVariacao(0,0).dir==='igual');
+// O corte no meio do ciclo é o que impede meio agosto de ser comparado com
+// julho inteiro — sem ele a seta seria vermelha todo dia 26.
+const meio=finResumoCiclo('2026-08','2026-08-10');
+ok('com data de corte, o resumo para onde mandaram',meio.n===2&&perto(meio.repasse,1713.60),[meio.n,meio.repasse]);
+const serie=finSerieCiclos('2026-08',6);
+ok('a série não abre com meses vazios que nunca existiram',serie.length===2&&serie[0].chave==='2026-07',serie.map(s=>s.chave));
+ok('o último da série é o fechamento escolhido',serie[serie.length-1].chave==='2026-08');
+finFiltroStatus='';
+
 console.log('\n— Cofre pessoal (criptografia) —');
 await finCriarCofre('senha-de-teste-123');
 const guardado=JSON.parse(JSON.stringify(_setCapturado));
