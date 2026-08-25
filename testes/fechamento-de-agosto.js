@@ -28,3 +28,4 @@ REAIS.forEach(([nome,tab],i)=>{
     dataPagamento:i>14?'':('2026-08-'+String(3+i).padStart(2,'0')),
     vencimento:i>14?'2026-08-24':'',
     valorRegistro:(i%5===0)?1348.42:0,registroStatus:'carteira'});
+});
