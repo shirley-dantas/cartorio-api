@@ -140,6 +140,59 @@ recuperação —, o que permite trocar a senha sem re-cifrar tudo.
 
 ---
 
+## A Rede
+
+A prospecção. Ela atende muita gente e não sobra tempo para o network: a Rede
+é o painel fazendo a triagem que ela faria se tivesse tempo — **quem já foi
+atendido e nunca virou conversa**.
+
+O motor não é o LinkedIn. Não existe API que devolva conexões, e raspar a tela
+põe a conta dela em risco — então o robô nunca entra lá. O motor é a
+**qualificação da minuta**, que já traz profissão, cônjuge, estado civil e
+endereço de cada parte. O botão do LinkedIn só abre a busca pelo nome numa aba
+nova; quem olha o perfil, vê as conexões em comum e decide falar é ela.
+
+A veia mais rica não estava no plano: a minuta de empreendimento traz os
+**funcionários da incorporadora nominalmente, com cargo** — gerente de
+carteira, relacionamento com cliente. São eles que escolhem o cartório, e
+assinam escritura atrás de escritura sem nunca terem virado conversa.
+
+Três regras que **não devem ser mexidas sem perguntar**:
+
+- **Cada pessoa entra uma vez.** A mesma gerente assina dezenas de escrituras.
+  Quem já está no cadastro não é relido: só ganha mais um ato no contador e a
+  data nova. É o que faz a varredura ficar mais barata a cada rodada.
+- **Só entra na fila quem tem cara de ramo imobiliário.** A bibliotecária e o
+  aposentado ficam gravados, marcados como fora — não somem, só não ocupam a
+  fila da manhã. Cargo que a IA não soube julgar vira **duvidoso** e espera
+  decisão na tela: descarte calado é onde a rede perde gente boa.
+- **O CPF não vem para o banco.** Ele já mora na minuta, no Drive. Serve só
+  para saber que a Letícia de hoje é a mesma de março: passa por uma conta de
+  mão única (HMAC com a `REDE_CHAVE`) e o que fica guardado é o resultado. Do
+  resultado não se volta ao número.
+
+A correção dela vence a leitura da máquina, sempre. O lápis grava em
+`/correcoes` e a varredura seguinte **nunca** escreve por cima — o campo "de
+onde veio" sai do nome da pasta do Drive, que mistura cliente e parceiro, e
+erra com frequência.
+
+**Só a Shirley entra.** Diferente do Financeiro, que a Grazi abre, o `/rede`
+está na regra `dono` do banco — a mesma do Meu financeiro.
+
+O mapa é do Brasil, nas cores da bandeira, com os estados clicáveis (formas do
+`@svg-maps/brazil`, CC BY 4.0, em `lib/br-uf.json`). Estado abre em cidades, e
+o pino da capital desce para os bairros. Duas honestidades no desenho: no
+nível do estado o pino fica no meio do estado, porque não existe coordenada de
+cidade aqui; e o nível dos bairros é um **esquema por região** — não existe
+planta de bairro disponível, então cada um fica no rumo certo em relação ao
+centro, e bairro fora da tabela de rumos aparece na lista **sem pino**, em vez
+de ganhar um lugar inventado.
+
+Quem enche o `/rede` é o `apps-script/cartorio-rede.js`, que roda no Apps
+Script de madrugada. Passo a passo em `FIREBASE.md`.
+
+---
+
 ## Quem entra
 
 O painel operacional **não tem login**, de propósito. Só o `/financeiro` é
@@ -177,12 +230,17 @@ o `testes/montar.mjs` recorta.
 | Quem é o cliente | `finClienteDe()` |
 | Cofre pessoal | `finCriarCofre()`, `finDestrancar()`, `finMeuSalario()` |
 | Regras do banco | `database.rules.json` · passo a passo em `FIREBASE.md` |
+| A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
+| O mapa | `redeMontarMapa()`, `redeVerUF()`, `redeVerCapital()`, `REDE_RUMOS` |
+| Quem é a mesma pessoa | `impressaoDigital()`, `redeChaveDaPessoa()` (Apps Script) |
+| A varredura das minutas | `apps-script/cartorio-rede.js` → `varrerRede()` |
 
 ## Testes
 
 ```bash
 node testes/montar.mjs && node testes/calculo.gerado.mjs
 node testes/navegador.mjs && node testes/celular.mjs
+node testes/rede.mjs && node testes/rede-varredura.mjs
 ```
 
 O `montar.mjs` também gera o `preview-quadro.html`, que é o desenho da seção
@@ -190,7 +248,12 @@ do dinheiro com dois fechamentos no banco.
 
 Rodam por cima do `index.html` publicado. Ver `testes/README.md`.
 
-**Antes de publicar qualquer mudança no financeiro, rode as três.** Vários
+A Rede tem harness próprio (`harness-rede.html`), montado pelo mesmo
+`montar.mjs`: ela mora depois do registro do service worker no `index.html`,
+fora do recorte do financeiro. O `rede.mjs` termina medindo tudo num iPhone 13,
+e o `rede-varredura.mjs` roda o arquivo do Apps Script com o Google fingido.
+
+**Antes de publicar qualquer mudança no financeiro, rode as três primeiras.** Vários
 dos testes existem porque o erro já aconteceu uma vez: `2.000` lido como
 R$ 2,00, o IR saindo do bolo inteiro, a linha de parceiro que sumia ao ser
 criada, o salário que não acompanhava a correção do lançamento.
@@ -204,6 +267,20 @@ criada, o salário que não acompanhava a correção do lançamento.
   `celular.mjs`.
 
 ## Na fila
+
+- **A Rede ainda não leu nada de verdade.** O painel e a varredura estão
+  prontos e testados, mas o `cartorio-rede.js` precisa ser colado no Apps
+  Script e configurado (`FIREBASE.md`, passo 6) para o `/rede` começar a
+  encher. Até lá a aba abre e diz que a leitura não passou.
+- **A profissão vem pela metade.** Nas duas minutas lidas à mão, uma trazia a
+  profissão do cliente e a outra tinha o campo em branco — o bot pergunta, mas
+  nem sempre a resposta chega antes da minuta ser gerada. Vale insistir mais
+  nessa pergunta: ela deixou de ser burocracia e virou o dado mais valioso da
+  Rede.
+- **O nome do card não é o nome da parte.** A pasta "GUSTAVO BERTOLA (CASO:
+  VENDA E COMPRA)" tem a Tânia como compradora. Quem vale é o nome da
+  qualificação, não o da pasta — a Rede já faz assim, mas o resto do painel
+  agrupa pelo nome do card.
 
 - Enxugar o formulário da aba (hoje só serve para receita sem card).
 - Decidir se a coluna Registro fica na planilha ou vai só para a Carteira.

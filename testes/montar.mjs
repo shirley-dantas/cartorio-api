@@ -32,6 +32,12 @@ const codigo = html.slice(iJs, html.indexOf("\n\nif('serviceWorker' in navigator
 const doQuadro = entre('let quadroTabela=false;', '// esc() do painel')
                + entre('function dashPlural(', '// 1. ONDE OS CASOS TRAVAM');
 
+// A Rede mora fora do bloco financeiro (depois do service worker), e tem
+// harness próprio: ela precisa do markup do modal e do código dela, mas
+// também do financeiro, de onde vêm o login, o finEhDona e o finToast.
+const redeMarkup = entre('<!-- A Rede — prospecção.', '<script src="design-system/mascots/joaninha/joaninha.js">');
+const redeCodigo = html.slice(html.indexOf('// ══ A REDE ═'), html.lastIndexOf('</script>'));
+
 const fazDeContaNav = readFileSync(join(AQUI, 'faz-de-conta-navegador.js'), 'utf8');
 const fazDeContaNode = readFileSync(join(AQUI, 'faz-de-conta-node.js'), 'utf8');
 
@@ -84,6 +90,17 @@ setTimeout(()=>{document.getElementById('cdc-quadro').innerHTML=finQuadroHtml();
 // E a versão sem navegador, para as verificações de conta.
 writeFileSync(join(AQUI, 'calculo.gerado.mjs'),
   fazDeContaNode + codigo + readFileSync(join(AQUI, 'calculo.js'), 'utf8'));
+
+// ── A Rede ──
+// Precisa do markup do modal e de um lugar para o botão da lateral existir,
+// senão atualizarSidebarRede() não teria o que mostrar.
+writeFileSync(join(AQUI, 'harness-rede.html'),
+  CABECA + FONTES + estilo + '</head><body><div class="nav-toast" id="nav-toast"></div>'
+  + '<aside class="sidebar"><button type="button" class="sidebar-item" id="sidebar-rede" style="display:none" onclick="abrirRede()"><span>Rede</span></button></aside>'
+  + '<div class="fin-atalho-mobile"><button type="button" class="fin-atalho" id="fin-atalho-rede" style="display:none" onclick="abrirRede()"><span>Rede</span></button></div>'
+  + redeMarkup + markup
+  + '<script type="module">' + fazDeContaNav + codigo + redeCodigo
+  + '\nwindow.__pronto=true;\n</script></body></html>');
 
 mkdirSync(join(AQUI, 'saida'), {recursive: true});
 console.log('montado a partir do index.html · ' + codigo.split('\n').length + ' linhas de financeiro');
