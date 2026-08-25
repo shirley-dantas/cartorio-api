@@ -1164,6 +1164,14 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .fin-codigo{font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:15px;letter-spacing:.14em;
   background:#F5F5F7;border:0.5px dashed #C7C7CC;border-radius:12px;padding:13px;color:#1C1C1E;word-break:break-all;margin:10px 0}
 .fin-mini{font-size:11px;color:#8E8EA0;line-height:1.5}
+/* A faixa do dinheiro dentro do card: mesma gramática da faixa do Drive,
+   porque as duas respondem à mesma pergunta — o que este caso já tem. */
+.cx-fin{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--cc-sup-2);
+  border:1px solid var(--cc-linha);border-radius:12px;padding:11px 15px;margin-bottom:13px}
+.cx-fin-rot{font-size:11.5px;color:var(--cc-tinta-3);display:inline-flex;align-items:center;gap:6px}
+.cx-fin-vazio{font-size:12px;color:var(--cc-tinta-3);font-style:italic}
+.cx-fin-num{font-size:12px;color:var(--cc-tinta-2);white-space:nowrap}
+.cx-fin-num b{font-variant-numeric:tabular-nums;color:var(--cc-tinta);font-weight:600}
 /* ══ A planilha ══
    Uma linha por escritura, colunas fixas, número tabular alinhado à direita
    e uma linha de total no rodapé — a mesma leitura da planilha que ela
@@ -1755,6 +1763,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <button type="button" class="fin-aba" data-fin-aba="ajustes" onclick="finIrPara('ajustes')">Ajustes</button>
     </div>
     <div id="fin-conteudo"></div>
+  </div>
+</div>
+
+<!-- Valores de um caso: abre pelo card, no instante em que o controle sai -->
+<div class="modal-overlay" id="modal-caso-financeiro">
+  <div class="modal-box" style="max-width:620px">
+    <button class="modal-close" onclick="fecharFinanceiroDoCaso()">&times;</button>
+    <div class="modal-title"><i class="ti ti-currency-real" style="font-size:15px;vertical-align:-2px;color:#2E7D32"></i> Valores deste caso</div>
+    <div class="modal-sub" id="caso-fin-sub">—</div>
+    <div id="caso-fin-conteudo"></div>
   </div>
 </div>
 
@@ -4084,6 +4102,11 @@ function renderCasos(){
           <input type="text" value="${esc(c[r.campo])}" placeholder="—" onchange="mudarCampo('${c.id}','${r.campo}',this.value)"></label>`).join('')}
       </div>
 
+      <div class="cx-fin">
+        <span class="cx-fin-rot"><i class="ti ti-currency-real"></i> Financeiro</span>
+        ${typeof finFaixaDoCaso==='function'?finFaixaDoCaso(c.id):''}
+      </div>
+
       <div class="cx-drive">
         <span class="cx-drive-rot"><i class="ti ti-brand-google-drive"></i> Pasta no Drive</span>
         ${c.driveUrl?`
@@ -5903,6 +5926,8 @@ onAuthStateChanged(auth,async(u)=>{
   if(finAberto)renderFinanceiro();
   const mp=document.getElementById('modal-meu-financeiro');
   if(mp&&mp.classList.contains('open'))renderMeuFinanceiro();
+  if(finCasoAtual)renderFinanceiroDoCaso();
+  finRedesenharCards();
   atualizarSidebarFinanceiro();
 });
 function finHtmlLogin(texto){
@@ -6289,7 +6314,12 @@ function finLigarEscuta(){
   if(finOuvindo||!finAuth)return;
   finOuvindo=true;
   if(!finCiclo)finCiclo=finCicloCorrente();
-  onValue(finLancRef,snap=>{finLanc=snap.val()||{};if(finAberto)renderFinanceiro();},erro=>finErroPermissao(erro));
+  onValue(finLancRef,snap=>{
+    finLanc=snap.val()||{};
+    if(finAberto)renderFinanceiro();
+    if(finCasoAtual)renderFinanceiroDoCaso();
+    finRedesenharCards();
+  },erro=>finErroPermissao(erro));
   onValue(finCfgRef,snap=>{
     const v=snap.val();
     if(v&&Array.isArray(v.pessoas)&&v.pessoas.length){
@@ -6713,7 +6743,9 @@ function finApuracao(){
 }
 function finHtmlPessoas(){
   const ap=finApuracao();
-  const equipe=ap.pessoas.filter(m=>m.pessoa.tipo!=='parceiro');
+  // Shirley e Grazi já têm coluna própria na planilha; repetir as duas aqui
+  // era ler o mesmo número duas vezes. Esta aba ficou sendo o que só ela faz:
+  // quanto cabe a cada parceiro e o que ainda não foi repassado.
   const parceiros=ap.pessoas.filter(m=>m.pessoa.tipo==='parceiro');
   const bloco=(m)=>{
     const aRepassar=finCent(m.liquido-m.repassado);
@@ -6744,9 +6776,8 @@ function finHtmlPessoas(){
   };
   return `
     <div class="fin-filtros">${finSeletorCiclo()}</div>
-    <div class="fin-mini" style="margin:-4px 0 12px">O número grande é o <b>líquido</b>, já sem o IR. O bruto e o IR aparecem logo abaixo do nome.</div>
-    ${equipe.length?`<div class="fin-cfg-cab" style="margin-bottom:7px">Equipe</div>${equipe.map(bloco).join('')}`:''}
-    ${parceiros.length?`<div class="fin-cfg-cab" style="margin:16px 0 7px">Parceiros</div>${parceiros.map(bloco).join('')}`:''}
+    <div class="fin-mini" style="margin:-4px 0 12px">Só os parceiros — a sua parte e a da Grazi estão nas colunas da planilha. O número grande é o <b>líquido</b>, já sem o IR.</div>
+    ${parceiros.map(bloco).join('')}
     <div class="fin-cfg-cab" style="margin:16px 0 7px">Tabelião</div>
     <div class="fin-pessoa">
       <div class="fin-pessoa-topo">
@@ -6758,7 +6789,7 @@ function finHtmlPessoas(){
       </div>
       ${ap.tabeliaoPrev?`<div class="fin-pessoa-barra"><span>Previsto nas escrituras ainda não pagas <b>${finMoeda(ap.tabeliaoPrev)}</b></span></div>`:''}
     </div>
-    ${ap.pessoas.length?'':'<div class="fin-vazio">Nada apurado neste fechamento.</div>'}`;
+    ${parceiros.length?'':'<div class="fin-vazio">Nenhum parceiro entrou neste fechamento.</div>'}`;
 }
 
 // ── Carteira virtual do registro ──
@@ -7444,6 +7475,192 @@ window.finTrocarSenha=async function(){
     err.textContent='Não consegui trocar agora: '+(e&&e.message||e);
   }
 };
+
+// ══════════════════════════════════════════════════════════════════════════
+// O DINHEIRO NASCE NO CARD
+//
+// Lançar pela aba Financeiro obrigava a redigitar cliente e tipo de ato que o
+// card já sabe — e a lembrar de fazer isso depois. Na prática o valor aparece
+// junto com o número de controle: é quando a escritura sai e o repasse fica
+// conhecido. Então é o próprio card que abre a janela dos valores, e a aba
+// Financeiro passa a ser onde se lê o fechamento, não onde se digita.
+// ══════════════════════════════════════════════════════════════════════════
+let finCasoAtual=null;
+function finLancamentoDoCaso(casoId){
+  const k=Object.keys(finLanc).find(k=>(finLanc[k]||{}).casoId===casoId);
+  return k?finLanc[k]:null;
+}
+window.abrirFinanceiroDoCaso=function(casoId){
+  finLigarEscuta();
+  finCasoAtual=casoId;
+  document.getElementById('modal-caso-financeiro').classList.add('open');
+  renderFinanceiroDoCaso();
+};
+window.fecharFinanceiroDoCaso=function(){
+  finCasoAtual=null;
+  document.getElementById('modal-caso-financeiro').classList.remove('open');
+};
+function renderFinanceiroDoCaso(){
+  const alvo=document.getElementById('caso-fin-conteudo');
+  const sub=document.getElementById('caso-fin-sub');
+  if(!alvo||!finCasoAtual)return;
+  const caso=(typeof casos==='object'&&casos[finCasoAtual])||{};
+  sub.textContent=(caso.nome||'Caso')+(caso.tipo?' · '+caso.tipo:'')+(caso.controle?' · controle '+caso.controle:'');
+  if(!finAuth){
+    alvo.innerHTML=finAuthPronto?finHtmlLogin('Os valores só entram no banco por quem tem conta — é o que as regras exigem.'):'<div class="fin-vazio">Verificando…</div>';
+    setTimeout(()=>{const i=document.getElementById('fin-login-email');if(i)i.focus();},60);
+    return;
+  }
+  if(finPrecisaLiberar()){alvo.innerHTML=finHtmlLiberar();return;}
+  const l=finLancamentoDoCaso(finCasoAtual)||{};
+  const pago=l.status==='pago';
+  const arranjos=finArranjos();
+  const arrSel=l.arranjoId||(arranjos[0]&&arranjos[0].id)||'';
+  alvo.innerHTML=`
+    <div class="fin-grade">
+      <div class="fin-campo">
+        <label class="fin-rot">Valor ao tabelião</label>
+        <input class="fin-input" id="cf-tabeliao" inputmode="decimal" placeholder="3.427,23" value="${l.parteTabeliao?finBr(finNum(l.parteTabeliao)):''}" oninput="finPreviaDoCaso()">
+      </div>
+      <div class="fin-campo">
+        <label class="fin-rot">Situação</label>
+        <select class="fin-select" id="cf-status" onchange="finTrocarStatusDoCaso()">
+          <option value="pendente"${pago?'':' selected'}>A receber</option>
+          <option value="pago"${pago?' selected':''}>Pago</option>
+        </select>
+      </div>
+      <div class="fin-campo">
+        <label class="fin-rot" id="cf-data-rot">${pago?'Data do pagamento':'Previsão de pagamento'}</label>
+        <input class="fin-input" type="date" id="cf-data" value="${esc(pago?(l.dataPagamento||isoHoje()):(l.vencimento||''))}" onchange="finPreviaDoCaso()">
+      </div>
+      <div class="fin-campo">
+        <label class="fin-rot">Divisão</label>
+        <select class="fin-select" id="cf-arranjo" onchange="finPreviaDoCaso()">
+          ${arranjos.map(a=>`<option value="${esc(a.id)}"${arrSel===a.id?' selected':''}>${escTxt(a.nome)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fin-campo">
+        <label class="fin-rot">Valor do registro</label>
+        <input class="fin-input" id="cf-registro" inputmode="decimal" placeholder="0,00" value="${l.valorRegistro?finBr(finNum(l.valorRegistro)):''}" oninput="finPreviaDoCaso()">
+      </div>
+      <div class="fin-campo">
+        <label class="fin-rot">Situação do registro</label>
+        <select class="fin-select" id="cf-registro-status">
+          <option value="carteira"${l.registroStatus!=='pago'?' selected':''}>Guardado na carteira</option>
+          <option value="pago"${l.registroStatus==='pago'?' selected':''}>Já pago ao RI</option>
+        </select>
+      </div>
+    </div>
+    <div class="fin-preview" id="cf-previa"></div>
+    <div class="modal-btn-row">
+      ${l.id?`<button type="button" class="btn-sm btn-excluir" style="margin-right:auto" onclick="finExcluirDoCaso()">Excluir lançamento</button>`:''}
+      <button type="button" class="btn-cancel" onclick="fecharFinanceiroDoCaso()">Cancelar</button>
+      <button type="button" class="btn-save" onclick="finSalvarDoCaso()">${l.id?'Salvar':'Lançar'}</button>
+    </div>`;
+  finPreviaDoCaso();
+  setTimeout(()=>{const i=document.getElementById('cf-tabeliao');if(i&&!i.value)i.focus();},60);
+}
+window.finTrocarStatusDoCaso=function(){
+  const pago=document.getElementById('cf-status').value==='pago';
+  document.getElementById('cf-data-rot').textContent=pago?'Data do pagamento':'Previsão de pagamento';
+  const d=document.getElementById('cf-data');
+  if(pago&&!d.value)d.value=isoHoje();
+  finPreviaDoCaso();
+};
+function finObjDoCaso(){
+  const status=document.getElementById('cf-status').value;
+  const data=document.getElementById('cf-data').value||'';
+  return {
+    parteTabeliao:finCent(finNum(document.getElementById('cf-tabeliao').value)),
+    arranjoId:document.getElementById('cf-arranjo').value,
+    status,
+    dataPagamento:status==='pago'?data:'',
+    vencimento:status==='pago'?'':data,
+    valorRegistro:finCent(finNum(document.getElementById('cf-registro').value)),
+    registroStatus:document.getElementById('cf-registro-status').value
+  };
+}
+function finPreviaDoCaso(){
+  const box=document.getElementById('cf-previa');
+  if(!box)return;
+  const c=finConta(finObjDoCaso());
+  const dataRef=document.getElementById('cf-status').value==='pago'
+    ?document.getElementById('cf-data').value:document.getElementById('cf-data').value;
+  const ciclo=dataRef?finCicloPorChave(finCicloDaData(dataRef)):null;
+  box.innerHTML=`
+    <div class="fin-preview-linha sobra"><span>Repasse de ${c.pctRepasse}%</span><b>${finMoeda(c.bruto)}</b></div>
+    ${c.linhas.map(d=>`<div class="fin-preview-linha"><span>${escTxt(d.nome)} <span class="fin-div-pct">${d.quotaRot}${d.descontaIR?` · − IR ${finMoeda(d.ir)}`:' · sem IR'}</span></span><b>${finMoeda(d.liquido)}</b></div>`).join('')}
+    ${c.registro.valor?`<div class="fin-preview-linha"><span>Registro — carteira, sem comissão</span><b>${finMoeda(c.registro.valor)}</b></div>`:''}
+    ${ciclo?`<div class="fin-mini" style="margin-top:6px">Entra no <b>${ciclo.rotulo}</b> (${ciclo.periodo}).</div>`:''}`;
+}
+window.finPreviaDoCaso=finPreviaDoCaso;
+window.finSalvarDoCaso=function(){
+  const obj=finObjDoCaso();
+  if(!obj.parteTabeliao){
+    const el=document.getElementById('cf-tabeliao');el.classList.add('erro');el.focus();
+    finToast('Falta o valor ao tabelião — é dele que sai a comissão.');return;
+  }
+  const caso=(typeof casos==='object'&&casos[finCasoAtual])||{};
+  const antigo=finLancamentoDoCaso(finCasoAtual)||{};
+  const dados={...antigo,...obj,
+    casoId:finCasoAtual,
+    casoNome:caso.nome||'',
+    descricao:caso.nome||antigo.descricao||'Sem descrição',
+    tipoAto:caso.tipo||'',
+    repasses:antigo.repasses||{},
+    atualizadoEm:new Date().toISOString(),
+    atualizadoPor:(localStorage.getItem('painel_usuario')||'')};
+  if(antigo.id){
+    dados.id=antigo.id;
+    update(ref(db,'financeiro/lancamentos/'+antigo.id),dados);
+  }else{
+    const nr=push(finLancRef);
+    dados.id=nr.key;dados.criadoEm=new Date().toISOString();
+    set(nr,dados);
+  }
+  finToast(antigo.id?'Valores atualizados.':'Valores lançados no financeiro.');
+  fecharFinanceiroDoCaso();
+};
+window.finExcluirDoCaso=function(){
+  const l=finLancamentoDoCaso(finCasoAtual);
+  if(!l||!l.id)return;
+  if(!confirm('Excluir o lançamento financeiro deste caso? O caso continua no painel.'))return;
+  remove(ref(db,'financeiro/lancamentos/'+l.id));
+  finToast('Lançamento excluído.');
+  fecharFinanceiroDoCaso();
+};
+
+// ── A faixa do financeiro dentro do card ──
+window.finFaixaDoCaso=function(casoId){
+  if(!finAuth)return `<button type="button" class="cx-btn" onclick="abrirFinanceiroDoCaso('${casoId}')"><i class="ti ti-currency-real"></i> Lançar valores</button>
+    <span class="cx-fin-vazio">Entre no financeiro para ver e lançar.</span>`;
+  const l=finLancamentoDoCaso(casoId);
+  if(!l)return `<button type="button" class="cx-btn" onclick="abrirFinanceiroDoCaso('${casoId}')"><i class="ti ti-currency-real"></i> Lançar valores</button>
+    <span class="cx-fin-vazio">Nenhum valor lançado neste caso.</span>`;
+  const c=finConta(l);
+  const pago=l.status==='pago';
+  return `
+    <span class="cx-fin-num">Ao tabelião <b>${finMoeda(c.tabeliao)}</b></span>
+    ${c.linhas.map(d=>`<span class="cx-fin-num">${escTxt(d.nome)} <b>${finMoeda(d.liquido)}</b></span>`).join('')}
+    ${c.registro.valor?`<span class="cx-fin-num">Registro <b>${finMoeda(c.registro.valor)}</b>${c.registro.pago?'':' · na carteira'}</span>`:''}
+    <span class="fin-pill ${pago?'pago':'pendente'}">${pago?'PAGO':'A RECEBER'}</span>
+    <button type="button" class="cx-btn" onclick="abrirFinanceiroDoCaso('${casoId}')"><i class="ti ti-pencil"></i> Editar</button>`;
+};
+// O número de controle é o gatilho: quando ele aparece, a escritura saiu e o
+// repasse já é conhecido. Abrir a janela nesse instante evita o "depois eu
+// lanço" que nunca chega.
+const _finMudarCampo=window.mudarCampo;
+window.mudarCampo=function(id,campo,valor){
+  _finMudarCampo(id,campo,valor);
+  if(campo==='controle'&&String(valor||'').trim()&&!finLancamentoDoCaso(id))abrirFinanceiroDoCaso(id);
+};
+// Quando os lançamentos chegam (ou mudam), os cards precisam se redesenhar
+// para mostrar a faixa — mas sem disparar um render por escritura gravada.
+let _finRedesenhoCards=null;
+function finRedesenharCards(){
+  clearTimeout(_finRedesenhoCards);
+  _finRedesenhoCards=setTimeout(()=>{if(typeof renderCasos==='function')renderCasos();},200);
+}
 
 // ── Entrada pela lateral ──
 // "Meu financeiro" só aparece pra quem entrou como Shirley. Isso é conforto,
