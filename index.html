@@ -1152,6 +1152,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .fin-pilula.com-ir{background:#FFFCF5;border-color:#F0DFB8}
 .fin-pilula-nome{font-family:'Jost',sans-serif;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8E8EA0}
 .fin-pilula-valor{font-size:22px;font-weight:600;color:#2E7D32;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.2}
+.fin-pilula-casos{font-size:11px;color:#6A1B9A;margin-top:3px;line-height:1.4}
 .fin-pilula-extra{font-size:11px;color:#B45309;margin-top:2px}
 .fin-pilula-nota{font-size:11px;color:#7A5B12;line-height:1.45;margin-top:5px}
 .fin-pilula:not(.com-ir) .fin-pilula-nota{color:#8E8EA0}
@@ -6760,10 +6761,23 @@ function finHtmlPessoas(){
   // Uma pílula por pessoa, com o valor final. A lista de escrituras saiu:
   // ela já está na planilha da primeira aba, e repetida aqui virava uma
   // parede que escondia justamente o número que se vem buscar.
+  // O parceiro entra em caso pontual, não no fechamento inteiro: sem dizer
+  // qual, a pílula obriga a ir procurar na planilha de onde veio aquilo.
+  // Para a equipe não faz sentido — elas estão em todos.
+  const casosDe=(m)=>{
+    const nomes=[];
+    m.itens.forEach(it=>{
+      const n=it.l.descricao||it.l.casoNome||'sem nome';
+      if(nomes.indexOf(n)===-1)nomes.push(n);
+    });
+    if(nomes.length<=3)return nomes.join(' · ');
+    return nomes.slice(0,2).join(' · ')+' + '+(nomes.length-2)+' outros';
+  };
   const pilula=(m)=>`
     <div class="fin-pilula${m.ir?' com-ir':''}">
       <span class="fin-pilula-nome">${escTxt(m.pessoa.nome)}</span>
       <span class="fin-pilula-valor">${finMoeda(m.liquido)}</span>
+      ${m.pessoa.tipo==='parceiro'?`<span class="fin-pilula-casos">${escTxt(casosDe(m))}</span>`:''}
       ${m.previsto?`<span class="fin-pilula-extra">+ ${finMoeda(m.previsto)} nas que ainda não foram pagas</span>`:''}
       ${m.ir?`<span class="fin-pilula-nota">Líquido — os ${finPct(finCfg.percentualIR)}% de IR já saíram no repasse (${finMoeda(m.ir)} sobre ${finMoeda(m.bruto)})</span>`:''}
     </div>`;

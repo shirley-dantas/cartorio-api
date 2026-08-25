@@ -231,6 +231,14 @@ await passo('Quem recebe: uma pílula por pessoa, sem repetir os casos',async()=
   const pilulas=await pg.$$eval('.fin-pilula',e=>e.map(x=>({
     nome:(x.querySelector('.fin-pilula-nome')||{}).textContent||'',
     nota:(x.querySelector('.fin-pilula-nota')||{}).textContent||''})));
+  // o parceiro tem que dizer de que caso veio a participação dele
+  const casos=await pg.$$eval('.fin-pilula',e=>e.map(x=>({
+    nome:(x.querySelector('.fin-pilula-nome')||{}).textContent||'',
+    casos:(x.querySelector('.fin-pilula-casos')||{}).textContent||''})));
+  const renato=casos.find(p=>p.nome==='Renato');
+  if(!renato.casos.includes('Basiotti'))throw new Error('a pílula do Renato não diz de que caso é: '+JSON.stringify(renato));
+  for(const n of ['Shirley','Grazi'])
+    if(casos.find(p=>p.nome===n).casos.trim())throw new Error('a pílula da '+n+' não devia listar casos');
   const gr=pilulas.find(p=>p.nome==='Grazi'), sh=pilulas.find(p=>p.nome==='Shirley');
   if(!/l[íi]quido/i.test(gr.nota)||!gr.nota.includes('27,5'))throw new Error('a pílula da Grazi não explica o IR: '+gr.nota);
   if(sh.nota.trim())throw new Error('a pílula da Shirley não devia ter nota de IR: '+sh.nota);

@@ -85,7 +85,8 @@ A aba Financeiro é onde se **lê o fechamento**:
   vermelho no topo (acima dos nomes) e o botão LÍQUIDO/BRUTO. Em bruto as
   colunas das pessoas batem com a planilha antiga dela.
 - **Quem recebe** — uma pílula por pessoa com o valor final. Só quem tem IR
-  retido ganha a nota explicando que aquilo é líquido.
+  retido ganha a nota explicando que aquilo é líquido, e só o parceiro lista
+  de que casos veio a participação dele (a equipe está em todos).
 - **Carteira do registro** — o saldo que ainda não foi pago ao RI.
 - **Ajustes** — percentuais, pessoas e arranjos.
 
