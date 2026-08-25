@@ -1281,11 +1281,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   .fin-acoes-linha{opacity:1}
 }
 /* No celular a lateral inteira some (.sidebar{display:none} lá em cima), e o
-   Financeiro só morava lá dentro — daí este par de botões, que só existe
-   abaixo dos 880px. */
-.fin-atalho-mobile{display:none;gap:8px;margin-bottom:16px}
+   Financeiro e o Quadro só moravam lá dentro — daí estes botões, que só
+   existem abaixo dos 880px. Eles quebram de linha em vez de espremer: três
+   rótulos em maiúscula não cabem lado a lado numa tela de celular, e o que
+   ficaria é "MEU FINANCE…". */
+.fin-atalho-mobile{display:none;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 @media(max-width:880px){.fin-atalho-mobile{display:flex}}
-.fin-atalho{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+.fin-atalho{flex:1 1 40%;display:inline-flex;align-items:center;justify-content:center;gap:7px;
   font-family:'Jost',sans-serif;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
   padding:13px 12px;border-radius:14px;border:0.5px solid #E9E4DA;background:#fff;color:#16283A;
   cursor:pointer;box-shadow:0 2px 8px rgba(22,40,58,.05)}
@@ -1364,6 +1366,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="fin-atalho-mobile">
     <button type="button" class="fin-atalho" onclick="abrirFinanceiro()"><i class="ti ti-currency-dollar"></i><span>Financeiro</span></button>
     <button type="button" class="fin-atalho" id="fin-atalho-meu" style="display:none" onclick="abrirMeuFinanceiro()"><i class="ti ti-lock"></i><span>Meu financeiro</span></button>
+    <button type="button" class="fin-atalho" onclick="abrirQuadro()"><i class="ti ti-chart-histogram"></i><span>O quadro</span></button>
   </div>
   <div class="central-nova">
 
