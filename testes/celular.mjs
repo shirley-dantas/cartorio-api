@@ -23,9 +23,16 @@ await passo('a lateral está escondida, como no celular de verdade',async()=>{
   const vis=await pg.isVisible('.sidebar');
   if(vis)throw new Error('a lateral apareceu — o teste não está em tela de celular');
 });
-await passo('o botão do Financeiro aparece no celular',async()=>{
+await passo('os atalhos do Financeiro e do Quadro aparecem no celular',async()=>{
   await pg.waitForSelector('.fin-atalho-mobile .fin-atalho');
   if(!await pg.isVisible('.fin-atalho-mobile'))throw new Error('o atalho não apareceu');
+  // A lateral some no celular, e o Quadro só morava lá dentro: sem este
+  // botão ele fica inalcançável justamente em quem usa o painel pelo telefone.
+  const rotulos=await pg.$$eval('.fin-atalho-mobile .fin-atalho',e=>e.filter(x=>x.offsetParent).map(x=>x.textContent.trim()));
+  if(!rotulos.includes('O quadro'))throw new Error('não há como abrir o quadro no celular: '+rotulos.join(' | '));
+  // Rótulo cortado é botão que não diz o que faz.
+  const cortado=await pg.$$eval('.fin-atalho-mobile .fin-atalho span',e=>e.filter(x=>x.scrollWidth>x.clientWidth+1).map(x=>x.textContent));
+  if(cortado.length)throw new Error('rótulo espremido no atalho: '+cortado.join(' | '));
   await pg.screenshot({path:SAIDA('cel-home.png')});
 });
 await passo('"Meu financeiro" só aparece para a Shirley',async()=>{
