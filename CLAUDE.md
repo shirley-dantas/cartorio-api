@@ -171,10 +171,17 @@ Três regras que **não devem ser mexidas sem perguntar**:
   mão única (HMAC com a `REDE_CHAVE`) e o que fica guardado é o resultado. Do
   resultado não se volta ao número.
 
+**De onde a pessoa veio** é lido em três degraus, do mais firme ao mais
+frouxo: o **empreendimento**, quando quem vende é a incorporadora que o
+edificou (vale para todo mundo daquela escritura, dos dois lados da mesa); a
+**empresa** por quem ela comparece, quando é procuradora ou sócia; e só então
+o **nome da pasta** do Drive. A pasta leva o nome do cliente, então usá-la
+sozinha fazia a gerente da incorporadora "vir pelo comprador" — o contrário do
+que acontece. Em revenda entre pessoas ela continua sendo o melhor palpite que
+sobra, e às vezes traz mesmo o parceiro ("JOSÉ LUIZ - ABG - CÉSAR BRITO").
+
 A correção dela vence a leitura da máquina, sempre. O lápis grava em
-`/correcoes` e a varredura seguinte **nunca** escreve por cima — o campo "de
-onde veio" sai do nome da pasta do Drive, que mistura cliente e parceiro, e
-erra com frequência.
+`/correcoes` e a varredura seguinte **nunca** escreve por cima.
 
 **Só a Shirley entra.** Diferente do Financeiro, que a Grazi abre, o `/rede`
 está na regra `dono` do banco — a mesma do Meu financeiro.
