@@ -2,8 +2,10 @@
 
 Painel de trabalho da Shirley e da Grazi. Um arquivo só: **`index.html`**
 (CSS, markup e código no mesmo lugar), servido pela Vercel, com Firebase
-Realtime Database por baixo. As funções em `api/` atendem o bot do WhatsApp,
-e `apps-script/` gera as minutas.
+Realtime Database por baixo. A minuta é gerada **dentro do painel**: as
+funções em `api/` conversam com a IA (a chave mora nas variáveis de ambiente da
+Vercel). O `apps-script/` cuida do Drive — pastas, documentos, agenda — e é
+onde roda a varredura da Rede.
 
 A Shirley não é da área técnica. Ela descreve o problema em termos do
 cartório, não de software — e prefere ver uma imagem da tela antes de a coisa
@@ -215,8 +217,11 @@ fechado nas regras do banco, e por isso pede conta e senha do Firebase.
   chegada: "primeiro a liberar vira dona" abria uma corrida em que a conta
   errada levaria o cofre.
 - `/casos`, `/jobs` e os caminhos do bot continuam abertos porque quem
-  escreve neles não é o navegador — o bot do WhatsApp e o Apps Script gravam
+  escreve neles não é o navegador — as funções da Vercel e o Apps Script gravam
   por REST, sem conta. Ver `FIREBASE.md` para o que falta.
+- O `/rede` é a exceção do Apps Script: ele é fechado na regra `dono`, e a
+  varredura entra com o token da própria conta da Shirley (daí os escopos do
+  passo 6). Nenhuma conta de serviço.
 
 ---
 
@@ -275,10 +280,12 @@ criada, o salário que não acompanhava a correção do lançamento.
 
 ## Na fila
 
-- **A Rede ainda não leu nada de verdade.** O painel e a varredura estão
-  prontos e testados, mas o `cartorio-rede.js` precisa ser colado no Apps
-  Script e configurado (`FIREBASE.md`, passo 6) para o `/rede` começar a
-  encher. Até lá a aba abre e diz que a leitura não passou.
+- **A Rede leu pouco, e o filtro do nome é o motivo.** Instalada em 26/08/2026:
+  a primeira varredura achou 10 minutas e 25 pessoas, 6 do ramo. Dez é pouco
+  para o Drive dela — a varredura só enxerga **documentos do Google Docs cujo
+  nome começa com MINUTA**, e só um nível abaixo da pasta de minutas. Minuta em
+  Word ou PDF, com outro nome, ou dentro de subpasta, fica invisível. Vale
+  medir quanto do Drive está sendo perdido antes de mexer no filtro.
 - **A profissão vem pela metade.** Nas duas minutas lidas à mão, uma trazia a
   profissão do cliente e a outra tinha o campo em branco — o bot pergunta, mas
   nem sempre a resposta chega antes da minuta ser gerada. Vale insistir mais
