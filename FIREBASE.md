@@ -73,21 +73,38 @@ das minutas, porque usa o `PASTA_RAIZ_ID` e o `FIREBASE_URL` de lá.
 
 1. Em script.google.com, abra o projeto `cartorio-drive-api` → **Arquivo › Novo
    › Script**, nome `cartorio-rede`, e cole o conteúdo do arquivo.
-2. **Configurações do projeto › Propriedades do script**, adicione:
-   `REDE_CHAVE` = um texto longo e aleatório. É a chave que embaralha o CPF.
-   Escolha uma e **não troque**: trocar faz todo mundo virar gente nova e o
-   cadastro duplicar.
+2. **Configurações do projeto › Propriedades do script**, adicione **duas**:
+   - `REDE_CHAVE` = um texto longo e aleatório. É a chave que embaralha o CPF.
+     Escolha uma e **não troque**: trocar faz todo mundo virar gente nova e o
+     cadastro duplicar.
+   - `ANTHROPIC_API_KEY` = a chave da IA que lê as minutas. Ela **não vem de
+     graça do resto do painel**: as funções em `api/` leem a delas do ambiente
+     da Vercel, e o Apps Script não alcança aquilo. Precisa de uma cópia aqui,
+     ou a varredura para na primeira minuta com "ANTHROPIC_API_KEY não
+     configurada".
 3. Ainda em Configurações, marque **"Mostrar arquivo de manifesto
    appsscript.json"** e acrescente em `oauthScopes`:
 
    ```
+   "https://www.googleapis.com/auth/script.scriptapp",
    "https://www.googleapis.com/auth/firebase.database",
    "https://www.googleapis.com/auth/userinfo.email"
    ```
 
-   É isso que permite gravar num caminho fechado sem criar conta de serviço: o
-   token sai da sua própria conta, que é dona do projeto do Firebase. Sem esses
-   escopos, tudo volta 401 — e a mensagem de erro do script diz exatamente isso.
+   Os dois últimos permitem gravar num caminho fechado sem criar conta de
+   serviço: o token sai da sua própria conta, que é dona do projeto do Firebase.
+   Sem eles, tudo volta 401 — e a mensagem de erro do script diz exatamente isso.
+   O `script.scriptapp` é o do passo 5: sem ele o `criarGatilhoDaRede()` é
+   recusado, e o erro só aparece no último passo, depois de tudo o mais ter dado
+   certo.
+
+   **Cuidado com essa lista.** Enquanto ela não existe, o Google descobre
+   sozinho de que o projeto precisa. No instante em que ela passa a existir, ela
+   vira a lista completa e definitiva — uma lista só com os escopos da Rede
+   tiraria o Drive, os Documentos e a Agenda do projeto de uma vez. Se o
+   `appsscript.json` ainda não tiver `oauthScopes`, acrescente **junto** os que
+   o `cartorio-drive-api` já usa: `script.external_request`, `drive`,
+   `documents` e `calendar`.
 4. Rode `varrerRede()` uma vez, na mão, e aceite a permissão nova. Veja o
    resultado em **Execuções**. A primeira rodada demora (lê tudo); as seguintes
    são rápidas, porque quem já foi lido não é lido de novo.
