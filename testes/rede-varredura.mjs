@@ -148,6 +148,35 @@ passo('cliente e gente de construtora continuam entrando', () => {
   });
 });
 
+console.log('\n— De onde a pessoa veio —');
+
+passo('numa venda da incorporadora, todos vêm do empreendimento', () => {
+  const lido = {empreendimento:'Do It Pinheiros'};
+  const gerente = {nome:'Letícia', empresa:'RL Maia Empreendimento Imobiliário SPE'};
+  const comprador = {nome:'Leonardo', empresa:''};
+  const pasta = 'LEONARDO FERRAZO UN. 2402 - D IT PINHEIROS';
+  igual(caixa.redeDeOndeVeio(lido, gerente, pasta), 'Do It Pinheiros',
+        'a gerente da incorporadora não veio pelo comprador');
+  igual(caixa.redeDeOndeVeio(lido, comprador, pasta), 'Do It Pinheiros',
+        'o comprador veio pelo empreendimento');
+});
+
+passo('sem empreendimento, quem comparece por empresa vem pela empresa', () => {
+  igual(caixa.redeDeOndeVeio({empreendimento:''}, {empresa:'Coelho da Fonseca'}, 'PASTA QUALQUER'),
+        'Coelho da Fonseca', 'devia ter usado a empresa');
+});
+
+passo('em revenda entre pessoas, sobra o nome da pasta', () => {
+  igual(caixa.redeDeOndeVeio({empreendimento:''}, {empresa:''}, 'JOSÉ LUIZ - ABG - CÉSAR BRITO'),
+        'JOSÉ LUIZ - ABG - CÉSAR BRITO',
+        'sem empreendimento e sem empresa, a pasta é o melhor palpite que sobra');
+});
+
+passo('aguenta a leitura vir vazia sem quebrar', () => {
+  igual(caixa.redeDeOndeVeio(null, null, 'PASTA'), 'PASTA', 'devia cair na pasta');
+  igual(caixa.redeDeOndeVeio({}, {}, 'PASTA'), 'PASTA', 'devia cair na pasta');
+});
+
 console.log('\n— O que a IA recebe —');
 
 passo('as instruções proíbem inventar profissão', () => {
@@ -157,6 +186,12 @@ passo('as instruções proíbem inventar profissão', () => {
 
 passo('as instruções mandam deixar o cartório de fora', () => {
   if(!/NUNCA inclua o escrevente/.test(caixa.REDE_EXTRACAO)) throw new Error('não excluiu o pessoal da casa');
+});
+
+passo('as instruções separam empreendimento de revenda', () => {
+  if(!/empreendimento/.test(caixa.REDE_EXTRACAO)) throw new Error('não pediu o empreendimento');
+  if(!/revenda entre/.test(caixa.REDE_EXTRACAO))
+    throw new Error('não avisou para deixar vazio em revenda — senão o prédio vira "de onde veio"');
 });
 
 passo('as instruções preveem o duvidoso, em vez de chutar', () => {

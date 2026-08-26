@@ -72,13 +72,18 @@ const REDE_EXTRACAO = [
   'Você lê minutas de escritura pública brasileira e devolve APENAS um JSON, sem comentário e sem cerca de código.',
   '',
   'Formato exato:',
-  '{"ato":"...","data":"AAAA-MM-DD ou vazio","pessoas":[{"nome":"","cpf":"","profissao":"","empresa":"","papel":"","bairro":"","cidade":"","uf":"","ramo":"sim|nao|duvidoso","motivo":""}]}',
+  '{"ato":"...","data":"AAAA-MM-DD ou vazio","empreendimento":"","pessoas":[{"nome":"","cpf":"","profissao":"","empresa":"","papel":"","bairro":"","cidade":"","uf":"","ramo":"sim|nao|duvidoso","motivo":""}]}',
   '',
   'REGRAS:',
   '- "pessoas" traz as PARTES e quem comparece por elas: comprador, vendedor, cônjuge,',
   '  procurador de empresa, corretor, advogado, anuente, inventariante, herdeiro.',
   '- NUNCA inclua o escrevente, o tabelião, o substituto legal, nem os cartórios e',
   '  oficiais de registro citados no texto. Eles aparecem em toda minuta e não são rede.',
+  '- "empreendimento": o nome do condomínio ou empreendimento, MAS só quando a',
+  '  vendedora for a incorporadora ou construtora que o edificou (SPE, empreendimento',
+  '  imobiliário, construtora). É a primeira venda da unidade. Em revenda entre',
+  '  pessoas — mesmo que o prédio tenha nome — devolva string vazia: aí o prédio é',
+  '  só o endereço do imóvel, não é de onde o cliente veio.',
   '- "cpf": só os dígitos, sem ponto nem traço. Se não houver, string vazia.',
   '- "profissao": exatamente como está escrito na qualificação ("gerente financeira",',
   '  "bibliotecária", "aposentado"). Se o documento traz o campo em branco, ou com',
@@ -204,6 +209,28 @@ function redeLerMinuta(texto) {
   }
 }
 
+// ── De onde a pessoa veio ────────────────────────────────────────────────
+// O primeiro palpite era sempre o nome da pasta do Drive, e ele erra de um
+// jeito específico: a pasta leva o nome do CLIENTE. Numa escritura de
+// empreendimento, as quatro pessoas da incorporadora saíam com "de onde veio"
+// igual ao nome do comprador — como se a gerente financeira tivesse vindo
+// pelo cliente, quando é o contrário.
+//
+// A ordem agora é da informação mais firme para a mais frouxa:
+//  1. o empreendimento, quando quem vende é a incorporadora que o edificou.
+//     Vale para todo mundo daquela escritura, dos dois lados da mesa;
+//  2. a empresa por quem a pessoa comparece, quando ela é procuradora ou sócia;
+//  3. o nome da pasta, que continua sendo o melhor palpite que sobra — em
+//     muitas ela traz mesmo o parceiro ("JOSÉ LUIZ - ABG - CÉSAR BRITO").
+//
+// Errando ou acertando, o lápis da tela manda: a correção mora em /correcoes
+// e nenhuma varredura escreve por cima.
+function redeDeOndeVeio(lido, pessoa, nomeDaPasta) {
+  if (lido && lido.empreendimento) return lido.empreendimento;
+  if (pessoa && pessoa.empresa) return pessoa.empresa;
+  return nomeDaPasta;
+}
+
 // ── A varredura ──────────────────────────────────────────────────────────
 function varrerRede() {
   const jaLidas = redeFetchFirebase("/rede/lidas", "get") || {};
@@ -239,14 +266,12 @@ function varrerRede() {
 
       const quando = lido.data || marca.slice(0, 10);
       const ato = lido.ato || "Escritura";
-      // O nome da pasta guarda de onde veio o caso — construtora, parceiro ou
-      // o próprio cliente. Sai errado às vezes, e é por isso que a tela tem
-      // lápis: a correção da Shirley mora em /correcoes e nunca é desfeita aqui.
-      const origem = pasta.getName();
 
       (lido.pessoas || []).forEach(function (p) {
         if (!p || !p.nome) return;
         if (redeEhDaCasa(p.nome, p.profissao)) return;
+
+        const origem = redeDeOndeVeio(lido, p, pasta.getName());
 
         const chave = redeChaveDaPessoa(p);
         const antiga = pessoas[chave.id];
