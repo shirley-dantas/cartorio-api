@@ -1473,6 +1473,27 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .rede-mbarra i{display:block;height:100%;background:var(--r-champagne);border-radius:999px}
 .rede-mqtd{font-family:var(--rf-dado);font-size:11px;color:var(--r-tinta-3);font-variant-numeric:tabular-nums;white-space:nowrap}
 
+/* ── o caminho até a conversa ── */
+.rede-perguntas{display:flex;flex-direction:column;gap:9px}
+.rede-pg{display:flex;align-items:center;justify-content:space-between;gap:13px;flex-wrap:wrap;
+  background:var(--r-sup);border:1px solid var(--r-linha);border-radius:14px;padding:12px 15px}
+.rede-pg.morto{border-color:#E4C9C9;background:#FDF6F5}
+.rede-pg-quem{min-width:0}
+.rede-pg-quem b{display:block;font-family:var(--rf-titulo);font-weight:600;font-size:16px}
+.rede-pg-quem span{display:block;font-family:var(--rf-dado);font-size:10.5px;color:var(--r-tinta-3);margin-top:2px}
+.rede-pg.morto .rede-pg-quem span{color:#A8564C}
+.rede-pg-acoes{display:flex;gap:7px;flex-wrap:wrap}
+.rp-msg{margin-top:12px;background:var(--r-sup-2);border:1px solid var(--r-linha);border-radius:13px;padding:12px 13px}
+.rp-msg .cab{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.rp-msg .cab span{font-family:var(--rf-dado);font-size:9px;font-weight:600;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--r-tinta-3)}
+.rp-copiar{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--r-linha);background:#fff;
+  border-radius:999px;padding:5px 12px;font-family:var(--rf-dado);font-size:11px;font-weight:600;
+  color:var(--r-tinta);cursor:pointer}
+.rp-copiar:hover{background:var(--r-sup)}
+.rp-msg .rede-area{width:100%;min-height:104px}
+.rp-msg .rp-fonte{display:block;margin-top:7px}
+
 /* ── lista ── */
 .rede-rolo{overflow:auto;max-height:min(58vh,520px);overscroll-behavior:contain;
   background:var(--r-sup);border:1px solid var(--r-linha);border-radius:14px}
@@ -1492,6 +1513,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .rpill{display:inline-block;font-family:var(--rf-dado);font-size:9.5px;font-weight:600;letter-spacing:.06em;
   text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap}
 .rpill-olhar{background:#FBF0DC;color:var(--r-atencao)}
+.rpill-convidado{background:#F0EAF6;color:#6B4C8A}
+.rpill-conectado{background:#E5EDF6;color:#2A6099}
 .rpill-anotado{background:#E8F1E9;color:var(--r-ok)}
 .rpill-conversado{background:#E5EDF6;color:#2A6099}
 .rpill-fora{background:var(--r-sup-2);color:var(--r-tinta-3);border:1px solid var(--r-linha)}
@@ -8293,12 +8316,20 @@ if('serviceWorker' in navigator){
 //     motivo                                ← por que vale a conversa
 //     atos, primeira, ultima, ultimoAto
 //     correcoes: {campo: valor}             ← dela; a leitura nunca sobrescreve
-//     situacao: 'olhar' | 'anotado' | 'conversado' | 'fora'
+//     situacao: 'olhar' | 'anotado' | 'convidado' | 'conectado'
+//              | 'conversado' | 'fora'
+//     convidadoEm, adiadoAte, conectadoEm   ← as datas do caminho até a conversa
 //     anotacao
 //   /rede/meta/ultimaVarredura
 // ═════════════════════════════════════════════════════════════════════════
 
 const REDE_NA_FILA = 3;
+// Quantos dias depois do convite a pergunta "ela aceitou?" volta para a tela.
+// Três: menos que isso é perguntar antes de a pessoa ter aberto o LinkedIn.
+const REDE_DIAS_PERGUNTA = 3;
+// Convite que passa disso sem resposta está morto. O LinkedIn limita convites
+// pendentes, então vale cancelar — ou chegar pelo telefone que está na minuta.
+const REDE_DIAS_SEM_RESPOSTA = 21;
 const REDE_CAMPOS = [
   {k:'cargo',   r:'O que faz'},
   {k:'empresa', r:'Onde'},
@@ -8451,42 +8482,192 @@ function renderRede(){
   if(redeAba === 'mapa') redeMontarMapa(todos);
 }
 
+// ── O caminho até a conversa ────────────────────────────────────────────
+// Conectar não é o fim: é a porta destrancada, e ninguém entrou ainda. Por
+// isso o convite não encerra a pessoa — ele a devolve, três dias depois, com
+// uma pergunta de um toque só.
+//
+// Nada aqui descobre sozinho que a pessoa aceitou. O LinkedIn não tem porta
+// que devolva conexões, e raspar a tela logada põe a conta dela em risco —
+// a mesma razão de o robô nunca entrar lá. Quem sabe é ela; o painel pergunta.
+
+function redeHoje(){
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
+
+// Dias corridos entre duas datas 'AAAA-MM-DD'. Conta em UTC de propósito:
+// somar 24h em horário local erra na virada do horário de verão.
+function redeDiasEntre(de, ate){
+  if(!de || !ate) return 0;
+  const a = Date.parse(de + 'T00:00:00Z'), b = Date.parse(ate + 'T00:00:00Z');
+  if(isNaN(a) || isNaN(b)) return 0;
+  return Math.round((b - a) / 86400000);
+}
+
+// A pergunta volta quando passaram os três dias — ou quando chega a data que
+// ela mesma empurrou ao responder "ainda não".
+function redeHoraDePerguntar(p, hoje){
+  if(p.situacao !== 'convidado') return false;
+  if(p.adiadoAte) return p.adiadoAte <= hoje;
+  if(!p.convidadoEm) return true;
+  return redeDiasEntre(p.convidadoEm, hoje) >= REDE_DIAS_PERGUNTA;
+}
+
+function redePrimeiroNome(nome){
+  const t = String(nome || '').trim().split(/\s+/)[0] || '';
+  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+}
+
+// "Venda e Compra" → "a escritura de Venda e Compra". O que já vem com o nome
+// do ato na frente não ganha "escritura de" duas vezes.
+function redeAtoNaFrase(ato){
+  const t = String(ato || '').trim();
+  if(!t || t === '—') return 'a escritura';
+  if(/^(escritura|procura)/i.test(t)) return 'a ' + t.charAt(0).toLowerCase() + t.slice(1);
+  return 'a escritura de ' + t;
+}
+
+const REDE_ORDINAIS = ['', '', 'segunda', 'terceira', 'quarta', 'quinta', 'sexta',
+  'sétima', 'oitava', 'nona', 'décima'];
+function redeOrdinal(n){
+  return REDE_ORDINAIS[n] || (n + 'ª');
+}
+
+// A mensagem que ela não tem que inventar às 8h da manhã.
+//
+// Cada dado da frase saiu da minuta: o ato, a data, quantas vezes. Não é
+// abordagem de vendedor — é o que aconteceu entre as duas, e é isso que faz a
+// mensagem não parecer abordagem. O texto nasce editável de propósito: o
+// "de onde veio" às vezes é só o nome da pasta do Drive, e frase montada em
+// cima de palpite tem que passar pelo olho dela antes de sair.
+function redeMensagemSugerida(p){
+  const nome = redePrimeiroNome(redeValor(p, 'nome') || p.nome);
+  const quando = p.ultima ? redeDataCurta(p.ultima) : '';
+  const atos = p.atos || 1;
+  const partes = [];
+
+  partes.push('Oi, ' + (nome || 'tudo bem') + '! Aqui é a Shirley, do 20º Tabelião de Notas.');
+
+  // "cuidei d" + "a escritura de Venda e Compra". O artigo vem colado no ato
+  // porque procuração é "da procuração" e escritura é "da escritura".
+  if(quando) partes.push('Fui eu que cuidei d' + redeAtoNaFrase(p.ultimoAto) + ' que você assinou em ' + quando + '.');
+  else partes.push('A gente já trabalhou junto numa escritura aqui do cartório.');
+
+  // O nome da empresa fica de fora de propósito: escrito por extenso ("RL Maia
+  // Empreendimento Imobiliário SPE") a frase perde o tom de recado e ganha
+  // cara de mala direta. Quem é a empresa já está no card, do lado.
+  if(atos > 1){
+    partes.push('Essa já foi a ' + redeOrdinal(atos) + ' que a gente faz junto, e achei estranho nunca termos nos falado.');
+  } else {
+    partes.push('Achei que valia me apresentar de verdade.');
+  }
+
+  partes.push('Se precisar de qualquer coisa em escritura, é só me chamar por aqui.');
+  return partes.join(' ');
+}
+
 // ── A fila ──────────────────────────────────────────────────────────────
 // Três por dia, não uma lista de cento e tantos: lista grande é lista que
 // ninguém abre. Sobe quem assinou mais recentemente — com o traslado na mão
 // a pessoa está satisfeita, e é a melhor hora de falar.
 function redeHtmlFila(todos){
-  const fila = todos
-    .filter(p => p.ramo === 'sim' && (p.situacao || 'olhar') === 'olhar')
-    .sort((a,b) => String(b.ultima||'').localeCompare(String(a.ultima||'')) || (b.atos||0) - (a.atos||0))
-    .slice(0, REDE_NA_FILA);
-
   if(!todos.length){
     return `<div class="rede-vazio">
       <b>A leitura ainda não passou</b>
       <span>Quando o Apps Script varrer as minutas do Drive, as pessoas aparecem aqui.</span>
     </div>`;
   }
-  if(!fila.length){
-    return `<div class="rede-vazio">
-      <b>Fila vazia por hoje</b>
-      <span>Ninguém do ramo esperando. Veja a Lista para o resto.</span>
-    </div>`;
-  }
+
+  const hoje = redeHoje();
+  const convidados = todos.filter(p => p.situacao === 'convidado');
+  const perguntar = convidados
+    .filter(p => redeHoraDePerguntar(p, hoje))
+    .sort((a,b) => String(a.convidadoEm||'').localeCompare(String(b.convidadoEm||'')));
+  const calados = convidados.length - perguntar.length;
+
+  // Quem aceitou vem primeiro, e por número de atos: a porta já está aberta,
+  // e conversar com quem assina toda semana vale mais que um convite novo.
+  const conectados = todos
+    .filter(p => p.situacao === 'conectado')
+    .sort((a,b) => (b.atos||0) - (a.atos||0) ||
+      String(b.conectadoEm||'').localeCompare(String(a.conectadoEm||'')));
+
+  const fila = todos
+    .filter(p => p.ramo === 'sim' && (p.situacao || 'olhar') === 'olhar')
+    .sort((a,b) => String(b.ultima||'').localeCompare(String(a.ultima||'')) || (b.atos||0) - (a.atos||0))
+    .slice(0, REDE_NA_FILA);
 
   const anotadas = todos.filter(p => (p.situacao||'') === 'anotado').length;
   const foraDoRamo = todos.filter(p => p.ramo === 'nao').length;
+  const blocos = [];
 
+  if(perguntar.length){
+    blocos.push(`
+      <div class="rede-rotulo">
+        <h3>Aceitaram?</h3>
+        <span class="cont">${redePlural(perguntar.length,'convite','convites')} de ${REDE_DIAS_PERGUNTA} dias atrás ou mais</span>
+      </div>
+      <div class="rede-perguntas">${perguntar.map(p => redeHtmlPergunta(p, hoje)).join('')}</div>`);
+  }
+
+  if(conectados.length){
+    blocos.push(`
+      <div class="rede-rotulo">
+        <h3>Aceitaram e você ainda não falou</h3>
+        <span class="cont">${redePlural(conectados.length,'pessoa','pessoas')} · a porta está aberta</span>
+      </div>
+      <div class="rede-fila">${conectados.map(redeHtmlCard).join('')}</div>`);
+  }
+
+  if(fila.length){
+    blocos.push(`
+      <div class="rede-rotulo">
+        <h3>Vale os seus 2 minutos</h3>
+        <span class="cont">${fila.length} de ${todos.length} · refeita toda manhã</span>
+      </div>
+      <div class="rede-fila">${fila.map(redeHtmlCard).join('')}</div>`);
+  }
+
+  if(!blocos.length){
+    return `<div class="rede-vazio">
+      <b>Fila vazia por hoje</b>
+      <span>Ninguém do ramo esperando${calados ? ', e ' + redePlural(calados,'convite ainda está','convites ainda estão') + ' no prazo' : ''}. Veja a Lista para o resto.</span>
+    </div>`;
+  }
+
+  // O rodapé só fala do que existe: "0 pessoas estão fora do ramo e 0 já foram
+  // anotadas" é uma frase que não informa nada e ainda ocupa uma linha.
+  const conta = [];
+  if(calados) conta.push(redePlural(calados,'convite está','convites estão') + ' esperando resposta, no prazo');
+  if(foraDoRamo) conta.push(redePlural(foraDoRamo,'pessoa está','pessoas estão') + ' fora do ramo');
+  if(anotadas) conta.push(redePlural(anotadas,'já foi anotada','já foram anotadas'));
+
+  return blocos.join('') + (conta.length
+    ? `<p class="rede-nota">${conta.join(' · ')} — nenhuma some, todas ficam na Lista.</p>`
+    : '');
+}
+
+// A pergunta de um toque. Ela é curta de propósito: não é hora de reler a
+// qualificação, é hora de dizer sim ou não e seguir.
+function redeHtmlPergunta(p, hoje){
+  const dias = redeDiasEntre(p.convidadoEm, hoje);
+  const morto = dias >= REDE_DIAS_SEM_RESPOSTA;
+  const quando = p.convidadoEm
+    ? 'convite em ' + redeDataCurta(p.convidadoEm) + ' · ' + redePlural(dias,'dia','dias')
+    : 'convite enviado';
   return `
-    <div class="rede-rotulo">
-      <h3>Vale os seus 2 minutos</h3>
-      <span class="cont">${fila.length} de ${todos.length} · refeita toda manhã</span>
-    </div>
-    <div class="rede-fila">${fila.map(redeHtmlCard).join('')}</div>
-    <p class="rede-nota">
-      ${redePlural(foraDoRamo,'pessoa está','pessoas estão')} fora do ramo e
-      ${redePlural(anotadas,'já foi anotada','já foram anotadas')} — nenhuma some, todas ficam na Lista.
-    </p>`;
+    <div class="rede-pg${morto ? ' morto' : ''}">
+      <div class="rede-pg-quem">
+        <b>${redeEsc(redeValor(p,'nome') || p.nome)}</b>
+        <span>${redeEsc(quando)}${morto ? ' · sem resposta' : ''}</span>
+      </div>
+      <div class="rede-pg-acoes">
+        <button type="button" class="rbt rbt-1" onclick="redeAceitou('${redeEsc(p.id)}')">Aceitou</button>
+        <button type="button" class="rbt rbt-2" onclick="redeAindaNao('${redeEsc(p.id)}')">Ainda não</button>
+        <button type="button" class="rbt rbt-3" onclick="redeDispensar('${redeEsc(p.id)}')">Desisto dessa</button>
+      </div>
+    </div>`;
 }
 
 function redeHtmlCard(p){
@@ -8525,13 +8706,32 @@ function redeHtmlCard(p){
       </div>
       ${p.motivo ? `<p class="rp-motivo"><i class="ti ti-sparkles"></i><span>${redeEsc(p.motivo)}</span></p>` : ''}
       ${nota}
+      ${redeHtmlMensagem(p)}
       <div class="rp-acoes" style="margin-top:11px">
         <button type="button" class="rbt rbt-1" onclick="redeLinkedin('${redeEsc(p.id)}')"><i class="ti ti-brand-linkedin"></i>Abrir no LinkedIn</button>
-        <button type="button" class="rbt rbt-2" onclick="redeAnotar('${redeEsc(p.id)}')"><i class="ti ti-pencil"></i>Anotar o que achei</button>
+        ${p.situacao === 'conectado'
+          ? `<button type="button" class="rbt rbt-2 rbt-conversei" onclick="redeConversei('${redeEsc(p.id)}')"><i class="ti ti-check"></i>Já conversei</button>`
+          : `<button type="button" class="rbt rbt-2 rbt-convite" onclick="redeConvidei('${redeEsc(p.id)}')"><i class="ti ti-send"></i>Convite enviado</button>`}
+        <button type="button" class="rbt rbt-2 rbt-anotar" onclick="redeAnotar('${redeEsc(p.id)}')"><i class="ti ti-pencil"></i>Anotar o que achei</button>
         <button type="button" class="rbt rbt-3" onclick="redeDispensar('${redeEsc(p.id)}')">Não é caso</button>
       </div>
       <div id="rede-nota-${redeEsc(p.id)}"></div>
     </article>`;
+}
+
+// A mensagem só existe depois do aceite: antes disso não há para onde mandar,
+// e um campo de texto num card que ainda nem foi convidado só atrapalha.
+function redeHtmlMensagem(p){
+  if(p.situacao !== 'conectado') return '';
+  return `
+    <div class="rp-msg">
+      <div class="cab">
+        <span>Mensagem para mandar</span>
+        <button type="button" class="rp-copiar" onclick="redeCopiarMensagem('${redeEsc(p.id)}')"><i class="ti ti-copy"></i>Copiar</button>
+      </div>
+      <textarea class="rede-area" id="rede-msg-${redeEsc(p.id)}" rows="5">${redeEsc(redeMensagemSugerida(p))}</textarea>
+      <span class="rp-fonte">Montada com o ato e a data da minuta. Leia e ajuste antes de mandar.</span>
+    </div>`;
 }
 
 // ── As construtoras ─────────────────────────────────────────────────────
@@ -8609,9 +8809,13 @@ function redeHtmlListaTudo(todos){
     return `<div class="rede-vazio"><b>Nada lido ainda</b><span>A varredura das minutas ainda não rodou.</span></div>`;
   }
   const pill = p => {
+    const s = p.situacao || 'olhar';
+    // O caminho vem antes do ramo: se ela já mandou convite para alguém, saber
+    // disso vale mais do que o rótulo que a IA deu para a profissão.
+    if(s === 'convidado') return '<span class="rpill rpill-convidado">Convite enviado</span>';
+    if(s === 'conectado') return '<span class="rpill rpill-conectado">Conectado</span>';
     if(p.ramo === 'nao') return '<span class="rpill rpill-fora">Fora do ramo</span>';
     if(p.ramo === 'duvidoso') return '<span class="rpill rpill-fora">Duvidoso</span>';
-    const s = p.situacao || 'olhar';
     if(s === 'anotado') return '<span class="rpill rpill-anotado">Anotado</span>';
     if(s === 'conversado') return '<span class="rpill rpill-conversado">Conversado</span>';
     if(s === 'fora') return '<span class="rpill rpill-fora">Não é caso</span>';
@@ -8985,11 +9189,14 @@ window.redeSalvarNota = async function(id){
   const ta = document.getElementById('rede-ta-' + id);
   if(!ta) return;
   const txt = ta.value.trim();
+  // Anotar não pode desfazer o caminho: quem já foi convidada ou já aceitou
+  // continua onde estava. Sem isso, escrever uma linha sobre a Simone a tirava
+  // da fila dos conectados e a mensagem sumia junto.
+  const atual = (redePessoas[id] || {}).situacao || 'olhar';
+  const nova = ['convidado','conectado','conversado','fora'].includes(atual)
+    ? atual : (txt ? 'anotado' : 'olhar');
   try{
-    await update(ref(db,'rede/pessoas/' + id), {
-      anotacao: txt,
-      situacao: txt ? 'anotado' : 'olhar'
-    });
+    await update(ref(db,'rede/pessoas/' + id), {anotacao: txt, situacao: nova});
     finToast(txt ? 'Anotado.' : 'Anotação apagada.');
   }catch(e){ finToast('Não consegui salvar: ' + (e && e.code || e)); }
 };
@@ -8999,6 +9206,61 @@ window.redeDispensar = async function(id){
     await update(ref(db,'rede/pessoas/' + id), {situacao:'fora'});
     finToast('Fora da fila. Continua na Lista.');
   }catch(e){ finToast('Não consegui salvar: ' + (e && e.code || e)); }
+};
+
+// Convite mandado: sai da fila da manhã e volta em três dias com a pergunta.
+window.redeConvidei = async function(id){
+  const hoje = redeHoje();
+  try{
+    await update(ref(db,'rede/pessoas/' + id), {
+      situacao: 'convidado', convidadoEm: hoje, adiadoAte: null
+    });
+    finToast('Convite anotado. Volto a perguntar em ' + REDE_DIAS_PERGUNTA + ' dias.');
+  }catch(e){ finToast('Não consegui salvar: ' + (e && e.code || e)); }
+};
+
+// Aceitou: a porta abriu. Volta para a tela, agora com a mensagem pronta.
+window.redeAceitou = async function(id){
+  try{
+    await update(ref(db,'rede/pessoas/' + id), {
+      situacao: 'conectado', conectadoEm: redeHoje(), adiadoAte: null
+    });
+    finToast('Conectada. A mensagem já está no card.');
+  }catch(e){ finToast('Não consegui salvar: ' + (e && e.code || e)); }
+};
+
+// Ainda não: empurra a pergunta, não apaga o convite.
+window.redeAindaNao = async function(id){
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + REDE_DIAS_PERGUNTA);
+  try{
+    await update(ref(db,'rede/pessoas/' + id), {adiadoAte: d.toISOString().slice(0,10)});
+    finToast('Pergunto de novo em ' + REDE_DIAS_PERGUNTA + ' dias.');
+  }catch(e){ finToast('Não consegui salvar: ' + (e && e.code || e)); }
+};
+
+window.redeConversei = async function(id){
+  try{
+    await update(ref(db,'rede/pessoas/' + id), {situacao:'conversado'});
+    finToast('Conversado. Sai da fila e fica na Lista.');
+  }catch(e){ finToast('Não consegui salvar: ' + (e && e.code || e)); }
+};
+
+// Copia o que está na caixa, não o modelo: se ela ajustou a frase, é a frase
+// dela que tem que ir para o LinkedIn.
+window.redeCopiarMensagem = async function(id){
+  const ta = document.getElementById('rede-msg-' + id);
+  if(!ta) return;
+  const txt = ta.value;
+  try{
+    await navigator.clipboard.writeText(txt);
+    finToast('Mensagem copiada.');
+  }catch(e){
+    // Navegador que recusa a área de transferência sem gesto reconhecido:
+    // seleciona o texto para o Ctrl+C funcionar na mão.
+    ta.focus(); ta.select();
+    finToast('Não consegui copiar sozinha — o texto está selecionado, use Ctrl+C.');
+  }
 };
 
 // O duvidoso decidido à mão vira correção: a próxima varredura não desfaz.

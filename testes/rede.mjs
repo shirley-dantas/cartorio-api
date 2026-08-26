@@ -72,8 +72,20 @@ const SEMENTE = {
   }
 };
 
+// Semeia POR DENTRO do objeto que já existe. O Firebase de mentira entrega
+// aos ouvintes a referência viva, então a Rede guarda um ponteiro para
+// __raiz.rede.pessoas — trocar o objeto inteiro deixava a tela lendo o de
+// antes, e o teste passava a exercitar dados que não eram os semeados.
 const semear = () => pg.evaluate(s => {
-  window.__raiz.rede = {pessoas: JSON.parse(JSON.stringify(s)), meta:{ultimaVarredura:'2026-08-25'}};
+  const novo = JSON.parse(JSON.stringify(s));
+  const r = window.__raiz.rede;
+  if(r && r.pessoas){
+    Object.keys(r.pessoas).forEach(k => delete r.pessoas[k]);
+    Object.assign(r.pessoas, novo);
+    r.meta = {ultimaVarredura:'2026-08-25'};
+  } else {
+    window.__raiz.rede = {pessoas: novo, meta:{ultimaVarredura:'2026-08-25'}};
+  }
 }, SEMENTE);
 
 const textoRede = async () => limpo(await pg.textContent('#rede-conteudo'));
@@ -184,7 +196,7 @@ await passo('a varredura não desfaz a correção', async () => {
 diga('\n— A anotação e a dispensa —');
 
 await passo('anotar tira da fila e guarda o texto', async () => {
-  await pg.click('.rp .rbt-2');
+  await pg.click('.rp .rbt-anotar');
   await pg.fill('#rede-ta-simone', 'É quem fecha o cartório dos empreendimentos. Mandar a tabela de custas.');
   await pg.click('#rede-nota-simone .rbt-1');
   await pg.waitForFunction(() => window.__raiz.rede.pessoas.simone.situacao === 'anotado', null, {timeout:4000});
@@ -340,6 +352,125 @@ await passo('todo mundo continua na lista, com a situação de cada um', async (
   });
   if(!t.includes('Anotado')) throw new Error('não mostrou quem foi anotada');
   if(!t.includes('Fora do ramo')) throw new Error('não mostrou quem está fora do ramo');
+});
+
+diga('\n— O caminho até a conversa —');
+
+// Conectar não é o fim. Estes passos existem porque o custo de errar aqui é
+// silencioso: a pessoa aceita, ninguém traz ela de volta, e a conexão morre
+// virando só mais um nome na lista de contatos.
+
+const diasAtras = n => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0,10);
+};
+
+await passo('convite enviado tira da fila e guarda a data de hoje', async () => {
+  await semear();
+  await pg.evaluate(() => { redeTrocarAba('fila'); renderRede(); });
+  await pg.waitForSelector('.rp .rbt-convite');
+  await pg.click('.rp .rbt-convite');
+  await pg.waitForFunction(() => window.__raiz.rede.pessoas.simone.situacao === 'convidado', null, {timeout:4000});
+  const p = await pg.evaluate(() => window.__raiz.rede.pessoas.simone);
+  const hoje = new Date().toISOString().slice(0,10);
+  if(p.convidadoEm !== hoje) throw new Error('não guardou a data do convite → ' + p.convidadoEm);
+  const nomes = await pg.$$eval('.rp-nome', els => els.map(e => e.textContent.trim()));
+  if(nomes.includes('Simone Paulino da Silva')) throw new Error('convidada e ainda na fila da manhã');
+});
+
+await passo('a pergunta não volta no mesmo dia', async () => {
+  const t = await textoRede();
+  if(/Aceitaram\?/.test(t)) throw new Error('perguntou antes de a pessoa ter aberto o LinkedIn');
+  if(!/esperando resposta/.test(t)) throw new Error('não disse que tem convite no prazo → ' + t.slice(-260));
+});
+
+await passo('passados os três dias, ela volta com a pergunta', async () => {
+  await pg.evaluate(d => { window.__raiz.rede.pessoas.simone.convidadoEm = d; renderRede(); }, diasAtras(3));
+  await pg.waitForSelector('.rede-pg', {timeout:4000});
+  const t = await textoRede();
+  if(!/Aceitaram\?/.test(t)) throw new Error('não trouxe a pergunta de volta');
+  if(!/Simone/.test(t)) throw new Error('trouxe a pergunta sem dizer de quem');
+});
+
+await passo('"ainda não" empurra a pergunta, não apaga o convite', async () => {
+  await pg.click('.rede-pg .rbt-2');
+  await pg.waitForFunction(() => !!window.__raiz.rede.pessoas.simone.adiadoAte, null, {timeout:4000});
+  const p = await pg.evaluate(() => window.__raiz.rede.pessoas.simone);
+  if(p.situacao !== 'convidado') throw new Error('perdeu o convite ao adiar → ' + p.situacao);
+  if(p.adiadoAte <= new Date().toISOString().slice(0,10))
+    throw new Error('adiou para uma data que já passou → ' + p.adiadoAte);
+  const t = await textoRede();
+  if(/Aceitaram\?/.test(t)) throw new Error('continuou perguntando depois do adiar');
+});
+
+await passo('convite de três semanas aparece marcado como sem resposta', async () => {
+  await pg.evaluate(d => {
+    window.__raiz.rede.pessoas.simone.convidadoEm = d;
+    window.__raiz.rede.pessoas.simone.adiadoAte = null;
+    renderRede();
+  }, diasAtras(22));
+  await pg.waitForSelector('.rede-pg.morto', {timeout:4000});
+  const t = await textoRede();
+  if(!/sem resposta/.test(t)) throw new Error('não avisou que o convite morreu → ' + t.slice(0,260));
+});
+
+await passo('aceitar traz a pessoa de volta, com a mensagem pronta', async () => {
+  await pg.click('.rede-pg .rbt-1');
+  await pg.waitForFunction(() => window.__raiz.rede.pessoas.simone.situacao === 'conectado', null, {timeout:4000});
+  await pg.waitForSelector('#rede-msg-simone', {timeout:4000});
+  const t = await textoRede();
+  if(!/Aceitaram e você ainda não falou/.test(t)) throw new Error('não abriu a fila dos conectados');
+});
+
+await passo('a mensagem sai com o ato, a data e quantas vezes', async () => {
+  await pg.evaluate(() => { window.__raiz.rede.pessoas.simone.atos = 7; renderRede(); });
+  await pg.waitForSelector('#rede-msg-simone');
+  const txt = await pg.$eval('#rede-msg-simone', e => e.value);
+  if(!txt.includes('Simone')) throw new Error('não chamou pelo primeiro nome → ' + txt);
+  if(!/venda e compra/i.test(txt)) throw new Error('não citou o ato → ' + txt);
+  if(!txt.includes('30/07')) throw new Error('não citou a data da escritura → ' + txt);
+  if(!/sétima/.test(txt)) throw new Error('não disse que já é a sétima vez → ' + txt);
+  if(/undefined|NaN|\[object/.test(txt)) throw new Error('a frase saiu com buraco → ' + txt);
+  // O artigo colado no ato já saiu errado uma vez: "cuidei d escritura".
+  if(!/cuidei da escritura/.test(txt)) throw new Error('o artigo não colou no ato → ' + txt);
+  if(/ d /.test(txt)) throw new Error('sobrou artigo solto na frase → ' + txt);
+});
+
+await passo('a mensagem é editável, e o copiar leva o texto dela', async () => {
+  await pg.fill('#rede-msg-simone', 'Oi Simone, texto meu.');
+  const txt = await pg.$eval('#rede-msg-simone', e => e.value);
+  if(txt !== 'Oi Simone, texto meu.') throw new Error('não deixou editar a mensagem');
+});
+
+await passo('anotar não desfaz o caminho de quem já aceitou', async () => {
+  await pg.click('.rp .rbt-anotar');
+  await pg.fill('#rede-ta-simone', 'Combinei de mandar a tabela de custas.');
+  await pg.click('#rede-nota-simone .rbt-1');
+  await pg.waitForFunction(() => window.__raiz.rede.pessoas.simone.anotacao, null, {timeout:4000});
+  const p = await pg.evaluate(() => window.__raiz.rede.pessoas.simone);
+  if(p.situacao !== 'conectado')
+    throw new Error('anotar jogou a conectada para trás → ' + p.situacao);
+});
+
+await passo('"já conversei" fecha o caminho e tira da fila', async () => {
+  await pg.click('.rp .rbt-conversei');
+  await pg.waitForFunction(() => window.__raiz.rede.pessoas.simone.situacao === 'conversado', null, {timeout:4000});
+  const t = await textoRede();
+  if(/Aceitaram e você ainda não falou/.test(t)) throw new Error('continuou na fila dos conectados');
+});
+
+await passo('na Lista, o caminho aparece no lugar do rótulo do ramo', async () => {
+  await pg.evaluate(() => {
+    window.__raiz.rede.pessoas.leticia.situacao = 'convidado';
+    window.__raiz.rede.pessoas.leticia.convidadoEm = '2026-08-20';
+    redeTrocarAba('lista');
+  });
+  await pg.waitForSelector('.rede-tab');
+  const t = await textoRede();
+  if(!t.includes('Convite enviado')) throw new Error('a Lista não mostrou o convite → ' + t.slice(0,240));
+  if(!t.includes('Conversado')) throw new Error('a Lista não mostrou quem já foi conversada');
+  await pg.evaluate(() => redeTrocarAba('fila'));
 });
 
 diga('\n— No celular —');

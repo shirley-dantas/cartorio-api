@@ -185,6 +185,36 @@ sobra, e às vezes traz mesmo o parceiro ("JOSÉ LUIZ - ABG - CÉSAR BRITO").
 A correção dela vence a leitura da máquina, sempre. O lápis grava em
 `/correcoes` e a varredura seguinte **nunca** escreve por cima.
 
+### O caminho até a conversa
+
+Conectar não é o fim: é a porta destrancada, e ninguém entrou ainda. Lista de
+contato não é captação — captação é ter conversado. Por isso o convite não
+encerra a pessoa, ele a devolve:
+
+```
+A olhar → Convite enviado → (3 dias) "Aceitaram?" → Conectado → Conversado
+                    ↑                    │
+                    └──── Ainda não ─────┘
+```
+
+- **Nada aqui descobre sozinho que a pessoa aceitou.** O LinkedIn não tem porta
+  que devolva conexões, e raspar a tela logada põe a conta dela em risco — a
+  mesma razão de o robô nunca entrar lá. Quem sabe é ela; o painel pergunta, e
+  a resposta é um toque.
+- **Quem aceitou volta para cima da fila**, ordenado por número de atos: a
+  porta já está aberta, e falar com quem assina toda semana vale mais que um
+  convite novo.
+- **Convite com mais de 21 dias aparece marcado como sem resposta.** O LinkedIn
+  limita convites pendentes, e convite morto ocupando a fila é ruído.
+- **A mensagem vem escrita**, com o ato, a data e quantas vezes — tudo lido da
+  minuta. O gargalo de quem não é captadora profissional nunca é achar gente, é
+  saber o que dizer. O texto nasce **editável**: o "de onde veio" às vezes é só
+  o nome da pasta, e frase montada em cima de palpite passa pelo olho dela
+  antes de sair. O nome da empresa fica fora da frase de propósito — escrito
+  por extenso, o recado ganha cara de mala direta.
+- **Anotar não desfaz o caminho.** Escrever uma linha sobre quem já aceitou não
+  pode jogar a pessoa de volta para o começo.
+
 **Só a Shirley entra.** Diferente do Financeiro, que a Grazi abre, o `/rede`
 está na regra `dono` do banco — a mesma do Meu financeiro.
 
@@ -243,6 +273,8 @@ o `testes/montar.mjs` recorta.
 | Cofre pessoal | `finCriarCofre()`, `finDestrancar()`, `finMeuSalario()` |
 | Regras do banco | `database.rules.json` · passo a passo em `FIREBASE.md` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
+| O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |
+| A mensagem sugerida | `redeMensagemSugerida()`, `redeAtoNaFrase()` |
 | O mapa | `redeMontarMapa()`, `redeVerUF()`, `redeVerCapital()`, `REDE_RUMOS` |
 | Quem é a mesma pessoa | `impressaoDigital()`, `redeChaveDaPessoa()` (Apps Script) |
 | A varredura das minutas | `apps-script/cartorio-rede.js` → `varrerRede()` |
