@@ -47,6 +47,27 @@
       }
     },
 
+    // ── Os orçamentos ──
+    // Mesma tranca do /financeiro, e pela mesma razão: aqui moram nome de
+    // cliente, valor de negócio e valor venal. A Grazi entra junto — é ela
+    // que atende no balcão e dá o valor à cliente —, mas quem não tem conta
+    // não vê número nenhum.
+    //
+    // A base de conhecimento vai no mesmo cadeado: ela guarda as regras de
+    // cobrança do cartório, com os exemplos reais que as sustentam.
+    "orcamentos": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+    },
+    "orcamento-conhecimento": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+    },
+    "orcamento-config": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+    },
+
     // ── A Rede (prospecção) ──
     // Mesma tranca do cofre pessoal, e pelo mesmo motivo: aqui moram nomes,
     // profissões e endereços de clientes, lidos das minutas. Só a conta dona

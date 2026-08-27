@@ -165,6 +165,32 @@ Vale saber, quando algo parecer errado:
 - **A varredura não roda duas vezes no mesmo dia** — se o dia já está com
   `status: ok`, a chamada seguinte é pulada. Use `&forcar=1` para reler.
 
+## 8. Os orçamentos
+
+Este volta a ter tranca, e a mesma do Financeiro: em `/orcamentos` moram nome
+de cliente, valor de negócio e valor venal. As regras do passo 4 já trazem
+`/orcamentos`, `/orcamento-conhecimento` e `/orcamento-config` fechados para
+quem estiver em `/acesso` — a Grazi entra junto, porque é ela que atende no
+balcão e dá o valor à cliente.
+
+Do lado do painel não há nada a instalar: quem grava é o próprio navegador,
+com a conta de quem entrou. As tabelas já entram com a vigência declarada (**até
+01/01/2027**), então o orçamento fecha desde o primeiro dia. Duas coisas ficam
+na aba **Tabelas e vigência**, para quando forem necessárias:
+
+1. **Corrigir a vigência**, se a folha mudar antes da data. O campo sobrescreve
+   o que veio com a tabela; deixá-lo vazio mantém a vigência declarada na
+   fonte. Passada a data, o motor trava sozinho e manda procurar a folha nova —
+   tabela vencida é pior que tabela sem data, porque parece certa.
+2. **Corrigir o valor da UFESP** quando ele mudar de ano. O de 2026 (R$ 38,42)
+   já vem declarado; o campo sobrescreve, e vazio mantém o da fonte. É nele que
+   se contam as isenções de ITCMD e os tetos de interesse social.
+
+A base de conhecimento (`/orcamento-conhecimento`) é plantada sozinha na
+primeira vez que alguém entra, e **só se estiver vazia**: o que ela corrigir
+ali não é sobrescrito na abertura seguinte. É o mesmo lápis da Rede e da Base
+de Regras do Radar.
+
 ## O que ainda fica aberto, e por quê
 
 `/casos`, `/jobs`, `/modelos`, os caminhos do bot e os do Radar continuam sem
