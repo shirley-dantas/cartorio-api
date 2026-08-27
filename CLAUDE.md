@@ -232,6 +232,131 @@ Script de madrugada. Passo a passo em `FIREBASE.md`.
 
 ---
 
+## O Radar Jurídico
+
+O jornal da manhã. Ela atende o dia inteiro e não sobra tempo para ler
+Corregedoria, CNJ e Diário Oficial — e norma de extrajudicial muda sem avisar
+ninguém. O Radar é o painel fazendo a leitura que ela faria se tivesse tempo:
+**o que mudou hoje na mesa, e o que continua como era.**
+
+Quem varre é a função da Vercel (`api/radar-juridico.js`), no cron das seis da
+manhã de São Paulo, dia útil. Ela lê as dez fontes oficiais, manda o conteúdo
+para a IA com o prompt do `lib/radar-prompt.js` e grava o dia. O painel só lê.
+
+A faixa **Jornal da equipe** fica no topo da Central de Comando, fora do
+cabeçalho — o cabeçalho fecha, e saber que uma norma mudou hoje não pode
+depender de a saudação estar aberta. A faixa toda é botão: clicou, abre o Radar.
+
+### As quatro faixas
+
+Cada item ganha um selo, e um só:
+
+| | |
+|---|---|
+| 🔴 **Muda hoje** | Se a equipe não souber, uma escritura sai errada. |
+| 🟠 **Muda em breve** | Publicado, mas com vacância, condição ou regulamentação pendente. |
+| 🟢 **Bom saber** | Confirma o que já se fazia. Muda a segurança de quem explica ao cliente. |
+| ⚪ **Fora do escopo** | Encostou no filtro e não toca a rotina de Notas da Capital. |
+
+Regras que **não devem ser mexidas sem perguntar**:
+
+- **Notícia não é norma.** Cada item declara se é norma, decisão ou notícia.
+  Matéria de portal sem o ato localizado nunca aparece como mudança
+  confirmada — e nunca sobe a 🔴, nem que a IA insista. Manchete tratada como
+  norma vira exigência errada no balcão.
+- **Dispensa nunca aparece sozinha.** Item que fala em liberação mostra,
+  colado nele, o que continua exigido — etapa por etapa. Se o material lido
+  não disse, o item é rebaixado a **⚠️ aplicação parcial — confirmar** antes
+  de chegar à tela. Isso é código (`conferirItem`), não só instrução no
+  prompt: regra que só existe no prompt depende de o modelo ter lembrado dela
+  naquela manhã.
+- **Fonte que não respondeu aparece escrita.** Silêncio de site não é ausência
+  de novidade, e dia que falhou não pode ter cara de dia calmo. Varredura que
+  não leu nada grava `status: falhou` e diz isso na faixa.
+- **O ⚪ fica escrito.** Uma linha no fim: "visto e descartado". Descarte
+  calado é onde a informação boa se perde — a mesma razão do *duvidoso* da Rede.
+- **A memória vem junto.** O pedido do dia leva os últimos sete dias já
+  reportados. Sem isso a mesma mudança seria novidade todo dia até alguém
+  desconfiar; com isso ela volta como **andamento**, dizendo o que mudou desde
+  a última vez.
+
+### O critério do ITCMD
+
+O caso que deu origem à regra, e que vale a pena guardar inteiro: em
+18/08/2026 o Plenário do CNJ revogou o trecho do art. 15 da Resolução 35/2007
+que exigia o ITCMD antes de lavrar inventário e partilha. Verdade — **e só
+metade da verdade**. O Registro de Imóveis continua exigindo a comprovação do
+imposto para transferir o imóvel, porque isso é lei tributária estadual mais o
+art. 289 da Lei de Registros Públicos, e o CNJ não tem competência sobre nem
+um nem outro.
+
+Daí as três perguntas obrigatórias antes de dizer que algo mudou:
+
+1. **Competência** — o órgão que publicou tem poder sobre essa matéria?
+2. **Etapas** — o ato tem mais de uma (escritura, registro, averbação)? A
+   mudança vale para todas?
+3. **Alcance e vigência** — vale para todo ato? Já está valendo?
+
+E a proibição que sai delas: **nunca escrever "está liberado" sem dizer, na
+mesma frase, o que continua exigido.**
+
+### A Base de Regras
+
+O que o cartório sabe e não muda toda semana — o chão em que a mesa pisa,
+enquanto o Radar é o jornal do dia. Seis temas entram prontos, pesquisados um
+a um: ITCMD no inventário, dispensa de certidões, baixa de hipoteca,
+individualização de matrícula, IPTU nos atos e HIS/HMP.
+
+Cada tema traz o resumo, o que fazer **na mesa**, as etapas, os fundamentos e
+um bloco **Atenção** com o que a pesquisa deixou em aberto. O bloco Atenção não
+é rodapé:
+
+- a numeração do item das Normas de Serviço aparece em duas versões nas fontes
+  (117.1 e 119.1) — **conferir no TJSP antes de usar numa exigência formal**;
+- a LC municipal 227/2026 colide com o STJ Tema 1.113 na base de cálculo do
+  ITBI, e o ponto **não está pacificado**;
+- fala-se num Provimento CGJ 17/2026 alinhando São Paulo à decisão do CNJ
+  sobre CNDs — **a pesquisa não localizou esse ato**. Não citar até confirmar.
+
+Regra que **não deve ser mexida sem perguntar**: **o Radar nunca escreve por
+cima do que foi conferido à mão.** O que ele aprende entra como linha datada em
+`atualizacoes`, dentro do tema; o `resumo` e o `naMesa` da carga inicial ficam
+intactos. É o mesmo lápis da Rede, do outro lado.
+
+### A Joaninha jurídica
+
+Uma aba nova no painel dela, com dois modos em cima da mesma base:
+
+- **Para mim** — a pergunta de quem está com a escritura na mão ("posso lavrar
+  sem a CND?"). Resposta seca, no máximo seis frases, sem formatação de
+  cliente. Quando a base não tem, ela diz que não tem — e diz onde olhar.
+- **Para o cliente** — ela digita o assunto em duas ou três palavras e volta a
+  mensagem pronta para colar no WhatsApp, no tom da que ela mesma aprovou:
+  abertura curta, a resposta direta, *um detalhe importante* com o que
+  continua exigido, *na prática* com o que o cliente faz agora.
+
+Duas coisas valem para os dois modos:
+
+- **O critério da hierarquia normativa vai no prompt dos dois.** Nenhum deles
+  pode dizer "já pode aplicar" sem dizer o que continua exigido.
+- **O texto nasce editável e a resposta é texto, nunca HTML.** A mensagem
+  passa pelo olho dela antes de sair — como a da Rede, e pela mesma razão:
+  frase montada em cima de leitura de máquina não vai para cliente sem
+  conferência.
+
+Cada tema da base tem dois botões que levam para lá com o assunto já escrito:
+*Escrever para o cliente* e *Perguntar sobre isto*.
+
+### Quem abre
+
+O Radar **não tem tranca**, e é a única tela nova assim. Aqui mora norma
+publicada, que é informação pública — nada de nome, CPF ou valor de cliente.
+A Grazi abre igual à Shirley, e quem entra sem login também. Foi o que decidiu
+o caminho no banco: `/radar-juridico` e `/base-regras` ficam abertos como
+`/casos`, e não trancados como `/rede`.
+
+---
+
 ## Quem entra
 
 O painel operacional **não tem login**, de propósito. Só o `/financeiro` é
@@ -278,6 +403,15 @@ o `testes/montar.mjs` recorta.
 | O mapa | `redeMontarMapa()`, `redeVerUF()`, `redeVerCapital()`, `REDE_RUMOS` |
 | Quem é a mesma pessoa | `impressaoDigital()`, `redeChaveDaPessoa()` (Apps Script) |
 | A varredura das minutas | `apps-script/cartorio-rede.js` → `varrerRede()` |
+| O Jornal da equipe | `renderJornal()`, `radarSelosHtml()` |
+| O Radar, na tela | `renderRadar()`, `radarHtmlDia()`, `radarHtmlItem()`, `radarHtmlDias()` |
+| A Base de Regras, na tela | `radarHtmlBase()`, `radarHtmlTema()` |
+| A Joaninha jurídica | `joaninhaJuridico()`, `joaninhaModoJuridico()`, `radarLevarPraJoaninha()` |
+| A varredura das fontes | `api/radar-juridico.js` → `varrer()` |
+| O guarda-corpo da triagem | `lib/radar-triagem.js` → `conferirItem()` |
+| O prompt do Radar | `lib/radar-prompt.js` |
+| As fontes e o filtro do DO | `lib/radar-fontes.js` |
+| A carga inicial da base | `lib/base-regras-inicial.js` |
 
 ## Testes
 
@@ -285,6 +419,7 @@ o `testes/montar.mjs` recorta.
 node testes/montar.mjs && node testes/calculo.gerado.mjs
 node testes/navegador.mjs && node testes/celular.mjs
 node testes/rede.mjs && node testes/rede-varredura.mjs
+node testes/radar.mjs && node testes/radar-triagem.mjs
 ```
 
 O `montar.mjs` também gera o `preview-quadro.html`, que é o desenho da seção
@@ -296,6 +431,15 @@ A Rede tem harness próprio (`harness-rede.html`), montado pelo mesmo
 `montar.mjs`: ela mora depois do registro do service worker no `index.html`,
 fora do recorte do financeiro. O `rede.mjs` termina medindo tudo num iPhone 13,
 e o `rede-varredura.mjs` roda o arquivo do Apps Script com o Google fingido.
+
+O Radar também (`harness-radar.html`), pelo mesmo motivo: ele mora entre o
+service worker e a Rede, fora dos dois recortes. O `radar.mjs` cobre a faixa
+do cabeçalho, as quatro faixas de triagem, a base e a Joaninha jurídica — e
+termina medindo tudo num iPhone 13. O `radar-triagem.mjs` roda sem navegador e
+sem internet: é ele que cobra que dispensa sem contrapartida vire "confirmar",
+que notícia não suba a 🔴 e que as três ressalvas em aberto da base
+(117.1 × 119.1, LC 227/2026 × Tema 1.113, o provimento não localizado) não
+sumam dela em silêncio.
 
 **Antes de publicar qualquer mudança no financeiro, rode as três primeiras.** Vários
 dos testes existem porque o erro já aconteceu uma vez: `2.000` lido como
@@ -323,6 +467,23 @@ criada, o salário que não acompanhava a correção do lançamento.
   nem sempre a resposta chega antes da minuta ser gerada. Vale insistir mais
   nessa pergunta: ela deixou de ser burocracia e virou o dado mais valioso da
   Rede.
+- **O Radar ainda não passou uma vez.** Três coisas ficaram por confirmar
+  antes de a base virar exigência formal: a **numeração vigente** do item das
+  Normas de Serviço (117.1 ou 119.1) direto com a Corregedoria; se a **ANOREG/SP
+  precisa mesmo de leitura na cara do site** (no teste manual ela não apareceu
+  em busca genérica — hoje todas as fontes são lidas por fetch direto, então
+  isso está coberto, mas vale medir o que sobra dela depois da peneira); e se
+  existe mesmo um **Provimento CGJ 17/2026** alinhando São Paulo à decisão do
+  CNJ sobre CNDs, que a pesquisa não localizou.
+- **A varredura lê a capa, não o Diário inteiro.** Cada fonte entra com os
+  primeiros 6.000 caracteres da página inicial — o que dá as manchetes do dia,
+  não o texto do ato. Depois da primeira semana no ar vale medir quanto está
+  sendo perdido antes de mexer no limite ou em ir atrás do link de cada
+  publicação.
+- **A Joaninha ainda não reage ao Radar.** As poses (`joaninha.play`) não estão
+  ligadas a evento nenhum do painel — nem ao 🔴 do dia. É trabalho à parte, e
+  vale junto com os outros eventos (Firebase, WhatsApp).
+
 - **O nome do card não é o nome da parte.** A pasta "GUSTAVO BERTOLA (CASO:
   VENDA E COMPRA)" tem a Tânia como compradora. Quem vale é o nome da
   qualificação, não o da pasta — a Rede já faz assim, mas o resto do painel

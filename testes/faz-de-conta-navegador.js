@@ -26,6 +26,11 @@ const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agos
 let navToastTimer=null;
 const getCasosList=()=>[{id:'c1',nome:'Gustavo Bertola',tipo:'Inventário + Compra e Venda',concluido:false},{id:'c2',nome:'Miguel | Un. 2216 Do It',tipo:'Escritura',concluido:false}];
 window.__raiz=_raiz;
+// Semear o banco de mentira por fora e avisar os ouvintes, como faria um
+// set() de verdade. A Rede mexe no __raiz e redesenha na mão; o Radar guarda
+// o que leu em variáveis próprias, e sem este aviso ele redesenharia com o
+// que tinha antes.
+window.__avisar=_avisar;
 
 
 

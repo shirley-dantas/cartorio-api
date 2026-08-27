@@ -68,6 +68,20 @@
     "meta":                  { ".read": true, ".write": true },
     "joaninha_perguntas":    { ".read": true, ".write": true },
 
+    // ── O Radar Jurídico e a Base de Regras ──
+    // Norma publicada é informação pública: aqui não mora nome, CPF nem valor
+    // de cliente. Por isso o painel operacional — que não tem login — lê os
+    // dois sem pedir conta, do mesmo jeito que lê os casos.
+    //
+    // A escrita segue aberta pela mesma razão de /casos: quem grava é a
+    // função da Vercel (api/radar-juridico.js), por REST e sem conta nenhuma.
+    // Fechar isto hoje mataria a varredura das seis da manhã. Está na mesma
+    // lista de pendências do FIREBASE.md, e some junto com ela no dia em que
+    // a conta de serviço existir.
+    "radar-juridico":        { ".read": true, ".write": true },
+    "radar-juridico-meta":   { ".read": true, ".write": true },
+    "base-regras":           { ".read": true, ".write": true },
+
     // ── Minutas (Apps Script) ──
     "jobs":                  { ".read": true, ".write": true },
     "modelos":               { ".read": true, ".write": true },

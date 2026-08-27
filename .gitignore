@@ -3,5 +3,7 @@ testes/harness.html
 testes/harness-rede.html
 testes/preview.html
 testes/preview-quadro.html
+testes/harness-radar.html
+testes/preview-radar.html
 testes/*.gerado.mjs
 testes/saida/
