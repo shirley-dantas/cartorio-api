@@ -122,21 +122,24 @@ await passo('a memória mostra faixa, item e fundamento de cada linha', async ()
   if(!/registro com matrícula/i.test(m)) throw new Error('não disse de que coluna do registro veio o número');
 });
 
-await passo('o CHECK FINAL fecha, e manda conferir a matrícula em duplicidade', async () => {
+await passo('o CHECK FINAL fecha sem travar em nada', async () => {
   const c = await pg.textContent('.orc-check');
   if(!/Vigência conferida/.test(c)) throw new Error('sem a linha da vigência');
   const travando = await pg.$$eval('.orc-check-linha.falta .orc-check-nome', ns => ns.map(n => n.textContent));
   if(travando.length) throw new Error('ficou travado em: ' + travando);
-  const confirmar = await pg.$$eval('.orc-check-linha.confirmar .orc-check-nome', ns => ns.map(n => n.textContent));
-  if(!confirmar.includes('Matrícula')) throw new Error('não pediu conferência da matrícula: ' + confirmar);
   const t = await pg.textContent('.orc-total-rot');
   if(!/[Cc]onferido/.test(t)) throw new Error('não fechou como conferido: ' + t);
 });
 
-await passo('a certidão entrando duas vezes aparece escrita, com a saída', async () => {
-  const a = await pg.textContent('.orc-alertas');
-  if(!/duas vezes/.test(a)) throw new Error('não avisou da duplicidade: ' + a);
-  if(!/troque a coluna do registro/.test(a)) throw new Error('avisou sem dizer como resolver');
+await passo('as duas certidões de matrícula têm o porquê colado na linha', async () => {
+  const c = await pg.textContent('.orc-check');
+  if(!/duas certidões, de propósito/i.test(c))
+    throw new Error('o CHECK não explica as duas certidões: ' + c.slice(0, 400));
+  // E a explicação inteira mora na memória, junto da linha que ela explica.
+  await pg.evaluate(() => { if(!document.querySelector('.orc-memoria')) orcAlternarMemoria(); });
+  await pg.waitForSelector('.orc-memoria');
+  const m = await pg.textContent('.orc-memoria');
+  if(!/começar o trabalho/.test(m)) throw new Error('a memória não explica as duas certidões');
 });
 
 await passo('o modo cliente não deixa escapar faixa, item nem fundamento', async () => {
@@ -219,15 +222,21 @@ await passo('o ambiente lista as versões e a base de conhecimento nasce cheia',
   if(!/01\/01\/2027/.test(t)) throw new Error('a vigência confirmada não está na base');
 });
 
-await passo('confirmar uma hipótese a promove, e a promoção fica registrada', async () => {
-  // A 🟡 de verdade da base: a certidão de matrícula entrando duas vezes.
-  const antes = await pg.evaluate(() => orcEstado().conhecimento['matricula-duas-vezes'].confianca);
-  if(antes !== 'aprendida') throw new Error('a hipótese não nasceu como aprendida: ' + antes);
-  await pg.evaluate(() => orcValidarRegra('matricula-duas-vezes'));
+await passo('confirmar uma regra incerta a promove, e a promoção fica registrada', async () => {
+  // A 🔴 que continua em aberto: os doze meses da pensão do divórcio.
+  const antes = await pg.evaluate(() => orcEstado().conhecimento['pensao-doze-meses'].confianca);
+  if(antes !== 'incerta') throw new Error('a regra não nasceu como incerta: ' + antes);
+  await pg.evaluate(() => orcValidarRegra('pensao-doze-meses'));
   await pg.waitForFunction(() =>
-    orcEstado().conhecimento['matricula-duas-vezes'].confianca === 'confirmada');
-  const quem = await pg.evaluate(() => orcEstado().conhecimento['matricula-duas-vezes'].validadoPor);
+    orcEstado().conhecimento['pensao-doze-meses'].confianca === 'confirmada');
+  const quem = await pg.evaluate(() => orcEstado().conhecimento['pensao-doze-meses'].validadoPor);
   if(!quem) throw new Error('não guardou quem validou');
+});
+
+await passo('e o caminho de volta também funciona', async () => {
+  await pg.evaluate(() => orcDuvidarRegra('pensao-doze-meses'));
+  await pg.waitForFunction(() =>
+    orcEstado().conhecimento['pensao-doze-meses'].confianca === 'incerta');
 });
 
 await passo('e uma regra que não está na base não vira registro pela metade', async () => {

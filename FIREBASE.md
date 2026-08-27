@@ -182,10 +182,9 @@ na aba **Tabelas e vigência**, para quando forem necessárias:
    o que veio com a tabela; deixá-lo vazio mantém a vigência declarada na
    fonte. Passada a data, o motor trava sozinho e manda procurar a folha nova —
    tabela vencida é pior que tabela sem data, porque parece certa.
-2. **Declarar o valor da UFESP**, se quiser que o painel avise quando um caso
-   cair dentro das isenções de ITCMD (elas são contadas em UFESP, e o valor
-   não veio nos arquivos). Sem ele o painel escreve que não sabe, em vez de
-   calcular por cima de um número inventado.
+2. **Corrigir o valor da UFESP** quando ele mudar de ano. O de 2026 (R$ 38,42)
+   já vem declarado; o campo sobrescreve, e vazio mantém o da fonte. É nele que
+   se contam as isenções de ITCMD e os tetos de interesse social.
 
 A base de conhecimento (`/orcamento-conhecimento`) é plantada sozinha na
 primeira vez que alguém entra, e **só se estiver vazia**: o que ela corrigir

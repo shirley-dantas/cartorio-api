@@ -8948,9 +8948,12 @@ const ORC_TRIBUTOS = {
     isencaoImovelResidencialUfesp: 5000,
     isencaoUnicoImovelUfesp: 2500
   },
-  // Declarada em Ajustes. Enquanto for null, tudo que depende de UFESP vira
-  // pendência escrita em vez de conta silenciosa.
-  ufesp: null
+  // A UFESP de 2026, informada pela Shirley. Ela é a régua de quase tudo que
+  // esta tabela mede: 45 das 48 faixas do registro são múltiplos exatos dela
+  // (500, 1.000, 3.000, 5.000 UFESP…), o que faz o valor confirmar a tabela e
+  // a tabela confirmar o valor. Ajustes corrige; vazio mantém este.
+  ufesp: 3842,
+  ufespAno: 2026
 };
 
 // ── A busca na faixa ─────────────────────────────────────────────────────
@@ -9615,18 +9618,20 @@ function orcCalcular(entrada){
     despesas.push({rot: 'Matrícula', item: '11', valor: T['11'].valor,
       fundamento: 'Certidões, sob qualquer forma (papel) — o item que a Shirley confirmou como sendo esta linha.'});
 
-  // A certidão de matrícula pode entrar duas vezes sem que nada pareça errado:
-  // uma dentro da coluna "registro com matrícula" e outra na linha própria.
-  // É assim que sai o orçamento do apartamento 1301, então o motor faz igual —
-  // mas escreve. Cobrar duas vezes por engano e cobrar duas vezes de propósito
-  // são coisas diferentes, e só ela pode dizer qual das duas é esta.
+  // A certidão de matrícula entra duas vezes, e isso é de propósito: ela pede
+  // uma para começar o trabalho e outra no fim. Foi a pergunta que reconciliar
+  // o orçamento do apartamento 1301 levantou, e ela respondeu em 27/08/2026.
+  //
+  // Deixou de ser alerta — decisão tomada não pode ficar pedindo decisão todo
+  // dia —, mas não virou silêncio: a explicação fica colada na linha, na
+  // memória de cálculo, que é onde alguém pergunta "por que duas?".
   const registrosComMat = registros.filter(r => r.comMatricula).length;
-  if(registrosComMat && d.matricula !== false)
-    alertas.push({nivel: 'avisa', confianca: 'aprendida',
-      texto: `A certidão de matrícula está entrando duas vezes: ${orcMoeda(T['11'].valor * registrosComMat)} `
-           + `dentro da coluna "registro com matrícula" e mais ${orcMoeda(T['11'].valor)} na linha Matrícula. `
-           + 'É como sai o orçamento do apartamento 1301, e por isso o motor manteve. '
-           + 'Se for para cobrar uma vez só, troque a coluna do registro ou tire a linha Matrícula.'});
+  const linhaMat = despesas.find(x => x.item === '11');
+  if(registrosComMat && linhaMat)
+    linhaMat.avisos = (linhaMat.avisos || []).concat([{confianca: 'confirmada',
+      texto: `São duas certidões, de propósito: ${orcMoeda(T['11'].valor * registrosComMat)} já dentro da coluna `
+           + '"registro com matrícula", para começar o trabalho, e esta aqui para o fim dele. '
+           + 'Confirmado pela Shirley em 27/08/2026.'}]);
   if(d.taxaAdicional === true)
     despesas.push({rot: 'Despesa adicional do registro', item: null,
       valor: d.taxaAdicionalValor != null ? d.taxaAdicionalValor : 30000,
@@ -9696,8 +9701,10 @@ function orcConferirIsencoes(ctx){
       const limite = ORC_TRIBUTOS.itcmd.isencaoDoacaoUfesp * ORC_TRIBUTOS.ufesp;
       if(itcmd.base <= limite)
         alertas.push({nivel: 'avisa', confianca: 'confirmada',
-          texto: `A base do ITCMD (${orcMoeda(itcmd.base)}) está dentro das 2.500 UFESPs de isenção da doação `
-               + `(${orcMoeda(limite)}). Confira o enquadramento — o motor manteve o imposto na conta.`});
+          texto: `A base do ITCMD (${orcMoeda(itcmd.base)}) está dentro das `
+               + `${ORC_TRIBUTOS.itcmd.isencaoDoacaoUfesp.toLocaleString('pt-BR')} UFESPs de isenção da doação `
+               + `(${orcMoeda(limite)}, à UFESP de ${orcMoeda(ORC_TRIBUTOS.ufesp)}). `
+               + 'Confira o enquadramento — o motor manteve o imposto na conta.'});
     }
   }
 }
@@ -9747,11 +9754,11 @@ function orcCheckFinal(c){
   põe('Registro conferido', 'ok', c.registros.length ? `${c.registros.length} registro(s).` : 'Ato sem registro.');
   põe('Prenotação', c.registros.length && c.d.prenotacao === false ? 'confirmar' : 'ok',
       c.registros.length ? (c.d.prenotacao === false ? 'Retirada à mão.' : 'Incluída.') : 'Não se aplica.');
-  const duplicando = c.registros.some(r => r.comMatricula) && c.d.matricula !== false;
-  põe('Matrícula', !c.registros.length ? 'ok' : duplicando ? 'confirmar' : 'ok',
+  const duas = c.registros.some(r => r.comMatricula) && c.d.matricula !== false;
+  põe('Matrícula', 'ok',
       !c.registros.length ? 'Não se aplica.'
         : c.d.matricula === false ? 'Retirada à mão.'
-        : duplicando ? 'Incluída — e também dentro da coluna do registro. Veja o aviso.'
+        : duas ? 'Duas certidões, de propósito: uma para começar o trabalho e outra para o fim.'
         : 'Incluída.');
   põe('Taxa adicional perguntada', !c.registros.length ? 'ok' : (c.d.taxaAdicional == null ? 'falta' : 'ok'),
       !c.registros.length ? 'Não se aplica.'
@@ -9801,6 +9808,15 @@ const ORC_CONHECIMENTO_INICIAL = {
     origem: 'Módulo 2 das instruções de cobrança.',
     confianca: 'confirmada', tipo: 'regra'
   },
+  'ufesp-2026': {
+    regra: 'A UFESP de 2026 vale R$ 38,42, e é nela que se contam as isenções de ITCMD e os tetos de interesse social.',
+    origem: 'Informada pela Shirley em 27/08/2026.',
+    confianca: 'confirmada', tipo: 'fonte',
+    exemplos: ['45 das 48 faixas da tabela de custas do registro são múltiplos exatos de R$ 38,42 — '
+             + '500, 1.000, 3.000, 5.000 UFESP e assim por diante. O valor confirma a tabela e a tabela confirma o valor.',
+             'Isenção de ITCMD na doação: 2.500 UFESP, ou R$ 96.050,00.',
+             'Teto de interesse social em ZEIS: 4.705 UFESP, ou R$ 180.766,10.']
+  },
   'desconto-40': {
     regra: 'O ato secundário da mesma escritura (garantia, novação, confissão, usufruto, cláusula resolutiva) sai com 40% de desconto sobre o valor da faixa.',
     origem: 'Módulo 1 das instruções de cobrança.',
@@ -9834,13 +9850,11 @@ const ORC_CONHECIMENTO_INICIAL = {
              + 'o valor da certidão no rodapé da mesma folha.']
   },
   'matricula-duas-vezes': {
-    regra: 'No orçamento do apartamento 1301 a certidão de matrícula entra duas vezes: dentro da coluna "registro com matrícula" e de novo na linha Matrícula.',
-    origem: 'Conferência do exemplo do Módulo 3 contra a tabela de custas de 2026.',
-    confianca: 'aprendida', tipo: 'hipotese',
-    exemplos: ['R$ 2.833,28 (registro com matrícula) + R$ 300,00 = R$ 3.133,28, e depois mais R$ 76,54 na linha Matrícula.'],
-    aberto: 'O motor faz igual ao exemplo, porque é assim que ela cobra — mas escreve o aviso em todo orçamento. '
-          + 'Se for para cobrar uma vez só, basta trocar a coluna do registro ou tirar a linha Matrícula: '
-          + 'o orçamento do 1301 cairia de R$ 16.522,21 para R$ 16.445,67.'
+    regra: 'A certidão de matrícula é cobrada duas vezes: uma para dar início ao trabalho e outra no fim dele.',
+    origem: 'Confirmada pela Shirley em 27/08/2026, depois de a conferência do apartamento 1301 levantar a pergunta.',
+    confianca: 'confirmada', tipo: 'operacional',
+    exemplos: ['No apartamento 1301: R$ 76,54 dentro da coluna "registro com matrícula" e mais R$ 76,54 na linha Matrícula.',
+             'Não é duplicidade de conta — são duas certidões pedidas de fato, em momentos diferentes do serviço.']
   },
   'matricula-e-certidao': {
     regra: 'A linha "Matrícula" das despesas é a certidão (R$ 76,54), não a abertura de matrícula (R$ 23,96).',
@@ -10035,12 +10049,13 @@ function orcLista(){
 // era como estava antes, e fazia toda tabela amanhecer sem data.
 const ORC_VIGENCIA_DA_FONTE = {
   notas: ORC_TABELA_NOTAS.vigencia,
-  registro: ORC_TABELA_REGISTRO.vigencia
+  registro: ORC_TABELA_REGISTRO.vigencia,
+  ufesp: ORC_TRIBUTOS.ufesp
 };
 function orcAplicarCfg(){
   ORC_TABELA_NOTAS.vigencia    = (orcCfg.vigenciaNotas || '').trim() || ORC_VIGENCIA_DA_FONTE.notas;
   ORC_TABELA_REGISTRO.vigencia = (orcCfg.vigenciaRegistro || '').trim() || ORC_VIGENCIA_DA_FONTE.registro;
-  ORC_TRIBUTOS.ufesp = orcCfg.ufesp ? Math.round(finNum(orcCfg.ufesp) * 100) : null;
+  ORC_TRIBUTOS.ufesp = orcCfg.ufesp ? Math.round(finNum(orcCfg.ufesp) * 100) : ORC_VIGENCIA_DA_FONTE.ufesp;
 }
 function orcTaxaPadrao(){
   return orcCfg.taxaAdicional != null ? Math.round(finNum(orcCfg.taxaAdicional) * 100) : 30000;

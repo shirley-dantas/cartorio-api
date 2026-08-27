@@ -489,22 +489,34 @@ linha por linha, e é o gabarito da suíte:
 | ITBI | R$ 9.056,01 | 3% sobre R$ 301.867,16 |
 | **TOTAL** | **R$ 16.522,21** | |
 
-### A certidão que entra duas vezes
+### As duas certidões de matrícula
 
-Reconciliar o gabarito trouxe uma pergunta junto: a certidão de matrícula
-aparece **duas vezes** — dentro da coluna "registro com matrícula" e outra vez
-na linha Matrícula. O motor faz igual ao exemplo, porque é assim que ela cobra,
-**mas escreve o aviso em todo orçamento** e o CHECK FINAL pede conferência
-naquela linha. Cobrar duas vezes de propósito e cobrar duas vezes por engano são
-coisas diferentes, e só ela pode dizer qual das duas é esta. Trocando a coluna
-do registro ou tirando a linha, o orçamento do 1301 cai para R$ 16.445,67.
+Reconciliar o gabarito levantou uma pergunta: a certidão aparece **duas vezes**
+— dentro da coluna "registro com matrícula" e outra vez na linha Matrícula. Ela
+respondeu que é de propósito: **pede uma para dar início ao trabalho e outra no
+fim dele.** Não é duplicidade de conta, são duas certidões pedidas de fato.
+
+Por isso a pergunta saiu dos alertas — decisão tomada não pode ficar pedindo
+decisão todo dia — mas não virou silêncio: a explicação ficou colada na linha da
+matrícula, na memória de cálculo, que é onde alguém pergunta "por que duas?".
+
+### A UFESP, que confere a tabela
+
+R$ 38,42 em 2026. Ela é a régua de quase tudo que a tabela do registro mede:
+**45 das 48 faixas têm teto múltiplo exato dela** — 500, 1.000, 3.000, 5.000
+UFESP e assim por diante (só as três primeiras fogem, por serem valores
+arredondados que vêm da lei). Isso faz o valor confirmar a tabela e a tabela
+confirmar o valor, e virou teste: um dígito trocado num teto quase certamente
+quebraria o múltiplo.
+
+É nela que se contam as isenções de ITCMD (2.500 UFESP na doação, ou
+R$ 96.050,00) e o teto de interesse social em ZEIS (4.705 UFESP, R$ 180.766,10).
 
 ### O que ainda está em aberto
 
-Entra na base como 🔴 ou 🟡, escrito, do mesmo jeito que as ressalvas da Base de
+Entra na base como 🔴 ou 🔵, escrito, do mesmo jeito que as ressalvas da Base de
 Regras do Radar — pergunta que não fica escrita é pergunta que se perde:
 
-- **a certidão de matrícula em duplicidade**, acima — 🟡, à espera de decisão;
 - **os doze meses da pensão**: "por doze meses, mais a quantidade de tempo
   estipulada" admite duas leituras, e o motor faz a segunda (12 quando não há
   prazo);
@@ -635,9 +647,6 @@ criada, o salário que não acompanhava a correção do lançamento.
 
 ## Na fila
 
-- **A certidão de matrícula entra duas vezes no orçamento.** É a decisão em
-  aberto mais cara dos Orçamentos: R$ 76,54 por orçamento. Está inteira na
-  seção deles, e o painel avisa em toda tela até ela decidir.
 - **A tabela vence em 01/01/2027.** Em janeiro o motor trava sozinho e pede a
   folha nova — as duas, Notas e Registro.
 - **As notas explicativas das tabelas não foram lidas.** As notas 1 a 13 da

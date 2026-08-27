@@ -23,6 +23,18 @@ ok('a certidão do rodapé é R$ 76,54', R(certidao) === '76.54');
 ok('em todas as 48 faixas, registro com matrícula = registro + a certidão',
    ORC_TABELA_REGISTRO.faixas.every(f => f[3] === f[2] + certidao),
    ORC_TABELA_REGISTRO.faixas.filter(f => f[3] !== f[2] + certidao));
+// A quarta conferência da transcrição, e a mais bonita: a tabela do registro é
+// escrita em UFESP. Os tetos das faixas são múltiplos exatos de R$ 38,42 —
+// 500, 1.000, 3.000, 5.000 UFESP e por aí. Só as três primeiras faixas fogem,
+// por serem valores arredondados que vêm da lei. Um dígito trocado num teto
+// quase certamente quebraria o múltiplo: é a UFESP conferindo a tabela.
+const U = ORC_TRIBUTOS.ufesp;
+ok('a UFESP de 2026 é R$ 38,42', R(U) === '38.42', R(U));
+const naoMultiplos = ORC_TABELA_REGISTRO.faixas.filter(f => f[1] !== null && f[1] % U !== 0);
+ok('45 das 48 faixas do registro têm teto múltiplo exato da UFESP',
+   naoMultiplos.length === 3, naoMultiplos.map(f => R(f[1])));
+ok('e as que fogem são as três primeiras, os valores arredondados da lei',
+   naoMultiplos.every(f => ORC_TABELA_REGISTRO.faixas.indexOf(f) < 3));
 ok('25 faixas na incorporação', ORC_TABELA_REGISTRO.faixasIncorporacao.length === 25);
 // Escada sem degrau faltando: qualquer buraco entre faixas viraria um valor
 // silenciosamente errado no dia em que uma base caísse dentro dele.
@@ -71,11 +83,22 @@ ok('o total soma tudo', R(ap.totais.total) === R(ap.totais.escritura + ap.totais
 ok('nenhum centavo quebrado no total', Number.isInteger(ap.totais.total), ap.totais.total);
 ok('a parte do tabelião não é o total', R(ap.totais.tabeliao) === '2486.77', R(ap.totais.tabeliao));
 
-console.log('\n— A certidão de matrícula entrando duas vezes não fica quieta —');
-ok('o painel avisa que ela está sendo cobrada duas vezes',
-   ap.alertas.some(a => /duas vezes/.test(a.texto)), ap.alertas.map(a => a.texto));
-ok('e o CHECK FINAL manda confirmar a linha da matrícula',
-   ap.check.find(c => c.rot === 'Matrícula').estado === 'confirmar');
+console.log('\n— As duas certidões de matrícula são de propósito —');
+// Ela pede uma certidão para começar o trabalho e outra no fim. Decisão
+// tomada não pode ficar pedindo decisão todo dia: saiu dos alertas, mas a
+// explicação ficou colada na linha, que é onde alguém pergunta "por que duas?".
+ok('não fica mais pedindo decisão sobre isso',
+   !ap.alertas.some(a => /duas vezes/.test(a.texto)), ap.alertas.map(a => a.texto));
+ok('o CHECK FINAL não trava nem manda conferir',
+   ap.check.find(c => c.rot === 'Matrícula').estado === 'ok');
+ok('e diz na própria linha que são duas, e por quê',
+   /duas certidões, de propósito/i.test(ap.check.find(c => c.rot === 'Matrícula').nota),
+   ap.check.find(c => c.rot === 'Matrícula').nota);
+const avisoMat = (ap.despesas.find(x => x.item === '11').avisos || [])[0];
+ok('a memória explica as duas na linha da matrícula',
+   !!avisoMat && /começar o trabalho/.test(avisoMat.texto), avisoMat);
+ok('e a explicação vale como confirmada, não como dúvida',
+   avisoMat.confianca === 'confirmada');
 const umaVez = orcCalcular({
   atoId: 'compra-venda', data: '2026-08-27',
   praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
@@ -85,7 +108,8 @@ const umaVez = orcCalcular({
 });
 ok('trocando a coluna, a certidão entra uma vez só e o total cai R$ 76,54',
    R(umaVez.totais.total) === '16445.67', R(umaVez.totais.total));
-ok('e aí o aviso some', !umaVez.alertas.some(a => /duas vezes/.test(a.texto)));
+ok('e aí a linha da matrícula não fala mais em duas',
+   !(umaVez.despesas.find(x => x.item === '11').avisos || []).length);
 ok('a coluna sem matrícula é a faixa seca', R(umaVez.totais.registro) === '2756.74', R(umaVez.totais.registro));
 
 console.log('\n— A vigência vale até 01/01/2027, e vence depois disso —');
@@ -235,6 +259,17 @@ ok('e o CHECK FINAL diz exatamente isso',
 ORC_TABELA_NOTAS.vigencia = guardadas[0];
 ORC_TABELA_REGISTRO.vigencia = guardadas[1];
 
+console.log('\n— A UFESP faz o painel enxergar as isenções de ITCMD —');
+const doacaoBaixa = orcCalcular({atoId: 'doacao', valores: {doacao: 5000000},
+  imovelMunicipio: 'São Paulo', imovelUf: 'SP', flags: {}, despesas: {taxaAdicional: false}});
+ok('doação de R$ 50.000 está dentro das 2.500 UFESPs (R$ 96.050,00)',
+   doacaoBaixa.alertas.some(a => /2.500 UFESPs/.test(a.texto)), doacaoBaixa.alertas.map(a => a.texto));
+ok('mas o ITCMD continua na conta — quem decide é ela', doacaoBaixa.tributos[0].valor > 0);
+const doacaoAlta = orcCalcular({atoId: 'doacao', valores: {doacao: 20000000},
+  imovelMunicipio: 'São Paulo', imovelUf: 'SP', flags: {}, despesas: {taxaAdicional: false}});
+ok('doação acima do teto não levanta aviso de isenção',
+   !doacaoAlta.alertas.some(a => /UFESP/.test(a.texto)));
+
 console.log('\n— As isenções são apontadas, nunca aplicadas —');
 const barato = orcCalcular({atoId: 'compra-venda', data: '2026-03-10',
   valores: {transacao: 20000000}, imovelMunicipio: 'São Paulo', imovelUf: 'SP',
@@ -317,8 +352,12 @@ ok('a coluna do registro com matrícula está lá, confirmada e com o exemplo',
    && conh['coluna-registro-com-matricula'].exemplos.some(x => /3\.133,28/.test(x)));
 ok('a matrícula confirmada como certidão está lá',
    conh['matricula-e-certidao'].confianca === 'confirmada');
-ok('a certidão em duplicidade está lá, como aprendida e à espera de decisão',
-   conh['matricula-duas-vezes'].confianca === 'aprendida' && !!conh['matricula-duas-vezes'].aberto);
+ok('as duas certidões estão lá, confirmadas e com o motivo dela',
+   conh['matricula-duas-vezes'].confianca === 'confirmada'
+   && !conh['matricula-duas-vezes'].aberto
+   && /início do trabalho|dar início|começar/i.test(conh['matricula-duas-vezes'].regra),
+   conh['matricula-duas-vezes'].regra);
+ok('a UFESP de 2026 está lá, confirmada', conh['ufesp-2026'].confianca === 'confirmada');
 ok('os doze meses da pensão estão lá, como incertos', conh['pensao-doze-meses'].confianca === 'incerta');
 ok('os 40% estão lá como operacional, não como fonte oficial',
    conh['desconto-40'].confianca === 'operacional');
