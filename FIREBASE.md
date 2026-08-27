@@ -115,13 +115,69 @@ Se precisar recomeçar do zero, `zerarRede()` apaga o cadastro — **e leva junt
 as correções e anotações feitas à mão na tela**. As minutas no Drive não são
 tocadas.
 
+## 7. O Radar Jurídico e a Base de Regras
+
+Diferente de tudo o que veio antes, este não tem tranca: aqui mora norma
+publicada, que é informação pública. As regras do passo 4 já trazem
+`/radar-juridico`, `/radar-juridico-meta` e `/base-regras` abertos para leitura,
+como o `/casos` — do lado do painel não há nada a fazer.
+
+Quem varre as fontes é a **função da Vercel**, não o Apps Script, porque ela já
+tem a chave da IA no ambiente. Falta só ligar o relógio:
+
+1. Na Vercel, em **Settings › Environment Variables**, acrescente
+   `CRON_SECRET` = um texto longo e aleatório. Sem ela a rota
+   `/api/radar-juridico` fica aberta a quem souber o endereço (o log avisa
+   isso a cada execução). A `ANTHROPIC_API_KEY` já está lá desde as minutas —
+   não precisa de outra.
+2. Publique. O `vercel.json` já traz o cron:
+
+   ```
+   "crons": [{ "path": "/api/radar-juridico", "schedule": "0 9 * * 1-5" }]
+   ```
+
+   Nove da manhã em UTC é **seis da manhã em São Paulo**, de segunda a sexta.
+   O horário é em UTC porque é assim que a Vercel lê; a função converte para o
+   fuso do cartório na hora de carimbar o dia — sem isso a varredura das seis
+   seria gravada no dia seguinte, e o Jornal abriria vazio.
+3. Rode uma vez na mão para plantar a base de regras e ver o primeiro
+   relatório:
+
+   ```
+   https://cartorio-api.vercel.app/api/radar-juridico?chave=SEU_CRON_SECRET
+   ```
+
+   A primeira chamada planta os seis temas da carga inicial e grava o dia. Para
+   só plantar a base, sem varrer, acrescente `&semear=1`; para reler um dia já
+   lido, `&forcar=1`.
+4. Abra o painel. A faixa **Jornal da equipe** aparece no topo assim que
+   houver um dia gravado, e o botão **Radar jurídico** está em *Mais opções*.
+
+Vale saber, quando algo parecer errado:
+
+- **Fonte que não responde não derruba a varredura.** Ela vira uma linha no
+  relatório do dia ("não respondeu a tempo"), e a tela mostra isso. Portal de
+  tribunal cai com frequência; a ANOREG, em particular, precisa ser lida na
+  cara do site.
+- **Dia que falhou fica gravado como falhou.** Não apagar e não deixar em
+  branco é de propósito: dia sem nada no banco é indistinguível de dia calmo, e
+  essa confusão é justamente a que o Radar existe para não deixar acontecer.
+- **A varredura não roda duas vezes no mesmo dia** — se o dia já está com
+  `status: ok`, a chamada seguinte é pulada. Use `&forcar=1` para reler.
+
 ## O que ainda fica aberto, e por quê
 
-`/casos`, `/jobs`, `/modelos` e os caminhos do bot continuam sem exigir conta
-porque quem escreve neles não é o navegador:
+`/casos`, `/jobs`, `/modelos`, os caminhos do bot e os do Radar continuam sem
+exigir conta porque quem escreve neles não é o navegador:
 
 - `api/salvar-caso.js` (o bot do WhatsApp na Vercel) grava por REST;
-- `apps-script/cartorio-drive-api.js` (as minutas) também.
+- `apps-script/cartorio-drive-api.js` (as minutas) também;
+- `api/radar-juridico.js` (a varredura das seis) idem.
+
+No caso do Radar a leitura pode mesmo ficar aberta — é norma publicada, e o
+painel operacional, que não tem login, precisa desenhar o Jornal. A **escrita**
+é que fica aberta sem precisar: ela some junto com as outras no dia em que a
+conta de serviço existir.
 
 Nenhum dos dois faz login — fechar esses caminhos hoje derruba a criação de
 casos pelo WhatsApp e a entrega das minutas. Para fechar também:

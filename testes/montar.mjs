@@ -5,6 +5,7 @@
 // testar código que não está no ar), este script recorta o bloco do próprio
 // index.html a cada execução. Se o teste passa, passou no que está publicado.
 import {readFileSync, writeFileSync, mkdirSync} from 'node:fs';
+import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 
@@ -37,6 +38,19 @@ const doQuadro = entre('let quadroTabela=false;', '// esc() do painel')
 // também do financeiro, de onde vêm o login, o finEhDona e o finToast.
 const redeMarkup = entre('<!-- A Rede — prospecção.', '<script src="design-system/mascots/joaninha/joaninha.js">');
 const redeCodigo = html.slice(html.indexOf('// ══ A REDE ═'), html.lastIndexOf('</script>'));
+
+// O Radar Jurídico mora entre o service worker e a Rede — fora dos dois
+// recortes acima — e tem harness próprio, como ela. Precisa de três pedaços
+// de markup: a faixa do cabeçalho, o painel da Joaninha (onde a aba Jurídico
+// vive) e o modal, que já vem dentro do `markup` do financeiro.
+const radarJornal = entre('<!-- O Jornal da equipe.', '<!-- Esta faixa é a Agenda');
+const joaninhaPainel = entre('<div class="joaninha-panel" id="joaninha-panel">', '<!-- Financeiro — a esteira do dinheiro');
+const radarCodigo = html.slice(html.indexOf('// ══ O RADAR JURÍDICO'), html.indexOf('// ══ A REDE ═'));
+// A troca de abas do painel da Joaninha é a de verdade, recortada daqui: as
+// outras abas só seriam chamadas se o teste clicasse nelas, e ele não clica.
+// Já o abrir/fechar do painel depende da mascote inteira do design system —
+// esse fica com um substituto de duas linhas, escrito no harness.
+const joaninhaAbas = entre('  window.joaninhaTab=function(nome){', '  // ── anexos ──');
 
 const fazDeContaNav = readFileSync(join(AQUI, 'faz-de-conta-navegador.js'), 'utf8');
 const fazDeContaNode = readFileSync(join(AQUI, 'faz-de-conta-node.js'), 'utf8');
@@ -101,6 +115,36 @@ writeFileSync(join(AQUI, 'harness-rede.html'),
   + redeMarkup + markup
   + '<script type="module">' + fazDeContaNav + codigo + redeCodigo
   + '\nwindow.__pronto=true;\n</script></body></html>');
+
+// ── O Radar Jurídico ──
+// Sem lateral e sem cabeçalho: a faixa do Jornal precisa de um lugar no
+// corpo da página, e o resto do painel não tem nada a ver com ela.
+const painelDeMentira = `
+// Abrir e fechar o painel da Joaninha depende da mascote do design system,
+// que não roda aqui. O substituto faz só o que o Radar precisa dele: mostrar.
+window.toggleJoaninhaPainel=function(f){
+  document.getElementById('joaninha-panel').classList.toggle('open', f !== false);
+};
+`;
+writeFileSync(join(AQUI, 'harness-radar.html'),
+  CABECA + FONTES + estilo + '</head><body><div class="nav-toast" id="nav-toast"></div>'
+  + '<div class="central-nova" style="max-width:900px;margin:0 auto;padding:20px">' + radarJornal + '</div>'
+  + joaninhaPainel + markup
+  + '<script type="module">' + fazDeContaNav + painelDeMentira + joaninhaAbas + codigo + radarCodigo
+  + '\nwindow.__pronto=true;\n</script></body></html>');
+
+// E o preview: o mesmo harness com um dia de verdade no banco (o caso do
+// ITCMD, que é o que a tela mais precisa dar conta) e a base de regras da
+// carga inicial. É por ele que se olha o desenho antes de publicar.
+const {BASE_REGRAS_INICIAL} = createRequire(import.meta.url)('../lib/base-regras-inicial.js');
+const sementeRadar = readFileSync(join(AQUI, 'radar-de-um-dia.js'), 'utf8')
+  + '\nwindow.__raiz["base-regras"]=' + JSON.stringify(BASE_REGRAS_INICIAL) + ';\nwindow.__avisar();\n';
+writeFileSync(join(AQUI, 'preview-radar.html'),
+  CABECA + FONTES + estilo + '</head><body><div class="nav-toast" id="nav-toast"></div>'
+  + '<div class="central-nova" style="max-width:900px;margin:0 auto;padding:20px">' + radarJornal + '</div>'
+  + joaninhaPainel + markup
+  + '<script type="module">' + fazDeContaNav + painelDeMentira + joaninhaAbas + codigo + radarCodigo
+  + sementeRadar + 'abrirRadar();\nwindow.__pronto=true;\n</script></body></html>');
 
 mkdirSync(join(AQUI, 'saida'), {recursive: true});
 console.log('montado a partir do index.html · ' + codigo.split('\n').length + ' linhas de financeiro');

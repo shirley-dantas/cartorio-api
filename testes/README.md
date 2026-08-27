@@ -1,6 +1,6 @@
-# Testes do financeiro e da Rede
+# Testes do financeiro, da Rede e do Radar
 
-Cinco suítes, todas rodando por cima do **index.html de verdade** — o
+Sete suítes, todas rodando por cima do **index.html de verdade** — o
 `montar.mjs` recorta o bloco financeiro do arquivo publicado a cada execução,
 em vez de manter uma cópia que envelheceria em silêncio.
 
@@ -11,13 +11,17 @@ node testes/navegador.mjs        # 24 caminhos completos no Chromium
 node testes/celular.mjs          # a mesma tela num iPhone 13
 node testes/rede.mjs             # a Rede no Chromium, e no celular no fim
 node testes/rede-varredura.mjs   # a conta que identifica a pessoa, sem Google
+node testes/radar.mjs            # o Radar Jurídico no Chromium, e no celular no fim
+node testes/radar-triagem.mjs    # a peneira do Radar, sem navegador e sem internet
 ```
 
 E, para olhar o desenho com dados de verdade:
 
 ```bash
 node testes/montar.mjs && node -e "import('./testes/servidor.mjs').then(m=>m.servir())"
-# abre http://127.0.0.1:8199/preview.html
+# abre http://127.0.0.1:8199/preview.html        (o financeiro)
+#      http://127.0.0.1:8199/preview-quadro.html (o mês no quadro)
+#      http://127.0.0.1:8199/preview-radar.html  (o Radar, com um dia de verdade)
 ```
 
 ## O que cada uma protege
@@ -36,6 +40,19 @@ node testes/montar.mjs && node -e "import('./testes/servidor.mjs').then(m=>m.ser
   é desfeito pela próxima varredura, o cadastro único das construtoras, o mapa
   por estado e bairro, e duas coisas que **não** podem acontecer: CPF na tela e
   robô no LinkedIn. Termina medindo tudo num iPhone 13.
+- **radar** — a faixa do Jornal (que não aparece sem varredura, e que não deixa
+  dia falhado passar por dia calmo), as quatro faixas de triagem na tela, e as
+  duas coisas que o Radar existe para não deixar acontecer: notícia com cara de
+  norma e dispensa sem o que continua exigido. Também a base de regras, os
+  botões que levam para a Joaninha e a resposta da IA que precisa sair como
+  texto, nunca como HTML. Termina medindo tudo num iPhone 13.
+- **radar-triagem** — a peneira, sem navegador: o relógio de São Paulo, a
+  limpeza do HTML, o desembrulho do JSON da IA e o `conferirItem`, que é o
+  guarda-corpo escrito em código porque regra que só existe no prompt depende
+  de o modelo ter lembrado dela naquela manhã. Cobra também que as três
+  ressalvas em aberto da carga inicial (a numeração 117.1 × 119.1, a
+  LC 227/2026 contra o Tema 1.113, o provimento não localizado) não sumam da
+  base em silêncio.
 - **rede-varredura** — a única parte do `apps-script/cartorio-rede.js` que roda
   fora do Google: a impressão digital do CPF (mesma pessoa dá o mesmo código, o
   número não volta dele, trocar a chave duplica o cadastro) e a lista de quem
@@ -52,6 +69,18 @@ dois fechamentos no banco, abra o `preview-quadro.html` do mesmo servidor.
 `faz-de-conta-navegador.js` e `faz-de-conta-node.js` são o Firebase, o Auth e
 um card falsos. Nenhum teste toca o banco de verdade — e a senha do login de
 mentira é literalmente `certa`.
+
+Os dois também **congelam o dia**: `isoHoje()` devolve sempre uma data dentro
+do fechamento de agosto de 2026, que é o mês da semente e o das datas que os
+testes digitam nos formulários. Sem isso a suíte envelhecia sozinha — em 26 de
+agosto o ciclo virou, a planilha do fechamento corrente amanheceu vazia e dez
+verificações passaram a falhar sem nada ter sido quebrado. Todo o calendário
+do financeiro sai do `isoHoje()`, então congelar aquela linha congela o mês
+inteiro.
+
+O Radar é a exceção: ele tem relógio próprio (`radarHojeISO()`, no fuso de São
+Paulo, porque a varredura roda em UTC na Vercel), e o `radar.mjs` semeia o
+banco com a data de hoje de verdade.
 
 A semente do `rede.mjs` são pessoas de duas minutas reais do Drive. Ela está
 ali de propósito: além de exercitar as telas, é a documentação viva do formato

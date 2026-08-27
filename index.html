@@ -1521,6 +1521,153 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .rede-nota{font-size:13.5px;color:var(--r-tinta-3);margin:14px 2px 0;line-height:1.55}
 .rede-rodape{margin-top:16px;padding-top:13px;border-top:1px solid var(--r-linha);
   font-family:var(--rf-dado);font-size:10.5px;color:var(--r-tinta-3);line-height:1.6}
+/* ══ JORNAL DA EQUIPE E RADAR JURÍDICO ═══════════════════════════════
+   A faixa do jornal mora fora do cabeçalho de propósito, pelo mesmo
+   motivo da faixa da Agenda: o cabeçalho é dispensável (fecharSaudacao),
+   e saber que uma norma mudou hoje não pode depender de a saudação
+   estar aberta.
+   Ela é um botão inteiro — a linha toda abre o Radar, não um link
+   escondido no fim do texto. Ela testa pelo celular, e alvo pequeno
+   dentro de faixa grande é o que mais custa toque lá. */
+.cc-jornal{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;
+  appearance:none;cursor:pointer;background:var(--cc-sup);border:1px solid var(--cc-linha);
+  border-radius:16px;padding:13px 14px;margin:0 0 14px;font-family:'Inter',sans-serif;
+  transition:border-color .18s ease,box-shadow .18s ease}
+.cc-jornal:hover{border-color:var(--cc-linha-forte);box-shadow:0 2px 10px rgba(31,42,51,.06)}
+.cc-jornal:focus-visible{outline:2px solid var(--cc-champagne);outline-offset:2px}
+.cc-jornal-selo{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:#F1EDE4;
+  color:var(--cc-champagne);display:flex;align-items:center;justify-content:center;font-size:16px}
+.cc-jornal-corpo{flex:1;min-width:0;display:block}
+.cc-jornal-topo{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cc-jornal-titulo{font-family:'Jost',sans-serif;font-weight:400;font-size:11.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--cc-tinta-2)}
+.cc-jornal-data{font-size:10.5px;color:var(--cc-tinta-3);font-variant-numeric:tabular-nums}
+.cc-jornal-selos{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.cc-jornal-resumo{display:block;font-size:13.5px;color:var(--cc-tinta);line-height:1.45;margin-top:4px}
+.cc-jornal-alerta{display:block;font-size:12.5px;color:var(--cc-critico);line-height:1.45;
+  margin-top:6px;padding-left:9px;border-left:2px solid var(--cc-critico)}
+.cc-jornal-seta{flex-shrink:0;color:var(--cc-tinta-3);font-size:15px;align-self:center}
+@media(max-width:520px){.cc-jornal-seta{display:none}.cc-jornal-selos{margin-left:0;width:100%}}
+
+/* As pílulas de contagem. O número vem antes do selo porque é ele que se lê
+   de longe — "1 muda hoje" é a informação, o círculo é só a cor dela. */
+.rj-selo{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;
+  padding:2px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+.rj-selo-muda{background:#FBEAE8;color:var(--cc-critico);border-color:#F1CFCB}
+.rj-selo-breve{background:#FBF1DE;color:var(--cc-atencao);border-color:#EDDCBB}
+.rj-selo-saber{background:#E8F1EA;color:var(--cc-ok);border-color:#CFE2D4}
+.rj-selo-fora{background:var(--cc-sup-2);color:var(--cc-tinta-3);border-color:var(--cc-linha)}
+.rj-selo-falhou{background:var(--cc-sup-2);color:var(--cc-atencao);border-color:#EDDCBB}
+
+/* ── dentro do modal ── */
+.radar{font-family:'Inter',sans-serif;color:var(--cc-tinta)}
+.radar-abas{display:flex;gap:4px;background:var(--cc-sup-2);border:1px solid var(--cc-linha);
+  border-radius:12px;padding:4px;margin-bottom:16px}
+.radar-aba{flex:1;appearance:none;border:none;background:none;cursor:pointer;border-radius:9px;
+  padding:9px 6px;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+  color:var(--cc-tinta-3);white-space:nowrap}
+.radar-aba:hover{color:var(--cc-tinta)}
+.radar-aba.on{background:var(--cc-sup);color:var(--cc-tinta);box-shadow:0 1px 2px rgba(31,42,51,.07)}
+.radar-aba:focus-visible{outline:2px solid var(--cc-champagne);outline-offset:2px}
+@media(max-width:420px){.radar-aba{font-size:11px;padding:9px 2px}}
+
+.radar-vazio{background:var(--cc-sup-2);border:1px dashed var(--cc-linha-forte);border-radius:14px;
+  padding:26px 20px;text-align:center}
+.radar-vazio b{display:block;font-family:'Jost',sans-serif;font-size:19px;font-weight:400;margin-bottom:6px}
+.radar-vazio span{font-size:13.5px;color:var(--cc-tinta-3);line-height:1.55}
+
+.radar-cabeca{margin-bottom:16px}
+.radar-resumo{font-family:'Jost',sans-serif;font-weight:300;font-size:clamp(19px,3.6vw,25px);
+  line-height:1.3;margin:0 0 10px}
+.radar-alerta{display:flex;gap:9px;background:#FBEAE8;border:1px solid #F1CFCB;border-radius:12px;
+  padding:11px 13px;font-size:13.5px;color:var(--cc-critico);line-height:1.5;margin-bottom:12px}
+.radar-alerta i{flex-shrink:0;font-size:16px;margin-top:1px}
+.radar-contagem{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+
+.radar-item{border:1px solid var(--cc-linha);border-radius:14px;padding:14px 15px;margin-bottom:11px;
+  background:var(--cc-sup)}
+.radar-item.muda{border-left:3px solid var(--cc-critico)}
+.radar-item.breve{border-left:3px solid var(--cc-atencao)}
+.radar-item.saber{border-left:3px solid var(--cc-ok)}
+.radar-item h4{margin:0 0 5px;font-family:'Jost',sans-serif;font-weight:400;font-size:17px;line-height:1.3}
+.radar-meta{display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:10.5px;
+  color:var(--cc-tinta-3);margin-bottom:9px}
+.radar-especie{display:inline-block;font-size:9.5px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--cc-linha);
+  background:var(--cc-sup-2)}
+.radar-especie.noticia{color:var(--cc-atencao);border-color:#EDDCBB;background:#FBF1DE}
+.radar-linha{font-size:13.5px;line-height:1.55;margin:0 0 7px}
+.radar-linha b{font-weight:600}
+.radar-naomuda{background:var(--cc-sup-2);border-radius:10px;padding:10px 12px;font-size:13px;
+  line-height:1.55;margin:0 0 8px}
+.radar-naomuda b{color:var(--cc-critico)}
+.radar-etapas{display:flex;flex-direction:column;gap:5px;margin:0 0 8px}
+.radar-etapa{display:flex;gap:8px;align-items:baseline;font-size:12.5px}
+.radar-etapa .et{font-weight:600;min-width:98px}
+.radar-etapa .si{color:var(--cc-tinta-2)}
+.radar-parcial{display:flex;gap:7px;background:#FBF1DE;border:1px solid #EDDCBB;border-radius:10px;
+  padding:9px 11px;font-size:12.5px;color:var(--cc-atencao);line-height:1.5}
+.radar-fora{background:var(--cc-sup-2);border-radius:12px;padding:12px 14px;font-size:12.5px;
+  color:var(--cc-tinta-3);line-height:1.6}
+.radar-fontes{margin-top:16px;padding-top:13px;border-top:1px solid var(--cc-linha);
+  font-size:11px;color:var(--cc-tinta-3);line-height:1.6}
+
+.radar-dia{display:flex;align-items:flex-start;gap:11px;width:100%;text-align:left;appearance:none;
+  cursor:pointer;background:var(--cc-sup);border:1px solid var(--cc-linha);border-radius:13px;
+  padding:12px 13px;margin-bottom:8px;font-family:'Inter',sans-serif}
+.radar-dia:hover{border-color:var(--cc-linha-forte)}
+.radar-dia.on{border-color:var(--cc-champagne)}
+.radar-dia-data{flex-shrink:0;font-size:11.5px;font-weight:600;color:var(--cc-tinta-2);
+  font-variant-numeric:tabular-nums;min-width:44px}
+.radar-dia-txt{flex:1;min-width:0;font-size:13px;line-height:1.45;color:var(--cc-tinta)}
+.radar-dia-selos{flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:520px){.radar-dia{flex-wrap:wrap}.radar-dia-txt{flex-basis:100%;order:3}}
+
+/* ── a base de regras ── */
+.radar-temas{display:flex;flex-direction:column;gap:9px}
+.radar-tema{border:1px solid var(--cc-linha);border-radius:14px;background:var(--cc-sup);overflow:hidden}
+.radar-tema-topo{display:flex;align-items:center;gap:10px;width:100%;text-align:left;appearance:none;
+  cursor:pointer;background:none;border:none;padding:13px 15px;font-family:'Inter',sans-serif}
+.radar-tema-topo:hover{background:var(--cc-sup-2)}
+.radar-tema-nome{flex:1;min-width:0;font-family:'Jost',sans-serif;font-weight:400;font-size:17px;
+  color:var(--cc-tinta);line-height:1.3}
+.radar-tema-topo i{flex-shrink:0;color:var(--cc-tinta-3)}
+.radar-tema-corpo{padding:0 15px 15px;border-top:1px solid var(--cc-linha)}
+.radar-tema-corpo p{font-size:13.5px;line-height:1.6;margin:13px 0 0}
+.radar-bloco{margin-top:14px}
+.radar-bloco h5{margin:0 0 7px;font-family:'Jost',sans-serif;font-weight:400;font-size:11px;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--cc-tinta-2)}
+.radar-bloco ul{margin:0;padding-left:18px}
+.radar-bloco li{font-size:13px;line-height:1.6;margin-bottom:4px}
+.radar-bloco.atencao{background:#FBF1DE;border:1px solid #EDDCBB;border-radius:11px;padding:11px 13px}
+.radar-bloco.atencao h5{color:var(--cc-atencao)}
+.radar-bloco.atencao li{color:var(--cc-atencao)}
+.radar-tema-origem{display:inline-block;font-size:9.5px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--cc-sup-2);
+  border:1px solid var(--cc-linha);color:var(--cc-tinta-3);flex-shrink:0}
+.radar-tema-acoes{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+.radar-btn{display:inline-flex;align-items:center;gap:6px;appearance:none;cursor:pointer;
+  border:1px solid var(--cc-linha);background:var(--cc-sup-2);border-radius:999px;padding:7px 14px;
+  font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--cc-tinta)}
+.radar-btn:hover{background:#F1EDE4}
+
+/* ── a aba Jurídico da Joaninha ── */
+.joaninha-tabs{flex-wrap:wrap}
+.jj-modos{display:flex;gap:3px;background:#FFF7F8;border:0.5px solid #F0D3D8;border-radius:9px;
+  padding:3px;margin-bottom:8px}
+.jj-modo{flex:1;appearance:none;border:none;background:none;cursor:pointer;border-radius:7px;
+  padding:6px 4px;font-family:inherit;font-size:11px;font-weight:600;color:#B4718A}
+.jj-modo.on{background:#fff;color:#7A1F2B;box-shadow:0 1px 2px rgba(122,31,43,.09)}
+.jj-nota{font-size:10.5px;color:#B4718A;line-height:1.45;margin-bottom:8px}
+.jj-resposta{margin-top:10px;background:#FFF7F8;border:0.5px solid #F0D3D8;border-radius:11px;
+  padding:11px 12px;font-size:12.5px;line-height:1.6;color:#1C1C1E;white-space:pre-wrap}
+.jj-resposta.pensando{color:#B4718A;font-style:italic;white-space:normal}
+.jj-origem{display:block;font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:#B4718A;margin-bottom:6px}
+.jj-copiar{margin-top:9px;display:inline-flex;align-items:center;gap:5px;appearance:none;cursor:pointer;
+  border:none;border-radius:999px;padding:6px 13px;font-family:inherit;font-size:11px;font-weight:600;
+  color:#fff;background:linear-gradient(135deg,#C62828,#7A1F2B)}
+.jj-aviso{margin-top:9px;font-size:10.5px;color:#B4718A;line-height:1.5}
 </style>
 </head>
 <body>
@@ -1559,6 +1706,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </button>
   <nav class="sidebar-nav sidebar-mais" id="sidebar-mais" style="display:none">
     <button type="button" class="sidebar-item" onclick="abrirQuadro()"><i class="ti ti-chart-histogram"></i><span>O quadro</span></button>
+    <button type="button" class="sidebar-item" onclick="abrirRadar()"><i class="ti ti-scale"></i><span>Radar jurídico</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Atividades')"><i class="ti ti-list-check"></i><span>Atividades</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Processos')"><i class="ti ti-briefcase"></i><span>Processos</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Minutas')"><i class="ti ti-file-text"></i><span>Minutas</span><span class="em-breve">em breve</span></button>
@@ -1591,6 +1739,26 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="cc-saudacao" id="saudacao-titulo"></div>
     <div class="cc-datalinha"><span class="cc-clima" id="saudacao-clima"></span><span id="saudacao-texto"></span></div>
   </div>
+
+  <!-- O Jornal da equipe. Fora do cabeçalho de propósito, como a faixa da
+       Agenda: o cabeçalho fecha (fecharSaudacao), e saber que uma norma mudou
+       hoje não pode depender de a saudação estar aberta.
+       Nasce escondida e só aparece quando o Radar tiver passado ao menos uma
+       vez — faixa vazia dizendo "nada ainda" todo dia vira moldura que
+       ninguém lê. -->
+  <button type="button" class="cc-jornal" id="cc-jornal" style="display:none" onclick="abrirRadar()">
+    <span class="cc-jornal-selo"><i class="ti ti-scale"></i></span>
+    <span class="cc-jornal-corpo">
+      <span class="cc-jornal-topo">
+        <span class="cc-jornal-titulo">Jornal da equipe</span>
+        <span class="cc-jornal-data" id="cc-jornal-data"></span>
+        <span class="cc-jornal-selos" id="cc-jornal-selos"></span>
+      </span>
+      <span class="cc-jornal-resumo" id="cc-jornal-resumo"></span>
+      <span class="cc-jornal-alerta" id="cc-jornal-alerta" style="display:none"></span>
+    </span>
+    <i class="ti ti-chevron-right cc-jornal-seta"></i>
+  </button>
 
   <!-- Esta faixa é a Agenda, e só ela: hoje e os próximos 7 dias. O resumo
        do dia que ficava aqui ("3 compromissos · 4 urgentes...") saiu porque
@@ -1973,6 +2141,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <button type="button" class="joaninha-tab" data-tab="resumo" onclick="joaninhaTab('resumo')">Resumo</button>
     <button type="button" class="joaninha-tab" data-tab="busca" onclick="joaninhaTab('busca')">Buscar</button>
     <button type="button" class="joaninha-tab" data-tab="pergunta" onclick="joaninhaTab('pergunta')">Pergunte</button>
+    <button type="button" class="joaninha-tab" data-tab="juridico" onclick="joaninhaTab('juridico')">Jurídico</button>
   </div>
 
   <div class="joaninha-tab-content" id="joaninha-tab-nota">
@@ -2019,6 +2188,27 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <button type="button" class="joaninha-pergunta-exemplo" onclick="joaninhaPerguntarExemplo('Quais documentos estão faltando?')">Quais documentos estão faltando?</button>
     </div>
     <div id="joaninha-pergunta-resposta"></div>
+  </div>
+
+  <!-- Jurídico: duas perguntas diferentes em cima da mesma base.
+       "Para mim" é a pergunta de quem está com a escritura na mão — resposta
+       seca, sem formatação de cliente. "Para o cliente" devolve a mensagem
+       pronta pro WhatsApp.
+       As duas passam pelo mesmo critério antes de dizer que algo mudou:
+       competência do órgão e etapa por etapa. É o que impede a frase "já
+       pode" de sair sozinha, sem o que continua exigido atrás dela. -->
+  <div class="joaninha-tab-content" id="joaninha-tab-juridico" style="display:none">
+    <div class="jj-modos">
+      <button type="button" class="jj-modo on" data-modo="interna" onclick="joaninhaModoJuridico('interna')">Para mim</button>
+      <button type="button" class="jj-modo" data-modo="cliente" onclick="joaninhaModoJuridico('cliente')">Para o cliente</button>
+    </div>
+    <div class="jj-nota" id="jj-nota"></div>
+    <div class="joaninha-pergunta-form">
+      <input type="text" id="joaninha-juridico-texto" placeholder="Posso lavrar sem a CND?" onkeydown="if(event.key==='Enter')joaninhaJuridico()">
+      <button type="button" id="joaninha-juridico-btn" title="Perguntar" onclick="joaninhaJuridico()"><i class="ti ti-send"></i></button>
+    </div>
+    <div class="joaninha-pergunta-exemplos" id="jj-exemplos"></div>
+    <div id="joaninha-juridico-resposta"></div>
   </div>
 </div>
 
@@ -2068,6 +2258,18 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="modal-title"><i class="ti ti-affiliate" style="font-size:15px;vertical-align:-2px;color:#C9A876"></i> Rede</div>
     <div class="modal-sub" id="rede-sub">Quem você já atendeu e ainda não virou conversa.</div>
     <div class="rede" id="rede-conteudo"></div>
+  </div>
+</div>
+
+<!-- O Radar Jurídico e a Base de Regras. Sem tranca: aqui mora norma
+     publicada, que é informação pública — nada de nome, CPF ou valor de
+     cliente. É a única tela nova que a Grazi abre igual à Shirley. -->
+<div class="modal-overlay" id="modal-radar">
+  <div class="modal-box" style="max-width:900px">
+    <button class="modal-close" onclick="fecharRadar()">&times;</button>
+    <div class="modal-title"><i class="ti ti-scale" style="font-size:15px;vertical-align:-2px;color:#A9895A"></i> Radar jurídico</div>
+    <div class="modal-sub" id="radar-sub">O que mudou hoje na mesa — e o que continua como era.</div>
+    <div class="radar" id="radar-conteudo"></div>
   </div>
 </div>
 
@@ -5750,6 +5952,7 @@ if(joaninhaInstancia.disponivel){
     else if(nome==='lembrete')renderLembretes();
     else if(nome==='busca'){renderBuscaResultados('');setTimeout(()=>{const i=document.getElementById('joaninha-busca-input');if(i){i.value='';i.focus();}},100);}
     else if(nome==='pergunta')setTimeout(()=>{const i=document.getElementById('joaninha-pergunta-texto');if(i)i.focus();},100);
+    else if(nome==='juridico'){if(typeof window.joaninhaModoJuridico==='function')window.joaninhaModoJuridico();setTimeout(()=>{const i=document.getElementById('joaninha-juridico-texto');if(i)i.focus();},100);}
     else if(nome==='nota')setTimeout(()=>{const ta=document.getElementById('joaninha-texto');if(ta)ta.focus();},100);
   };
 
@@ -8292,6 +8495,487 @@ atualizarSidebarFinanceiro();
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
 }
+
+// ══ O RADAR JURÍDICO E A BASE DE REGRAS ══════════════════════════════════
+// O jornal da manhã e a memória do cartório, lado a lado.
+//
+// Mora aqui, entre o service worker e a Rede, de propósito: o testes/montar.mjs
+// recorta o financeiro até o service worker e a Rede a partir do "══ A REDE",
+// então este bloco fica fora dos dois recortes e tem harness próprio.
+//
+// De onde vêm os dados: quem varre as fontes oficiais é a função da Vercel
+// (api/radar-juridico.js), no cron das seis da manhã. Este arquivo só lê.
+//
+//   /radar-juridico/{AAAA-MM-DD}   o dia inteiro: itens, relatório, fontes
+//   /radar-juridico-meta
+//     ultimaVarredura, ultimoDia, status
+//     dias/{AAAA-MM-DD}            uma linha por dia: resumo, alerta, contagem
+//   /base-regras/{tema}            o que não muda toda semana
+//     titulo, resumo, naMesa[], etapas[], fundamentos[], atencao[]
+//     mensagemCliente              modelo de tom, quando houver
+//     atualizacoes/{data}          o que o Radar acrescentou depois
+//
+// Por que o dia cheio e o índice são nós separados: o painel não tem login e
+// escuta o banco o tempo todo. Se a faixa do cabeçalho precisasse do nó
+// inteiro, cada abertura do painel baixaria um ano de relatórios para mostrar
+// uma frase. O índice é uma linha por dia; o dia cheio só é lido quando
+// alguém abre.
+//
+// Três regras que não devem ser mexidas sem perguntar:
+//
+//   1. **Notícia não é norma.** Cada item diz de que espécie é, e matéria de
+//      portal nunca aparece como mudança confirmada. Quem lê é escrevente com
+//      escritura na mão; manchete tratada como norma sai como exigência.
+//   2. **Dispensa nunca aparece sozinha.** Item que fala em liberação mostra,
+//      colado nele, o que continua exigido — etapa por etapa. Foi por aqui que
+//      o ITCMD quase escorregou: o CNJ dispensou o imposto na escritura e o
+//      Registro de Imóveis continuou pedindo.
+//   3. **Fonte que não respondeu aparece.** Silêncio de site não é ausência de
+//      novidade, e dia não lido não pode ficar com cara de dia calmo.
+
+let radarMeta = {};
+let radarBase = {};
+// Os dias cheios já lidos. Cache de sessão: abrir o mesmo dia duas vezes não
+// pede duas vezes ao banco.
+let radarDias = {};
+let radarAba = 'dia';
+let radarDiaAberto = null;
+let radarTemaAberto = null;
+let radarLendo = null;
+
+function radarEsc(v){
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function radarDataCurta(d){
+  const p = String(d || '').slice(0,10).split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] : String(d || '');
+}
+function radarHojeISO(){
+  return new Date().toLocaleDateString('sv-SE', {timeZone:'America/Sao_Paulo'});
+}
+function radarDiasOrdenados(){
+  const d = (radarMeta && radarMeta.dias) || {};
+  return Object.keys(d).sort().reverse();
+}
+function radarUltimoDia(){
+  return radarDiasOrdenados()[0] || null;
+}
+
+// ── As pílulas de contagem ───────────────────────────────────────────────
+// Só sai pílula do que existe. Zero desenhado é ruído: "0 muda hoje" ocupa a
+// mesma largura de "3 muda hoje" e não diz nada que a ausência não diga.
+const RADAR_FAIXAS = [
+  {k:'muda',  selo:'🔴', classe:'rj-selo-muda',  um:'muda hoje',    muitos:'mudam hoje'},
+  {k:'breve', selo:'🟠', classe:'rj-selo-breve', um:'muda em breve', muitos:'mudam em breve'},
+  {k:'saber', selo:'🟢', classe:'rj-selo-saber', um:'bom saber',    muitos:'bons de saber'}
+];
+function radarSelosHtml(contagem, comFora){
+  const c = contagem || {};
+  let html = RADAR_FAIXAS.filter(f => (c[f.k] || 0) > 0).map(f =>
+    `<span class="rj-selo ${f.classe}">${f.selo} ${c[f.k]} ${c[f.k] === 1 ? f.um : f.muitos}</span>`).join('');
+  if(comFora && (c.fora || 0) > 0)
+    html += `<span class="rj-selo rj-selo-fora">⚪ ${c.fora} fora do escopo</span>`;
+  return html;
+}
+function radarClasseDoSelo(selo){
+  return selo === '🔴' ? 'muda' : selo === '🟠' ? 'breve' : selo === '🟢' ? 'saber' : 'fora';
+}
+
+// ── A faixa do cabeçalho ─────────────────────────────────────────────────
+function renderJornal(){
+  const faixa = document.getElementById('cc-jornal');
+  if(!faixa) return;
+  const ultimo = radarUltimoDia();
+  if(!ultimo){ faixa.style.display = 'none'; return; }
+
+  const linha = radarMeta.dias[ultimo] || {};
+  faixa.style.display = 'flex';
+
+  const hoje = radarHojeISO();
+  document.getElementById('cc-jornal-data').textContent =
+    ultimo === hoje ? 'hoje' : 'última leitura em ' + radarDataCurta(ultimo);
+
+  const selos = document.getElementById('cc-jornal-selos');
+  selos.innerHTML = linha.status === 'falhou'
+    ? '<span class="rj-selo rj-selo-falhou">o dia não foi lido</span>'
+    : (radarSelosHtml(linha.contagem, false) || '<span class="rj-selo rj-selo-fora">sem novidade</span>');
+
+  document.getElementById('cc-jornal-resumo').textContent =
+    linha.resumo || 'Sem novidade que mude a mesa.';
+
+  const alerta = document.getElementById('cc-jornal-alerta');
+  if(linha.alerta){ alerta.textContent = linha.alerta; alerta.style.display = 'block'; }
+  else alerta.style.display = 'none';
+}
+
+// ── Abrir e fechar ───────────────────────────────────────────────────────
+window.abrirRadar = async function(aba){
+  document.getElementById('modal-radar').classList.add('open');
+  if(aba) radarAba = aba;
+  if(!radarDiaAberto) radarDiaAberto = radarUltimoDia();
+  renderRadar();
+  if(radarDiaAberto) await radarCarregarDia(radarDiaAberto);
+  renderRadar();
+};
+window.fecharRadar = function(){
+  document.getElementById('modal-radar').classList.remove('open');
+};
+window.radarTrocarAba = function(qual){ radarAba = qual; renderRadar(); };
+window.radarVerDia = async function(data){
+  radarDiaAberto = data; radarAba = 'dia';
+  renderRadar();
+  await radarCarregarDia(data);
+  renderRadar();
+};
+window.radarVerTema = function(tema){
+  radarTemaAberto = radarTemaAberto === tema ? null : tema;
+  renderRadar();
+};
+
+async function radarCarregarDia(data){
+  if(!data || radarDias[data]) return;
+  if(radarLendo === data) return;
+  radarLendo = data;
+  try{
+    const snap = await get(ref(db, 'radar-juridico/' + data));
+    // `naoLeu` e não `erro`: o dia gravado tem um `erro` próprio, que é o
+    // motivo de a varredura ter falhado naquela manhã. Usar o mesmo nome para
+    // as duas coisas fazia todo dia que falhou parecer dia que não abriu.
+    radarDias[data] = snap.val() || {naoLeu:'não encontrei esse dia no banco'};
+  }catch(e){
+    radarDias[data] = {naoLeu:'não consegui ler esse dia agora'};
+  }
+  radarLendo = null;
+}
+
+// ── A tela ───────────────────────────────────────────────────────────────
+function renderRadar(){
+  const alvo = document.getElementById('radar-conteudo');
+  const sub = document.getElementById('radar-sub');
+  if(!alvo) return;
+
+  const dias = radarDiasOrdenados();
+  if(sub){
+    sub.textContent = radarMeta && radarMeta.ultimaVarredura
+      ? 'Última varredura em ' + radarDataCurta(radarMeta.ultimoDia) + ' · ' +
+        (dias.length === 1 ? '1 dia lido' : dias.length + ' dias lidos')
+      : 'A varredura ainda não passou.';
+  }
+
+  const aba = (id, rotulo) =>
+    `<button type="button" class="radar-aba${radarAba===id?' on':''}" onclick="radarTrocarAba('${id}')">${rotulo}</button>`;
+
+  let corpo;
+  if(radarAba === 'dias') corpo = radarHtmlDias(dias);
+  else if(radarAba === 'base') corpo = radarHtmlBase();
+  else corpo = radarHtmlDia();
+
+  alvo.innerHTML =
+    `<div class="radar-abas">${aba('dia','O dia')}${aba('dias','Últimos dias')}${aba('base','Base de regras')}</div>` +
+    corpo;
+}
+
+function radarHtmlDia(){
+  if(!radarDiaAberto){
+    return `<div class="radar-vazio">
+      <b>A varredura ainda não passou</b>
+      <span>O Radar lê as fontes oficiais todo dia útil de manhã e escreve aqui o que muda na mesa.
+      Enquanto não rodar a primeira vez, esta tela fica assim — vazia e honesta.</span>
+    </div>`;
+  }
+  const dia = radarDias[radarDiaAberto];
+  if(!dia) return `<div class="radar-vazio"><b>Lendo o dia…</b><span>Buscando ${radarEsc(radarDataCurta(radarDiaAberto))} no banco.</span></div>`;
+  if(dia.naoLeu) return `<div class="radar-vazio"><b>${radarEsc(dia.naoLeu)}</b><span>Tente de novo em instantes.</span></div>`;
+
+  const itens = Array.isArray(dia.itens) ? dia.itens : [];
+  const dentro = itens.filter(i => i.selo !== '⚪');
+  const fora = itens.filter(i => i.selo === '⚪');
+
+  let html = `<div class="radar-cabeca">
+    <p class="radar-resumo">${radarEsc(dia.resumo || '')}</p>
+    ${dia.alerta ? `<div class="radar-alerta"><i class="ti ti-alert-triangle"></i><span>${radarEsc(dia.alerta)}</span></div>` : ''}
+    <div class="radar-contagem">${radarSelosHtml(dia.contagem, true) || '<span class="rj-selo rj-selo-fora">nada a reportar</span>'}</div>
+  </div>`;
+
+  if(dia.status === 'falhou'){
+    html += `<div class="radar-parcial"><i class="ti ti-alert-triangle"></i><span>${radarEsc(dia.relatorio || 'O dia não foi lido.')}${dia.erro ? ' (' + radarEsc(dia.erro) + ')' : ''}</span></div>`;
+  }
+
+  // A ordem é a das faixas, não a que a IA devolveu: 🔴 primeiro sempre.
+  const ordem = {'🔴':0,'🟠':1,'🟢':2};
+  html += dentro.slice().sort((a,b) => (ordem[a.selo] ?? 3) - (ordem[b.selo] ?? 3))
+    .map(radarHtmlItem).join('');
+
+  if(fora.length){
+    html += `<div class="radar-fora"><b>Visto e descartado:</b> ` +
+      fora.map(i => radarEsc(i.titulo)).join(' · ') +
+      `. Fica escrito porque descarte calado é onde a informação boa se perde.</div>`;
+  }
+
+  const naoLidas = Array.isArray(dia.fontesNaoLidas) ? dia.fontesNaoLidas : [];
+  html += `<div class="radar-fontes">
+    ${naoLidas.length
+      ? '<b>Não respondeu hoje:</b> ' + naoLidas.map(f => radarEsc(f.nome || f.id) + (f.erro ? ' (' + radarEsc(f.erro) + ')' : '')).join(' · ') +
+        '. Silêncio de site não é ausência de novidade — vale conferir essas na mão.'
+      : 'Todas as fontes responderam nesta varredura.'}
+    <br>Fonte de alerta (ANOREG, CNB) nunca vale sozinha: quem confirma é o texto oficial.
+  </div>`;
+  return html;
+}
+
+function radarHtmlItem(i){
+  const especie = i.especie === 'norma' ? 'norma' : i.especie === 'decisao' ? 'decisão' : 'notícia';
+  const partes = [];
+  if(i.orgao) partes.push(radarEsc(i.orgao));
+  if(i.referencia) partes.push(radarEsc(i.referencia));
+  if(i.data) partes.push(radarDataCurta(i.data));
+  if(i.andamentoDe) partes.push('andamento de: ' + radarEsc(i.andamentoDe));
+
+  return `<div class="radar-item ${radarClasseDoSelo(i.selo)}">
+    <h4>${i.selo || ''} ${radarEsc(i.titulo || '')}</h4>
+    <div class="radar-meta">
+      <span class="radar-especie${i.especie === 'noticia' ? ' noticia' : ''}">${especie}</span>
+      ${partes.map(p => `<span>${p}</span>`).join('<span>·</span>')}
+      ${i.confirmado === false ? '<span>ainda não confirmado em fonte primária</span>' : ''}
+    </div>
+    ${i.oQueMuda ? `<p class="radar-linha"><b>O que muda:</b> ${radarEsc(i.oQueMuda)}</p>` : ''}
+    ${i.oQueNaoMuda ? `<div class="radar-naomuda"><b>O que continua exigido:</b> ${radarEsc(i.oQueNaoMuda)}</div>` : ''}
+    ${Array.isArray(i.etapas) && i.etapas.length ? `<div class="radar-etapas">${
+      i.etapas.map(e => `<div class="radar-etapa"><span class="et">${radarEsc(e.etapa)}</span><span class="si">${radarEsc(e.situacao)}${e.base ? ' — ' + radarEsc(e.base) : ''}</span></div>`).join('')
+    }</div>` : ''}
+    ${i.parcial ? `<div class="radar-parcial"><i class="ti ti-alert-triangle"></i><span>⚠️ Aplicação parcial — confirmar${i.aConfirmar ? ': ' + radarEsc(i.aConfirmar) : '.'}</span></div>` : ''}
+  </div>`;
+}
+
+function radarHtmlDias(dias){
+  if(!dias.length){
+    return `<div class="radar-vazio"><b>Nenhum dia lido ainda</b>
+      <span>O primeiro relatório aparece aqui depois da primeira varredura.</span></div>`;
+  }
+  return dias.map(d => {
+    const l = radarMeta.dias[d] || {};
+    return `<button type="button" class="radar-dia${d === radarDiaAberto ? ' on' : ''}" onclick="radarVerDia('${d}')">
+      <span class="radar-dia-data">${radarDataCurta(d)}</span>
+      <span class="radar-dia-txt">${radarEsc(l.resumo || '')}</span>
+      <span class="radar-dia-selos">${l.status === 'falhou'
+        ? '<span class="rj-selo rj-selo-falhou">não lido</span>'
+        : (radarSelosHtml(l.contagem, false) || '<span class="rj-selo rj-selo-fora">calmo</span>')}</span>
+    </button>`;
+  }).join('');
+}
+
+// ── A base de regras ─────────────────────────────────────────────────────
+function radarHtmlBase(){
+  const temas = Object.keys(radarBase || {});
+  if(!temas.length){
+    return `<div class="radar-vazio"><b>A base ainda está vazia</b>
+      <span>A carga inicial é plantada pela própria varredura, na primeira vez que ela roda.</span></div>`;
+  }
+  const nome = t => (radarBase[t] && radarBase[t].titulo) || t;
+  return `<p class="radar-linha" style="margin-bottom:13px;color:var(--cc-tinta-2)">
+      O que o cartório sabe e não muda toda semana. O Radar acrescenta linhas
+      datadas aqui dentro; o que foi conferido à mão ele nunca escreve por cima.
+    </p><div class="radar-temas">` +
+    temas.sort((a,b) => nome(a).localeCompare(nome(b),'pt-BR')).map(t => {
+      const d = radarBase[t] || {};
+      const aberto = radarTemaAberto === t;
+      return `<div class="radar-tema">
+        <button type="button" class="radar-tema-topo" onclick="radarVerTema('${radarEsc(t)}')">
+          <span class="radar-tema-nome">${radarEsc(d.titulo || t)}</span>
+          ${d.origem === 'radar' ? '<span class="radar-tema-origem">do radar</span>' : ''}
+          <i class="ti ti-chevron-${aberto ? 'up' : 'down'}"></i>
+        </button>
+        ${aberto ? radarHtmlTema(t, d) : ''}
+      </div>`;
+    }).join('') + '</div>';
+}
+
+function radarHtmlTema(chave, d){
+  const bloco = (titulo, itens, classe) =>
+    Array.isArray(itens) && itens.length
+      ? `<div class="radar-bloco${classe ? ' ' + classe : ''}"><h5>${titulo}</h5><ul>${
+          itens.map(x => `<li>${radarEsc(x)}</li>`).join('')}</ul></div>`
+      : '';
+
+  const atualizacoes = d.atualizacoes && typeof d.atualizacoes === 'object'
+    ? Object.keys(d.atualizacoes).sort().reverse()
+        .map(k => radarDataCurta(k) + ' — ' + ((d.atualizacoes[k] || {}).texto || ''))
+    : [];
+
+  return `<div class="radar-tema-corpo">
+    ${d.resumo ? `<p>${radarEsc(d.resumo)}</p>` : ''}
+    ${bloco('Na mesa', d.naMesa)}
+    ${Array.isArray(d.etapas) && d.etapas.length ? `<div class="radar-bloco"><h5>Etapa por etapa</h5><div class="radar-etapas">${
+      d.etapas.map(e => `<div class="radar-etapa"><span class="et">${radarEsc(e.etapa)}</span><span class="si">${radarEsc(e.situacao)}${e.base ? ' — ' + radarEsc(e.base) : ''}</span></div>`).join('')
+    }</div></div>` : ''}
+    ${Array.isArray(d.fundamentos) && d.fundamentos.length ? `<div class="radar-bloco"><h5>Fundamentos</h5><ul>${
+      d.fundamentos.map(f => `<li><b>${radarEsc(f.ref)}</b> — ${radarEsc(f.texto)}</li>`).join('')
+    }</ul></div>` : ''}
+    ${bloco('Atenção', d.atencao, 'atencao')}
+    ${bloco('Acrescentado pelo Radar', atualizacoes)}
+    <div class="radar-tema-acoes">
+      <button type="button" class="radar-btn" onclick="radarEscreverPro('${radarEsc(chave)}')">
+        <i class="ti ti-brand-whatsapp"></i> Escrever para o cliente
+      </button>
+      <button type="button" class="radar-btn" onclick="radarPerguntar('${radarEsc(chave)}')">
+        <i class="ti ti-help"></i> Perguntar sobre isto
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── Daqui para a Joaninha ────────────────────────────────────────────────
+// O botão do tema não responde sozinho: ele abre a Joaninha já no modo certo,
+// com o assunto escrito. Quem manda perguntar continua sendo ela — e o texto
+// nasce editável, como o da Rede, porque frase montada em cima de palpite
+// passa pelo olho dela antes de sair.
+function radarLevarPraJoaninha(chave, modo){
+  const d = radarBase[chave] || {};
+  fecharRadar();
+  if(typeof window.toggleJoaninhaPainel === 'function') window.toggleJoaninhaPainel(true);
+  if(typeof window.joaninhaTab === 'function') window.joaninhaTab('juridico');
+  if(typeof window.joaninhaModoJuridico === 'function') window.joaninhaModoJuridico(modo);
+  const i = document.getElementById('joaninha-juridico-texto');
+  if(i){ i.value = d.titulo || chave; i.focus(); }
+}
+window.radarEscreverPro = function(chave){ radarLevarPraJoaninha(chave, 'cliente'); };
+window.radarPerguntar  = function(chave){ radarLevarPraJoaninha(chave, 'interna'); };
+
+// ── A aba Jurídico da Joaninha ───────────────────────────────────────────
+let jjModo = 'interna';
+const JJ_TEXTOS = {
+  interna: {
+    nota: 'Pergunta curta, resposta curta — do jeito que se pergunta pra colega ao lado. A resposta sai da base do cartório, e diz quando a base não tem.',
+    placeholder: 'Posso lavrar sem a CND?',
+    exemplos: [
+      'Preciso do ITCMD pago pra lavrar o inventário?',
+      'Posso exigir CND do vendedor na compra e venda?',
+      'Baixa de hipoteca precisa de escritura?'
+    ]
+  },
+  cliente: {
+    nota: 'Escreva o assunto em duas ou três palavras. Volta a mensagem pronta pro WhatsApp — leia antes de mandar, ela nasce editável.',
+    placeholder: 'desobrigação do ITCMD nas escrituras',
+    exemplos: [
+      'desobrigação do ITCMD nas escrituras',
+      'certidões que não são mais exigidas',
+      'IPTU atrasado atrapalha a escritura?'
+    ]
+  }
+};
+
+window.joaninhaModoJuridico = function(modo){
+  if(modo) jjModo = modo === 'cliente' ? 'cliente' : 'interna';
+  const t = JJ_TEXTOS[jjModo];
+  document.querySelectorAll('.jj-modo').forEach(b => b.classList.toggle('on', b.dataset.modo === jjModo));
+  const nota = document.getElementById('jj-nota');
+  if(nota) nota.textContent = t.nota;
+  const campo = document.getElementById('joaninha-juridico-texto');
+  if(campo) campo.placeholder = t.placeholder;
+  const ex = document.getElementById('jj-exemplos');
+  if(ex) ex.innerHTML = t.exemplos.map(e =>
+    `<button type="button" class="joaninha-pergunta-exemplo" onclick="joaninhaJuridicoExemplo('${radarEsc(e)}')">${radarEsc(e)}</button>`).join('');
+  // Modo trocado é pergunta outra: a resposta anterior era da outra pergunta.
+  if(modo){
+    const r = document.getElementById('joaninha-juridico-resposta');
+    if(r) r.innerHTML = '';
+  }
+};
+
+window.joaninhaJuridicoExemplo = function(texto){
+  const i = document.getElementById('joaninha-juridico-texto');
+  if(i){ i.value = texto; }
+  window.joaninhaJuridico();
+};
+
+function jjRender(html, classe){
+  const alvo = document.getElementById('joaninha-juridico-resposta');
+  if(alvo) alvo.innerHTML = `<div class="jj-resposta${classe ? ' ' + classe : ''}">${html}</div>`;
+}
+
+window.joaninhaJuridico = async function(){
+  const input = document.getElementById('joaninha-juridico-texto');
+  if(!input) return;
+  const pergunta = input.value.trim();
+  if(!pergunta){ input.focus(); return; }
+  const btn = document.getElementById('joaninha-juridico-btn');
+  const modo = jjModo;
+  if(btn) btn.disabled = true;
+  jjRender(modo === 'cliente' ? 'Escrevendo…' : 'Consultando a base…', 'pensando');
+  try{
+    const r = await fetch('/api/joaninha-juridico', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({pergunta, modo})
+    });
+    const j = await r.json();
+    if(j.ok && j.resposta){
+      const origem = modo === 'cliente' ? 'Mensagem para o cliente' : 'Base do cartório';
+      jjRender(
+        `<span class="jj-origem">${origem}</span>` +
+        `<span id="jj-texto">${radarEsc(j.resposta)}</span>` +
+        `<button type="button" class="jj-copiar" onclick="joaninhaCopiarJuridico()"><i class="ti ti-copy"></i> Copiar</button>` +
+        (modo === 'cliente'
+          ? `<div class="jj-aviso">Leia antes de mandar. O que estiver entre colchetes é para você trocar, e a norma citada vale a conferida quando a mensagem for para exigência.</div>`
+          : `<div class="jj-aviso">Resposta lida da base do cartório. Quando ela disser "confirmar", confirme — a base guarda os pontos que ainda não estão pacificados.</div>`)
+      );
+    }else{
+      jjRender('Não consegui responder agora (' + radarEsc(j.erro || 'erro desconhecido') + '). Tente de novo em instantes.');
+    }
+  }catch(e){
+    jjRender('Não consegui conectar para responder agora. Tente de novo em instantes.');
+  }
+  if(btn) btn.disabled = false;
+};
+
+window.joaninhaCopiarJuridico = function(){
+  const el = document.getElementById('jj-texto');
+  if(!el) return;
+  const texto = el.textContent;
+  const pronto = () => { if(typeof finToast === 'function') finToast('Copiado.'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(pronto).catch(() => jjCopiarNaMao(texto, pronto));
+  }else jjCopiarNaMao(texto, pronto);
+};
+// Sem clipboard (http, navegador antigo, iOS teimoso) a mensagem não pode
+// simplesmente não ir: o textarea escondido é o caminho que sempre funcionou.
+function jjCopiarNaMao(texto, pronto){
+  const ta = document.createElement('textarea');
+  ta.value = texto; ta.setAttribute('readonly','');
+  ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); pronto(); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+// ── A escuta ─────────────────────────────────────────────────────────────
+// Sem login: norma publicada é informação pública, e o Jornal precisa estar
+// na tela de quem abrir o painel — inclusive de quem nunca entra no
+// Financeiro.
+onValue(ref(db, 'radar-juridico-meta'), snap => {
+  radarMeta = snap.val() || {};
+  renderJornal();
+  const m = document.getElementById('modal-radar');
+  if(m && m.classList.contains('open')){
+    // Dia novo no banco com a tela aberta: mostrar o novo, não o de ontem.
+    const ultimo = radarUltimoDia();
+    if(!radarDiaAberto || (ultimo && ultimo > radarDiaAberto)) window.radarVerDia(ultimo);
+    else renderRadar();
+  }
+}, () => {});
+
+onValue(ref(db, 'base-regras'), snap => {
+  radarBase = snap.val() || {};
+  const m = document.getElementById('modal-radar');
+  if(m && m.classList.contains('open') && radarAba === 'base') renderRadar();
+}, () => {});
+
+// Exposto porque os manipuladores em linha do modal chamam por nome, e é por
+// ele que o teste redesenha depois de mexer no banco de mentira.
+window.renderRadar = renderRadar;
+window.renderJornal = renderJornal;
+
 
 // ══ A REDE ═══════════════════════════════════════════════════════════════
 // A prospecção: quem já foi atendido e nunca virou conversa.
