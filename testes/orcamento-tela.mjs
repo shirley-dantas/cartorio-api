@@ -162,6 +162,78 @@ await passo('e a taxa adicional some da vista, somada ao registro', async () => 
   if(linhas.some(l => /adicional|taxa/i.test(l[0]))) throw new Error('a taxa ganhou linha própria');
 });
 
+// Abrir a memória sem fechá-la sem querer: ela pode já estar aberta de um
+// passo anterior, e `orcAlternarMemoria` alterna — foi assim que este teste se
+// pendurou esperando um elemento que ele mesmo tinha acabado de esconder.
+const abrirMemoria = async (pagina) => {
+  await pagina.evaluate(() => { if(!document.querySelector('.orc-memoria')) orcAlternarMemoria(); });
+  await pagina.waitForSelector('.orc-memoria');
+};
+
+await passo('as vagas entram por um botão, em qualquer compra e venda', async () => {
+  // O caso real: compra e venda de um apartamento com duas vagas
+  // individualizadas. São três imóveis — três registros, três prenotações e
+  // três certidões —, mas uma escritura só, sobre o valor global.
+  await pg.evaluate(() => orcVoltarDoCliente());
+  await pg.waitForSelector('.orc-matriculas button');
+  await pg.click('.orc-matriculas button');
+  await pg.waitForSelector('.orc-matriculas .orc-linha-lista');
+  const linhas = await pg.$$eval('.orc-matriculas .orc-linha-lista', l => l.length);
+  if(linhas < 2) throw new Error('abriu com menos de duas linhas: ' + linhas);
+  await pg.evaluate(() => {
+    orcMudarItem('unidadesRegistro', 0, 'rotulo', 'Apartamento');
+    orcMudarItem('unidadesRegistro', 0, 'valor', '261.867,16');
+    orcMudarItem('unidadesRegistro', 1, 'rotulo', 'Vaga 1');
+    orcMudarItem('unidadesRegistro', 1, 'valor', '20.000,00');
+    orcMaisItem('unidadesRegistro');
+    orcMudarItem('unidadesRegistro', 2, 'rotulo', 'Vaga 2');
+    orcMudarItem('unidadesRegistro', 2, 'valor', '20.000,00');
+  });
+  await abrirMemoria(pg);
+  const m = await pg.textContent('.orc-memoria');
+  ['Apartamento', 'Vaga 1', 'Vaga 2'].forEach(n => {
+    if(!new RegExp('Registro — ' + n).test(m)) throw new Error('faltou o registro de ' + n);
+  });
+  // A escritura e o ITBI não se mexem: continuam sobre o valor do negócio.
+  if(!/4\.176,24/.test(m)) throw new Error('a escritura mudou quando não devia');
+  if(!/9\.056,01/.test(m)) throw new Error('o ITBI mudou quando não devia');
+});
+
+await passo('três imóveis são três prenotações e três certidões', async () => {
+  const m = await pg.textContent('.orc-memoria');
+  if(!/Prenotações \(3 imóveis\)/.test(m)) throw new Error('cobrou uma prenotação só');
+  if(!/Matrículas \(3 imóveis\)/.test(m)) throw new Error('cobrou uma certidão só');
+  // 80,14 × 3 e 76,54 × 3
+  if(!/240,42/.test(m)) throw new Error('a prenotação não multiplicou: ' + m.slice(0, 200));
+  if(!/229,62/.test(m)) throw new Error('a certidão não multiplicou');
+});
+
+await passo('e tirando as vagas tudo volta ao imóvel único', async () => {
+  await pg.evaluate(() => {
+    orcTirarItem('unidadesRegistro', 2);
+    orcTirarItem('unidadesRegistro', 1);
+    orcTirarItem('unidadesRegistro', 0);
+  });
+  await pg.waitForFunction(() =>
+    /16\.522,21/.test(document.querySelector('.orc-total-num').textContent));
+  const m = await pg.textContent('.orc-memoria');
+  if(/3 imóveis/.test(m)) throw new Error('continuou cobrando como três imóveis');
+});
+
+await passo('quando o banco recusa, o painel diz que NÃO salvou', async () => {
+  // A regra do banco recusando a escrita é exatamente o que acontece antes de
+  // as regras do Firebase serem publicadas. Antes, o painel dizia "salvo".
+  await pg.evaluate(() => { window.__recusarEscrita = true; });
+  await pg.evaluate(() => orcSalvar(true));
+  await pg.waitForSelector('.orc-erro-salvar');
+  const t = await pg.textContent('.orc-erro-salvar');
+  if(!/Não salvou/.test(t)) throw new Error('não avisou que falhou: ' + t);
+  if(!/regras do Firebase/.test(t)) throw new Error('não disse a causa provável: ' + t);
+  const guardou = await pg.evaluate(() => Object.keys(orcEstado().orcamentos).length);
+  if(guardou !== 0) throw new Error('gravou mesmo com o banco recusando');
+  await pg.evaluate(() => { window.__recusarEscrita = false; });
+});
+
 await passo('salvo, o card mostra a versão 1 e o orçamento vira leitura', async () => {
   await pg.evaluate(() => {orcVoltarDoCliente(); orcSalvar(true);});
   await pg.waitForFunction(() => Object.keys(orcEstado().orcamentos).length === 1);

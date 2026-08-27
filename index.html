@@ -1789,6 +1789,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .orc-check-linha.falta .orc-check-caixa,.orc-check-linha.falta .orc-check-nome{color:var(--cc-critico)}
 .orc-check-linha.confirmar .orc-check-caixa,.orc-check-linha.confirmar .orc-check-nome{color:var(--cc-atencao)}
 .orc-aviso-rodape{margin-top:9px;font-size:11.5px;line-height:1.55;color:var(--cc-atencao)}
+.orc-erro-salvar{margin-top:11px;background:#FBEAE8;border:1px solid #F1CFCB;border-radius:11px;
+  padding:11px 13px;font-size:12.5px;line-height:1.6;color:var(--cc-critico)}
+.orc-salvo-ok{margin-top:11px;font-size:12px;color:var(--cc-ok);font-weight:600}
 
 /* ── o modo cliente ──
    Nada de faixa, de item de tabela, de hipótese. Serifa e ar: é a única
@@ -9469,7 +9472,14 @@ const ORC_CAMPOS = {
   excedente:     {rot: 'Quinhão excedente',           pergunta: 'Qual o valor do quinhão excedente?'},
   totalPartilha: {rot: 'Valor total da partilha',     pergunta: 'Qual o valor total da partilha?'},
   unidades:      {rot: 'Valores individualizados',    pergunta: 'Quais os valores do apartamento e de cada vaga?', lista: true},
-  imoveis:       {rot: 'Imóveis a registrar',         pergunta: 'Qual o valor de cada imóvel a registrar?', lista: true}
+  imoveis:       {rot: 'Imóveis a registrar',         pergunta: 'Qual o valor de cada imóvel a registrar?', lista: true},
+  // Opcional, e vale para qualquer ato que gere registro. Nasceu de um caso
+  // real: uma compra e venda simples com duas vagas de garagem
+  // individualizadas. O ato "com vagas" existia, mas obrigava a refazer tudo
+  // por ele e não servia para a venda com financiamento, com hipoteca, para a
+  // doação. Matrícula separada é uma característica do imóvel, não do ato.
+  unidadesRegistro: {rot: 'Matrículas a registrar', lista: true,
+                     pergunta: 'Se houver mais de uma matrícula (vagas individualizadas, por exemplo), informe o valor de cada uma.'}
 };
 
 // ══ O MOTOR ══════════════════════════════════════════════════════════════
@@ -9550,7 +9560,7 @@ function orcCalcular(entrada){
   // ETAPAS 11 e 12 — emolumentos da escritura e do registro.
   const partes = ato.montar(dados);
   let escrituras = partes.escrituras || [];
-  const registros = partes.registros || [];
+  let registros = partes.registros || [];
   let tributos = partes.tributos || [];
 
   // O divórcio com pensão é qualquer divórcio com uma base a mais.
@@ -9570,6 +9580,25 @@ function orcCalcular(entrada){
     alertas.push({nivel: 'avisa', confianca: 'confirmada',
       texto: `Regra especial aplicada: ${regraEspecial.rot}. Confira se o imóvel e o programa se enquadram — `
            + 'o item da tabela exige comprovação, e ele engole os demais atos da escritura.'});
+  }
+
+  // Mais de uma matrícula: o registro deixa de ser um sobre a base inteira e
+  // passa a ser um por matrícula, cada um na SUA faixa. Somar tudo e registrar
+  // de uma vez daria outro número — é a regra dela para vagas individualizadas,
+  // aplicada agora a qualquer ato, porque matrícula separada é característica
+  // do imóvel e não do ato. A escritura e os tributos não se mexem: continuam
+  // sobre o valor do negócio.
+  const matriculas = (v.unidadesRegistro || []).filter(u => u && u.valor > 0);
+  if(matriculas.length && registros.length === 1 && registros[0].faixa){
+    const base = registros[0].base;
+    registros = matriculas.map(u => orcLinhaRegistro(u.valor,
+      {rot: 'Registro — ' + (u.rotulo || 'matrícula'), reducao: registros[0].reducao}));
+    const somaMat = matriculas.reduce((t, u) => t + u.valor, 0);
+    if(somaMat !== base)
+      alertas.push({nivel: 'avisa', confianca: 'confirmada',
+        texto: `As matrículas somam ${orcMoeda(somaMat)} e o valor do negócio é ${orcMoeda(base)}. `
+             + 'Costumam ser iguais — a escritura e o ITBI saem do valor do negócio, e o registro, de cada matrícula. '
+             + 'Confira se falta alguma ou se algum valor ficou trocado.'});
   }
 
   // Qual coluna do registro. A escolha não é do ato — é de apresentação —, e
@@ -9611,12 +9640,23 @@ function orcCalcular(entrada){
   const despesas = [];
   const T = ORC_TABELA_REGISTRO.itens;
   const temRegistro = registros.length > 0;
+  // Quantos imóveis, e não quantas escrituras. Apartamento com duas vagas
+  // individualizadas são TRÊS imóveis: três registros, três prenotações e três
+  // certidões. A escritura é uma só, sobre o global — mas o registro é cobrado
+  // como se fossem três, porque são. Cobrar uma prenotação para três matrículas
+  // é o erro que aparece exatamente nesse caso, e some no caso simples.
+  const nImoveis = registros.length || 1;
+  const porImovel = (n, um, muitos) => n > 1 ? `${muitos} (${n} imóveis)` : um;
   if(temRegistro && d.prenotacao !== false)
-    despesas.push({rot: 'Prenotação', item: '12', valor: T['12'].valor,
-      fundamento: 'Item 12 — prenotação, exame e cálculo.'});
+    despesas.push({rot: porImovel(nImoveis, 'Prenotação', 'Prenotações'), item: '12',
+      valor: T['12'].valor * nImoveis, quantidade: nImoveis,
+      fundamento: `Item 12 — prenotação, exame e cálculo${nImoveis > 1
+        ? `, uma por imóvel: ${orcMoeda(T['12'].valor)} × ${nImoveis}.` : '.'}`});
   if(temRegistro && d.matricula !== false)
-    despesas.push({rot: 'Matrícula', item: '11', valor: T['11'].valor,
-      fundamento: 'Certidões, sob qualquer forma (papel) — o item que a Shirley confirmou como sendo esta linha.'});
+    despesas.push({rot: porImovel(nImoveis, 'Matrícula', 'Matrículas'), item: '11',
+      valor: T['11'].valor * nImoveis, quantidade: nImoveis,
+      fundamento: `Certidões, sob qualquer forma (papel)${nImoveis > 1
+        ? `, uma por imóvel: ${orcMoeda(T['11'].valor)} × ${nImoveis}.` : '.'}`});
 
   // A certidão de matrícula entra duas vezes, e isso é de propósito: ela pede
   // uma para começar o trabalho e outra no fim. Foi a pergunta que reconciliar
@@ -10027,6 +10067,9 @@ let orcEmEdicao = null;    // rascunho da janela do caso
 let orcVerMemoria = false;
 let orcVerCliente = false;
 let orcRegraAberta = null;
+let orcSalvando = false;    // enquanto o banco não responde
+let orcErroSalvar = null;   // o que ele respondeu, quando recusou
+let orcSalvoEm = null;      // quando gravou de verdade
 
 function orcDoCaso(casoId){
   return Object.values(orcTudo).filter(o => o && o.casoId === casoId)
@@ -10193,6 +10236,7 @@ window.orcAbrirDoCaso = function(casoId, orcId){
 window.orcAbrirMemoria = function(casoId, orcId){ orcAbrirDoCaso(casoId, orcId); orcVerMemoria = true; renderOrcamentoDoCaso(); };
 window.orcAbrirCliente = function(casoId, orcId){ orcAbrirDoCaso(casoId, orcId); orcVerCliente = true; renderOrcamentoDoCaso(); };
 function orcAbrirJanela(){
+  orcSalvando = false; orcErroSalvar = null; orcSalvoEm = null;
   document.getElementById('modal-orcamento-caso').classList.add('open');
   renderOrcamentoDoCaso();
 }
@@ -10305,7 +10349,7 @@ function renderOrcamentoDoCaso(){
       </select>
       ${ato ? `<div class="orc-comoescreveu"><b>Regra de cobrança:</b> ${escTxt(ato.comoElaEscreveu)}</div>` : ''}
     </div>
-    ${ato ? orcHtmlJurisdicao(e) + orcHtmlValores(e, ato) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
+    ${ato ? orcHtmlJurisdicao(e) + orcHtmlValores(e, ato, r) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
     <div id="orc-resultado">${r ? orcHtmlResultado(e, r) : '<div class="orc-vazio">Escolha o ato para o motor começar a calcular.</div>'}</div>
     ${ato ? orcHtmlRodape(e, r) : ''}`;
 }
@@ -10346,18 +10390,38 @@ function orcHtmlJurisdicao(e){
     </div>
   </div>`;
 }
-function orcHtmlValores(e, ato){
+function orcHtmlValores(e, ato, r){
   const v = e.valores || {};
   const campos = (ato.campos || []).map(c => {
     const meta = ORC_CAMPOS[c] || {rot: c};
     return meta.lista ? orcListaHtml(c, meta.rot, v[c]) : orcCampoDinheiro(c, meta.rot, v[c]);
   }).join('');
-  if(!campos) return '';
+  // As matrículas só fazem sentido onde há registro saído de faixa, e não no
+  // ato que já pede as unidades como campo obrigatório dele.
+  const cabeMatricula = r && r.registros.length === 1 && r.registros[0].faixa
+                        && !(ato.campos || []).includes('unidades');
+  const jaTem = (v.unidadesRegistro || []).some(u => u && u.valor > 0);
+  const matriculas = (cabeMatricula || jaTem)
+    ? `<div class="orc-campo orc-campo-largo orc-matriculas">
+        ${jaTem || e.abrirMatriculas
+          ? orcListaHtml('unidadesRegistro', 'Matrículas a registrar', v.unidadesRegistro)
+          : `<button type="button" class="cx-btn" onclick="orcAbrirMatriculas()">
+              <i class="ti ti-plus"></i> Tem mais de uma matrícula? (vagas individualizadas)</button>`}
+      </div>` : '';
+  if(!campos && !matriculas) return '';
   return `<div class="orc-bloco">
     <div class="orc-secao"><b>Base de cálculo</b><span>etapa 10</span></div>
-    <div class="orc-grade">${campos}</div>
+    <div class="orc-grade">${campos}${matriculas}</div>
   </div>`;
 }
+window.orcAbrirMatriculas = function(){
+  orcEmEdicao.abrirMatriculas = true;
+  // Nasce com duas linhas: quem clica aqui é porque tem mais de uma matrícula,
+  // e começar com uma só obrigaria a clicar de novo antes de digitar qualquer coisa.
+  if(!(orcEmEdicao.valores.unidadesRegistro || []).length)
+    orcEmEdicao.valores.unidadesRegistro = [{rotulo: '', valor: 0}, {rotulo: '', valor: 0}];
+  renderOrcamentoDoCaso();
+};
 // As perguntas que só alguns atos fazem. A regra 11 dela: só o que falta, e
 // só quando falta — formulário enorme é o que ela pediu para não existir.
 function orcHtmlEspeciais(e, ato){
@@ -10620,18 +10684,25 @@ function orcHtmlRodape(e, r){
       <div class="orc-campo orc-campo-largo"><label class="fin-rot">Observações</label>
         <input class="fin-input" value="${esc(e.obs || '')}" placeholder="O que este orçamento tem de particular" oninput="orcMudarCampoTexto('obs',this.value)"></div>
     </div>
+    ${orcErroSalvar ? `<div class="orc-erro-salvar"><b>Não salvou.</b> ${escTxt(orcErroSalvar)}</div>` : ''}
+    ${orcSalvoEm && !orcErroSalvar ? `<div class="orc-salvo-ok">Guardado no banco às ${escTxt(orcSalvoEm.slice(11, 16))}${e.versao ? ` — versão ${e.versao}` : ''}.</div>` : ''}
     <div class="modal-btn-row">
       <button type="button" class="btn-cancel" onclick="fecharOrcamentoDoCaso()">Fechar</button>
-      ${podeCorrigir ? '<button type="button" class="cx-btn" onclick="orcSalvar(false)">Corrigir esta versão</button>' : ''}
-      <button type="button" class="btn-save" onclick="orcSalvar(true)">
-        ${e.id ? 'Salvar como nova versão' : 'Salvar orçamento'}</button>
+      ${podeCorrigir ? `<button type="button" class="cx-btn"${orcSalvando ? ' disabled' : ''} onclick="orcSalvar(false)">Corrigir esta versão</button>` : ''}
+      <button type="button" class="btn-save"${orcSalvando ? ' disabled' : ''} onclick="orcSalvar(true)">
+        ${orcSalvando ? 'Gravando…' : e.id ? 'Salvar como nova versão' : 'Salvar orçamento'}</button>
     </div>
     ${r && !r.definitivo ? '<div class="orc-aviso-rodape">Este orçamento vai ficar marcado como <b>estimativa</b>: o CHECK FINAL ainda tem item pendente.</div>' : ''}
   </div>`;
 }
-window.orcSalvar = function(novaVersao){
+// Gravar é a única coisa aqui que depende do banco responder, e antes ela era
+// disparada sem esperar: se a regra do banco recusasse, o painel dizia "salvo"
+// e não salvava nada. Dizer que guardou o que não guardou é o pior erro que
+// esta tela pode cometer — pior que não salvar, porque some sem deixar rastro.
+window.orcSalvar = async function(novaVersao){
   const e = orcEmEdicao;
   if(!e || !e.atoId){ finToast('Escolha o ato antes de salvar.'); return; }
+  if(orcSalvando) return;
   const r = orcCalcularRascunho();
   const agora = new Date().toISOString();
   const entrada = {
@@ -10653,22 +10724,39 @@ window.orcSalvar = function(novaVersao){
     tabelaVersao: ORC_TABELA_NOTAS.versao,
     atualizadoEm: agora
   };
-  if(e.id && !novaVersao){
-    update(ref(db, 'orcamentos/' + e.id), dados);
-    finToast('Versão corrigida.');
-  }else{
-    const nr = push(orcRef);
-    dados.id = nr.key;
-    dados.versao = (irmãos.length ? Math.max(...irmãos.map(o => o.versao || 0)) : 0) + 1;
-    dados.veioDe = e.id || e.veioDe || null;
-    dados.criadoEm = agora;
-    set(nr, dados);
-    orcEmEdicao.id = nr.key;
-    orcEmEdicao.versao = dados.versao;
-    orcEmEdicao.veioDe = dados.veioDe;
-    finToast(`Orçamento ${String(dados.versao).padStart(2, '0')} salvo.`);
-  }
+  orcSalvando = true; orcErroSalvar = null;
   renderOrcamentoDoCaso();
+  try{
+    if(e.id && !novaVersao){
+      await update(ref(db, 'orcamentos/' + e.id), dados);
+      finToast('Versão corrigida.');
+    }else{
+      const nr = push(orcRef);
+      dados.id = nr.key;
+      dados.versao = (irmãos.length ? Math.max(...irmãos.map(o => o.versao || 0)) : 0) + 1;
+      dados.veioDe = e.id || e.veioDe || null;
+      dados.criadoEm = agora;
+      await set(nr, dados);
+      // Só depois de o banco confirmar: se marcar antes e a gravação falhar, a
+      // próxima tentativa acha que já existe versão e grava por cima do nada.
+      orcEmEdicao.id = nr.key;
+      orcEmEdicao.versao = dados.versao;
+      orcEmEdicao.veioDe = dados.veioDe;
+      finToast(`Orçamento ${String(dados.versao).padStart(2, '0')} salvo.`);
+    }
+    orcSalvoEm = agora;
+  }catch(err){
+    // A causa quase certa é a regra do banco: /orcamentos é fechado, e enquanto
+    // as regras não forem publicadas o Firebase recusa a escrita. Dizer isso na
+    // tela poupa a tarde de quem não tem como adivinhar.
+    orcErroSalvar = 'Não consegui gravar este orçamento. '
+      + (String((err && err.message) || err).match(/permission|denied|PERMISSION/i)
+          ? 'O banco recusou a escrita — as regras do Firebase provavelmente ainda não foram publicadas com os caminhos dos Orçamentos. Publique-as e tente de novo: nada do que você digitou se perdeu.'
+          : 'Motivo: ' + ((err && err.message) || err) + '. Nada do que você digitou se perdeu — tente de novo.');
+  }finally{
+    orcSalvando = false;
+    renderOrcamentoDoCaso();
+  }
 };
 window.orcDuplicar = function(orcId){
   const o = orcTudo[orcId];
