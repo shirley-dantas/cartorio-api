@@ -21,7 +21,20 @@ const push=(r)=>{const key='id'+(++_n);return {key,p:r.p+'/'+key};};
 const remove=(r)=>{_set(r.p,undefined);_avisar();return Promise.resolve();};
 const escTxt=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const esc=s=>(s||'').replace(/"/g,'&quot;');
-const isoHoje=()=>new Date().toLocaleDateString('en-CA');
+// O dia em que o teste vive.
+//
+// Congelado de propósito, e dentro do fechamento de agosto de 2026 — o mesmo
+// em que moram a semente (`fechamento-de-agosto.js`) e as datas que os testes
+// digitam nos formulários. Sem isso a suíte envelhecia sozinha: em 26 de
+// agosto o ciclo virou, a planilha do fechamento corrente amanheceu vazia e
+// dez verificações passaram a falhar sem nada ter sido quebrado.
+//
+// Todo o calendário do financeiro sai daqui — finCicloCorrente(), a data que
+// o formulário sugere, o corte de meio ciclo do quadro —, então congelar esta
+// linha congela o mês inteiro. A versão sem navegador (faz-de-conta-node.js)
+// já fazia assim desde sempre; isto só põe as duas no mesmo dia.
+const HOJE_DE_MENTIRA='2026-08-20';
+const isoHoje=()=>HOJE_DE_MENTIRA;
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 let navToastTimer=null;
 const getCasosList=()=>[{id:'c1',nome:'Gustavo Bertola',tipo:'Inventário + Compra e Venda',concluido:false},{id:'c2',nome:'Miguel | Un. 2216 Do It',tipo:'Escritura',concluido:false}];

@@ -70,6 +70,18 @@ dois fechamentos no banco, abra o `preview-quadro.html` do mesmo servidor.
 um card falsos. Nenhum teste toca o banco de verdade — e a senha do login de
 mentira é literalmente `certa`.
 
+Os dois também **congelam o dia**: `isoHoje()` devolve sempre uma data dentro
+do fechamento de agosto de 2026, que é o mês da semente e o das datas que os
+testes digitam nos formulários. Sem isso a suíte envelhecia sozinha — em 26 de
+agosto o ciclo virou, a planilha do fechamento corrente amanheceu vazia e dez
+verificações passaram a falhar sem nada ter sido quebrado. Todo o calendário
+do financeiro sai do `isoHoje()`, então congelar aquela linha congela o mês
+inteiro.
+
+O Radar é a exceção: ele tem relógio próprio (`radarHojeISO()`, no fuso de São
+Paulo, porque a varredura roda em UTC na Vercel), e o `radar.mjs` semeia o
+banco com a data de hoje de verdade.
+
 A semente do `rede.mjs` são pessoas de duas minutas reais do Drive. Ela está
 ali de propósito: além de exercitar as telas, é a documentação viva do formato
 que a varredura precisa gravar em `/rede/pessoas`.
