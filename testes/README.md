@@ -1,6 +1,6 @@
-# Testes do financeiro, da Rede e do Radar
+# Testes do financeiro, dos Orçamentos, da Rede e do Radar
 
-Sete suítes, todas rodando por cima do **index.html de verdade** — o
+Nove suítes, todas rodando por cima do **index.html de verdade** — o
 `montar.mjs` recorta o bloco financeiro do arquivo publicado a cada execução,
 em vez de manter uma cópia que envelheceria em silêncio.
 
@@ -13,6 +13,8 @@ node testes/rede.mjs             # a Rede no Chromium, e no celular no fim
 node testes/rede-varredura.mjs   # a conta que identifica a pessoa, sem Google
 node testes/radar.mjs            # o Radar Jurídico no Chromium, e no celular no fim
 node testes/radar-triagem.mjs    # a peneira do Radar, sem navegador e sem internet
+node testes/orcamento.gerado.mjs # o motor de orçamentos: tabelas e conta, sem navegador
+node testes/orcamento-tela.mjs   # o ambiente de Orçamentos no Chromium, e no celular no fim
 ```
 
 E, para olhar o desenho com dados de verdade:
@@ -25,6 +27,19 @@ node testes/montar.mjs && node -e "import('./testes/servidor.mjs').then(m=>m.ser
 ```
 
 ## O que cada uma protege
+
+- **orcamento** — as duas tabelas de emolumentos lidas inteiras (sem faixa
+  faltando e sem degrau com buraco), a conta de cada um dos vinte atos em
+  centavos inteiros, os 40% do ato secundário, o ITBI e o ITCMD só onde eles
+  valem, a taxa adicional que nunca entra sem ser perguntada e a vigência que
+  trava o "definitivo". O gabarito é o orçamento do apartamento 1301, que veio
+  nas instruções de cobrança e ela já tinha conferido à mão.
+- **orcamento-tela** — o caminho da mão até o número: a faixa do card que não
+  mostra valor sem login, o ato reconhecido pelo tipo escrito no card, a
+  memória com faixa e item de cada linha, o modo cliente que não deixa escapar
+  faixa nem hipótese, a versão nova que não come a anterior, e o "escritura
+  assinada" que leva a PARTE DO TABELIÃO para o Financeiro — nunca o total que
+  a cliente paga.
 
 - **calculo** — a escada do dinheiro inteira, com a escritura da Tania degrau
   por degrau e as dezessete linhas do fechamento de agosto comparadas uma a

@@ -165,6 +165,33 @@ Vale saber, quando algo parecer errado:
 - **A varredura não roda duas vezes no mesmo dia** — se o dia já está com
   `status: ok`, a chamada seguinte é pulada. Use `&forcar=1` para reler.
 
+## 8. Os orçamentos
+
+Este volta a ter tranca, e a mesma do Financeiro: em `/orcamentos` moram nome
+de cliente, valor de negócio e valor venal. As regras do passo 4 já trazem
+`/orcamentos`, `/orcamento-conhecimento` e `/orcamento-config` fechados para
+quem estiver em `/acesso` — a Grazi entra junto, porque é ela que atende no
+balcão e dá o valor à cliente.
+
+Do lado do painel não há nada a instalar: quem grava é o próprio navegador,
+com a conta de quem entrou. Só duas coisas precisam ser feitas uma vez, e as
+duas na aba **Tabelas e vigência** do ambiente Orçamentos:
+
+1. **Declarar a vigência das duas tabelas.** Nenhum dos dois PDFs entregues
+   traz o ano. Enquanto isso não for escrito ali, todo orçamento sai marcado
+   como *estimativa* e o CHECK FINAL não fecha — de propósito: usar uma tabela
+   sem saber de quando ela é seria justamente o que a regra 13 do pedido
+   proíbe.
+2. **Declarar o valor da UFESP**, se quiser que o painel avise quando um caso
+   cair dentro das isenções de ITCMD (elas são contadas em UFESP, e o valor
+   não veio nos arquivos). Sem ele o painel escreve que não sabe, em vez de
+   calcular por cima de um número inventado.
+
+A base de conhecimento (`/orcamento-conhecimento`) é plantada sozinha na
+primeira vez que alguém entra, e **só se estiver vazia**: o que ela corrigir
+ali não é sobrescrito na abertura seguinte. É o mesmo lápis da Rede e da Base
+de Regras do Radar.
+
 ## O que ainda fica aberto, e por quê
 
 `/casos`, `/jobs`, `/modelos`, os caminhos do bot e os do Radar continuam sem

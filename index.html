@@ -1668,6 +1668,222 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   border:none;border-radius:999px;padding:6px 13px;font-family:inherit;font-size:11px;font-weight:600;
   color:#fff;background:linear-gradient(135deg,#C62828,#7A1F2B)}
 .jj-aviso{margin-top:9px;font-size:10.5px;color:#B4718A;line-height:1.5}
+
+/* ── ORÇAMENTOS ─────────────────────────────────────────────────────
+   O ambiente e a faixa que ele põe dentro do card. Duas telas de cara
+   diferente de propósito: a de dentro (memória, check, avisos) é densa
+   porque é para conferir; a do cliente é larga e calada porque é para
+   ser lida por quem não conhece a tabela.                              */
+.cx-orc{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--cc-sup-2);
+  border:0.5px solid var(--cc-linha);border-radius:12px;padding:9px 12px;margin-bottom:11px}
+.cx-orc-rot{font-size:11.5px;color:var(--cc-tinta-3);display:inline-flex;align-items:center;gap:6px}
+.orc-pill{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;
+  padding:3px 9px;border-radius:999px;border:1px solid var(--cc-linha);
+  background:var(--cc-sup);color:var(--cc-tinta-2);white-space:nowrap}
+.orc-pill.ok{background:#E8F1EA;color:var(--cc-ok);border-color:#CFE2D4}
+.orc-pill.estimativa{background:#FBF1DE;color:var(--cc-atencao);border-color:#EDDCBB}
+.orc-tabela-mini{font-size:10.5px;color:var(--cc-tinta-3)}
+
+/* ── a janela do orçamento ── */
+.orc-bloco{border-top:0.5px solid var(--cc-linha);padding-top:13px;margin-top:13px}
+/* O número da etapa é a ponte entre a tela e as dezessete etapas que ela
+   escreveu — mas é nota de rodapé, não título. Fica pequeno e ao lado. */
+.orc-secao{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
+.orc-secao b{font-size:12px;font-weight:600;color:var(--cc-tinta)}
+.orc-secao span{font-size:10px;font-weight:600;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--cc-tinta-3)}
+.orc-bloco:first-child{border-top:0;padding-top:0;margin-top:0}
+.orc-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:11px}
+.orc-campo{display:flex;flex-direction:column;gap:5px;min-width:0}
+/* Sem o min-width:0, a coluna da grade cresce até caber a maior <option> —
+   e "Primeira alienação em empreendimento de interesse social em ZEIS" tem
+   479px. No celular isso empurrava o campo para fora da janela. */
+.orc-campo .fin-select,.orc-campo .fin-input{max-width:100%;min-width:0}
+.orc-campo-largo{grid-column:1/-1}
+.orc-linha-lista{display:grid;grid-template-columns:1fr 130px auto;gap:7px;margin-bottom:6px}
+.orc-comoescreveu{margin-top:9px;background:var(--cc-sup-2);border:0.5px solid var(--cc-linha);
+  border-radius:10px;padding:9px 11px;font-size:12px;line-height:1.6;color:var(--cc-tinta-2)}
+.orc-comoescreveu b{color:var(--cc-tinta)}
+.orc-herdado{background:#EFF4F8;border:0.5px solid #D4E1EB;border-radius:11px;padding:10px 12px;
+  margin-bottom:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.orc-herdado-rot{width:100%;font-size:10.5px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--cc-info);display:flex;align-items:center;gap:5px}
+.orc-herdado-item{font-size:12px;color:var(--cc-tinta-2)}
+.orc-herdado-item b{color:var(--cc-tinta)}
+.orc-herdado-item.sugestao{background:var(--cc-sup);border:0.5px solid #D4E1EB;border-radius:999px;
+  padding:3px 4px 3px 10px;display:inline-flex;align-items:center;gap:7px}
+.orc-taxa-linha{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.orc-aviso-inline{font-size:11.5px;color:var(--cc-atencao)}
+.orc-vazio{padding:26px 18px;text-align:center;font-size:13px;line-height:1.65;color:var(--cc-tinta-3)}
+
+/* ── o total e o resumo ── */
+.orc-total{margin-top:15px;background:var(--cc-sup-2);border:1px solid var(--cc-linha);
+  border-radius:13px;padding:14px 16px;text-align:center}
+.orc-total.estimativa{background:#FBF1DE;border-color:#EDDCBB}
+.orc-total-num{font-family:'Jost',sans-serif;font-weight:400;font-size:30px;
+  font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
+.orc-total.estimativa .orc-total-num{color:var(--cc-atencao)}
+.orc-total-rot{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--cc-tinta-3);margin-top:3px}
+.orc-resumo{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px}
+.orc-resumo-item{font-size:12px;color:var(--cc-tinta-2);background:var(--cc-sup);
+  border:0.5px solid var(--cc-linha);border-radius:999px;padding:4px 11px}
+.orc-resumo-item b{font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
+
+/* ── perguntas, avisos e divergências ── */
+.orc-perguntas{margin-top:12px;background:#EFF4F8;border:0.5px solid #D4E1EB;
+  border-radius:11px;padding:11px 13px}
+.orc-perguntas-rot{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--cc-info);margin-bottom:6px}
+.orc-pergunta{font-size:13px;line-height:1.6;color:var(--cc-tinta)}
+.orc-alertas{margin-top:11px;display:flex;flex-direction:column;gap:7px}
+.orc-alerta{background:var(--cc-sup-2);border:0.5px solid var(--cc-linha);border-radius:10px;
+  padding:9px 11px;font-size:12.5px;line-height:1.6;color:var(--cc-tinta-2)}
+.orc-alerta.grave{background:#FBF1DE;border-color:#EDDCBB;color:var(--cc-atencao)}
+.orc-selo{margin-right:3px}
+.orc-comparacao{margin-top:12px;border:0.5px solid var(--cc-linha);border-radius:11px;padding:11px 13px}
+.orc-cmp-linha{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;
+  color:var(--cc-tinta-2);padding:3px 0}
+.orc-cmp-linha b{font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
+.orc-cmp-linha.destaque{border-top:0.5px solid var(--cc-linha);margin-top:4px;padding-top:7px}
+.orc-cmp-motivo{margin-top:7px;font-size:12px;line-height:1.6;color:var(--cc-tinta-3)}
+.orc-botoes-memoria{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+
+/* ── a memória de cálculo ── */
+.orc-memoria{margin-top:12px;border:1px solid var(--cc-linha);border-radius:13px;
+  background:var(--cc-sup);overflow:hidden}
+.orc-mem-cabeca{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px;
+  background:var(--cc-sup-2);border-bottom:0.5px solid var(--cc-linha);padding:12px 14px;
+  font-size:11.5px;line-height:1.55;color:var(--cc-tinta-2)}
+.orc-mem-cabeca b{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--cc-tinta-3)}
+.orc-mem-secao{border-bottom:0.5px solid var(--cc-linha)}
+.orc-mem-secao-rot{display:flex;justify-content:space-between;padding:9px 14px;
+  background:var(--cc-sup-2);font-size:11px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--cc-tinta-3)}
+.orc-mem-secao-rot b{font-variant-numeric:tabular-nums;color:var(--cc-tinta);letter-spacing:0}
+.orc-mem-linha{padding:10px 14px;border-top:0.5px solid var(--cc-linha)}
+.orc-mem-linha:first-of-type{border-top:0}
+.orc-mem-rot{font-size:13px;font-weight:600;color:var(--cc-tinta);margin-bottom:5px}
+.orc-mem-detalhe{display:flex;flex-wrap:wrap;gap:5px 14px;font-size:11.5px;color:var(--cc-tinta-2)}
+.orc-mem-detalhe b{font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
+.orc-mem-res b{color:var(--cc-ok)}
+.orc-mem-fund{margin-top:5px;font-size:11.5px;line-height:1.55;color:var(--cc-tinta-3)}
+.orc-mem-aviso{margin-top:6px;font-size:11.5px;line-height:1.55;color:var(--cc-atencao);
+  background:#FBF1DE;border:0.5px solid #EDDCBB;border-radius:8px;padding:6px 9px}
+.orc-mem-total{display:flex;justify-content:space-between;padding:12px 14px;
+  font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--cc-tinta)}
+.orc-mem-total b{font-family:'Jost',sans-serif;font-size:19px;font-weight:400;
+  font-variant-numeric:tabular-nums;letter-spacing:0}
+.orc-falta{color:var(--cc-critico);font-weight:600}
+.orc-ok{color:var(--cc-ok);font-weight:600}
+
+/* ── o CHECK FINAL ── */
+.orc-check{margin-top:13px;border:0.5px solid var(--cc-linha);border-radius:12px;
+  background:var(--cc-sup-2);padding:11px 13px}
+.orc-check-rot{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--cc-tinta-3);margin-bottom:8px;display:flex;gap:8px;align-items:baseline}
+.orc-check-linha{display:grid;grid-template-columns:18px 190px 1fr;gap:7px;align-items:baseline;
+  font-size:11.5px;line-height:1.55;color:var(--cc-tinta-2);padding:2px 0}
+.orc-check-caixa{text-align:center}
+.orc-check-nome{color:var(--cc-tinta)}
+.orc-check-nota{color:var(--cc-tinta-3)}
+.orc-check-linha.falta .orc-check-caixa,.orc-check-linha.falta .orc-check-nome{color:var(--cc-critico)}
+.orc-check-linha.confirmar .orc-check-caixa,.orc-check-linha.confirmar .orc-check-nome{color:var(--cc-atencao)}
+.orc-aviso-rodape{margin-top:9px;font-size:11.5px;line-height:1.55;color:var(--cc-atencao)}
+
+/* ── o modo cliente ──
+   Nada de faixa, de item de tabela, de hipótese. Serifa e ar: é a única
+   tela do painel que sai do cartório e vai para a mão da cliente.       */
+.orc-cliente{background:#fff;border:1px solid var(--cc-linha);border-radius:14px;
+  padding:28px 30px;margin-top:6px}
+.orc-cli-titulo{font-family:'Jost',sans-serif;font-weight:400;font-size:15px;letter-spacing:.28em;
+  text-transform:uppercase;color:var(--cc-tinta);text-align:center;margin-bottom:16px}
+.orc-cli-caso{font-size:14px;font-weight:600;color:var(--cc-tinta);text-align:center}
+.orc-cli-ato{font-size:12.5px;color:var(--cc-tinta-3);text-align:center;margin-top:2px}
+.orc-cli-base{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  margin:18px 0;padding:11px 14px;background:var(--cc-sup-2);border-radius:11px;
+  font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--cc-tinta-3)}
+.orc-cli-base span{font-family:'Jost',sans-serif;font-size:19px;letter-spacing:0;
+  text-transform:none;font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
+.orc-cli-tabela{width:100%;border-collapse:collapse;margin-top:6px}
+.orc-cli-tabela th{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--cc-tinta-3);text-align:left;padding:0 0 8px;border-bottom:1px solid var(--cc-linha)}
+.orc-cli-tabela th:last-child,.orc-cli-tabela td:last-child{text-align:right}
+.orc-cli-tabela td{font-size:13px;color:var(--cc-tinta-2);padding:10px 0;
+  border-bottom:0.5px solid var(--cc-linha);font-variant-numeric:tabular-nums}
+.orc-cli-tabela tfoot td{font-size:14px;font-weight:600;color:var(--cc-tinta);
+  border-bottom:0;border-top:1px solid var(--cc-tinta);padding-top:12px}
+.orc-cli-nota{margin-top:16px;font-size:11px;line-height:1.6;color:var(--cc-tinta-3);text-align:center}
+
+/* ── a lista do ambiente ── */
+.orc-caso-bloco{border:0.5px solid var(--cc-linha);border-radius:12px;margin-bottom:11px;overflow:hidden}
+.orc-caso-cabeca{background:var(--cc-sup-2);padding:9px 13px;display:flex;gap:9px;
+  align-items:baseline;flex-wrap:wrap;border-bottom:0.5px solid var(--cc-linha)}
+.orc-caso-nome{font-size:13px;font-weight:600;color:var(--cc-tinta)}
+.orc-caso-ato{font-size:11.5px;color:var(--cc-tinta-3)}
+.orc-versao{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 13px;
+  border-top:0.5px solid var(--cc-linha)}
+.orc-versao:first-child{border-top:0}
+.orc-versao-num{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--cc-tinta-3)}
+.orc-versao-data{font-size:11.5px;color:var(--cc-tinta-3)}
+.orc-versao-total{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
+.orc-versao-tab{font-size:10.5px;color:var(--cc-tinta-3)}
+.orc-versao-acoes{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto}
+
+/* ── o conhecimento aprendido ── */
+.orc-conh-topo{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.orc-selo-pill{font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:999px;
+  border:1px solid var(--cc-linha);background:var(--cc-sup-2);color:var(--cc-tinta-2)}
+.orc-selo-pill.confirmada{background:#E8F1EA;color:var(--cc-ok);border-color:#CFE2D4}
+.orc-selo-pill.aprendida{background:#FBF1DE;color:var(--cc-atencao);border-color:#EDDCBB}
+.orc-selo-pill.incerta{background:#FBEAE8;color:var(--cc-critico);border-color:#F1CFCB}
+.orc-selo-pill.operacional{background:#EFF4F8;color:var(--cc-info);border-color:#D4E1EB}
+.orc-conh-nota{font-size:11.5px;line-height:1.6;color:var(--cc-tinta-3);margin-bottom:12px}
+.orc-regra{border:0.5px solid var(--cc-linha);border-radius:11px;margin-bottom:8px;overflow:hidden}
+.orc-regra-cabeca{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:baseline;
+  padding:10px 13px;cursor:pointer}
+.orc-regra-cabeca:hover{background:var(--cc-sup-2)}
+.orc-regra-texto{font-size:13px;line-height:1.55;color:var(--cc-tinta)}
+.orc-regra-conf{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--cc-tinta-3)}
+.orc-regra-corpo{border-top:0.5px solid var(--cc-linha);padding:11px 13px;background:var(--cc-sup-2)}
+.orc-regra-campo{font-size:12px;line-height:1.6;color:var(--cc-tinta-2);margin-bottom:7px}
+.orc-regra-campo b{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--cc-tinta-3)}
+.orc-regra-campo ul{margin:3px 0 0;padding-left:18px}
+.orc-regra-aberto{background:#FBF1DE;border:0.5px solid #EDDCBB;border-radius:9px;padding:8px 10px;
+  font-size:12px;line-height:1.6;color:var(--cc-atencao);margin-bottom:8px}
+.orc-regra-aberto b{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.orc-regra-botoes{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ── as tabelas e a vigência ── */
+.orc-tab-bloco{border:0.5px solid var(--cc-linha);border-radius:12px;padding:13px 15px;margin-bottom:11px}
+.orc-tab-nome{font-size:13px;font-weight:600;color:var(--cc-tinta);margin-bottom:9px}
+.orc-tab-linha{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  font-size:12.5px;color:var(--cc-tinta-2);padding:5px 0;border-top:0.5px solid var(--cc-linha)}
+.orc-tab-linha:first-of-type{border-top:0}
+.orc-tab-linha b{font-variant-numeric:tabular-nums;color:var(--cc-tinta);text-align:right}
+.orc-tab-aviso{margin-top:9px;background:#FBF1DE;border:0.5px solid #EDDCBB;border-radius:9px;
+  padding:9px 11px;font-size:12px;line-height:1.6;color:var(--cc-atencao)}
+
+/* No celular a grade vira coluna e as ações do orçamento param de brigar
+   pela largura — ela confere e aprova o orçamento pelo telefone. */
+@media(max-width:640px){
+  .orc-grade{grid-template-columns:1fr}
+  .orc-linha-lista{grid-template-columns:1fr 110px auto}
+  .orc-check-linha{grid-template-columns:18px 1fr;row-gap:0}
+  .orc-check-nota{grid-column:2}
+  .orc-versao-acoes{margin-left:0;width:100%}
+  .orc-cliente{padding:20px 16px}
+  .orc-total-num{font-size:26px}
+}
+/* Imprimir manda só a folha do cliente para o papel: o resto da tela — a
+   memória, os avisos, o check — é conversa interna e não vai para a mão de
+   ninguém. */
+@media print{
+  body>*{display:none!important}
+  #modal-orcamento-caso{display:block!important;position:static!important;background:none!important}
+  #modal-orcamento-caso .modal-close,#modal-orcamento-caso .modal-btn-row{display:none!important}
+  #modal-orcamento-caso .modal-box{box-shadow:none!important;max-width:none!important;padding:0!important}
+  .orc-cliente{border:0!important;padding:0!important}
+}
 </style>
 </head>
 <body>
@@ -1707,6 +1923,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <nav class="sidebar-nav sidebar-mais" id="sidebar-mais" style="display:none">
     <button type="button" class="sidebar-item" onclick="abrirQuadro()"><i class="ti ti-chart-histogram"></i><span>O quadro</span></button>
     <button type="button" class="sidebar-item" onclick="abrirRadar()"><i class="ti ti-scale"></i><span>Radar jurídico</span></button>
+    <button type="button" class="sidebar-item" onclick="abrirOrcamentos()"><i class="ti ti-calculator"></i><span>Orçamentos</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Atividades')"><i class="ti ti-list-check"></i><span>Atividades</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Processos')"><i class="ti ti-briefcase"></i><span>Processos</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Minutas')"><i class="ti ti-file-text"></i><span>Minutas</span><span class="em-breve">em breve</span></button>
@@ -1725,6 +1942,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <div class="fin-atalho-mobile">
     <button type="button" class="fin-atalho" onclick="abrirFinanceiro()"><i class="ti ti-currency-dollar"></i><span>Financeiro</span></button>
     <button type="button" class="fin-atalho" id="fin-atalho-meu" style="display:none" onclick="abrirMeuFinanceiro()"><i class="ti ti-lock"></i><span>Meu financeiro</span></button>
+    <button type="button" class="fin-atalho" onclick="abrirOrcamentos()"><i class="ti ti-calculator"></i><span>Orçamentos</span></button>
     <button type="button" class="fin-atalho" onclick="abrirQuadro()"><i class="ti ti-chart-histogram"></i><span>O quadro</span></button>
     <button type="button" class="fin-atalho" id="fin-atalho-rede" style="display:none" onclick="abrirRede()"><i class="ti ti-affiliate"></i><span>Rede</span></button>
   </div>
@@ -2270,6 +2488,33 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="modal-title"><i class="ti ti-scale" style="font-size:15px;vertical-align:-2px;color:#A9895A"></i> Radar jurídico</div>
     <div class="modal-sub" id="radar-sub">O que mudou hoje na mesa — e o que continua como era.</div>
     <div class="radar" id="radar-conteudo"></div>
+  </div>
+</div>
+
+<!-- ORÇAMENTOS — o motor. Mesma tranca do Financeiro, e pela mesma razão:
+     aqui moram nome de cliente e valor de negócio. A Grazi abre igual à
+     Shirley, porque é ela quem dá o valor no balcão. -->
+<div class="modal-overlay" id="modal-orcamentos">
+  <div class="modal-box" style="max-width:960px">
+    <button class="modal-close" onclick="fecharOrcamentos()">&times;</button>
+    <div class="modal-title"><i class="ti ti-calculator" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Orçamentos</div>
+    <div class="modal-sub">Quanto a cliente vai pagar — com a memória de onde saiu cada número.</div>
+    <div class="fin-abas">
+      <button type="button" class="fin-aba" data-orc-aba="lista" onclick="orcIrPara('lista')">Orçamentos</button>
+      <button type="button" class="fin-aba" data-orc-aba="conhecimento" onclick="orcIrPara('conhecimento')">🧠 Conhecimento aprendido</button>
+      <button type="button" class="fin-aba" data-orc-aba="tabelas" onclick="orcIrPara('tabelas')">Tabelas e vigência</button>
+    </div>
+    <div id="orc-conteudo"></div>
+  </div>
+</div>
+
+<!-- O orçamento de um caso: abre pelo card, herda o que ele já sabe -->
+<div class="modal-overlay" id="modal-orcamento-caso">
+  <div class="modal-box" style="max-width:820px">
+    <button class="modal-close" onclick="fecharOrcamentoDoCaso()">&times;</button>
+    <div class="modal-title"><i class="ti ti-calculator" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Orçamento</div>
+    <div class="modal-sub" id="orc-caso-sub">—</div>
+    <div id="orc-caso-conteudo"></div>
   </div>
 </div>
 
@@ -4598,6 +4843,11 @@ function renderCasos(){
       <div class="cx-fin">
         <span class="cx-fin-rot"><i class="ti ti-currency-real"></i> Financeiro</span>
         ${typeof finFaixaDoCaso==='function'?finFaixaDoCaso(c.id):''}
+      </div>
+
+      <div class="cx-orc">
+        <span class="cx-orc-rot"><i class="ti ti-calculator"></i> Orçamento</span>
+        ${typeof orcFaixaDoCaso==='function'?orcFaixaDoCaso(c.id):''}
       </div>
 
       <div class="cx-drive">
@@ -8495,6 +8745,2087 @@ atualizarSidebarFinanceiro();
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
 }
+
+// ══ O MOTOR DE ORÇAMENTOS ═════════════════════════════════════════════════
+//
+// O painel já sabia quanto entrou. Não sabia dizer, antes da escritura sair,
+// quanto a cliente vai pagar — e essa conta era feita à mão, tabela aberta ao
+// lado, uma faixa de cada vez.
+//
+// O que mora aqui não é uma calculadora. É uma escada de conhecimento com
+// quatro degraus, e a ordem entre eles é a regra que segura tudo o mais:
+//
+//   1. FONTE OFICIAL   tabela de emolumentos, lei, nota explicativa
+//   2. REGRA VALIDADA  o que a Shirley confirmou como jeito de cobrar
+//   3. APRENDIDO       padrão que apareceu nos orçamentos dela
+//   4. HIPÓTESE        padrão que o painel viu e ninguém confirmou
+//
+// Degrau de baixo nunca vence degrau de cima. Se a Shirley cobrar de um jeito
+// e a tabela disser outro, o painel não aprende o jeito dela em silêncio: ele
+// mostra os dois e pergunta. "Ela fez assim três vezes, então é a regra" é
+// exatamente o erro que este bloco existe para não cometer.
+//
+// E o que o motor não sabe, ele escreve. Vigência que não veio no arquivo,
+// alíquota de município que não é a Capital, faixa que não fecha com um
+// orçamento anterior — tudo isso vira pendência na tela, nunca um número
+// bonito que esconde um palpite. É a mesma decisão do ⚪ do Radar e do
+// "duvidoso" da Rede: descarte calado é onde a informação boa se perde.
+
+// ── Dinheiro em centavos ─────────────────────────────────────────────────
+// O financeiro trabalha em reais com duas casas, e isso basta para dividir um
+// repasse. Aqui não basta: um orçamento soma dez a quinze linhas, cada uma
+// saída de uma tabela, e meio centavo de erro por linha vira um total que não
+// bate com a conferência dela. Então o motor inteiro é inteiro — centavos —
+// e só a tela converte.
+function orcCent(v){ return Math.round(finNum(v) * 100); }
+function orcMoeda(c){ return finMoeda((Number(c) || 0) / 100); }
+function orcBr(c){ return finBr((Number(c) || 0) / 100); }
+// Redução de emolumentos (os 40% da nota de vários atos na mesma escritura).
+// Arredonda ao centavo, meio para cima — e a memória de cálculo escreve que
+// arredondou, porque conta que não se vê é conta que não se confere.
+function orcReduzir(c, pct){ return Math.round(c * (100 - pct) / 100); }
+
+// ══ CAMADA 1 — AS FONTES OFICIAIS ════════════════════════════════════════
+//
+// As duas tabelas entregues pela Shirley em 27/08/2026, lidas dos PDFs
+// oficiais. Cada faixa é [de, até, total] em centavos; `até: null` é a última,
+// que não tem teto.
+//
+// A VIGÊNCIA NÃO VEM NOS ARQUIVOS. Nenhum dos dois PDFs traz o ano, e o motor
+// não inventa um: enquanto ela não declarar em Ajustes, todo orçamento sai com
+// a ressalva de vigência a confirmar e o CHECK FINAL não fecha. Usar uma
+// tabela "porque é a que eu tenho" é o erro que a regra 13 dela proíbe.
+
+const ORC_TABELA_NOTAS = {
+  id: 'sp-notas',
+  nome: 'Tabelionato de Notas — Estado de São Paulo',
+  uf: 'SP',
+  fonte: 'Tabela de Emolumentos do Tabelionato de Notas (PDF entregue em 27/08/2026)',
+  versao: 'entregue-2026-08-27',
+  vigencia: null,
+  // Item 1.1 — escritura com valor declarado. Cada faixa é
+  // [de, até, TOTAL, parte do TABELIÃO]. A quarta coluna existe por causa do
+  // Financeiro: o que entra como "parte do tabelião" no lançamento não é o
+  // total que a cliente paga — é só a coluna do tabelião da própria tabela.
+  // Sem ela, a passagem do orçamento para o financeiro seria um palpite.
+  faixas: [
+    [0,152400,35690,21251],[152401,576100,53335,31759],[576101,960300,83277,49589],[960301,1921000,118968,70841],
+    [1921001,3842000,160808,95754],[3842001,7684000,190760,113590],[7684001,11526000,226449,134842],[11526001,15368000,268290,159756],
+    [15368001,19210000,303989,181012],[19210001,23052000,340086,202508],[23052001,26894000,381519,227177],[26894001,30736000,417624,248677],
+    [30736001,33014600,459465,273591],[33014601,38420000,489001,291179],[38420001,76840000,542743,323180],[76840001,115260000,602636,358844],
+    [115260001,153680000,668274,397928],[153680001,234506600,738426,439700],[234506601,390844400,1025596,610697],[390844401,586266500,1333269,793903],
+    [586266501,781688700,1640951,977113],[781688701,977110900,1948625,1160320],[977110901,1172533100,2256298,1343525],[1172533101,1367955200,2563980,1526737],
+    [1367955201,1563377400,2871654,1709942],[1563377401,1758799600,3179333,1893151],[1758799601,1954221700,3487018,2076364],[1954221701,2345066100,4102373,2442780],
+    [2345066101,2735910500,4717725,2809194],[2735910501,3126754800,5333081,3175612],[3126754801,3517599200,5948431,3542024],[3517599201,null,6563795,3908446]
+  ],
+  // Itens de valor fixo. A chave é o número do item na própria tabela, para
+  // que a memória de cálculo possa citá-lo sem que ninguém tenha de procurar.
+  itens: {
+    '1.2': {valor: 26014, tabeliao: 15490, rot: 'Escritura de regularização fundiária de interesse social'},
+    '1.3': {valor: 43356, tabeliao: 25817, rot: 'Escritura de imóvel FGTS / programa habitacional de interesse social'},
+    '1.4': {valor: 52033, tabeliao: 30984, rot: 'Primeira alienação em empreendimento de interesse social em ZEIS'},
+    '2.3.1': {valor: 16414, tabeliao: 9774, rot: 'Procuração sem valor econômico, até 4 outorgantes'},
+    '2.3.2': {valor: 4105, tabeliao: 2445,  rot: 'Procuração sem valor econômico, outorgante adicional'},
+    '2.4.1': {valor: 32818, tabeliao: 19543, rot: 'Procuração com valor econômico / poderes para o foro em geral, até 4 outorgantes'},
+    '2.4.2': {valor: 8204, tabeliao: 4885,  rot: 'Procuração com valor econômico, outorgante adicional'},
+    '6.1':   {valor: 11896, tabeliao: 7084, rot: 'Escritura sem valor declarado — reconhecimento de filho, adoção, fins previdenciários'},
+    '6.2':   {valor: 61530, tabeliao: 36639, rot: 'Escritura sem valor declarado — demais escrituras'},
+    '9.1':   {valor: 63876, tabeliao: 38037, rot: 'Ata notarial — primeira folha'},
+    '9.2':   {valor: 32257, tabeliao: 19209, rot: 'Ata notarial — cada folha adicional'},
+    '10':    {valor: 236952, tabeliao: 141094, rot: 'Escritura de convenção de condomínio'}
+  }
+};
+
+const ORC_TABELA_REGISTRO = {
+  id: 'sp-registro',
+  nome: 'Registro de Imóveis — Estado de São Paulo',
+  uf: 'SP',
+  fonte: 'Tabela de Emolumentos do Registro de Imóveis / ARISP (PDF entregue em 27/08/2026)',
+  versao: 'entregue-2026-08-27',
+  vigencia: null,
+  // Item 1 — registro com valor declarado.
+  faixas: [
+    [1,230600,25720],[230601,576100,41272],[576101,960300,74042],[960301,1921000,109857],[1921001,3842000,133560],[3842001,11526000,148946],
+    [11526001,19210000,190109],[19210001,23052000,231188],[23052001,26894000,251687],[26894001,30736000,272302],[30736001,34578000,287061],[34578001,38420000,294543],
+    [38420001,76840000,328418],[76840001,115260000,384610],[115260001,153680000,442779],[153680001,192100000,500953],[192100001,230520000,531030],[230520001,384200000,681406],
+    [384200001,576300000,952082],[576300001,768400000,1252833],[768400001,960500000,1553585],[960500001,1152600000,1854337],[1152600001,1344700000,2155088],[1344700001,1536800000,2455839],
+    [1536800001,1728900000,2756591],[1728900001,1921000000,3057343],[1921000001,2305200000,3508471],[2305200001,2689400000,4109974],[2689400001,3073600000,4711479],[3073600001,3457800000,5312983],
+    [3457800001,3842000000,5914487],[3842000001,4226200000,6515990],[4226200001,4610400000,7117494],[4610400001,4994600000,7718996],[4994600001,5378800000,8320500],[5378800001,5763000000,8922004],
+    [5763000001,6531400000,9824259],[6531400001,7299800000,11027266],[7299800001,8068200000,12230274],[8068200001,8836600000,13433281],[8836600001,9605000000,14636288],[9605000001,10373400000,15839294],
+    [10373400001,11141800000,17042302],[11141800001,11910200000,18245309],[11910200001,12678600000,19448315],[12678600001,13447000000,20651323],[13447000001,null,21854330]
+  ],
+  // Item 2.1 — averbação com valor declarado.
+  faixasAverbacao: [
+    [1,230600,9143],[230601,576100,13773],[576101,960300,23547],[960301,1921000,38345],[1921001,3842000,48912],[3842001,11526000,51091],
+    [11526001,19210000,56906],[19210001,23052000,62720],[23052001,26894000,65651],[26894001,30736000,68537],[30736001,34578000,71468],[34578001,38420000,74363],
+    [38420001,76840000,90344],[76840001,115260000,119434],[115260001,153680000,148519],[153680001,192100000,177602],[192100001,230520000,192638],[230520001,384200000,267827],
+    [384200001,576300000,403166],[576300001,768400000,553542],[768400001,960500000,703917],[960500001,1152600000,854293],[1152600001,1344700000,1004669],[1344700001,1536800000,1155045],
+    [1536800001,1728900000,1305421],[1728900001,1921000000,1455797],[1921000001,2305200000,1681361],[2305200001,2689400000,1982112],[2689400001,3073600000,2282864],[3073600001,3457800000,2583616],
+    [3457800001,3842000000,2884368],[3842000001,4226200000,3335495],[4226200001,4610400000,3636251],[4610400001,4994600000,3937003],[4994600001,5378800000,4237755],[5378800001,5763000000,4538507],
+    [5763000001,6531400000,4839254],[6531400001,7299800000,5440757],[7299800001,8068200000,6042260],[8068200001,8836600000,6643764],[8836600001,9605000000,7245268],[9605000001,10373400000,7546020],
+    [10373400001,11141800000,7846772],[11141800001,11910200000,8147524],[11910200001,12678600000,8448275],[12678600001,13447000000,8749026],[13447000001,null,9049778]
+  ],
+  // Item 5 — incorporação imobiliária e especificação de condomínio.
+  faixasIncorporacao: [
+    [1,38420000,74000],[38420001,76840000,222001],[76840001,192100000,518006],[192100001,384200000,1110014],[384200001,768400000,2220023],[768400001,1152600000,3700038],
+    [1152600001,1536800000,5180052],[1536800001,1921000000,6660069],[1921000001,2305200000,8140084],[2305200001,2689400000,9620100],[2689400001,3073600000,11100113],[3073600001,3457800000,12580130],
+    [3457800001,3842000000,14060146],[3842000001,4610400000,16280169],[4610400001,5378800000,19240198],[5378800001,6147200000,22200230],[6147200001,6915600000,25160260],[6915600001,7684000000,28120290],
+    [7684000001,8644500000,31450325],[8644500001,9605000000,35150364],[9605000001,10565500000,38850401],[10565500001,11526000000,42550441],[11526000001,12486500000,46250478],[12486500001,13447000000,49950515],
+    [13447000001,null,53650555]
+  ],
+  itens: {
+    '2.2': {valor: 3956, rot: 'Averbação sem valor declarado'},
+    '4':   {valor: 2367, rot: 'Abertura de matrícula a requerimento do interessado'},
+    '7':   {valor: 3956, rot: 'Registro de pacto antenupcial'},
+    '11':  {valor: 7560, rot: 'Certidão, sob qualquer forma'},
+    '11-his': {valor: 3405, rot: 'Certidão — unidade de programa habitacional de interesse social'},
+    '12':  {valor: 7916, rot: 'Prenotação, exame e cálculo'},
+    '13':  {valor: 753,  rot: 'Pedido de busca'}
+  }
+};
+
+// Os tributos. A alíquota da Capital e a do Estado estão aqui porque foram
+// declaradas por ela; qualquer outro município ou estado vira pendência, com
+// a frase dela: "checar o código tributário".
+const ORC_TRIBUTOS = {
+  itbi: {
+    nome: 'ITBI', aliquota: 3, onde: 'São Paulo (Capital)',
+    fundamento: 'Alíquota informada pela Shirley (Módulo 2 das instruções de cobrança).',
+    // Isenção da primeira aquisição de imóvel residencial (Lei 13.402/2002 com
+    // as alterações da Lei 15.891/2013). O teto muda por ano — a tabela veio
+    // inteira nas instruções, e é ela que o motor consulta pela data do ato.
+    isencaoPrimeiroImovel: [
+      ['2026-01-01', null,         24552777],
+      ['2025-01-01', '2025-12-31', 23548584],
+      ['2024-01-01', '2024-12-31', 22463336],
+      ['2023-01-01', '2023-12-31', 21471115],
+      ['2022-01-01', '2022-12-31', 20296919],
+      ['2021-01-01', '2021-12-31', 18441521],
+      ['2020-01-01', '2020-12-31', 17644441],
+      ['2019-01-01', '2019-12-31', 16915388],
+      ['2018-01-01', '2018-12-31', 16378153],
+      ['2017-01-01', '2017-12-31', 15908842],
+      ['2016-01-01', '2016-12-31', 14967393],
+      ['2015-01-01', '2015-12-31', 13524345],
+      ['2014-01-01', '2014-12-31', 12709656],
+      ['2013-11-08', '2013-12-31', 12000000]
+    ]
+  },
+  itcmd: {
+    nome: 'ITCMD', aliquota: 4, onde: 'Estado de São Paulo',
+    fundamento: 'Alíquota informada pela Shirley (Módulo 2 das instruções de cobrança).',
+    // As isenções do art. 6º da Lei 10.705/2000 são contadas em UFESP, e o
+    // valor da UFESP não veio nos arquivos. Sem ele o motor não decide sozinho
+    // que algo é isento: escreve a hipótese e devolve a decisão para ela.
+    isencaoDoacaoUfesp: 2500,
+    isencaoImovelResidencialUfesp: 5000,
+    isencaoUnicoImovelUfesp: 2500
+  },
+  // Declarada em Ajustes. Enquanto for null, tudo que depende de UFESP vira
+  // pendência escrita em vez de conta silenciosa.
+  ufesp: null
+};
+
+// ── A busca na faixa ─────────────────────────────────────────────────────
+// Toda a tabela é escada: acha o degrau em que a base cai e devolve o valor
+// daquele degrau, junto com o degrau em si — porque a memória de cálculo tem
+// de poder mostrar de qual faixa o número saiu, não só o número.
+function orcFaixa(faixas, base){
+  const b = Math.max(0, Math.round(Number(base) || 0));
+  for(let i = 0; i < faixas.length; i++){
+    const [de, ate, valor, tabeliao] = faixas[i];
+    if(b >= de && (ate === null || b <= ate))
+      return {i, de, ate, valor, tabeliao: tabeliao || 0, letra: orcLetraFaixa(i)};
+  }
+  // Base abaixo do primeiro degrau (a tabela do registro começa em R$ 0,01):
+  // é a primeira faixa, não "sem faixa".
+  const [de, ate, valor, tabeliao] = faixas[0];
+  return {i: 0, de, ate, valor, tabeliao: tabeliao || 0, letra: orcLetraFaixa(0)};
+}
+// As tabelas nomeiam as faixas a, b, c … z, z1, z2 — e é assim que ela procura
+// na folha impressa. A memória usa a mesma letra para a conferência bater.
+function orcLetraFaixa(i){
+  return i < 26 ? String.fromCharCode(97 + i) : 'z' + (i - 25);
+}
+
+// ══ CAMADA 2 — AS REGRAS OPERACIONAIS VALIDADAS ══════════════════════════
+//
+// O Módulo 1 das instruções de cobrança, ato por ato, como ela escreveu. Não
+// é interpretação: cada receita abaixo é a frase dela virada em conta, e a
+// frase fica junto (`comoElaEscreveu`) para que a conferência seja contra o
+// original e não contra o que o painel entendeu.
+//
+// Onde a regra dela precisa de um número que a tabela não confirma — a
+// redução de 40%, os meses da pensão —, a linha nasce com um aviso preso a
+// ela. Não é desconfiança: é a regra 5 dela, que proíbe o painel de tratar
+// como fonte oficial o que é jeito de trabalhar.
+
+const ORC_DESCONTO_ATO_SECUNDARIO = 40;
+
+// Constrói uma linha de escritura (emolumentos do tabelionato).
+function orcLinhaEscritura(base, opc){
+  const o = opc || {};
+  const t = ORC_TABELA_NOTAS;
+  if(o.itemFixo){
+    const it = t.itens[o.itemFixo];
+    return {tipo: 'escritura', rot: o.rot || it.rot, item: o.itemFixo, base: null,
+            tabela: it.valor, reducao: 0, valor: it.valor, tabeliao: it.tabeliao || 0,
+            fundamento: o.fundamento || '', avisos: o.avisos || []};
+  }
+  const f = orcFaixa(t.faixas, base);
+  const reducao = o.reducao || 0;
+  return {tipo: 'escritura', rot: o.rot, item: '1.1', base: Math.round(base),
+          faixa: f, tabela: f.valor, reducao,
+          valor: reducao ? orcReduzir(f.valor, reducao) : f.valor,
+          // A parte do tabelião acompanha a mesma redução: ela é uma coluna da
+          // mesma linha da tabela, não um número solto.
+          tabeliao: reducao ? orcReduzir(f.tabeliao, reducao) : f.tabeliao,
+          fundamento: o.fundamento || 'Item 1.1 — escritura com valor declarado.',
+          avisos: o.avisos || []};
+}
+// E uma linha de registro (emolumentos do registro de imóveis).
+function orcLinhaRegistro(base, opc){
+  const o = opc || {};
+  const t = ORC_TABELA_REGISTRO;
+  const faixas = o.faixas || t.faixas;
+  if(o.itemFixo){
+    const it = t.itens[o.itemFixo];
+    return {tipo: 'registro', rot: o.rot || it.rot, item: o.itemFixo, base: null,
+            tabela: it.valor, reducao: 0, valor: it.valor, fundamento: o.fundamento || '', avisos: o.avisos || []};
+  }
+  const f = orcFaixa(faixas, base);
+  const reducao = o.reducao || 0;
+  return {tipo: 'registro', rot: o.rot, item: o.item || '1', base: Math.round(base),
+          faixa: f, tabela: f.valor, reducao,
+          valor: reducao ? orcReduzir(f.valor, reducao) : f.valor,
+          fundamento: o.fundamento || 'Item 1 — registro com valor declarado.',
+          avisos: o.avisos || []};
+}
+function orcLinhaTributo(qual, base, opc){
+  const o = opc || {};
+  const t = ORC_TRIBUTOS[qual];
+  const aliq = o.aliquota != null ? o.aliquota : t.aliquota;
+  return {tipo: 'tributo', imposto: qual, rot: o.rot || t.nome,
+          base: Math.round(base), aliquota: aliq,
+          // Centavo inteiro, como todo o resto do motor: `base × alíquota / 100`
+          // dá fração de centavo, e uma fração por linha vira um total que não
+          // bate com a conferência dela.
+          valor: Math.round(base * aliq / 100),
+          fundamento: o.fundamento || t.fundamento, avisos: o.avisos || []};
+}
+
+// O aviso que acompanha toda redução de 40%: ela é regra dela, e a nota
+// explicativa que a fundamentaria não veio nos arquivos entregues.
+const ORC_AVISO_DESCONTO = {
+  confianca: 'operacional',
+  texto: 'A redução de 40% no ato secundário é regra operacional da Shirley (Módulo 1). '
+       + 'A nota explicativa da tabela que a fundamenta não veio no arquivo entregue — conferir antes de usar numa cobrança formal.'
+};
+
+const ORC_ATOS = [
+  {
+    id: 'compra-venda',
+    nome: 'Compra e venda simples',
+    grupo: 'Compra e venda',
+    campos: ['transacao'],
+    comoElaEscreveu: '1 ato com valor de acordo com a faixa da tabela, 1 registro de acordo com a faixa da tabela, 1 ITBI de acordo com a alíquota de 3% se for São Paulo.',
+    montar(e){
+      return {
+        escrituras: [orcLinhaEscritura(e.transacao, {rot: 'Escritura de compra e venda'})],
+        registros:  [orcLinhaRegistro(e.transacao, {rot: 'Registro da aquisição'})],
+        tributos:   [orcLinhaTributo('itbi', e.transacao)]
+      };
+    }
+  },
+  {
+    id: 'compra-venda-resolutiva',
+    nome: 'Compra e venda com cláusula resolutiva',
+    grupo: 'Compra e venda',
+    campos: ['transacao', 'saldoDevedor'],
+    comoElaEscreveu: '1 ato sobre o valor da transação, 1 ato sobre o saldo devedor condicionado na cláusula resolutiva com 40% de desconto, 1 registro sobre o valor da transação, 1 ITBI de 3%.',
+    montar(e){
+      return {
+        escrituras: [
+          orcLinhaEscritura(e.transacao, {rot: 'Escritura de compra e venda'}),
+          orcLinhaEscritura(e.saldoDevedor, {rot: 'Cláusula resolutiva — sobre o saldo devedor',
+            reducao: ORC_DESCONTO_ATO_SECUNDARIO, avisos: [ORC_AVISO_DESCONTO]})
+        ],
+        registros: [orcLinhaRegistro(e.transacao, {rot: 'Registro da aquisição'})],
+        tributos:  [orcLinhaTributo('itbi', e.transacao)]
+      };
+    }
+  },
+  {
+    id: 'compra-venda-fiduciaria',
+    nome: 'Compra e venda com alienação fiduciária',
+    grupo: 'Compra e venda',
+    campos: ['transacao', 'garantia'],
+    comoElaEscreveu: '1 ato sobre o valor da transação, 1 ato sobre o valor da alienação fiduciária com 40% de desconto, 1 registro sobre a transação, 1 registro sobre a alienação fiduciária, 1 ITBI de 3%.',
+    montar(e){
+      return {
+        escrituras: [
+          orcLinhaEscritura(e.transacao, {rot: 'Escritura de compra e venda'}),
+          orcLinhaEscritura(e.garantia, {rot: 'Alienação fiduciária',
+            reducao: ORC_DESCONTO_ATO_SECUNDARIO, avisos: [ORC_AVISO_DESCONTO]})
+        ],
+        registros: [
+          orcLinhaRegistro(e.transacao, {rot: 'Registro da aquisição'}),
+          orcLinhaRegistro(e.garantia,  {rot: 'Registro da alienação fiduciária'})
+        ],
+        tributos: [orcLinhaTributo('itbi', e.transacao)]
+      };
+    }
+  },
+  {
+    id: 'compra-venda-hipoteca',
+    nome: 'Compra e venda com hipoteca',
+    grupo: 'Compra e venda',
+    campos: ['transacao', 'garantia'],
+    comoElaEscreveu: 'Mesma conta da alienação fiduciária: 1 ato sobre a transação, 1 ato sobre a garantia com 40% de desconto, 1 registro sobre a transação, 1 registro sobre a garantia, 1 ITBI de 3%.',
+    montar(e){
+      return {
+        escrituras: [
+          orcLinhaEscritura(e.transacao, {rot: 'Escritura de compra e venda'}),
+          orcLinhaEscritura(e.garantia, {rot: 'Hipoteca',
+            reducao: ORC_DESCONTO_ATO_SECUNDARIO, avisos: [ORC_AVISO_DESCONTO]})
+        ],
+        registros: [
+          orcLinhaRegistro(e.transacao, {rot: 'Registro da aquisição'}),
+          orcLinhaRegistro(e.garantia,  {rot: 'Registro da hipoteca'})
+        ],
+        tributos: [orcLinhaTributo('itbi', e.transacao)]
+      };
+    }
+  },
+  {
+    id: 'compra-venda-novacao',
+    nome: 'Compra e venda com novação e confissão de dívida',
+    grupo: 'Compra e venda',
+    campos: ['transacao', 'novacao', 'confissao'],
+    comoElaEscreveu: '1 ato sobre a venda e compra, 1 ato sobre a novação com 40% de desconto, 1 ato sobre a confissão de dívida com 40% de desconto, 1 registro sobre a venda e compra, 1 ITBI de 3%.',
+    montar(e){
+      return {
+        escrituras: [
+          orcLinhaEscritura(e.transacao, {rot: 'Escritura de compra e venda'}),
+          orcLinhaEscritura(e.novacao,  {rot: 'Novação', reducao: ORC_DESCONTO_ATO_SECUNDARIO, avisos: [ORC_AVISO_DESCONTO]}),
+          orcLinhaEscritura(e.confissao,{rot: 'Confissão de dívida', reducao: ORC_DESCONTO_ATO_SECUNDARIO, avisos: [ORC_AVISO_DESCONTO]})
+        ],
+        registros: [orcLinhaRegistro(e.transacao, {rot: 'Registro da aquisição'})],
+        tributos:  [orcLinhaTributo('itbi', e.transacao)]
+      };
+    }
+  },
+  {
+    id: 'compra-venda-vagas',
+    nome: 'Compra e venda com vagas individualizadas',
+    grupo: 'Compra e venda',
+    campos: ['unidades'],
+    // A escritura é uma só, sobre o global; o registro é um por matrícula, e
+    // cada um cai na SUA faixa. Somar tudo e registrar de uma vez daria outro
+    // número — é a diferença que esta regra existe para não deixar passar.
+    comoElaEscreveu: '1 ato sobre o valor da transação, 1 registro sobre os valores individualizados do apartamento e das vagas, cada um na sua faixa, 1 ITBI do valor global de 3%.',
+    montar(e){
+      const uni = (e.unidades || []).filter(u => u && u.valor > 0);
+      const global = uni.reduce((s, u) => s + u.valor, 0);
+      return {
+        escrituras: [orcLinhaEscritura(global, {rot: 'Escritura de compra e venda — valor global'})],
+        registros: uni.map(u => orcLinhaRegistro(u.valor, {rot: 'Registro — ' + (u.rotulo || 'unidade')})),
+        tributos: [orcLinhaTributo('itbi', global, {rot: 'ITBI sobre o valor global'})]
+      };
+    }
+  },
+  {
+    id: 'doacao',
+    nome: 'Doação pura e simples',
+    grupo: 'Doação',
+    campos: ['doacao'],
+    comoElaEscreveu: '1 ato com valor de acordo com a faixa da tabela, 1 registro de acordo com a faixa, 1 ITCMD de 4% se for São Paulo.',
+    montar(e){
+      return {
+        escrituras: [orcLinhaEscritura(e.doacao, {rot: 'Escritura de doação'})],
+        registros:  [orcLinhaRegistro(e.doacao, {rot: 'Registro da doação'})],
+        tributos:   [orcLinhaTributo('itcmd', e.doacao)]
+      };
+    }
+  },
+  {
+    id: 'doacao-usufruto',
+    nome: 'Doação com reserva de usufruto',
+    grupo: 'Doação',
+    campos: ['doacao'],
+    // Dois terços e um terço: a nua-propriedade doada e o usufruto reservado.
+    // O ITCMD, esse, é sobre o valor global — não sobre os dois terços.
+    comoElaEscreveu: '1 ato sobre dois terços do valor da doação, 1 ato sobre um terço com 40% de desconto, 1 registro sobre os dois terços, 1 registro sobre o um terço, 1 ITCMD do valor global de 4%.',
+    montar(e){
+      const v = Math.round(e.doacao);
+      // Dois terços arredondado, e o um terço é o resto: assim as duas partes
+      // somam exatamente o valor doado, sem um centavo aparecendo do nada.
+      const doisTercos = Math.round(v * 2 / 3);
+      const umTerco = v - doisTercos;
+      return {
+        escrituras: [
+          orcLinhaEscritura(doisTercos, {rot: 'Doação da nua-propriedade — 2/3 do valor'}),
+          orcLinhaEscritura(umTerco, {rot: 'Reserva de usufruto — 1/3 do valor',
+            reducao: ORC_DESCONTO_ATO_SECUNDARIO, avisos: [ORC_AVISO_DESCONTO]})
+        ],
+        registros: [
+          orcLinhaRegistro(doisTercos, {rot: 'Registro da doação — 2/3'}),
+          orcLinhaRegistro(umTerco,    {rot: 'Registro do usufruto — 1/3'})
+        ],
+        tributos: [orcLinhaTributo('itcmd', v, {rot: 'ITCMD sobre o valor global'})]
+      };
+    }
+  },
+  {
+    id: 'inventario',
+    nome: 'Inventário e partilha sem meação',
+    grupo: 'Inventário',
+    campos: ['monte', 'imoveis'],
+    comoElaEscreveu: '1 ato sobre o valor do monte, 1 registro sobre o valor de cada imóvel, 1 ITCMD do valor do monte de 4%.',
+    montar(e){
+      const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      return {
+        escrituras: [orcLinhaEscritura(e.monte, {rot: 'Escritura de inventário e partilha — sobre o monte'})],
+        registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
+        tributos: [orcLinhaTributo('itcmd', e.monte, {rot: 'ITCMD sobre o monte'})]
+      };
+    }
+  },
+  {
+    id: 'inventario-meacao',
+    nome: 'Inventário e partilha com meação',
+    grupo: 'Inventário',
+    campos: ['meacao', 'imoveis'],
+    comoElaEscreveu: '1 ato sobre o valor da meação, 1 registro sobre o valor de cada imóvel referente à meação, 1 ITCMD do valor da meação de 4%.',
+    montar(e){
+      const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      return {
+        escrituras: [orcLinhaEscritura(e.meacao, {rot: 'Escritura de inventário e partilha — sobre a meação'})],
+        registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
+        tributos: [orcLinhaTributo('itcmd', e.meacao, {rot: 'ITCMD sobre a meação'})]
+      };
+    }
+  },
+  {
+    id: 'inventario-desigual-meacao',
+    nome: 'Inventário e partilha desigual, com meação',
+    grupo: 'Inventário',
+    campos: ['meacao', 'excedente', 'imoveis'],
+    perguntas: ['excedenteOneroso'],
+    comoElaEscreveu: '1 ato sobre o valor da meação, 1 ato sobre o quinhão excedente, 1 registro sobre o valor total de cada imóvel, 1 ITBI de 3% se o excedente for oneroso ou 1 ITCMD de 4% se for gratuito, e mais 1 ITCMD sobre o valor da meação.',
+    montar(e){
+      const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      return {
+        escrituras: [
+          orcLinhaEscritura(e.meacao,    {rot: 'Escritura de inventário — sobre a meação'}),
+          orcLinhaEscritura(e.excedente, {rot: 'Quinhão excedente'})
+        ],
+        registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
+        tributos: [
+          orcLinhaTributo('itcmd', e.meacao, {rot: 'ITCMD sobre a meação'}),
+          e.excedenteOneroso
+            ? orcLinhaTributo('itbi',  e.excedente, {rot: 'ITBI sobre o quinhão excedente (oneroso)'})
+            : orcLinhaTributo('itcmd', e.excedente, {rot: 'ITCMD sobre o quinhão excedente (gratuito)'})
+        ]
+      };
+    }
+  },
+  {
+    id: 'inventario-desigual',
+    nome: 'Inventário e partilha desigual, sem meação',
+    grupo: 'Inventário',
+    campos: ['monte', 'excedente', 'imoveis'],
+    perguntas: ['excedenteOneroso'],
+    comoElaEscreveu: '1 ato sobre o valor do monte, 1 ato sobre o quinhão excedente, 1 registro sobre o valor total de cada imóvel, 1 ITBI de 3% se o excedente for oneroso ou 1 ITCMD de 4% se for gratuito, e mais 1 ITCMD sobre o valor do monte.',
+    montar(e){
+      const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      return {
+        escrituras: [
+          orcLinhaEscritura(e.monte,     {rot: 'Escritura de inventário — sobre o monte'}),
+          orcLinhaEscritura(e.excedente, {rot: 'Quinhão excedente'})
+        ],
+        registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
+        tributos: [
+          orcLinhaTributo('itcmd', e.monte, {rot: 'ITCMD sobre o monte'}),
+          e.excedenteOneroso
+            ? orcLinhaTributo('itbi',  e.excedente, {rot: 'ITBI sobre o quinhão excedente (oneroso)'})
+            : orcLinhaTributo('itcmd', e.excedente, {rot: 'ITCMD sobre o quinhão excedente (gratuito)'})
+        ]
+      };
+    }
+  },
+  {
+    id: 'divorcio',
+    nome: 'Divórcio sem partilha',
+    grupo: 'Divórcio',
+    campos: [],
+    comoElaEscreveu: 'Cobra-se uma escritura sem valor (R$ 615,30) até a vigência da tabela.',
+    montar(){
+      return {escrituras: [orcLinhaEscritura(0, {itemFixo: '6.2', rot: 'Escritura de divórcio sem partilha',
+              fundamento: 'Item 6.2 — escritura sem valor declarado, demais escrituras.'})], registros: [], tributos: []};
+    }
+  },
+  {
+    id: 'divorcio-partilha',
+    nome: 'Divórcio com partilha igualitária',
+    grupo: 'Divórcio',
+    campos: ['totalPartilha', 'imoveis'],
+    comoElaEscreveu: '1 ato sobre o valor total, 1 registro sobre o valor total de cada imóvel.',
+    montar(e){
+      const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      return {
+        escrituras: [orcLinhaEscritura(e.totalPartilha, {rot: 'Escritura de divórcio com partilha'})],
+        registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
+        tributos: []
+      };
+    }
+  },
+  {
+    id: 'divorcio-partilha-desigual',
+    nome: 'Divórcio com partilha desigual',
+    grupo: 'Divórcio',
+    campos: ['totalPartilha', 'excedente', 'imoveis'],
+    perguntas: ['excedenteOneroso'],
+    comoElaEscreveu: '1 ato sobre o valor total, 1 ato sobre o quinhão excedente, 1 registro sobre o valor total de cada imóvel, 1 ITBI de 3% se o excedente for oneroso ou 1 ITCMD de 4% se for gratuito.',
+    montar(e){
+      const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      return {
+        escrituras: [
+          orcLinhaEscritura(e.totalPartilha, {rot: 'Escritura de divórcio com partilha'}),
+          orcLinhaEscritura(e.excedente,     {rot: 'Quinhão excedente'})
+        ],
+        registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
+        tributos: [e.excedenteOneroso
+          ? orcLinhaTributo('itbi',  e.excedente, {rot: 'ITBI sobre o quinhão excedente (oneroso)'})
+          : orcLinhaTributo('itcmd', e.excedente, {rot: 'ITCMD sobre o quinhão excedente (gratuito)'})]
+      };
+    }
+  },
+  {
+    id: 'dacao',
+    nome: 'Dação em pagamento',
+    grupo: 'Outros atos',
+    campos: ['transacao'],
+    comoElaEscreveu: '1 ato com valor de acordo com a faixa da tabela, 1 registro de acordo com a faixa, 1 ITBI de 3% se for São Paulo.',
+    montar(e){
+      return {
+        escrituras: [orcLinhaEscritura(e.transacao, {rot: 'Escritura de dação em pagamento'})],
+        registros:  [orcLinhaRegistro(e.transacao, {rot: 'Registro da dação'})],
+        tributos:   [orcLinhaTributo('itbi', e.transacao)]
+      };
+    }
+  },
+  {
+    id: 'confissao-divida',
+    nome: 'Confissão de dívida',
+    grupo: 'Outros atos',
+    campos: ['confissao'],
+    comoElaEscreveu: '1 ato com valor de acordo com a faixa da tabela, aplicando o desconto de 40%.',
+    montar(e){
+      return {
+        escrituras: [orcLinhaEscritura(e.confissao, {rot: 'Escritura de confissão de dívida',
+          reducao: ORC_DESCONTO_ATO_SECUNDARIO,
+          avisos: [{confianca: 'operacional',
+            texto: 'Aqui a confissão de dívida é o único ato da escritura, e mesmo assim leva os 40%. '
+                 + 'É regra operacional da Shirley — a nota da tabela que reduz o ato secundário não veio no arquivo, '
+                 + 'e não cobre, por si, um ato que está sozinho. Conferir antes de usar numa cobrança formal.'}]})],
+        registros: [], tributos: []
+      };
+    }
+  },
+  {
+    id: 'procuracao',
+    nome: 'Procuração',
+    grupo: 'Outros atos',
+    campos: [],
+    perguntas: ['diligencia', 'outorgantes'],
+    comoElaEscreveu: 'Presencial ou por vídeo cobra-se R$ 328,18; em diligência, R$ 656,36 (até a vigência da tabela).',
+    montar(e){
+      const extras = Math.max(0, (e.outorgantes || 1) - 4);
+      // O casal conta como um outorgante só (nota da própria tabela).
+      const linhas = [orcLinhaEscritura(0, {itemFixo: '2.4.1', rot: 'Procuração — até 4 outorgantes',
+        fundamento: 'Item 2.4.1 — procuração com poderes para o foro em geral / com valor econômico.'})];
+      if(extras) linhas.push(orcLinhaEscritura(0, {itemFixo: '2.4.2',
+        rot: `Outorgantes adicionais (${extras})`, fundamento: 'Item 2.4.2. Nota da tabela: o casal conta como um outorgante.'}));
+      if(extras){ linhas[1].valor = linhas[1].tabela * extras; linhas[1].tabeliao *= extras; }
+      if(e.diligencia) linhas.forEach(l => {l.valor *= 2; l.tabeliao *= 2; l.diligencia = true;});
+      return {escrituras: linhas, registros: [], tributos: []};
+    }
+  },
+  {
+    id: 'ata-notarial',
+    nome: 'Ata notarial',
+    grupo: 'Outros atos',
+    campos: [],
+    perguntas: ['diligencia', 'folhas'],
+    comoElaEscreveu: 'Primeira folha R$ 638,76; em diligência dobra para R$ 1.277,52. Da segunda folha em diante, cada frente e cada verso R$ 322,57 (R$ 645,14 em diligência), sempre somados à primeira.',
+    montar(e){
+      const folhas = Math.max(1, e.folhas || 1);
+      const linhas = [orcLinhaEscritura(0, {itemFixo: '9.1', rot: 'Ata notarial — primeira folha'})];
+      if(folhas > 1){
+        const extra = orcLinhaEscritura(0, {itemFixo: '9.2', rot: `Folhas adicionais (${folhas - 1})`});
+        extra.valor = extra.tabela * (folhas - 1);
+        extra.tabeliao *= (folhas - 1);
+        linhas.push(extra);
+      }
+      if(e.diligencia) linhas.forEach(l => {l.valor *= 2; l.tabeliao *= 2; l.diligencia = true;});
+      return {escrituras: linhas, registros: [], tributos: []};
+    }
+  },
+  {
+    id: 'escritura-declaratoria',
+    nome: 'Escritura declaratória',
+    grupo: 'Outros atos',
+    campos: [],
+    comoElaEscreveu: 'R$ 615,30 (até a vigência da tabela).',
+    montar(){
+      return {escrituras: [orcLinhaEscritura(0, {itemFixo: '6.2', rot: 'Escritura declaratória',
+              fundamento: 'Item 6.2 — escritura sem valor declarado, demais escrituras.'})], registros: [], tributos: []};
+    }
+  }
+];
+
+// O divórcio com pensão não é um ato à parte: é qualquer um dos divórcios com
+// uma base a mais somada à escritura. Ela escreveu assim —
+//
+//   "multiplicar o valor da pensão por doze meses, mais a quantidade de tempo
+//    estipulada, o resultado será a base de cálculo para acrescer a cobrança"
+//
+// — e a frase tem duas leituras: doze meses SEMPRE, ou doze meses quando o
+// prazo é indeterminado e o prazo estipulado quando existe. O motor faz a
+// segunda (12 quando ela não disser o prazo) e nunca esconde a escolha: a
+// linha nasce marcada como INCERTA e a pergunta fica na tela até ela decidir.
+function orcLinhaPensao(e){
+  const meses = e.pensaoMeses > 0 ? e.pensaoMeses : 12;
+  const base = Math.round(e.pensaoMensal * meses);
+  const l = orcLinhaEscritura(base, {
+    rot: `Pensão — ${orcMoeda(e.pensaoMensal)} × ${meses} ${meses === 1 ? 'mês' : 'meses'}`,
+    fundamento: 'Base acrescida à escritura, conforme o Módulo 1 das instruções de cobrança.',
+    avisos: [{confianca: 'incerta',
+      texto: 'A frase das instruções — "por doze meses, mais a quantidade de tempo estipulada" — admite duas leituras. '
+           + `O motor usou ${meses} ${meses === 1 ? 'mês' : 'meses'}. Confirme se é isso antes de fechar o orçamento.`}]});
+  l.pensao = true;
+  return l;
+}
+
+function orcAto(id){ return ORC_ATOS.find(a => a.id === id) || null; }
+
+// ── Os campos que cada ato pede ──────────────────────────────────────────
+// Um dicionário só, para que a pergunta que aparece na tela seja a mesma em
+// todo ato que precisa daquele número. "Não me faça digitar de novo" começa
+// aqui: se o card já traz o valor, o campo nasce preenchido e some da lista
+// de pendências sem nunca ter virado pergunta.
+const ORC_CAMPOS = {
+  transacao:     {rot: 'Valor do negócio',            pergunta: 'Qual o valor do negócio?'},
+  garantia:      {rot: 'Valor da garantia',           pergunta: 'Qual o valor da alienação fiduciária ou da hipoteca?'},
+  saldoDevedor:  {rot: 'Saldo devedor',               pergunta: 'Qual o saldo devedor condicionado na cláusula resolutiva?'},
+  novacao:       {rot: 'Valor da novação',            pergunta: 'Qual o valor da novação?'},
+  confissao:     {rot: 'Valor da confissão de dívida',pergunta: 'Qual o valor da confissão de dívida?'},
+  doacao:        {rot: 'Valor da doação',             pergunta: 'Qual o valor da doação?'},
+  monte:         {rot: 'Valor do monte',              pergunta: 'Qual o valor do monte?'},
+  meacao:        {rot: 'Valor da meação',             pergunta: 'Qual o valor da meação?'},
+  excedente:     {rot: 'Quinhão excedente',           pergunta: 'Qual o valor do quinhão excedente?'},
+  totalPartilha: {rot: 'Valor total da partilha',     pergunta: 'Qual o valor total da partilha?'},
+  unidades:      {rot: 'Valores individualizados',    pergunta: 'Quais os valores do apartamento e de cada vaga?', lista: true},
+  imoveis:       {rot: 'Imóveis a registrar',         pergunta: 'Qual o valor de cada imóvel a registrar?', lista: true}
+};
+
+// ══ O MOTOR ══════════════════════════════════════════════════════════════
+//
+// As dezessete etapas da regra 12 dela, na ordem em que ela as escreveu. Não
+// estão numeradas no código por enfeite: quando um orçamento sai diferente do
+// esperado, a conferência é etapa por etapa, e a que falhou tem nome.
+function orcCalcular(entrada){
+  const e = entrada || {};
+  const v = e.valores || {};
+  const f = e.flags || {};
+  const d = e.despesas || {};
+  const alertas = [];   // o que o painel viu e não pode decidir sozinho
+  const faltando = [];  // o que ainda impede a conta de fechar
+
+  // ETAPA 1 — identificar o ato.
+  const ato = orcAto(e.atoId);
+  if(!ato) return {erro: 'Ato não identificado.', alertas, faltando, ato: null};
+
+  // ETAPAS 2 a 4 — onde o ato será praticado, onde está o imóvel, qual a
+  // serventia competente. O tabelionato é livre (o ato sai onde a parte
+  // quiser); o registro, não: é a circunscrição do imóvel que manda.
+  const praticadoEm = (e.praticadoEm || '').trim();
+  const imovelMunicipio = (e.imovelMunicipio || '').trim();
+  const imovelUf = (e.imovelUf || 'SP').trim().toUpperCase();
+
+  // ETAPAS 5 a 7 — tabela aplicável, versão e vigência.
+  const tabelas = {
+    notas: {...ORC_TABELA_NOTAS, faixas: undefined},
+    registro: {...ORC_TABELA_REGISTRO, faixas: undefined, faixasAverbacao: undefined, faixasIncorporacao: undefined}
+  };
+  if(imovelUf && imovelUf !== 'SP')
+    alertas.push({nivel: 'bloqueia', confianca: 'incerta',
+      texto: `O imóvel está em ${imovelUf}. A tabela do registro carregada aqui é a do Estado de São Paulo — `
+           + 'localize a tabela oficial daquele estado antes de apresentar o orçamento.'});
+  if(!ORC_TABELA_NOTAS.vigencia || !ORC_TABELA_REGISTRO.vigencia)
+    alertas.push({nivel: 'bloqueia', confianca: 'incerta',
+      texto: 'A vigência das tabelas não veio nos arquivos entregues e ainda não foi declarada em Ajustes. '
+           + 'Enquanto isso, o orçamento sai como estimativa — não como definitivo.'});
+
+  // ETAPA 8 — as notas explicativas, e ETAPA 9 — as regras especiais.
+  // HIS, ZEIS, FGTS e regularização fundiária não são desconto: são itens
+  // próprios da tabela, com valor fixo. Por isso entram antes da faixa, não
+  // depois — aplicar percentual sobre a faixa daria outro número.
+  let regraEspecial = null;
+  if(f.regularizacaoFundiaria) regraEspecial = {itemNotas: '1.2', rot: 'Regularização fundiária de interesse social'};
+  else if(f.zeis)              regraEspecial = {itemNotas: '1.4', rot: 'Primeira alienação em empreendimento de interesse social em ZEIS'};
+  else if(f.fgtsOuHis)         regraEspecial = {itemNotas: '1.3', rot: 'Imóvel FGTS ou programa habitacional de interesse social'};
+
+  // ETAPA 10 — a base de cálculo. Sai dos campos que o ato pede; o que não
+  // veio do card vira pergunta, e a conta espera.
+  const dados = {};
+  (ato.campos || []).forEach(c => {
+    const meta = ORC_CAMPOS[c];
+    if(meta && meta.lista){
+      const lista = (v[c] || []).filter(x => x && x.valor > 0);
+      dados[c] = lista;
+      if(!lista.length) faltando.push({campo: c, rot: meta.rot, pergunta: meta.pergunta, lista: true});
+    }else{
+      dados[c] = Math.round(Number(v[c]) || 0);
+      if(!dados[c]) faltando.push({campo: c, rot: meta ? meta.rot : c, pergunta: meta ? meta.pergunta : c});
+    }
+  });
+  dados.excedenteOneroso = !!f.excedenteOneroso;
+  dados.diligencia = !!f.diligencia;
+  dados.folhas = f.folhas || 1;
+  dados.outorgantes = f.outorgantes || 1;
+
+  // ETAPAS 11 e 12 — emolumentos da escritura e do registro.
+  const partes = ato.montar(dados);
+  let escrituras = partes.escrituras || [];
+  const registros = partes.registros || [];
+  let tributos = partes.tributos || [];
+
+  // O divórcio com pensão é qualquer divórcio com uma base a mais.
+  if(f.temPensao && ato.grupo === 'Divórcio'){
+    if(!(f.pensaoMensal > 0)) faltando.push({campo: 'pensaoMensal', rot: 'Pensão mensal', pergunta: 'Qual o valor mensal da pensão?'});
+    else escrituras = escrituras.concat([orcLinhaPensao({pensaoMensal: f.pensaoMensal, pensaoMeses: f.pensaoMeses})]);
+  }
+
+  // A regra especial troca a escritura principal pelo item próprio da tabela.
+  if(regraEspecial && escrituras.length){
+    const it = ORC_TABELA_NOTAS.itens[regraEspecial.itemNotas];
+    escrituras = [{tipo: 'escritura', rot: regraEspecial.rot, item: regraEspecial.itemNotas, base: null,
+      tabela: it.valor, reducao: 0, valor: it.valor, tabeliao: it.tabeliao || 0,
+      fundamento: `Item ${regraEspecial.itemNotas} — vale independentemente do número de atos praticados, `
+                + 'da natureza deles e do valor do negócio jurídico.',
+      avisos: [{confianca: 'confirmada', texto: 'Item de valor fixo: substitui a faixa e todos os atos da escritura.'}]}];
+    alertas.push({nivel: 'avisa', confianca: 'confirmada',
+      texto: `Regra especial aplicada: ${regraEspecial.rot}. Confira se o imóvel e o programa se enquadram — `
+           + 'o item da tabela exige comprovação, e ele engole os demais atos da escritura.'});
+  }
+
+  // ETAPA 13 — os tributos.
+  const capital = !praticadoEm || /^s(ão|ao) paulo$/i.test(praticadoEm.trim());
+  const imovelNaCapital = !imovelMunicipio || /^s(ão|ao) paulo$/i.test(imovelMunicipio.trim());
+  tributos.forEach(t => {
+    if(t.imposto === 'itbi' && !imovelNaCapital){
+      t.valor = null;
+      t.avisos = (t.avisos || []).concat([{confianca: 'incerta',
+        texto: `O imóvel está em ${imovelMunicipio}. O ITBI é municipal — cheque o código tributário daquela cidade. `
+             + 'A alíquota de 3% é a da Capital e não foi aplicada aqui.'}]);
+      alertas.push({nivel: 'bloqueia', confianca: 'incerta',
+        texto: `ITBI não calculado: ${imovelMunicipio} não é a Capital, e a alíquota de lá não está no painel.`});
+    }
+    if(t.imposto === 'itcmd' && imovelUf !== 'SP'){
+      t.valor = null;
+      t.avisos = (t.avisos || []).concat([{confianca: 'incerta',
+        texto: `O ITCMD é estadual — cheque o código tributário de ${imovelUf}. A alíquota de 4% é a de São Paulo.`}]);
+    }
+  });
+  // Isenções: o motor aponta, nunca aplica sozinho. Isenção depende de
+  // declaração da parte e de documento, e um imposto zerado por engano é o
+  // erro mais caro que este orçamento poderia cometer.
+  orcConferirIsencoes({tributos, flags: f, data: e.data, alertas});
+
+  // ETAPA 14 — as despesas do registro. A prenotação e a certidão de
+  // matrícula saem da própria tabela; a taxa adicional é dela, e por isso é
+  // sempre perguntada — nunca somada por conta própria (regra 16).
+  const despesas = [];
+  const T = ORC_TABELA_REGISTRO.itens;
+  const temRegistro = registros.length > 0;
+  if(temRegistro && d.prenotacao !== false)
+    despesas.push({rot: 'Prenotação', item: '12', valor: T['12'].valor,
+      fundamento: 'Item 12 — prenotação, exame e cálculo.'});
+  if(temRegistro && d.matricula !== false)
+    despesas.push({rot: 'Matrícula', item: f.his ? '11-his' : '11',
+      valor: (f.his ? T['11-his'] : T['11']).valor,
+      fundamento: 'Item 11 — certidão da matrícula.',
+      avisos: [{confianca: 'aprendida',
+        texto: 'A linha "Matrícula" do orçamento dela bate com o item 11 (certidão), não com o item 4 '
+             + '(abertura de matrícula, R$ 23,67). O motor usa a certidão. Confirme se é essa mesmo a despesa.'}]});
+  if(d.taxaAdicional === true)
+    despesas.push({rot: 'Despesa adicional do registro', item: null,
+      valor: d.taxaAdicionalValor != null ? d.taxaAdicionalValor : 30000,
+      interna: true,
+      fundamento: 'Despesa acertada com a cliente. No orçamento do cliente entra somada ao registro, sem linha própria.'});
+  if(temRegistro && d.taxaAdicional == null)
+    faltando.push({campo: 'taxaAdicional', rot: 'Taxa adicional',
+      pergunta: 'Deseja incluir taxa adicional nas despesas do registro?', sim_nao: true});
+
+  // ETAPA 15 — somar tudo.
+  const soma = arr => arr.reduce((s, x) => s + (x.valor || 0), 0);
+  const totais = {
+    escritura: soma(escrituras),
+    // O que cabe ao tabelião dentro da escritura — a coluna dele na tabela.
+    // É este número, e não o total, que vira "parte do tabelião" no Financeiro.
+    tabeliao: escrituras.reduce((s, x) => s + (x.tabeliao || 0), 0),
+    registro:  soma(registros),
+    despesas:  soma(despesas),
+    tributos:  soma(tributos)
+  };
+  // O que o cliente lê como "registro" é o registro mais o que ela sempre
+  // embute nele. A taxa adicional entra aqui e some da tela do cliente —
+  // é o "sem que o cliente perceba" da regra 16, e é só isso que ele
+  // significa: nada é cobrado a mais, apenas não ganha linha própria.
+  totais.registroComDespesas = totais.registro + soma(despesas.filter(x => x.interna));
+  totais.total = totais.escritura + totais.registro + totais.despesas + totais.tributos;
+
+  // ETAPAS 16 e 17 — a memória e o orçamento saem da tela, com o que está
+  // aqui. O CHECK FINAL fecha (ou não) o caminho até o "definitivo".
+  const check = orcCheckFinal({ato, praticadoEm, imovelMunicipio, imovelUf, escrituras, registros,
+                               tributos, despesas, faltando, alertas, regraEspecial, d});
+  const bloqueado = check.some(c => c.estado === 'falta') || faltando.length > 0;
+
+  return {
+    ato: {id: ato.id, nome: ato.nome, grupo: ato.grupo, comoElaEscreveu: ato.comoElaEscreveu},
+    data: e.data || isoHoje(),
+    praticadoEm, imovelMunicipio, imovelUf,
+    tabelas, regraEspecial,
+    escrituras, registros, tributos, despesas, totais,
+    faltando, alertas, check, bloqueado,
+    definitivo: !bloqueado
+  };
+}
+
+// As isenções que o painel sabe existir. Nenhuma delas é aplicada sozinha:
+// todas dependem de declaração da parte, e algumas de um valor (a UFESP) que
+// não veio nos arquivos. Apontar e devolver a decisão é o certo — zerar um
+// imposto por conta própria é o erro que não tem volta.
+function orcConferirIsencoes(ctx){
+  const {tributos, flags, data, alertas} = ctx;
+  const itbi = tributos.find(t => t.imposto === 'itbi');
+  if(itbi && itbi.valor != null && flags.residencial){
+    const teto = orcTetoIsencaoItbi(data || isoHoje());
+    if(teto && itbi.base <= teto)
+      alertas.push({nivel: 'avisa', confianca: 'confirmada',
+        texto: `O valor (${orcMoeda(itbi.base)}) está dentro do teto de isenção do ITBI para imóvel residencial `
+             + `(${orcMoeda(teto)} na data do ato). Se for a primeira aquisição da parte, ou PMCMV, o imposto é isento — `
+             + 'basta a Declaração para Isenção do ITBI-IV. O motor manteve o ITBI na conta: marque a isenção se ela se aplica.'});
+  }
+  const itcmd = tributos.find(t => t.imposto === 'itcmd');
+  if(itcmd && itcmd.valor != null){
+    if(ORC_TRIBUTOS.ufesp == null)
+      alertas.push({nivel: 'avisa', confianca: 'incerta',
+        texto: 'As isenções de ITCMD são contadas em UFESP (2.500 para doação, 5.000 para imóvel de residência) '
+             + 'e o valor da UFESP não está no painel. Declare-o em Ajustes para que o motor possa avisar quando o caso se enquadrar.'});
+    else{
+      const limite = ORC_TRIBUTOS.itcmd.isencaoDoacaoUfesp * ORC_TRIBUTOS.ufesp;
+      if(itcmd.base <= limite)
+        alertas.push({nivel: 'avisa', confianca: 'confirmada',
+          texto: `A base do ITCMD (${orcMoeda(itcmd.base)}) está dentro das 2.500 UFESPs de isenção da doação `
+               + `(${orcMoeda(limite)}). Confira o enquadramento — o motor manteve o imposto na conta.`});
+    }
+  }
+}
+function orcTetoIsencaoItbi(data){
+  const d = String(data).slice(0, 10);
+  const linha = ORC_TRIBUTOS.itbi.isencaoPrimeiroImovel.find(([de, ate]) => d >= de && (ate === null || d <= ate));
+  return linha ? linha[2] : null;
+}
+
+// ── O CHECK FINAL ────────────────────────────────────────────────────────
+// A regra 29 dela, item por item. Três estados, e a diferença entre eles é o
+// que separa um orçamento definitivo de uma estimativa: `falta` tranca,
+// `confirmar` deixa passar mas fica escrito, `ok` é ok.
+function orcCheckFinal(c){
+  const itens = [];
+  const põe = (rot, estado, nota) => itens.push({rot, estado, nota: nota || ''});
+
+  põe('Ato identificado', 'ok', c.ato.nome);
+  põe('Jurisdição', c.imovelUf && c.imovelUf !== 'SP' ? 'falta' : 'ok',
+      c.imovelUf === 'SP' || !c.imovelUf
+        ? (c.imovelMunicipio ? 'Imóvel em ' + c.imovelMunicipio : 'São Paulo')
+        : 'Imóvel fora de São Paulo — tabela do estado correspondente não carregada.');
+  põe('Tabela aplicável', 'ok', ORC_TABELA_NOTAS.nome + ' · ' + ORC_TABELA_REGISTRO.nome);
+  põe('Vigência conferida', ORC_TABELA_NOTAS.vigencia ? 'ok' : 'falta',
+      ORC_TABELA_NOTAS.vigencia || 'Não declarada nos arquivos entregues — declarar em Ajustes.');
+  põe('Notas explicativas', 'confirmar',
+      'As notas 1 a 13 da tabela de Notas vieram só com o título no PDF; o texto delas não foi lido pelo painel.');
+  põe('Base de cálculo', c.faltando.length ? 'falta' : 'ok',
+      c.faltando.length ? c.faltando.map(x => x.rot).join(', ') + ' — ainda sem valor.' : 'Todos os valores informados.');
+  põe('Faixa conferida', 'ok', c.escrituras.filter(x => x.faixa).map(x =>
+      `${x.rot}: faixa ${x.faixa.letra}`).join(' · ') || 'Itens de valor fixo, sem faixa.');
+  põe('Quantidade de atos', 'ok', `${c.escrituras.length} na escritura, ${c.registros.length} no registro.`);
+  põe('Reduções conferidas', c.escrituras.some(x => x.reducao) ? 'confirmar' : 'ok',
+      c.escrituras.some(x => x.reducao)
+        ? 'Há ato com 40% de redução — regra operacional, sem a nota da tabela que a fundamente.'
+        : 'Nenhuma redução aplicada.');
+  põe('Isenções conferidas', 'confirmar', 'Nenhuma isenção é aplicada automaticamente — veja os avisos.');
+  põe('Tributos conferidos', c.tributos.some(t => t.valor == null) ? 'falta' : 'ok',
+      c.tributos.length ? c.tributos.map(t => t.rot + (t.valor == null ? ' (não calculado)' : '')).join(' · ') : 'Ato sem tributo.');
+  põe('Registro conferido', 'ok', c.registros.length ? `${c.registros.length} registro(s).` : 'Ato sem registro.');
+  põe('Prenotação', c.registros.length && c.d.prenotacao === false ? 'confirmar' : 'ok',
+      c.registros.length ? (c.d.prenotacao === false ? 'Retirada à mão.' : 'Incluída.') : 'Não se aplica.');
+  põe('Matrícula', c.registros.length && c.d.matricula === false ? 'confirmar' : 'ok',
+      c.registros.length ? (c.d.matricula === false ? 'Retirada à mão.' : 'Incluída.') : 'Não se aplica.');
+  põe('Taxa adicional perguntada', !c.registros.length ? 'ok' : (c.d.taxaAdicional == null ? 'falta' : 'ok'),
+      !c.registros.length ? 'Não se aplica.'
+        : c.d.taxaAdicional == null ? 'Ainda não perguntada.'
+        : c.d.taxaAdicional ? 'Incluída, a pedido.' : 'Dispensada, a pedido.');
+  põe('Memória de cálculo', 'ok', 'Gerada com cada linha, faixa e fundamento.');
+  return itens;
+}
+
+// ══ CAMADAS 3 E 4 — O QUE O PAINEL APRENDE ═══════════════════════════════
+//
+// Uma regra na base de conhecimento tem quatro origens possíveis, e a origem
+// decide o peso dela. É a hierarquia da regra 5, escrita como dado:
+//
+//   confirmada  🟢  fonte oficial, ou ela disse que sim
+//   operacional 🔵  jeito de trabalhar do cartório
+//   aprendida   🟡  padrão que apareceu nos orçamentos, à espera de confirmação
+//   incerta     🔴  precisa de confirmação — nunca vale como definitiva
+//
+// Nada sobe de degrau sozinho. Uma hipótese vira regra quando ela aperta o
+// botão, e a mudança fica datada com quem validou.
+const ORC_CONFIANCAS = {
+  confirmada:  {selo: '🟢', rot: 'Confirmada',  ordem: 0},
+  operacional: {selo: '🔵', rot: 'Operacional', ordem: 1},
+  aprendida:   {selo: '🟡', rot: 'Aprendida',   ordem: 2},
+  incerta:     {selo: '🔴', rot: 'Incerta',     ordem: 3}
+};
+
+// As regras que já nascem na base, tiradas dos arquivos que ela entregou.
+// As três últimas são as perguntas que os arquivos deixaram em aberto: elas
+// entram como 🔴 de propósito, do mesmo jeito que as ressalvas da Base de
+// Regras do Radar. Pergunta que não fica escrita é pergunta que se perde.
+const ORC_CONHECIMENTO_INICIAL = {
+  'tabela-notas-faixa': {
+    regra: 'A escritura com valor declarado sai da faixa do item 1.1 da tabela de Notas, pelo valor da transação.',
+    origem: 'Tabela de Emolumentos do Tabelionato de Notas (PDF de 27/08/2026).',
+    confianca: 'confirmada', tipo: 'fonte',
+    exemplos: ['Base de R$ 301.867,16 cai na faixa l (R$ 268.940,01 a R$ 307.360,00) e dá R$ 4.176,24 — o mesmo número do orçamento que ela conferiu à mão.']
+  },
+  'itbi-capital': {
+    regra: 'ITBI na Capital de São Paulo: 3% sobre a base. Qualquer outro município, checar o código tributário da cidade.',
+    origem: 'Módulo 2 das instruções de cobrança.',
+    confianca: 'confirmada', tipo: 'regra'
+  },
+  'itcmd-sp': {
+    regra: 'ITCMD no Estado de São Paulo: 4% sobre a base. Qualquer outro estado, checar o código tributário do estado.',
+    origem: 'Módulo 2 das instruções de cobrança.',
+    confianca: 'confirmada', tipo: 'regra'
+  },
+  'desconto-40': {
+    regra: 'O ato secundário da mesma escritura (garantia, novação, confissão, usufruto, cláusula resolutiva) sai com 40% de desconto sobre o valor da faixa.',
+    origem: 'Módulo 1 das instruções de cobrança.',
+    confianca: 'operacional', tipo: 'regra',
+    aberto: 'A nota explicativa da tabela que fundamentaria a redução não veio no arquivo — as notas 1 a 13 vieram só com o título.'
+  },
+  'taxa-adicional': {
+    regra: 'A taxa adicional de R$ 300,00 nas despesas do registro nunca entra sozinha: é perguntada antes de fechar todo orçamento, e no modo cliente vai somada ao registro, sem linha própria.',
+    origem: 'Módulo 3 das instruções de cobrança (regra 16 do pedido).',
+    confianca: 'confirmada', tipo: 'operacional'
+  },
+  'registro-despesas': {
+    regra: 'O valor do registro apresentado à cliente inclui prenotação e matrícula, cada uma em sua linha.',
+    origem: 'Módulo 3 das instruções de cobrança.',
+    confianca: 'confirmada', tipo: 'operacional'
+  },
+  'vigencia-nao-declarada': {
+    regra: 'A vigência das duas tabelas precisa ser declarada em Ajustes.',
+    origem: 'Nenhum dos dois PDFs entregues traz o ano da tabela.',
+    confianca: 'incerta', tipo: 'pendencia',
+    aberto: 'Enquanto não for declarada, todo orçamento sai como estimativa e o CHECK FINAL não fecha. A regra 13 dela proíbe usar tabela sem saber a vigência.'
+  },
+  'registro-do-exemplo': {
+    regra: 'No orçamento conferido à mão (base R$ 301.867,16), o registro foi R$ 3.133,28.',
+    origem: 'Módulo 3 das instruções de cobrança.',
+    confianca: 'incerta', tipo: 'pendencia',
+    aberto: 'Esse número não sai de uma consulta única ao item 1 da tabela de registro entregue: aquela faixa '
+          + '(R$ 268.940,01 a R$ 307.360,00) dá R$ 2.723,02. A escritura do mesmo exemplo bate exatamente com a '
+          + 'tabela de Notas, e a prenotação (R$ 80,14 contra R$ 79,16) e a matrícula (R$ 76,54 contra R$ 75,60) '
+          + 'estão 1,24% acima — sinal de que a tabela de registro usada naquele orçamento é de outra vigência. '
+          + 'Mesmo corrigido por esse 1,24%, o registro daria R$ 2.756,74. Faltam duas informações: de que ano é a '
+          + 'tabela de registro do exemplo, e se aquele R$ 3.133,28 é um registro só ou a soma de mais de um.'
+  },
+  'matricula-item-11': {
+    regra: 'A linha "Matrícula" das despesas usa o item 11 da tabela de registro (certidão, R$ 75,60).',
+    origem: 'Comparação com o orçamento que ela conferiu à mão.',
+    confianca: 'aprendida', tipo: 'hipotese',
+    aberto: 'O R$ 76,54 do exemplo dela corresponde ao item 11 (certidão) corrigido, não ao item 4 (abertura de '
+          + 'matrícula, R$ 23,67). O motor usa a certidão. Confirmar qual das duas é a despesa cobrada.'
+  },
+  'pensao-doze-meses': {
+    regra: 'No divórcio com pensão, a base acrescida à escritura é a pensão mensal multiplicada pelos meses (12 quando o prazo não for estipulado).',
+    origem: 'Módulo 1 das instruções de cobrança.',
+    confianca: 'incerta', tipo: 'pendencia',
+    aberto: 'A frase "multiplicar o valor da pensão por doze meses, mais a quantidade de tempo estipulada" admite '
+          + 'duas leituras: doze meses sempre, ou doze meses só quando não houver prazo. O motor faz a segunda.'
+  },
+  'confissao-sozinha': {
+    regra: 'A confissão de dívida leva 40% de desconto mesmo quando é o único ato da escritura.',
+    origem: 'Módulo 1 das instruções de cobrança.',
+    confianca: 'operacional', tipo: 'regra',
+    aberto: 'A redução de ato secundário não cobre, por si, um ato que está sozinho na escritura. Conferir a nota da tabela.'
+  }
+};
+
+// ── Comparação entre versões (regra 17) ──────────────────────────────────
+// Não basta dizer que subiu: o que ela precisa saber é POR QUE subiu. O
+// motivo sai da comparação linha a linha — faixa que mudou, ato que entrou,
+// despesa que passou a ser cobrada.
+function orcComparar(antigo, novo){
+  if(!antigo || !novo) return null;
+  const a = antigo.resultado || {}, b = novo.resultado || {};
+  const ta = (a.totais || {}).total || 0, tb = (b.totais || {}).total || 0;
+  const motivos = [];
+
+  if((a.ato || {}).id !== (b.ato || {}).id)
+    motivos.push(`o ato passou de "${(a.ato || {}).nome || '—'}" para "${(b.ato || {}).nome || '—'}"`);
+
+  const grupos = [['escrituras', 'na escritura'], ['registros', 'no registro'], ['despesas', 'nas despesas'], ['tributos', 'nos tributos']];
+  grupos.forEach(([g, onde]) => {
+    const la = a[g] || [], lb = b[g] || [];
+    if(lb.length > la.length) motivos.push(`entrou ${lb.length - la.length} linha(s) ${onde}`);
+    if(lb.length < la.length) motivos.push(`saiu ${la.length - lb.length} linha(s) ${onde}`);
+    // Faixa que mudou é o motivo mais comum, e o mais fácil de não perceber.
+    la.forEach((x, i) => {
+      const y = lb[i];
+      if(!y || !x.faixa || !y.faixa) return;
+      if(x.faixa.letra !== y.faixa.letra)
+        motivos.push(`"${y.rot}" passou da faixa ${x.faixa.letra} para a ${y.faixa.letra} `
+                   + `(base de ${orcMoeda(x.base)} para ${orcMoeda(y.base)})`);
+      else if(x.base !== y.base)
+        motivos.push(`a base de "${y.rot}" mudou de ${orcMoeda(x.base)} para ${orcMoeda(y.base)}, dentro da mesma faixa`);
+    });
+  });
+
+  const somaInterna = o => ((o.despesas || []).filter(x => x.interna).reduce((s, x) => s + x.valor, 0));
+  if(somaInterna(a) !== somaInterna(b))
+    motivos.push(somaInterna(b) > somaInterna(a) ? 'a taxa adicional do registro entrou' : 'a taxa adicional do registro saiu');
+
+  return {
+    antesTotal: ta, depoisTotal: tb, diferenca: tb - ta,
+    motivos,
+    frase: motivos.length
+      ? `O valor ${tb > ta ? 'aumentou' : tb < ta ? 'diminuiu' : 'ficou igual'} porque ${motivos.join('; ')}.`
+      : 'Os números não mudaram entre as duas versões.'
+  };
+}
+
+// ── Inteligência de repetição (regras 24 e 27) ───────────────────────────
+// Dois usos da mesma leitura: sugerir um orçamento anterior parecido para
+// servir de base, e — mais importante — gritar quando o resultado de hoje
+// diverge do de um caso igual, em vez de deixar a diferença passar quieta.
+function orcSemelhantes(alvo, todos){
+  const at = (alvo.resultado || {}).ato || {};
+  const base = orcBasePrincipal(alvo.resultado);
+  return (todos || [])
+    .filter(o => o && o.id !== alvo.id && ((o.resultado || {}).ato || {}).id === at.id)
+    .map(o => {
+      const b = orcBasePrincipal(o.resultado);
+      // Proximidade pela base: dois orçamentos do mesmo ato com bases muito
+      // diferentes não se comparam — faixas diferentes, contas diferentes.
+      const prox = base && b ? Math.min(base, b) / Math.max(base, b) : 0;
+      return {orcamento: o, proximidade: prox};
+    })
+    .filter(x => x.proximidade > 0.5)
+    .sort((x, y) => y.proximidade - x.proximidade);
+}
+function orcBasePrincipal(r){
+  if(!r) return 0;
+  const e = (r.escrituras || [])[0];
+  return e && e.base ? e.base : 0;
+}
+// A divergência que a regra 24 pede: mesmo ato, base na MESMA faixa, e ainda
+// assim total diferente. Aí é regra ou tabela que mudou — e ela precisa ver.
+function orcDivergencias(alvo, todos){
+  const r = alvo.resultado || {};
+  const minhaFaixa = ((r.escrituras || [])[0] || {}).faixa;
+  if(!minhaFaixa) return [];
+  return orcSemelhantes(alvo, todos).map(({orcamento: o}) => {
+    const ro = o.resultado || {};
+    const f = ((ro.escrituras || [])[0] || {}).faixa;
+    if(!f || f.letra !== minhaFaixa.letra) return null;
+    const meu = (r.totais || {}).escritura || 0, dele = (ro.totais || {}).escritura || 0;
+    if(meu === dele) return null;
+    return {
+      orcamento: o,
+      texto: `Em orçamento semelhante de ${finDataBr(o.data)} (${o.casoNome || 'sem card'}), a escritura da mesma `
+           + `faixa ${f.letra} saiu por ${orcMoeda(dele)}. Aqui está dando ${orcMoeda(meu)}. `
+           + 'Confira a versão da tabela e as reduções aplicadas nos dois.'
+    };
+  }).filter(Boolean);
+}
+
+// Identificação inteligente do ato (regra 10): lê o tipo escrito no card e
+// tenta casar com um dos atos. Palpite não é decisão — quando não tem certeza
+// devolve vazio e a tela pergunta, em vez de calcular a coisa errada.
+function orcAdivinharAto(texto){
+  const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if(!t.trim()) return '';
+  const tem = (...ps) => ps.every(p => t.includes(p));
+  if(tem('compra', 'fiducia') || tem('venda', 'fiducia')) return 'compra-venda-fiduciaria';
+  if(tem('venda', 'hipotec')) return 'compra-venda-hipoteca';
+  if(tem('venda', 'resolutiv')) return 'compra-venda-resolutiva';
+  if(tem('venda', 'novacao') || tem('venda', 'confissao')) return 'compra-venda-novacao';
+  if(tem('venda', 'vaga')) return 'compra-venda-vagas';
+  if(tem('doacao', 'usufruto')) return 'doacao-usufruto';
+  if(t.includes('doacao')) return 'doacao';
+  if(tem('inventario', 'desigual') && t.includes('meacao')) return 'inventario-desigual-meacao';
+  if(tem('inventario', 'desigual')) return 'inventario-desigual';
+  if(tem('inventario', 'meacao')) return 'inventario-meacao';
+  if(t.includes('inventario') || t.includes('partilha')) return 'inventario';
+  if(tem('divorcio', 'desigual')) return 'divorcio-partilha-desigual';
+  if(tem('divorcio', 'partilha')) return 'divorcio-partilha';
+  if(t.includes('divorcio')) return 'divorcio';
+  if(t.includes('dacao')) return 'dacao';
+  if(t.includes('confissao')) return 'confissao-divida';
+  if(t.includes('procuracao')) return 'procuracao';
+  if(t.includes('ata notarial') || t.includes('ata ')) return 'ata-notarial';
+  if(t.includes('declaratoria')) return 'escritura-declaratoria';
+  if(t.includes('compra') || t.includes('venda')) return 'compra-venda';
+  return '';
+}
+
+// ── Os status do orçamento (regra 19) ────────────────────────────────────
+const ORC_STATUS = [
+  {id: 'elaboracao', selo: '🟡', rot: 'Em elaboração'},
+  {id: 'aguardando', selo: '🔵', rot: 'Aguardando informação'},
+  {id: 'conferencia',selo: '🟠', rot: 'Aguardando conferência'},
+  {id: 'aprovado',   selo: '🟢', rot: 'Aprovado internamente'},
+  {id: 'enviado',    selo: '🟢', rot: 'Enviado ao cliente'},
+  {id: 'aceito',     selo: '🟣', rot: 'Aprovado pelo cliente'},
+  {id: 'cancelado',  selo: '⚫', rot: 'Cancelado'},
+  {id: 'revisao',    selo: '🔴', rot: 'Necessita revisão'}
+];
+function orcStatus(id){ return ORC_STATUS.find(s => s.id === id) || ORC_STATUS[0]; }
+
+// ══ O AMBIENTE ORÇAMENTOS ════════════════════════════════════════════════
+//
+// Mesma tranca do Financeiro, e pela mesma razão: aqui moram nome de cliente
+// e valor de negócio. A Grazi abre igual à Shirley; sem login não abre.
+const orcRef     = ref(db, 'orcamentos');
+const orcConhRef = ref(db, 'orcamento-conhecimento');
+const orcCfgRef  = ref(db, 'orcamento-config');
+
+let orcTudo = {};          // id → orçamento
+let orcConhecimento = {};  // id → regra aprendida
+let orcCfg = {};           // vigências, UFESP, taxa adicional padrão
+let orcEscutas = [];
+let orcAba = 'lista';
+let orcCasoAberto = null;  // id do caso cuja janela está aberta
+let orcEmEdicao = null;    // rascunho da janela do caso
+let orcVerMemoria = false;
+let orcVerCliente = false;
+let orcRegraAberta = null;
+
+function orcDoCaso(casoId){
+  return Object.values(orcTudo).filter(o => o && o.casoId === casoId)
+    .sort((a, b) => (a.versao || 0) - (b.versao || 0));
+}
+function orcUltimoDoCaso(casoId){
+  const l = orcDoCaso(casoId).filter(o => o.status !== 'cancelado');
+  return l.length ? l[l.length - 1] : null;
+}
+function orcLista(){
+  return Object.values(orcTudo).filter(Boolean)
+    .sort((a, b) => String(b.atualizadoEm || '').localeCompare(String(a.atualizadoEm || '')));
+}
+
+// ── A configuração declarada por ela ─────────────────────────────────────
+// Vigência e UFESP não são palpite do painel: ou ela declara, ou o motor
+// escreve que não sabe. Aplicadas às tabelas assim que chegam do banco.
+function orcAplicarCfg(){
+  ORC_TABELA_NOTAS.vigencia    = (orcCfg.vigenciaNotas || '').trim() || null;
+  ORC_TABELA_REGISTRO.vigencia = (orcCfg.vigenciaRegistro || '').trim() || null;
+  ORC_TRIBUTOS.ufesp = orcCfg.ufesp ? Math.round(finNum(orcCfg.ufesp) * 100) : null;
+}
+function orcTaxaPadrao(){
+  return orcCfg.taxaAdicional != null ? Math.round(finNum(orcCfg.taxaAdicional) * 100) : 30000;
+}
+
+function orcLigarEscuta(){
+  if(orcEscutas.length) return;
+  orcEscutas.push(onValue(orcRef, s => {
+    orcTudo = s.val() || {};
+    orcRedesenhar();
+    orcRedesenharCards();
+  }, () => {}));
+  orcEscutas.push(onValue(orcConhRef, s => {
+    orcConhecimento = s.val() || {};
+    orcRedesenhar();
+  }, () => {}));
+  orcEscutas.push(onValue(orcCfgRef, s => {
+    orcCfg = s.val() || {};
+    orcAplicarCfg();
+    orcRedesenhar();
+  }, () => {}));
+}
+function orcSoltarEscuta(){
+  orcEscutas.forEach(u => {try{ u(); }catch(e){}});
+  orcEscutas = [];
+  orcTudo = {}; orcConhecimento = {}; orcCfg = {};
+  orcAplicarCfg();
+}
+// A carga inicial só entra uma vez, e só se a base estiver vazia: as regras
+// que ela corrigir não podem ser sobrescritas pela carga na próxima abertura.
+// É o mesmo lápis da Rede e da Base de Regras do Radar.
+async function orcSemearConhecimento(){
+  try{
+    const s = await get(orcConhRef);
+    if(s.exists()) return;
+    const agora = new Date().toISOString();
+    const carga = {};
+    Object.keys(ORC_CONHECIMENTO_INICIAL).forEach(k => {
+      carga[k] = {...ORC_CONHECIMENTO_INICIAL[k], id: k, criadoEm: agora, atualizadoEm: agora, validadoPor: ''};
+    });
+    await set(orcConhRef, carga);
+  }catch(e){}
+}
+
+// ── A faixa dentro do card ───────────────────────────────────────────────
+window.orcFaixaDoCaso = function(casoId){
+  if(!finAuth) return `<button type="button" class="cx-btn" onclick="abrirFinanceiro()"><i class="ti ti-calculator"></i> Entrar para orçar</button>
+    <span class="cx-fin-vazio">Entre no Financeiro para fazer e ver orçamentos.</span>`;
+  const o = orcUltimoDoCaso(casoId);
+  if(!o) return `<button type="button" class="cx-btn destaque" onclick="orcNovoDoCaso('${casoId}')"><i class="ti ti-calculator"></i> Novo orçamento</button>
+    <span class="cx-fin-vazio">Nenhum orçamento neste caso.</span>`;
+  const st = orcStatus(o.status);
+  const anteriores = orcDoCaso(casoId).length;
+  const r = o.resultado || {};
+  return `
+    <span class="orc-pill ${o.definitivo ? 'ok' : 'estimativa'}">${st.selo} ${escTxt(st.rot)}</span>
+    <span class="cx-fin-num">Total <b>${orcMoeda((r.totais || {}).total)}</b></span>
+    <span class="cx-fin-num">${finDataBr(o.data)} · versão ${o.versao}</span>
+    <span class="cx-fin-num orc-tabela-mini">${escTxt((r.tabelas && r.tabelas.notas && r.tabelas.notas.versao) || '—')}</span>
+    ${anteriores > 1 ? `<span class="cx-fin-num">${anteriores} versões</span>` : ''}
+    <button type="button" class="cx-btn" onclick="orcAbrirDoCaso('${casoId}','${o.id}')"><i class="ti ti-eye"></i> Ver orçamento</button>
+    <button type="button" class="cx-btn" onclick="orcAbrirMemoria('${casoId}','${o.id}')"><i class="ti ti-search"></i> Ver memória</button>
+    <button type="button" class="cx-btn" onclick="orcAbrirCliente('${casoId}','${o.id}')"><i class="ti ti-file-text"></i> Modo cliente</button>
+    <button type="button" class="cx-btn" onclick="orcDuplicar('${o.id}')"><i class="ti ti-copy"></i> Duplicar</button>
+    <button type="button" class="cx-btn destaque" onclick="orcNovoDoCaso('${casoId}')"><i class="ti ti-plus"></i> Novo</button>`;
+};
+let _orcRedesenhoCards = null;
+function orcRedesenharCards(){
+  clearTimeout(_orcRedesenhoCards);
+  _orcRedesenhoCards = setTimeout(() => {if(typeof renderCasos === 'function') renderCasos();}, 200);
+}
+
+// ── O que o card já sabe (regra 9) ───────────────────────────────────────
+// Nada aqui é digitado duas vezes. O que o card tem entra pronto; o que o
+// questionário da minuta guardou entra como sugestão, com a pergunta original
+// do lado — porque resposta livre de escrevente não é campo de valor, e
+// tratá-la como se fosse seria inventar base de cálculo.
+function orcHerdarDoCaso(casoId){
+  const c = (typeof casos === 'object' && casos[casoId]) || {};
+  const q = c.questionario || {};
+  const sugestoes = [];
+  Object.keys(q).forEach(k => {
+    if(!/valor|preco|preço|negocio|negócio|venal|atribu/.test(k)) return;
+    const n = finNum(q[k]);
+    if(n > 0) sugestoes.push({chave: k, pergunta: k.replace(/-/g, ' '), valor: Math.round(n * 100)});
+  });
+  return {
+    cliente: c.nome || '',
+    tipoAto: c.tipo || '',
+    matricula: c.livro || '',
+    prenotacao: c.prenotacao || '',
+    obs: c.obs || '',
+    sugestoes
+  };
+}
+
+// ── A janela do orçamento, dentro do card ────────────────────────────────
+window.orcNovoDoCaso = function(casoId){
+  const c = (typeof casos === 'object' && casos[casoId]) || {};
+  const h = orcHerdarDoCaso(casoId);
+  const anterior = orcUltimoDoCaso(casoId);
+  orcCasoAberto = casoId;
+  orcVerMemoria = false; orcVerCliente = false;
+  orcEmEdicao = {
+    id: null, casoId, casoNome: c.nome || '',
+    atoId: (anterior && (anterior.entrada || {}).atoId) || orcAdivinharAto(h.tipoAto),
+    data: isoHoje(),
+    praticadoEm: (anterior && (anterior.entrada || {}).praticadoEm) || 'São Paulo',
+    imovelMunicipio: (anterior && (anterior.entrada || {}).imovelMunicipio) || 'São Paulo',
+    imovelUf: (anterior && (anterior.entrada || {}).imovelUf) || 'SP',
+    // Uma versão nova nasce dos valores da anterior — mas RECALCULADA, nunca
+    // copiada: a regra 27 dela é clara em não copiar cegamente, e o resultado
+    // sai da tabela de hoje, não do número que ficou guardado.
+    valores: anterior ? JSON.parse(JSON.stringify((anterior.entrada || {}).valores || {})) : {},
+    flags: anterior ? {...((anterior.entrada || {}).flags || {})} : {},
+    despesas: {prenotacao: true, matricula: true, taxaAdicional: null, taxaAdicionalValor: orcTaxaPadrao()},
+    status: 'elaboracao', obs: '', herdado: h, veioDe: anterior ? anterior.id : null
+  };
+  orcAbrirJanela();
+};
+window.orcAbrirDoCaso = function(casoId, orcId){
+  const o = orcTudo[orcId];
+  if(!o) return;
+  orcCasoAberto = casoId;
+  orcVerMemoria = false; orcVerCliente = false;
+  orcEmEdicao = {
+    id: o.id, casoId, casoNome: o.casoNome || '',
+    ...JSON.parse(JSON.stringify(o.entrada || {})),
+    status: o.status, obs: o.obs || '',
+    herdado: orcHerdarDoCaso(casoId), veioDe: o.veioDe || null, versao: o.versao
+  };
+  orcAbrirJanela();
+};
+window.orcAbrirMemoria = function(casoId, orcId){ orcAbrirDoCaso(casoId, orcId); orcVerMemoria = true; renderOrcamentoDoCaso(); };
+window.orcAbrirCliente = function(casoId, orcId){ orcAbrirDoCaso(casoId, orcId); orcVerCliente = true; renderOrcamentoDoCaso(); };
+function orcAbrirJanela(){
+  document.getElementById('modal-orcamento-caso').classList.add('open');
+  renderOrcamentoDoCaso();
+}
+window.fecharOrcamentoDoCaso = function(){
+  document.getElementById('modal-orcamento-caso').classList.remove('open');
+  orcCasoAberto = null; orcEmEdicao = null; orcVerMemoria = false; orcVerCliente = false;
+};
+
+// O cálculo de agora, a partir do rascunho aberto.
+function orcCalcularRascunho(){
+  const e = orcEmEdicao;
+  if(!e || !e.atoId) return null;
+  return orcCalcular({
+    atoId: e.atoId, data: e.data, praticadoEm: e.praticadoEm,
+    imovelMunicipio: e.imovelMunicipio, imovelUf: e.imovelUf,
+    valores: e.valores, flags: e.flags, despesas: e.despesas
+  });
+}
+
+// ── Os campos ────────────────────────────────────────────────────────────
+function orcCampoDinheiro(chave, rot, valor, dica){
+  return `<div class="orc-campo">
+    <label class="fin-rot">${escTxt(rot)}${dica ? ` <span class="fin-mini">— ${escTxt(dica)}</span>` : ''}</label>
+    <input class="fin-input" inputmode="decimal" value="${valor ? orcBr(valor) : ''}" placeholder="0,00"
+      oninput="orcMudarValor('${chave}',this.value)">
+  </div>`;
+}
+function orcListaHtml(chave, rot, lista){
+  const l = (lista || []).length ? lista : [{rotulo: '', valor: 0}];
+  return `<div class="orc-campo orc-campo-largo">
+    <label class="fin-rot">${escTxt(rot)} <span class="fin-mini">— cada linha cai na sua própria faixa</span></label>
+    ${l.map((x, i) => `<div class="orc-linha-lista">
+      <input class="fin-input" placeholder="Ex: Apartamento 1301" value="${esc(x.rotulo || '')}" oninput="orcMudarItem('${chave}',${i},'rotulo',this.value)">
+      <input class="fin-input" inputmode="decimal" placeholder="0,00" value="${x.valor ? orcBr(x.valor) : ''}" oninput="orcMudarItem('${chave}',${i},'valor',this.value)">
+      <button type="button" class="cx-btn perigo" onclick="orcTirarItem('${chave}',${i})" aria-label="Tirar"><i class="ti ti-x"></i></button>
+    </div>`).join('')}
+    <button type="button" class="cx-btn" onclick="orcMaisItem('${chave}')"><i class="ti ti-plus"></i> Mais uma linha</button>
+  </div>`;
+}
+window.orcMudarValor = function(chave, txt){
+  orcEmEdicao.valores[chave] = orcCent(txt);
+  orcRedesenharResultado();
+};
+window.orcMudarItem = function(chave, i, campo, txt){
+  const l = orcEmEdicao.valores[chave] = orcEmEdicao.valores[chave] || [];
+  l[i] = l[i] || {rotulo: '', valor: 0};
+  l[i][campo] = campo === 'valor' ? orcCent(txt) : txt;
+  orcRedesenharResultado();
+};
+window.orcMaisItem = function(chave){
+  orcEmEdicao.valores[chave] = (orcEmEdicao.valores[chave] || []).concat([{rotulo: '', valor: 0}]);
+  renderOrcamentoDoCaso();
+};
+window.orcTirarItem = function(chave, i){
+  (orcEmEdicao.valores[chave] || []).splice(i, 1);
+  renderOrcamentoDoCaso();
+};
+window.orcMudarFlag = function(chave, valor){
+  orcEmEdicao.flags[chave] = valor;
+  renderOrcamentoDoCaso();
+};
+window.orcMudarFlagNum = function(chave, txt){
+  orcEmEdicao.flags[chave] = /mensal/i.test(chave) ? orcCent(txt) : Math.round(finNum(txt));
+  orcRedesenharResultado();
+};
+window.orcMudarCampoTexto = function(chave, txt){
+  orcEmEdicao[chave] = txt;
+  orcRedesenharResultado();
+};
+window.orcTrocarAto = function(id){
+  orcEmEdicao.atoId = id;
+  renderOrcamentoDoCaso();
+};
+window.orcMudarDespesa = function(chave, valor){
+  if(chave === 'taxaAdicionalValor') orcEmEdicao.despesas[chave] = orcCent(valor);
+  else orcEmEdicao.despesas[chave] = valor;
+  renderOrcamentoDoCaso();
+};
+window.orcUsarSugestao = function(campo, cent){
+  orcEmEdicao.valores[campo] = cent;
+  renderOrcamentoDoCaso();
+};
+
+// ── A tela da janela ─────────────────────────────────────────────────────
+function renderOrcamentoDoCaso(){
+  const alvo = document.getElementById('orc-caso-conteudo');
+  const sub = document.getElementById('orc-caso-sub');
+  if(!alvo || !orcEmEdicao) return;
+  const e = orcEmEdicao;
+  if(sub) sub.textContent = (e.casoNome || 'Sem card')
+    + (e.id ? ` · versão ${e.versao} de ${finDataBr(e.data)}` : ' · novo orçamento');
+
+  const r = orcCalcularRascunho();
+  if(orcVerCliente && r){ alvo.innerHTML = orcHtmlCliente(e, r); return; }
+
+  const ato = orcAto(e.atoId);
+  const grupos = [...new Set(ORC_ATOS.map(a => a.grupo))];
+  const h = e.herdado || {};
+
+  alvo.innerHTML = `
+    ${orcHtmlHerdado(h)}
+    <div class="orc-bloco">
+      <div class="orc-secao"><b>Qual é o ato</b><span>etapa 1</span></div>
+      <select class="fin-select" onchange="orcTrocarAto(this.value)">
+        <option value="">Escolha o ato…</option>
+        ${grupos.map(g => `<optgroup label="${escTxt(g)}">
+          ${ORC_ATOS.filter(a => a.grupo === g).map(a =>
+            `<option value="${a.id}"${e.atoId === a.id ? ' selected' : ''}>${escTxt(a.nome)}</option>`).join('')}
+        </optgroup>`).join('')}
+      </select>
+      ${ato ? `<div class="orc-comoescreveu"><b>Regra de cobrança:</b> ${escTxt(ato.comoElaEscreveu)}</div>` : ''}
+    </div>
+    ${ato ? orcHtmlJurisdicao(e) + orcHtmlValores(e, ato) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
+    <div id="orc-resultado">${r ? orcHtmlResultado(e, r) : '<div class="orc-vazio">Escolha o ato para o motor começar a calcular.</div>'}</div>
+    ${ato ? orcHtmlRodape(e, r) : ''}`;
+}
+window.renderOrcamentoDoCaso = renderOrcamentoDoCaso;
+function orcRedesenharResultado(){
+  const box = document.getElementById('orc-resultado');
+  if(!box) return;
+  const r = orcCalcularRascunho();
+  box.innerHTML = r ? orcHtmlResultado(orcEmEdicao, r) : '';
+}
+
+function orcHtmlHerdado(h){
+  const linhas = [];
+  if(h.cliente) linhas.push(['Cliente', h.cliente]);
+  if(h.tipoAto) linhas.push(['Tipo de ato no card', h.tipoAto]);
+  if(h.matricula) linhas.push(['Livro / matrícula', h.matricula]);
+  if(h.prenotacao) linhas.push(['Prenotação', h.prenotacao]);
+  if(!linhas.length && !(h.sugestoes || []).length) return '';
+  return `<div class="orc-herdado">
+    <div class="orc-herdado-rot"><i class="ti ti-arrow-down-right"></i> Veio do card — não precisa digitar de novo</div>
+    ${linhas.map(([a, b]) => `<span class="orc-herdado-item">${escTxt(a)}: <b>${escTxt(b)}</b></span>`).join('')}
+    ${(h.sugestoes || []).map(s => `<span class="orc-herdado-item sugestao">${escTxt(s.pergunta)}: <b>${orcMoeda(s.valor)}</b>
+      <button type="button" class="cx-btn" onclick="orcUsarSugestao('transacao',${s.valor})">usar como valor do negócio</button></span>`).join('')}
+  </div>`;
+}
+function orcHtmlJurisdicao(e){
+  return `<div class="orc-bloco">
+    <div class="orc-secao"><b>Onde o ato sai, e onde está o imóvel</b><span>etapas 2 a 4</span></div>
+    <div class="orc-grade">
+      <div class="orc-campo"><label class="fin-rot">Ato praticado em</label>
+        <input class="fin-input" value="${esc(e.praticadoEm || '')}" oninput="orcMudarCampoTexto('praticadoEm',this.value)"></div>
+      <div class="orc-campo"><label class="fin-rot">Município do imóvel</label>
+        <input class="fin-input" value="${esc(e.imovelMunicipio || '')}" oninput="orcMudarCampoTexto('imovelMunicipio',this.value)"></div>
+      <div class="orc-campo"><label class="fin-rot">Estado do imóvel</label>
+        <input class="fin-input" maxlength="2" style="text-transform:uppercase" value="${esc(e.imovelUf || '')}" oninput="orcMudarCampoTexto('imovelUf',this.value.toUpperCase())"></div>
+      <div class="orc-campo"><label class="fin-rot">Data considerada do ato</label>
+        <input class="fin-input" type="date" value="${esc(e.data || '')}" onchange="orcMudarCampoTexto('data',this.value)"></div>
+    </div>
+  </div>`;
+}
+function orcHtmlValores(e, ato){
+  const v = e.valores || {};
+  const campos = (ato.campos || []).map(c => {
+    const meta = ORC_CAMPOS[c] || {rot: c};
+    return meta.lista ? orcListaHtml(c, meta.rot, v[c]) : orcCampoDinheiro(c, meta.rot, v[c]);
+  }).join('');
+  if(!campos) return '';
+  return `<div class="orc-bloco">
+    <div class="orc-secao"><b>Base de cálculo</b><span>etapa 10</span></div>
+    <div class="orc-grade">${campos}</div>
+  </div>`;
+}
+// As perguntas que só alguns atos fazem. A regra 11 dela: só o que falta, e
+// só quando falta — formulário enorme é o que ela pediu para não existir.
+function orcHtmlEspeciais(e, ato){
+  const f = e.flags || {};
+  const p = ato.perguntas || [];
+  const bits = [];
+  if(p.includes('excedenteOneroso'))
+    bits.push(`<div class="orc-campo"><label class="fin-rot">O quinhão excedente é</label>
+      <select class="fin-select" onchange="orcMudarFlag('excedenteOneroso',this.value==='1')">
+        <option value="0"${f.excedenteOneroso ? '' : ' selected'}>Gratuito — ITCMD de 4%</option>
+        <option value="1"${f.excedenteOneroso ? ' selected' : ''}>Oneroso — ITBI de 3%</option>
+      </select></div>`);
+  if(p.includes('diligencia'))
+    bits.push(`<div class="orc-campo"><label class="fin-rot">Onde o ato é praticado</label>
+      <select class="fin-select" onchange="orcMudarFlag('diligencia',this.value==='1')">
+        <option value="0"${f.diligencia ? '' : ' selected'}>No tabelionato ou por vídeo</option>
+        <option value="1"${f.diligencia ? ' selected' : ''}>Em diligência — o valor dobra</option>
+      </select></div>`);
+  if(p.includes('folhas'))
+    bits.push(`<div class="orc-campo"><label class="fin-rot">Folhas da ata <span class="fin-mini">— cada frente e cada verso</span></label>
+      <input class="fin-input" inputmode="numeric" value="${f.folhas || 1}" oninput="orcMudarFlagNum('folhas',this.value)"></div>`);
+  if(p.includes('outorgantes'))
+    bits.push(`<div class="orc-campo"><label class="fin-rot">Outorgantes <span class="fin-mini">— o casal conta como um</span></label>
+      <input class="fin-input" inputmode="numeric" value="${f.outorgantes || 1}" oninput="orcMudarFlagNum('outorgantes',this.value)"></div>`);
+  if(ato.grupo === 'Divórcio'){
+    bits.push(`<div class="orc-campo"><label class="fin-rot">Tem pensão?</label>
+      <select class="fin-select" onchange="orcMudarFlag('temPensao',this.value==='1')">
+        <option value="0"${f.temPensao ? '' : ' selected'}>Não</option>
+        <option value="1"${f.temPensao ? ' selected' : ''}>Sim — acresce base à escritura</option>
+      </select></div>`);
+    if(f.temPensao){
+      bits.push(`<div class="orc-campo"><label class="fin-rot">Pensão mensal</label>
+        <input class="fin-input" inputmode="decimal" value="${f.pensaoMensal ? orcBr(f.pensaoMensal) : ''}" oninput="orcMudarFlagNum('pensaoMensal',this.value)"></div>`);
+      bits.push(`<div class="orc-campo"><label class="fin-rot">Meses estipulados <span class="fin-mini">— vazio usa 12</span></label>
+        <input class="fin-input" inputmode="numeric" value="${f.pensaoMeses || ''}" placeholder="12" oninput="orcMudarFlagNum('pensaoMeses',this.value)"></div>`);
+    }
+  }
+  // Os itens especiais valem para qualquer escritura com valor declarado.
+  if((ato.campos || []).length)
+    bits.push(`<div class="orc-campo orc-campo-largo"><label class="fin-rot">Regra especial da tabela</label>
+      <select class="fin-select" onchange="orcMudarRegraEspecial(this.value)">
+        <option value=""${!f.zeis && !f.fgtsOuHis && !f.regularizacaoFundiaria ? ' selected' : ''}>Nenhuma — faixa normal da tabela</option>
+        <option value="zeis"${f.zeis ? ' selected' : ''}>Primeira alienação em empreendimento de interesse social em ZEIS (item 1.4)</option>
+        <option value="fgtsOuHis"${f.fgtsOuHis ? ' selected' : ''}>Imóvel FGTS ou programa habitacional de interesse social (item 1.3)</option>
+        <option value="regularizacaoFundiaria"${f.regularizacaoFundiaria ? ' selected' : ''}>Regularização fundiária de interesse social (item 1.2)</option>
+      </select></div>`);
+  if((ato.montar && (ato.id.indexOf('compra-venda') === 0 || ato.id === 'dacao')))
+    bits.push(`<div class="orc-campo"><label class="fin-rot">Imóvel residencial?</label>
+      <select class="fin-select" onchange="orcMudarFlag('residencial',this.value==='1')">
+        <option value="0"${f.residencial ? '' : ' selected'}>Não / não sei</option>
+        <option value="1"${f.residencial ? ' selected' : ''}>Sim — o motor confere o teto de isenção do ITBI</option>
+      </select></div>`);
+  if(!bits.length) return '';
+  return `<div class="orc-bloco">
+    <div class="orc-secao"><b>O que falta para concluir</b><span>etapas 9 e 13</span></div>
+    <div class="orc-grade">${bits.join('')}</div></div>`;
+}
+window.orcMudarRegraEspecial = function(qual){
+  const f = orcEmEdicao.flags;
+  f.zeis = qual === 'zeis';
+  f.fgtsOuHis = qual === 'fgtsOuHis';
+  f.regularizacaoFundiaria = qual === 'regularizacaoFundiaria';
+  renderOrcamentoDoCaso();
+};
+function orcHtmlDespesas(e, r){
+  if(!r || !r.registros.length) return '';
+  const d = e.despesas || {};
+  return `<div class="orc-bloco">
+    <div class="orc-secao"><b>Despesas do registro</b><span>etapa 14</span></div>
+    <div class="orc-grade">
+      <div class="orc-campo"><label class="fin-rot">Prenotação</label>
+        <select class="fin-select" onchange="orcMudarDespesa('prenotacao',this.value==='1')">
+          <option value="1"${d.prenotacao !== false ? ' selected' : ''}>Incluir — ${orcMoeda(ORC_TABELA_REGISTRO.itens['12'].valor)}</option>
+          <option value="0"${d.prenotacao === false ? ' selected' : ''}>Não incluir</option></select></div>
+      <div class="orc-campo"><label class="fin-rot">Matrícula</label>
+        <select class="fin-select" onchange="orcMudarDespesa('matricula',this.value==='1')">
+          <option value="1"${d.matricula !== false ? ' selected' : ''}>Incluir — ${orcMoeda(ORC_TABELA_REGISTRO.itens['11'].valor)}</option>
+          <option value="0"${d.matricula === false ? ' selected' : ''}>Não incluir</option></select></div>
+      <div class="orc-campo orc-campo-largo orc-taxa">
+        <label class="fin-rot">Deseja incluir taxa adicional nas despesas do registro?
+          <span class="fin-mini">— nunca entra sozinha, e no orçamento do cliente vai somada ao registro</span></label>
+        <div class="orc-taxa-linha">
+          <button type="button" class="cx-btn${d.taxaAdicional === true ? ' destaque' : ''}" onclick="orcMudarDespesa('taxaAdicional',true)">Sim</button>
+          <button type="button" class="cx-btn${d.taxaAdicional === false ? ' destaque' : ''}" onclick="orcMudarDespesa('taxaAdicional',false)">Não</button>
+          ${d.taxaAdicional === true ? `<input class="fin-input" style="width:130px" inputmode="decimal"
+            value="${orcBr(d.taxaAdicionalValor != null ? d.taxaAdicionalValor : orcTaxaPadrao())}"
+            oninput="orcMudarDespesa('taxaAdicionalValor',this.value)">` : ''}
+          ${d.taxaAdicional == null ? '<span class="orc-aviso-inline">Ainda não respondida — o orçamento não fecha sem isso.</span>' : ''}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── O resultado, a memória e os avisos ───────────────────────────────────
+function orcHtmlResultado(e, r){
+  const t = r.totais;
+  const anterior = e.veioDe ? orcTudo[e.veioDe] : null;
+  const cmp = anterior ? orcComparar(anterior, {resultado: r}) : null;
+  const divs = orcDivergencias({id: e.id, resultado: r, data: e.data, casoNome: e.casoNome}, orcLista());
+  return `
+    <div class="orc-total ${r.definitivo ? '' : 'estimativa'}">
+      <div class="orc-total-num">${orcMoeda(t.total)}</div>
+      <div class="orc-total-rot">${r.definitivo ? 'Total conferido' : 'Estimativa — o CHECK FINAL ainda não fecha'}</div>
+    </div>
+    <div class="orc-resumo">
+      <span class="orc-resumo-item">Escritura <b>${orcMoeda(t.escritura)}</b></span>
+      <span class="orc-resumo-item">Registro <b>${orcMoeda(t.registro)}</b></span>
+      <span class="orc-resumo-item">Despesas <b>${orcMoeda(t.despesas)}</b></span>
+      <span class="orc-resumo-item">Tributos <b>${orcMoeda(t.tributos)}</b></span>
+    </div>
+    ${r.faltando.length ? `<div class="orc-perguntas">
+      <div class="orc-perguntas-rot">Para finalizar o orçamento, preciso confirmar:</div>
+      ${r.faltando.map(f => `<div class="orc-pergunta">${escTxt(f.pergunta)}</div>`).join('')}
+    </div>` : ''}
+    ${r.alertas.length ? `<div class="orc-alertas">
+      ${r.alertas.map(a => `<div class="orc-alerta ${a.nivel === 'bloqueia' ? 'grave' : ''}">
+        <span class="orc-selo">${ORC_CONFIANCAS[a.confianca].selo}</span> ${escTxt(a.texto)}</div>`).join('')}
+    </div>` : ''}
+    ${divs.length ? `<div class="orc-alertas">${divs.map(d => `<div class="orc-alerta grave">
+      <b>⚠️ Divergência com orçamento anterior.</b> ${escTxt(d.texto)}</div>`).join('')}</div>` : ''}
+    ${cmp ? `<div class="orc-comparacao">
+      <div class="orc-cmp-linha"><span>Orçamento anterior (versão ${anterior.versao})</span><b>${orcMoeda(cmp.antesTotal)}</b></div>
+      <div class="orc-cmp-linha"><span>Este orçamento</span><b>${orcMoeda(cmp.depoisTotal)}</b></div>
+      <div class="orc-cmp-linha destaque"><span>Diferença</span><b>${cmp.diferenca >= 0 ? '+ ' : '− '}${orcMoeda(Math.abs(cmp.diferenca))}</b></div>
+      <div class="orc-cmp-motivo">${escTxt(cmp.frase)}</div>
+    </div>` : ''}
+    <div class="orc-botoes-memoria">
+      <button type="button" class="cx-btn${orcVerMemoria ? ' destaque' : ''}" onclick="orcAlternarMemoria()">
+        <i class="ti ti-search"></i> ${orcVerMemoria ? 'Fechar memória' : 'Ver memória de cálculo'}</button>
+      <button type="button" class="cx-btn" onclick="orcAlternarCliente()"><i class="ti ti-file-text"></i> Gerar orçamento para cliente</button>
+    </div>
+    ${orcVerMemoria ? orcHtmlMemoria(r) : ''}
+    ${orcHtmlCheck(r)}`;
+}
+window.orcAlternarMemoria = function(){ orcVerMemoria = !orcVerMemoria; orcRedesenharResultado(); };
+window.orcAlternarCliente = function(){ orcVerCliente = true; renderOrcamentoDoCaso(); };
+window.orcVoltarDoCliente = function(){ orcVerCliente = false; renderOrcamentoDoCaso(); };
+
+// A memória: de onde saiu cada número. É a tela que a regra 14 pede, e é
+// também a que faz a diferença entre confiar no painel e conferir de novo à
+// mão — por isso cada linha diz o item da tabela, a faixa e o fundamento.
+function orcHtmlMemoria(r){
+  const linha = l => `<div class="orc-mem-linha">
+    <div class="orc-mem-rot">${escTxt(l.rot)}</div>
+    <div class="orc-mem-detalhe">
+      <span>Item da tabela: <b>${escTxt(l.item || '—')}</b></span>
+      ${l.base != null ? `<span>Base utilizada: <b>${orcMoeda(l.base)}</b></span>` : ''}
+      ${l.faixa ? `<span>Faixa <b>${l.faixa.letra}</b> — de ${orcMoeda(l.faixa.de)} até ${l.faixa.ate == null ? 'sem teto' : orcMoeda(l.faixa.ate)}</span>` : ''}
+      <span>Valor da tabela: <b>${orcMoeda(l.tabela)}</b></span>
+      ${l.reducao ? `<span>Redução: <b>${l.reducao}%</b> <span class="fin-mini">(arredondada ao centavo)</span></span>` : ''}
+      ${l.diligencia ? '<span>Diligência: <b>valor dobrado</b></span>' : ''}
+      <span class="orc-mem-res">Resultado: <b>${orcMoeda(l.valor)}</b></span>
+    </div>
+    ${l.fundamento ? `<div class="orc-mem-fund">${escTxt(l.fundamento)}</div>` : ''}
+    ${(l.avisos || []).map(a => `<div class="orc-mem-aviso">${ORC_CONFIANCAS[a.confianca].selo} ${escTxt(a.texto)}</div>`).join('')}
+  </div>`;
+  const tributo = t => `<div class="orc-mem-linha">
+    <div class="orc-mem-rot">${escTxt(t.rot)}</div>
+    <div class="orc-mem-detalhe">
+      <span>Base: <b>${orcMoeda(t.base)}</b></span>
+      <span>Alíquota: <b>${finPct(t.aliquota)}%</b></span>
+      <span class="orc-mem-res">Resultado: <b>${t.valor == null ? 'não calculado' : orcMoeda(t.valor)}</b></span>
+    </div>
+    <div class="orc-mem-fund">${escTxt(t.fundamento)}</div>
+    ${(t.avisos || []).map(a => `<div class="orc-mem-aviso">${ORC_CONFIANCAS[a.confianca].selo} ${escTxt(a.texto)}</div>`).join('')}
+  </div>`;
+  const secao = (rot, corpo, total) => corpo
+    ? `<div class="orc-mem-secao"><div class="orc-mem-secao-rot">${rot}<b>${orcMoeda(total)}</b></div>${corpo}</div>` : '';
+  return `<div class="orc-memoria">
+    <div class="orc-mem-cabeca">
+      <div><b>Tabela utilizada</b><br>${escTxt(ORC_TABELA_NOTAS.nome)}<br>${escTxt(ORC_TABELA_REGISTRO.nome)}</div>
+      <div><b>Versão</b><br>${escTxt(ORC_TABELA_NOTAS.versao)}</div>
+      <div><b>Vigência</b><br>${ORC_TABELA_NOTAS.vigencia ? escTxt(ORC_TABELA_NOTAS.vigencia) : '<span class="orc-falta">não declarada</span>'}</div>
+      <div><b>Data do ato considerada</b><br>${finDataBr(r.data)}</div>
+      <div><b>Serventia</b><br>Ato em ${escTxt(r.praticadoEm || '—')} · imóvel em ${escTxt(r.imovelMunicipio || '—')}/${escTxt(r.imovelUf || '—')}</div>
+      <div><b>Fonte</b><br>${escTxt(ORC_TABELA_NOTAS.fonte)}</div>
+    </div>
+    ${secao('Escritura', r.escrituras.map(linha).join(''), r.totais.escritura)}
+    ${secao('Registro', r.registros.map(linha).join(''), r.totais.registro)}
+    ${secao('Tributos', r.tributos.map(tributo).join(''), r.totais.tributos)}
+    ${secao('Despesas', r.despesas.map(d => `<div class="orc-mem-linha">
+      <div class="orc-mem-rot">${escTxt(d.rot)}${d.interna ? ' <span class="fin-mini">— interna, some do modo cliente</span>' : ''}</div>
+      <div class="orc-mem-detalhe">
+        <span>Item da tabela: <b>${escTxt(d.item || '—')}</b></span>
+        <span class="orc-mem-res">Resultado: <b>${orcMoeda(d.valor)}</b></span></div>
+      <div class="orc-mem-fund">${escTxt(d.fundamento)}</div>
+      ${(d.avisos || []).map(a => `<div class="orc-mem-aviso">${ORC_CONFIANCAS[a.confianca].selo} ${escTxt(a.texto)}</div>`).join('')}
+    </div>`).join(''), r.totais.despesas)}
+    <div class="orc-mem-total"><span>TOTAL</span><b>${orcMoeda(r.totais.total)}</b></div>
+  </div>`;
+}
+function orcHtmlCheck(r){
+  const falta = r.check.filter(c => c.estado === 'falta').length;
+  return `<div class="orc-check">
+    <div class="orc-check-rot">CHECK FINAL ${falta ? `<span class="orc-falta">${falta} item(ns) travando</span>` : '<span class="orc-ok">tudo conferido</span>'}</div>
+    ${r.check.map(c => `<div class="orc-check-linha ${c.estado}">
+      <span class="orc-check-caixa">${c.estado === 'ok' ? '☑' : c.estado === 'confirmar' ? '⚠' : '☐'}</span>
+      <span class="orc-check-nome">${escTxt(c.rot)}</span>
+      <span class="orc-check-nota">${escTxt(c.nota)}</span></div>`).join('')}
+  </div>`;
+}
+
+// ── O modo cliente (regra 15) ────────────────────────────────────────────
+// Limpo de propósito: sem fórmula, sem faixa, sem hipótese. A taxa adicional
+// não some da conta — some da vista, somada ao registro, que é o que ela
+// pediu. O texto nasce selecionável para ir direto para o WhatsApp.
+function orcHtmlCliente(e, r){
+  const linhas = [];
+  if(r.totais.escritura) linhas.push(['ESCRITURA', r.totais.escritura]);
+  if(r.totais.registro)  linhas.push(['REGISTRO', r.totais.registroComDespesas]);
+  r.despesas.filter(d => !d.interna).forEach(d => linhas.push([d.rot.toUpperCase(), d.valor]));
+  r.tributos.forEach(t => {if(t.valor != null) linhas.push([t.rot.toUpperCase(), t.valor]);});
+  const base = orcBasePrincipal(r);
+  return `
+    <div class="orc-cliente" id="orc-cliente-folha">
+      <div class="orc-cli-titulo">ESTIMATIVA DE CUSTOS</div>
+      <div class="orc-cli-caso">${escTxt(e.casoNome || '')}</div>
+      <div class="orc-cli-ato">${escTxt(r.ato.nome)}</div>
+      ${base ? `<div class="orc-cli-base">BASE CONSIDERADA<span>${orcMoeda(base)}</span></div>` : ''}
+      <table class="orc-cli-tabela">
+        <thead><tr><th>CUSTO</th><th>VALOR</th></tr></thead>
+        <tbody>${linhas.map(([a, b]) => `<tr><td>${escTxt(a)}</td><td>${orcMoeda(b)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td>TOTAL ESTIMADO</td><td>${orcMoeda(r.totais.total)}</td></tr></tfoot>
+      </table>
+      <div class="orc-cli-nota">Valores estimados, sujeitos a atualização conforme tabela vigente,
+        documentos apresentados e eventuais particularidades do ato.</div>
+    </div>
+    <div class="modal-btn-row">
+      <button type="button" class="btn-cancel" onclick="orcVoltarDoCliente()">Voltar ao orçamento</button>
+      <button type="button" class="cx-btn" onclick="orcCopiarCliente()"><i class="ti ti-copy"></i> Copiar texto</button>
+      <button type="button" class="cx-btn" onclick="window.print()"><i class="ti ti-printer"></i> Gerar PDF</button>
+    </div>`;
+}
+window.orcCopiarCliente = function(){
+  const el = document.getElementById('orc-cliente-folha');
+  if(!el) return;
+  const txt = el.innerText.replace(/\n{3,}/g, '\n\n').trim();
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
+    .then(() => finToast('Orçamento copiado — é só colar.'))
+    .catch(() => finToast('Não consegui copiar. Selecione o texto e copie à mão.'));
+};
+
+// ── Gravar ───────────────────────────────────────────────────────────────
+function orcHtmlRodape(e, r){
+  const podeCorrigir = e.id && e.status === 'elaboracao';
+  return `<div class="orc-bloco">
+    <div class="orc-grade">
+      <div class="orc-campo"><label class="fin-rot">Status do orçamento</label>
+        <select class="fin-select" onchange="orcMudarCampoTexto('status',this.value)">
+          ${ORC_STATUS.map(s => `<option value="${s.id}"${e.status === s.id ? ' selected' : ''}>${s.selo} ${escTxt(s.rot)}</option>`).join('')}
+        </select></div>
+      <div class="orc-campo"><label class="fin-rot">Responsável</label>
+        <input class="fin-input" value="${esc(e.responsavel || localStorage.getItem('painel_usuario') || '')}" oninput="orcMudarCampoTexto('responsavel',this.value)"></div>
+      <div class="orc-campo orc-campo-largo"><label class="fin-rot">Observações</label>
+        <input class="fin-input" value="${esc(e.obs || '')}" placeholder="O que este orçamento tem de particular" oninput="orcMudarCampoTexto('obs',this.value)"></div>
+    </div>
+    <div class="modal-btn-row">
+      <button type="button" class="btn-cancel" onclick="fecharOrcamentoDoCaso()">Fechar</button>
+      ${podeCorrigir ? '<button type="button" class="cx-btn" onclick="orcSalvar(false)">Corrigir esta versão</button>' : ''}
+      <button type="button" class="btn-save" onclick="orcSalvar(true)">
+        ${e.id ? 'Salvar como nova versão' : 'Salvar orçamento'}</button>
+    </div>
+    ${r && !r.definitivo ? '<div class="orc-aviso-rodape">Este orçamento vai ficar marcado como <b>estimativa</b>: o CHECK FINAL ainda tem item pendente.</div>' : ''}
+  </div>`;
+}
+window.orcSalvar = function(novaVersao){
+  const e = orcEmEdicao;
+  if(!e || !e.atoId){ finToast('Escolha o ato antes de salvar.'); return; }
+  const r = orcCalcularRascunho();
+  const agora = new Date().toISOString();
+  const entrada = {
+    atoId: e.atoId, data: e.data, praticadoEm: e.praticadoEm,
+    imovelMunicipio: e.imovelMunicipio, imovelUf: e.imovelUf,
+    valores: e.valores, flags: e.flags, despesas: e.despesas
+  };
+  const irmãos = orcDoCaso(e.casoId);
+  const dados = {
+    casoId: e.casoId, casoNome: e.casoNome,
+    data: e.data, status: e.status || 'elaboracao', obs: e.obs || '',
+    responsavel: e.responsavel || localStorage.getItem('painel_usuario') || '',
+    entrada,
+    // O resultado fica gravado inteiro: a versão 01 tem de continuar mostrando
+    // o número que ela mostrou no dia, mesmo depois de a tabela mudar. É o que
+    // permite comparar versões sem que a comparação minta.
+    resultado: r,
+    definitivo: !!(r && r.definitivo),
+    tabelaVersao: ORC_TABELA_NOTAS.versao,
+    atualizadoEm: agora
+  };
+  if(e.id && !novaVersao){
+    update(ref(db, 'orcamentos/' + e.id), dados);
+    finToast('Versão corrigida.');
+  }else{
+    const nr = push(orcRef);
+    dados.id = nr.key;
+    dados.versao = (irmãos.length ? Math.max(...irmãos.map(o => o.versao || 0)) : 0) + 1;
+    dados.veioDe = e.id || e.veioDe || null;
+    dados.criadoEm = agora;
+    set(nr, dados);
+    orcEmEdicao.id = nr.key;
+    orcEmEdicao.versao = dados.versao;
+    orcEmEdicao.veioDe = dados.veioDe;
+    finToast(`Orçamento ${String(dados.versao).padStart(2, '0')} salvo.`);
+  }
+  renderOrcamentoDoCaso();
+};
+window.orcDuplicar = function(orcId){
+  const o = orcTudo[orcId];
+  if(!o) return;
+  orcCasoAberto = o.casoId;
+  orcVerMemoria = false; orcVerCliente = false;
+  orcEmEdicao = {
+    id: null, casoId: o.casoId, casoNome: o.casoNome,
+    ...JSON.parse(JSON.stringify(o.entrada || {})),
+    data: isoHoje(), status: 'elaboracao', obs: '',
+    herdado: orcHerdarDoCaso(o.casoId), veioDe: o.id
+  };
+  // Duplicar não copia número: a data vira hoje e a conta é refeita na tabela
+  // de agora. É o "nunca copiar cegamente" da regra 27.
+  orcAbrirJanela();
+  finToast('Duplicado — recalculado na tabela de hoje.');
+};
+window.orcExcluir = function(orcId){
+  const o = orcTudo[orcId] || {};
+  if(!confirm(`Excluir o orçamento ${String(o.versao || '').padStart(2, '0')} de ${o.casoNome || ''}? Isso não volta.`)) return;
+  remove(ref(db, 'orcamentos/' + orcId));
+  finToast('Orçamento excluído.');
+};
+
+// ══ A TELA DO AMBIENTE ═══════════════════════════════════════════════════
+window.abrirOrcamentos = async function(aba){
+  document.getElementById('modal-orcamentos').classList.add('open');
+  if(aba) orcAba = aba;
+  renderOrcamentos();
+  await orcSemearConhecimento();
+  renderOrcamentos();
+};
+window.fecharOrcamentos = function(){ document.getElementById('modal-orcamentos').classList.remove('open'); };
+window.orcIrPara = function(qual){ orcAba = qual; renderOrcamentos(); };
+function orcRedesenhar(){
+  const m = document.getElementById('modal-orcamentos');
+  if(m && m.classList.contains('open')) renderOrcamentos();
+  const j = document.getElementById('modal-orcamento-caso');
+  if(j && j.classList.contains('open') && orcEmEdicao) renderOrcamentoDoCaso();
+}
+
+function renderOrcamentos(){
+  const alvo = document.getElementById('orc-conteudo');
+  if(!alvo) return;
+  document.querySelectorAll('#modal-orcamentos .fin-aba').forEach(b =>
+    b.classList.toggle('ativa', b.dataset.orcAba === orcAba));
+  if(!finAuth){
+    alvo.innerHTML = `<div class="orc-vazio">O ambiente de orçamentos é fechado, como o Financeiro:
+      aqui moram nome de cliente e valor de negócio.
+      <button type="button" class="btn-save" style="margin-top:12px" onclick="abrirFinanceiro()">Entrar</button></div>`;
+    return;
+  }
+  alvo.innerHTML = orcAba === 'conhecimento' ? orcHtmlConhecimento()
+                 : orcAba === 'tabelas'      ? orcHtmlTabelas()
+                 : orcHtmlListaOrcamentos();
+}
+window.renderOrcamentos = renderOrcamentos;
+
+function orcHtmlListaOrcamentos(){
+  const l = orcLista();
+  if(!l.length) return `<div class="orc-vazio">Nenhum orçamento ainda. Eles nascem no card:
+    abra um caso e clique em <b>Novo orçamento</b>, dentro da faixa 💰 Orçamento.</div>`;
+  // Agrupado por caso, porque um caso tem várias versões e a pergunta dela
+  // nunca é "qual foi o último orçamento do painel" — é "como está o do fulano".
+  const porCaso = {};
+  l.forEach(o => {(porCaso[o.casoId || 'sem'] = porCaso[o.casoId || 'sem'] || []).push(o);});
+  return Object.keys(porCaso).map(cid => {
+    const versoes = porCaso[cid].slice().sort((a, b) => (b.versao || 0) - (a.versao || 0));
+    const topo = versoes[0];
+    return `<div class="orc-caso-bloco">
+      <div class="orc-caso-cabeca">
+        <span class="orc-caso-nome">${escTxt(topo.casoNome || 'Sem card')}</span>
+        <span class="orc-caso-ato">${escTxt(((topo.resultado || {}).ato || {}).nome || '—')}</span>
+      </div>
+      ${versoes.map(o => {
+        const st = orcStatus(o.status);
+        const r = o.resultado || {};
+        return `<div class="orc-versao">
+          <span class="orc-versao-num">ORÇAMENTO ${String(o.versao || 1).padStart(2, '0')}</span>
+          <span class="orc-versao-data">${finDataBr(o.data)}</span>
+          <span class="orc-versao-total">${orcMoeda((r.totais || {}).total)}</span>
+          <span class="orc-pill ${o.definitivo ? 'ok' : 'estimativa'}">${st.selo} ${escTxt(st.rot)}</span>
+          <span class="orc-versao-tab">${escTxt(o.tabelaVersao || '—')}</span>
+          <span class="orc-versao-acoes">
+            <button type="button" class="cx-btn" onclick="orcAbrirDoCaso('${o.casoId}','${o.id}')">Ver</button>
+            <button type="button" class="cx-btn" onclick="orcAbrirMemoria('${o.casoId}','${o.id}')">Memória</button>
+            <button type="button" class="cx-btn" onclick="orcAbrirCliente('${o.casoId}','${o.id}')">Cliente</button>
+            <button type="button" class="cx-btn" onclick="orcDuplicar('${o.id}')">Duplicar</button>
+            ${o.status === 'aceito' ? `<button type="button" class="cx-btn destaque" onclick="orcParaFinanceiro('${o.id}')"><i class="ti ti-currency-real"></i> Escritura assinada</button>` : ''}
+            <button type="button" class="cx-btn perigo" onclick="orcExcluir('${o.id}')">Excluir</button>
+          </span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ── 🧠 Conhecimento aprendido (regra 22) ─────────────────────────────────
+function orcHtmlConhecimento(){
+  const regras = Object.values(orcConhecimento).filter(Boolean)
+    .sort((a, b) => (ORC_CONFIANCAS[a.confianca] || {}).ordem - (ORC_CONFIANCAS[b.confianca] || {}).ordem);
+  const contagem = {};
+  regras.forEach(r => {contagem[r.confianca] = (contagem[r.confianca] || 0) + 1;});
+  return `<div class="orc-conh-topo">
+      ${Object.keys(ORC_CONFIANCAS).filter(k => contagem[k]).map(k =>
+        `<span class="orc-selo-pill ${k}">${ORC_CONFIANCAS[k].selo} ${contagem[k]} ${escTxt(ORC_CONFIANCAS[k].rot.toLowerCase())}</span>`).join('')}
+      <button type="button" class="cx-btn" onclick="orcNovaRegra()"><i class="ti ti-plus"></i> Anotar uma regra</button>
+    </div>
+    <div class="orc-conh-nota">A ordem é sempre a mesma: fonte oficial vence regra normativa, que vence regra
+      validada por você, que vence padrão aprendido, que vence hipótese. Nada sobe de degrau sozinho —
+      uma hipótese só vira regra quando você confirma, e a confirmação fica datada.</div>
+    ${regras.map(r => {
+      const c = ORC_CONFIANCAS[r.confianca] || ORC_CONFIANCAS.incerta;
+      const aberta = orcRegraAberta === r.id;
+      return `<div class="orc-regra ${r.confianca}">
+        <div class="orc-regra-cabeca" onclick="orcVerRegra('${r.id}')">
+          <span class="orc-selo">${c.selo}</span>
+          <span class="orc-regra-texto">${escTxt(r.regra)}</span>
+          <span class="orc-regra-conf">${escTxt(c.rot)}</span>
+        </div>
+        ${aberta ? `<div class="orc-regra-corpo">
+          <div class="orc-regra-campo"><b>Origem</b> ${escTxt(r.origem || '—')}</div>
+          <div class="orc-regra-campo"><b>Última atualização</b> ${finDataBr(r.atualizadoEm)}${r.validadoPor ? ' · validada por ' + escTxt(r.validadoPor) : ''}</div>
+          ${(r.exemplos || []).length ? `<div class="orc-regra-campo"><b>Exemplos que a sustentam</b>
+            <ul>${r.exemplos.map(x => `<li>${escTxt(x)}</li>`).join('')}</ul></div>` : ''}
+          ${r.aberto ? `<div class="orc-regra-aberto"><b>Em aberto</b> ${escTxt(r.aberto)}</div>` : ''}
+          <div class="orc-regra-botoes">
+            ${r.confianca !== 'confirmada'
+              ? `<button type="button" class="cx-btn destaque" onclick="orcValidarRegra('${r.id}')"><i class="ti ti-check"></i> Confirmar como regra</button>` : ''}
+            ${r.confianca !== 'incerta'
+              ? `<button type="button" class="cx-btn" onclick="orcDuvidarRegra('${r.id}')"><i class="ti ti-help"></i> Marcar como incerta</button>` : ''}
+            <button type="button" class="cx-btn perigo" onclick="orcApagarRegra('${r.id}')"><i class="ti ti-trash"></i> Apagar</button>
+          </div>
+        </div>` : ''}
+      </div>`;
+    }).join('')}`;
+}
+window.orcVerRegra = function(id){ orcRegraAberta = orcRegraAberta === id ? null : id; renderOrcamentos(); };
+window.orcValidarRegra = function(id){
+  const quem = localStorage.getItem('painel_usuario') || 'você';
+  update(ref(db, 'orcamento-conhecimento/' + id),
+    {confianca: 'confirmada', validadoPor: quem, atualizadoEm: new Date().toISOString()});
+  finToast('REGRA VALIDADA E INCORPORADA À BASE DE CONHECIMENTO.');
+};
+window.orcDuvidarRegra = function(id){
+  update(ref(db, 'orcamento-conhecimento/' + id),
+    {confianca: 'incerta', atualizadoEm: new Date().toISOString()});
+  finToast('Marcada como incerta — o motor deixa de tratá-la como definitiva.');
+};
+window.orcApagarRegra = function(id){
+  const r = orcConhecimento[id] || {};
+  if(!confirm(`Apagar a regra "${(r.regra || '').slice(0, 60)}…"?`)) return;
+  remove(ref(db, 'orcamento-conhecimento/' + id));
+};
+window.orcNovaRegra = function(){
+  const texto = prompt('Escreva a regra, do jeito que você diria à Grazi:');
+  if(!texto || !texto.trim()) return;
+  const origem = prompt('De onde ela vem? (tabela, lei, sua orientação, exemplos anteriores)') || 'Orientação da Shirley.';
+  const nr = push(orcConhRef);
+  const agora = new Date().toISOString();
+  set(nr, {id: nr.key, regra: texto.trim(), origem: origem.trim(),
+    confianca: 'confirmada', tipo: 'regra', criadoEm: agora, atualizadoEm: agora,
+    validadoPor: localStorage.getItem('painel_usuario') || 'Shirley'});
+  finToast('Regra anotada.');
+};
+
+// ── As tabelas e a vigência (regra 13) ───────────────────────────────────
+function orcHtmlTabelas(){
+  const t = (tab, campo, rot) => `<div class="orc-tab-bloco">
+    <div class="orc-tab-nome">${escTxt(tab.nome)}</div>
+    <div class="orc-tab-linha"><span>Fonte</span><b>${escTxt(tab.fonte)}</b></div>
+    <div class="orc-tab-linha"><span>Versão</span><b>${escTxt(tab.versao)}</b></div>
+    <div class="orc-tab-linha"><span>Faixas carregadas</span><b>${(tab.faixas || []).length}</b></div>
+    <div class="orc-tab-linha"><span>Vigência</span>
+      <input class="fin-input" style="max-width:280px" placeholder="Ex: a partir de 01/01/2026"
+        value="${esc(orcCfg[campo] || '')}" onchange="orcSalvarCfg('${campo}',this.value)"></div>
+    ${!tab.vigencia ? `<div class="orc-tab-aviso">A vigência não veio no arquivo. Enquanto ela não for declarada aqui,
+      todo orçamento sai marcado como <b>estimativa</b> e o CHECK FINAL não fecha — é a sua regra 13:
+      nunca usar uma tabela só porque é a que se tem à mão.</div>` : ''}
+  </div>`;
+  return t(ORC_TABELA_NOTAS, 'vigenciaNotas') + t(ORC_TABELA_REGISTRO, 'vigenciaRegistro')
+    + `<div class="orc-tab-bloco">
+    <div class="orc-tab-nome">Tributos e despesas</div>
+    <div class="orc-tab-linha"><span>ITBI — Capital de São Paulo</span><b>${finPct(ORC_TRIBUTOS.itbi.aliquota)}%</b></div>
+    <div class="orc-tab-linha"><span>ITCMD — Estado de São Paulo</span><b>${finPct(ORC_TRIBUTOS.itcmd.aliquota)}%</b></div>
+    <div class="orc-tab-linha"><span>Valor da UFESP <span class="fin-mini">— as isenções de ITCMD são contadas nela</span></span>
+      <input class="fin-input" style="max-width:180px" inputmode="decimal" placeholder="ainda não declarada"
+        value="${esc(orcCfg.ufesp || '')}" onchange="orcSalvarCfg('ufesp',this.value)"></div>
+    <div class="orc-tab-linha"><span>Taxa adicional do registro <span class="fin-mini">— sempre perguntada, nunca automática</span></span>
+      <input class="fin-input" style="max-width:180px" inputmode="decimal" placeholder="300,00"
+        value="${esc(orcCfg.taxaAdicional || '')}" onchange="orcSalvarCfg('taxaAdicional',this.value)"></div>
+    <div class="orc-tab-linha"><span>Teto de isenção do ITBI — primeira aquisição residencial, hoje</span>
+      <b>${orcMoeda(orcTetoIsencaoItbi(isoHoje()))}</b></div>
+  </div>`;
+}
+window.orcSalvarCfg = function(campo, valor){
+  update(orcCfgRef, {[campo]: String(valor || '').trim()});
+  finToast('Guardado.');
+};
+
+// ── Do orçamento para o Financeiro (regras 25 e 26) ──────────────────────
+// "A escritura foi assinada." A partir daí o orçamento deixa de ser estimativa
+// e vira dinheiro — mas as duas coisas continuam separadas: o lançamento nasce
+// com os números do orçamento e ela corrige o que foi de fato cobrado, sem que
+// isso mexa no orçamento. Orçado e realizado nunca viram a mesma linha.
+window.orcParaFinanceiro = function(orcId){
+  const o = orcTudo[orcId];
+  if(!o) return;
+  const r = o.resultado || {};
+  const t = r.totais || {};
+  if(finLancamentoDoCaso(o.casoId)){
+    finToast('Este caso já tem lançamento. Abra o card para conferir.');
+    abrirFinanceiroDoCaso(o.casoId);
+    return;
+  }
+  const nr = push(finLancRef);
+  const agora = new Date().toISOString();
+  set(nr, {
+    id: nr.key,
+    descricao: (o.casoNome || 'Escritura') + ' — ' + ((r.ato || {}).nome || ''),
+    casoId: o.casoId, casoNome: o.casoNome || '',
+    tipoAto: (r.ato || {}).nome || '',
+    // A parte do tabelião sai da coluna do tabelião da tabela, não do total
+    // que a cliente paga: comissão nasce da parte dele, e essa regra é a mais
+    // antiga do financeiro.
+    parteTabeliao: (t.tabeliao || 0) / 100,
+    arranjoId: (finArranjos()[0] || {}).id || '',
+    status: 'pendente', vencimento: isoHoje(), dataPagamento: '',
+    // O registro vai inteiro para a carteira virtual — nele não encosta comissão.
+    valorRegistro: (t.registroComDespesas || 0) / 100,
+    registroStatus: 'carteira',
+    ajustes: {}, repasses: {},
+    orcamentoId: o.id, orcamentoVersao: o.versao,
+    orcadoTotal: (t.total || 0) / 100,
+    obs: `Nasceu do orçamento ${String(o.versao || 1).padStart(2, '0')} de ${finDataBr(o.data)}. `
+       + `Orçado: ${orcMoeda(t.total)}. Confira o que foi de fato cobrado.`,
+    criadoEm: agora, atualizadoEm: agora,
+    atualizadoPor: localStorage.getItem('painel_usuario') || ''
+  });
+  update(ref(db, 'orcamentos/' + orcId), {lancamentoId: nr.key, atualizadoEm: agora});
+  finToast('Lançado no Financeiro. O registro foi para a carteira.');
+  abrirFinanceiroDoCaso(o.casoId);
+};
+
+// ── Entrada pela lateral ─────────────────────────────────────────────────
+// Sem esconder de ninguém: quem abre o Financeiro abre os orçamentos, porque
+// é a Grazi que atende no balcão e é ela que dá o valor à cliente.
+// A conta vem do próprio evento, e não do finAuth do Financeiro: os dois
+// blocos escutam a mesma coisa, e depender da ordem em que eles são chamados
+// é o tipo de acoplamento que quebra sozinho no dia em que alguém mover um.
+onAuthStateChanged(auth, async (u) => {
+  orcSoltarEscuta();
+  if(u){
+    orcLigarEscuta();
+    await orcSemearConhecimento();
+  }
+  orcRedesenhar();
+  orcRedesenharCards();
+});
+orcAplicarCfg();
+
+// Expostos pelo mesmo motivo que finQuadroHtml e renderRede: os manipuladores
+// em linha dos modais chamam por nome, e é por aqui que o teste lê o que foi
+// gravado. `orcEstado()` devolve uma leitura, não as variáveis — quem testa
+// confere o que o painel guardou, não mexe no que ele está usando.
+window.orcCalcular = orcCalcular;
+window.orcFaixa = orcFaixa;
+window.ORC_TABELA_NOTAS = ORC_TABELA_NOTAS;
+window.ORC_TABELA_REGISTRO = ORC_TABELA_REGISTRO;
+window.orcEstado = () => JSON.parse(JSON.stringify(
+  {orcamentos: orcTudo, conhecimento: orcConhecimento, config: orcCfg}));
 
 // ══ O RADAR JURÍDICO E A BASE DE REGRAS ══════════════════════════════════
 // O jornal da manhã e a memória do cartório, lado a lado.

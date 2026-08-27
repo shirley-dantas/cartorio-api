@@ -46,6 +46,15 @@ const redeCodigo = html.slice(html.indexOf('// ══ A REDE ═'), html.lastInd
 const radarJornal = entre('<!-- O Jornal da equipe.', '<!-- Esta faixa é a Agenda');
 const joaninhaPainel = entre('<div class="joaninha-panel" id="joaninha-panel">', '<!-- Financeiro — a esteira do dinheiro');
 const radarCodigo = html.slice(html.indexOf('// ══ O RADAR JURÍDICO'), html.indexOf('// ══ A REDE ═'));
+
+// Os Orçamentos moram entre o service worker e o Radar — fora dos três
+// recortes acima — e saem em dois pedaços. O motor (tabelas, regras, conta,
+// conhecimento) é puro: não toca em DOM nem em Firebase, e por isso pode ser
+// testado sem navegador, que é onde a conferência de dinheiro tem de morar.
+// O resto é tela, e vai junto só no harness do navegador.
+const orcMotor  = html.slice(html.indexOf('// ══ O MOTOR DE ORÇAMENTOS'), html.indexOf('// ══ O AMBIENTE ORÇAMENTOS'));
+const orcCodigo = html.slice(html.indexOf('// ══ O MOTOR DE ORÇAMENTOS'), html.indexOf('// ══ O RADAR JURÍDICO'));
+const orcMarkup = entre('<!-- ORÇAMENTOS — o motor.', '<script src="design-system/mascots/joaninha/joaninha.js">');
 // A troca de abas do painel da Joaninha é a de verdade, recortada daqui: as
 // outras abas só seriam chamadas se o teste clicasse nelas, e ele não clica.
 // Já o abrir/fechar do painel depende da mascote inteira do design system —
@@ -104,6 +113,50 @@ setTimeout(()=>{document.getElementById('cdc-quadro').innerHTML=finQuadroHtml();
 // E a versão sem navegador, para as verificações de conta.
 writeFileSync(join(AQUI, 'calculo.gerado.mjs'),
   fazDeContaNode + codigo + readFileSync(join(AQUI, 'calculo.js'), 'utf8'));
+
+// ── Os Orçamentos ──
+// Sem navegador, para a conta: é a verificação que precisa passar antes de
+// qualquer número chegar à cliente.
+writeFileSync(join(AQUI, 'orcamento.gerado.mjs'),
+  fazDeContaNode + codigo + orcMotor + readFileSync(join(AQUI, 'orcamento.js'), 'utf8'));
+
+// E com navegador, para a tela: o card com a faixa do orçamento, a janela do
+// caso e o ambiente inteiro.
+writeFileSync(join(AQUI, 'harness-orcamento.html'),
+  CABECA + FONTES + estilo + '</head><body><div class="nav-toast" id="nav-toast"></div>'
+  + '<aside class="sidebar"><button type="button" class="sidebar-item" onclick="abrirOrcamentos()"><span>Orçamentos</span></button></aside>'
+  + '<div class="central-nova" style="max-width:900px;margin:0 auto;padding:20px">'
+  + '<div class="cx-card" id="card-teste"><div class="cx-orc" id="cartao-orc"></div></div></div>'
+  + orcMarkup + markup
+  + '<script type="module">' + fazDeContaNav + codigo + orcCodigo
+  + '\nwindow.__pronto=true;\n</script></body></html>');
+
+// E o preview: a janela do orçamento aberta no apartamento 1301, com a
+// memória de cálculo à mostra. É por ele que se olha o desenho antes de
+// publicar — o mesmo papel do preview.html no financeiro.
+writeFileSync(join(AQUI, 'preview-orcamento.html'),
+  CABECA + FONTES + estilo + '</head><body><div class="nav-toast" id="nav-toast"></div>'
+  + '<div style="min-height:100vh;padding:26px 16px;background:var(--cc-fundo)">'
+  + '<div class="central-nova" style="max-width:900px;margin:0 auto">'
+  + '<div class="cx-card" style="background:#fff;border-radius:18px;padding:16px">'
+  + '<div class="cx-orc" id="cartao-orc"></div></div></div></div>'
+  + orcMarkup + markup
+  + '<script type="module">' + fazDeContaNav + codigo + orcCodigo + `
+await signInWithEmailAndPassword(auth,'cartorio@shirleydantas.com','certa');
+window.casos={c1:{id:'c1',nome:'TANIA — apartamento 1301',tipo:'Escritura de venda e compra',
+  livro:'12',prenotacao:'88.777'}};
+setTimeout(()=>{
+  orcSalvarCfg('vigenciaNotas','a partir de 01/01/2026');
+  orcSalvarCfg('vigenciaRegistro','a partir de 01/01/2026');
+  orcNovoDoCaso('c1');
+  orcMudarValor('transacao','301.867,16');
+  orcMudarCampoTexto('imovelMunicipio','São Paulo');
+  orcMudarFlag('residencial',false);
+  orcMudarDespesa('taxaAdicional',true);
+  orcAlternarMemoria();
+  document.getElementById('cartao-orc').innerHTML=orcFaixaDoCaso('c1');
+},120);
+` + '\nwindow.__pronto=true;\n</script></body></html>');
 
 // ── A Rede ──
 // Precisa do markup do modal e de um lugar para o botão da lateral existir,

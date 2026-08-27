@@ -357,6 +357,135 @@ o caminho no banco: `/radar-juridico` e `/base-regras` ficam abertos como
 
 ---
 
+## Os Orçamentos
+
+Quanto a cliente vai pagar. Era conta de mão, tabela aberta ao lado, uma faixa
+de cada vez — e o número saía do papel direto para o WhatsApp, sem ninguém
+conseguir refazer depois de onde ele veio.
+
+O que mora aqui **não é uma calculadora**: é uma escada de conhecimento com
+quatro degraus, e a ordem entre eles é a regra que segura todo o resto.
+
+```
+🟢 CONFIRMADA   fonte oficial vigente, ou ela disse que sim
+🔵 OPERACIONAL  jeito de trabalhar do cartório
+🟡 APRENDIDA    padrão visto nos orçamentos, à espera de confirmação
+🔴 INCERTA      precisa de confirmação — nunca vale como definitiva
+```
+
+Degrau de baixo nunca vence degrau de cima. Se ela cobrar de um jeito e a
+tabela disser outro, o painel **mostra os dois e pergunta** — nunca aprende o
+jeito dela em silêncio. "Ela fez assim três vezes, então é a regra" é o erro
+que este bloco existe para não cometer, e nada sobe de degrau sozinho: hipótese
+vira regra quando ela aperta o botão, e a promoção fica datada com quem
+validou.
+
+### As duas tabelas
+
+Lidas dos PDFs oficiais que ela entregou em 26/08/2026, faixa por faixa:
+32 faixas do item 1.1 de Notas, 47 do item 1 do Registro, 47 da averbação com
+valor e 25 da incorporação, mais os itens de valor fixo (procuração, ata,
+escritura sem valor, prenotação, certidão, abertura de matrícula).
+
+Três decisões que **não devem ser mexidas sem perguntar**:
+
+- **A vigência não veio nos arquivos, e o painel não inventa uma.** Enquanto
+  ela não declarar em *Tabelas e vigência*, todo orçamento sai como
+  **estimativa** e o CHECK FINAL não fecha. Usar a tabela que se tem à mão
+  porque é a que se tem é exatamente o que a regra dela proíbe.
+- **A conta inteira é em centavos inteiros.** Um orçamento soma dez a quinze
+  linhas saídas de tabelas diferentes; meio centavo por linha vira um total que
+  não bate com a conferência dela. Só a tela converte para reais.
+- **A quarta coluna da tabela de Notas é a parte do tabelião**, e é ela — não o
+  total que a cliente paga — que vira `parteTabeliao` no Financeiro. Sem essa
+  coluna, a passagem do orçamento para o dinheiro seria um palpite, e a
+  comissão nasceria do número errado.
+
+### As regras de cobrança
+
+Vinte atos, cada um com a frase dela junto (`comoElaEscreveu`), para que a
+conferência seja contra o original e não contra o que o painel entendeu.
+Compra e venda em cinco variações, doação com e sem usufruto, inventário com e
+sem meação e com partilha desigual, divórcio em três formas, dação, confissão,
+procuração, ata e escritura declaratória.
+
+- **Ato secundário na mesma escritura leva 40%** — garantia, novação,
+  confissão, usufruto, cláusula resolutiva. É regra dela: a nota explicativa da
+  tabela que a fundamentaria veio só com o título no PDF, e por isso cada linha
+  reduzida nasce marcada como 🔵 operacional, não como fonte oficial.
+- **Vaga individualizada é registro à parte, na faixa dela.** Somar apartamento
+  e vaga e registrar de uma vez daria outro número — é a diferença que essa
+  regra existe para não deixar passar.
+- **Fora da Capital o painel não chuta.** ITBI é municipal e ITCMD é estadual:
+  fora de São Paulo o imposto fica sem valor e a razão aparece escrita, com a
+  frase dela ("checar o código tributário").
+- **Isenção nunca é aplicada sozinha.** Ela depende de declaração da parte e de
+  documento. O painel aponta ("está dentro do teto do primeiro imóvel"), mantém
+  o imposto na conta e devolve a decisão. Zerar imposto por engano é o erro mais
+  caro que este orçamento poderia cometer.
+- **A taxa adicional de R$ 300 nunca entra sozinha.** É perguntada antes de
+  fechar todo orçamento, e o CHECK FINAL trava até haver resposta. No modo
+  cliente ela vai **somada ao registro, sem linha própria** — que é só isso o
+  que "sem que o cliente perceba" significa: nada é cobrado a mais, apenas não
+  ganha linha.
+
+### Por onde se orça
+
+**Pelo card, como o dinheiro.** A faixa 💰 Orçamento fica logo abaixo da do
+Financeiro, e *Novo orçamento* abre a janela já sabendo o que o card sabe:
+cliente, tipo de ato (que vira o ato reconhecido), livro, prenotação. Só se
+pergunta o que falta — formulário enorme foi o que ela pediu para não existir.
+
+- **Um card tem várias versões, e nenhuma come a anterior.** Cada uma guarda o
+  resultado inteiro, para continuar mostrando o número que mostrou no dia mesmo
+  depois de a tabela mudar. Salvar de novo cria a versão seguinte; corrigir em
+  cima só enquanto o orçamento está *em elaboração*.
+- **A comparação diz por que mudou**, não só quanto: faixa que virou, ato que
+  entrou, despesa que passou a ser cobrada.
+- **Divergência com caso semelhante não fica escondida.** Mesmo ato, mesma
+  faixa, total diferente: o painel mostra os dois e diz de que orçamento veio o
+  outro número.
+- **Duplicar não copia número.** A data vira hoje e a conta é refeita na tabela
+  de agora.
+
+A **memória de cálculo** mostra, linha por linha, o item da tabela, a faixa (a
+mesma letra da folha impressa), a base, o valor de tabela, a redução e o
+fundamento. O **modo cliente** não mostra nada disso: ato, base, as linhas de
+custo e a ressalva de valores estimados — e é a única tela do painel que sai do
+cartório.
+
+### Do orçamento para o dinheiro
+
+"A escritura foi assinada" faz nascer o lançamento no Financeiro, com a parte
+do tabelião vinda da coluna dele e o registro inteiro indo para a carteira
+virtual. **Orçado e realizado nunca viram a mesma linha**: o orçado fica
+guardado ao lado, e corrigir o que foi de fato cobrado não mexe no orçamento.
+
+### O que os arquivos deixaram em aberto
+
+Entra tudo na base como 🔴, escrito, do mesmo jeito que as ressalvas da Base de
+Regras do Radar — pergunta que não fica escrita é pergunta que se perde:
+
+- **a vigência das duas tabelas**, que não vem em nenhum dos PDFs;
+- **o R$ 3.133,28 do exemplo dela** (apartamento 1301, base R$ 301.867,16). A
+  escritura daquele orçamento bate exatamente com a tabela de Notas entregue,
+  mas o registro não sai de uma consulta única ao item 1 da tabela de Registro:
+  aquela faixa dá R$ 2.723,02. A prenotação (R$ 80,14 contra R$ 79,16) e a
+  matrícula (R$ 76,54 contra R$ 75,60) estão 1,24% acima, o que indica que a
+  tabela de registro daquele orçamento é de outra vigência — mas mesmo
+  corrigido por esse 1,24% o registro daria R$ 2.756,74. Falta saber de que ano
+  é aquela tabela, e se o número é um registro só ou a soma de mais de um;
+- **a linha "Matrícula"**, que bate com o item 11 (certidão, R$ 75,60) e não com
+  o item 4 (abertura de matrícula, R$ 23,67) — o motor usa a certidão, marcado
+  como 🟡;
+- **os doze meses da pensão**: "por doze meses, mais a quantidade de tempo
+  estipulada" admite duas leituras, e o motor faz a segunda (12 quando não há
+  prazo);
+- **os 40% da confissão de dívida sozinha na escritura**, que a redução de ato
+  secundário não cobre por si.
+
+---
+
 ## Quem entra
 
 O painel operacional **não tem login**, de propósito. Só o `/financeiro` é
@@ -397,6 +526,16 @@ o `testes/montar.mjs` recorta.
 | Quem é o cliente | `finClienteDe()` |
 | Cofre pessoal | `finCriarCofre()`, `finDestrancar()`, `finMeuSalario()` |
 | Regras do banco | `database.rules.json` · passo a passo em `FIREBASE.md` |
+| As tabelas de emolumentos | `ORC_TABELA_NOTAS`, `ORC_TABELA_REGISTRO`, `ORC_TRIBUTOS` |
+| As regras de cobrança, ato a ato | `ORC_ATOS`, `orcLinhaEscritura()`, `orcLinhaRegistro()` |
+| As dezessete etapas | `orcCalcular()` |
+| A busca na faixa | `orcFaixa()`, `orcLetraFaixa()` |
+| O CHECK FINAL | `orcCheckFinal()` |
+| A escada de conhecimento | `ORC_CONFIANCAS`, `ORC_CONHECIMENTO_INICIAL` |
+| Comparar versões e achar divergência | `orcComparar()`, `orcDivergencias()`, `orcSemelhantes()` |
+| A faixa do card e a janela | `orcFaixaDoCaso()`, `renderOrcamentoDoCaso()` |
+| A memória e o modo cliente | `orcHtmlMemoria()`, `orcHtmlCliente()` |
+| Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |
 | A mensagem sugerida | `redeMensagemSugerida()`, `redeAtoNaFrase()` |
@@ -420,6 +559,7 @@ node testes/montar.mjs && node testes/calculo.gerado.mjs
 node testes/navegador.mjs && node testes/celular.mjs
 node testes/rede.mjs && node testes/rede-varredura.mjs
 node testes/radar.mjs && node testes/radar-triagem.mjs
+node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
 ```
 
 O `montar.mjs` também gera o `preview-quadro.html`, que é o desenho da seção
@@ -431,6 +571,17 @@ A Rede tem harness próprio (`harness-rede.html`), montado pelo mesmo
 `montar.mjs`: ela mora depois do registro do service worker no `index.html`,
 fora do recorte do financeiro. O `rede.mjs` termina medindo tudo num iPhone 13,
 e o `rede-varredura.mjs` roda o arquivo do Apps Script com o Google fingido.
+
+Os Orçamentos saem em dois pedaços, porque a conta e a tela têm exigências
+diferentes. O motor (tabelas, regras de cobrança, as dezessete etapas, a base
+de conhecimento) é puro — não toca em DOM nem em Firebase — e vira o
+`orcamento.gerado.mjs`, que roda sem navegador: é ali que a conferência de
+dinheiro tem de morar. A tela vira o `harness-orcamento.html`, e o
+`orcamento-tela.mjs` percorre o caminho da mão até o número, terminando num
+iPhone 13. **Antes de publicar qualquer mudança no motor, rode os dois** —
+vários daqueles testes existem porque o número já foi conferido à mão uma vez:
+o orçamento do apartamento 1301 é o gabarito de que a leitura da tabela está
+certa.
 
 O Radar também (`harness-radar.html`), pelo mesmo motivo: ele mora entre o
 service worker e a Rede, fora dos dois recortes. O `radar.mjs` cobre a faixa
@@ -455,6 +606,23 @@ criada, o salário que não acompanhava a correção do lançamento.
   `celular.mjs`.
 
 ## Na fila
+
+- **O registro do exemplo dela não fecha com a tabela entregue.** É a pendência
+  🔴 mais importante dos Orçamentos, e está inteira na seção deles: o
+  R$ 3.133,28 do apartamento 1301 não sai de uma consulta única ao item 1 da
+  tabela de Registro. Enquanto isso não for esclarecido, o registro de qualquer
+  compra e venda sai pelo que a tabela entregue diz — que pode não ser o que ela
+  cobra.
+- **A vigência das duas tabelas.** Uma linha em *Tabelas e vigência* destrava o
+  CHECK FINAL de todo orçamento. Enquanto ela não vier, nada sai como
+  definitivo.
+- **As notas explicativas das tabelas não foram lidas.** As notas 1 a 13 da
+  tabela de Notas vieram só com o título no PDF; o texto delas ficou fora. É de
+  lá que sairiam os fundamentos da redução de 40% e das condições especiais.
+- **O orçamento ainda não sabe o valor venal.** O card não tem esse campo, e
+  algumas contas (ITBI em município que usa o maior entre venal e negociado)
+  dependem dele. Hoje ele é digitado; vale medir se compensa virar campo do
+  card, como a matrícula.
 
 - **A Rede leu pouco, e o filtro do nome é o motivo.** Instalada em 26/08/2026:
   a primeira varredura achou 10 minutas e 25 pessoas, 6 do ramo. Dez é pouco
