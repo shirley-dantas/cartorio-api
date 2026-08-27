@@ -13,8 +13,16 @@ const R = c => (c / 100).toFixed(2);
 
 console.log('\n— As tabelas foram lidas inteiras —');
 ok('32 faixas na tabela de Notas', ORC_TABELA_NOTAS.faixas.length === 32, ORC_TABELA_NOTAS.faixas.length);
-ok('47 faixas no registro com valor declarado', ORC_TABELA_REGISTRO.faixas.length === 47);
-ok('47 faixas na averbação com valor', ORC_TABELA_REGISTRO.faixasAverbacao.length === 47);
+ok('48 faixas na tabela de custas do registro', ORC_TABELA_REGISTRO.faixas.length === 48);
+ok('48 faixas na averbação com valor', ORC_TABELA_REGISTRO.faixasAverbacao.length === 48);
+// A quarta coluna da tabela de custas é o registro mais a certidão da
+// matrícula, e isso vale em TODAS as faixas. É a invariante que prova que a
+// tabela foi transcrita certa: um dígito trocado quebra esta linha.
+const certidao = ORC_TABELA_REGISTRO.itens['11'].valor;
+ok('a certidão do rodapé é R$ 76,54', R(certidao) === '76.54');
+ok('em todas as 48 faixas, registro com matrícula = registro + a certidão',
+   ORC_TABELA_REGISTRO.faixas.every(f => f[3] === f[2] + certidao),
+   ORC_TABELA_REGISTRO.faixas.filter(f => f[3] !== f[2] + certidao));
 ok('25 faixas na incorporação', ORC_TABELA_REGISTRO.faixasIncorporacao.length === 25);
 // Escada sem degrau faltando: qualquer buraco entre faixas viraria um valor
 // silenciosamente errado no dia em que uma base caísse dentro dele.
@@ -34,25 +42,66 @@ ok('o começo exato da faixa entra nela', orcFaixa(ORC_TABELA_NOTAS.faixas, 2689
 ok('o fim exato da faixa ainda é dela', orcFaixa(ORC_TABELA_NOTAS.faixas, 30736000).letra === 'l');
 ok('um centavo além já é a faixa seguinte', orcFaixa(ORC_TABELA_NOTAS.faixas, 30736001).letra === 'm');
 ok('base gigante cai na última faixa', R(orcFaixa(ORC_TABELA_NOTAS.faixas, 99999999999).valor) === '65637.95');
-ok('registro de R$ 301.867,16 é a faixa j', orcFaixa(ORC_TABELA_REGISTRO.faixas, 30186716).letra === 'j');
+const fj = orcFaixa(ORC_TABELA_REGISTRO.faixas, 30186716);
+ok('registro de R$ 301.867,16 é a faixa j', fj.letra === 'j');
+ok('e a faixa j dá R$ 2.756,74 de registro', R(fj.valor) === '2756.74', R(fj.valor));
+ok('ou R$ 2.833,28 com a matrícula', R(fj.comMatricula) === '2833.28', R(fj.comMatricula));
 
 console.log('\n— O apartamento 1301, o orçamento que ela conferiu à mão —');
+// Este é o gabarito da suíte inteira: o orçamento que veio nas instruções de
+// cobrança, com a taxa de R$ 300,00 embutida no registro, como ela confirmou.
+// Cada linha abaixo é uma linha daquele papel.
 const ap = orcCalcular({
   atoId: 'compra-venda', data: '2026-08-27',
   praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
   valores: {transacao: 30186716},
-  flags: {}, despesas: {prenotacao: true, matricula: true, taxaAdicional: false}
+  flags: {}, despesas: {prenotacao: true, matricula: true, registroComMatricula: true,
+                        taxaAdicional: true, taxaAdicionalValor: 30000}
 });
-ok('escritura R$ 4.176,24', R(ap.totais.escritura) === '4176.24', R(ap.totais.escritura));
-ok('ITBI de 3% = R$ 9.056,01', R(ap.tributos[0].valor) === '9056.01', R(ap.tributos[0].valor));
-ok('prenotação sai do item 12', ap.despesas[0].item === '12' && R(ap.despesas[0].valor) === '79.16');
-ok('matrícula sai do item 11', ap.despesas[1].item === '11' && R(ap.despesas[1].valor) === '75.60');
-ok('registro na faixa j do item 1', R(ap.totais.registro) === '2723.02', R(ap.totais.registro));
+ok('ESCRITURA R$ 4.176,24', R(ap.totais.escritura) === '4176.24', R(ap.totais.escritura));
+ok('REGISTRO R$ 3.133,28 — a coluna com matrícula mais os R$ 300,00 embutidos',
+   R(ap.totais.registroComDespesas) === '3133.28', R(ap.totais.registroComDespesas));
+ok('PRENOTAÇÃO R$ 80,14', R(ap.despesas[0].valor) === '80.14' && ap.despesas[0].item === '12');
+ok('MATRÍCULA R$ 76,54', R(ap.despesas[1].valor) === '76.54' && ap.despesas[1].item === '11');
+ok('ITBI R$ 9.056,01', R(ap.tributos[0].valor) === '9056.01', R(ap.tributos[0].valor));
+ok('TOTAL ESTIMADO R$ 16.522,21', R(ap.totais.total) === '16522.21', R(ap.totais.total));
 ok('o total soma tudo', R(ap.totais.total) === R(ap.totais.escritura + ap.totais.registro + ap.totais.despesas + ap.totais.tributos));
 // A conta é sempre em centavos inteiros: um total com fração de centavo é
 // sinal de que alguém deixou float entrar na escada.
 ok('nenhum centavo quebrado no total', Number.isInteger(ap.totais.total), ap.totais.total);
 ok('a parte do tabelião não é o total', R(ap.totais.tabeliao) === '2486.77', R(ap.totais.tabeliao));
+
+console.log('\n— A certidão de matrícula entrando duas vezes não fica quieta —');
+ok('o painel avisa que ela está sendo cobrada duas vezes',
+   ap.alertas.some(a => /duas vezes/.test(a.texto)), ap.alertas.map(a => a.texto));
+ok('e o CHECK FINAL manda confirmar a linha da matrícula',
+   ap.check.find(c => c.rot === 'Matrícula').estado === 'confirmar');
+const umaVez = orcCalcular({
+  atoId: 'compra-venda', data: '2026-08-27',
+  praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+  valores: {transacao: 30186716},
+  flags: {}, despesas: {prenotacao: true, matricula: true, registroComMatricula: false,
+                        taxaAdicional: true, taxaAdicionalValor: 30000}
+});
+ok('trocando a coluna, a certidão entra uma vez só e o total cai R$ 76,54',
+   R(umaVez.totais.total) === '16445.67', R(umaVez.totais.total));
+ok('e aí o aviso some', !umaVez.alertas.some(a => /duas vezes/.test(a.texto)));
+ok('a coluna sem matrícula é a faixa seca', R(umaVez.totais.registro) === '2756.74', R(umaVez.totais.registro));
+
+console.log('\n— A vigência vale até 01/01/2027, e vence depois disso —');
+ok('as duas tabelas declaram a vigência',
+   ORC_TABELA_NOTAS.vigencia === 'até 01/01/2027' && ORC_TABELA_REGISTRO.vigencia === 'até 01/01/2027');
+ok('dentro da vigência, o orçamento fecha', ap.definitivo === true,
+   ap.check.filter(c => c.estado === 'falta'));
+const vencida = orcCalcular({
+  atoId: 'compra-venda', data: '2027-03-10',
+  praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+  valores: {transacao: 30186716},
+  flags: {}, despesas: {prenotacao: true, matricula: true, taxaAdicional: false}
+});
+ok('ato depois de 01/01/2027 trava', vencida.definitivo === false);
+ok('e o painel manda procurar a tabela do exercício novo',
+   vencida.alertas.some(a => /exercício novo/.test(a.texto)));
 
 console.log('\n— A taxa adicional NUNCA entra sozinha —');
 const semPergunta = orcCalcular({atoId: 'compra-venda', valores: {transacao: 30186716},
@@ -64,7 +113,8 @@ ok('o CHECK FINAL diz que a pergunta não foi feita',
    semPergunta.check.find(c => c.rot === 'Taxa adicional perguntada').estado === 'falta');
 const comTaxa = orcCalcular({atoId: 'compra-venda', valores: {transacao: 30186716},
   flags: {}, despesas: {prenotacao: true, matricula: true, taxaAdicional: true, taxaAdicionalValor: 30000}});
-ok('respondido "sim", entra R$ 300,00', R(comTaxa.totais.despesas) === R(ap.totais.despesas + 30000));
+ok('respondido "sim", entra R$ 300,00',
+   R(comTaxa.totais.despesas) === R(semPergunta.totais.despesas + 30000));
 ok('e no modo cliente ela vai somada ao registro, sem linha própria',
    R(comTaxa.totais.registroComDespesas) === R(comTaxa.totais.registro + 30000));
 ok('a linha da taxa fica marcada como interna',
@@ -106,14 +156,20 @@ const vg = orcCalcular({atoId: 'compra-venda-vagas',
   flags: {}, despesas: {taxaAdicional: false}});
 ok('uma escritura só, sobre o global', vg.escrituras.length === 1 && vg.escrituras[0].base === 35186716);
 ok('dois registros, um por matrícula', vg.registros.length === 2);
-ok('o registro do apartamento é o da faixa dele',
-   vg.registros[0].valor === orcFaixa(ORC_TABELA_REGISTRO.faixas, 30186716).valor);
-ok('o registro da vaga é o da faixa dela',
-   vg.registros[1].valor === orcFaixa(ORC_TABELA_REGISTRO.faixas, 5000000).valor);
+ok('o registro do apartamento é o da faixa dele, com matrícula',
+   vg.registros[0].valor === orcFaixa(ORC_TABELA_REGISTRO.faixas, 30186716).comMatricula);
+ok('o registro da vaga é o da faixa dela, com matrícula',
+   vg.registros[1].valor === orcFaixa(ORC_TABELA_REGISTRO.faixas, 5000000).comMatricula);
+// Duas matrículas, duas certidões: a coluna com matrícula entra uma vez por
+// registro, não uma vez por escritura. Fica visível na memória, linha a linha.
+ok('cada matrícula leva a sua certidão',
+   vg.totais.registro === orcFaixa(ORC_TABELA_REGISTRO.faixas, 30186716).valor
+                        + orcFaixa(ORC_TABELA_REGISTRO.faixas, 5000000).valor
+                        + 2 * ORC_TABELA_REGISTRO.itens['11'].valor);
 // Registrar a soma daria outro número: é justamente a diferença que esta
 // regra existe para não deixar passar.
 ok('somar tudo e registrar de uma vez daria outro número',
-   vg.totais.registro !== orcFaixa(ORC_TABELA_REGISTRO.faixas, 35186716).valor);
+   vg.totais.registro !== orcFaixa(ORC_TABELA_REGISTRO.faixas, 35186716).comMatricula);
 ok('o ITBI é sobre o valor global', vg.tributos[0].base === 35186716);
 
 console.log('\n— Inventário desigual: dois impostos, e o certo em cada quinhão —');
@@ -165,18 +221,19 @@ ok('imóvel em outro estado avisa da tabela', outroEstado.alertas.some(a => /PR/
 ok('e o ITCMD não é calculado', outroEstado.tributos[0].valor === null);
 
 console.log('\n— A vigência trava o "definitivo" (regra 13) —');
-ok('sem vigência declarada, nada é definitivo', ap.definitivo === false);
-ok('e o CHECK FINAL diz exatamente isso',
-   ap.check.find(c => c.rot === 'Vigência conferida').estado === 'falta');
-ORC_TABELA_NOTAS.vigencia = 'a partir de 01/01/2026';
-ORC_TABELA_REGISTRO.vigencia = 'a partir de 01/01/2026';
-const comVigencia = orcCalcular({atoId: 'compra-venda', valores: {transacao: 30186716},
-  praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
-  flags: {}, despesas: {prenotacao: true, matricula: true, taxaAdicional: false}});
-ok('declarada a vigência, o orçamento fecha', comVigencia.definitivo === true,
-   comVigencia.check.filter(c => c.estado === 'falta'));
+// Tirada a vigência à força, o motor volta a travar — é o guarda-corpo, não
+// um efeito colateral do valor que está lá hoje.
+const guardadas = [ORC_TABELA_NOTAS.vigencia, ORC_TABELA_REGISTRO.vigencia];
 ORC_TABELA_NOTAS.vigencia = null;
 ORC_TABELA_REGISTRO.vigencia = null;
+const semVigencia = orcCalcular({atoId: 'compra-venda', valores: {transacao: 30186716},
+  praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+  flags: {}, despesas: {prenotacao: true, matricula: true, taxaAdicional: false}});
+ok('sem vigência declarada, nada é definitivo', semVigencia.definitivo === false);
+ok('e o CHECK FINAL diz exatamente isso',
+   semVigencia.check.find(c => c.rot === 'Vigência conferida').estado === 'falta');
+ORC_TABELA_NOTAS.vigencia = guardadas[0];
+ORC_TABELA_REGISTRO.vigencia = guardadas[1];
 
 console.log('\n— As isenções são apontadas, nunca aplicadas —');
 const barato = orcCalcular({atoId: 'compra-venda', data: '2026-03-10',
@@ -254,11 +311,14 @@ ok('mesmo ato, mesma faixa e mesmo total não vira alarme falso', iguais.length 
 
 console.log('\n— A base de conhecimento nasce com as dúvidas escritas —');
 const conh = ORC_CONHECIMENTO_INICIAL;
-ok('a vigência não declarada está lá, como incerta', conh['vigencia-nao-declarada'].confianca === 'incerta');
-ok('o R$ 3.133,28 que não fecha está lá, com a conta explicada',
-   conh['registro-do-exemplo'].confianca === 'incerta' && /2.723,02/.test(conh['registro-do-exemplo'].aberto));
-ok('a dúvida da matrícula (item 11 x item 4) está lá, como aprendida',
-   conh['matricula-item-11'].confianca === 'aprendida');
+ok('a vigência confirmada está lá', conh['vigencia-2026'].confianca === 'confirmada');
+ok('a coluna do registro com matrícula está lá, confirmada e com o exemplo',
+   conh['coluna-registro-com-matricula'].confianca === 'confirmada'
+   && conh['coluna-registro-com-matricula'].exemplos.some(x => /3\.133,28/.test(x)));
+ok('a matrícula confirmada como certidão está lá',
+   conh['matricula-e-certidao'].confianca === 'confirmada');
+ok('a certidão em duplicidade está lá, como aprendida e à espera de decisão',
+   conh['matricula-duas-vezes'].confianca === 'aprendida' && !!conh['matricula-duas-vezes'].aberto);
 ok('os doze meses da pensão estão lá, como incertos', conh['pensao-doze-meses'].confianca === 'incerta');
 ok('os 40% estão lá como operacional, não como fonte oficial',
    conh['desconto-40'].confianca === 'operacional');

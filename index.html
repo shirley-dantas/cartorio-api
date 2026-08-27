@@ -8802,7 +8802,8 @@ const ORC_TABELA_NOTAS = {
   uf: 'SP',
   fonte: 'Tabela de Emolumentos do Tabelionato de Notas (PDF entregue em 27/08/2026)',
   versao: 'entregue-2026-08-27',
-  vigencia: null,
+  vigencia: 'até 01/01/2027',
+  vigenciaAte: '2027-01-01',
   // Item 1.1 — escritura com valor declarado. Cada faixa é
   // [de, até, TOTAL, parte do TABELIÃO]. A quarta coluna existe por causa do
   // Financeiro: o que entra como "parte do tabelião" no lançamento não é o
@@ -8840,32 +8841,60 @@ const ORC_TABELA_REGISTRO = {
   id: 'sp-registro',
   nome: 'Registro de Imóveis — Estado de São Paulo',
   uf: 'SP',
-  fonte: 'Tabela de Emolumentos do Registro de Imóveis / ARISP (PDF entregue em 27/08/2026)',
-  versao: 'entregue-2026-08-27',
-  vigencia: null,
-  // Item 1 — registro com valor declarado.
+  fonte: 'Tabela de Custas do Registro de Imóveis — 2026 (PDF entregue em 27/08/2026)',
+  versao: 'custas-2026',
+  vigencia: 'até 01/01/2027',
+  vigenciaAte: '2027-01-01',
+  // Item 1 — registro com valor declarado. Cada faixa é
+  // [de, até, REGISTRO, REGISTRO COM MATRÍCULA].
+  //
+  // A quarta coluna é a própria tabela somando a certidão da matrícula ao
+  // registro: em todas as 48 faixas, `registroComMatricula = registro + 76,54`.
+  // Ela existe aqui porque é a coluna que ela usa — foi dela que saiu o
+  // R$ 3.133,28 do apartamento 1301 (R$ 2.833,28 da faixa j mais os R$ 300,00
+  // de taxa embutida). Ler a coluna errada erra o orçamento em R$ 76,54 sem
+  // que nada pareça errado.
   faixas: [
-    [1,230600,25720],[230601,576100,41272],[576101,960300,74042],[960301,1921000,109857],[1921001,3842000,133560],[3842001,11526000,148946],
-    [11526001,19210000,190109],[19210001,23052000,231188],[23052001,26894000,251687],[26894001,30736000,272302],[30736001,34578000,287061],[34578001,38420000,294543],
-    [38420001,76840000,328418],[76840001,115260000,384610],[115260001,153680000,442779],[153680001,192100000,500953],[192100001,230520000,531030],[230520001,384200000,681406],
-    [384200001,576300000,952082],[576300001,768400000,1252833],[768400001,960500000,1553585],[960500001,1152600000,1854337],[1152600001,1344700000,2155088],[1344700001,1536800000,2455839],
-    [1536800001,1728900000,2756591],[1728900001,1921000000,3057343],[1921000001,2305200000,3508471],[2305200001,2689400000,4109974],[2689400001,3073600000,4711479],[3073600001,3457800000,5312983],
-    [3457800001,3842000000,5914487],[3842000001,4226200000,6515990],[4226200001,4610400000,7117494],[4610400001,4994600000,7718996],[4994600001,5378800000,8320500],[5378800001,5763000000,8922004],
-    [5763000001,6531400000,9824259],[6531400001,7299800000,11027266],[7299800001,8068200000,12230274],[8068200001,8836600000,13433281],[8836600001,9605000000,14636288],[9605000001,10373400000,15839294],
-    [10373400001,11141800000,17042302],[11141800001,11910200000,18245309],[11910200001,12678600000,19448315],[12678600001,13447000000,20651323],[13447000001,null,21854330]
+    [1,230600,26039,33693],[230601,576100,41783,49437],[576101,960300,74959,82613],
+    [960301,1921000,111217,118871],[1921001,3842000,135214,142868],[3842001,11526000,150790,158444],
+    [11526001,19210000,192463,200117],[19210001,23052000,234051,241705],[23052001,26894000,254804,262458],
+    [26894001,30736000,275674,283328],[30736001,34578000,290616,298270],[34578001,38420000,298191,305845],
+    [38420001,76840000,332485,340139],[76840001,115260000,389373,397027],[115260001,153680000,448262,455916],
+    [153680001,192100000,507157,514811],[192100001,230520000,537606,545260],[230520001,384200000,689844,697498],
+    [384200001,576300000,963872,971526],[576300001,768400000,1268348,1276002],[768400001,960500000,1572824,1580478],
+    [960500001,1152600000,1877300,1884954],[1152600001,1344700000,2181776,2189430],[1344700001,1536800000,2486251,2493905],
+    [1536800001,1728900000,2790728,2798382],[1728900001,1921000000,3095204,3102858],[1921000001,2305200000,3551918,3559572],
+    [2305200001,2689400000,4160870,4168524],[2689400001,3073600000,4769824,4777478],[3073600001,3457800000,5378777,5386431],
+    [3457800001,3842000000,5987730,5995384],[3842000001,4226200000,6596681,6604335],[4226200001,4610400000,7205634,7213288],
+    [4610400001,4994600000,7814585,7822239],[4994600001,5378800000,8423538,8431192],[5378800001,5763000000,9032490,9040144],
+    [5763000001,6531400000,9945919,9953573],[6531400001,7299800000,11163823,11171477],[7299800001,8068200000,12381729,12389383],
+    [8068200001,8836600000,13599633,13607287],[8836600001,9605000000,14817538,14825192],[9605000001,10373400000,16035441,16043095],
+    [10373400001,11141800000,17253347,17261001],[11141800001,11910200000,18471251,18478905],[11910200001,12678600000,19689155,19696809],
+    [12678600001,13447000000,20907061,20914715],[13447000001,14215400000,22124965,22132619],[14215400001,null,23413812,23421466]
   ],
-  // Item 2.1 — averbação com valor declarado.
+  // Averbação com valor declarado — [de, até, valor].
   faixasAverbacao: [
-    [1,230600,9143],[230601,576100,13773],[576101,960300,23547],[960301,1921000,38345],[1921001,3842000,48912],[3842001,11526000,51091],
-    [11526001,19210000,56906],[19210001,23052000,62720],[23052001,26894000,65651],[26894001,30736000,68537],[30736001,34578000,71468],[34578001,38420000,74363],
-    [38420001,76840000,90344],[76840001,115260000,119434],[115260001,153680000,148519],[153680001,192100000,177602],[192100001,230520000,192638],[230520001,384200000,267827],
-    [384200001,576300000,403166],[576300001,768400000,553542],[768400001,960500000,703917],[960500001,1152600000,854293],[1152600001,1344700000,1004669],[1344700001,1536800000,1155045],
-    [1536800001,1728900000,1305421],[1728900001,1921000000,1455797],[1921000001,2305200000,1681361],[2305200001,2689400000,1982112],[2689400001,3073600000,2282864],[3073600001,3457800000,2583616],
-    [3457800001,3842000000,2884368],[3842000001,4226200000,3335495],[4226200001,4610400000,3636251],[4610400001,4994600000,3937003],[4994600001,5378800000,4237755],[5378800001,5763000000,4538507],
-    [5763000001,6531400000,4839254],[6531400001,7299800000,5440757],[7299800001,8068200000,6042260],[8068200001,8836600000,6643764],[8836600001,9605000000,7245268],[9605000001,10373400000,7546020],
-    [10373400001,11141800000,7846772],[11141800001,11910200000,8147524],[11910200001,12678600000,8448275],[12678600001,13447000000,8749026],[13447000001,null,9049778]
+    [1,230600,9256],[230601,576100,13944],[576101,960300,23839],[960301,1921000,38820],
+    [1921001,3842000,49518],[3842001,11526000,51724],[11526001,19210000,57611],[19210001,23052000,63497],
+    [23052001,26894000,66464],[26894001,30736000,69386],[30736001,34578000,72353],[34578001,38420000,75284],
+    [38420001,76840000,91463],[76840001,115260000,120913],[115260001,153680000,150358],[153680001,192100000,179801],
+    [192100001,230520000,195024],[230520001,384200000,271144],[384200001,576300000,408159],[576300001,768400000,560397],
+    [768400001,960500000,712634],[960500001,1152600000,864872],[1152600001,1344700000,1017110],[1344700001,1536800000,1169349],
+    [1536800001,1728900000,1321587],[1728900001,1921000000,1473825],[1921000001,2305200000,1702182],[2305200001,2689400000,2006658],
+    [2689400001,3073600000,2311134],[3073600001,3457800000,2615610],[3457800001,3842000000,2920087],[3842000001,4226200000,3376800],
+    [4226200001,4610400000,3681281],[4610400001,4994600000,3985757],[4994600001,5378800000,4290234],[5378800001,5763000000,4594710],
+    [5763000001,6531400000,4899181],[6531400001,7299800000,5508133],[7299800001,8068200000,6117085],[8068200001,8836600000,6726038],
+    [8836600001,9605000000,7334990],[9605000001,10373400000,7639467],[10373400001,11141800000,7943943],[11141800001,11910200000,8248420],
+    [11910200001,12678600000,8552895],[12678600001,13447000000,8857370],[13447000001,14215400000,9161847],[14215400001,null,9476790]
   ],
-  // Item 5 — incorporação imobiliária e especificação de condomínio.
+  // Incorporação e especificação de condomínio.
+  //
+  // ESTA É A ÚNICA COISA AQUI QUE NÃO VEM DA TABELA DE 2026: a folha de custas
+  // de 2026 não traz esse item, e estas faixas continuam sendo as da tabela
+  // ARISP entregue antes, de vigência não declarada. Nenhum ato do painel usa
+  // este bloco hoje; no dia em que um usar, a vigência precisa ser conferida
+  // antes — e é por isso que ele fica marcado, e não apagado nem misturado.
+  fonteIncorporacao: 'Tabela ARISP entregue em 27/08/2026 — vigência não declarada',
   faixasIncorporacao: [
     [1,38420000,74000],[38420001,76840000,222001],[76840001,192100000,518006],[192100001,384200000,1110014],[384200001,768400000,2220023],[768400001,1152600000,3700038],
     [1152600001,1536800000,5180052],[1536800001,1921000000,6660069],[1921000001,2305200000,8140084],[2305200001,2689400000,9620100],[2689400001,3073600000,11100113],[3073600001,3457800000,12580130],
@@ -8874,13 +8903,11 @@ const ORC_TABELA_REGISTRO = {
     [13447000001,null,53650555]
   ],
   itens: {
-    '2.2': {valor: 3956, rot: 'Averbação sem valor declarado'},
-    '4':   {valor: 2367, rot: 'Abertura de matrícula a requerimento do interessado'},
-    '7':   {valor: 3956, rot: 'Registro de pacto antenupcial'},
-    '11':  {valor: 7560, rot: 'Certidão, sob qualquer forma'},
-    '11-his': {valor: 3405, rot: 'Certidão — unidade de programa habitacional de interesse social'},
-    '12':  {valor: 7916, rot: 'Prenotação, exame e cálculo'},
-    '13':  {valor: 753,  rot: 'Pedido de busca'}
+    '2.2': {valor: 4005, rot: 'Averbação sem valor declarado'},
+    '4':   {valor: 2396, rot: 'Abertura de matrícula'},
+    '7':   {valor: 4005, rot: 'Registro de pacto antenupcial'},
+    '11':  {valor: 7654, rot: 'Certidão, sob qualquer forma (papel)'},
+    '12':  {valor: 8014, rot: 'Prenotação, exame e cálculo'}
   }
 };
 
@@ -8932,15 +8959,20 @@ const ORC_TRIBUTOS = {
 // de poder mostrar de qual faixa o número saiu, não só o número.
 function orcFaixa(faixas, base){
   const b = Math.max(0, Math.round(Number(base) || 0));
+  // A quarta coluna muda de nome conforme a tabela: na de Notas é a parte do
+  // tabelião; na do Registro é o registro com a matrícula somada. Quem lê sabe
+  // qual das duas pediu — aqui ela sai crua, com os dois nomes.
+  const linha = i => {
+    const [de, ate, valor, quarta] = faixas[i];
+    return {i, de, ate, valor, tabeliao: quarta || 0, comMatricula: quarta || 0, letra: orcLetraFaixa(i)};
+  };
   for(let i = 0; i < faixas.length; i++){
-    const [de, ate, valor, tabeliao] = faixas[i];
-    if(b >= de && (ate === null || b <= ate))
-      return {i, de, ate, valor, tabeliao: tabeliao || 0, letra: orcLetraFaixa(i)};
+    const [de, ate] = faixas[i];
+    if(b >= de && (ate === null || b <= ate)) return linha(i);
   }
   // Base abaixo do primeiro degrau (a tabela do registro começa em R$ 0,01):
   // é a primeira faixa, não "sem faixa".
-  const [de, ate, valor, tabeliao] = faixas[0];
-  return {i: 0, de, ate, valor, tabeliao: tabeliao || 0, letra: orcLetraFaixa(0)};
+  return linha(0);
 }
 // As tabelas nomeiam as faixas a, b, c … z, z1, z2 — e é assim que ela procura
 // na folha impressa. A memória usa a mesma letra para a conferência bater.
@@ -8995,10 +9027,17 @@ function orcLinhaRegistro(base, opc){
   }
   const f = orcFaixa(faixas, base);
   const reducao = o.reducao || 0;
+  // Qual coluna da tabela: o registro seco, ou o registro já com a certidão da
+  // matrícula somada. A escolha é dela — a coluna "com matrícula" é a que saiu
+  // no orçamento do apartamento 1301.
+  const comMat = o.comMatricula === true && f.comMatricula > 0;
+  const tabela = comMat ? f.comMatricula : f.valor;
   return {tipo: 'registro', rot: o.rot, item: o.item || '1', base: Math.round(base),
-          faixa: f, tabela: f.valor, reducao,
-          valor: reducao ? orcReduzir(f.valor, reducao) : f.valor,
-          fundamento: o.fundamento || 'Item 1 — registro com valor declarado.',
+          faixa: f, tabela, reducao, comMatricula: comMat,
+          valor: reducao ? orcReduzir(tabela, reducao) : tabela,
+          fundamento: o.fundamento || (comMat
+            ? 'Item 1 — coluna "registro com matrícula": o registro da faixa mais a certidão de R$ 76,54.'
+            : 'Item 1 — coluna "registro", sem a certidão da matrícula.'),
           avisos: o.avisos || []};
 }
 function orcLinhaTributo(qual, base, opc){
@@ -9463,10 +9502,19 @@ function orcCalcular(entrada){
     alertas.push({nivel: 'bloqueia', confianca: 'incerta',
       texto: `O imóvel está em ${imovelUf}. A tabela do registro carregada aqui é a do Estado de São Paulo — `
            + 'localize a tabela oficial daquele estado antes de apresentar o orçamento.'});
-  if(!ORC_TABELA_NOTAS.vigencia || !ORC_TABELA_REGISTRO.vigencia)
-    alertas.push({nivel: 'bloqueia', confianca: 'incerta',
-      texto: 'A vigência das tabelas não veio nos arquivos entregues e ainda não foi declarada em Ajustes. '
-           + 'Enquanto isso, o orçamento sai como estimativa — não como definitivo.'});
+  // A vigência agora existe, e por existir pode vencer. Tabela que passou da
+  // data é pior que tabela sem data: ela parece certa. Por isso o orçamento
+  // trava, em vez de sair com o número velho.
+  const dataDoAto = String(e.data || isoHoje()).slice(0, 10);
+  [ORC_TABELA_NOTAS, ORC_TABELA_REGISTRO].forEach(t => {
+    if(!t.vigencia)
+      alertas.push({nivel: 'bloqueia', confianca: 'incerta',
+        texto: `A vigência da tabela "${t.nome}" não está declarada. Enquanto isso, o orçamento sai como estimativa.`});
+    else if(t.vigenciaAte && dataDoAto > t.vigenciaAte)
+      alertas.push({nivel: 'bloqueia', confianca: 'incerta',
+        texto: `A tabela "${t.nome}" vale ${t.vigencia}, e a data considerada do ato é ${finDataBr(dataDoAto)}. `
+             + 'Procure a tabela do exercício novo antes de apresentar este orçamento.'});
+  });
 
   // ETAPA 8 — as notas explicativas, e ETAPA 9 — as regras especiais.
   // HIS, ZEIS, FGTS e regularização fundiária não são desconto: são itens
@@ -9521,6 +9569,16 @@ function orcCalcular(entrada){
            + 'o item da tabela exige comprovação, e ele engole os demais atos da escritura.'});
   }
 
+  // Qual coluna do registro. A escolha não é do ato — é de apresentação —, e
+  // por isso mora aqui e não dentro de cada receita: todo registro da mesma
+  // escritura sai pela mesma coluna.
+  const usarComMatricula = d.registroComMatricula !== false;
+  if(usarComMatricula) registros.forEach((r, i) => {
+    if(!r.faixa || !r.faixa.comMatricula) return;
+    registros[i] = orcLinhaRegistro(r.base, {rot: r.rot, comMatricula: true,
+      faixas: ORC_TABELA_REGISTRO.faixas, reducao: r.reducao, avisos: r.avisos});
+  });
+
   // ETAPA 13 — os tributos.
   const capital = !praticadoEm || /^s(ão|ao) paulo$/i.test(praticadoEm.trim());
   const imovelNaCapital = !imovelMunicipio || /^s(ão|ao) paulo$/i.test(imovelMunicipio.trim());
@@ -9554,12 +9612,21 @@ function orcCalcular(entrada){
     despesas.push({rot: 'Prenotação', item: '12', valor: T['12'].valor,
       fundamento: 'Item 12 — prenotação, exame e cálculo.'});
   if(temRegistro && d.matricula !== false)
-    despesas.push({rot: 'Matrícula', item: f.his ? '11-his' : '11',
-      valor: (f.his ? T['11-his'] : T['11']).valor,
-      fundamento: 'Item 11 — certidão da matrícula.',
-      avisos: [{confianca: 'aprendida',
-        texto: 'A linha "Matrícula" do orçamento dela bate com o item 11 (certidão), não com o item 4 '
-             + '(abertura de matrícula, R$ 23,67). O motor usa a certidão. Confirme se é essa mesmo a despesa.'}]});
+    despesas.push({rot: 'Matrícula', item: '11', valor: T['11'].valor,
+      fundamento: 'Certidões, sob qualquer forma (papel) — o item que a Shirley confirmou como sendo esta linha.'});
+
+  // A certidão de matrícula pode entrar duas vezes sem que nada pareça errado:
+  // uma dentro da coluna "registro com matrícula" e outra na linha própria.
+  // É assim que sai o orçamento do apartamento 1301, então o motor faz igual —
+  // mas escreve. Cobrar duas vezes por engano e cobrar duas vezes de propósito
+  // são coisas diferentes, e só ela pode dizer qual das duas é esta.
+  const registrosComMat = registros.filter(r => r.comMatricula).length;
+  if(registrosComMat && d.matricula !== false)
+    alertas.push({nivel: 'avisa', confianca: 'aprendida',
+      texto: `A certidão de matrícula está entrando duas vezes: ${orcMoeda(T['11'].valor * registrosComMat)} `
+           + `dentro da coluna "registro com matrícula" e mais ${orcMoeda(T['11'].valor)} na linha Matrícula. `
+           + 'É como sai o orçamento do apartamento 1301, e por isso o motor manteve. '
+           + 'Se for para cobrar uma vez só, troque a coluna do registro ou tire a linha Matrícula.'});
   if(d.taxaAdicional === true)
     despesas.push({rot: 'Despesa adicional do registro', item: null,
       valor: d.taxaAdicionalValor != null ? d.taxaAdicionalValor : 30000,
@@ -9590,7 +9657,7 @@ function orcCalcular(entrada){
   // ETAPAS 16 e 17 — a memória e o orçamento saem da tela, com o que está
   // aqui. O CHECK FINAL fecha (ou não) o caminho até o "definitivo".
   const check = orcCheckFinal({ato, praticadoEm, imovelMunicipio, imovelUf, escrituras, registros,
-                               tributos, despesas, faltando, alertas, regraEspecial, d});
+                               tributos, despesas, faltando, alertas, regraEspecial, d, data: dataDoAto});
   const bloqueado = check.some(c => c.estado === 'falta') || faltando.length > 0;
 
   return {
@@ -9654,8 +9721,15 @@ function orcCheckFinal(c){
         ? (c.imovelMunicipio ? 'Imóvel em ' + c.imovelMunicipio : 'São Paulo')
         : 'Imóvel fora de São Paulo — tabela do estado correspondente não carregada.');
   põe('Tabela aplicável', 'ok', ORC_TABELA_NOTAS.nome + ' · ' + ORC_TABELA_REGISTRO.nome);
-  põe('Vigência conferida', ORC_TABELA_NOTAS.vigencia ? 'ok' : 'falta',
-      ORC_TABELA_NOTAS.vigencia || 'Não declarada nos arquivos entregues — declarar em Ajustes.');
+  const venceu = [ORC_TABELA_NOTAS, ORC_TABELA_REGISTRO].some(t =>
+    !t.vigencia || (t.vigenciaAte && String(c.data || isoHoje()).slice(0, 10) > t.vigenciaAte));
+  põe('Vigência conferida', venceu ? 'falta' : 'ok',
+      venceu ? 'A data do ato está fora da vigência declarada — procure a tabela do exercício novo.'
+             : `Notas ${ORC_TABELA_NOTAS.vigencia} · Registro ${ORC_TABELA_REGISTRO.vigencia}`);
+  põe('Coluna do registro', 'ok', !c.registros.length ? 'Ato sem registro.'
+      : c.registros.some(r => r.comMatricula)
+        ? 'Registro com matrícula — a coluna da tabela que já soma a certidão.'
+        : 'Registro, sem a certidão da matrícula somada.');
   põe('Notas explicativas', 'confirmar',
       'As notas 1 a 13 da tabela de Notas vieram só com o título no PDF; o texto delas não foi lido pelo painel.');
   põe('Base de cálculo', c.faltando.length ? 'falta' : 'ok',
@@ -9673,8 +9747,12 @@ function orcCheckFinal(c){
   põe('Registro conferido', 'ok', c.registros.length ? `${c.registros.length} registro(s).` : 'Ato sem registro.');
   põe('Prenotação', c.registros.length && c.d.prenotacao === false ? 'confirmar' : 'ok',
       c.registros.length ? (c.d.prenotacao === false ? 'Retirada à mão.' : 'Incluída.') : 'Não se aplica.');
-  põe('Matrícula', c.registros.length && c.d.matricula === false ? 'confirmar' : 'ok',
-      c.registros.length ? (c.d.matricula === false ? 'Retirada à mão.' : 'Incluída.') : 'Não se aplica.');
+  const duplicando = c.registros.some(r => r.comMatricula) && c.d.matricula !== false;
+  põe('Matrícula', !c.registros.length ? 'ok' : duplicando ? 'confirmar' : 'ok',
+      !c.registros.length ? 'Não se aplica.'
+        : c.d.matricula === false ? 'Retirada à mão.'
+        : duplicando ? 'Incluída — e também dentro da coluna do registro. Veja o aviso.'
+        : 'Incluída.');
   põe('Taxa adicional perguntada', !c.registros.length ? 'ok' : (c.d.taxaAdicional == null ? 'falta' : 'ok'),
       !c.registros.length ? 'Não se aplica.'
         : c.d.taxaAdicional == null ? 'Ainda não perguntada.'
@@ -9739,29 +9817,37 @@ const ORC_CONHECIMENTO_INICIAL = {
     origem: 'Módulo 3 das instruções de cobrança.',
     confianca: 'confirmada', tipo: 'operacional'
   },
-  'vigencia-nao-declarada': {
-    regra: 'A vigência das duas tabelas precisa ser declarada em Ajustes.',
-    origem: 'Nenhum dos dois PDFs entregues traz o ano da tabela.',
-    confianca: 'incerta', tipo: 'pendencia',
-    aberto: 'Enquanto não for declarada, todo orçamento sai como estimativa e o CHECK FINAL não fecha. A regra 13 dela proíbe usar tabela sem saber a vigência.'
+  'vigencia-2026': {
+    regra: 'As duas tabelas valem até 01/01/2027.',
+    origem: 'Confirmado pela Shirley em 27/08/2026.',
+    confianca: 'confirmada', tipo: 'regra',
+    aberto: 'A partir de 02/01/2027 o motor trava sozinho e manda procurar a tabela do exercício novo: '
+          + 'tabela vencida é pior que tabela sem data, porque parece certa.'
   },
-  'registro-do-exemplo': {
-    regra: 'No orçamento conferido à mão (base R$ 301.867,16), o registro foi R$ 3.133,28.',
-    origem: 'Módulo 3 das instruções de cobrança.',
-    confianca: 'incerta', tipo: 'pendencia',
-    aberto: 'Esse número não sai de uma consulta única ao item 1 da tabela de registro entregue: aquela faixa '
-          + '(R$ 268.940,01 a R$ 307.360,00) dá R$ 2.723,02. A escritura do mesmo exemplo bate exatamente com a '
-          + 'tabela de Notas, e a prenotação (R$ 80,14 contra R$ 79,16) e a matrícula (R$ 76,54 contra R$ 75,60) '
-          + 'estão 1,24% acima — sinal de que a tabela de registro usada naquele orçamento é de outra vigência. '
-          + 'Mesmo corrigido por esse 1,24%, o registro daria R$ 2.756,74. Faltam duas informações: de que ano é a '
-          + 'tabela de registro do exemplo, e se aquele R$ 3.133,28 é um registro só ou a soma de mais de um.'
+  'coluna-registro-com-matricula': {
+    regra: 'O valor do registro sai da coluna "REGISTRO COM MATRÍCULA" da tabela de custas, e a taxa adicional é somada a ela.',
+    origem: 'Tabela de Custas do Registro de Imóveis 2026, confirmada pela Shirley em 27/08/2026.',
+    confianca: 'confirmada', tipo: 'regra',
+    exemplos: ['Apartamento 1301, base R$ 301.867,16: faixa j dá R$ 2.756,74 de registro e R$ 2.833,28 com matrícula. '
+             + 'Com os R$ 300,00 de taxa embutida, dá exatamente os R$ 3.133,28 do orçamento dela.',
+             'Em todas as 48 faixas da tabela de 2026, a coluna com matrícula é o registro mais R$ 76,54 — '
+             + 'o valor da certidão no rodapé da mesma folha.']
   },
-  'matricula-item-11': {
-    regra: 'A linha "Matrícula" das despesas usa o item 11 da tabela de registro (certidão, R$ 75,60).',
-    origem: 'Comparação com o orçamento que ela conferiu à mão.',
+  'matricula-duas-vezes': {
+    regra: 'No orçamento do apartamento 1301 a certidão de matrícula entra duas vezes: dentro da coluna "registro com matrícula" e de novo na linha Matrícula.',
+    origem: 'Conferência do exemplo do Módulo 3 contra a tabela de custas de 2026.',
     confianca: 'aprendida', tipo: 'hipotese',
-    aberto: 'O R$ 76,54 do exemplo dela corresponde ao item 11 (certidão) corrigido, não ao item 4 (abertura de '
-          + 'matrícula, R$ 23,67). O motor usa a certidão. Confirmar qual das duas é a despesa cobrada.'
+    exemplos: ['R$ 2.833,28 (registro com matrícula) + R$ 300,00 = R$ 3.133,28, e depois mais R$ 76,54 na linha Matrícula.'],
+    aberto: 'O motor faz igual ao exemplo, porque é assim que ela cobra — mas escreve o aviso em todo orçamento. '
+          + 'Se for para cobrar uma vez só, basta trocar a coluna do registro ou tirar a linha Matrícula: '
+          + 'o orçamento do 1301 cairia de R$ 16.522,21 para R$ 16.445,67.'
+  },
+  'matricula-e-certidao': {
+    regra: 'A linha "Matrícula" das despesas é a certidão (R$ 76,54), não a abertura de matrícula (R$ 23,96).',
+    origem: 'Raciocínio confirmado pela Shirley em 27/08/2026, e conferido contra o rodapé da tabela de 2026.',
+    confianca: 'confirmada', tipo: 'regra',
+    exemplos: ['O R$ 76,54 do orçamento do apartamento 1301 é exatamente o "Certidões: sob qualquer forma (PAPEL)" '
+             + 'do rodapé da tabela de custas de 2026.']
   },
   'pensao-doze-meses': {
     regra: 'No divórcio com pensão, a base acrescida à escritura é a pensão mensal multiplicada pelos meses (12 quando o prazo não for estipulado).',
@@ -9944,9 +10030,16 @@ function orcLista(){
 // ── A configuração declarada por ela ─────────────────────────────────────
 // Vigência e UFESP não são palpite do painel: ou ela declara, ou o motor
 // escreve que não sabe. Aplicadas às tabelas assim que chegam do banco.
+// A vigência que veio com a tabela é a que vale por padrão; o campo em Ajustes
+// só serve para corrigi-la. Deixar o campo vazio apagar a vigência declarada
+// era como estava antes, e fazia toda tabela amanhecer sem data.
+const ORC_VIGENCIA_DA_FONTE = {
+  notas: ORC_TABELA_NOTAS.vigencia,
+  registro: ORC_TABELA_REGISTRO.vigencia
+};
 function orcAplicarCfg(){
-  ORC_TABELA_NOTAS.vigencia    = (orcCfg.vigenciaNotas || '').trim() || null;
-  ORC_TABELA_REGISTRO.vigencia = (orcCfg.vigenciaRegistro || '').trim() || null;
+  ORC_TABELA_NOTAS.vigencia    = (orcCfg.vigenciaNotas || '').trim() || ORC_VIGENCIA_DA_FONTE.notas;
+  ORC_TABELA_REGISTRO.vigencia = (orcCfg.vigenciaRegistro || '').trim() || ORC_VIGENCIA_DA_FONTE.registro;
   ORC_TRIBUTOS.ufesp = orcCfg.ufesp ? Math.round(finNum(orcCfg.ufesp) * 100) : null;
 }
 function orcTaxaPadrao(){
@@ -10063,7 +10156,8 @@ window.orcNovoDoCaso = function(casoId){
     // sai da tabela de hoje, não do número que ficou guardado.
     valores: anterior ? JSON.parse(JSON.stringify((anterior.entrada || {}).valores || {})) : {},
     flags: anterior ? {...((anterior.entrada || {}).flags || {})} : {},
-    despesas: {prenotacao: true, matricula: true, taxaAdicional: null, taxaAdicionalValor: orcTaxaPadrao()},
+    despesas: {prenotacao: true, matricula: true, registroComMatricula: true,
+               taxaAdicional: null, taxaAdicionalValor: orcTaxaPadrao()},
     status: 'elaboracao', obs: '', herdado: h, veioDe: anterior ? anterior.id : null
   };
   orcAbrirJanela();
@@ -10327,6 +10421,11 @@ function orcHtmlDespesas(e, r){
         <select class="fin-select" onchange="orcMudarDespesa('matricula',this.value==='1')">
           <option value="1"${d.matricula !== false ? ' selected' : ''}>Incluir — ${orcMoeda(ORC_TABELA_REGISTRO.itens['11'].valor)}</option>
           <option value="0"${d.matricula === false ? ' selected' : ''}>Não incluir</option></select></div>
+      <div class="orc-campo orc-campo-largo"><label class="fin-rot">Coluna do registro na tabela
+          <span class="fin-mini">— a de 2026 traz as duas</span></label>
+        <select class="fin-select" onchange="orcMudarDespesa('registroComMatricula',this.value==='1')">
+          <option value="1"${d.registroComMatricula !== false ? ' selected' : ''}>Registro com matrícula — o registro da faixa já com a certidão somada</option>
+          <option value="0"${d.registroComMatricula === false ? ' selected' : ''}>Registro — só a faixa, sem a certidão</option></select></div>
       <div class="orc-campo orc-campo-largo orc-taxa">
         <label class="fin-rot">Deseja incluir taxa adicional nas despesas do registro?
           <span class="fin-mini">— nunca entra sozinha, e no orçamento do cliente vai somada ao registro</span></label>
@@ -10693,16 +10792,21 @@ function orcHtmlConhecimento(){
     }).join('')}`;
 }
 window.orcVerRegra = function(id){ orcRegraAberta = orcRegraAberta === id ? null : id; renderOrcamentos(); };
+// Mudar a confiança de uma regra que não existe criava um registro pela
+// metade — sem texto, sem origem, e já marcado como confirmado. Uma regra sem
+// enunciado que vale como confirmada é a pior linha possível nesta base.
+function orcMudarConfianca(id, confianca, aviso){
+  if(!orcConhecimento[id]){ finToast('Essa regra não está mais na base.'); return; }
+  const campos = {confianca, atualizadoEm: new Date().toISOString()};
+  if(confianca === 'confirmada') campos.validadoPor = localStorage.getItem('painel_usuario') || 'você';
+  update(ref(db, 'orcamento-conhecimento/' + id), campos);
+  finToast(aviso);
+}
 window.orcValidarRegra = function(id){
-  const quem = localStorage.getItem('painel_usuario') || 'você';
-  update(ref(db, 'orcamento-conhecimento/' + id),
-    {confianca: 'confirmada', validadoPor: quem, atualizadoEm: new Date().toISOString()});
-  finToast('REGRA VALIDADA E INCORPORADA À BASE DE CONHECIMENTO.');
+  orcMudarConfianca(id, 'confirmada', 'REGRA VALIDADA E INCORPORADA À BASE DE CONHECIMENTO.');
 };
 window.orcDuvidarRegra = function(id){
-  update(ref(db, 'orcamento-conhecimento/' + id),
-    {confianca: 'incerta', atualizadoEm: new Date().toISOString()});
-  finToast('Marcada como incerta — o motor deixa de tratá-la como definitiva.');
+  orcMudarConfianca(id, 'incerta', 'Marcada como incerta — o motor deixa de tratá-la como definitiva.');
 };
 window.orcApagarRegra = function(id){
   const r = orcConhecimento[id] || {};
@@ -10729,11 +10833,15 @@ function orcHtmlTabelas(){
     <div class="orc-tab-linha"><span>Versão</span><b>${escTxt(tab.versao)}</b></div>
     <div class="orc-tab-linha"><span>Faixas carregadas</span><b>${(tab.faixas || []).length}</b></div>
     <div class="orc-tab-linha"><span>Vigência</span>
-      <input class="fin-input" style="max-width:280px" placeholder="Ex: a partir de 01/01/2026"
-        value="${esc(orcCfg[campo] || '')}" onchange="orcSalvarCfg('${campo}',this.value)"></div>
-    ${!tab.vigencia ? `<div class="orc-tab-aviso">A vigência não veio no arquivo. Enquanto ela não for declarada aqui,
+      <input class="fin-input" style="max-width:280px" placeholder="Ex: até 01/01/2027"
+        value="${esc(orcCfg[campo] || tab.vigencia || '')}" onchange="orcSalvarCfg('${campo}',this.value)"></div>
+    ${tab.vigenciaAte ? `<div class="orc-tab-linha"><span>Trava a partir de</span>
+      <b>${finDataBr(tab.vigenciaAte)}</b></div>` : ''}
+    ${!tab.vigencia ? `<div class="orc-tab-aviso">A vigência não está declarada. Enquanto ela não for escrita aqui,
       todo orçamento sai marcado como <b>estimativa</b> e o CHECK FINAL não fecha — é a sua regra 13:
-      nunca usar uma tabela só porque é a que se tem à mão.</div>` : ''}
+      nunca usar uma tabela só porque é a que se tem à mão.</div>`
+      : `<div class="orc-tab-aviso">Passada essa data, o motor trava sozinho e manda procurar a tabela do
+      exercício novo. Tabela vencida é pior que tabela sem data: ela parece certa.</div>`}
   </div>`;
   return t(ORC_TABELA_NOTAS, 'vigenciaNotas') + t(ORC_TABELA_REGISTRO, 'vigenciaRegistro')
     + `<div class="orc-tab-bloco">

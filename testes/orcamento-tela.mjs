@@ -93,8 +93,8 @@ await passo('digitado o valor, o total aparece e bate com a tabela', async () =>
   });
   await pg.waitForSelector('.orc-total-num');
   const total = await pg.textContent('.orc-total-num');
-  // 4.176,24 + 2.723,02 + 79,16 + 75,60 + 9.056,01
-  if(!/16\.110,03/.test(total)) throw new Error('total inesperado: ' + total);
+  // 4.176,24 + 2.833,28 (registro com matrícula) + 80,14 + 76,54 + 9.056,01
+  if(!/16\.222,21/.test(total)) throw new Error('total inesperado: ' + total);
 });
 
 await passo('a taxa adicional é perguntada, e trava o orçamento até responder', async () => {
@@ -106,7 +106,8 @@ await passo('a taxa adicional é perguntada, e trava o orçamento até responder
 
 await passo('respondido "sim", os R$ 300 entram no total', async () => {
   await pg.evaluate(() => orcMudarDespesa('taxaAdicional', true));
-  await pg.waitForFunction(() => /16\.410,03/.test(document.querySelector('.orc-total-num').textContent));
+  // Com os R$ 300,00 é o orçamento que ela conferiu à mão, linha por linha.
+  await pg.waitForFunction(() => /16\.522,21/.test(document.querySelector('.orc-total-num').textContent));
 });
 
 await passo('a memória mostra faixa, item e fundamento de cada linha', async () => {
@@ -117,15 +118,25 @@ await passo('a memória mostra faixa, item e fundamento de cada linha', async ()
   if(!/Item da tabela: 1\.1/.test(m)) throw new Error('não mostrou o item da escritura');
   if(!/Item da tabela: 12/.test(m)) throw new Error('não mostrou o item da prenotação');
   if(!/Alíquota: 3%/.test(m)) throw new Error('não mostrou a alíquota do ITBI');
-  if(!/não declarada/.test(m)) throw new Error('escondeu que a vigência não veio no arquivo');
+  if(!/até 01\/01\/2027/.test(m)) throw new Error('não mostrou a vigência da tabela');
+  if(!/registro com matrícula/i.test(m)) throw new Error('não disse de que coluna do registro veio o número');
 });
 
-await passo('o CHECK FINAL trava na vigência e na taxa já respondida não trava', async () => {
+await passo('o CHECK FINAL fecha, e manda conferir a matrícula em duplicidade', async () => {
   const c = await pg.textContent('.orc-check');
   if(!/Vigência conferida/.test(c)) throw new Error('sem a linha da vigência');
   const travando = await pg.$$eval('.orc-check-linha.falta .orc-check-nome', ns => ns.map(n => n.textContent));
-  if(!travando.includes('Vigência conferida')) throw new Error('a vigência não travou: ' + travando);
-  if(travando.includes('Taxa adicional perguntada')) throw new Error('a taxa continuou travando depois de respondida');
+  if(travando.length) throw new Error('ficou travado em: ' + travando);
+  const confirmar = await pg.$$eval('.orc-check-linha.confirmar .orc-check-nome', ns => ns.map(n => n.textContent));
+  if(!confirmar.includes('Matrícula')) throw new Error('não pediu conferência da matrícula: ' + confirmar);
+  const t = await pg.textContent('.orc-total-rot');
+  if(!/[Cc]onferido/.test(t)) throw new Error('não fechou como conferido: ' + t);
+});
+
+await passo('a certidão entrando duas vezes aparece escrita, com a saída', async () => {
+  const a = await pg.textContent('.orc-alertas');
+  if(!/duas vezes/.test(a)) throw new Error('não avisou da duplicidade: ' + a);
+  if(!/troque a coluna do registro/.test(a)) throw new Error('avisou sem dizer como resolver');
 });
 
 await passo('o modo cliente não deixa escapar faixa, item nem fundamento', async () => {
@@ -143,8 +154,8 @@ await passo('e a taxa adicional some da vista, somada ao registro', async () => 
     ts => ts.map(t => [...t.cells].map(c => c.textContent.trim())));
   const registro = linhas.find(l => /REGISTRO/.test(l[0]));
   if(!registro) throw new Error('sem a linha do registro');
-  // 2.723,02 + 300,00 — e nenhuma linha dizendo "taxa"
-  if(!/3\.023,02/.test(registro[1])) throw new Error('a taxa não entrou no registro: ' + registro[1]);
+  // 2.833,28 + 300,00 = 3.133,28 — o mesmo número do papel dela
+  if(!/3\.133,28/.test(registro[1])) throw new Error('a taxa não entrou no registro: ' + registro[1]);
   if(linhas.some(l => /adicional|taxa/i.test(l[0]))) throw new Error('a taxa ganhou linha própria');
 });
 
@@ -154,7 +165,7 @@ await passo('salvo, o card mostra a versão 1 e o orçamento vira leitura', asyn
   await pg.evaluate(() => {document.getElementById('cartao-orc').innerHTML = orcFaixaDoCaso('c1');});
   const txt = await pg.textContent('#cartao-orc');
   if(!/versão 1/.test(txt)) throw new Error('o card não mostrou a versão: ' + txt);
-  if(!/16\.410,03/.test(txt)) throw new Error('o card não mostrou o total: ' + txt);
+  if(!/16\.522,21/.test(txt)) throw new Error('o card não mostrou o total: ' + txt);
 });
 
 await passo('uma versão nova não come a anterior, e diz por que mudou', async () => {
@@ -188,7 +199,7 @@ await passo('"escritura assinada" leva a PARTE DO TABELIÃO para o Financeiro', 
   const t = await pg.textContent('#cartao-orc');
   if(!/2\.735,91/.test(t)) throw new Error('a parte do tabelião veio errada: ' + t);
   if(/4\.594,65/.test(t)) throw new Error('lançou o total da cliente como se fosse do tabelião: ' + t);
-  if(!/3\.170,61/.test(t)) throw new Error('o registro não foi inteiro para a carteira: ' + t);
+  if(!/3\.282,70/.test(t)) throw new Error('o registro não foi inteiro para a carteira: ' + t);
   if(!/na carteira/.test(t)) throw new Error('o registro não ficou na carteira: ' + t);
   const guardado = await pg.evaluate(() =>
     Object.values(orcEstado().orcamentos).find(x => x.versao === 2).lancamentoId);
@@ -203,30 +214,50 @@ await passo('o ambiente lista as versões e a base de conhecimento nasce cheia',
   await pg.evaluate(() => orcIrPara('conhecimento'));
   await pg.waitForSelector('.orc-regra');
   const t = await pg.textContent('#orc-conteudo');
-  if(!/3\.133,28/.test(t)) throw new Error('a dúvida do registro do exemplo não está na base');
-  if(!/vigência/i.test(t)) throw new Error('a pendência da vigência não está na base');
+  if(!/REGISTRO COM MATRÍCULA/i.test(t)) throw new Error('a regra da coluna do registro não está na base');
+  if(!/duas vezes/.test(t)) throw new Error('a duplicidade da certidão não está na base');
+  if(!/01\/01\/2027/.test(t)) throw new Error('a vigência confirmada não está na base');
 });
 
 await passo('confirmar uma hipótese a promove, e a promoção fica registrada', async () => {
-  await pg.evaluate(() => orcValidarRegra('matricula-item-11'));
+  // A 🟡 de verdade da base: a certidão de matrícula entrando duas vezes.
+  const antes = await pg.evaluate(() => orcEstado().conhecimento['matricula-duas-vezes'].confianca);
+  if(antes !== 'aprendida') throw new Error('a hipótese não nasceu como aprendida: ' + antes);
+  await pg.evaluate(() => orcValidarRegra('matricula-duas-vezes'));
   await pg.waitForFunction(() =>
-    (orcEstado().conhecimento['matricula-item-11'] || {}).confianca === 'confirmada');
-  const quem = await pg.evaluate(() => orcEstado().conhecimento['matricula-item-11'].validadoPor);
+    orcEstado().conhecimento['matricula-duas-vezes'].confianca === 'confirmada');
+  const quem = await pg.evaluate(() => orcEstado().conhecimento['matricula-duas-vezes'].validadoPor);
   if(!quem) throw new Error('não guardou quem validou');
 });
 
-await passo('declarada a vigência, o orçamento passa a fechar', async () => {
-  await pg.evaluate(() => {
-    orcIrPara('tabelas');
-    orcSalvarCfg('vigenciaNotas', 'a partir de 01/01/2026');
-    orcSalvarCfg('vigenciaRegistro', 'a partir de 01/01/2026');
-  });
-  await pg.waitForFunction(() => ORC_TABELA_NOTAS.vigencia !== null);
-  const def = await pg.evaluate(() => orcCalcular({
-    atoId:'compra-venda', valores:{transacao:30186716},
+await passo('e uma regra que não está na base não vira registro pela metade', async () => {
+  await pg.evaluate(() => orcValidarRegra('regra-que-nunca-existiu'));
+  const criou = await pg.evaluate(() => 'regra-que-nunca-existiu' in orcEstado().conhecimento);
+  if(criou) throw new Error('criou uma regra sem enunciado, já marcada como confirmada');
+});
+
+await passo('a aba Tabelas mostra a vigência e o teto de isenção do dia', async () => {
+  await pg.evaluate(() => orcIrPara('tabelas'));
+  await pg.waitForSelector('.orc-tab-bloco');
+  const t = await pg.textContent('#orc-conteudo');
+  // A vigência vive num campo: quem lê a tela vê o valor, e quem quiser
+  // corrigir escreve por cima. Por isso a conferência é no value, não no texto.
+  const vigencias = await pg.$$eval('.orc-tab-linha input', ins => ins.map(i => i.value));
+  if(!vigencias.filter(v => /até 01\/01\/2027/.test(v)).length)
+    throw new Error('não mostrou a vigência das tabelas: ' + JSON.stringify(vigencias));
+  if(!/custas-2026/.test(t)) throw new Error('não mostrou a versão da tabela do registro');
+  if(!/Faixas carregadas\s*48/.test(t)) throw new Error('não mostrou quantas faixas foram carregadas');
+  if(!/Trava a partir de/.test(t)) throw new Error('não disse a partir de quando a tabela trava');
+});
+
+await passo('tabela vencida trava o orçamento em vez de sair com o número velho', async () => {
+  const r = await pg.evaluate(() => orcCalcular({
+    atoId:'compra-venda', data:'2027-06-01', valores:{transacao:30186716},
     imovelMunicipio:'São Paulo', imovelUf:'SP', flags:{},
-    despesas:{prenotacao:true, matricula:true, taxaAdicional:false}}).definitivo);
-  if(def !== true) throw new Error('continuou preso mesmo com a vigência declarada');
+    despesas:{prenotacao:true, matricula:true, taxaAdicional:false}}));
+  if(r.definitivo !== false) throw new Error('deixou passar um ato fora da vigência');
+  if(!r.alertas.some(a => /exercício novo/.test(a.texto)))
+    throw new Error('não mandou procurar a tabela nova');
 });
 
 // ── E no celular, que é onde ela confere ──
@@ -270,7 +301,7 @@ await passo('o modo cliente cabe na tela do celular', async () => {
 await passo('o ambiente inteiro cabe na tela do celular', async () => {
   await cel.evaluate(() => {fecharOrcamentoDoCaso(); abrirOrcamentos('conhecimento');});
   await cel.waitForSelector('.orc-regra');
-  await cel.evaluate(() => orcVerRegra('registro-do-exemplo'));
+  await cel.evaluate(() => orcVerRegra('coluna-registro-com-matricula'));
   await cel.waitForSelector('.orc-regra-corpo');
   await naoEstoura('o Conhecimento aprendido');
   await cel.evaluate(() => orcIrPara('tabelas'));

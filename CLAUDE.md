@@ -382,17 +382,26 @@ validou.
 
 ### As duas tabelas
 
-Lidas dos PDFs oficiais que ela entregou em 26/08/2026, faixa por faixa:
-32 faixas do item 1.1 de Notas, 47 do item 1 do Registro, 47 da averbação com
-valor e 25 da incorporação, mais os itens de valor fixo (procuração, ata,
-escritura sem valor, prenotação, certidão, abertura de matrícula).
+Lidas dos PDFs oficiais que ela entregou em 27/08/2026, faixa por faixa: 32
+faixas do item 1.1 de Notas e as 48 da **Tabela de Custas do Registro de
+Imóveis — 2026**, mais os itens de valor fixo. As duas valem **até
+01/01/2027**, confirmado por ela.
 
-Três decisões que **não devem ser mexidas sem perguntar**:
+A tabela de custas veio como imagem, sem camada de texto, e a transcrição foi
+conferida por três invariantes que um dígito trocado quebraria: as faixas
+encaixam sem buraco, as colunas crescem, e — a mais forte — **em todas as 48
+faixas a coluna "registro com matrícula" é o registro mais R$ 76,54**, que é a
+certidão do rodapé da mesma folha.
 
-- **A vigência não veio nos arquivos, e o painel não inventa uma.** Enquanto
-  ela não declarar em *Tabelas e vigência*, todo orçamento sai como
-  **estimativa** e o CHECK FINAL não fecha. Usar a tabela que se tem à mão
-  porque é a que se tem é exatamente o que a regra dela proíbe.
+Quatro decisões que **não devem ser mexidas sem perguntar**:
+
+- **O registro sai da coluna "REGISTRO COM MATRÍCULA".** Foi dela que saiu o
+  R$ 3.133,28 do apartamento 1301: R$ 2.833,28 da faixa j mais os R$ 300,00 de
+  taxa embutida. Ler a coluna do lado erra o orçamento em R$ 76,54 sem que nada
+  pareça errado.
+- **A vigência vence, e vencer trava.** A partir de 02/01/2027 o motor recusa
+  fechar e manda procurar a tabela do exercício novo. Tabela vencida é pior que
+  tabela sem data: ela parece certa.
 - **A conta inteira é em centavos inteiros.** Um orçamento soma dez a quinze
   linhas saídas de tabelas diferentes; meio centavo por linha vira um total que
   não bate com a conferência dela. Só a tela converte para reais.
@@ -400,6 +409,11 @@ Três decisões que **não devem ser mexidas sem perguntar**:
   total que a cliente paga — que vira `parteTabeliao` no Financeiro. Sem essa
   coluna, a passagem do orçamento para o dinheiro seria um palpite, e a
   comissão nasceria do número errado.
+
+As faixas de **incorporação e condomínio** são a única coisa que não vem da
+folha de 2026: continuam sendo as da tabela ARISP entregue antes, de vigência
+não declarada. Nenhum ato usa esse bloco hoje; ele fica marcado como tal, em
+vez de apagado ou misturado com o resto.
 
 ### As regras de cobrança
 
@@ -461,28 +475,42 @@ do tabelião vinda da coluna dele e o registro inteiro indo para a carteira
 virtual. **Orçado e realizado nunca viram a mesma linha**: o orçado fica
 guardado ao lado, e corrigir o que foi de fato cobrado não mexe no orçamento.
 
-### O que os arquivos deixaram em aberto
+### O gabarito, reconciliado inteiro
 
-Entra tudo na base como 🔴, escrito, do mesmo jeito que as ressalvas da Base de
+O orçamento do apartamento 1301 que veio nas instruções de cobrança fecha
+linha por linha, e é o gabarito da suíte:
+
+| | | |
+|---|---|---|
+| ESCRITURA | R$ 4.176,24 | faixa l da tabela de Notas |
+| REGISTRO | R$ 3.133,28 | faixa j com matrícula (2.833,28) + R$ 300,00 |
+| PRENOTAÇÃO | R$ 80,14 | rodapé da tabela de custas |
+| MATRÍCULA | R$ 76,54 | certidão, no mesmo rodapé |
+| ITBI | R$ 9.056,01 | 3% sobre R$ 301.867,16 |
+| **TOTAL** | **R$ 16.522,21** | |
+
+### A certidão que entra duas vezes
+
+Reconciliar o gabarito trouxe uma pergunta junto: a certidão de matrícula
+aparece **duas vezes** — dentro da coluna "registro com matrícula" e outra vez
+na linha Matrícula. O motor faz igual ao exemplo, porque é assim que ela cobra,
+**mas escreve o aviso em todo orçamento** e o CHECK FINAL pede conferência
+naquela linha. Cobrar duas vezes de propósito e cobrar duas vezes por engano são
+coisas diferentes, e só ela pode dizer qual das duas é esta. Trocando a coluna
+do registro ou tirando a linha, o orçamento do 1301 cai para R$ 16.445,67.
+
+### O que ainda está em aberto
+
+Entra na base como 🔴 ou 🟡, escrito, do mesmo jeito que as ressalvas da Base de
 Regras do Radar — pergunta que não fica escrita é pergunta que se perde:
 
-- **a vigência das duas tabelas**, que não vem em nenhum dos PDFs;
-- **o R$ 3.133,28 do exemplo dela** (apartamento 1301, base R$ 301.867,16). A
-  escritura daquele orçamento bate exatamente com a tabela de Notas entregue,
-  mas o registro não sai de uma consulta única ao item 1 da tabela de Registro:
-  aquela faixa dá R$ 2.723,02. A prenotação (R$ 80,14 contra R$ 79,16) e a
-  matrícula (R$ 76,54 contra R$ 75,60) estão 1,24% acima, o que indica que a
-  tabela de registro daquele orçamento é de outra vigência — mas mesmo
-  corrigido por esse 1,24% o registro daria R$ 2.756,74. Falta saber de que ano
-  é aquela tabela, e se o número é um registro só ou a soma de mais de um;
-- **a linha "Matrícula"**, que bate com o item 11 (certidão, R$ 75,60) e não com
-  o item 4 (abertura de matrícula, R$ 23,67) — o motor usa a certidão, marcado
-  como 🟡;
+- **a certidão de matrícula em duplicidade**, acima — 🟡, à espera de decisão;
 - **os doze meses da pensão**: "por doze meses, mais a quantidade de tempo
   estipulada" admite duas leituras, e o motor faz a segunda (12 quando não há
   prazo);
 - **os 40% da confissão de dívida sozinha na escritura**, que a redução de ato
-  secundário não cobre por si.
+  secundário não cobre por si;
+- **as notas explicativas da tabela de Notas**, que vieram só com o título.
 
 ---
 
@@ -607,15 +635,11 @@ criada, o salário que não acompanhava a correção do lançamento.
 
 ## Na fila
 
-- **O registro do exemplo dela não fecha com a tabela entregue.** É a pendência
-  🔴 mais importante dos Orçamentos, e está inteira na seção deles: o
-  R$ 3.133,28 do apartamento 1301 não sai de uma consulta única ao item 1 da
-  tabela de Registro. Enquanto isso não for esclarecido, o registro de qualquer
-  compra e venda sai pelo que a tabela entregue diz — que pode não ser o que ela
-  cobra.
-- **A vigência das duas tabelas.** Uma linha em *Tabelas e vigência* destrava o
-  CHECK FINAL de todo orçamento. Enquanto ela não vier, nada sai como
-  definitivo.
+- **A certidão de matrícula entra duas vezes no orçamento.** É a decisão em
+  aberto mais cara dos Orçamentos: R$ 76,54 por orçamento. Está inteira na
+  seção deles, e o painel avisa em toda tela até ela decidir.
+- **A tabela vence em 01/01/2027.** Em janeiro o motor trava sozinho e pede a
+  folha nova — as duas, Notas e Registro.
 - **As notas explicativas das tabelas não foram lidas.** As notas 1 a 13 da
   tabela de Notas vieram só com o título no PDF; o texto delas ficou fora. É de
   lá que sairiam os fundamentos da redução de 40% e das condições especiais.

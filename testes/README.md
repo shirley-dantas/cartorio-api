@@ -28,12 +28,16 @@ node testes/montar.mjs && node -e "import('./testes/servidor.mjs').then(m=>m.ser
 
 ## O que cada uma protege
 
-- **orcamento** — as duas tabelas de emolumentos lidas inteiras (sem faixa
-  faltando e sem degrau com buraco), a conta de cada um dos vinte atos em
-  centavos inteiros, os 40% do ato secundário, o ITBI e o ITCMD só onde eles
-  valem, a taxa adicional que nunca entra sem ser perguntada e a vigência que
-  trava o "definitivo". O gabarito é o orçamento do apartamento 1301, que veio
-  nas instruções de cobrança e ela já tinha conferido à mão.
+- **orcamento** — as duas tabelas lidas inteiras (sem faixa faltando e sem
+  degrau com buraco), a conta de cada um dos vinte atos em centavos inteiros,
+  os 40% do ato secundário, o ITBI e o ITCMD só onde eles valem, a taxa
+  adicional que nunca entra sem ser perguntada e a vigência que trava o
+  "definitivo" quando vence. O gabarito é o orçamento do apartamento 1301, que
+  veio nas instruções de cobrança: ele fecha linha por linha, até o total de
+  R$ 16.522,21. A tabela de custas de 2026 veio como imagem, sem camada de
+  texto, e a transcrição é cobrada por uma invariante que um dígito trocado
+  quebraria: em todas as 48 faixas, a coluna "registro com matrícula" é o
+  registro mais os R$ 76,54 da certidão.
 - **orcamento-tela** — o caminho da mão até o número: a faixa do card que não
   mostra valor sem login, o ato reconhecido pelo tipo escrito no card, a
   memória com faixa e item de cada linha, o modo cliente que não deixa escapar
