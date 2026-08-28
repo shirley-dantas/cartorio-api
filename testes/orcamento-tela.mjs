@@ -430,6 +430,70 @@ await passo('a via do cliente sai como imagem, para colar no WhatsApp', async ()
   if(!/^data:image\/png/.test(img.url)) throw new Error('não saiu PNG');
 });
 
+// O botão abria a folha de compartilhamento do sistema — a lista de
+// aplicativos. No computador, onde ela passa o dia, isso é um desvio: ela quer
+// a foto na mão para colar onde a conversa já está aberta. Agora o botão
+// mostra a imagem, e nada é enviado sem ela mandar.
+await passo('o botão mostra a imagem, e NÃO abre a folha de compartilhamento', async () => {
+  await pg.evaluate(() => orcAlternarCliente());
+  await pg.waitForSelector('#orc-cliente-botoes');
+  // Espiona o navigator.share: se alguém o chamar, o teste vê.
+  await pg.evaluate(() => {
+    window.__compartilhou = false;
+    navigator.share = async () => { window.__compartilhou = true; };
+  });
+  await pg.click('button:has-text("Imagem para enviar")');
+  await pg.waitForSelector('#orc-folha-imagem img');
+  if(await pg.evaluate(() => window.__compartilhou))
+    throw new Error('abriu a folha de compartilhamento sozinho — é justamente o que ela não quer');
+  const img = await pg.evaluate(() => {
+    const i = document.querySelector('#orc-folha-imagem img');
+    return {src: i.getAttribute('src'), l: i.naturalWidth, a: i.naturalHeight};
+  });
+  // Uma <img> de verdade, com URL própria: é o que faz o botão direito do
+  // mouse oferecer "Copiar imagem". Um canvas na tela não ofereceria.
+  if(!/^blob:/.test(img.src)) throw new Error('não é uma imagem de verdade: ' + img.src);
+  if(img.l !== 2000) throw new Error('a imagem saiu com outra largura: ' + img.l);
+  const dica = await pg.textContent('.orc-folha-dica');
+  if(!/botão direito/.test(dica)) throw new Error('não explicou como copiar: ' + dica);
+});
+
+await passo('e oferece copiar e baixar sem sair da tela', async () => {
+  const botoes = await pg.evaluate(() =>
+    [...document.querySelectorAll('#orc-folha-imagem button')].map(b => b.textContent.trim()));
+  if(!botoes.some(b => /Copiar imagem/.test(b))) throw new Error('faltou copiar: ' + botoes.join(' | '));
+  if(!botoes.some(b => /Baixar/.test(b))) throw new Error('faltou baixar: ' + botoes.join(' | '));
+  // "Compartilhar" só onde ele existe. Neste navegador não existe, e botão que
+  // não faz nada é pior que botão que falta.
+  if(botoes.some(b => /Compartilhar/.test(b)))
+    throw new Error('ofereceu compartilhar onde não dá: ' + botoes.join(' | '));
+});
+
+await passo('mas no celular o compartilhar continua à mão, como botão', async () => {
+  await pg.click('#orc-folha-imagem button:has-text("Voltar")');
+  await pg.evaluate(() => { navigator.canShare = () => true; });
+  await pg.click('button:has-text("Imagem para enviar")');
+  await pg.waitForSelector('#orc-folha-imagem img');
+  const botoes = await pg.evaluate(() =>
+    [...document.querySelectorAll('#orc-folha-imagem button')].map(b => b.textContent.trim()));
+  if(!botoes.some(b => /Compartilhar/.test(b)))
+    throw new Error('o celular perdeu o compartilhar: ' + botoes.join(' | '));
+  if(await pg.evaluate(() => window.__compartilhou))
+    throw new Error('mesmo no celular, nada pode abrir sem ela mandar');
+});
+
+await passo('e "Voltar" traz a folha de volta, sem deixar a imagem presa', async () => {
+  await pg.click('#orc-folha-imagem button:has-text("Voltar")');
+  const estado = await pg.evaluate(() => ({
+    folha: !document.getElementById('orc-cliente-folha').hidden,
+    imagem: document.getElementById('orc-folha-imagem').hidden,
+    vazio: document.getElementById('orc-folha-imagem').innerHTML === ''
+  }));
+  if(!estado.folha) throw new Error('a folha não voltou');
+  if(!estado.imagem || !estado.vazio) throw new Error('a imagem ficou pendurada na tela');
+  await pg.evaluate(() => orcVoltarDoCliente());
+});
+
 await passo('e tirando as vagas tudo volta ao imóvel único', async () => {
   await pg.evaluate(() => orcTirarTodasMatriculas());
   await pg.waitForFunction(() =>
