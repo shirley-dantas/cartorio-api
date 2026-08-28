@@ -427,9 +427,14 @@ procuração, ata e escritura declaratória.
   confissão, usufruto, cláusula resolutiva. É regra dela: a nota explicativa da
   tabela que a fundamentaria veio só com o título no PDF, e por isso cada linha
   reduzida nasce marcada como 🔵 operacional, não como fonte oficial.
-- **Vaga individualizada é registro à parte, na faixa dela.** Somar apartamento
-  e vaga e registrar de uma vez daria outro número — é a diferença que essa
-  regra existe para não deixar passar.
+- **Cada matrícula é um imóvel, e imóvel se conta.** Apartamento com duas vagas
+  individualizadas são **três** imóveis: três registros (cada um na sua faixa),
+  três prenotações e três certidões. A escritura é uma só, sobre o valor global,
+  e o ITBI também. Somar tudo e registrar de uma vez daria outro número, e
+  cobrar uma prenotação para três matrículas daria outro — os dois erros aparecem
+  exatamente nesse caso e somem no caso de imóvel único. O botão *"Tem mais de
+  uma matrícula?"* vale em **qualquer** ato com registro, não só no ato das
+  vagas: matrícula separada é característica do imóvel, não do ato.
 - **Fora da Capital o painel não chuta.** ITBI é municipal e ITCMD é estadual:
   fora de São Paulo o imposto fica sem valor e a razão aparece escrita, com a
   frase dela ("checar o código tributário").
@@ -512,6 +517,17 @@ quebraria o múltiplo.
 É nela que se contam as isenções de ITCMD (2.500 UFESP na doação, ou
 R$ 96.050,00) e o teto de interesse social em ZEIS (4.705 UFESP, R$ 180.766,10).
 
+### Gravar é a única coisa que depende do banco
+
+E por isso é a única que precisa esperar resposta. A primeira versão disparava
+a escrita sem `await`: quando a regra do banco recusava — o que acontece
+enquanto as regras do Firebase não foram publicadas —, o painel dizia "salvo" e
+não salvava nada. **Dizer que guardou o que não guardou é o pior erro que esta
+tela pode cometer**, pior que não salvar, porque some sem deixar rastro. Agora
+espera, e quando falha escreve na tela o que houve e a causa provável, sem
+perder o que foi digitado. O `faz-de-conta-navegador.js` sabe recusar escrita
+(`window.__recusarEscrita`) para que esse caminho tenha teste.
+
 ### O que ainda está em aberto
 
 Entra na base como 🔴 ou 🔵, escrito, do mesmo jeito que as ressalvas da Base de
@@ -575,6 +591,7 @@ o `testes/montar.mjs` recorta.
 | Comparar versões e achar divergência | `orcComparar()`, `orcDivergencias()`, `orcSemelhantes()` |
 | A faixa do card e a janela | `orcFaixaDoCaso()`, `renderOrcamentoDoCaso()` |
 | A memória e o modo cliente | `orcHtmlMemoria()`, `orcHtmlCliente()` |
+| Mais de uma matrícula | `ORC_CAMPOS.unidadesRegistro`, `orcAbrirMatriculas()` |
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |

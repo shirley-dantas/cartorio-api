@@ -196,6 +196,69 @@ ok('somar tudo e registrar de uma vez daria outro número',
    vg.totais.registro !== orcFaixa(ORC_TABELA_REGISTRO.faixas, 35186716).comMatricula);
 ok('o ITBI é sobre o valor global', vg.tributos[0].base === 35186716);
 
+console.log('\n— Mais de uma matrícula em qualquer ato, não só no ato das vagas —');
+// O caso que apareceu no primeiro orçamento de verdade: uma compra e venda
+// simples com duas vagas individualizadas. A escritura e o ITBI saem do valor
+// do negócio; o registro passa a ser um por matrícula, cada um na sua faixa.
+const comVagas = orcCalcular({
+  atoId: 'compra-venda', data: '2026-08-27',
+  praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+  valores: {transacao: 30186716, unidadesRegistro: [
+    {rotulo: 'Apartamento', valor: 26186716},
+    {rotulo: 'Vaga 1', valor: 2000000},
+    {rotulo: 'Vaga 2', valor: 2000000}]},
+  flags: {}, despesas: {prenotacao: true, matricula: true, taxaAdicional: false}
+});
+ok('três registros, um por matrícula', comVagas.registros.length === 3, comVagas.registros.length);
+ok('a escritura continua sobre o valor do negócio',
+   comVagas.escrituras.length === 1 && comVagas.escrituras[0].base === 30186716);
+ok('e o ITBI também', comVagas.tributos[0].base === 30186716);
+ok('cada matrícula cai na sua faixa, com a certidão',
+   comVagas.totais.registro === orcFaixa(ORC_TABELA_REGISTRO.faixas, 26186716).comMatricula
+                              + orcFaixa(ORC_TABELA_REGISTRO.faixas, 2000000).comMatricula
+                              + orcFaixa(ORC_TABELA_REGISTRO.faixas, 2000000).comMatricula,
+   R(comVagas.totais.registro));
+// Registrar tudo de uma vez daria outro número — é a diferença que essa regra
+// existe para não deixar passar.
+ok('registrar o valor cheio de uma vez daria outro número',
+   comVagas.totais.registro !== orcFaixa(ORC_TABELA_REGISTRO.faixas, 30186716).comMatricula);
+ok('as matrículas somando o valor do negócio não levantam aviso',
+   !comVagas.alertas.some(a => /matrículas somam/.test(a.texto)));
+// Três imóveis são três prenotações e três certidões. Cobrar uma só é o erro
+// que aparece exatamente neste caso e some no caso de imóvel único — por isso
+// a conta é pelo número de registros, não pelo número de escrituras.
+const pren = comVagas.despesas.find(x => x.item === '12');
+const cert = comVagas.despesas.find(x => x.item === '11');
+ok('três prenotações: 80,14 × 3', R(pren.valor) === '240.42', R(pren.valor));
+ok('três certidões: 76,54 × 3', R(cert.valor) === '229.62', R(cert.valor));
+ok('e a quantidade fica escrita na linha', pren.quantidade === 3 && /3 imóveis/.test(pren.rot));
+ok('a escritura continua sendo uma só', comVagas.escrituras.length === 1);
+// No imóvel único nada disso muda.
+ok('imóvel único continua com uma prenotação e uma certidão',
+   R(ap.despesas.find(x => x.item === '12').valor) === '80.14'
+   && R(ap.despesas.find(x => x.item === '11').valor) === '76.54');
+const somaErrada = orcCalcular({
+  atoId: 'compra-venda', valores: {transacao: 30186716, unidadesRegistro: [
+    {rotulo: 'Apartamento', valor: 26186716}]},
+  imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+  flags: {}, despesas: {taxaAdicional: false}});
+ok('mas somando diferente, o painel avisa',
+   somaErrada.alertas.some(a => /matrículas somam/.test(a.texto)),
+   somaErrada.alertas.map(a => a.texto));
+// Vale em qualquer ato com registro, não só na compra e venda.
+const doacaoDuasMat = orcCalcular({
+  atoId: 'doacao', valores: {doacao: 30000000, unidadesRegistro: [
+    {rotulo: 'Casa', valor: 25000000}, {rotulo: 'Terreno', valor: 5000000}]},
+  imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+  flags: {}, despesas: {taxaAdicional: false}});
+ok('a doação também aceita mais de uma matrícula', doacaoDuasMat.registros.length === 2);
+ok('e o ITCMD continua sobre o valor global', doacaoDuasMat.tributos[0].base === 30000000);
+// O ato que já pede as unidades como campo dele não muda de comportamento.
+ok('o ato "com vagas" continua funcionando como antes',
+   orcCalcular({atoId: 'compra-venda-vagas',
+     valores: {unidades: [{rotulo: 'Apto', valor: 30186716}, {rotulo: 'Vaga', valor: 5000000}]},
+     flags: {}, despesas: {taxaAdicional: false}}).registros.length === 2);
+
 console.log('\n— Inventário desigual: dois impostos, e o certo em cada quinhão —');
 const invO = orcCalcular({atoId: 'inventario-desigual-meacao',
   valores: {meacao: 50000000, excedente: 10000000, imoveis: [{rotulo: 'Casa', valor: 60000000}]},

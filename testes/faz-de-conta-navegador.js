@@ -14,8 +14,21 @@ function _avisar(){_ouvintes.forEach(([p,cb])=>cb({val:()=>_get(p)===undefined?n
 const db={};
 const ref=(_,p)=>({p});
 const onValue=(r,cb)=>{_ouvintes.push([r.p,cb]);cb({val:()=>_get(r.p)===undefined?null:_get(r.p)});};
-const set=(r,v)=>{_set(r.p,JSON.parse(JSON.stringify(v)));_avisar();return Promise.resolve();};
-const update=(r,v)=>{const a=_get(r.p)||{};_set(r.p,JSON.parse(JSON.stringify({...a,...v})));_avisar();return Promise.resolve();};
+// O banco de verdade recusa escrita em caminho fechado, e o painel precisa
+// saber lidar com isso — foi assim que o primeiro orçamento de verdade não
+// salvou, com o painel dizendo que tinha salvo. Ligando window.__recusarEscrita
+// o teste reproduz a recusa, com a mesma cara que o Firebase dá.
+function _recusa(){
+  const e=new Error('PERMISSION_DENIED: Permission denied');
+  e.code='PERMISSION_DENIED';
+  return Promise.reject(e);
+}
+const set=(r,v)=>{
+  if(window.__recusarEscrita)return _recusa();
+  _set(r.p,JSON.parse(JSON.stringify(v)));_avisar();return Promise.resolve();};
+const update=(r,v)=>{
+  if(window.__recusarEscrita)return _recusa();
+  const a=_get(r.p)||{};_set(r.p,JSON.parse(JSON.stringify({...a,...v})));_avisar();return Promise.resolve();};
 let _n=0;
 const push=(r)=>{const key='id'+(++_n);return {key,p:r.p+'/'+key};};
 const remove=(r)=>{_set(r.p,undefined);_avisar();return Promise.resolve();};
