@@ -275,6 +275,46 @@ ok('o ato "com vagas" continua funcionando como antes',
      valores: {unidades: [{rotulo: 'Apto', valor: 30186716}, {rotulo: 'Vaga', valor: 5000000}]},
      flags: {}, despesas: {taxaAdicional: false}}).registros.length === 2);
 
+// O "valor do negócio" com que a tela compara a soma das matrículas. Depois do
+// desdobramento, `registros[0].base` é o valor da PRIMEIRA matrícula — e a tela
+// que lia dali dizia à Shirley que o negócio tinha encolhido para o valor da
+// vaga. O motor guarda o número de antes.
+console.log('\n— O valor do negócio sobrevive ao desdobramento em matrículas —');
+ok('sem matrículas, baseRegistro é a base do registro único', ap.baseRegistro === 30186716, ap.baseRegistro);
+ok('com três matrículas, ele continua sendo o valor do negócio',
+   comVagas.baseRegistro === 30186716, comVagas.baseRegistro);
+ok('e não o da primeira matrícula', comVagas.registros[0].base === 26186716);
+ok('mesmo quando as matrículas somam diferente do negócio',
+   somaErrada.baseRegistro === 30186716, somaErrada.baseRegistro);
+
+// A via da cliente é a única tela que sai do cartório, e ela tem de fechar:
+// somar as linhas impressas e dar o total impresso. A taxa adicional é a única
+// coisa sem linha própria, e vai somada dentro do REGISTRO — o que só funciona
+// enquanto houver um REGISTRO para absorvê-la.
+console.log('\n— A via da cliente sempre fecha —');
+const somaLinhas = r => orcLinhasCliente(r).reduce((t, l) => t + l[1], 0);
+ok('no gabarito do 1301', somaLinhas(ap) === ap.totais.total, [somaLinhas(ap), ap.totais.total]);
+ok('com três matrículas', somaLinhas(comVagas) === comVagas.totais.total);
+const semRegistro = orcCalcular({atoId: 'procuracao', valores: {}, flags: {},
+  despesas: {taxaAdicional: true}});
+ok('e num ato sem registro, mesmo com a taxa adicional respondida antes',
+   somaLinhas(semRegistro) === semRegistro.totais.total,
+   [somaLinhas(semRegistro), semRegistro.totais.total]);
+ok('— a taxa do registro não entra em ato que não tem registro',
+   !semRegistro.despesas.some(d => d.interna), semRegistro.despesas);
+// E os vinte atos de uma vez: nenhuma via da cliente pode sair com uma linha
+// a menos do que o total cobra.
+const naoFecham = ORC_ATOS.filter(a => {
+  const r = orcCalcular({atoId: a.id, imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+    valores: {transacao: 30186716, doacao: 30186716, monte: 30186716, meacao: 30186716,
+              totalPartilha: 30186716, excedente: 1000000, divida: 30186716,
+              unidades: [{rotulo: 'Apto', valor: 30186716}],
+              imoveis: [{rotulo: 'Casa', valor: 30186716}]},
+    flags: {}, despesas: {taxaAdicional: true}});
+  return somaLinhas(r) !== r.totais.total;
+}).map(a => a.id);
+ok('nos vinte atos, com a taxa adicional ligada', naoFecham.length === 0, naoFecham);
+
 console.log('\n— Inventário desigual: dois impostos, e o certo em cada quinhão —');
 const invO = orcCalcular({atoId: 'inventario-desigual-meacao',
   valores: {meacao: 50000000, excedente: 10000000, imoveis: [{rotulo: 'Casa', valor: 60000000}]},

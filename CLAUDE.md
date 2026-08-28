@@ -439,6 +439,22 @@ procuração, ata e escritura declaratória.
   telefone, sem depender das fontes do aparelho. No celular abre a folha de
   compartilhamento; no computador copia para a área de transferência; e, se
   nada disso existir, baixa o arquivo — nunca fica sem saída.
+- **E precisa ser lida à distância de um polegar.** A primeira folha era clean
+  demais para o meio em que ela vive: cinza médio nos nomes dos custos, filete
+  de 0,8px entre as linhas e muita margem branca. Na tela do computador ficava
+  elegante; no WhatsApp, que entrega a imagem reduzida à largura do telefone,
+  chegava apagada. Daí as três regras do desenho: **o que a cliente precisa ler
+  sai na tinta cheia** (o cinza fica só para as maiúsculas pequenas e a
+  ressalva), **as linhas se separam por faixa e não por filete** — filete
+  desaparece na compressão, e sem ele o olho perde o caminho do nome até o
+  valor —, e **a tarja escura no topo e no total** dá à folha uma âncora que
+  sobrevive à redução. Elegância que não chega ao olho da cliente não é
+  elegância, é desperdício de papel.
+- **A via da cliente fecha, sempre.** As linhas impressas somam o total
+  impresso — é a única tela do painel que sai do cartório, e uma conta que não
+  bate na mão da cliente é pior que nenhuma conta. A receita das linhas mora
+  num lugar só (`orcLinhasCliente`), lida pela tela e pela imagem, e há teste
+  cobrando a soma nos vinte atos.
 - **Cada matrícula é um imóvel, e imóvel se conta.** Apartamento com duas vagas
   individualizadas são **três** imóveis: três registros (cada um na sua faixa),
   três prenotações e três certidões. A escritura é uma só, sobre o valor global,
@@ -458,7 +474,10 @@ procuração, ata e escritura declaratória.
   fechar todo orçamento, e o CHECK FINAL trava até haver resposta. No modo
   cliente ela vai **somada ao registro, sem linha própria** — que é só isso o
   que "sem que o cliente perceba" significa: nada é cobrado a mais, apenas não
-  ganha linha.
+  ganha linha. E por isso ela **só existe onde há registro**: trocar o ato
+  depois de responder a pergunta deixava R$ 300 de "despesa do registro" numa
+  procuração, somados no total e sem linha nenhuma na via da cliente, que então
+  deixava de fechar.
 
 ### Por onde se orça
 
@@ -478,6 +497,14 @@ pergunta o que falta — formulário enorme foi o que ela pediu para não existi
   outro número.
 - **Duplicar não copia número.** A data vira hoje e a conta é refeita na tabela
   de agora.
+- **O que ela está olhando é o que tem de mudar.** A conta mora no bloco do
+  resultado, mas a linha que soma os imóveis e a quantidade das despesas ficam
+  em cima, coladas nos campos que ela digita — e ficavam paradas, porque a tela
+  não pode se refazer inteira a cada tecla (o cursor salta para fora do campo).
+  Ela acrescentava a vaga, o total lá embaixo subia, e a linha debaixo da mão
+  dela continuava dizendo "1 imóvel". Parecia que a soma não estava
+  acontecendo. Esses pedaços agora são trocados **no lugar**
+  (`orcRedesenharAcessorios`), e nunca o campo que está debaixo do dedo dela.
 
 A **memória de cálculo** mostra, linha por linha, o item da tabela, a faixa (a
 mesma letra da folha impressa), a base, o valor de tabela, a redução e o
@@ -578,6 +605,13 @@ imóveis sempre à vista, a quantidade de prenotações e certidões corrigível
 mão, o campo da taxa que parou de saltar, a via do cliente como imagem e a
 identificação editável. Se algo aqui estiver errado, é o primeiro lugar a olhar.
 
+**O que ela relatou em 28/08/2026, e foi consertado:** que a soma não acontecia
+ao acrescentar imóveis (era a linha da soma parada, não a conta — a conta estava
+certa; ver *Por onde se orça*), e que a imagem da cliente chegava apagada no
+WhatsApp (ver *A via do cliente sai como imagem*). No caminho apareceu um
+terceiro, que ela não tinha visto: a taxa de R$ 300 respondida antes de trocar o
+ato ficava no total sem linha na via da cliente, e a folha não fechava.
+
 **A lição da noite, que vale para o resto do painel:** os três defeitos que
 chegaram à mesa dela eram do mesmo tipo — o painel dando por certo o que
 dependia do banco. Um dizia "salvo" sem ter salvado, outro mostrava tela vazia
@@ -651,7 +685,9 @@ o `testes/montar.mjs` recorta.
 | A faixa do card e a janela | `orcFaixaDoCaso()`, `renderOrcamentoDoCaso()` |
 | A memória e o modo cliente | `orcHtmlMemoria()`, `orcHtmlCliente()` |
 | Mais de uma matrícula | `orcHtmlImoveis()`, `ORC_CAMPOS.unidadesRegistro` |
-| A folha do cliente em imagem | `orcDesenharFolha()`, `orcLayoutFolha()`, `orcEnviarCliente()` |
+| A folha do cliente em imagem | `orcDesenharFolha()`, `orcLayoutFolha()`, `ORC_FOLHA`, `orcEnviarCliente()` |
+| As linhas que a cliente lê | `orcLinhasCliente()` |
+| O que se refaz sem redesenhar a tela | `orcRedesenharAcessorios()`, `orcHtmlImoveisSoma()` |
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |

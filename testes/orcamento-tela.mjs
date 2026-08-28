@@ -207,6 +207,45 @@ await passo('as vagas entram em qualquer compra e venda', async () => {
   if(!/9\.056,01/.test(m)) throw new Error('o ITBI mudou quando não devia');
 });
 
+// O defeito que chegou à mesa dela: digitar o valor da vaga fazia o total lá
+// embaixo subir, mas a linha logo abaixo dos campos — a que ela estava olhando
+// — continuava dizendo "1 imóvel · somam R$ 301.867,16". Parecia que a soma
+// não estava acontecendo. A tela inteira não pode se refazer a cada tecla (o
+// cursor salta), então estes pedaços são trocados no lugar.
+await passo('a soma dos imóveis acompanha a digitação, sem esperar a tela se refazer', async () => {
+  const soma = () => pg.textContent('#orc-imoveis-soma');
+  const agora = await soma();
+  if(!/3 imóveis/.test(agora)) throw new Error('não contou os três: ' + agora);
+  if(!/301\.867,16/.test(agora)) throw new Error('não somou os três: ' + agora);
+  // Somando o valor do negócio, não há divergência a declarar.
+  if(/valor do negócio/.test(agora)) throw new Error('inventou divergência onde não há: ' + agora);
+
+  // E agora digitando de verdade, num input, sem redesenhar a tela.
+  const campo = '.orc-linha-lista:nth-of-type(3) input:nth-of-type(2)';
+  await pg.click(campo);
+  await pg.fill(campo, '30.000,00');
+  await pg.waitForFunction(() => /311\.867,16/.test(document.getElementById('orc-imoveis-soma').textContent));
+  const depois = await soma();
+  // Passou do valor do negócio: a linha tem de dizer os dois números.
+  if(!/valor do negócio/.test(depois) || !/301\.867,16/.test(depois))
+    throw new Error('não mostrou o valor do negócio ao lado da soma: ' + depois);
+  // E o valor do negócio é o do negócio — não o da primeira matrícula, que é
+  // o que `registros[0].base` passa a ser depois do desdobramento.
+  if(/261\.867,16/.test(depois)) throw new Error('leu o valor da primeira matrícula como o do negócio: ' + depois);
+  await pg.fill(campo, '20.000,00');
+  await pg.waitForFunction(() => /301\.867,16/.test(document.getElementById('orc-imoveis-soma').textContent));
+});
+
+await passo('e a quantidade das despesas acompanha junto', async () => {
+  const lidos = await pg.evaluate(() => ['qtdePrenotacao', 'qtdeMatricula'].map(c => ({
+    n: document.getElementById('orc-qtde-' + c).value,
+    rot: document.getElementById('orc-porimovel-' + c).textContent.trim()})));
+  lidos.forEach(l => {
+    if(l.n !== '3') throw new Error('a quantidade ficou parada em ' + l.n);
+    if(!/3/.test(l.rot)) throw new Error('a etiqueta ficou parada: ' + l.rot);
+  });
+});
+
 await passo('três imóveis são três prenotações e três certidões', async () => {
   const m = await pg.textContent('.orc-memoria');
   if(!/Prenotações \(3 imóveis\)/.test(m)) throw new Error('cobrou uma prenotação só');
