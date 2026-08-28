@@ -427,6 +427,10 @@ procuração, ata e escritura declaratória.
   confissão, usufruto, cláusula resolutiva. É regra dela: a nota explicativa da
   tabela que a fundamentaria veio só com o título no PDF, e por isso cada linha
   reduzida nasce marcada como 🔵 operacional, não como fonte oficial.
+- **A linha debaixo do título é dela.** O que sai embaixo de ESTIMATIVA DE
+  CUSTOS costuma ser a rua do imóvel, ou o nome do de cujus no inventário —
+  coisas que o nome do card não carrega. É um campo (`identificacao`), guardado
+  em cada versão; em branco, cai no nome do card, que é o que sempre foi.
 - **A via do cliente sai como imagem.** Texto colado no WhatsApp perde o
   alinhamento dos valores, a hierarquia e o ar entre as linhas — e é justamente
   a aparência que faz o orçamento parecer o que é: trabalho de cartório, não

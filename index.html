@@ -1836,6 +1836,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .orc-versao-data{font-size:11.5px;color:var(--cc-tinta-3)}
 .orc-versao-total{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
 .orc-versao-tab{font-size:10.5px;color:var(--cc-tinta-3)}
+.orc-versao-ident{font-size:11.5px;color:var(--cc-tinta-2);font-style:italic}
 .orc-versao-acoes{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto}
 
 /* ── o conhecimento aprendido ── */
@@ -9488,6 +9489,13 @@ const ORC_CAMPOS = {
                      pergunta: 'Se houver mais de uma matrícula (vagas individualizadas, por exemplo), informe o valor de cada uma.'}
 };
 
+// O que a cliente lê embaixo de ESTIMATIVA DE CUSTOS. Costuma ser o nome da rua
+// do imóvel, ou o do de cujus no inventário — coisas que o nome do card não
+// carrega. Vazio, cai no nome do card, que é o que sempre foi.
+function orcIdentificacao(e){
+  return String((e && e.identificacao) || '').trim() || (e && e.casoNome) || '';
+}
+
 // A identidade de uma tabela: o bastante para a memória de cálculo dizer de
 // onde o número veio, sem arrastar as faixas junto.
 function orcIdentidadeDaTabela(t){
@@ -10368,6 +10376,11 @@ window.orcMudarCampoTexto = function(chave, txt){
   orcEmEdicao[chave] = txt;
   orcRedesenharResultado();
 };
+window.orcMudarIdentificacao = function(txt){
+  orcEmEdicao.identificacao = txt;
+  // Campo de digitar: só o resultado se refaz, senão o cursor salta fora.
+  orcRedesenharResultado();
+};
 window.orcTrocarAto = function(id){
   orcEmEdicao.atoId = id;
   renderOrcamentoDoCaso();
@@ -10408,6 +10421,15 @@ function renderOrcamentoDoCaso(){
 
   alvo.innerHTML = `
     ${orcHtmlHerdado(h)}
+    <div class="orc-bloco">
+      <div class="orc-secao"><b>Como identificar este orçamento</b><span>é o que a cliente lê</span></div>
+      <input class="fin-input" value="${esc(e.identificacao || '')}"
+        placeholder="${esc(e.casoNome || 'Ex: Rua das Palmeiras, 210 — apto 1301')}"
+        oninput="orcMudarIdentificacao(this.value)">
+      <div class="fin-mini" style="margin-top:5px">Sai embaixo de <b>ESTIMATIVA DE CUSTOS</b>, na via da
+        cliente. Costuma ser a rua do imóvel, ou o nome do de cujus no inventário.
+        Em branco, usa o nome do card.</div>
+    </div>
     <div class="orc-bloco">
       <div class="orc-secao"><b>Qual é o ato</b><span>etapa 1</span></div>
       <select class="fin-select" onchange="orcTrocarAto(this.value)">
@@ -10755,7 +10777,7 @@ function orcHtmlCliente(e, r){
   return `
     <div class="orc-cliente" id="orc-cliente-folha">
       <div class="orc-cli-titulo">ESTIMATIVA DE CUSTOS</div>
-      <div class="orc-cli-caso">${escTxt(e.casoNome || '')}</div>
+      <div class="orc-cli-caso">${escTxt(orcIdentificacao(e))}</div>
       <div class="orc-cli-ato">${escTxt(r.ato.nome)}</div>
       ${base ? `<div class="orc-cli-base">BASE CONSIDERADA<span>${orcMoeda(base)}</span></div>` : ''}
       <table class="orc-cli-tabela">
@@ -10848,7 +10870,7 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar){
 
   if(desenhar) x.fillStyle = F.tinta;
   x.font = fonte(21, '600');
-  pinta(String(e.casoNome || '').slice(0, 60), F.larg / 2, y, 'center'); y += 27;
+  pinta(orcIdentificacao(e).slice(0, 60), F.larg / 2, y, 'center'); y += 27;
   if(desenhar) x.fillStyle = F.tinta3;
   x.font = fonte(16);
   pinta(r.ato.nome, F.larg / 2, y, 'center'); y += 34;
@@ -10926,7 +10948,7 @@ window.orcEnviarCliente = async function(){
     blob = await new Promise(ok => c.toBlob(ok, 'image/png'));
   }catch(err){ finToast('Não consegui desenhar a imagem aqui.'); return; }
   if(!blob){ finToast('Não consegui desenhar a imagem aqui.'); return; }
-  const nome = 'orcamento-' + String(e.casoNome || 'cliente').toLowerCase()
+  const nome = 'orcamento-' + String(orcIdentificacao(e) || 'cliente').toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '').slice(0, 40) + '.png';
   const arquivo = new File([blob], nome, {type: 'image/png'});
@@ -11000,7 +11022,8 @@ window.orcSalvar = async function(novaVersao){
   const r = orcCalcularRascunho();
   const agora = new Date().toISOString();
   const entrada = {
-    atoId: e.atoId, data: e.data, praticadoEm: e.praticadoEm,
+    atoId: e.atoId, identificacao: (e.identificacao || '').trim(),
+    data: e.data, praticadoEm: e.praticadoEm,
     imovelMunicipio: e.imovelMunicipio, imovelUf: e.imovelUf,
     valores: e.valores, flags: e.flags, despesas: e.despesas
   };
@@ -11134,8 +11157,10 @@ function orcHtmlListaOrcamentos(){
       ${versoes.map(o => {
         const st = orcStatus(o.status);
         const r = o.resultado || {};
+        const ident = ((o.entrada || {}).identificacao || '').trim();
         return `<div class="orc-versao">
           <span class="orc-versao-num">ORÇAMENTO ${String(o.versao || 1).padStart(2, '0')}</span>
+          ${ident && ident !== o.casoNome ? `<span class="orc-versao-ident">${escTxt(ident)}</span>` : ''}
           <span class="orc-versao-data">${finDataBr(o.data)}</span>
           <span class="orc-versao-total">${orcMoeda((r.totais || {}).total)}</span>
           <span class="orc-pill ${o.definitivo ? 'ok' : 'estimativa'}">${st.selo} ${escTxt(st.rot)}</span>

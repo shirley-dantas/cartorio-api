@@ -248,6 +248,30 @@ await passo('mexer no valor da taxa não redesenha a tela nem tira o foco', asyn
     orcEmEdicao_leitura().despesas.taxaAdicionalValor === 30000);
 });
 
+await passo('a identificação da via é editável e vale mais que o nome do card', async () => {
+  // A rua do imóvel, ou o nome do de cujus no inventário — o nome do card nem
+  // sempre é o que a cliente precisa ler.
+  await pg.evaluate(() => orcMudarIdentificacao('Rua das Palmeiras, 210 — apto 1301 e 2 vagas'));
+  await pg.evaluate(() => orcAlternarCliente());
+  await pg.waitForSelector('.orc-cliente');
+  const t = await pg.textContent('.orc-cli-caso');
+  if(!/Rua das Palmeiras/.test(t)) throw new Error('a via não usou a identificação: ' + t);
+  if(/TANIA/.test(t)) throw new Error('continuou com o nome do card');
+  await pg.evaluate(() => orcVoltarDoCliente());
+});
+
+await passo('e em branco ela volta a ser o nome do card', async () => {
+  await pg.evaluate(() => orcMudarIdentificacao('   '));
+  await pg.evaluate(() => orcAlternarCliente());
+  await pg.waitForSelector('.orc-cliente');
+  const t = await pg.textContent('.orc-cli-caso');
+  if(!/TANIA/.test(t)) throw new Error('não voltou para o nome do card: ' + t);
+  await pg.evaluate(() => {
+    orcMudarIdentificacao('Rua das Palmeiras, 210');
+    orcVoltarDoCliente();
+  });
+});
+
 await passo('a via do cliente sai como imagem, para colar no WhatsApp', async () => {
   const img = await pg.evaluate(() => {
     const c = orcFolhaDoRascunho();
@@ -327,6 +351,10 @@ await passo('o que foi para o banco não tem nenhum undefined', async () => {
   const t = await pg.evaluate(() => Object.values(orcEstado().orcamentos)[0].resultado.tabelas.registro);
   if(t.faixas) throw new Error('gravou as faixas inteiras dentro do orçamento');
   if(!t.versao || !t.vigencia) throw new Error('gravou a tabela sem versão ou vigência: ' + JSON.stringify(t));
+  // E a identificação da via foi junto, para a versão guardar a sua.
+  const ident = await pg.evaluate(() =>
+    (Object.values(orcEstado().orcamentos)[0].entrada || {}).identificacao);
+  if(ident !== 'Rua das Palmeiras, 210') throw new Error('a identificação não foi gravada: ' + ident);
 });
 
 await passo('uma versão nova não come a anterior, e diz por que mudou', async () => {
