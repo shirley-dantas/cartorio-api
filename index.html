@@ -10070,6 +10070,7 @@ let orcRegraAberta = null;
 let orcSalvando = false;    // enquanto o banco não responde
 let orcErroSalvar = null;   // o que ele respondeu, quando recusou
 let orcSalvoEm = null;      // quando gravou de verdade
+let orcErroLeitura = null;  // quando o banco recusou a leitura
 
 function orcDoCaso(casoId){
   return Object.values(orcTudo).filter(o => o && o.casoId === casoId)
@@ -10104,23 +10105,36 @@ function orcTaxaPadrao(){
   return orcCfg.taxaAdicional != null ? Math.round(finNum(orcCfg.taxaAdicional) * 100) : 30000;
 }
 
+// Ler também depende do banco, e do mesmo jeito que gravar: quando a regra
+// recusa, o Firebase derruba a escuta e NÃO tenta de novo. Antes o erro era
+// engolido — a tela ficava vazia, como se não houvesse orçamento nenhum, que é
+// a mentira mais fácil de acreditar. Agora ele aparece escrito, com o botão de
+// tentar de novo, porque quem acabou de publicar as regras não deveria ter de
+// adivinhar que precisa recarregar a página.
 function orcLigarEscuta(){
   if(orcEscutas.length) return;
-  orcEscutas.push(onValue(orcRef, s => {
-    orcTudo = s.val() || {};
-    orcRedesenhar();
-    orcRedesenharCards();
-  }, () => {}));
-  orcEscutas.push(onValue(orcConhRef, s => {
-    orcConhecimento = s.val() || {};
-    orcRedesenhar();
-  }, () => {}));
-  orcEscutas.push(onValue(orcCfgRef, s => {
-    orcCfg = s.val() || {};
-    orcAplicarCfg();
-    orcRedesenhar();
-  }, () => {}));
+  orcErroLeitura = null;
+  const ouvir = (referencia, guardar) => orcEscutas.push(onValue(referencia,
+    s => { orcErroLeitura = null; guardar(s); orcRedesenhar(); orcRedesenharCards(); },
+    err => {
+      orcSoltarEscuta();
+      orcErroLeitura = /permission|denied/i.test(String((err && err.message) || err))
+        ? 'O banco recusou a leitura dos orçamentos. Publique as regras do Firebase com os caminhos dos Orçamentos e toque em "Tentar de novo".'
+        : 'Não consegui ler os orçamentos agora: ' + ((err && err.message) || err);
+      orcRedesenhar(); orcRedesenharCards();
+    }));
+  ouvir(orcRef,     s => { orcTudo = s.val() || {}; });
+  ouvir(orcConhRef, s => { orcConhecimento = s.val() || {}; });
+  ouvir(orcCfgRef,  s => { orcCfg = s.val() || {}; orcAplicarCfg(); });
 }
+window.orcTentarDeNovo = async function(){
+  orcSoltarEscuta();
+  orcErroLeitura = null;
+  orcRedesenhar();
+  orcLigarEscuta();
+  await orcSemearConhecimento();
+  orcRedesenhar(); orcRedesenharCards();
+};
 function orcSoltarEscuta(){
   orcEscutas.forEach(u => {try{ u(); }catch(e){}});
   orcEscutas = [];
@@ -10147,6 +10161,8 @@ async function orcSemearConhecimento(){
 window.orcFaixaDoCaso = function(casoId){
   if(!finAuth) return `<button type="button" class="cx-btn" onclick="abrirFinanceiro()"><i class="ti ti-calculator"></i> Entrar para orçar</button>
     <span class="cx-fin-vazio">Entre no Financeiro para fazer e ver orçamentos.</span>`;
+  if(orcErroLeitura) return `<button type="button" class="cx-btn" onclick="orcTentarDeNovo()"><i class="ti ti-refresh"></i> Tentar de novo</button>
+    <span class="cx-fin-vazio">${escTxt(orcErroLeitura)}</span>`;
   const o = orcUltimoDoCaso(casoId);
   if(!o) return `<button type="button" class="cx-btn destaque" onclick="orcNovoDoCaso('${casoId}')"><i class="ti ti-calculator"></i> Novo orçamento</button>
     <span class="cx-fin-vazio">Nenhum orçamento neste caso.</span>`;
@@ -10807,6 +10823,11 @@ function renderOrcamentos(){
     alvo.innerHTML = `<div class="orc-vazio">O ambiente de orçamentos é fechado, como o Financeiro:
       aqui moram nome de cliente e valor de negócio.
       <button type="button" class="btn-save" style="margin-top:12px" onclick="abrirFinanceiro()">Entrar</button></div>`;
+    return;
+  }
+  if(orcErroLeitura){
+    alvo.innerHTML = `<div class="orc-erro-salvar"><b>Não consegui abrir os orçamentos.</b> ${escTxt(orcErroLeitura)}</div>
+      <div style="margin-top:12px"><button type="button" class="btn-save" onclick="orcTentarDeNovo()">Tentar de novo</button></div>`;
     return;
   }
   alvo.innerHTML = orcAba === 'conhecimento' ? orcHtmlConhecimento()

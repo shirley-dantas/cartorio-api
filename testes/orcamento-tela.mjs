@@ -234,6 +234,28 @@ await passo('quando o banco recusa, o painel diz que NÃO salvou', async () => {
   await pg.evaluate(() => { window.__recusarEscrita = false; });
 });
 
+await passo('quando o banco recusa a LEITURA, o painel não finge que está vazio', async () => {
+  // É o que acontece com a página aberta antes de as regras serem publicadas:
+  // o Firebase derruba a escuta e não tenta de novo. Antes, a tela ficava
+  // vazia, como se não houvesse orçamento nenhum.
+  // orcTentarDeNovo é o próprio caminho de religar a escuta — com a recusa
+  // ligada, ele reproduz exatamente a página aberta antes das regras.
+  await pg.evaluate(async () => { window.__recusarLeitura = true; await orcTentarDeNovo(); });
+  await pg.evaluate(() => abrirOrcamentos('lista'));
+  await pg.waitForSelector('#orc-conteudo .orc-erro-salvar');
+  const t = await pg.textContent('#orc-conteudo');
+  if(!/recusou a leitura/.test(t)) throw new Error('não disse que a leitura foi recusada: ' + t);
+  if(!/Tentar de novo/.test(t)) throw new Error('não ofereceu o botão de tentar de novo');
+});
+
+await passo('e o "Tentar de novo" volta a ler assim que as regras entram', async () => {
+  await pg.evaluate(async () => { window.__recusarLeitura = false; await orcTentarDeNovo(); });
+  await pg.waitForFunction(() => Object.keys(orcEstado().conhecimento).length > 0);
+  const t = await pg.textContent('#orc-conteudo');
+  if(/recusou a leitura/.test(t)) throw new Error('continuou dizendo que não conseguia ler');
+  await pg.evaluate(() => fecharOrcamentos());
+});
+
 await passo('salvo, o card mostra a versão 1 e o orçamento vira leitura', async () => {
   await pg.evaluate(() => {orcVoltarDoCliente(); orcSalvar(true);});
   await pg.waitForFunction(() => Object.keys(orcEstado().orcamentos).length === 1);
