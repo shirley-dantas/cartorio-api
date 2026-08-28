@@ -232,6 +232,22 @@ const cert = comVagas.despesas.find(x => x.item === '11');
 ok('três prenotações: 80,14 × 3', R(pren.valor) === '240.42', R(pren.valor));
 ok('três certidões: 76,54 × 3', R(cert.valor) === '229.62', R(cert.valor));
 ok('e a quantidade fica escrita na linha', pren.quantidade === 3 && /3 imóveis/.test(pren.rot));
+// Corrigida à mão, a etiqueta para de dizer "imóveis" — dizer isso de uma
+// quantidade que não é a dos imóveis seria escrever o que não é verdade.
+const duasPren = orcCalcular({
+  atoId: 'compra-venda', valores: {transacao: 30186716, unidadesRegistro: [
+    {rotulo: 'Apartamento', valor: 26186716}, {rotulo: 'Vaga 1', valor: 2000000},
+    {rotulo: 'Vaga 2', valor: 2000000}]},
+  imovelMunicipio: 'São Paulo', imovelUf: 'SP', flags: {},
+  despesas: {prenotacao: true, matricula: true, qtdePrenotacao: 2, taxaAdicional: false}});
+const p2 = duasPren.despesas.find(x => x.item === '12');
+ok('duas prenotações para três imóveis: cobra duas', R(p2.valor) === '160.28', R(p2.valor));
+ok('e a etiqueta não mente sobre imóveis', /\(2\)/.test(p2.rot) && !/imóveis/.test(p2.rot), p2.rot);
+ok('zero prenotações some da conta',
+   !orcCalcular({atoId: 'compra-venda', valores: {transacao: 30186716},
+     imovelMunicipio: 'São Paulo', imovelUf: 'SP', flags: {},
+     despesas: {prenotacao: true, qtdePrenotacao: 0, matricula: false, taxaAdicional: false}})
+     .despesas.some(x => x.item === '12'));
 ok('a escritura continua sendo uma só', comVagas.escrituras.length === 1);
 // No imóvel único nada disso muda.
 ok('imóvel único continua com uma prenotação e uma certidão',

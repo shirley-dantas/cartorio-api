@@ -427,6 +427,18 @@ procuração, ata e escritura declaratória.
   confissão, usufruto, cláusula resolutiva. É regra dela: a nota explicativa da
   tabela que a fundamentaria veio só com o título no PDF, e por isso cada linha
   reduzida nasce marcada como 🔵 operacional, não como fonte oficial.
+- **A linha debaixo do título é dela.** O que sai embaixo de ESTIMATIVA DE
+  CUSTOS costuma ser a rua do imóvel, ou o nome do de cujus no inventário —
+  coisas que o nome do card não carrega. É um campo (`identificacao`), guardado
+  em cada versão; em branco, cai no nome do card, que é o que sempre foi.
+- **A via do cliente sai como imagem.** Texto colado no WhatsApp perde o
+  alinhamento dos valores, a hierarquia e o ar entre as linhas — e é justamente
+  a aparência que faz o orçamento parecer o que é: trabalho de cartório, não
+  recado de mão. A folha é desenhada em canvas, à mão e sem biblioteca, em duas
+  passadas (a primeira mede, a segunda pinta), então fica igual em qualquer
+  telefone, sem depender das fontes do aparelho. No celular abre a folha de
+  compartilhamento; no computador copia para a área de transferência; e, se
+  nada disso existir, baixa o arquivo — nunca fica sem saída.
 - **Cada matrícula é um imóvel, e imóvel se conta.** Apartamento com duas vagas
   individualizadas são **três** imóveis: três registros (cada um na sua faixa),
   três prenotações e três certidões. A escritura é uma só, sobre o valor global,
@@ -612,7 +624,8 @@ o `testes/montar.mjs` recorta.
 | Comparar versões e achar divergência | `orcComparar()`, `orcDivergencias()`, `orcSemelhantes()` |
 | A faixa do card e a janela | `orcFaixaDoCaso()`, `renderOrcamentoDoCaso()` |
 | A memória e o modo cliente | `orcHtmlMemoria()`, `orcHtmlCliente()` |
-| Mais de uma matrícula | `ORC_CAMPOS.unidadesRegistro`, `orcAbrirMatriculas()` |
+| Mais de uma matrícula | `orcHtmlImoveis()`, `ORC_CAMPOS.unidadesRegistro` |
+| A folha do cliente em imagem | `orcDesenharFolha()`, `orcLayoutFolha()`, `orcEnviarCliente()` |
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |
