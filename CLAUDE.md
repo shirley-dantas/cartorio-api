@@ -451,9 +451,16 @@ procuração, ata e escritura declaratória.
   a aparência que faz o orçamento parecer o que é: trabalho de cartório, não
   recado de mão. A folha é desenhada em canvas, à mão e sem biblioteca, em duas
   passadas (a primeira mede, a segunda pinta), então fica igual em qualquer
-  telefone, sem depender das fontes do aparelho. No celular abre a folha de
-  compartilhamento; no computador copia para a área de transferência; e, se
-  nada disso existir, baixa o arquivo — nunca fica sem saída.
+  telefone, sem depender das fontes do aparelho.
+- **A base que a cliente lê é o valor do negócio.** Não a base da primeira
+  linha da tabela. Numa doação com reserva de usufruto de R$ 500.000,00 a
+  tabela cobra a nua-propriedade sobre dois terços e o usufruto sobre um terço,
+  e a via da cliente saía dizendo "BASE CONSIDERADA R$ 333.333,33" — a cliente
+  doou meio milhão, e o dois terços é regra interna da tabela. Na ZEIS era
+  pior: a escritura vira item de valor fixo, a primeira linha não tem base, e a
+  folha não mostrava valor nenhum. O motor declara `baseDeclarada` (o primeiro
+  campo do ato, somado quando é lista, mais a pensão quando há), e há teste
+  cobrando que nos vinte atos a base mostrada seja sempre um valor digitado.
 - **E precisa ser lida à distância de um polegar.** A primeira folha era clean
   demais para o meio em que ela vive: cinza médio nos nomes dos custos, filete
   de 0,8px entre as linhas e muita margem branca. Na tela do computador ficava
@@ -464,7 +471,20 @@ procuração, ata e escritura declaratória.
   desaparece na compressão, e sem ele o olho perde o caminho do nome até o
   valor —, e **a tarja escura no topo e no total** dá à folha uma âncora que
   sobrevive à redução. Elegância que não chega ao olho da cliente não é
-  elegância, é desperdício de papel.
+  elegância, é desperdício de papel. **Isso vale para a prévia na tela também**
+  — e ela ficou para trás quando a imagem foi escurecida, então a folha chegou
+  apagada duas vezes. As duas seguem as mesmas três regras, e há teste medindo
+  a tinta (luminância do texto, corpo mínimo, as tarjas do título e do total):
+  cor de texto é coisa que se afrouxa sem ninguém notar.
+- **E o botão mostra a foto, em vez de enviá-la.** A primeira versão abria a
+  folha de compartilhamento do sistema — a lista de aplicativos. No celular
+  isso é prático; no computador, onde ela passa o dia, é um desvio: ela não
+  quer escolher um aplicativo, quer a imagem na mão para colar onde a conversa
+  já está aberta. Agora o botão **desenha a imagem na tela**, como uma foto
+  qualquer: clique com o botão direito e *Copiar imagem* (no telefone, toque e
+  segure). Embaixo ficam os atalhos — *Copiar imagem*, *Baixar* e, só onde
+  existe de verdade, *Compartilhar*. **Nada sai sem ela mandar**, e botão que o
+  aparelho não sabe cumprir não é desenhado.
 - **A via da cliente fecha, sempre.** As linhas impressas somam o total
   impresso — é a única tela do painel que sai do cartório, e uma conta que não
   bate na mão da cliente é pior que nenhuma conta. A receita das linhas mora
@@ -749,7 +769,8 @@ o `testes/montar.mjs` recorta.
 | A faixa do card e a janela | `orcFaixaDoCaso()`, `renderOrcamentoDoCaso()` |
 | A memória e o modo cliente | `orcHtmlMemoria()`, `orcHtmlCliente()` |
 | Mais de uma matrícula | `orcHtmlImoveis()`, `ORC_CAMPOS.unidadesRegistro` |
-| A folha do cliente em imagem | `orcDesenharFolha()`, `orcLayoutFolha()`, `ORC_FOLHA`, `orcEnviarCliente()` |
+| A folha do cliente em imagem | `orcDesenharFolha()`, `orcLayoutFolha()`, `ORC_FOLHA` |
+| A foto na tela, para copiar | `orcVerImagem()`, `orcCopiarImagem()`, `orcFecharImagem()` |
 | As linhas que a cliente lê | `orcLinhasCliente()` |
 | O que se refaz sem redesenhar a tela | `orcRedesenharAcessorios()` |
 | A soma de qualquer lista de imóveis | `orcHtmlListaSoma()`, dentro do `orcListaHtml()` |

@@ -430,6 +430,122 @@ await passo('a via do cliente sai como imagem, para colar no WhatsApp', async ()
   if(!/^data:image\/png/.test(img.url)) throw new Error('não saiu PNG');
 });
 
+// A via da cliente é a única tela que sai do cartório, e quem a lê pode ser um
+// cliente de idade. Ela chegou apagada duas vezes: primeiro a imagem, depois a
+// prévia na tela, que ficou para trás quando a imagem foi escurecida. Estes
+// testes medem a tinta, e não a aparência — cor de texto é coisa que se afrouxa
+// sem ninguém notar.
+await passo('a via da cliente sai em tinta cheia, legível de longe', async () => {
+  await pg.evaluate(() => orcAlternarCliente());
+  await pg.waitForSelector('.orc-cliente');
+  const lido = await pg.evaluate(() => {
+    const px = el => parseFloat(getComputedStyle(el).fontSize);
+    const cel = document.querySelector('.orc-cli-tabela tbody td');
+    const val = document.querySelector('.orc-cli-tabela tbody td:last-child');
+    const tot = document.querySelector('.orc-cli-tabela tfoot td');
+    return {nomeCor: getComputedStyle(cel).color, nomePx: px(cel), valorPx: px(val),
+            totalFundo: getComputedStyle(tot).backgroundColor, totalPx: px(tot),
+            tituloFundo: getComputedStyle(document.querySelector('.orc-cli-titulo')).backgroundColor};
+  });
+  // Luminância do texto dos custos: cinza médio sobre branco foi o que ela viu
+  // e chamou de apagado. Tinta cheia fica bem abaixo disto.
+  const lum = c => { const m = c.match(/\d+/g).map(Number); return (m[0]*299 + m[1]*587 + m[2]*114)/1000; };
+  if(lum(lido.nomeCor) > 80)
+    throw new Error('o nome do custo saiu em cinza claro demais: ' + lido.nomeCor);
+  if(lido.nomePx < 15) throw new Error('o nome do custo ficou pequeno demais: ' + lido.nomePx + 'px');
+  if(lido.valorPx < 16) throw new Error('o valor ficou pequeno demais: ' + lido.valorPx + 'px');
+  // As duas âncoras escuras: o título e o total. É o que sobrevive à distância.
+  if(lum(lido.tituloFundo) > 80) throw new Error('o título perdeu a tarja escura');
+  if(lum(lido.totalFundo) > 80) throw new Error('o total perdeu a tarja escura');
+  if(lido.totalPx < 16) throw new Error('o total ficou pequeno: ' + lido.totalPx + 'px');
+});
+
+await passo('e as linhas se separam por faixa, não por filete', async () => {
+  const faixas = await pg.evaluate(() =>
+    [...document.querySelectorAll('.orc-cli-tabela tbody tr')].map(l => getComputedStyle(l).backgroundColor));
+  if(faixas.length < 2) throw new Error('poucas linhas para conferir');
+  if(new Set(faixas).size < 2)
+    throw new Error('as linhas ficaram todas iguais — o filete voltou a ser o único guia');
+});
+
+await passo('a BASE CONSIDERADA é o valor que ela digitou, não a base da tabela', async () => {
+  // O caso dela: doação com reserva de usufruto de R$ 500.000,00. A tabela
+  // cobra 2/3 e 1/3, e a folha mostrava R$ 333.333,33.
+  await pg.evaluate(() => orcVoltarDoCliente());
+  await pg.evaluate(() => { orcTrocarAto('doacao-usufruto'); orcMudarValor('doacao', '500.000,00'); });
+  await pg.evaluate(() => orcAlternarCliente());
+  await pg.waitForSelector('.orc-cli-base');
+  const base = await pg.textContent('.orc-cli-base');
+  if(!/500\.000,00/.test(base)) throw new Error('não mostrou o valor digitado: ' + base);
+  if(/333\.333,33/.test(base)) throw new Error('mostrou os dois terços da tabela: ' + base);
+  await pg.evaluate(() => orcVoltarDoCliente());
+  await pg.evaluate(() => { orcTrocarAto('compra-venda'); orcMudarValor('transacao', '301.867,16'); });
+});
+
+// O botão abria a folha de compartilhamento do sistema — a lista de
+// aplicativos. No computador, onde ela passa o dia, isso é um desvio: ela quer
+// a foto na mão para colar onde a conversa já está aberta. Agora o botão
+// mostra a imagem, e nada é enviado sem ela mandar.
+await passo('o botão mostra a imagem, e NÃO abre a folha de compartilhamento', async () => {
+  await pg.evaluate(() => orcAlternarCliente());
+  await pg.waitForSelector('#orc-cliente-botoes');
+  // Espiona o navigator.share: se alguém o chamar, o teste vê.
+  await pg.evaluate(() => {
+    window.__compartilhou = false;
+    navigator.share = async () => { window.__compartilhou = true; };
+  });
+  await pg.click('button:has-text("Imagem para enviar")');
+  await pg.waitForSelector('#orc-folha-imagem img');
+  if(await pg.evaluate(() => window.__compartilhou))
+    throw new Error('abriu a folha de compartilhamento sozinho — é justamente o que ela não quer');
+  const img = await pg.evaluate(() => {
+    const i = document.querySelector('#orc-folha-imagem img');
+    return {src: i.getAttribute('src'), l: i.naturalWidth, a: i.naturalHeight};
+  });
+  // Uma <img> de verdade, com URL própria: é o que faz o botão direito do
+  // mouse oferecer "Copiar imagem". Um canvas na tela não ofereceria.
+  if(!/^blob:/.test(img.src)) throw new Error('não é uma imagem de verdade: ' + img.src);
+  if(img.l !== 2000) throw new Error('a imagem saiu com outra largura: ' + img.l);
+  const dica = await pg.textContent('.orc-folha-dica');
+  if(!/botão direito/.test(dica)) throw new Error('não explicou como copiar: ' + dica);
+});
+
+await passo('e oferece copiar e baixar sem sair da tela', async () => {
+  const botoes = await pg.evaluate(() =>
+    [...document.querySelectorAll('#orc-folha-imagem button')].map(b => b.textContent.trim()));
+  if(!botoes.some(b => /Copiar imagem/.test(b))) throw new Error('faltou copiar: ' + botoes.join(' | '));
+  if(!botoes.some(b => /Baixar/.test(b))) throw new Error('faltou baixar: ' + botoes.join(' | '));
+  // "Compartilhar" só onde ele existe. Neste navegador não existe, e botão que
+  // não faz nada é pior que botão que falta.
+  if(botoes.some(b => /Compartilhar/.test(b)))
+    throw new Error('ofereceu compartilhar onde não dá: ' + botoes.join(' | '));
+});
+
+await passo('mas no celular o compartilhar continua à mão, como botão', async () => {
+  await pg.click('#orc-folha-imagem button:has-text("Voltar")');
+  await pg.evaluate(() => { navigator.canShare = () => true; });
+  await pg.click('button:has-text("Imagem para enviar")');
+  await pg.waitForSelector('#orc-folha-imagem img');
+  const botoes = await pg.evaluate(() =>
+    [...document.querySelectorAll('#orc-folha-imagem button')].map(b => b.textContent.trim()));
+  if(!botoes.some(b => /Compartilhar/.test(b)))
+    throw new Error('o celular perdeu o compartilhar: ' + botoes.join(' | '));
+  if(await pg.evaluate(() => window.__compartilhou))
+    throw new Error('mesmo no celular, nada pode abrir sem ela mandar');
+});
+
+await passo('e "Voltar" traz a folha de volta, sem deixar a imagem presa', async () => {
+  await pg.click('#orc-folha-imagem button:has-text("Voltar")');
+  const estado = await pg.evaluate(() => ({
+    folha: !document.getElementById('orc-cliente-folha').hidden,
+    imagem: document.getElementById('orc-folha-imagem').hidden,
+    vazio: document.getElementById('orc-folha-imagem').innerHTML === ''
+  }));
+  if(!estado.folha) throw new Error('a folha não voltou');
+  if(!estado.imagem || !estado.vazio) throw new Error('a imagem ficou pendurada na tela');
+  await pg.evaluate(() => orcVoltarDoCliente());
+});
+
 await passo('e tirando as vagas tudo volta ao imóvel único', async () => {
   await pg.evaluate(() => orcTirarTodasMatriculas());
   await pg.waitForFunction(() =>

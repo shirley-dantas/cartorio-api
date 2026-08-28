@@ -1725,6 +1725,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .orc-imoveis-soma.vazia{display:none}
 /* O imposto de fora da Capital. Três estados, e a cor diz qual: falta buscar,
    achado mas não conferido (o mais perigoso — tem de gritar), e conferido. */
+/* A imagem, na tela, para copiar como se copia qualquer foto. Fundo escuro
+   por baixo: a folha é branca, e sem contraste ela não teria borda nenhuma —
+   e é preciso ver onde a imagem começa para clicar em cima dela. */
+.orc-folha-imagem{margin-top:14px;padding:14px;border-radius:12px;background:var(--cc-tinta)}
+.orc-folha-imagem img{display:block;width:100%;height:auto;border-radius:6px;
+  box-shadow:0 2px 14px rgba(0,0,0,.25)}
+.orc-folha-dica{color:#fff;font-size:13px;line-height:1.5;margin-bottom:11px}
+.orc-folha-dica b{color:var(--cc-champagne-claro)}
+.orc-folha-imagem .modal-btn-row{margin-top:13px;margin-bottom:0}
+
 .orc-aliquota{margin-top:10px;padding:11px 13px;border-radius:10px;font-size:13px;
   line-height:1.5;border-left:3px solid var(--cc-linha-forte);background:var(--cc-sup-2)}
 .orc-aliquota.falta{border-left-color:var(--cc-atencao)}
@@ -1821,26 +1831,50 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 /* ── o modo cliente ──
    Nada de faixa, de item de tabela, de hipótese. Serifa e ar: é a única
    tela do painel que sai do cartório e vai para a mão da cliente.       */
-.orc-cliente{background:#fff;border:1px solid var(--cc-linha);border-radius:14px;
-  padding:28px 30px;margin-top:6px}
-.orc-cli-titulo{font-family:'Jost',sans-serif;font-weight:400;font-size:15px;letter-spacing:.28em;
-  text-transform:uppercase;color:var(--cc-tinta);text-align:center;margin-bottom:16px}
-.orc-cli-caso{font-size:14px;font-weight:600;color:var(--cc-tinta);text-align:center}
-.orc-cli-ato{font-size:12.5px;color:var(--cc-tinta-3);text-align:center;margin-top:2px}
-.orc-cli-base{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
-  margin:18px 0;padding:11px 14px;background:var(--cc-sup-2);border-radius:11px;
-  font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--cc-tinta-3)}
-.orc-cli-base span{font-family:'Jost',sans-serif;font-size:19px;letter-spacing:0;
+/* A via da cliente na tela. Mesmas três regras da imagem — e pelo mesmo
+   motivo, que ela disse com todas as letras: quem lê isto pode ser um cliente
+   de idade. Tinta cheia no que precisa ser lido, faixa em vez de filete, e
+   tarja escura no título e no total. O cinza fica só para as maiúsculas
+   pequenas e a ressalva. Aqui não há compressão de WhatsApp para culpar:
+   estava apagado na origem. */
+.orc-cliente{background:#fff;border:1px solid var(--cc-linha-forte);border-radius:14px;
+  margin-top:6px;overflow:hidden}
+.orc-cli-titulo{font-family:'Jost',sans-serif;font-weight:500;font-size:16px;letter-spacing:.26em;
+  text-transform:uppercase;color:#fff;background:var(--cc-tinta);text-align:center;
+  padding:15px 20px;border-bottom:4px solid var(--cc-champagne);margin:0}
+.orc-cli-caso{font-size:19px;font-weight:600;color:var(--cc-tinta);text-align:center;
+  padding:20px 26px 0;line-height:1.3}
+.orc-cli-ato{font-size:14px;font-weight:500;color:var(--cc-tinta-2);text-align:center;margin-top:4px;padding:0 26px}
+.orc-cli-base{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  margin:18px 26px;padding:14px 18px;background:var(--cc-sup-2);border-radius:11px;
+  font-size:12.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--cc-tinta-2)}
+.orc-cli-base span{font-family:'Jost',sans-serif;font-size:24px;font-weight:500;letter-spacing:0;
   text-transform:none;font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
-.orc-cli-tabela{width:100%;border-collapse:collapse;margin-top:6px}
-.orc-cli-tabela th{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--cc-tinta-3);text-align:left;padding:0 0 8px;border-bottom:1px solid var(--cc-linha)}
+.orc-cli-tabela{width:100%;border-collapse:collapse;margin:0}
+.orc-cli-tabela th{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--cc-tinta-2);text-align:left;padding:0 26px 9px;border-bottom:2px solid var(--cc-tinta)}
 .orc-cli-tabela th:last-child,.orc-cli-tabela td:last-child{text-align:right}
-.orc-cli-tabela td{font-size:13px;color:var(--cc-tinta-2);padding:10px 0;
-  border-bottom:0.5px solid var(--cc-linha);font-variant-numeric:tabular-nums}
-.orc-cli-tabela tfoot td{font-size:14px;font-weight:600;color:var(--cc-tinta);
-  border-bottom:0;border-top:1px solid var(--cc-tinta);padding-top:12px}
-.orc-cli-nota{margin-top:16px;font-size:11px;line-height:1.6;color:var(--cc-tinta-3);text-align:center}
+/* Faixa alternada no lugar do filete: o filete some, e sem ele o olho perde o
+   caminho do nome do custo até o valor, do outro lado da linha. */
+.orc-cli-tabela tbody tr:nth-child(odd){background:#F7F4EE}
+.orc-cli-tabela td{font-size:16px;color:var(--cc-tinta);padding:15px 26px;
+  border-bottom:0;font-variant-numeric:tabular-nums}
+.orc-cli-tabela tbody td:last-child{font-weight:600;font-size:17px}
+.orc-cli-tabela tfoot td{font-size:17px;font-weight:600;color:#fff;background:var(--cc-tinta);
+  border-bottom:0;border-top:0;padding:20px 26px}
+.orc-cli-tabela tfoot td:last-child{font-size:23px}
+.orc-cli-nota{margin:0;padding:16px 26px 20px;font-size:12.5px;line-height:1.6;
+  color:var(--cc-tinta-2);text-align:center}
+@media(max-width:640px){
+  .orc-cli-caso{font-size:17px;padding:16px 16px 0}
+  .orc-cli-base{margin:14px 16px;padding:12px 14px;font-size:11.5px}
+  .orc-cli-base span{font-size:20px}
+  .orc-cli-tabela th{padding:0 16px 8px}
+  .orc-cli-tabela td{font-size:15px;padding:13px 16px}
+  .orc-cli-tabela tfoot td{font-size:15px;padding:16px}
+  .orc-cli-tabela tfoot td:last-child{font-size:19px}
+  .orc-cli-nota{padding:14px 16px 18px}
+}
 
 /* ── a lista do ambiente ── */
 .orc-caso-bloco{border:0.5px solid var(--cc-linha);border-radius:12px;margin-bottom:11px;overflow:hidden}
@@ -9883,13 +9917,22 @@ function orcCalcular(entrada){
                                tributos, despesas, faltando, alertas, regraEspecial, d, data: dataDoAto});
   const bloqueado = check.some(c => c.estado === 'falta') || faltando.length > 0;
 
+  // O valor do negócio como ela o informou: o primeiro campo do ato (somado,
+  // quando é uma lista), mais a pensão quando há. É o número que vai para a
+  // via da cliente — o resto são bases internas de cada linha da tabela.
+  const campoPrincipal = (ato.campos || []).find(c => true);
+  const bruto = campoPrincipal ? v[campoPrincipal] : null;
+  const baseDeclarada = (Array.isArray(bruto)
+    ? bruto.filter(x => x && x.valor > 0).reduce((t, x) => t + x.valor, 0)
+    : Math.round(Number(bruto) || 0)) + pensaoTotal;
+
   return {
     ato: {id: ato.id, nome: ato.nome, grupo: ato.grupo, comoElaEscreveu: ato.comoElaEscreveu},
     data: e.data || isoHoje(),
     praticadoEm, imovelMunicipio, imovelUf,
     tabelas, regraEspecial,
     escrituras, registros, tributos, despesas, totais,
-    baseRegistro,
+    baseRegistro, baseDeclarada,
     faltando, alertas, check, bloqueado,
     definitivo: !bloqueado
   };
@@ -10280,8 +10323,22 @@ function orcLinhasCliente(r){
   r.tributos.forEach(t => {if(t.valor != null) linhas.push([t.rot.toUpperCase(), t.valor]);});
   return linhas;
 }
+// O valor do negócio, que é o que a cliente reconhece: o número que ela
+// declarou, e não a base da primeira linha da tabela.
+//
+// A diferença não era teórica. Numa doação com reserva de usufruto de
+// R$ 500.000,00, a tabela cobra a nua-propriedade sobre dois terços e o
+// usufruto sobre um terço — e a via da cliente saía dizendo "BASE CONSIDERADA
+// R$ 333.333,33". A cliente doou meio milhão; o dois terços é regra interna da
+// tabela, não coisa que ela reconheça. Na ZEIS era pior: a escritura vira item
+// de valor fixo, a primeira linha não tem base nenhuma, e a folha simplesmente
+// não mostrava valor de negócio.
+//
+// Orçamento gravado antes disto não tem `baseDeclarada` guardada, e continua
+// mostrando o que mostrou no dia — cada versão guarda o número que deu.
 function orcBasePrincipal(r){
   if(!r) return 0;
+  if(r.baseDeclarada != null) return r.baseDeclarada;
   const e = (r.escrituras || [])[0];
   return e && e.base ? e.base : 0;
 }
@@ -11235,7 +11292,7 @@ function orcHtmlResultado(e, r){
 }
 window.orcAlternarMemoria = function(){ orcVerMemoria = !orcVerMemoria; orcRedesenharResultado(); };
 window.orcAlternarCliente = function(){ orcVerCliente = true; renderOrcamentoDoCaso(); };
-window.orcVoltarDoCliente = function(){ orcVerCliente = false; renderOrcamentoDoCaso(); };
+window.orcVoltarDoCliente = function(){ orcSoltarFolha(); orcVerCliente = false; renderOrcamentoDoCaso(); };
 
 // A memória: de onde saiu cada número. É a tela que a regra 14 pede, e é
 // também a que faz a diferença entre confiar no painel e conferir de novo à
@@ -11322,9 +11379,10 @@ function orcHtmlCliente(e, r){
       <div class="orc-cli-nota">Valores estimados, sujeitos a atualização conforme tabela vigente,
         documentos apresentados e eventuais particularidades do ato.</div>
     </div>
-    <div class="modal-btn-row">
+    <div id="orc-folha-imagem" class="orc-folha-imagem" hidden></div>
+    <div class="modal-btn-row" id="orc-cliente-botoes">
       <button type="button" class="btn-cancel" onclick="orcVoltarDoCliente()">Voltar ao orçamento</button>
-      <button type="button" class="btn-save" onclick="orcEnviarCliente()"><i class="ti ti-photo"></i> Enviar como imagem</button>
+      <button type="button" class="btn-save" onclick="orcVerImagem()"><i class="ti ti-photo"></i> Imagem para enviar</button>
       <button type="button" class="cx-btn" onclick="orcCopiarCliente()"><i class="ti ti-copy"></i> Copiar texto</button>
       <button type="button" class="cx-btn" onclick="window.print()"><i class="ti ti-printer"></i> Gerar PDF</button>
     </div>`;
@@ -11517,7 +11575,29 @@ function orcCantoRedondo(x, px, py, l, a, raio){
 // Enviar: no celular abre a folha de compartilhamento (WhatsApp, e-mail) com a
 // imagem anexada; no computador copia a imagem para a área de transferência.
 // Se nada disso existir no aparelho, baixa o arquivo — nunca fica sem saída.
-window.orcEnviarCliente = async function(){
+// ── A imagem, na tela, como uma foto ─────────────────────────────────────
+//
+// Antes o botão abria a folha de compartilhamento do sistema — aquela lista de
+// aplicativos. No celular isso é prático; no computador, onde ela passa o dia,
+// é um desvio: ela não quer escolher um aplicativo, quer a foto na mão para
+// colar onde já está com a conversa aberta.
+//
+// Então o botão não envia mais nada. Ele mostra a imagem, do jeito que uma
+// imagem se comporta em qualquer lugar: clique com o botão direito e copie
+// (no telefone, toque e segure). Os botões embaixo são atalhos para o mesmo
+// — e compartilhar virou um deles, em vez de ser o caminho obrigatório.
+let orcFolhaBlob = null;
+let orcFolhaUrl = null;
+function orcNomeDaFolha(e){
+  return 'orcamento-' + String(orcIdentificacao(e) || 'cliente').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '').slice(0, 40) + '.png';
+}
+function orcSoltarFolha(){
+  if(orcFolhaUrl){ try{ URL.revokeObjectURL(orcFolhaUrl); }catch(err){} }
+  orcFolhaUrl = null; orcFolhaBlob = null;
+}
+window.orcVerImagem = async function(){
   const e = orcEmEdicao, r = orcCalcularRascunho();
   if(!e || !r) return;
   let blob;
@@ -11526,24 +11606,66 @@ window.orcEnviarCliente = async function(){
     blob = await new Promise(ok => c.toBlob(ok, 'image/png'));
   }catch(err){ finToast('Não consegui desenhar a imagem aqui.'); return; }
   if(!blob){ finToast('Não consegui desenhar a imagem aqui.'); return; }
-  const nome = 'orcamento-' + String(orcIdentificacao(e) || 'cliente').toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '').slice(0, 40) + '.png';
-  const arquivo = new File([blob], nome, {type: 'image/png'});
-  if(navigator.canShare && navigator.canShare({files: [arquivo]})){
-    try{ await navigator.share({files: [arquivo]}); return; }
-    catch(err){ if(err && err.name === 'AbortError') return; }
-  }
+  orcSoltarFolha();
+  orcFolhaBlob = blob;
+  orcFolhaUrl = URL.createObjectURL(blob);
+
+  const alvo = document.getElementById('orc-folha-imagem');
+  const folha = document.getElementById('orc-cliente-folha');
+  const botoes = document.getElementById('orc-cliente-botoes');
+  if(!alvo) return;
+  // "Compartilhar" só onde ele existe de verdade — no computador dela não
+  // existe, e botão que não faz nada é pior que botão que falta.
+  const podeCompartilhar = !!(navigator.canShare &&
+    navigator.canShare({files: [new File([blob], orcNomeDaFolha(e), {type: 'image/png'})]}));
+  alvo.innerHTML = `
+    <div class="orc-folha-dica"><i class="ti ti-photo"></i>
+      Esta é a imagem. <b>Clique nela com o botão direito e escolha "Copiar imagem"</b> —
+      depois é só colar no WhatsApp ou no e-mail. No celular, toque e segure.</div>
+    <img src="${esc(orcFolhaUrl)}" alt="Estimativa de custos — ${escTxt(orcIdentificacao(e))}">
+    <div class="modal-btn-row">
+      <button type="button" class="btn-cancel" onclick="orcFecharImagem()">Voltar</button>
+      <button type="button" class="btn-save" onclick="orcCopiarImagem()"><i class="ti ti-copy"></i> Copiar imagem</button>
+      <button type="button" class="cx-btn" onclick="orcBaixarImagem()"><i class="ti ti-download"></i> Baixar</button>
+      ${podeCompartilhar ? `<button type="button" class="cx-btn" onclick="orcCompartilharImagem()">
+        <i class="ti ti-share"></i> Compartilhar</button>` : ''}
+    </div>`;
+  alvo.hidden = false;
+  if(folha) folha.hidden = true;
+  if(botoes) botoes.hidden = true;
+  alvo.scrollIntoView({block: 'start', behavior: 'smooth'});
+};
+window.orcFecharImagem = function(){
+  const alvo = document.getElementById('orc-folha-imagem');
+  const folha = document.getElementById('orc-cliente-folha');
+  const botoes = document.getElementById('orc-cliente-botoes');
+  if(alvo){ alvo.hidden = true; alvo.innerHTML = ''; }
+  if(folha) folha.hidden = false;
+  if(botoes) botoes.hidden = false;
+  orcSoltarFolha();
+};
+window.orcCopiarImagem = async function(){
+  if(!orcFolhaBlob) return;
   try{
-    await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+    await navigator.clipboard.write([new ClipboardItem({'image/png': orcFolhaBlob})]);
     finToast('Imagem copiada — é só colar no WhatsApp ou no e-mail.');
-    return;
-  }catch(err){}
-  const url = URL.createObjectURL(blob);
+  }catch(err){
+    // Falar em vez de fingir: alguns navegadores só deixam copiar imagem pelo
+    // menu do botão direito, e a imagem está aí do lado para isso.
+    finToast('Este navegador não deixou copiar pelo botão. Clique na imagem com o botão direito e escolha "Copiar imagem".');
+  }
+};
+window.orcBaixarImagem = function(){
+  if(!orcFolhaUrl) return;
   const a = document.createElement('a');
-  a.href = url; a.download = nome; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  a.href = orcFolhaUrl; a.download = orcNomeDaFolha(orcEmEdicao); a.click();
   finToast('Imagem baixada — é só anexar.');
+};
+window.orcCompartilharImagem = async function(){
+  if(!orcFolhaBlob) return;
+  const arquivo = new File([orcFolhaBlob], orcNomeDaFolha(orcEmEdicao), {type: 'image/png'});
+  try{ await navigator.share({files: [arquivo]}); }
+  catch(err){ if(err && err.name !== 'AbortError') finToast('Não consegui compartilhar aqui.'); }
 };
 // Exposto para o teste conferir o desenho sem depender da área de
 // transferência, que não existe num navegador de teste.

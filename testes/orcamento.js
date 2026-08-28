@@ -489,6 +489,61 @@ const semValor = orcCalcular({atoId: 'divorcio-partilha', data: AGO,
 ok('pensão sem valor vira pergunta, não some',
    semValor.faltando.some(f => f.campo === 'pensaoParcelas'), semValor.faltando.map(f => f.campo));
 
+console.log('\n— A BASE CONSIDERADA é o valor do negócio, não a base da tabela —');
+// O caso que ela trouxe em 28/08/2026: doação com reserva de usufruto de
+// R$ 500.000,00. A tabela cobra a nua-propriedade sobre dois terços e o
+// usufruto sobre um terço — e a via da cliente saía dizendo
+// "BASE CONSIDERADA R$ 333.333,33". A cliente doou meio milhão.
+const usu = orcCalcular({atoId: 'doacao-usufruto', data: '2026-08-28',
+  praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+  valores: {doacao: 50000000}, flags: {}, despesas: {taxaAdicional: false}});
+ok('a folha mostra os R$ 500.000,00 que ela digitou',
+   R(orcBasePrincipal(usu)) === '500000.00', R(orcBasePrincipal(usu)));
+ok('e não os dois terços da primeira linha da tabela',
+   usu.escrituras[0].base === 33333333, usu.escrituras[0].base);
+// A conta em si não mudou: é só o que a folha mostra.
+ok('a escritura continua saindo sobre 2/3 e 1/3', R(usu.totais.escritura) === '6713.94',
+   R(usu.totais.escritura));
+ok('e o ITCMD sobre o valor global', R(usu.tributos[0].valor) === '20000.00');
+
+// Em nenhum dos vinte atos a base mostrada pode ser um número que ela não
+// digitou. Era um só que escorregava, e procurar os irmãos custou um laço.
+const V = {transacao: 50000000, garantia: 30000000, saldoDevedor: 20000000,
+  novacao: 15000000, confissao: 12000000, doacao: 45000000, monte: 60000000,
+  meacao: 35000000, excedente: 10000000, totalPartilha: 55000000,
+  unidades: [{rotulo: 'Apto', valor: 40000000}, {rotulo: 'Vaga', valor: 10000000}],
+  imoveis: [{rotulo: 'Casa', valor: 60000000}]};
+const desencontrados = ORC_ATOS.map(a => {
+  const r = orcCalcular({atoId: a.id, data: '2026-08-28', praticadoEm: 'São Paulo',
+    imovelMunicipio: 'São Paulo', imovelUf: 'SP', valores: V, flags: {}, despesas: {taxaAdicional: false}});
+  const base = orcBasePrincipal(r);
+  if(!base) return null;                       // ato de valor fixo, sem base
+  const digitados = (a.campos || []).map(c =>
+    Array.isArray(V[c]) ? V[c].reduce((t, x) => t + x.valor, 0) : V[c]);
+  return digitados.includes(base) ? null : a.id + ' mostra ' + R(base);
+}).filter(Boolean);
+ok('nos vinte atos, a base mostrada é sempre um valor digitado', desencontrados.length === 0, desencontrados);
+
+// A ZEIS troca a escritura por um item de valor fixo, e a primeira linha fica
+// sem base nenhuma: antes a folha simplesmente não mostrava valor de negócio.
+const zeisBase = orcCalcular({atoId: 'compra-venda', valores: {transacao: 20000000},
+  flags: {zeis: true}, imovelMunicipio: 'São Paulo', imovelUf: 'SP', despesas: {taxaAdicional: false}});
+ok('mesmo na ZEIS, em que a escritura é de valor fixo, a cliente vê o valor do negócio',
+   R(orcBasePrincipal(zeisBase)) === '200000.00', R(orcBasePrincipal(zeisBase)));
+
+// No divórcio a base declarada inclui a pensão, porque ela também foi
+// informada e é sobre a soma que a escritura sai.
+const comPensao = orcCalcular({atoId: 'divorcio-partilha', data: '2026-08-28',
+  valores: {totalPartilha: 55000000, imoveis: [{rotulo: 'Casa', valor: 55000000}]},
+  flags: {temPensao: true, pensaoParcelas: AS_DUAS}, despesas: {taxaAdicional: false}});
+ok('no divórcio com pensão, a base declarada é a partilha mais a pensão',
+   orcBasePrincipal(comPensao) === 55000000 + 15237400, orcBasePrincipal(comPensao));
+
+// Orçamento gravado antes disto não tem baseDeclarada, e continua mostrando o
+// que mostrou no dia — cada versão guarda o número que deu.
+ok('versão antiga, sem baseDeclarada, cai no caminho de antes',
+   orcBasePrincipal({escrituras: [{base: 12345}]}) === 12345);
+
 console.log('\n— O imposto de fora da Capital —');
 // Ela lançou uma venda e compra de imóvel em Extrema-MG e o ITBI saiu em
 // branco. O imposto é municipal, então o painel vai buscar a alíquota — mas o
