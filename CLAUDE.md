@@ -561,6 +561,32 @@ regras não deveria ter de adivinhar que precisa recarregar. O
 (`window.__recusarEscrita`, `window.__recusarLeitura`) para que os dois
 caminhos tenham teste em vez de só existirem na vida real.
 
+### Onde paramos — 28/08/2026
+
+Tudo o que está descrito acima **está no ar**. A `main` foi de `6d5378d` a
+`3049c4c` em cinco entregas (#65 a #69), e a Vercel subiu cada uma sozinha.
+
+**As regras do banco já foram publicadas** por ela no console do Firebase, e o
+primeiro orçamento gravou depois disso. O passo do `FIREBASE.md` está cumprido —
+não precisa ser refeito, a menos que os caminhos mudem.
+
+O que **ela já confirmou funcionando** na tela de verdade: o cálculo, a memória,
+o modo cliente e a gravação.
+
+O que **entrou depois disso e ela ainda não conferiu em uso**: o bloco dos
+imóveis sempre à vista, a quantidade de prenotações e certidões corrigível à
+mão, o campo da taxa que parou de saltar, a via do cliente como imagem e a
+identificação editável. Se algo aqui estiver errado, é o primeiro lugar a olhar.
+
+**A lição da noite, que vale para o resto do painel:** os três defeitos que
+chegaram à mesa dela eram do mesmo tipo — o painel dando por certo o que
+dependia do banco. Um dizia "salvo" sem ter salvado, outro mostrava tela vazia
+em vez de "trancado", o terceiro mandava ao Firebase um valor que ele não
+aceita. Nenhuma das nove suítes pegava, porque **todas rodavam com o banco
+sempre dizendo sim**. Agora o faz-de-conta sabe dizer não, nas duas direções, e
+os três caminhos têm teste. Onde houver escrita ou leitura nova no painel, vale
+perguntar antes: e se o banco recusar?
+
 ### O que ainda está em aberto
 
 Entra na base como 🔴 ou 🔵, escrito, do mesmo jeito que as ressalvas da Base de
