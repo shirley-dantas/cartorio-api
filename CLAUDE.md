@@ -689,8 +689,10 @@ Regras do Radar — pergunta que não fica escrita é pergunta que se perde:
   ela escreve o prazo de cada parcela, e os 12 só valem para orçamento antigo
   que não tinha prazo nenhum —, mas a frase continua sem leitura definida;
 - **a pensão no divórcio SEM partilha**: esse ato é de valor fixo (item 6.2),
-  e não há base a que acrescer. O motor põe a pensão como base e avisa, em vez
-  de decidir calado — falta ela dizer se é assim que se cobra;
+  e não há base a que acrescer. O motor põe a pensão como base. Perguntada em
+  28/08/2026, ela respondeu **"pode ser"** — o que entra como 🔵 operacional, e
+  não 🟢: é aceite do jeito de trabalhar, não a nota da tabela que o
+  fundamentaria. Parou de pedir decisão todo dia, mas continua sem fonte;
 - **os 40% da confissão de dívida sozinha na escritura**, que a redução de ato
   secundário não cobre por si;
 - **as notas explicativas da tabela de Notas**, que vieram só com o título.

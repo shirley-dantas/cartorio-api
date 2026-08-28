@@ -470,6 +470,18 @@ const semPartilha = orcCalcular({atoId: 'divorcio', data: AGO, valores: {},
 ok('no divórcio sem partilha a pensão vira a base', semPartilha.escrituras[0].base === 15237400);
 ok('e isso não passa calado', semPartilha.alertas.some(a => /valor fixo/.test(a.texto)),
    semPartilha.alertas.map(a => a.texto));
+// "Pode ser" (28/08/2026) é aceite do jeito de trabalhar, não fonte. Fica 🔵
+// operacional: deixa de pedir decisão todo dia, mas não vira regra oficial —
+// promover um "pode ser" a 🟢 é exatamente o erro que a escada evita.
+ok('mas fica como jeito de trabalhar (🔵), não como fonte confirmada',
+   semPartilha.escrituras[0].avisos.some(a => a.confianca === 'operacional'),
+   semPartilha.escrituras[0].avisos.map(a => a.confianca));
+ok('e nenhum aviso dela finge ser confirmado',
+   !semPartilha.escrituras[0].avisos.some(a => a.confianca === 'confirmada'),
+   semPartilha.escrituras[0].avisos);
+ok('a base de conhecimento guarda a ressalva de que isso não tem nota de tabela',
+   /não foi lida/.test(ORC_CONHECIMENTO_INICIAL['pensao-na-base'].aberto),
+   ORC_CONHECIMENTO_INICIAL['pensao-na-base'].aberto);
 
 // Pensão marcada mas sem nenhum valor: é pergunta em aberto, não zero.
 const semValor = orcCalcular({atoId: 'divorcio-partilha', data: AGO,

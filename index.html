@@ -9718,12 +9718,18 @@ function orcCalcular(entrada){
         escrituras[0] = orcLinhaEscritura(pensaoTotal, {
           rot: 'Escritura de divórcio — sobre a pensão',
           fundamento: `Não havia base declarada, e a pensão passou a ser a base. ${memoria}`,
-          avisos: [{confianca: 'incerta',
-            texto: 'Este divórcio não tinha valor declarado (item 6.2, valor fixo), e a pensão virou a base da '
-                 + 'escritura. Confirme se é assim que se cobra, ou se a pensão devia somar-se ao item fixo.'}]});
-        alertas.push({nivel: 'avisa', confianca: 'incerta',
+          // 🔵 operacional, e não 🟢 confirmada. Perguntada em 28/08/2026, ela
+          // respondeu "pode ser" — o que é aceite do jeito de trabalhar, não
+          // fonte que o fundamente. Deixar de perguntar todo dia é certo;
+          // promover a resposta a regra oficial seria o erro que a escada de
+          // conhecimento existe para não cometer.
+          avisos: [{confianca: 'operacional',
+            texto: 'Este divórcio não tem valor declarado (item 6.2, valor fixo), e a pensão vira a base da '
+                 + 'escritura. É o jeito de trabalhar aceito pela Shirley em 28/08/2026 — não uma nota da '
+                 + 'tabela. A alternativa seria somar a pensão ao item fixo, e daria outro número.'}]});
+        alertas.push({nivel: 'avisa', confianca: 'operacional',
           texto: `O divórcio sem partilha é de valor fixo (${orcMoeda(ORC_TABELA_NOTAS.itens['6.2'].valor)}), e com pensão `
-               + `passou a ser cobrado sobre a base de ${orcMoeda(pensaoTotal)}. Confira antes de fechar.`});
+               + `sai cobrado sobre a base de ${orcMoeda(pensaoTotal)}. Combinado com a Shirley em 28/08/2026.`});
       }
     }
   }
@@ -10122,9 +10128,12 @@ const ORC_CONHECIMENTO_INICIAL = {
          + 'somam-se todas antes de achar a faixa.',
     origem: 'Confirmada pela Shirley em 28/08/2026: "a soma disso seria a nossa base de cálculo para acrescer ao valor da escritura".',
     confianca: 'confirmada', tipo: 'regra',
-    exemplos: ['Partilha de R$ 500.000,00 com pensão de R$ 152.374,00: uma escritura sobre R$ 652.374,00.'],
-    aberto: 'No divórcio SEM partilha, que é de valor fixo (item 6.2), não há base a que acrescer. O motor põe a '
-          + 'pensão como base e avisa — falta confirmar se é assim que se cobra.'
+    exemplos: ['Partilha de R$ 500.000,00 com pensão de R$ 152.374,00: uma escritura sobre R$ 652.374,00.',
+               'Divórcio SEM partilha (item 6.2, valor fixo) com pensão: a pensão vira a base, em vez de somar-se '
+             + 'ao item fixo. Aceito por ela em 28/08/2026 ("pode ser") — vale como jeito de trabalhar do '
+             + 'cartório, 🔵, e não como nota da tabela.'],
+    aberto: 'O tratamento do divórcio sem partilha é aceite dela, não fonte. A nota da tabela que o fundamentaria '
+          + 'não foi lida — as notas 1 a 13 vieram só com o título no PDF.'
   },
   'pensao-meses': {
     regra: 'O prazo de cada parcela pode ser escrito em número de meses ou como um mês final. Sendo mês final, '
