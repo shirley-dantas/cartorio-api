@@ -505,6 +505,24 @@ pergunta o que falta — formulário enorme foi o que ela pediu para não existi
   dela continuava dizendo "1 imóvel". Parecia que a soma não estava
   acontecendo. Esses pedaços agora são trocados **no lugar**
   (`orcRedesenharAcessorios`), e nunca o campo que está debaixo do dedo dela.
+- **Onde há lista de imóveis, há soma.** São três listas, e o primeiro conserto
+  cobriu uma só: a do botão *Acrescentar imóvel* (`unidadesRegistro`). Mas o ato
+  **"Compra e venda com vagas individualizadas"** pede a lista dele (`unidades`)
+  e o inventário pede a dele (`imoveis`) — e o ato das vagas é justamente o que
+  ela escolhe quando há vagas. Nesses dois não havia soma nenhuma, e o conserto
+  passou ao lado do caminho dela: publicou-se uma correção que, para quem
+  reclamou, não mudou nada. A soma agora nasce dentro do `orcListaHtml`, que é
+  por onde toda lista passa — corrigir no lugar comum, e não no caso que
+  apareceu, é o que faz o conserto valer para os três.
+- **Comparação só onde o motor também compara.** A soma se confronta com o valor
+  do negócio apenas na lista de matrículas, que é onde o motor levanta o mesmo
+  aviso. No ato das vagas a lista **é** o valor do negócio, e no inventário o
+  monte pode legitimamente não ser a soma dos imóveis — apontar divergência ali
+  seria alarme falso todo dia, e alarme falso é o que faz alarme de verdade ser
+  ignorado.
+- **Duas listas de imóveis no mesmo formulário, nunca.** O bloco *Imóveis a
+  registrar* não aparece em ato que já pede uma lista: a dúvida sobre em qual
+  dos dois digitar é pior que a falta do bloco.
 
 A **memória de cálculo** mostra, linha por linha, o item da tabela, a faixa (a
 mesma letra da folha impressa), a base, o valor de tabela, a redução e o
@@ -612,6 +630,18 @@ WhatsApp (ver *A via do cliente sai como imagem*). No caminho apareceu um
 terceiro, que ela não tinha visto: a taxa de R$ 300 respondida antes de trocar o
 ato ficava no total sem linha na via da cliente, e a folha não fechava.
 
+**E a lição do conserto que não consertou.** Publicado o primeiro, ela voltou
+com "A SOMA NÃO FUNCIONOU" — e estava certa. O defeito tinha sido reproduzido
+num caminho (o botão *Acrescentar imóvel*) e consertado ali, enquanto ela estava
+noutro: o ato **"Compra e venda com vagas"**, cuja lista é outra e não tinha
+soma nenhuma. Os testes novos passavam, e passavam no caminho errado.
+Duas coisas ficam disso: **reproduzir pelo caminho que ela descreveu**, não pelo
+primeiro que reproduz o sintoma — o ato das vagas está no nome do que ela
+relatou; e **procurar os irmãos do defeito antes de fechar** — havia três listas
+de imóveis na tela, e a pergunta "e as outras duas?" custava um `grep`. O
+conserto certo não foi consertar a segunda lista: foi levar a soma para dentro
+do `orcListaHtml`, por onde as três passam.
+
 **A lição da noite, que vale para o resto do painel:** os três defeitos que
 chegaram à mesa dela eram do mesmo tipo — o painel dando por certo o que
 dependia do banco. Um dizia "salvo" sem ter salvado, outro mostrava tela vazia
@@ -687,7 +717,8 @@ o `testes/montar.mjs` recorta.
 | Mais de uma matrícula | `orcHtmlImoveis()`, `ORC_CAMPOS.unidadesRegistro` |
 | A folha do cliente em imagem | `orcDesenharFolha()`, `orcLayoutFolha()`, `ORC_FOLHA`, `orcEnviarCliente()` |
 | As linhas que a cliente lê | `orcLinhasCliente()` |
-| O que se refaz sem redesenhar a tela | `orcRedesenharAcessorios()`, `orcHtmlImoveisSoma()` |
+| O que se refaz sem redesenhar a tela | `orcRedesenharAcessorios()` |
+| A soma de qualquer lista de imóveis | `orcHtmlListaSoma()`, dentro do `orcListaHtml()` |
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |

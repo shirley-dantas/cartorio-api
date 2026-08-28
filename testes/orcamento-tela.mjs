@@ -213,7 +213,7 @@ await passo('as vagas entram em qualquer compra e venda', async () => {
 // não estava acontecendo. A tela inteira não pode se refazer a cada tecla (o
 // cursor salta), então estes pedaços são trocados no lugar.
 await passo('a soma dos imóveis acompanha a digitação, sem esperar a tela se refazer', async () => {
-  const soma = () => pg.textContent('#orc-imoveis-soma');
+  const soma = () => pg.textContent('#orc-soma-unidadesRegistro');
   const agora = await soma();
   if(!/3 imóveis/.test(agora)) throw new Error('não contou os três: ' + agora);
   if(!/301\.867,16/.test(agora)) throw new Error('não somou os três: ' + agora);
@@ -224,7 +224,7 @@ await passo('a soma dos imóveis acompanha a digitação, sem esperar a tela se 
   const campo = '.orc-linha-lista:nth-of-type(3) input:nth-of-type(2)';
   await pg.click(campo);
   await pg.fill(campo, '30.000,00');
-  await pg.waitForFunction(() => /311\.867,16/.test(document.getElementById('orc-imoveis-soma').textContent));
+  await pg.waitForFunction(() => /311\.867,16/.test(document.getElementById('orc-soma-unidadesRegistro').textContent));
   const depois = await soma();
   // Passou do valor do negócio: a linha tem de dizer os dois números.
   if(!/valor do negócio/.test(depois) || !/301\.867,16/.test(depois))
@@ -233,7 +233,56 @@ await passo('a soma dos imóveis acompanha a digitação, sem esperar a tela se 
   // o que `registros[0].base` passa a ser depois do desdobramento.
   if(/261\.867,16/.test(depois)) throw new Error('leu o valor da primeira matrícula como o do negócio: ' + depois);
   await pg.fill(campo, '20.000,00');
-  await pg.waitForFunction(() => /301\.867,16/.test(document.getElementById('orc-imoveis-soma').textContent));
+  await pg.waitForFunction(() => /301\.867,16/.test(document.getElementById('orc-soma-unidadesRegistro').textContent));
+});
+
+// O que o primeiro conserto NÃO pegou, e chegou à mesa dela como "a soma não
+// funcionou": o ato "com vagas" pede a lista dele (`unidades`), e o inventário
+// a dele (`imoveis`). Nenhuma das duas tinha soma — o conserto cobria só a
+// lista do botão "Acrescentar imóvel". Onde há lista de imóveis, há soma.
+await passo('a lista do ato "com vagas" também soma, e acompanha a digitação', async () => {
+  await pg.evaluate(() => orcTrocarAto('compra-venda-vagas'));
+  await pg.evaluate(() => {
+    orcMudarItem('unidades', 0, 'rotulo', 'Apartamento');
+    orcMudarItem('unidades', 0, 'valor', '261.867,16');
+  });
+  const soma = () => pg.textContent('#orc-soma-unidades');
+  if(!/1 imóvel/.test(await soma())) throw new Error('não somou o primeiro: ' + await soma());
+  await pg.evaluate(() => orcMaisItem('unidades'));
+  // Digitando de verdade no input, que é o caminho dela.
+  const campo = '.orc-linha-lista:nth-of-type(2) input:nth-of-type(2)';
+  await pg.fill(campo, '40.000,00');
+  await pg.waitForFunction(() => /301\.867,16/.test(document.getElementById('orc-soma-unidades').textContent));
+  const t = await soma();
+  if(!/2 imóveis/.test(t)) throw new Error('não contou os dois: ' + t);
+  // Aqui a lista É o valor do negócio: não há divergência a inventar.
+  if(/valor do negócio/.test(t)) throw new Error('inventou divergência onde a lista é a própria base: ' + t);
+});
+
+await passo('e o ato com vagas não ganha um segundo bloco de imóveis', async () => {
+  const blocos = await pg.evaluate(() =>
+    [...document.querySelectorAll('.orc-secao b')].map(x => x.textContent));
+  if(blocos.filter(b => /Imóveis a registrar/.test(b)).length)
+    throw new Error('duas listas de imóveis no mesmo formulário: ' + blocos.join(' / '));
+});
+
+await passo('o inventário também soma os imóveis dele', async () => {
+  await pg.evaluate(() => orcTrocarAto('inventario'));
+  await pg.evaluate(() => {
+    orcMudarValor('monte', '500.000,00');
+    orcMudarItem('imoveis', 0, 'rotulo', 'Casa');
+    orcMudarItem('imoveis', 0, 'valor', '300.000,00');
+    orcMaisItem('imoveis');
+    orcMudarItem('imoveis', 1, 'rotulo', 'Terreno');
+    orcMudarItem('imoveis', 1, 'valor', '200.000,00');
+  });
+  const t = await pg.textContent('#orc-soma-imoveis');
+  if(!/2 imóveis/.test(t) || !/500\.000,00/.test(t)) throw new Error('não somou o inventário: ' + t);
+  // O monte pode legitimamente não ser a soma dos imóveis — nada de alarme.
+  if(/valor do negócio/.test(t)) throw new Error('inventou divergência no inventário: ' + t);
+  // E a volta, para os testes seguintes continuarem no ato de sempre.
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
 
 await passo('e a quantidade das despesas acompanha junto', async () => {

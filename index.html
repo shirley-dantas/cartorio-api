@@ -1714,9 +1714,15 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   padding:3px 4px 3px 10px;display:inline-flex;align-items:center;gap:7px}
 .orc-taxa-linha{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .orc-imoveis-um{font-size:12.5px;line-height:1.6;color:var(--cc-tinta-2);margin-bottom:9px}
-.orc-imoveis-soma{font-size:12px;color:var(--cc-tinta-2);margin:6px 0 9px}
-.orc-imoveis-soma b{font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
-.orc-imoveis-soma.difere{color:var(--cc-atencao)}
+/* A soma das linhas. Ela precisa ser vista sem ser procurada: é a resposta à
+   pergunta "a conta está acontecendo?", e a primeira versão era um cinza de
+   12px que a Shirley não achou. Agora tem faixa própria, colada nas linhas. */
+.orc-imoveis-soma{font-size:13px;color:var(--cc-tinta-2);margin:8px 0 10px;
+  padding:8px 12px;background:var(--cc-sup-2);border-left:3px solid var(--cc-champagne);
+  border-radius:0 8px 8px 0}
+.orc-imoveis-soma b{font-variant-numeric:tabular-nums;color:var(--cc-tinta);font-size:14px}
+.orc-imoveis-soma.difere{color:var(--cc-atencao);border-left-color:var(--cc-atencao)}
+.orc-imoveis-soma.vazia{display:none}
 .orc-qtde{display:flex;align-items:center;gap:7px}
 .orc-qtde input{width:64px;text-align:center}
 .orc-aviso-inline{font-size:11.5px;color:var(--cc-atencao)}
@@ -10360,7 +10366,7 @@ function orcCampoDinheiro(chave, rot, valor, dica){
       oninput="orcMudarValor('${chave}',this.value)">
   </div>`;
 }
-function orcListaHtml(chave, rot, lista){
+function orcListaHtml(chave, rot, lista, contra){
   const l = (lista || []).length ? lista : [{rotulo: '', valor: 0}];
   return `<div class="orc-campo orc-campo-largo">
     <label class="fin-rot">${escTxt(rot)} <span class="fin-mini">— cada linha cai na sua própria faixa</span></label>
@@ -10369,7 +10375,33 @@ function orcListaHtml(chave, rot, lista){
       <input class="fin-input" inputmode="decimal" placeholder="0,00" value="${x.valor ? orcBr(x.valor) : ''}" oninput="orcMudarItem('${chave}',${i},'valor',this.value)">
       <button type="button" class="cx-btn perigo" onclick="orcTirarItem('${chave}',${i})" aria-label="Tirar"><i class="ti ti-x"></i></button>
     </div>`).join('')}
+    ${orcHtmlListaSoma(chave, lista, contra)}
     <button type="button" class="cx-btn" onclick="orcMaisItem('${chave}')"><i class="ti ti-plus"></i> Mais uma linha</button>
+  </div>`;
+}
+
+// A soma fica colada nas linhas que a produzem, em TODA lista de imóveis.
+//
+// O primeiro conserto cobriu só a lista do botão "Acrescentar imóvel"
+// (`unidadesRegistro`). Mas o ato "Compra e venda com vagas individualizadas"
+// — que é o nome que ela procura justamente quando há vagas — pede a lista
+// dele (`unidades`), e o inventário pede a dele (`imoveis`). Nessas duas não
+// havia soma nenhuma: só as linhas, e o total lá longe, no fim da página.
+// Para ela, nada tinha mudado. Onde há lista de imóveis, há soma.
+//
+// `contra` é o valor com que a soma se confronta, e só existe onde o motor
+// também confronta: nas matrículas de um ato cujo valor do negócio é outro
+// campo. No ato com vagas a lista É o valor do negócio, e no inventário o
+// monte pode legitimamente não ser a soma dos imóveis — inventar divergência
+// ali seria alarme falso todo dia.
+function orcHtmlListaSoma(chave, lista, contra){
+  const preenchidas = (lista || []).filter(u => u && u.valor > 0);
+  if(!preenchidas.length) return `<div id="orc-soma-${chave}" class="orc-imoveis-soma vazia"></div>`;
+  const soma = preenchidas.reduce((t, u) => t + u.valor, 0);
+  const difere = contra != null && soma !== contra;
+  return `<div id="orc-soma-${chave}" class="orc-imoveis-soma${difere ? ' difere' : ''}">
+    ${preenchidas.length} ${preenchidas.length === 1 ? 'imóvel' : 'imóveis'} ·
+    somam <b>${orcMoeda(soma)}</b>${difere ? ` — e o valor do negócio é <b>${orcMoeda(contra)}</b>` : ''}
   </div>`;
 }
 window.orcMudarValor = function(chave, txt){
@@ -10492,9 +10524,11 @@ function orcRedesenharResultado(){
 function orcRedesenharAcessorios(r){
   const e = orcEmEdicao;
   if(!e || !r) return;
-  const soma = document.getElementById('orc-imoveis-soma');
-  if(soma && (e.valores || {}).unidadesRegistro && e.valores.unidadesRegistro.length)
-    soma.outerHTML = orcHtmlImoveisSoma(e, r);
+  Object.keys(ORC_CAMPOS).filter(c => ORC_CAMPOS[c].lista).forEach(c => {
+    const soma = document.getElementById('orc-soma-' + c);
+    if(soma) soma.outerHTML = orcHtmlListaSoma(c, (e.valores || {})[c],
+      c === 'unidadesRegistro' ? orcContraDaLista(r) : null);
+  });
 
   const d = e.despesas || {};
   const nImoveis = r.registros.length;
@@ -10542,7 +10576,7 @@ function orcHtmlValores(e, ato, r){
   const v = e.valores || {};
   const campos = (ato.campos || []).map(c => {
     const meta = ORC_CAMPOS[c] || {rot: c};
-    return meta.lista ? orcListaHtml(c, meta.rot, v[c]) : orcCampoDinheiro(c, meta.rot, v[c]);
+    return meta.lista ? orcListaHtml(c, meta.rot, v[c], null) : orcCampoDinheiro(c, meta.rot, v[c]);
   }).join('');
   const bloco = campos
     ? `<div class="orc-bloco">
@@ -10559,13 +10593,15 @@ function orcHtmlValores(e, ato, r){
 // linha e segue; quem tem, vê o caminho sem precisar procurar.
 function orcHtmlImoveis(e, ato, r){
   if(!r || !r.registros.length) return '';
-  if((ato.campos || []).includes('unidades')) return '';   // este ato já pede a lista
+  // Ato que já pede uma lista de imóveis (o das vagas, os de inventário) não
+  // ganha este bloco: seriam duas listas de imóveis no mesmo formulário, e a
+  // dúvida sobre em qual digitar é pior que a falta do bloco.
+  if((ato.campos || []).some(c => (ORC_CAMPOS[c] || {}).lista)) return '';
   const lista = (e.valores || {}).unidadesRegistro || [];
   return `<div class="orc-bloco">
     <div class="orc-secao"><b>Imóveis a registrar</b><span>uma matrícula, um registro</span></div>
     ${lista.length ? `
-      ${orcListaHtml('unidadesRegistro', 'Cada matrícula, com o seu valor', lista)}
-      ${orcHtmlImoveisSoma(e, r)}
+      ${orcListaHtml('unidadesRegistro', 'Cada matrícula, com o seu valor', lista, orcContraDaLista(r))}
       <button type="button" class="cx-btn" onclick="orcTirarTodasMatriculas()">
         <i class="ti ti-x"></i> Voltar a um imóvel só</button>
     ` : `
@@ -10577,22 +10613,12 @@ function orcHtmlImoveis(e, ato, r){
     `}
   </div>`;
 }
-// A linha que soma os imóveis. Sai daqui, e não de dentro do bloco, porque
-// ela precisa ser refeita a cada tecla digitada num dos valores — e o bloco
-// inteiro não pode, sob pena de o cursor saltar para fora do campo.
-function orcHtmlImoveisSoma(e, r){
-  const lista = (e.valores || {}).unidadesRegistro || [];
-  const preenchidas = lista.filter(u => u && u.valor > 0);
-  const soma = preenchidas.reduce((t, u) => t + u.valor, 0);
-  // O valor do negócio é o que o registro teria antes de se desdobrar em
-  // matrículas — nunca o `base` do primeiro registro depois do desdobramento,
-  // que é o valor da primeira matrícula.
-  const base = r.baseRegistro != null ? r.baseRegistro : ((r.registros[0] || {}).base || 0);
-  const soParcelas = soma !== base;
-  return `<div id="orc-imoveis-soma" class="orc-imoveis-soma${soParcelas ? ' difere' : ''}">
-    ${preenchidas.length} ${preenchidas.length === 1 ? 'imóvel' : 'imóveis'} ·
-    somam <b>${orcMoeda(soma)}</b>${soParcelas ? ` — e o valor do negócio é <b>${orcMoeda(base)}</b>` : ''}
-  </div>`;
+// O valor do negócio com que a soma das matrículas se confronta. É o que o
+// registro tinha ANTES de se desdobrar: depois, `registros[0].base` é o valor
+// da primeira matrícula, e comparar com ele diria que o negócio encolheu.
+function orcContraDaLista(r){
+  if(!r) return null;
+  return r.baseRegistro != null ? r.baseRegistro : ((r.registros[0] || {}).base != null ? r.registros[0].base : null);
 }
 window.orcAbrirMatriculas = function(){
   // A primeira linha nasce com o valor do negócio: quem acrescenta uma vaga
