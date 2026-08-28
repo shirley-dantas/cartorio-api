@@ -170,16 +170,24 @@ const abrirMemoria = async (pagina) => {
   await pagina.waitForSelector('.orc-memoria');
 };
 
-await passo('as vagas entram por um botão, em qualquer compra e venda', async () => {
+await passo('o bloco dos imóveis está sempre à vista, sem precisar caçar', async () => {
+  await pg.evaluate(() => orcVoltarDoCliente());
+  const t = await pg.textContent('#orc-caso-conteudo');
+  if(!/Imóveis a registrar/.test(t)) throw new Error('o bloco não aparece');
+  if(!/cobrado sobre .*um imóvel/s.test(t)) throw new Error('não diz sobre quantos imóveis está cobrando');
+  if(!/Acrescentar imóvel/.test(t)) throw new Error('não oferece acrescentar imóvel');
+});
+
+await passo('as vagas entram em qualquer compra e venda', async () => {
   // O caso real: compra e venda de um apartamento com duas vagas
   // individualizadas. São três imóveis — três registros, três prenotações e
   // três certidões —, mas uma escritura só, sobre o valor global.
-  await pg.evaluate(() => orcVoltarDoCliente());
-  await pg.waitForSelector('.orc-matriculas button');
-  await pg.click('.orc-matriculas button');
-  await pg.waitForSelector('.orc-matriculas .orc-linha-lista');
-  const linhas = await pg.$$eval('.orc-matriculas .orc-linha-lista', l => l.length);
-  if(linhas < 2) throw new Error('abriu com menos de duas linhas: ' + linhas);
+  await pg.click('button:has-text("Acrescentar imóvel")');
+  await pg.waitForSelector('.orc-linha-lista');
+  // A primeira linha nasce com o valor do negócio: acrescentar uma vaga é somar
+  // uma linha, não redigitar o que já estava na tela.
+  const primeiro = await pg.evaluate(() => orcEmEdicao_leitura().valores.unidadesRegistro[0]);
+  if(primeiro.valor !== 30186716) throw new Error('a primeira linha não veio com o valor do negócio: ' + JSON.stringify(primeiro));
   await pg.evaluate(() => {
     orcMudarItem('unidadesRegistro', 0, 'rotulo', 'Apartamento');
     orcMudarItem('unidadesRegistro', 0, 'valor', '261.867,16');
@@ -208,12 +216,51 @@ await passo('três imóveis são três prenotações e três certidões', async 
   if(!/229,62/.test(m)) throw new Error('a certidão não multiplicou');
 });
 
-await passo('e tirando as vagas tudo volta ao imóvel único', async () => {
-  await pg.evaluate(() => {
-    orcTirarItem('unidadesRegistro', 2);
-    orcTirarItem('unidadesRegistro', 1);
-    orcTirarItem('unidadesRegistro', 0);
+await passo('dá para corrigir a quantidade de prenotações à mão', async () => {
+  await pg.evaluate(() => orcMudarDespesaNum('qtdePrenotacao', '2'));
+  await pg.waitForFunction(() => /160,42|160,28/.test(document.querySelector('.orc-memoria').textContent));
+  const m = await pg.textContent('.orc-memoria');
+  if(!/Prenotações \(2\)/.test(m)) throw new Error('não cobrou duas: ' + m.slice(0, 200));
+  if(/Prenotações \(2 imóveis\)/.test(m)) throw new Error('disse "imóveis" para uma quantidade que não é a deles');
+  await pg.evaluate(() => orcMudarDespesaNum('qtdePrenotacao', ''));
+  await pg.waitForFunction(() => /Prenotações \(3 imóveis\)/.test(document.querySelector('.orc-memoria').textContent));
+});
+
+await passo('mexer no valor da taxa não redesenha a tela nem tira o foco', async () => {
+  // Era o "bug" de digitar a taxa: cada tecla refazia a tela inteira e o cursor
+  // saltava para fora do campo.
+  const campo = '.orc-taxa-linha input';
+  await pg.click(campo);
+  await pg.evaluate(sel => { const el = document.querySelector(sel); el.dataset.marca = 'eu'; }, campo);
+  await pg.type(campo, '5', {delay: 30});
+  const sobreviveu = await pg.evaluate(sel => {
+    const el = document.querySelector(sel);
+    return {marca: el && el.dataset.marca, focado: document.activeElement === el};
+  }, campo);
+  if(sobreviveu.marca !== 'eu') throw new Error('o campo foi refeito no meio da digitação');
+  if(!sobreviveu.focado) throw new Error('o campo perdeu o foco ao digitar');
+  // E a tecla entrou de verdade na conta, não só no campo.
+  const taxa = await pg.evaluate(() => orcEmEdicao_leitura().despesas.taxaAdicionalValor);
+  if(taxa === 30000) throw new Error('digitou e a conta não mudou');
+  // Devolve os R$ 300,00 para os passos seguintes acharem o total do papel dela.
+  await pg.evaluate(() => orcMudarDespesaNum('taxaAdicionalValor', '300,00'));
+  await pg.waitForFunction(() =>
+    orcEmEdicao_leitura().despesas.taxaAdicionalValor === 30000);
+});
+
+await passo('a via do cliente sai como imagem, para colar no WhatsApp', async () => {
+  const img = await pg.evaluate(() => {
+    const c = orcFolhaDoRascunho();
+    return c ? {l: c.width, a: c.height, url: c.toDataURL('image/png').slice(0, 30)} : null;
   });
+  if(!img) throw new Error('não desenhou');
+  if(img.l !== 2000) throw new Error('largura inesperada: ' + img.l);
+  if(img.a < 800 || img.a > 2400) throw new Error('altura fora do razoável: ' + img.a);
+  if(!/^data:image\/png/.test(img.url)) throw new Error('não saiu PNG');
+});
+
+await passo('e tirando as vagas tudo volta ao imóvel único', async () => {
+  await pg.evaluate(() => orcTirarTodasMatriculas());
   await pg.waitForFunction(() =>
     /16\.522,21/.test(document.querySelector('.orc-total-num').textContent));
   const m = await pg.textContent('.orc-memoria');
