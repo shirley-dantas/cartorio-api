@@ -9633,6 +9633,11 @@ function orcCalcular(entrada){
   // do imóvel e não do ato. A escritura e os tributos não se mexem: continuam
   // sobre o valor do negócio.
   const matriculas = (v.unidadesRegistro || []).filter(u => u && u.valor > 0);
+  // Guardado ANTES do desdobramento: depois dele, `registros[0].base` passa a
+  // ser o valor da primeira matrícula, e quem perguntar a ele "quanto vale o
+  // negócio?" recebe o valor da vaga. A tela compara a soma das matrículas
+  // com este número — ler o de depois dizia que o negócio encolheu.
+  const baseRegistro = registros.length === 1 && registros[0].faixa ? registros[0].base : null;
   if(matriculas.length && registros.length === 1 && registros[0].faixa){
     const base = registros[0].base;
     registros = matriculas.map(u => orcLinhaRegistro(u.valor,
@@ -9726,7 +9731,12 @@ function orcCalcular(entrada){
       texto: `São duas certidões, de propósito: ${orcMoeda(T['11'].valor * registrosComMat)} já dentro da coluna `
            + '"registro com matrícula", para começar o trabalho, e esta aqui para o fim dele. '
            + 'Confirmado pela Shirley em 27/08/2026.'}]);
-  if(d.taxaAdicional === true)
+  // Só havendo registro. A pergunta já é feita só quando há (logo abaixo), mas
+  // a resposta fica guardada no orçamento: trocar o ato depois de responder
+  // deixava R$ 300 de "despesa do registro" num ato que não tem registro —
+  // somados no total, e sem linha nenhuma na via da cliente, que então deixava
+  // de fechar. Despesa que não aparece em linha alguma não pode entrar na soma.
+  if(temRegistro && d.taxaAdicional === true)
     despesas.push({rot: 'Despesa adicional do registro', item: null,
       valor: d.taxaAdicionalValor != null ? d.taxaAdicionalValor : 30000,
       interna: true,
@@ -9765,6 +9775,7 @@ function orcCalcular(entrada){
     praticadoEm, imovelMunicipio, imovelUf,
     tabelas, regraEspecial,
     escrituras, registros, tributos, despesas, totais,
+    baseRegistro,
     faltando, alertas, check, bloqueado,
     definitivo: !bloqueado
   };
@@ -10033,6 +10044,21 @@ function orcSemelhantes(alvo, todos){
     })
     .filter(x => x.proximidade > 0.5)
     .sort((x, y) => y.proximidade - x.proximidade);
+}
+// As linhas que a cliente lê. Uma receita só, lida pela tela e pela imagem: as
+// duas tinham a mesma lista escrita em dois lugares, e lista repetida é lista
+// que um dia diverge — com a cliente segurando a que divergiu.
+//
+// A invariante que ela obedece: as linhas somam o total. A taxa adicional é a
+// única coisa que não ganha linha própria, e ela vai somada dentro do REGISTRO
+// (regra 16) — por isso o motor só a cria quando há registro para absorvê-la.
+function orcLinhasCliente(r){
+  const linhas = [];
+  if(r.totais.escritura) linhas.push(['ESCRITURA', r.totais.escritura]);
+  if(r.totais.registro)  linhas.push(['REGISTRO', r.totais.registroComDespesas]);
+  r.despesas.filter(d => !d.interna).forEach(d => linhas.push([d.rot.toUpperCase(), d.valor]));
+  r.tributos.forEach(t => {if(t.valor != null) linhas.push([t.rot.toUpperCase(), t.valor]);});
+  return linhas;
 }
 function orcBasePrincipal(r){
   if(!r) return 0;
@@ -10451,6 +10477,36 @@ function orcRedesenharResultado(){
   if(!box) return;
   const r = orcCalcularRascunho();
   box.innerHTML = r ? orcHtmlResultado(orcEmEdicao, r) : '';
+  orcRedesenharAcessorios(r);
+}
+
+// Nem tudo que a conta muda mora dentro do #orc-resultado. A linha que soma os
+// imóveis e as quantidades das despesas ficam em cima, coladas nos campos que
+// ela digita — e eram justamente elas que ficavam paradas: ela acrescentava a
+// vaga, o total lá embaixo subia, mas a linha debaixo da mão dela continuava
+// dizendo "1 imóvel · somam R$ 301.867,16". Parecia que a soma não acontecia.
+//
+// Redesenhar a tela inteira a cada tecla não serve: o input é refeito no meio
+// da digitação e o cursor salta para fora. Então estes pedaços são trocados no
+// lugar — e nunca o campo que está debaixo do dedo dela.
+function orcRedesenharAcessorios(r){
+  const e = orcEmEdicao;
+  if(!e || !r) return;
+  const soma = document.getElementById('orc-imoveis-soma');
+  if(soma && (e.valores || {}).unidadesRegistro && e.valores.unidadesRegistro.length)
+    soma.outerHTML = orcHtmlImoveisSoma(e, r);
+
+  const d = e.despesas || {};
+  const nImoveis = r.registros.length;
+  [['qtdePrenotacao', 'prenotacao'], ['qtdeMatricula', 'matricula']].forEach(([campo, liga]) => {
+    const rot = document.getElementById('orc-porimovel-' + campo);
+    if(rot) rot.textContent = nImoveis > 1 ? `— uma por imóvel (${nImoveis})` : '— uma';
+    // O campo da quantidade só acompanha os imóveis enquanto ela não o corrigiu
+    // à mão, e nunca enquanto está sendo digitado.
+    const cx = document.getElementById('orc-qtde-' + campo);
+    if(cx && d[campo] == null && d[liga] !== false && document.activeElement !== cx)
+      cx.value = nImoveis;
+  });
 }
 
 function orcHtmlHerdado(h){
@@ -10505,17 +10561,11 @@ function orcHtmlImoveis(e, ato, r){
   if(!r || !r.registros.length) return '';
   if((ato.campos || []).includes('unidades')) return '';   // este ato já pede a lista
   const lista = (e.valores || {}).unidadesRegistro || [];
-  const preenchidas = lista.filter(u => u && u.valor > 0);
-  const soma = preenchidas.reduce((t, u) => t + u.valor, 0);
-  const base = r.registros[0].base || 0;
   return `<div class="orc-bloco">
     <div class="orc-secao"><b>Imóveis a registrar</b><span>uma matrícula, um registro</span></div>
     ${lista.length ? `
       ${orcListaHtml('unidadesRegistro', 'Cada matrícula, com o seu valor', lista)}
-      <div class="orc-imoveis-soma${soma === base ? '' : ' difere'}">
-        ${preenchidas.length} ${preenchidas.length === 1 ? 'imóvel' : 'imóveis'} ·
-        somam <b>${orcMoeda(soma)}</b>${soma === base ? '' : ` — e o valor do negócio é <b>${orcMoeda(base)}</b>`}
-      </div>
+      ${orcHtmlImoveisSoma(e, r)}
       <button type="button" class="cx-btn" onclick="orcTirarTodasMatriculas()">
         <i class="ti ti-x"></i> Voltar a um imóvel só</button>
     ` : `
@@ -10527,11 +10577,28 @@ function orcHtmlImoveis(e, ato, r){
     `}
   </div>`;
 }
+// A linha que soma os imóveis. Sai daqui, e não de dentro do bloco, porque
+// ela precisa ser refeita a cada tecla digitada num dos valores — e o bloco
+// inteiro não pode, sob pena de o cursor saltar para fora do campo.
+function orcHtmlImoveisSoma(e, r){
+  const lista = (e.valores || {}).unidadesRegistro || [];
+  const preenchidas = lista.filter(u => u && u.valor > 0);
+  const soma = preenchidas.reduce((t, u) => t + u.valor, 0);
+  // O valor do negócio é o que o registro teria antes de se desdobrar em
+  // matrículas — nunca o `base` do primeiro registro depois do desdobramento,
+  // que é o valor da primeira matrícula.
+  const base = r.baseRegistro != null ? r.baseRegistro : ((r.registros[0] || {}).base || 0);
+  const soParcelas = soma !== base;
+  return `<div id="orc-imoveis-soma" class="orc-imoveis-soma${soParcelas ? ' difere' : ''}">
+    ${preenchidas.length} ${preenchidas.length === 1 ? 'imóvel' : 'imóveis'} ·
+    somam <b>${orcMoeda(soma)}</b>${soParcelas ? ` — e o valor do negócio é <b>${orcMoeda(base)}</b>` : ''}
+  </div>`;
+}
 window.orcAbrirMatriculas = function(){
   // A primeira linha nasce com o valor do negócio: quem acrescenta uma vaga
   // quer somar uma linha, não redigitar o que já está na tela.
   const r = orcCalcularRascunho();
-  const base = (r && r.registros[0] && r.registros[0].base) || 0;
+  const base = (r && (r.baseRegistro != null ? r.baseRegistro : (r.registros[0] || {}).base)) || 0;
   orcEmEdicao.valores.unidadesRegistro = [{rotulo: 'Imóvel principal', valor: base}, {rotulo: '', valor: 0}];
   renderOrcamentoDoCaso();
 };
@@ -10612,23 +10679,27 @@ function orcHtmlDespesas(e, r){
   const qtde = (campo, ligado) => {
     const n = d[campo] != null ? d[campo] : nImoveis;
     return ligado === false ? '' : `<div class="orc-qtde">
-      <input class="fin-input" inputmode="numeric" value="${n}"
+      <input class="fin-input" inputmode="numeric" id="orc-qtde-${campo}" value="${n}"
         oninput="orcMudarDespesaNum('${campo}',this.value)"
         title="Quantas. Em branco volta a seguir o número de imóveis.">
       <span class="fin-mini">× ${orcMoeda(campo === 'qtdePrenotacao' ? T['12'].valor : T['11'].valor)}</span>
     </div>`;
   };
+  // "uma por imóvel (3)" muda quando ela acrescenta uma vaga, e o número tem
+  // de acompanhar sem a tela inteira se refazer — daí o id.
+  const porImovel = campo => `<span class="fin-mini" id="orc-porimovel-${campo}">${
+    nImoveis > 1 ? `— uma por imóvel (${nImoveis})` : '— uma'}</span>`;
   return `<div class="orc-bloco">
     <div class="orc-secao"><b>Despesas do registro</b><span>etapa 14</span></div>
     <div class="orc-grade">
       <div class="orc-campo"><label class="fin-rot">Prenotação
-          <span class="fin-mini">— ${nImoveis > 1 ? `uma por imóvel (${nImoveis})` : 'uma'}</span></label>
+          ${porImovel('qtdePrenotacao')}</label>
         <select class="fin-select" onchange="orcMudarDespesa('prenotacao',this.value==='1')">
           <option value="1"${d.prenotacao !== false ? ' selected' : ''}>Incluir</option>
           <option value="0"${d.prenotacao === false ? ' selected' : ''}>Não incluir</option></select>
         ${qtde('qtdePrenotacao', d.prenotacao !== false)}</div>
       <div class="orc-campo"><label class="fin-rot">Matrícula
-          <span class="fin-mini">— ${nImoveis > 1 ? `uma por imóvel (${nImoveis})` : 'uma'}</span></label>
+          ${porImovel('qtdeMatricula')}</label>
         <select class="fin-select" onchange="orcMudarDespesa('matricula',this.value==='1')">
           <option value="1"${d.matricula !== false ? ' selected' : ''}>Incluir</option>
           <option value="0"${d.matricula === false ? ' selected' : ''}>Não incluir</option></select>
@@ -10768,11 +10839,7 @@ function orcHtmlCheck(r){
 // não some da conta — some da vista, somada ao registro, que é o que ela
 // pediu. O texto nasce selecionável para ir direto para o WhatsApp.
 function orcHtmlCliente(e, r){
-  const linhas = [];
-  if(r.totais.escritura) linhas.push(['ESCRITURA', r.totais.escritura]);
-  if(r.totais.registro)  linhas.push(['REGISTRO', r.totais.registroComDespesas]);
-  r.despesas.filter(d => !d.interna).forEach(d => linhas.push([d.rot.toUpperCase(), d.valor]));
-  r.tributos.forEach(t => {if(t.valor != null) linhas.push([t.rot.toUpperCase(), t.valor]);});
+  const linhas = orcLinhasCliente(r);
   const base = orcBasePrincipal(r);
   return `
     <div class="orc-cliente" id="orc-cliente-folha">
@@ -10806,17 +10873,20 @@ function orcHtmlCliente(e, r){
 // não carrega nada de fora, e assim a folha fica igual em qualquer telefone —
 // sem depender de qual fonte o aparelho dela tem instalada.
 const ORC_FOLHA = {
-  larg: 1000, pad: 72, escala: 2,
-  tinta: '#1F2A33', tinta2: '#5B6B78', tinta3: '#6B7680',
-  linha: '#E6E0D5', fundo: '#FFFFFF', recuo: '#FAF8F4'
+  larg: 1000, pad: 60, escala: 2,
+  // As mesmas tintas do painel. A regra aqui é uma só: o que a cliente precisa
+  // ler sai na tinta cheia (14,6:1). O cinza fica para o que é rodapé — as
+  // maiúsculas pequenas e a ressalva —, nunca para um nome de custo nem para
+  // um valor. Era isso que fazia a folha chegar apagada: metade de cada linha
+  // saía em cinza médio, e o WhatsApp entrega a imagem reduzida à largura do
+  // telefone, onde cinza médio em corpo fino desaparece.
+  tinta: '#1F2A33', tinta2: '#5B6B78',
+  claro: '#FFFFFF', champagne: '#A9895A',
+  fundo: '#FFFFFF', recuo: '#F4F1EA', faixa: '#F7F4EE'
 };
 function orcDesenharFolha(e, r){
   const F = ORC_FOLHA;
-  const linhas = [];
-  if(r.totais.escritura) linhas.push(['ESCRITURA', r.totais.escritura]);
-  if(r.totais.registro)  linhas.push(['REGISTRO', r.totais.registroComDespesas]);
-  r.despesas.filter(d => !d.interna).forEach(d => linhas.push([d.rot.toUpperCase(), d.valor]));
-  r.tributos.forEach(t => { if(t.valor != null) linhas.push([t.rot.toUpperCase(), t.valor]); });
+  const linhas = orcLinhasCliente(r);
   const base = orcBasePrincipal(r);
 
   // Duas passadas: a primeira mede, a segunda desenha. A altura estimada à mão
@@ -10836,6 +10906,8 @@ function orcDesenharFolha(e, r){
 // a altura; com verdadeiro, pinta. As contas de posição são as mesmas nos dois.
 function orcLayoutFolha(x, e, r, linhas, base, desenhar){
   const F = ORC_FOLHA;
+  const L = F.larg, esq = F.pad, dir = L - F.pad;
+  const esqT = esq + 18, dirT = dir - 18;   // o texto, recuado dentro das faixas
   x.textBaseline = 'alphabetic';
   const fonte = (t, p) => `${p || ''} ${t}px -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`.trim();
   const pinta = (txt, px, py, alinhar) => {
@@ -10853,76 +10925,115 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar){
     let cx = px;
     for(const ch of txt){ x.fillText(ch, cx, py); cx += x.measureText(ch).width + esp; }
   };
-  const risco = (py, cor, grossura) => {
-    if(!desenhar) return;
-    x.strokeStyle = cor; x.lineWidth = grossura;
-    x.beginPath(); x.moveTo(F.pad, py); x.lineTo(F.larg - F.pad, py); x.stroke();
+  // Texto comprido encolhe até caber em vez de ser cortado no meio: endereço de
+  // imóvel e nome de de cujus não têm tamanho previsível, e um nome cortado na
+  // via da cliente é pior que um nome um ponto menor.
+  const cabeNo = (txt, tam, peso, limite) => {
+    let t = tam;
+    for(; t > 12; t--){ x.font = fonte(t, peso); if(x.measureText(txt).width <= limite) break; }
+    x.font = fonte(t, peso);
+    return t;
   };
+  const tinta = c => { if(desenhar) x.fillStyle = c; };
 
-  if(desenhar){ x.fillStyle = F.fundo; x.fillRect(0, 0, F.larg, 1e4); }
-  let y = F.pad + 26;
+  if(desenhar){ x.fillStyle = F.fundo; x.fillRect(0, 0, L, 1e4); }
 
-  if(desenhar) x.fillStyle = F.tinta;
-  x.font = fonte(19, '500');
+  // ── A tarja do topo ──
+  // Ela não é enfeite. No WhatsApp a folha chega reduzida à largura do
+  // telefone, e uma página que é toda branca vira um retângulo claro sem
+  // nada que se agarre ao olho. A tarja escura dá à imagem uma âncora que
+  // sobrevive à redução — e diz o que é aquilo antes de a cliente abrir.
+  const tarja = 96;
+  if(desenhar){
+    x.fillStyle = F.tinta; x.fillRect(0, 0, L, tarja);
+    x.fillStyle = F.champagne; x.fillRect(0, tarja - 5, L, 5);
+  }
+  tinta(F.claro);
+  x.font = fonte(22, '600');
   const tit = 'ESTIMATIVA DE CUSTOS';
-  espacado(tit, (F.larg - larguraEspacada(tit, 6)) / 2, y, 6);
-  y += 44;
+  espacado(tit, (L - larguraEspacada(tit, 7)) / 2, 58, 7);
+  let y = tarja + 60;
 
-  if(desenhar) x.fillStyle = F.tinta;
-  x.font = fonte(21, '600');
-  pinta(orcIdentificacao(e).slice(0, 60), F.larg / 2, y, 'center'); y += 27;
-  if(desenhar) x.fillStyle = F.tinta3;
-  x.font = fonte(16);
-  pinta(r.ato.nome, F.larg / 2, y, 'center'); y += 34;
+  // ── Quem é este orçamento ──
+  const ident = orcIdentificacao(e);
+  const tamIdent = cabeNo(ident, 28, '600', dir - esq);
+  tinta(F.tinta);
+  pinta(ident, L / 2, y, 'center');
+  y += tamIdent + 10;
+  tinta(F.tinta2);
+  x.font = fonte(18, '500');
+  pinta(r.ato.nome, L / 2, y, 'center');
+  y += 42;
 
+  // ── A base ──
   if(base){
+    const alt = 78;
     if(desenhar){
       x.fillStyle = F.recuo;
-      orcCantoRedondo(x, F.pad, y, F.larg - F.pad * 2, 62, 13); x.fill();
-      x.fillStyle = F.tinta3;
+      orcCantoRedondo(x, esq, y, dir - esq, alt, 14); x.fill();
     }
-    x.font = fonte(13, '600');
-    espacado('BASE CONSIDERADA', F.pad + 22, y + 38, 1.6);
-    if(desenhar) x.fillStyle = F.tinta;
-    x.font = fonte(25, '500');
-    pinta(orcMoeda(base), F.larg - F.pad - 22, y + 41, 'right');
-    y += 92;
-  }else y += 12;
+    tinta(F.tinta2);
+    x.font = fonte(14, '600');
+    espacado('BASE CONSIDERADA', esqT, y + 48, 2);
+    tinta(F.tinta);
+    x.font = fonte(29, '600');
+    pinta(orcMoeda(base), dirT, y + 51, 'right');
+    y += alt + 34;
+  }else y += 8;
 
-  if(desenhar) x.fillStyle = F.tinta3;
-  x.font = fonte(12, '600');
-  espacado('CUSTO', F.pad, y, 2);
-  espacado('VALOR', F.larg - F.pad - larguraEspacada('VALOR', 2), y, 2);
-  y += 14;
-  risco(y, F.linha, 1.4);
+  // ── A tabela ──
+  tinta(F.tinta2);
+  x.font = fonte(13, '600');
+  espacado('CUSTO', esqT, y, 2.2);
+  espacado('VALOR', dirT - larguraEspacada('VALOR', 2.2), y, 2.2);
+  y += 16;
+  if(desenhar){
+    x.strokeStyle = F.tinta; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(esq, y); x.lineTo(dir, y); x.stroke();
+  }
+  y += 6;
 
-  linhas.forEach(([rot, val]) => {
-    y += 40;
-    if(desenhar) x.fillStyle = F.tinta2;
-    x.font = fonte(17);
-    pinta(rot, F.pad, y);
-    if(desenhar) x.fillStyle = F.tinta;
-    pinta(orcMoeda(val), F.larg - F.pad, y, 'right');
-    y += 22;
-    risco(y, F.linha, 0.8);
+  // Faixas alternadas no lugar dos filetes. O filete de 0,8px era invisível
+  // depois da compressão do WhatsApp, e sem ele o olho perdia o caminho do
+  // nome do custo até o valor, do outro lado de meio palmo de branco.
+  const altLinha = 60;
+  linhas.forEach(([rot, val], i) => {
+    if(desenhar && i % 2 === 0){ x.fillStyle = F.faixa; x.fillRect(esq, y, dir - esq, altLinha); }
+    const vTxt = orcMoeda(val);
+    x.font = fonte(23, '600');
+    const largValor = x.measureText(vTxt).width;
+    const tamRot = cabeNo(rot, 21, '500', dirT - esqT - largValor - 34);
+    tinta(F.tinta);
+    pinta(rot, esqT, y + altLinha / 2 + tamRot * 0.35);
+    x.font = fonte(23, '600');
+    tinta(F.tinta);
+    pinta(vTxt, dirT, y + altLinha / 2 + 8, 'right');
+    y += altLinha;
   });
 
-  y += 8;
-  risco(y, F.tinta, 1.6);
-  y += 40;
-  if(desenhar) x.fillStyle = F.tinta;
-  x.font = fonte(19, '600');
-  pinta('TOTAL ESTIMADO', F.pad, y);
-  x.font = fonte(22, '600');
-  pinta(orcMoeda(r.totais.total), F.larg - F.pad, y, 'right');
+  // ── O total ──
+  // Em tarja cheia: é o número que a cliente procura primeiro, e ele tem de
+  // ser achado sem leitura, de relance, na miniatura da conversa.
+  y += 18;
+  const altTotal = 92;
+  if(desenhar){
+    x.fillStyle = F.tinta;
+    orcCantoRedondo(x, esq, y, dir - esq, altTotal, 14); x.fill();
+  }
+  tinta(F.claro);
+  x.font = fonte(20, '600');
+  espacado('TOTAL ESTIMADO', esqT, y + altTotal / 2 + 7, 2);
+  x.font = fonte(32, '700');
+  pinta(orcMoeda(r.totais.total), dirT, y + altTotal / 2 + 11, 'right');
+  y += altTotal + 40;
 
-  y += 52;
-  if(desenhar) x.fillStyle = F.tinta3;
-  x.font = fonte(13);
+  // ── A ressalva ──
+  tinta(F.tinta2);
+  x.font = fonte(15);
   ['Valores estimados, sujeitos a atualização conforme tabela vigente,',
    'documentos apresentados e eventuais particularidades do ato.']
-    .forEach((t, i) => pinta(t, F.larg / 2, y + i * 21, 'center'));
-  y += 21;
+    .forEach((t, i) => pinta(t, L / 2, y + i * 23, 'center'));
+  y += 23;
 
   return y + F.pad;
 }
