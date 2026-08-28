@@ -517,16 +517,28 @@ quebraria o múltiplo.
 É nela que se contam as isenções de ITCMD (2.500 UFESP na doação, ou
 R$ 96.050,00) e o teto de interesse social em ZEIS (4.705 UFESP, R$ 180.766,10).
 
-### Gravar é a única coisa que depende do banco
+### O banco pode dizer não, e das duas formas
 
-E por isso é a única que precisa esperar resposta. A primeira versão disparava
-a escrita sem `await`: quando a regra do banco recusava — o que acontece
+Gravar e ler dependem do banco, e as duas primeiras versões erraram do mesmo
+jeito: em silêncio.
+
+**Gravar** era disparado sem `await`. Quando a regra recusava — o que acontece
 enquanto as regras do Firebase não foram publicadas —, o painel dizia "salvo" e
-não salvava nada. **Dizer que guardou o que não guardou é o pior erro que esta
-tela pode cometer**, pior que não salvar, porque some sem deixar rastro. Agora
-espera, e quando falha escreve na tela o que houve e a causa provável, sem
-perder o que foi digitado. O `faz-de-conta-navegador.js` sabe recusar escrita
-(`window.__recusarEscrita`) para que esse caminho tenha teste.
+não salvava nada. Dizer que guardou o que não guardou é pior que não guardar,
+porque some sem deixar rastro.
+
+**Ler** era pior ainda: o erro da escuta caía num `() => {}`. A tela ficava
+vazia, como se não houvesse orçamento nenhum — a mentira mais fácil de
+acreditar. E o Firebase **não** tenta de novo depois de um `permission denied`:
+a escuta morre, então nem publicar as regras consertava, sem recarregar a
+página.
+
+Agora os dois falam. A gravação espera e diz o que houve; a leitura mostra o
+motivo com um **Tentar de novo** ao lado, porque quem acabou de publicar as
+regras não deveria ter de adivinhar que precisa recarregar. O
+`faz-de-conta-navegador.js` sabe recusar as duas coisas
+(`window.__recusarEscrita`, `window.__recusarLeitura`) para que os dois
+caminhos tenham teste em vez de só existirem na vida real.
 
 ### O que ainda está em aberto
 

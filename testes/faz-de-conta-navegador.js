@@ -13,7 +13,15 @@ const _ouvintes=[];
 function _avisar(){_ouvintes.forEach(([p,cb])=>cb({val:()=>_get(p)===undefined?null:_get(p)}));}
 const db={};
 const ref=(_,p)=>({p});
-const onValue=(r,cb)=>{_ouvintes.push([r.p,cb]);cb({val:()=>_get(r.p)===undefined?null:_get(r.p)});};
+const onValue=(r,cb,errCb)=>{
+  // O banco de verdade recusa LEITURA em caminho fechado e derruba a escuta —
+  // não tenta de novo sozinho. window.__recusarLeitura reproduz isso.
+  if(window.__recusarLeitura){
+    const e=new Error('PERMISSION_DENIED: Permission denied'); e.code='PERMISSION_DENIED';
+    if(errCb)setTimeout(()=>errCb(e),0);
+    return;
+  }
+  _ouvintes.push([r.p,cb]);cb({val:()=>_get(r.p)===undefined?null:_get(r.p)});};
 // O banco de verdade recusa escrita em caminho fechado, e o painel precisa
 // saber lidar com isso — foi assim que o primeiro orçamento de verdade não
 // salvou, com o painel dizendo que tinha salvo. Ligando window.__recusarEscrita
