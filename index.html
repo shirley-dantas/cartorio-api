@@ -9482,6 +9482,29 @@ const ORC_CAMPOS = {
                      pergunta: 'Se houver mais de uma matrícula (vagas individualizadas, por exemplo), informe o valor de cada uma.'}
 };
 
+// A identidade de uma tabela: o bastante para a memória de cálculo dizer de
+// onde o número veio, sem arrastar as faixas junto.
+function orcIdentidadeDaTabela(t){
+  return {id: t.id, nome: t.nome, uf: t.uf, fonte: t.fonte, versao: t.versao,
+          vigencia: t.vigencia || null, vigenciaAte: t.vigenciaAte || null};
+}
+
+// O Firebase recusa `undefined` em qualquer profundidade, e recusa a gravação
+// inteira por causa de um só. Um campo que um dia nasça sem valor não pode
+// derrubar o orçamento da mesa — some da gravação e pronto. `null` fica, que é
+// "sabidamente vazio" e diz outra coisa.
+function orcSemUndefined(v){
+  // Em lista, o indefinido é retirado em vez de virar buraco: uma linha que não
+  // existe não é uma linha vazia, é uma linha a menos.
+  if(Array.isArray(v)) return v.filter(x => x !== undefined).map(orcSemUndefined);
+  if(v && typeof v === 'object'){
+    const saida = {};
+    Object.keys(v).forEach(k => { if(v[k] !== undefined) saida[k] = orcSemUndefined(v[k]); });
+    return saida;
+  }
+  return v;
+}
+
 // ══ O MOTOR ══════════════════════════════════════════════════════════════
 //
 // As dezessete etapas da regra 12 dela, na ordem em que ela as escreveu. Não
@@ -9507,9 +9530,16 @@ function orcCalcular(entrada){
   const imovelUf = (e.imovelUf || 'SP').trim().toUpperCase();
 
   // ETAPAS 5 a 7 — tabela aplicável, versão e vigência.
+  //
+  // Só a identidade da tabela entra no resultado; as faixas ficam de fora, que
+  // são cento e tantas linhas repetidas em todo orçamento gravado. A primeira
+  // versão fazia isso espalhando `faixas: undefined` por cima da cópia — e o
+  // Firebase recusa `undefined`, então a gravação morria com uma mensagem sobre
+  // uma propriedade que ninguém tinha escrito. Escolher o que entra é mais
+  // claro que apagar o que não entra, e não deixa buraco.
   const tabelas = {
-    notas: {...ORC_TABELA_NOTAS, faixas: undefined},
-    registro: {...ORC_TABELA_REGISTRO, faixas: undefined, faixasAverbacao: undefined, faixasIncorporacao: undefined}
+    notas: orcIdentidadeDaTabela(ORC_TABELA_NOTAS),
+    registro: orcIdentidadeDaTabela(ORC_TABELA_REGISTRO)
   };
   if(imovelUf && imovelUf !== 'SP')
     alertas.push({nivel: 'bloqueia', confianca: 'incerta',
@@ -10743,22 +10773,23 @@ window.orcSalvar = async function(novaVersao){
   orcSalvando = true; orcErroSalvar = null;
   renderOrcamentoDoCaso();
   try{
+    const limpo = orcSemUndefined(dados);
     if(e.id && !novaVersao){
-      await update(ref(db, 'orcamentos/' + e.id), dados);
+      await update(ref(db, 'orcamentos/' + e.id), limpo);
       finToast('Versão corrigida.');
     }else{
       const nr = push(orcRef);
-      dados.id = nr.key;
-      dados.versao = (irmãos.length ? Math.max(...irmãos.map(o => o.versao || 0)) : 0) + 1;
-      dados.veioDe = e.id || e.veioDe || null;
-      dados.criadoEm = agora;
-      await set(nr, dados);
+      limpo.id = nr.key;
+      limpo.versao = (irmãos.length ? Math.max(...irmãos.map(o => o.versao || 0)) : 0) + 1;
+      limpo.veioDe = e.id || e.veioDe || null;
+      limpo.criadoEm = agora;
+      await set(nr, limpo);
       // Só depois de o banco confirmar: se marcar antes e a gravação falhar, a
       // próxima tentativa acha que já existe versão e grava por cima do nada.
       orcEmEdicao.id = nr.key;
-      orcEmEdicao.versao = dados.versao;
-      orcEmEdicao.veioDe = dados.veioDe;
-      finToast(`Orçamento ${String(dados.versao).padStart(2, '0')} salvo.`);
+      orcEmEdicao.versao = limpo.versao;
+      orcEmEdicao.veioDe = limpo.veioDe;
+      finToast(`Orçamento ${String(limpo.versao).padStart(2, '0')} salvo.`);
     }
     orcSalvoEm = agora;
   }catch(err){
