@@ -285,6 +285,65 @@ await passo('o inventário também soma os imóveis dele', async () => {
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
 
+// O divórcio que ela trouxe em 28/08/2026: dois imóveis na partilha e duas
+// pensões, uma por prazo em meses e outra por mês final. Ela já tinha a conta
+// à mão — R$ 152.374,00 — e o painel tem de chegar no mesmo número.
+await passo('a soma dos imóveis vira o valor total da partilha com um toque', async () => {
+  await pg.evaluate(() => orcTrocarAto('divorcio-partilha'));
+  await pg.evaluate(() => { orcMudarCampoTexto('data', '2026-08-28');
+    orcMudarItem('imoveis', 0, 'rotulo', 'Apartamento');
+    orcMudarItem('imoveis', 0, 'valor', '350.000,00');
+    orcMaisItem('imoveis');
+    orcMudarItem('imoveis', 1, 'rotulo', 'Casa de praia');
+    orcMudarItem('imoveis', 1, 'valor', '150.000,00'); });
+  const antes = await pg.textContent('#orc-soma-imoveis');
+  if(!/500\.000,00/.test(antes)) throw new Error('não somou os dois imóveis: ' + antes);
+  await pg.click('button:has-text("Usar como Valor total da partilha")');
+  await pg.waitForFunction(() => /é o valor total da partilha/.test(
+    document.getElementById('orc-soma-imoveis').textContent));
+  const v = await pg.evaluate(() => orcEmEdicao_leitura().valores.totalPartilha);
+  if(v !== 50000000) throw new Error('não despejou a soma no campo: ' + v);
+  // E o botão some quando já não há o que despejar.
+  const depois = await pg.textContent('#orc-soma-imoveis');
+  if(/Usar como/.test(depois)) throw new Error('o botão continuou oferecendo o que já foi feito: ' + depois);
+});
+
+await passo('as duas pensões dela dão os R$ 152.374,00', async () => {
+  await pg.evaluate(() => orcMudarFlag('temPensao', true));
+  await pg.waitForSelector('.orc-pensao-linha');
+  await pg.evaluate(() => { orcMudarPensao(0, 'salarios', '1'); orcMudarPensao(0, 'meses', '12'); });
+  await pg.evaluate(() => orcMaisPensao());
+  await pg.evaluate(() => orcMudarPensao(1, 'modo', 'ate'));
+  await pg.evaluate(() => { orcMudarPensao(1, 'salarios', '2'); orcMudarPensao(1, 'ate', '2029-12'); });
+  await pg.waitForFunction(() => /152\.374,00/.test(document.getElementById('orc-soma-pensao').textContent));
+  const t = await pg.textContent('#orc-soma-pensao');
+  if(!/19\.452,00/.test(t)) throw new Error('faltou a primeira parcela: ' + t);
+  if(!/132\.922,00/.test(t)) throw new Error('faltou a segunda parcela: ' + t);
+  if(!/41 meses/.test(t)) throw new Error('não contou os 41 meses: ' + t);
+});
+
+await passo('e sai UMA escritura, na faixa da soma', async () => {
+  await abrirMemoria(pg);
+  const m = await pg.textContent('.orc-memoria');
+  if(!/com a pensão/.test(m)) throw new Error('a escritura não diz que inclui a pensão: ' + m.slice(0, 300));
+  if(!/652\.374,00/.test(m)) throw new Error('a base não somou partilha + pensão: ' + m.slice(0, 400));
+  // Duas escrituras deixariam duas faixas somadas — o erro que a regra evita.
+  if(/Pensão —/.test(m)) throw new Error('a pensão saiu como escritura à parte: ' + m.slice(0, 300));
+});
+
+await passo('a pensão em parcelas cabe na tela do celular', async () => {
+  await pg.setViewportSize({width: 390, height: 844});
+  const estoura = await pg.evaluate(() => {
+    const l = document.querySelector('.orc-pensao-linha');
+    return l ? l.getBoundingClientRect().right > window.innerWidth + 1 : false;
+  });
+  if(estoura) throw new Error('a linha da pensão passou da largura do telefone');
+  await pg.setViewportSize({width: 1280, height: 900});
+  // e a volta, para os testes seguintes continuarem no ato de sempre
+  await pg.evaluate(() => { orcMudarFlag('temPensao', false); orcTrocarAto('compra-venda');
+    orcMudarValor('transacao', '301.867,16'); });
+});
+
 await passo('e a quantidade das despesas acompanha junto', async () => {
   const lidos = await pg.evaluate(() => ['qtdePrenotacao', 'qtdeMatricula'].map(c => ({
     n: document.getElementById('orc-qtde-' + c).value,
@@ -557,6 +616,85 @@ const naoEstoura = async (onde) => {
   const m = await cel.evaluate(() => ({doc: document.documentElement.scrollWidth, jan: window.innerWidth}));
   if(m.doc > m.jan + 1) throw new Error(onde + ' fez a página rolar de lado (' + m.doc + ' > ' + m.jan + ')');
 };
+
+// O imóvel em Extrema-MG. O ITBI é municipal e o painel foi buscar a alíquota
+// — mas o que a busca traz é hipótese, e a escada de conhecimento vale aqui
+// como vale para tudo: entra na conta, sai marcada, e o orçamento não fecha
+// até ela conferir. A função da Vercel é fingida: aqui não há chave nem rede.
+await passo('imóvel fora da Capital: o painel oferece buscar a alíquota', async () => {
+  await pg.route('**/api/aliquota-municipal', route => route.fulfill({status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({encontrado: true, aliquota: 2, confianca: 'incerta',
+      chave: 'itbi-extrema-mg', fundamento: 'Lei Municipal 1.234/2019, art. 5º',
+      ressalva: 'Alíquota reduzida para a parcela financiada pelo SFH.',
+      fontes: ['https://www.extrema.mg.gov.br/legislacao/lei-1234']})}));
+  // Um orçamento novo, só deste cenário: os testes anteriores deixam
+  // matrículas e taxa ligadas, e mexer neles aqui quebraria os de lá.
+  await pg.evaluate(() => orcNovoDoCaso('c1'));
+  await pg.waitForSelector('#modal-orcamento-caso.open');
+  await pg.evaluate(() => { orcTrocarAto('compra-venda');
+    orcMudarValor('transacao', '301.867,16');
+    orcMudarDespesa('taxaAdicional', false);
+    orcMudarCampoTexto('imovelMunicipio', 'Extrema');
+    orcMudarCampoTexto('imovelUf', 'MG'); });
+  const t = await pg.textContent('#orc-aliquotas');
+  if(!/Buscar a alíquota/.test(t)) throw new Error('não ofereceu a busca: ' + t);
+  if(!/municipal/.test(t)) throw new Error('não disse que o imposto é municipal: ' + t);
+});
+
+await passo('achada, ela entra na conta mas o orçamento NÃO fecha', async () => {
+  await pg.click('button:has-text("Buscar a alíquota")');
+  await pg.waitForFunction(() => /2%/.test(document.getElementById('orc-aliquotas').textContent));
+  const t = await pg.textContent('#orc-aliquotas');
+  if(!/ainda não conferida/.test(t)) throw new Error('não avisou que não foi conferida: ' + t);
+  if(!/Lei Municipal 1\.234/.test(t)) throw new Error('não mostrou o fundamento: ' + t);
+  if(!/extrema\.mg\.gov\.br/.test(t)) throw new Error('não mostrou a fonte: ' + t);
+  if(!/SFH/.test(t)) throw new Error('engoliu a ressalva da fonte: ' + t);
+  // 2% de 301.867,16 = 6.037,34 — o imposto entrou na conta com a alíquota
+  // de lá, e não com os 3% da Capital (que dariam 9.056,01).
+  await abrirMemoria(pg);
+  const mem = await pg.textContent('.orc-memoria');
+  if(!/6\.037,34/.test(mem)) throw new Error('o ITBI não saiu a 2%: ' + mem.slice(0, 400));
+  if(/9\.056,01/.test(mem)) throw new Error('aplicou os 3% da Capital num imóvel de MG');
+  // E o CHECK FINAL continua travado: número lido por máquina não fecha conta.
+  const tela = await pg.evaluate(() => document.getElementById('orc-caso-conteudo').innerText);
+  if(/TUDO CONFERIDO/i.test(tela)) throw new Error('fechou com alíquota não conferida — é o que não pode');
+  if(!/Alíquota de fora da Capital/.test(tela)) throw new Error('o CHECK FINAL não citou a alíquota');
+});
+
+await passo('e a tabela continua sendo a de São Paulo, imóvel em MG ou não', async () => {
+  const m = await pg.textContent('.orc-memoria');
+  // Faixa l de Notas e faixa j do registro — exatamente as da Capital. Se um
+  // dia alguém fizer a tabela viajar com o imóvel, isto quebra: é o ponto.
+  if(!/4\.176,24/.test(m)) throw new Error('a escritura mudou por causa do estado do imóvel: ' + m.slice(0, 400));
+  if(!/2\.833,28/.test(m)) throw new Error('o registro mudou por causa do estado do imóvel: ' + m.slice(0, 400));
+});
+
+await passo('conferida por ela, aí sim o orçamento fecha', async () => {
+  await pg.click('button:has-text("Confere — pode usar")');
+  await pg.waitForFunction(() => /conferida por você/.test(
+    document.getElementById('orc-aliquotas').textContent));
+  const tela = await pg.evaluate(() => document.getElementById('orc-caso-conteudo').innerText);
+  if(!/TUDO CONFERIDO/i.test(tela)) throw new Error('não fechou nem depois de conferida');
+  // e a volta, para os testes seguintes continuarem na Capital
+  await pg.evaluate(() => { orcMudarCampoTexto('imovelMunicipio', 'São Paulo');
+    orcMudarCampoTexto('imovelUf', 'SP'); });
+  await pg.unroute('**/api/aliquota-municipal');
+});
+
+await passo('e a alíquota de fora cabe na tela do celular', async () => {
+  await pg.evaluate(() => { orcMudarCampoTexto('imovelMunicipio', 'Extrema');
+    orcMudarCampoTexto('imovelUf', 'MG'); });
+  await pg.setViewportSize({width: 390, height: 844});
+  const estoura = await pg.evaluate(() => {
+    const b = document.querySelector('.orc-aliquota');
+    return b ? b.getBoundingClientRect().right > window.innerWidth + 1 : false;
+  });
+  if(estoura) throw new Error('o bloco da alíquota passou da largura do telefone');
+  await pg.setViewportSize({width: 1280, height: 900});
+  await pg.evaluate(() => { orcMudarCampoTexto('imovelMunicipio', 'São Paulo');
+    orcMudarCampoTexto('imovelUf', 'SP'); });
+});
 
 await passo('a janela do orçamento cabe na tela do celular', async () => {
   await cel.evaluate(() => {

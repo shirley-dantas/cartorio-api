@@ -103,6 +103,19 @@
     "radar-juridico-meta":   { ".read": true, ".write": true },
     "base-regras":           { ".read": true, ".write": true },
 
+    // ── As alíquotas de fora da Capital ──
+    // Alíquota de imposto é informação pública, como norma publicada: aqui
+    // não mora nome nem valor de cliente, só "o ITBI de Extrema-MG é tanto".
+    // Por isso a leitura é aberta, como a do Radar.
+    //
+    // A escrita segue aberta pela mesma razão de /casos e /radar-juridico:
+    // quem grava é a função da Vercel (api/aliquota-municipal.js), por REST e
+    // sem conta. Está na mesma lista de pendências do FIREBASE.md, e some
+    // junto com ela no dia em que a conta de serviço existir. Enquanto isso, o
+    // que protege o orçamento não é a tranca: é a alíquota nascer 🔴 incerta e
+    // o CHECK FINAL não fechar sem a confirmação dela.
+    "orcamento-aliquotas":   { ".read": true, ".write": true },
+
     // ── Minutas (Apps Script) ──
     "jobs":                  { ".read": true, ".write": true },
     "modelos":               { ".read": true, ".write": true },

@@ -1723,6 +1723,19 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .orc-imoveis-soma b{font-variant-numeric:tabular-nums;color:var(--cc-tinta);font-size:14px}
 .orc-imoveis-soma.difere{color:var(--cc-atencao);border-left-color:var(--cc-atencao)}
 .orc-imoveis-soma.vazia{display:none}
+/* O imposto de fora da Capital. Três estados, e a cor diz qual: falta buscar,
+   achado mas não conferido (o mais perigoso — tem de gritar), e conferido. */
+.orc-aliquota{margin-top:10px;padding:11px 13px;border-radius:10px;font-size:13px;
+  line-height:1.5;border-left:3px solid var(--cc-linha-forte);background:var(--cc-sup-2)}
+.orc-aliquota.falta{border-left-color:var(--cc-atencao)}
+.orc-aliquota.incerta{border-left-color:var(--cc-critico);background:#FDF4F3}
+.orc-aliquota.ok{border-left-color:var(--cc-ok)}
+.orc-aliquota-acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:9px}
+.orc-aliquota-erro{margin-top:6px;font-size:12.5px;color:var(--cc-critico)}
+.orc-aliquota a{color:var(--cc-info)}
+.orc-pensao-linha{display:grid;grid-template-columns:1fr .8fr 1fr .8fr auto;gap:7px;margin-bottom:7px;align-items:center}
+@media(max-width:640px){.orc-pensao-linha{grid-template-columns:1fr 1fr;grid-auto-rows:auto}
+  .orc-pensao-linha .cx-btn.perigo{grid-column:1/-1}}
 .orc-qtde{display:flex;align-items:center;gap:7px}
 .orc-qtde input{width:64px;text-align:center}
 .orc-aviso-inline{font-size:11.5px;color:var(--cc-atencao)}
@@ -8969,7 +8982,18 @@ const ORC_TRIBUTOS = {
   // (500, 1.000, 3.000, 5.000 UFESP…), o que faz o valor confirmar a tabela e
   // a tabela confirmar o valor. Ajustes corrige; vazio mantém este.
   ufesp: 3842,
-  ufespAno: 2026
+  ufespAno: 2026,
+  // O salário mínimo, que é a régua da pensão. Quase toda pensão de divórcio é
+  // escrita em salários mínimos, e não em reais — então o número tem de estar
+  // no painel para a base sair sozinha. Este veio da conta dela: 1 salário por
+  // 12 meses dá R$ 19.452,00, logo o salário é R$ 1.621,00. Como a UFESP,
+  // corrige-se em Ajustes — e em janeiro ele muda.
+  salarioMinimo: 162100,
+  salarioMinimoAno: 2026,
+  // As alíquotas de fora da Capital, buscadas e guardadas por município. Chega
+  // do banco (/orcamento-aliquotas); vazio é o estado normal de quem só
+  // trabalha em São Paulo.
+  aliquotasDeFora: {}
 };
 
 // ── A busca na faixa ─────────────────────────────────────────────────────
@@ -9453,17 +9477,66 @@ const ORC_ATOS = [
 // prazo é indeterminado e o prazo estipulado quando existe. O motor faz a
 // segunda (12 quando ela não disser o prazo) e nunca esconde a escolha: a
 // linha nasce marcada como INCERTA e a pergunta fica na tela até ela decidir.
-function orcLinhaPensao(e){
-  const meses = e.pensaoMeses > 0 ? e.pensaoMeses : 12;
-  const base = Math.round(e.pensaoMensal * meses);
-  const l = orcLinhaEscritura(base, {
-    rot: `Pensão — ${orcMoeda(e.pensaoMensal)} × ${meses} ${meses === 1 ? 'mês' : 'meses'}`,
-    fundamento: 'Base acrescida à escritura, conforme o Módulo 1 das instruções de cobrança.',
-    avisos: [{confianca: 'incerta',
-      texto: 'A frase das instruções — "por doze meses, mais a quantidade de tempo estipulada" — admite duas leituras. '
-           + `O motor usou ${meses} ${meses === 1 ? 'mês' : 'meses'}. Confirme se é isso antes de fechar o orçamento.`}]});
-  l.pensao = true;
-  return l;
+// ── A pensão ─────────────────────────────────────────────────────────────
+//
+// Uma pensão raramente é um número só. O caso que trouxe esta regra tinha
+// duas: um salário mínimo por doze meses, e dois salários mínimos até
+// dezembro de 2029. São escritas de jeitos diferentes — uma em quantidade de
+// meses, a outra em data final — e é a SOMA delas que acresce à base da
+// escritura. Somar isso à mão, mês a mês, é onde o erro entra.
+//
+// Cada parcela é {emSalarios, salarios|valor, modo:'meses'|'ate', meses|ate}.
+function orcPensaoMensalDaParcela(p){
+  if(!p) return 0;
+  return p.emSalarios
+    ? Math.round((Number(p.salarios) || 0) * ORC_TRIBUTOS.salarioMinimo)
+    : Math.round(Number(p.valor) || 0);
+}
+// Do mês do ato até o mês final, contando os dois extremos. Foi assim que ela
+// contou: de agosto/2026 a dezembro/2029 são 41 meses, e 2 × R$ 1.621,00 × 41
+// dá os R$ 132.922,00 que ela escreveu. Contar sem um dos extremos daria 40 ou
+// 42, e o orçamento não bateria com a conta que ela já tinha feito.
+function orcMesesAte(dataDoAto, ate){
+  if(!ate) return 0;
+  const [a1, m1] = String(dataDoAto || isoHoje()).split('-').map(Number);
+  const [a2, m2] = String(ate).split('-').map(Number);
+  if(!a1 || !m1 || !a2 || !m2) return 0;
+  return Math.max(0, (a2 - a1) * 12 + (m2 - m1) + 1);
+}
+function orcPensaoMesesDaParcela(p, dataDoAto){
+  if(!p) return 0;
+  if(p.modo === 'ate') return orcMesesAte(dataDoAto, p.ate);
+  return Math.max(0, Math.round(Number(p.meses) || 0));
+}
+// A leitura de cada parcela, pronta para a memória de cálculo: é ela que
+// permite conferir o número contra o papel, parcela por parcela.
+function orcPensaoDetalhe(p, dataDoAto){
+  const mensal = orcPensaoMensalDaParcela(p);
+  const meses = orcPensaoMesesDaParcela(p, dataDoAto);
+  const comoMensal = p.emSalarios
+    ? `${Number(p.salarios) || 0} × salário mínimo de ${orcMoeda(ORC_TRIBUTOS.salarioMinimo)} = ${orcMoeda(mensal)}`
+    : orcMoeda(mensal);
+  const comoPrazo = p.modo === 'ate'
+    ? `até ${orcMesAno(p.ate)} — ${meses} ${meses === 1 ? 'mês' : 'meses'}, contando o mês do ato e o final`
+    : `${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+  return {mensal, meses, total: mensal * meses, texto: `${comoMensal} por ${comoPrazo} = ${orcMoeda(mensal * meses)}`};
+}
+function orcMesAno(aaaaMm){
+  const [a, m] = String(aaaaMm || '').split('-').map(Number);
+  return (MESES[(m || 1) - 1] || '?') + '/' + (a || '?');
+}
+// As parcelas de verdade, já com o formato antigo convertido: orçamento
+// gravado antes disto tem `pensaoMensal` e `pensaoMeses` soltos, e continua
+// valendo — vira uma parcela só.
+function orcPensaoParcelas(f){
+  const lista = (f.pensaoParcelas || []).filter(p => p && (p.emSalarios ? p.salarios > 0 : p.valor > 0));
+  if(lista.length) return lista;
+  if(f.pensaoMensal > 0)
+    return [{emSalarios: false, valor: f.pensaoMensal, modo: 'meses', meses: f.pensaoMeses > 0 ? f.pensaoMeses : 12}];
+  return [];
+}
+function orcPensaoTotal(f, dataDoAto){
+  return orcPensaoParcelas(f).reduce((t, p) => t + orcPensaoDetalhe(p, dataDoAto).total, 0);
 }
 
 function orcAto(id){ return ORC_ATOS.find(a => a.id === id) || null; }
@@ -9613,10 +9686,46 @@ function orcCalcular(entrada){
   let registros = partes.registros || [];
   let tributos = partes.tributos || [];
 
-  // O divórcio com pensão é qualquer divórcio com uma base a mais.
+  // O divórcio com pensão é qualquer divórcio com uma base a mais — e ela
+  // ACRESCE à base da escritura, em vez de virar uma segunda escritura na
+  // faixa dela. Foi o que a Shirley escreveu em 28/08/2026: "a soma disso
+  // seria a nossa base de cálculo para acrescer ao valor da escritura".
+  // A diferença não é de forma: duas faixas somadas dão mais que uma faixa
+  // sobre a soma, e o orçamento saía maior do que ela cobra.
+  const pensaoParcelas = ato.grupo === 'Divórcio' && f.temPensao ? orcPensaoParcelas(f) : [];
+  const pensaoTotal = pensaoParcelas.reduce((t, p) => t + orcPensaoDetalhe(p, dataDoAto).total, 0);
   if(f.temPensao && ato.grupo === 'Divórcio'){
-    if(!(f.pensaoMensal > 0)) faltando.push({campo: 'pensaoMensal', rot: 'Pensão mensal', pergunta: 'Qual o valor mensal da pensão?'});
-    else escrituras = escrituras.concat([orcLinhaPensao({pensaoMensal: f.pensaoMensal, pensaoMeses: f.pensaoMeses})]);
+    if(!pensaoTotal)
+      faltando.push({campo: 'pensaoParcelas', rot: 'Pensão', pergunta: 'Qual o valor e o prazo de cada parcela da pensão?'});
+    else {
+      const detalhes = pensaoParcelas.map(p => orcPensaoDetalhe(p, dataDoAto));
+      const memoria = detalhes.map((d, i) => `Parcela ${i + 1}: ${d.texto}`).join(' · ')
+        + (detalhes.length > 1 ? ` · Soma: ${orcMoeda(pensaoTotal)}` : '');
+      const principal = escrituras[0];
+      if(principal && principal.base != null){
+        // Uma escritura só, na faixa da soma.
+        escrituras[0] = orcLinhaEscritura(principal.base + pensaoTotal, {
+          rot: principal.rot + ' — com a pensão',
+          reducao: principal.reducao,
+          fundamento: `Base de ${orcMoeda(principal.base)} acrescida da pensão de ${orcMoeda(pensaoTotal)}. ${memoria}`,
+          avisos: (principal.avisos || []).concat([{confianca: 'confirmada',
+            texto: `A pensão acresce à base da escritura, e não sai como escritura à parte — `
+                 + `regra confirmada pela Shirley em 28/08/2026. ${memoria}`}])});
+      }else{
+        // Escritura de valor fixo (divórcio sem partilha): não há base a que
+        // acrescer. O motor põe a pensão como base e DIZ que fez isso — decidir
+        // calado num ato de valor fixo seria trocar a cobrança sem avisar.
+        escrituras[0] = orcLinhaEscritura(pensaoTotal, {
+          rot: 'Escritura de divórcio — sobre a pensão',
+          fundamento: `Não havia base declarada, e a pensão passou a ser a base. ${memoria}`,
+          avisos: [{confianca: 'incerta',
+            texto: 'Este divórcio não tinha valor declarado (item 6.2, valor fixo), e a pensão virou a base da '
+                 + 'escritura. Confirme se é assim que se cobra, ou se a pensão devia somar-se ao item fixo.'}]});
+        alertas.push({nivel: 'avisa', confianca: 'incerta',
+          texto: `O divórcio sem partilha é de valor fixo (${orcMoeda(ORC_TABELA_NOTAS.itens['6.2'].valor)}), e com pensão `
+               + `passou a ser cobrado sobre a base de ${orcMoeda(pensaoTotal)}. Confira antes de fechar.`});
+      }
+    }
   }
 
   // A regra especial troca a escritura principal pelo item próprio da tabela.
@@ -9670,19 +9779,12 @@ function orcCalcular(entrada){
   const capital = !praticadoEm || /^s(ão|ao) paulo$/i.test(praticadoEm.trim());
   const imovelNaCapital = !imovelMunicipio || /^s(ão|ao) paulo$/i.test(imovelMunicipio.trim());
   tributos.forEach(t => {
-    if(t.imposto === 'itbi' && !imovelNaCapital){
-      t.valor = null;
-      t.avisos = (t.avisos || []).concat([{confianca: 'incerta',
-        texto: `O imóvel está em ${imovelMunicipio}. O ITBI é municipal — cheque o código tributário daquela cidade. `
-             + 'A alíquota de 3% é a da Capital e não foi aplicada aqui.'}]);
-      alertas.push({nivel: 'bloqueia', confianca: 'incerta',
-        texto: `ITBI não calculado: ${imovelMunicipio} não é a Capital, e a alíquota de lá não está no painel.`});
-    }
-    if(t.imposto === 'itcmd' && imovelUf !== 'SP'){
-      t.valor = null;
-      t.avisos = (t.avisos || []).concat([{confianca: 'incerta',
-        texto: `O ITCMD é estadual — cheque o código tributário de ${imovelUf}. A alíquota de 4% é a de São Paulo.`}]);
-    }
+    if(t.imposto === 'itbi' && !imovelNaCapital)
+      orcAplicarAliquotaDeFora(t, orcChaveAliquota('itbi', imovelMunicipio, imovelUf), alertas,
+        `O imóvel está em ${imovelMunicipio}`, 'municipal', imovelMunicipio, base => base);
+    if(t.imposto === 'itcmd' && imovelUf !== 'SP')
+      orcAplicarAliquotaDeFora(t, orcChaveAliquota('itcmd', null, imovelUf), alertas,
+        `O imóvel está em ${imovelUf}`, 'estadual', imovelUf, base => base);
   });
   // Isenções: o motor aponta, nunca aplica sozinho. Isenção depende de
   // declaração da parte e de documento, e um imposto zerado por engano é o
@@ -9787,6 +9889,62 @@ function orcCalcular(entrada){
   };
 }
 
+// ── O imposto de fora da Capital ─────────────────────────────────────────
+//
+// O ITBI é municipal e o ITCMD é estadual, e o painel só conhece de cor os de
+// São Paulo. Fora daqui, ele antes deixava o imposto em branco e mandava ela
+// procurar — no meio do atendimento, com a cliente esperando.
+//
+// Agora a busca traz a alíquota (api/aliquota-municipal.js). Mas o que vem de
+// lá é HIPÓTESE, e a escada de conhecimento do painel não abre exceção nem
+// aqui: a alíquota entra na conta para o orçamento existir, sai marcada 🔴, o
+// CHECK FINAL não fecha, e a fonte fica escrita ao lado. Quem promove é ela.
+//
+// A tabela de emolumentos NÃO se busca: o ato é praticado em São Paulo e vale
+// a tabela de São Paulo, sem exceção. Só o imposto acompanha o imóvel.
+function orcChaveAliquota(imposto, municipio, uf){
+  const limpo = s => String(s || '').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return imposto === 'itcmd' ? `itcmd-${limpo(uf)}` : `itbi-${limpo(municipio)}-${limpo(uf)}`;
+}
+function orcAplicarAliquotaDeFora(t, chave, alertas, onde, especie, lugar){
+  const a = (ORC_TRIBUTOS.aliquotasDeFora || {})[chave];
+  if(!a || !(a.aliquota > 0)){
+    t.valor = null;
+    t.aliquotaDeFora = {chave, estado: 'faltando', lugar, especie};
+    t.avisos = (t.avisos || []).concat([{confianca: 'incerta',
+      texto: `${onde}. O ${t.rot.split(' ')[0]} é ${especie} — a alíquota de ${lugar} não está no painel. `
+           + 'Use o botão "Buscar a alíquota" para o painel procurar na fonte oficial, ou digite-a à mão.'}]);
+    alertas.push({nivel: 'bloqueia', confianca: 'incerta',
+      texto: `${t.rot.split(' ')[0]} não calculado: ${lugar} não é São Paulo, e a alíquota de lá ainda não está no painel.`});
+    return;
+  }
+  // Achada: entra na conta, com a alíquota de lá.
+  t.aliquota = a.aliquota;
+  t.valor = Math.round(t.base * a.aliquota / 100);
+  t.aliquotaDeFora = {chave, estado: a.confianca === 'confirmada' ? 'confirmada' : 'incerta',
+                      lugar, especie, fundamento: a.fundamento || '', fontes: a.fontes || [],
+                      ressalva: a.ressalva || '', buscadaEm: a.buscadaEm || ''};
+  const comFonte = a.fundamento ? ` Fundamento: ${a.fundamento}.` : '';
+  if(a.confianca === 'confirmada'){
+    t.fundamento = `Alíquota de ${a.aliquota}% em ${lugar}.${comFonte} Confirmada por ${a.confirmadaPor || 'ela'}`
+                 + (a.confirmadaEm ? ` em ${finDataBr(a.confirmadaEm)}` : '') + '.';
+    t.avisos = (t.avisos || []).concat([{confianca: 'confirmada',
+      texto: `Alíquota de fora da Capital, já conferida à mão.${comFonte}`}]);
+  }else{
+    t.fundamento = `Alíquota de ${a.aliquota}% em ${lugar}, encontrada pelo painel.${comFonte} AINDA NÃO CONFERIDA.`;
+    t.avisos = (t.avisos || []).concat([{confianca: 'incerta',
+      texto: `Esta alíquota foi encontrada pela busca do painel, não digitada por você.${comFonte}`
+           + (a.ressalva ? ` Ressalva: ${a.ressalva}` : '')
+           + ' Confira na fonte antes de fechar — o orçamento não sai como definitivo enquanto isso.'}]);
+    alertas.push({nivel: 'bloqueia', confianca: 'incerta',
+      texto: `A alíquota de ${a.aliquota}% em ${lugar} veio da busca do painel e ainda não foi conferida por você. `
+           + 'O imposto está na conta, mas o orçamento não fecha como definitivo até você confirmar.'});
+  }
+  if(a.ressalva) t.avisos.push({confianca: 'incerta', texto: 'Ressalva da fonte: ' + a.ressalva});
+}
+
 // As isenções que o painel sabe existir. Nenhuma delas é aplicada sozinha:
 // todas dependem de declaração da parte, e algumas de um valor (a UFESP) que
 // não veio nos arquivos. Apontar e devolver a decisão é o certo — zerar um
@@ -9834,11 +9992,34 @@ function orcCheckFinal(c){
   const põe = (rot, estado, nota) => itens.push({rot, estado, nota: nota || ''});
 
   põe('Ato identificado', 'ok', c.ato.nome);
-  põe('Jurisdição', c.imovelUf && c.imovelUf !== 'SP' ? 'falta' : 'ok',
-      c.imovelUf === 'SP' || !c.imovelUf
-        ? (c.imovelMunicipio ? 'Imóvel em ' + c.imovelMunicipio : 'São Paulo')
-        : 'Imóvel fora de São Paulo — tabela do estado correspondente não carregada.');
-  põe('Tabela aplicável', 'ok', ORC_TABELA_NOTAS.nome + ' · ' + ORC_TABELA_REGISTRO.nome);
+  // Imóvel fora de São Paulo não trava mais a jurisdição. Travava porque o
+  // painel tratava isso como "falta a tabela de lá" — e não falta: o ato é
+  // praticado em São Paulo, e vale a tabela de São Paulo sem exceção. O que
+  // muda fora da Capital é só o IMPOSTO, e disso cuida a linha própria dele.
+  const deFora = c.imovelUf && c.imovelUf !== 'SP';
+  põe('Jurisdição', 'ok',
+      !c.imovelUf && !c.imovelMunicipio ? 'São Paulo'
+        : deFora ? `Imóvel em ${c.imovelMunicipio || c.imovelUf} — o ato sai em ${c.praticadoEm || 'São Paulo'}, `
+                 + 'então a tabela é a daqui. Só o imposto é de lá.'
+        : 'Imóvel em ' + (c.imovelMunicipio || 'São Paulo'));
+  põe('Tabela aplicável', 'ok', ORC_TABELA_NOTAS.nome + ' · ' + ORC_TABELA_REGISTRO.nome
+      + (deFora ? ' — a tabela é a do lugar em que o ato é praticado, não a do imóvel.' : ''));
+  // A alíquota de fora é o único ponto em que o painel usa um número que ele
+  // mesmo foi buscar. Ela trava o CHECK FINAL até ser conferida — e é isto,
+  // não a tranca do banco, que protege o orçamento de sair com um chute.
+  const foras = (c.tributos || []).map(t => t.aliquotaDeFora).filter(Boolean);
+  if(foras.length){
+    const semNada = foras.filter(a => a.estado === 'faltando');
+    const semConferir = foras.filter(a => a.estado === 'incerta');
+    põe('Alíquota de fora da Capital',
+        (semNada.length || semConferir.length) ? 'falta' : 'ok',
+        semNada.length
+          ? `Falta a alíquota de ${semNada.map(a => a.lugar).join(', ')}. Busque ou digite antes de fechar.`
+          : semConferir.length
+            ? `A alíquota de ${semConferir.map(a => a.lugar).join(', ')} foi encontrada pela busca do painel `
+              + 'e ainda não foi conferida por você. Confira na fonte e toque em "Confere — pode usar".'
+            : `Conferida por você: ${foras.map(a => a.lugar).join(', ')}.`);
+  }
   const venceu = [ORC_TABELA_NOTAS, ORC_TABELA_REGISTRO].some(t =>
     !t.vigencia || (t.vigenciaAte && String(c.data || isoHoje()).slice(0, 10) > t.vigenciaAte));
   põe('Vigência conferida', venceu ? 'falta' : 'ok',
@@ -9927,6 +10108,30 @@ const ORC_CONHECIMENTO_INICIAL = {
              + '500, 1.000, 3.000, 5.000 UFESP e assim por diante. O valor confirma a tabela e a tabela confirma o valor.',
              'Isenção de ITCMD na doação: 2.500 UFESP, ou R$ 96.050,00.',
              'Teto de interesse social em ZEIS: 4.705 UFESP, ou R$ 180.766,10.']
+  },
+  'salario-minimo-2026': {
+    regra: 'O salário mínimo de 2026 vale R$ 1.621,00, e é nele que se contam as pensões escritas em salários mínimos.',
+    origem: 'Deduzido da conta da Shirley em 28/08/2026 (1 salário por 12 meses = R$ 19.452,00) e confirmado por ela.',
+    confianca: 'confirmada', tipo: 'fonte',
+    exemplos: ['1 salário mínimo por 12 meses = R$ 19.452,00.',
+               '2 salários mínimos de agosto/2026 a dezembro/2029 (41 meses) = R$ 132.922,00.']
+  },
+  'pensao-na-base': {
+    regra: 'A pensão do divórcio ACRESCE à base da escritura — sai uma escritura só, na faixa da soma, e não uma '
+         + 'escritura à parte na faixa da pensão. Havendo mais de uma parcela (valores ou prazos diferentes), '
+         + 'somam-se todas antes de achar a faixa.',
+    origem: 'Confirmada pela Shirley em 28/08/2026: "a soma disso seria a nossa base de cálculo para acrescer ao valor da escritura".',
+    confianca: 'confirmada', tipo: 'regra',
+    exemplos: ['Partilha de R$ 500.000,00 com pensão de R$ 152.374,00: uma escritura sobre R$ 652.374,00.'],
+    aberto: 'No divórcio SEM partilha, que é de valor fixo (item 6.2), não há base a que acrescer. O motor põe a '
+          + 'pensão como base e avisa — falta confirmar se é assim que se cobra.'
+  },
+  'pensao-meses': {
+    regra: 'O prazo de cada parcela pode ser escrito em número de meses ou como um mês final. Sendo mês final, '
+         + 'contam-se o mês do ato e o mês final, os dois inclusive.',
+    origem: 'Deduzido da conta da Shirley em 28/08/2026: de agosto/2026 a dezembro/2029 ela contou 41 meses.',
+    confianca: 'confirmada', tipo: 'regra',
+    exemplos: ['Agosto de 2026 até dezembro de 2029 são 41 meses, não 40 nem 42.']
   },
   'desconto-40': {
     regra: 'O ato secundário da mesma escritura (garantia, novação, confissão, usufruto, cláusula resolutiva) sai com 40% de desconto sobre o valor da faixa.',
@@ -10142,6 +10347,9 @@ function orcStatus(id){ return ORC_STATUS.find(s => s.id === id) || ORC_STATUS[0
 const orcRef     = ref(db, 'orcamentos');
 const orcConhRef = ref(db, 'orcamento-conhecimento');
 const orcCfgRef  = ref(db, 'orcamento-config');
+// As alíquotas de fora da Capital. Caminho aberto de propósito (é informação
+// pública, e quem escreve é a função da Vercel) — ver database.rules.json.
+const orcAliqRef = ref(db, 'orcamento-aliquotas');
 
 let orcTudo = {};          // id → orçamento
 let orcConhecimento = {};  // id → regra aprendida
@@ -10180,12 +10388,15 @@ function orcLista(){
 const ORC_VIGENCIA_DA_FONTE = {
   notas: ORC_TABELA_NOTAS.vigencia,
   registro: ORC_TABELA_REGISTRO.vigencia,
-  ufesp: ORC_TRIBUTOS.ufesp
+  ufesp: ORC_TRIBUTOS.ufesp,
+  salarioMinimo: ORC_TRIBUTOS.salarioMinimo
 };
 function orcAplicarCfg(){
   ORC_TABELA_NOTAS.vigencia    = (orcCfg.vigenciaNotas || '').trim() || ORC_VIGENCIA_DA_FONTE.notas;
   ORC_TABELA_REGISTRO.vigencia = (orcCfg.vigenciaRegistro || '').trim() || ORC_VIGENCIA_DA_FONTE.registro;
   ORC_TRIBUTOS.ufesp = orcCfg.ufesp ? Math.round(finNum(orcCfg.ufesp) * 100) : ORC_VIGENCIA_DA_FONTE.ufesp;
+  ORC_TRIBUTOS.salarioMinimo = orcCfg.salarioMinimo
+    ? Math.round(finNum(orcCfg.salarioMinimo) * 100) : ORC_VIGENCIA_DA_FONTE.salarioMinimo;
 }
 function orcTaxaPadrao(){
   return orcCfg.taxaAdicional != null ? Math.round(finNum(orcCfg.taxaAdicional) * 100) : 30000;
@@ -10212,6 +10423,7 @@ function orcLigarEscuta(){
   ouvir(orcRef,     s => { orcTudo = s.val() || {}; });
   ouvir(orcConhRef, s => { orcConhecimento = s.val() || {}; });
   ouvir(orcCfgRef,  s => { orcCfg = s.val() || {}; orcAplicarCfg(); });
+  ouvir(orcAliqRef, s => { ORC_TRIBUTOS.aliquotasDeFora = s.val() || {}; });
 }
 window.orcTentarDeNovo = async function(){
   orcSoltarEscuta();
@@ -10366,7 +10578,7 @@ function orcCampoDinheiro(chave, rot, valor, dica){
       oninput="orcMudarValor('${chave}',this.value)">
   </div>`;
 }
-function orcListaHtml(chave, rot, lista, contra){
+function orcListaHtml(chave, rot, lista, contra, alvo){
   const l = (lista || []).length ? lista : [{rotulo: '', valor: 0}];
   return `<div class="orc-campo orc-campo-largo">
     <label class="fin-rot">${escTxt(rot)} <span class="fin-mini">— cada linha cai na sua própria faixa</span></label>
@@ -10375,7 +10587,7 @@ function orcListaHtml(chave, rot, lista, contra){
       <input class="fin-input" inputmode="decimal" placeholder="0,00" value="${x.valor ? orcBr(x.valor) : ''}" oninput="orcMudarItem('${chave}',${i},'valor',this.value)">
       <button type="button" class="cx-btn perigo" onclick="orcTirarItem('${chave}',${i})" aria-label="Tirar"><i class="ti ti-x"></i></button>
     </div>`).join('')}
-    ${orcHtmlListaSoma(chave, lista, contra)}
+    ${orcHtmlListaSoma(chave, lista, contra, alvo)}
     <button type="button" class="cx-btn" onclick="orcMaisItem('${chave}')"><i class="ti ti-plus"></i> Mais uma linha</button>
   </div>`;
 }
@@ -10394,16 +10606,41 @@ function orcListaHtml(chave, rot, lista, contra){
 // campo. No ato com vagas a lista É o valor do negócio, e no inventário o
 // monte pode legitimamente não ser a soma dos imóveis — inventar divergência
 // ali seria alarme falso todo dia.
-function orcHtmlListaSoma(chave, lista, contra){
+function orcHtmlListaSoma(chave, lista, contra, alvo){
   const preenchidas = (lista || []).filter(u => u && u.valor > 0);
   if(!preenchidas.length) return `<div id="orc-soma-${chave}" class="orc-imoveis-soma vazia"></div>`;
   const soma = preenchidas.reduce((t, u) => t + u.valor, 0);
   const difere = contra != null && soma !== contra;
+  // Onde a escritura é cobrada sobre um total digitado à parte (o valor da
+  // partilha, o monte), a soma dos imóveis pode virar esse total com um toque.
+  // Somar três imóveis à mão para depois digitar o resultado logo acima é
+  // trabalho que o painel já tem na tela — e é onde entra o erro de digitação.
+  const botao = alvo && alvo.atual !== soma
+    ? `<button type="button" class="cx-btn" style="margin-left:8px"
+         onclick="orcUsarSomaComoBase('${chave}','${alvo.campo}')">Usar como ${escTxt(alvo.rot)}</button>` : '';
+  const casa = alvo && alvo.atual === soma ? ` — é o ${escTxt((alvo.rot || '').toLowerCase())}` : '';
   return `<div id="orc-soma-${chave}" class="orc-imoveis-soma${difere ? ' difere' : ''}">
     ${preenchidas.length} ${preenchidas.length === 1 ? 'imóvel' : 'imóveis'} ·
-    somam <b>${orcMoeda(soma)}</b>${difere ? ` — e o valor do negócio é <b>${orcMoeda(contra)}</b>` : ''}
+    somam <b>${orcMoeda(soma)}</b>${difere ? ` — e o valor do negócio é <b>${orcMoeda(contra)}</b>` : ''}${casa}${botao}
   </div>`;
 }
+
+// O que a soma de cada lista precisa saber: contra que número se confronta, e
+// em que campo ela pode ser despejada. Num lugar só, porque a tela desenha
+// isto na primeira vez e o redesenho refaz depois — e os dois têm de concordar.
+function orcSomaDaLista(campo, e, r){
+  const ato = orcAto(e.atoId);
+  if(campo === 'unidadesRegistro') return {contra: orcContraDaLista(r), alvo: null};
+  const base = ato && (ato.campos || []).find(c => !(ORC_CAMPOS[c] || {}).lista);
+  return {contra: null, alvo: base
+    ? {campo: base, rot: (ORC_CAMPOS[base] || {}).rot || base, atual: (e.valores || {})[base] || 0}
+    : null};
+}
+window.orcUsarSomaComoBase = function(campoLista, campoBase){
+  const l = (orcEmEdicao.valores[campoLista] || []).filter(x => x && x.valor > 0);
+  orcEmEdicao.valores[campoBase] = l.reduce((t, x) => t + x.valor, 0);
+  renderOrcamentoDoCaso();
+};
 window.orcMudarValor = function(chave, txt){
   orcEmEdicao.valores[chave] = orcCent(txt);
   orcRedesenharResultado();
@@ -10499,7 +10736,7 @@ function renderOrcamentoDoCaso(){
       </select>
       ${ato ? `<div class="orc-comoescreveu"><b>Regra de cobrança:</b> ${escTxt(ato.comoElaEscreveu)}</div>` : ''}
     </div>
-    ${ato ? orcHtmlJurisdicao(e) + orcHtmlValores(e, ato, r) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
+    ${ato ? orcHtmlJurisdicao(e, r) + orcHtmlValores(e, ato, r) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
     <div id="orc-resultado">${r ? orcHtmlResultado(e, r) : '<div class="orc-vazio">Escolha o ato para o motor começar a calcular.</div>'}</div>
     ${ato ? orcHtmlRodape(e, r) : ''}`;
 }
@@ -10524,10 +10761,18 @@ function orcRedesenharResultado(){
 function orcRedesenharAcessorios(r){
   const e = orcEmEdicao;
   if(!e || !r) return;
+  const aliq = document.getElementById('orc-aliquotas');
+  if(aliq) aliq.innerHTML = orcHtmlAliquotasDentro(r);
+
+  const somaPensao = document.getElementById('orc-soma-pensao');
+  if(somaPensao && (e.flags || {}).temPensao)
+    somaPensao.outerHTML = orcHtmlPensaoSoma(e.flags.pensaoParcelas, e.data);
+
   Object.keys(ORC_CAMPOS).filter(c => ORC_CAMPOS[c].lista).forEach(c => {
     const soma = document.getElementById('orc-soma-' + c);
-    if(soma) soma.outerHTML = orcHtmlListaSoma(c, (e.valores || {})[c],
-      c === 'unidadesRegistro' ? orcContraDaLista(r) : null);
+    if(!soma) return;
+    const q = orcSomaDaLista(c, e, r);
+    soma.outerHTML = orcHtmlListaSoma(c, (e.valores || {})[c], q.contra, q.alvo);
   });
 
   const d = e.despesas || {};
@@ -10557,7 +10802,7 @@ function orcHtmlHerdado(h){
       <button type="button" class="cx-btn" onclick="orcUsarSugestao('transacao',${s.valor})">usar como valor do negócio</button></span>`).join('')}
   </div>`;
 }
-function orcHtmlJurisdicao(e){
+function orcHtmlJurisdicao(e, r){
   return `<div class="orc-bloco">
     <div class="orc-secao"><b>Onde o ato sai, e onde está o imóvel</b><span>etapas 2 a 4</span></div>
     <div class="orc-grade">
@@ -10570,13 +10815,131 @@ function orcHtmlJurisdicao(e){
       <div class="orc-campo"><label class="fin-rot">Data considerada do ato</label>
         <input class="fin-input" type="date" value="${esc(e.data || '')}" onchange="orcMudarCampoTexto('data',this.value)"></div>
     </div>
+    ${orcHtmlAliquotas(e, r)}
   </div>`;
+}
+
+// ── O imposto de fora da Capital, na tela ────────────────────────────────
+//
+// Aparece só quando o imóvel não é de São Paulo, que é quando ela precisa. O
+// bloco tem três estados, e nenhum deles é "some": falta buscar, achado mas
+// não conferido (🔴, com a fonte ao lado e o botão de confirmar), e conferido.
+//
+// A tabela de emolumentos não entra aqui de propósito: o ato é praticado em
+// São Paulo e vale a tabela de São Paulo, sem exceção. Só o imposto viaja.
+// O contêiner existe sempre, mesmo vazio. Ela digita "MG" no campo do estado,
+// e digitar não pode redesenhar a tela inteira (o cursor salta) — então o
+// bloco tem de ter onde nascer. Era o mesmo defeito da soma dos imóveis: o
+// pedaço que precisava mudar ficava fora do que se refaz a cada tecla.
+function orcHtmlAliquotas(e, r){
+  return `<div id="orc-aliquotas">${orcHtmlAliquotasDentro(r)}</div>`;
+}
+function orcHtmlAliquotasDentro(r){
+  if(!r) return '';
+  return (r.tributos || []).filter(t => t.aliquotaDeFora)
+    .map(t => orcHtmlUmaAliquota(t.aliquotaDeFora)).join('');
+}
+function orcHtmlUmaAliquota(a){
+  const guardada = (ORC_TRIBUTOS.aliquotasDeFora || {})[a.chave] || {};
+  const nome = a.chave.indexOf('itcmd') === 0 ? 'ITCMD' : 'ITBI';
+  const buscando = orcBuscandoAliquota[a.chave];
+  if(a.estado === 'faltando') return `<div class="orc-aliquota falta" id="orc-aliq-${a.chave}">
+    <div><b>${nome} de ${escTxt(a.lugar)}</b> — o imposto é ${escTxt(a.especie)}, e o painel só sabe de cor o de
+      São Paulo. Sem a alíquota, ele fica sem valor e o orçamento não fecha.</div>
+    <div class="orc-aliquota-acoes">
+      <button type="button" class="cx-btn destaque" ${buscando ? 'disabled' : ''}
+        onclick="orcBuscarAliquota('${a.chave}')">${buscando
+          ? '<i class="ti ti-loader"></i> Procurando na fonte…'
+          : '<i class="ti ti-search"></i> Buscar a alíquota'}</button>
+      <span class="fin-mini">ou digite:</span>
+      <input class="fin-input" style="max-width:110px" inputmode="decimal" placeholder="2,5"
+        onchange="orcAliquotaNaMao('${a.chave}',this.value)" title="A alíquota em %, se você já sabe">
+      <span class="fin-mini">%</span>
+    </div>
+    ${orcBuscaFalhou[a.chave] ? `<div class="orc-aliquota-erro">${escTxt(orcBuscaFalhou[a.chave])}</div>` : ''}
+  </div>`;
+  const conf = a.estado === 'confirmada';
+  return `<div class="orc-aliquota ${conf ? 'ok' : 'incerta'}" id="orc-aliq-${a.chave}">
+    <div><b>${nome} de ${escTxt(a.lugar)}: ${guardada.aliquota}%</b>
+      ${conf ? '— conferida por você' : '— <b>encontrada pelo painel, ainda não conferida</b>'}</div>
+    ${a.fundamento ? `<div class="fin-mini">${escTxt(a.fundamento)}</div>` : ''}
+    ${a.ressalva ? `<div class="orc-aliquota-erro">Ressalva: ${escTxt(a.ressalva)}</div>` : ''}
+    ${(a.fontes || []).length ? `<div class="fin-mini">Fonte:
+      ${a.fontes.slice(0, 3).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${escTxt(orcDominio(u))}</a>`).join(' · ')}</div>` : ''}
+    ${conf ? '' : `<div class="orc-aliquota-acoes">
+      <button type="button" class="btn-save" onclick="orcConfirmarAliquota('${a.chave}')">
+        <i class="ti ti-check"></i> Confere — pode usar</button>
+      <button type="button" class="cx-btn" onclick="orcBuscarAliquota('${a.chave}',true)">Procurar de novo</button>
+      <span class="fin-mini">ou corrija:</span>
+      <input class="fin-input" style="max-width:110px" inputmode="decimal" placeholder="${guardada.aliquota}"
+        onchange="orcAliquotaNaMao('${a.chave}',this.value)">
+      <span class="fin-mini">%</span>
+    </div>`}
+  </div>`;
+}
+function orcDominio(u){
+  try{ return new URL(u).hostname.replace(/^www\./, ''); }catch(e){ return u.slice(0, 40); }
+}
+let orcBuscandoAliquota = {};
+let orcBuscaFalhou = {};
+window.orcBuscarAliquota = async function(chave, forcar){
+  const partes = chave.split('-');
+  const imposto = partes[0];
+  const uf = partes[partes.length - 1].toUpperCase();
+  const municipio = imposto === 'itbi' ? orcEmEdicao.imovelMunicipio : null;
+  orcBuscandoAliquota[chave] = true; orcBuscaFalhou[chave] = null;
+  renderOrcamentoDoCaso();
+  try{
+    const resp = await fetch('/api/aliquota-municipal', {method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({imposto, municipio, uf, forcar: !!forcar})});
+    const j = await resp.json();
+    if(!j.encontrado){
+      // Não achar é resposta legítima, e tem de aparecer escrita. Alíquota
+      // chutada é o erro mais caro que este orçamento poderia cometer.
+      orcBuscaFalhou[chave] = j.porqueNao || 'A busca não achou a alíquota. Digite-a à mão.';
+    }else{
+      // A função já gravou no banco; a escuta traz de volta. Guarda-se aqui
+      // também para a tela não ficar esperando o banco responder.
+      ORC_TRIBUTOS.aliquotasDeFora = Object.assign({}, ORC_TRIBUTOS.aliquotasDeFora, {[chave]: j});
+    }
+  }catch(err){
+    orcBuscaFalhou[chave] = 'Não consegui procurar agora: ' + ((err && err.message) || err);
+  }
+  orcBuscandoAliquota[chave] = false;
+  renderOrcamentoDoCaso();
+};
+// Digitada à mão vale como conferida: quem digitou foi ela.
+window.orcAliquotaNaMao = async function(chave, txt){
+  const n = finNum(txt);
+  if(!(n > 0)) return;
+  await orcGravarAliquota(chave, {aliquota: n, confianca: 'confirmada',
+    fundamento: 'Digitada à mão por ' + (localStorage.getItem('cc_nome') || 'ela') + '.',
+    ressalva: '', fontes: []});
+};
+window.orcConfirmarAliquota = async function(chave){
+  const a = (ORC_TRIBUTOS.aliquotasDeFora || {})[chave];
+  if(!a) return;
+  await orcGravarAliquota(chave, Object.assign({}, a, {confianca: 'confirmada'}));
+};
+async function orcGravarAliquota(chave, dados){
+  const reg = orcSemUndefined(Object.assign({chave}, dados, {
+    confirmadaPor: localStorage.getItem('cc_nome') || 'ela',
+    confirmadaEm: isoHoje()}));
+  ORC_TRIBUTOS.aliquotasDeFora = Object.assign({}, ORC_TRIBUTOS.aliquotasDeFora, {[chave]: reg});
+  renderOrcamentoDoCaso();
+  // Esperar e falar: o painel já aprendeu que dizer "guardado" sem ter
+  // guardado é pior que não guardar.
+  try{ await set(ref(db, 'orcamento-aliquotas/' + chave), reg); }
+  catch(err){ finToast('Não consegui guardar a alíquota: ' + ((err && err.message) || err)); }
 }
 function orcHtmlValores(e, ato, r){
   const v = e.valores || {};
   const campos = (ato.campos || []).map(c => {
     const meta = ORC_CAMPOS[c] || {rot: c};
-    return meta.lista ? orcListaHtml(c, meta.rot, v[c], null) : orcCampoDinheiro(c, meta.rot, v[c]);
+    if(!meta.lista) return orcCampoDinheiro(c, meta.rot, v[c]);
+    const q = orcSomaDaLista(c, e, r);
+    return orcListaHtml(c, meta.rot, v[c], q.contra, q.alvo);
   }).join('');
   const bloco = campos
     ? `<div class="orc-bloco">
@@ -10601,7 +10964,7 @@ function orcHtmlImoveis(e, ato, r){
   return `<div class="orc-bloco">
     <div class="orc-secao"><b>Imóveis a registrar</b><span>uma matrícula, um registro</span></div>
     ${lista.length ? `
-      ${orcListaHtml('unidadesRegistro', 'Cada matrícula, com o seu valor', lista, orcContraDaLista(r))}
+      ${orcListaHtml('unidadesRegistro', 'Cada matrícula, com o seu valor', lista, orcContraDaLista(r), null)}
       <button type="button" class="cx-btn" onclick="orcTirarTodasMatriculas()">
         <i class="ti ti-x"></i> Voltar a um imóvel só</button>
     ` : `
@@ -10663,12 +11026,7 @@ function orcHtmlEspeciais(e, ato){
         <option value="0"${f.temPensao ? '' : ' selected'}>Não</option>
         <option value="1"${f.temPensao ? ' selected' : ''}>Sim — acresce base à escritura</option>
       </select></div>`);
-    if(f.temPensao){
-      bits.push(`<div class="orc-campo"><label class="fin-rot">Pensão mensal</label>
-        <input class="fin-input" inputmode="decimal" value="${f.pensaoMensal ? orcBr(f.pensaoMensal) : ''}" oninput="orcMudarFlagNum('pensaoMensal',this.value)"></div>`);
-      bits.push(`<div class="orc-campo"><label class="fin-rot">Meses estipulados <span class="fin-mini">— vazio usa 12</span></label>
-        <input class="fin-input" inputmode="numeric" value="${f.pensaoMeses || ''}" placeholder="12" oninput="orcMudarFlagNum('pensaoMeses',this.value)"></div>`);
-    }
+    if(f.temPensao) bits.push(orcHtmlPensao(e));
   }
   // Os itens especiais valem para qualquer escritura com valor declarado.
   if((ato.campos || []).length)
@@ -10690,6 +11048,80 @@ function orcHtmlEspeciais(e, ato){
     <div class="orc-secao"><b>O que falta para concluir</b><span>etapas 9 e 13</span></div>
     <div class="orc-grade">${bits.join('')}</div></div>`;
 }
+// As parcelas da pensão. Escritas do jeito que ela fala: "um salário mínimo
+// por doze meses", "dois salários mínimos até dezembro de 2029" — e não em
+// reais por mês, que é a conta que ela teria de fazer antes de digitar.
+function orcHtmlPensao(e){
+  const f = e.flags || {};
+  const lista = (f.pensaoParcelas || []).length ? f.pensaoParcelas
+    : [{emSalarios: true, salarios: 1, modo: 'meses', meses: 12}];
+  const total = orcPensaoTotal({temPensao: true, pensaoParcelas: lista}, e.data);
+  return `<div class="orc-campo orc-campo-largo">
+    <label class="fin-rot">Parcelas da pensão
+      <span class="fin-mini">— cada uma com o seu valor e o seu prazo; a soma acresce à base da escritura</span></label>
+    ${lista.map((p, i) => orcHtmlPensaoParcela(p, i, e.data)).join('')}
+    ${orcHtmlPensaoSoma(lista, e.data)}
+    <button type="button" class="cx-btn" onclick="orcMaisPensao()"><i class="ti ti-plus"></i> Mais uma parcela</button>
+  </div>`;
+}
+function orcHtmlPensaoParcela(p, i, data){
+  const emSal = p.emSalarios !== false;
+  const ate = p.modo === 'ate';
+  return `<div class="orc-pensao-linha">
+    <select class="fin-select" onchange="orcMudarPensao(${i},'emSalarios',this.value==='1')">
+      <option value="1"${emSal ? ' selected' : ''}>Em salários mínimos</option>
+      <option value="0"${emSal ? '' : ' selected'}>Em reais</option></select>
+    ${emSal
+      ? `<input class="fin-input" inputmode="decimal" placeholder="1" value="${esc(p.salarios != null ? String(p.salarios) : '')}"
+           oninput="orcMudarPensao(${i},'salarios',this.value)" title="Quantos salários mínimos por mês">`
+      : `<input class="fin-input" inputmode="decimal" placeholder="0,00" value="${p.valor ? orcBr(p.valor) : ''}"
+           oninput="orcMudarPensao(${i},'valor',this.value)" title="Quanto por mês, em reais">`}
+    <select class="fin-select" onchange="orcMudarPensao(${i},'modo',this.value)">
+      <option value="meses"${ate ? '' : ' selected'}>por N meses</option>
+      <option value="ate"${ate ? ' selected' : ''}>até o mês de</option></select>
+    ${ate
+      ? `<input class="fin-input" type="month" value="${esc(p.ate || '')}" onchange="orcMudarPensao(${i},'ate',this.value)">`
+      : `<input class="fin-input" inputmode="numeric" placeholder="12" value="${esc(p.meses != null ? String(p.meses) : '')}"
+           oninput="orcMudarPensao(${i},'meses',this.value)">`}
+    <button type="button" class="cx-btn perigo" onclick="orcTirarPensao(${i})"><i class="ti ti-x"></i> Tirar</button>
+  </div>`;
+}
+// A soma das parcelas, colada nelas — a mesma regra da soma dos imóveis: o que
+// ela está olhando é o que tem de mudar.
+function orcHtmlPensaoSoma(lista, data){
+  const det = (lista || []).map(p => orcPensaoDetalhe(p, data)).filter(d => d.total > 0);
+  if(!det.length) return `<div id="orc-soma-pensao" class="orc-imoveis-soma vazia"></div>`;
+  const total = det.reduce((t, d) => t + d.total, 0);
+  return `<div id="orc-soma-pensao" class="orc-imoveis-soma">
+    ${det.map(d => escTxt(d.texto)).join('<br>')}
+    ${det.length > 1 ? `<br>Soma da pensão: <b>${orcMoeda(total)}</b>` : ''}
+  </div>`;
+}
+function orcPensaoDaTela(){
+  const f = orcEmEdicao.flags;
+  if(!(f.pensaoParcelas || []).length)
+    f.pensaoParcelas = [{emSalarios: true, salarios: 1, modo: 'meses', meses: 12}];
+  return f.pensaoParcelas;
+}
+window.orcMudarPensao = function(i, campo, valor){
+  const l = orcPensaoDaTela();
+  l[i] = l[i] || {emSalarios: true, modo: 'meses'};
+  if(campo === 'valor') l[i].valor = orcCent(valor);
+  else if(campo === 'salarios' || campo === 'meses') l[i][campo] = finNum(valor);
+  else l[i][campo] = valor;
+  // Trocar o TIPO do campo refaz a linha (o input muda de natureza); mexer no
+  // número não pode, senão o cursor salta para fora enquanto ela digita.
+  if(campo === 'emSalarios' || campo === 'modo') renderOrcamentoDoCaso();
+  else orcRedesenharResultado();
+};
+window.orcMaisPensao = function(){
+  orcPensaoDaTela().push({emSalarios: true, salarios: 1, modo: 'meses', meses: 12});
+  renderOrcamentoDoCaso();
+};
+window.orcTirarPensao = function(i){
+  orcPensaoDaTela().splice(i, 1);
+  renderOrcamentoDoCaso();
+};
 window.orcMudarRegraEspecial = function(qual){
   const f = orcEmEdicao.flags;
   f.zeis = qual === 'zeis';
@@ -11416,6 +11848,9 @@ function orcHtmlTabelas(){
     <div class="orc-tab-linha"><span>Valor da UFESP <span class="fin-mini">— as isenções de ITCMD são contadas nela</span></span>
       <input class="fin-input" style="max-width:180px" inputmode="decimal" placeholder="ainda não declarada"
         value="${esc(orcCfg.ufesp || '')}" onchange="orcSalvarCfg('ufesp',this.value)"></div>
+    <div class="orc-tab-linha"><span>Salário mínimo <span class="fin-mini">— a régua da pensão; muda em janeiro</span></span>
+      <input class="fin-input" style="max-width:180px" inputmode="decimal" placeholder="1.621,00"
+        value="${esc(orcCfg.salarioMinimo || '')}" onchange="orcSalvarCfg('salarioMinimo',this.value)"></div>
     <div class="orc-tab-linha"><span>Taxa adicional do registro <span class="fin-mini">— sempre perguntada, nunca automática</span></span>
       <input class="fin-input" style="max-width:180px" inputmode="decimal" placeholder="300,00"
         value="${esc(orcCfg.taxaAdicional || '')}" onchange="orcSalvarCfg('taxaAdicional',this.value)"></div>

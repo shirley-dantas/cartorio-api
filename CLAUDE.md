@@ -423,6 +423,21 @@ Compra e venda em cinco variações, doação com e sem usufruto, inventário co
 sem meação e com partilha desigual, divórcio em três formas, dação, confissão,
 procuração, ata e escritura declaratória.
 
+- **A pensão acresce à base, e vem em parcelas.** Uma pensão raramente é um
+  número só: o caso que trouxe esta regra tinha um salário mínimo por doze
+  meses **e** dois salários mínimos até dezembro de 2029. Cada parcela é
+  escrita do jeito dela — em salários mínimos ou em reais, por N meses ou até
+  um mês final — e a **soma acresce à base da escritura**, saindo uma escritura
+  só na faixa do total. Não são duas escrituras em duas faixas: somadas, dariam
+  mais do que ela cobra. Contando de agosto/2026 a dezembro/2029 são **41
+  meses** — os dois extremos entram —, e o salário mínimo (R$ 1.621,00, o mesmo
+  que a conta dela devolve) é configurável em Ajustes, como a UFESP.
+- **Onde há um total digitado, a lista de imóveis pode virar ele.** No divórcio
+  com partilha e no inventário, a escritura sai de um total à parte enquanto os
+  imóveis alimentam os registros. Somar três imóveis à mão para redigitar o
+  resultado logo acima é trabalho que o painel já tem na tela — e é onde entra
+  o erro de digitação. O botão *"Usar como Valor total da partilha"* aparece na
+  linha da soma e some quando os dois já são o mesmo número.
 - **Ato secundário na mesma escritura leva 40%** — garantia, novação,
   confissão, usufruto, cláusula resolutiva. É regra dela: a nota explicativa da
   tabela que a fundamentaria veio só com o título no PDF, e por isso cada linha
@@ -463,9 +478,22 @@ procuração, ata e escritura declaratória.
   exatamente nesse caso e somem no caso de imóvel único. O botão *"Tem mais de
   uma matrícula?"* vale em **qualquer** ato com registro, não só no ato das
   vagas: matrícula separada é característica do imóvel, não do ato.
-- **Fora da Capital o painel não chuta.** ITBI é municipal e ITCMD é estadual:
-  fora de São Paulo o imposto fica sem valor e a razão aparece escrita, com a
-  frase dela ("checar o código tributário").
+- **Fora da Capital o painel procura, mas não decide.** ITBI é municipal e
+  ITCMD é estadual. Antes o imposto simplesmente ficava sem valor, e ela tinha
+  de procurar à mão no meio do atendimento — foi o que aconteceu com um imóvel
+  em Extrema-MG. Agora o `api/aliquota-municipal.js` lê a fonte oficial na web
+  e traz a alíquota. **O que vem da busca é hipótese, nunca fonte:** entra na
+  conta para o orçamento existir, sai marcada 🔴 com o fundamento e o link ao
+  lado, e o **CHECK FINAL não fecha** enquanto ela não apertar *"Confere — pode
+  usar"*. Digitada à mão já nasce confirmada, porque quem digitou foi ela. Não
+  achar é resposta legítima e aparece escrita: alíquota chutada seria o erro
+  mais caro deste orçamento, e o mais silencioso — o total pareceria certo.
+  Cada município é procurado uma vez e fica guardado.
+- **A tabela é do lugar do ato, não do lugar do imóvel.** Se o ato sai em São
+  Paulo, valem as tabelas de São Paulo — **sem exceção**, e o painel nunca vai
+  procurar tabela de emolumentos de outro município. Só o imposto acompanha o
+  imóvel. Por isso imóvel de fora deixou de travar a *Jurisdição* no CHECK
+  FINAL: não faltava tabela nenhuma, e a linha agora diz por que passa.
 - **Isenção nunca é aplicada sozinha.** Ela depende de declaração da parte e de
   documento. O painel aponta ("está dentro do teto do primeiro imóvel"), mantém
   o imposto na conta e devolve a decisão. Zerar imposto por engano é o erro mais
@@ -657,8 +685,12 @@ Entra na base como 🔴 ou 🔵, escrito, do mesmo jeito que as ressalvas da Bas
 Regras do Radar — pergunta que não fica escrita é pergunta que se perde:
 
 - **os doze meses da pensão**: "por doze meses, mais a quantidade de tempo
-  estipulada" admite duas leituras, e o motor faz a segunda (12 quando não há
-  prazo);
+  estipulada" admite duas leituras. Deixou de atrapalhar no caminho normal —
+  ela escreve o prazo de cada parcela, e os 12 só valem para orçamento antigo
+  que não tinha prazo nenhum —, mas a frase continua sem leitura definida;
+- **a pensão no divórcio SEM partilha**: esse ato é de valor fixo (item 6.2),
+  e não há base a que acrescer. O motor põe a pensão como base e avisa, em vez
+  de decidir calado — falta ela dizer se é assim que se cobra;
 - **os 40% da confissão de dívida sozinha na escritura**, que a redução de ato
   secundário não cobre por si;
 - **as notas explicativas da tabela de Notas**, que vieram só com o título.
@@ -719,6 +751,10 @@ o `testes/montar.mjs` recorta.
 | As linhas que a cliente lê | `orcLinhasCliente()` |
 | O que se refaz sem redesenhar a tela | `orcRedesenharAcessorios()` |
 | A soma de qualquer lista de imóveis | `orcHtmlListaSoma()`, dentro do `orcListaHtml()` |
+| A soma que vira a base | `orcSomaDaLista()`, `orcUsarSomaComoBase()` |
+| A pensão em parcelas | `orcPensaoParcelas()`, `orcPensaoDetalhe()`, `orcMesesAte()`, `orcHtmlPensao()` |
+| A alíquota de fora da Capital | `orcAplicarAliquotaDeFora()`, `orcChaveAliquota()`, `orcHtmlAliquotas()` |
+| A busca da alíquota | `api/aliquota-municipal.js` |
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |
