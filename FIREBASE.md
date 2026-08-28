@@ -191,6 +191,25 @@ primeira vez que alguém entra, e **só se estiver vazia**: o que ela corrigir
 ali não é sobrescrito na abertura seguinte. É o mesmo lápis da Rede e da Base
 de Regras do Radar.
 
+## 9. As alíquotas de fora da Capital
+
+Nada a fazer no console: o caminho `/orcamento-aliquotas` já entra na mesma
+publicação de regras do passo 4.
+
+O que ele guarda é a alíquota de ITBI de cada município e a de ITCMD de cada
+estado, achadas pelo `api/aliquota-municipal.js` — que precisa da
+`ANTHROPIC_API_KEY` nas variáveis da Vercel, a mesma que o Radar já usa.
+
+Leitura e escrita ficam **abertas**, como as do Radar, e pela mesma razão:
+alíquota de imposto é informação pública (não há nome nem valor de cliente
+aqui), e quem grava é a função da Vercel, por REST e sem conta. Entra na mesma
+lista de pendências de baixo.
+
+O que protege o orçamento aqui **não é a tranca do banco**: é a alíquota nascer
+🔴 incerta e o CHECK FINAL não fechar enquanto a Shirley não confirmar. Mesmo
+que alguém escrevesse um número no caminho aberto, ele chegaria à tela marcado
+como não conferido.
+
 ## O que ainda fica aberto, e por quê
 
 `/casos`, `/jobs`, `/modelos`, os caminhos do bot e os do Radar continuam sem

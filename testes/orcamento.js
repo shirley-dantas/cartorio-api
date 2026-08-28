@@ -406,19 +406,142 @@ ok('uma escritura só, de valor fixo', zeis.escrituras.length === 1 && zeis.escr
 ok('R$ 520,33, o item 1.4 da tabela', R(zeis.totais.escritura) === '520.33', R(zeis.totais.escritura));
 ok('e o painel manda conferir o enquadramento', zeis.alertas.some(a => /ZEIS/.test(a.texto)));
 
-console.log('\n— A pensão do divórcio, e a dúvida que veio junto —');
-const pensao = orcCalcular({atoId: 'divorcio-partilha',
+console.log('\n— A pensão do divórcio: em parcelas, e somada à base —');
+// O caso de verdade, trazido por ela em 28/08/2026: um salário mínimo por doze
+// meses, e dois salários mínimos até dezembro de 2029. Ela já tinha feito a
+// conta à mão — R$ 19.452,00, R$ 132.922,00 e R$ 152.374,00 —, e é contra esses
+// três números que o motor é conferido. Um dígito diferente aqui é o motor
+// discordando da escrevente.
+const AGO = '2026-08-28';
+ok('o salário mínimo do painel é R$ 1.621,00', R(ORC_TRIBUTOS.salarioMinimo) === '1621.00');
+const pen1 = orcPensaoDetalhe({emSalarios: true, salarios: 1, modo: 'meses', meses: 12}, AGO);
+ok('1 salário mínimo por 12 meses = R$ 19.452,00', R(pen1.total) === '19452.00', R(pen1.total));
+const pen2 = orcPensaoDetalhe({emSalarios: true, salarios: 2, modo: 'ate', ate: '2029-12'}, AGO);
+ok('de agosto/2026 a dezembro/2029 são 41 meses', pen2.meses === 41, pen2.meses);
+ok('2 salários mínimos nesses 41 meses = R$ 132.922,00', R(pen2.total) === '132922.00', R(pen2.total));
+// Os dois extremos contam: sem um deles daria 40 ou 42 meses, e o orçamento
+// não bateria com a conta que ela já tinha na mão.
+ok('o mês do ato conta, e o mês final também', orcMesesAte('2026-12-01', '2026-12') === 1);
+ok('e um mês para o seguinte são dois', orcMesesAte('2026-12-01', '2027-01') === 2);
+
+const AS_DUAS = [{emSalarios: true, salarios: 1, modo: 'meses', meses: 12},
+                 {emSalarios: true, salarios: 2, modo: 'ate', ate: '2029-12'}];
+ok('a soma das duas parcelas é R$ 152.374,00',
+   R(orcPensaoTotal({pensaoParcelas: AS_DUAS}, AGO)) === '152374.00',
+   R(orcPensaoTotal({pensaoParcelas: AS_DUAS}, AGO)));
+
+// E a regra que ela confirmou: a pensão ACRESCE à base, e não vira uma segunda
+// escritura na faixa dela. Duas faixas somadas dão mais que uma faixa sobre a
+// soma — era o orçamento saindo maior do que ela cobra.
+const pensao = orcCalcular({atoId: 'divorcio-partilha', data: AGO,
   valores: {totalPartilha: 50000000, imoveis: [{rotulo: 'Apto', valor: 50000000}]},
-  flags: {temPensao: true, pensaoMensal: 500000}, despesas: {taxaAdicional: false}});
-const lp = pensao.escrituras.find(x => x.pensao);
-ok('sem prazo, o motor usa doze meses', lp && lp.base === 6000000, lp && lp.base);
-ok('e diz na tela que a frase admite duas leituras',
-   lp.avisos.some(a => a.confianca === 'incerta'));
-const pensao24 = orcCalcular({atoId: 'divorcio-partilha',
+  flags: {temPensao: true, pensaoParcelas: AS_DUAS}, despesas: {taxaAdicional: false}});
+ok('sai UMA escritura, não duas', pensao.escrituras.length === 1, pensao.escrituras.length);
+ok('e a base é a partilha mais a pensão',
+   pensao.escrituras[0].base === 50000000 + 15237400, pensao.escrituras[0].base);
+ok('a memória mostra as duas parcelas, com a conta de cada uma',
+   /19\.452,00/.test(pensao.escrituras[0].fundamento) && /132\.922,00/.test(pensao.escrituras[0].fundamento),
+   pensao.escrituras[0].fundamento);
+ok('e diz que a regra é dela, confirmada',
+   pensao.escrituras[0].avisos.some(a => a.confianca === 'confirmada' && /acresce à base/.test(a.texto)));
+
+// Pensão em reais, não em salários: continua valendo.
+ok('parcela escrita em reais também soma',
+   R(orcPensaoTotal({pensaoParcelas: [{emSalarios: false, valor: 500000, modo: 'meses', meses: 10}]}, AGO)) === '50000.00');
+
+// Orçamento gravado ANTES desta mudança tem pensaoMensal e pensaoMeses soltos,
+// e não pode virar zero por causa do formato novo.
+const velho = orcCalcular({atoId: 'divorcio-partilha', data: AGO,
   valores: {totalPartilha: 50000000, imoveis: [{rotulo: 'Apto', valor: 50000000}]},
   flags: {temPensao: true, pensaoMensal: 500000, pensaoMeses: 24}, despesas: {taxaAdicional: false}});
-ok('com prazo estipulado, usa o prazo',
-   pensao24.escrituras.find(x => x.pensao).base === 12000000);
+ok('o formato antigo continua valendo, como uma parcela só',
+   velho.escrituras[0].base === 50000000 + 500000 * 24, velho.escrituras[0].base);
+const semPrazo = orcCalcular({atoId: 'divorcio-partilha', data: AGO,
+  valores: {totalPartilha: 50000000, imoveis: [{rotulo: 'Apto', valor: 50000000}]},
+  flags: {temPensao: true, pensaoMensal: 500000}, despesas: {taxaAdicional: false}});
+ok('e sem prazo nenhum continua usando doze meses',
+   semPrazo.escrituras[0].base === 50000000 + 500000 * 12, semPrazo.escrituras[0].base);
+
+// O divórcio SEM partilha é de valor fixo: não há base a que acrescer. O motor
+// põe a pensão como base e AVISA — trocar a cobrança de um ato de valor fixo
+// em silêncio seria decidir por ela.
+const semPartilha = orcCalcular({atoId: 'divorcio', data: AGO, valores: {},
+  flags: {temPensao: true, pensaoParcelas: AS_DUAS}, despesas: {}});
+ok('no divórcio sem partilha a pensão vira a base', semPartilha.escrituras[0].base === 15237400);
+ok('e isso não passa calado', semPartilha.alertas.some(a => /valor fixo/.test(a.texto)),
+   semPartilha.alertas.map(a => a.texto));
+
+// Pensão marcada mas sem nenhum valor: é pergunta em aberto, não zero.
+const semValor = orcCalcular({atoId: 'divorcio-partilha', data: AGO,
+  valores: {totalPartilha: 50000000}, flags: {temPensao: true}, despesas: {taxaAdicional: false}});
+ok('pensão sem valor vira pergunta, não some',
+   semValor.faltando.some(f => f.campo === 'pensaoParcelas'), semValor.faltando.map(f => f.campo));
+
+console.log('\n— O imposto de fora da Capital —');
+// Ela lançou uma venda e compra de imóvel em Extrema-MG e o ITBI saiu em
+// branco. O imposto é municipal, então o painel vai buscar a alíquota — mas o
+// que vem da busca é hipótese, e a escada de conhecimento não abre exceção.
+const emExtrema = () => orcCalcular({atoId: 'compra-venda', data: '2026-08-28',
+  praticadoEm: 'São Paulo', imovelMunicipio: 'Extrema', imovelUf: 'MG',
+  valores: {transacao: 30186716}, flags: {}, despesas: {taxaAdicional: false}});
+
+ORC_TRIBUTOS.aliquotasDeFora = {};
+const semAliq = emExtrema();
+ok('sem alíquota, o ITBI fica sem valor', semAliq.tributos[0].valor === null);
+ok('e o orçamento não fecha', semAliq.bloqueado === true);
+ok('a chave do lugar é itbi-extrema-mg', semAliq.tributos[0].aliquotaDeFora.chave === 'itbi-extrema-mg',
+   semAliq.tributos[0].aliquotaDeFora.chave);
+ok('o acento e a caixa somem da chave',
+   orcChaveAliquota('itbi', 'São José dos Campos', 'sp') === 'itbi-sao-jose-dos-campos-sp',
+   orcChaveAliquota('itbi', 'São José dos Campos', 'sp'));
+ok('e o ITCMD é por estado, não por município', orcChaveAliquota('itcmd', 'Qualquer', 'MG') === 'itcmd-mg');
+
+// Encontrada pela busca: entra na conta, mas NÃO fecha o orçamento. É a regra
+// que impede um número lido por máquina de virar valor cobrado da cliente.
+ORC_TRIBUTOS.aliquotasDeFora = {'itbi-extrema-mg': {aliquota: 2, confianca: 'incerta',
+  fundamento: 'Lei Municipal 1.234/2019, art. 5º', fontes: ['https://extrema.mg.gov.br/x'], ressalva: ''}};
+const achada = emExtrema();
+ok('achada, o ITBI entra na conta com a alíquota de lá',
+   R(achada.tributos[0].valor) === '6037.34', R(achada.tributos[0].valor));
+ok('mas o orçamento continua travado enquanto ela não confere', achada.bloqueado === true);
+ok('e o CHECK FINAL diz exatamente isso',
+   achada.check.some(c => c.rot === 'Alíquota de fora da Capital' && c.estado === 'falta'),
+   achada.check.filter(c => c.estado === 'falta').map(c => c.rot));
+ok('a linha do imposto avisa que o número não foi conferido',
+   achada.tributos[0].avisos.some(a => a.confianca === 'incerta' && /não digitada por você/.test(a.texto)));
+ok('e o fundamento diz de onde veio', /Lei Municipal 1\.234\/2019/.test(achada.tributos[0].fundamento),
+   achada.tributos[0].fundamento);
+
+// Conferida por ela: aí sim fecha.
+ORC_TRIBUTOS.aliquotasDeFora['itbi-extrema-mg'].confianca = 'confirmada';
+ORC_TRIBUTOS.aliquotasDeFora['itbi-extrema-mg'].confirmadaPor = 'Shirley';
+ORC_TRIBUTOS.aliquotasDeFora['itbi-extrema-mg'].confirmadaEm = '2026-08-28';
+const conferida = emExtrema();
+ok('conferida por ela, o orçamento fecha', conferida.definitivo === true,
+   conferida.check.filter(c => c.estado === 'falta').map(c => c.rot));
+ok('e o CHECK FINAL registra quem conferiu',
+   /Conferida por você/.test(conferida.check.find(c => c.rot === 'Alíquota de fora da Capital').nota));
+
+// A regra dela, de 28/08/2026: a TABELA é sempre a de São Paulo. Só o imposto
+// acompanha o imóvel. Se algum dia alguém fizer a tabela viajar junto, isto
+// quebra — que é exatamente o ponto.
+ok('a escritura sai pela tabela de São Paulo, mesmo com imóvel em MG',
+   R(conferida.totais.escritura) === '4176.24', R(conferida.totais.escritura));
+ok('o registro também', R(conferida.totais.registro) === '2833.28', R(conferida.totais.registro));
+ok('e a jurisdição deixou de travar por causa disso',
+   conferida.check.find(c => c.rot === 'Jurisdição').estado === 'ok');
+ok('dizendo por quê, em vez de só passar',
+   /a tabela é a daqui/.test(conferida.check.find(c => c.rot === 'Jurisdição').nota),
+   conferida.check.find(c => c.rot === 'Jurisdição').nota);
+
+// E a Capital não muda em nada.
+ORC_TRIBUTOS.aliquotasDeFora = {};
+ok('em São Paulo o ITBI continua sendo os 3% de sempre',
+   R(orcCalcular({atoId: 'compra-venda', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+     valores: {transacao: 30186716}, flags: {}, despesas: {taxaAdicional: false}}).tributos[0].valor) === '9056.01');
+ok('e nem aparece bloco de alíquota de fora',
+   !orcCalcular({atoId: 'compra-venda', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+     valores: {transacao: 30186716}, flags: {}, despesas: {taxaAdicional: false}}).tributos[0].aliquotaDeFora);
 
 console.log('\n— Só se pergunta o que falta (regra 11) —');
 const vazio = orcCalcular({atoId: 'compra-venda-fiduciaria', valores: {}, flags: {}, despesas: {}});
