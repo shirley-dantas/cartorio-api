@@ -265,6 +265,23 @@ await passo('salvo, o card mostra a versão 1 e o orçamento vira leitura', asyn
   if(!/16\.522,21/.test(txt)) throw new Error('o card não mostrou o total: ' + txt);
 });
 
+await passo('o que foi para o banco não tem nenhum undefined', async () => {
+  // O Firebase recusa a gravação inteira por causa de um só `undefined` em
+  // qualquer profundidade — foi o que derrubou o primeiro orçamento de verdade.
+  const achados = await pg.evaluate(() => {
+    const anda = (v, c) => v === undefined ? [c]
+      : Array.isArray(v) ? v.flatMap((x, i) => anda(x, c + '[' + i + ']'))
+      : (v && typeof v === 'object') ? Object.keys(v).flatMap(k => anda(v[k], c + '.' + k))
+      : [];
+    return Object.values(orcEstado().orcamentos).flatMap(o => anda(o, o.id));
+  });
+  if(achados.length) throw new Error('undefined gravado em: ' + achados.slice(0, 5).join(', '));
+  // E a tabela foi guardada pela identidade, sem arrastar as 48 faixas junto.
+  const t = await pg.evaluate(() => Object.values(orcEstado().orcamentos)[0].resultado.tabelas.registro);
+  if(t.faixas) throw new Error('gravou as faixas inteiras dentro do orçamento');
+  if(!t.versao || !t.vigencia) throw new Error('gravou a tabela sem versão ou vigência: ' + JSON.stringify(t));
+});
+
 await passo('uma versão nova não come a anterior, e diz por que mudou', async () => {
   await pg.evaluate(() => {
     orcNovoDoCaso('c1');

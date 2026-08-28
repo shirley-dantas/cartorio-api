@@ -533,7 +533,16 @@ acreditar. E o Firebase **não** tenta de novo depois de um `permission denied`:
 a escuta morre, então nem publicar as regras consertava, sem recarregar a
 página.
 
-Agora os dois falam. A gravação espera e diz o que houve; a leitura mostra o
+E havia um terceiro, que só o primeiro consertar deixou aparecer: o resultado
+guardava a tabela apagando as faixas com `faixas: undefined`, e **o Firebase
+recusa `undefined` em qualquer profundidade — a gravação inteira, por causa de
+um só**. A mensagem falava de uma propriedade que ninguém tinha escrito. Agora a
+tabela entra pela identidade (`orcIdentidadeDaTabela`), escolhendo o que fica em
+vez de apagar o que sai, e um saneador (`orcSemUndefined`) passa em tudo antes
+de gravar — porque um campo que um dia nasça sem valor não pode derrubar o
+orçamento da mesa.
+
+Agora os três falam. A gravação espera e diz o que houve; a leitura mostra o
 motivo com um **Tentar de novo** ao lado, porque quem acabou de publicar as
 regras não deveria ter de adivinhar que precisa recarregar. O
 `faz-de-conta-navegador.js` sabe recusar as duas coisas

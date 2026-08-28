@@ -451,6 +451,45 @@ ok(`os ${ORC_ATOS.length} atos calculam em centavos inteiros`, quebrados.length 
 ok('e todo ato devolve um total', ORC_ATOS.every(a =>
   orcCalcular({atoId: a.id, valores: amostra, flags: {}, despesas: {taxaAdicional: false}}).totais.total >= 0));
 
+console.log('\n— Nada do que vai para o banco pode ser undefined —');
+// O Firebase recusa `undefined` em qualquer profundidade, e recusa a gravação
+// INTEIRA por causa de um só. Foi assim que o primeiro orçamento de verdade não
+// salvou: as faixas eram apagadas com `faixas: undefined`, e a mensagem falava
+// de uma propriedade que ninguém tinha escrito. Esta varredura passa nos vinte
+// atos, em todos os cantos do resultado.
+function achaUndefined(v, caminho){
+  if(v === undefined) return [caminho];
+  if(Array.isArray(v)) return v.flatMap((x, i) => achaUndefined(x, caminho + '[' + i + ']'));
+  if(v && typeof v === 'object')
+    return Object.keys(v).flatMap(k => achaUndefined(v[k], caminho + '.' + k));
+  return [];
+}
+const sujos = [];
+ORC_ATOS.forEach(a => {
+  const r = orcCalcular({atoId: a.id, data: '2026-08-27', valores: amostra,
+    praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+    flags: {folhas: 3, outorgantes: 7, temPensao: true, pensaoMensal: 333333,
+            excedenteOneroso: true, residencial: true},
+    despesas: {prenotacao: true, matricula: true, registroComMatricula: true,
+               taxaAdicional: true, taxaAdicionalValor: 30000}});
+  const achados = achaUndefined(r, a.id);
+  if(achados.length) sujos.push(achados);
+});
+ok('nenhum dos vinte atos devolve undefined no resultado', sujos.length === 0, sujos.flat().slice(0, 8));
+ok('a identidade da tabela entra sem arrastar as faixas', (() => {
+  const t = orcIdentidadeDaTabela(ORC_TABELA_REGISTRO);
+  return !('faixas' in t) && !('faixasAverbacao' in t) && t.versao === 'custas-2026' && t.vigencia;
+})());
+// E o saneador, que é a rede embaixo: campo que um dia nasça sem valor some da
+// gravação em vez de derrubar o orçamento inteiro.
+const sujo = {a: 1, b: undefined, c: {d: undefined, e: 2}, f: [1, undefined, {g: undefined, h: 3}], i: null};
+const limpo = orcSemUndefined(sujo);
+ok('o saneador tira todo undefined', achaUndefined(limpo, 'x').length === 0, limpo);
+ok('e não confunde null com undefined — null quer dizer outra coisa', limpo.i === null);
+ok('em lista, o indefinido sai em vez de virar buraco',
+   limpo.f.length === 2 && limpo.f[0] === 1 && limpo.f[1].h === 3, limpo.f);
+ok('nem estraga o que estava certo', limpo.a === 1 && limpo.c.e === 2);
+
 console.log('\n— O ato é reconhecido pelo que está escrito no card (regra 10) —');
 ok('"Compra e venda" vira compra-venda', orcAdivinharAto('Compra e venda') === 'compra-venda');
 ok('"venda e compra com alienação fiduciária" vira o ato certo',
