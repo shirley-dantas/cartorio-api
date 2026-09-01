@@ -489,6 +489,62 @@ const semValor = orcCalcular({atoId: 'divorcio-partilha', data: AGO,
 ok('pensão sem valor vira pergunta, não some',
    semValor.faltando.some(f => f.campo === 'pensaoParcelas'), semValor.faltando.map(f => f.campo));
 
+console.log('\n— Outro ato na mesma escritura —');
+// Ela precisava orçar uma escritura com uma procuração junto e não tinha onde
+// dizer isso: os vinte atos cobrem as combinações conhecidas, e o que ficasse
+// fora delas não tinha lugar nenhum.
+const comProc = (outros) => orcCalcular({atoId: 'compra-venda', data: '2026-08-28',
+  praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+  valores: {transacao: 30186716}, flags: {outrosAtos: outros || []},
+  despesas: {prenotacao: true, matricula: true, registroComMatricula: true,
+             taxaAdicional: true, taxaAdicionalValor: 30000}});
+
+// O gabarito do 1301 não pode se mexer por causa disto.
+ok('sem ato a mais, o gabarito continua em R$ 16.522,21',
+   R(comProc().totais.total) === '16522.21', R(comProc().totais.total));
+
+const umaProc = comProc([{item: '2.4.1', qtd: 1}]);
+ok('a procuração entra pelo VALOR CHEIO do item 2.4.1',
+   R(umaProc.totais.escritura) === '4504.42', R(umaProc.totais.escritura));
+// R$ 328,18 cheios. Com os 40% do ato secundário daria R$ 196,91 — e não é
+// isso que ela cobra: a redução vale para ato com valor declarado, não para
+// item de valor fixo. Confirmado por ela em 28/08/2026.
+ok('e não com os 40% do ato secundário',
+   umaProc.escrituras[1].valor === ORC_TABELA_NOTAS.itens['2.4.1'].valor, umaProc.escrituras[1].valor);
+ok('a parte do tabelião acompanha, senão a comissão sairia a menos',
+   R(umaProc.totais.tabeliao) === '2682.20', R(umaProc.totais.tabeliao));
+ok('o ato a mais não inventa registro nem tributo',
+   umaProc.registros.length === 1 && umaProc.tributos.length === 1);
+
+// Quantidade: seis outorgantes são a base mais dois adicionais.
+const seis = comProc([{item: '2.4.1', qtd: 1}, {item: '2.4.2', qtd: 2}]);
+ok('a quantidade multiplica o item',
+   R(seis.totais.escritura) === R(417624 + 32818 + 8204 * 2), R(seis.totais.escritura));
+ok('e a memória escreve a multiplicação',
+   /× 2/.test(seis.escrituras[2].fundamento), seis.escrituras[2].fundamento);
+
+// A via da cliente continua fechando com o ato a mais dentro.
+ok('a via da cliente fecha com o ato a mais',
+   orcLinhasCliente(seis).reduce((t, l) => t + l[1], 0) === seis.totais.total);
+
+// A regra especial substitui a escritura inteira — mas não pode engolir um
+// ato que não é dela. Engolir a procuração seria lavrá-la de graça.
+const zeisProc = orcCalcular({atoId: 'compra-venda', valores: {transacao: 20000000},
+  flags: {zeis: true, outrosAtos: [{item: '2.4.1', qtd: 1}]},
+  imovelMunicipio: 'São Paulo', imovelUf: 'SP', despesas: {taxaAdicional: false}});
+ok('a regra especial (ZEIS) não engole o ato lavrado junto',
+   zeisProc.escrituras.some(e => e.avulso === '2.4.1'), zeisProc.escrituras.map(e => e.rot));
+
+// Todos os itens oferecidos existem na tabela — lista e tabela não podem
+// divergir em silêncio.
+const semItem = ORC_ATOS_AVULSOS.filter(a => !ORC_TABELA_NOTAS.itens[a.item]).map(a => a.item);
+ok('todo ato oferecido tem item na tabela de Notas', semItem.length === 0, semItem);
+ok('e cada um deles é de valor fixo, com parte do tabelião declarada',
+   ORC_ATOS_AVULSOS.every(a => ORC_TABELA_NOTAS.itens[a.item].valor > 0
+                            && ORC_TABELA_NOTAS.itens[a.item].tabeliao > 0));
+// Item que não existe não pode virar linha de R$ 0 escondida no total.
+ok('item inventado não vira linha', orcLinhaOutroAto('99.9', 1) === null);
+
 console.log('\n— A BASE CONSIDERADA é o valor do negócio, não a base da tabela —');
 // O caso que ela trouxe em 28/08/2026: doação com reserva de usufruto de
 // R$ 500.000,00. A tabela cobra a nua-propriedade sobre dois terços e o
