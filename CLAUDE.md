@@ -438,6 +438,18 @@ procuração, ata e escritura declaratória.
   resultado logo acima é trabalho que o painel já tem na tela — e é onde entra
   o erro de digitação. O botão *"Usar como Valor total da partilha"* aparece na
   linha da soma e some quando os dois já são o mesmo número.
+- **Outro ato lavrado junto entra pelo valor cheio.** A escritura sai com uma
+  procuração, ou com uma ata. Os vinte atos cobrem as *combinações* conhecidas
+  (garantia, novação, usufruto), e o que ficasse fora delas não tinha lugar
+  nenhum. Agora a etapa 1 tem uma lista dos itens de valor fixo da tabela de
+  Notas — procuração com e sem valor econômico, ata, escritura sem valor
+  declarado, convenção de condomínio —, cada um com a sua quantidade. **A
+  redução de 40% NÃO se aplica**: ela é regra dela para atos com valor
+  declarado (item 1.1), e estendê-la a um item de valor fixo seria decisão
+  nova. Confirmado por ela em 28/08/2026. O ato a mais soma na escritura e na
+  parte do tabelião — que é o que vira comissão —, e não inventa registro nem
+  tributo. A regra especial (ZEIS, FGTS) substitui a escritura inteira mas
+  **não engole** o ato lavrado junto: ele é outro ato, com item próprio.
 - **Ato secundário na mesma escritura leva 40%** — garantia, novação,
   confissão, usufruto, cláusula resolutiva. É regra dela: a nota explicativa da
   tabela que a fundamentaria veio só com o título no PDF, e por isso cada linha
@@ -761,6 +773,7 @@ o `testes/montar.mjs` recorta.
 | Regras do banco | `database.rules.json` · passo a passo em `FIREBASE.md` |
 | As tabelas de emolumentos | `ORC_TABELA_NOTAS`, `ORC_TABELA_REGISTRO`, `ORC_TRIBUTOS` |
 | As regras de cobrança, ato a ato | `ORC_ATOS`, `orcLinhaEscritura()`, `orcLinhaRegistro()` |
+| Outro ato na mesma escritura | `ORC_ATOS_AVULSOS`, `orcLinhaOutroAto()`, `orcHtmlOutrosAtos()` |
 | As dezessete etapas | `orcCalcular()` |
 | A busca na faixa | `orcFaixa()`, `orcLetraFaixa()` |
 | O CHECK FINAL | `orcCheckFinal()` |
@@ -785,6 +798,7 @@ o `testes/montar.mjs` recorta.
 | O mapa | `redeMontarMapa()`, `redeVerUF()`, `redeVerCapital()`, `REDE_RUMOS` |
 | Quem é a mesma pessoa | `impressaoDigital()`, `redeChaveDaPessoa()` (Apps Script) |
 | A varredura das minutas | `apps-script/cartorio-rede.js` → `varrerRede()` |
+| A ordem da Agenda | `agendaPorHorario()`, dentro de `renderAgenda()` |
 | O Jornal da equipe | `renderJornal()`, `radarSelosHtml()` |
 | O Radar, na tela | `renderRadar()`, `radarHtmlDia()`, `radarHtmlItem()`, `radarHtmlDias()` |
 | A Base de Regras, na tela | `radarHtmlBase()`, `radarHtmlTema()` |

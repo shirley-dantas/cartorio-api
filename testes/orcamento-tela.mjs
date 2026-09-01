@@ -430,6 +430,47 @@ await passo('a via do cliente sai como imagem, para colar no WhatsApp', async ()
   if(!/^data:image\/png/.test(img.url)) throw new Error('não saiu PNG');
 });
 
+// Ela precisava orçar uma escritura com uma procuração junto e não tinha onde
+// dizer isso. O bloco fica na etapa 1, colado no ato principal, porque é ali
+// que ela decide o que vai na escritura.
+await passo('dá para acrescentar outro ato na mesma escritura, na etapa 1', async () => {
+  await pg.evaluate(() => { orcTrocarAto('compra-venda'); orcMudarValor('transacao', '301.867,16');
+    orcTirarTodasMatriculas(); orcMudarDespesa('taxaAdicional', true); });
+  const bloco = await pg.textContent('.orc-outros');
+  if(!/outro ato na mesma escritura/i.test(bloco)) throw new Error('o bloco não apareceu: ' + bloco);
+  await pg.click('button:has-text("Acrescentar ato")');
+  await pg.waitForSelector('.orc-outros-linha');
+  // Nasce como procuração, que é o caso dela — e pelo valor cheio do item.
+  await pg.waitForFunction(() => /328,18/.test(document.getElementById('orc-soma-outros').textContent));
+  const total = await pg.textContent('.orc-total-num');
+  if(!/16\.850,39/.test(total)) throw new Error('o total não somou a procuração: ' + total);
+});
+
+await passo('e a soma dos atos a mais acompanha a quantidade digitada', async () => {
+  await pg.click('button:has-text("Acrescentar ato")');
+  const linhas = await pg.$$('.orc-outros-linha');
+  // A segunda linha vira "outorgante adicional", dois deles.
+  await linhas[1].$eval('select', s => { s.value = '2.4.2'; s.dispatchEvent(new Event('change')); });
+  await pg.waitForSelector('.orc-outros-linha');
+  const linhas2 = await pg.$$('.orc-outros-linha');
+  await linhas2[1].$eval('input', i => { i.value = '2'; i.dispatchEvent(new Event('input')); });
+  await pg.waitForFunction(() => /492,26/.test(document.getElementById('orc-soma-outros').textContent));
+  const total = await pg.textContent('.orc-total-num');
+  if(!/17\.014,47/.test(total)) throw new Error('a quantidade não multiplicou no total: ' + total);
+});
+
+await passo('a memória escreve o item e o porquê do valor cheio', async () => {
+  await abrirMemoria(pg);
+  const m = await pg.textContent('.orc-memoria');
+  if(!/Item 2\.4\.1/.test(m)) throw new Error('não citou o item da procuração: ' + m.slice(0, 400));
+  if(!/valor cheio/.test(m)) throw new Error('não explicou por que não leva os 40%');
+});
+
+await passo('e tirando os atos a mais o gabarito volta ao que era', async () => {
+  await pg.evaluate(() => { orcTirarOutroAto(1); orcTirarOutroAto(0); });
+  await pg.waitForFunction(() => /16\.522,21/.test(document.querySelector('.orc-total-num').textContent));
+});
+
 // A via da cliente é a única tela que sai do cartório, e quem a lê pode ser um
 // cliente de idade. Ela chegou apagada duas vezes: primeiro a imagem, depois a
 // prévia na tela, que ficou para trás quando a imagem foi escurecida. Estes

@@ -1743,6 +1743,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .orc-aliquota-acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:9px}
 .orc-aliquota-erro{margin-top:6px;font-size:12.5px;color:var(--cc-critico)}
 .orc-aliquota a{color:var(--cc-info)}
+.orc-outros{margin-top:12px;padding-top:12px;border-top:1px solid var(--cc-linha)}
+.orc-outros-rot{font-size:12.5px;font-weight:600;color:var(--cc-tinta);margin-bottom:9px}
+.orc-outros-rot .fin-mini{font-weight:400}
+.orc-outros-linha{display:grid;grid-template-columns:1fr 90px auto;gap:7px;margin-bottom:7px;align-items:center}
+@media(max-width:640px){.orc-outros-linha{grid-template-columns:1fr 1fr}
+  .orc-outros-linha select{grid-column:1/-1}}
 .orc-pensao-linha{display:grid;grid-template-columns:1fr .8fr 1fr .8fr auto;gap:7px;margin-bottom:7px;align-items:center}
 @media(max-width:640px){.orc-pensao-linha{grid-template-columns:1fr 1fr;grid-auto-rows:auto}
   .orc-pensao-linha .cx-btn.perigo{grid-column:1/-1}}
@@ -3861,12 +3867,36 @@ function renderProximasAcoes(itens,usados){
 // lado a lado com os compromissos dos casos. Só entram os pendentes: ao marcar
 // o ✓ o lembrete sai da lista de Lembretes e sai daqui junto, sem precisar de
 // chave de resolução própria (diferente dos casos, o lembrete já tem "done").
+// A agenda se lê na ordem do relógio: o primeiro horário primeiro.
+//
+// Os lembretes já saíam assim; os compromissos dos casos, não — saíam na
+// ordem em que os casos chegam do banco, que não é ordem nenhuma. Num dia com
+// três escrituras a lista aparecia de trás para frente (14h, 13h, 10h), e
+// agenda fora de ordem é pior que agenda nenhuma: quem bate o olho lê a
+// primeira linha como se fosse o próximo compromisso.
+//
+// A comparação é pelo INSTANTE, não pelo texto da data: o `quando` do
+// lembrete e o `agendado` do caso são gravados por caminhos diferentes, e
+// comparar como texto só funciona enquanto os dois estiverem no mesmo
+// formato. Data que o navegador não entende vai para o fim, em vez de
+// embaralhar o resto.
+function agendaPorHorario(a,b){
+  const t=(ev)=>{
+    // Vazio vai para o fim junto com o ilegível: `new Date(null)` devolve 1970
+    // sem reclamar, e um compromisso sem data iria parar no TOPO da agenda —
+    // que é o pior lugar possível para o que não se sabe quando é.
+    if(!ev||!ev.dt) return Infinity;
+    const n=new Date(ev.dt).getTime();
+    return isNaN(n)?Infinity:n;
+  };
+  return t(a)-t(b);
+}
 function eventosDeFocos(){
   const full=Array.isArray(focos)?focos:Object.values(focos||{});
   return full.filter(f=>f&&!f.done&&f.quando)
     .map(f=>({foco:f,diff:diffDiasNum(f.quando),dt:f.quando}))
     .filter(ev=>ev.diff!=null&&ev.diff<=7)
-    .sort((a,b)=>String(a.dt).localeCompare(String(b.dt)));
+    .sort(agendaPorHorario);
 }
 function fmtQuando(dt){
   return dt?new Date(dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
@@ -4132,7 +4162,9 @@ function renderAgenda(itens){
   // Concluído ou excluído aqui na agenda some da lista (ver botões abaixo) —
   // a chave usa a data real do evento, então volta a aparecer sozinho se essa
   // data mudar (reagendamento).
-  const eventosVisiveis=eventos.filter(ev=>!resolucoesCentral[chaveAgendaEvento(ev.c.id,ev.segunda?'segunda':'principal',ev.dt)]);
+  const eventosVisiveis=eventos
+    .filter(ev=>!resolucoesCentral[chaveAgendaEvento(ev.c.id,ev.segunda?'segunda':'principal',ev.dt)])
+    .sort(agendaPorHorario);
   const grupo=(min,max)=>eventosVisiveis.filter(ev=>ev.diff>=min&&ev.diff<=max);
   const hoje=grupo(0,0),amanha=grupo(1,1),semana=grupo(2,7);
   // Compromisso de caso vencido some da janela (o caso continua cobrado pelo
@@ -9573,6 +9605,51 @@ function orcPensaoTotal(f, dataDoAto){
   return orcPensaoParcelas(f).reduce((t, p) => t + orcPensaoDetalhe(p, dataDoAto).total, 0);
 }
 
+// ── Outros atos na mesma escritura ───────────────────────────────────────
+//
+// A escritura sai com uma procuração junto, ou com uma ata. Antes não havia
+// onde dizer isso: os vinte atos cobrem as COMBINAÇÕES conhecidas (a garantia,
+// a novação, o usufruto), e o que ficasse fora delas não tinha lugar nenhum.
+//
+// Aqui entram os itens de valor fixo da tabela de Notas, cada um pelo valor
+// CHEIO. A redução de 40% do ato secundário NÃO se aplica: ela é regra dela
+// para atos com valor declarado (item 1.1), e estendê-la a um item de valor
+// fixo seria decisão nova. Confirmado por ela em 28/08/2026.
+const ORC_ATOS_AVULSOS = [
+  {item: '2.4.1', rot: 'Procuração — até 4 outorgantes'},
+  {item: '2.4.2', rot: 'Procuração — outorgante adicional'},
+  {item: '2.3.1', rot: 'Procuração sem valor econômico — até 4 outorgantes'},
+  {item: '2.3.2', rot: 'Procuração sem valor econômico — outorgante adicional'},
+  {item: '9.1',   rot: 'Ata notarial — primeira folha'},
+  {item: '9.2',   rot: 'Ata notarial — folha adicional'},
+  {item: '6.1',   rot: 'Escritura sem valor declarado — filho, adoção, previdenciário'},
+  {item: '6.2',   rot: 'Escritura sem valor declarado — demais'},
+  {item: '10',    rot: 'Convenção de condomínio'}
+];
+function orcAvulso(item){ return ORC_ATOS_AVULSOS.find(a => a.item === item) || null; }
+// A linha de um ato avulso, já multiplicada pela quantidade. A parte do
+// tabelião acompanha: é ela que vira `parteTabeliao` no Financeiro, e uma
+// procuração cobrada e não repassada seria comissão a menos no fim do mês.
+function orcLinhaOutroAto(item, qtd){
+  const n = Math.max(1, Math.round(Number(qtd) || 1));
+  const it = ORC_TABELA_NOTAS.itens[item];
+  const avulso = orcAvulso(item);
+  if(!it) return null;
+  const l = orcLinhaEscritura(0, {itemFixo: item,
+    rot: (avulso ? avulso.rot : it.rot) + (n > 1 ? ` (${n})` : ''),
+    fundamento: `Item ${item} — ${it.rot}. Ato lavrado junto, pelo valor cheio da tabela`
+              + (n > 1 ? ` — ${orcMoeda(it.valor)} × ${n}` : '') + '.',
+    avisos: [{confianca: 'operacional',
+      texto: 'Ato na mesma escritura, cobrado pelo valor cheio do item. A redução de 40% do ato '
+           + 'secundário não se aplica aqui: ela vale para atos com valor declarado, e este é de '
+           + 'valor fixo. Confirmado pela Shirley em 28/08/2026.'}]});
+  l.valor = it.valor * n;
+  l.tabeliao = (it.tabeliao || 0) * n;
+  l.quantidade = n;
+  l.avulso = item;
+  return l;
+}
+
 function orcAto(id){ return ORC_ATOS.find(a => a.id === id) || null; }
 
 // ── Os campos que cada ato pede ──────────────────────────────────────────
@@ -9780,6 +9857,16 @@ function orcCalcular(entrada){
       texto: `Regra especial aplicada: ${regraEspecial.rot}. Confira se o imóvel e o programa se enquadram — `
            + 'o item da tabela exige comprovação, e ele engole os demais atos da escritura.'});
   }
+
+  // Os atos avulsos entram DEPOIS da regra especial, de propósito: a regra
+  // especial substitui a escritura inteira, e um ato lavrado junto não é ato
+  // dela — é outro ato, com item próprio na tabela. Engolir a procuração aqui
+  // seria cobrá-la de graça.
+  (f.outrosAtos || []).forEach(x => {
+    if(!x || !x.item) return;
+    const l = orcLinhaOutroAto(x.item, x.qtd);
+    if(l) escrituras = escrituras.concat([l]);
+  });
 
   // Mais de uma matrícula: o registro deixa de ser um sobre a base inteira e
   // passa a ser um por matrícula, cada um na SUA faixa. Somar tudo e registrar
@@ -10742,6 +10829,62 @@ window.orcMudarIdentificacao = function(txt){
   // Campo de digitar: só o resultado se refaz, senão o cursor salta fora.
   orcRedesenharResultado();
 };
+// Outros atos na mesma escritura. Fica na etapa 1, colado no ato principal,
+// porque é ali que ela decide o que vai na escritura — e não depois, no meio
+// dos valores.
+function orcHtmlOutrosAtos(e){
+  const lista = (e.flags || {}).outrosAtos || [];
+  const total = lista.reduce((t, x) => {
+    const l = x && x.item ? orcLinhaOutroAto(x.item, x.qtd) : null;
+    return t + (l ? l.valor : 0);
+  }, 0);
+  return `<div class="orc-outros">
+    <div class="orc-outros-rot">Vai outro ato na mesma escritura?
+      <span class="fin-mini">— procuração, ata, escritura sem valor. Cada um pelo valor cheio da tabela.</span></div>
+    ${lista.map((x, i) => `<div class="orc-outros-linha">
+      <select class="fin-select" onchange="orcMudarOutroAto(${i},'item',this.value)">
+        ${ORC_ATOS_AVULSOS.map(a => `<option value="${a.item}"${x.item === a.item ? ' selected' : ''}>${escTxt(a.rot)} — ${orcMoeda(ORC_TABELA_NOTAS.itens[a.item].valor)}</option>`).join('')}
+      </select>
+      <input class="fin-input" inputmode="numeric" value="${esc(String(x.qtd || 1))}"
+        oninput="orcMudarOutroAto(${i},'qtd',this.value)" title="Quantos">
+      <button type="button" class="cx-btn perigo" onclick="orcTirarOutroAto(${i})"><i class="ti ti-x"></i> Tirar</button>
+    </div>`).join('')}
+    ${orcHtmlOutrosSoma(lista, total)}
+    <button type="button" class="cx-btn" onclick="orcMaisOutroAto()">
+      <i class="ti ti-plus"></i> Acrescentar ato</button>
+  </div>`;
+}
+// A soma dos atos avulsos, colada nas linhas que a produzem — a mesma regra
+// da soma dos imóveis e da pensão: o que ela está olhando é o que tem de mudar.
+function orcHtmlOutrosSoma(lista, total){
+  if(!lista.length) return '<div id="orc-soma-outros" class="orc-imoveis-soma vazia"></div>';
+  const n = lista.length;
+  return `<div id="orc-soma-outros" class="orc-imoveis-soma">
+    ${n} ${n === 1 ? 'ato a mais' : 'atos a mais'} na escritura ·
+    somam <b>${orcMoeda(total)}</b>
+  </div>`;
+}
+function orcOutrosDaTela(){
+  const f = orcEmEdicao.flags;
+  if(!Array.isArray(f.outrosAtos)) f.outrosAtos = [];
+  return f.outrosAtos;
+}
+window.orcMaisOutroAto = function(){
+  orcOutrosDaTela().push({item: '2.4.1', qtd: 1});
+  renderOrcamentoDoCaso();
+};
+window.orcTirarOutroAto = function(i){
+  orcOutrosDaTela().splice(i, 1);
+  renderOrcamentoDoCaso();
+};
+window.orcMudarOutroAto = function(i, campo, valor){
+  const l = orcOutrosDaTela();
+  l[i] = l[i] || {item: '2.4.1', qtd: 1};
+  l[i][campo] = campo === 'qtd' ? Math.max(1, Math.round(finNum(valor) || 1)) : valor;
+  // Trocar o item refaz a linha (o rótulo e o valor mudam); mexer na
+  // quantidade não pode, senão o cursor salta enquanto ela digita.
+  if(campo === 'item') renderOrcamentoDoCaso(); else orcRedesenharResultado();
+};
 window.orcTrocarAto = function(id){
   orcEmEdicao.atoId = id;
   renderOrcamentoDoCaso();
@@ -10801,6 +10944,7 @@ function renderOrcamentoDoCaso(){
         </optgroup>`).join('')}
       </select>
       ${ato ? `<div class="orc-comoescreveu"><b>Regra de cobrança:</b> ${escTxt(ato.comoElaEscreveu)}</div>` : ''}
+      ${ato ? orcHtmlOutrosAtos(e) : ''}
     </div>
     ${ato ? orcHtmlJurisdicao(e, r) + orcHtmlValores(e, ato, r) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
     <div id="orc-resultado">${r ? orcHtmlResultado(e, r) : '<div class="orc-vazio">Escolha o ato para o motor começar a calcular.</div>'}</div>
@@ -10829,6 +10973,16 @@ function orcRedesenharAcessorios(r){
   if(!e || !r) return;
   const aliq = document.getElementById('orc-aliquotas');
   if(aliq) aliq.innerHTML = orcHtmlAliquotasDentro(r);
+
+  const somaOutros = document.getElementById('orc-soma-outros');
+  if(somaOutros){
+    const lista = (e.flags || {}).outrosAtos || [];
+    const total = lista.reduce((t, x) => {
+      const l = x && x.item ? orcLinhaOutroAto(x.item, x.qtd) : null;
+      return t + (l ? l.valor : 0);
+    }, 0);
+    somaOutros.outerHTML = orcHtmlOutrosSoma(lista, total);
+  }
 
   const somaPensao = document.getElementById('orc-soma-pensao');
   if(somaPensao && (e.flags || {}).temPensao)
