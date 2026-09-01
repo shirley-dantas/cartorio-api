@@ -3861,12 +3861,36 @@ function renderProximasAcoes(itens,usados){
 // lado a lado com os compromissos dos casos. Só entram os pendentes: ao marcar
 // o ✓ o lembrete sai da lista de Lembretes e sai daqui junto, sem precisar de
 // chave de resolução própria (diferente dos casos, o lembrete já tem "done").
+// A agenda se lê na ordem do relógio: o primeiro horário primeiro.
+//
+// Os lembretes já saíam assim; os compromissos dos casos, não — saíam na
+// ordem em que os casos chegam do banco, que não é ordem nenhuma. Num dia com
+// três escrituras a lista aparecia de trás para frente (14h, 13h, 10h), e
+// agenda fora de ordem é pior que agenda nenhuma: quem bate o olho lê a
+// primeira linha como se fosse o próximo compromisso.
+//
+// A comparação é pelo INSTANTE, não pelo texto da data: o `quando` do
+// lembrete e o `agendado` do caso são gravados por caminhos diferentes, e
+// comparar como texto só funciona enquanto os dois estiverem no mesmo
+// formato. Data que o navegador não entende vai para o fim, em vez de
+// embaralhar o resto.
+function agendaPorHorario(a,b){
+  const t=(ev)=>{
+    // Vazio vai para o fim junto com o ilegível: `new Date(null)` devolve 1970
+    // sem reclamar, e um compromisso sem data iria parar no TOPO da agenda —
+    // que é o pior lugar possível para o que não se sabe quando é.
+    if(!ev||!ev.dt) return Infinity;
+    const n=new Date(ev.dt).getTime();
+    return isNaN(n)?Infinity:n;
+  };
+  return t(a)-t(b);
+}
 function eventosDeFocos(){
   const full=Array.isArray(focos)?focos:Object.values(focos||{});
   return full.filter(f=>f&&!f.done&&f.quando)
     .map(f=>({foco:f,diff:diffDiasNum(f.quando),dt:f.quando}))
     .filter(ev=>ev.diff!=null&&ev.diff<=7)
-    .sort((a,b)=>String(a.dt).localeCompare(String(b.dt)));
+    .sort(agendaPorHorario);
 }
 function fmtQuando(dt){
   return dt?new Date(dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
@@ -4132,7 +4156,9 @@ function renderAgenda(itens){
   // Concluído ou excluído aqui na agenda some da lista (ver botões abaixo) —
   // a chave usa a data real do evento, então volta a aparecer sozinho se essa
   // data mudar (reagendamento).
-  const eventosVisiveis=eventos.filter(ev=>!resolucoesCentral[chaveAgendaEvento(ev.c.id,ev.segunda?'segunda':'principal',ev.dt)]);
+  const eventosVisiveis=eventos
+    .filter(ev=>!resolucoesCentral[chaveAgendaEvento(ev.c.id,ev.segunda?'segunda':'principal',ev.dt)])
+    .sort(agendaPorHorario);
   const grupo=(min,max)=>eventosVisiveis.filter(ev=>ev.diff>=min&&ev.diff<=max);
   const hoje=grupo(0,0),amanha=grupo(1,1),semana=grupo(2,7);
   // Compromisso de caso vencido some da janela (o caso continua cobrado pelo

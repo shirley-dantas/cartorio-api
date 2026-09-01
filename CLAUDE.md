@@ -785,6 +785,7 @@ o `testes/montar.mjs` recorta.
 | O mapa | `redeMontarMapa()`, `redeVerUF()`, `redeVerCapital()`, `REDE_RUMOS` |
 | Quem é a mesma pessoa | `impressaoDigital()`, `redeChaveDaPessoa()` (Apps Script) |
 | A varredura das minutas | `apps-script/cartorio-rede.js` → `varrerRede()` |
+| A ordem da Agenda | `agendaPorHorario()`, dentro de `renderAgenda()` |
 | O Jornal da equipe | `renderJornal()`, `radarSelosHtml()` |
 | O Radar, na tela | `renderRadar()`, `radarHtmlDia()`, `radarHtmlItem()`, `radarHtmlDias()` |
 | A Base de Regras, na tela | `radarHtmlBase()`, `radarHtmlTema()` |
