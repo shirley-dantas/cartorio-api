@@ -232,6 +232,9 @@ Se algum documento fornecido tiver cabeçalho começando com "MINUTA ATUAL", ess
 - Sempre que a mudança pedida afetar quantidade (ex: passar de um imóvel para dois ou mais), ajuste a concordância singular/plural em TODO o texto onde fizer sentido — artigos, substantivos, adjetivos, pronomes e verbos relacionados (ex: "o imóvel" → "os imóveis", "a matrícula" → "as matrículas", "certidão apresentada" → "certidões apresentadas", "o vendedor vende o imóvel" → "os vendedores vendem os imóveis"). Não mude concordância de partes/trechos que não têm relação com a mudança pedida
 - Dados novos (ex: do imóvel acrescentado) vêm apenas da instrução e dos outros documentos fornecidos — campo não informado: ______
 
+REGRA ABSOLUTA — ATOS SECUNDÁRIOS (lavrados na MESMA escritura, não são um documento à parte):
+Quando o caso trouxer "ATOS SECUNDÁRIOS LAVRADOS NA MESMA ESCRITURA", cada um deles precisa virar uma cláusula própria dentro desta MESMA minuta — não é uma escritura separada, é o mesmo instrumento cobrindo mais de um ato (ex: uma Escritura de Compra e Venda que também tem Confissão de Dívida do saldo, ou uma Doação com Usufruto reservado). Identifique os dados de cada ato secundário nos documentos e observações do caso, do mesmo jeito que faria para o ato principal — campo que não aparecer em documento nenhum: ______.
+
 ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
 
 Se DIGITAL (videoconferência):
@@ -322,7 +325,9 @@ const ABREVIACOES_TIPO_ATO = {
   "Pacto Antenupcial": "PACTO",
   "Testamento": "TEST.",
   "Ata Notarial": "ATA",
-  "Dação em Pagamento": "DAÇÃO PGTO."
+  "Dação em Pagamento": "DAÇÃO PGTO.",
+  "Escritura Declaratória": "DECLAR.",
+  "Usucapião": "USUC."
 };
 function abreviarTipoAto(tipo) {
   if (!tipo) return "ATO";
@@ -804,8 +809,15 @@ function gerarECriarMinuta(dados) {
       }
     }
 
+    // Tipo de ato estruturado (Etapa 3): zero ou mais atos secundários lavrados
+    // na MESMA escritura do tipo principal — ver lib/tipos-de-ato.js. Substitui
+    // o antigo "tipo composto" em texto livre ("Escritura + Confissão de
+    // Dívida"), que só casava com metade das listas de checklist/abreviação.
+    var atosSecundarios = Array.isArray(dados.atosSecundarios) ? dados.atosSecundarios.filter(Boolean) : [];
+
     var mensagem = "CASO: " + (dados.nome || "Não informado") + "\n" +
       "TIPO DE ATO: " + (dados.tipo || "Não informado") + "\n" +
+      (atosSecundarios.length ? "ATOS SECUNDÁRIOS LAVRADOS NA MESMA ESCRITURA: " + atosSecundarios.join(", ") + "\n" : "") +
       "MODALIDADE: " + mod.toUpperCase() + "\n" +
       (instrucoes ? instrucoes + "\n" : "") +
       "OBSERVAÇÕES DO CASO: " + (dados.obs || "Nenhuma") + "\n" +

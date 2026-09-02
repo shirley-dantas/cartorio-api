@@ -19,10 +19,14 @@
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
+import {createRequire} from 'node:module';
 import vm from 'node:vm';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const fonte = readFileSync(join(AQUI, '..', 'apps-script', 'cartorio-drive-api.js'), 'utf8');
+const htmlFonte = readFileSync(join(AQUI, '..', 'index.html'), 'utf8');
+const require = createRequire(import.meta.url);
+const {TIPOS_PRINCIPAIS, ATOS_SECUNDARIOS} = require(join(AQUI, '..', 'lib', 'tipos-de-ato.js'));
 
 const caixa = {
   console,
@@ -286,6 +290,47 @@ passo('gerarECriarMinuta não aprende mais sozinho de toda minuta gerada', () =>
 passo('a ação marcar-modelo existe e está ligada no doPost', () => {
   ok(/acao === "marcar-modelo"/.test(fonte), 'doPost não reconhece a ação marcar-modelo');
   ok(/function marcarModelo\(/.test(fonte), 'a função marcarModelo não existe');
+});
+
+console.log('\n— Tipo de ato estruturado (Etapa 3) —');
+
+passo('a lista fechada não tem tipo nem ato secundário repetido', () => {
+  igual(new Set(TIPOS_PRINCIPAIS).size, TIPOS_PRINCIPAIS.length, 'tem tipo principal duplicado');
+  igual(new Set(ATOS_SECUNDARIOS).size, ATOS_SECUNDARIOS.length, 'tem ato secundário duplicado');
+});
+
+// index.html não faz require() de lib/tipos-de-ato.js (é HTML estático, sem
+// build step) — carrega a própria cópia. As duas não podem divergir: se
+// alguém atualizar uma sem a outra, o painel mostra uma lista e o servidor
+// valida contra outra.
+function extrairArrayJS(nomeConst) {
+  const m = htmlFonte.match(new RegExp('const ' + nomeConst + '=(\\[[\\s\\S]*?\\]);'));
+  if (!m) throw new Error('não achei ' + nomeConst + ' no index.html');
+  return Function('return ' + m[1])();
+}
+
+passo('index.html tem a mesma lista de tipo principal que lib/tipos-de-ato.js', () => {
+  igual(JSON.stringify(extrairArrayJS('TIPOS_PRINCIPAIS')), JSON.stringify(TIPOS_PRINCIPAIS));
+});
+
+passo('index.html tem a mesma lista de atos secundários que lib/tipos-de-ato.js', () => {
+  igual(JSON.stringify(extrairArrayJS('ATOS_SECUNDARIOS')), JSON.stringify(ATOS_SECUNDARIOS));
+});
+
+passo('todo tipo principal tem abreviação cadastrada (não cai no fallback genérico)', () => {
+  TIPOS_PRINCIPAIS.forEach(t => {
+    ok(caixa.abreviarTipoAto(t) !== t.toUpperCase(), `"${t}" não tem entrada em ABREVIACOES_TIPO_ATO — vira o nome cru no arquivo do Drive`);
+  });
+});
+
+passo('os dois tipos novos (Usucapião, Escritura Declaratória) têm a abreviação certa', () => {
+  igual(caixa.abreviarTipoAto('Usucapião'), 'USUC.');
+  igual(caixa.abreviarTipoAto('Escritura Declaratória'), 'DECLAR.');
+});
+
+passo('gerarECriarMinuta manda os atos secundários pra IA quando existem, e o prompt sabe o que fazer com eles', () => {
+  ok(/ATOS SECUNDÁRIOS LAVRADOS NA MESMA ESCRITURA/.test(fonte), 'a linha de atos secundários sumiu da montagem da mensagem');
+  ok(/REGRA ABSOLUTA — ATOS SECUNDÁRIOS/.test(fonte), 'o SYSTEM_PROMPT não tem mais a regra de atos secundários (lavrados na mesma escritura)');
 });
 
 console.log('\n' + (erros.length ? `${erros.length} falha(s).` : 'Tudo certo.'));

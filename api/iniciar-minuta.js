@@ -1,4 +1,5 @@
 const https = require("https");
+const { ATOS_SECUNDARIOS } = require("../lib/tipos-de-ato");
 
 const DRIVE_URL = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
 
@@ -53,7 +54,11 @@ module.exports = async (req, res) => {
     // modalidade escolhida (ver gerarAnalise/gerarReeditar no index.html); sem
     // ela, o Apps Script recusa gerar em vez de adivinhar a abertura errada.
     modalidade: dados.modalidade || "",
-    avisosDocumentos: dados.avisosDocumentos || ""
+    avisosDocumentos: dados.avisosDocumentos || "",
+    // Filtra contra a lista fechada (lib/tipos-de-ato.js) — o painel só deixa
+    // marcar um destes pelo checkbox, mas isso é defesa contra um cliente
+    // desatualizado ou uma chamada direta, não desconfiança dela.
+    atosSecundarios: (Array.isArray(dados.atosSecundarios) ? dados.atosSecundarios : []).filter(a => ATOS_SECUNDARIOS.includes(a))
   });
 
   return res.status(200).json({ ok: true, jobId });

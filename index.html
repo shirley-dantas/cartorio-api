@@ -1007,13 +1007,21 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-ident{flex:1;min-width:210px}
 .cx-nome-linha{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:2px}
 .cx-nome{font-family:'Jost',sans-serif;font-weight:400;font-size:19px;line-height:1.25;color:var(--cc-tinta)}
-/* Continua sendo um input editável — só deixou de parecer um campo até
-   receber o foco, que é o que enchia o card de caixinhas. */
+/* Continua editável — só deixou de parecer um campo até receber o foco/hover,
+   que é o que enchia o card de caixinhas. Virou <select> (lista fechada de
+   tipo de ato, Etapa 3) — daí o cursor de escolha em vez de texto. */
 .cx-tipo{font-size:12px;color:var(--cc-tinta-2);border:none;border-bottom:1px solid transparent;
-  background:transparent;font-family:inherit;padding:1px 0;outline:none;cursor:text;width:100%;max-width:420px}
-.cx-tipo::placeholder{color:var(--cc-tinta-3);font-style:italic}
+  background:transparent;font-family:inherit;padding:1px 18px 1px 0;outline:none;cursor:pointer;width:100%;max-width:420px}
 .cx-tipo:hover{border-bottom-color:var(--cc-linha)}
 .cx-tipo:focus{border-bottom-color:var(--cc-champagne);color:var(--cc-tinta)}
+.cx-atos-sec-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.cx-atos-sec-chip{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--cc-sup-2);color:var(--cc-tinta-2);border:1px solid var(--cc-linha)}
+.cx-atos-sec-details{margin-top:5px}
+.cx-atos-sec-details summary{font-size:11px;color:var(--cc-tinta-3);cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:3px}
+.cx-atos-sec-details summary::before{content:'+';font-weight:600}
+.cx-atos-sec-details[open] summary::before{content:'–'}
+.cx-atos-sec-opcoes{display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 0 2px;font-size:11.5px;color:var(--cc-tinta-2)}
+.cx-atos-sec-opcoes label{display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
 .cx-meta-dir{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--cc-tinta-3)}
 
 /* Grade de campos com rótulo: mesma informação de antes, mas legível
@@ -4898,6 +4906,46 @@ window.irParaCasoDoFoco=function(nomeCaso){
   },50);
 };
 
+// ── Tipo de ato estruturado (Etapa 3) ──
+// A lista fechada, mapeada a partir do que já existia solto no código
+// (INSTRUCOES_POR_TIPO e ABREVIACOES_TIPO_ATO no Apps Script, ORC_ATOS aqui
+// mesmo) e confirmada com a Shirley — mesma lista de lib/tipos-de-ato.js,
+// duplicada aqui porque este arquivo não faz require() de nada.
+// Cada card tem UM tipo principal e ZERO OU MAIS atos secundários lavrados
+// na mesma escritura (ver c.atosSecundarios) — "Escritura + Confissão de
+// Dívida" vira Escritura de Compra e Venda com Confissão de Dívida marcada,
+// em vez de um tipo composto em texto livre que só casava com metade das
+// listas de checklist e abreviação.
+const TIPOS_PRINCIPAIS=[
+  'Escritura de Compra e Venda','Doação','Inventário','Divórcio','União Estável',
+  'Procuração','Renúncia','Cessão de Direitos','Pacto Antenupcial','Testamento',
+  'Ata Notarial','Dação em Pagamento','Escritura Declaratória','Usucapião'
+];
+const ATOS_SECUNDARIOS=[
+  'Confissão de Dívida','Garantia (alienação fiduciária ou hipoteca)','Novação',
+  'Usufruto','Cláusula Resolutiva','Procuração (com ou sem valor econômico)',
+  'Ata Notarial','Escritura sem Valor Declarado','Convenção de Condomínio'
+];
+// Select do tipo principal + checkboxes dos atos secundários. Card com tipo
+// antigo (texto livre, de antes desta lista existir) continua mostrando o
+// texto dele numa opção própria — nunca troca sozinho por um item da lista,
+// e some assim que ela escolher um tipo de verdade.
+function cxTipoHtml(c){
+  const tipoAtual=c.tipo||'';
+  const eLegado=tipoAtual&&!TIPOS_PRINCIPAIS.includes(tipoAtual);
+  const opcoes=
+    (!tipoAtual?`<option value="" selected disabled>Tipo de ato — escolha</option>`:'')+
+    (eLegado?`<option value="${esc(tipoAtual)}" selected>${escTxt(tipoAtual)} (texto antigo — escolha um tipo da lista)</option>`:'')+
+    TIPOS_PRINCIPAIS.map(t=>`<option value="${esc(t)}"${tipoAtual===t?' selected':''}>${escTxt(t)}</option>`).join('')+
+    `<option value="__outro__">Outro (digitar)</option>`;
+  const secundarios=c.atosSecundarios||[];
+  const chips=secundarios.length?`<div class="cx-atos-sec-chips">${secundarios.map(a=>`<span class="cx-atos-sec-chip">${escTxt(a)}</span>`).join('')}</div>`:'';
+  const checkboxes=ATOS_SECUNDARIOS.map(a=>`<label><input type="checkbox"${secundarios.includes(a)?' checked':''} onchange="toggleAtoSecundario('${c.id}','${a}',this.checked)"> ${escTxt(a)}</label>`).join('');
+  return `<select class="cx-tipo" onchange="mudarTipoCaso('${c.id}',this)">${opcoes}</select>
+    ${chips}
+    <details class="cx-atos-sec-details"><summary>Ato lavrado junto (opcional)</summary><div class="cx-atos-sec-opcoes">${checkboxes}</div></details>`;
+}
+
 // ── RENDER CASOS ──
 // Campos dos dados do registro, desenhados abertos em todo card.
 const CX_REG=[
@@ -4940,7 +4988,7 @@ function renderCasos(){
       <div class="cx-topo">
         <div class="cx-ident">
           <div class="cx-nome-linha"><span class="cx-nome">${c.nome}</span>${c.concluido?'':bStatus(c.status)}</div>
-          <input type="text" class="cx-tipo" value="${esc(c.tipo)}" placeholder="Tipo de ato (clique para classificar)" onchange="mudarCampo('${c.id}','tipo',this.value)">
+          ${cxTipoHtml(c)}
         </div>
         <div class="cx-meta-dir">
           ${c.prazo&&c.prazo!=='—'?`<span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${esc(c.prazo)}</span>`:''}
@@ -5048,6 +5096,27 @@ window.mudarCampo=function(id,campo,valor){
     sincronizarEventoCalendar(id,{...casos[id],agendado:valor});
     if(valor)abrirSegundaParte(id);
   }
+};
+// O <select> de tipo de ato (Etapa 3): "Outro" pede o texto por prompt em vez
+// de trocar pra um <input> e re-renderizar o card (perderia o foco). Cancelou
+// ou deixou em branco: volta pro valor que já estava, sem apagar nada.
+window.mudarTipoCaso=function(id,selectEl){
+  let valor=selectEl.value;
+  if(valor==='__outro__'){
+    const atual=(casos[id]&&!TIPOS_PRINCIPAIS.includes(casos[id].tipo))?casos[id].tipo:'';
+    const digitado=prompt('Digite o tipo de ato:',atual||'');
+    if(digitado===null||!digitado.trim()){selectEl.value=(casos[id]&&casos[id].tipo)||'';return;}
+    valor=digitado.trim();
+  }
+  mudarCampo(id,'tipo',valor);
+};
+// Atos secundários (Etapa 3): lista de zero ou mais, marcados por checkbox —
+// não passa por mudarCampo porque não é um valor único.
+window.toggleAtoSecundario=function(id,ato,marcado){
+  const c=casos[id];if(!c)return;
+  const atual=c.atosSecundarios||[];
+  const novo=marcado?[...new Set([...atual,ato])]:atual.filter(a=>a!==ato);
+  update(ref(db,`casos/${id}`),{atosSecundarios:novo,atualizado:isoHoje()});
 };
 
 // ── PASTA DO CASO NO DRIVE ──
@@ -6215,7 +6284,7 @@ window.gerarReeditar=async function(){
       }
     }
     setRLoad('Iniciando geração da minuta…');
-    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade,avisosDocumentos:falhas.join('; ')})});
+    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[]})});
     const di=await ri.json();
     if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
     const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
@@ -6331,7 +6400,7 @@ window.gerarAnalise=async function(){
       return;
     }
     setLoading('Iniciando geração da minuta…');
-    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos,modalidade:c.modalidade,avisosDocumentos:falhas.join('; ')})});
+    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[]})});
     const di=await ri.json();
     if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
     const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
