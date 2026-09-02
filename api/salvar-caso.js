@@ -253,16 +253,11 @@ async function enviarBotoes(texto, opcoes) {
 // limite) de forma assíncrona: o WhatsApp dispara o job e segue a conversa;
 // o Apps Script avisa por WhatsApp quando a minuta terminar (ou falhar).
 
-// Devolve {texto, problemas}. `problemas` são documentos que a IA da minuta
-// NÃO vai ver de verdade — sem leitura nenhuma, ou com leitura cortada pelo
-// teto de tokens — para que o aviso chegue no fim (ver gerarMinutaAssincrona)
-// em vez de a minuta sair calada como se tivesse lido tudo.
 async function montarDocumentosTexto(casoId) {
-  if (!casoId) return { texto: "", problemas: [] };
+  if (!casoId) return "";
   const documentos = await httpReq(`https://${FIREBASE_HOST}/casos/${casoId}/documentos.json`, "GET");
-  if (!documentos || typeof documentos !== "object") return { texto: "", problemas: [] };
+  if (!documentos || typeof documentos !== "object") return "";
   const linhas = [];
-  const problemas = [];
   Object.values(documentos).forEach(d => {
     if (!d) return;
     linhas.push(d.tipo === "modelo"
@@ -270,15 +265,9 @@ async function montarDocumentosTexto(casoId) {
       : d.tipo === "minuta_atual"
       ? `\n=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${d.nome} ===`
       : `\n=== DOCUMENTO: ${d.nome} ===`);
-    if (d.texto) {
-      linhas.push(d.texto);
-      if (d.truncado) problemas.push(`${d.nome} (leitura pode estar incompleta)`);
-    } else {
-      linhas.push(`[AVISO: o conteúdo de "${d.nome}" não pôde ser lido automaticamente — não use como fonte de dados deste documento. Confira o arquivo original no Drive.]`);
-      problemas.push(`${d.nome} (não foi possível ler)`);
-    }
+    if (d.texto) linhas.push(d.texto);
   });
-  return { texto: linhas.join("\n"), problemas };
+  return linhas.join("\n");
 }
 
 function dispararGeracaoMinutaAppsScript(payload) {
@@ -301,13 +290,8 @@ async function gerarMinutaAssincrona(sessao) {
   if (!sessao.casoId) return;
   const caso = await httpReq(`https://${FIREBASE_HOST}/casos/${sessao.casoId}.json`, "GET");
   if (!caso) return;
-  const { texto: documentosTexto, problemas } = await montarDocumentosTexto(sessao.casoId);
+  const documentosTexto = await montarDocumentosTexto(sessao.casoId);
   const jobId = Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-  // Modalidade não é assumida: sem ela, o bot já deveria ter perguntado antes
-  // de chegar aqui (ver detectarModalidadeEscolhida na conversa) — mas se por
-  // algum motivo o caso ainda não tem, o Apps Script recebe a lacuna em vez de
-  // "digital" calado, e a minuta sai com a abertura em aberto (______) em vez
-  // de errada.
   await dispararGeracaoMinutaAppsScript({
     acao: "gerar-e-criar-minuta",
     jobId,
@@ -316,30 +300,21 @@ async function gerarMinutaAssincrona(sessao) {
     obs: caso.obs,
     documentos: documentosTexto,
     instrucao: sessao.tipoAtualizacao || "",
-    modalidade: caso.modalidade || "",
-    avisosDocumentos: problemas.join("; "),
+    modalidade: caso.modalidade || "digital",
     casoId: sessao.casoId,
     notificarWhatsApp: true
   });
 }
 
-// Teto de saída da extração. O corte de 1.024 tokens era o motivo de a IA da
-// minuta nunca ler o documento de verdade — só um resumo escrito por outra
-// chamada. Um teto continua existindo (é limite de saída da API), mas agora
-// é generoso e nunca some em silêncio: ver `truncou` em cada função abaixo.
-const EXTRACAO_MAX_TOKENS = 8000;
-
 // Mesma extração jurídica usada para PDF/imagem (extrairTextoPDF), mas a
-// partir de texto puro — usada depois do mammoth ler o .docx. Devolve
-// {texto, truncou}, truncou=true quando a IA parou por bater no teto de
-// tokens (stop_reason==="max_tokens").
+// partir de texto puro — usada depois do mammoth ler o .docx.
 function extrairDadosJuridicosDeTexto(texto) {
   const body = JSON.stringify({
     model: "claude-sonnet-4-6",
-    max_tokens: EXTRACAO_MAX_TOKENS,
+    max_tokens: 1024,
     messages: [{
       role: "user",
-      content: `Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: "TIPO_DOCUMENTO: <tipo>". Na segunda linha, identifique o nome completo da pessoa a quem esse documento pertence/se refere (ex: titular do RG/CNH, parte citada na certidão), no formato exato: "NOME_PESSOA: <nome>" — ou "NOME_PESSOA: N/A" se o documento não for de uma pessoa específica (ex: matrícula de imóvel, IPTU, contrato social). Depois, numa nova linha, transcreva com fidelidade as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Não resuma nem selecione o que parece mais relevante — transcreva tudo que encontrar.\n\nDOCUMENTO:\n${texto}`
+      content: `Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: "TIPO_DOCUMENTO: <tipo>". Na segunda linha, identifique o nome completo da pessoa a quem esse documento pertence/se refere (ex: titular do RG/CNH, parte citada na certidão), no formato exato: "NOME_PESSOA: <nome>" — ou "NOME_PESSOA: N/A" se o documento não for de uma pessoa específica (ex: matrícula de imóvel, IPTU, contrato social). Depois, numa nova linha, extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar.\n\nDOCUMENTO:\n${texto}`
     }]
   });
   return new Promise((resolve) => {
@@ -358,46 +333,40 @@ function extrairDadosJuridicosDeTexto(texto) {
       let data = "";
       res.on("data", d => data += d);
       res.on("end", () => {
-        try {
-          const json = JSON.parse(data);
-          resolve({ texto: json?.content?.[0]?.text || null, truncou: json?.stop_reason === "max_tokens" });
-        }
-        catch { resolve({ texto: null, truncou: false }); }
+        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
+        catch { resolve(null); }
       });
     });
-    req.on("error", () => resolve({ texto: null, truncou: false }));
+    req.on("error", () => resolve(null));
     req.write(body);
     req.end();
   });
 }
 
-// Devolve {texto, truncou}. Um .docx lido pelo mammoth nunca é truncado (é
-// leitura local, sem teto de tokens); só a extração jurídica objetiva pode.
 async function extrairTextoDocx(base64, isModelo) {
   try {
     const mammoth = require("mammoth");
     const buffer = Buffer.from(base64, "base64");
     const resultado = await mammoth.extractRawText({ buffer });
     const textoBruto = (resultado && resultado.value && resultado.value.trim()) || null;
-    if (!textoBruto) return { texto: null, truncou: false };
+    if (!textoBruto) return null;
     // Modelo: o mammoth já dá o texto exato do .docx — não precisa (nem deve)
     // passar pela extração jurídica, que resumiria em vez de transcrever.
-    if (isModelo) return { texto: textoBruto, truncou: false };
-    const extraido = await extrairDadosJuridicosDeTexto(textoBruto);
-    return { texto: extraido.texto || textoBruto, truncou: extraido.truncou };
+    if (isModelo) return textoBruto;
+    const dadosExtraidos = await extrairDadosJuridicosDeTexto(textoBruto);
+    return dadosExtraidos || textoBruto;
   } catch (e) {
-    return { texto: null, truncou: false };
+    return null;
   }
 }
 
-// Devolve {texto, truncou} — mesma convenção de extrairDadosJuridicosDeTexto.
 async function extrairTextoModelo(base64, mimetype) {
   const bloco = mimetype === "application/pdf"
     ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
     : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
   const body = JSON.stringify({
     model: "claude-sonnet-4-6",
-    max_tokens: EXTRACAO_MAX_TOKENS,
+    max_tokens: 4000,
     messages: [{
       role: "user",
       content: [
@@ -425,24 +394,20 @@ async function extrairTextoModelo(base64, mimetype) {
       let data = "";
       res.on("data", d => data += d);
       res.on("end", () => {
-        try {
-          const json = JSON.parse(data);
-          resolve({ texto: json?.content?.[0]?.text || null, truncou: json?.stop_reason === "max_tokens" });
-        }
-        catch { resolve({ texto: null, truncou: false }); }
+        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
+        catch { resolve(null); }
       });
     });
-    req.on("error", () => resolve({ texto: null, truncou: false }));
+    req.on("error", () => resolve(null));
     req.write(body);
     req.end();
   });
 }
 
-// Devolve {texto, truncou} — mesma convenção de extrairDadosJuridicosDeTexto.
 async function extrairTextoPDF(base64, mimetype) {
   const body = JSON.stringify({
     model: "claude-sonnet-4-6",
-    max_tokens: EXTRACAO_MAX_TOKENS,
+    max_tokens: 1024,
     messages: [{
       role: "user",
       content: [
@@ -452,7 +417,7 @@ async function extrairTextoPDF(base64, mimetype) {
         },
         {
           type: "text",
-          text: "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Na segunda linha, identifique o nome completo da pessoa a quem esse documento pertence/se refere (ex: titular do RG/CNH, parte citada na certidão), no formato exato: \"NOME_PESSOA: <nome>\" — ou \"NOME_PESSOA: N/A\" se o documento não for de uma pessoa específica (ex: matrícula de imóvel, IPTU, contrato social). Depois, numa nova linha, transcreva com fidelidade as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Não resuma nem selecione o que parece mais relevante — transcreva tudo que encontrar."
+          text: "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Na segunda linha, identifique o nome completo da pessoa a quem esse documento pertence/se refere (ex: titular do RG/CNH, parte citada na certidão), no formato exato: \"NOME_PESSOA: <nome>\" — ou \"NOME_PESSOA: N/A\" se o documento não for de uma pessoa específica (ex: matrícula de imóvel, IPTU, contrato social). Depois, numa nova linha, extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar."
         }
       ]
     }]
@@ -473,14 +438,11 @@ async function extrairTextoPDF(base64, mimetype) {
       let data = "";
       res.on("data", d => data += d);
       res.on("end", () => {
-        try {
-          const json = JSON.parse(data);
-          resolve({ texto: json?.content?.[0]?.text || null, truncou: json?.stop_reason === "max_tokens" });
-        }
-        catch { resolve({ texto: null, truncou: false }); }
+        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
+        catch { resolve(null); }
       });
     });
-    req.on("error", () => resolve({ texto: null, truncou: false }));
+    req.on("error", () => resolve(null));
     req.write(body);
     req.end();
   });
@@ -539,11 +501,9 @@ async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, tipoForca
   // Extrai antes de nomear o arquivo, pra poder usar o tipo do documento (RG,
   // matrícula, etc.) no nome — sem isso, vários anexos na mesma sessão
   // ficavam com nomes praticamente idênticos (só cliente + minuto).
-  const extraido = podeExtrair
+  const textoExtraido = podeExtrair
     ? await (isDocx ? extrairTextoDocx(resultado.base64, preservarIntegral) : (preservarIntegral ? extrairTextoModelo(resultado.base64, mime) : extrairTextoPDF(resultado.base64, mime)))
-    : { texto: null, truncou: false };
-  const textoExtraido = extraido.texto;
-  const truncou = extraido.truncou;
+    : null;
 
   // Nome do arquivo é o tipo do documento (ex: "CNH.pdf", "MATRICULA.pdf"),
   // com o nome da pessoa quando a IA identificar uma (ex: "RG_JOAO_DA_SILVA.pdf")
@@ -562,11 +522,10 @@ async function salvarDocumentoRecebido(sessao, dadosEvt, tipoMensagem, tipoForca
       nome: nomeArquivo,
       tipo: tipoForcado === "modelo" ? "modelo" : tipoForcado === "minuta_atual" ? "minuta_atual" : ext,
       salvoEm: new Date().toISOString(),
-      ...(textoExtraido ? { texto: textoExtraido } : {}),
-      ...(truncou ? { truncado: true } : {})
+      ...(textoExtraido ? { texto: textoExtraido } : {})
     });
   }
-  return { ok: true, preservarIntegral, textoExtraido, truncou };
+  return { ok: true, preservarIntegral, textoExtraido };
 }
 
 // ══ HANDLER VERCEL — DIÁLOGO GUIADO ═══════════════════════════════
