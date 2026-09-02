@@ -2242,6 +2242,15 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="modal-title"><i class="ti ti-file-text" style="font-size:15px;vertical-align:-2px;color:#0D47A1"></i> Assistente de Análise e Minuta</div>
     <div class="modal-sub" id="modal-caso-info">—</div>
     <div id="minuta-form">
+      <div id="modal-aviso-modalidade" style="display:none;background:#FFF3E0;border:1px solid #FFB74D;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#7A4A00">
+        <b>Este caso ainda não tem modalidade definida.</b> Escolha antes de gerar — decide a abertura e o encerramento da escritura (videoconferência, presencial ou os dois):
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button type="button" class="btn-sm" onclick="minutaEscolherModalidade('digital')">Digital</button>
+          <button type="button" class="btn-sm" onclick="minutaEscolherModalidade('hibrida')">Híbrida</button>
+          <button type="button" class="btn-sm" onclick="minutaEscolherModalidade('presencial')">Presencial</button>
+        </div>
+      </div>
+      <div id="modal-avisos-docs" style="display:none;background:#FFF3E0;border:1px solid #FFB74D;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#7A4A00"></div>
       <label class="modal-label" id="modal-label-docs">Documentos e informações do caso (carregando...)</label>
       <textarea class="modal-textarea" id="modal-docs" placeholder="Ex: Matrícula nº 12345 — Proprietário: João da Silva, CPF 000.000.000-00, casado com Maria Silva em comunhão parcial de bens...&#10;&#10;Cole quantas informações tiver. Quanto mais detalhes, melhor a análise."></textarea>
 
@@ -2310,6 +2319,14 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <button class="modal-close" onclick="fecharReeditar()">&times;</button>
     <div class="modal-title"><i class="ti ti-edit" style="font-size:15px;vertical-align:-2px;color:#6A1B9A"></i> Reeditar Minuta</div>
     <div class="modal-sub" id="reeditar-caso-info">—</div>
+    <div id="reeditar-aviso-modalidade" style="display:none;background:#FFF3E0;border:1px solid #FFB74D;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#7A4A00">
+      <b>Este caso ainda não tem modalidade definida.</b> Escolha antes de gerar — decide a abertura e o encerramento da escritura (videoconferência, presencial ou os dois):
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button type="button" class="btn-sm" onclick="reeditarEscolherModalidade('digital')">Digital</button>
+        <button type="button" class="btn-sm" onclick="reeditarEscolherModalidade('hibrida')">Híbrida</button>
+        <button type="button" class="btn-sm" onclick="reeditarEscolherModalidade('presencial')">Presencial</button>
+      </div>
+    </div>
     <label class="modal-label">O que você quer alterar, acrescentar ou retirar na minuta?</label>
     <textarea class="modal-textarea" id="reeditar-instrucao" placeholder="Ex: Acrescentar cláusula de usufruto vitalício em favor do vendedor&#10;Ex: Alterar forma de pagamento para financiamento bancário&#10;Ex: Incluir dados do imóvel: matrícula 12345, Cartório do 5º RI"></textarea>
     <label class="modal-label">Minuta pronta atual (Word/PDF) — opcional, mas se anexar será seguida à risca, sem tirar nada</label>
@@ -5377,6 +5394,24 @@ window.desfazerObs=function(id){
   if(!c||!c.obsAnterior)return;
   update(ref(db,`casos/${id}`),{obs:c.obsAnterior,obsAnterior:'',atualizado:isoHoje()});
 };
+// Documentos do card sem `texto` (não pôde ler) ou com `truncado:true`
+// (leitura pode estar incompleta) — populado por abrirMinuta, consultado
+// por gerarAnalise antes de mandar gerar. Nunca vira uma linha silenciosa
+// como "(Arquivo PDF — salvo no Drive em ...)" sem ninguém saber.
+let minutaDocsProblema=[];
+function minutaRenderAvisoDocs(){
+  const el=document.getElementById('modal-avisos-docs');
+  if(!el)return;
+  if(!minutaDocsProblema.length){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='block';
+  el.innerHTML='<b>A IA pode não enxergar tudo isto:</b><ul style="margin:6px 0 0;padding-left:18px">'+
+    minutaDocsProblema.map(m=>`<li>${escTxt(m)}</li>`).join('')+'</ul>';
+}
+function minutaRenderAvisoModalidade(c){
+  const el=document.getElementById('modal-aviso-modalidade');
+  if(!el)return;
+  el.style.display=c.modalidade?'none':'block';
+}
 window.abrirMinuta=async function(id){
   const c=casos[id];if(!c)return;
   document.getElementById('modal-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
@@ -5394,6 +5429,9 @@ window.abrirMinuta=async function(id){
   minutaArquivosDoc=[];
   minutaTextoExtraido.clear();
   renderMinutaChips();
+  minutaDocsProblema=[];
+  minutaRenderAvisoDocs();
+  minutaRenderAvisoModalidade(c);
   mbEstado={id,perguntas:[],respostas:[],i:0};
   mbMostrarBot(false);
   document.getElementById('modal-minuta').classList.add('open');
@@ -5410,8 +5448,13 @@ window.abrirMinuta=async function(id){
           linhas.push(d.tipo==='modelo'
             ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
             : `\n=== DOCUMENTO: ${d.nome} ===`);
-          if(d.texto) linhas.push(d.texto);
-          else linhas.push(`(Arquivo ${d.tipo.toUpperCase()} — salvo no Drive em ${new Date(d.salvoEm).toLocaleString('pt-BR')})`);
+          if(d.texto){
+            linhas.push(d.texto);
+            if(d.truncado)minutaDocsProblema.push(`${d.nome}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+          } else {
+            linhas.push(`(Arquivo ${d.tipo.toUpperCase()} — salvo no Drive em ${new Date(d.salvoEm).toLocaleString('pt-BR')}, mas não foi possível ler o conteúdo)`);
+            minutaDocsProblema.push(`${d.nome}: não foi possível ler o conteúdo — a IA só sabe que ele existe`);
+          }
         });
       }
     }
@@ -5420,6 +5463,7 @@ window.abrirMinuta=async function(id){
       (docs && Object.keys(docs).length>0)
         ? 'Informações do caso e documentos já recebidos — pode editar e acrescentar o que faltar:'
         : 'Informações do caso — escreva o que já souber, responda as perguntas abaixo ou anexe documentos:';
+    minutaRenderAvisoDocs();
   } catch {
     document.getElementById('modal-label-docs').textContent='Documentos e informações do caso:';
     if(c.obs) document.getElementById('modal-docs').value=c.obs;
@@ -5460,6 +5504,23 @@ function renderMinutaChips(){
 window.minutaRemoverArquivo=function(campo,i){
   (campo==='modelo'?minutaArquivosModelo:minutaArquivosDoc).splice(i,1);
   renderMinutaChips();
+};
+// Grava a modalidade escolhida no aviso do modal de Gerar/Reeditar — mesmo
+// caminho que o bot de perguntas já usa (ver mbProxima) quando ela responde
+// pela lista de perguntas.
+window.minutaEscolherModalidade=function(mod){
+  const id=document.getElementById('btn-gerar').dataset.id;
+  if(!id)return;
+  update(ref(db,`casos/${id}`),{modalidade:mod}).catch(()=>{});
+  if(casos[id])casos[id].modalidade=mod;
+  document.getElementById('modal-aviso-modalidade').style.display='none';
+};
+window.reeditarEscolherModalidade=function(mod){
+  const id=document.getElementById('btn-reeditar-gerar').dataset.id;
+  if(!id)return;
+  update(ref(db,`casos/${id}`),{modalidade:mod}).catch(()=>{});
+  if(casos[id])casos[id].modalidade=mod;
+  document.getElementById('reeditar-aviso-modalidade').style.display='none';
 };
 document.getElementById('minuta-arquivo-modelo-input').addEventListener('change',function(){
   minutaArquivosModelo.push(...Array.from(this.files));
@@ -5504,8 +5565,9 @@ window.iniciarPerguntasMinuta=async function(){
     for(let i=0;i<anexos.length;i++){
       btn.innerHTML=`<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> Lendo anexo ${i+1} de ${anexos.length}…`;
       try{
-        const texto=await textoDoAnexo(anexos[i].f,anexos[i].integral);
-        if(texto)partes.push(`=== ${anexos[i].rot}: ${anexos[i].f.name} ===\n${texto}`);
+        const r=await textoDoAnexo(anexos[i].f,anexos[i].integral);
+        if(r.texto)partes.push(`=== ${anexos[i].rot}: ${anexos[i].f.name} ===\n${r.texto}`);
+        if(r.truncou)naoLidos.push(`${anexos[i].f.name} (leitura pode estar incompleta)`);
       }catch(e){
         naoLidos.push(anexos[i].f.name);
       }
@@ -5694,6 +5756,11 @@ document.getElementById('reeditar-arquivo-doc-input').addEventListener('change',
   this.value='';
   renderReeditarChips();
 });
+function reeditarRenderAvisoModalidade(c){
+  const el=document.getElementById('reeditar-aviso-modalidade');
+  if(!el)return;
+  el.style.display=c.modalidade?'none':'block';
+}
 window.abrirReeditar=async function(id){
   const c=casos[id];if(!c)return;
   document.getElementById('reeditar-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
@@ -5708,6 +5775,7 @@ window.abrirReeditar=async function(id){
   document.getElementById('btn-abrir-reeditar').style.display='inline-block';
   document.getElementById('btn-reeditar-gerar').disabled=false;
   document.getElementById('btn-reeditar-gerar').dataset.id=id;
+  reeditarRenderAvisoModalidade(c);
   document.getElementById('modal-reeditar').classList.add('open');
 };
 window.fecharReeditar=function(){
@@ -5884,20 +5952,23 @@ const extrairDocxNoNavegador=(file)=>new Promise((resolve,reject)=>{
   r.onerror=()=>reject(erroDeLeitura(file));
   r.readAsArrayBuffer(file);
 });
+// Devolve {texto, truncou}. truncou=true quando a extração bateu no teto de
+// tokens da IA (ver api/extrair-texto-arquivo.js) — a leitura pode estar
+// incompleta, e quem chama isso precisa saber, nunca em silêncio.
 async function extrairArquivo(file,preservarIntegral){
   if(ehDocx(file)){
     let textoBruto;
     try{ textoBruto=await extrairDocxNoNavegador(file); }
     catch(e){ throw new Error(`Não consegui ler o arquivo Word "${file.name}".`); }
-    if(!textoBruto) return '';
-    if(preservarIntegral) return textoBruto;
+    if(!textoBruto) return {texto:'',truncou:false};
+    if(preservarIntegral) return {texto:textoBruto,truncou:false};
     // Documento de apoio: ainda passa por uma extração jurídica objetiva —
     // mas envia só o TEXTO (pequeno), não o arquivo, então o limite de
     // tamanho de envio não se aplica aqui.
     const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({textoBruto,nomeArquivo:file.name})});
     const j=await resp.json();
     if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
-    return j.texto||textoBruto;
+    return {texto:j.texto||textoBruto,truncou:!!j.truncou};
   }
   // PDF/imagem: precisa mesmo enviar o arquivo (a IA lê o documento visualmente).
   if(file.size>3.5*1024*1024){
@@ -5914,7 +5985,7 @@ async function extrairArquivo(file,preservarIntegral){
   try{ j=await resp.json(); }
   catch(e){ throw new Error(`O arquivo "${file.name}" é grande demais ou o servidor recusou o envio. Tente um arquivo menor.`); }
   if(!j.ok) throw new Error(j.erro||`Não consegui ler o arquivo "${file.name}".`);
-  return j.texto||'';
+  return {texto:j.texto||'',truncou:!!j.truncou};
 }
 
 async function aguardarJobFirebase(jobId,onTick){
@@ -5953,9 +6024,20 @@ window.gerarReeditar=async function(){
     document.getElementById('btn-abrir-reeditar').href='#';
     document.getElementById('reeditar-doc-nome').textContent=msg;
   };
+  // Ato sem modalidade definida saía com "digital" calado. Não assume: pede
+  // pra escolher antes de gerar (aviso já visível no modal, ver abrirReeditar).
+  if(!c.modalidade){
+    reeditarRenderAvisoModalidade(c);
+    document.getElementById('reeditar-aviso-modalidade')?.scrollIntoView({behavior:'smooth',block:'center'});
+    document.getElementById('btn-reeditar-gerar').disabled=false;
+    return;
+  }
   try{
     const arqsMinuta=reeditarArquivosMinuta;
     const arqsDoc=reeditarArquivosDoc;
+    // Documento sem texto (não pôde ler, ou leitura truncada) nunca vira uma
+    // linha silenciosa — some daqui e vira aviso, com confirmação antes de gerar.
+    const falhas=[];
 
     let docsTexto='';
     if(arqsMinuta.length){
@@ -5966,14 +6048,17 @@ window.gerarReeditar=async function(){
       const partesMinuta=[];
       for(let i=0;i<arqsMinuta.length;i++){
         setRLoad(`Lendo a minuta pronta anexada (${i+1} de ${arqsMinuta.length})…`);
-        partesMinuta.push(await extrairArquivo(arqsMinuta[i],true));
+        const r=await extrairArquivo(arqsMinuta[i],true);
+        partesMinuta.push(r.texto);
+        if(r.truncou)falhas.push(`${arqsMinuta[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
       }
       const nomesMinuta=arqsMinuta.map(f=>f.name).join(', ');
       const blocos=[`=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${nomesMinuta} ===\n${partesMinuta.join('\n\n')}`];
       for(let i=0;i<arqsDoc.length;i++){
         setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
-        const textoDoc=await extrairArquivo(arqsDoc[i],false);
-        blocos.push(`=== DOCUMENTO: ${arqsDoc[i].name} ===\n${textoDoc}`);
+        const r=await extrairArquivo(arqsDoc[i],false);
+        blocos.push(`=== DOCUMENTO: ${arqsDoc[i].name} ===\n${r.texto}`);
+        if(r.truncou)falhas.push(`${arqsDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
       }
       docsTexto=blocos.join('\n\n');
     } else {
@@ -5988,19 +6073,33 @@ window.gerarReeditar=async function(){
             linhas.push(d.tipo==='modelo'
               ? `\n=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===`
               : `\n=== DOCUMENTO: ${d.nome} ===`);
-            if(d.texto) linhas.push(d.texto);
+            if(d.texto){
+              linhas.push(d.texto);
+              if(d.truncado)falhas.push(`${d.nome}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+            } else {
+              falhas.push(`${d.nome}: não foi possível ler o conteúdo — a IA só sabe que ele existe`);
+            }
           });
         }
         docsTexto=linhas.join('\n');
       }catch(e){docsTexto=c.obs||'';}
       for(let i=0;i<arqsDoc.length;i++){
         setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
-        const textoDoc=await extrairArquivo(arqsDoc[i],false);
-        docsTexto+=`\n\n=== DOCUMENTO: ${arqsDoc[i].name} ===\n${textoDoc}`;
+        const r=await extrairArquivo(arqsDoc[i],false);
+        docsTexto+=`\n\n=== DOCUMENTO: ${arqsDoc[i].name} ===\n${r.texto}`;
+        if(r.truncou)falhas.push(`${arqsDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+      }
+    }
+    if(falhas.length){
+      const seguir=confirm(`Atenção com estes documentos:\n\n• ${falhas.join('\n• ')}\n\nGerar mesmo assim?`);
+      if(!seguir){
+        setRErro(`Geração cancelada. ${falhas.join(' | ')}`);
+        document.getElementById('btn-reeditar-gerar').disabled=false;
+        return;
       }
     }
     setRLoad('Iniciando geração da minuta…');
-    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade||'digital'})});
+    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade,avisosDocumentos:falhas.join('; ')})});
     const di=await ri.json();
     if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
     const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
@@ -6010,11 +6109,19 @@ window.gerarReeditar=async function(){
     rLoad.style.display='none';
     document.getElementById('reeditar-result').style.display='block';
     if(d2.ok&&d2.docUrl){
-      document.getElementById('reeditar-result-titulo').textContent='✅ Nova versão gerada com sucesso!';
-      document.getElementById('reeditar-result-titulo').style.color='#1B5E20';
+      // Mesma regra do Gerar: truncada ou com ressalva não é anunciada como sucesso limpo.
+      const temAviso=d2.truncada||(d2.avisos&&d2.avisos.length);
+      if(temAviso){
+        document.getElementById('reeditar-result-titulo').textContent='⚠️ Nova versão gerada — confira antes de usar';
+        document.getElementById('reeditar-result-titulo').style.color='#B71C1C';
+      } else {
+        document.getElementById('reeditar-result-titulo').textContent='✅ Nova versão gerada com sucesso!';
+        document.getElementById('reeditar-result-titulo').style.color='#1B5E20';
+      }
       document.getElementById('btn-abrir-reeditar').style.display='inline-block';
       document.getElementById('btn-abrir-reeditar').href=d2.docUrl;
-      document.getElementById('reeditar-doc-nome').textContent=d2.docNome||'';
+      const avisos=[...(d2.truncada?['A geração pode ter parado antes do fim (bateu no limite de rodadas) — confira o final do documento.']:[]),...(d2.avisos||[])];
+      document.getElementById('reeditar-doc-nome').textContent=[d2.docNome||'',...avisos].filter(Boolean).join(' — ');
       update(ref(db,'casos/'+id),{...(d2.folderUrl?{driveUrl:d2.folderUrl}:{}),docUrl:d2.docUrl}).catch(()=>{});
     } else {
       setRErro(d2.erro||'Não foi possível salvar no Drive.');
@@ -6050,33 +6157,47 @@ window.gerarAnalise=async function(){
     document.getElementById('modal-doc-nome').textContent=msg;
     document.getElementById('modal-result-text').style.display='none';
   };
+  // Ato sem modalidade definida saía com "digital" calado — o que troca a
+  // abertura e o encerramento inteiros de uma escritura presencial. Não
+  // assume: pede pra escolher antes de gerar (aviso já visível no modal).
+  if(!c.modalidade){
+    minutaRenderAvisoModalidade(c);
+    document.getElementById('modal-aviso-modalidade')?.scrollIntoView({behavior:'smooth',block:'center'});
+    document.getElementById('btn-gerar').disabled=false;
+    return;
+  }
   try{
     // Anexos entram como blocos com o mesmo cabeçalho que o Apps Script já
     // reconhece: o modelo com as regras de fidelidade, os documentos como
     // fonte de dado do caso.
     const blocos=docs?[docs]:[];
-    const falhas=[];
+    // Junta anexos ilegíveis/truncados desta sessão com os que já vieram
+    // problemáticos do card (minutaDocsProblema, montado por abrirMinuta) —
+    // um documento sem leitura nunca vira uma minuta silenciosamente incompleta.
+    const falhas=[...minutaDocsProblema];
     for(let i=0;i<minutaArquivosModelo.length;i++){
       setLoading(`Lendo a minuta modelo (${i+1} de ${minutaArquivosModelo.length})…`);
       try{
-        const texto=await textoDoAnexo(minutaArquivosModelo[i],true);
-        if(texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${minutaArquivosModelo[i].name} ===\n${texto}`);
+        const r=await textoDoAnexo(minutaArquivosModelo[i],true);
+        if(r.texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${minutaArquivosModelo[i].name} ===\n${r.texto}`);
+        if(r.truncou)falhas.push(`${minutaArquivosModelo[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
       }catch(e){falhas.push(`${minutaArquivosModelo[i].name}: ${descreverErro(e,'ler a minuta modelo')}`);}
     }
     for(let i=0;i<minutaArquivosDoc.length;i++){
       setLoading(`Lendo documento ${i+1} de ${minutaArquivosDoc.length}…`);
       try{
-        const texto=await textoDoAnexo(minutaArquivosDoc[i],false);
-        if(texto)blocos.push(`=== DOCUMENTO: ${minutaArquivosDoc[i].name} ===\n${texto}`);
+        const r=await textoDoAnexo(minutaArquivosDoc[i],false);
+        if(r.texto)blocos.push(`=== DOCUMENTO: ${minutaArquivosDoc[i].name} ===\n${r.texto}`);
+        if(r.truncou)falhas.push(`${minutaArquivosDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
       }catch(e){falhas.push(`${minutaArquivosDoc[i].name}: ${descreverErro(e,'ler um documento anexado')}`);}
     }
     // Um anexo ilegível derrubava a geração inteira. Agora ela pode seguir sem
     // ele — mas nunca em silêncio: uma minuta feita sem um documento que você
     // achou que entrou é pior que uma minuta que não saiu.
     if(falhas.length){
-      const seguir=confirm(`Não consegui ler ${falhas.length===1?'este anexo':'estes anexos'}:\n\n• ${falhas.join('\n• ')}\n\nGerar a minuta sem ${falhas.length===1?'ele':'eles'}?`);
+      const seguir=confirm(`Atenção com estes documentos:\n\n• ${falhas.join('\n• ')}\n\nGerar a minuta mesmo assim?`);
       if(!seguir){
-        setErro(`Geração cancelada. ${falhas.length===1?'O anexo não pôde ser lido':'Os anexos não puderam ser lidos'}: ${falhas.join(' | ')}`);
+        setErro(`Geração cancelada. ${falhas.join(' | ')}`);
         document.getElementById('btn-gerar').disabled=false;
         return;
       }
@@ -6094,7 +6215,7 @@ window.gerarAnalise=async function(){
       return;
     }
     setLoading('Iniciando geração da minuta…');
-    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos,modalidade:c.modalidade||'digital'})});
+    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos,modalidade:c.modalidade,avisosDocumentos:falhas.join('; ')})});
     const di=await ri.json();
     if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
     const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
@@ -6104,10 +6225,21 @@ window.gerarAnalise=async function(){
     loading.style.display='none';
     document.getElementById('modal-result').style.display='block';
     if(d2.ok&&d2.docUrl){
-      setOk();
+      // Minuta truncada na 6ª rodada, ou com ressalva da conferência (seção de
+      // encerramento faltando, abertura incompatível com a modalidade, marcador
+      // sem fechar) nunca sai anunciada como sucesso limpo — o documento existe
+      // e o link funciona, mas a tela precisa dizer que tem o que conferir.
+      const temAviso=d2.truncada||(d2.avisos&&d2.avisos.length);
+      if(temAviso){
+        titulo.textContent='⚠️ Minuta gerada — confira antes de usar';
+        titulo.style.color='#B71C1C';
+      } else {
+        setOk();
+      }
       document.getElementById('btn-abrir-doc').href=d2.docUrl;
       document.getElementById('btn-abrir-doc').style.display='inline-block';
-      document.getElementById('modal-doc-nome').textContent=d2.docNome||'';
+      const avisos=[...(d2.truncada?['A geração pode ter parado antes do fim (bateu no limite de rodadas) — confira o final do documento.']:[]),...(d2.avisos||[])];
+      document.getElementById('modal-doc-nome').textContent=[d2.docNome||'',...avisos].filter(Boolean).join(' — ');
       document.getElementById('modal-result-text').style.display='none';
       document.getElementById('btn-copiar-rel').style.display='none';
       update(ref(db,'casos/'+id),{...(d2.folderUrl?{driveUrl:d2.folderUrl}:{}),docUrl:d2.docUrl}).catch(()=>{});
