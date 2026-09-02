@@ -367,6 +367,10 @@ function buscarModeloAprendido(tipo) {
 // modelo. Este teto é só um limite de segurança (evita um caso extremo travar
 // a gravação no Firebase); quando bate, fica declarado em `truncado`.
 const MODELO_APRENDIDO_MAX_CHARS = 100000;
+// `tipo` fica gravado por extenso (tipoOriginal), além da chave normalizada
+// — a chave (ex: "escritura-de-compra-e-venda") é o que indexa o registro,
+// mas é o tipoOriginal que a tela de curadoria mostra pra ela reconhecer do
+// que se trata.
 function salvarModeloAprendido(tipo, texto, nomeCaso) {
   try {
     const chave = chaveTipo(tipo);
@@ -377,12 +381,44 @@ function salvarModeloAprendido(tipo, texto, nomeCaso) {
       payload: JSON.stringify({
         texto: truncou ? texto.slice(0, MODELO_APRENDIDO_MAX_CHARS) : texto,
         truncado: truncou,
+        tipoOriginal: tipo || "",
         origemCaso: nomeCaso || "",
         atualizado: new Date().toISOString()
       }),
       muteHttpExceptions: true
     });
   } catch (e) {}
+}
+
+// Mesma ideia do extrairIdPasta (mais abaixo), mas para o link de um Google
+// Doc: .../document/d/ID/edit, .../document/d/ID/edit?usp=..., ou o id sozinho.
+function extrairIdDocumento(referencia) {
+  var s = String(referencia || "").trim();
+  if (!s) return "";
+  var m = s.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
+  return "";
+}
+
+// ── Curadoria do modelo aprendido (Etapa 2) ─────────────────────────────
+// Antes, TODA minuta gerada virava o modelo do tipo — boa ou ruim (uma
+// minuta com trinta ______ virava a referência do próximo caso). Agora só
+// entra quando ela decide, clicando em "Marcar como modelo" no painel.
+// Lê o texto ATUAL do Doc, não o que a IA gerou originalmente: se ela editou
+// antes de marcar, é a versão editada — a boa de verdade — que vira modelo.
+function marcarModelo(dados) {
+  try {
+    var docId = extrairIdDocumento(dados.docUrl || "");
+    if (!docId) return resp({ ok: false, erro: "Não reconheci o link do documento." });
+    var doc = DocumentApp.openById(docId);
+    var texto = doc.getBody().getText().trim();
+    if (!texto) return resp({ ok: false, erro: "O documento está vazio." });
+    salvarModeloAprendido(dados.tipo, texto, dados.nome);
+    return resp({ ok: true });
+  } catch (err) {
+    return resp({ ok: false, erro: err.message });
+  }
 }
 
 function parsearResposta(texto) {
@@ -679,6 +715,7 @@ function doPost(e) {
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
+    if (acao === "marcar-modelo") return marcarModelo(dados);
     if (acao === "sincronizar-evento-calendar") return sincronizarEventoCalendar(dados);
     if (acao === "excluir-evento-calendar") return excluirEventoCalendar(dados);
     return resp({ ok: false, erro: "Ação desconhecida" });
@@ -790,8 +827,10 @@ function gerarECriarMinuta(dados) {
       comentarios: parsed.comentarios
     });
 
-    // Aprende com essa minuta: vira a referência automática do tipo para os próximos casos
-    salvarModeloAprendido(dados.tipo, parsed.minuta, dados.nome);
+    // Curadoria (Etapa 2): NÃO aprende sozinho mais. Toda minuta gerada virava
+    // modelo antes — boa ou ruim — e é a explicação mais provável de "a minuta
+    // não segue os modelos". Agora só entra quando ela mesma marca uma minuta
+    // pronta como modelo (ação "marcar-modelo", ver marcarModelo acima).
 
     // Nada aqui sai calado: minuta truncada na 6ª rodada, seção obrigatória de
     // encerramento faltando, abertura incompatível com a modalidade ou

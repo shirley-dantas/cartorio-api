@@ -1995,6 +1995,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <button type="button" class="sidebar-item" onclick="abrirQuadro()"><i class="ti ti-chart-histogram"></i><span>O quadro</span></button>
     <button type="button" class="sidebar-item" onclick="abrirRadar()"><i class="ti ti-scale"></i><span>Radar jurídico</span></button>
     <button type="button" class="sidebar-item" onclick="abrirOrcamentos()"><i class="ti ti-calculator"></i><span>Orçamentos</span></button>
+    <button type="button" class="sidebar-item" onclick="abrirModelos()"><i class="ti ti-stack-2"></i><span>Modelos aprendidos</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Atividades')"><i class="ti ti-list-check"></i><span>Atividades</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Processos')"><i class="ti ti-briefcase"></i><span>Processos</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Minutas')"><i class="ti ti-file-text"></i><span>Minutas</span><span class="em-breve">em breve</span></button>
@@ -2365,6 +2366,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="modal-sub" id="auditoria-caso-info">—</div>
     <p style="font-size:12px;color:#636366;margin:0 0 12px">Conferência automática, feita depois da minuta pronta: nome, CPF, RG, matrícula, área e número por extenso × algarismo, contra os documentos do caso. Não reescreve nada — é só um alerta pra você conferir.</p>
     <ul id="auditoria-lista" style="margin:0;padding-left:18px;font-size:13px;color:var(--cc-tinta);line-height:1.5"></ul>
+  </div>
+</div>
+
+<!-- Modal Modelos aprendidos (Etapa 2) -->
+<div class="modal-overlay" id="modal-modelos">
+  <div class="modal-box">
+    <button class="modal-close" onclick="fecharModelos()">&times;</button>
+    <div class="modal-title"><i class="ti ti-stack-2" style="font-size:15px;vertical-align:-2px;color:#16283A"></i> Modelos aprendidos</div>
+    <div class="modal-sub">A referência automática de cada tipo de ato — só entra aqui quando você marca uma minuta pronta como modelo, num card.</div>
+    <div id="modelos-lista"></div>
   </div>
 </div>
 
@@ -5016,6 +5027,7 @@ function renderCasos(){
         <button class="cx-btn" onclick="toggleObs('${c.id}')"><i class="ti ti-notes"></i> Obs</button>
         ${c.segundaParte&&(c.segundaParte.status==='pendente'||c.segundaParte.status==='lembrete')?`<button class="cx-btn destaque" onclick="abrirSegundaParte('${c.id}')"><i class="ti ti-users"></i> Assinatura da 2ª parte</button>`:''}
         <button class="cx-btn" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit"></i> Reeditar</button>
+        ${c.docUrl?`<button class="cx-btn" onclick="marcarModeloDoCaso('${c.id}')" title="Usa a minuta atual como referência automática para o tipo de ato"><i class="ti ti-stack-2"></i> Marcar como modelo</button>`:''}
         <button class="cx-btn" onclick="abrirAtendimento('${c.id}')"><i class="ti ti-headset"></i> Atendimento</button>
         <button class="cx-btn perigo" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash"></i> Excluir</button>
         <button class="cx-btn concluir" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
@@ -5819,6 +5831,71 @@ window.abrirAuditoria=function(id){
 };
 window.fecharAuditoria=function(){
   document.getElementById('modal-auditoria').classList.remove('open');
+};
+
+// ── Curadoria do modelo aprendido (Etapa 2) ──
+// Antes, toda minuta gerada virava o modelo do tipo, boa ou ruim. Agora só
+// entra quando ela marca uma minuta pronta como modelo, e esta tela é onde
+// ela vê o que está valendo hoje e apaga o que não presta mais.
+window.marcarModeloDoCaso=async function(id){
+  const c=casos[id];
+  if(!c||!c.docUrl){alert('Este caso ainda não tem uma minuta gerada.');return;}
+  if(!confirm(`Marcar a minuta atual de "${c.nome}" como o modelo de referência do tipo "${c.tipo||'não definido'}"?\n\nAs próximas minutas desse tipo passam a seguir esta como referência de estrutura e estilo — troca o modelo anterior, se houver.`))return;
+  try{
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'marcar-modelo',docUrl:c.docUrl,tipo:c.tipo,nome:c.nome})});
+    const d=await r.json();
+    if(d&&d.ok){
+      alert('Modelo atualizado! As próximas minutas deste tipo vão seguir esta como referência.');
+    }else{
+      const erro=(d&&d.erro)||'motivo desconhecido';
+      alert(/a[çc][ãa]o desconhecida/i.test(erro)
+        ?'O Apps Script publicado ainda não conhece esta ação.\n\nAtualize o código lá em script.google.com com o arquivo apps-script/cartorio-drive-api.js e implante uma nova versão (Implantar > Gerenciar implantações > editar > Nova versão).'
+        :'Não consegui marcar como modelo: '+erro);
+    }
+  }catch(e){
+    alert('Não consegui falar com o Apps Script agora. Tente de novo.');
+  }
+};
+window.abrirModelos=async function(){
+  document.getElementById('modal-modelos').classList.add('open');
+  document.getElementById('modelos-lista').innerHTML='<p style="font-size:13px;color:var(--cc-tinta-3)">Carregando…</p>';
+  try{
+    const snap=await get(ref(db,'modelos'));
+    modelosRenderLista(snap.exists()?snap.val():{});
+  }catch(e){
+    document.getElementById('modelos-lista').innerHTML='<p style="font-size:13px;color:var(--cc-tinta-3)">Não consegui carregar os modelos agora.</p>';
+  }
+};
+window.fecharModelos=function(){
+  document.getElementById('modal-modelos').classList.remove('open');
+};
+function modelosRenderLista(dados){
+  const chaves=Object.keys(dados||{});
+  const el=document.getElementById('modelos-lista');
+  if(!chaves.length){
+    el.innerHTML='<p style="font-size:13px;color:var(--cc-tinta-3)">Nenhum modelo aprendido ainda. Gere uma minuta, confira no Drive e, se estiver boa, marque-a como modelo pelo card.</p>';
+    return;
+  }
+  el.innerHTML=chaves.sort().map(chave=>{
+    const m=dados[chave]||{};
+    const titulo=m.tipoOriginal||chave.replace(/-/g,' ');
+    const texto=m.texto||'';
+    const preview=texto.slice(0,220);
+    return `<div style="border:1px solid var(--cc-linha);border-radius:12px;padding:14px 16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+        <span style="font-size:13px;font-weight:600;color:var(--cc-tinta)">${escTxt(titulo)}</span>
+        ${m.truncado?'<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:#FFF4E5;color:#8A5200;white-space:nowrap">cortado por limite de tamanho</span>':''}
+      </div>
+      <div style="font-size:11.5px;color:var(--cc-tinta-3);margin-bottom:8px">Veio de: ${escTxt(m.origemCaso||'—')} · ${m.atualizado?new Date(m.atualizado).toLocaleString('pt-BR'):'—'} · ${texto.length.toLocaleString('pt-BR')} caracteres</div>
+      <div style="font-size:12px;color:var(--cc-tinta-2);background:var(--cc-sup-2);border-radius:8px;padding:8px 10px;margin-bottom:10px;white-space:pre-wrap">${escTxt(preview)}${texto.length>220?'…':''}</div>
+      <button type="button" class="cx-btn perigo" onclick="apagarModelo('${chave}')"><i class="ti ti-trash"></i> Apagar este modelo</button>
+    </div>`;
+  }).join('');
+}
+window.apagarModelo=async function(chave){
+  if(!confirm('Apagar o modelo aprendido deste tipo de ato?\n\nA próxima minuta desse tipo sai sem modelo de referência automático, até você marcar outra como modelo.'))return;
+  await remove(ref(db,'modelos/'+chave));
+  window.abrirModelos();
 };
 
 // ── REGISTRAR ATENDIMENTO ──

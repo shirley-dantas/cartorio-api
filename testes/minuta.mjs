@@ -45,7 +45,8 @@ vm.runInContext(
   '\nglobalThis.anoPorExtenso = anoPorExtenso;' +
   '\nglobalThis.montarSystemPrompt = montarSystemPrompt;' +
   '\nglobalThis.extrairJsonAuditoria = extrairJsonAuditoria;' +
-  '\nglobalThis.AUDITORIA_SYSTEM_PROMPT = AUDITORIA_SYSTEM_PROMPT;',
+  '\nglobalThis.AUDITORIA_SYSTEM_PROMPT = AUDITORIA_SYSTEM_PROMPT;' +
+  '\nglobalThis.extrairIdDocumento = extrairIdDocumento;',
   caixa
 );
 
@@ -249,6 +250,42 @@ passo('resposta sem chaves nenhuma lança erro, não finge sucesso', () => {
 passo('o prompt da auditoria proíbe reescrever a minuta e pede só JSON', () => {
   ok(/nunca reescrever/i.test(caixa.AUDITORIA_SYSTEM_PROMPT), 'devia deixar explícito que a auditoria não reescreve');
   ok(/"achados"/.test(caixa.AUDITORIA_SYSTEM_PROMPT), 'devia pedir o formato {"achados": [...]}');
+});
+
+console.log('\n— extrairIdDocumento e a curadoria do modelo aprendido —');
+
+passo('reconhece o id no link comum do Google Docs', () => {
+  igual(caixa.extrairIdDocumento('https://docs.google.com/document/d/1AbC-xyz_9Q/edit'), '1AbC-xyz_9Q');
+});
+
+passo('reconhece o id no link com parâmetros depois', () => {
+  igual(caixa.extrairIdDocumento('https://docs.google.com/document/d/1AbC-xyz_9Q/edit?usp=sharing'), '1AbC-xyz_9Q');
+});
+
+passo('aceita o id sozinho, sem link', () => {
+  igual(caixa.extrairIdDocumento('1AbC-xyz_9Q'), '1AbC-xyz_9Q');
+});
+
+passo('link que não é de documento não devolve nada', () => {
+  igual(caixa.extrairIdDocumento('https://docs.google.com/spreadsheets/d/1AbC/edit'), '');
+  igual(caixa.extrairIdDocumento(''), '');
+  igual(caixa.extrairIdDocumento(null), '');
+});
+
+passo('gerarECriarMinuta não aprende mais sozinho de toda minuta gerada', () => {
+  // Antes, toda minuta virava o modelo do tipo — boa ou ruim. A curadoria
+  // (Etapa 2) tirou essa chamada de dentro da geração: só entra modelo
+  // quando ela marca pelo painel (ação "marcar-modelo" → marcarModelo).
+  const inicio = fonte.indexOf('function gerarECriarMinuta');
+  const fim = fonte.indexOf('function _criarMinutaDocInterno');
+  ok(inicio !== -1 && fim !== -1 && fim > inicio, 'não achei os limites de gerarECriarMinuta no arquivo');
+  const corpo = fonte.slice(inicio, fim);
+  ok(!/salvarModeloAprendido\(/.test(corpo), 'gerarECriarMinuta ainda chama salvarModeloAprendido sozinho');
+});
+
+passo('a ação marcar-modelo existe e está ligada no doPost', () => {
+  ok(/acao === "marcar-modelo"/.test(fonte), 'doPost não reconhece a ação marcar-modelo');
+  ok(/function marcarModelo\(/.test(fonte), 'a função marcarModelo não existe');
 });
 
 console.log('\n' + (erros.length ? `${erros.length} falha(s).` : 'Tudo certo.'));
