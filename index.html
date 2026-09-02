@@ -1157,6 +1157,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .fin-pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.02em}
 .fin-pill.pago{background:#E8F5E9;color:#1B5E20}
 .fin-pill.pendente{background:#FFF4E5;color:#8A5200}
+.audit-pill{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:20px;letter-spacing:.02em;background:#FFF4E5;color:#8A5200;border:none;cursor:pointer;font-family:inherit}
+.audit-pill:hover{background:#FFE9C7}
 .fin-item-acoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 /* A escada: a conta desce um degrau por vez, e cada degrau tem dono. É o
    desenho da regra em si — por isso ela aparece em todo cartão, e não só na
@@ -2352,6 +2354,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         <i class="ti ti-brand-google-drive" style="font-size:13px;vertical-align:-1px"></i> Abrir nova versão no Drive
       </a>
     </div>
+  </div>
+</div>
+
+<!-- Modal Auditoria da minuta (Etapa 2) -->
+<div class="modal-overlay" id="modal-auditoria">
+  <div class="modal-box">
+    <button class="modal-close" onclick="fecharAuditoria()">&times;</button>
+    <div class="modal-title"><i class="ti ti-alert-triangle" style="font-size:15px;vertical-align:-2px;color:#8A5200"></i> Auditoria da minuta</div>
+    <div class="modal-sub" id="auditoria-caso-info">—</div>
+    <p style="font-size:12px;color:#636366;margin:0 0 12px">Conferência automática, feita depois da minuta pronta: nome, CPF, RG, matrícula, área e número por extenso × algarismo, contra os documentos do caso. Não reescreve nada — é só um alerta pra você conferir.</p>
+    <ul id="auditoria-lista" style="margin:0;padding-left:18px;font-size:13px;color:var(--cc-tinta);line-height:1.5"></ul>
   </div>
 </div>
 
@@ -4999,6 +5012,7 @@ function renderCasos(){
 
       <div class="cx-acoes">
         <button class="cx-btn destaque" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text"></i> Minuta</button>
+        ${typeof auditPillDoCaso==='function'?auditPillDoCaso(c.id):''}
         <button class="cx-btn" onclick="toggleObs('${c.id}')"><i class="ti ti-notes"></i> Obs</button>
         ${c.segundaParte&&(c.segundaParte.status==='pendente'||c.segundaParte.status==='lembrete')?`<button class="cx-btn destaque" onclick="abrirSegundaParte('${c.id}')"><i class="ti ti-users"></i> Assinatura da 2ª parte</button>`:''}
         <button class="cx-btn" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit"></i> Reeditar</button>
@@ -5780,6 +5794,31 @@ window.abrirReeditar=async function(id){
 };
 window.fecharReeditar=function(){
   document.getElementById('modal-reeditar').classList.remove('open');
+};
+
+// ── Auditoria da minuta (Etapa 2) ──
+// O Apps Script grava achados em /casos/{id}/auditoria depois da minuta
+// pronta (chamada separada, fora do caminho crítico — ver CLAUDE.md). Sem
+// achado nenhum, a pílula nem aparece: "conferi e está tudo certo" não
+// precisa de aviso. `null` (auditoria não rodou) também não vira pílula —
+// "não sei" não pode ter a cara de "conferi e não achei nada".
+window.auditPillDoCaso=function(id){
+  const c=casos[id];
+  const achados=c&&c.auditoria&&Array.isArray(c.auditoria.achados)?c.auditoria.achados:null;
+  if(!achados||!achados.length)return'';
+  return `<button type="button" class="audit-pill" onclick="abrirAuditoria('${id}')" title="Auditoria automática — clique para ver os pontos"><i class="ti ti-alert-triangle" style="font-size:11px"></i> Auditoria: ${achados.length} ${achados.length===1?'ponto':'pontos'}</button>`;
+};
+window.abrirAuditoria=function(id){
+  const c=casos[id];if(!c)return;
+  document.getElementById('auditoria-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
+  const achados=(c.auditoria&&c.auditoria.achados)||[];
+  document.getElementById('auditoria-lista').innerHTML=achados.length
+    ?achados.map(a=>`<li style="margin-bottom:8px">${escTxt(a)}</li>`).join('')
+    :'<li style="list-style:none;margin-left:-18px">Nenhum ponto encontrado.</li>';
+  document.getElementById('modal-auditoria').classList.add('open');
+};
+window.fecharAuditoria=function(){
+  document.getElementById('modal-auditoria').classList.remove('open');
 };
 
 // ── REGISTRAR ATENDIMENTO ──
