@@ -43,7 +43,9 @@ vm.runInContext(
   '\nglobalThis.precisouTruncarGeracao = precisouTruncarGeracao;' +
   '\nglobalThis.conferirMinuta = conferirMinuta;' +
   '\nglobalThis.anoPorExtenso = anoPorExtenso;' +
-  '\nglobalThis.montarSystemPrompt = montarSystemPrompt;',
+  '\nglobalThis.montarSystemPrompt = montarSystemPrompt;' +
+  '\nglobalThis.extrairJsonAuditoria = extrairJsonAuditoria;' +
+  '\nglobalThis.AUDITORIA_SYSTEM_PROMPT = AUDITORIA_SYSTEM_PROMPT;',
   caixa
 );
 
@@ -222,6 +224,31 @@ passo('o SYSTEM_PROMPT não carrega mais nenhum ano escrito à mão', () => {
   ok(prompt2027.indexOf('dois mil e vinte e sete (2027)') !== -1, 'o marcador não foi preenchido para 2027');
   ok(prompt2026 !== prompt2027, 'o prompt de anos diferentes saiu idêntico');
   ok(prompt2027.indexOf('2026') === -1, 'sobrou o ano fixo de 2026 mesmo pedindo 2027');
+});
+
+console.log('\n— extrairJsonAuditoria: a auditoria (Etapa 2) —');
+
+passo('extrai o JSON mesmo com texto/markdown em volta', () => {
+  const r = caixa.extrairJsonAuditoria('Aqui está:\n```json\n{"achados":["CPF não bate"]}\n```\nPronto.');
+  igual(r.achados.length, 1);
+  igual(r.achados[0], 'CPF não bate');
+});
+
+passo('lista vazia é uma resposta válida ("conferi e está tudo certo")', () => {
+  const r = caixa.extrairJsonAuditoria('{"achados":[]}');
+  igual(r.achados.length, 0);
+});
+
+passo('resposta sem chaves nenhuma lança erro, não finge sucesso', () => {
+  let erro = null;
+  try { caixa.extrairJsonAuditoria('não consegui analisar isso'); }
+  catch (e) { erro = e; }
+  ok(erro, 'devia ter lançado erro pra resposta sem JSON nenhum');
+});
+
+passo('o prompt da auditoria proíbe reescrever a minuta e pede só JSON', () => {
+  ok(/nunca reescrever/i.test(caixa.AUDITORIA_SYSTEM_PROMPT), 'devia deixar explícito que a auditoria não reescreve');
+  ok(/"achados"/.test(caixa.AUDITORIA_SYSTEM_PROMPT), 'devia pedir o formato {"achados": [...]}');
 });
 
 console.log('\n' + (erros.length ? `${erros.length} falha(s).` : 'Tudo certo.'));

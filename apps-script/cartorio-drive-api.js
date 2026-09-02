@@ -581,6 +581,81 @@ function conferirMinuta(texto, modalidade) {
   return { avisos: avisos, brancos: brancos };
 }
 
+// ── Auditoria (Etapa 2) ──────────────────────────────────────────────────
+// Uma segunda chamada à IA, separada da que gerou a minuta, que só CONFERE —
+// nunca reescreve. Roda depois da minuta pronta (ver gerarECriarMinuta).
+const AUDITORIA_SYSTEM_PROMPT = `Você é o auditor de minutas do 20º Tabelião de Notas de São Paulo.
+
+Você recebe uma minuta já pronta e os documentos/informações originais do caso. Sua ÚNICA tarefa é CONFERIR dados — nunca reescrever a minuta, nunca sugerir mudança de redação, nunca opinar sobre estilo ou cláusula.
+
+Confira especificamente, comparando a minuta contra os documentos originais:
+- Nome de cada parte
+- CPF
+- RG
+- Número da matrícula do imóvel
+- Área do imóvel
+- Números por extenso × o algarismo entre parênteses que os acompanha (ex: "três (3)", "cem mil reais (R$ 100.000,00)") — o extenso e o número precisam dizer a mesma coisa
+
+REGRAS:
+- Aponte SÓ divergência real e concreta entre o que a minuta diz e o que os documentos originais dizem.
+- Campo que a minuta deixou em branco (______) não é divergência — é ausência, e já está sinalizado na própria minuta. Não aponte.
+- Dado que não aparece em nenhum documento original também não é divergência — não aponte.
+- Ignore qualquer trecho sob um cabeçalho "=== MODELO DE MINUTA (REFERÊNCIA...)" — é só referência de estilo de outro caso, nunca dado deste caso. Os demais documentos (e a MINUTA ATUAL, quando houver) são a fonte da verdade deste caso.
+- Cada achado é uma frase objetiva e curta dizendo o que diverge e de onde veio cada versão (ex: "CPF da Maria na minuta é 111.111.111-11, mas a certidão de casamento traz 111.111.111-12").
+- Se não encontrar divergência nenhuma, devolva a lista vazia.
+
+Responda SOMENTE com um JSON válido, sem markdown, sem texto antes ou depois, no formato exato:
+{"achados":["texto do achado 1","texto do achado 2"]}
+
+Se não houver divergência nenhuma, responda exatamente {"achados":[]}.`;
+
+function extrairJsonAuditoria(texto) {
+  var s = texto.indexOf("{");
+  var e = texto.lastIndexOf("}");
+  if (s === -1 || e === -1) throw new Error("Resposta da IA não veio em formato reconhecível.");
+  return JSON.parse(texto.slice(s, e + 1));
+}
+
+// Devolve a lista de achados (pode ser vazia — "conferi e está tudo certo"),
+// ou `null` quando a própria auditoria não rodou (falha de rede, JSON
+// inválido, chave ausente). A distinção importa: null nunca vira pílula no
+// painel, porque "não sei" não pode ter a mesma cara de "conferi e não achei
+// nada". Nunca lança erro — uma auditoria que falha não pode derrubar uma
+// minuta que já foi gerada com sucesso.
+function auditarMinuta(minutaTexto, documentosTexto) {
+  try {
+    var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
+    if (!apiKey) return null;
+    var doc = String(documentosTexto || "");
+    if (doc.length > 100000) doc = doc.slice(0, 100000) + "\n\n[...texto truncado por limite de tamanho...]";
+    var mensagem = "MINUTA PRONTA (a auditar):\n" + minutaTexto +
+      "\n\n---\n\nDOCUMENTOS E INFORMAÇÕES ORIGINAIS DO CASO (fonte da verdade):\n" + doc;
+
+    var payload = {
+      model: "claude-sonnet-4-6",
+      max_tokens: 2000,
+      system: AUDITORIA_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: mensagem }]
+    };
+    var response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
+      method: "post",
+      contentType: "application/json",
+      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    var data = JSON.parse(response.getContentText());
+    if (data.error) return null;
+    var texto = (data.content && data.content[0] && data.content[0].text) || "";
+    var parsed = extrairJsonAuditoria(texto);
+    return (Array.isArray(parsed.achados) ? parsed.achados : [])
+      .map(function (a) { return String(a || "").trim(); })
+      .filter(Boolean);
+  } catch (e) {
+    return null;
+  }
+}
+
 function salvarJobFirebase(jobId, resultado) {
   UrlFetchApp.fetch(
     FIREBASE_URL + "/jobs/" + jobId + ".json",
@@ -741,10 +816,19 @@ function gerarECriarMinuta(dados) {
     }
 
     if (dados.casoId) {
+      // Auditoria: uma chamada SEPARADA da que gerou a minuta, depois do
+      // documento já pronto e do job já marcado como pronto acima — o painel
+      // já liberou a tela nesse instante, então isto roda fora do caminho
+      // crítico. Nunca reescreve a minuta, só confere e aponta.
+      var achadosAuditoria = auditarMinuta(parsed.minuta, documentosTexto);
+      var patchCaso = { driveUrl: docResult.folderUrl, docUrl: docResult.url };
+      if (achadosAuditoria !== null) {
+        patchCaso.auditoria = { achados: achadosAuditoria, atualizado: new Date().toISOString() };
+      }
       UrlFetchApp.fetch(FIREBASE_URL + "/casos/" + dados.casoId + ".json", {
         method: "patch",
         contentType: "application/json",
-        payload: JSON.stringify({ driveUrl: docResult.folderUrl, docUrl: docResult.url }),
+        payload: JSON.stringify(patchCaso),
         muteHttpExceptions: true
       });
     }
