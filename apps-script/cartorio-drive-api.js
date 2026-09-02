@@ -235,13 +235,13 @@ Se algum documento fornecido tiver cabeçalho começando com "MINUTA ATUAL", ess
 ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
 
 Se DIGITAL (videoconferência):
-Aos ______ (______) dias do mês de ______ (______) do ano de dois mil e vinte e seis (2026), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, por meio de **VIDEOCONFERÊNCIA**, nos termos do **Provimento nº 149/2023** do Conselho Nacional de Justiça, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
+Aos ______ (______) dias do mês de ______ (______) do ano de {{ANO_EXTENSO}} ({{ANO}}), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, por meio de **VIDEOCONFERÊNCIA**, nos termos do **Provimento nº 149/2023** do Conselho Nacional de Justiça, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
 
 Se HÍBRIDA (videoconferência e presencial):
-Aos ______ (______) dias do mês de ______ (______) do ano de dois mil e vinte e seis (2026), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, por meio de **VIDEOCONFERÊNCIA**, e **PRESENCIALMENTE** nos termos do **Provimento nº 149/2023** do Conselho Nacional de Justiça, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
+Aos ______ (______) dias do mês de ______ (______) do ano de {{ANO_EXTENSO}} ({{ANO}}), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, por meio de **VIDEOCONFERÊNCIA**, e **PRESENCIALMENTE** nos termos do **Provimento nº 149/2023** do Conselho Nacional de Justiça, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
 
 Se PRESENCIAL:
-Aos ______ (______) dias do mês de ______ (______) do ano de dois mil e vinte e seis (2026), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
+Aos ______ (______) dias do mês de ______ (______) do ano de {{ANO_EXTENSO}} ({{ANO}}), nesta cidade e Capital do Estado de São Paulo, República Federativa do Brasil, perante mim, **Shirley Dantas da Silva**, Escrevente autorizada do **20º Tabelião de Notas** desta Capital, compareceram partes entre si, cujas identidades foram por mim confirmadas, conforme os documentos abaixo mencionados, a mim apresentados, corroborados por sua declaração justas e contratadas, a saber:
 
 ENCERRAMENTO DA MINUTA — escolha conforme a MODALIDADE do caso:
 
@@ -254,6 +254,31 @@ Se PRESENCIAL:
 NOTA SOBRE O ENCERRAMENTO: Substitua "adquirente" pelo nome correto da parte principal do ato (outorgante, testador, requerente, etc.). Para atos que não envolvam transferência imobiliária (procuração, testamento, ata notarial, etc.), omita APENAS as seções IMPOSTOS DE TRANSMISSÃO e DOI. As demais seções — **INDISPONIBILIDADE**, **ARQUIVAMENTO**, **CERTIFICAÇÃO** e o parágrafo final de emolumentos — são OBRIGATÓRIAS em TODO ato, sem exceção, independentemente do tipo. NUNCA omita a frase de INDISPONIBILIDADE (consulta à Central de Indisponibilidade de Bens).
 
 A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualificação completa das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas.`;
+
+// ── Ano por extenso ──────────────────────────────────────────────────────
+// A abertura da minuta trazia "dois mil e vinte e seis (2026)" escrito à mão
+// no SYSTEM_PROMPT — funcionava em 2026 e ficaria errado sozinho em 2027.
+// Agora o prompt carrega os marcadores {{ANO_EXTENSO}}/{{ANO}}, preenchidos
+// na hora da chamada por montarSystemPrompt(). Cobre 2000–2099 (a faixa que
+// realmente ocorre em cartório); fora dela cai pro numeral puro, sem travar.
+function anoPorExtenso(ano) {
+  var DEZ_A_DEZENOVE = ["dez", "onze", "doze", "treze", "catorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+  var DEZENAS = ["", "dez", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+  var UNIDADES = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+  if (ano < 2000 || ano > 2099) return String(ano);
+  var resto = ano - 2000;
+  if (resto === 0) return "dois mil";
+  if (resto < 10) return "dois mil e " + UNIDADES[resto];
+  if (resto < 20) return "dois mil e " + DEZ_A_DEZENOVE[resto - 10];
+  var dezena = Math.floor(resto / 10);
+  var unidade = resto % 10;
+  return "dois mil e " + DEZENAS[dezena] + (unidade ? " e " + UNIDADES[unidade] : "");
+}
+function montarSystemPrompt(ano) {
+  return SYSTEM_PROMPT
+    .split("{{ANO_EXTENSO}}").join(anoPorExtenso(ano))
+    .split("{{ANO}}").join(String(ano));
+}
 
 // ── Funções auxiliares ─────────────────────────────────────────────────────
 
@@ -335,14 +360,23 @@ function buscarModeloAprendido(tipo) {
   }
 }
 
+// Teto de segurança do modelo aprendido. O corte antigo (6000 caracteres) era
+// o motivo mais provável de "a minuta não segue os modelos": uma minuta de
+// 30.000+ caracteres virava referência cortada no meio de uma frase, sem
+// encerramento — e o SYSTEM_PROMPT manda, em maiúsculas, cobrir até o fim do
+// modelo. Este teto é só um limite de segurança (evita um caso extremo travar
+// a gravação no Firebase); quando bate, fica declarado em `truncado`.
+const MODELO_APRENDIDO_MAX_CHARS = 100000;
 function salvarModeloAprendido(tipo, texto, nomeCaso) {
   try {
     const chave = chaveTipo(tipo);
+    const truncou = texto.length > MODELO_APRENDIDO_MAX_CHARS;
     UrlFetchApp.fetch(FIREBASE_URL + "/modelos/" + chave + ".json", {
       method: "put",
       contentType: "application/json",
       payload: JSON.stringify({
-        texto: texto.slice(0, 6000),
+        texto: truncou ? texto.slice(0, MODELO_APRENDIDO_MAX_CHARS) : texto,
+        truncado: truncou,
         origemCaso: nomeCaso || "",
         atualizado: new Date().toISOString()
       }),
@@ -403,14 +437,14 @@ function parsearResposta(texto) {
   return { minuta: minuta, comentarios: comentarios };
 }
 
-function chamarClaudeRaw(mensagem) {
+function chamarClaudeRaw(mensagem, ano) {
   var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada. Vá em Projeto > Propriedades do script e adicione a chave.");
 
   var payload = {
     model: "claude-sonnet-4-6",
     max_tokens: 8000,
-    system: SYSTEM_PROMPT,
+    system: montarSystemPrompt(ano || new Date().getFullYear()),
     messages: [{ role: "user", content: mensagem }]
   };
 
@@ -434,11 +468,38 @@ function chamarClaude(mensagem) {
   return chamarClaudeRaw(mensagem).texto;
 }
 
+// "CONCLUIDO." (com ponto), "concluído" ou qualquer variação com espaço/
+// pontuação sobrando na resposta da IA entrava LITERALMENTE no fim da
+// escritura, porque a comparação exigia igualdade exata com "CONCLUIDO".
+function respostaIndicaConclusao(texto) {
+  var limpa = String(texto || "").trim().toUpperCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[.!\s]+$/, "");
+  return limpa === "CONCLUIDO";
+}
+
+// Cola dois pedaços da mesma minuta (rodadas diferentes de geração). Sem
+// verificar a borda, um pedaço terminando sem espaço e o próximo começando
+// sem espaço grudavam as duas frases numa palavra só.
+function unirTextoMinuta(a, b) {
+  if (!a) return b || "";
+  if (!b) return a;
+  var precisaEspaco = !/\s/.test(a.slice(-1)) && !/\s/.test(b.slice(0, 1));
+  return a + (precisaEspaco ? " " : "") + b;
+}
+
+// A geração para no limite de rodadas (MAX_PEDACOS) sem ter certeza de que
+// terminou de verdade quando a última rodada ainda sinalizava que precisava
+// continuar — isso é truncamento, não sucesso silencioso.
+function precisouTruncarGeracao(rodadas, maxPedacos, aindaPrecisaContinuar) {
+  return rodadas >= maxPedacos && !!aindaPrecisaContinuar;
+}
+
 // Gera a minuta em pedaços, continuando automaticamente de onde parou até terminar
 // de verdade (ou até um limite de segurança). Isso permite minutas bem mais longas
 // (50+ páginas) sem depender de acertar de antemão um tamanho máximo de resposta —
 // cada pedaço é rápido (uma chamada à IA), e só continua se realmente precisar.
-function gerarMinutaCompleta(mensagemBase) {
+function gerarMinutaCompleta(mensagemBase, ano) {
   var MAX_PEDACOS = 6;
   // Quando há um modelo de referência (manual ou aprendido automaticamente) OU uma
   // MINUTA ATUAL sendo seguida à risca, a IA tende a "achar" que terminou cedo demais
@@ -448,6 +509,7 @@ function gerarMinutaCompleta(mensagemBase) {
   var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1 || mensagemBase.indexOf("MINUTA ATUAL") !== -1;
   var textoCompleto = "";
   var rodadas = 0;
+  var precisaContinuar = false;
   for (var i = 0; i < MAX_PEDACOS; i++) {
     var mensagem = mensagemBase;
     if (i > 0) {
@@ -460,21 +522,63 @@ function gerarMinutaCompleta(mensagemBase) {
         "Caso contrário, continue escrevendo o restante.\n\n" +
         "TRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI (ou responda CONCLUIDO se já estiver completo):";
     }
-    var res = chamarClaudeRaw(mensagem);
+    var res = chamarClaudeRaw(mensagem, ano);
     rodadas++;
     var textoNovo = res.texto;
-    var respostaLimpa = textoNovo.trim().toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-    if (respostaLimpa === "CONCLUIDO") break;
+    if (respostaIndicaConclusao(textoNovo)) { precisaContinuar = false; break; }
 
-    textoCompleto += textoNovo;
+    textoCompleto = unirTextoMinuta(textoCompleto, textoNovo);
 
-    var precisaContinuar = res.pararPorTamanho; // bateu no limite de tamanho, com certeza precisa continuar
+    precisaContinuar = res.pararPorTamanho; // bateu no limite de tamanho, com certeza precisa continuar
     if (!precisaContinuar && temModelo && i === 0) {
       precisaContinuar = true; // primeira rodada com modelo: sempre confirma cobertura antes de aceitar
     }
     if (!precisaContinuar) break;
   }
-  return { texto: textoCompleto, rodadas: rodadas, temModelo: temModelo };
+  return {
+    texto: textoCompleto,
+    rodadas: rodadas,
+    temModelo: temModelo,
+    truncada: precisouTruncarGeracao(rodadas, MAX_PEDACOS, precisaContinuar)
+  };
+}
+
+// Conferência da minuta gerada — uma segunda camada de detecção de corte,
+// independente do stop_reason da API: sinaliza quando o texto saiu sem as
+// seções obrigatórias de encerramento, com abertura incompatível com a
+// modalidade do ato, ou com um marcador de pendência que ficou aberto (sinal
+// de corte no meio de um 【PENDÊNCIA: ...】). Nunca reescreve a minuta — só
+// relata, para a tela avisar em vez de anunciar sucesso calado.
+function conferirMinuta(texto, modalidade) {
+  var avisos = [];
+  var t = String(texto || "");
+  var mod = String(modalidade || "").toLowerCase();
+
+  // Obrigatórias em TODO ato, sem exceção (ver NOTA SOBRE O ENCERRAMENTO no SYSTEM_PROMPT).
+  if (t.indexOf("INDISPONIBILIDADE") === -1) avisos.push("Não encontrei a seção INDISPONIBILIDADE no encerramento — confira se a minuta saiu completa.");
+  if (t.indexOf("ARQUIVAMENTO") === -1) avisos.push("Não encontrei a seção ARQUIVAMENTO no encerramento — confira se a minuta saiu completa.");
+  // CERTIFICAÇÃO só existe no encerramento digital/híbrido (assinatura por certificado digital).
+  if ((mod === "digital" || mod === "hibrida") && t.indexOf("CERTIFICAÇÃO") === -1) {
+    avisos.push("Não encontrei a seção CERTIFICAÇÃO no encerramento (obrigatória em ato digital/híbrido) — confira se a minuta saiu completa.");
+  }
+
+  if (mod === "presencial" && t.indexOf("VIDEOCONFERÊNCIA") !== -1) {
+    avisos.push("A abertura menciona VIDEOCONFERÊNCIA, mas o ato é PRESENCIAL — confira a abertura.");
+  }
+  if (mod === "digital" && t.indexOf("VIDEOCONFERÊNCIA") === -1) {
+    avisos.push("A abertura não menciona VIDEOCONFERÊNCIA, mas o ato é DIGITAL — confira a abertura.");
+  }
+  if (mod === "hibrida" && (t.indexOf("VIDEOCONFERÊNCIA") === -1 || t.indexOf("PRESENCIALMENTE") === -1)) {
+    avisos.push("A abertura não parece cobrir os dois comparecimentos (videoconferência e presencial) do ato HÍBRIDO — confira a abertura.");
+  }
+
+  var abre = (t.match(/【/g) || []).length;
+  var fecha = (t.match(/】/g) || []).length;
+  if (abre !== fecha) avisos.push("Ficou um marcador 【 de pendência sem fechar no texto — sinal de corte no meio da geração.");
+
+  var brancos = (t.match(/______/g) || []).length;
+
+  return { avisos: avisos, brancos: brancos };
 }
 
 function salvarJobFirebase(jobId, resultado) {
@@ -558,7 +662,16 @@ function gerarECriarMinuta(dados) {
 
   try {
     var instrucoes = instrucoesPorTipo(dados.tipo);
-    var mod = (dados.modalidade || "digital").toLowerCase();
+    // A modalidade decide a abertura e o encerramento inteiros da escritura
+    // (videoconferência × presencial). Não é assumida: um caso sem modalidade
+    // definida falha aqui, com erro claro, em vez de sair como "digital"
+    // calado numa escritura presencial.
+    var MODALIDADES_VALIDAS = { digital: true, hibrida: true, presencial: true };
+    var mod = String(dados.modalidade || "").toLowerCase();
+    if (!MODALIDADES_VALIDAS[mod]) {
+      throw new Error("Modalidade do ato não informada — escolha Digital, Híbrida ou Presencial antes de gerar a minuta.");
+    }
+    var ano = new Date().getFullYear();
     var documentosTexto = dados.documentos || "Nenhum documento fornecido ainda.";
     // Limite de segurança generoso: a causa real da demora era o envio cortado
     // pela metade (já corrigido no iniciar-minuta.js), não o tamanho do texto —
@@ -591,8 +704,9 @@ function gerarECriarMinuta(dados) {
         ? "\n\nPor favor, ATUALIZE a MINUTA ATUAL acima conforme a INSTRUÇÃO DE ATUALIZAÇÃO DA MINUTA, reproduzindo-a por inteiro e ajustando concordância onde a mudança pedida exigir, conforme as instruções do sistema."
         : "\n\nPor favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade " + mod.toUpperCase() + " conforme as instruções do sistema.");
 
-    var geracao = gerarMinutaCompleta(mensagem);
+    var geracao = gerarMinutaCompleta(mensagem, ano);
     var parsed = parsearResposta(geracao.texto);
+    var conferencia = conferirMinuta(parsed.minuta, mod);
 
     var docResult = _criarMinutaDocInterno({
       nome: dados.nome,
@@ -604,15 +718,25 @@ function gerarECriarMinuta(dados) {
     // Aprende com essa minuta: vira a referência automática do tipo para os próximos casos
     salvarModeloAprendido(dados.tipo, parsed.minuta, dados.nome);
 
+    // Nada aqui sai calado: minuta truncada na 6ª rodada, seção obrigatória de
+    // encerramento faltando, abertura incompatível com a modalidade ou
+    // documento que a IA não leu — tudo vira aviso, nunca um "✅ sucesso" liso.
+    var avisos = conferencia.avisos.slice();
+    if (dados.avisosDocumentos) avisos.push("Documento(s) que a IA pode não ter lido por completo: " + dados.avisosDocumentos);
+    var truncada = geracao.truncada;
+
     if (jobId) {
       salvarJobFirebase(jobId, {
         status: "done",
         ok: true,
+        truncada: truncada,
+        avisos: avisos,
         docUrl: docResult.url,
         folderUrl: docResult.folderUrl,
         docNome: docResult.nome,
         diagRodadas: geracao.rodadas,
-        diagTemModelo: geracao.temModelo
+        diagTemModelo: geracao.temModelo,
+        diagBrancos: conferencia.brancos
       });
     }
 
@@ -625,10 +749,15 @@ function gerarECriarMinuta(dados) {
       });
     }
     if (dados.notificarWhatsApp) {
-      enviarWhatsApp("✅ Minuta de " + (dados.nome || "caso") + " pronta! " + docResult.url);
+      if (truncada || avisos.length) {
+        var motivos = truncada ? ["a geração pode ter parado antes do fim (limite de rodadas)"].concat(avisos) : avisos;
+        enviarWhatsApp("⚠️ Minuta de " + (dados.nome || "caso") + " gerada, mas com ressalva — confira antes de usar: " + motivos.join(" | ") + ". " + docResult.url);
+      } else {
+        enviarWhatsApp("✅ Minuta de " + (dados.nome || "caso") + " pronta! " + docResult.url);
+      }
     }
 
-    return resp({ ok: true, url: docResult.url, folderUrl: docResult.folderUrl, nome: docResult.nome });
+    return resp({ ok: true, url: docResult.url, folderUrl: docResult.folderUrl, nome: docResult.nome, truncada: truncada, avisos: avisos });
 
   } catch(err) {
     if (jobId) {

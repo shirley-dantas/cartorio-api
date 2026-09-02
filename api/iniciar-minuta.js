@@ -49,7 +49,11 @@ module.exports = async (req, res) => {
     obs: dados.obs,
     documentos: dados.documentos,
     instrucao: dados.instrucao || "",
-    modalidade: dados.modalidade || "digital"
+    // Não assume "digital": o painel já garante que só chama isto com a
+    // modalidade escolhida (ver gerarAnalise/gerarReeditar no index.html); sem
+    // ela, o Apps Script recusa gerar em vez de adivinhar a abertura errada.
+    modalidade: dados.modalidade || "",
+    avisosDocumentos: dados.avisosDocumentos || ""
   });
 
   return res.status(200).json({ ok: true, jobId });
