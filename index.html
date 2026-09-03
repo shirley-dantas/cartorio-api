@@ -6000,8 +6000,10 @@ window.apagarModelo=async function(chave){
 // ── Regras de elaboração de minuta ──
 // Espelha a Base de Regras do Radar (radarHtmlBase/radarHtmlTema), mas por
 // tipo de ato e alimentando a minuta em vez da Joaninha. Quem pesquisa é
-// /api/pesquisar-regras-minuta, na Vercel — sem a restrição de rede que uma
-// sessão de chat tem. Aqui só se lê, dispara a pesquisa e confirma/corrige.
+// api/radar-juridico.js (tarefa=minuta) — mesma função do Radar diário,
+// dividida por causa do limite de 12 Serverless Functions do plano Hobby da
+// Vercel, sem a restrição de rede que uma sessão de chat tem. Aqui só se lê,
+// dispara a pesquisa e confirma/corrige.
 // Nada disso alimenta a minuta de verdade ainda — isso é o próximo passo,
 // só depois que ela tiver confirmado o primeiro tipo.
 let regrasMinutaDados={};
@@ -6113,7 +6115,7 @@ window.regrasMinutaPesquisar=async function(chave,tipo){
   const antes=btn?btn.innerHTML:'';
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Pesquisando… pode levar um minuto';}
   try{
-    const r=await fetch('/api/pesquisar-regras-minuta?tipo='+encodeURIComponent(tipo));
+    const r=await fetch('/api/radar-juridico?tarefa=minuta&tipo='+encodeURIComponent(tipo));
     const d=await r.json();
     if(!d||!d.ok){
       alert('Não consegui pesquisar agora: '+((d&&d.erro)||'motivo desconhecido'));

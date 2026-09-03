@@ -7,7 +7,7 @@
 // erro que quase deixou o ITCMD passar batido, e aqui o preço é maior porque
 // o resultado alimenta a minuta direto, não só um relatório que alguém lê
 // antes de agir. Isto testa só a peneira (lib/regras-minuta-triagem.js) — o
-// resto (api/pesquisar-regras-minuta.js) fala com fontes de verdade e não dá
+// resto (api/radar-juridico.js, tarefa=minuta) fala com fontes de verdade e não dá
 // pra testar sem internet.
 import {createRequire} from 'node:module';
 import {writeSync} from 'node:fs';

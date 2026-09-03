@@ -23,12 +23,27 @@
 //      Rede.
 //   3. **Não esconde fonte que não respondeu.** Silêncio de site não é
 //      ausência de novidade; o dia é gravado dizendo o que não foi lido.
+//
+// ── Regras de elaboração de minuta (tarefa=minuta) ──────────────────────
+// Mora neste mesmo arquivo, e não em api/pesquisar-regras-minuta.js, por
+// causa do limite de 12 Serverless Functions do plano Hobby da Vercel — o
+// painel já usava as 12. Em vez de pagar plano novo por uma função a mais,
+// as duas pesquisas (a do dia e a do tipo de ato) compartilham a mesma
+// função, o mesmo jeito de buscar fonte e o mesmo jeito de falar com a IA.
+// Chama-se com /api/radar-juridico?tarefa=minuta&tipo=Escritura+de+Compra+e+Venda
+//   1. **Não escreve por cima do que ela já confirmou.** Tipo de ato com
+//      `confirmado: true` não é regravado — a pesquisa nova entra em
+//      /regras-minuta/{chave}/proposta, ao lado, esperando ela decidir.
 
 const https = require("https");
 const { FONTES_RADAR, TERMOS_RADAR } = require("../lib/radar-fontes");
 const { RADAR_SYSTEM_PROMPT } = require("../lib/radar-prompt");
 const { BASE_REGRAS_INICIAL } = require("../lib/base-regras-inicial");
 const { hojeEmSP, soOTexto, lerJson, conferirItem, contar, chaveDoTema } = require("../lib/radar-triagem");
+const { TIPOS_PRINCIPAIS } = require("../lib/tipos-de-ato");
+const { fontesParaTipo } = require("../lib/regras-minuta-fontes");
+const { REGRAS_MINUTA_SYSTEM_PROMPT } = require("../lib/regras-minuta-prompt");
+const { conferirRegrasMinuta } = require("../lib/regras-minuta-triagem");
 
 const FIREBASE_HOST = "painel-cartorio-default-rtdb.firebaseio.com";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -124,13 +139,13 @@ async function lerMemoria() {
 }
 
 // ── A IA ─────────────────────────────────────────────────────────────────
-function chamarClaude(mensagem, maxTokens) {
+function chamarClaude(mensagem, maxTokens, systemPrompt) {
   return new Promise((resolve, reject) => {
     if (!ANTHROPIC_API_KEY) return reject(new Error("ANTHROPIC_API_KEY não configurada"));
     const body = JSON.stringify({
       model: MODELO,
       max_tokens: maxTokens || 6000,
-      system: RADAR_SYSTEM_PROMPT,
+      system: systemPrompt || RADAR_SYSTEM_PROMPT,
       messages: [{ role: "user", content: mensagem }]
     });
     const req = https.request({
@@ -288,6 +303,85 @@ async function gravarIndice(dia) {
   await firebase("radar-juridico-meta/status.json", "PUT", dia.status);
 }
 
+// ── Regras de elaboração de minuta (tarefa=minuta) ──────────────────────
+// Pesquisa UM tipo de ato por vez, na lista fechada de lib/tipos-de-ato.js.
+// Reaproveita lerFonte/baixar e chamarClaude daqui de cima — mesma leitura
+// de fonte, prompt diferente (lib/regras-minuta-prompt.js).
+async function pesquisarRegrasMinuta(tipoAto) {
+  const fontes = fontesParaTipo(tipoAto);
+  const lidas = await Promise.all(fontes.map(lerFonte));
+  const comTexto = lidas.filter(f => f.texto);
+  const falharam = lidas.filter(f => !f.texto);
+
+  if (!comTexto.length) {
+    return {
+      tipoAto, status: "falhou",
+      resumo: "Nenhuma fonte respondeu — a pesquisa não leu nada.",
+      documentos: [], podeConstar: [], naoPodeConstar: [], etapas: [], fundamentos: [],
+      atencao: ["Nenhuma fonte respondeu nesta tentativa. Isso não quer dizer que não há regra — quer dizer que ninguém leu."],
+      fontesUsadas: [], fontesSemNada: [],
+      fontesNaoLidas: falharam.map(f => ({ id: f.id, nome: f.nome, erro: f.erro }))
+    };
+  }
+
+  const mensagem =
+`TIPO DE ATO PESQUISADO: ${tipoAto}
+
+FONTES QUE NÃO RESPONDERAM:
+${falharam.length ? falharam.map(f => `- ${f.nome} (${f.id}): ${f.erro}`).join("\n") : "Nenhuma — todas responderam."}
+
+CONTEÚDO LIDO:
+${comTexto.map(f =>
+`──────────────────────────────────────────
+FONTE: ${f.nome}
+id: ${f.id} · ${f.primaria ? "PRIMÁRIA" : "DE ALERTA (nunca fundamenta sozinha)"}
+o que procurar aqui: ${f.procurar}
+──────────────────────────────────────────
+${f.texto}`).join("\n\n")}
+
+Levante as regras de elaboração deste tipo de ato e responda no formato JSON combinado.`;
+
+  const bruto = await chamarClaude(mensagem, 8000, REGRAS_MINUTA_SYSTEM_PROMPT);
+  const j = conferirRegrasMinuta(lerJson(bruto));
+  j.tipoAto = tipoAto;
+  j.status = "ok";
+  j.fontesNaoLidas = falharam.map(f => ({ id: f.id, nome: f.nome, erro: f.erro }));
+  return j;
+}
+
+async function tratarPesquisaMinuta(req, res, url) {
+  const tipoAto = url.searchParams.get("tipo");
+  if (!tipoAto || !TIPOS_PRINCIPAIS.includes(tipoAto)) {
+    return res.status(400).json({ ok: false, erro: "Passe ?tipo= com um dos tipos da lista fechada.", tiposValidos: TIPOS_PRINCIPAIS });
+  }
+  const chave = chaveDoTema(tipoAto);
+  try {
+    const resultado = await pesquisarRegrasMinuta(tipoAto);
+    resultado.pesquisadoEm = new Date().toISOString();
+
+    const existente = await firebase(`regras-minuta/${chave}.json`, "GET");
+    if (existente && existente.confirmado === true) {
+      await firebase(`regras-minuta/${chave}/proposta.json`, "PUT", resultado);
+      return res.status(200).json({
+        ok: true, tipoAto, chave, gravadoEm: "proposta",
+        motivo: "Já existe uma versão confirmada — a pesquisa nova ficou em /proposta, sem sobrescrever."
+      });
+    }
+
+    resultado.confirmado = false;
+    await firebase(`regras-minuta/${chave}.json`, "PUT", resultado);
+    res.status(200).json({
+      ok: true, tipoAto, chave, gravadoEm: "principal (ainda não confirmado)",
+      documentos: resultado.documentos.length,
+      atencao: resultado.atencao.length,
+      fontesNaoLidas: resultado.fontesNaoLidas.map(f => f.id)
+    });
+  } catch (err) {
+    console.error("[regras-minuta] falhou:", err.message);
+    res.status(500).json({ ok: false, erro: err.message });
+  }
+}
+
 // ── A porta ──────────────────────────────────────────────────────────────
 // O cron da Vercel manda `Authorization: Bearer $CRON_SECRET`. Na mão, vale
 // `?chave=`. Sem CRON_SECRET configurado a porta fica aberta — e o log diz
@@ -306,6 +400,11 @@ module.exports = async (req, res) => {
   if (!process.env.CRON_SECRET) console.log("[radar] CRON_SECRET não configurada — a rota está aberta.");
 
   const url = new URL(req.url, "http://x");
+
+  if (url.searchParams.get("tarefa") === "minuta") {
+    return tratarPesquisaMinuta(req, res, url);
+  }
+
   const data = url.searchParams.get("data") || hojeEmSP();
   const forcar = url.searchParams.get("forcar") === "1";
 
