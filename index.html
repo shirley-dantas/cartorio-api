@@ -1660,6 +1660,25 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   border:1px solid var(--cc-linha);background:var(--cc-sup-2);border-radius:999px;padding:7px 14px;
   font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--cc-tinta)}
 .radar-btn:hover{background:#F1EDE4}
+.radar-btn.perigo{border-color:#F0C4C4;color:#B71C1C}
+.radar-btn.perigo:hover{background:#FDEDED}
+/* ── Regras de minuta: mesma cara do Radar, badges de status próprios ── */
+.rm-status{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;flex-shrink:0}
+.rm-status.pesquisar{background:var(--cc-sup-2);border:1px solid var(--cc-linha);color:var(--cc-tinta-3)}
+.rm-status.aguardando{background:#FFF4E5;color:#8A5200}
+.rm-status.confirmado{background:#E8F5E9;color:#1B5E20}
+.rm-status.proposta{background:#E3F2FD;color:#0D47A1}
+.rm-doc{display:flex;gap:8px;align-items:baseline;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--cc-linha)}
+.rm-doc:last-child{border-bottom:none}
+.rm-doc-nome{flex:1;min-width:0;color:var(--cc-tinta)}
+.rm-doc-sit{flex-shrink:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px}
+.rm-doc-sit.exigido{background:#E8F5E9;color:#1B5E20}
+.rm-doc-sit.dispensado{background:#FFF4E5;color:#8A5200}
+.rm-doc-sit.depende{background:var(--cc-sup-2);color:var(--cc-tinta-2)}
+.rm-doc-sit.a-confirmar{background:#FBF1DE;color:var(--cc-atencao)}
+.rm-correcao{width:100%;font-family:inherit;font-size:12.5px;padding:8px 10px;border-radius:9px;
+  border:1px solid var(--cc-linha);background:var(--cc-sup-2);color:var(--cc-tinta);resize:vertical;min-height:60px}
 
 /* ── a aba Jurídico da Joaninha ── */
 .joaninha-tabs{flex-wrap:wrap}
@@ -2004,6 +2023,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <button type="button" class="sidebar-item" onclick="abrirRadar()"><i class="ti ti-scale"></i><span>Radar jurídico</span></button>
     <button type="button" class="sidebar-item" onclick="abrirOrcamentos()"><i class="ti ti-calculator"></i><span>Orçamentos</span></button>
     <button type="button" class="sidebar-item" onclick="abrirModelos()"><i class="ti ti-stack-2"></i><span>Modelos aprendidos</span></button>
+    <button type="button" class="sidebar-item" onclick="abrirRegrasMinuta()"><i class="ti ti-gavel"></i><span>Regras de minuta</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Atividades')"><i class="ti ti-list-check"></i><span>Atividades</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Processos')"><i class="ti ti-briefcase"></i><span>Processos</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Minutas')"><i class="ti ti-file-text"></i><span>Minutas</span><span class="em-breve">em breve</span></button>
@@ -2384,6 +2404,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="modal-title"><i class="ti ti-stack-2" style="font-size:15px;vertical-align:-2px;color:#16283A"></i> Modelos aprendidos</div>
     <div class="modal-sub">A referência automática de cada tipo de ato — só entra aqui quando você marca uma minuta pronta como modelo, num card.</div>
     <div id="modelos-lista"></div>
+  </div>
+</div>
+
+<!-- Modal Regras de minuta -->
+<div class="modal-overlay" id="modal-regras-minuta">
+  <div class="modal-box" style="max-width:900px">
+    <button class="modal-close" onclick="fecharRegrasMinuta()">&times;</button>
+    <div class="modal-title"><i class="ti ti-gavel" style="font-size:15px;vertical-align:-2px;color:#16283A"></i> Regras de elaboração de minuta</div>
+    <div class="modal-sub">O que cada tipo de ato exige, dispensa e permite — pesquisado nas fontes oficiais. Nada aqui alimenta a minuta antes de você confirmar.</div>
+    <div id="regras-minuta-lista"></div>
   </div>
 </div>
 
@@ -5965,6 +5995,162 @@ window.apagarModelo=async function(chave){
   if(!confirm('Apagar o modelo aprendido deste tipo de ato?\n\nA próxima minuta desse tipo sai sem modelo de referência automático, até você marcar outra como modelo.'))return;
   await remove(ref(db,'modelos/'+chave));
   window.abrirModelos();
+};
+
+// ── Regras de elaboração de minuta ──
+// Espelha a Base de Regras do Radar (radarHtmlBase/radarHtmlTema), mas por
+// tipo de ato e alimentando a minuta em vez da Joaninha. Quem pesquisa é
+// /api/pesquisar-regras-minuta, na Vercel — sem a restrição de rede que uma
+// sessão de chat tem. Aqui só se lê, dispara a pesquisa e confirma/corrige.
+// Nada disso alimenta a minuta de verdade ainda — isso é o próximo passo,
+// só depois que ela tiver confirmado o primeiro tipo.
+let regrasMinutaDados={};
+let regrasMinutaAberto=null;
+function regrasMinutaChave(tipo){
+  return String(tipo||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
+    .replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+}
+window.abrirRegrasMinuta=async function(){
+  document.getElementById('modal-regras-minuta').classList.add('open');
+  document.getElementById('regras-minuta-lista').innerHTML='<p style="font-size:13px;color:var(--cc-tinta-3)">Carregando…</p>';
+  await regrasMinutaCarregar();
+};
+window.fecharRegrasMinuta=function(){
+  document.getElementById('modal-regras-minuta').classList.remove('open');
+};
+async function regrasMinutaCarregar(){
+  try{
+    const snap=await get(ref(db,'regras-minuta'));
+    regrasMinutaDados=snap.exists()?snap.val():{};
+  }catch(e){
+    regrasMinutaDados={};
+  }
+  regrasMinutaRender();
+}
+function regrasMinutaRender(){
+  const el=document.getElementById('regras-minuta-lista');
+  el.innerHTML='<div class="radar-temas">'+TIPOS_PRINCIPAIS.map(tipo=>{
+    const chave=regrasMinutaChave(tipo);
+    const d=regrasMinutaDados[chave];
+    const aberto=regrasMinutaAberto===chave;
+    const statusHtml=!d
+      ?'<span class="rm-status pesquisar">nunca pesquisado</span>'
+      :d.confirmado?'<span class="rm-status confirmado">confirmado</span>'
+      :'<span class="rm-status aguardando">aguardando confirmação</span>';
+    return `<div class="radar-tema">
+      <button type="button" class="radar-tema-topo" onclick="regrasMinutaVerTema('${chave}')">
+        <span class="radar-tema-nome">${escTxt(tipo)}</span>
+        ${statusHtml}
+        ${d&&d.proposta?'<span class="rm-status proposta">pesquisa nova</span>':''}
+        <i class="ti ti-chevron-${aberto?'up':'down'}"></i>
+      </button>
+      ${aberto?regrasMinutaHtmlTema(tipo,chave,d):''}
+    </div>`;
+  }).join('')+'</div>';
+}
+window.regrasMinutaVerTema=function(chave){
+  regrasMinutaAberto=regrasMinutaAberto===chave?null:chave;
+  regrasMinutaRender();
+};
+function regrasMinutaHtmlTema(tipo,chave,d){
+  if(!d){
+    return `<div class="radar-tema-corpo">
+      <p>Ainda não foi pesquisado nenhuma vez.</p>
+      <div class="radar-tema-acoes">
+        <button type="button" class="radar-btn" id="rm-btn-${chave}" onclick="regrasMinutaPesquisar('${chave}','${tipo}')"><i class="ti ti-search"></i> Pesquisar agora</button>
+      </div>
+    </div>`;
+  }
+  const bloco=(titulo,itens,classe)=>Array.isArray(itens)&&itens.length
+    ?`<div class="radar-bloco${classe?' '+classe:''}"><h5>${titulo}</h5><ul>${itens.map(x=>{
+        const texto=typeof x==='string'?x:(x.texto||'');
+        const fundamento=typeof x==='object'&&x.fundamento?` — <i>${escTxt(x.fundamento)}</i>`:'';
+        return `<li>${escTxt(texto)}${fundamento}</li>`;
+      }).join('')}</ul></div>`
+    :'';
+  const docsHtml=Array.isArray(d.documentos)&&d.documentos.length
+    ?`<div class="radar-bloco"><h5>Documentos</h5>${d.documentos.map(doc=>{
+        const sit=String(doc.situacao||'a confirmar').replace(/\s+/g,'-');
+        const extra=[doc.observacao,doc.fundamento?`(${doc.fundamento})`:''].filter(Boolean).join(' — ');
+        return `<div class="rm-doc"><span class="rm-doc-nome">${escTxt(doc.nome||'')}${extra?' — '+escTxt(extra):''}</span><span class="rm-doc-sit ${sit}">${escTxt(doc.situacao||'a confirmar')}</span></div>`;
+      }).join('')}</div>`
+    :'';
+  const fundamentosHtml=Array.isArray(d.fundamentos)&&d.fundamentos.length
+    ?`<div class="radar-bloco"><h5>Fundamentos</h5><ul>${d.fundamentos.map(f=>`<li><b>${escTxt(f.ref)}</b> — ${escTxt(f.texto)}</li>`).join('')}</ul></div>`
+    :'';
+  const naoLidasHtml=Array.isArray(d.fontesNaoLidas)&&d.fontesNaoLidas.length
+    ?`<div class="radar-bloco"><h5>Fontes que não responderam</h5><ul>${d.fontesNaoLidas.map(f=>`<li>${escTxt(f.nome||f.id)} — ${escTxt(f.erro||'')}</li>`).join('')}</ul></div>`
+    :'';
+  const propostaHtml=d.proposta?`<div class="radar-bloco atencao"><h5>Há uma pesquisa nova, ainda não aplicada</h5>
+      <p style="font-size:12.5px;margin:0 0 8px">Pesquisada em ${d.proposta.pesquisadoEm?new Date(d.proposta.pesquisadoEm).toLocaleString('pt-BR'):'—'}. Isso não mexeu no que está confirmado — decida:</p>
+      <div class="radar-tema-acoes">
+        <button type="button" class="radar-btn" onclick="regrasMinutaUsarProposta('${chave}')"><i class="ti ti-replace"></i> Usar esta pesquisa (substitui a confirmada)</button>
+        <button type="button" class="radar-btn perigo" onclick="regrasMinutaDescartarProposta('${chave}')"><i class="ti ti-trash"></i> Descartar</button>
+      </div>
+    </div>`:'';
+  return `<div class="radar-tema-corpo">
+    ${d.resumo?`<p>${escTxt(d.resumo)}</p>`:''}
+    ${docsHtml}
+    ${bloco('Pode constar na minuta',d.podeConstar)}
+    ${bloco('Não pode constar / vedado',d.naoPodeConstar)}
+    ${fundamentosHtml}
+    ${bloco('Atenção',d.atencao,'atencao')}
+    ${naoLidasHtml}
+    ${propostaHtml}
+    <div class="radar-bloco">
+      <h5>Sua correção</h5>
+      <textarea class="rm-correcao" id="rm-correcao-${chave}" placeholder="Escreva aqui o que precisa corrigir ou completar antes de confirmar — fica junto, nunca é apagado sozinho.">${escTxt(d.correcaoManual||'')}</textarea>
+    </div>
+    <div class="radar-tema-acoes">
+      <button type="button" class="radar-btn" id="rm-btn-${chave}" onclick="regrasMinutaPesquisar('${chave}','${tipo}')"><i class="ti ti-search"></i> Pesquisar de novo</button>
+      <button type="button" class="radar-btn" onclick="regrasMinutaSalvarCorrecao('${chave}')"><i class="ti ti-device-floppy"></i> Salvar correção</button>
+      ${!d.confirmado?`<button type="button" class="radar-btn" style="background:#E8F5E9;border-color:#C8E6C9;color:#1B5E20" onclick="regrasMinutaConfirmar('${chave}')"><i class="ti ti-check"></i> Confirmar — passa a valer</button>`:'<span class="rm-status confirmado" style="align-self:center">confirmado</span>'}
+    </div>
+  </div>`;
+}
+window.regrasMinutaPesquisar=async function(chave,tipo){
+  const btn=document.getElementById('rm-btn-'+chave);
+  const antes=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Pesquisando… pode levar um minuto';}
+  try{
+    const r=await fetch('/api/pesquisar-regras-minuta?tipo='+encodeURIComponent(tipo));
+    const d=await r.json();
+    if(!d||!d.ok){
+      alert('Não consegui pesquisar agora: '+((d&&d.erro)||'motivo desconhecido'));
+    }
+  }catch(e){
+    alert('Não consegui falar com a pesquisa agora. Tente de novo.');
+  }
+  if(btn){btn.disabled=false;btn.innerHTML=antes;}
+  regrasMinutaAberto=chave;
+  await regrasMinutaCarregar();
+};
+window.regrasMinutaConfirmar=async function(chave){
+  if(!confirm('Confirmar esta pesquisa? A partir daqui ela passa a valer como referência da minuta deste tipo de ato.'))return;
+  await update(ref(db,'regras-minuta/'+chave),{confirmado:true,confirmadoEm:isoHoje()});
+  regrasMinutaAberto=chave;
+  await regrasMinutaCarregar();
+};
+window.regrasMinutaSalvarCorrecao=async function(chave){
+  const ta=document.getElementById('rm-correcao-'+chave);
+  if(!ta)return;
+  await update(ref(db,'regras-minuta/'+chave),{correcaoManual:ta.value});
+  regrasMinutaAberto=chave;
+  await regrasMinutaCarregar();
+};
+window.regrasMinutaUsarProposta=async function(chave){
+  const d=regrasMinutaDados[chave];
+  if(!d||!d.proposta)return;
+  if(!confirm('Isso substitui a versão confirmada pela pesquisa nova, que volta a precisar de confirmação. Seguir?'))return;
+  await set(ref(db,'regras-minuta/'+chave),Object.assign({},d.proposta,{confirmado:false}));
+  regrasMinutaAberto=chave;
+  await regrasMinutaCarregar();
+};
+window.regrasMinutaDescartarProposta=async function(chave){
+  if(!confirm('Descartar esta pesquisa nova? A versão confirmada continua como está.'))return;
+  await remove(ref(db,'regras-minuta/'+chave+'/proposta'));
+  regrasMinutaAberto=chave;
+  await regrasMinutaCarregar();
 };
 
 // ── REGISTRAR ATENDIMENTO ──
