@@ -6116,12 +6116,18 @@ window.regrasMinutaPesquisar=async function(chave,tipo){
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Pesquisando… pode levar um minuto';}
   try{
     const r=await fetch('/api/radar-juridico?tarefa=minuta&tipo='+encodeURIComponent(tipo));
-    const d=await r.json();
+    let d=null,bruto='';
+    try{ bruto=await r.text(); d=JSON.parse(bruto); }catch(e){}
     if(!d||!d.ok){
-      alert('Não consegui pesquisar agora: '+((d&&d.erro)||'motivo desconhecido'));
+      // Sem isso, um erro de verdade (função estourou o tempo, chave da IA
+      // ausente, etc.) virava sempre a mesma frase genérica — impossível de
+      // diagnosticar sem abrir o log da Vercel. Agora o status e o começo da
+      // resposta vêm junto.
+      const detalhe=d&&d.erro?d.erro:(bruto?bruto.slice(0,200):'resposta vazia');
+      alert('Não consegui pesquisar agora (HTTP '+r.status+'): '+detalhe);
     }
   }catch(e){
-    alert('Não consegui falar com a pesquisa agora. Tente de novo.');
+    alert('Não consegui falar com a pesquisa agora: '+e.message);
   }
   if(btn){btn.disabled=false;btn.innerHTML=antes;}
   regrasMinutaAberto=chave;
