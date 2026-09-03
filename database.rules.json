@@ -103,6 +103,12 @@
     "radar-juridico-meta":   { ".read": true, ".write": true },
     "base-regras":           { ".read": true, ".write": true },
 
+    // ── Regras de elaboração de minuta ──
+    // Mesma razão do /base-regras: norma pública, sem nome nem CPF de
+    // cliente, gravada por api/pesquisar-regras-minuta.js (Vercel, por REST,
+    // sem conta). Some junto com a mesma pendência do FIREBASE.md.
+    "regras-minuta":         { ".read": true, ".write": true },
+
     // ── As alíquotas de fora da Capital ──
     // Alíquota de imposto é informação pública, como norma publicada: aqui
     // não mora nome nem valor de cliente, só "o ITBI de Extrema-MG é tanto".
