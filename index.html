@@ -6344,8 +6344,12 @@ async function extrairArquivo(file,preservarIntegral){
     return {texto:j.texto||textoBruto,truncou:!!j.truncou};
   }
   // PDF/imagem: precisa mesmo enviar o arquivo (a IA lê o documento visualmente).
-  if(file.size>3.5*1024*1024){
-    throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui. Escaneie/salve em resolução menor (até ~3MB) e tente de novo.`);
+  // Teto pouco abaixo do limite fixo de corpo de requisição da Vercel
+  // (~4,5MB): em base64 o arquivo infla ~33%, então 4,2MB brutos já chegam
+  // perto do teto — subir mais este número arrisca trocar o erro claro daqui
+  // pelo erro genérico do catch (linha abaixo) quando a Vercel recusar.
+  if(file.size>4.2*1024*1024){
+    throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui. Escaneie/salve em resolução menor (até ~4MB) e tente de novo.`);
   }
   const base64=await lerBase64Arquivo(file);
   let resp;
