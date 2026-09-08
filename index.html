@@ -2668,6 +2668,14 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
 <script src="design-system/mascots/joaninha/joaninha.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<!-- pdf.js (renderiza cada página) + pdf-lib (remonta um PDF novo, menor) —
+     usados só para comprimir PDF grande demais antes de anexar, ver
+     comprimirPdfNoNavegador(). -->
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script>
+if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+</script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, get, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -5613,10 +5621,10 @@ const minutaTextoExtraido=new Map();
 function chaveAnexo(f,preservarIntegral){
   return `${f.name}|${f.size||0}|${f.lastModified||0}|${preservarIntegral?1:0}`;
 }
-async function textoDoAnexo(file,preservarIntegral){
+async function textoDoAnexo(file,preservarIntegral,onStatus){
   const k=chaveAnexo(file,preservarIntegral);
   if(minutaTextoExtraido.has(k))return minutaTextoExtraido.get(k);
-  const texto=await extrairArquivo(file,preservarIntegral);
+  const texto=await extrairArquivo(file,preservarIntegral,onStatus);
   minutaTextoExtraido.set(k,texto);
   return texto;
 }
@@ -5690,7 +5698,7 @@ window.iniciarPerguntasMinuta=async function(){
     for(let i=0;i<anexos.length;i++){
       btn.innerHTML=`<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> Lendo anexo ${i+1} de ${anexos.length}…`;
       try{
-        const r=await textoDoAnexo(anexos[i].f,anexos[i].integral);
+        const r=await textoDoAnexo(anexos[i].f,anexos[i].integral,(msg)=>{btn.innerHTML=`<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> ${msg}`;});
         if(r.texto)partes.push(`=== ${anexos[i].rot}: ${anexos[i].f.name} ===\n${r.texto}`);
         if(r.truncou)naoLidos.push(`${anexos[i].f.name} (leitura pode estar incompleta)`);
       }catch(e){
@@ -6325,40 +6333,123 @@ const extrairDocxNoNavegador=(file)=>new Promise((resolve,reject)=>{
   r.onerror=()=>reject(erroDeLeitura(file));
   r.readAsArrayBuffer(file);
 });
-// Devolve {texto, truncou}. truncou=true quando a extração bateu no teto de
-// tokens da IA (ver api/extrair-texto-arquivo.js) — a leitura pode estar
-// incompleta, e quem chama isso precisa saber, nunca em silêncio.
-async function extrairArquivo(file,preservarIntegral){
+// O corpo da requisição para a Vercel tem um teto fixo de ~4,5MB, e em
+// base64 o arquivo infla ~33% (mais o resto do JSON em volta). Um arquivo de
+// 4,2MB brutos já vira corpo de requisição de mais de 5,5MB — foi testado em
+// produção em 08/09/2026 e a Vercel recusou (CONTRATO, FICHA CADASTRAL e
+// PROCURAÇÃO, todos abaixo de 4,2MB, falharam com "grande demais ou o
+// servidor recusou o envio"). 3MB brutos vira ~4MB de corpo, com folga real
+// sob o teto — não subir este número sem testar de novo em produção.
+const LIMITE_ANEXO_BYTES=3*1024*1024;
+
+// Uma página de PDF virada imagem, em bytes JPEG (dataURL → ArrayBuffer).
+async function paginaPdfParaJpegBytes(pagina,escala,qualidade){
+  const viewport=pagina.getViewport({scale:escala});
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(viewport.width));
+  canvas.height=Math.max(1,Math.round(viewport.height));
+  await pagina.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+  const dataUrl=canvas.toDataURL('image/jpeg',qualidade);
+  const bytes=await(await fetch(dataUrl)).arrayBuffer();
+  return {bytes,largura:canvas.width,altura:canvas.height};
+}
+// PDF escaneado é, na prática, uma sequência de fotos em alta resolução —
+// é aí que mora o excesso de MB, não no texto. Comprimir é reduzir cada
+// página a uma imagem JPEG mais leve (resolução e qualidade menores) e
+// remontar um PDF novo com pdf-lib, uma página por imagem. Tenta algumas
+// combinações, da mais fiel à mais agressiva, parando na primeira que cabe
+// no teto. Devolve null se as bibliotecas não carregaram ou se nem a mais
+// agressiva coube — quem chama cai no erro de tamanho de sempre.
+async function comprimirPdfNoNavegador(file,onStatus){
+  if(!window.pdfjsLib||!window.PDFLib)return null;
+  const tentativas=[{escala:1.4,qualidade:0.7},{escala:1.1,qualidade:0.55},{escala:0.85,qualidade:0.4}];
+  let doc;
+  try{ doc=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise; }
+  catch(e){ return null; }
+  for(let t=0;t<tentativas.length;t++){
+    const {escala,qualidade}=tentativas[t];
+    if(onStatus)onStatus(`Comprimindo "${file.name}" (tentativa ${t+1} de ${tentativas.length})…`);
+    try{
+      const novoPdf=await window.PDFLib.PDFDocument.create();
+      for(let p=1;p<=doc.numPages;p++){
+        const pagina=await doc.getPage(p);
+        const {bytes,largura,altura}=await paginaPdfParaJpegBytes(pagina,escala,qualidade);
+        const imagem=await novoPdf.embedJpg(bytes);
+        const novaPagina=novoPdf.addPage([largura,altura]);
+        novaPagina.drawImage(imagem,{x:0,y:0,width:largura,height:altura});
+      }
+      const bytesFinais=await novoPdf.save();
+      if(bytesFinais.byteLength<=LIMITE_ANEXO_BYTES){
+        return new File([bytesFinais],file.name,{type:'application/pdf'});
+      }
+    }catch(e){ /* essa tentativa falhou — segue pra próxima, mais agressiva */ }
+  }
+  return null;
+}
+// Mesma ideia para foto solta (jpg/png): redesenha menor e mais compactada.
+async function comprimirImagemNoNavegador(file,onStatus){
+  const tentativas=[{escala:0.85,qualidade:0.75},{escala:0.65,qualidade:0.6},{escala:0.5,qualidade:0.45}];
+  let bitmap;
+  try{ bitmap=await createImageBitmap(file); }
+  catch(e){ return null; }
+  for(let t=0;t<tentativas.length;t++){
+    const {escala,qualidade}=tentativas[t];
+    if(onStatus)onStatus(`Comprimindo "${file.name}" (tentativa ${t+1} de ${tentativas.length})…`);
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(bitmap.width*escala));
+    canvas.height=Math.max(1,Math.round(bitmap.height*escala));
+    canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',qualidade));
+    if(blob&&blob.size<=LIMITE_ANEXO_BYTES){
+      return new File([blob],file.name,{type:'image/jpeg'});
+    }
+  }
+  return null;
+}
+// Devolve o arquivo comprimido, ou null se não deu (biblioteca não carregou,
+// arquivo corrompido, ou nem a tentativa mais agressiva coube no teto).
+// Uma falha aqui nunca é fatal por si — extrairArquivo cai no erro de
+// tamanho já conhecido, pedindo pra comprimir à mão.
+function comprimirArquivoGrande(file,onStatus){
+  return(file.type==='application/pdf'?comprimirPdfNoNavegador:comprimirImagemNoNavegador)(file,onStatus).catch(()=>null);
+}
+// Devolve {texto, truncou, comprimiu}. truncou=true quando a extração bateu
+// no teto de tokens da IA (ver api/extrair-texto-arquivo.js) — a leitura pode
+// estar incompleta, e quem chama isso precisa saber, nunca em silêncio.
+// comprimiu=true quando o arquivo foi automaticamente reduzido para caber no
+// teto de tamanho antes de ser lido — também nunca fica calado: compressão é
+// perda de qualidade (a imagem fica mais "achatada"), e quem confere depois
+// precisa saber que aquele documento passou por isso.
+async function extrairArquivo(file,preservarIntegral,onStatus){
   if(ehDocx(file)){
     let textoBruto;
     try{ textoBruto=await extrairDocxNoNavegador(file); }
     catch(e){ throw new Error(`Não consegui ler o arquivo Word "${file.name}".`); }
-    if(!textoBruto) return {texto:'',truncou:false};
-    if(preservarIntegral) return {texto:textoBruto,truncou:false};
+    if(!textoBruto) return {texto:'',truncou:false,comprimiu:false};
+    if(preservarIntegral) return {texto:textoBruto,truncou:false,comprimiu:false};
     // Documento de apoio: ainda passa por uma extração jurídica objetiva —
     // mas envia só o TEXTO (pequeno), não o arquivo, então o limite de
     // tamanho de envio não se aplica aqui.
     const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({textoBruto,nomeArquivo:file.name})});
     const j=await resp.json();
     if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
-    return {texto:j.texto||textoBruto,truncou:!!j.truncou};
+    return {texto:j.texto||textoBruto,truncou:!!j.truncou,comprimiu:false};
   }
   // PDF/imagem: precisa mesmo enviar o arquivo (a IA lê o documento visualmente).
-  // O corpo da requisição para a Vercel tem um teto fixo de ~4,5MB, e em
-  // base64 o arquivo infla ~33% (mais o resto do JSON em volta). Um arquivo
-  // de 4,2MB brutos já vira corpo de requisição de mais de 5,5MB — foi
-  // testado em produção em 08/09/2026 e a Vercel recusou (CONTRATO,
-  // FICHA CADASTRAL e PROCURAÇÃO, todos abaixo de 4,2MB, falharam com "grande
-  // demais ou o servidor recusou o envio"). 3MB brutos vira ~4MB de corpo,
-  // com folga real sob o teto — não subir este número sem testar de novo em
-  // produção primeiro.
-  if(file.size>3*1024*1024){
-    throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui. Escaneie/salve em resolução menor (até ~3MB) e tente de novo.`);
+  let alvo=file;
+  let comprimiu=false;
+  if(alvo.size>LIMITE_ANEXO_BYTES){
+    if(onStatus)onStatus(`"${file.name}" está grande (${(file.size/1024/1024).toFixed(1)}MB) — comprimindo automaticamente…`);
+    const comprimido=await comprimirArquivoGrande(alvo,onStatus);
+    if(comprimido){ alvo=comprimido; comprimiu=true; }
   }
-  const base64=await lerBase64Arquivo(file);
+  if(alvo.size>LIMITE_ANEXO_BYTES){
+    throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui, mesmo depois de tentar comprimir automaticamente. Escaneie/salve em resolução menor (até ~3MB) e tente de novo.`);
+  }
+  const base64=await lerBase64Arquivo(alvo);
   let resp;
   try{
-    resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,mimetype:file.type,nomeArquivo:file.name,preservarIntegral})});
+    resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,mimetype:alvo.type,nomeArquivo:file.name,preservarIntegral})});
   }catch(e){
     throw new Error(`Não consegui enviar o arquivo "${file.name}". Tente de novo.`);
   }
@@ -6366,7 +6457,7 @@ async function extrairArquivo(file,preservarIntegral){
   try{ j=await resp.json(); }
   catch(e){ throw new Error(`O arquivo "${file.name}" é grande demais ou o servidor recusou o envio. Tente um arquivo menor.`); }
   if(!j.ok) throw new Error(j.erro||`Não consegui ler o arquivo "${file.name}".`);
-  return {texto:j.texto||'',truncou:!!j.truncou};
+  return {texto:j.texto||'',truncou:!!j.truncou,comprimiu};
 }
 
 async function aguardarJobFirebase(jobId,onTick){
@@ -6429,17 +6520,19 @@ window.gerarReeditar=async function(){
       const partesMinuta=[];
       for(let i=0;i<arqsMinuta.length;i++){
         setRLoad(`Lendo a minuta pronta anexada (${i+1} de ${arqsMinuta.length})…`);
-        const r=await extrairArquivo(arqsMinuta[i],true);
+        const r=await extrairArquivo(arqsMinuta[i],true,(msg)=>setRLoad(msg));
         partesMinuta.push(r.texto);
         if(r.truncou)falhas.push(`${arqsMinuta[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(r.comprimiu)falhas.push(`${arqsMinuta[i].name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
       }
       const nomesMinuta=arqsMinuta.map(f=>f.name).join(', ');
       const blocos=[`=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${nomesMinuta} ===\n${partesMinuta.join('\n\n')}`];
       for(let i=0;i<arqsDoc.length;i++){
         setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
-        const r=await extrairArquivo(arqsDoc[i],false);
+        const r=await extrairArquivo(arqsDoc[i],false,(msg)=>setRLoad(msg));
         blocos.push(`=== DOCUMENTO: ${arqsDoc[i].name} ===\n${r.texto}`);
         if(r.truncou)falhas.push(`${arqsDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(r.comprimiu)falhas.push(`${arqsDoc[i].name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
       }
       docsTexto=blocos.join('\n\n');
     } else {
@@ -6466,9 +6559,10 @@ window.gerarReeditar=async function(){
       }catch(e){docsTexto=c.obs||'';}
       for(let i=0;i<arqsDoc.length;i++){
         setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
-        const r=await extrairArquivo(arqsDoc[i],false);
+        const r=await extrairArquivo(arqsDoc[i],false,(msg)=>setRLoad(msg));
         docsTexto+=`\n\n=== DOCUMENTO: ${arqsDoc[i].name} ===\n${r.texto}`;
         if(r.truncou)falhas.push(`${arqsDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(r.comprimiu)falhas.push(`${arqsDoc[i].name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
       }
     }
     if(falhas.length){
@@ -6559,17 +6653,19 @@ window.gerarAnalise=async function(){
     for(let i=0;i<minutaArquivosModelo.length;i++){
       setLoading(`Lendo a minuta modelo (${i+1} de ${minutaArquivosModelo.length})…`);
       try{
-        const r=await textoDoAnexo(minutaArquivosModelo[i],true);
+        const r=await textoDoAnexo(minutaArquivosModelo[i],true,(msg)=>setLoading(msg));
         if(r.texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${minutaArquivosModelo[i].name} ===\n${r.texto}`);
         if(r.truncou)falhas.push(`${minutaArquivosModelo[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(r.comprimiu)falhas.push(`${minutaArquivosModelo[i].name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
       }catch(e){falhas.push(`${minutaArquivosModelo[i].name}: ${descreverErro(e,'ler a minuta modelo')}`);}
     }
     for(let i=0;i<minutaArquivosDoc.length;i++){
       setLoading(`Lendo documento ${i+1} de ${minutaArquivosDoc.length}…`);
       try{
-        const r=await textoDoAnexo(minutaArquivosDoc[i],false);
+        const r=await textoDoAnexo(minutaArquivosDoc[i],false,(msg)=>setLoading(msg));
         if(r.texto)blocos.push(`=== DOCUMENTO: ${minutaArquivosDoc[i].name} ===\n${r.texto}`);
         if(r.truncou)falhas.push(`${minutaArquivosDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(r.comprimiu)falhas.push(`${minutaArquivosDoc[i].name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
       }catch(e){falhas.push(`${minutaArquivosDoc[i].name}: ${descreverErro(e,'ler um documento anexado')}`);}
     }
     // Um anexo ilegível derrubava a geração inteira. Agora ela pode seguir sem
