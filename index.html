@@ -6453,9 +6453,28 @@ async function extrairArquivo(file,preservarIntegral,onStatus){
   }catch(e){
     throw new Error(`Não consegui enviar o arquivo "${file.name}". Tente de novo.`);
   }
+  // A resposta não vir em JSON tinha um único diagnóstico ("grande demais"),
+  // mas o corpo grande demais não é a única causa possível — a Vercel também
+  // devolve corpo não-JSON num timeout (documento com muitas páginas passa
+  // dos 60s de extrairArquivo em produção) ou numa falha do lado da IA. Clona
+  // ANTES de tentar o .json() porque um .json() que falha deixa o stream
+  // original consumido — sem o clone não haveria como ler o texto do erro
+  // depois. Adivinhar a causa errada manda a Shirley comprimir um arquivo que
+  // já cabia, ou tentar de novo um que nunca vai passar sozinho.
+  const respClone=resp.clone();
   let j;
   try{ j=await resp.json(); }
-  catch(e){ throw new Error(`O arquivo "${file.name}" é grande demais ou o servidor recusou o envio. Tente um arquivo menor.`); }
+  catch(e){
+    let corpo='';
+    try{ corpo=(await respClone.text()).replace(/\s+/g,' ').trim().slice(0,200); }catch(_){}
+    if([502,503,504].includes(resp.status)){
+      throw new Error(`O servidor demorou demais pra ler "${file.name}" (HTTP ${resp.status}) — comum em documento com muitas páginas. Tente de novo; se repetir, precisa de um arquivo com menos páginas.`);
+    }
+    if(resp.status===413){
+      throw new Error(`O arquivo "${file.name}" é grande demais pro servidor aceitar (HTTP 413). Comprima mais e tente de novo.`);
+    }
+    throw new Error(`"${file.name}" não pôde ser lido pelo servidor (HTTP ${resp.status||'sem resposta'})${corpo?': '+corpo:'.'}`);
+  }
   if(!j.ok) throw new Error(j.erro||`Não consegui ler o arquivo "${file.name}".`);
   return {texto:j.texto||'',truncou:!!j.truncou,comprimiu};
 }
