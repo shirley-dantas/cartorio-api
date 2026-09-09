@@ -6333,14 +6333,12 @@ const extrairDocxNoNavegador=(file)=>new Promise((resolve,reject)=>{
   r.onerror=()=>reject(erroDeLeitura(file));
   r.readAsArrayBuffer(file);
 });
-// O corpo da requisição para a Vercel tem um teto fixo de ~4,5MB, e em
-// base64 o arquivo infla ~33% (mais o resto do JSON em volta). Um arquivo de
-// 4,2MB brutos já vira corpo de requisição de mais de 5,5MB — foi testado em
-// produção em 08/09/2026 e a Vercel recusou (CONTRATO, FICHA CADASTRAL e
-// PROCURAÇÃO, todos abaixo de 4,2MB, falharam com "grande demais ou o
-// servidor recusou o envio"). 3MB brutos vira ~4MB de corpo, com folga real
-// sob o teto — não subir este número sem testar de novo em produção.
-const LIMITE_ANEXO_BYTES=3*1024*1024;
+// A leitura de PDF/imagem passa pelo Apps Script (ver extrairArquivo), não
+// mais pela Vercel — então este teto não é mais sobre o corpo de uma
+// requisição HTTP, é só bom senso: documento de cartório comum (mesmo
+// escaneado) não chega perto disso, e um arquivo monstruoso ainda merece um
+// aviso claro em vez de travar a aba comprimindo por minutos.
+const LIMITE_ANEXO_BYTES=20*1024*1024;
 
 // Uma página de PDF virada imagem, em bytes JPEG (dataURL → ArrayBuffer).
 async function paginaPdfParaJpegBytes(pagina,escala,qualidade){
@@ -6435,7 +6433,15 @@ async function extrairArquivo(file,preservarIntegral,onStatus){
     if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
     return {texto:j.texto||textoBruto,truncou:!!j.truncou,comprimiu:false};
   }
-  // PDF/imagem: precisa mesmo enviar o arquivo (a IA lê o documento visualmente).
+  // PDF/imagem: a IA precisa "olhar" o documento — não dá pra ler como texto
+  // puro. Isso vai direto pro Apps Script (GAS_URL), não pela Vercel: a
+  // Vercel tem um teto fixo de 60s por chamada (plano Hobby) e ~4,5MB no
+  // corpo da requisição, e documento com muitas páginas passa dos dois (foi
+  // o que derrubou a "3ª Alteração Contratual" e outros anexos em produção
+  // em 08/09/2026, com HTTP 504). O Apps Script roda até 6 minutos por
+  // chamada e aceita corpos bem maiores — o mesmo caminho que já gera a
+  // minuta (ver iniciar-minuta.js: dispara e não espera; aguardarJobFirebase
+  // aqui embaixo pergunta pro Firebase até o Apps Script terminar).
   let alvo=file;
   let comprimiu=false;
   if(alvo.size>LIMITE_ANEXO_BYTES){
@@ -6444,39 +6450,24 @@ async function extrairArquivo(file,preservarIntegral,onStatus){
     if(comprimido){ alvo=comprimido; comprimiu=true; }
   }
   if(alvo.size>LIMITE_ANEXO_BYTES){
-    throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui, mesmo depois de tentar comprimir automaticamente. Escaneie/salve em resolução menor (até ~3MB) e tente de novo.`);
+    throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui, mesmo depois de tentar comprimir automaticamente. Escaneie/salve em resolução menor (até ~${Math.round(LIMITE_ANEXO_BYTES/1024/1024)}MB) e tente de novo.`);
   }
   const base64=await lerBase64Arquivo(alvo);
-  let resp;
+  const jobId=Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  // Fogo-e-esquece: não espera a resposta do Apps Script (documento longo
+  // pode levar minutos) — só dispara e passa a perguntar pro Firebase.
+  fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'extrair-texto-arquivo',jobId,base64,mimetype:alvo.type,nomeArquivo:file.name,preservarIntegral})}).catch(()=>{});
+  if(onStatus)onStatus(`Lendo "${file.name}"…`);
+  let d;
   try{
-    resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,mimetype:alvo.type,nomeArquivo:file.name,preservarIntegral})});
+    d=await aguardarJobFirebase(jobId,(tick)=>{
+      if(onStatus)onStatus(`Lendo "${file.name}"… ${(tick+1)*3}s`);
+    });
   }catch(e){
-    throw new Error(`Não consegui enviar o arquivo "${file.name}". Tente de novo.`);
+    throw new Error(`"${file.name}" não terminou de ser lido a tempo (mais de 6 minutos) — documento bem longo, ou o Apps Script está fora do ar. Tente de novo.`);
   }
-  // A resposta não vir em JSON tinha um único diagnóstico ("grande demais"),
-  // mas o corpo grande demais não é a única causa possível — a Vercel também
-  // devolve corpo não-JSON num timeout (documento com muitas páginas passa
-  // dos 60s de extrairArquivo em produção) ou numa falha do lado da IA. Clona
-  // ANTES de tentar o .json() porque um .json() que falha deixa o stream
-  // original consumido — sem o clone não haveria como ler o texto do erro
-  // depois. Adivinhar a causa errada manda a Shirley comprimir um arquivo que
-  // já cabia, ou tentar de novo um que nunca vai passar sozinho.
-  const respClone=resp.clone();
-  let j;
-  try{ j=await resp.json(); }
-  catch(e){
-    let corpo='';
-    try{ corpo=(await respClone.text()).replace(/\s+/g,' ').trim().slice(0,200); }catch(_){}
-    if([502,503,504].includes(resp.status)){
-      throw new Error(`O servidor demorou demais pra ler "${file.name}" (HTTP ${resp.status}) — comum em documento com muitas páginas. Tente de novo; se repetir, precisa de um arquivo com menos páginas.`);
-    }
-    if(resp.status===413){
-      throw new Error(`O arquivo "${file.name}" é grande demais pro servidor aceitar (HTTP 413). Comprima mais e tente de novo.`);
-    }
-    throw new Error(`"${file.name}" não pôde ser lido pelo servidor (HTTP ${resp.status||'sem resposta'})${corpo?': '+corpo:'.'}`);
-  }
-  if(!j.ok) throw new Error(j.erro||`Não consegui ler o arquivo "${file.name}".`);
-  return {texto:j.texto||'',truncou:!!j.truncou,comprimiu};
+  if(!d.ok) throw new Error(d.erro||`Não consegui ler o arquivo "${file.name}".`);
+  return {texto:d.texto||'',truncou:!!d.truncou,comprimiu};
 }
 
 async function aguardarJobFirebase(jobId,onTick){
