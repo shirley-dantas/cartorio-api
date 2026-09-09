@@ -697,6 +697,105 @@ function auditarMinuta(minutaTexto, documentosTexto) {
   }
 }
 
+// ── Extração de texto de arquivo grande (job assíncrono) ───────────────────
+// O painel manda PDF/imagem grande — ou com muitas páginas — direto pra cá,
+// não pela Vercel: a Vercel tem um teto fixo de 60s por chamada (plano
+// Hobby) e ~4,5MB no corpo da requisição, e um documento de muitas páginas
+// passa dos dois (foi o que aconteceu em produção em 08/09/2026 com a "3ª
+// Alteração Contratual" e outros anexos — HTTP 504, servidor "recusando"
+// arquivos que já cabiam no limite de tamanho). O Apps Script roda até 6
+// minutos por chamada e aceita corpos bem maiores, então lê do mesmo jeito
+// (mesmo prompt, mesmas passadas de continuação de api/extrair-texto-
+// arquivo.js) sem esbarrar em nenhum dos dois tetos. Devolve pelo Firebase
+// (job), nunca pela resposta HTTP — o painel não fica esperando a chamada
+// terminar, o mesmo padrão de gerarECriarMinuta acima.
+var EXTRACAO_ARQUIVO_MAX_TOKENS = 8000;
+var EXTRACAO_ARQUIVO_MAX_PASSADAS = 4;
+
+function chamarClaudeArquivoRaw(content) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada.");
+  var payload = {
+    model: "claude-sonnet-4-6",
+    max_tokens: EXTRACAO_ARQUIVO_MAX_TOKENS,
+    messages: [{ role: "user", content: content }]
+  };
+  var response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
+    method: "post",
+    contentType: "application/json",
+    headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  var data = JSON.parse(response.getContentText());
+  if (data.error) throw new Error("Erro Claude API: " + (data.error.message || JSON.stringify(data.error)));
+  return {
+    texto: (data.content && data.content[0] && data.content[0].text) || null,
+    truncou: data.stop_reason === "max_tokens"
+  };
+}
+
+function instrucaoContinuarExtracaoArquivo(trechoFinal) {
+  return "Você já extraiu/transcreveu o trecho abaixo a partir deste MESMO documento (é a mesma extração continuando — não é um novo pedido, e não repita os campos TIPO_DOCUMENTO/NOME_PESSOA já identificados no início, se houver). NÃO repita esse trecho — continue EXATAMENTE de onde ele parou, sem reintroduções.\n\nTRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI:";
+}
+
+function unirTextoExtracaoArquivo(a, b) {
+  if (!a) return b || "";
+  if (!b) return a;
+  var precisaEspaco = !/\s/.test(a.slice(-1)) && !/\s/.test(b.slice(0, 1));
+  return a + (precisaEspaco ? " " : "") + b;
+}
+
+// Mesma ideia de extrairComContinuacao em api/extrair-texto-arquivo.js:
+// chama de novo enquanto bater no teto de tokens, até completar ou esgotar
+// EXTRACAO_ARQUIVO_MAX_PASSADAS (nesse caso raro, truncou continua true).
+function extrairArquivoComContinuacao(montarConteudo) {
+  var texto = "";
+  var truncou = false;
+  for (var i = 0; i < EXTRACAO_ARQUIVO_MAX_PASSADAS; i++) {
+    var r = chamarClaudeArquivoRaw(montarConteudo(i, texto));
+    if (!r.texto) break;
+    texto = unirTextoExtracaoArquivo(texto, r.texto);
+    truncou = r.truncou;
+    if (!truncou) break;
+  }
+  return { texto: texto || null, truncou: truncou };
+}
+
+function extrairTextoArquivoJob(dados) {
+  var jobId = dados.jobId;
+  try {
+    var base64 = dados.base64 || "";
+    var mimetype = dados.mimetype || "application/pdf";
+    var preservarIntegral = !!dados.preservarIntegral;
+    if (!base64) throw new Error("Arquivo vazio");
+
+    var blocoArquivo = mimetype === "application/pdf"
+      ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
+      : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
+    var instrucaoInicial = preservarIntegral
+      ? "Este documento é uma escritura ou ato notarial já pronto. Transcreva o texto completo do documento, na íntegra, sem resumir, sem comentar e sem omitir nenhuma parte. Apenas o texto puro da minuta."
+      : "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Depois, numa nova linha, transcreva com fidelidade as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Não resuma nem selecione o que parece mais relevante — transcreva tudo que encontrar.";
+
+    var resultado = extrairArquivoComContinuacao(function (pass, textoAteAqui) {
+      return [
+        blocoArquivo,
+        { type: "text", text: pass === 0 ? instrucaoInicial : instrucaoContinuarExtracaoArquivo(textoAteAqui.slice(-1500)) }
+      ];
+    });
+
+    if (jobId) {
+      salvarJobFirebase(jobId, { status: "done", ok: true, texto: resultado.texto || "", truncou: resultado.truncou });
+    }
+    return resp({ ok: true });
+  } catch (err) {
+    if (jobId) {
+      salvarJobFirebase(jobId, { status: "done", ok: false, erro: err.message });
+    }
+    return resp({ ok: false, erro: err.message });
+  }
+}
+
 function salvarJobFirebase(jobId, resultado) {
   UrlFetchApp.fetch(
     FIREBASE_URL + "/jobs/" + jobId + ".json",
@@ -720,6 +819,7 @@ function doPost(e) {
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
+    if (acao === "extrair-texto-arquivo") return extrairTextoArquivoJob(dados);
     if (acao === "marcar-modelo") return marcarModelo(dados);
     if (acao === "sincronizar-evento-calendar") return sincronizarEventoCalendar(dados);
     if (acao === "excluir-evento-calendar") return excluirEventoCalendar(dados);
