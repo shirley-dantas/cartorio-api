@@ -6521,7 +6521,7 @@ function mostrarAlertaCertidoes(certidoes){
     overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
     overlay.innerHTML=`<div style="background:#fff;border-radius:12px;max-width:520px;width:100%;max-height:82vh;overflow:auto;padding:20px;text-align:left">
       <h3 style="margin:0 0 4px">⚠️ Validade das certidões anexadas</h3>
-      <p style="font-size:13px;color:#666;margin:0 0 12px">Confira antes de lavrar. Procuração e matrícula já saíram na minuta como "devidamente atualizada"; as demais saíram com o espaço da validade em branco, pra preencher quando a nova certidão chegar.</p>
+      <p style="font-size:13px;color:#666;margin:0 0 12px">Confira antes de lavrar. Procuração e matrícula já saíram na minuta como "devidamente atualizada". As demais: se está VÁLIDA, entrou normal, com os dados dela; se está VENCIDA ou não deu pra confirmar, o espaço da validade ficou em branco, pra preencher quando a nova certidão chegar.</p>
       ${linhas}
       <button id="btn-ok-certidoes" style="margin-top:8px;width:100%;padding:10px;border:none;border-radius:8px;background:#1B5E20;color:#fff;font-weight:600;cursor:pointer">Ok, anotei</button>
     </div>`;
