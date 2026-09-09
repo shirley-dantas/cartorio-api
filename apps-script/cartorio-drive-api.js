@@ -259,7 +259,9 @@ Isso é OBRIGATÓRIO para toda certidão encontrada — nunca pule esse marcador
 
 No CORPO da minuta (nas cláusulas que mencionam as certidões apresentadas):
 - Para certidões do tipo "procuração" e "matrícula": mencione apenas que está **devidamente atualizada** — NUNCA escreva a data de emissão, o prazo ou a data de vencimento dessas duas no corpo do texto.
-- Para as demais certidões ("outra"): deixe o campo da validade/data de emissão em branco (______) no corpo da minuta, mesmo que o documento atual informe uma data — esse espaço é preenchido à mão quando a nova certidão for obtida antes da lavratura.
+- Para as demais certidões ("outra"): depende do STATUS calculado acima.
+  - STATUS VÁLIDA: entra normalmente, com os dados reais dela (data de emissão, número, validade quando fizer parte da qualificação usual da certidão) — é uma certidão em dia, não há necessidade de deixar nada em branco.
+  - STATUS VENCIDA ou INDETERMINADA: deixe o campo da validade/data de emissão em branco (______) no corpo da minuta, mesmo que o documento atual informe uma data — esse espaço é preenchido à mão quando a nova certidão for obtida antes da lavratura (uma certidão vencida, ou que não deu pra confirmar se está vencida, não pode entrar na minuta como se estivesse em dia).
 
 REGRA ABSOLUTA — DESCRIÇÃO DO IMÓVEL (cópia literal, NUNCA parafraseada):
 A descrição do imóvel — localização, torre/bloco/pavimento, área privativa, área de uso comum, área real total, fração ideal e a referência à matrícula — vem SEMPRE copiada PALAVRA POR PALAVRA do documento que a traz, na mesma ordem e com os mesmos termos (ex: se o documento diz "área privativa principal e total", não vire "área privativa"). NUNCA reescreva, reordene, resuma ou "melhore" essa descrição, e NUNCA misture frases de documentos diferentes numa versão própria sua. Quando o caso trouxer mais de um documento com descrição do imóvel (ex: a matrícula da instituição do condomínio e a matrícula já individualizada da unidade), use a descrição do documento mais específico para aquela unidade — mas copiada por inteiro, exatamente como está nele, nunca reescrita.
