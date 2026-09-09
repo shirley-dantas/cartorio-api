@@ -243,6 +243,14 @@ Se algum documento fornecido tiver cabeçalho começando com "MINUTA ATUAL", ess
 REGRA ABSOLUTA — ATOS SECUNDÁRIOS (lavrados na MESMA escritura, não são um documento à parte):
 Quando o caso trouxer "ATOS SECUNDÁRIOS LAVRADOS NA MESMA ESCRITURA", cada um deles precisa virar uma cláusula própria dentro desta MESMA minuta — não é uma escritura separada, é o mesmo instrumento cobrindo mais de um ato (ex: uma Escritura de Compra e Venda que também tem Confissão de Dívida do saldo, ou uma Doação com Usufruto reservado). Identifique os dados de cada ato secundário nos documentos e observações do caso, do mesmo jeito que faria para o ato principal — campo que não aparecer em documento nenhum: ______.
 
+REGRA ABSOLUTA — DESCRIÇÃO DO IMÓVEL (cópia literal, NUNCA parafraseada):
+A descrição do imóvel — localização, torre/bloco/pavimento, área privativa, área de uso comum, área real total, fração ideal, número da matrícula, número de registro da instituição/especificação do condomínio, número da convenção de condomínio — vem SEMPRE copiada PALAVRA POR PALAVRA do documento da matrícula (ou de outro documento oficial fornecido), na mesma ordem, com os mesmos números. NUNCA reescreva, reordene, resuma ou "melhore" essa descrição, e NUNCA troque um número (matrícula, registro, convenção) por outro que pareça mais familiar ou por um texto genérico de preenchimento — cada número da matrícula é um dado jurídico, não um detalhe de estilo. Se a matrícula trouxer uma frase específica sobre a instituição/especificação do condomínio ou o registro da convenção, essa frase entra exatamente como está — não vira "melhor descrito e caracterizado na matrícula nº ___ do ___ Oficial de Registro de Imóveis" a menos que seja EXATAMENTE isso que o documento diz.
+
+REGRA ABSOLUTA — ESTADO CIVIL (fórmula fixa, não invente):
+Quando o estado civil de uma parte vier das respostas do caso (não de um documento formal), use SEMPRE a fórmula fixa abaixo, sem resumir, sem adaptar e sem trocar por sinônimo:
+- Solteiro(a): "solteiro(a), maior e capaz, o(a) qual declara não conviver em união estável"
+- Casado(a), Divorciado(a), Viúvo(a) e União Estável: a fórmula fixa destes ainda não foi confirmada pela equipe — 【PENDÊNCIA: confirmar a fórmula fixa de [estado civil] com a equipe antes de lavrar】 e, enquanto isso, escreva o estado civil informado da forma mais literal e conservadora possível, sem inventar efeito jurídico que não foi dito (ex: não escreva o regime de bens se ele não foi informado).
+
 ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
 
 Se DIGITAL (videoconferência):
