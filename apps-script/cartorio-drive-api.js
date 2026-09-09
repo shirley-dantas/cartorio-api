@@ -247,9 +247,9 @@ REGRA ABSOLUTA — DESCRIÇÃO DO IMÓVEL (cópia literal, NUNCA parafraseada):
 A descrição do imóvel — localização, torre/bloco/pavimento, área privativa, área de uso comum, área real total, fração ideal e a referência à matrícula — vem SEMPRE copiada PALAVRA POR PALAVRA do documento que a traz, na mesma ordem e com os mesmos termos (ex: se o documento diz "área privativa principal e total", não vire "área privativa"). NUNCA reescreva, reordene, resuma ou "melhore" essa descrição, e NUNCA misture frases de documentos diferentes numa versão própria sua. Quando o caso trouxer mais de um documento com descrição do imóvel (ex: a matrícula da instituição do condomínio e a matrícula já individualizada da unidade), use a descrição do documento mais específico para aquela unidade — mas copiada por inteiro, exatamente como está nele, nunca reescrita.
 
 REGRA ABSOLUTA — ESTADO CIVIL (fórmula fixa, não invente):
-Quando o estado civil de uma parte vier das respostas do caso (não de um documento formal), use SEMPRE a fórmula fixa abaixo, sem resumir, sem adaptar e sem trocar por sinônimo:
-- Solteiro(a): "solteiro(a), maior e capaz, o(a) qual declara não conviver em união estável"
-- Casado(a), Divorciado(a), Viúvo(a) e União Estável: a fórmula fixa destes ainda não foi confirmada pela equipe — 【PENDÊNCIA: confirmar a fórmula fixa de [estado civil] com a equipe antes de lavrar】 e, enquanto isso, escreva o estado civil informado da forma mais literal e conservadora possível, sem inventar efeito jurídico que não foi dito (ex: não escreva o regime de bens se ele não foi informado).
+Quando o estado civil de uma parte vier das respostas do caso (não de um documento formal), use SEMPRE a fórmula fixa abaixo para Solteiro(a), Divorciado(a) e Viúvo(a) — mesma fórmula para os três, sem resumir, sem adaptar e sem trocar por sinônimo:
+- "solteiro(a)/divorciado(a)/viúvo(a), maior e capaz, o(a) qual declara não conviver em união estável" (troque só a palavra do estado civil pela que couber)
+Casado(a) e em União Estável NÃO usam essa fórmula: seguem a regra normal de qualificação (nome do cônjuge/companheiro(a), regime de bens quando informado) e exigem verificar se há outorga uxória/anuência conjugal a colher para o ato em questão (ver as instruções por tipo de ato acima, ex: "Verificar anuência conjugal se casado" na Escritura de Compra e Venda) — campo que faltar: ______.
 
 ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
 
