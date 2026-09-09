@@ -8,12 +8,20 @@
 //
 // FIREBASE: Certifique-se que as regras do Realtime Database permitem escrita em /jobs/
 // { "rules": { "jobs": { ".read": true, ".write": true } } }
+// (ver database.rules.json no repositório para a lista completa, incluindo
+// /geracao-estado/, usado pela geração de minuta em pedaços — ver abaixo)
 //
 // CALENDAR: este script agora também cria/atualiza/exclui eventos no Google
 // Calendar (mesma conta do Drive). Ao colar este código e salvar, o Apps
 // Script vai pedir para reautorizar o projeto com o escopo do Calendar —
 // aceite a permissão e implante uma nova versão (Implantar > Gerenciar
 // implantações > editar > Nova versão).
+//
+// GATILHOS: a geração de minuta em pedaços (ver agendarContinuacaoMinuta)
+// cria gatilhos de tempo (ScriptApp.newTrigger) para continuar uma minuta
+// longa sem esbarrar no teto de 6 minutos por execução. Isso pede o escopo
+// de gatilhos — aceite a reautorização se for pedida, e implante uma nova
+// versão, do mesmo jeito que o Calendar acima.
 
 const PASTA_RAIZ_ID = "1KDMZ-FJMoXEzpMXKSojeZgNeJ_p4lhSb";
 const NOME_PASTA_MINUTAS = "0 - MINUTAS IA";
@@ -536,26 +544,76 @@ function precisouTruncarGeracao(rodadas, maxPedacos, aindaPrecisaContinuar) {
   return rodadas >= maxPedacos && !!aindaPrecisaContinuar;
 }
 
-// Gera a minuta em pedaços, continuando automaticamente de onde parou até terminar
-// de verdade (ou até um limite de segurança). Isso permite minutas bem mais longas
-// (50+ páginas) sem depender de acertar de antemão um tamanho máximo de resposta —
-// cada pedaço é rápido (uma chamada à IA), e só continua se realmente precisar.
-function gerarMinutaCompleta(mensagemBase, ano) {
-  var MAX_PEDACOS = 6;
-  // Quando há um modelo de referência (manual ou aprendido automaticamente) OU uma
-  // MINUTA ATUAL sendo seguida à risca, a IA tende a "achar" que terminou cedo demais
-  // (parar em ~1/3 do conteúdo). Por isso, forçamos pelo menos uma rodada extra de
-  // autoverificação de cobertura, mesmo que a IA não tenha batido no limite de
-  // tamanho — ela precisa confirmar explicitamente que terminou.
-  var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1 || mensagemBase.indexOf("MINUTA ATUAL") !== -1;
-  var textoCompleto = "";
-  var rodadas = 0;
-  var precisaContinuar = false;
-  for (var i = 0; i < MAX_PEDACOS; i++) {
-    var mensagem = mensagemBase;
-    if (i > 0) {
-      var trechoFinal = textoCompleto.slice(-1500);
-      mensagem = mensagemBase +
+// A minuta é gerada em pedaços (até 6 rodadas de IA), mas cada rodada agora
+// roda numa EXECUÇÃO PRÓPRIA do Apps Script, não dentro de um loop na mesma
+// chamada. Motivo: o Apps Script tem um teto de 6 minutos por execução, e um
+// caso grande (documentos longos, minuta extensa) pode precisar de mais
+// tempo que isso somando as rodadas — foi o que travou a minuta da RL Fátima
+// em 09/09/2026, com "Tempo esgotado aguardando geração da minuta".
+//
+// UrlFetchApp não serve para disparar a próxima rodada sem esperar: ele é
+// SEMPRE síncrono no Apps Script (ao contrário do https do Node, usado em
+// iniciar-minuta.js, que pode resolver assim que os dados saem, sem esperar
+// a resposta) — chamar a rodada seguinte por HTTP manteria a chamada de fora
+// travada até a de dentro terminar, e o relógio da rodada 1 continuaria
+// correndo enquanto espera. O jeito certo de "terminar aqui e continuar
+// depois, sem ninguém esperando" é um gatilho de tempo (ScriptApp): agenda
+// uma função pra rodar daqui a pouco, como uma execução nova e independente,
+// com seu próprio teto de 6 minutos, e a chamada atual pode terminar.
+//
+// Gatilho de tempo não aceita parâmetro nenhum — só chama a função pelo
+// nome. O estado da geração (o que já foi escrito, quantas rodadas, etc.)
+// PRECISA ir pro Firebase, não pras Propriedades do script: uma minuta em
+// andamento facilmente passa dos ~9KB por valor que o PropertiesService
+// aceita (é o texto de uma escritura inteira, às vezes de dezenas de
+// páginas). As Propriedades guardam só uma migalha — o jobId, indexado pelo
+// id único do gatilho (event.triggerUid) — o suficiente pra saber qual
+// registro buscar no Firebase, mesmo com duas minutas sendo geradas ao
+// mesmo tempo.
+var GERACAO_MAX_PEDACOS = 6;
+
+function agendarContinuacaoMinuta(jobId, estado) {
+  UrlFetchApp.fetch(FIREBASE_URL + "/geracao-estado/" + jobId + ".json", {
+    method: "put",
+    contentType: "application/json",
+    payload: JSON.stringify(estado),
+    muteHttpExceptions: true
+  });
+  var trigger = ScriptApp.newTrigger("continuarGeracaoMinuta").timeBased().after(2000).create();
+  PropertiesService.getScriptProperties().setProperty("cont_" + trigger.getUniqueId(), jobId);
+}
+
+// Chamada pelo gatilho de tempo. Lê o jobId pelo triggerUid do evento (não
+// por parâmetro — gatilho de tempo não aceita nenhum), busca o estado de
+// verdade no Firebase e limpa os dois rastros: a propriedade (pequena) e o
+// registro no Firebase (que pode ser grande) — um gatilho só serve pra uma
+// rodada, nunca é reaproveitado, e um estado velho parado no Firebase não
+// serve pra nada.
+function continuarGeracaoMinuta(e) {
+  var props = PropertiesService.getScriptProperties();
+  var chave = "cont_" + (e && e.triggerUid);
+  var jobId = props.getProperty(chave);
+  if (!jobId) return; // gatilho órfão (propriedade já consumida, ou evento sem triggerUid) — nada a fazer
+  props.deleteProperty(chave);
+  var url = FIREBASE_URL + "/geracao-estado/" + jobId + ".json";
+  var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  var estado = JSON.parse(response.getContentText());
+  UrlFetchApp.fetch(url, { method: "delete", muteHttpExceptions: true });
+  if (!estado) return; // estado sumiu (não devia acontecer) — sem ele não tem como continuar
+  processarRodadaMinuta(jobId, estado);
+}
+
+// Uma única rodada: monta a mensagem (com o trecho já escrito, se for
+// continuação), chama a IA uma vez, e decide entre agendar a próxima rodada
+// ou finalizar. Nunca faz duas chamadas à IA na mesma execução — é isso que
+// mantém cada execução bem abaixo do teto de 6 minutos, mesmo num caso que
+// precise das 6 rodadas inteiras.
+function processarRodadaMinuta(jobId, estado) {
+  try {
+    var mensagem = estado.mensagemBase;
+    if (estado.rodadas > 0) {
+      var trechoFinal = estado.textoAcumulado.slice(-1500);
+      mensagem = estado.mensagemBase +
         "\n\n---\nATENÇÃO: você já escreveu o trecho abaixo desta MESMA minuta (isto é uma continuação, não um novo pedido). " +
         "NÃO repita esse trecho — continue EXATAMENTE de onde ele parou, mantendo a mesma formatação, numeração de cláusulas e estilo. " +
         "Antes de considerar concluído, confira se já cobriu TODAS as cláusulas/seções equivalentes às do modelo de referência (mesma numeração e escopo). " +
@@ -563,25 +621,95 @@ function gerarMinutaCompleta(mensagemBase, ano) {
         "Caso contrário, continue escrevendo o restante.\n\n" +
         "TRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI (ou responda CONCLUIDO se já estiver completo):";
     }
-    var res = chamarClaudeRaw(mensagem, ano);
-    rodadas++;
-    var textoNovo = res.texto;
-    if (respostaIndicaConclusao(textoNovo)) { precisaContinuar = false; break; }
 
-    textoCompleto = unirTextoMinuta(textoCompleto, textoNovo);
-
-    precisaContinuar = res.pararPorTamanho; // bateu no limite de tamanho, com certeza precisa continuar
-    if (!precisaContinuar && temModelo && i === 0) {
-      precisaContinuar = true; // primeira rodada com modelo: sempre confirma cobertura antes de aceitar
+    var res = chamarClaudeRaw(mensagem, estado.ano);
+    estado.rodadas++;
+    var precisaContinuar = false;
+    if (respostaIndicaConclusao(res.texto)) {
+      precisaContinuar = false;
+    } else {
+      estado.textoAcumulado = unirTextoMinuta(estado.textoAcumulado, res.texto);
+      precisaContinuar = res.pararPorTamanho; // bateu no limite de tamanho, com certeza precisa continuar
+      if (!precisaContinuar && estado.temModelo && estado.rodadas === 1) {
+        precisaContinuar = true; // primeira rodada com modelo: sempre confirma cobertura antes de aceitar
+      }
     }
-    if (!precisaContinuar) break;
+
+    if (precisaContinuar && estado.rodadas < GERACAO_MAX_PEDACOS) {
+      agendarContinuacaoMinuta(jobId, estado);
+      return;
+    }
+
+    finalizarGeracaoMinuta(jobId, estado, precisouTruncarGeracao(estado.rodadas, GERACAO_MAX_PEDACOS, precisaContinuar));
+  } catch (err) {
+    if (jobId) salvarJobFirebase(jobId, { status: "done", ok: false, erro: err.message });
+    if (estado.notificarWhatsApp) {
+      enviarWhatsApp("⚠️ Não consegui gerar a minuta de " + (estado.nome || "caso") + " agora: " + err.message + ". Tente pedir de novo.");
+    }
   }
-  return {
-    texto: textoCompleto,
-    rodadas: rodadas,
-    temModelo: temModelo,
-    truncada: precisouTruncarGeracao(rodadas, MAX_PEDACOS, precisaContinuar)
-  };
+}
+
+// Depois da última rodada (concluiu, ou esgotou as 6): cria o documento,
+// audita, avisa — mesma cauda que gerarECriarMinuta sempre teve, só que
+// agora chamada de dentro de processarRodadaMinuta em vez de no fim de um
+// loop na mesma execução.
+function finalizarGeracaoMinuta(jobId, estado, truncada) {
+  var parsed = parsearResposta(estado.textoAcumulado);
+  var conferencia = conferirMinuta(parsed.minuta, estado.mod);
+
+  var docResult = _criarMinutaDocInterno({
+    nome: estado.nome,
+    tipo: estado.tipo,
+    minuta: parsed.minuta,
+    comentarios: parsed.comentarios
+  });
+
+  // Nada aqui sai calado: minuta truncada na 6ª rodada, seção obrigatória de
+  // encerramento faltando, abertura incompatível com a modalidade ou
+  // documento que a IA não leu — tudo vira aviso, nunca um "✅ sucesso" liso.
+  var avisos = conferencia.avisos.slice();
+  if (estado.avisosDocumentos) avisos.push("Documento(s) que a IA pode não ter lido por completo: " + estado.avisosDocumentos);
+
+  if (jobId) {
+    salvarJobFirebase(jobId, {
+      status: "done",
+      ok: true,
+      truncada: truncada,
+      avisos: avisos,
+      docUrl: docResult.url,
+      folderUrl: docResult.folderUrl,
+      docNome: docResult.nome,
+      diagRodadas: estado.rodadas,
+      diagTemModelo: estado.temModelo,
+      diagBrancos: conferencia.brancos
+    });
+  }
+
+  if (estado.casoId) {
+    // Auditoria: uma chamada SEPARADA da que gerou a minuta, depois do
+    // documento já pronto e do job já marcado como pronto acima — o painel
+    // já liberou a tela nesse instante, então isto roda fora do caminho
+    // crítico. Nunca reescreve a minuta, só confere e aponta.
+    var achadosAuditoria = auditarMinuta(parsed.minuta, estado.documentosTexto);
+    var patchCaso = { driveUrl: docResult.folderUrl, docUrl: docResult.url };
+    if (achadosAuditoria !== null) {
+      patchCaso.auditoria = { achados: achadosAuditoria, atualizado: new Date().toISOString() };
+    }
+    UrlFetchApp.fetch(FIREBASE_URL + "/casos/" + estado.casoId + ".json", {
+      method: "patch",
+      contentType: "application/json",
+      payload: JSON.stringify(patchCaso),
+      muteHttpExceptions: true
+    });
+  }
+  if (estado.notificarWhatsApp) {
+    if (truncada || avisos.length) {
+      var motivos = truncada ? ["a geração pode ter parado antes do fim (limite de rodadas)"].concat(avisos) : avisos;
+      enviarWhatsApp("⚠️ Minuta de " + (estado.nome || "caso") + " gerada, mas com ressalva — confira antes de usar: " + motivos.join(" | ") + ". " + docResult.url);
+    } else {
+      enviarWhatsApp("✅ Minuta de " + (estado.nome || "caso") + " pronta! " + docResult.url);
+    }
+  }
 }
 
 // Conferência da minuta gerada — uma segunda camada de detecção de corte,
@@ -915,7 +1043,7 @@ function gerarECriarMinuta(dados) {
     // Dívida"), que só casava com metade das listas de checklist/abreviação.
     var atosSecundarios = Array.isArray(dados.atosSecundarios) ? dados.atosSecundarios.filter(Boolean) : [];
 
-    var mensagem = "CASO: " + (dados.nome || "Não informado") + "\n" +
+    var mensagemBase = "CASO: " + (dados.nome || "Não informado") + "\n" +
       "TIPO DE ATO: " + (dados.tipo || "Não informado") + "\n" +
       (atosSecundarios.length ? "ATOS SECUNDÁRIOS LAVRADOS NA MESMA ESCRITURA: " + atosSecundarios.join(", ") + "\n" : "") +
       "MODALIDADE: " + mod.toUpperCase() + "\n" +
@@ -928,71 +1056,37 @@ function gerarECriarMinuta(dados) {
         ? "\n\nPor favor, ATUALIZE a MINUTA ATUAL acima conforme a INSTRUÇÃO DE ATUALIZAÇÃO DA MINUTA, reproduzindo-a por inteiro e ajustando concordância onde a mudança pedida exigir, conforme as instruções do sistema."
         : "\n\nPor favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade " + mod.toUpperCase() + " conforme as instruções do sistema.");
 
-    var geracao = gerarMinutaCompleta(mensagem, ano);
-    var parsed = parsearResposta(geracao.texto);
-    var conferencia = conferirMinuta(parsed.minuta, mod);
-
-    var docResult = _criarMinutaDocInterno({
-      nome: dados.nome,
-      tipo: dados.tipo,
-      minuta: parsed.minuta,
-      comentarios: parsed.comentarios
-    });
+    // Quando há um modelo de referência (manual ou aprendido automaticamente) OU
+    // uma MINUTA ATUAL sendo seguida à risca, a IA tende a "achar" que terminou
+    // cedo demais (parar em ~1/3 do conteúdo) — ver temModelo em processarRodadaMinuta.
+    var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1 || mensagemBase.indexOf("MINUTA ATUAL") !== -1;
 
     // Curadoria (Etapa 2): NÃO aprende sozinho mais. Toda minuta gerada virava
     // modelo antes — boa ou ruim — e é a explicação mais provável de "a minuta
     // não segue os modelos". Agora só entra quando ela mesma marca uma minuta
     // pronta como modelo (ação "marcar-modelo", ver marcarModelo acima).
 
-    // Nada aqui sai calado: minuta truncada na 6ª rodada, seção obrigatória de
-    // encerramento faltando, abertura incompatível com a modalidade ou
-    // documento que a IA não leu — tudo vira aviso, nunca um "✅ sucesso" liso.
-    var avisos = conferencia.avisos.slice();
-    if (dados.avisosDocumentos) avisos.push("Documento(s) que a IA pode não ter lido por completo: " + dados.avisosDocumentos);
-    var truncada = geracao.truncada;
+    // A primeira rodada roda aqui mesmo, na mesma execução — é rápida (uma
+    // chamada à IA) e mantém o comportamento de sempre para o caso comum (1-2
+    // rodadas). Se precisar de mais, processarRodadaMinuta agenda a próxima
+    // rodada por gatilho em vez de continuar aqui — ver o comentário grande
+    // logo antes de agendarContinuacaoMinuta.
+    processarRodadaMinuta(jobId, {
+      ano: ano,
+      mensagemBase: mensagemBase,
+      temModelo: temModelo,
+      mod: mod,
+      documentosTexto: documentosTexto,
+      textoAcumulado: "",
+      rodadas: 0,
+      nome: dados.nome,
+      tipo: dados.tipo,
+      casoId: dados.casoId,
+      notificarWhatsApp: dados.notificarWhatsApp,
+      avisosDocumentos: dados.avisosDocumentos
+    });
 
-    if (jobId) {
-      salvarJobFirebase(jobId, {
-        status: "done",
-        ok: true,
-        truncada: truncada,
-        avisos: avisos,
-        docUrl: docResult.url,
-        folderUrl: docResult.folderUrl,
-        docNome: docResult.nome,
-        diagRodadas: geracao.rodadas,
-        diagTemModelo: geracao.temModelo,
-        diagBrancos: conferencia.brancos
-      });
-    }
-
-    if (dados.casoId) {
-      // Auditoria: uma chamada SEPARADA da que gerou a minuta, depois do
-      // documento já pronto e do job já marcado como pronto acima — o painel
-      // já liberou a tela nesse instante, então isto roda fora do caminho
-      // crítico. Nunca reescreve a minuta, só confere e aponta.
-      var achadosAuditoria = auditarMinuta(parsed.minuta, documentosTexto);
-      var patchCaso = { driveUrl: docResult.folderUrl, docUrl: docResult.url };
-      if (achadosAuditoria !== null) {
-        patchCaso.auditoria = { achados: achadosAuditoria, atualizado: new Date().toISOString() };
-      }
-      UrlFetchApp.fetch(FIREBASE_URL + "/casos/" + dados.casoId + ".json", {
-        method: "patch",
-        contentType: "application/json",
-        payload: JSON.stringify(patchCaso),
-        muteHttpExceptions: true
-      });
-    }
-    if (dados.notificarWhatsApp) {
-      if (truncada || avisos.length) {
-        var motivos = truncada ? ["a geração pode ter parado antes do fim (limite de rodadas)"].concat(avisos) : avisos;
-        enviarWhatsApp("⚠️ Minuta de " + (dados.nome || "caso") + " gerada, mas com ressalva — confira antes de usar: " + motivos.join(" | ") + ". " + docResult.url);
-      } else {
-        enviarWhatsApp("✅ Minuta de " + (dados.nome || "caso") + " pronta! " + docResult.url);
-      }
-    }
-
-    return resp({ ok: true, url: docResult.url, folderUrl: docResult.folderUrl, nome: docResult.nome, truncada: truncada, avisos: avisos });
+    return resp({ ok: true, emAndamento: true });
 
   } catch(err) {
     if (jobId) {
