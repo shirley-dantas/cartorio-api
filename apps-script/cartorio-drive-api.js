@@ -213,6 +213,7 @@ FORMATAÇÃO DA MINUTA:
   - o número/letra que identifica capítulo, cláusula, inciso ou parágrafo (ex: "**Cláusula 1ª**", "**§ 2º**", "**Capítulo I**") — SEM EXCEÇÃO
   - na descrição do imóvel: a referência ao próprio imóvel (ex: "**apartamento nº 1301**"), a matrícula, o número do contribuinte (cadastro municipal/IPTU) e o valor da transação — SEM EXCEÇÃO, toda vez que aparecerem
 - PROIBIDO negrito em: CNPJ, nome do banco, agência, conta corrente, emolumentos, e qualquer texto do parágrafo final de pagamento
+- REGRA CRÍTICA DE NEGRITO: cada par de asteriscos duplos que abre um negrito precisa fechar com outro par de asteriscos duplos na MESMA linha/parágrafo, sem exceção — nunca abra um negrito numa linha pretendendo fechá-lo só numa linha seguinte. Um negrito com o fechamento faltando faz os asteriscos aparecerem soltos e visíveis no documento final. Se, ao terminar de escrever uma linha, você não tiver certeza se todo negrito que abriu nela também fechou nela, releia a linha e corrija antes de seguir
 - Na seção ARQUIVAMENTO: negrito SOMENTE na palavra "controle" e no valor/número que vem logo depois (______). Todo o restante dessa seção sem negrito
 - NÃO deixe linhas em branco entre os parágrafos — o texto deve fluir contínuo
 - Use # para o título principal (centralizado) e ## para seções e cláusulas
@@ -301,7 +302,9 @@ NOTA SOBRE O ENCERRAMENTO: Substitua "adquirente" pelo nome correto da parte pri
 
 NA CERTIFICAÇÃO, NUNCA deixe "______" no lugar do nome de quem assina: preencha com o nome de cada parte, no grupo correto (online ou presencial), usando a MODALIDADE do caso e as observações/documentos para saber quem assina de qual jeito — se MODALIDADE for DIGITAL, todas as partes vão no grupo online; se PRESENCIAL, todas no grupo presencial; se HÍBRIDA, distribua conforme o que constar nas observações do caso (quem assina online e quem assina presencialmente); só use ______ se, mesmo em modalidade HÍBRIDA, não houver NENHUMA indicação de quem assina em qual grupo.
 
-A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualificação completa das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas.`;
+A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualificação completa das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas.
+
+ÚLTIMA CONFERÊNCIA ANTES DE TERMINAR — não pule isto: releia a lista de documentos anexados a este caso. Para CADA UM que for uma certidão (negativa, positiva, distribuidor, ônus/matrícula, ITBI, IPTU, trabalhista, cível, criminal, protesto, vigência de procuração, ou qualquer outra), confirme que você já emitiu o marcador 【CERTIDÃO: ...】 correspondente, conforme a REGRA ABSOLUTA — VALIDADE DAS CERTIDÕES acima. Um documento anexado que seja certidão e não tiver esse marcador é uma falha grave desta minuta — mesmo que o corpo do texto já mencione a certidão normalmente.`;
 
 // ── Ano por extenso ──────────────────────────────────────────────────────
 // A abertura da minuta trazia "dois mil e vinte e seis (2026)" escrito à mão
@@ -480,6 +483,21 @@ function marcarModelo(dados) {
   } catch (err) {
     return resp({ ok: false, erro: err.message });
   }
+}
+
+// Heurística simples, só pelo NOME do documento anexado — usada apenas como
+// rede de segurança (ver finalizarGeracaoMinuta) para avisar quando a IA não
+// emitiu marcador de certidão nenhum, mas claramente havia certidão no caso.
+var PALAVRAS_CERTIDAO = ["certid", "cnd", "cndt", "iptu", "distribuidor", "onus", "ônus", "protesto", "matricula", "matrícula", "procuracao", "procuração", "dau", "itbi"];
+function documentosParecemTerCertidao(documentosTexto) {
+  var texto = String(documentosTexto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  var regexNome = /=== documento: ([^=]*?) ===/g;
+  var m;
+  while ((m = regexNome.exec(texto)) !== null) {
+    var nome = m[1];
+    if (PALAVRAS_CERTIDAO.some(function (p) { return nome.indexOf(p.normalize("NFD").replace(/[̀-ͯ]/g, "")) !== -1; })) return true;
+  }
+  return false;
 }
 
 // Um marcador 【CERTIDÃO: nome | tipo: ... | emitida: ... | validade: ... |
@@ -746,6 +764,13 @@ function finalizarGeracaoMinuta(jobId, estado, truncada) {
   // documento que a IA não leu — tudo vira aviso, nunca um "✅ sucesso" liso.
   var avisos = conferencia.avisos.slice();
   if (estado.avisosDocumentos) avisos.push("Documento(s) que a IA pode não ter lido por completo: " + estado.avisosDocumentos);
+  // Rede de segurança: o marcador 【CERTIDÃO: ...】 depende da IA lembrar de
+  // emiti-lo (ver REGRA ABSOLUTA — VALIDADE DAS CERTIDÕES). Se ela não emitiu
+  // nenhum, mas o nome de algum documento anexado tem cara de certidão, o
+  // painel avisa mesmo assim — silêncio total é pior que um aviso genérico.
+  if (parsed.certidoes.length === 0 && documentosParecemTerCertidao(estado.documentosTexto)) {
+    avisos.push("A IA não identificou nenhuma certidão automaticamente neste caso, mas há documento(s) anexado(s) com nome de certidão — confira manualmente a validade de cada uma antes de lavrar.");
+  }
 
   if (jobId) {
     salvarJobFirebase(jobId, {
@@ -1289,6 +1314,13 @@ function _criarMinutaDocInterno(dados) {
 // ── Formatação do documento ────────────────────────────────────────────────
 
 function inserirParagrafoFormatado(body, textoMd, tipoHeading) {
+  // Negrito com número ÍMPAR de "**" na linha (a IA abriu e não fechou, ou
+  // fechou numa linha diferente — mais fácil de acontecer agora que o negrito
+  // é pedido em muito mais lugares, ver FORMATAÇÃO DA MINUTA) nunca pode virar
+  // asterisco literal no documento: essa linha perde o negrito (fica só
+  // texto normal) em vez de arriscar mostrar "**" pra ela.
+  if (((textoMd.match(/\*\*/g) || []).length) % 2 !== 0) textoMd = textoMd.split("**").join("");
+
   var segmentos = [];
   var regex = /\*\*([^*]+)\*\*/g;
   var lastIndex = 0;
