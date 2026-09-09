@@ -6335,10 +6335,14 @@ const extrairDocxNoNavegador=(file)=>new Promise((resolve,reject)=>{
 });
 // A leitura de PDF/imagem passa pelo Apps Script (ver extrairArquivo), não
 // mais pela Vercel — então este teto não é mais sobre o corpo de uma
-// requisição HTTP, é só bom senso: documento de cartório comum (mesmo
-// escaneado) não chega perto disso, e um arquivo monstruoso ainda merece um
-// aviso claro em vez de travar a aba comprimindo por minutos.
-const LIMITE_ANEXO_BYTES=20*1024*1024;
+// requisição HTTP. 20MB parecia bom senso, mas uma escritura com muitos
+// anexos escaneados (ex: "3ª alteração contratual" de vários módulos) passa
+// disso com facilidade — e cada vez que passa, comprime automaticamente e
+// interrompe pra perguntar "ficou legível?", à toa. O Apps Script aceita bem
+// mais que isso no corpo da requisição (dezenas de MB); 40MB de arquivo (uns
+// 54MB depois de virar base64) ainda fica com folga do teto dele, e cobre o
+// caso real de anexo grande sem precisar comprimir.
+const LIMITE_ANEXO_BYTES=40*1024*1024;
 
 // Uma página de PDF virada imagem, em bytes JPEG (dataURL → ArrayBuffer).
 async function paginaPdfParaJpegBytes(pagina,escala,qualidade){
