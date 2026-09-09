@@ -6499,6 +6499,37 @@ async function lerArquivosParalelo(arquivos,ler,onStatus){
   }));
 }
 
+// Um alerta bloqueante (exige clique pra fechar) com a validade de cada
+// certidão anexada — vencida ou não — assim que a minuta termina de ser
+// gerada. Nunca fica em silêncio, mesmo quando está tudo válido: é o mesmo
+// motivo do "duvidoso" da Rede e do "⚪ visto e descartado" do Radar — uma
+// informação que não é mostrada de jeito nenhum é uma informação perdida.
+// A lista vem de 【CERTIDÃO: ...】 no texto da IA, extraída em parsearResposta
+// (Apps Script) e devolvida no resultado do job (d2.certidoes).
+function mostrarAlertaCertidoes(certidoes){
+  return new Promise((resolveAlerta)=>{
+    if(!certidoes||!certidoes.length){resolveAlerta();return;}
+    const cores={VENCIDA:'#B71C1C',VÁLIDA:'#1B5E20'};
+    const linhas=certidoes.map(c=>{
+      const cor=cores[c.status]||'#8A6D00';
+      return `<div style="border-left:4px solid ${cor};padding:8px 12px;margin-bottom:8px;background:#F7F7F9;border-radius:4px;text-align:left">
+        <div style="font-weight:600">${escTxt(c.nome||'Certidão')} <span style="color:${cor}">— ${escTxt(c.status||'INDETERMINADA')}</span></div>
+        <div style="font-size:12px;color:#555;margin-top:2px">tipo: ${escTxt(c.tipo||'—')} · emitida: ${escTxt(c.emitida||'—')} · validade: ${escTxt(c.validade||'—')} · vence em: ${escTxt(c.venceEm||'—')}</div>
+      </div>`;
+    }).join('');
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+    overlay.innerHTML=`<div style="background:#fff;border-radius:12px;max-width:520px;width:100%;max-height:82vh;overflow:auto;padding:20px;text-align:left">
+      <h3 style="margin:0 0 4px">⚠️ Validade das certidões anexadas</h3>
+      <p style="font-size:13px;color:#666;margin:0 0 12px">Confira antes de lavrar. Procuração e matrícula já saíram na minuta como "devidamente atualizada"; as demais saíram com o espaço da validade em branco, pra preencher quando a nova certidão chegar.</p>
+      ${linhas}
+      <button id="btn-ok-certidoes" style="margin-top:8px;width:100%;padding:10px;border:none;border-radius:8px;background:#1B5E20;color:#fff;font-weight:600;cursor:pointer">Ok, anotei</button>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#btn-ok-certidoes').onclick=()=>{overlay.remove();resolveAlerta();};
+  });
+}
+
 async function aguardarJobFirebase(jobId,onTick){
   const url='https://painel-cartorio-default-rtdb.firebaseio.com/jobs/'+jobId+'.json';
   const limite=140;// max ~7 minutos (documentos longos podem levar mais tempo para gerar)
@@ -6622,6 +6653,7 @@ window.gerarReeditar=async function(){
       setRLoad('Gerando minuta com IA… '+seg+'s<br><span style="font-size:11px;color:#AEAEB2">Aguardando Apps Script processar</span>');
     });
     rLoad.style.display='none';
+    if(d2.ok&&d2.docUrl) await mostrarAlertaCertidoes(d2.certidoes);
     document.getElementById('reeditar-result').style.display='block';
     if(d2.ok&&d2.docUrl){
       // Mesma regra do Gerar: truncada ou com ressalva não é anunciada como sucesso limpo.
@@ -6742,6 +6774,7 @@ window.gerarAnalise=async function(){
       setLoading('Gerando minuta com IA… '+seg+'s<br><span style="font-size:11px;color:#AEAEB2">Aguardando Apps Script processar</span>');
     });
     loading.style.display='none';
+    if(d2.ok&&d2.docUrl) await mostrarAlertaCertidoes(d2.certidoes);
     document.getElementById('modal-result').style.display='block';
     if(d2.ok&&d2.docUrl){
       // Minuta truncada na 6ª rodada, ou com ressalva da conferência (seção de

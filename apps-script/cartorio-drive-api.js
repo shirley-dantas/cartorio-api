@@ -209,7 +209,9 @@ NOMENCLATURA DAS PARTES (use sempre a nomenclatura correta para o ato):
 
 FORMATAÇÃO DA MINUTA:
 - Fonte e espaçamento serão aplicados automaticamente pelo sistema (Tahoma 12, espaçamento 1,15, texto justificado)
-- Use **negrito** SOMENTE para: título da escritura, nomes das partes, matrícula, número de guia de tributo
+- Use **negrito** para: título da escritura, nomes das partes, matrícula, número de guia de tributo, e também:
+  - o número/letra que identifica capítulo, cláusula, inciso ou parágrafo (ex: "**Cláusula 1ª**", "**§ 2º**", "**Capítulo I**") — SEM EXCEÇÃO
+  - na descrição do imóvel: a referência ao próprio imóvel (ex: "**apartamento nº 1301**"), a matrícula, o número do contribuinte (cadastro municipal/IPTU) e o valor da transação — SEM EXCEÇÃO, toda vez que aparecerem
 - PROIBIDO negrito em: CNPJ, nome do banco, agência, conta corrente, emolumentos, e qualquer texto do parágrafo final de pagamento
 - Na seção ARQUIVAMENTO: negrito SOMENTE na palavra "controle" e no valor/número que vem logo depois (______). Todo o restante dessa seção sem negrito
 - NÃO deixe linhas em branco entre os parágrafos — o texto deve fluir contínuo
@@ -232,6 +234,7 @@ Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (
 REGRAS DE FIDELIDADE — válidas para QUALQUER modelo de referência, manual ou aprendido:
 - MANTENHA O MESMO NÍVEL DE DETALHE E ABRANGÊNCIA do modelo — se o modelo tiver uma lista extensa e detalhada de poderes/cláusulas (ex: nomes de bancos específicos, órgãos públicos nomeados, poderes judiciais completos), a minuta nova deve ter uma lista igualmente extensa e detalhada, adaptada ao caso atual. NÃO resuma ou condense cláusulas do modelo em itens genéricos — reproduza a mesma quantidade e riqueza de detalhes, apenas trocando os dados específicos pelos do caso atual (ou removendo o item, se genuinamente não se aplicar)
 - REGRA DE CONCLUSÃO — NÃO PARE CEDO: antes de considerar a minuta finalizada, verifique mentalmente se você já escreveu uma cláusula ou seção correspondente a CADA cláusula/seção que existe no modelo (mesma numeração, mesmos títulos de cláusula, mesmo número aproximado de itens). Se o modelo tem cláusulas 1 a 13, ou subcláusulas 6.1 a 6.10, sua minuta também precisa chegar até lá — NÃO termine no meio (ex: só até a cláusula 6.5) só porque o texto já "parece" completo. Um documento de referência longo e detalhado exige uma minuta igualmente longa e detalhada. Só finalize (com encerramento e assinaturas) depois de cobrir TODO o conteúdo equivalente ao modelo.
+- SIGA O MODELO COMO CRITÉRIO PADRÃO, não como uma entre várias opções válidas: enquanto você não tiver autonomia total para redigir minutas do zero com segurança, o modelo (manual ou aprendido automaticamente) é a referência que prevalece sobre seu próprio estilo — não troque a estrutura, a ordem das cláusulas ou o jeito de escrever do modelo por uma versão "sua" só porque parece igualmente válida.
 
 REGRA ABSOLUTA — MINUTA ATUAL (documento já pronto sendo atualizado, NÃO é um modelo de estilo):
 Se algum documento fornecido tiver cabeçalho começando com "MINUTA ATUAL", esse texto é a MINUTA JÁ PRONTA E FINALIZADA deste mesmo caso — não é uma referência de outro caso. As regras de MODELO DE MINUTA acima (não copiar dados específicos, pode omitir cláusula que não se aplica) NÃO valem aqui — são o oposto do que fazer.
@@ -243,8 +246,32 @@ Se algum documento fornecido tiver cabeçalho começando com "MINUTA ATUAL", ess
 REGRA ABSOLUTA — ATOS SECUNDÁRIOS (lavrados na MESMA escritura, não são um documento à parte):
 Quando o caso trouxer "ATOS SECUNDÁRIOS LAVRADOS NA MESMA ESCRITURA", cada um deles precisa virar uma cláusula própria dentro desta MESMA minuta — não é uma escritura separada, é o mesmo instrumento cobrindo mais de um ato (ex: uma Escritura de Compra e Venda que também tem Confissão de Dívida do saldo, ou uma Doação com Usufruto reservado). Identifique os dados de cada ato secundário nos documentos e observações do caso, do mesmo jeito que faria para o ato principal — campo que não aparecer em documento nenhum: ______.
 
+REGRA ABSOLUTA — VALIDADE DAS CERTIDÕES (conferir sempre, avisar sempre):
+Hoje é {{DATA_HOJE}}. Para CADA documento anexado que seja uma certidão (negativa, positiva, distribuidor, ônus/matrícula, ITBI, IPTU, trabalhista, cível, criminal, protesto, vigência de procuração, ou qualquer outra), identifique:
+- TIPO: "procuração" (certidão que comprova vigência/validade de uma procuração usada no ato), "matrícula" (certidão de matrícula/ônus reais do imóvel), ou "outra" (qualquer outra certidão).
+- DATA DE EMISSÃO: a data que consta no próprio documento (se não encontrar, use "NÃO IDENTIFICADA").
+- VALIDADE: para tipo "procuração", SEMPRE 90 dias corridos da emissão. Para tipo "matrícula", SEMPRE 30 dias corridos da emissão. Para tipo "outra", use o prazo de validade que o PRÓPRIO documento declarar (procure frases como "válida por", "válida até", "prazo de validade"); se o documento não declarar prazo nenhum, use "sem prazo declarado".
+- STATUS: compare a data de vencimento calculada com {{DATA_HOJE}} e classifique como VENCIDA, VÁLIDA, ou INDETERMINADA (quando não for possível calcular — data de emissão não identificada, ou tipo "outra" sem prazo declarado).
+Para cada certidão encontrada, emita UMA LINHA com o marcador abaixo, em qualquer ponto do texto (essas linhas nunca aparecem no corpo da minuta — são extraídas à parte):
+【CERTIDÃO: nome do documento | tipo: procuração/matrícula/outra | emitida: DD/MM/AAAA ou NÃO IDENTIFICADA | validade: 90 dias corridos / 30 dias corridos / conforme documento (X dias) / sem prazo declarado | vence em: DD/MM/AAAA ou NÃO CALCULÁVEL | status: VENCIDA/VÁLIDA/INDETERMINADA】
+Isso é OBRIGATÓRIO para toda certidão encontrada — nunca pule esse marcador, mesmo quando o status for VÁLIDA.
+
+No CORPO da minuta (nas cláusulas que mencionam as certidões apresentadas):
+- Para certidões do tipo "procuração" e "matrícula": mencione apenas que está **devidamente atualizada** — NUNCA escreva a data de emissão, o prazo ou a data de vencimento dessas duas no corpo do texto.
+- Para as demais certidões ("outra"): deixe o campo da validade/data de emissão em branco (______) no corpo da minuta, mesmo que o documento atual informe uma data — esse espaço é preenchido à mão quando a nova certidão for obtida antes da lavratura.
+
 REGRA ABSOLUTA — DESCRIÇÃO DO IMÓVEL (cópia literal, NUNCA parafraseada):
 A descrição do imóvel — localização, torre/bloco/pavimento, área privativa, área de uso comum, área real total, fração ideal e a referência à matrícula — vem SEMPRE copiada PALAVRA POR PALAVRA do documento que a traz, na mesma ordem e com os mesmos termos (ex: se o documento diz "área privativa principal e total", não vire "área privativa"). NUNCA reescreva, reordene, resuma ou "melhore" essa descrição, e NUNCA misture frases de documentos diferentes numa versão própria sua. Quando o caso trouxer mais de um documento com descrição do imóvel (ex: a matrícula da instituição do condomínio e a matrícula já individualizada da unidade), use a descrição do documento mais específico para aquela unidade — mas copiada por inteiro, exatamente como está nele, nunca reescrita.
+CONFERÊNCIA OBRIGATÓRIA ANTES DE FINALIZAR: depois de escrever a descrição do imóvel na minuta, releia-a comparando palavra por palavra com o trecho correspondente do documento-fonte. Se qualquer palavra, número, ordem ou pontuação estiver diferente do original — mesmo que pareça "mais bem escrito" — REESCREVA a descrição na minuta até ficar idêntica ao documento-fonte. Isso vale para toda a descrição, do início ao fim, não só para os números.
+
+REGRA ABSOLUTA — DATA DE NASCIMENTO (só nos atos que realmente exigem):
+Ao qualificar pessoa física, NÃO inclua a data de nascimento — EXCETO nos seguintes tipos de ato, onde ela é obrigatória: Inventário, Divórcio, União Estável e Pacto Antenupcial. Em qualquer outro tipo de ato (Compra e Venda, Doação, Procuração, Cessão de Direitos, Renúncia, Dação em Pagamento, Testamento, Ata Notarial, etc.), mesmo que a data de nascimento apareça nos documentos fornecidos, NÃO a escreva na qualificação — não é campo desta minuta.
+
+REGRA ABSOLUTA — CONTRIBUINTE E VALOR VENAL DE REFERÊNCIA (usar o dado individualizado, e proporcional à fração negociada):
+A matrícula do imóvel às vezes descreve o contribuinte/cadastro municipal referente a uma área maior (ex: o terreno todo, antes do desmembramento ou da instituição do condomínio) — isso NÃO significa que não exista um cadastro já individualizado para a unidade específica deste ato.
+- Antes de usar o contribuinte/valor venal de referência que está na matrícula, verifique se algum OUTRO documento anexado ao caso (guia de IPTU, negativa de IPTU, ficha cadastral, cadastro imobiliário, carnê, etc.) já traz o número de contribuinte E o valor venal de referência JÁ INDIVIDUALIZADOS para esta unidade específica. Se existir, use SEMPRE o dado individualizado — nunca o da área maior da matrícula.
+- Se o valor venal de referência encontrado for do imóvel INTEIRO (100%) mas o ato transmite/inventaria apenas uma FRAÇÃO IDEAL dele (ex: metade, um terço), calcule e use o valor venal PROPORCIONAL à fração efetivamente tratada no ato — não o valor cheio. Deixe claro na minuta que o valor é proporcional à fração (ex: "correspondente a 50% (cinquenta por cento) sobre o valor venal de referência total de R$______").
+- Se nenhum documento trouxer o dado individualizado, use o da matrícula mesmo (área maior) e registre a ressalva com o marcador 【PENDÊNCIA: ...】, explicando que o contribuinte usado é o da área maior, não individualizado.
 
 REGRA ABSOLUTA — ESTADO CIVIL (fórmula fixa, não invente):
 Quando o estado civil de uma parte vier das respostas do caso (não de um documento formal), use SEMPRE a fórmula fixa abaixo para Solteiro(a), Divorciado(a) e Viúvo(a) — mesma fórmula para os três, sem resumir, sem adaptar e sem trocar por sinônimo:
@@ -265,12 +292,14 @@ Aos ______ (______) dias do mês de ______ (______) do ano de {{ANO_EXTENSO}} ({
 ENCERRAMENTO DA MINUTA — escolha conforme a MODALIDADE do caso:
 
 Se DIGITAL ou HÍBRIDA:
-**IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ **CERTIFICAÇÃO:** Escritura assinada digitalmente com certificado digital, pela plataforma do e-Notariado, por: ______ ///______[SE HÍBRIDA: e presencialmente por ______ /// ______]. Eu, escrevente autorizada indicada no fluxo de assinaturas, a lavrei, li realizei a videoconferência e assino com meu certificado digital. Eu, Substituto Legal do Tabelião, indicado no fluxo de assinaturas, subscrevo e assino com meu certificado digital padrão ICP-Brasil, encerrando este ato. Data e horário das assinaturas digitais, bem como matrícula notarial eletrônica (MNE) constantes do manifesto impresso na última página desta. De tudo dou fé. O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
+**IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ **CERTIFICAÇÃO:** Escritura assinada digitalmente com certificado digital, pela plataforma do e-Notariado, por: **[nomes das partes que assinam ONLINE, conforme a modalidade e os documentos/observações do caso]** ///______[SE HÍBRIDA: e presencialmente por **[nomes das partes que assinam PRESENCIALMENTE]** /// ______]. Eu, escrevente autorizada indicada no fluxo de assinaturas, a lavrei, li realizei a videoconferência e assino com meu certificado digital. Eu, Substituto Legal do Tabelião, indicado no fluxo de assinaturas, subscrevo e assino com meu certificado digital padrão ICP-Brasil, encerrando este ato. Data e horário das assinaturas digitais, bem como matrícula notarial eletrônica (MNE) constantes do manifesto impresso na última página desta. De tudo dou fé. O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
 
 Se PRESENCIAL:
 **IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
 
 NOTA SOBRE O ENCERRAMENTO: Substitua "adquirente" pelo nome correto da parte principal do ato (outorgante, testador, requerente, etc.). Para atos que não envolvam transferência imobiliária (procuração, testamento, ata notarial, etc.), omita APENAS as seções IMPOSTOS DE TRANSMISSÃO e DOI. As demais seções — **INDISPONIBILIDADE**, **ARQUIVAMENTO**, **CERTIFICAÇÃO** e o parágrafo final de emolumentos — são OBRIGATÓRIAS em TODO ato, sem exceção, independentemente do tipo. NUNCA omita a frase de INDISPONIBILIDADE (consulta à Central de Indisponibilidade de Bens).
+
+NA CERTIFICAÇÃO, NUNCA deixe "______" no lugar do nome de quem assina: preencha com o nome de cada parte, no grupo correto (online ou presencial), usando a MODALIDADE do caso e as observações/documentos para saber quem assina de qual jeito — se MODALIDADE for DIGITAL, todas as partes vão no grupo online; se PRESENCIAL, todas no grupo presencial; se HÍBRIDA, distribua conforme o que constar nas observações do caso (quem assina online e quem assina presencialmente); só use ______ se, mesmo em modalidade HÍBRIDA, não houver NENHUMA indicação de quem assina em qual grupo.
 
 A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualificação completa das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas.`;
 
@@ -293,10 +322,21 @@ function anoPorExtenso(ano) {
   var unidade = resto % 10;
   return "dois mil e " + DEZENAS[dezena] + (unidade ? " e " + UNIDADES[unidade] : "");
 }
+// {{DATA_HOJE}} é sempre o dia real em que a minuta está sendo gerada (não
+// depende do `ano` do caso, que é só o ano da abertura) — é o que a REGRA
+// ABSOLUTA — VALIDADE DAS CERTIDÕES usa para calcular se uma certidão já
+// venceu.
+function dataHojeFormatada() {
+  var hoje = new Date();
+  var dia = ("0" + hoje.getDate()).slice(-2);
+  var mes = ("0" + (hoje.getMonth() + 1)).slice(-2);
+  return dia + "/" + mes + "/" + hoje.getFullYear();
+}
 function montarSystemPrompt(ano) {
   return SYSTEM_PROMPT
     .split("{{ANO_EXTENSO}}").join(anoPorExtenso(ano))
-    .split("{{ANO}}").join(String(ano));
+    .split("{{ANO}}").join(String(ano))
+    .split("{{DATA_HOJE}}").join(dataHojeFormatada());
 }
 
 // ── Funções auxiliares ─────────────────────────────────────────────────────
@@ -442,32 +482,55 @@ function marcarModelo(dados) {
   }
 }
 
+// Um marcador 【CERTIDÃO: nome | tipo: ... | emitida: ... | validade: ... |
+// vence em: ... | status: ...】 vira este objeto. Campo que a IA não incluiu
+// (ou escreveu fora do formato) fica com string vazia — nunca derruba o
+// parse dos outros marcadores da mesma minuta.
+function parsearMarcadorCertidao(conteudo) {
+  var partes = conteudo.split("|").map(function (p) { return p.trim(); });
+  if (!partes.length || !partes[0]) return null;
+  var campo = function (prefixo) {
+    var achado = partes.find(function (p) { return p.toLowerCase().indexOf(prefixo.toLowerCase()) === 0; });
+    return achado ? achado.slice(prefixo.length).trim() : "";
+  };
+  return {
+    nome: partes[0],
+    tipo: (campo("tipo:") || "outra").toLowerCase(),
+    emitida: campo("emitida:"),
+    validade: campo("validade:"),
+    venceEm: campo("vence em:"),
+    status: (campo("status:") || "INDETERMINADA").toUpperCase()
+  };
+}
+
 function parsearResposta(texto) {
   var comentarios = [];
-  var INICIO = "【PENDÊNCIA: ";
-  var FIM = "】";
-  var pos = 0;
+  var certidoes = [];
   var num = 1;
+  var ABRE = "【";
+  var FECHA = "】";
 
-  while (true) {
-    var s = texto.indexOf(INICIO, pos);
-    if (s === -1) break;
-    var e = texto.indexOf(FIM, s);
-    if (e === -1) break;
-    comentarios.push("Pendencia " + num + ": " + texto.slice(s + INICIO.length, e).trim());
-    num++;
-    pos = e + 1;
-  }
-
+  // Um único passe: todo marcador 【...】 é retirado do corpo (nenhum dos dois
+  // tipos pode sobrar na minuta). 【PENDÊNCIA: ...】 vira comentário de revisão
+  // no Doc; 【CERTIDÃO: ...】 vira o dado que alimenta o alerta de validade no
+  // painel (ver REGRA ABSOLUTA — VALIDADE DAS CERTIDÕES no SYSTEM_PROMPT).
   var minuta = "";
-  pos = 0;
+  var pos = 0;
   while (true) {
-    var s2 = texto.indexOf(INICIO, pos);
-    if (s2 === -1) { minuta += texto.slice(pos); break; }
-    var e2 = texto.indexOf(FIM, s2);
-    if (e2 === -1) { minuta += texto.slice(pos); break; }
-    minuta += texto.slice(pos, s2);
-    pos = e2 + 1;
+    var s = texto.indexOf(ABRE, pos);
+    if (s === -1) { minuta += texto.slice(pos); break; }
+    var e = texto.indexOf(FECHA, s);
+    if (e === -1) { minuta += texto.slice(pos); break; }
+    minuta += texto.slice(pos, s);
+    var conteudo = texto.slice(s + ABRE.length, e).trim();
+    if (conteudo.indexOf("PENDÊNCIA:") === 0) {
+      comentarios.push("Pendencia " + num + ": " + conteudo.slice("PENDÊNCIA:".length).trim());
+      num++;
+    } else if (conteudo.indexOf("CERTIDÃO:") === 0) {
+      var certidao = parsearMarcadorCertidao(conteudo.slice("CERTIDÃO:".length).trim());
+      if (certidao) certidoes.push(certidao);
+    }
+    pos = e + FECHA.length;
   }
 
   // Corta apenas se uma LINHA INTEIRA for um título de seção proibido (ex: "## ANÁLISE
@@ -491,7 +554,7 @@ function parsearResposta(texto) {
   if (idxCorte !== -1) minuta = minuta.slice(0, idxCorte);
 
   minuta = minuta.replace(/\n\n\n+/g, "\n\n").trim();
-  return { minuta: minuta, comentarios: comentarios };
+  return { minuta: minuta, comentarios: comentarios, certidoes: certidoes };
 }
 
 function chamarClaudeRaw(mensagem, ano) {
@@ -695,7 +758,8 @@ function finalizarGeracaoMinuta(jobId, estado, truncada) {
       docNome: docResult.nome,
       diagRodadas: estado.rodadas,
       diagTemModelo: estado.temModelo,
-      diagBrancos: conferencia.brancos
+      diagBrancos: conferencia.brancos,
+      certidoes: parsed.certidoes
     });
   }
 

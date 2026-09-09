@@ -50,7 +50,9 @@ vm.runInContext(
   '\nglobalThis.montarSystemPrompt = montarSystemPrompt;' +
   '\nglobalThis.extrairJsonAuditoria = extrairJsonAuditoria;' +
   '\nglobalThis.AUDITORIA_SYSTEM_PROMPT = AUDITORIA_SYSTEM_PROMPT;' +
-  '\nglobalThis.extrairIdDocumento = extrairIdDocumento;',
+  '\nglobalThis.extrairIdDocumento = extrairIdDocumento;' +
+  '\nglobalThis.parsearMarcadorCertidao = parsearMarcadorCertidao;' +
+  '\nglobalThis.dataHojeFormatada = dataHojeFormatada;',
   caixa
 );
 
@@ -83,6 +85,43 @@ passo('corta a linha "## ANÁLISE DOCUMENTAL" (título de seção proibido)', ()
 passo('NÃO corta quando a palavra aparece dentro de uma frase normal', () => {
   const r = caixa.parsearResposta('# ESCRITURA\n\nO banco fará análise de crédito do comprador antes da liberação.');
   ok(r.minuta.indexOf('análise de crédito') !== -1, 'cortou uma frase legítima só por conter a palavra');
+});
+
+console.log('\n— parsearResposta: marcador 【CERTIDÃO: ...】 (validade das certidões) —');
+
+passo('arranca o marcador de certidão do corpo e devolve os campos estruturados', () => {
+  const texto = 'Texto A 【CERTIDÃO: Matrícula 12345 | tipo: matrícula | emitida: 01/09/2026 | validade: 30 dias corridos | vence em: 01/10/2026 | status: VÁLIDA】 texto B.';
+  const r = caixa.parsearResposta(texto);
+  igual(r.certidoes.length, 1, 'devia ter achado 1 certidão');
+  igual(r.certidoes[0].nome, 'Matrícula 12345');
+  igual(r.certidoes[0].tipo, 'matrícula');
+  igual(r.certidoes[0].emitida, '01/09/2026');
+  igual(r.certidoes[0].venceEm, '01/10/2026');
+  igual(r.certidoes[0].status, 'VÁLIDA');
+  ok(r.minuta.indexOf('【') === -1, 'sobrou marcador de certidão no texto da minuta');
+  ok(r.minuta.indexOf('Matrícula 12345') === -1, 'o conteúdo do marcador de certidão vazou pra minuta');
+});
+
+passo('pendência e certidão no mesmo texto não se atrapalham', () => {
+  const texto = '【PENDÊNCIA: falta CPF】 corpo 【CERTIDÃO: CNDT | tipo: outra | emitida: 05/08/2026 | validade: 180 dias (conforme documento) | vence em: 01/02/2027 | status: VÁLIDA】 fim.';
+  const r = caixa.parsearResposta(texto);
+  igual(r.comentarios.length, 1);
+  igual(r.certidoes.length, 1);
+  igual(r.certidoes[0].tipo, 'outra');
+  igual(r.certidoes[0].status, 'VÁLIDA');
+});
+
+passo('marcador de certidão fora do formato esperado não derruba o parse', () => {
+  const r = caixa.parsearResposta('Texto 【CERTIDÃO: 】 fim.');
+  igual(r.certidoes.length, 0, 'um marcador vazio não devia virar uma certidão');
+});
+
+console.log('\n— {{DATA_HOJE}}: a data real do dia da geração —');
+
+passo('montarSystemPrompt substitui {{DATA_HOJE}} pela data de hoje, no formato DD/MM/AAAA', () => {
+  const prompt = caixa.montarSystemPrompt(2026);
+  ok(prompt.indexOf('{{DATA_HOJE}}') === -1, 'sobrou o marcador {{DATA_HOJE}} sem substituir');
+  ok(prompt.indexOf(caixa.dataHojeFormatada()) !== -1, 'a data de hoje não apareceu no prompt');
 });
 
 console.log('\n— chaveTipo e abreviarTipoAto —');
@@ -228,7 +267,10 @@ passo('o SYSTEM_PROMPT não carrega mais nenhum ano escrito à mão', () => {
   ok(prompt2026.indexOf('dois mil e vinte e seis (2026)') !== -1, 'o marcador não foi preenchido para 2026');
   ok(prompt2027.indexOf('dois mil e vinte e sete (2027)') !== -1, 'o marcador não foi preenchido para 2027');
   ok(prompt2026 !== prompt2027, 'o prompt de anos diferentes saiu idêntico');
-  ok(prompt2027.indexOf('2026') === -1, 'sobrou o ano fixo de 2026 mesmo pedindo 2027');
+  // Não checa ausência de "2026" cru: {{DATA_HOJE}} sempre carrega a data real
+  // de hoje (ver dataHojeFormatada), que legitimamente pode ser 2026 — o que
+  // não pode sobrar é a frase fixa da ABERTURA de um ano que não foi pedido.
+  ok(prompt2027.indexOf('dois mil e vinte e seis (2026)') === -1, 'sobrou a abertura fixa de 2026 mesmo pedindo 2027');
 });
 
 console.log('\n— extrairJsonAuditoria: a auditoria (Etapa 2) —');
