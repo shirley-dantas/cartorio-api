@@ -498,9 +498,15 @@ function chamarClaudeRaw(mensagem, ano) {
   var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada. Vá em Projeto > Propriedades do script e adicione a chave.");
 
+  // 8000 fazia qualquer minuta um pouco mais longa parar no meio e precisar
+  // de outro pedaço — e cada pedaço custa uma volta inteira pelo Firebase e
+  // pelo gatilho (ver agendarContinuacaoMinuta/continuarGeracaoMinuta), não
+  // só o tempo da IA escrevendo. 16000 é o mesmo teto que api/aliquota-
+  // municipal.js já usa com este mesmo modelo, sem cabeçalho especial: menos
+  // pedaços, mesmo texto, mesma IA — só menos idas e vindas.
   var payload = {
     model: "claude-sonnet-4-6",
-    max_tokens: 8000,
+    max_tokens: 16000,
     system: montarSystemPrompt(ano || new Date().getFullYear()),
     messages: [{ role: "user", content: mensagem }]
   };
