@@ -6474,6 +6474,31 @@ async function extrairArquivo(file,preservarIntegral,onStatus){
   return {texto:d.texto||'',truncou:!!d.truncou,comprimiu};
 }
 
+// Lê vários arquivos ao mesmo tempo, em vez de um de cada vez — um caso com
+// muitos anexos (RG, CNDT, contrato, extrato…) levava minutos só porque cada
+// leitura esperava a anterior terminar, mesmo elas não dependendo umas das
+// outras (cada arquivo já ia para uma chamada separada do Apps Script).
+// Nunca deixa um arquivo com erro derrubar os demais: cada leitura fica
+// isolada em {ok, resultado|erro}, e quem chama decide o que fazer.
+async function lerArquivosParalelo(arquivos,ler,onStatus){
+  const total=arquivos.length;
+  if(!total) return [];
+  let prontos=0;
+  if(onStatus) onStatus(total===1?`Lendo "${arquivos[0].name}"…`:`Lendo ${total} documentos…`);
+  return Promise.all(arquivos.map(async(file)=>{
+    try{
+      const resultado=await ler(file);
+      prontos++;
+      if(onStatus && total>1) onStatus(`Lendo documentos… ${prontos} de ${total} prontos`);
+      return {file,ok:true,resultado};
+    }catch(erro){
+      prontos++;
+      if(onStatus && total>1) onStatus(`Lendo documentos… ${prontos} de ${total} prontos`);
+      return {file,ok:false,erro};
+    }
+  }));
+}
+
 async function aguardarJobFirebase(jobId,onTick){
   const url='https://painel-cartorio-default-rtdb.firebaseio.com/jobs/'+jobId+'.json';
   const limite=140;// max ~7 minutos (documentos longos podem levar mais tempo para gerar)
@@ -6531,23 +6556,23 @@ window.gerarReeditar=async function(){
       // evita misturar dados antigos/desatualizados com o que está sendo pedido agora.
       // Se vier em mais de um arquivo (ex: minuta dividida em partes), o texto de
       // todos é unido num único bloco MINUTA ATUAL, na ordem em que foram anexados.
-      const partesMinuta=[];
-      for(let i=0;i<arqsMinuta.length;i++){
-        setRLoad(`Lendo a minuta pronta anexada (${i+1} de ${arqsMinuta.length})…`);
-        const r=await extrairArquivo(arqsMinuta[i],true,(msg)=>setRLoad(msg));
-        partesMinuta.push(r.texto);
-        if(r.truncou)falhas.push(`${arqsMinuta[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
-        if(r.comprimiu)falhas.push(`${arqsMinuta[i].name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
-      }
+      const resultadosMinuta=await lerArquivosParalelo(arqsMinuta,f=>extrairArquivo(f,true),setRLoad);
+      const erroMinuta=resultadosMinuta.find(x=>!x.ok);
+      if(erroMinuta) throw erroMinuta.erro;
+      resultadosMinuta.forEach(x=>{
+        if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
+      });
       const nomesMinuta=arqsMinuta.map(f=>f.name).join(', ');
-      const blocos=[`=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${nomesMinuta} ===\n${partesMinuta.join('\n\n')}`];
-      for(let i=0;i<arqsDoc.length;i++){
-        setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
-        const r=await extrairArquivo(arqsDoc[i],false,(msg)=>setRLoad(msg));
-        blocos.push(`=== DOCUMENTO: ${arqsDoc[i].name} ===\n${r.texto}`);
-        if(r.truncou)falhas.push(`${arqsDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
-        if(r.comprimiu)falhas.push(`${arqsDoc[i].name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
-      }
+      const blocos=[`=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${nomesMinuta} ===\n${resultadosMinuta.map(x=>x.resultado.texto).join('\n\n')}`];
+      const resultadosDoc=await lerArquivosParalelo(arqsDoc,f=>extrairArquivo(f,false),setRLoad);
+      const erroDoc=resultadosDoc.find(x=>!x.ok);
+      if(erroDoc) throw erroDoc.erro;
+      resultadosDoc.forEach(x=>{
+        blocos.push(`=== DOCUMENTO: ${x.file.name} ===\n${x.resultado.texto}`);
+        if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
+      });
       docsTexto=blocos.join('\n\n');
     } else {
       // Sem minuta pronta anexada: comportamento de antes (documentos já salvos no card)
@@ -6571,13 +6596,14 @@ window.gerarReeditar=async function(){
         }
         docsTexto=linhas.join('\n');
       }catch(e){docsTexto=c.obs||'';}
-      for(let i=0;i<arqsDoc.length;i++){
-        setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
-        const r=await extrairArquivo(arqsDoc[i],false,(msg)=>setRLoad(msg));
-        docsTexto+=`\n\n=== DOCUMENTO: ${arqsDoc[i].name} ===\n${r.texto}`;
-        if(r.truncou)falhas.push(`${arqsDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
-        if(r.comprimiu)falhas.push(`${arqsDoc[i].name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
-      }
+      const resultadosDoc=await lerArquivosParalelo(arqsDoc,f=>extrairArquivo(f,false),setRLoad);
+      const erroDoc=resultadosDoc.find(x=>!x.ok);
+      if(erroDoc) throw erroDoc.erro;
+      resultadosDoc.forEach(x=>{
+        docsTexto+=`\n\n=== DOCUMENTO: ${x.file.name} ===\n${x.resultado.texto}`;
+        if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
+      });
     }
     if(falhas.length){
       const seguir=confirm(`Atenção com estes documentos:\n\n• ${falhas.join('\n• ')}\n\nGerar mesmo assim?`);
@@ -6664,24 +6690,26 @@ window.gerarAnalise=async function(){
     // problemáticos do card (minutaDocsProblema, montado por abrirMinuta) —
     // um documento sem leitura nunca vira uma minuta silenciosamente incompleta.
     const falhas=[...minutaDocsProblema];
-    for(let i=0;i<minutaArquivosModelo.length;i++){
-      setLoading(`Lendo a minuta modelo (${i+1} de ${minutaArquivosModelo.length})…`);
-      try{
-        const r=await textoDoAnexo(minutaArquivosModelo[i],true,(msg)=>setLoading(msg));
-        if(r.texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${minutaArquivosModelo[i].name} ===\n${r.texto}`);
-        if(r.truncou)falhas.push(`${minutaArquivosModelo[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
-        if(r.comprimiu)falhas.push(`${minutaArquivosModelo[i].name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
-      }catch(e){falhas.push(`${minutaArquivosModelo[i].name}: ${descreverErro(e,'ler a minuta modelo')}`);}
-    }
-    for(let i=0;i<minutaArquivosDoc.length;i++){
-      setLoading(`Lendo documento ${i+1} de ${minutaArquivosDoc.length}…`);
-      try{
-        const r=await textoDoAnexo(minutaArquivosDoc[i],false,(msg)=>setLoading(msg));
-        if(r.texto)blocos.push(`=== DOCUMENTO: ${minutaArquivosDoc[i].name} ===\n${r.texto}`);
-        if(r.truncou)falhas.push(`${minutaArquivosDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
-        if(r.comprimiu)falhas.push(`${minutaArquivosDoc[i].name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
-      }catch(e){falhas.push(`${minutaArquivosDoc[i].name}: ${descreverErro(e,'ler um documento anexado')}`);}
-    }
+    const resultadosModelo=await lerArquivosParalelo(minutaArquivosModelo,f=>textoDoAnexo(f,true),setLoading);
+    resultadosModelo.forEach(x=>{
+      if(x.ok){
+        if(x.resultado.texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${x.file.name} ===\n${x.resultado.texto}`);
+        if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
+      } else {
+        falhas.push(`${x.file.name}: ${descreverErro(x.erro,'ler a minuta modelo')}`);
+      }
+    });
+    const resultadosDoc=await lerArquivosParalelo(minutaArquivosDoc,f=>textoDoAnexo(f,false),setLoading);
+    resultadosDoc.forEach(x=>{
+      if(x.ok){
+        if(x.resultado.texto)blocos.push(`=== DOCUMENTO: ${x.file.name} ===\n${x.resultado.texto}`);
+        if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
+      } else {
+        falhas.push(`${x.file.name}: ${descreverErro(x.erro,'ler um documento anexado')}`);
+      }
+    });
     // Um anexo ilegível derrubava a geração inteira. Agora ela pode seguir sem
     // ele — mas nunca em silêncio: uma minuta feita sem um documento que você
     // achou que entrou é pior que uma minuta que não saiu.
