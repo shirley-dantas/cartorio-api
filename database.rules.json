@@ -125,6 +125,11 @@
     // ── Minutas (Apps Script) ──
     "jobs":                  { ".read": true, ".write": true },
     "modelos":               { ".read": true, ".write": true },
+    // Estado provisório de uma minuta em geração, entre uma rodada e a
+    // próxima (ver agendarContinuacaoMinuta/continuarGeracaoMinuta no Apps
+    // Script) — some assim que a rodada seguinte lê e apaga. Mesma tranca
+    // aberta de /jobs, pelo mesmo motivo: só o Apps Script escreve aqui.
+    "geracao-estado":        { ".read": true, ".write": true },
 
     // ── Bot do WhatsApp (api/salvar-caso.js) ──
     "sessao_ativa":          { ".read": true, ".write": true },
