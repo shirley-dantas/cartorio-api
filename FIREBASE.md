@@ -248,12 +248,15 @@ não é um projeto padrão do Cloud e não emite Client ID OAuth para navegador.
      marque só **Google Picker API** e **Google Drive API** — assim, mesmo
      exposta no navegador (que é como o Picker sempre funciona, em qualquer
      site), ela não serve pra mais nada.
-5. Na Vercel, **Settings → Environment Variables** do projeto, crie duas:
-   - `GOOGLE_PICKER_CLIENT_ID` = o Client ID OAuth do passo 4.
-   - `GOOGLE_PICKER_API_KEY` = a chave de API do passo 4.
-   Faça um novo deploy (ou redeploy) depois de salvar — `api/picker-config.js`
-   só lê essas variáveis quando a função é chamada, e a Vercel só atualiza
-   variáveis de ambiente em builds novos.
+5. Cole as duas credenciais direto no `index.html`, em `GOOGLE_PICKER_CLIENT_ID`
+   e `GOOGLE_PICKER_API_KEY` (procure por "ESCOLHER DO GOOGLE DRIVE" no
+   arquivo). **Não** viram variável de ambiente na Vercel: nenhuma das duas é
+   segredo — é assim que o Picker sempre funcionou, exposto no navegador de
+   quem usa, em qualquer site — e o plano gratuito da Vercel só aceita 12
+   funções na pasta `api/`; uma função só para devolver dois valores públicos
+   seria a 13ª e derrubaria o deploy inteiro (foi o que aconteceu na primeira
+   versão disto — o erro da Vercel foi literalmente "No more than 12
+   Serverless Functions"). Publique a mudança normalmente (PR → main).
 6. Teste: abra o painel, vá em qualquer "Anexar documento(s)" e clique
    "Escolher do Drive". Na primeira vez, o Google pede pra fazer login e
    autorizar — aceitando, a lista de arquivos do Drive aparece. Documentos,

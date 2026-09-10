@@ -6370,14 +6370,19 @@ const DRIVE_PICKER_DESTINOS={
   'reeditar-minuta':{lista:()=>reeditarArquivosMinuta,render:renderReeditarChips},
   'reeditar-doc':{lista:()=>reeditarArquivosDoc,render:renderReeditarChips}
 };
-let drivePickerConfigCache=null;
+// Client ID e API key do Google Picker — NENHUM dos dois é segredo (é assim
+// que o Picker sempre funcionou, em qualquer site: o navegador de quem usa
+// precisa enxergar as duas para abrir a janela do Google). Ficam direto aqui
+// em vez de numa função da Vercel porque o plano gratuito da Vercel só aceita
+// 12 funções em api/ — uma função só para devolver dois valores públicos
+// custaria a 13ª e derrubava o deploy inteiro (foi o que aconteceu na
+// primeira versão disto). Trocar as credenciais no futuro é só editar as
+// duas linhas abaixo. Passo a passo de como gerá-las: FIREBASE.md, seção 10.
+const GOOGLE_PICKER_CLIENT_ID='668513834820-dfre74p929moibi8869lufornj82eioj.apps.googleusercontent.com';
+const GOOGLE_PICKER_API_KEY='AIzaSyDOWSuEasNfs4l25ZvH-se2JO0-Clr77gI';
 async function driveCarregarConfig(){
-  if(drivePickerConfigCache)return drivePickerConfigCache;
-  const r=await fetch('/api/picker-config');
-  const j=await r.json();
-  if(!j.ok)throw new Error(j.erro||'Não consegui carregar a configuração do Google Drive.');
-  drivePickerConfigCache=j;
-  return j;
+  if(!GOOGLE_PICKER_CLIENT_ID||!GOOGLE_PICKER_API_KEY)throw new Error('O Google Drive ainda não foi configurado neste painel — falta preencher GOOGLE_PICKER_CLIENT_ID e/ou GOOGLE_PICKER_API_KEY no index.html.');
+  return {clientId:GOOGLE_PICKER_CLIENT_ID,apiKey:GOOGLE_PICKER_API_KEY};
 }
 function driveCarregarScript(condicao,src){
   return new Promise((resolve,reject)=>{
