@@ -5700,20 +5700,33 @@ window.iniciarPerguntasMinuta=async function(){
     // nome completo, data de nascimento e nacionalidade de gente cuja certidão
     // estava anexada ali do lado — ela não tinha como saber. O texto lido fica
     // no cache e é reaproveitado na geração, então essa leitura não é perdida.
+    //
+    // Em paralelo, não um de cada vez: cada anexo já vai para uma chamada
+    // separada (Apps Script), e ler um de cada vez fazia o tempo somar em vez
+    // de valer o do mais demorado — o mesmo conserto que gerarMinuta e
+    // gerarReeditar já usam (lerArquivosParalelo), só que não tinha chegado
+    // aqui ainda.
     const partes=[document.getElementById('modal-docs').value.trim()];
     const naoLidos=[];
-    const anexos=[...minutaArquivosModelo.map(f=>({f,integral:true,rot:'MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE)'})),
-                  ...minutaArquivosDoc.map(f=>({f,integral:false,rot:'DOCUMENTO'}))];
-    for(let i=0;i<anexos.length;i++){
-      btn.innerHTML=`<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> Lendo anexo ${i+1} de ${anexos.length}…`;
-      try{
-        const r=await textoDoAnexo(anexos[i].f,anexos[i].integral,(msg)=>{btn.innerHTML=`<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> ${msg}`;});
-        if(r.texto)partes.push(`=== ${anexos[i].rot}: ${anexos[i].f.name} ===\n${r.texto}`);
-        if(r.truncou)naoLidos.push(`${anexos[i].f.name} (leitura pode estar incompleta)`);
-      }catch(e){
-        naoLidos.push(anexos[i].f.name);
+    const setStatus=(msg)=>{btn.innerHTML=`<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> ${msg}`;};
+    const resultadosModelo=await lerArquivosParalelo(minutaArquivosModelo,f=>textoDoAnexo(f,true),setStatus);
+    resultadosModelo.forEach(x=>{
+      if(x.ok){
+        if(x.resultado.texto)partes.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE): ${x.file.name} ===\n${x.resultado.texto}`);
+        if(x.resultado.truncou)naoLidos.push(`${x.file.name} (leitura pode estar incompleta)`);
+      } else {
+        naoLidos.push(x.file.name);
       }
-    }
+    });
+    const resultadosDoc=await lerArquivosParalelo(minutaArquivosDoc,f=>textoDoAnexo(f,false),setStatus);
+    resultadosDoc.forEach(x=>{
+      if(x.ok){
+        if(x.resultado.texto)partes.push(`=== DOCUMENTO: ${x.file.name} ===\n${x.resultado.texto}`);
+        if(x.resultado.truncou)naoLidos.push(`${x.file.name} (leitura pode estar incompleta)`);
+      } else {
+        naoLidos.push(x.file.name);
+      }
+    });
     if(naoLidos.length&&!confirm(`Não consegui ler ${naoLidos.length===1?'este anexo':'estes anexos'}: ${naoLidos.join(', ')}.\n\nPosso montar as perguntas sem ${naoLidos.length===1?'ele':'eles'}? Aí talvez eu pergunte algo que já está nesse documento.`))return;
     btn.innerHTML='<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> Montando as perguntas…';
     const material=partes.filter(Boolean).join('\n\n');
@@ -6133,12 +6146,18 @@ window.regrasMinutaPesquisar=async function(chave,tipo){
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Pesquisando… pode levar um minuto';}
   try{
     const r=await fetch('/api/radar-juridico?tarefa=minuta&tipo='+encodeURIComponent(tipo));
-    const d=await r.json();
+    let d=null,bruto='';
+    try{ bruto=await r.text(); d=JSON.parse(bruto); }catch(e){}
     if(!d||!d.ok){
-      alert('Não consegui pesquisar agora: '+((d&&d.erro)||'motivo desconhecido'));
+      // Sem isso, um erro de verdade (função estourou o tempo, chave da IA
+      // ausente, etc.) virava sempre a mesma frase genérica — impossível de
+      // diagnosticar sem abrir o log da Vercel. Agora o status e o começo da
+      // resposta vêm junto.
+      const detalhe=d&&d.erro?d.erro:(bruto?bruto.slice(0,200):'resposta vazia');
+      alert('Não consegui pesquisar agora (HTTP '+r.status+'): '+detalhe);
     }
   }catch(e){
-    alert('Não consegui falar com a pesquisa agora. Tente de novo.');
+    alert('Não consegui falar com a pesquisa agora: '+e.message);
   }
   if(btn){btn.disabled=false;btn.innerHTML=antes;}
   regrasMinutaAberto=chave;

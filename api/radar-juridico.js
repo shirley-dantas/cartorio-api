@@ -341,7 +341,12 @@ ${f.texto}`).join("\n\n")}
 
 Levante as regras de elaboração deste tipo de ato e responda no formato JSON combinado.`;
 
-  const bruto = await chamarClaude(mensagem, 8000, REGRAS_MINUTA_SYSTEM_PROMPT);
+  // 4000, não 8000: a função tem 60s de teto (Hobby) e o tempo de gerar a
+  // resposta cresce com max_tokens — 8000 arriscava estourar o teto sozinho,
+  // sem nem sobrar tempo pra ler as fontes. Um checklist de um tipo de ato só
+  // não deveria precisar de mais que isso; se precisar, é sinal de dividir a
+  // pesquisa em mais de uma chamada, não de só subir o número de novo.
+  const bruto = await chamarClaude(mensagem, 4000, REGRAS_MINUTA_SYSTEM_PROMPT);
   const j = conferirRegrasMinuta(lerJson(bruto));
   j.tipoAto = tipoAto;
   j.status = "ok";
