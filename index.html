@@ -6343,15 +6343,16 @@ const extrairDocxNoNavegador=(file)=>new Promise((resolve,reject)=>{
   r.readAsArrayBuffer(file);
 });
 // A leitura de PDF/imagem passa pelo Apps Script (ver extrairArquivo), não
-// mais pela Vercel — então este teto não é mais sobre o corpo de uma
-// requisição HTTP. 20MB parecia bom senso, mas uma escritura com muitos
-// anexos escaneados (ex: "3ª alteração contratual" de vários módulos) passa
-// disso com facilidade — e cada vez que passa, comprime automaticamente e
-// interrompe pra perguntar "ficou legível?", à toa. O Apps Script aceita bem
-// mais que isso no corpo da requisição (dezenas de MB); 40MB de arquivo (uns
-// 54MB depois de virar base64) ainda fica com folga do teto dele, e cobre o
-// caso real de anexo grande sem precisar comprimir.
-const LIMITE_ANEXO_BYTES=40*1024*1024;
+// mais pela Vercel — mas o gargalo real não é mais o corpo da requisição HTTP
+// (o Apps Script aceita bem mais que isso): é o próprio limite de tamanho de
+// requisição da API da Claude (a Anthropic recusa pedidos grandes demais,
+// "Request exceeds the maximum size", antes mesmo de olhar o conteúdo).
+// Subir este teto para 40MB (09/09/2026, para parar de comprimir à toa)
+// quebrou exatamente nisso: um anexo de ~30MB passou sem comprimir e a
+// própria Claude recusou o pedido. Base64 infla o arquivo em ~1,37×, então
+// 20MB de arquivo vira uns 27MB no corpo do pedido — com folga do teto da
+// Claude (32MB) mesmo somando o resto do envelope JSON.
+const LIMITE_ANEXO_BYTES=20*1024*1024;
 
 // ── ESCOLHER DO GOOGLE DRIVE ──
 // O botão "Escolher do Drive", ao lado de cada "Anexar documento(s)", abre o
