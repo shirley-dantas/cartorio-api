@@ -7271,9 +7271,12 @@ if(joaninhaInstancia.disponivel){
         await update(ref(db,`casos/${alvo.id}`),patch);
         if(patch.agendado)await sincronizarEventoCalendar(alvo.id,{...c,...patch});
       }else{
+        // Escreve na MESMA lista que "+ Adicionar lembrete" na Mesa usa —
+        // sem cortar. Um corte automático aqui já apagou lembrete antigo
+        // ainda pendente sem avisar ninguém (quem tira um lembrete da lista
+        // é sempre a lixeira, nunca o painel sozinho).
         const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
         arr.push({id:gerarIdFoco(),text:corpo,done:false});
-        if(arr.length>8)arr.splice(0,arr.length-8);
         await set(focosRef,arr);
       }
       ta.value='';
