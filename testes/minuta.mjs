@@ -33,7 +33,11 @@ const caixa = {
   Logger: {log(){}},
   PropertiesService: {getScriptProperties: () => ({getProperty: () => 'x'})},
   UrlFetchApp: {fetch(){ throw new Error('não deve ser chamado neste teste'); }},
-  DriveApp: {}, DocumentApp: {}, ScriptApp: {}, CalendarApp: {}, ContentService: {MimeType: {}},
+  DriveApp: {}, ScriptApp: {}, CalendarApp: {}, ContentService: {MimeType: {}},
+  DocumentApp: {
+    ParagraphHeading: {NORMAL: 'NORMAL'},
+    HorizontalAlignment: {CENTER: 'CENTER', JUSTIFY: 'JUSTIFY'}
+  },
   FIREBASE_URL: 'https://exemplo',
 };
 vm.createContext(caixa);
@@ -50,7 +54,11 @@ vm.runInContext(
   '\nglobalThis.montarSystemPrompt = montarSystemPrompt;' +
   '\nglobalThis.extrairJsonAuditoria = extrairJsonAuditoria;' +
   '\nglobalThis.AUDITORIA_SYSTEM_PROMPT = AUDITORIA_SYSTEM_PROMPT;' +
-  '\nglobalThis.extrairIdDocumento = extrairIdDocumento;',
+  '\nglobalThis.extrairIdDocumento = extrairIdDocumento;' +
+  '\nglobalThis.parsearMarcadorCertidao = parsearMarcadorCertidao;' +
+  '\nglobalThis.dataHojeFormatada = dataHojeFormatada;' +
+  '\nglobalThis.documentosParecemTerCertidao = documentosParecemTerCertidao;' +
+  '\nglobalThis.inserirParagrafoFormatado = inserirParagrafoFormatado;',
   caixa
 );
 
@@ -83,6 +91,101 @@ passo('corta a linha "## ANÁLISE DOCUMENTAL" (título de seção proibido)', ()
 passo('NÃO corta quando a palavra aparece dentro de uma frase normal', () => {
   const r = caixa.parsearResposta('# ESCRITURA\n\nO banco fará análise de crédito do comprador antes da liberação.');
   ok(r.minuta.indexOf('análise de crédito') !== -1, 'cortou uma frase legítima só por conter a palavra');
+});
+
+console.log('\n— parsearResposta: marcador 【CERTIDÃO: ...】 (validade das certidões) —');
+
+passo('arranca o marcador de certidão do corpo e devolve os campos estruturados', () => {
+  const texto = 'Texto A 【CERTIDÃO: Matrícula 12345 | tipo: matrícula | emitida: 01/09/2026 | validade: 30 dias corridos | vence em: 01/10/2026 | status: VÁLIDA】 texto B.';
+  const r = caixa.parsearResposta(texto);
+  igual(r.certidoes.length, 1, 'devia ter achado 1 certidão');
+  igual(r.certidoes[0].nome, 'Matrícula 12345');
+  igual(r.certidoes[0].tipo, 'matrícula');
+  igual(r.certidoes[0].emitida, '01/09/2026');
+  igual(r.certidoes[0].venceEm, '01/10/2026');
+  igual(r.certidoes[0].status, 'VÁLIDA');
+  ok(r.minuta.indexOf('【') === -1, 'sobrou marcador de certidão no texto da minuta');
+  ok(r.minuta.indexOf('Matrícula 12345') === -1, 'o conteúdo do marcador de certidão vazou pra minuta');
+});
+
+passo('pendência e certidão no mesmo texto não se atrapalham', () => {
+  const texto = '【PENDÊNCIA: falta CPF】 corpo 【CERTIDÃO: CNDT | tipo: outra | emitida: 05/08/2026 | validade: 180 dias (conforme documento) | vence em: 01/02/2027 | status: VÁLIDA】 fim.';
+  const r = caixa.parsearResposta(texto);
+  igual(r.comentarios.length, 1);
+  igual(r.certidoes.length, 1);
+  igual(r.certidoes[0].tipo, 'outra');
+  igual(r.certidoes[0].status, 'VÁLIDA');
+});
+
+passo('marcador de certidão fora do formato esperado não derruba o parse', () => {
+  const r = caixa.parsearResposta('Texto 【CERTIDÃO: 】 fim.');
+  igual(r.certidoes.length, 0, 'um marcador vazio não devia virar uma certidão');
+});
+
+console.log('\n— inserirParagrafoFormatado: negrito nunca vira asterisco solto —');
+
+// Um Body do Google Docs fingido, só o suficiente pro que inserirParagrafoFormatado usa.
+function corpoFake() {
+  const paragrafos = [];
+  return {
+    paragrafos,
+    appendParagraph(texto) {
+      const bolds = [];
+      const para = {
+        texto,
+        bolds,
+        setHeading() { return para; },
+        setLineSpacing() { return para; },
+        setSpacingBefore() { return para; },
+        setSpacingAfter() { return para; },
+        setAlignment() { return para; },
+        editAsText() {
+          return {
+            setFontFamily() { return this; },
+            setFontSize() { return this; },
+            setBold(inicio, fim, valor) { bolds.push({inicio, fim, valor}); return this; }
+          };
+        }
+      };
+      paragrafos.push(para);
+      return para;
+    }
+  };
+}
+
+passo('negrito normal (pares fechados) vira texto limpo com negrito aplicado', () => {
+  const body = corpoFake();
+  caixa.inserirParagrafoFormatado(body, 'Escritura de **Compra e Venda** do imóvel.', 0);
+  const p = body.paragrafos[0];
+  igual(p.texto, 'Escritura de Compra e Venda do imóvel.', 'o par fechado devia sumir, sem sobrar asterisco');
+  ok(p.bolds.some(b => b.valor === true), 'devia ter marcado algum trecho em negrito');
+});
+
+passo('número ÍMPAR de ** na linha nunca vira asterisco solto no documento — perde o negrito da linha inteira', () => {
+  const body = corpoFake();
+  caixa.inserirParagrafoFormatado(body, 'A **matrícula não fechou o negrito nesta linha.', 0);
+  const p = body.paragrafos[0];
+  ok(p.texto.indexOf('*') === -1, 'sobrou asterisco solto no texto: ' + JSON.stringify(p.texto));
+});
+
+console.log('\n— documentosParecemTerCertidao: a rede de segurança do alerta —');
+
+passo('acha certidão pelo nome do documento, mesmo sem o marcador da IA', () => {
+  const texto = '=== DOCUMENTO: NEGATIVA DE IPTU.pdf ===\ntexto qualquer\n=== DOCUMENTO: RG.pdf ===\noutro texto';
+  ok(caixa.documentosParecemTerCertidao(texto), 'devia ter achado "IPTU" no nome do documento');
+});
+
+passo('não acusa nada quando nenhum documento tem cara de certidão', () => {
+  const texto = '=== DOCUMENTO: RG.pdf ===\ntexto\n=== DOCUMENTO: EXTRATO BANCÁRIO.pdf ===\noutro';
+  ok(!caixa.documentosParecemTerCertidao(texto), 'achou certidão onde não tinha nome de certidão nenhum');
+});
+
+console.log('\n— {{DATA_HOJE}}: a data real do dia da geração —');
+
+passo('montarSystemPrompt substitui {{DATA_HOJE}} pela data de hoje, no formato DD/MM/AAAA', () => {
+  const prompt = caixa.montarSystemPrompt(2026);
+  ok(prompt.indexOf('{{DATA_HOJE}}') === -1, 'sobrou o marcador {{DATA_HOJE}} sem substituir');
+  ok(prompt.indexOf(caixa.dataHojeFormatada()) !== -1, 'a data de hoje não apareceu no prompt');
 });
 
 console.log('\n— chaveTipo e abreviarTipoAto —');
@@ -222,13 +325,25 @@ passo('cobre a virada do ano sozinho — 2027 não precisa de ninguém mexer no 
   igual(caixa.anoPorExtenso(2019), 'dois mil e dezenove');
 });
 
+passo('SYSTEM_PROMPT é sempre uma string de verdade (uma crase solta no texto do prompt quebra isso em silêncio)', () => {
+  // Uma crase (`) esquecida dentro do próprio texto do SYSTEM_PROMPT fecha a
+  // template string mais cedo do que devia — o arquivo continua com sintaxe
+  // válida (vira uma conta tipo string1 ** string2, que o JS aceita), mas
+  // SYSTEM_PROMPT deixa de ser texto e vira NaN. node --check não pega isso;
+  // só rodando montarSystemPrompt() e conferindo o tipo.
+  igual(typeof caixa.montarSystemPrompt(2026), 'string', 'SYSTEM_PROMPT não é mais uma string — provável crase solta em algum REGRA ABSOLUTA');
+});
+
 passo('o SYSTEM_PROMPT não carrega mais nenhum ano escrito à mão', () => {
   const prompt2026 = caixa.montarSystemPrompt(2026);
   const prompt2027 = caixa.montarSystemPrompt(2027);
   ok(prompt2026.indexOf('dois mil e vinte e seis (2026)') !== -1, 'o marcador não foi preenchido para 2026');
   ok(prompt2027.indexOf('dois mil e vinte e sete (2027)') !== -1, 'o marcador não foi preenchido para 2027');
   ok(prompt2026 !== prompt2027, 'o prompt de anos diferentes saiu idêntico');
-  ok(prompt2027.indexOf('2026') === -1, 'sobrou o ano fixo de 2026 mesmo pedindo 2027');
+  // Não checa ausência de "2026" cru: {{DATA_HOJE}} sempre carrega a data real
+  // de hoje (ver dataHojeFormatada), que legitimamente pode ser 2026 — o que
+  // não pode sobrar é a frase fixa da ABERTURA de um ano que não foi pedido.
+  ok(prompt2027.indexOf('dois mil e vinte e seis (2026)') === -1, 'sobrou a abertura fixa de 2026 mesmo pedindo 2027');
 });
 
 console.log('\n— extrairJsonAuditoria: a auditoria (Etapa 2) —');

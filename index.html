@@ -2296,11 +2296,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <label class="modal-label">Minuta modelo (Word/PDF) — opcional; se anexar, a IA segue a estrutura e o nível de detalhe dela</label>
       <input type="file" id="minuta-arquivo-modelo-input" accept=".docx,.pdf,image/*" multiple style="display:none">
       <button type="button" class="btn-anexar-reeditar" onclick="document.getElementById('minuta-arquivo-modelo-input').click()"><i class="ti ti-paperclip" style="font-size:12px;vertical-align:-1px"></i> Anexar minuta modelo</button>
+      <button type="button" class="btn-anexar-reeditar" onclick="driveEscolherArquivos('minuta-modelo',event)"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Escolher do Drive</button>
       <div id="minuta-chips-modelo" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px"></div>
 
       <label class="modal-label">Documentos do caso (opcional — pode anexar quantos precisar, um de cada vez ou vários juntos)</label>
       <input type="file" id="minuta-arquivo-doc-input" accept=".docx,.pdf,image/*" multiple style="display:none">
       <button type="button" class="btn-anexar-reeditar" onclick="document.getElementById('minuta-arquivo-doc-input').click()"><i class="ti ti-paperclip" style="font-size:12px;vertical-align:-1px"></i> Anexar documento(s)</button>
+      <button type="button" class="btn-anexar-reeditar" onclick="driveEscolherArquivos('minuta-doc',event)"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Escolher do Drive</button>
       <div id="minuta-chips-doc" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px"></div>
 
       <div class="modal-btn-row">
@@ -2363,10 +2365,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <label class="modal-label">Minuta pronta atual (Word/PDF) — opcional, mas se anexar será seguida à risca, sem tirar nada</label>
     <input type="file" id="reeditar-arquivo-minuta-input" accept=".docx,.pdf,image/*" multiple style="display:none">
     <button type="button" class="btn-anexar-reeditar" onclick="document.getElementById('reeditar-arquivo-minuta-input').click()"><i class="ti ti-paperclip" style="font-size:12px;vertical-align:-1px"></i> Anexar arquivo(s) da minuta</button>
+    <button type="button" class="btn-anexar-reeditar" onclick="driveEscolherArquivos('reeditar-minuta',event)"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Escolher do Drive</button>
     <div id="reeditar-chips-minuta" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px"></div>
     <label class="modal-label">Documentos referentes a essa alteração (opcional — pode anexar quantos precisar, um de cada vez ou vários juntos)</label>
     <input type="file" id="reeditar-arquivo-doc-input" accept=".docx,.pdf,image/*" multiple style="display:none">
     <button type="button" class="btn-anexar-reeditar" onclick="document.getElementById('reeditar-arquivo-doc-input').click()"><i class="ti ti-paperclip" style="font-size:12px;vertical-align:-1px"></i> Anexar documento(s)</button>
+    <button type="button" class="btn-anexar-reeditar" onclick="driveEscolherArquivos('reeditar-doc',event)"><i class="ti ti-brand-google-drive" style="font-size:12px;vertical-align:-1px"></i> Escolher do Drive</button>
     <div id="reeditar-chips-doc" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px"></div>
     <div class="modal-btn-row">
       <button class="btn-gerar" id="btn-reeditar-gerar" onclick="gerarReeditar()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px"></i> Gerar nova versão</button>
@@ -2667,7 +2671,20 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 </div>
 
 <script src="design-system/mascots/joaninha/joaninha.js"></script>
+<!-- Google Identity Services (login/token pra abrir o Drive dela) + gapi
+     (carrega só a biblioteca do Picker) — ver driveEscolherArquivos() e
+     FIREBASE.md, seção 10. -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<!-- pdf.js (renderiza cada página) + pdf-lib (remonta um PDF novo, menor) —
+     usados só para comprimir PDF grande demais antes de anexar, ver
+     comprimirPdfNoNavegador(). -->
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script>
+if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+</script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, get, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -5613,10 +5630,10 @@ const minutaTextoExtraido=new Map();
 function chaveAnexo(f,preservarIntegral){
   return `${f.name}|${f.size||0}|${f.lastModified||0}|${preservarIntegral?1:0}`;
 }
-async function textoDoAnexo(file,preservarIntegral){
+async function textoDoAnexo(file,preservarIntegral,onStatus){
   const k=chaveAnexo(file,preservarIntegral);
   if(minutaTextoExtraido.has(k))return minutaTextoExtraido.get(k);
-  const texto=await extrairArquivo(file,preservarIntegral);
+  const texto=await extrairArquivo(file,preservarIntegral,onStatus);
   minutaTextoExtraido.set(k,texto);
   return texto;
 }
@@ -5690,7 +5707,7 @@ window.iniciarPerguntasMinuta=async function(){
     for(let i=0;i<anexos.length;i++){
       btn.innerHTML=`<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> Lendo anexo ${i+1} de ${anexos.length}…`;
       try{
-        const r=await textoDoAnexo(anexos[i].f,anexos[i].integral);
+        const r=await textoDoAnexo(anexos[i].f,anexos[i].integral,(msg)=>{btn.innerHTML=`<i class="ti ti-loader" style="font-size:13px;vertical-align:-1px"></i> ${msg}`;});
         if(r.texto)partes.push(`=== ${anexos[i].rot}: ${anexos[i].f.name} ===\n${r.texto}`);
         if(r.truncou)naoLidos.push(`${anexos[i].f.name} (leitura pode estar incompleta)`);
       }catch(e){
@@ -6331,40 +6348,333 @@ const extrairDocxNoNavegador=(file)=>new Promise((resolve,reject)=>{
   r.onerror=()=>reject(erroDeLeitura(file));
   r.readAsArrayBuffer(file);
 });
-// Devolve {texto, truncou}. truncou=true quando a extração bateu no teto de
-// tokens da IA (ver api/extrair-texto-arquivo.js) — a leitura pode estar
-// incompleta, e quem chama isso precisa saber, nunca em silêncio.
-async function extrairArquivo(file,preservarIntegral){
+// A leitura de PDF/imagem passa pelo Apps Script (ver extrairArquivo), não
+// mais pela Vercel — mas o gargalo real não é mais o corpo da requisição HTTP
+// (o Apps Script aceita bem mais que isso): é o próprio limite de tamanho de
+// requisição da API da Claude (a Anthropic recusa pedidos grandes demais,
+// "Request exceeds the maximum size", antes mesmo de olhar o conteúdo).
+// Subir este teto para 40MB (09/09/2026, para parar de comprimir à toa)
+// quebrou exatamente nisso: um anexo de ~30MB passou sem comprimir e a
+// própria Claude recusou o pedido. Base64 infla o arquivo em ~1,37×, então
+// 20MB de arquivo vira uns 27MB no corpo do pedido — com folga do teto da
+// Claude (32MB) mesmo somando o resto do envelope JSON.
+const LIMITE_ANEXO_BYTES=20*1024*1024;
+
+// ── ESCOLHER DO GOOGLE DRIVE ──
+// O botão "Escolher do Drive", ao lado de cada "Anexar documento(s)", abre o
+// seletor oficial do Google (o mesmo componente que o Gmail usa) e traz o
+// arquivo escolhido para dentro do painel como se tivesse sido anexado do
+// próprio computador — cai nas mesmas gavetas (minutaArquivosDoc etc.) e
+// passa pelo mesmo extrairArquivo(). Funciona igual em notebook, computador
+// e celular porque é só uma janela do navegador; não depende de app nenhum
+// instalado. Passo a passo de configuração: FIREBASE.md, seção 10.
+//
+// Cada destino sabe em que gaveta empilhar o arquivo escolhido e como
+// redesenhar os chips depois.
+const DRIVE_PICKER_DESTINOS={
+  'minuta-modelo':{lista:()=>minutaArquivosModelo,render:renderMinutaChips},
+  'minuta-doc':{lista:()=>minutaArquivosDoc,render:renderMinutaChips},
+  'reeditar-minuta':{lista:()=>reeditarArquivosMinuta,render:renderReeditarChips},
+  'reeditar-doc':{lista:()=>reeditarArquivosDoc,render:renderReeditarChips}
+};
+// Client ID e API key do Google Picker — NENHUM dos dois é segredo (é assim
+// que o Picker sempre funcionou, em qualquer site: o navegador de quem usa
+// precisa enxergar as duas para abrir a janela do Google). Ficam direto aqui
+// em vez de numa função da Vercel porque o plano gratuito da Vercel só aceita
+// 12 funções em api/ — uma função só para devolver dois valores públicos
+// custaria a 13ª e derrubava o deploy inteiro (foi o que aconteceu na
+// primeira versão disto). Trocar as credenciais no futuro é só editar as
+// duas linhas abaixo. Passo a passo de como gerá-las: FIREBASE.md, seção 10.
+const GOOGLE_PICKER_CLIENT_ID='668513834820-dfre74p929moibi8869lufornj82eioj.apps.googleusercontent.com';
+const GOOGLE_PICKER_API_KEY='AIzaSyDOWSuEasNfs4l25ZvH-se2JO0-Clr77gI';
+async function driveCarregarConfig(){
+  if(!GOOGLE_PICKER_CLIENT_ID||!GOOGLE_PICKER_API_KEY)throw new Error('O Google Drive ainda não foi configurado neste painel — falta preencher GOOGLE_PICKER_CLIENT_ID e/ou GOOGLE_PICKER_API_KEY no index.html.');
+  return {clientId:GOOGLE_PICKER_CLIENT_ID,apiKey:GOOGLE_PICKER_API_KEY};
+}
+function driveCarregarScript(condicao,src){
+  return new Promise((resolve,reject)=>{
+    if(condicao())return resolve();
+    const s=document.createElement('script');
+    s.src=src;
+    s.onload=()=>resolve();
+    s.onerror=()=>reject(new Error('Não consegui carregar um componente do Google necessário para o Drive.'));
+    document.head.appendChild(s);
+  });
+}
+let driveAccessToken=null; // {token, expira} — reaproveitado enquanto não vencer, pra não pedir login de novo a cada anexo
+let drivePickerApiCarregada=false;
+async function drivePedirToken(clientId){
+  if(driveAccessToken&&Date.now()<driveAccessToken.expira)return driveAccessToken.token;
+  await driveCarregarScript(()=>window.google&&window.google.accounts&&window.google.accounts.oauth2,'https://accounts.google.com/gsi/client');
+  return new Promise((resolve,reject)=>{
+    try{
+      const cliente=window.google.accounts.oauth2.initTokenClient({
+        client_id:clientId,
+        scope:'https://www.googleapis.com/auth/drive.readonly',
+        callback:(resposta)=>{
+          if(resposta&&resposta.access_token){
+            driveAccessToken={token:resposta.access_token,expira:Date.now()+(Number(resposta.expires_in||3300)*1000)-30000};
+            resolve(resposta.access_token);
+          }else{
+            reject(new Error('Não consegui entrar na conta Google para abrir o Drive.'));
+          }
+        },
+        error_callback:()=>reject(new Error('A autorização do Google foi cancelada.'))
+      });
+      cliente.requestAccessToken({prompt:driveAccessToken?'':'consent'});
+    }catch(e){reject(e instanceof Error?e:new Error('Não consegui abrir o login do Google.'));}
+  });
+}
+async function driveAbrirPicker(token,apiKey){
+  await driveCarregarScript(()=>window.gapi,'https://apis.google.com/js/api.js');
+  if(!drivePickerApiCarregada){
+    await new Promise((resolve,reject)=>window.gapi.load('picker',{callback:resolve,onerror:()=>reject(new Error('Não consegui carregar o seletor do Google Drive.'))}));
+    drivePickerApiCarregada=true;
+  }
+  return new Promise((resolve)=>{
+    const visao=new google.picker.DocsView(google.picker.ViewId.DOCS)
+      .setIncludeFolders(true)
+      .setSelectFolderEnabled(false);
+    const picker=new google.picker.PickerBuilder()
+      .addView(visao)
+      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+      .setOAuthToken(token)
+      .setDeveloperKey(apiKey)
+      .setCallback((dados)=>{
+        if(dados.action===google.picker.Action.PICKED)resolve(dados.docs||[]);
+        else if(dados.action===google.picker.Action.CANCEL)resolve(null);
+      })
+      .build();
+    picker.setVisible(true);
+  });
+}
+// Doc nativo do Google (Documentos, Planilhas, Apresentações) não tem bytes
+// próprios pra baixar — precisa ser EXPORTADO num formato comum primeiro.
+// Os demais (PDF, imagem, .docx já pronto) baixam direto (alt=media).
+const DRIVE_EXPORTA_COMO={
+  'application/vnd.google-apps.document':{mime:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',ext:'.docx'},
+  'application/vnd.google-apps.spreadsheet':{mime:'application/pdf',ext:'.pdf'},
+  'application/vnd.google-apps.presentation':{mime:'application/pdf',ext:'.pdf'}
+};
+async function driveBaixarArquivo(doc,token){
+  const exportar=DRIVE_EXPORTA_COMO[doc.mimeType];
+  const url=exportar
+    ?`https://www.googleapis.com/drive/v3/files/${doc.id}/export?mimeType=${encodeURIComponent(exportar.mime)}`
+    :`https://www.googleapis.com/drive/v3/files/${doc.id}?alt=media`;
+  const r=await fetch(url,{headers:{Authorization:'Bearer '+token}});
+  if(!r.ok)throw new Error(`Não consegui baixar "${doc.name}" do Drive (${r.status}).`);
+  const blob=await r.blob();
+  const nome=exportar&&!doc.name.toLowerCase().endsWith(exportar.ext)?doc.name+exportar.ext:doc.name;
+  return new File([blob],nome,{type:exportar?exportar.mime:(doc.mimeType||blob.type)});
+}
+window.driveEscolherArquivos=async function(destino,ev){
+  const alvo=DRIVE_PICKER_DESTINOS[destino];
+  if(!alvo)return;
+  const botao=ev&&ev.currentTarget;
+  const antes=botao?botao.innerHTML:'';
+  try{
+    if(botao){botao.disabled=true;botao.innerHTML='<i class="ti ti-loader" style="font-size:12px;vertical-align:-1px"></i> Abrindo o Drive…';}
+    const config=await driveCarregarConfig();
+    const token=await drivePedirToken(config.clientId);
+    const escolhidos=await driveAbrirPicker(token,config.apiKey);
+    if(!escolhidos)return; // cancelou
+    if(botao)botao.innerHTML='<i class="ti ti-loader" style="font-size:12px;vertical-align:-1px"></i> Baixando…';
+    for(const doc of escolhidos){
+      const arquivo=await driveBaixarArquivo(doc,token);
+      alvo.lista().push(arquivo);
+    }
+    alvo.render();
+  }catch(e){
+    finToast(descreverErro(e,'Escolher do Drive'));
+  }finally{
+    if(botao){botao.disabled=false;botao.innerHTML=antes;}
+  }
+};
+
+// Uma página de PDF virada imagem, em bytes JPEG (dataURL → ArrayBuffer).
+async function paginaPdfParaJpegBytes(pagina,escala,qualidade){
+  const viewport=pagina.getViewport({scale:escala});
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(viewport.width));
+  canvas.height=Math.max(1,Math.round(viewport.height));
+  await pagina.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+  const dataUrl=canvas.toDataURL('image/jpeg',qualidade);
+  const bytes=await(await fetch(dataUrl)).arrayBuffer();
+  return {bytes,largura:canvas.width,altura:canvas.height};
+}
+// PDF escaneado é, na prática, uma sequência de fotos em alta resolução —
+// é aí que mora o excesso de MB, não no texto. Comprimir é reduzir cada
+// página a uma imagem JPEG mais leve (resolução e qualidade menores) e
+// remontar um PDF novo com pdf-lib, uma página por imagem. Tenta algumas
+// combinações, da mais fiel à mais agressiva, parando na primeira que cabe
+// no teto. Devolve null se as bibliotecas não carregaram ou se nem a mais
+// agressiva coube — quem chama cai no erro de tamanho de sempre.
+async function comprimirPdfNoNavegador(file,onStatus){
+  if(!window.pdfjsLib||!window.PDFLib)return null;
+  const tentativas=[{escala:1.4,qualidade:0.7},{escala:1.1,qualidade:0.55},{escala:0.85,qualidade:0.4}];
+  let doc;
+  try{ doc=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise; }
+  catch(e){ return null; }
+  for(let t=0;t<tentativas.length;t++){
+    const {escala,qualidade}=tentativas[t];
+    if(onStatus)onStatus(`Comprimindo "${file.name}" (tentativa ${t+1} de ${tentativas.length})…`);
+    try{
+      const novoPdf=await window.PDFLib.PDFDocument.create();
+      for(let p=1;p<=doc.numPages;p++){
+        const pagina=await doc.getPage(p);
+        const {bytes,largura,altura}=await paginaPdfParaJpegBytes(pagina,escala,qualidade);
+        const imagem=await novoPdf.embedJpg(bytes);
+        const novaPagina=novoPdf.addPage([largura,altura]);
+        novaPagina.drawImage(imagem,{x:0,y:0,width:largura,height:altura});
+      }
+      const bytesFinais=await novoPdf.save();
+      if(bytesFinais.byteLength<=LIMITE_ANEXO_BYTES){
+        return new File([bytesFinais],file.name,{type:'application/pdf'});
+      }
+    }catch(e){ /* essa tentativa falhou — segue pra próxima, mais agressiva */ }
+  }
+  return null;
+}
+// Mesma ideia para foto solta (jpg/png): redesenha menor e mais compactada.
+async function comprimirImagemNoNavegador(file,onStatus){
+  const tentativas=[{escala:0.85,qualidade:0.75},{escala:0.65,qualidade:0.6},{escala:0.5,qualidade:0.45}];
+  let bitmap;
+  try{ bitmap=await createImageBitmap(file); }
+  catch(e){ return null; }
+  for(let t=0;t<tentativas.length;t++){
+    const {escala,qualidade}=tentativas[t];
+    if(onStatus)onStatus(`Comprimindo "${file.name}" (tentativa ${t+1} de ${tentativas.length})…`);
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(bitmap.width*escala));
+    canvas.height=Math.max(1,Math.round(bitmap.height*escala));
+    canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',qualidade));
+    if(blob&&blob.size<=LIMITE_ANEXO_BYTES){
+      return new File([blob],file.name,{type:'image/jpeg'});
+    }
+  }
+  return null;
+}
+// Devolve o arquivo comprimido, ou null se não deu (biblioteca não carregou,
+// arquivo corrompido, ou nem a tentativa mais agressiva coube no teto).
+// Uma falha aqui nunca é fatal por si — extrairArquivo cai no erro de
+// tamanho já conhecido, pedindo pra comprimir à mão.
+function comprimirArquivoGrande(file,onStatus){
+  return(file.type==='application/pdf'?comprimirPdfNoNavegador:comprimirImagemNoNavegador)(file,onStatus).catch(()=>null);
+}
+// Devolve {texto, truncou, comprimiu}. truncou=true quando a extração bateu
+// no teto de tokens da IA (ver api/extrair-texto-arquivo.js) — a leitura pode
+// estar incompleta, e quem chama isso precisa saber, nunca em silêncio.
+// comprimiu=true quando o arquivo foi automaticamente reduzido para caber no
+// teto de tamanho antes de ser lido — também nunca fica calado: compressão é
+// perda de qualidade (a imagem fica mais "achatada"), e quem confere depois
+// precisa saber que aquele documento passou por isso.
+async function extrairArquivo(file,preservarIntegral,onStatus){
   if(ehDocx(file)){
     let textoBruto;
     try{ textoBruto=await extrairDocxNoNavegador(file); }
     catch(e){ throw new Error(`Não consegui ler o arquivo Word "${file.name}".`); }
-    if(!textoBruto) return {texto:'',truncou:false};
-    if(preservarIntegral) return {texto:textoBruto,truncou:false};
+    if(!textoBruto) return {texto:'',truncou:false,comprimiu:false};
+    if(preservarIntegral) return {texto:textoBruto,truncou:false,comprimiu:false};
     // Documento de apoio: ainda passa por uma extração jurídica objetiva —
     // mas envia só o TEXTO (pequeno), não o arquivo, então o limite de
     // tamanho de envio não se aplica aqui.
     const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({textoBruto,nomeArquivo:file.name})});
     const j=await resp.json();
     if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
-    return {texto:j.texto||textoBruto,truncou:!!j.truncou};
+    return {texto:j.texto||textoBruto,truncou:!!j.truncou,comprimiu:false};
   }
-  // PDF/imagem: precisa mesmo enviar o arquivo (a IA lê o documento visualmente).
-  if(file.size>3.5*1024*1024){
-    throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui. Escaneie/salve em resolução menor (até ~3MB) e tente de novo.`);
+  // PDF/imagem: a IA precisa "olhar" o documento — não dá pra ler como texto
+  // puro. Isso vai direto pro Apps Script (GAS_URL), não pela Vercel: a
+  // Vercel tem um teto fixo de 60s por chamada (plano Hobby) e ~4,5MB no
+  // corpo da requisição, e documento com muitas páginas passa dos dois (foi
+  // o que derrubou a "3ª Alteração Contratual" e outros anexos em produção
+  // em 08/09/2026, com HTTP 504). O Apps Script roda até 6 minutos por
+  // chamada e aceita corpos bem maiores — o mesmo caminho que já gera a
+  // minuta (ver iniciar-minuta.js: dispara e não espera; aguardarJobFirebase
+  // aqui embaixo pergunta pro Firebase até o Apps Script terminar).
+  let alvo=file;
+  let comprimiu=false;
+  if(alvo.size>LIMITE_ANEXO_BYTES){
+    if(onStatus)onStatus(`"${file.name}" está grande (${(file.size/1024/1024).toFixed(1)}MB) — comprimindo automaticamente…`);
+    const comprimido=await comprimirArquivoGrande(alvo,onStatus);
+    if(comprimido){ alvo=comprimido; comprimiu=true; }
   }
-  const base64=await lerBase64Arquivo(file);
-  let resp;
+  if(alvo.size>LIMITE_ANEXO_BYTES){
+    throw new Error(`O arquivo "${file.name}" (${(file.size/1024/1024).toFixed(1)}MB) é grande demais pra anexar aqui, mesmo depois de tentar comprimir automaticamente. Escaneie/salve em resolução menor (até ~${Math.round(LIMITE_ANEXO_BYTES/1024/1024)}MB) e tente de novo.`);
+  }
+  const base64=await lerBase64Arquivo(alvo);
+  const jobId=Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  // Fogo-e-esquece: não espera a resposta do Apps Script (documento longo
+  // pode levar minutos) — só dispara e passa a perguntar pro Firebase.
+  fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'extrair-texto-arquivo',jobId,base64,mimetype:alvo.type,nomeArquivo:file.name,preservarIntegral})}).catch(()=>{});
+  if(onStatus)onStatus(`Lendo "${file.name}"…`);
+  let d;
   try{
-    resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,mimetype:file.type,nomeArquivo:file.name,preservarIntegral})});
+    d=await aguardarJobFirebase(jobId,(tick)=>{
+      if(onStatus)onStatus(`Lendo "${file.name}"… ${(tick+1)*3}s`);
+    });
   }catch(e){
-    throw new Error(`Não consegui enviar o arquivo "${file.name}". Tente de novo.`);
+    throw new Error(`"${file.name}" não terminou de ser lido a tempo (mais de 6 minutos) — documento bem longo, ou o Apps Script está fora do ar. Tente de novo.`);
   }
-  let j;
-  try{ j=await resp.json(); }
-  catch(e){ throw new Error(`O arquivo "${file.name}" é grande demais ou o servidor recusou o envio. Tente um arquivo menor.`); }
-  if(!j.ok) throw new Error(j.erro||`Não consegui ler o arquivo "${file.name}".`);
-  return {texto:j.texto||'',truncou:!!j.truncou};
+  if(!d.ok) throw new Error(d.erro||`Não consegui ler o arquivo "${file.name}".`);
+  return {texto:d.texto||'',truncou:!!d.truncou,comprimiu};
+}
+
+// Lê vários arquivos ao mesmo tempo, em vez de um de cada vez — um caso com
+// muitos anexos (RG, CNDT, contrato, extrato…) levava minutos só porque cada
+// leitura esperava a anterior terminar, mesmo elas não dependendo umas das
+// outras (cada arquivo já ia para uma chamada separada do Apps Script).
+// Nunca deixa um arquivo com erro derrubar os demais: cada leitura fica
+// isolada em {ok, resultado|erro}, e quem chama decide o que fazer.
+async function lerArquivosParalelo(arquivos,ler,onStatus){
+  const total=arquivos.length;
+  if(!total) return [];
+  let prontos=0;
+  if(onStatus) onStatus(total===1?`Lendo "${arquivos[0].name}"…`:`Lendo ${total} documentos…`);
+  return Promise.all(arquivos.map(async(file)=>{
+    try{
+      const resultado=await ler(file);
+      prontos++;
+      if(onStatus && total>1) onStatus(`Lendo documentos… ${prontos} de ${total} prontos`);
+      return {file,ok:true,resultado};
+    }catch(erro){
+      prontos++;
+      if(onStatus && total>1) onStatus(`Lendo documentos… ${prontos} de ${total} prontos`);
+      return {file,ok:false,erro};
+    }
+  }));
+}
+
+// Um alerta bloqueante (exige clique pra fechar) com a validade de cada
+// certidão anexada — vencida ou não — assim que a minuta termina de ser
+// gerada. Nunca fica em silêncio, mesmo quando está tudo válido: é o mesmo
+// motivo do "duvidoso" da Rede e do "⚪ visto e descartado" do Radar — uma
+// informação que não é mostrada de jeito nenhum é uma informação perdida.
+// A lista vem de 【CERTIDÃO: ...】 no texto da IA, extraída em parsearResposta
+// (Apps Script) e devolvida no resultado do job (d2.certidoes).
+function mostrarAlertaCertidoes(certidoes){
+  return new Promise((resolveAlerta)=>{
+    if(!certidoes||!certidoes.length){resolveAlerta();return;}
+    const cores={VENCIDA:'#B71C1C',VÁLIDA:'#1B5E20'};
+    const linhas=certidoes.map(c=>{
+      const cor=cores[c.status]||'#8A6D00';
+      return `<div style="border-left:4px solid ${cor};padding:8px 12px;margin-bottom:8px;background:#F7F7F9;border-radius:4px;text-align:left">
+        <div style="font-weight:600">${escTxt(c.nome||'Certidão')} <span style="color:${cor}">— ${escTxt(c.status||'INDETERMINADA')}</span></div>
+        <div style="font-size:12px;color:#555;margin-top:2px">tipo: ${escTxt(c.tipo||'—')} · emitida: ${escTxt(c.emitida||'—')} · validade: ${escTxt(c.validade||'—')} · vence em: ${escTxt(c.venceEm||'—')}</div>
+      </div>`;
+    }).join('');
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+    overlay.innerHTML=`<div style="background:#fff;border-radius:12px;max-width:520px;width:100%;max-height:82vh;overflow:auto;padding:20px;text-align:left">
+      <h3 style="margin:0 0 4px">⚠️ Validade das certidões anexadas</h3>
+      <p style="font-size:13px;color:#666;margin:0 0 12px">Confira antes de lavrar. Procuração e matrícula já saíram na minuta como "devidamente atualizada". As demais: se está VÁLIDA, entrou normal, com os dados dela; se está VENCIDA ou não deu pra confirmar, o espaço da validade ficou em branco, pra preencher quando a nova certidão chegar.</p>
+      ${linhas}
+      <button id="btn-ok-certidoes" style="margin-top:8px;width:100%;padding:10px;border:none;border-radius:8px;background:#1B5E20;color:#fff;font-weight:600;cursor:pointer">Ok, anotei</button>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#btn-ok-certidoes').onclick=()=>{overlay.remove();resolveAlerta();};
+  });
 }
 
 async function aguardarJobFirebase(jobId,onTick){
@@ -6424,21 +6734,23 @@ window.gerarReeditar=async function(){
       // evita misturar dados antigos/desatualizados com o que está sendo pedido agora.
       // Se vier em mais de um arquivo (ex: minuta dividida em partes), o texto de
       // todos é unido num único bloco MINUTA ATUAL, na ordem em que foram anexados.
-      const partesMinuta=[];
-      for(let i=0;i<arqsMinuta.length;i++){
-        setRLoad(`Lendo a minuta pronta anexada (${i+1} de ${arqsMinuta.length})…`);
-        const r=await extrairArquivo(arqsMinuta[i],true);
-        partesMinuta.push(r.texto);
-        if(r.truncou)falhas.push(`${arqsMinuta[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
-      }
+      const resultadosMinuta=await lerArquivosParalelo(arqsMinuta,f=>extrairArquivo(f,true),setRLoad);
+      const erroMinuta=resultadosMinuta.find(x=>!x.ok);
+      if(erroMinuta) throw erroMinuta.erro;
+      resultadosMinuta.forEach(x=>{
+        if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
+      });
       const nomesMinuta=arqsMinuta.map(f=>f.name).join(', ');
-      const blocos=[`=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${nomesMinuta} ===\n${partesMinuta.join('\n\n')}`];
-      for(let i=0;i<arqsDoc.length;i++){
-        setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
-        const r=await extrairArquivo(arqsDoc[i],false);
-        blocos.push(`=== DOCUMENTO: ${arqsDoc[i].name} ===\n${r.texto}`);
-        if(r.truncou)falhas.push(`${arqsDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
-      }
+      const blocos=[`=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) — ${nomesMinuta} ===\n${resultadosMinuta.map(x=>x.resultado.texto).join('\n\n')}`];
+      const resultadosDoc=await lerArquivosParalelo(arqsDoc,f=>extrairArquivo(f,false),setRLoad);
+      const erroDoc=resultadosDoc.find(x=>!x.ok);
+      if(erroDoc) throw erroDoc.erro;
+      resultadosDoc.forEach(x=>{
+        blocos.push(`=== DOCUMENTO: ${x.file.name} ===\n${x.resultado.texto}`);
+        if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
+      });
       docsTexto=blocos.join('\n\n');
     } else {
       // Sem minuta pronta anexada: comportamento de antes (documentos já salvos no card)
@@ -6462,12 +6774,14 @@ window.gerarReeditar=async function(){
         }
         docsTexto=linhas.join('\n');
       }catch(e){docsTexto=c.obs||'';}
-      for(let i=0;i<arqsDoc.length;i++){
-        setRLoad(`Lendo documento ${i+1} de ${arqsDoc.length}…`);
-        const r=await extrairArquivo(arqsDoc[i],false);
-        docsTexto+=`\n\n=== DOCUMENTO: ${arqsDoc[i].name} ===\n${r.texto}`;
-        if(r.truncou)falhas.push(`${arqsDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
-      }
+      const resultadosDoc=await lerArquivosParalelo(arqsDoc,f=>extrairArquivo(f,false),setRLoad);
+      const erroDoc=resultadosDoc.find(x=>!x.ok);
+      if(erroDoc) throw erroDoc.erro;
+      resultadosDoc.forEach(x=>{
+        docsTexto+=`\n\n=== DOCUMENTO: ${x.file.name} ===\n${x.resultado.texto}`;
+        if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
+      });
     }
     if(falhas.length){
       const seguir=confirm(`Atenção com estes documentos:\n\n• ${falhas.join('\n• ')}\n\nGerar mesmo assim?`);
@@ -6486,6 +6800,7 @@ window.gerarReeditar=async function(){
       setRLoad('Gerando minuta com IA… '+seg+'s<br><span style="font-size:11px;color:#AEAEB2">Aguardando Apps Script processar</span>');
     });
     rLoad.style.display='none';
+    if(d2.ok&&d2.docUrl) await mostrarAlertaCertidoes(d2.certidoes);
     document.getElementById('reeditar-result').style.display='block';
     if(d2.ok&&d2.docUrl){
       // Mesma regra do Gerar: truncada ou com ressalva não é anunciada como sucesso limpo.
@@ -6554,22 +6869,26 @@ window.gerarAnalise=async function(){
     // problemáticos do card (minutaDocsProblema, montado por abrirMinuta) —
     // um documento sem leitura nunca vira uma minuta silenciosamente incompleta.
     const falhas=[...minutaDocsProblema];
-    for(let i=0;i<minutaArquivosModelo.length;i++){
-      setLoading(`Lendo a minuta modelo (${i+1} de ${minutaArquivosModelo.length})…`);
-      try{
-        const r=await textoDoAnexo(minutaArquivosModelo[i],true);
-        if(r.texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${minutaArquivosModelo[i].name} ===\n${r.texto}`);
-        if(r.truncou)falhas.push(`${minutaArquivosModelo[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
-      }catch(e){falhas.push(`${minutaArquivosModelo[i].name}: ${descreverErro(e,'ler a minuta modelo')}`);}
-    }
-    for(let i=0;i<minutaArquivosDoc.length;i++){
-      setLoading(`Lendo documento ${i+1} de ${minutaArquivosDoc.length}…`);
-      try{
-        const r=await textoDoAnexo(minutaArquivosDoc[i],false);
-        if(r.texto)blocos.push(`=== DOCUMENTO: ${minutaArquivosDoc[i].name} ===\n${r.texto}`);
-        if(r.truncou)falhas.push(`${minutaArquivosDoc[i].name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
-      }catch(e){falhas.push(`${minutaArquivosDoc[i].name}: ${descreverErro(e,'ler um documento anexado')}`);}
-    }
+    const resultadosModelo=await lerArquivosParalelo(minutaArquivosModelo,f=>textoDoAnexo(f,true),setLoading);
+    resultadosModelo.forEach(x=>{
+      if(x.ok){
+        if(x.resultado.texto)blocos.push(`=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${x.file.name} ===\n${x.resultado.texto}`);
+        if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
+      } else {
+        falhas.push(`${x.file.name}: ${descreverErro(x.erro,'ler a minuta modelo')}`);
+      }
+    });
+    const resultadosDoc=await lerArquivosParalelo(minutaArquivosDoc,f=>textoDoAnexo(f,false),setLoading);
+    resultadosDoc.forEach(x=>{
+      if(x.ok){
+        if(x.resultado.texto)blocos.push(`=== DOCUMENTO: ${x.file.name} ===\n${x.resultado.texto}`);
+        if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+        if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
+      } else {
+        falhas.push(`${x.file.name}: ${descreverErro(x.erro,'ler um documento anexado')}`);
+      }
+    });
     // Um anexo ilegível derrubava a geração inteira. Agora ela pode seguir sem
     // ele — mas nunca em silêncio: uma minuta feita sem um documento que você
     // achou que entrou é pior que uma minuta que não saiu.
@@ -6602,6 +6921,7 @@ window.gerarAnalise=async function(){
       setLoading('Gerando minuta com IA… '+seg+'s<br><span style="font-size:11px;color:#AEAEB2">Aguardando Apps Script processar</span>');
     });
     loading.style.display='none';
+    if(d2.ok&&d2.docUrl) await mostrarAlertaCertidoes(d2.certidoes);
     document.getElementById('modal-result').style.display='block';
     if(d2.ok&&d2.docUrl){
       // Minuta truncada na 6ª rodada, ou com ressalva da conferência (seção de
@@ -6957,9 +7277,12 @@ if(joaninhaInstancia.disponivel){
         await update(ref(db,`casos/${alvo.id}`),patch);
         if(patch.agendado)await sincronizarEventoCalendar(alvo.id,{...c,...patch});
       }else{
+        // Escreve na MESMA lista que "+ Adicionar lembrete" na Mesa usa —
+        // sem cortar. Um corte automático aqui já apagou lembrete antigo
+        // ainda pendente sem avisar ninguém (quem tira um lembrete da lista
+        // é sempre a lixeira, nunca o painel sozinho).
         const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
         arr.push({id:gerarIdFoco(),text:corpo,done:false});
-        if(arr.length>8)arr.splice(0,arr.length-8);
         await set(focosRef,arr);
       }
       ta.value='';

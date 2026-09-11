@@ -8,12 +8,20 @@
 //
 // FIREBASE: Certifique-se que as regras do Realtime Database permitem escrita em /jobs/
 // { "rules": { "jobs": { ".read": true, ".write": true } } }
+// (ver database.rules.json no repositório para a lista completa, incluindo
+// /geracao-estado/, usado pela geração de minuta em pedaços — ver abaixo)
 //
 // CALENDAR: este script agora também cria/atualiza/exclui eventos no Google
 // Calendar (mesma conta do Drive). Ao colar este código e salvar, o Apps
 // Script vai pedir para reautorizar o projeto com o escopo do Calendar —
 // aceite a permissão e implante uma nova versão (Implantar > Gerenciar
 // implantações > editar > Nova versão).
+//
+// GATILHOS: a geração de minuta em pedaços (ver agendarContinuacaoMinuta)
+// cria gatilhos de tempo (ScriptApp.newTrigger) para continuar uma minuta
+// longa sem esbarrar no teto de 6 minutos por execução. Isso pede o escopo
+// de gatilhos — aceite a reautorização se for pedida, e implante uma nova
+// versão, do mesmo jeito que o Calendar acima.
 
 const PASTA_RAIZ_ID = "1KDMZ-FJMoXEzpMXKSojeZgNeJ_p4lhSb";
 const NOME_PASTA_MINUTAS = "0 - MINUTAS IA";
@@ -185,7 +193,7 @@ REGRAS FUNDAMENTAIS:
 
 NOMENCLATURA DAS PARTES (use sempre a nomenclatura correta para o ato):
 - Escritura de Compra e Venda: VENDEDOR(A) e COMPRADOR(A)
-- Doação: DOADOR(A) e DONATÁRIO(A)
+- Doação: DOADOR(A) e DONATÁRIO(A) — mesmo quando a doação reserva usufruto para o(a) doador(a), NÃO acrescente "E USUFRUTUÁRIO(A)" ao rótulo na abertura/qualificação inicial; a condição de usufrutuário(a) é tratada só na cláusula própria da reserva de usufruto, não na qualificação das partes
 - Procuração: OUTORGANTE e OUTORGADO(A)
 - Inventário: INVENTARIANTE, HERDEIRO(A), MEEIRO(A), VIÚVO(A) MEEIRO(A)
 - Divórcio: PRIMEIRO(A) DIVORCIANDO(A) e SEGUNDO(A) DIVORCIANDO(A)
@@ -199,10 +207,23 @@ NOMENCLATURA DAS PARTES (use sempre a nomenclatura correta para o ato):
 - Anuência conjugal: ANUENTE
 - Advogado presente: ADVOGADO(A) — identificar com número da OAB
 
+REGRA ABSOLUTA — QUALIFICAÇÃO DE PESSOA CASADA (ordem fixa, nunca inverta):
+Ao qualificar uma parte casada, siga SEMPRE esta ordem, sem pular nenhum item e sem intercalar os dados do cônjuge no meio dos dados da própria parte:
+1. Nome da PRÓPRIA parte, nacionalidade, profissão (se não informada em documento nenhum, escreva ______ — NUNCA omita o campo em silêncio, só porque não sabe)
+2. Documento da PRÓPRIA parte (RG e/ou CNH, e CPF) — sempre completo ANTES de mencionar o cônjuge
+3. "casado(a) com [nome do cônjuge]", nacionalidade do cônjuge, profissão do cônjuge (ou ______)
+4. Documento do CÔNJUGE (RG e/ou CNH, e CPF)
+5. "casados sob o regime de [regime de bens]" — e, OBRIGATORIAMENTE, se o casamento ocorreu "antes da vigência" ou "na vigência da Lei nº 6.515/77" (isso vale para TODO casal do ato, não só o principal — releia cada casamento mencionado na minuta e confirme que todos têm essa informação)
+6. Endereço (residência e domicílio)
+Um erro comum e grave é escrever os dados do CÔNJUGE antes de terminar de qualificar a própria parte (ex: citar o RG do cônjuge, depois "casados sob o regime de...", e só DEPOIS voltar para o RG da própria parte) — isso deixa a qualificação ambígua sobre a quem pertence cada documento. NUNCA faça isso: sempre feche completamente os dados da parte 1 (passos 1-2) antes de abrir os dados do cônjuge (passos 3-4).
+
 FORMATAÇÃO DA MINUTA:
 - Fonte e espaçamento serão aplicados automaticamente pelo sistema (Tahoma 12, espaçamento 1,15, texto justificado)
-- Use **negrito** SOMENTE para: título da escritura, nomes das partes, matrícula, número de guia de tributo
+- Use **negrito** para: título da escritura, nomes das partes, matrícula, número de guia de tributo, e também:
+  - o número/letra que identifica capítulo, cláusula, inciso ou parágrafo (ex: "**Cláusula 1ª**", "**§ 2º**", "**Capítulo I**") — SEM EXCEÇÃO
+  - na descrição do imóvel: a referência ao próprio imóvel (ex: "**apartamento nº 1301**"), a matrícula, o número do contribuinte (cadastro municipal/IPTU) e o valor da transação — SEM EXCEÇÃO, toda vez que aparecerem
 - PROIBIDO negrito em: CNPJ, nome do banco, agência, conta corrente, emolumentos, e qualquer texto do parágrafo final de pagamento
+- REGRA CRÍTICA DE NEGRITO: cada par de asteriscos duplos que abre um negrito precisa fechar com outro par de asteriscos duplos na MESMA linha/parágrafo, sem exceção — nunca abra um negrito numa linha pretendendo fechá-lo só numa linha seguinte. Um negrito com o fechamento faltando faz os asteriscos aparecerem soltos e visíveis no documento final. Se, ao terminar de escrever uma linha, você não tiver certeza se todo negrito que abriu nela também fechou nela, releia a linha e corrija antes de seguir
 - Na seção ARQUIVAMENTO: negrito SOMENTE na palavra "controle" e no valor/número que vem logo depois (______). Todo o restante dessa seção sem negrito
 - NÃO deixe linhas em branco entre os parágrafos — o texto deve fluir contínuo
 - Use # para o título principal (centralizado) e ## para seções e cláusulas
@@ -224,6 +245,7 @@ Se algum documento fornecido tiver cabeçalho começando com "MODELO DE MINUTA (
 REGRAS DE FIDELIDADE — válidas para QUALQUER modelo de referência, manual ou aprendido:
 - MANTENHA O MESMO NÍVEL DE DETALHE E ABRANGÊNCIA do modelo — se o modelo tiver uma lista extensa e detalhada de poderes/cláusulas (ex: nomes de bancos específicos, órgãos públicos nomeados, poderes judiciais completos), a minuta nova deve ter uma lista igualmente extensa e detalhada, adaptada ao caso atual. NÃO resuma ou condense cláusulas do modelo em itens genéricos — reproduza a mesma quantidade e riqueza de detalhes, apenas trocando os dados específicos pelos do caso atual (ou removendo o item, se genuinamente não se aplicar)
 - REGRA DE CONCLUSÃO — NÃO PARE CEDO: antes de considerar a minuta finalizada, verifique mentalmente se você já escreveu uma cláusula ou seção correspondente a CADA cláusula/seção que existe no modelo (mesma numeração, mesmos títulos de cláusula, mesmo número aproximado de itens). Se o modelo tem cláusulas 1 a 13, ou subcláusulas 6.1 a 6.10, sua minuta também precisa chegar até lá — NÃO termine no meio (ex: só até a cláusula 6.5) só porque o texto já "parece" completo. Um documento de referência longo e detalhado exige uma minuta igualmente longa e detalhada. Só finalize (com encerramento e assinaturas) depois de cobrir TODO o conteúdo equivalente ao modelo.
+- SIGA O MODELO COMO CRITÉRIO PADRÃO, não como uma entre várias opções válidas: enquanto você não tiver autonomia total para redigir minutas do zero com segurança, o modelo (manual ou aprendido automaticamente) é a referência que prevalece sobre seu próprio estilo — não troque a estrutura, a ordem das cláusulas ou o jeito de escrever do modelo por uma versão "sua" só porque parece igualmente válida.
 
 REGRA ABSOLUTA — MINUTA ATUAL (documento já pronto sendo atualizado, NÃO é um modelo de estilo):
 Se algum documento fornecido tiver cabeçalho começando com "MINUTA ATUAL", esse texto é a MINUTA JÁ PRONTA E FINALIZADA deste mesmo caso — não é uma referência de outro caso. As regras de MODELO DE MINUTA acima (não copiar dados específicos, pode omitir cláusula que não se aplica) NÃO valem aqui — são o oposto do que fazer.
@@ -234,6 +256,45 @@ Se algum documento fornecido tiver cabeçalho começando com "MINUTA ATUAL", ess
 
 REGRA ABSOLUTA — ATOS SECUNDÁRIOS (lavrados na MESMA escritura, não são um documento à parte):
 Quando o caso trouxer "ATOS SECUNDÁRIOS LAVRADOS NA MESMA ESCRITURA", cada um deles precisa virar uma cláusula própria dentro desta MESMA minuta — não é uma escritura separada, é o mesmo instrumento cobrindo mais de um ato (ex: uma Escritura de Compra e Venda que também tem Confissão de Dívida do saldo, ou uma Doação com Usufruto reservado). Identifique os dados de cada ato secundário nos documentos e observações do caso, do mesmo jeito que faria para o ato principal — campo que não aparecer em documento nenhum: ______.
+
+REGRA ABSOLUTA — VALIDADE DAS CERTIDÕES (conferir sempre, avisar sempre):
+Hoje é {{DATA_HOJE}}. Para CADA documento anexado que seja uma certidão (negativa, positiva, distribuidor, ônus/matrícula, ITBI, IPTU, trabalhista, cível, criminal, protesto, vigência de procuração, ou qualquer outra), identifique:
+- TIPO: "procuração" (certidão que comprova vigência/validade de uma procuração usada no ato), "matrícula" (certidão de matrícula/ônus reais do imóvel), ou "outra" (qualquer outra certidão).
+- DATA DE EMISSÃO: a data que consta no próprio documento (se não encontrar, use "NÃO IDENTIFICADA").
+- VALIDADE: para tipo "procuração", SEMPRE 90 dias corridos da emissão. Para tipo "matrícula", SEMPRE 30 dias corridos da emissão. Para tipo "outra", use o prazo de validade que o PRÓPRIO documento declarar (procure frases como "válida por", "válida até", "prazo de validade"); se o documento não declarar prazo nenhum, use "sem prazo declarado".
+- STATUS: compare a data de vencimento calculada com {{DATA_HOJE}} e classifique como VENCIDA, VÁLIDA, ou INDETERMINADA (quando não for possível calcular — data de emissão não identificada, ou tipo "outra" sem prazo declarado).
+Para cada certidão encontrada, emita UMA LINHA com o marcador abaixo, em qualquer ponto do texto (essas linhas nunca aparecem no corpo da minuta — são extraídas à parte):
+【CERTIDÃO: nome do documento | tipo: procuração/matrícula/outra | emitida: DD/MM/AAAA ou NÃO IDENTIFICADA | validade: 90 dias corridos / 30 dias corridos / conforme documento (X dias) / sem prazo declarado | vence em: DD/MM/AAAA ou NÃO CALCULÁVEL | status: VENCIDA/VÁLIDA/INDETERMINADA】
+Isso é OBRIGATÓRIO para toda certidão encontrada — nunca pule esse marcador, mesmo quando o status for VÁLIDA.
+
+No CORPO da minuta (nas cláusulas que mencionam as certidões apresentadas):
+- Para certidões do tipo "procuração" e "matrícula": mencione apenas que está **devidamente atualizada** — NUNCA escreva a data de emissão, o prazo ou a data de vencimento dessas duas no corpo do texto.
+- Para as demais certidões ("outra"): depende do STATUS calculado acima.
+  - STATUS VÁLIDA: entra normalmente, com os dados reais dela (data de emissão, número, validade quando fizer parte da qualificação usual da certidão) — é uma certidão em dia, não há necessidade de deixar nada em branco.
+  - STATUS VENCIDA ou INDETERMINADA: deixe o campo da validade/data de emissão em branco (______) no corpo da minuta, mesmo que o documento atual informe uma data — esse espaço é preenchido à mão quando a nova certidão for obtida antes da lavratura (uma certidão vencida, ou que não deu pra confirmar se está vencida, não pode entrar na minuta como se estivesse em dia).
+
+REGRA ABSOLUTA — DESCRIÇÃO DO IMÓVEL (cópia literal e COMPLETA, NUNCA parafraseada nem resumida):
+A descrição do imóvel — localização, torre/bloco/pavimento, área privativa, área de uso comum, área real total, fração ideal e TODAS as referências de registro que o documento trouxer — vem SEMPRE copiada PALAVRA POR PALAVRA do documento que a traz, na mesma ordem, com os mesmos termos e SEM CORTAR NENHUMA PARTE (ex: se o documento diz "área privativa principal e total", não vire "área privativa"). NUNCA reescreva, reordene, resuma, encurte ou "melhore" essa descrição, e NUNCA misture frases de documentos diferentes numa versão própria sua.
+NUNCA COMPRIMA VÁRIAS REFERÊNCIAS DE REGISTRO NUMA SÓ: um imóvel em condomínio costuma ter mais de uma referência de registro na sua descrição — a matrícula do terreno original, o número de registro da instituição e especificação do condomínio, o número de registro da convenção de condomínio (e o livro, quando for "auxiliar" ou outro), além da matrícula individualizada da unidade. Se o documento-fonte trouxer VÁRIAS dessas referências encadeadas (ex: "...no terreno descrito na matrícula nº X, na qual sob nº Y foi registrada a instituição e especificação do condomínio, tendo sido a convenção registrada sob nº Z no Livro nº W — auxiliar do [cartório], tudo descrito de conformidade com a matrícula nº V..."), copie TODAS elas, na ordem em que aparecem — jamais substitua essa cadeia inteira por só "(matrícula nº V)". Reduzir uma descrição de imóvel a uma única referência entre parênteses, quando o documento-fonte trouxer mais do que isso, é o mesmo erro que reescrever a descrição com outras palavras.
+Quando o caso trouxer mais de um documento com descrição do imóvel (ex: a matrícula da instituição do condomínio e a matrícula já individualizada da unidade), use a descrição do documento mais específico para aquela unidade — mas copiada por inteiro, exatamente como está nele, nunca reescrita ou resumida.
+CONFERÊNCIA OBRIGATÓRIA ANTES DE FINALIZAR: depois de escrever a descrição do imóvel na minuta, releia-a comparando palavra por palavra com o trecho correspondente do documento-fonte. Se qualquer palavra, número, ordem, pontuação, ou REFERÊNCIA DE REGISTRO estiver faltando ou diferente do original — mesmo que pareça "mais bem escrito" ou "mais enxuto" — REESCREVA a descrição na minuta até ficar idêntica e completa em relação ao documento-fonte. Isso vale para toda a descrição, do início ao fim, não só para os números.
+
+REGRA ABSOLUTA — DATA DE NASCIMENTO (só nos atos que realmente exigem):
+Ao qualificar pessoa física, NÃO inclua a data de nascimento — EXCETO nos seguintes tipos de ato, onde ela é obrigatória: Inventário, Divórcio, União Estável e Pacto Antenupcial. Em qualquer outro tipo de ato (Compra e Venda, Doação, Procuração, Cessão de Direitos, Renúncia, Dação em Pagamento, Testamento, Ata Notarial, etc.), mesmo que a data de nascimento apareça nos documentos fornecidos, NÃO a escreva na qualificação — não é campo desta minuta.
+
+REGRA ABSOLUTA — CONTRIBUINTE E VALOR VENAL DE REFERÊNCIA (usar o dado individualizado, e proporcional à fração negociada):
+A matrícula do imóvel às vezes descreve o contribuinte/cadastro municipal referente a uma área maior (ex: o terreno todo, antes do desmembramento ou da instituição do condomínio) — isso NÃO significa que não exista um cadastro já individualizado para a unidade específica deste ato.
+- Antes de usar o contribuinte/valor venal de referência que está na matrícula, verifique se algum OUTRO documento anexado ao caso (guia de IPTU, negativa de IPTU, ficha cadastral, cadastro imobiliário, carnê, etc.) já traz o número de contribuinte E o valor venal de referência JÁ INDIVIDUALIZADOS para esta unidade específica. Se existir, use SEMPRE o dado individualizado — nunca o da área maior da matrícula.
+- Se o valor venal de referência encontrado for do imóvel INTEIRO (100%) mas o ato transmite/inventaria apenas uma FRAÇÃO IDEAL dele (ex: metade, um terço), calcule e use o valor venal PROPORCIONAL à fração efetivamente tratada no ato — não o valor cheio. Deixe claro na minuta que o valor é proporcional à fração (ex: "correspondente a 50% (cinquenta por cento) sobre o valor venal de referência total de R$______").
+- Se nenhum documento trouxer o dado individualizado, use o da matrícula mesmo (área maior) e registre a ressalva com o marcador 【PENDÊNCIA: ...】, explicando que o contribuinte usado é o da área maior, não individualizado.
+
+REGRA ABSOLUTA — DOAÇÃO COM RESERVA DE USUFRUTO (valor do usufruto e da nua-propriedade, NUNCA em branco):
+Quando o ato for uma doação (ou outra transmissão) com RESERVA DE USUFRUTO, a cláusula do valor fiscal precisa declarar TRÊS valores, nunca só o total: o valor total do bem, o valor correspondente ao USUFRUTO e o valor correspondente à NUA-PROPRIEDADE. Use a mesma proporção já usada nos orçamentos deste cartório: o usufruto corresponde a 1/3 (um terço) do valor total, e a nua-propriedade aos 2/3 (dois terços) restantes. Calcule os dois valores a partir do valor total do imóvel (ou da fração doada, se a doação for de uma fração ideal) e escreva-os por extenso, como os demais valores da minuta — NUNCA deixe o valor do usufruto ou da nua-propriedade em branco (______) quando o valor total do bem for conhecido, pois os dois são sempre calculáveis a partir dele.
+
+REGRA ABSOLUTA — ESTADO CIVIL (fórmula fixa, não invente):
+Quando o estado civil de uma parte vier das respostas do caso (não de um documento formal), use SEMPRE a fórmula fixa abaixo para Solteiro(a), Divorciado(a) e Viúvo(a) — mesma fórmula para os três, sem resumir, sem adaptar e sem trocar por sinônimo:
+- "solteiro(a)/divorciado(a)/viúvo(a), maior e capaz, o(a) qual declara não conviver em união estável" (troque só a palavra do estado civil pela que couber)
+Casado(a) e em União Estável NÃO usam essa fórmula: seguem a regra normal de qualificação (nome do cônjuge/companheiro(a), regime de bens quando informado) e exigem verificar se há outorga uxória/anuência conjugal a colher para o ato em questão (ver as instruções por tipo de ato acima, ex: "Verificar anuência conjugal se casado" na Escritura de Compra e Venda) — campo que faltar: ______.
 
 ABERTURA DA MINUTA — escolha conforme a MODALIDADE do caso:
 
@@ -249,14 +310,20 @@ Aos ______ (______) dias do mês de ______ (______) do ano de {{ANO_EXTENSO}} ({
 ENCERRAMENTO DA MINUTA — escolha conforme a MODALIDADE do caso:
 
 Se DIGITAL ou HÍBRIDA:
-**IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ **CERTIFICAÇÃO:** Escritura assinada digitalmente com certificado digital, pela plataforma do e-Notariado, por: ______ ///______[SE HÍBRIDA: e presencialmente por ______ /// ______]. Eu, escrevente autorizada indicada no fluxo de assinaturas, a lavrei, li realizei a videoconferência e assino com meu certificado digital. Eu, Substituto Legal do Tabelião, indicado no fluxo de assinaturas, subscrevo e assino com meu certificado digital padrão ICP-Brasil, encerrando este ato. Data e horário das assinaturas digitais, bem como matrícula notarial eletrônica (MNE) constantes do manifesto impresso na última página desta. De tudo dou fé. O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
+**IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ **CERTIFICAÇÃO:** Escritura assinada digitalmente com certificado digital, pela plataforma do e-Notariado, por: **[nomes das partes que assinam ONLINE, conforme a modalidade e os documentos/observações do caso]** ///______[SE HÍBRIDA: e presencialmente por **[nomes das partes que assinam PRESENCIALMENTE]** /// ______]. Eu, escrevente autorizada indicada no fluxo de assinaturas, a lavrei, li realizei a videoconferência e assino com meu certificado digital. Eu, Substituto Legal do Tabelião, indicado no fluxo de assinaturas, subscrevo e assino com meu certificado digital padrão ICP-Brasil, encerrando este ato. Data e horário das assinaturas digitais, bem como matrícula notarial eletrônica (MNE) constantes do manifesto impresso na última página desta. De tudo dou fé. O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
 
 Se PRESENCIAL:
 **IMPOSTOS DE TRANSMISSÃO** - Que apresentam a guia de Imposto sobre Transmissão de Bens Imóveis e de direitos a eles relativos, recolhido através da guia sob nº ______ no valor de **R$______**, devidamente paga, a qual fica arquivada nestas notas; **INDISPONIBILIDADE:** CONSULTA com resultado negativo à Central de Indisponibilidade de Bens conforme código: **HASH: ______.** **DOI:** EMITIDA DOI - Declaração Sobre Operação Imobiliária, conforme Instrução Normativa da Secretaria da Receita Federal vigente. **ARQUIVAMENTO:** Todos os documentos de arquivamento obrigatório mencionados neste ato notarial ficam arquivados digitalmente, pelo prazo legal, neste **20º Tabelionato de Notas**, sob o número de controle: ______ O adquirente adimpliu com os emolumentos notariais ao final consignados, mediante transferência à conta desta Serventia **(CNPJ: 45.566.502/0001-12)** junto ao banco **Itaú S/A**, agência **0350**, c/c: **72195-7.** O adquirente dispensa expressamente este Cartório e seu Tabelião do encaminhamento desta escritura a registro, pelo que isenta-o de qualquer responsabilidade. De como assim o disseram, dou fé, a pedido das partes, lavrei esta escritura, a qual feita e lhes sendo lida em voz alta, acharam-na conforme, aceitaram, outorgaram e assinam.
 
-NOTA SOBRE O ENCERRAMENTO: Substitua "adquirente" pelo nome correto da parte principal do ato (outorgante, testador, requerente, etc.). Para atos que não envolvam transferência imobiliária (procuração, testamento, ata notarial, etc.), omita APENAS as seções IMPOSTOS DE TRANSMISSÃO e DOI. As demais seções — **INDISPONIBILIDADE**, **ARQUIVAMENTO**, **CERTIFICAÇÃO** e o parágrafo final de emolumentos — são OBRIGATÓRIAS em TODO ato, sem exceção, independentemente do tipo. NUNCA omita a frase de INDISPONIBILIDADE (consulta à Central de Indisponibilidade de Bens).
+NOTA SOBRE O ENCERRAMENTO: Substitua "adquirente" pelo nome correto da parte principal do ato (outorgante, testador, requerente, etc.). A seção **IMPOSTOS DE TRANSMISSÃO** é especificamente sobre ITBI (Imposto sobre Transmissão de Bens Imóveis) — só aparece em atos ONEROSOS de transmissão imobiliária (ex: Escritura de Compra e Venda, Permuta onerosa, Dação em Pagamento). Omita essa seção em QUALQUER ato gratuito ou que não transmita imóvel de forma onerosa — Doação, Inventário/Partilha, Procuração, Testamento, Ata Notarial, União Estável, Pacto Antenupcial, Divórcio sem partilha onerosa, etc. — mesmo quando esses atos envolverem imóvel e já tiverem o ITCMD tratado em cláusula própria: ITBI e ITCMD nunca coexistem no mesmo ato, e a seção IMPOSTOS DE TRANSMISSÃO é só sobre o ITBI. A seção **DOI** segue a mesma regra de omissão do ITBI (só aparece quando IMPOSTOS DE TRANSMISSÃO aparece). As demais seções — **INDISPONIBILIDADE**, **ARQUIVAMENTO**, **CERTIFICAÇÃO** e o parágrafo final de emolumentos — são OBRIGATÓRIAS em TODO ato, sem exceção, independentemente do tipo. NUNCA omita a frase de INDISPONIBILIDADE (consulta à Central de Indisponibilidade de Bens).
 
-A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualificação completa das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas.`;
+NA INDISPONIBILIDADE, o código HASH precisa de um espaço para CADA parte que precisa da consulta prévia à Central de Indisponibilidade de Bens (normalmente quem transmite/aliena o bem — outorgante, doador, vendedor, inventariante, etc., conforme o ato). Se houver só uma dessas partes, mantenha "código: **HASH: ______.**" no singular. Se houver mais de uma (ex: dois doadores, dois vendedores), pluralize a frase inteira e repita o campo, um por parte, separados por "///": "códigos: **HASH: ______ /// ______.**" (tantos quantos forem necessários) — nunca deixe um código só quando há mais de uma parte que precisa da consulta.
+
+NA CERTIFICAÇÃO, NUNCA deixe "______" no lugar do nome de quem assina: preencha com o nome de cada parte, no grupo correto (online ou presencial), usando a MODALIDADE do caso e as observações/documentos para saber quem assina de qual jeito — se MODALIDADE for DIGITAL, todas as partes vão no grupo online; se PRESENCIAL, todas no grupo presencial; se HÍBRIDA, distribua conforme o que constar nas observações do caso (quem assina online e quem assina presencialmente); só use ______ se, mesmo em modalidade HÍBRIDA, não houver NENHUMA indicação de quem assina em qual grupo.
+
+A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualificação completa das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas.
+
+ÚLTIMA CONFERÊNCIA ANTES DE TERMINAR — não pule isto: releia a lista de documentos anexados a este caso. Para CADA UM que for uma certidão (negativa, positiva, distribuidor, ônus/matrícula, ITBI, IPTU, trabalhista, cível, criminal, protesto, vigência de procuração, ou qualquer outra), confirme que você já emitiu o marcador 【CERTIDÃO: ...】 correspondente, conforme a REGRA ABSOLUTA — VALIDADE DAS CERTIDÕES acima. Um documento anexado que seja certidão e não tiver esse marcador é uma falha grave desta minuta — mesmo que o corpo do texto já mencione a certidão normalmente.`;
 
 // ── Ano por extenso ──────────────────────────────────────────────────────
 // A abertura da minuta trazia "dois mil e vinte e seis (2026)" escrito à mão
@@ -277,10 +344,21 @@ function anoPorExtenso(ano) {
   var unidade = resto % 10;
   return "dois mil e " + DEZENAS[dezena] + (unidade ? " e " + UNIDADES[unidade] : "");
 }
+// {{DATA_HOJE}} é sempre o dia real em que a minuta está sendo gerada (não
+// depende do `ano` do caso, que é só o ano da abertura) — é o que a REGRA
+// ABSOLUTA — VALIDADE DAS CERTIDÕES usa para calcular se uma certidão já
+// venceu.
+function dataHojeFormatada() {
+  var hoje = new Date();
+  var dia = ("0" + hoje.getDate()).slice(-2);
+  var mes = ("0" + (hoje.getMonth() + 1)).slice(-2);
+  return dia + "/" + mes + "/" + hoje.getFullYear();
+}
 function montarSystemPrompt(ano) {
   return SYSTEM_PROMPT
     .split("{{ANO_EXTENSO}}").join(anoPorExtenso(ano))
-    .split("{{ANO}}").join(String(ano));
+    .split("{{ANO}}").join(String(ano))
+    .split("{{DATA_HOJE}}").join(dataHojeFormatada());
 }
 
 // ── Funções auxiliares ─────────────────────────────────────────────────────
@@ -426,32 +504,70 @@ function marcarModelo(dados) {
   }
 }
 
+// Heurística simples, só pelo NOME do documento anexado — usada apenas como
+// rede de segurança (ver finalizarGeracaoMinuta) para avisar quando a IA não
+// emitiu marcador de certidão nenhum, mas claramente havia certidão no caso.
+var PALAVRAS_CERTIDAO = ["certid", "cnd", "cndt", "iptu", "distribuidor", "onus", "ônus", "protesto", "matricula", "matrícula", "procuracao", "procuração", "dau", "itbi"];
+function documentosParecemTerCertidao(documentosTexto) {
+  var texto = String(documentosTexto || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  var regexNome = /=== documento: ([^=]*?) ===/g;
+  var m;
+  while ((m = regexNome.exec(texto)) !== null) {
+    var nome = m[1];
+    if (PALAVRAS_CERTIDAO.some(function (p) { return nome.indexOf(p.normalize("NFD").replace(/[̀-ͯ]/g, "")) !== -1; })) return true;
+  }
+  return false;
+}
+
+// Um marcador 【CERTIDÃO: nome | tipo: ... | emitida: ... | validade: ... |
+// vence em: ... | status: ...】 vira este objeto. Campo que a IA não incluiu
+// (ou escreveu fora do formato) fica com string vazia — nunca derruba o
+// parse dos outros marcadores da mesma minuta.
+function parsearMarcadorCertidao(conteudo) {
+  var partes = conteudo.split("|").map(function (p) { return p.trim(); });
+  if (!partes.length || !partes[0]) return null;
+  var campo = function (prefixo) {
+    var achado = partes.find(function (p) { return p.toLowerCase().indexOf(prefixo.toLowerCase()) === 0; });
+    return achado ? achado.slice(prefixo.length).trim() : "";
+  };
+  return {
+    nome: partes[0],
+    tipo: (campo("tipo:") || "outra").toLowerCase(),
+    emitida: campo("emitida:"),
+    validade: campo("validade:"),
+    venceEm: campo("vence em:"),
+    status: (campo("status:") || "INDETERMINADA").toUpperCase()
+  };
+}
+
 function parsearResposta(texto) {
   var comentarios = [];
-  var INICIO = "【PENDÊNCIA: ";
-  var FIM = "】";
-  var pos = 0;
+  var certidoes = [];
   var num = 1;
+  var ABRE = "【";
+  var FECHA = "】";
 
-  while (true) {
-    var s = texto.indexOf(INICIO, pos);
-    if (s === -1) break;
-    var e = texto.indexOf(FIM, s);
-    if (e === -1) break;
-    comentarios.push("Pendencia " + num + ": " + texto.slice(s + INICIO.length, e).trim());
-    num++;
-    pos = e + 1;
-  }
-
+  // Um único passe: todo marcador 【...】 é retirado do corpo (nenhum dos dois
+  // tipos pode sobrar na minuta). 【PENDÊNCIA: ...】 vira comentário de revisão
+  // no Doc; 【CERTIDÃO: ...】 vira o dado que alimenta o alerta de validade no
+  // painel (ver REGRA ABSOLUTA — VALIDADE DAS CERTIDÕES no SYSTEM_PROMPT).
   var minuta = "";
-  pos = 0;
+  var pos = 0;
   while (true) {
-    var s2 = texto.indexOf(INICIO, pos);
-    if (s2 === -1) { minuta += texto.slice(pos); break; }
-    var e2 = texto.indexOf(FIM, s2);
-    if (e2 === -1) { minuta += texto.slice(pos); break; }
-    minuta += texto.slice(pos, s2);
-    pos = e2 + 1;
+    var s = texto.indexOf(ABRE, pos);
+    if (s === -1) { minuta += texto.slice(pos); break; }
+    var e = texto.indexOf(FECHA, s);
+    if (e === -1) { minuta += texto.slice(pos); break; }
+    minuta += texto.slice(pos, s);
+    var conteudo = texto.slice(s + ABRE.length, e).trim();
+    if (conteudo.indexOf("PENDÊNCIA:") === 0) {
+      comentarios.push("Pendencia " + num + ": " + conteudo.slice("PENDÊNCIA:".length).trim());
+      num++;
+    } else if (conteudo.indexOf("CERTIDÃO:") === 0) {
+      var certidao = parsearMarcadorCertidao(conteudo.slice("CERTIDÃO:".length).trim());
+      if (certidao) certidoes.push(certidao);
+    }
+    pos = e + FECHA.length;
   }
 
   // Corta apenas se uma LINHA INTEIRA for um título de seção proibido (ex: "## ANÁLISE
@@ -475,16 +591,22 @@ function parsearResposta(texto) {
   if (idxCorte !== -1) minuta = minuta.slice(0, idxCorte);
 
   minuta = minuta.replace(/\n\n\n+/g, "\n\n").trim();
-  return { minuta: minuta, comentarios: comentarios };
+  return { minuta: minuta, comentarios: comentarios, certidoes: certidoes };
 }
 
 function chamarClaudeRaw(mensagem, ano) {
   var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada. Vá em Projeto > Propriedades do script e adicione a chave.");
 
+  // 8000 fazia qualquer minuta um pouco mais longa parar no meio e precisar
+  // de outro pedaço — e cada pedaço custa uma volta inteira pelo Firebase e
+  // pelo gatilho (ver agendarContinuacaoMinuta/continuarGeracaoMinuta), não
+  // só o tempo da IA escrevendo. 16000 é o mesmo teto que api/aliquota-
+  // municipal.js já usa com este mesmo modelo, sem cabeçalho especial: menos
+  // pedaços, mesmo texto, mesma IA — só menos idas e vindas.
   var payload = {
     model: "claude-sonnet-4-6",
-    max_tokens: 8000,
+    max_tokens: 16000,
     system: montarSystemPrompt(ano || new Date().getFullYear()),
     messages: [{ role: "user", content: mensagem }]
   };
@@ -536,26 +658,76 @@ function precisouTruncarGeracao(rodadas, maxPedacos, aindaPrecisaContinuar) {
   return rodadas >= maxPedacos && !!aindaPrecisaContinuar;
 }
 
-// Gera a minuta em pedaços, continuando automaticamente de onde parou até terminar
-// de verdade (ou até um limite de segurança). Isso permite minutas bem mais longas
-// (50+ páginas) sem depender de acertar de antemão um tamanho máximo de resposta —
-// cada pedaço é rápido (uma chamada à IA), e só continua se realmente precisar.
-function gerarMinutaCompleta(mensagemBase, ano) {
-  var MAX_PEDACOS = 6;
-  // Quando há um modelo de referência (manual ou aprendido automaticamente) OU uma
-  // MINUTA ATUAL sendo seguida à risca, a IA tende a "achar" que terminou cedo demais
-  // (parar em ~1/3 do conteúdo). Por isso, forçamos pelo menos uma rodada extra de
-  // autoverificação de cobertura, mesmo que a IA não tenha batido no limite de
-  // tamanho — ela precisa confirmar explicitamente que terminou.
-  var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1 || mensagemBase.indexOf("MINUTA ATUAL") !== -1;
-  var textoCompleto = "";
-  var rodadas = 0;
-  var precisaContinuar = false;
-  for (var i = 0; i < MAX_PEDACOS; i++) {
-    var mensagem = mensagemBase;
-    if (i > 0) {
-      var trechoFinal = textoCompleto.slice(-1500);
-      mensagem = mensagemBase +
+// A minuta é gerada em pedaços (até 6 rodadas de IA), mas cada rodada agora
+// roda numa EXECUÇÃO PRÓPRIA do Apps Script, não dentro de um loop na mesma
+// chamada. Motivo: o Apps Script tem um teto de 6 minutos por execução, e um
+// caso grande (documentos longos, minuta extensa) pode precisar de mais
+// tempo que isso somando as rodadas — foi o que travou a minuta da RL Fátima
+// em 09/09/2026, com "Tempo esgotado aguardando geração da minuta".
+//
+// UrlFetchApp não serve para disparar a próxima rodada sem esperar: ele é
+// SEMPRE síncrono no Apps Script (ao contrário do https do Node, usado em
+// iniciar-minuta.js, que pode resolver assim que os dados saem, sem esperar
+// a resposta) — chamar a rodada seguinte por HTTP manteria a chamada de fora
+// travada até a de dentro terminar, e o relógio da rodada 1 continuaria
+// correndo enquanto espera. O jeito certo de "terminar aqui e continuar
+// depois, sem ninguém esperando" é um gatilho de tempo (ScriptApp): agenda
+// uma função pra rodar daqui a pouco, como uma execução nova e independente,
+// com seu próprio teto de 6 minutos, e a chamada atual pode terminar.
+//
+// Gatilho de tempo não aceita parâmetro nenhum — só chama a função pelo
+// nome. O estado da geração (o que já foi escrito, quantas rodadas, etc.)
+// PRECISA ir pro Firebase, não pras Propriedades do script: uma minuta em
+// andamento facilmente passa dos ~9KB por valor que o PropertiesService
+// aceita (é o texto de uma escritura inteira, às vezes de dezenas de
+// páginas). As Propriedades guardam só uma migalha — o jobId, indexado pelo
+// id único do gatilho (event.triggerUid) — o suficiente pra saber qual
+// registro buscar no Firebase, mesmo com duas minutas sendo geradas ao
+// mesmo tempo.
+var GERACAO_MAX_PEDACOS = 6;
+
+function agendarContinuacaoMinuta(jobId, estado) {
+  UrlFetchApp.fetch(FIREBASE_URL + "/geracao-estado/" + jobId + ".json", {
+    method: "put",
+    contentType: "application/json",
+    payload: JSON.stringify(estado),
+    muteHttpExceptions: true
+  });
+  var trigger = ScriptApp.newTrigger("continuarGeracaoMinuta").timeBased().after(2000).create();
+  PropertiesService.getScriptProperties().setProperty("cont_" + trigger.getUniqueId(), jobId);
+}
+
+// Chamada pelo gatilho de tempo. Lê o jobId pelo triggerUid do evento (não
+// por parâmetro — gatilho de tempo não aceita nenhum), busca o estado de
+// verdade no Firebase e limpa os dois rastros: a propriedade (pequena) e o
+// registro no Firebase (que pode ser grande) — um gatilho só serve pra uma
+// rodada, nunca é reaproveitado, e um estado velho parado no Firebase não
+// serve pra nada.
+function continuarGeracaoMinuta(e) {
+  var props = PropertiesService.getScriptProperties();
+  var chave = "cont_" + (e && e.triggerUid);
+  var jobId = props.getProperty(chave);
+  if (!jobId) return; // gatilho órfão (propriedade já consumida, ou evento sem triggerUid) — nada a fazer
+  props.deleteProperty(chave);
+  var url = FIREBASE_URL + "/geracao-estado/" + jobId + ".json";
+  var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  var estado = JSON.parse(response.getContentText());
+  UrlFetchApp.fetch(url, { method: "delete", muteHttpExceptions: true });
+  if (!estado) return; // estado sumiu (não devia acontecer) — sem ele não tem como continuar
+  processarRodadaMinuta(jobId, estado);
+}
+
+// Uma única rodada: monta a mensagem (com o trecho já escrito, se for
+// continuação), chama a IA uma vez, e decide entre agendar a próxima rodada
+// ou finalizar. Nunca faz duas chamadas à IA na mesma execução — é isso que
+// mantém cada execução bem abaixo do teto de 6 minutos, mesmo num caso que
+// precise das 6 rodadas inteiras.
+function processarRodadaMinuta(jobId, estado) {
+  try {
+    var mensagem = estado.mensagemBase;
+    if (estado.rodadas > 0) {
+      var trechoFinal = estado.textoAcumulado.slice(-1500);
+      mensagem = estado.mensagemBase +
         "\n\n---\nATENÇÃO: você já escreveu o trecho abaixo desta MESMA minuta (isto é uma continuação, não um novo pedido). " +
         "NÃO repita esse trecho — continue EXATAMENTE de onde ele parou, mantendo a mesma formatação, numeração de cláusulas e estilo. " +
         "Antes de considerar concluído, confira se já cobriu TODAS as cláusulas/seções equivalentes às do modelo de referência (mesma numeração e escopo). " +
@@ -563,25 +735,103 @@ function gerarMinutaCompleta(mensagemBase, ano) {
         "Caso contrário, continue escrevendo o restante.\n\n" +
         "TRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI (ou responda CONCLUIDO se já estiver completo):";
     }
-    var res = chamarClaudeRaw(mensagem, ano);
-    rodadas++;
-    var textoNovo = res.texto;
-    if (respostaIndicaConclusao(textoNovo)) { precisaContinuar = false; break; }
 
-    textoCompleto = unirTextoMinuta(textoCompleto, textoNovo);
-
-    precisaContinuar = res.pararPorTamanho; // bateu no limite de tamanho, com certeza precisa continuar
-    if (!precisaContinuar && temModelo && i === 0) {
-      precisaContinuar = true; // primeira rodada com modelo: sempre confirma cobertura antes de aceitar
+    var res = chamarClaudeRaw(mensagem, estado.ano);
+    estado.rodadas++;
+    var precisaContinuar = false;
+    if (respostaIndicaConclusao(res.texto)) {
+      precisaContinuar = false;
+    } else {
+      estado.textoAcumulado = unirTextoMinuta(estado.textoAcumulado, res.texto);
+      precisaContinuar = res.pararPorTamanho; // bateu no limite de tamanho, com certeza precisa continuar
+      if (!precisaContinuar && estado.temModelo && estado.rodadas === 1) {
+        precisaContinuar = true; // primeira rodada com modelo: sempre confirma cobertura antes de aceitar
+      }
     }
-    if (!precisaContinuar) break;
+
+    if (precisaContinuar && estado.rodadas < GERACAO_MAX_PEDACOS) {
+      agendarContinuacaoMinuta(jobId, estado);
+      return;
+    }
+
+    finalizarGeracaoMinuta(jobId, estado, precisouTruncarGeracao(estado.rodadas, GERACAO_MAX_PEDACOS, precisaContinuar));
+  } catch (err) {
+    if (jobId) salvarJobFirebase(jobId, { status: "done", ok: false, erro: err.message });
+    if (estado.notificarWhatsApp) {
+      enviarWhatsApp("⚠️ Não consegui gerar a minuta de " + (estado.nome || "caso") + " agora: " + err.message + ". Tente pedir de novo.");
+    }
   }
-  return {
-    texto: textoCompleto,
-    rodadas: rodadas,
-    temModelo: temModelo,
-    truncada: precisouTruncarGeracao(rodadas, MAX_PEDACOS, precisaContinuar)
-  };
+}
+
+// Depois da última rodada (concluiu, ou esgotou as 6): cria o documento,
+// audita, avisa — mesma cauda que gerarECriarMinuta sempre teve, só que
+// agora chamada de dentro de processarRodadaMinuta em vez de no fim de um
+// loop na mesma execução.
+function finalizarGeracaoMinuta(jobId, estado, truncada) {
+  var parsed = parsearResposta(estado.textoAcumulado);
+  var conferencia = conferirMinuta(parsed.minuta, estado.mod);
+
+  var docResult = _criarMinutaDocInterno({
+    nome: estado.nome,
+    tipo: estado.tipo,
+    minuta: parsed.minuta,
+    comentarios: parsed.comentarios
+  });
+
+  // Nada aqui sai calado: minuta truncada na 6ª rodada, seção obrigatória de
+  // encerramento faltando, abertura incompatível com a modalidade ou
+  // documento que a IA não leu — tudo vira aviso, nunca um "✅ sucesso" liso.
+  var avisos = conferencia.avisos.slice();
+  if (estado.avisosDocumentos) avisos.push("Documento(s) que a IA pode não ter lido por completo: " + estado.avisosDocumentos);
+  // Rede de segurança: o marcador 【CERTIDÃO: ...】 depende da IA lembrar de
+  // emiti-lo (ver REGRA ABSOLUTA — VALIDADE DAS CERTIDÕES). Se ela não emitiu
+  // nenhum, mas o nome de algum documento anexado tem cara de certidão, o
+  // painel avisa mesmo assim — silêncio total é pior que um aviso genérico.
+  if (parsed.certidoes.length === 0 && documentosParecemTerCertidao(estado.documentosTexto)) {
+    avisos.push("A IA não identificou nenhuma certidão automaticamente neste caso, mas há documento(s) anexado(s) com nome de certidão — confira manualmente a validade de cada uma antes de lavrar.");
+  }
+
+  if (jobId) {
+    salvarJobFirebase(jobId, {
+      status: "done",
+      ok: true,
+      truncada: truncada,
+      avisos: avisos,
+      docUrl: docResult.url,
+      folderUrl: docResult.folderUrl,
+      docNome: docResult.nome,
+      diagRodadas: estado.rodadas,
+      diagTemModelo: estado.temModelo,
+      diagBrancos: conferencia.brancos,
+      certidoes: parsed.certidoes
+    });
+  }
+
+  if (estado.casoId) {
+    // Auditoria: uma chamada SEPARADA da que gerou a minuta, depois do
+    // documento já pronto e do job já marcado como pronto acima — o painel
+    // já liberou a tela nesse instante, então isto roda fora do caminho
+    // crítico. Nunca reescreve a minuta, só confere e aponta.
+    var achadosAuditoria = auditarMinuta(parsed.minuta, estado.documentosTexto);
+    var patchCaso = { driveUrl: docResult.folderUrl, docUrl: docResult.url };
+    if (achadosAuditoria !== null) {
+      patchCaso.auditoria = { achados: achadosAuditoria, atualizado: new Date().toISOString() };
+    }
+    UrlFetchApp.fetch(FIREBASE_URL + "/casos/" + estado.casoId + ".json", {
+      method: "patch",
+      contentType: "application/json",
+      payload: JSON.stringify(patchCaso),
+      muteHttpExceptions: true
+    });
+  }
+  if (estado.notificarWhatsApp) {
+    if (truncada || avisos.length) {
+      var motivos = truncada ? ["a geração pode ter parado antes do fim (limite de rodadas)"].concat(avisos) : avisos;
+      enviarWhatsApp("⚠️ Minuta de " + (estado.nome || "caso") + " gerada, mas com ressalva — confira antes de usar: " + motivos.join(" | ") + ". " + docResult.url);
+    } else {
+      enviarWhatsApp("✅ Minuta de " + (estado.nome || "caso") + " pronta! " + docResult.url);
+    }
+  }
 }
 
 // Conferência da minuta gerada — uma segunda camada de detecção de corte,
@@ -697,6 +947,105 @@ function auditarMinuta(minutaTexto, documentosTexto) {
   }
 }
 
+// ── Extração de texto de arquivo grande (job assíncrono) ───────────────────
+// O painel manda PDF/imagem grande — ou com muitas páginas — direto pra cá,
+// não pela Vercel: a Vercel tem um teto fixo de 60s por chamada (plano
+// Hobby) e ~4,5MB no corpo da requisição, e um documento de muitas páginas
+// passa dos dois (foi o que aconteceu em produção em 08/09/2026 com a "3ª
+// Alteração Contratual" e outros anexos — HTTP 504, servidor "recusando"
+// arquivos que já cabiam no limite de tamanho). O Apps Script roda até 6
+// minutos por chamada e aceita corpos bem maiores, então lê do mesmo jeito
+// (mesmo prompt, mesmas passadas de continuação de api/extrair-texto-
+// arquivo.js) sem esbarrar em nenhum dos dois tetos. Devolve pelo Firebase
+// (job), nunca pela resposta HTTP — o painel não fica esperando a chamada
+// terminar, o mesmo padrão de gerarECriarMinuta acima.
+var EXTRACAO_ARQUIVO_MAX_TOKENS = 8000;
+var EXTRACAO_ARQUIVO_MAX_PASSADAS = 4;
+
+function chamarClaudeArquivoRaw(content) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada.");
+  var payload = {
+    model: "claude-sonnet-4-6",
+    max_tokens: EXTRACAO_ARQUIVO_MAX_TOKENS,
+    messages: [{ role: "user", content: content }]
+  };
+  var response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
+    method: "post",
+    contentType: "application/json",
+    headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  var data = JSON.parse(response.getContentText());
+  if (data.error) throw new Error("Erro Claude API: " + (data.error.message || JSON.stringify(data.error)));
+  return {
+    texto: (data.content && data.content[0] && data.content[0].text) || null,
+    truncou: data.stop_reason === "max_tokens"
+  };
+}
+
+function instrucaoContinuarExtracaoArquivo(trechoFinal) {
+  return "Você já extraiu/transcreveu o trecho abaixo a partir deste MESMO documento (é a mesma extração continuando — não é um novo pedido, e não repita os campos TIPO_DOCUMENTO/NOME_PESSOA já identificados no início, se houver). NÃO repita esse trecho — continue EXATAMENTE de onde ele parou, sem reintroduções.\n\nTRECHO JÁ ESCRITO (final dele):\n..." + trechoFinal + "\n\nCONTINUE A PARTIR DAQUI:";
+}
+
+function unirTextoExtracaoArquivo(a, b) {
+  if (!a) return b || "";
+  if (!b) return a;
+  var precisaEspaco = !/\s/.test(a.slice(-1)) && !/\s/.test(b.slice(0, 1));
+  return a + (precisaEspaco ? " " : "") + b;
+}
+
+// Mesma ideia de extrairComContinuacao em api/extrair-texto-arquivo.js:
+// chama de novo enquanto bater no teto de tokens, até completar ou esgotar
+// EXTRACAO_ARQUIVO_MAX_PASSADAS (nesse caso raro, truncou continua true).
+function extrairArquivoComContinuacao(montarConteudo) {
+  var texto = "";
+  var truncou = false;
+  for (var i = 0; i < EXTRACAO_ARQUIVO_MAX_PASSADAS; i++) {
+    var r = chamarClaudeArquivoRaw(montarConteudo(i, texto));
+    if (!r.texto) break;
+    texto = unirTextoExtracaoArquivo(texto, r.texto);
+    truncou = r.truncou;
+    if (!truncou) break;
+  }
+  return { texto: texto || null, truncou: truncou };
+}
+
+function extrairTextoArquivoJob(dados) {
+  var jobId = dados.jobId;
+  try {
+    var base64 = dados.base64 || "";
+    var mimetype = dados.mimetype || "application/pdf";
+    var preservarIntegral = !!dados.preservarIntegral;
+    if (!base64) throw new Error("Arquivo vazio");
+
+    var blocoArquivo = mimetype === "application/pdf"
+      ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
+      : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
+    var instrucaoInicial = preservarIntegral
+      ? "Este documento é uma escritura ou ato notarial já pronto. Transcreva o texto completo do documento, na íntegra, sem resumir, sem comentar e sem omitir nenhuma parte. Apenas o texto puro da minuta."
+      : "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Depois, numa nova linha, transcreva com fidelidade as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Não resuma nem selecione o que parece mais relevante — transcreva tudo que encontrar.";
+
+    var resultado = extrairArquivoComContinuacao(function (pass, textoAteAqui) {
+      return [
+        blocoArquivo,
+        { type: "text", text: pass === 0 ? instrucaoInicial : instrucaoContinuarExtracaoArquivo(textoAteAqui.slice(-1500)) }
+      ];
+    });
+
+    if (jobId) {
+      salvarJobFirebase(jobId, { status: "done", ok: true, texto: resultado.texto || "", truncou: resultado.truncou });
+    }
+    return resp({ ok: true });
+  } catch (err) {
+    if (jobId) {
+      salvarJobFirebase(jobId, { status: "done", ok: false, erro: err.message });
+    }
+    return resp({ ok: false, erro: err.message });
+  }
+}
+
 function salvarJobFirebase(jobId, resultado) {
   UrlFetchApp.fetch(
     FIREBASE_URL + "/jobs/" + jobId + ".json",
@@ -720,6 +1069,7 @@ function doPost(e) {
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
+    if (acao === "extrair-texto-arquivo") return extrairTextoArquivoJob(dados);
     if (acao === "marcar-modelo") return marcarModelo(dados);
     if (acao === "sincronizar-evento-calendar") return sincronizarEventoCalendar(dados);
     if (acao === "excluir-evento-calendar") return excluirEventoCalendar(dados);
@@ -815,7 +1165,7 @@ function gerarECriarMinuta(dados) {
     // Dívida"), que só casava com metade das listas de checklist/abreviação.
     var atosSecundarios = Array.isArray(dados.atosSecundarios) ? dados.atosSecundarios.filter(Boolean) : [];
 
-    var mensagem = "CASO: " + (dados.nome || "Não informado") + "\n" +
+    var mensagemBase = "CASO: " + (dados.nome || "Não informado") + "\n" +
       "TIPO DE ATO: " + (dados.tipo || "Não informado") + "\n" +
       (atosSecundarios.length ? "ATOS SECUNDÁRIOS LAVRADOS NA MESMA ESCRITURA: " + atosSecundarios.join(", ") + "\n" : "") +
       "MODALIDADE: " + mod.toUpperCase() + "\n" +
@@ -828,71 +1178,37 @@ function gerarECriarMinuta(dados) {
         ? "\n\nPor favor, ATUALIZE a MINUTA ATUAL acima conforme a INSTRUÇÃO DE ATUALIZAÇÃO DA MINUTA, reproduzindo-a por inteiro e ajustando concordância onde a mudança pedida exigir, conforme as instruções do sistema."
         : "\n\nPor favor, gere a minuta completa conforme as informações disponíveis, usando a abertura e o encerramento correspondentes à modalidade " + mod.toUpperCase() + " conforme as instruções do sistema.");
 
-    var geracao = gerarMinutaCompleta(mensagem, ano);
-    var parsed = parsearResposta(geracao.texto);
-    var conferencia = conferirMinuta(parsed.minuta, mod);
-
-    var docResult = _criarMinutaDocInterno({
-      nome: dados.nome,
-      tipo: dados.tipo,
-      minuta: parsed.minuta,
-      comentarios: parsed.comentarios
-    });
+    // Quando há um modelo de referência (manual ou aprendido automaticamente) OU
+    // uma MINUTA ATUAL sendo seguida à risca, a IA tende a "achar" que terminou
+    // cedo demais (parar em ~1/3 do conteúdo) — ver temModelo em processarRodadaMinuta.
+    var temModelo = mensagemBase.indexOf("MODELO DE MINUTA (REFERÊNCIA") !== -1 || mensagemBase.indexOf("MINUTA ATUAL") !== -1;
 
     // Curadoria (Etapa 2): NÃO aprende sozinho mais. Toda minuta gerada virava
     // modelo antes — boa ou ruim — e é a explicação mais provável de "a minuta
     // não segue os modelos". Agora só entra quando ela mesma marca uma minuta
     // pronta como modelo (ação "marcar-modelo", ver marcarModelo acima).
 
-    // Nada aqui sai calado: minuta truncada na 6ª rodada, seção obrigatória de
-    // encerramento faltando, abertura incompatível com a modalidade ou
-    // documento que a IA não leu — tudo vira aviso, nunca um "✅ sucesso" liso.
-    var avisos = conferencia.avisos.slice();
-    if (dados.avisosDocumentos) avisos.push("Documento(s) que a IA pode não ter lido por completo: " + dados.avisosDocumentos);
-    var truncada = geracao.truncada;
+    // A primeira rodada roda aqui mesmo, na mesma execução — é rápida (uma
+    // chamada à IA) e mantém o comportamento de sempre para o caso comum (1-2
+    // rodadas). Se precisar de mais, processarRodadaMinuta agenda a próxima
+    // rodada por gatilho em vez de continuar aqui — ver o comentário grande
+    // logo antes de agendarContinuacaoMinuta.
+    processarRodadaMinuta(jobId, {
+      ano: ano,
+      mensagemBase: mensagemBase,
+      temModelo: temModelo,
+      mod: mod,
+      documentosTexto: documentosTexto,
+      textoAcumulado: "",
+      rodadas: 0,
+      nome: dados.nome,
+      tipo: dados.tipo,
+      casoId: dados.casoId,
+      notificarWhatsApp: dados.notificarWhatsApp,
+      avisosDocumentos: dados.avisosDocumentos
+    });
 
-    if (jobId) {
-      salvarJobFirebase(jobId, {
-        status: "done",
-        ok: true,
-        truncada: truncada,
-        avisos: avisos,
-        docUrl: docResult.url,
-        folderUrl: docResult.folderUrl,
-        docNome: docResult.nome,
-        diagRodadas: geracao.rodadas,
-        diagTemModelo: geracao.temModelo,
-        diagBrancos: conferencia.brancos
-      });
-    }
-
-    if (dados.casoId) {
-      // Auditoria: uma chamada SEPARADA da que gerou a minuta, depois do
-      // documento já pronto e do job já marcado como pronto acima — o painel
-      // já liberou a tela nesse instante, então isto roda fora do caminho
-      // crítico. Nunca reescreve a minuta, só confere e aponta.
-      var achadosAuditoria = auditarMinuta(parsed.minuta, documentosTexto);
-      var patchCaso = { driveUrl: docResult.folderUrl, docUrl: docResult.url };
-      if (achadosAuditoria !== null) {
-        patchCaso.auditoria = { achados: achadosAuditoria, atualizado: new Date().toISOString() };
-      }
-      UrlFetchApp.fetch(FIREBASE_URL + "/casos/" + dados.casoId + ".json", {
-        method: "patch",
-        contentType: "application/json",
-        payload: JSON.stringify(patchCaso),
-        muteHttpExceptions: true
-      });
-    }
-    if (dados.notificarWhatsApp) {
-      if (truncada || avisos.length) {
-        var motivos = truncada ? ["a geração pode ter parado antes do fim (limite de rodadas)"].concat(avisos) : avisos;
-        enviarWhatsApp("⚠️ Minuta de " + (dados.nome || "caso") + " gerada, mas com ressalva — confira antes de usar: " + motivos.join(" | ") + ". " + docResult.url);
-      } else {
-        enviarWhatsApp("✅ Minuta de " + (dados.nome || "caso") + " pronta! " + docResult.url);
-      }
-    }
-
-    return resp({ ok: true, url: docResult.url, folderUrl: docResult.folderUrl, nome: docResult.nome, truncada: truncada, avisos: avisos });
+    return resp({ ok: true, emAndamento: true });
 
   } catch(err) {
     if (jobId) {
@@ -1017,6 +1333,13 @@ function _criarMinutaDocInterno(dados) {
 // ── Formatação do documento ────────────────────────────────────────────────
 
 function inserirParagrafoFormatado(body, textoMd, tipoHeading) {
+  // Negrito com número ÍMPAR de "**" na linha (a IA abriu e não fechou, ou
+  // fechou numa linha diferente — mais fácil de acontecer agora que o negrito
+  // é pedido em muito mais lugares, ver FORMATAÇÃO DA MINUTA) nunca pode virar
+  // asterisco literal no documento: essa linha perde o negrito (fica só
+  // texto normal) em vez de arriscar mostrar "**" pra ela.
+  if (((textoMd.match(/\*\*/g) || []).length) % 2 !== 0) textoMd = textoMd.split("**").join("");
+
   var segmentos = [];
   var regex = /\*\*([^*]+)\*\*/g;
   var lastIndex = 0;

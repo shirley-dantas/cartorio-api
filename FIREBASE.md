@@ -210,6 +210,66 @@ O que protege o orçamento aqui **não é a tranca do banco**: é a alíquota na
 que alguém escrevesse um número no caminho aberto, ele chegaria à tela marcado
 como não conferido.
 
+## 10. Escolher documento direto do Google Drive
+
+O botão **"Escolher do Drive"**, ao lado de cada "Anexar documento(s)" (minuta
+modelo, documentos do caso, minuta pronta a reeditar), abre o seletor oficial
+do Google — a mesma janela que o Gmail usa para anexar do Drive — e traz o
+arquivo escolhido pra dentro do painel, sem precisar baixar antes no aparelho.
+Funciona igual em notebook, computador e celular, porque é só uma janela do
+navegador — nada de app instalado nem de sincronizar pasta.
+
+Isso é diferente de tudo o resto deste arquivo: aqui quem autoriza é a conta
+Google de quem está usando o painel na hora (Shirley, Grazi ou quem for), não
+uma conta de serviço nem o token do Apps Script. Por isso pede duas
+credenciais **novas**, de um projeto no Google Cloud Console — **não** dá pra
+reaproveitar as do Apps Script (`cartorio-drive-api`), porque aquele projeto
+não é um projeto padrão do Cloud e não emite Client ID OAuth para navegador.
+
+1. Em [console.cloud.google.com](https://console.cloud.google.com), crie um
+   projeto novo (ou use um que a Shirley já tenha) — "Selecionar projeto" →
+   "Novo projeto".
+2. **APIs e serviços › Biblioteca**: ative duas APIs — **Google Picker API** e
+   **Google Drive API**.
+3. **APIs e serviços › Tela de permissão OAuth**:
+   - Tipo de usuário: **Externo**.
+   - Preencha nome do app ("Painel 20º Tabelião", por exemplo) e o e-mail dela
+     em suporte e contato do desenvolvedor.
+   - Em **Público-alvo/Test users**, adicione o e-mail da conta Google que vai
+     usar o botão (a mesma da Shirley, e o da Grazi se ela também for usar) —
+     enquanto o app fica em modo de teste, só quem estiver nessa lista consegue
+     autorizar.
+4. **APIs e serviços › Credenciais › Criar credenciais**:
+   - **ID do cliente OAuth**, tipo **Aplicativo da Web**. Em "Origens JavaScript
+     autorizadas", adicione o endereço do painel na Vercel (ex:
+     `https://painel-cartorio.vercel.app` — sem barra no final) e, se testar
+     local, também `http://localhost:3000` ou o que estiver usando.
+   - **Chave de API**. Depois de criada, clique nela e em "Restrições de API"
+     marque só **Google Picker API** e **Google Drive API** — assim, mesmo
+     exposta no navegador (que é como o Picker sempre funciona, em qualquer
+     site), ela não serve pra mais nada.
+5. Cole as duas credenciais direto no `index.html`, em `GOOGLE_PICKER_CLIENT_ID`
+   e `GOOGLE_PICKER_API_KEY` (procure por "ESCOLHER DO GOOGLE DRIVE" no
+   arquivo). **Não** viram variável de ambiente na Vercel: nenhuma das duas é
+   segredo — é assim que o Picker sempre funcionou, exposto no navegador de
+   quem usa, em qualquer site — e o plano gratuito da Vercel só aceita 12
+   funções na pasta `api/`; uma função só para devolver dois valores públicos
+   seria a 13ª e derrubaria o deploy inteiro (foi o que aconteceu na primeira
+   versão disto — o erro da Vercel foi literalmente "No more than 12
+   Serverless Functions"). Publique a mudança normalmente (PR → main).
+6. Teste: abra o painel, vá em qualquer "Anexar documento(s)" e clique
+   "Escolher do Drive". Na primeira vez, o Google pede pra fazer login e
+   autorizar — aceitando, a lista de arquivos do Drive aparece. Documentos,
+   Planilhas e Apresentações do Google são convertidos automaticamente (Word
+   ou PDF) antes de entrar no painel, porque eles não têm um arquivo "pronto"
+   pra baixar como o PDF ou o Word já têm.
+
+**Enquanto o app OAuth estiver em modo de teste** (passo 3), só as contas
+cadastradas como "Test users" conseguem autorizar — é suficiente para a
+Shirley e a Grazi, e evita mandar o app pra revisão do Google (que pede
+verificação de domínio e pode demorar semanas) só para uso interno do
+cartório.
+
 ## O que ainda fica aberto, e por quê
 
 `/casos`, `/jobs`, `/modelos`, os caminhos do bot e os do Radar continuam sem
