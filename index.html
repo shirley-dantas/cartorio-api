@@ -6597,6 +6597,15 @@ async function extrairArquivo(file,preservarIntegral,onStatus){
     if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
     return {texto:j.texto||textoBruto,truncou:!!j.truncou,comprimiu:false};
   }
+  // Tudo que não é .docx nem PDF/imagem cai aqui de propósito — sem isso,
+  // um .doc (formato antigo do Word, sem camada de texto que o mammoth saiba
+  // ler) seguia batendo na Claude API como se fosse uma foto, e o erro que
+  // voltava era "media_type deveria ser image/jpeg..." — verdadeiro, mas
+  // inútil pra ela saber o que fazer. Agora ela sabe na hora, sem gastar a
+  // chamada.
+  if(!/^application\/pdf$/i.test(file.type||'')&&!/^image\//i.test(file.type||'')&&!/\.pdf$/i.test(file.name||'')){
+    throw new Error(`"${file.name}" está em um formato que não sei ler (parece .doc antigo, ou outro tipo não suportado). Salve como .docx ou PDF e anexe de novo.`);
+  }
   // PDF/imagem: a IA precisa "olhar" o documento — não dá pra ler como texto
   // puro. Isso vai direto pro Apps Script (GAS_URL), não pela Vercel: a
   // Vercel tem um teto fixo de 60s por chamada (plano Hobby) e ~4,5MB no
