@@ -2021,6 +2021,99 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   #modal-orcamento-caso .modal-box{box-shadow:none!important;max-width:none!important;padding:0!important}
   .orc-cliente{border:0!important;padding:0!important}
 }
+
+/* ── CENTRAL DE COMANDO v2 ──────────────────────────────────────────
+   Faixa de saudação compacta + os três cartões (Agenda, Bloco de
+   Notas, O que dá pra fazer agora), desenhados e aprovados fora do
+   painel antes de entrar aqui. Prefixo cdc2- pra não brigar com nada
+   do resto da tela — telas velhas continuam do jeito que estavam. */
+.cdc2-topo{display:flex;align-items:center;justify-content:space-between;gap:20px;
+  background:#F4EFE6;border-radius:16px;padding:16px 22px;margin-bottom:20px;flex-wrap:wrap}
+.cdc2-topo-esq{display:flex;align-items:center;gap:12px;min-width:0}
+.cdc2-topo-sol{flex-shrink:0}
+.cdc2-topo-saud{font-family:'Inter',sans-serif;font-size:17px;font-weight:700;color:#1F2937;line-height:1.3}
+.cdc2-topo-sub{font-size:12.5px;color:#6B7280;margin-top:1px}
+.cdc2-topo-dir{display:flex;align-items:center;gap:14px;flex-shrink:0;flex-wrap:wrap}
+.cdc2-topo-data{font-size:12.5px;color:#6B7280;white-space:nowrap}
+.cdc2-topo-sync{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:#6B7280;white-space:nowrap}
+.cdc2-topo-busca{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E4DFD3;
+  border-radius:10px;padding:9px 14px;font-size:12.5px;color:#9CA0A8;width:230px}
+.cdc2-topo-busca svg{flex-shrink:0;color:#9CA0A8}
+.cdc2-topo-busca input{border:none;outline:none;background:none;font-family:inherit;font-size:12.5px;
+  color:#1F2937;width:100%}
+.cdc2-topo-busca input::placeholder{color:#9CA0A8}
+@media(max-width:640px){.cdc2-topo{padding:13px 16px}.cdc2-topo-busca{width:100%}}
+
+.cdc2-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start;margin-bottom:26px}
+@media(max-width:980px){.cdc2-grid3{grid-template-columns:1fr}}
+
+.cdc2-card{background:#fff;border:1px solid #EBE8E2;border-radius:16px;padding:16px 18px 18px;
+  display:flex;flex-direction:column;min-width:0;box-shadow:0 1px 2px rgba(20,20,20,.03)}
+.cdc2-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+.cdc2-card-title{display:inline-flex;align-items:center;gap:9px;font-size:15px;font-weight:600;color:#1F2937}
+.cdc2-icon-chip{width:26px;height:26px;border-radius:8px;background:#F5ECDC;display:flex;align-items:center;
+  justify-content:center;color:#B0793C;flex-shrink:0}
+.cdc2-icon-plain{display:flex;align-items:center;justify-content:center;color:#16A34A;flex-shrink:0}
+.cdc2-btn-nova{font-size:12px;font-weight:600;color:#1F2937;background:#fff;border:1px solid #DDD8CE;
+  border-radius:8px;padding:6px 11px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
+.cdc2-btn-nova:hover{background:#FAF8F4}
+.cdc2-cont-mini{font-size:12px;font-weight:600;color:#16A34A;white-space:nowrap}
+
+.cdc2-pill-tabs{display:inline-flex;background:#F1EEE7;border-radius:999px;padding:3px;gap:2px;margin-bottom:14px}
+.cdc2-pill-tab{font-family:inherit;font-size:12.5px;font-weight:600;color:#6B7280;background:none;border:none;
+  border-radius:999px;padding:7px 14px;cursor:pointer;white-space:nowrap}
+.cdc2-pill-tab.ativa{background:#1F2937;color:#fff}
+
+.cdc2-ag-lista{display:flex;flex-direction:column}
+.cdc2-ag-linha{display:flex;align-items:flex-start;gap:12px;padding:10px 2px;border-bottom:1px solid #F0EEE9;
+  cursor:pointer}
+.cdc2-ag-linha:last-child{border-bottom:none;padding-bottom:2px}
+.cdc2-ag-hora{font-size:12.5px;font-weight:700;color:#1F2937;width:42px;flex-shrink:0;padding-top:1px;
+  white-space:nowrap}
+.cdc2-ag-corpo{flex:1;min-width:0}
+.cdc2-ag-nome{font-size:13px;font-weight:700;color:#1F2937}
+.cdc2-ag-tipo{font-size:11.5px;color:#8B8F98;margin-top:1px}
+
+.cdc2-tabs-underline{display:flex;gap:18px;border-bottom:1px solid #EEEBE5;margin-bottom:13px;flex-wrap:wrap}
+.cdc2-tab-u{font-family:inherit;font-size:12.5px;font-weight:600;color:#9CA0A8;background:none;border:none;
+  padding:0 0 9px;cursor:pointer;position:relative;white-space:nowrap}
+.cdc2-tab-u.ativa{color:#1F2937}
+.cdc2-tab-u.ativa::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#1F2937}
+.cdc2-tab-u.ativa-ok::after{background:#16A34A}
+.cdc2-tab-u.ativa-atencao::after{background:#B0793C}
+
+.cdc2-check-lista{display:flex;flex-direction:column}
+.cdc2-check-row{display:flex;align-items:flex-start;gap:9px;padding:8px 2px;border-bottom:1px solid #F0EEE9}
+.cdc2-check-row:last-child{border-bottom:none}
+.cdc2-checkbox{width:15px;height:15px;border-radius:4px;border:1.5px solid #D5D1C8;flex-shrink:0;
+  margin-top:2px;background:#fff;cursor:pointer;padding:0}
+.cdc2-check-texto{flex:1;min-width:0;font-size:12px;color:#374151;line-height:1.4}
+.cdc2-check-tag{color:#9CA0A8;font-weight:500}
+.cdc2-check-menu{color:#B7BAC1;flex-shrink:0;cursor:pointer;padding:2px;background:none;border:none}
+
+/* Cartão de caso, reaproveitando .cc-item pra herdar a animação de
+   "resolvido" e o toggle já existentes (ccToggleItem/ccResolver
+   procuram .cc-item) — só o visual muda, por cima. */
+.cdc2-mini{background:#FAF8F4;border-radius:10px;margin-bottom:7px;border-left:3px solid #D8D0C1;
+  padding:0!important;border-width:0 0 0 3px!important}
+.cdc2-mini:last-child{margin-bottom:0}
+.cdc2-mini.ok{border-left-color:#16A34A}
+.cdc2-mini.atencao{border-left-color:#B0793C}
+.cdc2-mini.aberto{background:#fff;box-shadow:0 1px 4px rgba(31,42,51,.06)}
+.cdc2-mini-head{display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:pointer}
+.cdc2-mini-nome{font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#1F2937;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;background:none;border:none;padding:0}
+.cdc2-mini-pill{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:3px 8px;border-radius:999px;white-space:nowrap;flex-shrink:0}
+.cdc2-mini-pill.ok{background:#DCFCE7;color:#15803D}
+.cdc2-mini-pill.atencao{background:#FDEBD3;color:#8A5A0B}
+.cdc2-mini-chevron{color:#9CA0A8;flex-shrink:0;transition:transform .18s ease;font-size:13px}
+.cdc2-mini.aberto .cdc2-mini-chevron{transform:rotate(90deg)}
+.cdc2-mini-detalhe{display:none;padding:0 12px 12px 12px}
+.cdc2-mini.aberto .cdc2-mini-detalhe{display:block}
+.cdc2-mini-texto{font-size:12px;color:#4B5563;line-height:1.45;padding-top:2px;margin-bottom:10px}
+.cdc2-vazio{font-size:12px;color:#9CA0A8;font-style:italic;padding:8px 2px}
+@media(max-width:640px){.cdc2-post-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -2087,14 +2180,27 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
   <div class="central-nova">
 
-  <!-- Cabeçalho editorial. Mantém id="saudacao-card" de propósito:
+  <!-- Cabeçalho compacto. Mantém id="saudacao-card" de propósito:
        posicionarJoaninhaNaSaudacao() mede ESTE elemento pra ancorar a
-       mascote, e fecharSaudacao() esconde ele. Só o visual mudou. -->
-  <div class="cc-header" id="saudacao-card" style="display:none">
-    <button class="cc-header-fechar" onclick="fecharSaudacao()" title="Fechar">&times;</button>
-    <div class="cc-eyebrow">Central de Comando</div>
-    <div class="cc-saudacao" id="saudacao-titulo"></div>
-    <div class="cc-datalinha"><span class="cc-clima" id="saudacao-clima"></span><span id="saudacao-texto"></span></div>
+       mascote, e atualizarSaudacao()/atualizarIconeClima() escrevem nos
+       mesmos ids de sempre (saudacao-titulo/clima/texto) — só o
+       desenho ao redor mudou, pra virar uma faixa fixa com busca,
+       em vez do título enorme e fechável de antes. -->
+  <div class="cdc2-topo" id="saudacao-card" style="display:none">
+    <div class="cdc2-topo-esq">
+      <span class="cdc2-topo-sol cc-clima" id="saudacao-clima"></span>
+      <div>
+        <div class="cdc2-topo-saud" id="saudacao-titulo"></div>
+        <div class="cdc2-topo-sub" id="saudacao-texto"></div>
+      </div>
+    </div>
+    <div class="cdc2-topo-dir">
+      <span class="cdc2-topo-sync"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span>
+      <span class="cdc2-topo-busca">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+        <input type="text" placeholder="Buscar caso, cliente, prenotação..." oninput="buscar(this.value)" onkeydown="if(event.key===&#39;Enter&#39;)irParaPrimeiroResultado()">
+      </span>
+    </div>
   </div>
 
   <!-- O Jornal da equipe. Fora do cabeçalho de propósito, como a faixa da
@@ -2117,45 +2223,43 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <i class="ti ti-chevron-right cc-jornal-seta"></i>
   </button>
 
-  <!-- Esta faixa é a Agenda, e só ela: hoje e os próximos 7 dias. O resumo
-       do dia que ficava aqui ("3 compromissos · 4 urgentes...") saiu porque
-       repetia, em prosa, exatamente o que os indicadores logo abaixo já
-       dizem em número.
-       O ponto de sincronização continua morando AQUI, e não no cabeçalho,
-       porque o cabeçalho é dispensável (fecharSaudacao) — e saber se o
-       painel está conectado ao banco não pode depender de a saudação estar
-       aberta. -->
-  <section class="cc-faixa" id="cc-faixa">
-    <div class="cc-faixa-topo">
-      <span class="cc-faixa-titulo"><i class="ti ti-calendar"></i> Agenda</span>
-      <span class="cc-faixa-cont" id="cc-faixa-cont"></span>
-      <span class="cc-faixa-sync"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span>
-    </div>
-    <div class="cc-faixa-lista">
-      <div class="cdc-bloco cc-faixa-corpo" id="cdc-agenda"></div>
-      <div class="cc-faixa-barra" id="cc-faixa-barra"><div class="cc-faixa-thumb" id="cc-faixa-thumb"></div></div>
-    </div>
-  </section>
+  <!-- Os três cartões da Central: Agenda (só compromissos com data real —
+       lembrete manual não entra mais aqui, pra não poluir a semana com o
+       que não tem hora marcada), Bloco de Notas (os lembretes manuais,
+       agora em lista simples por pessoa, sem arrastar) e O que dá pra
+       fazer agora (o motor de decisão, dividido em "o que o cartório
+       controla" e "parece esquecido" — pergunta, não lista passiva).
+       Desenhado e aprovado fora do painel antes de entrar aqui. -->
+  <div class="cdc2-grid3">
 
-  <!-- A mesa é dos lembretes manuais, e só deles. Compromisso com data mora
-       na Agenda ali em cima; caso crítico e caso parado moram em Incêndios e
-       Esquecidos, logo abaixo. A gaveta "Lembretes" que existia aqui embaixo
-       foi absorvida por esta seção — lista e formulário de criar vieram
-       inteiros pra cá, pra a mesma lista não aparecer em dois lugares. -->
-  <section class="cc-secao">
-    <div class="cc-secao-head">
-      <span class="cc-secao-label"><i class="ti ti-coffee"></i> A mesa de hoje</span>
-      <button class="foco-add-btn" id="foco-add-btn" onclick="toggleFocoInput()">+ Adicionar lembrete<i class="ti ti-chevron-down foco-add-chevron"></i></button>
-      <span class="cc-secao-fio"></span>
-      <span class="cc-secao-cont" id="cc-mesa-cont"></span>
-    </div>
-    <!-- Uma faixa por pessoa. Os lembretes são lista de mão dupla — Shirley
-         escreve pra Grazi e Grazi escreve pra Shirley —, então misturar as
-         duas obrigava a ler cartão por cartão pra saber o que era de quem.
-         As faixas são montadas por renderMesaHoje: a de quem está no painel
-         vem primeiro. -->
-    <div id="cc-mesa-faixas"></div>
-    <div class="cc-mesa-novo">
+    <section class="cdc2-card">
+      <div class="cdc2-card-top">
+        <span class="cdc2-card-title">
+          <span class="cdc2-icon-chip"><i class="ti ti-calendar"></i></span>
+          Agenda
+        </span>
+      </div>
+      <div class="cdc2-pill-tabs" id="cdc2-ag-tabs">
+        <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-hoje" onclick="cdc2VerAgendaAba('hoje')">Hoje <span id="cdc-tab-ag-hoje-n"></span></button>
+        <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-amanha" onclick="cdc2VerAgendaAba('amanha')">Amanhã <span id="cdc-tab-ag-amanha-n"></span></button>
+        <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-semana" onclick="cdc2VerAgendaAba('semana')">Esta semana <span id="cdc-tab-ag-semana-n"></span></button>
+      </div>
+      <div class="cdc2-ag-lista" id="cdc-agenda"></div>
+    </section>
+
+    <section class="cdc2-card">
+      <div class="cdc2-card-top">
+        <span class="cdc2-card-title">
+          <span class="cdc2-icon-chip"><i class="ti ti-notes"></i></span>
+          Bloco de Notas
+        </span>
+        <button type="button" class="cdc2-btn-nova" id="foco-add-btn" onclick="toggleFocoInput()"><i class="ti ti-plus"></i> Nova nota</button>
+      </div>
+      <div class="cdc2-tabs-underline" id="cdc2-notas-abas">
+        <button type="button" class="cdc2-tab-u" id="cdc-aba-shirley" onclick="cdc2VerNotasAba('shirley')">Shirley</button>
+        <button type="button" class="cdc2-tab-u" id="cdc-aba-grazi" onclick="cdc2VerNotasAba('grazi')">Grazi</button>
+      </div>
+      <div class="cdc2-check-lista" id="cdc-notas-lista"></div>
       <div class="foco-input-row" id="foco-input-row" style="display:none">
         <select id="foco-caso" class="foco-caso-select" onchange="autoPreencherRespFoco()"></select>
         <div class="foco-input-linha">
@@ -2169,7 +2273,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         <div class="foco-input-linha">
           <div class="foco-quando-campo">
             <span>Quando</span>
-            <input type="datetime-local" id="foco-quando" title="Opcional — com data preenchida, o lembrete também aparece na Agenda">
+            <input type="datetime-local" id="foco-quando" title="Opcional — a data não aparece mais na Agenda, mas fica guardada no lembrete">
           </div>
           <button type="button" class="foco-quando-limpar" onclick="document.getElementById(&#39;foco-quando&#39;).value=&#39;&#39;">Sem data</button>
         </div>
@@ -2179,18 +2283,24 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
           <button onclick="addFoco()">Adicionar</button>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
+    <section class="cdc2-card">
+      <div class="cdc2-card-top">
+        <span class="cdc2-card-title">
+          <span class="cdc2-icon-plain"><i class="ti ti-circle-check"></i></span>
+          O que dá pra fazer agora
+        </span>
+      </div>
+      <div class="cdc2-tabs-underline" id="cdc2-fazer-abas">
+        <button type="button" class="cdc2-tab-u" id="cdc-tab-fazer" onclick="cdc2VerFazerAba('fazer')">Fazer agora <span id="cdc-tab-fazer-n"></span></button>
+        <button type="button" class="cdc2-tab-u" id="cdc-tab-esq" onclick="cdc2VerFazerAba('esq')">Parece esquecido? <span id="cdc-tab-esq-n"></span></button>
+      </div>
+      <div id="cdc-fazer-lista"></div>
+      <div id="cdc-esq-lista" style="display:none"></div>
+    </section>
 
-  <div class="busca-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar caso..." oninput="buscar(this.value)" onkeydown="if(event.key===&#39;Enter&#39;)irParaPrimeiroResultado()"></div></div>
-
-  <div class="cc-duo">
-    <section class="cc-secao" id="cdc-incendios"></section>
-    <section class="cc-secao" id="cdc-esquecidos"></section>
   </div>
-
-  <section class="cc-secao" id="cdc-proximas-acoes"></section>
 
   </div>
 
@@ -3473,20 +3583,13 @@ function renderQuadro(itens){
 function renderCentralComando(){
   if(!Object.keys(casos).length)return;
   const itens=calcularCentralComando();
-  // A Mesa devolve os ids que já colocou em destaque; cada seção seguinte
-  // desconta esse conjunto, pra um caso não aparecer em duas áreas ao mesmo
-  // tempo. A ordem aqui É a hierarquia da tela.
-  const usados=renderMesaHoje();
-  renderIncendios(itens,usados);
-  renderEsquecidos(itens,usados);
-  renderProximasAcoes(itens,usados);
+  renderBlocoNotas();
+  renderFazerAgora(itens,new Set());
   renderAgenda(itens);
   renderQuadro(itens);
 }
 
-// Uma linha de caso reutilizada pelos blocos de Incêndios/Esquecidos/Próximas
-// ações/Aguardando retorno — só muda a classe visual, a chave de resolução
-// usada pelos botões, e se mostra ações ou o botão de retomar.
+// Select de responsável, reaproveitado pela banda "hoje" da Central.
 function respSelectHtml(c){
   return`<span class="cc-item-resp"><select onclick="event.stopPropagation()" onchange="event.stopPropagation();mudarCampo('${c.id}','resp',this.value)">
     <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
@@ -3585,61 +3688,6 @@ window.ccResolver=function(btn,chave,estado,extra){
   setTimeout(()=>resolverCentral(chave,estado,extra),190);
 };
 
-// A contagem vem sempre, mesmo vazia: secaoRolavel() monta o cabeçalho uma
-// vez só e depois só troca o texto desse span a cada render.
-function ccSecaoHead(titulo,icone,contagem){
-  return`<div class="cc-secao-head">
-    <span class="cc-secao-label"><i class="ti ${icone}"></i> ${esc(titulo)}</span>
-    <span class="cc-secao-fio"></span>
-    <span class="cc-secao-cont">${contagem?esc(contagem):''}</span>
-  </div>`;
-}
-
-// Incêndios, Esquecidos e Próximas ações crescem com o movimento do cartório
-// e chegam a empurrar tudo o que vem depois pra fora da tela. Cada uma passa
-// a rolar por dentro, com a mesma barra desenhada da Agenda.
-//
-// Vazia, a seção fica só no cabeçalho: a caixa tracejada dizendo "nada aqui"
-// gastava três linhas pra informar ausência. A própria pílula sem contagem
-// do lado já diz isso.
-//
-// A casca (cabeçalho + caixa de rolagem + barra) é montada UMA vez e
-// reaproveitada; só o miolo é reescrito a cada render. Se ela fosse refeita
-// junto, cada passada penduraria um ouvinte novo de rolagem e de
-// redimensionamento no mesmo lugar.
-function secaoRolavel(el,titulo,icone,contagem){
-  if(!el.dataset.casca){
-    el.dataset.casca='1';
-    el.innerHTML=ccSecaoHead(titulo,icone,'')
-      +`<div class="cc-lista-trilha">
-          <div class="cc-lista-rolagem"></div>
-          <div class="cc-lista-barra"><div class="cc-lista-thumb"></div></div>
-        </div>`;
-    el._medirBarra=ligarBarraRolagem({
-      alvo:el.querySelector('.cc-lista-rolagem'),
-      barra:el.querySelector('.cc-lista-barra'),
-      thumb:el.querySelector('.cc-lista-thumb'),
-      eixo:'y'
-    });
-  }
-  // innerHTML, e não textContent: a contagem carrega o <b> do destaque. O
-  // conteúdo é montado por ccContagemSecao a partir de números, não de texto
-  // vindo do banco.
-  const cont=el.querySelector('.cc-secao-cont');
-  if(cont)cont.innerHTML=contagem||'';
-  return el.querySelector('.cc-lista-rolagem');
-}
-
-// "12 casos" responde quantos, mas não quão grave — e com a lista rolando por
-// dentro, os mais antigos ficam abaixo da dobra justamente quando são eles
-// que deveriam assustar. O segundo número traz essa gravidade pro cabeçalho:
-// quantos desses já passaram do ponto em que ainda dava pra chamar de atraso
-// normal. Some quando não há nenhum, pra não virar um "0" decorativo.
-function ccContagemSecao(total,destaque,rotulo){
-  if(!total)return '';
-  const base=`${total} ${ccPlural(total,'caso')}`;
-  return destaque?`${base} · <b class="cc-secao-alerta">${destaque} ${rotulo}</b>`:base;
-}
 function ccPlural(n,s,p){return n===1?s:(p||s+'s');}
 
 function acoesBotoesHtml(chave){
@@ -3654,83 +3702,6 @@ function acoesBotoesHtml(chave){
       <button class="cc-btn" onclick="event.stopPropagation();ccResolver(this,'${chave}','parado',{desde:'${isoHoje()}'})">⏸ Aguardando</button>
       <button class="cc-btn ignorar" onclick="event.stopPropagation();ccResolver(this,'${chave}','ignorado')">✕ Ignorar</button>
     </div>`;
-}
-
-// A hierarquia inverteu: o nome do cliente era o menor elemento da linha
-// (10px, maiúsculo, dentro de uma pílula cinza igual à dos metadados) e
-// agora é o maior. A gravidade saiu do fundo — que pintava a linha inteira
-// de vermelho — e virou o filete de 3px na borda esquerda mais a etiqueta.
-function linhaCaso(it,opts){
-  const c=it.caso,md=it.md,classe=opts.classe||'',chave=opts.chave;
-  const aberto=ccItensAbertos.has(chave)?' aberto':'';
-  const diasTxt=md.diasNaEtapaAtual>0?`${md.diasNaEtapaAtual} ${ccPlural(md.diasNaEtapaAtual,'dia')} parado`:'Entrou hoje';
-  const etapa=c.dep?`<span class="cc-etiqueta">${esc(c.dep)}</span><span class="cc-sep"></span>`:'';
-  const bloqueio=md.bloqueado?`<div class="cc-item-bloqueio">⚠ ${esc(md.motivoBloqueio)}</div>`:'';
-  const ultimaObs=(c.obs||'').split('\n')[0].replace(/^(?:\d+\s*-\s*)?\[[^\]]*\]\s*/,'').trim();
-  const obsSnippet=ultimaObs?`<div class="cc-item-obs">${esc(ultimaObs.length>150?ultimaObs.slice(0,150)+'…':ultimaObs)}</div>`:'';
-  const acoes=opts.mostrarAcoes?`
-    <button type="button" class="cc-item-gatilho" onclick="ccToggleItem(this)">Ações <i class="ti ti-chevron-down"></i></button>
-    <div class="cc-item-acoes">
-      ${acoesBotoesHtml(chave)}
-      <div class="cc-nota">
-        <input type="text" id="cdc-nota-${c.id}" onclick="event.stopPropagation()" placeholder="Registrar rapidinho...">
-        <button onclick="event.stopPropagation();registrarNotaCentral('${c.id}')">Registrar</button>
-      </div>
-    </div>`:'';
-  return`
-  <div class="cc-item ${classe}${aberto}" data-chave="${esc(chave||'')}">
-    <div class="cc-item-linha1">
-      <button type="button" class="cc-item-nome" onclick="irParaCasoPorId('${c.id}')">${esc(c.nome)}</button>
-      ${respSelectHtml(c)}
-    </div>
-    <div class="cc-item-meta">${etapa}<span>${diasTxt}</span></div>
-    <div class="cc-item-acao">${esc(opts.textoOverride||md.proximaAcao)}</div>
-    ${obsSnippet}
-    ${bloqueio}
-    ${acoes}
-  </div>`;
-}
-
-// Dentro de um grupo por etapa a pergunta já está no cabeçalho do grupo, então
-// a linha não repete nem a ação nem a observação — só nome, tempo e ações.
-function linhaCasoCompacta(it,opts){
-  const c=it.caso,md=it.md,classe=opts.classe||'',chave=opts.chave;
-  const aberto=ccItensAbertos.has(chave)?' aberto':'';
-  const diasTxt=md.diasNaEtapaAtual>0?`${md.diasNaEtapaAtual} ${ccPlural(md.diasNaEtapaAtual,'dia')}`:'Entrou hoje';
-  const bloqueio=md.bloqueado?`<div class="cc-item-bloqueio">⚠ ${esc(md.motivoBloqueio)}</div>`:'';
-  return`
-  <div class="cc-item ${classe}${aberto}" data-chave="${esc(chave||'')}">
-    <div class="cc-item-linha1">
-      <button type="button" class="cc-item-nome" onclick="irParaCasoPorId('${c.id}')">${esc(c.nome)}</button>
-      ${respSelectHtml(c)}
-    </div>
-    <div class="cc-item-meta"><span>${diasTxt}</span></div>
-    ${bloqueio}
-    <button type="button" class="cc-item-gatilho" onclick="ccToggleItem(this)">Ações <i class="ti ti-chevron-down"></i></button>
-    <div class="cc-item-acoes">${acoesBotoesHtml(chave)}</div>
-  </div>`;
-}
-
-function renderListaComGrupos(itensOrdenados,classe){
-  const porDep={},ordem=[];
-  itensOrdenados.forEach(it=>{
-    const dep=it.caso.dep||'';
-    if(!porDep[dep]){porDep[dep]=[];ordem.push(dep);}
-    porDep[dep].push(it);
-  });
-  return ordem.map(dep=>{
-    const grupo=porDep[dep];
-    if(dep&&grupo.length>=2){
-      const resps=new Set(grupo.map(it=>it.caso.resp));
-      const nome=resps.size===1?NOMES_RESP[[...resps][0]]:null;
-      const cfg=DEP_CONFIG[dep];
-      const titulo=esc(perguntaGrupoTexto(cfg&&cfg.perguntaGrupo,nome)||grupo[0].md.proximaAcao||dep);
-      return`<div class="cc-grupo"><div class="cc-grupo-titulo"><b>${esc(dep)}</b> · ${titulo}</div>${
-        grupo.map(it=>linhaCasoCompacta(it,{classe,chave:it.chaveDep})).join('')
-      }</div>`;
-    }
-    return grupo.map(it=>linhaCaso(it,{classe,chave:it.chaveDep,mostrarAcoes:true})).join('');
-  }).join('');
 }
 
 // Um card entra na banda "hoje" por causa da data (agendado/segunda parte),
@@ -3825,111 +3796,48 @@ function calcularMesaLembretes(){
   });
 }
 
-function cartaoMesaHtml(c,i){
+// Cada nota é um lembrete de verdade (mesmo `focos` de sempre) — só a
+// apresentação virou lista simples, uma aba por pessoa, em vez dos cartões
+// arrastáveis de antes. O checkbox conclui (toggleFoco), o menu abre o
+// mesmo modal de editar/excluir que a Agenda já usava pros lembretes.
+function cdc2LinhaNota(c){
   const f=c.f;
-  const tagCaso=f.casoNome?`<span class="foco-caso-tag">${esc(f.casoNome)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
-  const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
-  // A etiqueta do responsável saiu do cartão: agora é a faixa inteira que
-  // diz de quem é, e repetir o nome em cada cartão seria ruído.
+  const tagCaso=f.casoNome?`<span class="cdc2-check-tag"> — ${esc(f.casoNome)}</span>`:'';
   const clicavel=f.casoNome
-    ? ` data-caso="${esc(f.casoNome)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer" title="Ir para o caso"`
+    ? ` data-caso="${esc(f.casoNome)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer"`
     : '';
-  const tituloAgendar=c.temData?'Mudar a data na agenda':'Colocar na agenda';
   return`
-  <article class="cc-mesa-card${c.critico?' critico':''}" data-foco-id="${esc(f.id)}">
-    <span class="cc-mesa-topo">
-      <span class="cc-mesa-pegar" title="Arraste o cartão para mudar a ordem"></span>
-      <span class="cc-mesa-num">${String(i+1).padStart(2,'0')}</span><span class="cc-mesa-fio"></span>
-    </span>
-    <div class="cc-mesa-corpo"${clicavel}>
-      <span class="cc-mesa-nome">${esc(f.text||'Lembrete')}</span>
-      <span class="cc-mesa-tags">${tagCaso}${tagUrgente}</span>
-    </div>
-    <span class="cc-mesa-rodape">
-      <span class="cc-mesa-hora"><i class="ti ${c.icone}"></i>${esc(c.quando)}</span>
-      <span class="cc-mesa-acoes">
-        <button class="cdc-agenda-btn agendar${c.temData?' marcado':''}" title="${tituloAgendar}" onclick="abrirEditarAgenda('foco','${f.id}','agendar')"><i class="ti ti-calendar-plus"></i></button>
-        <button class="cdc-agenda-btn editar" title="Editar lembrete" onclick="abrirEditarAgenda('foco','${f.id}')"><i class="ti ti-pencil"></i></button>
-        <button class="cdc-agenda-btn concluir" title="Concluir lembrete" onclick="toggleFoco('${f.id}')"><i class="ti ti-check"></i></button>
-        <button class="cdc-agenda-btn excluir" title="Excluir lembrete" onclick="delFoco('${f.id}')"><i class="ti ti-trash"></i></button>
-      </span>
-    </span>
-  </article>`;
+  <div class="cdc2-check-row">
+    <button type="button" class="cdc2-checkbox" title="Concluir lembrete" onclick="toggleFoco('${esc(f.id)}')"></button>
+    <div class="cdc2-check-texto"${clicavel}>${esc(f.text||'')}${tagCaso}</div>
+    <button type="button" class="cdc2-check-menu" title="Editar ou excluir" onclick="event.stopPropagation();abrirEditarAgenda('foco','${esc(f.id)}')"><i class="ti ti-dots-vertical"></i></button>
+  </div>`;
 }
 
-// Uma faixa por pessoa: a de quem está no painel vem primeiro, a da outra
-// logo abaixo. A terceira, dos lembretes sem responsável, só existe quando
-// houver algum — são os antigos, de antes de o formulário passar a marcar o
-// dono sozinho.
-function renderMesaHoje(){
-  const host=document.getElementById('cc-mesa-faixas');
-  if(!host)return new Set();
+// Duas abas, Shirley e Grazi — os lembretes sem responsável (os mais
+// antigos, de antes de o formulário marcar o dono sozinho) caem na aba de
+// quem está usando o painel agora, pra não sumirem de vista.
+let cdc2NotasAba=null;
+window.cdc2VerNotasAba=function(aba){
+  cdc2NotasAba=aba;
+  renderBlocoNotas();
+};
+function renderBlocoNotas(){
+  const el=document.getElementById('cdc-notas-lista');
+  if(!el)return;
+  if(!cdc2NotasAba)cdc2NotasAba=donoAtual();
   const cartoes=calcularMesaLembretes();
+  const doAba=cartoes.filter(c=>{
+    const r=c.f.resp||'';
+    return cdc2NotasAba===donoAtual()?(r===donoAtual()||!DONOS_MESA.includes(r)):r===cdc2NotasAba;
+  });
   const cont=document.getElementById('cc-mesa-cont');
-  if(cont)cont.textContent=cartoes.length?`${cartoes.length} ${ccPlural(cartoes.length,'lembrete')}`:'';
-
-  const eu=donoAtual();
-  const outro=DONOS_MESA.find(d=>d!==eu);
-  const doDono=(chave)=>cartoes.filter(c=>(c.f.resp||'')===chave);
-  const semDono=cartoes.filter(c=>!DONOS_MESA.includes(c.f.resp||''));
-  const faixas=[
-    {chave:eu,    titulo:'Meus',                  itens:doDono(eu),    sempre:true},
-    {chave:outro, titulo:'Da '+nomeDono(outro),   itens:doDono(outro), sempre:true},
-    {chave:'',    titulo:'Sem responsável',       itens:semDono,       sempre:false}
-  ];
-
-  // A casca de cada faixa é montada uma vez e reaproveitada: refazê-la a cada
-  // render penduraria um ouvinte novo de rolagem e de arrasto por passada.
-  faixas.forEach(fx=>{
-    if(!fx.sempre&&!fx.itens.length){
-      const antiga=host.querySelector(`[data-faixa="${fx.chave||'sem'}"]`);
-      if(antiga)antiga.remove();
-      return;
-    }
-    const id=fx.chave||'sem';
-    let bloco=host.querySelector(`[data-faixa="${id}"]`);
-    if(!bloco){
-      bloco=document.createElement('div');
-      bloco.className='cc-mesa-faixa';
-      bloco.dataset.faixa=id;
-      bloco.innerHTML=`
-        <div class="cc-mesa-faixa-head">
-          <span class="cc-mesa-faixa-nome"></span>
-          <span class="cc-mesa-faixa-cont"></span>
-        </div>
-        <div class="cc-mesa-trilha">
-          <div class="cc-mesa"></div>
-          <div class="cc-mesa-barra"><div class="cc-mesa-thumb"></div></div>
-        </div>`;
-      host.appendChild(bloco);
-      ligarFaixaMesa(bloco);
-    }
-    bloco.querySelector('.cc-mesa-faixa-nome').textContent=fx.titulo;
-    bloco.querySelector('.cc-mesa-faixa-cont').textContent=fx.itens.length
-      ?`${fx.itens.length} ${ccPlural(fx.itens.length,'lembrete')}`:'';
-    const tira=bloco.querySelector('.cc-mesa');
-    tira.innerHTML=fx.itens.length
-      ? fx.itens.map(cartaoMesaHtml).join('')
-      : `<div class="cc-mesa-vazia">${fx.chave===eu?'Nada pra você agora.':'Nada pra '+nomeDono(fx.chave)+' agora.'}</div>`;
-    if(bloco._medirBarra)bloco._medirBarra();
-  });
-  // Ordem das faixas na tela, caso o dono do aparelho mude entre renders.
-  faixas.forEach(fx=>{
-    const b=host.querySelector(`[data-faixa="${fx.chave||'sem'}"]`);
-    if(b)host.appendChild(b);
-  });
-
-  // A Mesa não consome mais id de caso: ela não mostra caso nenhum, então
-  // Incêndios e Esquecidos voltam a receber a lista inteira.
-  return new Set();
+  if(cont)cont.textContent=doAba.length?`${doAba.length} ${ccPlural(doAba.length,'anotação','anotações')}`:'';
+  el.innerHTML=doAba.length?doAba.map(cdc2LinhaNota).join(''):'<div class="cdc2-vazio">Nada por aqui.</div>';
+  const abaS=document.getElementById('cdc-aba-shirley'),abaG=document.getElementById('cdc-aba-grazi');
+  if(abaS)abaS.className='cdc2-tab-u'+(cdc2NotasAba==='shirley'?' ativa':'');
+  if(abaG)abaG.className='cdc2-tab-u'+(cdc2NotasAba==='grazi'?' ativa':'');
 }
-
-// Duas semanas na mesma etapa, e uma semana sem movimento nenhum: os dois
-// cortes que separam "atrasado" de "encalhado". São mais altos que os
-// critérios de ENTRADA das seções de propósito — repetir o critério de
-// entrada como destaque só diria "todos", que não informa nada.
-const CC_LIMITE_ANTIGO=14;
-const CC_LIMITE_SEM_MOVIMENTO=7;
 
 // Quantos dias sem movimento uma etapa aguenta antes de o caso ser "esquecido".
 // Três dias fixos tratavam toda etapa como se tivesse o mesmo ritmo, e o
@@ -3946,75 +3854,100 @@ function limiteEsquecido(caso){
   return Math.max(CC_ESQUECIDO_PISO,janelaNormalEtapa(caso));
 }
 
-// ── INCÊNDIOS · ESQUECIDOS · PRÓXIMAS AÇÕES ──
-// Três áreas, três conjuntos que o motor já produzia. A única novidade é que
-// um caso não aparece mais em duas áreas ao mesmo tempo: cada seção recebe o
-// conjunto de ids já usados acima e desconta. Nada some — o que sai de uma
-// área é porque já está sendo mostrado, com mais destaque, em outra.
-function renderIncendios(itens,usados){
-  const el=document.getElementById('cdc-incendios');
-  if(!el)return;
-  const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel==='critico'&&!usados.has(it.caso.id))
+// ── O QUE DÁ PRA FAZER AGORA · PARECE ESQUECIDO? ──
+// Um cartão só, duas abas. "Fazer agora" é só o que o CARTÓRIO controla —
+// quemSegura==='cartorio' na etapa (minutar, travar agenda, orçamento a
+// enviar...): ela disse que só prioriza isso, e cobrar dela algo que depende
+// de terceiro ou de cliente era o que fazia a aba antiga (Incêndios) virar
+// ruído que ninguém seguia. "Parece esquecido?" é a pergunta, não uma lista
+// passiva: quando uma etapa passa da janela normal (limiteEsquecido), o
+// painel pergunta se é esquecimento da equipe ou se está travado por fora —
+// a equipe decide, o painel não presume.
+function cdc2LinhaFazer(it){
+  const c=it.caso,md=it.md,chave=it.chaveDep;
+  const aberto=ccItensAbertos.has(chave)?' aberto':'';
+  const etapa=c.dep?esc(c.dep):'—';
+  return`
+  <div class="cc-item cdc2-mini ok${aberto}" data-chave="${esc(chave)}">
+    <div class="cdc2-mini-head" onclick="ccToggleItem(this)">
+      <span class="cdc2-mini-nome">${esc(c.nome)}</span>
+      <span class="cdc2-mini-pill ok">${etapa}</span>
+      <i class="ti ti-chevron-right cdc2-mini-chevron"></i>
+    </div>
+    <div class="cdc2-mini-detalhe">
+      <div class="cdc2-mini-texto">${esc(md.proximaAcao||'')}</div>
+      ${acoesBotoesHtml(chave)}
+      <div class="cc-nota">
+        <input type="text" id="cdc-nota-${c.id}" onclick="event.stopPropagation()" placeholder="Registrar rapidinho...">
+        <button onclick="event.stopPropagation();registrarNotaCentral('${c.id}')">Registrar</button>
+      </div>
+    </div>
+  </div>`;
+}
+function cdc2LinhaEsquecido(it){
+  const c=it.caso,chave=it.chaveDep;
+  const aberto=ccItensAbertos.has(chave)?' aberto':'';
+  const dias=diasParado(c.atualizado),normal=limiteEsquecido(c);
+  return`
+  <div class="cc-item cdc2-mini atencao${aberto}" data-chave="${esc(chave)}">
+    <div class="cdc2-mini-head" onclick="ccToggleItem(this)">
+      <span class="cdc2-mini-nome">${esc(c.nome)}</span>
+      <span class="cdc2-mini-pill atencao">${dias}d · normal ${normal}d</span>
+      <i class="ti ti-chevron-right cdc2-mini-chevron"></i>
+    </div>
+    <div class="cdc2-mini-detalhe">
+      <div class="cdc2-mini-texto">Está há ${dias} ${ccPlural(dias,'dia')} em "${esc(c.dep||'—')}" — o normal é até ${normal}. Isso é esquecimento da equipe, ou está travado por fora?</div>
+      <div class="cc-botoes">
+        <button type="button" class="cc-btn feito" onclick="event.stopPropagation();cdc2Retomar(this,'${esc(chave)}')">Sim, retomar</button>
+        <button type="button" class="cc-btn" onclick="event.stopPropagation();ccResolver(this,'${esc(chave)}','parado',{desde:'${isoHoje()}'})">Não, é normal</button>
+      </div>
+    </div>
+  </div>`;
+}
+// "Sim, retomar" não resolve nada sozinho — troca a pergunta pelos mesmos
+// botões de ação de "Fazer agora", pra equipe escolher o próximo passo de
+// verdade (minutar, travar agenda...), em vez de fingir que um clique
+// resolveu o caso.
+window.cdc2Retomar=function(btn,chave){
+  const detalhe=btn.closest('.cdc2-mini-detalhe');
+  if(detalhe)detalhe.innerHTML=`<div class="cdc2-mini-texto">Combinado — usa os botões abaixo pra decidir o próximo passo.</div>${acoesBotoesHtml(chave)}`;
+};
+let cdc2FazerAba='fazer';
+window.cdc2VerFazerAba=function(aba){
+  cdc2FazerAba=aba;
+  const tf=document.getElementById('cdc-tab-fazer'),te=document.getElementById('cdc-tab-esq');
+  if(tf)tf.className='cdc2-tab-u'+(aba==='fazer'?' ativa ativa-ok':'');
+  if(te)te.className='cdc2-tab-u'+(aba==='esq'?' ativa ativa-atencao':'');
+  const pf=document.getElementById('cdc-fazer-lista'),pe=document.getElementById('cdc-esq-lista');
+  if(pf)pf.style.display=aba==='fazer'?'':'none';
+  if(pe)pe.style.display=aba==='esq'?'':'none';
+};
+function renderFazerAgora(itens,usados){
+  const fazerEl=document.getElementById('cdc-fazer-lista');
+  const esqEl=document.getElementById('cdc-esq-lista');
+  if(!fazerEl||!esqEl)return;
+  const poolFazer=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.quemSegura==='cartorio'&&!usados.has(it.caso.id))
     .sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
-  pool.forEach(it=>usados.add(it.caso.id));
-  const parados2sem=pool.filter(it=>it.md.diasNaEtapaAtual>=CC_LIMITE_ANTIGO).length;
-  const caixa=secaoRolavel(el,'Incêndios','ti-flame',
-    ccContagemSecao(pool.length,parados2sem,'há mais de 2 semanas'));
-  caixa.innerHTML=pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'critico')}</div>`:'';
-  if(el._medirBarra)el._medirBarra();
+  poolFazer.forEach(it=>usados.add(it.caso.id));
+  const poolEsq=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&!usados.has(it.caso.id)
+      &&diasParado(it.caso.atualizado)>=limiteEsquecido(it.caso))
+    .sort((a,b)=>diasParado(b.caso.atualizado)-diasParado(a.caso.atualizado));
+  poolEsq.forEach(it=>usados.add(it.caso.id));
+  const nf=document.getElementById('cdc-tab-fazer-n'),ne=document.getElementById('cdc-tab-esq-n');
+  if(nf)nf.textContent=poolFazer.length?`(${poolFazer.length})`:'';
+  if(ne)ne.textContent=poolEsq.length?`(${poolEsq.length})`:'';
+  fazerEl.innerHTML=poolFazer.length?poolFazer.map(cdc2LinhaFazer).join(''):'<div class="cdc2-vazio">Nada pendente do lado do cartório agora.</div>';
+  esqEl.innerHTML=poolEsq.length?poolEsq.map(cdc2LinhaEsquecido).join(''):'<div class="cdc2-vazio">Nada parecendo esquecido.</div>';
+  cdc2VerFazerAba(cdc2FazerAba);
 }
 
-// O corte de entrada é o limiteEsquecido() de cada etapa: 3 dias nas etapas
-// rápidas (o mesmo critério do contador "Parados +3d" da barra lateral) e a
-// janela cheia nas esteiras longas, como os 30 dias do Registro de Imóveis.
-function renderEsquecidos(itens,usados){
-  const el=document.getElementById('cdc-esquecidos');
-  if(!el)return;
-  const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje
-      &&!usados.has(it.caso.id)&&diasParado(it.caso.atualizado)>=limiteEsquecido(it.caso))
-    .sort((a,b)=>diasParado(a.caso.atualizado)<diasParado(b.caso.atualizado)?1:-1);
-  pool.forEach(it=>usados.add(it.caso.id));
-  const semana=pool.filter(it=>diasParado(it.caso.atualizado)>=CC_LIMITE_SEM_MOVIMENTO).length;
-  const caixa=secaoRolavel(el,'Esquecidos','ti-eye',
-    ccContagemSecao(pool.length,semana,'há mais de 1 semana'));
-  caixa.innerHTML=pool.length?`<div class="cc-lista">${pool.map(it=>linhaCaso(it,{
-        classe:'atencao',chave:it.chaveDep,mostrarAcoes:true,
-        textoOverride:`Sem movimento há ${diasParado(it.caso.atualizado)} dias. ${it.md.proximaAcao}`
-      })).join('')}</div>`:'';
-  if(el._medirBarra)el._medirBarra();
-}
-
-function renderProximasAcoes(itens,usados){
-  const el=document.getElementById('cdc-proximas-acoes');
-  if(!el)return;
-  const pool=itens.filter(it=>!it.parado&&!it.suprimidoDep&&!it.ehHoje&&it.md.nivel!=='critico'
-      &&(it.md.nivel==='atencao'||it.md.bloqueado)&&!usados.has(it.caso.id))
-    .sort((a,b)=>b.md.diasNaEtapaAtual-a.md.diasNaEtapaAtual);
-  pool.forEach(it=>usados.add(it.caso.id));
-  const parados2sem=pool.filter(it=>it.md.diasNaEtapaAtual>=CC_LIMITE_ANTIGO).length;
-  const caixa=secaoRolavel(el,'Próximas ações','ti-bookmark',
-    ccContagemSecao(pool.length,parados2sem,'há mais de 2 semanas'));
-  caixa.innerHTML=pool.length?`<div class="cc-lista">${renderListaComGrupos(pool,'atencao')}</div>`:'';
-  if(el._medirBarra)el._medirBarra();
-}
-
-// Lembrete manual com data preenchida (campo "quando") vira evento de agenda,
-// lado a lado com os compromissos dos casos. Só entram os pendentes: ao marcar
-// o ✓ o lembrete sai da lista de Lembretes e sai daqui junto, sem precisar de
-// chave de resolução própria (diferente dos casos, o lembrete já tem "done").
-// A agenda se lê na ordem do relógio: o primeiro horário primeiro.
-//
-// Os lembretes já saíam assim; os compromissos dos casos, não — saíam na
-// ordem em que os casos chegam do banco, que não é ordem nenhuma. Num dia com
-// três escrituras a lista aparecia de trás para frente (14h, 13h, 10h), e
-// agenda fora de ordem é pior que agenda nenhuma: quem bate o olho lê a
-// primeira linha como se fosse o próximo compromisso.
-//
-// A comparação é pelo INSTANTE, não pelo texto da data: o `quando` do
-// lembrete e o `agendado` do caso são gravados por caminhos diferentes, e
-// comparar como texto só funciona enquanto os dois estiverem no mesmo
-// formato. Data que o navegador não entende vai para o fim, em vez de
-// embaralhar o resto.
+// A Agenda só mostra compromisso com data real (assinatura, 2ª parte) — o
+// lembrete manual (a mesa/Bloco de Notas) parou de entrar aqui, a pedido
+// dela: misturado, o lembrete sem hora poluía a leitura da semana. A ordem é
+// pelo INSTANTE, não pelo texto da data: `agendado`/`segundaParte.data` são
+// gravados por caminhos diferentes, e comparar como texto só funciona
+// enquanto os dois estiverem no mesmo formato. Data que o navegador não
+// entende vai para o fim, em vez de embaralhar o resto.
 function agendaPorHorario(a,b){
   const t=(ev)=>{
     // Vazio vai para o fim junto com o ilegível: `new Date(null)` devolve 1970
@@ -4026,333 +3959,68 @@ function agendaPorHorario(a,b){
   };
   return t(a)-t(b);
 }
-function eventosDeFocos(){
-  const full=Array.isArray(focos)?focos:Object.values(focos||{});
-  return full.filter(f=>f&&!f.done&&f.quando)
-    .map(f=>({foco:f,diff:diffDiasNum(f.quando),dt:f.quando}))
-    .filter(ev=>ev.diff!=null&&ev.diff<=7)
-    .sort(agendaPorHorario);
-}
 function fmtQuando(dt){
   return dt?new Date(dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
 }
 
-// ── BARRA DE ROLAGEM DESENHADA PELO PAINEL ──
-// As barras nativas são flutuantes no Mac e no iPhone: aparecem durante o
-// gesto e somem, então quem só bate o olho não descobre que a lista continua.
-// Estilizar a nativa não resolve — o Chromium descarta as regras
-// ::-webkit-scrollbar quando scrollbar-width está declarado, e no iOS nenhuma
-// das duas vale. Daí esta, que fica à vista o tempo todo em que houver o que
-// rolar, mostra pelo tamanho do polegar quanto falta, e arrasta como a de
-// verdade. Serve a Agenda (na vertical) e a Mesa (na horizontal).
-const EIXOS={
-  y:{pos:'scrollTop', tamVisivel:'clientHeight',tamTotal:'scrollHeight',
-     trilho:'clientHeight',tamThumb:'offsetHeight',ladoCss:'height',inicioCss:'top',
-     coord:(e)=>e.clientY, inicioThumb:(t)=>t.offsetTop, borda:(r)=>r.top},
-  x:{pos:'scrollLeft',tamVisivel:'clientWidth', tamTotal:'scrollWidth',
-     trilho:'clientWidth', tamThumb:'offsetWidth', ladoCss:'width', inicioCss:'left',
-     coord:(e)=>e.clientX, inicioThumb:(t)=>t.offsetLeft,borda:(r)=>r.left}
-};
-
-// Devolve a função que remede tudo; guarde-a pra chamar depois de redesenhar
-// a lista. `aoMedir` recebe quanto ainda falta rolar — a Agenda usa pra
-// acender o degradê do rodapé.
-function ligarBarraRolagem({alvo,barra,thumb,eixo,minimo,aoMedir}){
-  const E=EIXOS[eixo];
-  const medir=()=>{
-    if(!alvo||!barra||!thumb||!alvo.parentElement)return;
-    const sobra=alvo[E.tamTotal]-alvo[E.tamVisivel];
-    alvo.parentElement.classList.toggle('rolavel',sobra>4);
-    if(aoMedir)aoMedir(sobra-alvo[E.pos],sobra);
-    if(sobra<=4)return;
-    const trilho=barra[E.trilho];
-    const tam=Math.max(minimo||28,Math.round(trilho*alvo[E.tamVisivel]/alvo[E.tamTotal]));
-    thumb.style[E.ladoCss]=tam+'px';
-    thumb.style[E.inicioCss]=Math.round((trilho-tam)*(alvo[E.pos]/sobra))+'px';
-  };
-  if(!alvo||!barra||!thumb||thumb.dataset.ligado)return medir;
-  thumb.dataset.ligado='1';
-  let coordInicial=0,inicioInicial=0;
-  const mover=(e)=>{
-    const sobra=alvo[E.tamTotal]-alvo[E.tamVisivel];
-    const curso=barra[E.trilho]-thumb[E.tamThumb];
-    if(curso<=0)return;
-    alvo[E.pos]=(inicioInicial+(E.coord(e)-coordInicial))/curso*sobra;
-  };
-  const soltar=()=>{
-    barra.classList.remove('arrastando');
-    document.removeEventListener('pointermove',mover);
-    document.removeEventListener('pointerup',soltar);
-  };
-  thumb.addEventListener('pointerdown',(e)=>{
-    e.preventDefault();
-    coordInicial=E.coord(e);inicioInicial=E.inicioThumb(thumb);
-    barra.classList.add('arrastando');
-    document.addEventListener('pointermove',mover);
-    document.addEventListener('pointerup',soltar);
-  });
-  // Clique no trilho, fora do polegar, salta uma tela na direção do clique.
-  barra.addEventListener('pointerdown',(e)=>{
-    if(e.target===thumb)return;
-    const antes=E.coord(e)<E.borda(thumb.getBoundingClientRect());
-    const passo=antes?-alvo[E.tamVisivel]:alvo[E.tamVisivel];
-    alvo.scrollBy(eixo==='y'?{top:passo,behavior:'smooth'}:{left:passo,behavior:'smooth'});
-  });
-  alvo.addEventListener('scroll',medir,{passive:true});
-  window.addEventListener('resize',medir);
-  return medir;
+// A Agenda mostra só compromisso com data real — hora fixa não dá pra
+// arrastar pra outro dia, e é isso que faz confiar que a semana está cheia
+// ou vazia de verdade. As abas Hoje/Amanhã/Esta semana usam os mesmos
+// grupos de sempre, só que uma de cada vez em vez de empilhadas — dados já
+// calculados em cdc2AgendaDados, o clique na aba só troca qual pintar.
+let cdc2AgendaAba='hoje';
+let cdc2AgendaDados={hoje:[],amanha:[],semana:[]};
+function cdc2LinhaAgenda(ev){
+  const c=ev.c;
+  const hora=ev.dt?new Date(ev.dt).toLocaleString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
+  const quemSegunda=ev.segunda&&c.segundaParte&&c.segundaParte.quem?': '+esc(c.segundaParte.quem):'';
+  const tipo=ev.segunda?'Assinatura — 2ª parte'+quemSegunda:'Assinatura da escritura';
+  return`
+  <div class="cdc2-ag-linha" onclick="irParaCasoPorId('${c.id}')">
+    <span class="cdc2-ag-hora">${hora}</span>
+    <div class="cdc2-ag-corpo">
+      <div class="cdc2-ag-nome">${esc(c.nome)}</div>
+      <div class="cdc2-ag-tipo">${esc(tipo)}</div>
+    </div>
+  </div>`;
 }
-
-let medirBarraAgenda=null;
-function atualizarBarraAgenda(){
-  if(medirBarraAgenda)medirBarraAgenda();
-}
-
-// ── REORDENAR A MESA ──
-// A ordem dos cartões é decisão de quem usa: arrastando o cartão pro lado, ele
-// muda de lugar na fila e a posição fica gravada em `ordem`, dentro do próprio
-// lembrete.
-//
-// O cartão INTEIRO é a área de arrasto — a alça é só o sinal visual de que ele
-// se mexe. A primeira versão só reordenava pela alça, com o arrasto no resto do
-// cartão empurrando a faixa pro lado, e na prática ninguém acerta o alvo certo:
-// pega-se o cartão, e a faixa andava em vez de reordenar. Empurrar a faixa
-// agora é papel da barra de rolagem (que arrasta), da roda do mouse e, no
-// celular, do deslize normal do dedo.
-//
-// Mouse pega depois de 6px de movimento; dedo pega segurando 260ms parado. É a
-// separação que deixa o deslize do dedo continuar rolando a faixa: quem
-// deslizou de imediato queria rolar, quem segurou queria carregar o cartão.
-function ligarReordenarMesa(faixa){
-  if(!faixa||faixa.dataset.reordenar)return;
-  faixa.dataset.reordenar='1';
-  let card=null,candidato=null,arrastou=false;
-  let origemX=0,origemY=0,timerToque=null,autoTimer=null;
-  const cartoes=()=>[...faixa.querySelectorAll('.cc-mesa-card')];
-
-  // Põe o cartão arrastado antes do primeiro cujo meio já passou do ponteiro
-  // — o mesmo critério de qualquer lista arrastável, só que deitado.
-  const posicionar=(x)=>{
-    const alvo=cartoes().filter(c=>c!==card).find(c=>{
-      const r=c.getBoundingClientRect();
-      return x<r.left+r.width/2;
-    });
-    if(alvo)faixa.insertBefore(card,alvo);
-    else faixa.appendChild(card);
-  };
-
-  // Sem isto, não daria pra mandar um cartão pra uma posição fora da vista:
-  // chegando perto da borda, a faixa anda sozinha.
-  const autoRolar=(x)=>{
-    const r=faixa.getBoundingClientRect();
-    const passo=x<r.left+70?-14:(x>r.right-70?14:0);
-    clearInterval(autoTimer);autoTimer=null;
-    if(passo)autoTimer=setInterval(()=>{faixa.scrollLeft+=passo;},16);
-  };
-
-  const pegar=()=>{
-    if(!candidato)return;
-    card=candidato;
-    arrastou=true;
-    card.classList.add('pegando');
-    faixa.classList.add('reordenando');
-  };
-
-  const encerrar=()=>{
-    clearTimeout(timerToque);timerToque=null;
-    clearInterval(autoTimer);autoTimer=null;
-    candidato=null;
-    if(!card)return;
-    card.classList.remove('pegando');
-    faixa.classList.remove('reordenando');
-    card=null;
-    // Renumera na hora: o 01/02/03 vem do render, e esperar a ida e volta do
-    // Firebase deixaria a fila com a numeração antiga por um instante.
-    const fila=cartoes();
-    fila.forEach((c,i)=>{
-      const n=c.querySelector('.cc-mesa-num');
-      if(n)n.textContent=String(i+1).padStart(2,'0');
-    });
-    salvarOrdemMesa(fila.map(c=>c.dataset.focoId));
-  };
-
-  const mover=(e)=>{
-    if(!card){
-      if(!candidato)return;
-      const dx=Math.abs(e.clientX-origemX),dy=Math.abs(e.clientY-origemY);
-      if(e.pointerType==='mouse'){
-        if(dx>6)pegar();
-      }else if(dx>10||dy>10){
-        // Mexeu antes de o tempo fechar: é deslize pra rolar a faixa, não
-        // intenção de carregar o cartão. Sai de cena e deixa o navegador rolar.
-        clearTimeout(timerToque);timerToque=null;candidato=null;
-      }
-      if(!card)return;
-    }
-    e.preventDefault();
-    posicionar(e.clientX);
-    autoRolar(e.clientX);
-  };
-
-  faixa.addEventListener('pointerdown',(e)=>{
-    // Zera a marca ANTES de qualquer desvio: se ela só zerasse no caminho do
-    // arrasto, um clique em botão logo depois de reordenar seria comido pelo
-    // ouvinte lá embaixo, que ainda veria a marca do arrasto anterior.
-    arrastou=false;
-    if(e.target.closest('button'))return;
-    const alvo=e.target.closest('.cc-mesa-card');
-    if(!alvo)return;
-    candidato=alvo;origemX=e.clientX;origemY=e.clientY;
-    if(e.pointerType!=='mouse'){
-      clearTimeout(timerToque);
-      timerToque=setTimeout(pegar,260);
-    }
-    document.addEventListener('pointermove',mover,{passive:false});
-    document.addEventListener('pointerup',encerrar);
-    document.addEventListener('pointercancel',encerrar);
-  });
-
-  // Terminado o arrasto o navegador ainda dispara um clique, que abriria o
-  // caso sem querer. Este ouvinte come esse clique — e só ele, porque o
-  // próximo pointerdown zera a marca.
-  faixa.addEventListener('click',(e)=>{
-    if(arrastou){e.stopPropagation();e.preventDefault();}
-  },true);
-}
-
-// A ordem é gravada como número dentro de cada lembrete, e não deduzida da
-// posição no array: o array é reescrito inteiro a cada mudança nos focos, e a
-// ordem escolhida à mão precisa sobreviver a isso.
-// Reordenar uma faixa não pode mexer na outra. A conta: pega a fila como ela
-// está hoje, descobre quais POSIÇÕES os cartões desta faixa ocupam nela, e
-// redistribui esses mesmos cartões nessas mesmas posições, na sequência nova.
-// As posições de quem está na outra faixa ficam intactas.
-//
-// No fim, todo lembrete recebe `ordem` explícita — a fila deixa de depender
-// de empate no critério automático e passa a ser o que a mão decidiu.
-function salvarOrdemMesa(ids){
-  const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-  // Lê a fila ANTES do arrasto: calcularMesaLembretes olha os dados, que só
-  // mudam quando esta função grava.
-  const fila=calcularMesaLembretes().map(c=>c.f.id);
-  const daFaixa=ids.filter(id=>fila.includes(id));
-  const posicoes=daFaixa.map(id=>fila.indexOf(id)).sort((a,b)=>a-b);
-  const novaFila=[...fila];
-  daFaixa.forEach((id,k)=>{novaFila[posicoes[k]]=id;});
-  let mudou=false;
-  novaFila.forEach((id,i)=>{
-    const j=arr.findIndex(f=>f&&f.id===id);
-    if(j===-1||arr[j].ordem===i)return;
-    arr[j]={...arr[j],ordem:i};
-    mudou=true;
-  });
-  if(mudou)set(focosRef,arr);
-}
-
-
-// Cada faixa tem barra e arrasto próprios. Antes havia uma tira só, com ids
-// fixos; com uma faixa por pessoa, tudo passa a ser por elemento.
-function ligarFaixaMesa(bloco){
-  const tira=bloco.querySelector('.cc-mesa');
-  bloco._medirBarra=ligarBarraRolagem({
-    alvo:tira,
-    barra:bloco.querySelector('.cc-mesa-barra'),
-    thumb:bloco.querySelector('.cc-mesa-thumb'),
-    eixo:'x',minimo:36
-  });
-  ligarReordenarMesa(tira);
-}
-
-function ligarBarraAgenda(){
-  if(medirBarraAgenda)return;
-  const faixa=document.getElementById('cc-faixa');
-  medirBarraAgenda=ligarBarraRolagem({
-    alvo:document.getElementById('cdc-agenda'),
-    barra:document.getElementById('cc-faixa-barra'),
-    thumb:document.getElementById('cc-faixa-thumb'),
-    eixo:'y',
-    // O degradê do rodapé avisa de perto o que a barra avisa de longe, e
-    // apaga quando a lista chega ao fim.
-    aoMedir:(falta)=>faixa&&faixa.classList.toggle('tem-mais',falta>4)
-  });
-}
-
-function renderAgenda(itens){
+function cdc2PintarAgenda(){
   const el=document.getElementById('cdc-agenda');
+  if(!el)return;
+  const lista=cdc2AgendaDados[cdc2AgendaAba]||[];
+  el.innerHTML=lista.length?lista.map(cdc2LinhaAgenda).join(''):'<div class="cdc2-vazio">Nada agendado.</div>';
+}
+window.cdc2VerAgendaAba=function(aba){
+  cdc2AgendaAba=aba;
+  ['hoje','amanha','semana'].forEach(k=>{
+    document.getElementById('cdc-tab-ag-'+k)?.classList.toggle('ativa',k===aba);
+  });
+  cdc2PintarAgenda();
+};
+function renderAgenda(itens){
   const dentroDaJanela=(v)=>v!=null&&v>=0&&v<=7;
   // Um caso pode ter DUAS datas reais e independentes (escritura principal e
   // segunda parte, ex: 07/08 e 12/08 do mesmo caso) — cada uma vira seu
-  // próprio evento aqui, com seu próprio dia/etiqueta. Antes o caso inteiro
-  // era tratado como 1 bloco só, então quando as duas datas caíam em janelas
-  // diferentes (uma em "Amanhã", outra em "Próximos 7 dias"), a 2ª linha
-  // repetia por engano a data da 1ª (a checagem "é hoje/amanhã" comparava
-  // com a janela geral de 7 dias, não com o intervalo do bloco sendo
-  // montado no momento).
+  // próprio evento aqui, com seu próprio dia/etiqueta.
   const eventos=[];
   itens.forEach(it=>{
     const c=it.caso;
     if(dentroDaJanela(it.diffAgendado))eventos.push({c,diff:it.diffAgendado,dt:c.agendado,segunda:false});
     if(dentroDaJanela(it.diffSegunda))eventos.push({c,diff:it.diffSegunda,dt:c.segundaParte.data,segunda:true});
   });
-  // Concluído ou excluído aqui na agenda some da lista (ver botões abaixo) —
-  // a chave usa a data real do evento, então volta a aparecer sozinho se essa
-  // data mudar (reagendamento).
+  // Concluído ou excluído aqui na agenda some da lista — a chave usa a data
+  // real do evento, então volta a aparecer sozinho se essa data mudar
+  // (reagendamento).
   const eventosVisiveis=eventos
     .filter(ev=>!resolucoesCentral[chaveAgendaEvento(ev.c.id,ev.segunda?'segunda':'principal',ev.dt)])
     .sort(agendaPorHorario);
   const grupo=(min,max)=>eventosVisiveis.filter(ev=>ev.diff>=min&&ev.diff<=max);
-  const hoje=grupo(0,0),amanha=grupo(1,1),semana=grupo(2,7);
-  // Compromisso de caso vencido some da janela (o caso continua cobrado pelo
-  // Incêndios). Lembrete vencido, não — tarefa marcada pra ontem e não feita
-  // tem que continuar na cara, senão a data serviu só pra esconder o item.
-  const focosEv=eventosDeFocos();
-  const grupoFoco=(min,max)=>focosEv.filter(ev=>ev.diff>=min&&ev.diff<=max);
-  const atrasadosF=focosEv.filter(ev=>ev.diff<0);
-  const hojeF=grupoFoco(0,0),amanhaF=grupoFoco(1,1),semanaF=grupoFoco(2,7);
-  // A agenda mora na faixa do topo, então ela mesma anuncia o próprio tamanho
-  // ali no cabeçalho — quem olha de longe já sabe se a semana está cheia.
-  const cont=document.getElementById('cc-faixa-cont');
-  const totalVisivel=hoje.length+amanha.length+semana.length+focosEv.length;
-  if(cont)cont.textContent=totalVisivel
-    ?`${totalVisivel} ${ccPlural(totalVisivel,'compromisso')} · hoje e os próximos 7 dias`
-    :'hoje e os próximos 7 dias';
-  ligarBarraAgenda();
-  let html='';
-  if(!hoje.length&&!amanha.length&&!semana.length&&!focosEv.length){html+='<div class="cdc-vazio">Nada agendado pros próximos 7 dias.</div>';el.innerHTML=html;atualizarBarraAgenda();return;}
-  const linhaAgenda=(ev)=>{
-    const c=ev.c;
-    const dataFmt=ev.dt?new Date(ev.dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
-    // Diferencia visualmente da assinatura principal da escritura — sem essa
-    // etiqueta, dava pra confundir com "hoje é a escritura" só de bater o olho.
-    const quemSegunda=ev.segunda&&c.segundaParte&&c.segundaParte.quem?': '+esc(c.segundaParte.quem):'';
-    const tagSegunda=ev.segunda?`<span class="tag-segunda">2ª parte${quemSegunda}</span>`:'';
-    const chave=chaveAgendaEvento(c.id,ev.segunda?'segunda':'principal',ev.dt);
-    return`<div class="cdc-linha agenda" onclick="irParaCasoPorId('${c.id}')"><div class="cdc-conteudo"><div class="foco-tags"><span class="foco-caso-tag">${esc(c.nome)}</span>${tagSegunda}</div><span class="cdc-meta">${dataFmt}</span></div><div class="cdc-agenda-acoes"><button class="cdc-agenda-btn editar" title="Editar data e descrição" onclick="event.stopPropagation();abrirEditarAgenda('${ev.segunda?'segunda':'principal'}','${c.id}')"><i class="ti ti-pencil"></i></button><button class="cdc-agenda-btn concluir" title="Já concluí — tirar da agenda" onclick="event.stopPropagation();concluirAgendaEvento('${chave}')"><i class="ti ti-check"></i></button><button class="cdc-agenda-btn excluir" title="Excluir da agenda" onclick="event.stopPropagation();excluirAgendaEvento('${chave}')"><i class="ti ti-trash"></i></button></div></div>`;
-  };
-  const linhaFocoAgenda=(ev)=>{
-    const f=ev.foco,atrasado=ev.diff<0;
-    const tagCaso=f.casoNome?`<span class="foco-caso-tag">${esc(f.casoNome)}</span>`:`<span class="foco-caso-tag geral">Geral</span>`;
-    const tagResp=f.resp?bResp(f.resp):'';
-    const tagUrgente=f.urgente?`<span class="badge b-critico">Urgente</span>`:'';
-    // Clique leva ao caso, igual às linhas de compromisso — mas só quando o
-    // lembrete está amarrado a um caso; "Geral" não tem pra onde ir.
-    const clicavel=f.casoNome?` data-caso="${esc(f.casoNome)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer"`:'';
-    return`<div class="cdc-linha agenda lembrete${atrasado?' atrasado':''}"><div class="cdc-conteudo"${clicavel}><div class="foco-tags"><span class="foco-quando-tag${atrasado?' atrasado':''}"><i class="ti ti-note"></i>Lembrete</span>${tagCaso}${tagResp}${tagUrgente}</div><span class="cdc-texto">${esc(f.text||'')}</span><span class="cdc-meta">${fmtQuando(ev.dt)}</span></div><div class="cdc-agenda-acoes"><button class="cdc-agenda-btn editar" title="Editar lembrete" onclick="event.stopPropagation();abrirEditarAgenda('foco','${f.id}')"><i class="ti ti-pencil"></i></button><button class="cdc-agenda-btn concluir" title="Concluir lembrete" onclick="event.stopPropagation();toggleFoco('${f.id}')"><i class="ti ti-check"></i></button><button class="cdc-agenda-btn excluir" title="Excluir lembrete" onclick="event.stopPropagation();delFoco('${f.id}')"><i class="ti ti-trash"></i></button></div></div>`;
-  };
-  // Cada faixa do dia vem embrulhada no próprio grupo, e não solta na lista,
-  // porque é isso que faz o título grudado funcionar: irmãos sticky se
-  // empilham todos no topo, enquanto num grupo o título seguinte empurra o
-  // anterior pra fora quando a faixa dele acaba.
-  const bloco=(titulo,evs,fevs,classe)=>(evs.length||fevs.length)
-    ?`<div class="cc-faixa-grupo"><div class="cdc-sub-titulo${classe?' '+classe:''}">${titulo}</div>`
-      +evs.map(linhaAgenda).join('')+fevs.map(linhaFocoAgenda).join('')+`</div>`
-    :'';
-  html+=bloco('Atrasado',[],atrasadosF,'atrasado');
-  html+=bloco('Hoje',hoje,hojeF);
-  html+=bloco('Amanhã',amanha,amanhaF);
-  html+=bloco('Próximos 7 dias',semana,semanaF);
-  el.innerHTML=html;
-  atualizarBarraAgenda();
+  cdc2AgendaDados={hoje:grupo(0,0),amanha:grupo(1,1),semana:grupo(2,7)};
+  ['hoje','amanha','semana'].forEach(k=>{
+    const n=document.getElementById('cdc-tab-ag-'+k+'-n');
+    if(n){const q=cdc2AgendaDados[k].length;n.textContent=q?`(${q})`:'';}
+  });
+  cdc2VerAgendaAba(cdc2AgendaAba);
 }
 
 
@@ -4565,9 +4233,9 @@ window.irParaCasoPorId=function(id){
 };
 
 // ── LEMBRETES MANUAIS ──
-// A lista deles é a Mesa de hoje (ver renderMesaHoje), desenhada junto com o
-// resto da Central. O que sobrou aqui é o formulário de criar, que mora no
-// rodapé da Mesa.
+// A lista deles é o Bloco de Notas (ver renderBlocoNotas), desenhada junto
+// com o resto da Central. O que sobrou aqui é o formulário de criar, que
+// mora dentro do cartão do Bloco de Notas.
 function popularFocoCasoSelect(){
   const sel=document.getElementById('foco-caso');
   if(!sel)return;
@@ -4611,8 +4279,8 @@ window.addFoco=function(){
   const casoNome=document.getElementById('foco-caso').value||null;
   const resp=document.getElementById('foco-resp').value||null;
   const urgente=document.getElementById('foco-urgente').checked;
-  // Data é opcional: sem ela o lembrete continua sendo só lembrete, como
-  // sempre foi. Com ela, aparece também na Agenda (ver eventosDeFocos).
+  // Data é opcional e só fica guardada no lembrete — desde que a Agenda
+  // passou a mostrar só compromisso com data real, ela não entra mais lá.
   const quando=document.getElementById('foco-quando').value||null;
   const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
   arr.push({id:gerarIdFoco(),text:v,done:false,casoNome,resp,urgente,quando});
