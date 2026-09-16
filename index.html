@@ -1714,14 +1714,34 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .orc-tabela-mini{font-size:10.5px;color:var(--cc-tinta-3)}
 
 /* ── a janela do orçamento ── */
-.orc-bloco{border-top:0.5px solid var(--cc-linha);padding-top:13px;margin-top:13px}
-/* O número da etapa é a ponte entre a tela e as dezessete etapas que ela
-   escreveu — mas é nota de rodapé, não título. Fica pequeno e ao lado. */
-.orc-secao{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
-.orc-secao b{font-size:12px;font-weight:600;color:var(--cc-tinta)}
+/* Cada bloco é um cartão — e dentro da coluna principal ganha um número
+   automático (contador de CSS, não escrito à mão): a ordem dos blocos já é a
+   ordem que ela preenche, então o número nunca fica fora de sincronia com o
+   que muda de ato para ato. */
+.orc-coluna-principal{counter-reset:orc-passo}
+.orc-bloco{background:var(--cc-sup);border:1px solid var(--cc-linha);border-radius:14px;
+  padding:14px 16px;margin-bottom:13px}
+.orc-coluna-principal .orc-bloco{counter-increment:orc-passo}
+.orc-coluna-principal .orc-bloco .orc-secao b::before{
+  content:counter(orc-passo);display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;background:var(--cc-info);color:#fff;
+  font-size:10.5px;font-weight:700;margin-right:7px;flex:none}
+.orc-secao{display:flex;align-items:center;gap:8px;margin-bottom:11px;flex-wrap:wrap}
+.orc-secao-icone{color:var(--cc-info);font-size:15px}
+.orc-secao b{display:inline-flex;align-items:center;font-size:12.5px;font-weight:600;color:var(--cc-tinta)}
 .orc-secao span{font-size:10px;font-weight:600;letter-spacing:.07em;
   text-transform:uppercase;color:var(--cc-tinta-3)}
-.orc-bloco:first-child{border-top:0;padding-top:0;margin-top:0}
+.orc-bloco:first-child{margin-top:0}
+/* Duas colunas: a esquerda vai preenchendo, a direita é o resumo — que
+   acompanha a rolagem (sticky) para ela sempre ver o total, não importa em
+   qual campo esteja digitando. No celular vira uma coluna só, na ordem
+   natural de leitura. */
+.orc-layout{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+.orc-coluna-lateral{position:sticky;top:14px}
+@media (max-width:760px){
+  .orc-layout{display:block}
+  .orc-coluna-lateral{position:static;margin-top:13px}
+}
 .orc-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:11px}
 .orc-campo{display:flex;flex-direction:column;gap:5px;min-width:0}
 /* Sem o min-width:0, a coluna da grade cresce até caber a maior <option> —
@@ -1786,18 +1806,37 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .orc-aviso-inline{font-size:11.5px;color:var(--cc-atencao)}
 .orc-vazio{padding:26px 18px;text-align:center;font-size:13px;line-height:1.65;color:var(--cc-tinta-3)}
 
+/* ── a coluna lateral: o resumo que acompanha a rolagem ── */
+.orc-resumo-cab{display:flex;align-items:center;gap:10px;background:var(--cc-tinta);
+  color:#fff;border-radius:14px 14px 0 0;padding:13px 15px;margin:-1px -1px 0}
+.orc-resumo-cab i{font-size:19px}
+.orc-resumo-cab b{display:block;font-size:13px;font-weight:600}
+.orc-resumo-cab span{display:block;font-size:11px;color:#C9D3DC;margin-top:1px}
+.orc-resumo-corpo{border:1px solid var(--cc-linha);border-top:0;border-radius:0 0 14px 14px;
+  padding:14px 15px;background:var(--cc-sup)}
+.orc-resumo-topo{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-bottom:13px;
+  padding-bottom:13px;border-bottom:0.5px solid var(--cc-linha)}
+.orc-resumo-topo-item{grid-column:span 1;min-width:0}
+.orc-resumo-topo-item.larga{grid-column:1/-1}
+.orc-resumo-topo-item span{display:block;font-size:10px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--cc-tinta-3);margin-bottom:2px}
+.orc-resumo-topo-item b{font-size:12.5px;color:var(--cc-tinta);font-variant-numeric:tabular-nums}
+
 /* ── o total e o resumo ── */
-.orc-total{margin-top:15px;background:var(--cc-sup-2);border:1px solid var(--cc-linha);
-  border-radius:13px;padding:14px 16px;text-align:center}
+.orc-total{margin-top:15px;background:#E8F1EA;border:1px solid #CFE2D4;
+  border-radius:13px;padding:14px 16px}
 .orc-total.estimativa{background:#FBF1DE;border-color:#EDDCBB}
+.orc-total-rot{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--cc-tinta-3)}
 .orc-total-num{font-family:'Jost',sans-serif;font-weight:400;font-size:30px;
-  font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
+  font-variant-numeric:tabular-nums;color:var(--cc-ok);margin-top:2px}
 .orc-total.estimativa .orc-total-num{color:var(--cc-atencao)}
-.orc-total-rot{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--cc-tinta-3);margin-top:3px}
-.orc-resumo{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px}
-.orc-resumo-item{font-size:12px;color:var(--cc-tinta-2);background:var(--cc-sup);
-  border:0.5px solid var(--cc-linha);border-radius:999px;padding:4px 11px}
+.orc-resumo{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.orc-resumo-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-size:12.5px;color:var(--cc-tinta-2);background:var(--cc-sup);
+  border:0.5px solid var(--cc-linha);border-radius:9px;padding:7px 11px}
 .orc-resumo-item b{font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
+.orc-resumo-item span{display:inline-flex;align-items:center;gap:7px}
+.orc-resumo-dot{width:8px;height:8px;border-radius:3px;flex:none}
 
 /* ── perguntas, avisos e divergências ── */
 .orc-perguntas{margin-top:12px;background:#EFF4F8;border:0.5px solid #D4E1EB;
@@ -10832,14 +10871,15 @@ function orcCalcular(entrada){
   // deixava R$ 300 de "despesa do registro" num ato que não tem registro —
   // somados no total, e sem linha nenhuma na via da cliente, que então deixava
   // de fechar. Despesa que não aparece em linha alguma não pode entrar na soma.
-  if(temRegistro && d.taxaAdicional === true)
+  //
+  // Virou regra fixa em 16/09/2026: R$ 300,00 por padrão, sem precisar
+  // perguntar toda vez — ela ainda pode mudar o valor ou tirar, mas o
+  // orçamento não fica mais travado esperando essa resposta.
+  if(temRegistro && d.taxaAdicional !== false)
     despesas.push({rot: 'Despesa adicional do registro', item: null,
       valor: d.taxaAdicionalValor != null ? d.taxaAdicionalValor : 30000,
       interna: true,
       fundamento: 'Despesa acertada com a cliente. No orçamento do cliente entra somada ao registro, sem linha própria.'});
-  if(temRegistro && d.taxaAdicional == null)
-    faltando.push({campo: 'taxaAdicional', rot: 'Taxa adicional',
-      pergunta: 'Deseja incluir taxa adicional nas despesas do registro?', sim_nao: true});
 
   // ETAPA 15 — somar tudo.
   const soma = arr => arr.reduce((s, x) => s + (x.valor || 0), 0);
@@ -11052,10 +11092,9 @@ function orcCheckFinal(c){
         : c.d.matricula === false ? 'Retirada à mão.'
         : duas ? 'Duas certidões, de propósito: uma para começar o trabalho e outra para o fim.'
         : 'Incluída.');
-  põe('Taxa adicional perguntada', !c.registros.length ? 'ok' : (c.d.taxaAdicional == null ? 'falta' : 'ok'),
+  põe('Taxa adicional', 'ok',
       !c.registros.length ? 'Não se aplica.'
-        : c.d.taxaAdicional == null ? 'Ainda não perguntada.'
-        : c.d.taxaAdicional ? 'Incluída, a pedido.' : 'Dispensada, a pedido.');
+        : c.d.taxaAdicional === false ? 'Dispensada, a pedido.' : 'Incluída — R$ 300,00 por padrão.');
   põe('Memória de cálculo', 'ok', 'Gerada com cada linha, faixa e fundamento.');
   return itens;
 }
@@ -11377,6 +11416,10 @@ let orcCasoAberto = null;  // id do caso cuja janela está aberta
 let orcEmEdicao = null;    // rascunho da janela do caso
 let orcVerMemoria = false;
 let orcVerCliente = false;
+// As informações que só existem para a máquina conferir a conta — de onde
+// veio cada dado, o CHECK FINAL, quem fez o orçamento. Ela pediu para tirar
+// isso da frente: fica atrás de um botão, fechado por padrão.
+let orcVerTecnico = false;
 let orcRegraAberta = null;
 let orcSalvando = false;    // enquanto o banco não responde
 let orcErroSalvar = null;   // o que ele respondeu, quando recusou
@@ -11532,7 +11575,7 @@ window.orcNovoDoCaso = function(casoId){
   const h = orcHerdarDoCaso(casoId);
   const anterior = orcUltimoDoCaso(casoId);
   orcCasoAberto = casoId;
-  orcVerMemoria = false; orcVerCliente = false;
+  orcVerMemoria = false; orcVerCliente = false; orcVerTecnico = false;
   orcEmEdicao = {
     id: null, casoId, casoNome: c.nome || '',
     atoId: (anterior && (anterior.entrada || {}).atoId) || orcAdivinharAto(h.tipoAto),
@@ -11555,7 +11598,7 @@ window.orcAbrirDoCaso = function(casoId, orcId){
   const o = orcTudo[orcId];
   if(!o) return;
   orcCasoAberto = casoId;
-  orcVerMemoria = false; orcVerCliente = false;
+  orcVerMemoria = false; orcVerCliente = false; orcVerTecnico = false;
   orcEmEdicao = {
     id: o.id, casoId, casoNome: o.casoNome || '',
     ...JSON.parse(JSON.stringify(o.entrada || {})),
@@ -11573,7 +11616,7 @@ function orcAbrirJanela(){
 }
 window.fecharOrcamentoDoCaso = function(){
   document.getElementById('modal-orcamento-caso').classList.remove('open');
-  orcCasoAberto = null; orcEmEdicao = null; orcVerMemoria = false; orcVerCliente = false;
+  orcCasoAberto = null; orcEmEdicao = null; orcVerMemoria = false; orcVerCliente = false; orcVerTecnico = false;
 };
 
 // O cálculo de agora, a partir do rascunho aberto.
@@ -11788,31 +11831,57 @@ function renderOrcamentoDoCaso(){
   const h = e.herdado || {};
 
   alvo.innerHTML = `
-    ${orcHtmlHerdado(h)}
-    <div class="orc-bloco">
-      <div class="orc-secao"><b>Como identificar este orçamento</b><span>é o que a cliente lê</span></div>
-      <input class="fin-input" value="${esc(e.identificacao || '')}"
-        placeholder="${esc(e.casoNome || 'Ex: Rua das Palmeiras, 210 — apto 1301')}"
-        oninput="orcMudarIdentificacao(this.value)">
-      <div class="fin-mini" style="margin-top:5px">Sai embaixo de <b>ESTIMATIVA DE CUSTOS</b>, na via da
-        cliente. Costuma ser a rua do imóvel, ou o nome do de cujus no inventário.
-        Em branco, usa o nome do card.</div>
+  <div class="orc-layout">
+    <div class="orc-coluna-principal">
+      <div class="orc-tecnico-toggle">
+        <button type="button" class="cx-btn" onclick="orcAlternarTecnico()">
+          <i class="ti ti-adjustments"></i> ${orcVerTecnico ? 'Ocultar detalhes técnicos' : 'Ver detalhes técnicos'}</button>
+      </div>
+      ${orcVerTecnico ? orcHtmlHerdado(h) : ''}
+      <div class="orc-bloco">
+        <div class="orc-secao"><i class="ti ti-file-text orc-secao-icone"></i><b>Como identificar este orçamento</b><span>é o que a cliente lê</span></div>
+        <input class="fin-input" value="${esc(e.identificacao || '')}"
+          placeholder="${esc(e.casoNome || 'Ex: Rua das Palmeiras, 210 — apto 1301')}"
+          oninput="orcMudarIdentificacao(this.value)">
+        <div class="fin-mini" style="margin-top:5px">Sai embaixo de <b>ESTIMATIVA DE CUSTOS</b>, na via da
+          cliente. Costuma ser a rua do imóvel, ou o nome do de cujus no inventário.
+          Em branco, usa o nome do card.</div>
+      </div>
+      <div class="orc-bloco">
+        <div class="orc-secao"><i class="ti ti-gavel orc-secao-icone"></i><b>Qual é o ato</b><span>etapa 1</span></div>
+        <select class="fin-select" onchange="orcTrocarAto(this.value)">
+          <option value="">Escolha o ato…</option>
+          ${grupos.map(g => `<optgroup label="${escTxt(g)}">
+            ${ORC_ATOS.filter(a => a.grupo === g).map(a =>
+              `<option value="${a.id}"${e.atoId === a.id ? ' selected' : ''}>${escTxt(a.nome)}</option>`).join('')}
+          </optgroup>`).join('')}
+        </select>
+        ${ato && orcVerTecnico ? `<div class="orc-comoescreveu"><b>Regra de cobrança:</b> ${escTxt(ato.comoElaEscreveu)}</div>` : ''}
+        ${ato ? orcHtmlOutrosAtos(e) : ''}
+      </div>
+      ${ato ? orcHtmlJurisdicao(e, r) + orcHtmlValores(e, ato, r) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
     </div>
-    <div class="orc-bloco">
-      <div class="orc-secao"><b>Qual é o ato</b><span>etapa 1</span></div>
-      <select class="fin-select" onchange="orcTrocarAto(this.value)">
-        <option value="">Escolha o ato…</option>
-        ${grupos.map(g => `<optgroup label="${escTxt(g)}">
-          ${ORC_ATOS.filter(a => a.grupo === g).map(a =>
-            `<option value="${a.id}"${e.atoId === a.id ? ' selected' : ''}>${escTxt(a.nome)}</option>`).join('')}
-        </optgroup>`).join('')}
-      </select>
-      ${ato ? `<div class="orc-comoescreveu"><b>Regra de cobrança:</b> ${escTxt(ato.comoElaEscreveu)}</div>` : ''}
-      ${ato ? orcHtmlOutrosAtos(e) : ''}
+    <div class="orc-coluna-lateral">
+      <div class="orc-resumo-cab"><i class="ti ti-file-text"></i>
+        <div><b>Resumo do orçamento</b><span>Confira os dados e valores calculados</span></div></div>
+      <div class="orc-resumo-corpo">
+        ${ato ? orcHtmlResumoTopo(e, ato, r) : ''}
+        <div id="orc-resultado">${r ? orcHtmlResultado(e, r) : '<div class="orc-vazio">Escolha o ato para o motor começar a calcular.</div>'}</div>
+        ${ato ? orcHtmlRodape(e, r) : ''}
+      </div>
     </div>
-    ${ato ? orcHtmlJurisdicao(e, r) + orcHtmlValores(e, ato, r) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
-    <div id="orc-resultado">${r ? orcHtmlResultado(e, r) : '<div class="orc-vazio">Escolha o ato para o motor começar a calcular.</div>'}</div>
-    ${ato ? orcHtmlRodape(e, r) : ''}`;
+  </div>`;
+}
+// O que ela vê primeiro no resumo, antes de qualquer conta: os dados que já
+// identificam este orçamento, mesmo rolando a tela para preencher o resto.
+function orcHtmlResumoTopo(e, ato, r){
+  return `<div class="orc-resumo-topo">
+    <div class="orc-resumo-topo-item larga"><span>Cliente</span><b>${escTxt(e.casoNome || 'Sem card')}</b></div>
+    <div class="orc-resumo-topo-item larga"><span>Ato</span><b>${escTxt(ato.nome)}</b></div>
+    <div class="orc-resumo-topo-item"><span>Local do ato</span><b>${escTxt(e.praticadoEm || '—')}${e.imovelUf ? ' - ' + escTxt(e.imovelUf) : ''}</b></div>
+    <div class="orc-resumo-topo-item"><span>Data</span><b>${finDataBr(e.data)}</b></div>
+    ${r && r.baseDeclarada != null ? `<div class="orc-resumo-topo-item larga"><span>Valor do negócio</span><b>${orcMoeda(r.baseDeclarada)}</b></div>` : ''}
+  </div>`;
 }
 window.renderOrcamentoDoCaso = renderOrcamentoDoCaso;
 function orcRedesenharResultado(){
@@ -11888,7 +11957,7 @@ function orcHtmlHerdado(h){
 }
 function orcHtmlJurisdicao(e, r){
   return `<div class="orc-bloco">
-    <div class="orc-secao"><b>Onde o ato sai, e onde está o imóvel</b><span>etapas 2 a 4</span></div>
+    <div class="orc-secao"><i class="ti ti-map-pin orc-secao-icone"></i><b>Onde o ato sai, e onde está o imóvel</b><span>etapas 2 a 4</span></div>
     <div class="orc-grade">
       <div class="orc-campo"><label class="fin-rot">Ato praticado em</label>
         <input class="fin-input" value="${esc(e.praticadoEm || '')}" oninput="orcMudarCampoTexto('praticadoEm',this.value)"></div>
@@ -12027,7 +12096,7 @@ function orcHtmlValores(e, ato, r){
   }).join('');
   const bloco = campos
     ? `<div class="orc-bloco">
-        <div class="orc-secao"><b>Base de cálculo</b><span>etapa 10</span></div>
+        <div class="orc-secao"><i class="ti ti-currency-real orc-secao-icone"></i><b>Base de cálculo</b><span>etapa 10</span></div>
         <div class="orc-grade">${campos}</div>
       </div>` : '';
   return bloco + orcHtmlImoveis(e, ato, r);
@@ -12046,7 +12115,7 @@ function orcHtmlImoveis(e, ato, r){
   if((ato.campos || []).some(c => (ORC_CAMPOS[c] || {}).lista)) return '';
   const lista = (e.valores || {}).unidadesRegistro || [];
   return `<div class="orc-bloco">
-    <div class="orc-secao"><b>Imóveis a registrar</b><span>uma matrícula, um registro</span></div>
+    <div class="orc-secao"><i class="ti ti-home orc-secao-icone"></i><b>Imóveis a registrar</b><span>uma matrícula, um registro</span></div>
     ${lista.length ? `
       ${orcListaHtml('unidadesRegistro', 'Cada matrícula, com o seu valor', lista, orcContraDaLista(r), null)}
       <button type="button" class="cx-btn" onclick="orcTirarTodasMatriculas()">
@@ -12113,23 +12182,27 @@ function orcHtmlEspeciais(e, ato){
     if(f.temPensao) bits.push(orcHtmlPensao(e));
   }
   // Os itens especiais valem para qualquer escritura com valor declarado.
-  if((ato.campos || []).length)
-    bits.push(`<div class="orc-campo orc-campo-largo"><label class="fin-rot">Regra especial da tabela</label>
-      <select class="fin-select" onchange="orcMudarRegraEspecial(this.value)">
-        <option value=""${!f.zeis && !f.fgtsOuHis && !f.regularizacaoFundiaria ? ' selected' : ''}>Nenhuma — faixa normal da tabela</option>
-        <option value="zeis"${f.zeis ? ' selected' : ''}>Primeira alienação em empreendimento de interesse social em ZEIS (item 1.4)</option>
-        <option value="fgtsOuHis"${f.fgtsOuHis ? ' selected' : ''}>Imóvel FGTS ou programa habitacional de interesse social (item 1.3)</option>
-        <option value="regularizacaoFundiaria"${f.regularizacaoFundiaria ? ' selected' : ''}>Regularização fundiária de interesse social (item 1.2)</option>
-      </select></div>`);
-  if((ato.montar && (ato.id.indexOf('compra-venda') === 0 || ato.id === 'dacao')))
-    bits.push(`<div class="orc-campo"><label class="fin-rot">Imóvel residencial?</label>
-      <select class="fin-select" onchange="orcMudarFlag('residencial',this.value==='1')">
-        <option value="0"${f.residencial ? '' : ' selected'}>Não / não sei</option>
-        <option value="1"${f.residencial ? ' selected' : ''}>Sim — o motor confere o teto de isenção do ITBI</option>
-      </select></div>`);
+  // Nenhum caso até hoje usou estas duas — ficam atrás de "Detalhes técnicos",
+  // e o padrão (nenhuma regra especial, não residencial) continua valendo.
+  if(orcVerTecnico){
+    if((ato.campos || []).length)
+      bits.push(`<div class="orc-campo orc-campo-largo"><label class="fin-rot">Regra especial da tabela</label>
+        <select class="fin-select" onchange="orcMudarRegraEspecial(this.value)">
+          <option value=""${!f.zeis && !f.fgtsOuHis && !f.regularizacaoFundiaria ? ' selected' : ''}>Nenhuma — faixa normal da tabela</option>
+          <option value="zeis"${f.zeis ? ' selected' : ''}>Primeira alienação em empreendimento de interesse social em ZEIS (item 1.4)</option>
+          <option value="fgtsOuHis"${f.fgtsOuHis ? ' selected' : ''}>Imóvel FGTS ou programa habitacional de interesse social (item 1.3)</option>
+          <option value="regularizacaoFundiaria"${f.regularizacaoFundiaria ? ' selected' : ''}>Regularização fundiária de interesse social (item 1.2)</option>
+        </select></div>`);
+    if((ato.montar && (ato.id.indexOf('compra-venda') === 0 || ato.id === 'dacao')))
+      bits.push(`<div class="orc-campo"><label class="fin-rot">Imóvel residencial?</label>
+        <select class="fin-select" onchange="orcMudarFlag('residencial',this.value==='1')">
+          <option value="0"${f.residencial ? '' : ' selected'}>Não / não sei</option>
+          <option value="1"${f.residencial ? ' selected' : ''}>Sim — o motor confere o teto de isenção do ITBI</option>
+        </select></div>`);
+  }
   if(!bits.length) return '';
   return `<div class="orc-bloco">
-    <div class="orc-secao"><b>O que falta para concluir</b><span>etapas 9 e 13</span></div>
+    <div class="orc-secao"><i class="ti ti-list-check orc-secao-icone"></i><b>O que falta para concluir</b><span>etapas 9 e 13</span></div>
     <div class="orc-grade">${bits.join('')}</div></div>`;
 }
 // As parcelas da pensão. Escritas do jeito que ela fala: "um salário mínimo
@@ -12231,7 +12304,7 @@ function orcHtmlDespesas(e, r){
       + 'e a taxa adicional saem da conta. A escritura e os tributos (ITBI/ITCMD) continuam normalmente.</div>' : ''}
   </div>`;
   if(semRegistro) return `<div class="orc-bloco">
-    <div class="orc-secao"><b>Despesas do registro</b><span>etapa 14</span></div>
+    <div class="orc-secao"><i class="ti ti-wallet orc-secao-icone"></i><b>Despesas do registro</b><span>etapa 14</span></div>
     <div class="orc-grade">${toggleRegistro}</div>
   </div>`;
   const nImoveis = r.registros.length;
@@ -12249,7 +12322,7 @@ function orcHtmlDespesas(e, r){
   const porImovel = campo => `<span class="fin-mini" id="orc-porimovel-${campo}">${
     nImoveis > 1 ? `— uma por imóvel (${nImoveis})` : '— uma'}</span>`;
   return `<div class="orc-bloco">
-    <div class="orc-secao"><b>Despesas do registro</b><span>etapa 14</span></div>
+    <div class="orc-secao"><i class="ti ti-wallet orc-secao-icone"></i><b>Despesas do registro</b><span>etapa 14</span></div>
     <div class="orc-grade">
       ${toggleRegistro}
       <div class="orc-campo"><label class="fin-rot">Prenotação
@@ -12264,21 +12337,19 @@ function orcHtmlDespesas(e, r){
           <option value="1"${d.matricula !== false ? ' selected' : ''}>Incluir</option>
           <option value="0"${d.matricula === false ? ' selected' : ''}>Não incluir</option></select>
         ${qtde('qtdeMatricula', d.matricula !== false)}</div>
-      <div class="orc-campo orc-campo-largo"><label class="fin-rot">Coluna do registro na tabela
-          <span class="fin-mini">— a de 2026 traz as duas</span></label>
-        <select class="fin-select" onchange="orcMudarDespesa('registroComMatricula',this.value==='1')">
-          <option value="1"${d.registroComMatricula !== false ? ' selected' : ''}>Registro com matrícula — o registro da faixa já com a certidão somada</option>
-          <option value="0"${d.registroComMatricula === false ? ' selected' : ''}>Registro — só a faixa, sem a certidão</option></select></div>
+      ${orcVerTecnico ? `<div class="orc-campo orc-campo-largo"><label class="fin-rot">Coluna do registro na tabela
+          <span class="fin-mini">— regra fixa: sempre com a certidão somada</span></label>
+        <div class="fin-mini">Registro com matrícula — o registro da faixa já com a certidão somada.</div></div>` : ''}
       <div class="orc-campo orc-campo-largo orc-taxa">
-        <label class="fin-rot">Deseja incluir taxa adicional nas despesas do registro?
-          <span class="fin-mini">— nunca entra sozinha, e no orçamento do cliente vai somada ao registro</span></label>
+        <label class="fin-rot">Taxa adicional nas despesas do registro
+          <span class="fin-mini">— R$ 300,00 por padrão; some do registro se marcar "Não incluir"</span></label>
         <div class="orc-taxa-linha">
-          <button type="button" class="cx-btn${d.taxaAdicional === true ? ' destaque' : ''}" onclick="orcMudarDespesa('taxaAdicional',true)">Sim</button>
-          <button type="button" class="cx-btn${d.taxaAdicional === false ? ' destaque' : ''}" onclick="orcMudarDespesa('taxaAdicional',false)">Não</button>
-          ${d.taxaAdicional === true ? `<input class="fin-input" style="width:130px" inputmode="decimal"
+          <select class="fin-select" onchange="orcMudarDespesa('taxaAdicional',this.value==='1')">
+            <option value="1"${d.taxaAdicional !== false ? ' selected' : ''}>Incluir</option>
+            <option value="0"${d.taxaAdicional === false ? ' selected' : ''}>Não incluir</option></select>
+          ${d.taxaAdicional !== false ? `<input class="fin-input" style="width:130px" inputmode="decimal"
             value="${orcBr(d.taxaAdicionalValor != null ? d.taxaAdicionalValor : orcTaxaPadrao())}"
             oninput="orcMudarDespesaNum('taxaAdicionalValor',this.value)">` : ''}
-          ${d.taxaAdicional == null ? '<span class="orc-aviso-inline">Ainda não respondida — o orçamento não fecha sem isso.</span>' : ''}
         </div>
       </div>
     </div>
@@ -12293,14 +12364,14 @@ function orcHtmlResultado(e, r){
   const divs = orcDivergencias({id: e.id, resultado: r, data: e.data, casoNome: e.casoNome}, orcLista());
   return `
     <div class="orc-total ${r.definitivo ? '' : 'estimativa'}">
-      <div class="orc-total-num">${orcMoeda(t.total)}</div>
       <div class="orc-total-rot">${r.definitivo ? 'Total conferido' : 'Estimativa — o CHECK FINAL ainda não fecha'}</div>
+      <div class="orc-total-num">${orcMoeda(t.total)}</div>
     </div>
     <div class="orc-resumo">
-      <span class="orc-resumo-item">Escritura <b>${orcMoeda(t.escritura)}</b></span>
-      <span class="orc-resumo-item">Registro <b>${orcMoeda(t.registro)}</b></span>
-      <span class="orc-resumo-item">Despesas <b>${orcMoeda(t.despesas)}</b></span>
-      <span class="orc-resumo-item">Tributos <b>${orcMoeda(t.tributos)}</b></span>
+      <span class="orc-resumo-item"><span><span class="orc-resumo-dot" style="background:var(--cc-champagne)"></span>Escritura</span> <b>${orcMoeda(t.escritura)}</b></span>
+      <span class="orc-resumo-item"><span><span class="orc-resumo-dot" style="background:var(--cc-info)"></span>Registro</span> <b>${orcMoeda(t.registro)}</b></span>
+      <span class="orc-resumo-item"><span><span class="orc-resumo-dot" style="background:var(--cc-critico)"></span>Despesas</span> <b>${orcMoeda(t.despesas)}</b></span>
+      <span class="orc-resumo-item"><span><span class="orc-resumo-dot" style="background:var(--cc-atencao)"></span>Tributos</span> <b>${orcMoeda(t.tributos)}</b></span>
     </div>
     ${r.faltando.length ? `<div class="orc-perguntas">
       <div class="orc-perguntas-rot">Para finalizar o orçamento, preciso confirmar:</div>
@@ -12324,9 +12395,10 @@ function orcHtmlResultado(e, r){
       <button type="button" class="cx-btn" onclick="orcAlternarCliente()"><i class="ti ti-file-text"></i> Gerar orçamento para cliente</button>
     </div>
     ${orcVerMemoria ? orcHtmlMemoria(r) : ''}
-    ${orcHtmlCheck(r)}`;
+    ${orcVerTecnico ? orcHtmlCheck(r) : ''}`;
 }
 window.orcAlternarMemoria = function(){ orcVerMemoria = !orcVerMemoria; orcRedesenharResultado(); };
+window.orcAlternarTecnico = function(){ orcVerTecnico = !orcVerTecnico; renderOrcamentoDoCaso(); };
 window.orcAlternarCliente = function(){ orcVerCliente = true; renderOrcamentoDoCaso(); };
 window.orcVoltarDoCliente = function(){ orcSoltarFolha(); orcVerCliente = false; renderOrcamentoDoCaso(); };
 
@@ -12726,7 +12798,7 @@ window.orcCopiarCliente = function(){
 function orcHtmlRodape(e, r){
   const podeCorrigir = e.id && e.status === 'elaboracao';
   return `<div class="orc-bloco">
-    <div class="orc-grade">
+    ${orcVerTecnico ? `<div class="orc-grade">
       <div class="orc-campo"><label class="fin-rot">Status do orçamento</label>
         <select class="fin-select" onchange="orcMudarCampoTexto('status',this.value)">
           ${ORC_STATUS.map(s => `<option value="${s.id}"${e.status === s.id ? ' selected' : ''}>${s.selo} ${escTxt(s.rot)}</option>`).join('')}
@@ -12735,7 +12807,7 @@ function orcHtmlRodape(e, r){
         <input class="fin-input" value="${esc(e.responsavel || localStorage.getItem('painel_usuario') || '')}" oninput="orcMudarCampoTexto('responsavel',this.value)"></div>
       <div class="orc-campo orc-campo-largo"><label class="fin-rot">Observações</label>
         <input class="fin-input" value="${esc(e.obs || '')}" placeholder="O que este orçamento tem de particular" oninput="orcMudarCampoTexto('obs',this.value)"></div>
-    </div>
+    </div>` : ''}
     ${orcErroSalvar ? `<div class="orc-erro-salvar"><b>Não salvou.</b> ${escTxt(orcErroSalvar)}</div>` : ''}
     ${orcSalvoEm && !orcErroSalvar ? `<div class="orc-salvo-ok">Guardado no banco às ${escTxt(orcSalvoEm.slice(11, 16))}${e.versao ? ` — versão ${e.versao}` : ''}.</div>` : ''}
     <div class="modal-btn-row">
@@ -12816,7 +12888,7 @@ window.orcDuplicar = function(orcId){
   const o = orcTudo[orcId];
   if(!o) return;
   orcCasoAberto = o.casoId;
-  orcVerMemoria = false; orcVerCliente = false;
+  orcVerMemoria = false; orcVerCliente = false; orcVerTecnico = false;
   orcEmEdicao = {
     id: null, casoId: o.casoId, casoNome: o.casoNome,
     ...JSON.parse(JSON.stringify(o.entrada || {})),
