@@ -538,6 +538,15 @@ procuração, ata e escritura declaratória.
   depois de responder a pergunta deixava R$ 300 de "despesa do registro" numa
   procuração, somados no total e sem linha nenhuma na via da cliente, que então
   deixava de fechar.
+- **O registro é opcional.** A cliente pode preferir levar a matrícula a
+  outro cartório — decisão dela, não uma exceção rara. Um toggle
+  (`despesas.registro`, `false` para dispensar) zera o registro inteiro: a
+  faixa da tabela de custas, a prenotação, a certidão de matrícula e a taxa
+  adicional, que são despesas do registro e não fazem sentido sem ele. A
+  **escritura e os tributos (ITBI/ITCMD) continuam cobrados normalmente** —
+  são devidos independentemente de quem faz o registro. O toggle fica sempre
+  visível na tela, mesmo com o registro já dispensado, para ela poder voltar
+  atrás. Pedido por ela em 16/09/2026.
 
 ### Por onde se orça
 
@@ -782,6 +791,7 @@ o `testes/montar.mjs` recorta.
 | A faixa do card e a janela | `orcFaixaDoCaso()`, `renderOrcamentoDoCaso()` |
 | A memória e o modo cliente | `orcHtmlMemoria()`, `orcHtmlCliente()` |
 | Mais de uma matrícula | `orcHtmlImoveis()`, `ORC_CAMPOS.unidadesRegistro` |
+| Dispensar o registro (cliente registra em outro cartório) | `despesas.registro` em `orcCalcular()`, `orcHtmlDespesas()` |
 | A folha do cliente em imagem | `orcDesenharFolha()`, `orcLayoutFolha()`, `ORC_FOLHA` |
 | A foto na tela, para copiar | `orcVerImagem()`, `orcCopiarImagem()`, `orcFecharImagem()` |
 | As linhas que a cliente lê | `orcLinhasCliente()` |

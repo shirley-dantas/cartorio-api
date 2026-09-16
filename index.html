@@ -10642,6 +10642,11 @@ function orcCalcular(entrada){
   const partes = ato.montar(dados);
   let escrituras = partes.escrituras || [];
   let registros = partes.registros || [];
+  // Registrar é opcional: a cliente pode levar a matrícula a outro cartório,
+  // e nesse caso o registro não é conta dela aqui. `registroDisponivel` marca
+  // se ESTE ato tem registro (para a tela saber se mostra a pergunta),
+  // independente de ela ter dispensado ou não.
+  const registroDisponivel = registros.length > 0;
   let tributos = partes.tributos || [];
 
   // O divórcio com pensão é qualquer divórcio com uma base a mais — e ela
@@ -10749,6 +10754,15 @@ function orcCalcular(entrada){
       faixas: ORC_TABELA_REGISTRO.faixas, reducao: r.reducao, avisos: r.avisos});
   });
 
+  // O registro é opcional — regra pedida pela Shirley em 16/09/2026: a
+  // cliente pode preferir registrar em outro cartório, e nesse caso o valor
+  // do registro sai inteiro da conta dela aqui. Zerar `registros` também
+  // esvazia a prenotação, a certidão e a taxa adicional (todas gated por
+  // `temRegistro`, logo abaixo) — são despesas do registro, e não fazem
+  // sentido sem ele. A escritura e os tributos (ITBI/ITCMD) continuam
+  // cobrados normalmente: são devidos independentemente de quem registra.
+  if(d.registro === false) registros = [];
+
   // ETAPA 13 — os tributos.
   const capital = !praticadoEm || /^s(ão|ao) paulo$/i.test(praticadoEm.trim());
   const imovelNaCapital = !imovelMunicipio || /^s(ão|ao) paulo$/i.test(imovelMunicipio.trim());
@@ -10848,7 +10862,8 @@ function orcCalcular(entrada){
   // ETAPAS 16 e 17 — a memória e o orçamento saem da tela, com o que está
   // aqui. O CHECK FINAL fecha (ou não) o caminho até o "definitivo".
   const check = orcCheckFinal({ato, praticadoEm, imovelMunicipio, imovelUf, escrituras, registros,
-                               tributos, despesas, faltando, alertas, regraEspecial, d, data: dataDoAto});
+                               tributos, despesas, faltando, alertas, regraEspecial, d, data: dataDoAto,
+                               registroDisponivel});
   const bloqueado = check.some(c => c.estado === 'falta') || faltando.length > 0;
 
   // O valor do negócio como ela o informou: o primeiro campo do ato (somado,
@@ -10866,7 +10881,7 @@ function orcCalcular(entrada){
     praticadoEm, imovelMunicipio, imovelUf,
     tabelas, regraEspecial,
     escrituras, registros, tributos, despesas, totais,
-    baseRegistro, baseDeclarada,
+    baseRegistro, baseDeclarada, registroDisponivel,
     faltando, alertas, check, bloqueado,
     definitivo: !bloqueado
   };
@@ -11026,7 +11041,9 @@ function orcCheckFinal(c){
   põe('Isenções conferidas', 'confirmar', 'Nenhuma isenção é aplicada automaticamente — veja os avisos.');
   põe('Tributos conferidos', c.tributos.some(t => t.valor == null) ? 'falta' : 'ok',
       c.tributos.length ? c.tributos.map(t => t.rot + (t.valor == null ? ' (não calculado)' : '')).join(' · ') : 'Ato sem tributo.');
-  põe('Registro conferido', 'ok', c.registros.length ? `${c.registros.length} registro(s).` : 'Ato sem registro.');
+  põe('Registro conferido', 'ok', c.registros.length ? `${c.registros.length} registro(s).`
+      : c.registroDisponivel && c.d.registro === false ? 'Dispensado, a pedido da cliente — registra em outro cartório.'
+      : 'Ato sem registro.');
   põe('Prenotação', c.registros.length && c.d.prenotacao === false ? 'confirmar' : 'ok',
       c.registros.length ? (c.d.prenotacao === false ? 'Retirada à mão.' : 'Incluída.') : 'Não se aplica.');
   const duas = c.registros.some(r => r.comMatricula) && c.d.matricula !== false;
@@ -12197,9 +12214,26 @@ window.orcMudarRegraEspecial = function(qual){
   renderOrcamentoDoCaso();
 };
 function orcHtmlDespesas(e, r){
-  if(!r || !r.registros.length) return '';
+  if(!r || !r.registroDisponivel) return '';
   const d = e.despesas || {};
   const T = ORC_TABELA_REGISTRO.itens;
+  const semRegistro = d.registro === false;
+  // O toggle mestre: a cliente pode preferir registrar em outro cartório, e
+  // nesse caso o valor do registro (e tudo que dele depende — prenotação,
+  // certidão, taxa adicional) some da conta. Fica sempre visível, mesmo com
+  // o registro já dispensado, porque é aqui que ela volta atrás.
+  const toggleRegistro = `<div class="orc-campo orc-campo-largo"><label class="fin-rot">Registro
+      <span class="fin-mini">— a cliente pode preferir registrar em outro cartório</span></label>
+    <select class="fin-select" onchange="orcMudarDespesa('registro',this.value==='1')">
+      <option value="1"${!semRegistro ? ' selected' : ''}>Incluir — registra aqui</option>
+      <option value="0"${semRegistro ? ' selected' : ''}>Não incluir — registra em outro lugar</option></select>
+    ${semRegistro ? '<div class="fin-mini" style="margin-top:5px">O valor do registro, a prenotação, a certidão '
+      + 'e a taxa adicional saem da conta. A escritura e os tributos (ITBI/ITCMD) continuam normalmente.</div>' : ''}
+  </div>`;
+  if(semRegistro) return `<div class="orc-bloco">
+    <div class="orc-secao"><b>Despesas do registro</b><span>etapa 14</span></div>
+    <div class="orc-grade">${toggleRegistro}</div>
+  </div>`;
   const nImoveis = r.registros.length;
   const qtde = (campo, ligado) => {
     const n = d[campo] != null ? d[campo] : nImoveis;
@@ -12217,6 +12251,7 @@ function orcHtmlDespesas(e, r){
   return `<div class="orc-bloco">
     <div class="orc-secao"><b>Despesas do registro</b><span>etapa 14</span></div>
     <div class="orc-grade">
+      ${toggleRegistro}
       <div class="orc-campo"><label class="fin-rot">Prenotação
           ${porImovel('qtdePrenotacao')}</label>
         <select class="fin-select" onchange="orcMudarDespesa('prenotacao',this.value==='1')">
