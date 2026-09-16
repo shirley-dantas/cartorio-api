@@ -43,7 +43,7 @@ const redeCodigo = html.slice(html.indexOf('// ══ A REDE ═'), html.lastInd
 // recortes acima — e tem harness próprio, como ela. Precisa de três pedaços
 // de markup: a faixa do cabeçalho, o painel da Joaninha (onde a aba Jurídico
 // vive) e o modal, que já vem dentro do `markup` do financeiro.
-const radarJornal = entre('<!-- O Jornal da equipe.', '<!-- Esta faixa é a Agenda');
+const radarJornal = entre('<!-- O Jornal da equipe.', '<!-- Os três cartões da Central');
 const joaninhaPainel = entre('<div class="joaninha-panel" id="joaninha-panel">', '<!-- Financeiro — a esteira do dinheiro');
 const radarCodigo = html.slice(html.indexOf('// ══ O RADAR JURÍDICO'), html.indexOf('// ══ A REDE ═'));
 
