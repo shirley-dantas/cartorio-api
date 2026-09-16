@@ -530,14 +530,16 @@ procuração, ata e escritura declaratória.
   documento. O painel aponta ("está dentro do teto do primeiro imóvel"), mantém
   o imposto na conta e devolve a decisão. Zerar imposto por engano é o erro mais
   caro que este orçamento poderia cometer.
-- **A taxa adicional de R$ 300 nunca entra sozinha.** É perguntada antes de
-  fechar todo orçamento, e o CHECK FINAL trava até haver resposta. No modo
-  cliente ela vai **somada ao registro, sem linha própria** — que é só isso o
-  que "sem que o cliente perceba" significa: nada é cobrado a mais, apenas não
-  ganha linha. E por isso ela **só existe onde há registro**: trocar o ato
-  depois de responder a pergunta deixava R$ 300 de "despesa do registro" numa
-  procuração, somados no total e sem linha nenhuma na via da cliente, que então
-  deixava de fechar.
+- **A taxa adicional é R$ 300 por padrão**, sem precisar perguntar. Até
+  16/09/2026 ela travava o CHECK FINAL esperando resposta a cada orçamento;
+  virou regra fixa a pedido dela — R$300 já entra sozinho, e o campo continua
+  visível para trocar o valor ou marcar "Não incluir" quando o caso pedir.
+  No modo cliente ela vai **somada ao registro, sem linha própria** — que é
+  só isso o que "sem que o cliente perceba" significa: nada é cobrado a mais,
+  apenas não ganha linha. E por isso ela **só existe onde há registro**:
+  trocar o ato depois de incluí-la deixava R$ 300 de "despesa do registro"
+  numa procuração, somados no total e sem linha nenhuma na via da cliente,
+  que então deixava de fechar.
 - **O registro é opcional.** A cliente pode preferir levar a matrícula a
   outro cartório — decisão dela, não uma exceção rara. Um toggle
   (`despesas.registro`, `false` para dispensar) zera o registro inteiro: a
@@ -547,6 +549,40 @@ procuração, ata e escritura declaratória.
   são devidos independentemente de quem faz o registro. O toggle fica sempre
   visível na tela, mesmo com o registro já dispensado, para ela poder voltar
   atrás. Pedido por ela em 16/09/2026.
+
+### Ver detalhes técnicos
+
+A janela do orçamento tinha informação demais para quem só quer o número: de
+onde veio cada dado, a frase interna da regra de cobrança, o CHECK FINAL
+linha a linha, quem fez o orçamento. Ela foi clara em 16/09/2026: **"essas
+informações são somente para a IA saber fazer o orçamento, não precisam
+aparecer para mim."**
+
+Um botão só — **"Ver detalhes técnicos"** (`orcVerTecnico`, fechado por
+padrão) — esconde de uma vez:
+
+- o box "Veio do card" (`orcHtmlHerdado`);
+- a frase "Regra de cobrança" sob o select do ato;
+- "Regra especial da tabela" e "Imóvel residencial?" (nunca usadas na
+  prática — continuam existindo para o caso raro que precisar, mas atrás do
+  botão, com os padrões de sempre: nenhuma regra especial, não residencial);
+- o CHECK FINAL inteiro;
+- Status do orçamento / Responsável / Observações — o responsável já é
+  gravado sozinho a partir de quem está logada (`localStorage.painel_usuario`),
+  então esconder não perde a informação.
+
+Nada foi apagado: é o mesmo dado, a mesma conta, só que fora da vista por
+padrão. Reabrir a janela sempre volta a fechado — não é uma preferência que
+se guarda entre orçamentos.
+
+Duas coisas que **não são só visuais** e saíram do mesmo pedido dela:
+
+- **A "Coluna do registro na tabela" virou regra fixa**: sempre "com
+  matrícula" (a certidão já somada). O select sumiu — quem quiser conferir
+  que é essa a coluna usada ainda vê a frase atrás de "Ver detalhes
+  técnicos", mas não há mais escolha a fazer.
+- **A taxa adicional não é mais uma pergunta que trava** — ver a regra logo
+  acima, na seção da taxa.
 
 ### Por onde se orça
 
@@ -792,6 +828,7 @@ o `testes/montar.mjs` recorta.
 | A memória e o modo cliente | `orcHtmlMemoria()`, `orcHtmlCliente()` |
 | Mais de uma matrícula | `orcHtmlImoveis()`, `ORC_CAMPOS.unidadesRegistro` |
 | Dispensar o registro (cliente registra em outro cartório) | `despesas.registro` em `orcCalcular()`, `orcHtmlDespesas()` |
+| Esconder as informações "só para a máquina" | `orcVerTecnico`, `orcAlternarTecnico()` |
 | A folha do cliente em imagem | `orcDesenharFolha()`, `orcLayoutFolha()`, `ORC_FOLHA` |
 | A foto na tela, para copiar | `orcVerImagem()`, `orcCopiarImagem()`, `orcFecharImagem()` |
 | As linhas que a cliente lê | `orcLinhasCliente()` |

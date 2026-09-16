@@ -10832,14 +10832,15 @@ function orcCalcular(entrada){
   // deixava R$ 300 de "despesa do registro" num ato que não tem registro —
   // somados no total, e sem linha nenhuma na via da cliente, que então deixava
   // de fechar. Despesa que não aparece em linha alguma não pode entrar na soma.
-  if(temRegistro && d.taxaAdicional === true)
+  //
+  // Virou regra fixa em 16/09/2026: R$ 300,00 por padrão, sem precisar
+  // perguntar toda vez — ela ainda pode mudar o valor ou tirar, mas o
+  // orçamento não fica mais travado esperando essa resposta.
+  if(temRegistro && d.taxaAdicional !== false)
     despesas.push({rot: 'Despesa adicional do registro', item: null,
       valor: d.taxaAdicionalValor != null ? d.taxaAdicionalValor : 30000,
       interna: true,
       fundamento: 'Despesa acertada com a cliente. No orçamento do cliente entra somada ao registro, sem linha própria.'});
-  if(temRegistro && d.taxaAdicional == null)
-    faltando.push({campo: 'taxaAdicional', rot: 'Taxa adicional',
-      pergunta: 'Deseja incluir taxa adicional nas despesas do registro?', sim_nao: true});
 
   // ETAPA 15 — somar tudo.
   const soma = arr => arr.reduce((s, x) => s + (x.valor || 0), 0);
@@ -11052,10 +11053,9 @@ function orcCheckFinal(c){
         : c.d.matricula === false ? 'Retirada à mão.'
         : duas ? 'Duas certidões, de propósito: uma para começar o trabalho e outra para o fim.'
         : 'Incluída.');
-  põe('Taxa adicional perguntada', !c.registros.length ? 'ok' : (c.d.taxaAdicional == null ? 'falta' : 'ok'),
+  põe('Taxa adicional', 'ok',
       !c.registros.length ? 'Não se aplica.'
-        : c.d.taxaAdicional == null ? 'Ainda não perguntada.'
-        : c.d.taxaAdicional ? 'Incluída, a pedido.' : 'Dispensada, a pedido.');
+        : c.d.taxaAdicional === false ? 'Dispensada, a pedido.' : 'Incluída — R$ 300,00 por padrão.');
   põe('Memória de cálculo', 'ok', 'Gerada com cada linha, faixa e fundamento.');
   return itens;
 }
@@ -11377,6 +11377,10 @@ let orcCasoAberto = null;  // id do caso cuja janela está aberta
 let orcEmEdicao = null;    // rascunho da janela do caso
 let orcVerMemoria = false;
 let orcVerCliente = false;
+// As informações que só existem para a máquina conferir a conta — de onde
+// veio cada dado, o CHECK FINAL, quem fez o orçamento. Ela pediu para tirar
+// isso da frente: fica atrás de um botão, fechado por padrão.
+let orcVerTecnico = false;
 let orcRegraAberta = null;
 let orcSalvando = false;    // enquanto o banco não responde
 let orcErroSalvar = null;   // o que ele respondeu, quando recusou
@@ -11532,7 +11536,7 @@ window.orcNovoDoCaso = function(casoId){
   const h = orcHerdarDoCaso(casoId);
   const anterior = orcUltimoDoCaso(casoId);
   orcCasoAberto = casoId;
-  orcVerMemoria = false; orcVerCliente = false;
+  orcVerMemoria = false; orcVerCliente = false; orcVerTecnico = false;
   orcEmEdicao = {
     id: null, casoId, casoNome: c.nome || '',
     atoId: (anterior && (anterior.entrada || {}).atoId) || orcAdivinharAto(h.tipoAto),
@@ -11555,7 +11559,7 @@ window.orcAbrirDoCaso = function(casoId, orcId){
   const o = orcTudo[orcId];
   if(!o) return;
   orcCasoAberto = casoId;
-  orcVerMemoria = false; orcVerCliente = false;
+  orcVerMemoria = false; orcVerCliente = false; orcVerTecnico = false;
   orcEmEdicao = {
     id: o.id, casoId, casoNome: o.casoNome || '',
     ...JSON.parse(JSON.stringify(o.entrada || {})),
@@ -11573,7 +11577,7 @@ function orcAbrirJanela(){
 }
 window.fecharOrcamentoDoCaso = function(){
   document.getElementById('modal-orcamento-caso').classList.remove('open');
-  orcCasoAberto = null; orcEmEdicao = null; orcVerMemoria = false; orcVerCliente = false;
+  orcCasoAberto = null; orcEmEdicao = null; orcVerMemoria = false; orcVerCliente = false; orcVerTecnico = false;
 };
 
 // O cálculo de agora, a partir do rascunho aberto.
@@ -11788,7 +11792,11 @@ function renderOrcamentoDoCaso(){
   const h = e.herdado || {};
 
   alvo.innerHTML = `
-    ${orcHtmlHerdado(h)}
+    <div class="orc-tecnico-toggle">
+      <button type="button" class="cx-btn" onclick="orcAlternarTecnico()">
+        <i class="ti ti-adjustments"></i> ${orcVerTecnico ? 'Ocultar detalhes técnicos' : 'Ver detalhes técnicos'}</button>
+    </div>
+    ${orcVerTecnico ? orcHtmlHerdado(h) : ''}
     <div class="orc-bloco">
       <div class="orc-secao"><b>Como identificar este orçamento</b><span>é o que a cliente lê</span></div>
       <input class="fin-input" value="${esc(e.identificacao || '')}"
@@ -11807,7 +11815,7 @@ function renderOrcamentoDoCaso(){
             `<option value="${a.id}"${e.atoId === a.id ? ' selected' : ''}>${escTxt(a.nome)}</option>`).join('')}
         </optgroup>`).join('')}
       </select>
-      ${ato ? `<div class="orc-comoescreveu"><b>Regra de cobrança:</b> ${escTxt(ato.comoElaEscreveu)}</div>` : ''}
+      ${ato && orcVerTecnico ? `<div class="orc-comoescreveu"><b>Regra de cobrança:</b> ${escTxt(ato.comoElaEscreveu)}</div>` : ''}
       ${ato ? orcHtmlOutrosAtos(e) : ''}
     </div>
     ${ato ? orcHtmlJurisdicao(e, r) + orcHtmlValores(e, ato, r) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
@@ -12113,20 +12121,24 @@ function orcHtmlEspeciais(e, ato){
     if(f.temPensao) bits.push(orcHtmlPensao(e));
   }
   // Os itens especiais valem para qualquer escritura com valor declarado.
-  if((ato.campos || []).length)
-    bits.push(`<div class="orc-campo orc-campo-largo"><label class="fin-rot">Regra especial da tabela</label>
-      <select class="fin-select" onchange="orcMudarRegraEspecial(this.value)">
-        <option value=""${!f.zeis && !f.fgtsOuHis && !f.regularizacaoFundiaria ? ' selected' : ''}>Nenhuma — faixa normal da tabela</option>
-        <option value="zeis"${f.zeis ? ' selected' : ''}>Primeira alienação em empreendimento de interesse social em ZEIS (item 1.4)</option>
-        <option value="fgtsOuHis"${f.fgtsOuHis ? ' selected' : ''}>Imóvel FGTS ou programa habitacional de interesse social (item 1.3)</option>
-        <option value="regularizacaoFundiaria"${f.regularizacaoFundiaria ? ' selected' : ''}>Regularização fundiária de interesse social (item 1.2)</option>
-      </select></div>`);
-  if((ato.montar && (ato.id.indexOf('compra-venda') === 0 || ato.id === 'dacao')))
-    bits.push(`<div class="orc-campo"><label class="fin-rot">Imóvel residencial?</label>
-      <select class="fin-select" onchange="orcMudarFlag('residencial',this.value==='1')">
-        <option value="0"${f.residencial ? '' : ' selected'}>Não / não sei</option>
-        <option value="1"${f.residencial ? ' selected' : ''}>Sim — o motor confere o teto de isenção do ITBI</option>
-      </select></div>`);
+  // Nenhum caso até hoje usou estas duas — ficam atrás de "Detalhes técnicos",
+  // e o padrão (nenhuma regra especial, não residencial) continua valendo.
+  if(orcVerTecnico){
+    if((ato.campos || []).length)
+      bits.push(`<div class="orc-campo orc-campo-largo"><label class="fin-rot">Regra especial da tabela</label>
+        <select class="fin-select" onchange="orcMudarRegraEspecial(this.value)">
+          <option value=""${!f.zeis && !f.fgtsOuHis && !f.regularizacaoFundiaria ? ' selected' : ''}>Nenhuma — faixa normal da tabela</option>
+          <option value="zeis"${f.zeis ? ' selected' : ''}>Primeira alienação em empreendimento de interesse social em ZEIS (item 1.4)</option>
+          <option value="fgtsOuHis"${f.fgtsOuHis ? ' selected' : ''}>Imóvel FGTS ou programa habitacional de interesse social (item 1.3)</option>
+          <option value="regularizacaoFundiaria"${f.regularizacaoFundiaria ? ' selected' : ''}>Regularização fundiária de interesse social (item 1.2)</option>
+        </select></div>`);
+    if((ato.montar && (ato.id.indexOf('compra-venda') === 0 || ato.id === 'dacao')))
+      bits.push(`<div class="orc-campo"><label class="fin-rot">Imóvel residencial?</label>
+        <select class="fin-select" onchange="orcMudarFlag('residencial',this.value==='1')">
+          <option value="0"${f.residencial ? '' : ' selected'}>Não / não sei</option>
+          <option value="1"${f.residencial ? ' selected' : ''}>Sim — o motor confere o teto de isenção do ITBI</option>
+        </select></div>`);
+  }
   if(!bits.length) return '';
   return `<div class="orc-bloco">
     <div class="orc-secao"><b>O que falta para concluir</b><span>etapas 9 e 13</span></div>
@@ -12264,21 +12276,19 @@ function orcHtmlDespesas(e, r){
           <option value="1"${d.matricula !== false ? ' selected' : ''}>Incluir</option>
           <option value="0"${d.matricula === false ? ' selected' : ''}>Não incluir</option></select>
         ${qtde('qtdeMatricula', d.matricula !== false)}</div>
-      <div class="orc-campo orc-campo-largo"><label class="fin-rot">Coluna do registro na tabela
-          <span class="fin-mini">— a de 2026 traz as duas</span></label>
-        <select class="fin-select" onchange="orcMudarDespesa('registroComMatricula',this.value==='1')">
-          <option value="1"${d.registroComMatricula !== false ? ' selected' : ''}>Registro com matrícula — o registro da faixa já com a certidão somada</option>
-          <option value="0"${d.registroComMatricula === false ? ' selected' : ''}>Registro — só a faixa, sem a certidão</option></select></div>
+      ${orcVerTecnico ? `<div class="orc-campo orc-campo-largo"><label class="fin-rot">Coluna do registro na tabela
+          <span class="fin-mini">— regra fixa: sempre com a certidão somada</span></label>
+        <div class="fin-mini">Registro com matrícula — o registro da faixa já com a certidão somada.</div></div>` : ''}
       <div class="orc-campo orc-campo-largo orc-taxa">
-        <label class="fin-rot">Deseja incluir taxa adicional nas despesas do registro?
-          <span class="fin-mini">— nunca entra sozinha, e no orçamento do cliente vai somada ao registro</span></label>
+        <label class="fin-rot">Taxa adicional nas despesas do registro
+          <span class="fin-mini">— R$ 300,00 por padrão; some do registro se marcar "Não incluir"</span></label>
         <div class="orc-taxa-linha">
-          <button type="button" class="cx-btn${d.taxaAdicional === true ? ' destaque' : ''}" onclick="orcMudarDespesa('taxaAdicional',true)">Sim</button>
-          <button type="button" class="cx-btn${d.taxaAdicional === false ? ' destaque' : ''}" onclick="orcMudarDespesa('taxaAdicional',false)">Não</button>
-          ${d.taxaAdicional === true ? `<input class="fin-input" style="width:130px" inputmode="decimal"
+          <select class="fin-select" onchange="orcMudarDespesa('taxaAdicional',this.value==='1')">
+            <option value="1"${d.taxaAdicional !== false ? ' selected' : ''}>Incluir</option>
+            <option value="0"${d.taxaAdicional === false ? ' selected' : ''}>Não incluir</option></select>
+          ${d.taxaAdicional !== false ? `<input class="fin-input" style="width:130px" inputmode="decimal"
             value="${orcBr(d.taxaAdicionalValor != null ? d.taxaAdicionalValor : orcTaxaPadrao())}"
             oninput="orcMudarDespesaNum('taxaAdicionalValor',this.value)">` : ''}
-          ${d.taxaAdicional == null ? '<span class="orc-aviso-inline">Ainda não respondida — o orçamento não fecha sem isso.</span>' : ''}
         </div>
       </div>
     </div>
@@ -12324,9 +12334,10 @@ function orcHtmlResultado(e, r){
       <button type="button" class="cx-btn" onclick="orcAlternarCliente()"><i class="ti ti-file-text"></i> Gerar orçamento para cliente</button>
     </div>
     ${orcVerMemoria ? orcHtmlMemoria(r) : ''}
-    ${orcHtmlCheck(r)}`;
+    ${orcVerTecnico ? orcHtmlCheck(r) : ''}`;
 }
 window.orcAlternarMemoria = function(){ orcVerMemoria = !orcVerMemoria; orcRedesenharResultado(); };
+window.orcAlternarTecnico = function(){ orcVerTecnico = !orcVerTecnico; renderOrcamentoDoCaso(); };
 window.orcAlternarCliente = function(){ orcVerCliente = true; renderOrcamentoDoCaso(); };
 window.orcVoltarDoCliente = function(){ orcSoltarFolha(); orcVerCliente = false; renderOrcamentoDoCaso(); };
 
@@ -12726,7 +12737,7 @@ window.orcCopiarCliente = function(){
 function orcHtmlRodape(e, r){
   const podeCorrigir = e.id && e.status === 'elaboracao';
   return `<div class="orc-bloco">
-    <div class="orc-grade">
+    ${orcVerTecnico ? `<div class="orc-grade">
       <div class="orc-campo"><label class="fin-rot">Status do orçamento</label>
         <select class="fin-select" onchange="orcMudarCampoTexto('status',this.value)">
           ${ORC_STATUS.map(s => `<option value="${s.id}"${e.status === s.id ? ' selected' : ''}>${s.selo} ${escTxt(s.rot)}</option>`).join('')}
@@ -12735,7 +12746,7 @@ function orcHtmlRodape(e, r){
         <input class="fin-input" value="${esc(e.responsavel || localStorage.getItem('painel_usuario') || '')}" oninput="orcMudarCampoTexto('responsavel',this.value)"></div>
       <div class="orc-campo orc-campo-largo"><label class="fin-rot">Observações</label>
         <input class="fin-input" value="${esc(e.obs || '')}" placeholder="O que este orçamento tem de particular" oninput="orcMudarCampoTexto('obs',this.value)"></div>
-    </div>
+    </div>` : ''}
     ${orcErroSalvar ? `<div class="orc-erro-salvar"><b>Não salvou.</b> ${escTxt(orcErroSalvar)}</div>` : ''}
     ${orcSalvoEm && !orcErroSalvar ? `<div class="orc-salvo-ok">Guardado no banco às ${escTxt(orcSalvoEm.slice(11, 16))}${e.versao ? ` — versão ${e.versao}` : ''}.</div>` : ''}
     <div class="modal-btn-row">
@@ -12816,7 +12827,7 @@ window.orcDuplicar = function(orcId){
   const o = orcTudo[orcId];
   if(!o) return;
   orcCasoAberto = o.casoId;
-  orcVerMemoria = false; orcVerCliente = false;
+  orcVerMemoria = false; orcVerCliente = false; orcVerTecnico = false;
   orcEmEdicao = {
     id: null, casoId: o.casoId, casoNome: o.casoNome,
     ...JSON.parse(JSON.stringify(o.entrada || {})),

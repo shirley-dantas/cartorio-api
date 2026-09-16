@@ -78,6 +78,10 @@ await passo('entrando, a faixa oferece o primeiro orçamento', async () => {
 await passo('a janela nasce com o ato lido do card e o cliente herdado', async () => {
   await pg.evaluate(() => orcNovoDoCaso('c1'));
   await pg.waitForSelector('#modal-orcamento-caso.open');
+  // As informações "só para a máquina" (veio do card, regra de cobrança,
+  // CHECK FINAL) ficam escondidas por padrão desde 16/09/2026 — o teste liga
+  // "Ver detalhes técnicos" para continuar conferindo o que elas dizem.
+  await pg.evaluate(() => orcAlternarTecnico());
   const ato = await pg.$eval('#orc-caso-conteudo select', s => s.value);
   if(ato !== 'compra-venda') throw new Error('não reconheceu o ato: ' + ato);
   const herdado = await pg.textContent('.orc-herdado');
@@ -86,27 +90,25 @@ await passo('a janela nasce com o ato lido do card e o cliente herdado', async (
   if(!/1 ITBI/.test(regra)) throw new Error('não mostrou a regra de cobrança: ' + regra);
 });
 
-await passo('digitado o valor, o total aparece e bate com a tabela', async () => {
+await passo('digitado o valor, o total já vem com a taxa adicional de R$ 300 (regra fixa)', async () => {
   await pg.evaluate(() => {
     orcMudarValor('transacao', '301.867,16');
     renderOrcamentoDoCaso();
   });
   await pg.waitForSelector('.orc-total-num');
   const total = await pg.textContent('.orc-total-num');
-  // 4.176,24 + 2.833,28 (registro com matrícula) + 80,14 + 76,54 + 9.056,01
-  if(!/16\.222,21/.test(total)) throw new Error('total inesperado: ' + total);
-});
-
-await passo('a taxa adicional é perguntada, e trava o orçamento até responder', async () => {
-  const perg = await pg.textContent('.orc-perguntas');
-  if(!/taxa adicional/i.test(perg)) throw new Error('não perguntou pela taxa: ' + perg);
+  // 4.176,24 + 2.833,28 (registro com matrícula) + 80,14 + 76,54 + 9.056,01 + 300,00 (taxa, por padrão)
+  // É o mesmo orçamento que ela conferiu à mão, linha por linha — sem
+  // precisar responder nada, desde 16/09/2026.
+  if(!/16\.522,21/.test(total)) throw new Error('total inesperado: ' + total);
   const rot = await pg.textContent('.orc-total-rot');
-  if(!/[Ee]stimativa/.test(rot)) throw new Error('deixou passar como definitivo: ' + rot);
+  if(!/[Cc]onferido/.test(rot)) throw new Error('não fechou direto como definitivo: ' + rot);
 });
 
-await passo('respondido "sim", os R$ 300 entram no total', async () => {
+await passo('marcando "não incluir", a taxa sai e o total volta para o sem ela', async () => {
+  await pg.evaluate(() => orcMudarDespesa('taxaAdicional', false));
+  await pg.waitForFunction(() => /16\.222,21/.test(document.querySelector('.orc-total-num').textContent));
   await pg.evaluate(() => orcMudarDespesa('taxaAdicional', true));
-  // Com os R$ 300,00 é o orçamento que ela conferiu à mão, linha por linha.
   await pg.waitForFunction(() => /16\.522,21/.test(document.querySelector('.orc-total-num').textContent));
 });
 
@@ -789,6 +791,7 @@ await passo('imóvel fora da Capital: o painel oferece buscar a alíquota', asyn
   // matrículas e taxa ligadas, e mexer neles aqui quebraria os de lá.
   await pg.evaluate(() => orcNovoDoCaso('c1'));
   await pg.waitForSelector('#modal-orcamento-caso.open');
+  await pg.evaluate(() => orcAlternarTecnico()); // ver o CHECK FINAL neste cenário também
   await pg.evaluate(() => { orcTrocarAto('compra-venda');
     orcMudarValor('transacao', '301.867,16');
     orcMudarDespesa('taxaAdicional', false);

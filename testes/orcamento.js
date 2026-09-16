@@ -127,25 +127,27 @@ ok('ato depois de 01/01/2027 trava', vencida.definitivo === false);
 ok('e o painel manda procurar a tabela do exercício novo',
    vencida.alertas.some(a => /exercício novo/.test(a.texto)));
 
-console.log('\n— A taxa adicional NUNCA entra sozinha —');
-const semPergunta = orcCalcular({atoId: 'compra-venda', valores: {transacao: 30186716},
+console.log('\n— A taxa adicional é R$ 300,00 por padrão (regra fixa desde 16/09/2026) —');
+const semResposta = orcCalcular({atoId: 'compra-venda', valores: {transacao: 30186716},
   flags: {}, despesas: {prenotacao: true, matricula: true}});
-ok('sem resposta, a taxa não é somada', !semPergunta.despesas.some(d => d.interna));
-ok('e o orçamento fica travado até ela responder',
-   semPergunta.faltando.some(f => f.campo === 'taxaAdicional'));
-ok('o CHECK FINAL diz que a pergunta não foi feita',
-   semPergunta.check.find(c => c.rot === 'Taxa adicional perguntada').estado === 'falta');
+ok('sem ela mexer em nada, a taxa já entra sozinha', semResposta.despesas.some(d => d.interna));
+ok('e o orçamento não fica mais travado esperando essa resposta',
+   !semResposta.faltando.some(f => f.campo === 'taxaAdicional'));
+ok('o CHECK FINAL não trava por causa dela',
+   semResposta.check.find(c => c.rot === 'Taxa adicional').estado === 'ok');
 const comTaxa = orcCalcular({atoId: 'compra-venda', valores: {transacao: 30186716},
   flags: {}, despesas: {prenotacao: true, matricula: true, taxaAdicional: true, taxaAdicionalValor: 30000}});
-ok('respondido "sim", entra R$ 300,00',
-   R(comTaxa.totais.despesas) === R(semPergunta.totais.despesas + 30000));
+ok('o padrão e o "incluir" explícito dão o mesmo total',
+   R(comTaxa.totais.despesas) === R(semResposta.totais.despesas));
 ok('e no modo cliente ela vai somada ao registro, sem linha própria',
    R(comTaxa.totais.registroComDespesas) === R(comTaxa.totais.registro + 30000));
 ok('a linha da taxa fica marcada como interna',
    comTaxa.despesas.filter(d => d.interna).length === 1);
-ok('sem registro, ninguém pergunta por taxa de registro',
-   !orcCalcular({atoId: 'procuracao', valores: {}, flags: {}, despesas: {}})
-     .faltando.some(f => f.campo === 'taxaAdicional'));
+const semTaxa = orcCalcular({atoId: 'compra-venda', valores: {transacao: 30186716},
+  flags: {}, despesas: {prenotacao: true, matricula: true, taxaAdicional: false}});
+ok('marcando "não incluir", a taxa sai da conta', !semTaxa.despesas.some(d => d.interna));
+ok('sem registro, a taxa nem aparece', !orcCalcular({atoId: 'procuracao', valores: {}, flags: {}, despesas: {}})
+     .despesas.some(d => d.interna));
 
 console.log('\n— Os 40% do ato secundário —');
 const af = orcCalcular({atoId: 'compra-venda-fiduciaria',
@@ -669,11 +671,11 @@ ok('e nem aparece bloco de alíquota de fora',
 console.log('\n— Só se pergunta o que falta (regra 11) —');
 const vazio = orcCalcular({atoId: 'compra-venda-fiduciaria', valores: {}, flags: {}, despesas: {}});
 ok('dois valores em falta viram duas perguntas',
-   vazio.faltando.filter(f => f.campo !== 'taxaAdicional').length === 2,
+   vazio.faltando.length === 2,
    vazio.faltando.map(f => f.campo));
 const meio = orcCalcular({atoId: 'compra-venda-fiduciaria', valores: {transacao: 30186716}, flags: {}, despesas: {}});
 ok('preenchido um, sobra uma pergunta só',
-   meio.faltando.filter(f => f.campo !== 'taxaAdicional').length === 1,
+   meio.faltando.length === 1,
    meio.faltando.map(f => f.campo));
 ok('e a pergunta é escrita em português, não em nome de campo',
    /alienação fiduciária/.test(meio.faltando[0].pergunta), meio.faltando[0].pergunta);
