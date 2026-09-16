@@ -584,6 +584,25 @@ Duas coisas que **não são só visuais** e saíram do mesmo pedido dela:
 - **A taxa adicional não é mais uma pergunta que trava** — ver a regra logo
   acima, na seção da taxa.
 
+### O desenho em duas colunas
+
+A janela virou duas colunas: à esquerda o formulário, cartão por cartão, cada
+um numerado sozinho (contador de CSS — a ordem dos blocos já é a ordem que
+ela preenche, então o número nunca fica fora de sincronia quando um ato pede
+uma etapa a mais que outro); à direita, um **resumo que acompanha a
+rolagem** (`position:sticky`) — cliente, ato, local, data, valor do negócio,
+o total em caixa verde e a divisão por Escritura/Registro/Despesas/Tributos,
+com os botões de salvar sempre à mão. No celular as duas colunas empilham,
+resumo embaixo do formulário — pedido dela em 16/09/2026, a partir de um
+desenho que ela mandou como referência.
+
+O nome da cliente que aparece no resumo continua vindo do card
+(`e.casoNome`) — não virou campo digitável novo, porque isso inventaria um
+dado que o painel não tem hoje. A divisão do total ficou na mesma granularidade
+de sempre (Escritura/Registro/Despesas/Tributos, a que bate com o
+Financeiro), em vez do detalhamento fino de Registro/Prenotação/Matrícula/Taxa
+que apareceu na referência.
+
 ### Por onde se orça
 
 **Pelo card, como o dinheiro.** A faixa 💰 Orçamento fica logo abaixo da do
@@ -829,6 +848,7 @@ o `testes/montar.mjs` recorta.
 | Mais de uma matrícula | `orcHtmlImoveis()`, `ORC_CAMPOS.unidadesRegistro` |
 | Dispensar o registro (cliente registra em outro cartório) | `despesas.registro` em `orcCalcular()`, `orcHtmlDespesas()` |
 | Esconder as informações "só para a máquina" | `orcVerTecnico`, `orcAlternarTecnico()` |
+| O desenho em duas colunas e o resumo lateral | `.orc-layout`, `.orc-coluna-lateral`, `orcHtmlResumoTopo()` |
 | A folha do cliente em imagem | `orcDesenharFolha()`, `orcLayoutFolha()`, `ORC_FOLHA` |
 | A foto na tela, para copiar | `orcVerImagem()`, `orcCopiarImagem()`, `orcFecharImagem()` |
 | As linhas que a cliente lê | `orcLinhasCliente()` |
