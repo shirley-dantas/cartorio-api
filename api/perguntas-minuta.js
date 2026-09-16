@@ -66,11 +66,19 @@ function chamarClaude(mensagem) {
       let data = "";
       res.on("data", d => data += d);
       res.on("end", () => {
+        let parsed;
         try {
-          const parsed = JSON.parse(data);
-          if (parsed.error) return reject(new Error(parsed.error.message || "Erro na API Claude"));
-          resolve((parsed.content && parsed.content[0] && parsed.content[0].text) || "");
-        } catch (e) { reject(e); }
+          parsed = JSON.parse(data);
+        } catch {
+          // A API da Anthropic (ou o gateway na frente dela) às vezes devolve
+          // uma página de erro em texto puro em vez de JSON — instabilidade,
+          // limite de uso, erro 5xx. Sem este bloco, o erro cru do JSON.parse
+          // ("Unexpected token 'A', \"An error o\"...") ia direto para a tela
+          // da Shirley, sem dizer o que de fato aconteceu.
+          return reject(new Error(`A IA não respondeu em formato reconhecível (HTTP ${res.statusCode}) — provável instabilidade na API. Tente de novo em um instante.`));
+        }
+        if (parsed.error) return reject(new Error(parsed.error.message || "Erro na API Claude"));
+        resolve((parsed.content && parsed.content[0] && parsed.content[0].text) || "");
       });
     });
     req.on("error", reject);
