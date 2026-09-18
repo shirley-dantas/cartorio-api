@@ -2031,41 +2031,48 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    Notas, O que dá pra fazer agora), desenhados e aprovados fora do
    painel antes de entrar aqui. Prefixo cdc2- pra não brigar com nada
    do resto da tela — telas velhas continuam do jeito que estavam. */
-.cdc2-topo{display:flex;align-items:center;justify-content:space-between;gap:24px;
-  background:#F4EFE6;border-radius:16px;padding:24px 30px;margin-bottom:20px}
-.cdc2-topo-esq{display:flex;align-items:center;gap:18px;min-width:0}
+/* O card do cabeçalho só carrega o que é dele (sol, saudação, data,
+   busca) — sem justify-content:space-between esticando outro bloco pra
+   ponta oposta. Card largo + item solto empurrado pro canto é o que
+   abria aquele vão vazio enorme no meio; o bloco da Joaninha nem faz
+   mais parte deste card, ver .cdc2-pilha-joaninha logo abaixo. */
+.cdc2-topo{display:flex;align-items:center;gap:24px;
+  background:#F4EFE6;border-radius:18px;padding:28px 34px;margin-bottom:20px}
+.cdc2-topo-esq{display:flex;flex-direction:column;gap:18px;min-width:0;max-width:440px}
+.cdc2-topo-esq-head{display:flex;align-items:center;gap:18px}
 .cdc2-topo-sol{flex-shrink:0}
 .cdc2-topo-sol svg{width:34px;height:34px}
 .cdc2-topo-saud{font-family:'Jost',sans-serif;font-size:30px;font-weight:400;color:#1F2A33;line-height:1.15}
 .cdc2-topo-sub{font-size:14px;color:#5B6B78;margin-top:4px}
-.cdc2-topo-dir{display:flex;align-items:center;gap:18px;flex:1 1 auto;min-width:0;justify-content:flex-end}
-.cdc2-topo-data{font-size:12.5px;color:#6B7280;white-space:nowrap}
 .cdc2-topo-sync{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#6B7280;white-space:nowrap}
-/* Frase fixa acompanhando a Joaninha de verdade (o bichinho animado,
-   JoaninhaMascote, montado em #joaninha-host) — não é a fala dela (isso
-   continua vindo só de joaninhaInstancia.falar), é um convite de planner
-   parado ACIMA de onde ela está. #joaninha-host usa as custom properties
+/* Pilha fixa da Joaninha — Sincronizado em cima, a frase embaixo dele, e
+   ela mesma (o bichinho animado, JoaninhaMascote em #joaninha-host) mais
+   embaixo ainda. Não é a fala dela (isso continua vindo só de
+   joaninhaInstancia.falar): é um resumo + um convite de planner que ficam
+   parados ACIMA de onde ela está. #joaninha-host usa as custom properties
    --jn-right/--jn-bottom pra andar pela tela (ver joaninha.css); lendo as
    MESMAS variáveis (com a mesma transição e o mesmo breakpoint de celular),
-   esta frase se move junto com ela sem o index.html tocar em nada do
-   componente. position:fixed de propósito — dentro do fluxo do cabeçalho
-   ela ficava longe de onde a mascote realmente fica ancorada na tela. */
-.cdc2-topo-frase{position:fixed;z-index:899;pointer-events:none;
+   esta pilha se move junto com ela sem o index.html tocar em nada do
+   componente. position:fixed de propósito, fora do card do cabeçalho —
+   colada a um card largo, sobrava o vão vazio que ela apontou. */
+.cdc2-pilha-joaninha{position:fixed;z-index:899;pointer-events:none;
+  display:flex;flex-direction:column;align-items:flex-end;
   right:var(--jn-right,48px);
   bottom:calc(var(--jn-bottom,max(20px,calc(100vh - 180px))) + 74px + 10px);
-  transition:right 1.9s cubic-bezier(.45,.05,.55,.95),bottom 1.9s cubic-bezier(.45,.05,.55,.95);
-  font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;
-  font-size:15.5px;color:#C97C86;white-space:nowrap}
-@media(prefers-reduced-motion:reduce){.cdc2-topo-frase{transition:none}}
-@media(max-width:600px){.cdc2-topo-frase{right:12px;bottom:calc(14px + 74px + 8px);font-size:13px}}
-/* Busca igual ao modelo aprovado: pílula grande, ocupando o espaço que
-   sobra ao lado do "Sincronizado", não uma caixinha de 300px fixos. */
+  transition:right 1.9s cubic-bezier(.45,.05,.55,.95),bottom 1.9s cubic-bezier(.45,.05,.55,.95)}
+.cdc2-pilha-joaninha .cdc2-topo-sync{margin-bottom:6px}
+.cdc2-topo-frase{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;
+  font-size:15px;color:#C97C86;white-space:nowrap}
+@media(prefers-reduced-motion:reduce){.cdc2-pilha-joaninha{transition:none}}
+@media(max-width:600px){.cdc2-pilha-joaninha{right:12px;bottom:calc(14px + 74px + 8px)}.cdc2-topo-frase{font-size:13px}}
+/* Busca igual ao modelo aprovado: pílula grande, logo abaixo da data —
+   não mais espremida numa caixinha de 300px do lado direito. */
 .cdc2-topo-busca{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E4DFD3;
-  border-radius:16px;padding:13px 20px;font-size:13.5px;color:#9CA0A8;
-  flex:1 1 auto;min-width:220px;max-width:460px;
+  border-radius:14px;padding:12px 18px;font-size:13px;color:#9CA0A8;
+  width:100%;max-width:380px;
   box-shadow:0 1px 2px rgba(31,42,51,.03),0 6px 16px rgba(31,42,51,.04)}
 .cdc2-topo-busca svg{flex-shrink:0;color:#9CA0A8}
-.cdc2-topo-busca input{border:none;outline:none;background:none;font-family:inherit;font-size:13.5px;
+.cdc2-topo-busca input{border:none;outline:none;background:none;font-family:inherit;font-size:13px;
   color:#1F2937;width:100%}
 .cdc2-topo-busca input::placeholder{color:#9CA0A8}
 
@@ -2085,11 +2092,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   background:#fff;border:1px solid #F0EEE9;border-radius:13px;padding:10px 13px;
   font-size:11.5px;font-weight:600;color:#6B7280;cursor:pointer}
 .cdc2-ver-todos svg{width:11px;height:11px}
-/* Só empilha em tela de verdade estreita — antes disso a quebra jogava o
-   sincronizado e a busca pra debaixo do título mesmo com espaço de sobra,
-   e a busca (230px de largura fixa) ainda cortava o placeholder. */
-@media(max-width:860px){.cdc2-topo{flex-direction:column;align-items:flex-start}.cdc2-topo-dir{width:100%}.cdc2-topo-busca{flex:1}}
-@media(max-width:640px){.cdc2-topo{padding:16px 18px}.cdc2-topo-dir{flex-wrap:wrap}.cdc2-topo-busca{width:100%}}
+@media(max-width:640px){.cdc2-topo{padding:16px 18px}.cdc2-topo-esq{max-width:none}}
 
 .cdc2-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:stretch;margin-bottom:26px}
 @media(max-width:980px){.cdc2-grid3{grid-template-columns:1fr}}
@@ -2257,14 +2260,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
        em vez do título enorme e fechável de antes. -->
   <div class="cdc2-topo" id="saudacao-card" style="display:none">
     <div class="cdc2-topo-esq">
-      <span class="cdc2-topo-sol cc-clima" id="saudacao-clima"></span>
-      <div>
-        <div class="cdc2-topo-saud" id="saudacao-titulo"></div>
-        <div class="cdc2-topo-sub" id="saudacao-texto"></div>
+      <div class="cdc2-topo-esq-head">
+        <span class="cdc2-topo-sol cc-clima" id="saudacao-clima"></span>
+        <div>
+          <div class="cdc2-topo-saud" id="saudacao-titulo"></div>
+          <div class="cdc2-topo-sub" id="saudacao-texto"></div>
+        </div>
       </div>
-    </div>
-    <div class="cdc2-topo-dir">
-      <span class="cdc2-topo-sync"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span>
       <span class="cdc2-topo-busca">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
         <input type="text" placeholder="Buscar caso, cliente, prenotação..." oninput="buscar(this.value)" onkeydown="if(event.key===&#39;Enter&#39;)irParaPrimeiroResultado()">
@@ -2274,8 +2276,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
   <!-- position:fixed — vive fora do fluxo do cabeçalho de propósito, pra
        ficar ancorada acima da Joaninha de verdade (#joaninha-host), não
-       do lugar onde o cabeçalho por acaso a desenharia. Ver .cdc2-topo-frase. -->
-  <div class="cdc2-topo-frase" id="cdc2-topo-frase">Vamos em frente? ❤️</div>
+       do lugar onde o cabeçalho por acaso a desenharia (era isso que abria
+       o vão vazio entre o card e ela). Ver .cdc2-pilha-joaninha. -->
+  <div class="cdc2-pilha-joaninha" id="cdc2-pilha-joaninha">
+    <span class="cdc2-topo-sync"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span>
+    <span class="cdc2-topo-frase">Vamos em frente? ❤️</span>
+  </div>
 
   <!-- Resumo rápido — reaproveita as MESMAS contagens da lateral (Nota de
        exigência/Falta assinatura, Aguardando TQ, Aguardando traslado) e da
