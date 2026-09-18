@@ -2042,25 +2042,29 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    antes só que um passo adiante. Com flex-start os dois ficam colados,
    com um gap fixo, e o espaço que sobrar fica depois do calendário —
    antes da Joaninha, que nem mora dentro deste card. */
-/* margin-right reservado — a Joaninha (#joaninha-host) é position:fixed a
-   right:48px do viewport, com até ~135px de largura (o texto mais largo
-   da pilha, "Sincronizado · hh:mm" ou a frase). Sem essa reserva, medi de
-   verdade em várias larguras (sidebar de 246px + .container de
-   até 1360px): o calendário passa a colidir com ela bem antes do que se
-   imagina — a partir de ~1300px de tela inteira já invade a zona dela, e
-   a colisão piora conforme a tela estreita. A reserva garante que o card
-   inteiro nunca chega lá, não só o calendário. Cai a 0 no breakpoint em
-   que a própria Joaninha se muda pro canto inferior (ver joaninha.css,
-   max-width:600px), onde ela não compete mais com o cabeçalho. */
-.cdc2-topo{display:flex;align-items:center;justify-content:flex-start;gap:36px;
-  background:#F4EFE6;border-radius:18px;padding:28px 34px;margin-bottom:20px;margin-right:230px}
-@media(max-width:600px){.cdc2-topo{margin-right:0}}
+/* SEM margin-right fixo e SEM @media pra decidir quando empilhar — as
+   duas tentativas anteriores adivinhavam uma largura de tela "segura"
+   (1300px, depois 1180px) e erravam feio: zoom do navegador, escala do
+   Windows e a largura real da janela mudam o que cabe, e ela seguiu
+   vendo o calendário fora do lugar em larguras que eu não tinha testado.
+   Agora é cdc2AjustarLayoutTopo() (ver JS, perto de
+   posicionarJoaninhaNaSaudacao) quem decide, MEDINDO de verdade depois de
+   pintar a tela: se o calendário cabe ao lado da saudação sem chegar
+   perto da Joaninha, ele fica "no meio" — que é onde ela pediu pra ele
+   morar. Só empilha (.cdc2-empilhado) quando a medição real diz que não
+   cabe. Roda nesta ordem: monta a saudação → mede → decide; e de novo
+   a cada resize. */
+.cdc2-topo{display:flex;align-items:center;justify-content:flex-start;gap:20px;
+  background:#F4EFE6;border-radius:18px;padding:26px 28px;margin-bottom:20px}
+.cdc2-topo.cdc2-empilhado{flex-direction:column;align-items:flex-start}
+.cdc2-topo.cdc2-empilhado .cdc2-topo-esq{max-width:none;width:100%;flex:0 0 auto}
+.cdc2-topo.cdc2-empilhado .cdc2-calendario{max-width:none;width:100%;flex:0 0 auto}
 /* flex-grow:0 de propósito — se ela crescer pra preencher o espaço livre,
    o calendário é empurrado até a borda direita do card, que é onde a
    Joaninha (position:fixed, ancorada a ~48px da borda da tela) também
-   mora — e as duas colidem em larguras intermediárias. Sem crescer, o
-   espaço que sobra fica em branco DEPOIS do calendário, longe dela. */
-.cdc2-topo-esq{display:flex;flex-direction:column;gap:18px;min-width:220px;max-width:440px;flex:0 1 380px}
+   mora. Sem crescer, o espaço que sobra fica em branco DEPOIS do
+   calendário — é esse espaço que cdc2AjustarLayoutTopo() mede. */
+.cdc2-topo-esq{display:flex;flex-direction:column;gap:16px;min-width:192px;max-width:400px;flex:0 1 300px}
 .cdc2-topo-esq-head{display:flex;align-items:center;gap:18px}
 .cdc2-topo-sol{flex-shrink:0}
 .cdc2-topo-sol svg{width:34px;height:34px}
@@ -2101,7 +2105,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    linguagem dos cards (fundo branco, borda quase invisível, sombra
    suave) pra combinar com o resto da Central. */
 .cdc2-calendario{background:#fff;border:1px solid #EFEBE3;border-radius:16px;
-  padding:18px 20px 16px;min-width:230px;max-width:300px;flex:0 1 300px;
+  padding:16px 18px 14px;min-width:196px;max-width:260px;flex:0 1 260px;
   box-shadow:0 1px 2px rgba(31,42,51,.03),0 6px 16px rgba(31,42,51,.04)}
 .cdc2-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .cdc2-cal-titulo{font-family:'Jost',sans-serif;font-weight:400;font-size:15px;color:#1F2937}
@@ -2115,27 +2119,6 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc2-cal-dia{font-size:12.5px;color:#374151;padding:6px 0;border-radius:10px}
 .cdc2-cal-dia.fora{color:#D8D0C1}
 .cdc2-cal-dia.hoje{background:#F8E9EA;color:#C97C86;font-weight:700}
-/* Empilha bem antes da tela ficar "estreita" de verdade — 1180px, não
-   760px. Medi de propósito (sidebar de 246px + margin-right reservado
-   pra Joaninha): abaixo de ~1180px de largura de tela inteira, a soma
-   dos min-width de esq (220) e do calendário (230) já não cabe no
-   espaço que sobra depois do sidebar e da reserva da Joaninha — o flex
-   ignora a reserva e o calendário TRANSBORDA pra fora do card, direto em
-   cima dela. Empilhado (width:100%), o calendário nunca ultrapassa a
-   caixa do próprio card, que já respeita a reserva.
-   IMPORTANTE: flex-basis é relativo ao eixo principal, e o eixo
-   principal vira vertical quando .cdc2-topo passa a column — sem
-   resetar `flex` aqui, os 380px/300px de basis (pensados como LARGURA
-   na linha) viram ALTURA na coluna, inflando a caixa da busca pra
-   380px de altura e empurrando o calendário pra bem longe dela (o "vão
-   enorme" que ela via de novo, só que agora vertical em vez de
-   horizontal). */
-@media(max-width:1180px){
-  .cdc2-topo{flex-direction:column;align-items:flex-start}
-  .cdc2-topo-esq{max-width:none;width:100%;flex:0 0 auto}
-  .cdc2-calendario{max-width:none;width:100%;flex:0 0 auto}
-}
-
 /* faixa de indicadores — resumo rápido, não protagonista: telha leve,
    sem competir com o peso visual dos três módulos principais */
 .cdc2-indicadores{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
@@ -4597,6 +4580,29 @@ function renderCdc2Calendario(){
   for(let d=1;d<=restante;d++)html+=`<div class="cdc2-cal-dia fora">${d}</div>`;
   grid.innerHTML=html;
 }
+
+// ── CALENDÁRIO "NO MEIO" (ao lado da saudação) OU EMPILHADO ──
+// As duas primeiras tentativas adivinhavam uma largura de tela "segura"
+// (@media max-width:1300px, depois 1180px) pra decidir isso — e as duas
+// erraram na tela dela, porque zoom do navegador e escala do Windows
+// mudam o que cabe sem mudar o número que o @media enxerga. Esta função
+// não adivinha: bota o card em modo linha, MEDE de verdade onde o
+// calendário terminaria e onde a Joaninha (position:fixed) começa, e só
+// empilha se a medição disser que não cabe. É por isso que ela quase
+// sempre vê o calendário "no meio", do lado da saudação — só cai pra
+// baixo da busca quando genuinamente não há espaço.
+function cdc2AjustarLayoutTopo(){
+  const topo=document.getElementById('saudacao-card');
+  const cal=topo&&topo.querySelector('.cdc2-calendario');
+  const jn=document.getElementById('cdc2-pilha-joaninha');
+  if(!topo||!cal||!jn||topo.style.display==='none')return;
+  const FOLGA_MINIMA=24; // respiro mínimo entre o calendário e a pilha da Joaninha
+  topo.classList.remove('cdc2-empilhado'); // testa em modo linha antes de medir
+  const calRect=cal.getBoundingClientRect();
+  const jnRect=jn.getBoundingClientRect();
+  const precisaEmpilhar=(calRect.right+FOLGA_MINIMA)>jnRect.left;
+  topo.classList.toggle('cdc2-empilhado',precisaEmpilhar);
+}
 function montarSaudacao(forcar){
   if(saudacaoMontada&&!forcar)return;
   const usuario=localStorage.getItem('painel_usuario');
@@ -4614,6 +4620,7 @@ function montarSaudacao(forcar){
   const ind=document.getElementById('cdc2-indicadores');if(ind)ind.style.display='flex';
   renderCdc2Calendario();
   posicionarJoaninhaNaSaudacao();
+  cdc2AjustarLayoutTopo();
   atualizarIconeClima(usuario);
   const hojeStr=new Date().toDateString();
   if(localStorage.getItem('joaninha_saudacao_dia')!==hojeStr){
@@ -4735,6 +4742,7 @@ window.addEventListener('resize',()=>{
   clearTimeout(resizeJnTimer);
   resizeJnTimer=setTimeout(()=>{
     posicionarJoaninhaNaSaudacao();
+    cdc2AjustarLayoutTopo();
     document.querySelectorAll('.cdc-scroll').forEach(limitarScrollUmCard);
   },150);
 });
