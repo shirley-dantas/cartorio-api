@@ -1119,6 +1119,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   color:var(--cc-tinta-3);padding:8px 10px;text-indent:.18em}
 .sidebar-toggle-mais:hover{color:var(--cc-tinta)}
 .sidebar-total-sub .sidebar-item{padding-left:27px;font-size:12px}
+/* Anotação de planner no rodapé do menu — puramente decorativa (não é
+   um item de navegação), por isso fica fora de qualquer <nav>. */
+.sidebar-footer-frase{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;
+  line-height:1.4;color:var(--cc-tinta-3);padding:20px 12px 4px;margin-top:8px}
 
 /* ══ FINANCEIRO ══
    A tela do dinheiro reaproveita a linguagem do resto do painel: cartão
@@ -2037,12 +2041,35 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc2-topo-dir{display:flex;align-items:center;gap:18px;flex-shrink:0}
 .cdc2-topo-data{font-size:12.5px;color:#6B7280;white-space:nowrap}
 .cdc2-topo-sync{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#6B7280;white-space:nowrap}
+/* Frase fixa perto de onde a Joaninha (o bichinho animado, ver
+   JoaninhaMascote) costuma passar pela saudação — não é a fala dela
+   (isso continua vindo só de joaninhaInstancia.falar), é só um convite
+   de planner que fica parado no cabeçalho. */
+.cdc2-topo-frase{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:600;
+  font-size:15.5px;color:#C97C86;white-space:nowrap}
 .cdc2-topo-busca{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #E4DFD3;
   border-radius:10px;padding:11px 16px;font-size:13px;color:#9CA0A8;width:300px}
 .cdc2-topo-busca svg{flex-shrink:0;color:#9CA0A8}
 .cdc2-topo-busca input{border:none;outline:none;background:none;font-family:inherit;font-size:13px;
   color:#1F2937;width:100%}
 .cdc2-topo-busca input::placeholder{color:#9CA0A8}
+
+/* faixa de indicadores — resumo rápido, não protagonista: telha leve,
+   sem competir com o peso visual dos três módulos principais */
+.cdc2-indicadores{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.cdc2-indic{flex:1 1 148px;display:flex;align-items:center;gap:10px;background:#fff;
+  border:1px solid #F0EEE9;border-radius:13px;padding:10px 13px}
+.cdc2-indic .cdc2-indic-ponto{width:7px;height:7px;border-radius:50%;flex:0 0 7px;opacity:.9}
+.cdc2-indic.critico .cdc2-indic-ponto{background:#B3261E}
+.cdc2-indic.atencao .cdc2-indic-ponto{background:#8A5A0B}
+.cdc2-indic.ok .cdc2-indic-ponto{background:#2F7A4F}
+.cdc2-indic.roxo .cdc2-indic-ponto{background:#5B3FA0}
+.cdc2-indic-num{font-family:'Jost',sans-serif;font-size:16.5px;font-weight:500;color:#1F2937;line-height:1}
+.cdc2-indic-lbl{font-size:10.5px;color:#8B8F98;margin-top:2px}
+.cdc2-ver-todos{flex:1 1 148px;display:flex;align-items:center;justify-content:center;gap:8px;
+  background:#fff;border:1px solid #F0EEE9;border-radius:13px;padding:10px 13px;
+  font-size:11.5px;font-weight:600;color:#6B7280;cursor:pointer}
+.cdc2-ver-todos svg{width:11px;height:11px}
 /* Só empilha em tela de verdade estreita — antes disso a quebra jogava o
    sincronizado e a busca pra debaixo do título mesmo com espaço de sobra,
    e a busca (230px de largura fixa) ainda cortava o placeholder. */
@@ -2052,11 +2079,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc2-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:stretch;margin-bottom:26px}
 @media(max-width:980px){.cdc2-grid3{grid-template-columns:1fr}}
 
-.cdc2-card{background:#fff;border:1px solid #EBE8E2;border-radius:16px;padding:16px 18px 18px;
-  display:flex;flex-direction:column;min-width:0;box-shadow:0 1px 2px rgba(20,20,20,.03)}
-.cdc2-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
-.cdc2-card-title{display:inline-flex;align-items:center;gap:9px;font-size:15px;font-weight:600;color:#1F2937}
-.cdc2-icon-chip{width:26px;height:26px;border-radius:8px;background:#F5ECDC;display:flex;align-items:center;
+.cdc2-card{background:#fff;border:1px solid #EFEBE3;border-radius:20px;padding:24px 24px 22px;
+  display:flex;flex-direction:column;min-width:0;box-shadow:0 1px 2px rgba(31,42,51,.025),0 10px 24px rgba(31,42,51,.035)}
+.cdc2-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:19px}
+.cdc2-card-title{display:inline-flex;align-items:center;gap:9px;font-family:'Jost',sans-serif;
+  font-weight:400;font-size:16.5px;color:#1F2937}
+.cdc2-icon-chip{width:26px;height:26px;border-radius:9px;background:#F5ECDC;display:flex;align-items:center;
   justify-content:center;color:#B0793C;flex-shrink:0}
 .cdc2-icon-plain{display:flex;align-items:center;justify-content:center;color:#16A34A;flex-shrink:0}
 .cdc2-btn-nova{font-size:12px;font-weight:600;color:#1F2937;background:#fff;border:1px solid #DDD8CE;
@@ -2064,33 +2092,43 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc2-btn-nova:hover{background:#FAF8F4}
 .cdc2-cont-mini{font-size:12px;font-weight:600;color:#16A34A;white-space:nowrap}
 
-.cdc2-pill-tabs{display:inline-flex;background:#F1EEE7;border-radius:999px;padding:3px;gap:2px;margin-bottom:14px}
-.cdc2-pill-tab{font-family:inherit;font-size:12.5px;font-weight:600;color:#6B7280;background:none;border:none;
+.cdc2-pill-tabs{display:inline-flex;background:#F8F5EF;border-radius:999px;padding:3px;gap:2px;margin-bottom:20px}
+.cdc2-pill-tab{font-family:inherit;font-size:12px;font-weight:600;color:#8B8F98;background:none;border:none;
   border-radius:999px;padding:7px 14px;cursor:pointer;white-space:nowrap}
-.cdc2-pill-tab.ativa{background:#1F2937;color:#fff}
+.cdc2-pill-tab.ativa{background:#fff;color:#1F2937;box-shadow:0 1px 3px rgba(31,42,51,.08)}
 
 .cdc2-ag-lista{display:flex;flex-direction:column;flex:1;min-height:0;max-height:340px;overflow-y:auto;padding-right:2px}
 .cdc2-ag-lista::-webkit-scrollbar{width:5px}
 .cdc2-ag-lista::-webkit-scrollbar-thumb{background:#C7C0AF;border-radius:999px}
-.cdc2-ag-linha{display:flex;align-items:flex-start;gap:12px;padding:10px 2px;border-bottom:1px solid #F0EEE9;
-  cursor:pointer}
-.cdc2-ag-linha:last-child{border-bottom:none;padding-bottom:2px}
-.cdc2-ag-hora{font-size:12.5px;font-weight:700;color:#1F2937;width:42px;flex-shrink:0;padding-top:1px;
-  white-space:nowrap}
-.cdc2-ag-corpo{flex:1;min-width:0}
-.cdc2-ag-nome{font-size:13px;font-weight:700;color:#1F2937}
-.cdc2-ag-tipo{font-size:11.5px;color:#8B8F98;margin-top:1px}
+/* Timeline delicada: o ponto+linha vêm de um span decorativo
+   (.cdc2-ag-ponto) inserido pelo próprio cdc2LinhaAgenda(). A linha usa o
+   truque de esticar do ponto até a BASE da própria linha (não até o ponto
+   de baixo) — como o item de baixo começa colado, a linha fica contínua
+   sem precisar medir a altura de cada linha em JS. */
+.cdc2-ag-linha{display:flex;align-items:stretch;gap:0;cursor:pointer;border-bottom:none}
+.cdc2-ag-hora{font-size:12px;font-weight:600;color:#8B8F98;width:38px;flex:0 0 38px;padding:14px 0 14px 2px;
+  white-space:nowrap;font-variant-numeric:tabular-nums}
+.cdc2-ag-ponto{position:relative;flex:0 0 18px;display:flex;justify-content:center}
+.cdc2-ag-ponto::before{content:'';position:absolute;top:19px;width:7px;height:7px;border-radius:50%;
+  background:#A9895A;border:1.5px solid #A9895A;z-index:1}
+.cdc2-ag-ponto::after{content:'';position:absolute;top:19px;bottom:0;left:50%;margin-left:-.5px;width:1px;
+  background:#E6E0D5}
+.cdc2-ag-linha:last-child .cdc2-ag-ponto::after{display:none}
+.cdc2-ag-corpo{flex:1;min-width:0;padding:14px 2px 14px 6px}
+.cdc2-ag-nome{font-size:13.5px;font-weight:600;color:#1F2937}
+.cdc2-ag-tipo{font-size:11.5px;color:#8B8F98;margin-top:2px}
+.cdc-agenda-acoes{align-self:center}
 .cdc2-ag-dia{font-size:11px;font-weight:700;color:#8B8F98;text-transform:uppercase;letter-spacing:.03em;
   padding:10px 2px 4px;border-top:1px solid #F0EEE9}
 .cdc2-ag-dia:first-child{padding-top:2px;border-top:none}
 
-.cdc2-tabs-underline{display:flex;gap:18px;border-bottom:1px solid #EEEBE5;margin-bottom:13px;flex-wrap:wrap}
-.cdc2-tab-u{font-family:inherit;font-size:12.5px;font-weight:600;color:#9CA0A8;background:none;border:none;
+.cdc2-tabs-underline{display:flex;gap:18px;border-bottom:1px solid #F3F0E9;margin-bottom:18px;flex-wrap:wrap}
+.cdc2-tab-u{font-family:inherit;font-size:12px;font-weight:500;color:#9CA0A8;background:none;border:none;
   padding:0 0 9px;cursor:pointer;position:relative;white-space:nowrap}
 .cdc2-tab-u.ativa{color:#1F2937}
-.cdc2-tab-u.ativa::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#1F2937}
-.cdc2-tab-u.ativa-ok::after{background:#16A34A}
-.cdc2-tab-u.ativa-atencao::after{background:#B0793C}
+.cdc2-tab-u.ativa::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1.5px;background:#A9895A}
+.cdc2-tab-u.ativa-ok::after{background:#2F7A4F}
+.cdc2-tab-u.ativa-atencao::after{background:#8A5A0B}
 
 .cdc2-check-lista{display:flex;flex-direction:column;flex:1;min-height:0;max-height:340px;overflow-y:auto;padding-right:2px}
 .cdc2-check-lista::-webkit-scrollbar,.cdc2-ag-lista::-webkit-scrollbar{width:5px}
@@ -2098,11 +2136,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 #cdc-fazer-lista,#cdc-esq-lista{flex:1;min-height:0;max-height:340px;overflow-y:auto;padding-right:2px}
 #cdc-fazer-lista::-webkit-scrollbar,#cdc-esq-lista::-webkit-scrollbar{width:5px}
 #cdc-fazer-lista::-webkit-scrollbar-thumb,#cdc-esq-lista::-webkit-scrollbar-thumb{background:#C7C0AF;border-radius:999px}
-.cdc2-check-row{display:flex;align-items:flex-start;gap:9px;padding:8px 2px;border-bottom:1px solid #F0EEE9}
+.cdc2-check-row{display:flex;align-items:flex-start;gap:11px;padding:11px 2px;border-bottom:1px solid #F6F3EC}
 .cdc2-check-row:last-child{border-bottom:none}
-.cdc2-checkbox{width:15px;height:15px;border-radius:4px;border:1.5px solid #D5D1C8;flex-shrink:0;
+.cdc2-checkbox{width:15px;height:15px;border-radius:5px;border:1.5px solid #D5D1C8;flex-shrink:0;
   margin-top:2px;background:#fff;cursor:pointer;padding:0}
-.cdc2-check-texto{flex:1;min-width:0;font-size:12px;color:#374151;line-height:1.4}
+.cdc2-check-texto{flex:1;min-width:0;font-size:13px;color:#374151;line-height:1.45}
 .cdc2-check-tag{color:#9CA0A8;font-weight:500}
 .cdc2-check-menu{color:#B7BAC1;flex-shrink:0;cursor:pointer;padding:2px;background:none;border:none}
 
@@ -2118,10 +2156,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc2-mini-head{display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:pointer}
 .cdc2-mini-nome{font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#1F2937;flex:1;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;background:none;border:none;padding:0}
-.cdc2-mini-pill{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+.cdc2-mini-pill{font-size:9px;font-weight:600;letter-spacing:.03em;
   padding:3px 8px;border-radius:999px;white-space:nowrap;flex-shrink:0}
-.cdc2-mini-pill.ok{background:#DCFCE7;color:#15803D}
-.cdc2-mini-pill.atencao{background:#FDEBD3;color:#8A5A0B}
+.cdc2-mini-pill.ok{background:#EAF5EE;color:#2F7A4F}
+.cdc2-mini-pill.atencao{background:#FBF1DF;color:#8A5A0B}
 .cdc2-mini-chevron{color:#9CA0A8;flex-shrink:0;transition:transform .18s ease;font-size:13px}
 .cdc2-mini.aberto .cdc2-mini-chevron{transform:rotate(90deg)}
 .cdc2-mini-detalhe{display:none;padding:0 12px 12px 12px}
@@ -2182,6 +2220,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <button type="button" class="sidebar-item" id="sidebar-rede" style="display:none" onclick="abrirRede()"><i class="ti ti-affiliate"></i><span>Rede</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Configurações')"><i class="ti ti-settings"></i><span>Configurações</span><span class="em-breve">em breve</span></button>
   </nav>
+  <div class="sidebar-footer-frase">"Disciplina hoje,<br>resultados amanhã." ❤️</div>
 </aside>
 
 <div class="main-area">
@@ -2210,12 +2249,31 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       </div>
     </div>
     <div class="cdc2-topo-dir">
+      <span class="cdc2-topo-frase">Vamos em frente? ❤️</span>
       <span class="cdc2-topo-sync"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span>
       <span class="cdc2-topo-busca">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
         <input type="text" placeholder="Buscar caso, cliente, prenotação..." oninput="buscar(this.value)" onkeydown="if(event.key===&#39;Enter&#39;)irParaPrimeiroResultado()">
       </span>
     </div>
+  </div>
+
+  <!-- Resumo rápido — reaproveita as MESMAS contagens da lateral (Nota de
+       exigência/Falta assinatura, Aguardando TQ, Aguardando traslado) e da
+       Agenda (hoje). Não é uma 4ª definição de "crítico": é o mesmo dado,
+       só lido em outro lugar. Preenchido por renderCdc2Indicadores(). -->
+  <div class="cdc2-indicadores" id="cdc2-indicadores" style="display:none">
+    <div class="cdc2-indic critico"><span class="cdc2-indic-ponto"></span>
+      <div><div class="cdc2-indic-num" id="cdc2-ind-critico">0</div><div class="cdc2-indic-lbl">Críticos</div></div></div>
+    <div class="cdc2-indic atencao"><span class="cdc2-indic-ponto"></span>
+      <div><div class="cdc2-indic-num" id="cdc2-ind-atencao">0</div><div class="cdc2-indic-lbl">Atenção</div></div></div>
+    <div class="cdc2-indic ok"><span class="cdc2-indic-ponto"></span>
+      <div><div class="cdc2-indic-num" id="cdc2-ind-hoje">0</div><div class="cdc2-indic-lbl">No dia</div></div></div>
+    <div class="cdc2-indic roxo"><span class="cdc2-indic-ponto"></span>
+      <div><div class="cdc2-indic-num" id="cdc2-ind-cliente">0</div><div class="cdc2-indic-lbl">Aguardando cliente</div></div></div>
+    <button type="button" class="cdc2-ver-todos" onclick="scrollParaId('view-casos')">Ver todos · <span id="cdc2-ind-total">0</span> atendimentos
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
   </div>
 
   <!-- O Jornal da equipe. Fora do cabeçalho de propósito, como a faixa da
@@ -3620,6 +3678,25 @@ function renderCentralComando(){
   renderFazerAgora(itens,new Set());
   renderAgenda(itens);
   renderQuadro(itens);
+  renderCdc2Indicadores();
+}
+
+// Resumo rápido acima dos três módulos — reaproveita as MESMAS contagens
+// já usadas na lateral (ETAPAS_SIDEBAR) e na Agenda (cdc2AgendaDados),
+// preenchido depois de renderAgenda() para já ter "hoje" calculado. Não
+// inventa nenhuma definição nova de "crítico": Críticos soma Nota de
+// exigência + Falta assinatura, Atenção é Aguardando TQ, Aguardando
+// cliente é Aguardando traslado — os mesmos rótulos de sempre.
+function renderCdc2Indicadores(){
+  const critEl=document.getElementById('cdc2-ind-critico');
+  if(!critEl)return;
+  const ativos=getCasosList().filter(c=>!c.concluido);
+  const porDep=dep=>ativos.filter(c=>c.dep===dep).length;
+  critEl.textContent=porDep('Nota de exigência')+porDep('Falta assinatura');
+  document.getElementById('cdc2-ind-atencao').textContent=porDep('Aguardando TQ');
+  document.getElementById('cdc2-ind-hoje').textContent=(cdc2AgendaDados.hoje||[]).length;
+  document.getElementById('cdc2-ind-cliente').textContent=porDep('Aguardando traslado');
+  document.getElementById('cdc2-ind-total').textContent=ativos.length;
 }
 
 // Select de responsável, reaproveitado pela banda "hoje" da Central.
@@ -4021,6 +4098,7 @@ function cdc2LinhaAgenda(ev){
   return`
   <div class="cdc2-ag-linha" onclick="irParaCasoPorId('${c.id}')">
     <span class="cdc2-ag-hora">${hora}</span>
+    <span class="cdc2-ag-ponto"></span>
     <div class="cdc2-ag-corpo">
       <div class="cdc2-ag-nome">${esc(c.nome)}</div>
       <div class="cdc2-ag-tipo">${esc(tipo)}</div>
@@ -4384,6 +4462,7 @@ window.definirIdentidade=function(nome){
 };
 window.fecharSaudacao=function(){
   document.getElementById('saudacao-card').style.display='none';
+  const ind=document.getElementById('cdc2-indicadores');if(ind)ind.style.display='none';
   sessionStorage.setItem('saudacao_fechada','1');
 };
 function montarSaudacao(forcar){
@@ -4400,6 +4479,7 @@ function montarSaudacao(forcar){
   const msg=`${DIAS_SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}`;
   document.getElementById('saudacao-texto').textContent=msg;
   document.getElementById('saudacao-card').style.display='block';
+  const ind=document.getElementById('cdc2-indicadores');if(ind)ind.style.display='flex';
   posicionarJoaninhaNaSaudacao();
   atualizarIconeClima(usuario);
   const hojeStr=new Date().toDateString();
