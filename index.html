@@ -3998,12 +3998,18 @@ function cdc2LinhaAgenda(ev){
   const hora=ev.dt?new Date(ev.dt).toLocaleString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
   const quemSegunda=ev.segunda&&c.segundaParte&&c.segundaParte.quem?': '+esc(c.segundaParte.quem):'';
   const tipo=ev.segunda?'Assinatura — 2ª parte'+quemSegunda:'Assinatura da escritura';
+  const tipoEdit=ev.segunda?'segunda':'principal';
+  const chave=chaveAgendaEvento(c.id,tipoEdit,ev.dt);
   return`
   <div class="cdc2-ag-linha" onclick="irParaCasoPorId('${c.id}')">
     <span class="cdc2-ag-hora">${hora}</span>
     <div class="cdc2-ag-corpo">
       <div class="cdc2-ag-nome">${esc(c.nome)}</div>
       <div class="cdc2-ag-tipo">${esc(tipo)}</div>
+    </div>
+    <div class="cdc-agenda-acoes" onclick="event.stopPropagation()">
+      <button type="button" class="cdc-agenda-btn editar" title="Reagendar" onclick="abrirEditarAgenda('${tipoEdit}','${esc(c.id)}')"><i class="ti ti-pencil"></i></button>
+      <button type="button" class="cdc-agenda-btn excluir" title="Cliente desmarcou — tirar da agenda" onclick="excluirAgendaEvento('${esc(chave)}')"><i class="ti ti-x"></i></button>
     </div>
   </div>`;
 }
