@@ -2036,9 +2036,31 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    ponta oposta. Card largo + item solto empurrado pro canto é o que
    abria aquele vão vazio enorme no meio; o bloco da Joaninha nem faz
    mais parte deste card, ver .cdc2-pilha-joaninha logo abaixo. */
-.cdc2-topo{display:flex;align-items:center;justify-content:space-between;gap:24px;
-  background:#F4EFE6;border-radius:18px;padding:28px 34px;margin-bottom:20px;flex-wrap:wrap}
-.cdc2-topo-esq{display:flex;flex-direction:column;gap:18px;min-width:0;max-width:440px;flex:1 1 320px}
+/* justify-content:flex-start de propósito — com space-between e só 2
+   filhos, o calendário ia pro canto direito do CARD (que é largo) e
+   sobrava um vão vazio enorme entre a busca e ele, o mesmo problema de
+   antes só que um passo adiante. Com flex-start os dois ficam colados,
+   com um gap fixo, e o espaço que sobrar fica depois do calendário —
+   antes da Joaninha, que nem mora dentro deste card. */
+/* margin-right reservado — a Joaninha (#joaninha-host) é position:fixed a
+   right:48px do viewport, com até ~135px de largura (o texto mais largo
+   da pilha, "Sincronizado · hh:mm" ou a frase). Sem essa reserva, medi de
+   verdade em várias larguras (sidebar de 246px + .container de
+   até 1360px): o calendário passa a colidir com ela bem antes do que se
+   imagina — a partir de ~1300px de tela inteira já invade a zona dela, e
+   a colisão piora conforme a tela estreita. A reserva garante que o card
+   inteiro nunca chega lá, não só o calendário. Cai a 0 no breakpoint em
+   que a própria Joaninha se muda pro canto inferior (ver joaninha.css,
+   max-width:600px), onde ela não compete mais com o cabeçalho. */
+.cdc2-topo{display:flex;align-items:center;justify-content:flex-start;gap:36px;
+  background:#F4EFE6;border-radius:18px;padding:28px 34px;margin-bottom:20px;margin-right:230px}
+@media(max-width:600px){.cdc2-topo{margin-right:0}}
+/* flex-grow:0 de propósito — se ela crescer pra preencher o espaço livre,
+   o calendário é empurrado até a borda direita do card, que é onde a
+   Joaninha (position:fixed, ancorada a ~48px da borda da tela) também
+   mora — e as duas colidem em larguras intermediárias. Sem crescer, o
+   espaço que sobra fica em branco DEPOIS do calendário, longe dela. */
+.cdc2-topo-esq{display:flex;flex-direction:column;gap:18px;min-width:220px;max-width:440px;flex:0 1 380px}
 .cdc2-topo-esq-head{display:flex;align-items:center;gap:18px}
 .cdc2-topo-sol{flex-shrink:0}
 .cdc2-topo-sol svg{width:34px;height:34px}
@@ -2079,7 +2101,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    linguagem dos cards (fundo branco, borda quase invisível, sombra
    suave) pra combinar com o resto da Central. */
 .cdc2-calendario{background:#fff;border:1px solid #EFEBE3;border-radius:16px;
-  padding:18px 20px 16px;min-width:270px;max-width:320px;flex:0 1 320px;
+  padding:18px 20px 16px;min-width:230px;max-width:300px;flex:0 1 300px;
   box-shadow:0 1px 2px rgba(31,42,51,.03),0 6px 16px rgba(31,42,51,.04)}
 .cdc2-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .cdc2-cal-titulo{font-family:'Jost',sans-serif;font-weight:400;font-size:15px;color:#1F2937}
@@ -2093,7 +2115,19 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc2-cal-dia{font-size:12.5px;color:#374151;padding:6px 0;border-radius:10px}
 .cdc2-cal-dia.fora{color:#D8D0C1}
 .cdc2-cal-dia.hoje{background:#F8E9EA;color:#C97C86;font-weight:700}
-@media(max-width:860px){.cdc2-calendario{flex:1 1 100%;max-width:none}}
+/* Empilha bem antes da tela ficar "estreita" de verdade — 1180px, não
+   760px. Medi de propósito (sidebar de 246px + margin-right reservado
+   pra Joaninha): abaixo de ~1180px de largura de tela inteira, a soma
+   dos min-width de esq (220) e do calendário (230) já não cabe no
+   espaço que sobra depois do sidebar e da reserva da Joaninha — o flex
+   ignora a reserva e o calendário TRANSBORDA pra fora do card, direto em
+   cima dela. Empilhado (width:100%), o calendário nunca ultrapassa a
+   caixa do próprio card, que já respeita a reserva. */
+@media(max-width:1180px){
+  .cdc2-topo{flex-direction:column;align-items:flex-start}
+  .cdc2-topo-esq{max-width:none;width:100%}
+  .cdc2-calendario{max-width:none;width:100%}
+}
 
 /* faixa de indicadores — resumo rápido, não protagonista: telha leve,
    sem competir com o peso visual dos três módulos principais */
