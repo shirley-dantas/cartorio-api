@@ -984,3 +984,29 @@ criada, o salário que não acompanhava a correção do lançamento.
   mix por tipo de ato**, **quanto do repasse vem de cliente que já era da
   casa** e a **comparação com o mesmo mês do ano passado** — esta só faz
   sentido quando houver um ano de lançamento no banco.
+
+- **"Quem te chamou" está desenhada e publicada, mas ainda sem ligação de
+  verdade com o WhatsApp — parado de propósito em 18/09/2026.** A faixa
+  (`renderConversas()`, `CONVERSAS_EXEMPLO`, logo abaixo do Jornal da equipe
+  na Central de Comando, PR #108) já mostra o formato aprovado por ela:
+  contato novo com resposta rascunhada pela IA para copiar, contato já
+  conhecido com a escolha entre criar card novo ou vincular ao caso
+  existente, e pergunta de rotina reduzida a uma linha (a IA do WhatsApp já
+  deve ter respondido). Os botões avisam que ainda não fazem nada de
+  verdade, em vez de fingir — só "Copiar resposta" funciona hoje.
+  O que falta é a ligação com o WhatsApp oficial, e **por que ainda não
+  entrou**: o painel já tem um bot ligado ao WhatsApp (`api/salvar-caso.js`,
+  via Evolution API/Baileys, número operacional à parte — o comando que ela
+  e a Grazi usam para criar caso por chat), mas essa via **não serve** para
+  o número oficial de clientes: Evolution API finge ser o WhatsApp Web, e a
+  Meta pode bloquear o número que usar esse caminho. O número oficial "não
+  pode nem sonhar em perder" (palavras dela), então essa automação só pode
+  entrar pela **API oficial da Meta** (developers.facebook.com →
+  Plataforma do WhatsApp Business), que exige portfólio empresarial
+  verificado e um endpoint de webhook nosso (ainda não escrito).
+  Ela decidiu **comprar um número novo, dedicado só a essa automação**, em
+  vez de arriscar o oficial — e pausou aqui até ter esse número em mãos.
+  Quando voltar: o próximo passo técnico é criar o app em
+  developers.facebook.com com esse número novo até a Etapa 3 (número de
+  teste), então escrever o endpoint de webhook em `api/` antes da Etapa 4,
+  e só então trocar `CONVERSAS_EXEMPLO` por dados de verdade.
