@@ -2877,14 +2877,32 @@ window._fbUtils = { ref, update };
 
 const GAS_URL='https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec';
 
+// O Apps Script, quando cai (fora do ar, precisando de nova autorização, ou o
+// próprio Google interrompendo a execução), não devolve um erro em JSON — devolve
+// a página de erro dele em HTML. `r.json()` direto nessa resposta explode com
+// "Unexpected token '<'", que não diz nada pra quem está lendo o alerta. Aqui a
+// resposta é lida como texto primeiro, e só quem chama decide o que fazer se não
+// for JSON de verdade.
+async function lerRespostaCalendar(r){
+  const texto=await r.text();
+  try{
+    return JSON.parse(texto);
+  }catch{
+    throw new Error('o Google Apps Script não respondeu (pode estar fora do ar ou precisando de nova autorização)');
+  }
+}
+
 // Cria/atualiza/remove o evento no Google Calendar correspondente ao compromisso
 // (campo "agendado") de um caso, mantendo o calendarEventId em sincronia no Firebase.
+// Em toda chamada, o dado já foi gravado no Firebase antes desta função rodar —
+// se o Calendar falhar, o painel continua certo, só o evento do Google que fica
+// para trás. Por isso o alerta sempre deixa claro que a data já foi salva.
 async function sincronizarEventoCalendar(id,caso){
   try{
     if(!caso.agendado){
       if(caso.calendarEventId){
         const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'excluir-evento-calendar',eventId:caso.calendarEventId})});
-        const data=await r.json();
+        const data=await lerRespostaCalendar(r);
         if(!data.ok){alert('Erro ao remover evento do Calendar: '+(data.erro||'motivo desconhecido'));return;}
         update(ref(db,`casos/${id}`),{calendarEventId:''});
       }
@@ -2897,14 +2915,14 @@ async function sincronizarEventoCalendar(id,caso){
       descricao:caso.agendado_desc||caso.acao||'',
       eventId:caso.calendarEventId||''
     })});
-    const data=await r.json();
+    const data=await lerRespostaCalendar(r);
     if(data.ok&&data.eventId){
       update(ref(db,`casos/${id}`),{calendarEventId:data.eventId});
     }else{
-      alert('Erro ao sincronizar com o Calendar: '+(data.erro||'motivo desconhecido'));
+      alert('Salvei a data no painel, mas o Calendar recusou: '+(data.erro||'motivo desconhecido'));
     }
   }catch(e){
-    alert('Erro de conexão ao sincronizar com o Calendar: '+e.message);
+    alert('Salvei a data no painel, mas houve erro de conexão com o Calendar: '+e.message);
   }
 }
 
@@ -4231,7 +4249,7 @@ async function sincronizarEventoSegundaParte(id,caso){
       descricao:`Assinatura da segunda parte (${sp.quem||'—'}) do caso ${caso.nome}.`,
       eventId:sp.calendarEventId||''
     })});
-    const data=await r.json();
+    const data=await lerRespostaCalendar(r);
     if(data&&data.ok&&data.eventId){
       if(data.eventId!==sp.calendarEventId)
         await update(ref(db,`casos/${id}/segundaParte`),{calendarEventId:data.eventId});
