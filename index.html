@@ -2122,11 +2122,18 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    espaço que sobra depois do sidebar e da reserva da Joaninha — o flex
    ignora a reserva e o calendário TRANSBORDA pra fora do card, direto em
    cima dela. Empilhado (width:100%), o calendário nunca ultrapassa a
-   caixa do próprio card, que já respeita a reserva. */
+   caixa do próprio card, que já respeita a reserva.
+   IMPORTANTE: flex-basis é relativo ao eixo principal, e o eixo
+   principal vira vertical quando .cdc2-topo passa a column — sem
+   resetar `flex` aqui, os 380px/300px de basis (pensados como LARGURA
+   na linha) viram ALTURA na coluna, inflando a caixa da busca pra
+   380px de altura e empurrando o calendário pra bem longe dela (o "vão
+   enorme" que ela via de novo, só que agora vertical em vez de
+   horizontal). */
 @media(max-width:1180px){
   .cdc2-topo{flex-direction:column;align-items:flex-start}
-  .cdc2-topo-esq{max-width:none;width:100%}
-  .cdc2-calendario{max-width:none;width:100%}
+  .cdc2-topo-esq{max-width:none;width:100%;flex:0 0 auto}
+  .cdc2-calendario{max-width:none;width:100%;flex:0 0 auto}
 }
 
 /* faixa de indicadores — resumo rápido, não protagonista: telha leve,
