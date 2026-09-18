@@ -1559,6 +1559,73 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cc-jornal-seta{flex-shrink:0;color:var(--cc-tinta-3);font-size:15px;align-self:center}
 @media(max-width:520px){.cc-jornal-seta{display:none}.cc-jornal-selos{margin-left:0;width:100%}}
 
+/* ── Quem te chamou ─────────────────────────────────────────────────────
+   Aprovada por ela em 16/09/2026, desenhada antes de entrar aqui (o de
+   sempre): fica logo abaixo do Jornal da equipe, fora do cabeçalho, pela
+   mesma razão dele — saber quem te chamou não pode depender da saudação
+   estar aberta. Roda com CONVERSAS_EXEMPLO até a API do WhatsApp Business
+   existir de verdade; nasce escondida e só aparece quando houver conversa
+   (real ou de exemplo) para mostrar. */
+.cc-conversas{background:var(--cc-sup);border:1px solid var(--cc-linha);border-radius:16px;
+  padding:14px 14px 15px;margin:0 0 14px}
+.cc-conversas-topo{display:flex;align-items:baseline;gap:9px;margin-bottom:2px;flex-wrap:wrap}
+.cc-conversas-titulo{display:inline-flex;align-items:center;gap:8px;font-family:'Jost',sans-serif;
+  font-weight:400;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--cc-tinta)}
+.cc-conversas-titulo svg{width:17px;height:17px;color:#25D366;flex-shrink:0}
+.cc-conversas-cont{font-size:11px;color:var(--cc-tinta-3);font-variant-numeric:tabular-nums}
+.cc-conversas-nota{font-size:11.5px;color:var(--cc-tinta-3);margin:5px 0 13px}
+.cc-conversas-lista{display:flex;flex-direction:column;gap:11px}
+
+.cw{background:var(--cc-sup-2);border:1px solid var(--cc-linha);border-radius:12px;padding:13px}
+.cw-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:2px}
+.cw-quem{display:flex;align-items:center;gap:9px;min-width:0}
+.cw-avatar{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--cc-champagne-claro);
+  color:#5A431E;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',Georgia,serif;
+  font-weight:600;font-size:13px}
+.cw-nome-bloco{min-width:0}
+.cw-nome{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:18px;line-height:1.15;
+  margin:0;color:var(--cc-tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cw-fone{font-size:10.5px;color:var(--cc-tinta-3);font-variant-numeric:tabular-nums}
+.cw-selo{flex-shrink:0;border-radius:999px;padding:4px 9px;font-size:9px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.cw-selo-nova{background:var(--cc-atencao-fundo,#FBF1E1);color:var(--cc-atencao)}
+.cw-selo-conhecida{background:#EAF3ED;color:var(--cc-ok)}
+.cw-quando{font-size:10.5px;color:var(--cc-tinta-3);margin:6px 0 9px}
+.cw-msg{background:var(--cc-sup);border:1px solid var(--cc-linha);border-radius:9px;
+  padding:9px 11px;margin-bottom:10px}
+.cw-msg .cab{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--cc-tinta-3);margin-bottom:4px}
+.cw-msg p{margin:0;font-size:12.5px;color:var(--cc-tinta);font-style:italic}
+.cw-vinculo{font-size:11.5px;color:var(--cc-tinta-2);margin-bottom:10px;display:flex;gap:6px}
+.cw-vinculo svg{flex-shrink:0;width:13px;height:13px;margin-top:2px;fill:var(--cc-champagne)}
+.cw-resposta{background:#F4EFE4;border:1px solid var(--cc-champagne-claro);border-radius:9px;
+  padding:10px 11px;margin-bottom:10px}
+.cw-resposta .cab{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;color:#7A5B28;margin-bottom:6px}
+.cw-resposta textarea{width:100%;resize:vertical;min-height:58px;background:var(--cc-sup);
+  border:1px solid var(--cc-champagne-claro);border-radius:7px;padding:8px 9px;font-family:'Inter',sans-serif;
+  font-size:12.5px;color:var(--cc-tinta);line-height:1.45}
+.cw-fonte{display:block;margin-top:5px;font-size:10px;color:#8A6C3A}
+.cw-acoes{display:flex;flex-wrap:wrap;gap:7px}
+.cwbt{appearance:none;border-radius:8px;padding:8px 12px;font-family:'Inter',sans-serif;
+  font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent}
+.cwbt-1{background:var(--cc-tinta);color:#fff}
+.cwbt-2{background:var(--cc-sup);border-color:var(--cc-linha-forte);color:var(--cc-tinta-2)}
+.cwbt-champanhe{background:var(--cc-champagne);color:#fff}
+.cwbt-3{background:none;color:var(--cc-tinta-3)}
+.cw-simples{display:flex;align-items:center;gap:10px;padding:8px 3px}
+.cw-simples .cw-avatar{width:26px;height:26px;font-size:11px}
+.cw-simples-corpo{flex:1;min-width:0}
+.cw-simples-l1{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.cw-simples-nome{font-weight:600;font-size:13px;color:var(--cc-tinta)}
+.cw-simples-quando{font-size:10px;color:var(--cc-tinta-3)}
+.cw-simples-nota{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cc-tinta-3);margin-top:2px}
+.cw-simples-nota svg{width:10px;height:10px;fill:#25D366}
+.cw-simples button{flex-shrink:0;appearance:none;border:1px solid var(--cc-linha-forte);
+  background:var(--cc-sup);border-radius:7px;padding:6px 9px;font-family:'Inter',sans-serif;
+  font-size:11px;font-weight:600;color:var(--cc-tinta-2);cursor:pointer}
+@media(max-width:420px){.cw-nome{font-size:16px}.cc-conversas-titulo{font-size:13px}}
+
 /* As pílulas de contagem. O número vem antes do selo porque é ele que se lê
    de longe — "1 muda hoje" é a informação, o círculo é só a cor dela. */
 .rj-selo{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;
@@ -2234,6 +2301,21 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </span>
     <i class="ti ti-chevron-right cc-jornal-seta"></i>
   </button>
+
+  <!-- Quem te chamou. Fica logo abaixo do Jornal, fora do cabeçalho, pela
+       mesma razão dele. Nasce escondida e content-conversas.js decide se
+       mostra, do jeito que o Jornal decide se mostra a partir do Radar. -->
+  <div class="cc-conversas" id="cc-conversas" style="display:none">
+    <div class="cc-conversas-topo">
+      <span class="cc-conversas-titulo">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.6 1.4 5.1L2 22l5-1.3c1.5.8 3.2 1.3 5 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm5.9 14.2c-.3.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1-.4-.1-1-.3-1.7-.6-3-1.3-4.9-4.3-5.1-4.5-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.3-.3.6-.4.8-.4h.6c.2 0 .4 0 .6.5.2.5.8 1.9.8 2.1.1.2.1.3 0 .5-.1.2-.1.3-.3.5s-.4.5-.5.6c-.2.2-.4.4-.2.7.2.3.9 1.5 1.9 2.4 1.3 1.2 2.4 1.5 2.7 1.7.3.2.5.1.7-.1.2-.2.8-1 1-1.3.2-.3.4-.3.7-.2.3.1 1.7.8 2 1 .3.1.5.2.6.3.1.2.1.9-.2 1.6z"/></svg>
+        Quem te chamou
+      </span>
+      <span class="cc-conversas-cont" id="cc-conversas-cont"></span>
+    </div>
+    <p class="cc-conversas-nota">O painel só recebe o aviso — quem responde, decide e envia é sempre você.</p>
+    <div class="cc-conversas-lista" id="cc-conversas-lista"></div>
+  </div>
 
   <!-- Os três cartões da Central: Agenda (só compromissos com data real —
        lembrete manual não entra mais aqui, pra não poluir a semana com o
@@ -12936,6 +13018,137 @@ function renderJornal(){
   if(linha.alerta){ alerta.textContent = linha.alerta; alerta.style.display = 'block'; }
   else alerta.style.display = 'none';
 }
+
+// ── Quem te chamou ───────────────────────────────────────────────────────
+// Desenhada e aprovada por ela em 16/09/2026 (imagem antes, código depois,
+// como sempre). Ainda sem ligação de verdade com o WhatsApp Business: até
+// a API chegar, a faixa mostra CONVERSAS_EXEMPLO, e os botões avisam que
+// aquele passo ainda não existe — dizer que criou o caso sem ter criado
+// seria a mesma mentira que o financeiro já cometeu uma vez com "salvo".
+const CONVERSAS_EXEMPLO = [
+  {
+    id: 'exemplo-1', tipo: 'nova',
+    nome: 'Marina Cabral', fone: '(11) 9 8888-4321', quando: 'hoje às 09:14',
+    mensagem: 'Oi, boa tarde! Vocês fazem escritura de doação com reserva de usufruto? Queria saber o valor.',
+    resposta: 'Oi, Marina! Sim, fazemos escrituras de doação com reserva de usufruto. O valor depende do valor do imóvel doado — se puder me passar isso, já te devolvo uma estimativa certinha.'
+  },
+  {
+    id: 'exemplo-2', tipo: 'conhecida',
+    nome: 'Ricardo Sanches', fone: '(11) 9 7654-2210', quando: 'hoje às 08:02',
+    vinculo: 'Achamos ele: assinou a escritura "Compra e venda — Ed. Girassóis" em 14/07/2026, com você.',
+    mensagem: 'Shirley, bom dia! Preciso de uma procuração pra minha mãe, ela mora em Recife. Dá pra fazer por aí?'
+  },
+  {
+    id: 'exemplo-3', tipo: 'trivial',
+    fone: '+55 11 9 3312-0087', quando: 'ontem às 18:47',
+    nota: 'Pergunta de rotina — a IA do WhatsApp já deve ter respondido'
+  }
+];
+
+function convIniciais(nome){
+  const p = String(nome || '').trim().split(/\s+/);
+  return ((p[0]||'')[0] || '?').toUpperCase() + ((p[1]||'')[0] || '').toUpperCase();
+}
+const convEsc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function convHtmlCard(c){
+  if(c.tipo === 'trivial'){
+    return `
+      <div class="cw-simples">
+        <div class="cw-avatar">?</div>
+        <div class="cw-simples-corpo">
+          <div class="cw-simples-l1">
+            <span class="cw-simples-nome">${convEsc(c.fone)}</span>
+            <span class="cw-simples-quando">${convEsc(c.quando)}</span>
+          </div>
+          <div class="cw-simples-nota">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.6 1.4 5.1L2 22l5-1.3c1.5.8 3.2 1.3 5 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2z"/></svg>
+            ${convEsc(c.nota)}
+          </div>
+        </div>
+        <button type="button" onclick="convSalvarContato('${convEsc(c.id)}')">Salvar contato</button>
+      </div>`;
+  }
+
+  const selo = c.tipo === 'conhecida'
+    ? '<span class="cw-selo cw-selo-conhecida">Já é da casa</span>'
+    : '<span class="cw-selo cw-selo-nova">Contato novo</span>';
+
+  const vinculo = c.vinculo ? `
+    <div class="cw-vinculo">
+      <svg viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5zm0 7L2 14l10 5 10-5-10-5z"/></svg>
+      <span>${convEsc(c.vinculo)}</span>
+    </div>` : '';
+
+  const resposta = c.resposta ? `
+    <div class="cw-resposta">
+      <div class="cab">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M12 2l1.8 5.6L19 9l-5.2 1.4L12 16l-1.8-5.6L5 9l5.2-1.4z"/></svg>
+        Resposta sugerida pela IA
+      </div>
+      <textarea id="conv-resp-${convEsc(c.id)}" readonly>${convEsc(c.resposta)}</textarea>
+      <span class="cw-fonte">Rascunho pronto pra colar no WhatsApp. Leia e ajuste antes de mandar.</span>
+    </div>` : '';
+
+  const acoes = c.tipo === 'conhecida'
+    ? `<button type="button" class="cwbt cwbt-1" onclick="convCriarCaso('${convEsc(c.id)}')">Criar novo card</button>
+       <button type="button" class="cwbt cwbt-2" onclick="convVincular('${convEsc(c.id)}')">Vincular ao caso existente</button>
+       <button type="button" class="cwbt cwbt-3" onclick="convNaoECaso('${convEsc(c.id)}')">Não é caso</button>`
+    : `${c.resposta ? `<button type="button" class="cwbt cwbt-champanhe" onclick="convCopiarResposta('${convEsc(c.id)}')">Copiar resposta</button>` : ''}
+       <button type="button" class="cwbt cwbt-1" onclick="convCriarCaso('${convEsc(c.id)}')">Criar caso</button>
+       <button type="button" class="cwbt cwbt-3" onclick="convNaoECaso('${convEsc(c.id)}')">Não é caso</button>`;
+
+  return `
+    <article class="cw">
+      <div class="cw-topo">
+        <div class="cw-quem">
+          <div class="cw-avatar">${convIniciais(c.nome)}</div>
+          <div class="cw-nome-bloco">
+            <h4 class="cw-nome">${convEsc(c.nome)}</h4>
+            <span class="cw-fone">${convEsc(c.fone)}</span>
+          </div>
+        </div>
+        ${selo}
+      </div>
+      <p class="cw-quando">${convEsc(c.quando)}</p>
+      ${vinculo}
+      <div class="cw-msg">
+        <div class="cab">O que ${c.tipo === 'conhecida' ? 'ele' : 'ela'} escreveu</div>
+        <p>"${convEsc(c.mensagem)}"</p>
+      </div>
+      ${resposta}
+      <div class="cw-acoes">${acoes}</div>
+    </article>`;
+}
+
+function renderConversas(){
+  const faixa = document.getElementById('cc-conversas');
+  const lista = document.getElementById('cc-conversas-lista');
+  if(!faixa || !lista) return;
+  const itens = CONVERSAS_EXEMPLO;
+  if(!itens.length){ faixa.style.display = 'none'; return; }
+  faixa.style.display = 'block';
+  document.getElementById('cc-conversas-cont').textContent =
+    itens.length + (itens.length === 1 ? ' conversa' : ' conversas') + ' · exemplo, ainda sem ligação com o WhatsApp';
+  lista.innerHTML = itens.map(convHtmlCard).join('');
+}
+
+// A ligação de verdade (criar o card, vincular ao caso, salvar o contato)
+// depende da API do WhatsApp Business ainda não configurada — avisar isso é
+// mais honesto que fingir que o clique fez alguma coisa.
+window.convCriarCaso = () => finToast('Isto ainda é o desenho da tela — criar o caso de verdade entra quando a ligação com o WhatsApp existir.');
+window.convVincular = () => finToast('Isto ainda é o desenho da tela — vincular ao caso de verdade entra quando a ligação com o WhatsApp existir.');
+window.convNaoECaso = () => finToast('Isto ainda é o desenho da tela — descartar de verdade entra quando a ligação com o WhatsApp existir.');
+window.convSalvarContato = () => finToast('Isto ainda é o desenho da tela — salvar de verdade entra quando a ligação com o WhatsApp existir.');
+window.convCopiarResposta = async function(id){
+  const ta = document.getElementById('conv-resp-' + id);
+  if(!ta) return;
+  try{ await navigator.clipboard.writeText(ta.value); finToast('Resposta copiada.'); }
+  catch(e){ ta.focus(); ta.select(); finToast('Não consegui copiar sozinha — o texto está selecionado, use Ctrl+C.'); }
+};
+
+document.addEventListener('DOMContentLoaded', renderConversas);
 
 // ── Abrir e fechar ───────────────────────────────────────────────────────
 window.abrirRadar = async function(aba){
