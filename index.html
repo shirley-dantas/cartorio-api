@@ -2080,6 +2080,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc2-ag-corpo{flex:1;min-width:0}
 .cdc2-ag-nome{font-size:13px;font-weight:700;color:#1F2937}
 .cdc2-ag-tipo{font-size:11.5px;color:#8B8F98;margin-top:1px}
+.cdc2-ag-dia{font-size:11px;font-weight:700;color:#8B8F98;text-transform:uppercase;letter-spacing:.03em;
+  padding:10px 2px 4px;border-top:1px solid #F0EEE9}
+.cdc2-ag-dia:first-child{padding-top:2px;border-top:none}
 
 .cdc2-tabs-underline{display:flex;gap:18px;border-bottom:1px solid #EEEBE5;margin-bottom:13px;flex-wrap:wrap}
 .cdc2-tab-u{font-family:inherit;font-size:12.5px;font-weight:600;color:#9CA0A8;background:none;border:none;
@@ -2254,7 +2257,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <div class="cdc2-pill-tabs" id="cdc2-ag-tabs">
         <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-hoje" onclick="cdc2VerAgendaAba('hoje')">Hoje <span id="cdc-tab-ag-hoje-n"></span></button>
         <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-amanha" onclick="cdc2VerAgendaAba('amanha')">Amanhã <span id="cdc-tab-ag-amanha-n"></span></button>
-        <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-semana" onclick="cdc2VerAgendaAba('semana')">Esta semana <span id="cdc-tab-ag-semana-n"></span></button>
+        <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-semana" onclick="cdc2VerAgendaAba('semana')">Próximos dias <span id="cdc-tab-ag-semana-n"></span></button>
       </div>
       <div class="cdc2-ag-lista" id="cdc-agenda"></div>
     </section>
@@ -3974,6 +3977,14 @@ function agendaPorHorario(a,b){
 function fmtQuando(dt){
   return dt?new Date(dt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
 }
+// "Segunda-feira, 22/09" — usado só na aba de dias mais distantes, onde o
+// nome do dia é o que resolve a dúvida de "que dia é esse mesmo".
+function fmtDiaSemana(dt){
+  const d=new Date(dt);
+  const dia=d.toLocaleDateString('pt-BR',{weekday:'long'});
+  const data=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  return dia.charAt(0).toUpperCase()+dia.slice(1)+', '+data;
+}
 
 // A Agenda mostra só compromisso com data real — hora fixa não dá pra
 // arrastar pra outro dia, e é isso que faz confiar que a semana está cheia
@@ -4000,7 +4011,25 @@ function cdc2PintarAgenda(){
   const el=document.getElementById('cdc-agenda');
   if(!el)return;
   const lista=cdc2AgendaDados[cdc2AgendaAba]||[];
-  el.innerHTML=lista.length?lista.map(cdc2LinhaAgenda).join(''):'<div class="cdc2-vazio">Nada agendado.</div>';
+  if(!lista.length){el.innerHTML='<div class="cdc2-vazio">Nada agendado.</div>';return;}
+  // "Próximos dias" mistura o resto desta semana com a semana que vem — só um
+  // cabeçalho por dia deixa claro qual é qual, em vez de a aba fingir que é
+  // tudo "esta semana" quando às vezes já é a que vem.
+  if(cdc2AgendaAba!=='semana'){
+    el.innerHTML=lista.map(cdc2LinhaAgenda).join('');
+    return;
+  }
+  let diaAtual=null;
+  const partes=[];
+  lista.forEach(ev=>{
+    const chaveDia=ev.dt?new Date(ev.dt).toDateString():null;
+    if(chaveDia&&chaveDia!==diaAtual){
+      diaAtual=chaveDia;
+      partes.push(`<div class="cdc2-ag-dia">${esc(fmtDiaSemana(ev.dt))}</div>`);
+    }
+    partes.push(cdc2LinhaAgenda(ev));
+  });
+  el.innerHTML=partes.join('');
 }
 window.cdc2VerAgendaAba=function(aba){
   cdc2AgendaAba=aba;
