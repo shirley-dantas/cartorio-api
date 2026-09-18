@@ -2036,9 +2036,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    ponta oposta. Card largo + item solto empurrado pro canto é o que
    abria aquele vão vazio enorme no meio; o bloco da Joaninha nem faz
    mais parte deste card, ver .cdc2-pilha-joaninha logo abaixo. */
-.cdc2-topo{display:flex;align-items:center;gap:24px;
-  background:#F4EFE6;border-radius:18px;padding:28px 34px;margin-bottom:20px}
-.cdc2-topo-esq{display:flex;flex-direction:column;gap:18px;min-width:0;max-width:440px}
+.cdc2-topo{display:flex;align-items:center;justify-content:space-between;gap:24px;
+  background:#F4EFE6;border-radius:18px;padding:28px 34px;margin-bottom:20px;flex-wrap:wrap}
+.cdc2-topo-esq{display:flex;flex-direction:column;gap:18px;min-width:0;max-width:440px;flex:1 1 320px}
 .cdc2-topo-esq-head{display:flex;align-items:center;gap:18px}
 .cdc2-topo-sol{flex-shrink:0}
 .cdc2-topo-sol svg{width:34px;height:34px}
@@ -2075,6 +2075,25 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc2-topo-busca input{border:none;outline:none;background:none;font-family:inherit;font-size:13px;
   color:#1F2937;width:100%}
 .cdc2-topo-busca input::placeholder{color:#9CA0A8}
+/* Calendário mensal — apoio visual pequeno, não protagonista. Mesma
+   linguagem dos cards (fundo branco, borda quase invisível, sombra
+   suave) pra combinar com o resto da Central. */
+.cdc2-calendario{background:#fff;border:1px solid #EFEBE3;border-radius:16px;
+  padding:18px 20px 16px;min-width:270px;max-width:320px;flex:0 1 320px;
+  box-shadow:0 1px 2px rgba(31,42,51,.03),0 6px 16px rgba(31,42,51,.04)}
+.cdc2-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cdc2-cal-titulo{font-family:'Jost',sans-serif;font-weight:400;font-size:15px;color:#1F2937}
+.cdc2-cal-nav{display:flex;gap:8px}
+.cdc2-cal-nav button{width:23px;height:23px;border-radius:50%;border:1px solid #E4DFD3;background:#fff;
+  color:#6B7280;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;
+  font-family:inherit;padding:0;line-height:1}
+.cdc2-cal-nav button:hover{background:#FAF8F4}
+.cdc2-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px 0;text-align:center}
+.cdc2-cal-dow{font-size:10px;color:#C7C0AF;font-weight:600}
+.cdc2-cal-dia{font-size:12.5px;color:#374151;padding:6px 0;border-radius:10px}
+.cdc2-cal-dia.fora{color:#D8D0C1}
+.cdc2-cal-dia.hoje{background:#F8E9EA;color:#C97C86;font-weight:700}
+@media(max-width:860px){.cdc2-calendario{flex:1 1 100%;max-width:none}}
 
 /* faixa de indicadores — resumo rápido, não protagonista: telha leve,
    sem competir com o peso visual dos três módulos principais */
@@ -2271,6 +2290,22 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
         <input type="text" placeholder="Buscar caso, cliente, prenotação..." oninput="buscar(this.value)" onkeydown="if(event.key===&#39;Enter&#39;)irParaPrimeiroResultado()">
       </span>
+    </div>
+
+    <!-- Calendário mensal — só apoio visual (nenhum evento é marcado nele
+         hoje, ver renderCdc2Calendario()), mas preenche o vão que sobrava
+         entre a saudação e a Joaninha, como ela pediu depois de ver a tela
+         de verdade. Mora dentro do mesmo card do cabeçalho — some/aparece
+         junto com ele (fecharSaudacao/montarSaudacao), sem JS extra. -->
+    <div class="cdc2-calendario">
+      <div class="cdc2-cal-head">
+        <span class="cdc2-cal-titulo" id="cdc2-cal-titulo"></span>
+        <span class="cdc2-cal-nav">
+          <button type="button" onclick="cdc2CalNav(-1)" aria-label="Mês anterior">‹</button>
+          <button type="button" onclick="cdc2CalNav(1)" aria-label="Mês seguinte">›</button>
+        </span>
+      </div>
+      <div class="cdc2-cal-grid" id="cdc2-cal-grid"></div>
     </div>
   </div>
 
@@ -4490,6 +4525,37 @@ window.fecharSaudacao=function(){
   const ind=document.getElementById('cdc2-indicadores');if(ind)ind.style.display='none';
   sessionStorage.setItem('saudacao_fechada','1');
 };
+
+// ── CALENDÁRIO DO CABEÇALHO ──
+// Puro apoio visual — não marca compromisso nenhum (isso é papel da
+// Agenda) e não guarda estado entre visitas: reabrir a tela sempre volta
+// pro mês de hoje. cdc2CalMostrado é o único estado, e mora aqui porque
+// só a navegação < > o move.
+let cdc2CalMostrado=new Date();
+window.cdc2CalNav=function(delta){
+  cdc2CalMostrado=new Date(cdc2CalMostrado.getFullYear(),cdc2CalMostrado.getMonth()+delta,1);
+  renderCdc2Calendario();
+};
+function renderCdc2Calendario(){
+  const grid=document.getElementById('cdc2-cal-grid'),titulo=document.getElementById('cdc2-cal-titulo');
+  if(!grid||!titulo)return;
+  const hoje=new Date();
+  const ano=cdc2CalMostrado.getFullYear(),mes=cdc2CalMostrado.getMonth();
+  const nomeMes=MESES[mes];
+  titulo.textContent=nomeMes.charAt(0).toUpperCase()+nomeMes.slice(1)+' de '+ano;
+  const primeiroDiaSemana=new Date(ano,mes,1).getDay();
+  const diasNoMes=new Date(ano,mes+1,0).getDate();
+  const diasMesAnterior=new Date(ano,mes,0).getDate();
+  let html=['D','S','T','Q','Q','S','S'].map(d=>`<div class="cdc2-cal-dow">${d}</div>`).join('');
+  for(let i=primeiroDiaSemana-1;i>=0;i--)html+=`<div class="cdc2-cal-dia fora">${diasMesAnterior-i}</div>`;
+  for(let d=1;d<=diasNoMes;d++){
+    const ehHoje=d===hoje.getDate()&&mes===hoje.getMonth()&&ano===hoje.getFullYear();
+    html+=`<div class="cdc2-cal-dia${ehHoje?' hoje':''}">${d}</div>`;
+  }
+  const restante=(7-((primeiroDiaSemana+diasNoMes)%7))%7;
+  for(let d=1;d<=restante;d++)html+=`<div class="cdc2-cal-dia fora">${d}</div>`;
+  grid.innerHTML=html;
+}
 function montarSaudacao(forcar){
   if(saudacaoMontada&&!forcar)return;
   const usuario=localStorage.getItem('painel_usuario');
@@ -4505,6 +4571,7 @@ function montarSaudacao(forcar){
   document.getElementById('saudacao-texto').textContent=msg;
   document.getElementById('saudacao-card').style.display='block';
   const ind=document.getElementById('cdc2-indicadores');if(ind)ind.style.display='flex';
+  renderCdc2Calendario();
   posicionarJoaninhaNaSaudacao();
   atualizarIconeClima(usuario);
   const hojeStr=new Date().toDateString();
