@@ -395,6 +395,12 @@ passo('o rateio do preço vale mesmo dentro de um Reeditar cuja instrução só 
   ok(/ainda que a palavra "preço" não apareça na instrução/.test(fonte), 'sumiu a instrução de ratear o preço mesmo sem a instrução mencionar "preço"');
 });
 
+passo('o rateio do preço da transação nunca fica em branco quando o preço total é conhecido (diferente do valor venal)', () => {
+  ok(/DIFERENÇA CRÍTICA EM RELAÇÃO AO VALOR VENAL — AQUI O NÚMERO NUNCA FICA EM BRANCO/.test(fonte), 'sumiu o esclarecimento de que o rateio do preço não pode ficar em R$______ como o valor venal');
+  ok(/FAÇA A CONTA \(preço total × área da unidade ÷ área total do conjunto\)/.test(fonte), 'sumiu a fórmula explícita do rateio do preço');
+  ok(/R\$ 582\.583,40/.test(fonte), 'sumiu o exemplo numérico calculado (não um placeholder ______) do rateio do preço');
+});
+
 console.log('\n— extrairJsonAuditoria: a auditoria (Etapa 2) —');
 
 passo('extrai o JSON mesmo com texto/markdown em volta', () => {
