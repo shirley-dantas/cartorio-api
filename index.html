@@ -2031,21 +2031,22 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    Notas, O que dá pra fazer agora), desenhados e aprovados fora do
    painel antes de entrar aqui. Prefixo cdc2- pra não brigar com nada
    do resto da tela — telas velhas continuam do jeito que estavam. */
-/* O card do cabeçalho encolhe pro tamanho do próprio conteúdo
-   (width:fit-content) — não é mais uma faixa esticada até a borda da
-   tela. As três tentativas anteriores (space-between, depois
-   flex-start com reserva de margem, depois medição em JS) todas
-   partiam do mesmo erro: tratavam a Joaninha como se tivesse que
-   morar dentro dessa faixa larga, e ficavam inventando jeito de
+/* O card do cabeçalho tem a mesma largura da fileira de indicadores e
+   dos três cards de baixo (width:100%, harmônico com o resto da
+   Central) — mas por DENTRO os 3 pedaços (saudação+busca, calendário,
+   "Sincronizado"/frase) continuam juntos e colados à esquerda
+   (justify-content:flex-start), sem esticar nenhum deles até a borda
+   oposta. As três tentativas anteriores (space-between, depois
+   flex-start com reserva de margem, depois medição em JS pra "seguir"
+   a Joaninha) todas partiam do mesmo erro: tratavam a Joaninha como se
+   tivesse que morar dentro dessa faixa, e ficavam inventando jeito de
    "reservar espaço" pra ela lá longe, na borda da tela. A referência
-   dela é simples: o card é pequeno, os 3 pedaços (saudação+busca,
-   calendário, "Sincronizado"/frase) ficam juntos DENTRO dele, e a
-   Joaninha de verdade (o bichinho animado, #joaninha-host) continua
-   com a posição/animação dela de sempre — só não tenta mais segui-la
-   com position:fixed e as variáveis --jn-right/--jn-bottom, que foi o
-   que causou todo o vaivém dos últimos ajustes. */
+   dela é simples: os 3 pedaços ficam juntos, e a Joaninha de verdade
+   (o bichinho animado, #joaninha-host) continua com a posição/animação
+   dela de sempre — só se aproxima do card quando sobra espaço de
+   verdade (ver posicionarJoaninhaNaSaudacao()). */
 .cdc2-topo{display:flex;align-items:center;justify-content:flex-start;gap:22px;
-  width:fit-content;max-width:100%;
+  width:100%;
   background:#F4EFE6;border-radius:18px;padding:26px 28px;margin-bottom:20px}
 .cdc2-topo-esq{display:flex;flex-direction:column;gap:16px;flex:0 0 auto}
 .cdc2-topo-esq-head{display:flex;align-items:center;gap:18px}
