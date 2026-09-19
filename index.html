@@ -6693,6 +6693,28 @@ async function extrairArquivo(file,preservarIntegral,onStatus){
 // outras (cada arquivo já ia para uma chamada separada do Apps Script).
 // Nunca deixa um arquivo com erro derrubar os demais: cada leitura fica
 // isolada em {ok, resultado|erro}, e quem chama decide o que fazer.
+// Grava o texto já extraído de cada anexo lido com sucesso em
+// casos/{id}/documentos — é o que faz o Reeditar (sem anexo manual, ver
+// gerarReeditar) achar dado de verdade depois, em vez de só o texto da
+// minuta gerada. Antes disso não existia: um documento lido na hora de
+// Gerar nunca sobrevivia além daquela chamada única à IA, e reeditar sem
+// reanexar tudo de novo saía sem nenhum dado do caso. Fogo e esquece —
+// nunca trava a geração por causa disso — porque o documento já cumpriu
+// seu papel indo pra IA; salvar aqui é bônus para o futuro, não requisito
+// deste pedido.
+function salvarDocumentosDoCaso(id,resultados,tipo){
+  resultados.forEach(x=>{
+    if(!x.ok||!x.resultado.texto) return;
+    push(ref(db,`casos/${id}/documentos`),{
+      tipo,
+      nome:x.file.name,
+      texto:x.resultado.texto,
+      truncado:!!x.resultado.truncou,
+      salvoEm:new Date().toISOString()
+    }).catch(()=>{});
+  });
+}
+
 async function lerArquivosParalelo(arquivos,ler,onStatus){
   const total=arquivos.length;
   if(!total) return [];
@@ -6824,6 +6846,7 @@ window.gerarReeditar=async function(){
         if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
         if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
       });
+      salvarDocumentosDoCaso(id,resultadosDoc,'documento');
       docsTexto=blocos.join('\n\n');
     } else {
       // Sem minuta pronta anexada: comportamento de antes (documentos já salvos no card)
@@ -6856,6 +6879,7 @@ window.gerarReeditar=async function(){
         if(x.resultado.truncou)falhas.push(`${x.file.name}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
         if(x.resultado.comprimiu)falhas.push(`${x.file.name}: comprimido automaticamente para caber no anexo — confira se ficou legível`);
       });
+      salvarDocumentosDoCaso(id,resultadosDoc,'documento');
     }
     if(falhas.length){
       const seguir=confirm(`Atenção com estes documentos:\n\n• ${falhas.join('\n• ')}\n\nGerar mesmo assim?`);
@@ -6953,6 +6977,7 @@ window.gerarAnalise=async function(){
         falhas.push(`${x.file.name}: ${descreverErro(x.erro,'ler a minuta modelo')}`);
       }
     });
+    salvarDocumentosDoCaso(id,resultadosModelo,'modelo');
     const resultadosDoc=await lerArquivosParalelo(minutaArquivosDoc,f=>textoDoAnexo(f,false),setLoading);
     resultadosDoc.forEach(x=>{
       if(x.ok){
@@ -6963,6 +6988,7 @@ window.gerarAnalise=async function(){
         falhas.push(`${x.file.name}: ${descreverErro(x.erro,'ler um documento anexado')}`);
       }
     });
+    salvarDocumentosDoCaso(id,resultadosDoc,'documento');
     // Um anexo ilegível derrubava a geração inteira. Agora ela pode seguir sem
     // ele — mas nunca em silêncio: uma minuta feita sem um documento que você
     // achou que entrou é pior que uma minuta que não saiu.
