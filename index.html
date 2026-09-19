@@ -4559,42 +4559,6 @@ function renderCdc2Calendario(){
   grid.innerHTML=html;
 }
 
-// ── DIAGNÓSTICO TEMPORÁRIO — só aparece com ?debug=1 na URL ──
-// Ela reportou o cabeçalho empilhando (calendário e "Sincronizado"
-// caindo pra baixo da busca) numa tela de tablet larga (1691×918, DPR
-// 1.75) onde isso não deveria acontecer — reproduzido de todo jeito
-// aqui (Playwright, essa mesma largura/DPR, com toque) sempre deu
-// certo. Este painel mostra os números REAIS que o navegador dela está
-// calculando, pra parar de eu tentar imitar o aparelho às cegas.
-// Remover depois que o motivo for encontrado.
-function cdc2DebugLayoutTopo(){
-  if(!/[?&]debug=1\b/.test(location.search))return;
-  const topo=document.getElementById('saudacao-card');
-  const esq=topo&&topo.querySelector('.cdc2-topo-esq');
-  const cal=topo&&topo.querySelector('.cdc2-calendario');
-  const dir=topo&&topo.querySelector('.cdc2-topo-dir');
-  if(!topo||!esq||!cal||!dir)return;
-  const cs=getComputedStyle(topo);
-  const linhas=[
-    `viewport: ${window.innerWidth}x${window.innerHeight}  DPR: ${window.devicePixelRatio}`,
-    `.cdc2-topo: display=${cs.display} flexDirection=${cs.flexDirection} flexWrap=${cs.flexWrap} width=${cs.width}`,
-    `topo rect: ${JSON.stringify(topo.getBoundingClientRect())}`,
-    `esq rect: ${JSON.stringify(esq.getBoundingClientRect())}`,
-    `cal rect: ${JSON.stringify(cal.getBoundingClientRect())}`,
-    `dir rect: ${JSON.stringify(dir.getBoundingClientRect())}`,
-    `userAgent: ${navigator.userAgent}`,
-  ];
-  let el=document.getElementById('cdc2-debug-painel');
-  if(!el){
-    el=document.createElement('div');
-    el.id='cdc2-debug-painel';
-    el.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99999;background:#000;color:#0f0;'+
-      'font:11px/1.5 monospace;padding:10px 12px;border-radius:8px;max-width:96vw;max-height:60vh;'+
-      'overflow:auto;white-space:pre-wrap;box-shadow:0 4px 20px rgba(0,0,0,.4)';
-    document.body.appendChild(el);
-  }
-  el.textContent=linhas.join('\n');
-}
 function montarSaudacao(forcar){
   if(saudacaoMontada&&!forcar)return;
   const usuario=localStorage.getItem('painel_usuario');
@@ -4608,11 +4572,10 @@ function montarSaudacao(forcar){
   renderSaudacaoTitulo(usuario,'sol');
   const msg=`${DIAS_SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]} de ${agora.getFullYear()}`;
   document.getElementById('saudacao-texto').textContent=msg;
-  document.getElementById('saudacao-card').style.display='block';
+  document.getElementById('saudacao-card').style.display='flex';
   const ind=document.getElementById('cdc2-indicadores');if(ind)ind.style.display='flex';
   renderCdc2Calendario();
   posicionarJoaninhaNaSaudacao();
-  cdc2DebugLayoutTopo();
   atualizarIconeClima(usuario);
   const hojeStr=new Date().toDateString();
   if(localStorage.getItem('joaninha_saudacao_dia')!==hojeStr){
