@@ -457,5 +457,27 @@ passo('gerarECriarMinuta manda os atos secundários pra IA quando existem, e o p
   ok(/REGRA ABSOLUTA — ATOS SECUNDÁRIOS/.test(fonte), 'o SYSTEM_PROMPT não tem mais a regra de atos secundários (lavrados na mesma escritura)');
 });
 
+console.log('\n— reeditar sem anexo manual: busca sozinho a MINUTA ATUAL pelo docUrl do caso —');
+
+passo('gerarECriarMinuta busca o texto do Doc quando minutaAtualUrl vem e ainda não há MINUTA ATUAL no texto', () => {
+  const inicio = fonte.indexOf('function gerarECriarMinuta');
+  ok(inicio !== -1, 'não achei gerarECriarMinuta no arquivo');
+  const corpo = fonte.slice(inicio, inicio + 3000);
+  ok(/dados\.minutaAtualUrl/.test(corpo), 'gerarECriarMinuta não lê mais dados.minutaAtualUrl');
+  ok(/DocumentApp\.openById\(minutaAtualId\)/.test(corpo), 'não abre mais o Doc pelo id extraído do link');
+  ok(/documentosTexto\.indexOf\("MINUTA ATUAL"\) === -1/.test(corpo), 'perdeu a checagem que faz o anexo manual sempre vencer o automático');
+});
+
+passo('index.html só manda minutaAtualUrl quando não anexou a minuta na mão, e usa o docUrl do caso', () => {
+  ok(/let minutaAtualUrlAuto=''/.test(htmlFonte), 'a variável minutaAtualUrlAuto sumiu do gerarReeditar');
+  ok(/if\(c\.docUrl\) minutaAtualUrlAuto=c\.docUrl;/.test(htmlFonte), 'parou de pegar o docUrl do caso quando não há anexo manual');
+  ok(/minutaAtualUrl:minutaAtualUrlAuto/.test(htmlFonte), 'o POST para /api/iniciar-minuta parou de mandar minutaAtualUrl');
+});
+
+passo('api/iniciar-minuta.js repassa minutaAtualUrl pro Apps Script', () => {
+  const apiFonte = readFileSync(join(AQUI, '..', 'api', 'iniciar-minuta.js'), 'utf8');
+  ok(/minutaAtualUrl: dados\.minutaAtualUrl \|\| ""/.test(apiFonte), 'iniciar-minuta.js parou de repassar minutaAtualUrl no payload do Apps Script');
+});
+
 console.log('\n' + (erros.length ? `${erros.length} falha(s).` : 'Tudo certo.'));
 if (erros.length) process.exit(1);
