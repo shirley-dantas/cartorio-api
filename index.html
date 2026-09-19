@@ -6967,6 +6967,28 @@ window.gerarAnalise=async function(){
     // problemáticos do card (minutaDocsProblema, montado por abrirMinuta) —
     // um documento sem leitura nunca vira uma minuta silenciosamente incompleta.
     const falhas=[...minutaDocsProblema];
+    // O caso pode já ter documentos salvos (pelo bot do WhatsApp, ou por uma
+    // geração anterior — ver salvarDocumentosDoCaso) mesmo sem nada anexado
+    // aqui agora. Antes disso, "Gerar" só enxergava o que fosse anexado nesta
+    // própria tela — um documento mandado por outro caminho (ex: a guia de
+    // valor venal enviada pelo WhatsApp) nunca chegava à IA, mesmo salvo no
+    // caso havia muito tempo.
+    try{
+      const snapDocsCaso=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/documentos.json`);
+      const docsCaso=await snapDocsCaso.json();
+      if(docsCaso && typeof docsCaso==='object'){
+        Object.values(docsCaso).forEach(d=>{
+          if(d.texto){
+            blocos.push(d.tipo==='modelo'
+              ? `=== MODELO DE MINUTA (REFERÊNCIA FORNECIDA PELA EQUIPE) — ${d.nome} ===\n${d.texto}`
+              : `=== DOCUMENTO: ${d.nome} ===\n${d.texto}`);
+            if(d.truncado)falhas.push(`${d.nome}: leitura pode estar incompleta (cortada pelo limite de tamanho)`);
+          } else {
+            falhas.push(`${d.nome}: não foi possível ler o conteúdo — a IA só sabe que ele existe`);
+          }
+        });
+      }
+    }catch(e){}
     const resultadosModelo=await lerArquivosParalelo(minutaArquivosModelo,f=>textoDoAnexo(f,true),setLoading);
     resultadosModelo.forEach(x=>{
       if(x.ok){

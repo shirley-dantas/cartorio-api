@@ -511,6 +511,20 @@ passo('gerarECriarMinuta manda os atos secundários pra IA quando existem, e o p
   ok(/REGRA ABSOLUTA — ATOS SECUNDÁRIOS/.test(fonte), 'o SYSTEM_PROMPT não tem mais a regra de atos secundários (lavrados na mesma escritura)');
 });
 
+console.log('\n— Gerar (primeira geração) também lê os documentos já salvos no caso —');
+
+passo('gerarAnalise busca casos/{id}/documentos.json antes de montar os blocos, não só o que foi anexado nesta tela', () => {
+  const inicio = htmlFonte.indexOf('window.gerarAnalise=async function');
+  const fimReeditar = htmlFonte.indexOf('window.gerarReeditar=async function');
+  ok(inicio !== -1, 'não achei gerarAnalise no index.html');
+  // gerarAnalise vem depois de gerarReeditar no arquivo — pega até o próximo
+  // "window." de nível parecido, ou um teto generoso, pra não vazar pra
+  // dentro de outra função.
+  const corpo = htmlFonte.slice(inicio, inicio + 4000);
+  ok(/casos\/\$\{id\}\/documentos\.json/.test(corpo), 'gerarAnalise não busca mais os documentos já salvos no caso (ex: os que vieram pelo WhatsApp) — só enxerga o que for anexado nesta tela');
+  ok(/d\.tipo===['"]modelo['"]/.test(corpo), 'gerarAnalise não distingue mais documento de modelo ao ler os documentos salvos do caso');
+});
+
 console.log('\n— reeditar sem anexo manual: busca sozinho a MINUTA ATUAL pelo docUrl do caso —');
 
 passo('gerarECriarMinuta busca o texto do Doc quando minutaAtualUrl vem e ainda não há MINUTA ATUAL no texto', () => {
