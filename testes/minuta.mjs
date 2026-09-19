@@ -378,6 +378,17 @@ passo('o prompt tem a regra de várias unidades sob o mesmo contribuinte, com a 
   ok(/falta a área privativa desta unidade para ratear/.test(fonte), 'a pendência para área privativa ausente sumiu do prompt');
 });
 
+passo('a regra explica que um contribuinte individualizado pode ainda assim cobrir várias unidades (as duas regras se combinam)', () => {
+  ok(/As duas regras se combinam, nesta ordem/.test(fonte), 'sumiu a explicação de que a regra do individualizado e a do rateio por várias unidades se combinam');
+  ok(/Um contribuinte pode estar corretamente individualizado e mesmo assim abranger várias unidades/.test(fonte), 'sumiu o esclarecimento de que individualizado não é o mesmo que "cobre uma unidade só"');
+});
+
+passo('o rateio por área também define quanto do preço da transação cabe a cada unidade, sempre — não só quando pedido separadamente', () => {
+  ok(/ISSO NÃO FICA SÓ NO VALOR VENAL/.test(fonte), 'sumiu a extensão do rateio para o preço da transação');
+  ok(/não só quando o caso pedir separadamente/.test(fonte), 'o rateio do preço da transação voltou a ser condicional, em vez de sempre que houver várias unidades');
+  ok(/o rateio é calculado, não copiado de lugar nenhum/.test(fonte), 'sumiu a instrução de calcular o rateio do preço mesmo sem discriminação nos documentos');
+});
+
 console.log('\n— extrairJsonAuditoria: a auditoria (Etapa 2) —');
 
 passo('extrai o JSON mesmo com texto/markdown em volta', () => {
