@@ -1148,6 +1148,27 @@ function gerarECriarMinuta(dados) {
     }
     var ano = new Date().getFullYear();
     var documentosTexto = dados.documentos || "Nenhum documento fornecido ainda.";
+
+    // Reeditar sem anexo manual da minuta pronta: busca sozinho o texto ATUAL
+    // do Doc já gerado para este caso (dados.minutaAtualUrl, ver gerarReeditar
+    // no index.html) — inclusive edições feitas à mão nele depois da geração,
+    // porque lê pelo DocumentApp, não por um texto salvo de quando gerou.
+    // Anexo manual sempre vence: só entra aqui quando o texto que já veio do
+    // painel ainda não carrega uma MINUTA ATUAL nenhuma.
+    if (dados.minutaAtualUrl && documentosTexto.indexOf("MINUTA ATUAL") === -1) {
+      try {
+        var minutaAtualId = extrairIdDocumento(dados.minutaAtualUrl);
+        var minutaAtualTexto = minutaAtualId ? DocumentApp.openById(minutaAtualId).getBody().getText().trim() : "";
+        if (minutaAtualTexto) {
+          documentosTexto = "=== MINUTA ATUAL (documento já pronto — deve ser seguido INTEGRALMENTE, sem faltar nenhuma palavra) ===\n" + minutaAtualTexto + "\n\n" + documentosTexto;
+        }
+      } catch (e) {
+        // Doc pode ter sido movido/excluído do Drive — segue sem a MINUTA
+        // ATUAL em vez de travar a geração; fica como gerar do zero, que era
+        // o comportamento de antes desta busca automática existir.
+      }
+    }
+
     // Limite de segurança generoso: a causa real da demora era o envio cortado
     // pela metade (já corrigido no iniciar-minuta.js), não o tamanho do texto —
     // a IA lê o texto de entrada rápido; quem demora é a geração da resposta,

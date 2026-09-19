@@ -6795,6 +6795,13 @@ window.gerarReeditar=async function(){
     const falhas=[];
 
     let docsTexto='';
+    // Sem anexo manual da minuta pronta, o caso ainda pode ter uma — a que a
+    // última geração deixou salva em c.docUrl. Manda o link para o Apps
+    // Script buscar sozinho (ele lê o Doc com DocumentApp, com as edições à
+    // mão que ela tenha feito nele) em vez de exigir reanexar o mesmo
+    // arquivo toda vez que ela só quer pedir um ajuste pontual pela caixa de
+    // instrução. Anexo manual sempre vence: só busca quando não veio nenhum.
+    let minutaAtualUrlAuto='';
     if(arqsMinuta.length){
       // Minuta pronta anexada: a base é ELA, não os documentos antigos do card —
       // evita misturar dados antigos/desatualizados com o que está sendo pedido agora.
@@ -6820,6 +6827,7 @@ window.gerarReeditar=async function(){
       docsTexto=blocos.join('\n\n');
     } else {
       // Sem minuta pronta anexada: comportamento de antes (documentos já salvos no card)
+      if(c.docUrl) minutaAtualUrlAuto=c.docUrl;
       try{
         const snap=await fetch(`https://painel-cartorio-default-rtdb.firebaseio.com/casos/${id}/documentos.json`);
         const docs=await snap.json();
@@ -6858,7 +6866,7 @@ window.gerarReeditar=async function(){
       }
     }
     setRLoad('Iniciando geração da minuta…');
-    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[]})});
+    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[],minutaAtualUrl:minutaAtualUrlAuto})});
     const di=await ri.json();
     if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
     const d2=await aguardarJobFirebase(di.jobId,(tick)=>{

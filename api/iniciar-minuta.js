@@ -55,6 +55,12 @@ module.exports = async (req, res) => {
     // ela, o Apps Script recusa gerar em vez de adivinhar a abertura errada.
     modalidade: dados.modalidade || "",
     avisosDocumentos: dados.avisosDocumentos || "",
+    // Reeditar sem anexo manual: o link do Doc já gerado do caso, para o Apps
+    // Script buscar sozinho o texto ATUAL dele como MINUTA ATUAL (ver
+    // gerarReeditar no index.html). Vazio quando ela anexou a minuta na mão
+    // (o texto já vem embutido em `documentos`) ou quando o caso ainda não
+    // tem nenhuma minuta gerada.
+    minutaAtualUrl: dados.minutaAtualUrl || "",
     // Filtra contra a lista fechada (lib/tipos-de-ato.js) — o painel só deixa
     // marcar um destes pelo checkbox, mas isso é defesa contra um cliente
     // desatualizado ou uma chamada direta, não desconfiança dela.
