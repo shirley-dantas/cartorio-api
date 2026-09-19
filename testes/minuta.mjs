@@ -398,7 +398,15 @@ passo('o rateio do preço vale mesmo dentro de um Reeditar cuja instrução só 
 passo('o rateio do preço da transação nunca fica em branco quando o preço total é conhecido (diferente do valor venal)', () => {
   ok(/DIFERENÇA CRÍTICA EM RELAÇÃO AO VALOR VENAL — AQUI O NÚMERO NUNCA FICA EM BRANCO/.test(fonte), 'sumiu o esclarecimento de que o rateio do preço não pode ficar em R$______ como o valor venal');
   ok(/FAÇA A CONTA \(preço total × área da unidade ÷ área total do conjunto\)/.test(fonte), 'sumiu a fórmula explícita do rateio do preço');
-  ok(/R\$ 582\.583,40/.test(fonte), 'sumiu o exemplo numérico calculado (não um placeholder ______) do rateio do preço');
+  ok(/R\$ 500\.000,00 \(quinhentos mil reais\)/.test(fonte), 'sumiu o exemplo numérico calculado (não um placeholder ______) do rateio do preço');
+});
+
+passo('o exemplo do rateio do preço usa números fictícios redondos, não mais os do caso real que expôs o bug (582.583,40 saiu errado por reaproveitar a área 196,28/235,88 do caso de teste)', () => {
+  ok(!/582\.583,40/.test(fonte), 'o valor errado calculado à mão pra exemplificar a regra continua no prompt');
+  ok(!/83,2262%/.test(fonte), 'o percentual errado calculado à mão pra exemplificar a regra continua no prompt');
+  ok(/NUNCA devem ser copiados nem reaproveitados/.test(fonte), 'sumiu o aviso de que os números do exemplo são fictícios e não devem ser copiados');
+  ok(/CONFIRA A CONTA ANTES DE ESCREVER/.test(fonte), 'sumiu a instrução de conferir a divisão com casas decimais antes de multiplicar');
+  ok(/NUNCA obtenha o valor de uma unidade subtraindo as outras do preço total/.test(fonte), 'sumiu o aviso de que a soma bater sozinha não prova que a divisão está certa');
 });
 
 console.log('\n— extrairJsonAuditoria: a auditoria (Etapa 2) —');
