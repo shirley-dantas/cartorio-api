@@ -28,18 +28,53 @@ const htmlFonte = readFileSync(join(AQUI, '..', 'index.html'), 'utf8');
 const require = createRequire(import.meta.url);
 const {TIPOS_PRINCIPAIS, ATOS_SECUNDARIOS} = require(join(AQUI, '..', 'lib', 'tipos-de-ato.js'));
 
+// Guarda de verdade por trás do PropertiesService fingido — precisa ser um
+// guarda de verdade (não só getProperty→'x') pros testes do teto de 20
+// gatilhos (ver limparGatilhosOrfaosDeMinuta/apagarGatilhoAtual) conseguirem
+// montar o cenário de "gatilho sem propriedade" e conferir o resultado.
+const propsStore = {};
+// Mesma ideia pro ScriptApp: uma lista de gatilhos de verdade, que os testes
+// populam e depois conferem o que sobrou.
+let gatilhosStore = [];
+let gatilhoSeq = 0;
+
 const caixa = {
   console,
   Logger: {log(){}},
-  PropertiesService: {getScriptProperties: () => ({getProperty: () => 'x'})},
+  PropertiesService: {getScriptProperties: () => ({
+    getProperty: (k) => (Object.prototype.hasOwnProperty.call(propsStore, k) ? propsStore[k] : 'x'),
+    getProperties: () => ({...propsStore}),
+    setProperty: (k, v) => { propsStore[k] = v; },
+    deleteProperty: (k) => { delete propsStore[k]; }
+  })},
   UrlFetchApp: {fetch(){ throw new Error('não deve ser chamado neste teste'); }},
-  DriveApp: {}, ScriptApp: {}, CalendarApp: {}, ContentService: {MimeType: {}},
+  DriveApp: {}, CalendarApp: {}, ContentService: {MimeType: {}},
+  ScriptApp: {
+    newTrigger: (handler) => ({
+      timeBased: () => ({ after: () => ({ create: () => {
+        const id = 'gatilho' + (++gatilhoSeq);
+        gatilhosStore.push({id, handler});
+        return {getUniqueId: () => id};
+      }})})
+    }),
+    getProjectTriggers: () => gatilhosStore.map(g => ({
+      getUniqueId: () => g.id,
+      getHandlerFunction: () => g.handler
+    })),
+    deleteTrigger: (t) => { gatilhosStore = gatilhosStore.filter(g => g.id !== t.getUniqueId()); }
+  },
   DocumentApp: {
     ParagraphHeading: {NORMAL: 'NORMAL'},
     HorizontalAlignment: {CENTER: 'CENTER', JUSTIFY: 'JUSTIFY'}
   },
   FIREBASE_URL: 'https://exemplo',
 };
+const resetGatilhosETest = () => {
+  gatilhosStore = [];
+  gatilhoSeq = 0;
+  Object.keys(propsStore).forEach(k => delete propsStore[k]);
+};
+const gatilhosAtuais = () => gatilhosStore.map(g => g.id);
 vm.createContext(caixa);
 vm.runInContext(
   fonte +
@@ -58,7 +93,9 @@ vm.runInContext(
   '\nglobalThis.parsearMarcadorCertidao = parsearMarcadorCertidao;' +
   '\nglobalThis.dataHojeFormatada = dataHojeFormatada;' +
   '\nglobalThis.documentosParecemTerCertidao = documentosParecemTerCertidao;' +
-  '\nglobalThis.inserirParagrafoFormatado = inserirParagrafoFormatado;',
+  '\nglobalThis.inserirParagrafoFormatado = inserirParagrafoFormatado;' +
+  '\nglobalThis.apagarGatilhoAtual = apagarGatilhoAtual;' +
+  '\nglobalThis.limparGatilhosOrfaosDeMinuta = limparGatilhosOrfaosDeMinuta;',
   caixa
 );
 
@@ -282,6 +319,46 @@ passo('terminou sozinho antes do limite → não truncou', () => {
 passo('bateu o limite mas a última rodada já não precisava continuar → não truncou', () => {
   ok(!caixa.precisouTruncarGeracao(6, 6, false), 'a rodada final já tinha fechado sozinha');
 });
+
+console.log('\n— gatilhos da geração em pedaços: nunca acumular até estourar o teto de 20 —');
+
+passo('apagarGatilhoAtual remove só o gatilho com o uid que disparou, mantém os outros', () => {
+  resetGatilhosETest();
+  const t1 = caixa.ScriptApp.newTrigger('continuarGeracaoMinuta').timeBased().after(2000).create();
+  const t2 = caixa.ScriptApp.newTrigger('continuarGeracaoMinuta').timeBased().after(2000).create();
+  caixa.apagarGatilhoAtual(t1.getUniqueId());
+  igual(gatilhosAtuais().length, 1, 'devia sobrar só um gatilho');
+  igual(gatilhosAtuais()[0], t2.getUniqueId(), 'apagou o gatilho errado');
+});
+
+passo('apagarGatilhoAtual sem uid (evento sem triggerUid) não derruba nada', () => {
+  resetGatilhosETest();
+  caixa.ScriptApp.newTrigger('continuarGeracaoMinuta').timeBased().after(2000).create();
+  caixa.apagarGatilhoAtual(undefined);
+  igual(gatilhosAtuais().length, 1, 'não devia ter mexido no gatilho existente');
+});
+
+passo('limparGatilhosOrfaosDeMinuta apaga só quem perdeu a propriedade "cont_<uid>" (já disparou e não devia ter sobrado)', () => {
+  resetGatilhosETest();
+  const vivo = caixa.ScriptApp.newTrigger('continuarGeracaoMinuta').timeBased().after(2000).create();
+  const orfao = caixa.ScriptApp.newTrigger('continuarGeracaoMinuta').timeBased().after(2000).create();
+  caixa.PropertiesService.getScriptProperties().setProperty('cont_' + vivo.getUniqueId(), 'job-vivo');
+  // orfao nunca ganhou a propriedade correspondente — simula o gatilho que
+  // já disparou e devia ter sumido sozinho, mas ficou preso.
+  caixa.limparGatilhosOrfaosDeMinuta();
+  igual(gatilhosAtuais().length, 1, 'devia ter sobrado só o gatilho com propriedade viva');
+  igual(gatilhosAtuais()[0], vivo.getUniqueId(), 'apagou o gatilho vivo em vez do órfão');
+});
+
+passo('limparGatilhosOrfaosDeMinuta nunca mexe em gatilho de outra função', () => {
+  resetGatilhosETest();
+  const outro = caixa.ScriptApp.newTrigger('algumaOutraFuncao').timeBased().after(2000).create();
+  caixa.limparGatilhosOrfaosDeMinuta();
+  igual(gatilhosAtuais().length, 1, 'apagou um gatilho que não é da geração de minuta');
+  igual(gatilhosAtuais()[0], outro.getUniqueId());
+});
+
+resetGatilhosETest();
 
 console.log('\n— conferirMinuta: encerramento, modalidade e marcador aberto —');
 
