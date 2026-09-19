@@ -88,6 +88,29 @@ passo('corta a linha "## ANÁLISE DOCUMENTAL" (título de seção proibido)', ()
   ok(r.minuta.indexOf('Isso não devia aparecer') === -1, 'não cortou o que vinha depois do título');
 });
 
+passo('corta o preâmbulo narrado antes do título, se a IA escrever um mesmo assim', () => {
+  const r = caixa.parsearResposta('Vou analisar cuidadosamente este caso antes de prosseguir.\nPROBLEMA CRÍTICO: falta documento.\n# ESCRITURA PÚBLICA DE COMPRA E VENDA\n\nConteúdo real da minuta.');
+  ok(r.minuta.indexOf('Vou analisar') === -1, 'o preâmbulo narrado vazou pra minuta');
+  ok(r.minuta.indexOf('PROBLEMA CRÍTICO') === -1, 'o preâmbulo narrado vazou pra minuta');
+  ok(r.minuta.indexOf('# ESCRITURA PÚBLICA') === 0, 'a minuta não começou direto pelo título');
+  ok(r.minuta.indexOf('Conteúdo real da minuta') !== -1, 'perdeu o conteúdo real junto com o corte do preâmbulo');
+});
+
+passo('sem título nenhum na resposta, não corta nada (não existe preâmbulo pra cortar)', () => {
+  const r = caixa.parsearResposta('Continuação da minuta sem título, de uma rodada seguinte.');
+  igual(r.minuta, 'Continuação da minuta sem título, de uma rodada seguinte.');
+});
+
+passo('título já na primeira linha não perde nada (nada pra cortar antes dele)', () => {
+  const r = caixa.parsearResposta('# ESCRITURA\n\nConteúdo normal.');
+  igual(r.minuta, '# ESCRITURA\n\nConteúdo normal.');
+});
+
+passo('"## Cláusula" (título de seção, não da escritura) não é confundido com o título principal', () => {
+  const r = caixa.parsearResposta('Preâmbulo indevido.\n## Cláusula 1ª\n\nResto.');
+  ok(r.minuta.indexOf('Preâmbulo indevido') !== -1, 'cortou usando "## Cláusula" como se fosse o título — não devia, "##" não é "#"');
+});
+
 passo('NÃO corta quando a palavra aparece dentro de uma frase normal', () => {
   const r = caixa.parsearResposta('# ESCRITURA\n\nO banco fará análise de crédito do comprador antes da liberação.');
   ok(r.minuta.indexOf('análise de crédito') !== -1, 'cortou uma frase legítima só por conter a palavra');
