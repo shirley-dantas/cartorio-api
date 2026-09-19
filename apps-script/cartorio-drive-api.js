@@ -719,7 +719,26 @@ function precisouTruncarGeracao(rodadas, maxPedacos, aindaPrecisaContinuar) {
 // mesmo tempo.
 var GERACAO_MAX_PEDACOS = 6;
 
+// Rede de segurança contra o teto de 20 gatilhos do projeto: apaga qualquer
+// gatilho de "continuarGeracaoMinuta" cuja propriedade "cont_<uid>" já não
+// existe mais — ou seja, um gatilho que já disparou e devia ter sumido
+// sozinho (ver apagarGatilhoAtual), mas ficou preso por alguma falha do
+// próprio Apps Script. Roda antes de CRIAR um gatilho novo, nunca depois:
+// assim, mesmo se apagarGatilhoAtual falhar uma vez, o lixo não se acumula
+// pra sempre — a próxima geração limpa o que sobrou.
+function limparGatilhosOrfaosDeMinuta() {
+  try {
+    var props = PropertiesService.getScriptProperties().getProperties();
+    var gatilhos = ScriptApp.getProjectTriggers();
+    gatilhos.forEach(function(g) {
+      if (g.getHandlerFunction() !== "continuarGeracaoMinuta") return;
+      if (!props["cont_" + g.getUniqueId()]) ScriptApp.deleteTrigger(g);
+    });
+  } catch (e) {}
+}
+
 function agendarContinuacaoMinuta(jobId, estado) {
+  limparGatilhosOrfaosDeMinuta();
   UrlFetchApp.fetch(FIREBASE_URL + "/geracao-estado/" + jobId + ".json", {
     method: "put",
     contentType: "application/json",
@@ -730,13 +749,34 @@ function agendarContinuacaoMinuta(jobId, estado) {
   PropertiesService.getScriptProperties().setProperty("cont_" + trigger.getUniqueId(), jobId);
 }
 
+// Apaga o próprio gatilho que acabou de disparar esta execução. O Apps
+// Script promete apagar gatilhos de uma vez só (.after()) sozinho depois de
+// disparar, mas isso pode atrasar ou falhar silenciosamente — e o projeto
+// tem um teto de 20 gatilhos no total. Cada minuta de várias rodadas cria um
+// gatilho por rodada; sem esta limpeza explícita, um dia de testes intensos
+// esgota o teto e a mensagem vira "This script has too many triggers.",
+// travando toda geração nova até alguém limpar a lista à mão.
+function apagarGatilhoAtual(triggerUid) {
+  if (!triggerUid) return;
+  try {
+    var gatilhos = ScriptApp.getProjectTriggers();
+    for (var i = 0; i < gatilhos.length; i++) {
+      if (gatilhos[i].getUniqueId() === triggerUid) {
+        ScriptApp.deleteTrigger(gatilhos[i]);
+        break;
+      }
+    }
+  } catch (e) {}
+}
+
 // Chamada pelo gatilho de tempo. Lê o jobId pelo triggerUid do evento (não
 // por parâmetro — gatilho de tempo não aceita nenhum), busca o estado de
-// verdade no Firebase e limpa os dois rastros: a propriedade (pequena) e o
-// registro no Firebase (que pode ser grande) — um gatilho só serve pra uma
-// rodada, nunca é reaproveitado, e um estado velho parado no Firebase não
-// serve pra nada.
+// verdade no Firebase e limpa três rastros: o próprio gatilho (ver
+// apagarGatilhoAtual acima), a propriedade (pequena) e o registro no
+// Firebase (que pode ser grande) — um gatilho só serve pra uma rodada, nunca
+// é reaproveitado, e um estado velho parado no Firebase não serve pra nada.
 function continuarGeracaoMinuta(e) {
+  apagarGatilhoAtual(e && e.triggerUid);
   var props = PropertiesService.getScriptProperties();
   var chave = "cont_" + (e && e.triggerUid);
   var jobId = props.getProperty(chave);
