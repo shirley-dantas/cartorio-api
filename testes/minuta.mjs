@@ -346,6 +346,15 @@ passo('o SYSTEM_PROMPT não carrega mais nenhum ano escrito à mão', () => {
   ok(prompt2027.indexOf('dois mil e vinte e seis (2026)') === -1, 'sobrou a abertura fixa de 2026 mesmo pedindo 2027');
 });
 
+console.log('\n— rateio proporcional por área privativa (apartamento + vagas sob o mesmo contribuinte) —');
+
+passo('o prompt tem a regra de várias unidades sob o mesmo contribuinte, com a conta por área privativa', () => {
+  ok(/REGRA ABSOLUTA — VÁRIAS UNIDADES SOB O MESMO CONTRIBUINTE/.test(fonte), 'a regra do rateio por área privativa sumiu do prompt');
+  ok(/proporcionalmente à ÁREA PRIVATIVA de cada uma/.test(fonte), 'o critério de rateio (área privativa) não está mais explícito');
+  ok(/nunca dividindo o valor total em partes iguais/.test(fonte), 'a regra deixou de proibir a divisão igualitária entre as unidades');
+  ok(/falta a área privativa desta unidade para ratear/.test(fonte), 'a pendência para área privativa ausente sumiu do prompt');
+});
+
 console.log('\n— extrairJsonAuditoria: a auditoria (Etapa 2) —');
 
 passo('extrai o JSON mesmo com texto/markdown em volta', () => {
