@@ -2079,16 +2079,41 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   box-shadow:0 1px 2px rgba(31,42,51,.03),0 6px 16px rgba(31,42,51,.04)}
 .cdc2-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .cdc2-cal-titulo{font-family:'Jost',sans-serif;font-weight:400;font-size:15px;color:#1F2937}
-.cdc2-cal-nav{display:flex;gap:8px}
+.cdc2-cal-nav{display:flex;gap:6px;align-items:center}
 .cdc2-cal-nav button{width:23px;height:23px;border-radius:50%;border:1px solid #E4DFD3;background:#fff;
   color:#6B7280;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;
   font-family:inherit;padding:0;line-height:1}
 .cdc2-cal-nav button:hover{background:#FAF8F4}
+/* Botão "Hoje" — mesma família visual das setinhas, mas largura livre
+   (o texto não cabe no círculo de 23px) e uma marcação sutil pra não
+   competir com elas. */
+.cdc2-cal-nav button.cdc2-cal-hoje{width:auto;border-radius:999px;padding:0 10px;
+  font-size:10px;font-weight:600;color:#8B7355}
 .cdc2-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px 0;text-align:center}
 .cdc2-cal-dow{font-size:10px;color:#C7C0AF;font-weight:600}
-.cdc2-cal-dia{font-size:12.5px;color:#374151;padding:6px 0;border-radius:10px}
-.cdc2-cal-dia.fora{color:#D8D0C1}
+.cdc2-cal-dia{position:relative;font-size:12.5px;color:#374151;padding:6px 0 8px;border-radius:10px;cursor:pointer}
+.cdc2-cal-dia:hover{background:#FAF8F4}
+.cdc2-cal-dia.fora{color:#D8D0C1;cursor:default}
+.cdc2-cal-dia.fora:hover{background:none}
+/* Fim de semana e feriado (mesmos feriados do finFeriados() do
+   Financeiro) — só uma pista visual de dia sem expediente, não muda
+   nenhuma conta. */
+.cdc2-cal-dia.fora-do-expediente{color:#B9B2A0}
+/* Dia com escritura marcada (cdc2EventosPorDia, alimentado por
+   renderAgenda()) ganha um pontinho embaixo do número; três ou mais no
+   mesmo dia deixam o ponto maior e na cor de alerta, pra avisar antes
+   de a agenda apertar. */
+.cdc2-cal-dia.compromisso::after{content:'';position:absolute;left:50%;bottom:2px;
+  transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#C9A876}
+.cdc2-cal-dia.compromisso.cheio::after{width:5px;height:5px;background:#B3261E}
+.cdc2-cal-dia.selecionado.compromisso::after{background:#fff}
+/* Dia clicado — mesma linguagem de "selecionado" do resto do painel:
+   fundo escuro sólido, não só um contorno. */
 .cdc2-cal-dia.hoje{background:#F8E9EA;color:#C97C86;font-weight:700}
+/* Depois do .hoje de propósito: clicar em hoje mesmo tem que continuar
+   parecendo clicado, não voltar pro rosa de "hoje" sozinho. */
+.cdc2-cal-dia.selecionado{background:#1F2A33;color:#fff}
+.cdc2-cal-dia.selecionado:hover{background:#1F2A33}
 /* faixa de indicadores — resumo rápido, não protagonista: telha leve,
    sem competir com o peso visual dos três módulos principais */
 .cdc2-indicadores{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
@@ -2295,16 +2320,20 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       </span>
     </div>
 
-    <!-- Calendário mensal — só apoio visual (nenhum evento é marcado nele
-         hoje, ver renderCdc2Calendario()), mas preenche o vão que sobrava
-         entre a saudação e a Joaninha, como ela pediu depois de ver a tela
-         de verdade. Mora dentro do mesmo card do cabeçalho — some/aparece
-         junto com ele (fecharSaudacao/montarSaudacao), sem JS extra. -->
+    <!-- Calendário mensal, ligado à Agenda ao lado: o dia com compromisso
+         ganha um ponto (mais forte quando tem várias escrituras batendo
+         junto), clicar num dia mostra os compromissos dele na Agenda,
+         fim de semana e feriado aparecem apagados, e "Hoje" volta rápido
+         pro mês atual depois de navegar. Ver renderCdc2Calendario() e
+         cdc2CalClicarDia(). Mora dentro do mesmo card do cabeçalho —
+         some/aparece junto com ele (fecharSaudacao/montarSaudacao), sem
+         JS extra. -->
     <div class="cdc2-calendario">
       <div class="cdc2-cal-head">
         <span class="cdc2-cal-titulo" id="cdc2-cal-titulo"></span>
         <span class="cdc2-cal-nav">
           <button type="button" onclick="cdc2CalNav(-1)" aria-label="Mês anterior">‹</button>
+          <button type="button" class="cdc2-cal-hoje" onclick="cdc2CalIrHoje()" title="Voltar para hoje">Hoje</button>
           <button type="button" onclick="cdc2CalNav(1)" aria-label="Mês seguinte">›</button>
         </span>
       </div>
@@ -2379,6 +2408,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-hoje" onclick="cdc2VerAgendaAba('hoje')">Hoje <span id="cdc-tab-ag-hoje-n"></span></button>
         <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-amanha" onclick="cdc2VerAgendaAba('amanha')">Amanhã <span id="cdc-tab-ag-amanha-n"></span></button>
         <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-semana" onclick="cdc2VerAgendaAba('semana')">Próximos dias <span id="cdc-tab-ag-semana-n"></span></button>
+        <!-- Só aparece quando ela clica num dia do calendário ao lado
+             (cdc2CalClicarDia) — não é uma aba fixa, é o "resultado" do
+             clique, por isso nasce escondida. -->
+        <button type="button" class="cdc2-pill-tab" id="cdc-tab-ag-dia" style="display:none" onclick="cdc2VerAgendaAba('dia')"><span id="cdc-tab-ag-dia-lbl"></span> <span id="cdc-tab-ag-dia-n"></span></button>
       </div>
       <div class="cdc2-ag-lista" id="cdc-agenda"></div>
     </section>
@@ -4150,7 +4183,16 @@ function fmtDiaSemana(dt){
 // grupos de sempre, só que uma de cada vez em vez de empilhadas — dados já
 // calculados em cdc2AgendaDados, o clique na aba só troca qual pintar.
 let cdc2AgendaAba='hoje';
-let cdc2AgendaDados={hoje:[],amanha:[],semana:[]};
+let cdc2AgendaDados={hoje:[],amanha:[],semana:[],dia:[]};
+// Todo compromisso com data real (não só o da janela de 7 dias da Agenda),
+// agrupado por dia ('AAAA-MM-DD') — é o que o calendário do cabeçalho lê
+// pra marcar o pontinho de "tem escritura aqui" em qualquer mês, e o que
+// cdc2CalClicarDia() consulta quando ela clica num dia. Refeito toda vez
+// que renderAgenda() roda, então nunca fica atrás do que a Agenda mostra.
+let cdc2EventosPorDia={};
+// Dia clicado no calendário ('AAAA-MM-DD' ou null) — enquanto houver um,
+// a aba "dia" da Agenda fica visível e em destaque no calendário.
+let cdc2CalDiaSelecionado=null;
 function cdc2LinhaAgenda(ev){
   const c=ev.c;
   const hora=ev.dt?new Date(ev.dt).toLocaleString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
@@ -4176,7 +4218,11 @@ function cdc2PintarAgenda(){
   const el=document.getElementById('cdc-agenda');
   if(!el)return;
   const lista=cdc2AgendaDados[cdc2AgendaAba]||[];
-  if(!lista.length){el.innerHTML='<div class="cdc2-vazio">Nada agendado.</div>';return;}
+  if(!lista.length){
+    const msg=cdc2AgendaAba==='dia'?'Nada agendado nesse dia.':'Nada agendado.';
+    el.innerHTML=`<div class="cdc2-vazio">${msg}</div>`;
+    return;
+  }
   // "Próximos dias" mistura o resto desta semana com a semana que vem — só um
   // cabeçalho por dia deixa claro qual é qual, em vez de a aba fingir que é
   // tudo "esta semana" quando às vezes já é a que vem.
@@ -4198,7 +4244,16 @@ function cdc2PintarAgenda(){
 }
 window.cdc2VerAgendaAba=function(aba){
   cdc2AgendaAba=aba;
-  ['hoje','amanha','semana'].forEach(k=>{
+  // Trocou pra uma aba fixa (Hoje/Amanhã/Próximos dias): a seleção do
+  // calendário perde o sentido, some a aba "dia" e o destaque no dia
+  // clicado, senão a "aba escondida" ficaria acesa sem ninguém ver.
+  if(aba!=='dia'){
+    cdc2CalDiaSelecionado=null;
+    const tabDia=document.getElementById('cdc-tab-ag-dia');
+    if(tabDia)tabDia.style.display='none';
+    renderCdc2Calendario();
+  }
+  ['hoje','amanha','semana','dia'].forEach(k=>{
     document.getElementById('cdc-tab-ag-'+k)?.classList.toggle('ativa',k===aba);
   });
   cdc2PintarAgenda();
@@ -4207,26 +4262,46 @@ function renderAgenda(itens){
   const dentroDaJanela=(v)=>v!=null&&v>=0&&v<=7;
   // Um caso pode ter DUAS datas reais e independentes (escritura principal e
   // segunda parte, ex: 07/08 e 12/08 do mesmo caso) — cada uma vira seu
-  // próprio evento aqui, com seu próprio dia/etiqueta.
-  const eventos=[];
+  // próprio evento aqui, com seu próprio dia/etiqueta. Sem limite de janela
+  // aqui: o calendário do cabeçalho precisa enxergar compromisso em
+  // qualquer mês, não só nos 7 dias que a Agenda mostra.
+  const eventosTodos=[];
   itens.forEach(it=>{
     const c=it.caso;
-    if(dentroDaJanela(it.diffAgendado))eventos.push({c,diff:it.diffAgendado,dt:c.agendado,segunda:false});
-    if(dentroDaJanela(it.diffSegunda))eventos.push({c,diff:it.diffSegunda,dt:c.segundaParte.data,segunda:true});
+    if(c.agendado)eventosTodos.push({c,diff:it.diffAgendado,dt:c.agendado,segunda:false});
+    if(c.segundaParte&&c.segundaParte.status==='data_definida'&&c.segundaParte.data){
+      eventosTodos.push({c,diff:it.diffSegunda,dt:c.segundaParte.data,segunda:true});
+    }
   });
   // Concluído ou excluído aqui na agenda some da lista — a chave usa a data
   // real do evento, então volta a aparecer sozinho se essa data mudar
   // (reagendamento).
-  const eventosVisiveis=eventos
+  const eventosTodosVisiveis=eventosTodos
     .filter(ev=>!resolucoesCentral[chaveAgendaEvento(ev.c.id,ev.segunda?'segunda':'principal',ev.dt)])
     .sort(agendaPorHorario);
+  cdc2EventosPorDia={};
+  eventosTodosVisiveis.forEach(ev=>{
+    if(!ev.dt)return;
+    const chave=String(ev.dt).slice(0,10);
+    (cdc2EventosPorDia[chave]=cdc2EventosPorDia[chave]||[]).push(ev);
+  });
+  const eventosVisiveis=eventosTodosVisiveis.filter(ev=>dentroDaJanela(ev.diff));
   const grupo=(min,max)=>eventosVisiveis.filter(ev=>ev.diff>=min&&ev.diff<=max);
-  cdc2AgendaDados={hoje:grupo(0,0),amanha:grupo(1,1),semana:grupo(2,7)};
+  cdc2AgendaDados={hoje:grupo(0,0),amanha:grupo(1,1),semana:grupo(2,7),
+    dia:cdc2CalDiaSelecionado?(cdc2EventosPorDia[cdc2CalDiaSelecionado]||[]).slice().sort(agendaPorHorario):[]};
   ['hoje','amanha','semana'].forEach(k=>{
     const n=document.getElementById('cdc-tab-ag-'+k+'-n');
     if(n){const q=cdc2AgendaDados[k].length;n.textContent=q?`(${q})`:'';}
   });
+  // O dia selecionado pode ter mudado de contagem (caso reagendado, criado
+  // ou concluído) — atualiza o número da aba escondida também, mesmo sem
+  // ela estar visível agora.
+  if(cdc2CalDiaSelecionado){
+    const n=document.getElementById('cdc-tab-ag-dia-n');
+    if(n){const q=cdc2AgendaDados.dia.length;n.textContent=q?`(${q})`:'';}
+  }
   cdc2VerAgendaAba(cdc2AgendaAba);
+  renderCdc2Calendario();
 }
 
 
@@ -4530,13 +4605,40 @@ window.fecharSaudacao=function(){
 };
 
 // ── CALENDÁRIO DO CABEÇALHO ──
-// Puro apoio visual — não marca compromisso nenhum (isso é papel da
-// Agenda) e não guarda estado entre visitas: reabrir a tela sempre volta
-// pro mês de hoje. cdc2CalMostrado é o único estado, e mora aqui porque
-// só a navegação < > o move.
+// Não guarda em qual mês ela estava entre visitas: reabrir a tela sempre
+// volta pro mês de hoje. cdc2CalMostrado é o único estado de navegação,
+// e mora aqui porque só a navegação < >/Hoje o move — a seleção de dia
+// (cdc2CalDiaSelecionado) e os compromissos por dia (cdc2EventosPorDia)
+// moram perto da Agenda, que é quem os alimenta.
 let cdc2CalMostrado=new Date();
 window.cdc2CalNav=function(delta){
   cdc2CalMostrado=new Date(cdc2CalMostrado.getFullYear(),cdc2CalMostrado.getMonth()+delta,1);
+  renderCdc2Calendario();
+};
+window.cdc2CalIrHoje=function(){
+  cdc2CalMostrado=new Date();
+  renderCdc2Calendario();
+};
+function cdc2ChaveDia(ano,mes,dia){
+  return `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+}
+// Clique num dia do mês mostrado: seleciona (destaque no calendário) e
+// abre a lista de compromissos daquele dia na Agenda ao lado, na aba
+// escondida "dia" (ver cdc2VerAgendaAba). Só dias do mês corrente são
+// clicáveis — os "fora" (mês anterior/seguinte) nem têm data completa
+// calculada aqui, pra não abrir a Agenda no dia errado por engano.
+window.cdc2CalClicarDia=function(ano,mes,dia){
+  const chave=cdc2ChaveDia(ano,mes,dia);
+  cdc2CalDiaSelecionado=chave;
+  const eventos=(cdc2EventosPorDia[chave]||[]).slice().sort(agendaPorHorario);
+  cdc2AgendaDados.dia=eventos;
+  const lbl=document.getElementById('cdc-tab-ag-dia-lbl');
+  if(lbl)lbl.textContent=String(dia).padStart(2,'0')+'/'+String(mes+1).padStart(2,'0');
+  const n=document.getElementById('cdc-tab-ag-dia-n');
+  if(n)n.textContent=eventos.length?`(${eventos.length})`:'';
+  const tab=document.getElementById('cdc-tab-ag-dia');
+  if(tab)tab.style.display='';
+  cdc2VerAgendaAba('dia');
   renderCdc2Calendario();
 };
 function renderCdc2Calendario(){
@@ -4549,11 +4651,25 @@ function renderCdc2Calendario(){
   const primeiroDiaSemana=new Date(ano,mes,1).getDay();
   const diasNoMes=new Date(ano,mes+1,0).getDate();
   const diasMesAnterior=new Date(ano,mes,0).getDate();
+  // Mesmos feriados do finFeriados() do Financeiro — só uma pista visual
+  // de dia sem expediente aqui, nenhuma conta depende disso.
+  const feriadosDoAno=typeof finFeriados==='function'?finFeriados(ano):{};
   let html=['D','S','T','Q','Q','S','S'].map(d=>`<div class="cdc2-cal-dow">${d}</div>`).join('');
   for(let i=primeiroDiaSemana-1;i>=0;i--)html+=`<div class="cdc2-cal-dia fora">${diasMesAnterior-i}</div>`;
   for(let d=1;d<=diasNoMes;d++){
+    const chave=cdc2ChaveDia(ano,mes,d);
     const ehHoje=d===hoje.getDate()&&mes===hoje.getMonth()&&ano===hoje.getFullYear();
-    html+=`<div class="cdc2-cal-dia${ehHoje?' hoje':''}">${d}</div>`;
+    const ehSelecionado=chave===cdc2CalDiaSelecionado;
+    const diaSemana=new Date(ano,mes,d).getDay();
+    const semExpediente=diaSemana===0||diaSemana===6||!!feriadosDoAno[chave];
+    const qtd=(cdc2EventosPorDia[chave]||[]).length;
+    let cls='cdc2-cal-dia';
+    if(ehHoje)cls+=' hoje';
+    if(semExpediente)cls+=' fora-do-expediente';
+    if(qtd>0)cls+=' compromisso'+(qtd>=3?' cheio':'');
+    if(ehSelecionado)cls+=' selecionado';
+    const dica=qtd>0?` title="${qtd} compromisso${qtd>1?'s':''} neste dia"`:'';
+    html+=`<div class="${cls}"${dica} onclick="cdc2CalClicarDia(${ano},${mes},${d})">${d}</div>`;
   }
   const restante=(7-((primeiroDiaSemana+diasNoMes)%7))%7;
   for(let d=1;d<=restante;d++)html+=`<div class="cdc2-cal-dia fora">${d}</div>`;
