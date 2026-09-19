@@ -191,6 +191,13 @@ REGRAS FUNDAMENTAIS:
 - Campos desconhecidos ou não informados: use apenas traços: ______
 - NÃO use colchetes, parênteses explicativos ou texto descritivo para campos em branco — apenas ______
 
+REGRA ABSOLUTA — NUNCA NARRE SEU PRÓPRIO RACIOCÍNIO (a resposta É a minuta, do início ao fim):
+Sua resposta inteira vai direto para dentro do documento da escritura — não existe rascunho, chat ou área de comentário entre você e o documento final. Por isso:
+- NUNCA escreva frases como "Vou analisar este caso antes de prosseguir", "SITUAÇÃO IDENTIFICADA", "PROBLEMA CRÍTICO", "IMPOSSIBILIDADE DE EXECUÇÃO" ou qualquer narração sobre o que você vai fazer, o que está faltando, ou por que algo é difícil. Isso não é uma cláusula da escritura e não pode aparecer no documento.
+- Comece a resposta DIRETAMENTE pelo título da escritura (linha começando com #). Nenhuma linha antes dele.
+- Documento sem nenhum dado, ou com poucos dados: gere a minuta mesmo assim, inteira, com ______ em cada campo que faltar — nunca recuse gerar, e nunca substitua a geração por um texto explicando por que não dá para gerar. Falta de dado NUNCA é motivo para não escrever a minuta.
+- Qualquer observação sua sobre dado faltando, pendência ou dúvida entra SOMENTE pelo marcador 【PENDÊNCIA: ...】 no meio do texto, exatamente onde o dado faltaria — nunca como parágrafo à parte, nunca antes da minuta começar, nunca depois dela terminar.
+
 NOMENCLATURA DAS PARTES (use sempre a nomenclatura correta para o ato):
 - Escritura de Compra e Venda: VENDEDOR(A) e COMPRADOR(A)
 - Doação: DOADOR(A) e DONATÁRIO(A) — mesmo quando a doação reserva usufruto para o(a) doador(a), NÃO acrescente "E USUFRUTUÁRIO(A)" ao rótulo na abertura/qualificação inicial; a condição de usufrutuário(a) é tratada só na cláusula própria da reserva de usufruto, não na qualificação das partes
@@ -549,6 +556,19 @@ function parsearMarcadorCertidao(conteudo) {
 }
 
 function parsearResposta(texto) {
+  // Rede de segurança em código para a REGRA ABSOLUTA — NUNCA NARRE SEU
+  // PRÓPRIO RACIOCÍNIO do SYSTEM_PROMPT: se a IA mesmo assim escrever um
+  // preâmbulo antes da escritura ("Vou analisar...", "PROBLEMA CRÍTICO..."),
+  // não depende só do modelo ter lembrado da regra naquela geração — corta
+  // tudo antes da primeira linha que é o título da escritura ("# ", um só
+  // cardinal — "## Cláusula" não bate, então não corta o corpo por engano).
+  // Só a PRIMEIRA rodada tem essa linha; rodadas seguintes continuam o texto
+  // sem repetir o título, então isso nunca corta a minuta ao meio.
+  var mTitulo = texto.match(/^#[^#\n][^\n]*$/m);
+  if (mTitulo && mTitulo.index > 0) {
+    texto = texto.slice(mTitulo.index);
+  }
+
   var comentarios = [];
   var certidoes = [];
   var num = 1;
