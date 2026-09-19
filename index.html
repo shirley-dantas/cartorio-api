@@ -4687,10 +4687,30 @@ async function atualizarIconeClima(usuario){
 // design-system/mascots/joaninha/joaninha.css — mais simples e mais certo
 // deixar o CSS decidir do que recalcular uma posição "ao lado".
 function posicionarJoaninhaNaSaudacao(){
-  document.documentElement.style.removeProperty('--jn-right');
-  document.documentElement.style.removeProperty('--jn-bottom');
+  const topo=document.getElementById('saudacao-card');
   const host=document.getElementById('joaninha-host');
-  if(host)host.classList.remove('jn-balao-esquerda');
+  const raiz=document.documentElement;
+  if(!topo||!host||topo.style.display==='none'){
+    raiz.style.removeProperty('--jn-right');
+    raiz.style.removeProperty('--jn-bottom');
+    if(host)host.classList.remove('jn-balao-esquerda');
+    return;
+  }
+  const rect=topo.getBoundingClientRect();
+  const sobra=window.innerWidth-rect.right;
+  // Em tela larga o cartão é compacto (width:fit-content) e sobra muito
+  // vão até o canto de sempre da mascote (right:48px). Em tela estreita
+  // o cartão vira largura cheia (media query) e essa sobra desaparece
+  // sozinha — aí o canto padrão do design-system volta a valer.
+  if(rect.width===0||sobra<120){
+    raiz.style.removeProperty('--jn-right');
+    raiz.style.removeProperty('--jn-bottom');
+    host.classList.remove('jn-balao-esquerda');
+    return;
+  }
+  raiz.style.setProperty('--jn-right',Math.max(24,sobra-40)+'px');
+  raiz.style.setProperty('--jn-bottom',Math.max(20,window.innerHeight-rect.top-74)+'px');
+  host.classList.remove('jn-balao-esquerda');
 }
 let resizeJnTimer=null;
 window.addEventListener('resize',()=>{
