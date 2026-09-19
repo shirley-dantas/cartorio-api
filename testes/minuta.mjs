@@ -389,6 +389,12 @@ passo('o rateio por área também define quanto do preço da transação cabe a 
   ok(/o rateio é calculado, não copiado de lugar nenhum/.test(fonte), 'sumiu a instrução de calcular o rateio do preço mesmo sem discriminação nos documentos');
 });
 
+passo('o rateio do preço vale mesmo dentro de um Reeditar cuja instrução só fala em valor venal (não perde pra "mantenha o resto como está")', () => {
+  ok(/ISSO VALE TAMBÉM DENTRO DE UMA MINUTA ATUAL SENDO REEDITADA/.test(fonte), 'sumiu o esclarecimento de que o rateio do preço vale mesmo num Reeditar');
+  ok(/NÃO é uma mudança extra que a REGRA ABSOLUTA — MINUTA ATUAL proibiria/.test(fonte), 'sumiu a explicação de que isso não conta como "mudar mais do que foi pedido"');
+  ok(/ainda que a palavra "preço" não apareça na instrução/.test(fonte), 'sumiu a instrução de ratear o preço mesmo sem a instrução mencionar "preço"');
+});
+
 console.log('\n— extrairJsonAuditoria: a auditoria (Etapa 2) —');
 
 passo('extrai o JSON mesmo com texto/markdown em volta', () => {
