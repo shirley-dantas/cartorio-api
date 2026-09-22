@@ -163,8 +163,10 @@ lê o cofre junto com os lançamentos e pede a **senha do Meu financeiro** para
 abrir — a chave fica só na memória e tranca quando o app sai da tela. O
 destrancar e as somas são **recortados do painel** (`finDestrancar`,
 `finPessoalDoCiclo`, `finSomaPessoal`), no mesmo `fin-motor.js`. Aberto, o
-salário passa a somar o salário lançado à mão lá (como o painel faz) e cada
-extra do fechamento vira uma linha de entrada. **As despesas do Meu financeiro
+salário passa a somar o salário lançado à mão lá (como o painel faz) e os
+extras do fechamento entram numa **linha só, com o total** — sem a descrição
+de cada um, a pedido dela ("não precisa trazer de onde saiu o extra, apenas o
+valor"). **As despesas do Meu financeiro
 ficam fora** — ela pediu os extras, e as despesas dela já são lançadas na
 planilha do Bússola; somar as duas contaria em dobro.
 
@@ -203,6 +205,15 @@ Ela autorizou a leitura pela IA **em todos os campos, inclusive o Diário**
 ele continua cifrado. Letra ilegível ou sem internet: a janela avisa e não
 fecha. O aparelho dela é **Android com caneta** — o teclado de escrita à mão do
 próprio Android continua funcionando nos campos, como alternativa.
+
+**No primeiro uso de verdade (22/09/2026) a leitura falhou** com a mensagem
+genérica, que só aparece quando o servidor nem responde direito (função fora
+do ar, quebra ao carregar, tempo esgotado ou recusa de origem). Daqui não dá
+para abrir a Vercel, então a causa não foi achada. Desde então a janela diz o
+motivo ("sem resposta do servidor", "erro 404", "demorou demais") e a função
+responde a um **GET** — abrir `https://cartorio-api.vercel.app/api/ler-letra`
+no navegador mostra se ela está no ar e se tem a chave da IA (`chaveDaIA`),
+sem revelar a chave.
 
 A função só responde às origens do Bússola e do painel (e ao teste local),
 recusa imagem acima de 2 MB e usa `claude-opus-5` com esforço baixo e

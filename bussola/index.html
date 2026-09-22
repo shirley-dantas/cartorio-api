@@ -1649,13 +1649,10 @@
         '<button type="submit" class="btn-add"' + (finCofreAbrindo ? ' disabled' : '') + '>' + (finCofreAbrindo ? 'Abrindo…' : 'Abrir') + '</button></form>' +
         (finCofreErro ? '<span class="sub diario-erro">' + escapeHtml(finCofreErro) + '</span>' : '') + '</td></tr>';
     }
-    var extras = p.itens.filter(function(x){ return x.tipo === "extra"; });
-    if (!extras.length) return '<tr class="salario"><td>—</td><td colspan="4"><strong>Serviços extras</strong><span class="sub">Nenhum no Meu financeiro neste fechamento.</span></td></tr>';
-    return extras.map(function(x){
-      return '<tr class="salario"><td>' + (x.data ? fmtShort(fromIso(String(x.data).slice(0, 10))) : '—') + '</td><td><strong>' + escapeHtml(x.descricao || 'Serviço extra') + '</strong>' +
-        '<span class="sub">serviço extra · vem do Meu financeiro</span></td><td>Extra</td>' +
-        '<td class="valor entrada">' + moeda(FIN.num(x.valor)) + '</td><td></td></tr>';
-    }).join("");
+    // Uma linha só, com o total: de onde veio cada extra ela já vê no painel
+    // (pedido dela, 22/09/2026).
+    return '<tr class="salario"><td>—</td><td><strong>Serviços extras</strong><span class="sub">vem do Meu financeiro</span></td><td>Extra</td>' +
+      '<td class="valor entrada">' + moeda(p.extras) + '</td><td></td></tr>';
   }
   function renderFinancas(){
     if (!$("view-financas")) return;
@@ -2183,9 +2180,15 @@
     if (!canetaPad.getStrokes().length) { canetaMsg("Escreva alguma coisa primeiro.", true); return; }
     if (navigator.onLine === false) { canetaMsg("Sem internet agora — dá para digitar, ou tentar de novo depois.", true); return; }
     canetaLendo = true; $("canetaPronto").disabled = true; canetaMsg("Lendo sua letra…");
+    // A mensagem de erro diz onde falhou — "tente de novo" sozinho não deixa
+    // ninguém descobrir o motivo. Leitura que passa de 40 s é desistida.
+    var parar = window.AbortController ? new AbortController() : null;
+    var relogio = setTimeout(function(){ if (parar) parar.abort(); }, 40000);
     fetch(LER_LETRA_URL, { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imagem: canetaImagem() }) })
-      .then(function(r){ return r.json().catch(function(){ return { ok: false }; }); })
+      body: JSON.stringify({ imagem: canetaImagem() }), signal: parar ? parar.signal : undefined })
+      .then(function(r){
+        return r.json().catch(function(){ return { ok: false, erro: "O leitor da letra respondeu com erro " + r.status + "." }; });
+      })
       .then(function(j){
         if (j && j.ok && j.texto) {
           var el = canetaAlvo, atual = String(el.value || "").replace(/\s+$/, "");
@@ -2200,10 +2203,12 @@
         if (j && j.ilegivel) canetaMsg("Não consegui ler. Tente escrever de novo, um pouco maior.", true);
         else canetaMsg((j && j.erro) || "Não deu para ler agora. Tente de novo, ou digite.", true);
       })
-      .catch(function(){
+      .catch(function(e){
         canetaLendo = false; $("canetaPronto").disabled = false;
-        canetaMsg("Não deu para ler agora. Tente de novo, ou digite.", true);
-      });
+        canetaMsg(e && e.name === "AbortError" ? "A leitura demorou demais. Tente de novo, ou digite."
+          : "Não consegui falar com o leitor da letra (sem resposta do servidor). Tente de novo, ou digite.", true);
+      })
+      .then(function(){ clearTimeout(relogio); });
   }
   $("canetaDesfazer").addEventListener("click", function(){ canetaPad.undo(); });
   $("canetaLimpar").addEventListener("click", function(){ canetaPad.clear(); canetaMsg(""); });

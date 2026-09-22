@@ -38,6 +38,9 @@ module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(permitida ? 200 : 403).end();
+  // Aberto no navegador, diz se a função está no ar e se tem a chave da IA —
+  // é o jeito de conferir sem ferramenta nenhuma. Não revela a chave.
+  if (req.method === "GET") return res.status(200).json({ ok: true, funcao: "ler-letra", chaveDaIA: !!process.env.ANTHROPIC_API_KEY });
   if (req.method !== "POST") return res.status(405).json({ ok: false, erro: "Método não permitido" });
   if (!permitida) return res.status(403).json({ ok: false, erro: "Origem não autorizada" });
 
@@ -49,8 +52,9 @@ module.exports = async (req, res) => {
   if (!imagem) return res.status(400).json({ ok: false, erro: "Faltou a imagem" });
   if (imagem.length > MAX_BASE64) return res.status(413).json({ ok: false, erro: "Imagem grande demais" });
 
-  if (!cliente) cliente = new Anthropic();
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ ok: false, erro: "A chave da IA não está configurada no painel." });
   try {
+    if (!cliente) cliente = new Anthropic();
     const resposta = await cliente.beta.messages.create({
       model: "claude-opus-5",
       max_tokens: 2000,
@@ -83,6 +87,6 @@ module.exports = async (req, res) => {
     if (e instanceof Anthropic.AuthenticationError) return res.status(500).json({ ok: false, erro: "A chave da IA não está configurada." });
     if (e instanceof Anthropic.BadRequestError) return res.status(400).json({ ok: false, erro: "A IA não aceitou esta imagem." });
     if (e instanceof Anthropic.APIError) return res.status(502).json({ ok: false, erro: "A IA não respondeu agora." });
-    return res.status(502).json({ ok: false, erro: "Não deu para ler agora." });
+    return res.status(502).json({ ok: false, erro: "Não deu para ler agora (" + String(e && e.message || e).slice(0, 120) + ")." });
   }
 };
