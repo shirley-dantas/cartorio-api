@@ -35,7 +35,11 @@ Tudo funciona 100% no navegador, sem backend: os dados ficam em
 - **Agenda** (antes "Linha do tempo"): compromissos do dia, assinaturas do
   painel e as contas que vencem no dia ("💸 Pagar: …")
 - **Página livre + Bloco de notas, lado a lado**: o que se escreve à mão na
-  página vira cartão no bloco ("Guardar no bloco →"); cada nota tem data e
+  página vira cartão no bloco ("Guardar no bloco →") — **lido pela IA e em
+  cursiva** desde 22/09/2026, a pedido dela depois de a caneta funcionar;
+  desenho, letra ilegível ou sem internet viram cartão de desenho, como antes,
+  e a página só é limpa depois que o cartão existe (`lerEscrita()`, a mesma
+  leitura da janela da caneta); cada nota tem data e
   "→ amanhã" a leva para o dia seguinte. 📌 fixa em todos os dias; nota
   antiga sem data aparece todo dia.
 - **Diário** (no lugar dos Hábitos — ver abaixo)

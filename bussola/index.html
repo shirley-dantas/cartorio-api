@@ -662,7 +662,8 @@
         <div class="page-acoes">
           <button type="button" class="ghost-btn" id="pageSketchUndo">Desfazer</button>
           <button type="button" class="ghost-btn" id="pageSketchClear">Limpar página</button>
-          <button type="button" class="btn-add" id="pageToBloco" title="A página vira um cartão no bloco ao lado, e fica limpa para a próxima">Guardar no bloco →</button>
+          <span class="caneta-msg" id="pageMsg" aria-live="polite"></span>
+          <button type="button" class="btn-add" id="pageToBloco" title="A escrita vira texto em cursiva num cartão do bloco ao lado, e a página fica limpa">Guardar no bloco →</button>
         </div>
       </div>
       <div class="panel">
@@ -1075,14 +1076,28 @@
       }
     });
   })();
-  // "Guardar no bloco": o que foi escrito à mão na página vira um cartão no
-  // Bloco de notas ao lado, com a data do dia, e a página fica limpa.
+  // "Guardar no bloco": a escrita da página vai para a mesma leitura da
+  // caneta e vira um cartão de TEXTO em cursiva no Bloco de notas (pedido
+  // dela, 22/09/2026). Desenho, letra que a IA não leu ou falta de internet:
+  // o cartão guarda o desenho como sempre guardou — nada se perde por não ter
+  // sido lido. A página só é limpa depois que o cartão existe.
+  var pageLendo = false;
   $("pageToBloco").addEventListener("click", function(){
     var strokes = pagePad.getStrokes();
-    if (!strokes.length) return;
-    state.notes.push({ id: uid(), type: "drawing", strokes: strokes, pinned: false, date: iso(dayCursor), createdAt: Date.now() });
-    pagePad.clear();
-    save(); renderNotes();
+    if (!strokes.length || pageLendo) return;
+    var dia = iso(dayCursor), btn = $("pageToBloco");
+    pageLendo = true; btn.disabled = true; $("pageMsg").textContent = "Lendo sua letra…";
+    lerEscrita(strokes, $("pageSketchCanvas")).then(function(texto){
+      state.notes.push({ id: uid(), text: texto, aMao: true, pinned: false, date: dia, createdAt: Date.now() });
+      $("pageMsg").textContent = "";
+    }, function(motivo){
+      state.notes.push({ id: uid(), type: "drawing", strokes: strokes, pinned: false, date: dia, createdAt: Date.now() });
+      $("pageMsg").textContent = (motivo && motivo.ilegivel ? "Não deu para ler" : "Sem leitura agora") + " — guardei como desenho.";
+    }).then(function(){
+      pageLendo = false; btn.disabled = false;
+      pagePad.clear();
+      save(); renderNotes();
+    });
   });
   function loadPagePad(){
     var entry = state.pages[iso(dayCursor)];
@@ -2165,16 +2180,29 @@
   function canetaFechar(){ canetaFundo.hidden = true; canetaAlvo = null; canetaLendo = false; $("canetaPronto").disabled = false; }
   // A imagem vai com fundo branco e no mesmo formato do quadro: os traços
   // são guardados de 0 a 1, e esticar para outra proporção deformaria a letra.
-  function canetaImagem(){
-    var r = $("canetaCanvas").getBoundingClientRect();
+  function canetaImagem(){ return imagemDosTracos(canetaPad.getStrokes(), $("canetaCanvas")); }
+  function imagemDosTracos(tracos, canvas){
+    var r = canvas.getBoundingClientRect();
     var w = 1200, h = Math.max(200, Math.round(1200 * (r.height / (r.width || 1))));
     var tinta = document.createElement("canvas"); tinta.width = w; tinta.height = h;
     var ct = tinta.getContext("2d");
-    canetaPad.getStrokes().forEach(function(s){ paintStroke(ct, s, w, h); });
+    tracos.forEach(function(s){ paintStroke(ct, s, w, h); });
     var folha = document.createElement("canvas"); folha.width = w; folha.height = h;
     var cf = folha.getContext("2d");
     cf.fillStyle = "#ffffff"; cf.fillRect(0, 0, w, h); cf.drawImage(tinta, 0, 0);
     return folha.toDataURL("image/png");
+  }
+  // A mesma leitura, para quem não usa a janela da caneta (a Página livre):
+  // resolve com o texto; recusa com { ilegivel } ou { erro }.
+  function lerEscrita(tracos, canvas){
+    if (navigator.onLine === false) return Promise.reject({ erro: "sem internet" });
+    return fetch(LER_LETRA_URL, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imagem: imagemDosTracos(tracos, canvas) }) })
+      .then(function(r){ return r.json().catch(function(){ return { ok: false, erro: "erro " + r.status }; }); })
+      .then(function(j){
+        if (j && j.ok && j.texto) return j.texto;
+        throw j && j.ilegivel ? { ilegivel: true } : { erro: (j && j.erro) || "sem resposta" };
+      }, function(){ throw { erro: "sem resposta" }; });
   }
   function canetaPronto(){
     if (canetaLendo) return;
