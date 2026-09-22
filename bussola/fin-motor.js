@@ -2,7 +2,8 @@
 // GERADO por scripts/gerar-bussola-fin.mjs a partir do index.html do painel.
 // NÃO EDITAR À MÃO — mexa no painel e rode o script de novo.
 //
-// É a conta do salário do cartório, a mesma do "Meu financeiro": comissão
+// É a conta do salário do cartório e o cofre dos serviços extras, os mesmos
+// do "Meu financeiro". A conta: comissão
 // que nasce da parte do tabelião, repasse truncado, quotas por arranjo,
 // fechamento de 26 a 25 antecipando feriado. O Bússola só entrega os
 // lançamentos e a configuração lidos do banco e pede o total.
@@ -234,6 +235,67 @@ function finMeuSalario(ciclo){
   return {total:finCent(itens.reduce((s,x)=>s+x.valor,0)),itens,semDono:false};
 }
 
+const FIN_PBKDF2_VOLTAS=250000;
+const FIN_MINUTOS_ATE_TRANCAR=15;
+const finTE=new TextEncoder(), finTD=new TextDecoder();
+function finB64(buf){
+  const b=new Uint8Array(buf);
+  let s='';
+  for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);
+  return btoa(s);
+}
+function finDeB64(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0));}
+async function finDerivar(segredo,saltB64){
+  const base=await crypto.subtle.importKey('raw',finTE.encode(segredo),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2',salt:finDeB64(saltB64),iterations:FIN_PBKDF2_VOLTAS,hash:'SHA-256'},
+    base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function finCifrar(chave,obj){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},chave,finTE.encode(JSON.stringify(obj)));
+  return {iv:finB64(iv),ct:finB64(ct)};
+}
+async function finDecifrar(chave,pacote){
+  const txt=await crypto.subtle.decrypt({name:'AES-GCM',iv:finDeB64(pacote.iv)},chave,finDeB64(pacote.ct));
+  return JSON.parse(finTD.decode(txt));
+}
+async function finImportarMestra(rawB64){
+  return crypto.subtle.importKey('raw',finDeB64(rawB64),{name:'AES-GCM'},false,['encrypt','decrypt']);
+}
+async function finDestrancar(segredo,viaRecuperacao){
+  const c=finCofreBruto;
+  if(!c)throw new Error('sem cofre');
+  const k=await finDerivar(segredo,viaRecuperacao?c.saltRec:c.salt);
+  const pacote=viaRecuperacao?c.porRecuperacao:c.porSenha;
+  const aberto=await finDecifrar(k,pacote);   // senha errada estoura aqui
+  finChaveMestra=await finImportarMestra(aberto.k);
+  finMestraB64=aberto.k;
+  finDadosPessoais=await finDecifrar(finChaveMestra,c.dados);
+  if(!Array.isArray(finDadosPessoais.lancamentos))finDadosPessoais.lancamentos=[];
+}
+
+let finCofreBruto=null, finChaveMestra=null, finMestraB64=null, finDadosPessoais={lancamentos:[]}, finCicloPessoal=null;
+function finPessoalDoCiclo(){
+  return (finDadosPessoais.lancamentos||[])
+    .filter(x=>x&&(!finCicloPessoal||finCicloDaData(x.data)===finCicloPessoal))
+    .sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
+}
+function finSomaPessoal(arr,tipo){return finCent(arr.filter(x=>x.tipo===tipo).reduce((s,x)=>s+finNum(x.valor),0));}
+
+// Abre o cofre com a senha do Meu financeiro. A chave fica só na memória.
+function abrirCofre(cofre, senha){ finCofreBruto = cofre; return finDestrancar(senha, false); }
+function trancarCofre(){ finChaveMestra = null; finMestraB64 = null; finDadosPessoais = { lancamentos: [] }; }
+function cofreAberto(){ return !!finChaveMestra; }
+// O que o Meu financeiro soma no fechamento, como o finHtmlPessoal() faz:
+// salário lançado à mão, serviços extras e despesas.
+function pessoal(ciclo){
+  if (!finChaveMestra) return null;
+  finCicloPessoal = ciclo;
+  var lista = finPessoalDoCiclo();
+  return { salarioManual: finSomaPessoal(lista, 'salario'), extras: finSomaPessoal(lista, 'extra'),
+           despesas: finSomaPessoal(lista, 'despesa'), itens: lista };
+}
 // A mesma regra de finLigarEscuta() no painel: configuração sem pessoas
 // cai na padrão, e arranjos ausentes também.
 function usar(lancamentos, cfg){
@@ -253,6 +315,10 @@ function usar(lancamentos, cfg){
 window.BussolaFin = {
   usar: usar,
   salario: finMeuSalario,
+  abrirCofre: abrirCofre,
+  trancarCofre: trancarCofre,
+  cofreAberto: cofreAberto,
+  pessoal: pessoal,
   cicloPorChave: finCicloPorChave,
   cicloDaData: finCicloDaData,
   num: finNum,

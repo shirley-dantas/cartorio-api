@@ -520,6 +520,8 @@
   /* O que veio da caneta aparece em cursiva — só isso, o digitado fica na
      letra de sempre, e dá para saber de relance o que foi escrito à mão. */
   .cursiva { font-family: 'Dancing Script', var(--font-script); font-weight: 600; font-size: 1.22em; line-height: 1.25; letter-spacing: .01em; }
+  /* Já no campo, logo que a letra volta — e não só depois de salvar. */
+  input[data-a-mao="1"], textarea[data-a-mao="1"] { font-family: 'Dancing Script', var(--font-script) !important; font-weight: 600 !important; font-size: 18px !important; }
   .caneta-btn { border: 1px solid var(--line); background: var(--surface); color: var(--personal); border-radius: 999px; width: 36px; height: 36px; flex-shrink: 0; cursor: pointer; font-size: 16px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
   .caneta-btn:active { transform: scale(.94); }
   .caneta-fundo { position: fixed; inset: 0; background: rgba(40,20,28,.45); z-index: 100; display: flex; align-items: flex-end; justify-content: center; padding: 16px; }
@@ -1565,14 +1567,22 @@
       return finSessao.idToken;
     });
   }
-  function finSair(){ finSessao = null; finDados = null; finSalario = { estado: "fora" }; finGuardarSessao(); renderFinancas(); }
+  function finSair(){ if (FIN) FIN.trancarCofre(); finSessao = null; finDados = null; finSalario = { estado: "fora" }; finGuardarSessao(); renderFinancas(); }
+  // O cofre do Meu financeiro tranca junto com o app, como o Diário.
+  document.addEventListener("visibilitychange", function(){
+    if (document.visibilityState === "hidden" && FIN && FIN.cofreAberto()) { FIN.trancarCofre(); finCalcularSalario(); renderFinancas(); }
+  });
   function finChaveMes(d){ return d.getFullYear() + "-" + pad(d.getMonth() + 1); }
   function finCalcularSalario(){
     if (!FIN || !finDados) return;
     var chave = finChaveMes(finMesCursor);
     FIN.usar(finDados.lanc, finDados.cfg);
     var s = FIN.salario(chave);
-    finSalario = { estado: "ok", chave: chave, total: s.total, itens: s.itens, semDono: s.semDono, ciclo: FIN.cicloPorChave(chave) };
+    // Com o cofre aberto, entra o que o Meu financeiro soma no fechamento: o
+    // salário lançado à mão (somado ao das escrituras, como lá) e os extras.
+    var p = FIN.pessoal(chave);
+    finSalario = { estado: "ok", chave: chave, total: FIN.cent(s.total + (p ? p.salarioManual : 0)), itens: s.itens,
+      semDono: s.semDono, ciclo: FIN.cicloPorChave(chave), pessoal: p };
   }
   function finCarregar(){
     if (!finSessao || !FIN) { finSalario = { estado: "fora" }; renderFinancas(); return; }
@@ -1581,13 +1591,15 @@
       var q = "?auth=" + encodeURIComponent(tk);
       return Promise.all([
         fetch(PAINEL_DB + "/financeiro/lancamentos.json" + q, { cache: "no-store" }),
-        fetch(PAINEL_DB + "/financeiro/config.json" + q, { cache: "no-store" })
+        fetch(PAINEL_DB + "/financeiro/config.json" + q, { cache: "no-store" }),
+        fetch(PAINEL_DB + "/financeiro/pessoal.json" + q, { cache: "no-store" })
       ]);
     }).then(function(rs){
-      rs.forEach(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); });
-      return Promise.all([rs[0].json(), rs[1].json()]);
+      rs.slice(0, 2).forEach(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); });
+      // O cofre só abre para a conta dona; outra conta recebe "não" e fica sem extras.
+      return Promise.all([rs[0].json(), rs[1].json(), rs[2].ok ? rs[2].json() : null]);
     }).then(function(js){
-      finDados = { lanc: js[0] || {}, cfg: js[1] };
+      finDados = { lanc: js[0] || {}, cfg: js[1], cofre: js[2] || null };
       finCalcularSalario();
     }).catch(function(e){
       finSalario = { estado: "erro", msg: finErroLegivel(e && e.message) };
@@ -1622,6 +1634,29 @@
     }
     return '<tr class="salario"><td>—</td><td colspan="4">' + titulo + corpo + '</td></tr>';
   }
+  // Os serviços extras do Meu financeiro, linha a linha. Moram no cofre
+  // cifrado do painel: abrem com a senha do Meu financeiro, e a chave fica só
+  // na memória até o app ser fechado.
+  var finCofreErro = "", finCofreAbrindo = false;
+  function finExtrasHtml(){
+    if (finSalario.estado !== "ok" || !finDados || !finDados.cofre || !FIN) return "";
+    var p = finSalario.pessoal;
+    if (!p) {
+      return '<tr class="salario"><td>—</td><td colspan="4"><strong>Serviços extras</strong>' +
+        '<span class="sub">Estão no Meu financeiro, trancados. Abra com a senha de lá:</span>' +
+        '<form class="fin-login" id="finCofreForm" style="margin-top:6px">' +
+        '<input type="password" id="finCofreSenha" placeholder="Senha do Meu financeiro" autocomplete="current-password" required>' +
+        '<button type="submit" class="btn-add"' + (finCofreAbrindo ? ' disabled' : '') + '>' + (finCofreAbrindo ? 'Abrindo…' : 'Abrir') + '</button></form>' +
+        (finCofreErro ? '<span class="sub diario-erro">' + escapeHtml(finCofreErro) + '</span>' : '') + '</td></tr>';
+    }
+    var extras = p.itens.filter(function(x){ return x.tipo === "extra"; });
+    if (!extras.length) return '<tr class="salario"><td>—</td><td colspan="4"><strong>Serviços extras</strong><span class="sub">Nenhum no Meu financeiro neste fechamento.</span></td></tr>';
+    return extras.map(function(x){
+      return '<tr class="salario"><td>' + (x.data ? fmtShort(fromIso(String(x.data).slice(0, 10))) : '—') + '</td><td><strong>' + escapeHtml(x.descricao || 'Serviço extra') + '</strong>' +
+        '<span class="sub">serviço extra · vem do Meu financeiro</span></td><td>Extra</td>' +
+        '<td class="valor entrada">' + moeda(FIN.num(x.valor)) + '</td><td></td></tr>';
+    }).join("");
+  }
   function renderFinancas(){
     if (!$("view-financas")) return;
     var rotulo = finMesCursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -1633,14 +1668,16 @@
       else { sai += Number(l.valor) || 0; porCat[l.categoria || "Outros"] = (porCat[l.categoria || "Outros"] || 0) + (Number(l.valor) || 0); }
     });
     var comSalario = finSalario.estado === "ok" && finSalario.chave === finChaveMes(finMesCursor);
-    if (comSalario) ent += finSalario.total;
+    if (comSalario) ent += finSalario.total + (finSalario.pessoal ? finSalario.pessoal.extras : 0);
+    var semExtras = comSalario && finDados && finDados.cofre && !finSalario.pessoal;
     var saldo = ent - sai;
     $("finResumo").innerHTML =
       '<div class="fin-card entrada"><small>Entrou</small><strong>' + moeda(ent) + '</strong></div>' +
       '<div class="fin-card saida"><small>Saiu</small><strong>' + moeda(sai) + '</strong></div>' +
       '<div class="fin-card saldo"><small>Sobrou</small><strong>' + moeda(saldo) + '</strong></div>' +
-      (comSalario ? '' : '<div class="fin-card nota">Estes totais ainda estão sem o salário do cartório.</div>');
-    $("finPlanilha").innerHTML = finSalarioLinhaHtml() + (lista.length ? lista.map(function(l){
+      (!comSalario ? '<div class="fin-card nota">Estes totais ainda estão sem o salário do cartório.</div>'
+        : semExtras ? '<div class="fin-card nota">Estes totais ainda estão sem os serviços extras do Meu financeiro.</div>' : '');
+    $("finPlanilha").innerHTML = finSalarioLinhaHtml() + finExtrasHtml() + (lista.length ? lista.map(function(l){
       return '<tr><td>' + fmtShort(fromIso(l.data)) + '</td><td' + (l.aMao ? ' class="cursiva"' : '') + '>' + escapeHtml(l.descricao) + '</td><td>' + escapeHtml(l.categoria || "") + '</td>' +
         '<td class="valor ' + (l.tipo === "entrada" ? "entrada" : "saida") + '">' + (l.tipo === "entrada" ? "" : "− ") + moeda(l.valor) + '</td>' +
         '<td><button class="row-del" data-role="fin-del" data-id="' + l.id + '" title="Apagar linha">✕</button></td></tr>';
@@ -1990,6 +2027,15 @@
         diarioAdiarTranca();
         diarioAcao(diarioGravar(), "Não deu para guardar. Tente de novo.");
       }
+      return;
+    }
+    if (e.target && e.target.id === "finCofreForm") {
+      e.preventDefault();
+      var senhaCofre = $("finCofreSenha").value;
+      finCofreAbrindo = true; finCofreErro = ""; renderFinancas();
+      FIN.abrirCofre(finDados.cofre, senhaCofre).then(function(){ finCalcularSalario(); })
+        .catch(function(){ finCofreErro = "Senha do Meu financeiro não confere."; })
+        .then(function(){ finCofreAbrindo = false; renderFinancas(); });
       return;
     }
     if (e.target && e.target.id === "finLoginForm") {
