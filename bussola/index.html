@@ -2109,13 +2109,14 @@
   // ESCRITA À MÃO EM QUALQUER CAMPO
   // Todo campo marcado com data-caneta ganha um ✍️ ao lado. Ele abre um
   // quadro como o da Página livre; em "Pronto", a escrita vai para a IA
-  // (api/ler-letra.js, no projeto do painel) e volta como texto para o campo.
+  // (lib/ler-letra.js, no projeto do painel, pela porta da Joaninha) e volta como texto para o campo.
   // O que nasce assim leva `aMao: true` e aparece em cursiva — só ele; o
   // digitado fica na letra de sempre. Ela autorizou a leitura em todos os
   // campos, inclusive o Diário (22/09/2026). O teclado do tablet continua
   // valendo: a caneta é uma opção a mais, nunca a única.
   // ════════════════════════════════════════════════════════════════════
-  var LER_LETRA_URL = "https://cartorio-api.vercel.app/api/ler-letra";
+  // Pela porta da Joaninha: o painel não comporta uma função a mais (ver lib/ler-letra.js).
+  var LER_LETRA_URL = "https://cartorio-api.vercel.app/api/perguntar-joaninha?acao=ler-letra";
   var canetaAlvo = null, canetaPad = null, canetaLendo = false;
 
   // Lê a marca de "veio da caneta" e a consome: o campo é limpo depois de

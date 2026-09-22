@@ -22,15 +22,24 @@ await passo('a conta do salário é a mesma que está no index.html do painel', 
   if (readFileSync(DESTINO, 'utf8') !== gerar()) throw new Error('bussola/fin-motor.js ficou para trás: rode node scripts/gerar-bussola-fin.mjs');
 });
 
-// A porta da leitura da letra (api/ler-letra.js) só abre para o Bússola:
-// cada leitura custa, e uma porta aberta a qualquer site seria conta aberta.
+// O plano da Vercel aceita no máximo 12 funções em api/. Uma 13ª (a primeira
+// ler-letra.js) fez a Vercel recusar a publicação do painel inteiro em
+// 22/09/2026 — e nada avisou: o painel só ficou parado na versão anterior.
+await passo('o painel continua com no máximo 12 funções (limite da Vercel)', async () => {
+  const {readdirSync} = await import('node:fs');
+  const funcoes = readdirSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'api')).filter(f => /\.(js|mjs|ts)$/.test(f));
+  if (funcoes.length > 12) throw new Error(funcoes.length + ' funções em api/ — a Vercel recusa a publicação acima de 12');
+});
+
+// A leitura da letra (lib/ler-letra.js, pela porta da Joaninha) só abre para
+// o Bússola: cada leitura custa, e porta aberta a qualquer site é conta aberta.
 {
   const {createRequire} = await import('node:module');
-  const lerLetra = createRequire(import.meta.url)('../api/ler-letra.js');
+  const joaninha = createRequire(import.meta.url)('../api/perguntar-joaninha.js');
   const chamar = async (origin, method, body) => {
     const r = { code: 0, headers: {}, corpo: null };
     const res = { setHeader: (k, v) => { r.headers[k] = v; }, status(c) { r.code = c; return this; }, json(j) { r.corpo = j; return this; }, end() { return this; }, send() { return this; } };
-    await lerLetra({ headers: { origin }, method, body }, res);
+    await joaninha({ headers: { origin }, method, body, url: '/api/perguntar-joaninha?acao=ler-letra', query: { acao: 'ler-letra' } }, res);
     return r;
   };
   await passo('a leitura da letra recusa quem não é o Bússola', async () => {
@@ -134,7 +143,7 @@ async function abrir(opts) {
     if (corpo.password !== 'senha-certa') return r.fulfill({ status: 400, json: { error: { message: 'INVALID_LOGIN_CREDENTIALS' } }, headers: { 'access-control-allow-origin': '*' } });
     return r.fulfill({ json: { email: corpo.email, idToken: 'token-ok', refreshToken: 'renova', expiresIn: '3600' }, headers: { 'access-control-allow-origin': '*' } });
   });
-  await pg.route('**/api/ler-letra', async r => {
+  await pg.route(u => u.href.includes('/api/perguntar-joaninha') && u.href.includes('acao=ler-letra'), async r => {
     const req = r.request();
     const cors = { 'access-control-allow-origin': req.headers().origin || '*' };
     if (req.method() === 'OPTIONS') return r.fulfill({ status: 200, headers: { ...cors, 'access-control-allow-headers': 'Content-Type', 'access-control-allow-methods': 'POST' } });

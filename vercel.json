@@ -24,14 +24,13 @@
     "api/criar-doc.js": { "maxDuration": 60 },
     "api/salvar-caso.js": { "maxDuration": 60 },
     "api/iniciar-minuta.js": { "maxDuration": 10 },
-    "api/perguntar-joaninha.js": { "maxDuration": 25 },
+    "api/perguntar-joaninha.js": { "maxDuration": 30 },
     "api/perguntas-minuta.js": { "maxDuration": 30 },
     "api/classificar-documento.js": { "maxDuration": 20 },
     "api/registrar-atendimento.js": { "maxDuration": 25 },
     "api/extrair-texto-arquivo.js": { "maxDuration": 60 },
     "api/radar-juridico.js": { "maxDuration": 60 },
-    "api/joaninha-juridico.js": { "maxDuration": 30 },
-    "api/ler-letra.js": { "maxDuration": 30 }
+    "api/joaninha-juridico.js": { "maxDuration": 30 }
   },
   "crons": [
     {
