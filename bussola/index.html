@@ -4,11 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bússola — seu planner</title>
-<!-- Aplicativo próprio, separado do painel (que é instalado com escopo "/"). -->
-<link rel="manifest" href="/bussola/manifest.json">
+<!-- Aplicativo próprio, separado do painel. Caminhos relativos: servem em
+     /bussola/ no domínio do painel e na raiz do projeto próprio da Vercel. -->
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#FBF3F4">
-<link rel="icon" type="image/png" href="/bussola/icons/icon-192.png">
-<link rel="apple-touch-icon" href="/bussola/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Bússola">
@@ -1285,7 +1286,7 @@
 })();
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", function(){
-    navigator.serviceWorker.register("/bussola/sw.js", { scope: "/bussola/" }).catch(function(){});
+    navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(function(){});
   });
 }
 </script>
