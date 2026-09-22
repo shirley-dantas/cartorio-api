@@ -38,11 +38,20 @@ export function gerar() {
   // calendário do fechamento e a conta inteira (finConta).
   const conta = entre(html, 'const FIN_CFG_PADRAO={', 'let finLinhaAberta=null;');
   const salario = entre(html, 'function finMeuSalario(ciclo){', 'let finCicloPessoal=null;');
+  // O cofre do "Meu financeiro" (os serviços extras): a mesma derivação de
+  // chave e o mesmo destrancar do painel — cifra reescrita à mão seria o
+  // pior lugar para uma cópia que envelhece.
+  const cofreConst = entre(html, 'const FIN_PBKDF2_VOLTAS=', 'let finCofreBruto=null;');
+  const cofreCifra = entre(html, 'function finB64(buf){', '// Sem vogais nem 0/1/O/I');
+  const cofreMestra = entre(html, 'async function finImportarMestra(', 'async function finCriarCofre(');
+  const cofreAbrir = entre(html, 'async function finDestrancar(', 'async function finGravarCofre(');
+  const pessoal = entre(html, 'function finPessoalDoCiclo(){', 'function finHtmlPessoal(){');
   return `// ════════════════════════════════════════════════════════════════════
 // GERADO por scripts/gerar-bussola-fin.mjs a partir do index.html do painel.
 // NÃO EDITAR À MÃO — mexa no painel e rode o script de novo.
 //
-// É a conta do salário do cartório, a mesma do "Meu financeiro": comissão
+// É a conta do salário do cartório e o cofre dos serviços extras, os mesmos
+// do "Meu financeiro". A conta: comissão
 // que nasce da parte do tabelião, repasse truncado, quotas por arranjo,
 // fechamento de 26 a 25 antecipando feriado. O Bússola só entrega os
 // lançamentos e a configuração lidos do banco e pede o total.
@@ -51,6 +60,22 @@ export function gerar() {
 ${meses}${hoje}
 ${conta}
 ${salario}
+${cofreConst}${cofreCifra}${cofreMestra}${cofreAbrir}
+let finCofreBruto=null, finChaveMestra=null, finMestraB64=null, finDadosPessoais={lancamentos:[]}, finCicloPessoal=null;
+${pessoal}
+// Abre o cofre com a senha do Meu financeiro. A chave fica só na memória.
+function abrirCofre(cofre, senha){ finCofreBruto = cofre; return finDestrancar(senha, false); }
+function trancarCofre(){ finChaveMestra = null; finMestraB64 = null; finDadosPessoais = { lancamentos: [] }; }
+function cofreAberto(){ return !!finChaveMestra; }
+// O que o Meu financeiro soma no fechamento, como o finHtmlPessoal() faz:
+// salário lançado à mão, serviços extras e despesas.
+function pessoal(ciclo){
+  if (!finChaveMestra) return null;
+  finCicloPessoal = ciclo;
+  var lista = finPessoalDoCiclo();
+  return { salarioManual: finSomaPessoal(lista, 'salario'), extras: finSomaPessoal(lista, 'extra'),
+           despesas: finSomaPessoal(lista, 'despesa'), itens: lista };
+}
 // A mesma regra de finLigarEscuta() no painel: configuração sem pessoas
 // cai na padrão, e arranjos ausentes também.
 function usar(lancamentos, cfg){
@@ -70,6 +95,10 @@ function usar(lancamentos, cfg){
 window.BussolaFin = {
   usar: usar,
   salario: finMeuSalario,
+  abrirCofre: abrirCofre,
+  trancarCofre: trancarCofre,
+  cofreAberto: cofreAberto,
+  pessoal: pessoal,
   cicloPorChave: finCicloPorChave,
   cicloDaData: finCicloDaData,
   num: finNum,

@@ -156,6 +156,21 @@ fechamento que termina nele (setembro = 26/08 a 25/09). Ler o Financeiro exige
 entrar com a conta dele (Firebase Auth por REST); fica guardado só o token de
 renovação (`bussola-fin-sessao`), nunca a senha nem os lançamentos.
 
+**Serviços extras do Meu financeiro (pedido de 22/09/2026, depois de usar)**:
+"o salário deve ler também os extras do Meu financeiro". Os extras moram no
+cofre cifrado do painel (`/financeiro/pessoal`, só a conta dona lê). O Bússola
+lê o cofre junto com os lançamentos e pede a **senha do Meu financeiro** para
+abrir — a chave fica só na memória e tranca quando o app sai da tela. O
+destrancar e as somas são **recortados do painel** (`finDestrancar`,
+`finPessoalDoCiclo`, `finSomaPessoal`), no mesmo `fin-motor.js`. Aberto, o
+salário passa a somar o salário lançado à mão lá (como o painel faz) e cada
+extra do fechamento vira uma linha de entrada. **As despesas do Meu financeiro
+ficam fora** — ela pediu os extras, e as despesas dela já são lançadas na
+planilha do Bússola; somar as duas contaria em dobro.
+
+**A cursiva aparece já no campo**, assim que a letra volta da IA — antes só
+aparecia depois de salvar, e ela achou que não tinha funcionado.
+
 **Contas a pagar**: cada conta tem o próximo vencimento e a repetição.
 Vencida ou vencendo em até 3 dias, aparece no topo do Dia ("venceu há 28
 dias", sem bronca) e na Agenda do dia do vencimento. "Paguei" lança a saída na

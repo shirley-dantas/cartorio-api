@@ -45,6 +45,20 @@ const p2 = (n) => String(n).padStart(2, '0');
 const dia = (o) => { const x = new Date(); x.setDate(x.getDate() + o); return `${x.getFullYear()}-${p2(x.getMonth() + 1)}-${p2(x.getDate())}`; };
 const HOJE = dia(0);
 
+// O cofre do Meu financeiro é montado pelo finCriarCofre() do próprio painel,
+// recortado do index.html: o Bússola tem de abrir exatamente o que o painel grava.
+async function cofreDoPainel(senha, lancamentos) {
+  const vm = await import('node:vm');
+  const html = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'index.html'), 'utf8');
+  const entre = (a, b) => { const i = html.indexOf(a); return html.slice(i, html.indexOf(b, i)); };
+  const codigo = entre('const FIN_PBKDF2_VOLTAS=', 'let finCofreBruto=null;') + entre('function finB64(buf){', 'async function finDestrancar(') +
+    `let finChaveMestra=null, finMestraB64=null, finDadosPessoais=null, finCodigoNovo=null, gravado=null;
+     const finPessoalRef=null; const set=async(r,v)=>{gravado=v;};
+     (async()=>{ await finCriarCofre(SENHA); gravado.dados = await finCifrar(finChaveMestra, {lancamentos: LANC}); FIM(gravado); })();`;
+  return new Promise(ok => vm.runInNewContext(codigo, { crypto: globalThis.crypto, TextEncoder, TextDecoder, btoa, atob, Uint8Array,
+    SENHA: senha, LANC: lancamentos, FIM: ok }));
+}
+
 // ── O banco fingido ──
 const banco = {
   casos: { a: { id: 'a', nome: 'TANIA — compra e venda', agendado: HOJE + 'T10:30' } },
@@ -55,9 +69,16 @@ const banco = {
       l1: { status: 'pago', dataPagamento: HOJE, parteTabeliao: '3.427,23', arranjoId: 'direto', descricao: 'TANIA' },
       l2: { status: 'pendente', vencimento: HOJE, parteTabeliao: 1000, arranjoId: 'direto' }
     },
-    config: null
+    config: null,
+    pessoal: null
   }
 };
+banco.financeiro.pessoal = await cofreDoPainel('cofre-da-shirley', [
+  { id: 'mp1', tipo: 'extra', valor: 3858.07, data: HOJE, descricao: 'wagner fernandes' },
+  { id: 'mp2', tipo: 'salario', valor: 100, data: HOJE, descricao: 'ajuste' },
+  { id: 'mp3', tipo: 'extra', valor: 999, data: '2020-01-10', descricao: 'de outro fechamento' },
+  { id: 'mp4', tipo: 'despesa', valor: 50, data: HOJE, descricao: 'despesa de lá' }
+]);
 let escritas = 0, recusarFocos = false;
 const leituras = [];
 let proximaLeitura = { ok: true, texto: 'leite condensado' };
@@ -336,7 +357,31 @@ await passo('entrando no Financeiro, o salário vem do painel pela mesma conta d
   if ((await guardado(pg)).includes('3.427')) throw new Error('lançamentos do Financeiro foram parar no armazenamento');
   if (!(await pg.evaluate(() => localStorage.getItem('bussola-fin-sessao'))).includes('renova')) throw new Error('não lembrou a entrada');
   if ((await pg.evaluate(() => localStorage.getItem('bussola-fin-sessao'))).includes('senha')) throw new Error('guardou a senha');
+});
+await passo('os serviços extras do Meu financeiro pedem a senha de lá, e entram no mês', async () => {
+  if (!await pg.$('#finCofreForm')) throw new Error('não pediu a senha do Meu financeiro');
+  if (!(await pg.textContent('#finResumo')).includes('sem os serviços extras')) throw new Error('não avisou que faltam os extras');
+  await pg.fill('#finCofreSenha', 'errada');
+  await pg.click('#finCofreForm button[type="submit"]');
+  await pg.waitForFunction(() => /não confere/.test(document.getElementById('finPlanilha').textContent), null, { timeout: 20000 });
+  await pg.fill('#finCofreSenha', 'cofre-da-shirley');
+  await pg.click('#finCofreForm button[type="submit"]');
+  await pg.waitForFunction(() => /wagner fernandes/.test(document.getElementById('finPlanilha').textContent), null, { timeout: 20000 });
+  const t = (await pg.textContent('#finPlanilha')).replace(/\s/g, ' ');
+  if (!t.includes('3.858,07')) throw new Error('o extra não veio');
+  if (!t.includes('528,40')) throw new Error('o salário lançado à mão no Meu financeiro não somou: ' + t.slice(0, 200));
+  if (t.includes('de outro fechamento')) throw new Error('entrou extra de outro fechamento');
+  if (t.includes('despesa de lá')) throw new Error('a despesa do Meu financeiro não devia entrar');
+  const r = (await pg.textContent('#finResumo')).replace(/\s/g, ' ');
+  if (!r.includes('4.386,47')) throw new Error('entrou: ' + r);
+  if ((await guardado(pg)).includes('wagner')) throw new Error('o extra foi parar no armazenamento do Bússola');
   await pg.screenshot({ path: SAIDA('bussola-financas.png') });
+});
+await passo('ao sair do app, o cofre do Meu financeiro tranca de novo', async () => {
+  await pg.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
+  await pg.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); });
+  if ((await pg.textContent('#finPlanilha')).includes('wagner')) throw new Error('continuou aberto');
+  if (!await pg.$('#finCofreForm')) throw new Error('não voltou a pedir a senha');
 });
 
 // ── Escrita à mão e Mercado ──
@@ -371,7 +416,11 @@ await passo('tarefa escrita à mão fica em cursiva; a digitada, não', async ()
   await pg.click('#quickCat [data-cat="pessoal"]');
   await escreverComCaneta(pg, '#quickInput');
   await pg.waitForFunction(() => document.getElementById('quickInput').value === 'Buscar vestido na costureira');
+  const fonte = await pg.$eval('#quickInput', el => getComputedStyle(el).fontFamily);
+  if (!/Dancing Script/.test(fonte)) throw new Error('no campo, a letra que voltou não está em cursiva: ' + fonte);
   await pg.press('#quickInput', 'Enter');
+  const depois = await pg.$eval('#quickInput', el => getComputedStyle(el).fontFamily);
+  if (/Dancing Script/.test(depois)) throw new Error('o campo vazio continuou em cursiva');
   const t = await pg.$$eval('#taskList .task-text', els => els.map(e => [e.textContent, e.classList.contains('cursiva')]));
   if (!t.some(([x, c]) => x === 'Buscar vestido na costureira' && c)) throw new Error('não ficou em cursiva');
   if (t.some(([x, c]) => x === 'Comprar presente da mãe' && c)) throw new Error('a digitada virou cursiva');
