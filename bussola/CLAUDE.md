@@ -11,7 +11,11 @@ tarefas atrasadas.
 ## Estado atual
 Arquivo único autocontido: `index.html` (HTML + CSS + JS vanilla, sem build
 step, sem dependências externas além de fontes do Google Fonts). Servido pela
-Vercel junto com o painel, em **cartorio-api.vercel.app/bussola/**.
+Vercel num **projeto próprio**, `bussola` (Root Directory `bussola`, mesmo
+repositório), em **https://bussola-mu.vercel.app** — é esse o endereço
+instalado no tablet dela. Sobe sozinho a cada junção na `main`, junto com o
+painel. Também responde em `cartorio-api.vercel.app/bussola/`, mas ali o
+navegador dela confunde com o app do painel: não usar para instalar.
 
 Tudo funciona 100% no navegador, sem backend: os dados ficam em
 `localStorage` sob a chave `bussola-planner-v1`.
