@@ -1007,6 +1007,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-ident{flex:1;min-width:210px}
 .cx-nome-linha{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:2px}
 .cx-nome{font-family:'Jost',sans-serif;font-weight:400;font-size:19px;line-height:1.25;color:var(--cc-tinta)}
+.cx-nome-lapis{background:none;border:none;color:var(--cc-tinta-2);opacity:.5;cursor:pointer;padding:2px;
+  display:flex;align-items:center;font-size:14px;flex-shrink:0}
+.cx-nome-lapis:hover{opacity:1;color:var(--cc-tinta)}
+.cx-nome-edit{display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap}
+.cx-nome-edit input{font-family:'Jost',sans-serif;font-size:17px;color:var(--cc-tinta);border:1px solid var(--cc-linha);
+  border-radius:8px;padding:5px 10px;flex:1;min-width:180px;background:#fff}
 /* Continua editável — só deixou de parecer um campo até receber o foco/hover,
    que é o que enchia o card de caixinhas. Virou <select> (lista fechada de
    tipo de ato, Etapa 3) — daí o cursor de escolha em vez de texto. */
@@ -5088,7 +5094,16 @@ function renderCasos(){
     <div class="cx-card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
       <div class="cx-topo">
         <div class="cx-ident">
-          <div class="cx-nome-linha"><span class="cx-nome">${c.nome}</span>${c.concluido?'':bStatus(c.status)}</div>
+          <div class="cx-nome-linha" id="cx-nome-linha-${c.id}">
+            <span class="cx-nome" id="cx-nome-txt-${c.id}">${escTxt(c.nome)}</span>
+            <button type="button" class="cx-nome-lapis" onclick="toggleNomeCaso('${c.id}')" title="Editar nome"><i class="ti ti-pencil"></i></button>
+            ${c.concluido?'':bStatus(c.status)}
+          </div>
+          <div class="cx-nome-edit" id="cx-nome-edit-${c.id}" style="display:none">
+            <input type="text" id="cx-nome-input-${c.id}" value="${esc(c.nome)}"
+              onkeydown="if(event.key==='Enter'){salvarNomeCaso('${c.id}')}else if(event.key==='Escape'){toggleNomeCaso('${c.id}')}">
+            <button class="cx-btn destaque" onclick="salvarNomeCaso('${c.id}')">Salvar</button>
+          </div>
           ${cxTipoHtml(c)}
         </div>
         <div class="cx-meta-dir">
@@ -5187,6 +5202,27 @@ function renderCasos(){
 
 
 // ── AÇÕES ──
+// Nome do card errado ou incompleto: o lápis troca o texto por um campo,
+// Enter ou o botão salva (mudarCampo já cuida do Firebase), Esc desiste.
+window.toggleNomeCaso=function(id){
+  const linha=document.getElementById('cx-nome-linha-'+id);
+  const edit=document.getElementById('cx-nome-edit-'+id);
+  const abrindo=edit.style.display==='none';
+  edit.style.display=abrindo?'flex':'none';
+  linha.style.display=abrindo?'none':'flex';
+  if(abrindo){
+    const input=document.getElementById('cx-nome-input-'+id);
+    input.focus();
+    input.select();
+  }
+};
+window.salvarNomeCaso=function(id){
+  const input=document.getElementById('cx-nome-input-'+id);
+  const valor=input.value.trim();
+  if(!valor){input.focus();return;}
+  mudarCampo(id,'nome',valor);
+  toggleNomeCaso(id);
+};
 window.mudarCampo=function(id,campo,valor){
   const upd={};
   upd[campo]=valor;
