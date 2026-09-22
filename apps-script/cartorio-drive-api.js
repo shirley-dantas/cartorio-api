@@ -1146,6 +1146,7 @@ function doPost(e) {
     if (acao === "marcar-modelo") return marcarModelo(dados);
     if (acao === "sincronizar-evento-calendar") return sincronizarEventoCalendar(dados);
     if (acao === "excluir-evento-calendar") return excluirEventoCalendar(dados);
+    if (acao === "convidar-evento-calendar") return convidarEventoCalendar(dados);
     return resp({ ok: false, erro: "Ação desconhecida" });
   } catch(err) {
     return resp({ ok: false, erro: err.message });
@@ -1179,6 +1180,36 @@ function sincronizarEventoCalendar(dados) {
     }
 
     return resp({ ok: true, eventId: evento.getId() });
+  } catch (err) {
+    return resp({ ok: false, erro: err.message });
+  }
+}
+
+// ── Convite (compromisso do Bússola, o planner pessoal dela) ───────────────
+// Um compromisso marcado no Bússola com e-mails de convidados vira evento na
+// agenda principal desta conta, com os convidados — o Google manda o convite,
+// e ao aceitar o compromisso entra na agenda de cada um (Google, iPhone ou
+// Outlook). Sem hora marcada, vira evento de dia inteiro. Gravar direto na
+// agenda de outra pessoa sem o aceite dela não existe; o convite é o caminho.
+// Para desfazer, o Bússola usa a mesma "excluir-evento-calendar" do painel.
+function convidarEventoCalendar(dados) {
+  try {
+    var emails = (dados.convidados || []).map(function (x) { return String(x || "").trim(); })
+      .filter(function (x) { return /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(x); });
+    if (!emails.length) return resp({ ok: false, erro: "Nenhum e-mail válido para convidar" });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dados.data || ""))) return resp({ ok: false, erro: "Data inválida" });
+    var cal = CalendarApp.getDefaultCalendar();
+    var titulo = String(dados.titulo || "Compromisso").slice(0, 200);
+    var opcoes = { description: String(dados.descricao || ""), guests: emails.join(","), sendInvites: true };
+    var evento;
+    if (/^\d{2}:\d{2}$/.test(String(dados.hora || ""))) {
+      var inicio = new Date(dados.data + "T" + dados.hora + ":00");
+      var fim = new Date(inicio.getTime() + 60 * 60 * 1000); // duração padrão: 1h, como no painel
+      evento = cal.createEvent(titulo, inicio, fim, opcoes);
+    } else {
+      evento = cal.createAllDayEvent(titulo, new Date(dados.data + "T00:00:00"), opcoes);
+    }
+    return resp({ ok: true, eventId: evento.getId(), convidados: emails });
   } catch (err) {
     return resp({ ok: false, erro: err.message });
   }

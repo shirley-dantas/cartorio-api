@@ -230,6 +230,30 @@ A função só responde às origens do Bússola e do painel (e ao teste local),
 recusa imagem acima de 2 MB e usa `claude-opus-5` com esforço baixo e
 `fallbacks: "default"` (se o modelo recusar por engano, o servidor tenta outro).
 
+### Mercado para um número e convite da agenda (22/09/2026)
+Ela perguntou se dava para mandar a lista sozinha para um número e se um
+compromisso podia ir para a agenda de outra pessoa. Escolhas dela:
+
+- **Mercado, opção A**: contatos guardados em `mercado.contatos`
+  (`{nome, numero}`, número em `55DDDNNNNNNNN`). "Enviar para Maria" abre
+  `wa.me/<número>?text=<lista>` — o WhatsApp **dela**, já na conversa, com a
+  lista escrita; ela só aperta enviar. Descartadas: mandar pelo número do bot
+  (sairia do WhatsApp do cartório, que atende cliente) e SMS (serviço pago à
+  parte). "outro jeito" continua abrindo o compartilhar do aparelho.
+- **Agenda, por convite**: gravar na agenda alheia sem aceite não existe. O
+  compromisso com e-mails vai para o Apps Script do painel (ação nova
+  `convidar-evento-calendar`), que cria o evento na agenda principal da conta
+  Google dele — **a mesma do Drive do painel** — com os convidados e
+  `sendInvites: true`; sem hora, vira dia inteiro. A linha do compromisso diz
+  "convite enviado · N" ou "convite não saiu · tentar de novo" (com o motivo;
+  Apps Script sem a ação nova avisa que precisa ser atualizado). Apagar o
+  compromisso pergunta e apaga o evento do Google (`excluir-evento-calendar`).
+  Se o Google avisa ou não o convidado do cancelamento é com o Google — não foi
+  conferido. Editar horário depois ainda não existe no Bússola.
+- **O Apps Script é atualizado à mão** (script.google.com → colar
+  `apps-script/cartorio-drive-api.js` → Implantar → Gerenciar implantações →
+  editar → Nova versão). Até isso, o convite volta "não saiu".
+
 ## Testes
 `node testes/bussola.mjs` — banco do painel e leitura da letra fingidos,
 passa por todos os pedidos acima e termina com fotos em
