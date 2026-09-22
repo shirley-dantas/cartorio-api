@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Bússola">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Quicksand:wght@400;500;600;700&family=Parisienne&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Quicksand:wght@400;500;600;700&family=Parisienne&family=Dancing+Script:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --radius-lg: 22px;
@@ -516,6 +516,37 @@
     .view-switch button { padding: 8px 11px; font-size: 13px; }
   }
 
+  /* ---------- Escrita à mão ---------- */
+  /* O que veio da caneta aparece em cursiva — só isso, o digitado fica na
+     letra de sempre, e dá para saber de relance o que foi escrito à mão. */
+  .cursiva { font-family: 'Dancing Script', var(--font-script); font-weight: 600; font-size: 1.22em; line-height: 1.25; letter-spacing: .01em; }
+  .caneta-btn { border: 1px solid var(--line); background: var(--surface); color: var(--personal); border-radius: 999px; width: 36px; height: 36px; flex-shrink: 0; cursor: pointer; font-size: 16px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+  .caneta-btn:active { transform: scale(.94); }
+  .caneta-fundo { position: fixed; inset: 0; background: rgba(40,20,28,.45); z-index: 100; display: flex; align-items: flex-end; justify-content: center; padding: 16px; }
+  .caneta-fundo[hidden] { display: none; }
+  .caneta-janela { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow); width: 100%; max-width: 760px; padding: 16px; margin-bottom: env(safe-area-inset-bottom, 0px); }
+  .caneta-janela h3 { margin: 0 0 4px; font-size: 18px; }
+  .caneta-janela p { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .caneta-janela .sketch-canvas-wrap { height: 220px; background: var(--surface-2); }
+  .caneta-acoes { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+  .caneta-msg { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+  .caneta-msg.erro { color: var(--personal); }
+  .diario-rodape .caneta-btn, form[data-form="diario-escrever"] > .caneta-btn { margin-top: 6px; }
+
+  /* ---------- Mercado ---------- */
+  .mercado-add { display: flex; gap: 8px; align-items: center; }
+  .mercado-add input { flex: 1; min-width: 0; font: 500 14px var(--font-body); padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); }
+  .mercado-lista { margin-top: 8px; }
+  .mercado-item { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--line); }
+  .mercado-item:last-child { border-bottom: none; }
+  .mercado-nome { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 500; overflow-wrap: anywhere; }
+  .mercado-item.pego .mercado-nome { text-decoration: line-through; color: var(--muted); }
+  .mercado-nome.cursiva { font-size: 17.5px; }
+  .mercado-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+  .mercado-chips small { font-size: 11.5px; font-weight: 700; color: var(--muted); margin-right: 2px; }
+  .mercado-chips button { border: 1px dashed var(--muted-2); background: transparent; color: var(--ink); font: 600 12px var(--font-body); padding: 5px 10px; border-radius: 999px; cursor: pointer; }
+  .mercado-rodape { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+
   *:focus-visible { outline: 2px solid var(--professional); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
@@ -554,7 +585,7 @@
   </header>
 
   <form class="quickcapture" id="quickForm">
-    <input type="text" id="quickInput" placeholder="Adicionar uma tarefa rápida…" autocomplete="off">
+    <input type="text" id="quickInput" placeholder="Adicionar uma tarefa rápida…" autocomplete="off" data-caneta>
     <div class="cat-toggle" id="quickCat">
       <button type="button" data-cat="pessoal" data-active="true">♡ Pessoal</button>
       <button type="button" data-cat="profissional" data-active="false">✦ Profissional</button>
@@ -583,7 +614,7 @@
           <div class="timeline" id="timeline"></div>
           <button type="button" class="ghost-btn" id="toggleApptForm" style="margin-top:12px;">+ Compromisso</button>
           <form class="mini-form" id="apptForm">
-            <input type="text" id="apptTitle" placeholder="Título" required>
+            <input type="text" id="apptTitle" placeholder="Título" required data-caneta>
             <input type="date" id="apptDate" required>
             <input type="time" id="apptTime">
             <select id="apptCat">
@@ -606,6 +637,16 @@
           <div class="task-list" id="taskList"></div>
         </div>
         <div class="panel">
+          <h2>Mercado <span class="hint" id="mercadoHint">o que acabou</span></h2>
+          <form class="mercado-add" id="mercadoForm">
+            <input type="text" id="mercadoInput" placeholder="Acabou o quê?" autocomplete="off" data-caneta>
+            <button type="submit" class="btn-add" style="padding:9px 16px;font-size:13px;">+</button>
+          </form>
+          <div class="mercado-lista" id="mercadoLista"></div>
+          <div id="mercadoChips"></div>
+          <div class="mercado-rodape" id="mercadoRodape"></div>
+        </div>
+        <div class="panel">
           <h2>Diário <span class="hint">ideias, insights, sonhos, pensamentos</span></h2>
           <div id="diarioPainel"></div>
         </div>
@@ -626,7 +667,7 @@
         <h2>Bloco de notas <span class="hint" id="blocoHint">do dia</span></h2>
         <div class="notes-grid" id="notesGrid"></div>
         <form class="note-add" id="noteForm">
-          <input type="text" id="noteInput" placeholder="Escrever uma nota…">
+          <input type="text" id="noteInput" placeholder="Escrever uma nota…" data-caneta>
           <button type="submit" class="btn-add" style="padding:9px 16px;font-size:13px;">+</button>
         </form>
       </div>
@@ -684,7 +725,7 @@
         </div>
         <form class="fin-add" id="finAddForm">
           <input type="date" id="finData" aria-label="Dia">
-          <input type="text" id="finDesc" placeholder="Descrição" required>
+          <input type="text" id="finDesc" placeholder="Descrição" required data-caneta>
           <select id="finCat" aria-label="Categoria">
             <option>Casa</option><option>Mercado</option><option>Contas</option><option>Saúde</option>
             <option>Transporte</option><option>Lazer</option><option>Compras</option><option>Renda extra</option><option>Outros</option>
@@ -699,7 +740,7 @@
         <h2>Contas a pagar <span class="hint">as que costumam escapar</span></h2>
         <div id="contasLista"></div>
         <form class="fin-add" id="contaForm">
-          <input type="text" id="contaNome" placeholder="Conta (ex.: faxina, IPTU)" required>
+          <input type="text" id="contaNome" placeholder="Conta (ex.: faxina, IPTU)" required data-caneta>
           <input type="text" class="dinheiro" id="contaValor" placeholder="R$ (opcional)" inputmode="decimal">
           <input type="date" id="contaVenc" aria-label="Próximo vencimento" required>
           <select id="contaRepete" aria-label="Repete">
@@ -721,7 +762,7 @@
 
   var STORE_KEY = "bussola-planner-v1";
   var state = { tasks: [], appointments: [], notes: [], habits: [], pages: {}, lastCategory: "pessoal", palette: "rose", painelHidden: {}, painelSync: null,
-               diario: null, financas: { lancamentos: [] }, contas: [] };
+               diario: null, financas: { lancamentos: [] }, contas: [], mercado: { itens: [], historico: {} } };
 
   function load(){
     try {
@@ -956,6 +997,7 @@
     var text = input.value.trim();
     if (!text) return;
     var nova = { id: uid(), text: text, category: state.lastCategory, done: false, date: TODAY_ISO, focus: false, createdAt: Date.now() };
+    if (foiAMao(input)) nova.aMao = true;
     // Profissional vai também para o Bloco de Notas do painel (aba Shirley).
     if (nova.category === "profissional") nova.painel = { id: "bussola-" + nova.id, estado: "enviando", ultimoDone: false };
     state.tasks.push(nova);
@@ -979,7 +1021,7 @@
     state.appointments.push({
       id: uid(), title: title, date: $("apptDate").value || iso(dayCursor),
       time: $("apptTime").value || null, category: $("apptCat").value,
-      source: "manual", createdAt: Date.now()
+      source: "manual", aMao: foiAMao($("apptTitle")) || undefined, createdAt: Date.now()
     });
     $("apptTitle").value = ""; $("apptTime").value = "";
     $("apptForm").classList.remove("open");
@@ -1002,7 +1044,7 @@
     var input = $("noteInput");
     var text = input.value.trim();
     if (!text) return;
-    state.notes.push({ id: uid(), text: text, pinned: false, date: iso(dayCursor), createdAt: Date.now() });
+    state.notes.push({ id: uid(), text: text, pinned: false, date: iso(dayCursor), aMao: foiAMao(input) || undefined, createdAt: Date.now() });
     input.value = "";
     save(); renderNotes();
   });
@@ -1062,7 +1104,7 @@
       if (t) {
         focusHtml += '<div class="focus-slot filled"><span class="focus-num">'+(i+1)+'</span>' +
           '<span class="task-cat-dot '+t.category+'"></span>' +
-          '<span class="focus-text'+(t.done?' done':'')+'" data-id="'+t.id+'" data-role="focus-toggle-text">'+escapeHtml(t.text)+'</span>' +
+          '<span class="focus-text'+(t.done?' done':'')+(t.aMao?' cursiva':'')+'" data-id="'+t.id+'" data-role="focus-toggle-text">'+escapeHtml(t.text)+'</span>' +
           '<button class="star-btn active" data-role="unfocus" data-id="'+t.id+'" title="Tirar do foco">★</button></div>';
       } else {
         focusHtml += '<div class="focus-slot"><span class="focus-num">'+(i+1)+'</span><span class="focus-empty-label">vazio — marque uma tarefa com ★</span></div>';
@@ -1083,14 +1125,14 @@
     } else {
       $("timeline").innerHTML = contasDoDia.map(function(c){
         return '<div class="appt-row"><div class="appt-time">—</div><div class="appt-dot" style="background:var(--accent)"></div>' +
-          '<div class="appt-body"><div class="appt-title">💸 Pagar: '+escapeHtml(c.nome)+'</div>' +
+          '<div class="appt-body"><div class="appt-title">💸 Pagar: <span'+(c.aMao?' class="cursiva"':'')+'>'+escapeHtml(c.nome)+'</span></div>' +
           '<div class="appt-meta">'+(c.valor?moeda(c.valor)+' · ':'')+CONTA_REPETE[c.repete||"nao"]+'</div></div>' +
           '<button type="button" class="btn-paguei" data-role="conta-paguei" data-id="'+c.id+'">Paguei</button></div>';
       }).join("") + appts.map(function(a){
         return '<div class="appt-row">' +
           '<div class="appt-time">'+(a.time || "—")+'</div>' +
           '<div class="appt-dot '+a.category+'"></div>' +
-          '<div class="appt-body"><div class="appt-title">'+escapeHtml(a.title)+'</div>' +
+          '<div class="appt-body"><div class="appt-title'+(a.aMao?' cursiva':'')+'">'+escapeHtml(a.title)+'</div>' +
           '<div class="appt-meta">'+(a.category==="pessoal"?"♡ Pessoal":"✦ Profissional")+(a.source==="painel"?'<span class="src-chip">do painel</span>':'')+'</div></div>' +
           '<button class="row-del" data-role="del-appt" data-id="'+a.id+'">✕</button></div>';
       }).join("");
@@ -1110,13 +1152,14 @@
         return '<div class="task-row">' +
           '<div class="task-check'+(t.done?' done':'')+'" data-role="toggle-task" data-id="'+t.id+'">'+(t.done?'✓':'')+'</div>' +
           '<span class="task-cat-dot '+t.category+'"></span>' +
-          '<span class="task-text'+(t.done?' done':'')+'">'+escapeHtml(t.text)+'</span>' + tarefaChipHtml(t) +
+          '<span class="task-text'+(t.done?' done':'')+(t.aMao?' cursiva':'')+'">'+escapeHtml(t.text)+'</span>' + tarefaChipHtml(t) +
           '<button class="star-btn'+(isFocus?' active':'')+'" data-role="toggle-focus" data-id="'+t.id+'" title="Colocar no foco de hoje">★</button>' +
           '<button class="row-del" data-role="del-task" data-id="'+t.id+'">✕</button></div>';
       }).join("");
     }
     renderNotes();
     renderContasBanner();
+    renderMercado();
     renderDiarioPainel();
   }
 
@@ -1133,7 +1176,7 @@
       $("notesGrid").innerHTML = notes.map(function(n){
         var body = n.type === "drawing"
           ? '<canvas class="note-sketch-thumb" data-role="sketch-thumb" data-id="'+n.id+'"></canvas>'
-          : '<div>'+escapeHtml(n.text)+'</div>';
+          : '<div'+(n.aMao?' class="cursiva"':'')+'>'+escapeHtml(n.text)+'</div>';
         return '<div class="note-card'+(n.pinned?' pinned':'')+'">' +
           '<div class="note-top">' +
           '<button class="note-amanha" data-role="note-amanha" data-id="'+n.id+'" title="Passar para o dia seguinte">→ amanhã</button>' +
@@ -1415,7 +1458,7 @@
   function contaLinhaHtml(c, comRepete){
     var venceu = contaDias(c) < 0;
     return '<div class="conta-linha">' +
-      '<span class="conta-nome">' + escapeHtml(c.nome) + '</span>' +
+      '<span class="conta-nome' + (c.aMao ? ' cursiva' : '') + '">' + escapeHtml(c.nome) + '</span>' +
       '<span class="conta-quando' + (venceu ? ' venceu' : '') + '">' + contaQuando(c) + '</span>' +
       '<span class="conta-valor">' + (c.valor ? moeda(c.valor) : '') + '</span>' +
       '<button type="button" class="btn-paguei" data-role="conta-paguei" data-id="' + c.id + '">Paguei</button>' +
@@ -1442,7 +1485,7 @@
     c.pagamentos.push({ venc: c.venc, pagoEm: TODAY_ISO, valor: valor });
     if (valor) {
       state.financas.lancamentos.push({ id: uid(), data: TODAY_ISO, descricao: c.nome, categoria: "Contas",
-        tipo: "saida", valor: valor, contaId: c.id });
+        tipo: "saida", valor: valor, contaId: c.id, aMao: c.aMao || undefined });
     }
     if (!c.repete || c.repete === "nao") c.ativa = false;
     else c.venc = contaProxima(c);
@@ -1598,7 +1641,7 @@
       '<div class="fin-card saldo"><small>Sobrou</small><strong>' + moeda(saldo) + '</strong></div>' +
       (comSalario ? '' : '<div class="fin-card nota">Estes totais ainda estão sem o salário do cartório.</div>');
     $("finPlanilha").innerHTML = finSalarioLinhaHtml() + (lista.length ? lista.map(function(l){
-      return '<tr><td>' + fmtShort(fromIso(l.data)) + '</td><td>' + escapeHtml(l.descricao) + '</td><td>' + escapeHtml(l.categoria || "") + '</td>' +
+      return '<tr><td>' + fmtShort(fromIso(l.data)) + '</td><td' + (l.aMao ? ' class="cursiva"' : '') + '>' + escapeHtml(l.descricao) + '</td><td>' + escapeHtml(l.categoria || "") + '</td>' +
         '<td class="valor ' + (l.tipo === "entrada" ? "entrada" : "saida") + '">' + (l.tipo === "entrada" ? "" : "− ") + moeda(l.valor) + '</td>' +
         '<td><button class="row-del" data-role="fin-del" data-id="' + l.id + '" title="Apagar linha">✕</button></td></tr>';
     }).join("") : '<tr><td colspan="5" class="empty" style="padding:14px 10px">Nada lançado neste mês ainda.</td></tr>');
@@ -1629,7 +1672,7 @@
     var desc = $("finDesc").value.trim(), valor = lerDinheiro($("finValor").value);
     if (!desc || !valor) return;
     state.financas.lancamentos.push({ id: uid(), data: $("finData").value || TODAY_ISO, descricao: desc,
-      categoria: $("finCat").value, tipo: $("finTipo").value, valor: valor });
+      categoria: $("finCat").value, tipo: $("finTipo").value, valor: valor, aMao: foiAMao($("finDesc")) || undefined });
     $("finDesc").value = ""; $("finValor").value = "";
     save(); renderFinancas();
   });
@@ -1638,7 +1681,7 @@
     var nome = $("contaNome").value.trim(), venc = $("contaVenc").value;
     if (!nome || !venc) return;
     var v = $("contaValor").value.trim();
-    state.contas.push({ id: uid(), nome: nome, valor: v ? lerDinheiro(v) : null, venc: venc,
+    state.contas.push({ id: uid(), nome: nome, aMao: foiAMao($("contaNome")) || undefined, valor: v ? lerDinheiro(v) : null, venc: venc,
       dia: fromIso(venc).getDate(), repete: $("contaRepete").value, ativa: true, pagamentos: [], criadaEm: Date.now() });
     $("contaNome").value = ""; $("contaValor").value = "";
     save(); renderAll();
@@ -1836,7 +1879,7 @@
     return '<div class="diario-entrada"><div class="diario-entrada-topo"><span>' + (DIARIO_TIPOS[e.tipo] || "") + '</span>' +
       '<span>' + pad(hora.getHours()) + ':' + pad(hora.getMinutes()) + '</span>' +
       '<button class="row-del" data-role="diario-del" data-id="' + e.id + '" title="Apagar">✕</button></div>' +
-      '<div class="diario-entrada-texto">' + txt + '</div></div>';
+      '<div class="diario-entrada-texto' + (e.aMao ? ' cursiva' : '') + '">' + txt + '</div></div>';
   }
   function diarioDoDia(dISO){
     return diarioEntradas.filter(function(e){ return e.date === dISO; })
@@ -1846,7 +1889,7 @@
     return '<div class="diario-tipos" role="group" aria-label="Tipo">' + Object.keys(DIARIO_TIPOS).map(function(k){
       return '<button type="button" data-role="diario-tipo" data-id="' + k + '" aria-pressed="' + (k === diarioTipo) + '">' + DIARIO_TIPOS[k] + '</button>';
     }).join("") + '</div>' +
-      '<form data-form="diario-escrever"><textarea class="diario-texto" name="t" placeholder="O que passou pela cabeça?"></textarea>' +
+      '<form data-form="diario-escrever"><textarea class="diario-texto" name="t" placeholder="O que passou pela cabeça?" data-caneta></textarea>' +
       '<div class="diario-rodape">' +
       '<button type="button" class="diario-link" data-role="diario-travar">🔒 travar</button>' +
       (!state.diario.face && rostoPossivel() ? '<button type="button" class="diario-link" data-role="diario-ligar-rosto">usar o rosto</button>' : '') +
@@ -1943,7 +1986,7 @@
       } else if (tipo === "diario-escrever") {
         var texto = f.t.value.trim();
         if (!texto) return;
-        diarioEntradas.push({ id: uid(), date: TODAY_ISO, tipo: diarioTipo, texto: texto, criadoEm: Date.now() });
+        diarioEntradas.push({ id: uid(), date: TODAY_ISO, tipo: diarioTipo, texto: texto, aMao: foiAMao(f.t) || undefined, criadoEm: Date.now() });
         diarioAdiarTranca();
         diarioAcao(diarioGravar(), "Não deu para guardar. Tente de novo.");
       }
@@ -2016,6 +2059,179 @@
     else if (role === "note-amanha") {
       var n0 = state.notes.filter(function(x){ return x.id === id; })[0];
       if (n0) { n0.date = iso(addDays(dayCursor, 1)); n0.pinned = false; save(); renderNotes(); }
+    }
+  });
+
+  // ════════════════════════════════════════════════════════════════════
+  // ESCRITA À MÃO EM QUALQUER CAMPO
+  // Todo campo marcado com data-caneta ganha um ✍️ ao lado. Ele abre um
+  // quadro como o da Página livre; em "Pronto", a escrita vai para a IA
+  // (api/ler-letra.js, no projeto do painel) e volta como texto para o campo.
+  // O que nasce assim leva `aMao: true` e aparece em cursiva — só ele; o
+  // digitado fica na letra de sempre. Ela autorizou a leitura em todos os
+  // campos, inclusive o Diário (22/09/2026). O teclado do tablet continua
+  // valendo: a caneta é uma opção a mais, nunca a única.
+  // ════════════════════════════════════════════════════════════════════
+  var LER_LETRA_URL = "https://cartorio-api.vercel.app/api/ler-letra";
+  var canetaAlvo = null, canetaPad = null, canetaLendo = false;
+
+  // Lê a marca de "veio da caneta" e a consome: o campo é limpo depois de
+  // salvar, e a próxima coisa digitada nele não pode herdar a cursiva.
+  function foiAMao(el){
+    if (!el || !el.dataset || el.dataset.aMao !== "1") return false;
+    delete el.dataset.aMao;
+    return true;
+  }
+  document.addEventListener("input", function(e){
+    var el = e.target;
+    if (el && el.dataset && el.dataset.aMao === "1" && !String(el.value || "").trim()) delete el.dataset.aMao;
+  });
+
+  function canetaEquipar(){
+    document.querySelectorAll("[data-caneta]:not([data-caneta-ok])").forEach(function(el){
+      el.setAttribute("data-caneta-ok", "");
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "caneta-btn"; b.textContent = "✍️";
+      b.title = "Escrever com a caneta"; b.setAttribute("aria-label", "Escrever com a caneta");
+      b.addEventListener("click", function(){ canetaAbrir(el); });
+      el.insertAdjacentElement("afterend", b);
+    });
+  }
+  new MutationObserver(canetaEquipar).observe(document.body, { childList: true, subtree: true });
+  canetaEquipar();
+
+  var canetaFundo = document.createElement("div");
+  canetaFundo.className = "caneta-fundo"; canetaFundo.hidden = true;
+  canetaFundo.innerHTML = '<div class="caneta-janela" role="dialog" aria-label="Escrever com a caneta">' +
+    '<h3>Escreva com a caneta</h3><p>Quando terminar, toque em <strong>Pronto</strong>: a letra vira texto e aparece em cursiva.</p>' +
+    '<div class="sketch-canvas-wrap"><canvas class="sketch-canvas" id="canetaCanvas"></canvas></div>' +
+    '<div class="caneta-acoes"><button type="button" class="ghost-btn" id="canetaDesfazer">Desfazer</button>' +
+    '<button type="button" class="ghost-btn" id="canetaLimpar">Limpar</button>' +
+    '<span class="caneta-msg" id="canetaMsg" aria-live="polite"></span>' +
+    '<button type="button" class="ghost-btn" id="canetaCancelar" style="margin-left:auto">Cancelar</button>' +
+    '<button type="button" class="btn-add" id="canetaPronto" style="margin-left:0">Pronto</button></div></div>';
+  document.body.appendChild(canetaFundo);
+  canetaPad = Sketchpad($("canetaCanvas"), [], null);
+
+  function canetaMsg(txt, erro){ var m = $("canetaMsg"); m.textContent = txt || ""; m.classList.toggle("erro", !!erro); }
+  function canetaAbrir(el){
+    canetaAlvo = el; canetaFundo.hidden = false; canetaMsg("");
+    canetaPad.clear(); canetaPad.resize();
+  }
+  function canetaFechar(){ canetaFundo.hidden = true; canetaAlvo = null; canetaLendo = false; $("canetaPronto").disabled = false; }
+  // A imagem vai com fundo branco e no mesmo formato do quadro: os traços
+  // são guardados de 0 a 1, e esticar para outra proporção deformaria a letra.
+  function canetaImagem(){
+    var r = $("canetaCanvas").getBoundingClientRect();
+    var w = 1200, h = Math.max(200, Math.round(1200 * (r.height / (r.width || 1))));
+    var tinta = document.createElement("canvas"); tinta.width = w; tinta.height = h;
+    var ct = tinta.getContext("2d");
+    canetaPad.getStrokes().forEach(function(s){ paintStroke(ct, s, w, h); });
+    var folha = document.createElement("canvas"); folha.width = w; folha.height = h;
+    var cf = folha.getContext("2d");
+    cf.fillStyle = "#ffffff"; cf.fillRect(0, 0, w, h); cf.drawImage(tinta, 0, 0);
+    return folha.toDataURL("image/png");
+  }
+  function canetaPronto(){
+    if (canetaLendo) return;
+    if (!canetaPad.getStrokes().length) { canetaMsg("Escreva alguma coisa primeiro.", true); return; }
+    if (navigator.onLine === false) { canetaMsg("Sem internet agora — dá para digitar, ou tentar de novo depois.", true); return; }
+    canetaLendo = true; $("canetaPronto").disabled = true; canetaMsg("Lendo sua letra…");
+    fetch(LER_LETRA_URL, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imagem: canetaImagem() }) })
+      .then(function(r){ return r.json().catch(function(){ return { ok: false }; }); })
+      .then(function(j){
+        if (j && j.ok && j.texto) {
+          var el = canetaAlvo, atual = String(el.value || "").replace(/\s+$/, "");
+          el.value = atual ? atual + (el.tagName === "TEXTAREA" ? "\n" : " ") + j.texto : j.texto;
+          el.dataset.aMao = "1";
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          canetaFechar();
+          el.focus();
+          return;
+        }
+        canetaLendo = false; $("canetaPronto").disabled = false;
+        if (j && j.ilegivel) canetaMsg("Não consegui ler. Tente escrever de novo, um pouco maior.", true);
+        else canetaMsg((j && j.erro) || "Não deu para ler agora. Tente de novo, ou digite.", true);
+      })
+      .catch(function(){
+        canetaLendo = false; $("canetaPronto").disabled = false;
+        canetaMsg("Não deu para ler agora. Tente de novo, ou digite.", true);
+      });
+  }
+  $("canetaDesfazer").addEventListener("click", function(){ canetaPad.undo(); });
+  $("canetaLimpar").addEventListener("click", function(){ canetaPad.clear(); canetaMsg(""); });
+  $("canetaCancelar").addEventListener("click", canetaFechar);
+  $("canetaPronto").addEventListener("click", canetaPronto);
+
+  // ════════════════════════════════════════════════════════════════════
+  // MERCADO
+  // Acabou, anota; pegou, risca. O que já acabou uma vez fica lembrado e
+  // volta como atalho ("Acabou de novo?"), porque a lista do mercado é quase
+  // sempre a mesma. Como a lista mora no tablet, "Enviar a lista" manda o
+  // texto para onde ela quiser (WhatsApp, por exemplo) antes de sair de casa.
+  // ════════════════════════════════════════════════════════════════════
+  function mercadoChave(s){ return semAcento(s).trim().replace(/\s+/g, " "); }
+  function mercadoAdicionar(nome, aMao){
+    nome = String(nome || "").trim();
+    if (!nome) return;
+    var m = state.mercado, k = mercadoChave(nome);
+    var ja = m.itens.filter(function(i){ return mercadoChave(i.nome) === k; })[0];
+    if (ja) { ja.pego = false; }
+    else m.itens.push({ id: uid(), nome: nome, aMao: aMao || undefined, pego: false, criadoEm: Date.now() });
+    var h = m.historico[k] || { nome: nome, vezes: 0 };
+    h.vezes += 1; h.ultima = TODAY_ISO; h.nome = nome; if (aMao) h.aMao = true;
+    m.historico[k] = h;
+    save(); renderMercado();
+  }
+  function renderMercado(){
+    var m = state.mercado;
+    var falta = m.itens.filter(function(i){ return !i.pego; }), pegos = m.itens.filter(function(i){ return i.pego; });
+    $("mercadoHint").textContent = falta.length ? falta.length + " para pegar" : "o que acabou";
+    var linha = function(i){
+      return '<div class="mercado-item' + (i.pego ? ' pego' : '') + '">' +
+        '<div class="task-check' + (i.pego ? ' done' : '') + '" data-role="mercado-pegar" data-id="' + i.id + '" title="' + (i.pego ? 'Desmarcar' : 'Peguei') + '">' + (i.pego ? '✓' : '') + '</div>' +
+        '<span class="mercado-nome' + (i.aMao ? ' cursiva' : '') + '">' + escapeHtml(i.nome) + '</span>' +
+        '<button class="row-del" data-role="mercado-del" data-id="' + i.id + '" title="Tirar da lista">✕</button></div>';
+    };
+    $("mercadoLista").innerHTML = m.itens.length ? falta.map(linha).join("") + pegos.map(linha).join("")
+      : '<div class="empty">Nada faltando. Acabou alguma coisa? Anota aqui.</div>';
+    var naLista = {};
+    falta.forEach(function(i){ naLista[mercadoChave(i.nome)] = 1; });
+    var sugestoes = Object.keys(m.historico).filter(function(k){ return !naLista[k]; })
+      .sort(function(a, b){ return (m.historico[b].vezes - m.historico[a].vezes) || String(m.historico[b].ultima).localeCompare(String(m.historico[a].ultima)); })
+      .slice(0, 8);
+    $("mercadoChips").innerHTML = sugestoes.length ? '<div class="mercado-chips"><small>Acabou de novo?</small>' + sugestoes.map(function(k){
+      return '<button type="button" data-role="mercado-de-novo" data-id="' + escapeHtml(k) + '">+ ' + escapeHtml(m.historico[k].nome) + '</button>';
+    }).join("") + '</div>' : "";
+    $("mercadoRodape").innerHTML =
+      (falta.length ? '<button type="button" class="ghost-btn" data-role="mercado-enviar">Enviar a lista</button>' : '') +
+      (pegos.length ? '<button type="button" class="diario-link" data-role="mercado-limpar">tirar os já pegos (' + pegos.length + ')</button>' : '');
+  }
+  $("mercadoForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var input = $("mercadoInput");
+    mercadoAdicionar(input.value, foiAMao(input));
+    input.value = "";
+  });
+  document.addEventListener("click", function(e){
+    var el = e.target.closest("[data-role]");
+    if (!el) return;
+    var role = el.getAttribute("data-role"), id = el.getAttribute("data-id"), m = state.mercado;
+    if (role === "mercado-pegar") {
+      var it = m.itens.filter(function(i){ return i.id === id; })[0];
+      if (it) { it.pego = !it.pego; it.pegoEm = it.pego ? TODAY_ISO : undefined; save(); renderMercado(); }
+    } else if (role === "mercado-del") {
+      m.itens = m.itens.filter(function(i){ return i.id !== id; }); save(); renderMercado();
+    } else if (role === "mercado-limpar") {
+      m.itens = m.itens.filter(function(i){ return !i.pego; }); save(); renderMercado();
+    } else if (role === "mercado-de-novo") {
+      var h = m.historico[id];
+      if (h) mercadoAdicionar(h.nome, h.aMao);
+    } else if (role === "mercado-enviar") {
+      var texto = "Mercado:\n" + m.itens.filter(function(i){ return !i.pego; }).map(function(i){ return "• " + i.nome; }).join("\n");
+      if (navigator.share) navigator.share({ text: texto }).catch(function(){});
+      else if (navigator.clipboard) navigator.clipboard.writeText(texto).then(function(){ alert("Lista copiada. É só colar no WhatsApp."); });
     }
   });
 

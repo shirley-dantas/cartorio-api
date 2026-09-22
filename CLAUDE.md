@@ -821,7 +821,7 @@ fechado nas regras do banco, e por isso pede conta e senha do Firebase.
 ## O Bússola (planner pessoal dela)
 
 Mora em `bussola/`, publicado num projeto próprio da Vercel
-(https://bussola-mu.vercel.app). Tem o próprio `CLAUDE.md` lá dentro. Duas
+(https://bussola-mu.vercel.app). Tem o próprio `CLAUDE.md` lá dentro. Três
 coisas dele encostam no painel:
 
 - **Ele escreve em `/focos`**: tarefa profissional anotada no Bússola vira
@@ -832,6 +832,9 @@ coisas dele encostam no painel:
   conta vem recortada daqui: `bussola/fin-motor.js` é gerado do `index.html`
   por `scripts/gerar-bussola-fin.mjs`. **Mexeu no financeiro, rode o script**
   — o `testes/bussola.mjs` acusa se ficou para trás.
+- **Ele usa `api/ler-letra.js`**, daqui: a escrita à mão dela vira texto pela
+  IA (a chave mora no projeto do painel). A função só atende às origens do
+  Bússola e do painel. O `@anthropic-ai/sdk` entrou no `package.json` por ela.
 
 ## Onde as coisas estão
 

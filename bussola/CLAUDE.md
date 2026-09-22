@@ -166,14 +166,45 @@ vencimento; conta de uma vez só se encerra.
 tablet. Se ela mudar de ideia, a pergunta foi: botão de baixar cópia, ou
 cópia cifrada no banco com a conta do Financeiro.
 
+### Mercado (pedido junto, 22/09/2026)
+Quadro no Dia, entre Tarefas e Diário. Acabou, anota; pegou, risca ("tirar os
+já pegos" limpa). Tudo o que já entrou fica em `mercado.historico` e volta como
+atalho "Acabou de novo?" (os oito mais frequentes que não estão na lista). O
+mesmo item não entra duas vezes (a chave ignora acento e caixa). Como a lista
+mora no tablet, "Enviar a lista" manda o texto pela folha de compartilhar do
+aparelho (ou copia, onde ela não existe) — nada sai sem ela tocar.
+
+### Escrever à mão em qualquer campo
+Todo campo com `data-caneta` ganha um ✍️ (um `MutationObserver` equipa também
+os campos redesenhados, como o do Diário). O quadro é o mesmo `Sketchpad` da
+Página livre; em "Pronto" a escrita vai como PNG de fundo branco para
+**`api/ler-letra.js`, no projeto do painel** (cartorio-api.vercel.app — é lá
+que mora a chave da IA), e o texto volta para o campo. O item salvo leva
+`aMao: true` e aparece em **cursiva** (Dancing Script) — só o que veio da
+caneta, por decisão dela; o digitado fica na letra de sempre. A marca é
+consumida ao salvar (`foiAMao()`), para não vazar para o próximo digitado.
+Ela autorizou a leitura pela IA **em todos os campos, inclusive o Diário**
+(22/09/2026): o texto passa pela IA e volta, nada fica guardado lá; no Bússola
+ele continua cifrado. Letra ilegível ou sem internet: a janela avisa e não
+fecha. O aparelho dela é **Android com caneta** — o teclado de escrita à mão do
+próprio Android continua funcionando nos campos, como alternativa.
+
+A função só responde às origens do Bússola e do painel (e ao teste local),
+recusa imagem acima de 2 MB e usa `claude-opus-5` com esforço baixo e
+`fallbacks: "default"` (se o modelo recusar por engano, o servidor tenta outro).
+
 ## Testes
-`node testes/bussola.mjs` — banco do painel fingido, passa por todos os
-pedidos acima e termina com fotos em `testes/saida/bussola-*.png`, num tablet
-e num iPhone 13.
+`node testes/bussola.mjs` — banco do painel e leitura da letra fingidos,
+passa por todos os pedidos acima e termina com fotos em
+`testes/saida/bussola-*.png`, num tablet e num iPhone 13. Sem internet as
+fontes não chegam e as fotos saem na letra de reserva; para foto fiel (a
+cursiva, principalmente), aponte `BUSSOLA_FONTES` para um CSS local com as
+mesmas fontes em `@font-face` (dá para montar com os pacotes `@fontsource/*`).
 
 ## Arquivos
 - `index.html` — o app completo
 - `bussola.html` — só redireciona para `./` (o primeiro endereço publicado)
+- `../api/ler-letra.js` — a leitura da letra de mão (no projeto do painel)
 - `fin-motor.js` — GERADO: a conta do salário, recortada do painel
 - `manifest.json`, `sw.js`, `icons/` — o que faz dele um aplicativo separado
   do painel. Os ícones são uma rosa-dos-ventos nas cores da paleta Rosé.

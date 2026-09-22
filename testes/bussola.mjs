@@ -22,6 +22,25 @@ await passo('a conta do salário é a mesma que está no index.html do painel', 
   if (readFileSync(DESTINO, 'utf8') !== gerar()) throw new Error('bussola/fin-motor.js ficou para trás: rode node scripts/gerar-bussola-fin.mjs');
 });
 
+// A porta da leitura da letra (api/ler-letra.js) só abre para o Bússola:
+// cada leitura custa, e uma porta aberta a qualquer site seria conta aberta.
+{
+  const {createRequire} = await import('node:module');
+  const lerLetra = createRequire(import.meta.url)('../api/ler-letra.js');
+  const chamar = async (origin, method, body) => {
+    const r = { code: 0, headers: {}, corpo: null };
+    const res = { setHeader: (k, v) => { r.headers[k] = v; }, status(c) { r.code = c; return this; }, json(j) { r.corpo = j; return this; }, end() { return this; }, send() { return this; } };
+    await lerLetra({ headers: { origin }, method, body }, res);
+    return r;
+  };
+  await passo('a leitura da letra recusa quem não é o Bússola', async () => {
+    igual((await chamar('https://outro-site.com', 'POST', { imagem: 'x' })).code, 403, 'origem estranha');
+    igual((await chamar('https://bussola-mu.vercel.app', 'OPTIONS')).code, 200, 'o Bússola passa');
+    igual((await chamar('https://bussola-mu.vercel.app', 'POST', {})).code, 400, 'sem imagem');
+    igual((await chamar('https://bussola-mu.vercel.app', 'POST', { imagem: 'a'.repeat(3 * 1024 * 1024) })).code, 413, 'imagem grande demais');
+  });
+}
+
 const p2 = (n) => String(n).padStart(2, '0');
 const dia = (o) => { const x = new Date(); x.setDate(x.getDate() + o); return `${x.getFullYear()}-${p2(x.getMonth() + 1)}-${p2(x.getDate())}`; };
 const HOJE = dia(0);
@@ -40,6 +59,8 @@ const banco = {
   }
 };
 let escritas = 0, recusarFocos = false;
+const leituras = [];
+let proximaLeitura = { ok: true, texto: 'leite condensado' };
 function caminho(url) { return decodeURIComponent(new URL(url).pathname).replace(/^\//, '').replace(/\.json$/, '').split('/').filter(Boolean); }
 function ler(partes) { return partes.reduce((o, k) => (o == null ? undefined : o[k]), banco); }
 function gravar(partes, valor) {
@@ -81,7 +102,19 @@ async function abrir(opts) {
     if (corpo.password !== 'senha-certa') return r.fulfill({ status: 400, json: { error: { message: 'INVALID_LOGIN_CREDENTIALS' } }, headers: { 'access-control-allow-origin': '*' } });
     return r.fulfill({ json: { email: corpo.email, idToken: 'token-ok', refreshToken: 'renova', expiresIn: '3600' }, headers: { 'access-control-allow-origin': '*' } });
   });
-  await pg.route('**/fonts.g*/**', r => r.abort());
+  await pg.route('**/api/ler-letra', async r => {
+    const req = r.request();
+    const cors = { 'access-control-allow-origin': req.headers().origin || '*' };
+    if (req.method() === 'OPTIONS') return r.fulfill({ status: 200, headers: { ...cors, 'access-control-allow-headers': 'Content-Type', 'access-control-allow-methods': 'POST' } });
+    leituras.push(JSON.parse(req.postData()).imagem);
+    return r.fulfill({ json: proximaLeitura, headers: cors });
+  });
+  // Sem internet, as fontes do Google não chegam e as fotos saem na letra de
+  // reserva. BUSSOLA_FONTES aponta para um CSS local com as mesmas fontes,
+  // quando se quer a foto fiel (a cursiva, principalmente).
+  const fontes = process.env.BUSSOLA_FONTES ? readFileSync(process.env.BUSSOLA_FONTES, 'utf8') : null;
+  await pg.route('**/fonts.g*/**', r => fontes && r.request().url().includes('/css2')
+    ? r.fulfill({ body: fontes, contentType: 'text/css' }) : r.abort());
   await pg.goto('http://127.0.0.1:8197/bussola/index.html');
   await pg.waitForSelector('#painelSyncTxt');
   await pg.waitForFunction(() => /conferido/.test(document.getElementById('painelSyncTxt').textContent));
@@ -89,6 +122,15 @@ async function abrir(opts) {
 }
 const guardado = (pg) => pg.evaluate(() => localStorage.getItem('bussola-planner-v1'));
 const estado = async (pg) => JSON.parse(await guardado(pg));
+async function escreverComCaneta(pg, seletorCampo) {
+  await pg.click(`${seletorCampo} + .caneta-btn`);
+  await pg.waitForSelector('.caneta-fundo:not([hidden])');
+  const r = await (await pg.$('#canetaCanvas')).boundingBox();
+  await pg.mouse.move(r.x + 30, r.y + 50); await pg.mouse.down();
+  for (let i = 0; i < 14; i++) await pg.mouse.move(r.x + 30 + i * 18, r.y + 50 + (i % 4) * 10);
+  await pg.mouse.up();
+  await pg.click('#canetaPronto');
+}
 const aba = async (pg, v) => { await pg.click(`.view-switch button[data-view="${v}"]`); await pg.waitForTimeout(250); };
 
 const pg = await abrir({ viewport: { width: 1024, height: 1366 } });
@@ -297,6 +339,81 @@ await passo('entrando no Financeiro, o salário vem do painel pela mesma conta d
   await pg.screenshot({ path: SAIDA('bussola-financas.png') });
 });
 
+// ── Escrita à mão e Mercado ──
+await passo('todo campo de escrever tem o ✍️ ao lado', async () => {
+  for (const sel of ['#quickInput', '#apptTitle', '#noteInput', '#mercadoInput', '#finDesc', '#contaNome']) {
+    if (!await pg.$(`${sel} + .caneta-btn`)) throw new Error('sem caneta em ' + sel);
+  }
+});
+await aba(pg, 'dia');
+await passo('escrito à mão no Mercado vira texto e aparece em cursiva', async () => {
+  await pg.fill('#mercadoInput', 'Café'); await pg.press('#mercadoInput', 'Enter');
+  await escreverComCaneta(pg, '#mercadoInput');
+  await pg.waitForFunction(() => document.getElementById('mercadoInput').value === 'leite condensado');
+  if (!leituras.length || !leituras[0].startsWith('data:image/png;base64,')) throw new Error('não mandou a imagem da escrita');
+  await pg.press('#mercadoInput', 'Enter');
+  const itens = await pg.$$eval('#mercadoLista .mercado-nome', els => els.map(e => [e.textContent, e.classList.contains('cursiva')]));
+  igual(JSON.stringify(itens), JSON.stringify([['Café', false], ['leite condensado', true]]), 'lista');
+});
+await passo('peguei risca, "tirar os já pegos" limpa, e o que acabou volta como atalho', async () => {
+  const id = (await estado(pg)).mercado.itens.find(i => i.nome === 'Café').id;
+  await pg.click(`[data-role="mercado-pegar"][data-id="${id}"]`);
+  if (!await pg.$('#mercadoLista .mercado-item.pego')) throw new Error('não riscou');
+  await pg.click('[data-role="mercado-limpar"]');
+  if ((await pg.textContent('#mercadoLista')).includes('Café')) throw new Error('não limpou');
+  await pg.click('[data-role="mercado-de-novo"][data-id="cafe"]');
+  if (!(await pg.textContent('#mercadoLista')).includes('Café')) throw new Error('o atalho não devolveu o café');
+  await pg.fill('#mercadoInput', 'cafe'); await pg.press('#mercadoInput', 'Enter');
+  igual((await estado(pg)).mercado.itens.filter(i => /caf/i.test(i.nome)).length, 1, 'café repetido na lista');
+});
+await passo('tarefa escrita à mão fica em cursiva; a digitada, não', async () => {
+  proximaLeitura = { ok: true, texto: 'Buscar vestido na costureira' };
+  await pg.click('#quickCat [data-cat="pessoal"]');
+  await escreverComCaneta(pg, '#quickInput');
+  await pg.waitForFunction(() => document.getElementById('quickInput').value === 'Buscar vestido na costureira');
+  await pg.press('#quickInput', 'Enter');
+  const t = await pg.$$eval('#taskList .task-text', els => els.map(e => [e.textContent, e.classList.contains('cursiva')]));
+  if (!t.some(([x, c]) => x === 'Buscar vestido na costureira' && c)) throw new Error('não ficou em cursiva');
+  if (t.some(([x, c]) => x === 'Comprar presente da mãe' && c)) throw new Error('a digitada virou cursiva');
+  await pg.fill('#quickInput', 'Digitada depois'); await pg.press('#quickInput', 'Enter');
+  const d = await pg.$$eval('#taskList .task-text', els => els.map(e => [e.textContent, e.classList.contains('cursiva')]));
+  if (d.some(([x, c]) => x === 'Digitada depois' && c)) throw new Error('a cursiva vazou para a próxima tarefa digitada');
+});
+await passo('letra que a IA não leu: avisa e deixa tentar de novo', async () => {
+  proximaLeitura = { ok: true, texto: '', ilegivel: true };
+  await escreverComCaneta(pg, '#noteInput');
+  await pg.waitForFunction(() => /Não consegui ler/.test(document.getElementById('canetaMsg').textContent));
+  if (await pg.$('.caneta-fundo[hidden]')) throw new Error('fechou sem ter lido');
+  await pg.click('#canetaCancelar');
+  igual(await pg.inputValue('#noteInput'), '', 'o campo ficou vazio');
+});
+await passo('no Diário, a caneta também escreve — e continua cifrado', async () => {
+  proximaLeitura = { ok: true, texto: 'Ideia: aula de cerâmica aos sábados' };
+  if (await pg.$('#diarioPainel [name="s"]')) {
+    await pg.fill('#diarioPainel [name="s"]', 'novasenha1');
+    await pg.click('#diarioPainel form button[type="submit"]');
+  }
+  await pg.waitForSelector('#diarioPainel textarea', { timeout: 15000 });
+  await escreverComCaneta(pg, '#diarioPainel textarea');
+  await pg.waitForFunction(() => /cerâmica/.test(document.querySelector('#diarioPainel textarea').value));
+  await pg.click('#diarioPainel form button[type="submit"]');
+  await pg.waitForSelector('#diarioPainel .diario-entrada-texto.cursiva');
+  if ((await guardado(pg)).includes('cerâmica')) throw new Error('o texto foi guardado às claras');
+});
+
+// Foto da janela da caneta aberta, com uma escrita no quadro.
+await aba(pg, 'dia');
+await pg.click('#mercadoInput + .caneta-btn');
+await pg.waitForSelector('.caneta-fundo:not([hidden])');
+{
+  const r = await (await pg.$('#canetaCanvas')).boundingBox();
+  const letra = [[0,40],[10,10],[20,40],[30,12],[40,40],[55,20],[70,40],[85,15],[100,40],[120,25],[140,40],[160,18],[180,40],[200,22],[220,40]];
+  await pg.mouse.move(r.x + 60 + letra[0][0] * 2, r.y + 60 + letra[0][1] * 2); await pg.mouse.down();
+  for (const [x, y] of letra) await pg.mouse.move(r.x + 60 + x * 2, r.y + 60 + y * 2, { steps: 4 });
+  await pg.mouse.up();
+}
+await pg.screenshot({ path: SAIDA('bussola-caneta.png') });
+await pg.click('#canetaCancelar');
 await aba(pg, 'dia');
 // A foto do Dia sai com o diário trancado — é assim que ela o encontra.
 await pg.click('#diarioPainel [data-role="diario-travar"]');
