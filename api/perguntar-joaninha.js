@@ -49,7 +49,12 @@ function chamarClaude(mensagem) {
   });
 }
 
+const lerLetra = require("../lib/ler-letra.js");
+
 module.exports = async (req, res) => {
+  // A leitura da letra de mão do Bússola entra por esta mesma porta (ver
+  // lib/ler-letra.js): o plano da Vercel não comporta uma 13ª função.
+  if (String(req.url || "").includes("acao=ler-letra") || (req.query && req.query.acao === "ler-letra")) return lerLetra(req, res);
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");

@@ -832,9 +832,16 @@ coisas dele encostam no painel:
   conta vem recortada daqui: `bussola/fin-motor.js` é gerado do `index.html`
   por `scripts/gerar-bussola-fin.mjs`. **Mexeu no financeiro, rode o script**
   — o `testes/bussola.mjs` acusa se ficou para trás.
-- **Ele usa `api/ler-letra.js`**, daqui: a escrita à mão dela vira texto pela
-  IA (a chave mora no projeto do painel). A função só atende às origens do
+- **Ele usa `lib/ler-letra.js`**, daqui, pela porta da Joaninha
+  (`api/perguntar-joaninha.js?acao=ler-letra`): a escrita à mão dela vira
+  texto pela IA (a chave mora no projeto do painel). Só atende às origens do
   Bússola e do painel. O `@anthropic-ai/sdk` entrou no `package.json` por ela.
+
+**A Vercel aceita no máximo 12 funções em `api/`, e o painel está no limite.**
+Em 22/09/2026 uma 13ª fez a Vercel recusar a publicação do painel inteiro —
+sem aviso nenhum na tela, o painel só ficou parado na versão anterior. Função
+nova entra em `lib/` e é atendida por uma porta que já existe; o
+`testes/bussola.mjs` acusa se `api/` passar de 12.
 
 ## Onde as coisas estão
 

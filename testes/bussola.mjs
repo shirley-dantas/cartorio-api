@@ -22,22 +22,42 @@ await passo('a conta do salário é a mesma que está no index.html do painel', 
   if (readFileSync(DESTINO, 'utf8') !== gerar()) throw new Error('bussola/fin-motor.js ficou para trás: rode node scripts/gerar-bussola-fin.mjs');
 });
 
-// A porta da leitura da letra (api/ler-letra.js) só abre para o Bússola:
-// cada leitura custa, e uma porta aberta a qualquer site seria conta aberta.
+// O plano da Vercel aceita no máximo 12 funções em api/. Uma 13ª (a primeira
+// ler-letra.js) fez a Vercel recusar a publicação do painel inteiro em
+// 22/09/2026 — e nada avisou: o painel só ficou parado na versão anterior.
+await passo('o painel continua com no máximo 12 funções (limite da Vercel)', async () => {
+  const {readdirSync} = await import('node:fs');
+  const funcoes = readdirSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'api')).filter(f => /\.(js|mjs|ts)$/.test(f));
+  if (funcoes.length > 12) throw new Error(funcoes.length + ' funções em api/ — a Vercel recusa a publicação acima de 12');
+});
+
+// A leitura da letra (lib/ler-letra.js, pela porta da Joaninha) só abre para
+// o Bússola: cada leitura custa, e porta aberta a qualquer site é conta aberta.
 {
   const {createRequire} = await import('node:module');
-  const lerLetra = createRequire(import.meta.url)('../api/ler-letra.js');
+  const joaninha = createRequire(import.meta.url)('../api/perguntar-joaninha.js');
   const chamar = async (origin, method, body) => {
     const r = { code: 0, headers: {}, corpo: null };
     const res = { setHeader: (k, v) => { r.headers[k] = v; }, status(c) { r.code = c; return this; }, json(j) { r.corpo = j; return this; }, end() { return this; }, send() { return this; } };
-    await lerLetra({ headers: { origin }, method, body }, res);
+    await joaninha({ headers: { origin }, method, body, url: '/api/perguntar-joaninha?acao=ler-letra', query: { acao: 'ler-letra' } }, res);
     return r;
   };
   await passo('a leitura da letra recusa quem não é o Bússola', async () => {
     igual((await chamar('https://outro-site.com', 'POST', { imagem: 'x' })).code, 403, 'origem estranha');
     igual((await chamar('https://bussola-mu.vercel.app', 'OPTIONS')).code, 200, 'o Bússola passa');
+    const conferir = await chamar(undefined, 'GET');
+    igual(conferir.code, 200, 'aberta no navegador');
+    igual(conferir.corpo.funcao, 'ler-letra', 'a conferência se identifica');
+    if (JSON.stringify(conferir.corpo).includes('sk-')) throw new Error('a conferência mostrou a chave');
+    const chaveAntes = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    const semChave = await chamar('https://bussola-mu.vercel.app', 'POST', { imagem: 'x' });
+    igual(semChave.code, 500, 'sem a chave da IA');
+    if (!/chave da IA/.test(semChave.corpo.erro)) throw new Error('sem chave, a mensagem não disse');
+    process.env.ANTHROPIC_API_KEY = 'teste';
     igual((await chamar('https://bussola-mu.vercel.app', 'POST', {})).code, 400, 'sem imagem');
     igual((await chamar('https://bussola-mu.vercel.app', 'POST', { imagem: 'a'.repeat(3 * 1024 * 1024) })).code, 413, 'imagem grande demais');
+    if (chaveAntes === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = chaveAntes;
   });
 }
 
@@ -123,11 +143,13 @@ async function abrir(opts) {
     if (corpo.password !== 'senha-certa') return r.fulfill({ status: 400, json: { error: { message: 'INVALID_LOGIN_CREDENTIALS' } }, headers: { 'access-control-allow-origin': '*' } });
     return r.fulfill({ json: { email: corpo.email, idToken: 'token-ok', refreshToken: 'renova', expiresIn: '3600' }, headers: { 'access-control-allow-origin': '*' } });
   });
-  await pg.route('**/api/ler-letra', async r => {
+  await pg.route(u => u.href.includes('/api/perguntar-joaninha') && u.href.includes('acao=ler-letra'), async r => {
     const req = r.request();
     const cors = { 'access-control-allow-origin': req.headers().origin || '*' };
     if (req.method() === 'OPTIONS') return r.fulfill({ status: 200, headers: { ...cors, 'access-control-allow-headers': 'Content-Type', 'access-control-allow-methods': 'POST' } });
     leituras.push(JSON.parse(req.postData()).imagem);
+    if (proximaLeitura === '__sem_resposta__') return r.abort('failed');
+    if (proximaLeitura === '__erro_404__') return r.fulfill({ status: 404, body: 'The page could not be found', headers: cors });
     return r.fulfill({ json: proximaLeitura, headers: cors });
   });
   // Sem internet, as fontes do Google não chegam e as fotos saem na letra de
@@ -366,9 +388,9 @@ await passo('os serviços extras do Meu financeiro pedem a senha de lá, e entra
   await pg.waitForFunction(() => /não confere/.test(document.getElementById('finPlanilha').textContent), null, { timeout: 20000 });
   await pg.fill('#finCofreSenha', 'cofre-da-shirley');
   await pg.click('#finCofreForm button[type="submit"]');
-  await pg.waitForFunction(() => /wagner fernandes/.test(document.getElementById('finPlanilha').textContent), null, { timeout: 20000 });
+  await pg.waitForFunction(() => /Serviços extras[\s\S]*3\.858,07/.test(document.getElementById('finPlanilha').textContent), null, { timeout: 20000 });
   const t = (await pg.textContent('#finPlanilha')).replace(/\s/g, ' ');
-  if (!t.includes('3.858,07')) throw new Error('o extra não veio');
+  if (t.includes('wagner')) throw new Error('trouxe a descrição do extra — ela pediu só o valor');
   if (!t.includes('528,40')) throw new Error('o salário lançado à mão no Meu financeiro não somou: ' + t.slice(0, 200));
   if (t.includes('de outro fechamento')) throw new Error('entrou extra de outro fechamento');
   if (t.includes('despesa de lá')) throw new Error('a despesa do Meu financeiro não devia entrar');
@@ -380,7 +402,7 @@ await passo('os serviços extras do Meu financeiro pedem a senha de lá, e entra
 await passo('ao sair do app, o cofre do Meu financeiro tranca de novo', async () => {
   await pg.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
   await pg.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); });
-  if ((await pg.textContent('#finPlanilha')).includes('wagner')) throw new Error('continuou aberto');
+  if ((await pg.textContent('#finPlanilha')).includes('3.858,07')) throw new Error('continuou aberto');
   if (!await pg.$('#finCofreForm')) throw new Error('não voltou a pedir a senha');
 });
 
@@ -435,6 +457,15 @@ await passo('letra que a IA não leu: avisa e deixa tentar de novo', async () =>
   if (await pg.$('.caneta-fundo[hidden]')) throw new Error('fechou sem ter lido');
   await pg.click('#canetaCancelar');
   igual(await pg.inputValue('#noteInput'), '', 'o campo ficou vazio');
+});
+await passo('quando o leitor da letra não responde, a mensagem diz o motivo', async () => {
+  proximaLeitura = '__sem_resposta__';
+  await escreverComCaneta(pg, '#noteInput');
+  await pg.waitForFunction(() => /sem resposta do servidor/.test(document.getElementById('canetaMsg').textContent));
+  proximaLeitura = '__erro_404__';
+  await pg.click('#canetaPronto');
+  await pg.waitForFunction(() => /erro 404/.test(document.getElementById('canetaMsg').textContent));
+  await pg.click('#canetaCancelar');
 });
 await passo('no Diário, a caneta também escreve — e continua cifrado', async () => {
   proximaLeitura = { ok: true, texto: 'Ideia: aula de cerâmica aos sábados' };
