@@ -1,0 +1,16 @@
+{
+  "id": "/bussola/",
+  "name": "Bússola — seu planner",
+  "short_name": "Bússola",
+  "description": "Planner pessoal: tarefas, compromissos, hábitos e página livre.",
+  "start_url": "/bussola/",
+  "scope": "/bussola/",
+  "display": "standalone",
+  "background_color": "#FBF3F4",
+  "theme_color": "#FBF3F4",
+  "icons": [
+    { "src": "/bussola/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/bussola/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/bussola/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
