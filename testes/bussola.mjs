@@ -239,13 +239,30 @@ await passo('o que se escreve na página livre vira cartão no bloco ao lado', a
   await pg.mouse.move(r.x + 40, r.y + 60); await pg.mouse.down();
   for (let i = 0; i < 12; i++) await pg.mouse.move(r.x + 40 + i * 15, r.y + 60 + (i % 3) * 12);
   await pg.mouse.up();
+  proximaLeitura = { ok: true, texto: 'Ligar para o dentista' };
   await pg.click('#pageToBloco');
+  await pg.waitForFunction(() => /Ligar para o dentista/.test(document.getElementById('notesGrid').textContent));
   const st = await estado(pg);
-  const n = st.notes.find(n => n.type === 'drawing');
-  if (!n) throw new Error('não virou nota');
+  const n = st.notes.find(n => n.text === 'Ligar para o dentista');
+  igual(n.aMao, true, 'a nota lida da página nasce em cursiva');
   igual(n.date, HOJE, 'data da nota');
   igual((st.pages[HOJE] || { strokes: [] }).strokes.length, 0, 'a página ficou limpa');
-  if (!await pg.$('#notesGrid [data-role="sketch-thumb"]')) throw new Error('o cartão não apareceu no bloco');
+  if (!await pg.$('#notesGrid .cursiva')) throw new Error('o cartão não está em cursiva');
+});
+await passo('desenho que a IA não lê vira cartão de desenho, sem se perder', async () => {
+  const c = await pg.$('#pageSketchCanvas'); const r = await c.boundingBox();
+  await pg.mouse.move(r.x + 80, r.y + 80); await pg.mouse.down();
+  for (let i = 0; i < 10; i++) await pg.mouse.move(r.x + 80 + i * 12, r.y + 80 + (i % 2) * 30);
+  await pg.mouse.up();
+  proximaLeitura = { ok: true, texto: '', ilegivel: true };
+  await pg.click('#pageToBloco');
+  await pg.waitForSelector('#notesGrid [data-role="sketch-thumb"]');
+  if (!/guardei como desenho/.test(await pg.textContent('#pageMsg'))) throw new Error('não avisou');
+  proximaLeitura = '__sem_resposta__';
+  await pg.mouse.move(r.x + 60, r.y + 60); await pg.mouse.down(); await pg.mouse.move(r.x + 160, r.y + 90); await pg.mouse.up();
+  await pg.click('#pageToBloco');
+  await pg.waitForFunction(() => document.querySelectorAll('#notesGrid [data-role="sketch-thumb"]').length === 2);
+  proximaLeitura = { ok: true, texto: 'leite condensado' };
 });
 await passo('"→ amanhã" leva a nota para o dia seguinte', async () => {
   await pg.fill('#noteInput', 'Ligar para a escola');
