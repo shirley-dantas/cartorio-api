@@ -17,6 +17,10 @@ instalado no tablet dela. Sobe sozinho a cada junção na `main`, junto com o
 painel. Também responde em `cartorio-api.vercel.app/bussola/`, mas ali o
 navegador dela confunde com o app do painel: não usar para instalar.
 
+**Confirmado por ela em 22/09/2026:** instalou pelo `bussola-mu.vercel.app`,
+apareceu como Bússola (sem a mensagem do painel) e as assinaturas do painel
+vieram. Primeiro teste com os casos de verdade.
+
 Tudo funciona 100% no navegador, sem backend: os dados ficam em
 `localStorage` sob a chave `bussola-planner-v1`.
 
