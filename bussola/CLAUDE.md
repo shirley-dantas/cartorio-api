@@ -89,6 +89,15 @@ requisições. Escopo mais específico vence o do painel. **Não mexer no escopo
 do manifesto do painel** para resolver isso: é o que mantém o painel instalado
 nos aparelhos dela e da Grazi.
 
+**E não bastou.** Mesmo com manifesto próprio, o navegador do tablet dela
+seguiu dizendo que era "o mesmo app já instalado do painel": dentro do mesmo
+domínio, alguns navegadores não aceitam um app aninhado no escopo de outro.
+A saída foi um **projeto próprio na Vercel**, com Root Directory `bussola`,
+ou seja, outro domínio. Por isso os caminhos do manifesto, dos ícones e do
+service worker são **relativos** (`./`, `icons/`, `sw.js`): o mesmo arquivo
+serve em `/bussola/` no domínio do painel e na raiz do projeto próprio. Não
+voltar a caminho absoluto `/bussola/...`, que quebra no projeto próprio.
+
 Os dados ficam no `localStorage` do domínio, então o que ela escreveu em
 `/bussola/bussola.html` continua lá em `/bussola/`.
 
