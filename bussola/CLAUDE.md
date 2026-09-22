@@ -9,9 +9,9 @@ rápida sem fricção, "Foco do dia" limitado a 3 itens, linguagem não-punitiva
 tarefas atrasadas.
 
 ## Estado atual
-Arquivo único autocontido: `bussola.html` (HTML + CSS + JS vanilla, sem build
-step, sem dependências externas além de fontes do Google Fonts). Já publicado
-como artifact em claude.ai; este arquivo é a cópia de trabalho.
+Arquivo único autocontido: `index.html` (HTML + CSS + JS vanilla, sem build
+step, sem dependências externas além de fontes do Google Fonts). Servido pela
+Vercel junto com o painel, em **cartorio-api.vercel.app/bussola/**.
 
 Tudo funciona 100% no navegador, sem backend: os dados ficam em
 `localStorage` sob a chave `bussola-planner-v1`.
@@ -79,9 +79,21 @@ título — autorizado por ela. O Bússola **só lê**, nunca escreve no painel.
   o que veio da última vez — nunca uma semana vazia com cara de calma.
 - A caixinha manual "veio do painel" saiu do formulário.
 
-**Atenção à hospedagem:** página publicada como artifact no claude.ai pode ter
-a saída de rede bloqueada. Se a linha mostrar a falha lá, a saída é servir o
-`bussola.html` pela Vercel.
+## Um aplicativo só dele (22/09/2026)
+O painel é instalado como aplicativo com escopo `"/"` — o site inteiro. Na
+primeira publicação o Bússola não tinha manifesto, e o "Instalar" do navegador
+disse que ele já estava "dentro do painel" e abriu o painel. Agora ele tem
+identidade própria: `manifest.json` com `id` e `scope` em `/bussola/`, ícone
+próprio e um service worker (`sw.js`) com o mesmo escopo, que só repassa as
+requisições. Escopo mais específico vence o do painel. **Não mexer no escopo
+do manifesto do painel** para resolver isso: é o que mantém o painel instalado
+nos aparelhos dela e da Grazi.
+
+Os dados ficam no `localStorage` do domínio, então o que ela escreveu em
+`/bussola/bussola.html` continua lá em `/bussola/`.
 
 ## Arquivos
-- `bussola.html` — o app completo
+- `index.html` — o app completo
+- `bussola.html` — só redireciona para `./` (o primeiro endereço publicado)
+- `manifest.json`, `sw.js`, `icons/` — o que faz dele um aplicativo separado
+  do painel. Os ícones são uma rosa-dos-ventos nas cores da paleta Rosé.
