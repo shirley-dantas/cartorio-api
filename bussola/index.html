@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Bússola">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Quicksand:wght@400;500;600;700&family=Parisienne&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Quicksand:wght@400;500;600;700&family=Parisienne&family=Dancing+Script:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --radius-lg: 22px;
@@ -353,15 +353,6 @@
   .page-panel .sketch-canvas-wrap { height: 260px; }
   .note-canvas-block .sketch-canvas-wrap { height: 150px; }
 
-  .habit-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; }
-  .habit-name { flex: 1; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
-  .habit-streak { font-size: 11.5px; color: var(--muted); width: 44px; text-align: right; flex-shrink: 0; font-weight: 700; }
-  .habit-days { display: flex; gap: 4px; }
-  .habit-day { width: 20px; height: 20px; border-radius: 7px; border: 1px solid var(--line); cursor: pointer; background: var(--surface-2); }
-  .habit-day.today { border-color: var(--muted-2); }
-  .habit-day.on { background: var(--done); border-color: var(--done); }
-  .habit-add { display: flex; gap: 8px; margin-top: 10px; }
-  .habit-add input { flex: 1; font-family: var(--font-body); font-weight: 500; font-size: 13px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); }
 
   .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
   .week-day {
@@ -385,7 +376,7 @@
   .month-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
   .month-nav { display: flex; gap: 6px; align-items: center; }
   .month-nav button { border: 1px solid var(--line); background: var(--surface); width: 32px; height: 32px; border-radius: 999px; cursor: pointer; font-size: 15px; color: var(--ink); font-family: var(--font-body); }
-  .month-nav button#monthToday { width: auto; padding: 0 12px; font-size: 12px; font-weight: 700; }
+  .month-nav button#monthToday, .month-nav button#diarioHoje { width: auto; padding: 0 12px; font-size: 12px; font-weight: 700; }
   .month-title { font-size: 21px; text-transform: capitalize; }
   .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
   .month-dow { font-size: 11px; color: var(--muted); text-align: center; padding-bottom: 4px; text-transform: capitalize; font-weight: 700; }
@@ -416,6 +407,145 @@
     .brand { font-size: 28px; }
     .shell { padding: 14px 12px 48px; }
   }
+
+
+  /* ---------- Contas pedindo atenção (faixa do Dia) ---------- */
+  .contas-banner { background: var(--accent-soft); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 16px; }
+  .contas-banner h3 { margin: 0 0 8px; font-size: 17px; color: var(--ink); display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .contas-banner h3 button { border: none; background: none; color: var(--accent); font: 700 12.5px var(--font-body); cursor: pointer; padding: 0; }
+  .conta-linha { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid rgba(0,0,0,0.06); flex-wrap: wrap; }
+  .conta-linha:first-of-type { border-top: none; }
+  .conta-nome { font-weight: 700; font-size: 14px; }
+  .conta-quando { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .conta-quando.venceu { color: var(--personal); }
+  .conta-valor { font-size: 13px; font-weight: 700; margin-left: auto; }
+  .btn-paguei { border: none; background: var(--done); color: #fff; font: 700 12.5px var(--font-body); padding: 6px 13px; border-radius: 999px; cursor: pointer; }
+  .btn-paguei:active { transform: scale(0.96); }
+
+  /* ---------- Página livre + bloco, lado a lado ---------- */
+  .page-row { display: grid; grid-template-columns: 1.45fr 1fr; gap: 16px; margin-top: 16px; align-items: start; }
+  .page-panel .sketch-canvas-wrap { height: 300px; }
+  .page-acoes { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .page-acoes .btn-add { margin-left: auto; padding: 8px 16px; font-size: 13px; }
+  .note-top { justify-content: flex-end; }
+  .note-top .note-amanha { font: 700 11px var(--font-body); color: var(--accent); margin-right: auto; }
+  .note-data { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+
+  /* ---------- Tarefa que foi para o painel ---------- */
+  .painel-chip { font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 999px; white-space: nowrap; background: var(--professional-soft); color: var(--professional); }
+  .painel-chip.espera { background: var(--accent-soft); color: var(--accent); }
+  .painel-chip.fora { background: var(--surface-2); color: var(--muted); }
+
+  /* ---------- Diário ---------- */
+  .diario-veu { position: relative; border-radius: var(--radius-md); overflow: hidden; min-height: 170px; }
+  .diario-borrao { filter: blur(7px); opacity: .55; padding: 12px 6px; pointer-events: none; user-select: none; }
+  .diario-borrao span { display: block; height: 11px; border-radius: 6px; background: var(--muted-2); margin: 11px 0; }
+  .diario-trava { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 14px; text-align: center; }
+  .diario-trava .cadeado { font-size: 26px; }
+  .diario-trava p { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; max-width: 320px; line-height: 1.5; }
+  .diario-form { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; width: 100%; }
+  .diario-form input { flex: 1 1 160px; max-width: 240px; font: 500 14px var(--font-body); padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); }
+  .diario-link { border: none; background: none; color: var(--muted); font: 700 12px var(--font-body); cursor: pointer; text-decoration: underline; padding: 2px; }
+  .diario-erro { color: var(--personal); font-size: 12.5px; font-weight: 700; }
+  .diario-codigo { font: 700 20px ui-monospace, Menlo, monospace; letter-spacing: 2px; background: var(--surface); border: 1.5px dashed var(--accent); border-radius: var(--radius-sm); padding: 10px 14px; color: var(--ink); user-select: all; }
+  .diario-tipos { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .diario-tipos button { border: 1px solid var(--line); background: transparent; color: var(--muted); font: 700 12px var(--font-body); padding: 6px 11px; border-radius: 999px; cursor: pointer; }
+  .diario-tipos button[aria-pressed="true"] { background: var(--personal-soft); color: var(--personal); border-color: transparent; }
+  .diario-texto { width: 100%; min-height: 84px; resize: vertical; font: 500 14.5px/1.55 var(--font-body); padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); }
+  .diario-rodape { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+  .diario-rodape .btn-add { margin-left: auto; padding: 8px 16px; font-size: 13px; }
+  .diario-entrada { padding: 10px 2px; border-bottom: 1px solid var(--line); }
+  .diario-entrada:last-child { border-bottom: none; }
+  .diario-entrada-topo { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+  .diario-entrada-topo .row-del { margin-left: auto; }
+  .diario-entrada-texto { font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 3px; }
+  .diario-entrada-texto mark { background: var(--accent-soft); color: inherit; border-radius: 3px; padding: 0 2px; }
+  .diario-layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; align-items: start; }
+  .diario-busca { width: 100%; font: 500 14.5px var(--font-body); padding: 10px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--ink); margin-bottom: 12px; }
+  .diario-dia-titulo { font: 600 17px var(--font-display); margin: 12px 0 2px; text-transform: capitalize; }
+  .month-cell.tem-diario { background: var(--personal-soft); }
+  .month-cell.sel { outline: 2px solid var(--personal); outline-offset: -2px; }
+  .diario-conta { font-size: 10.5px; font-weight: 700; color: var(--personal); }
+
+  /* ---------- Finanças ---------- */
+  .fin-layout { display: grid; grid-template-columns: 1.55fr 1fr; gap: 16px; align-items: start; }
+  .fin-resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .fin-card { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 11px 13px; }
+  .fin-card small { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .fin-card strong { display: block; font-size: 19px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .fin-card.entrada strong { color: var(--done); }
+  .fin-card.saida strong { color: var(--personal); }
+  .fin-card.nota { grid-column: 1 / -1; font-size: 12px; color: var(--muted); font-weight: 600; background: none; border-style: dashed; }
+  .planilha-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-md); }
+  table.planilha { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+  .planilha th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; padding: 9px 10px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  .planilha td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .planilha tr:last-child td { border-bottom: none; }
+  .planilha .valor { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+  .planilha .valor.entrada { color: var(--done); }
+  .planilha .valor.saida { color: var(--personal); }
+  .planilha tr.salario td { background: var(--professional-soft); }
+  .planilha .sub { display: block; font-size: 11.5px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+  .fin-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .fin-add input, .fin-add select { font: 500 13.5px var(--font-body); padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); }
+  .fin-add input[type="text"] { flex: 2 1 150px; }
+  .fin-add input.dinheiro { flex: 1 1 90px; max-width: 130px; }
+  .fin-add input[type="date"] { flex: 1 1 130px; }
+  .fin-add .btn-add { padding: 8px 16px; font-size: 13px; }
+  .fin-login { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .fin-login input { font: 500 13px var(--font-body); padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); flex: 1 1 140px; }
+  .fin-login button { padding: 7px 14px; font-size: 12.5px; }
+  .fin-cats { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .fin-cat { display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; font-size: 12.5px; font-weight: 600; }
+  .fin-cat-barra { height: 8px; border-radius: 999px; background: var(--personal-soft); overflow: hidden; }
+  .fin-cat-barra span { display: block; height: 100%; background: var(--personal); border-radius: 999px; }
+  .conta-card { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 11px 13px; margin-bottom: 8px; background: var(--surface-2); }
+  .conta-card.venceu { border-color: var(--personal); }
+  .conta-card .conta-linha { border-top: none; padding: 0; }
+  .conta-rep { font-size: 11.5px; color: var(--muted); font-weight: 600; margin-top: 3px; }
+  .contas-pagas { margin-top: 14px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .contas-pagas div { padding: 3px 0; }
+
+  /* Item de grade não encolhe abaixo do conteúdo sem isto — e a planilha,
+     que rola de lado dentro da moldura dela, empurrava a tela inteira. */
+  .page-row > *, .diario-layout > *, .fin-layout > * { min-width: 0; }
+  @media (max-width: 760px) {
+    .page-row, .diario-layout, .fin-layout { grid-template-columns: 1fr; }
+    .fin-resumo { grid-template-columns: 1fr 1fr; }
+    .fin-card.saldo { grid-column: 1 / -1; }
+    .view-switch button { padding: 8px 11px; font-size: 13px; }
+  }
+
+  /* ---------- Escrita à mão ---------- */
+  /* O que veio da caneta aparece em cursiva — só isso, o digitado fica na
+     letra de sempre, e dá para saber de relance o que foi escrito à mão. */
+  .cursiva { font-family: 'Dancing Script', var(--font-script); font-weight: 600; font-size: 1.22em; line-height: 1.25; letter-spacing: .01em; }
+  .caneta-btn { border: 1px solid var(--line); background: var(--surface); color: var(--personal); border-radius: 999px; width: 36px; height: 36px; flex-shrink: 0; cursor: pointer; font-size: 16px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+  .caneta-btn:active { transform: scale(.94); }
+  .caneta-fundo { position: fixed; inset: 0; background: rgba(40,20,28,.45); z-index: 100; display: flex; align-items: flex-end; justify-content: center; padding: 16px; }
+  .caneta-fundo[hidden] { display: none; }
+  .caneta-janela { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow); width: 100%; max-width: 760px; padding: 16px; margin-bottom: env(safe-area-inset-bottom, 0px); }
+  .caneta-janela h3 { margin: 0 0 4px; font-size: 18px; }
+  .caneta-janela p { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .caneta-janela .sketch-canvas-wrap { height: 220px; background: var(--surface-2); }
+  .caneta-acoes { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+  .caneta-msg { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+  .caneta-msg.erro { color: var(--personal); }
+  .diario-rodape .caneta-btn, form[data-form="diario-escrever"] > .caneta-btn { margin-top: 6px; }
+
+  /* ---------- Mercado ---------- */
+  .mercado-add { display: flex; gap: 8px; align-items: center; }
+  .mercado-add input { flex: 1; min-width: 0; font: 500 14px var(--font-body); padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); }
+  .mercado-lista { margin-top: 8px; }
+  .mercado-item { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--line); }
+  .mercado-item:last-child { border-bottom: none; }
+  .mercado-nome { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 500; overflow-wrap: anywhere; }
+  .mercado-item.pego .mercado-nome { text-decoration: line-through; color: var(--muted); }
+  .mercado-nome.cursiva { font-size: 17.5px; }
+  .mercado-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+  .mercado-chips small { font-size: 11.5px; font-weight: 700; color: var(--muted); margin-right: 2px; }
+  .mercado-chips button { border: 1px dashed var(--muted-2); background: transparent; color: var(--ink); font: 600 12px var(--font-body); padding: 5px 10px; border-radius: 999px; cursor: pointer; }
+  .mercado-rodape { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
 
   *:focus-visible { outline: 2px solid var(--professional); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -448,12 +578,14 @@
         <button data-view="dia" aria-pressed="true">Dia</button>
         <button data-view="semana" aria-pressed="false">Semana</button>
         <button data-view="mes" aria-pressed="false">Mês</button>
+        <button data-view="diario" aria-pressed="false">Diário</button>
+        <button data-view="financas" aria-pressed="false">Finanças</button>
       </div>
     </div>
   </header>
 
   <form class="quickcapture" id="quickForm">
-    <input type="text" id="quickInput" placeholder="Adicionar uma tarefa rápida…" autocomplete="off">
+    <input type="text" id="quickInput" placeholder="Adicionar uma tarefa rápida…" autocomplete="off" data-caneta>
     <div class="cat-toggle" id="quickCat">
       <button type="button" data-cat="pessoal" data-active="true">♡ Pessoal</button>
       <button type="button" data-cat="profissional" data-active="false">✦ Profissional</button>
@@ -468,6 +600,7 @@
       <div class="range-label" id="dayLabel"></div>
       <div class="range-arrows"><button id="dayNext" aria-label="Próximo dia">›</button></div>
     </div>
+    <div id="contasBanner"></div>
     <div class="day-grid">
       <div class="day-left">
         <div class="panel">
@@ -475,13 +608,13 @@
           <div class="focus-list" id="focusList"></div>
         </div>
         <div class="panel">
-          <h2>Linha do tempo</h2>
+          <h2>Agenda</h2>
           <div class="painel-sync" id="painelSync" aria-live="polite"><span id="painelSyncTxt">Painel: ainda não conferido</span><button type="button" id="painelSyncBtn" title="Buscar de novo as assinaturas marcadas no painel do cartório">↻ Atualizar</button></div>
           <div id="overdueBanner"></div>
           <div class="timeline" id="timeline"></div>
           <button type="button" class="ghost-btn" id="toggleApptForm" style="margin-top:12px;">+ Compromisso</button>
           <form class="mini-form" id="apptForm">
-            <input type="text" id="apptTitle" placeholder="Título" required>
+            <input type="text" id="apptTitle" placeholder="Título" required data-caneta>
             <input type="date" id="apptDate" required>
             <input type="time" id="apptTime">
             <select id="apptCat">
@@ -490,15 +623,6 @@
             </select>
             <button type="submit" class="btn-add" style="padding:8px 16px;font-size:13px;">Salvar</button>
           </form>
-        </div>
-        <div class="panel page-panel">
-          <h2>Página livre <span class="hint">escreva ou desenhe à mão</span></h2>
-          <div class="sketch-toolbar" id="pageSketchToolbar"></div>
-          <div class="sketch-canvas-wrap"><canvas class="sketch-canvas" id="pageSketchCanvas"></canvas></div>
-          <div style="display:flex; gap:8px; margin-top:8px;">
-            <button type="button" class="ghost-btn" id="pageSketchUndo">Desfazer</button>
-            <button type="button" class="ghost-btn" id="pageSketchClear">Limpar página</button>
-          </div>
         </div>
       </div>
       <div class="day-right">
@@ -513,43 +637,39 @@
           <div class="task-list" id="taskList"></div>
         </div>
         <div class="panel">
-          <h2>Notas rápidas</h2>
-          <div class="notes-grid" id="notesGrid"></div>
-
-          <div class="note-mode-toggle" id="noteModeToggle">
-            <button type="button" data-mode="texto" data-active="true">✎ Escrever</button>
-            <button type="button" data-mode="desenho" data-active="false">🖊 Desenhar</button>
-          </div>
-
-          <div class="note-canvas-block open" id="noteTextBlock">
-            <form class="note-add" id="noteForm">
-              <input type="text" id="noteInput" placeholder="Escrever uma nota…">
-              <button type="submit" class="btn-add" style="padding:9px 16px;font-size:13px;">+</button>
-            </form>
-          </div>
-
-          <div class="note-canvas-block" id="noteDrawBlock">
-            <div class="sketch-toolbar" id="noteSketchToolbar"></div>
-            <div class="sketch-canvas-wrap"><canvas class="sketch-canvas" id="noteSketchCanvas"></canvas></div>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-              <button type="button" class="ghost-btn" id="noteSketchUndo">Desfazer</button>
-              <button type="button" class="ghost-btn" id="noteSketchClear">Limpar</button>
-              <button type="button" class="btn-add" id="noteSketchSave" style="margin-left:auto;padding:8px 16px;font-size:13px;">Salvar nota</button>
-            </div>
-          </div>
+          <h2>Mercado <span class="hint" id="mercadoHint">o que acabou</span></h2>
+          <form class="mercado-add" id="mercadoForm">
+            <input type="text" id="mercadoInput" placeholder="Acabou o quê?" autocomplete="off" data-caneta>
+            <button type="submit" class="btn-add" style="padding:9px 16px;font-size:13px;">+</button>
+          </form>
+          <div class="mercado-lista" id="mercadoLista"></div>
+          <div id="mercadoChips"></div>
+          <div class="mercado-rodape" id="mercadoRodape"></div>
         </div>
         <div class="panel">
-          <h2>Hábitos</h2>
-          <div id="habitList"></div>
-          <form class="habit-add" id="habitForm">
-            <input type="text" id="habitInput" placeholder="Novo hábito…">
-            <select id="habitCat" style="border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font-family:var(--font-body);font-weight:600;font-size:12.5px;">
-              <option value="pessoal">Pessoal</option>
-              <option value="profissional">Profissional</option>
-            </select>
-            <button type="submit" class="btn-add" style="padding:8px 14px;font-size:13px;">+</button>
-          </form>
+          <h2>Diário <span class="hint">ideias, insights, sonhos, pensamentos</span></h2>
+          <div id="diarioPainel"></div>
         </div>
+      </div>
+    </div>
+    <div class="page-row">
+      <div class="panel page-panel">
+        <h2>Página livre <span class="hint">escreva ou desenhe à mão</span></h2>
+        <div class="sketch-toolbar" id="pageSketchToolbar"></div>
+        <div class="sketch-canvas-wrap"><canvas class="sketch-canvas" id="pageSketchCanvas"></canvas></div>
+        <div class="page-acoes">
+          <button type="button" class="ghost-btn" id="pageSketchUndo">Desfazer</button>
+          <button type="button" class="ghost-btn" id="pageSketchClear">Limpar página</button>
+          <button type="button" class="btn-add" id="pageToBloco" title="A página vira um cartão no bloco ao lado, e fica limpa para a próxima">Guardar no bloco →</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Bloco de notas <span class="hint" id="blocoHint">do dia</span></h2>
+        <div class="notes-grid" id="notesGrid"></div>
+        <form class="note-add" id="noteForm">
+          <input type="text" id="noteInput" placeholder="Escrever uma nota…" data-caneta>
+          <button type="submit" class="btn-add" style="padding:9px 16px;font-size:13px;">+</button>
+        </form>
       </div>
     </div>
   </section>
@@ -579,14 +699,70 @@
       <div class="month-grid" id="monthGrid" style="margin-top:6px;"></div>
     </div>
   </section>
+
+  <!-- DIÁRIO -->
+  <section class="view-panel" id="view-diario">
+    <div id="diarioAba"></div>
+  </section>
+
+  <!-- FINANÇAS -->
+  <section class="view-panel" id="view-financas">
+    <div class="fin-layout">
+      <div class="panel">
+        <div class="month-head">
+          <div class="month-title" id="finMesLabel"></div>
+          <div class="month-nav">
+            <button id="finMesPrev" aria-label="Mês anterior">‹</button>
+            <button id="finMesNext" aria-label="Próximo mês">›</button>
+          </div>
+        </div>
+        <div class="fin-resumo" id="finResumo"></div>
+        <div class="planilha-wrap">
+          <table class="planilha">
+            <thead><tr><th>Dia</th><th>Descrição</th><th>Categoria</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+            <tbody id="finPlanilha"></tbody>
+          </table>
+        </div>
+        <form class="fin-add" id="finAddForm">
+          <input type="date" id="finData" aria-label="Dia">
+          <input type="text" id="finDesc" placeholder="Descrição" required data-caneta>
+          <select id="finCat" aria-label="Categoria">
+            <option>Casa</option><option>Mercado</option><option>Contas</option><option>Saúde</option>
+            <option>Transporte</option><option>Lazer</option><option>Compras</option><option>Renda extra</option><option>Outros</option>
+          </select>
+          <select id="finTipo" aria-label="Entrou ou saiu"><option value="saida">Saiu</option><option value="entrada">Entrou</option></select>
+          <input type="text" class="dinheiro" id="finValor" placeholder="R$ 0,00" inputmode="decimal" required>
+          <button type="submit" class="btn-add">+ Lançar</button>
+        </form>
+        <div class="fin-cats" id="finCats"></div>
+      </div>
+      <div class="panel">
+        <h2>Contas a pagar <span class="hint">as que costumam escapar</span></h2>
+        <div id="contasLista"></div>
+        <form class="fin-add" id="contaForm">
+          <input type="text" id="contaNome" placeholder="Conta (ex.: faxina, IPTU)" required data-caneta>
+          <input type="text" class="dinheiro" id="contaValor" placeholder="R$ (opcional)" inputmode="decimal">
+          <input type="date" id="contaVenc" aria-label="Próximo vencimento" required>
+          <select id="contaRepete" aria-label="Repete">
+            <option value="mes">todo mês</option><option value="semana">toda semana</option><option value="quinzena">a cada 15 dias</option>
+            <option value="ano">todo ano</option><option value="nao">uma vez só</option>
+          </select>
+          <button type="submit" class="btn-add">+ Conta</button>
+        </form>
+        <div class="contas-pagas" id="contasPagas"></div>
+      </div>
+    </div>
+  </section>
 </div>
 
+<script src="fin-motor.js"></script>
 <script>
 (function(){
   "use strict";
 
   var STORE_KEY = "bussola-planner-v1";
-  var state = { tasks: [], appointments: [], notes: [], habits: [], pages: {}, lastCategory: "pessoal", palette: "rose", painelHidden: {}, painelSync: null };
+  var state = { tasks: [], appointments: [], notes: [], habits: [], pages: {}, lastCategory: "pessoal", palette: "rose", painelHidden: {}, painelSync: null,
+               diario: null, financas: { lancamentos: [] }, contas: [], mercado: { itens: [], historico: {} } };
 
   function load(){
     try {
@@ -820,9 +996,14 @@
     var input = $("quickInput");
     var text = input.value.trim();
     if (!text) return;
-    state.tasks.push({ id: uid(), text: text, category: state.lastCategory, done: false, date: TODAY_ISO, focus: false, createdAt: Date.now() });
+    var nova = { id: uid(), text: text, category: state.lastCategory, done: false, date: TODAY_ISO, focus: false, createdAt: Date.now() };
+    if (foiAMao(input)) nova.aMao = true;
+    // Profissional vai também para o Bloco de Notas do painel (aba Shirley).
+    if (nova.category === "profissional") nova.painel = { id: "bussola-" + nova.id, estado: "enviando", ultimoDone: false };
+    state.tasks.push(nova);
     input.value = "";
     save(); renderAll();
+    if (nova.painel) tarefaNoPainel(nova, tarefaEnviar);
   });
 
   $("dayPrev").addEventListener("click", function(){ dayCursor = addDays(dayCursor, -1); renderDay(); loadPagePad(); });
@@ -840,7 +1021,7 @@
     state.appointments.push({
       id: uid(), title: title, date: $("apptDate").value || iso(dayCursor),
       time: $("apptTime").value || null, category: $("apptCat").value,
-      source: "manual", createdAt: Date.now()
+      source: "manual", aMao: foiAMao($("apptTitle")) || undefined, createdAt: Date.now()
     });
     $("apptTitle").value = ""; $("apptTime").value = "";
     $("apptForm").classList.remove("open");
@@ -863,43 +1044,11 @@
     var input = $("noteInput");
     var text = input.value.trim();
     if (!text) return;
-    state.notes.push({ id: uid(), text: text, pinned: false, createdAt: Date.now() });
+    state.notes.push({ id: uid(), text: text, pinned: false, date: iso(dayCursor), aMao: foiAMao(input) || undefined, createdAt: Date.now() });
     input.value = "";
     save(); renderNotes();
   });
 
-  $("habitForm").addEventListener("submit", function(e){
-    e.preventDefault();
-    var input = $("habitInput");
-    var name = input.value.trim();
-    if (!name) return;
-    state.habits.push({ id: uid(), name: name, category: $("habitCat").value, history: {} });
-    input.value = "";
-    save(); renderHabits();
-  });
-
-  /* ---------- note drawing mode ---------- */
-  var noteSketch = Sketchpad($("noteSketchCanvas"), [], null);
-  buildSketchToolbar($("noteSketchToolbar"), noteSketch);
-
-  $("noteModeToggle").querySelectorAll("button").forEach(function(btn){
-    btn.addEventListener("click", function(){
-      $("noteModeToggle").querySelectorAll("button").forEach(function(b){ b.setAttribute("data-active", b===btn ? "true":"false"); });
-      var mode = btn.getAttribute("data-mode");
-      $("noteTextBlock").classList.toggle("open", mode === "texto");
-      $("noteDrawBlock").classList.toggle("open", mode === "desenho");
-      if (mode === "desenho") noteSketch.resize();
-    });
-  });
-  $("noteSketchUndo").addEventListener("click", function(){ noteSketch.undo(); });
-  $("noteSketchClear").addEventListener("click", function(){ noteSketch.clear(); });
-  $("noteSketchSave").addEventListener("click", function(){
-    var strokes = noteSketch.getStrokes();
-    if (!strokes.length) return;
-    state.notes.push({ id: uid(), type: "drawing", strokes: strokes, pinned: false, createdAt: Date.now() });
-    noteSketch.clear();
-    save(); renderNotes();
-  });
 
   /* ---------- daily free page ---------- */
   var pagePad = Sketchpad($("pageSketchCanvas"), [], function(strokes){
@@ -924,6 +1073,15 @@
       }
     });
   })();
+  // "Guardar no bloco": o que foi escrito à mão na página vira um cartão no
+  // Bloco de notas ao lado, com a data do dia, e a página fica limpa.
+  $("pageToBloco").addEventListener("click", function(){
+    var strokes = pagePad.getStrokes();
+    if (!strokes.length) return;
+    state.notes.push({ id: uid(), type: "drawing", strokes: strokes, pinned: false, date: iso(dayCursor), createdAt: Date.now() });
+    pagePad.clear();
+    save(); renderNotes();
+  });
   function loadPagePad(){
     var entry = state.pages[iso(dayCursor)];
     pagePad.setStrokes(entry ? entry.strokes : []);
@@ -946,7 +1104,7 @@
       if (t) {
         focusHtml += '<div class="focus-slot filled"><span class="focus-num">'+(i+1)+'</span>' +
           '<span class="task-cat-dot '+t.category+'"></span>' +
-          '<span class="focus-text'+(t.done?' done':'')+'" data-id="'+t.id+'" data-role="focus-toggle-text">'+escapeHtml(t.text)+'</span>' +
+          '<span class="focus-text'+(t.done?' done':'')+(t.aMao?' cursiva':'')+'" data-id="'+t.id+'" data-role="focus-toggle-text">'+escapeHtml(t.text)+'</span>' +
           '<button class="star-btn active" data-role="unfocus" data-id="'+t.id+'" title="Tirar do foco">★</button></div>';
       } else {
         focusHtml += '<div class="focus-slot"><span class="focus-num">'+(i+1)+'</span><span class="focus-empty-label">vazio — marque uma tarefa com ★</span></div>';
@@ -961,14 +1119,20 @@
 
     var appts = state.appointments.filter(function(a){ return a.date === dISO; })
       .sort(function(a,b){ return (a.time||"99:99").localeCompare(b.time||"99:99"); });
-    if (!appts.length) {
+    var contasDoDia = contasAtivas().filter(function(c){ return c.venc === dISO; });
+    if (!appts.length && !contasDoDia.length) {
       $("timeline").innerHTML = '<div class="empty">Nenhum compromisso neste dia. Use "+ Compromisso" para marcar algo.</div>';
     } else {
-      $("timeline").innerHTML = appts.map(function(a){
+      $("timeline").innerHTML = contasDoDia.map(function(c){
+        return '<div class="appt-row"><div class="appt-time">—</div><div class="appt-dot" style="background:var(--accent)"></div>' +
+          '<div class="appt-body"><div class="appt-title">💸 Pagar: <span'+(c.aMao?' class="cursiva"':'')+'>'+escapeHtml(c.nome)+'</span></div>' +
+          '<div class="appt-meta">'+(c.valor?moeda(c.valor)+' · ':'')+CONTA_REPETE[c.repete||"nao"]+'</div></div>' +
+          '<button type="button" class="btn-paguei" data-role="conta-paguei" data-id="'+c.id+'">Paguei</button></div>';
+      }).join("") + appts.map(function(a){
         return '<div class="appt-row">' +
           '<div class="appt-time">'+(a.time || "—")+'</div>' +
           '<div class="appt-dot '+a.category+'"></div>' +
-          '<div class="appt-body"><div class="appt-title">'+escapeHtml(a.title)+'</div>' +
+          '<div class="appt-body"><div class="appt-title'+(a.aMao?' cursiva':'')+'">'+escapeHtml(a.title)+'</div>' +
           '<div class="appt-meta">'+(a.category==="pessoal"?"♡ Pessoal":"✦ Profissional")+(a.source==="painel"?'<span class="src-chip">do painel</span>':'')+'</div></div>' +
           '<button class="row-del" data-role="del-appt" data-id="'+a.id+'">✕</button></div>';
       }).join("");
@@ -988,25 +1152,35 @@
         return '<div class="task-row">' +
           '<div class="task-check'+(t.done?' done':'')+'" data-role="toggle-task" data-id="'+t.id+'">'+(t.done?'✓':'')+'</div>' +
           '<span class="task-cat-dot '+t.category+'"></span>' +
-          '<span class="task-text'+(t.done?' done':'')+'">'+escapeHtml(t.text)+'</span>' +
+          '<span class="task-text'+(t.done?' done':'')+(t.aMao?' cursiva':'')+'">'+escapeHtml(t.text)+'</span>' + tarefaChipHtml(t) +
           '<button class="star-btn'+(isFocus?' active':'')+'" data-role="toggle-focus" data-id="'+t.id+'" title="Colocar no foco de hoje">★</button>' +
           '<button class="row-del" data-role="del-task" data-id="'+t.id+'">✕</button></div>';
       }).join("");
     }
+    renderNotes();
+    renderContasBanner();
+    renderMercado();
+    renderDiarioPainel();
   }
 
   function renderNotes(){
-    var notes = state.notes.slice().sort(function(a,b){ return (b.pinned - a.pinned) || (b.createdAt - a.createdAt); });
+    // O bloco é do dia: entra a nota daquele dia, a fixada (📌, que vale
+    // todo dia) e a antiga, de antes de a nota ter data.
+    var dISO = iso(dayCursor);
+    $("blocoHint").textContent = dISO === TODAY_ISO ? "de hoje" : "de " + fmtShort(dayCursor);
+    var notes = state.notes.filter(function(n){ return n.pinned || !n.date || n.date === dISO; })
+      .sort(function(a,b){ return (b.pinned - a.pinned) || (b.createdAt - a.createdAt); });
     if (!notes.length) {
-      $("notesGrid").innerHTML = '<div class="empty">Sem notas por aqui.</div>';
+      $("notesGrid").innerHTML = '<div class="empty">Nada no bloco deste dia. Escreva aqui, ou guarde a página livre.</div>';
     } else {
       $("notesGrid").innerHTML = notes.map(function(n){
         var body = n.type === "drawing"
           ? '<canvas class="note-sketch-thumb" data-role="sketch-thumb" data-id="'+n.id+'"></canvas>'
-          : '<div>'+escapeHtml(n.text)+'</div>';
+          : '<div'+(n.aMao?' class="cursiva"':'')+'>'+escapeHtml(n.text)+'</div>';
         return '<div class="note-card'+(n.pinned?' pinned':'')+'">' +
           '<div class="note-top">' +
-          '<button data-role="pin-note" data-id="'+n.id+'" title="Fixar">'+(n.pinned?'📌':'📍')+'</button>' +
+          '<button class="note-amanha" data-role="note-amanha" data-id="'+n.id+'" title="Passar para o dia seguinte">→ amanhã</button>' +
+          '<button data-role="pin-note" data-id="'+n.id+'" title="Fixar em todos os dias">'+(n.pinned?'📌':'📍')+'</button>' +
           '<button data-role="del-note" data-id="'+n.id+'" title="Excluir">✕</button></div>' +
           body + '</div>';
       }).join("");
@@ -1017,28 +1191,6 @@
         }
       });
     }
-  }
-
-  function last7(){ var out = []; for (var i = 6; i >= 0; i--) out.push(iso(addDays(today(), -i))); return out; }
-  function streakFor(h){ var count = 0, d = today(); while (h.history[iso(d)]) { count++; d = addDays(d, -1); } return count; }
-  function renderHabits(){
-    if (!state.habits.length) {
-      $("habitList").innerHTML = '<div class="empty">Nenhum hábito ainda. Comece com um só, bem pequeno.</div>';
-      return;
-    }
-    var days = last7();
-    $("habitList").innerHTML = state.habits.map(function(h){
-      var dayCells = days.map(function(dISO){
-        var on = !!h.history[dISO];
-        var isToday = dISO === TODAY_ISO;
-        return '<div class="habit-day'+(on?' on':'')+(isToday?' today':'')+'" data-role="toggle-habit" data-id="'+h.id+'" data-date="'+dISO+'"></div>';
-      }).join("");
-      return '<div class="habit-row">' +
-        '<span class="habit-name"><span class="task-cat-dot '+h.category+'"></span>'+escapeHtml(h.name)+'</span>' +
-        '<span class="habit-streak">'+streakFor(h)+'d</span>' +
-        '<div class="habit-days">'+dayCells+'</div>' +
-        '<button class="row-del" data-role="del-habit" data-id="'+h.id+'">✕</button></div>';
-    }).join("");
   }
 
   function renderWeek(){
@@ -1106,8 +1258,18 @@
 
     if (role === "toggle-task") {
       var t = state.tasks.find(function(x){ return x.id===id; });
-      if (t) { t.done = !t.done; save(); renderDay(); }
+      if (t) {
+        t.done = !t.done; save(); renderDay();
+        if (t.painel && t.painel.estado === "ok") tarefaNoPainel(t, tarefaConcluirNoPainel);
+      }
     } else if (role === "del-task") {
+      var td = state.tasks.find(function(x){ return x.id===id; });
+      if (td && td.painel && td.painel.estado !== "removida") {
+        if (!confirm("Esta tarefa também está no Bloco de Notas do painel. Apagar lá também?")) return;
+        tarefaApagarNoPainel(td).catch(function(){
+          alert("O painel não respondeu — apaguei só aqui. Lá, apague pelo próprio painel.");
+        });
+      }
       state.tasks = state.tasks.filter(function(x){ return x.id!==id; });
       save(); renderDay();
     } else if (role === "toggle-focus") {
@@ -1139,13 +1301,6 @@
     } else if (role === "del-note") {
       state.notes = state.notes.filter(function(x){ return x.id!==id; });
       save(); renderNotes();
-    } else if (role === "toggle-habit") {
-      var h = state.habits.find(function(x){ return x.id===id; });
-      var dt = el.getAttribute("data-date");
-      if (h) { if (h.history[dt]) delete h.history[dt]; else h.history[dt] = true; save(); renderHabits(); }
-    } else if (role === "del-habit") {
-      state.habits = state.habits.filter(function(x){ return x.id!==id; });
-      save(); renderHabits();
     } else if (role === "goto-day") {
       dayCursor = fromIso(el.getAttribute("data-date"));
       view = "dia";
@@ -1172,6 +1327,913 @@
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]; });
   }
+
+  // ════════════════════════════════════════════════════════════════════
+  // TAREFAS PROFISSIONAIS → BLOCO DE NOTAS DO PAINEL
+  // Tarefa marcada ✦ Profissional vira um lembrete na aba Shirley do Bloco de
+  // Notas do painel (/focos, o mesmo nó que o formulário do painel grava).
+  // Concluir vale nos dois lados, a pedido dela. O painel grava /focos como
+  // uma lista inteira; aqui se escreve só no item — acrescentar no fim, marcar
+  // `done` no índice, apagar o índice —, para nunca regravar a lista dela.
+  // Se o banco não responder, a tarefa fica marcada "a caminho" e a próxima
+  // conferência tenta de novo: nada some em silêncio.
+  // ════════════════════════════════════════════════════════════════════
+  var PAINEL_RESP = "shirley";
+
+  function painelPedir(caminho, opt){
+    return fetch(PAINEL_DB + "/" + caminho + ".json", Object.assign({ cache: "no-store" }, opt || {})).then(function(r){
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+  }
+  function focosLista(v){
+    var out = [];
+    if (!v) return out;
+    Object.keys(v).forEach(function(k){ if (v[k] && typeof v[k] === "object") out.push({ key: k, f: v[k] }); });
+    return out;
+  }
+  function focoAchar(v, id){
+    return focosLista(v).filter(function(x){ return x.f.id === id; })[0] || null;
+  }
+  function focoDaTarefa(t){
+    return { id: t.painel.id, text: t.text, done: !!t.done, casoNome: null, resp: PAINEL_RESP,
+             urgente: false, quando: null, origem: "bussola" };
+  }
+  function tarefaEnviar(t){
+    return painelPedir("focos").then(function(v){
+      if (focoAchar(v, t.painel.id)) return;
+      var prox = 0;
+      focosLista(v).forEach(function(x){ var n = parseInt(x.key, 10); if (!isNaN(n) && n >= prox) prox = n + 1; });
+      return painelPedir("focos/" + prox, { method: "PUT", body: JSON.stringify(focoDaTarefa(t)) });
+    }).then(function(){ t.painel.estado = "ok"; t.painel.ultimoDone = !!t.done; });
+  }
+  function tarefaConcluirNoPainel(t){
+    return painelPedir("focos").then(function(v){
+      var x = focoAchar(v, t.painel.id);
+      if (!x) { t.painel.estado = "removida"; return; }
+      return painelPedir("focos/" + x.key, { method: "PATCH", body: JSON.stringify({ done: !!t.done }) })
+        .then(function(){ t.painel.ultimoDone = !!t.done; });
+    });
+  }
+  function tarefaApagarNoPainel(t){
+    return painelPedir("focos").then(function(v){
+      var x = focoAchar(v, t.painel.id);
+      if (x) return painelPedir("focos/" + x.key, { method: "DELETE" });
+    });
+  }
+  // Roda uma ida ao painel e guarda o resultado na tarefa — deu errado, fica
+  // o aviso na linha dela até a próxima conferência conseguir.
+  function tarefaNoPainel(t, acao){
+    t.painel.erro = false;
+    return acao(t).catch(function(){ t.painel.erro = true; })
+      .then(function(){ save(); renderDay(); });
+  }
+  // Compara o que o painel diz com o que o Bússola sabe. `ultimoDone` é o
+  // último estado em que os dois concordaram: se o painel mudou desde então,
+  // vale o painel; se foi aqui que mudou, a mudança ainda precisa subir.
+  function painelConciliarTarefas(v){
+    var pendentes = [];
+    state.tasks.forEach(function(t){
+      if (!t.painel) return;
+      var x = focoAchar(v, t.painel.id);
+      if (t.painel.estado === "enviando") {
+        if (!x) { pendentes.push({ t: t, acao: tarefaEnviar }); return; }
+        t.painel.estado = "ok"; t.painel.ultimoDone = !!x.f.done;
+      }
+      if (t.painel.estado !== "ok") return;
+      if (!x) { t.painel.estado = "removida"; return; }
+      var la = !!x.f.done;
+      if (la !== !!t.painel.ultimoDone) { t.done = la; t.painel.ultimoDone = la; t.painel.erro = false; }
+      else if (!!t.done !== la) pendentes.push({ t: t, acao: tarefaConcluirNoPainel });
+    });
+    return pendentes;
+  }
+  function tarefaChipHtml(t){
+    if (!t.painel) return "";
+    if (t.painel.estado === "removida") return '<span class="painel-chip fora" title="Apagaram este lembrete no painel. Aqui ele continua.">tirada do painel</span>';
+    if (t.painel.erro) return '<span class="painel-chip espera" title="O painel não respondeu. Tento de novo na próxima conferência.">ainda não chegou ao painel</span>';
+    if (t.painel.estado === "enviando") return '<span class="painel-chip espera">indo pro painel…</span>';
+    return '<span class="painel-chip" title="Está no Bloco de Notas do painel, na aba Shirley">no painel</span>';
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // CONTAS A PAGAR
+  // A conta que se esquece de pagar: a faxina, o IPTU. Cada conta tem o
+  // próximo vencimento; "Paguei" registra o pagamento, lança a saída na
+  // planilha do mês e empurra o vencimento para a próxima vez (ou encerra a
+  // conta, se era de uma vez só). Conta atrasada aparece no topo do Dia até
+  // ser paga — com o tanto de dias, sem bronca.
+  // ════════════════════════════════════════════════════════════════════
+  var CONTA_REPETE = { nao: "uma vez só", semana: "toda semana", quinzena: "a cada 15 dias", mes: "todo mês", ano: "todo ano" };
+  function contaProxima(c){
+    var d = fromIso(c.venc);
+    if (c.repete === "semana") d = addDays(d, 7);
+    else if (c.repete === "quinzena") d = addDays(d, 15);
+    else if (c.repete === "mes") {
+      // Dia 31 num mês de 30 cai no último dia — e volta ao 31 quando der.
+      var dia = c.dia || d.getDate();
+      var ult = new Date(d.getFullYear(), d.getMonth() + 2, 0).getDate();
+      d = new Date(d.getFullYear(), d.getMonth() + 1, Math.min(dia, ult));
+    }
+    else if (c.repete === "ano") d = new Date(d.getFullYear() + 1, d.getMonth(), d.getDate());
+    return iso(d);
+  }
+  function contaDias(c){ return Math.round((fromIso(c.venc) - today()) / 86400000); }
+  function contaQuando(c){
+    var n = contaDias(c);
+    if (n < -1) return "venceu há " + (-n) + " dias";
+    if (n === -1) return "venceu ontem";
+    if (n === 0) return "vence hoje";
+    if (n === 1) return "vence amanhã";
+    return "vence em " + n + " dias · " + fmtShort(fromIso(c.venc));
+  }
+  function contasAtivas(){
+    return (state.contas || []).filter(function(c){ return c.ativa; })
+      .sort(function(a, b){ return a.venc < b.venc ? -1 : a.venc > b.venc ? 1 : 0; });
+  }
+  function contasPedindoAtencao(){ return contasAtivas().filter(function(c){ return contaDias(c) <= 3; }); }
+  function moeda(v){ return FIN ? FIN.moeda(v) : "R$ " + Number(v || 0).toFixed(2).replace(".", ","); }
+  function lerDinheiro(s){ return FIN ? FIN.num(s) : parseFloat(String(s).replace(/\./g, "").replace(",", ".")) || 0; }
+
+  function contaLinhaHtml(c, comRepete){
+    var venceu = contaDias(c) < 0;
+    return '<div class="conta-linha">' +
+      '<span class="conta-nome' + (c.aMao ? ' cursiva' : '') + '">' + escapeHtml(c.nome) + '</span>' +
+      '<span class="conta-quando' + (venceu ? ' venceu' : '') + '">' + contaQuando(c) + '</span>' +
+      '<span class="conta-valor">' + (c.valor ? moeda(c.valor) : '') + '</span>' +
+      '<button type="button" class="btn-paguei" data-role="conta-paguei" data-id="' + c.id + '">Paguei</button>' +
+      '</div>' + (comRepete ? '<div class="conta-rep">' + CONTA_REPETE[c.repete || "nao"] + '</div>' : '');
+  }
+  function renderContasBanner(){
+    var el = $("contasBanner");
+    var lista = iso(dayCursor) === TODAY_ISO ? contasPedindoAtencao() : [];
+    if (!lista.length) { el.innerHTML = ""; return; }
+    el.innerHTML = '<div class="contas-banner"><h3>Contas pedindo atenção' +
+      '<button type="button" data-role="ir-financas">ver todas →</button></h3>' +
+      lista.map(function(c){ return contaLinhaHtml(c, false); }).join("") + '</div>';
+  }
+  function contaPagar(id){
+    var c = (state.contas || []).filter(function(x){ return x.id === id; })[0];
+    if (!c) return;
+    var valor = c.valor || null;
+    if (!valor) {
+      var r = prompt("Quanto foi \"" + c.nome + "\"? (pode deixar em branco)", "");
+      if (r === null) return;
+      valor = r.trim() ? lerDinheiro(r) : null;
+    }
+    c.pagamentos = c.pagamentos || [];
+    c.pagamentos.push({ venc: c.venc, pagoEm: TODAY_ISO, valor: valor });
+    if (valor) {
+      state.financas.lancamentos.push({ id: uid(), data: TODAY_ISO, descricao: c.nome, categoria: "Contas",
+        tipo: "saida", valor: valor, contaId: c.id, aMao: c.aMao || undefined });
+    }
+    if (!c.repete || c.repete === "nao") c.ativa = false;
+    else c.venc = contaProxima(c);
+    save(); renderAll();
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // FINANÇAS DO MÊS
+  // A planilha é do mês do calendário. O salário do cartório NÃO se digita:
+  // vem do Financeiro do painel, calculado pela mesma conta que o "Meu
+  // financeiro" usa (fin-motor.js, recortado do index.html). O salário do mês
+  // é o do fechamento que termina nele — o de setembro vai de 26/08 a 25/09.
+  // Para ler o Financeiro é preciso entrar com a conta dele; o que se guarda
+  // aqui é só o token de renovação, nunca a senha nem os lançamentos.
+  // ════════════════════════════════════════════════════════════════════
+  var FIN = window.BussolaFin || null;
+  var FB_CHAVE = "AIzaSyA_tR17xeu0uhfonc1y1ksStmjGZtY_tcM";
+  var FIN_TOKEN_KEY = "bussola-fin-sessao";
+  var FIN_CATEGORIAS = ["Casa", "Mercado", "Contas", "Saúde", "Transporte", "Lazer", "Compras", "Renda extra", "Outros"];
+  var finMesCursor = new Date(today().getFullYear(), today().getMonth(), 1);
+  var finSessao = null;         // { email, idToken, exp, refresh }
+  var finSalario = { estado: "fora" };  // fora | carregando | ok | erro
+  var finDados = null;          // { lanc, cfg } lidos do banco, só na memória
+
+  try { var s0 = JSON.parse(localStorage.getItem(FIN_TOKEN_KEY) || "null"); if (s0 && s0.refresh) finSessao = s0; } catch(e) {}
+  function finGuardarSessao(){
+    try {
+      if (finSessao) localStorage.setItem(FIN_TOKEN_KEY, JSON.stringify({ email: finSessao.email, refresh: finSessao.refresh }));
+      else localStorage.removeItem(FIN_TOKEN_KEY);
+    } catch(e) {}
+  }
+  var FIN_ERROS = {
+    INVALID_LOGIN_CREDENTIALS: "E-mail ou senha não conferem.",
+    INVALID_PASSWORD: "E-mail ou senha não conferem.",
+    EMAIL_NOT_FOUND: "E-mail ou senha não conferem.",
+    INVALID_EMAIL: "Esse e-mail não parece certo.",
+    TOO_MANY_ATTEMPTS_TRY_LATER: "Tentativas demais. Espere uns minutos.",
+    USER_DISABLED: "Esta conta está desativada.",
+    TOKEN_EXPIRED: "A entrada venceu. Entre de novo.",
+    INVALID_REFRESH_TOKEN: "A entrada venceu. Entre de novo."
+  };
+  function finErroLegivel(msg){
+    msg = String(msg || "");
+    for (var k in FIN_ERROS) if (msg.indexOf(k) > -1) return FIN_ERROS[k];
+    if (msg.indexOf("REFERRER") > -1) return "O banco não aceita pedidos vindos do Bússola (a chave está restrita a outro endereço).";
+    if (msg.indexOf("HTTP 401") > -1) return "Esta conta não tem acesso ao Financeiro.";
+    if (msg.indexOf("Failed to fetch") > -1 || msg.indexOf("NetworkError") > -1) return "Sem conexão com o banco agora.";
+    return "Não deu certo: " + msg;
+  }
+  function finPost(url, corpo, form){
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": form ? "application/x-www-form-urlencoded" : "application/json" },
+      body: form ? corpo : JSON.stringify(corpo)
+    }).then(function(r){
+      return r.json().then(function(j){
+        if (!r.ok) throw new Error((j && j.error && (j.error.message || j.error)) || ("HTTP " + r.status));
+        return j;
+      });
+    });
+  }
+  function finEntrar(email, senha){
+    return finPost("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + FB_CHAVE,
+      { email: email, password: senha, returnSecureToken: true }).then(function(j){
+      finSessao = { email: j.email, idToken: j.idToken, refresh: j.refreshToken, exp: Date.now() + (parseInt(j.expiresIn, 10) - 60) * 1000 };
+      finGuardarSessao();
+    });
+  }
+  function finToken(){
+    if (!finSessao) return Promise.reject(new Error("fora"));
+    if (finSessao.idToken && finSessao.exp > Date.now()) return Promise.resolve(finSessao.idToken);
+    return finPost("https://securetoken.googleapis.com/v1/token?key=" + FB_CHAVE,
+      "grant_type=refresh_token&refresh_token=" + encodeURIComponent(finSessao.refresh), true).then(function(j){
+      finSessao.idToken = j.id_token; finSessao.refresh = j.refresh_token;
+      finSessao.exp = Date.now() + (parseInt(j.expires_in, 10) - 60) * 1000;
+      finGuardarSessao();
+      return finSessao.idToken;
+    });
+  }
+  function finSair(){ finSessao = null; finDados = null; finSalario = { estado: "fora" }; finGuardarSessao(); renderFinancas(); }
+  function finChaveMes(d){ return d.getFullYear() + "-" + pad(d.getMonth() + 1); }
+  function finCalcularSalario(){
+    if (!FIN || !finDados) return;
+    var chave = finChaveMes(finMesCursor);
+    FIN.usar(finDados.lanc, finDados.cfg);
+    var s = FIN.salario(chave);
+    finSalario = { estado: "ok", chave: chave, total: s.total, itens: s.itens, semDono: s.semDono, ciclo: FIN.cicloPorChave(chave) };
+  }
+  function finCarregar(){
+    if (!finSessao || !FIN) { finSalario = { estado: "fora" }; renderFinancas(); return; }
+    finSalario = { estado: "carregando" }; renderFinancas();
+    finToken().then(function(tk){
+      var q = "?auth=" + encodeURIComponent(tk);
+      return Promise.all([
+        fetch(PAINEL_DB + "/financeiro/lancamentos.json" + q, { cache: "no-store" }),
+        fetch(PAINEL_DB + "/financeiro/config.json" + q, { cache: "no-store" })
+      ]);
+    }).then(function(rs){
+      rs.forEach(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); });
+      return Promise.all([rs[0].json(), rs[1].json()]);
+    }).then(function(js){
+      finDados = { lanc: js[0] || {}, cfg: js[1] };
+      finCalcularSalario();
+    }).catch(function(e){
+      finSalario = { estado: "erro", msg: finErroLegivel(e && e.message) };
+      if (/venceu|não conferem/.test(finSalario.msg)) { finSessao = null; finGuardarSessao(); }
+    }).then(renderFinancas);
+  }
+  function finLancDoMes(){
+    var chave = finChaveMes(finMesCursor);
+    return (state.financas.lancamentos || []).filter(function(l){ return String(l.data || "").slice(0, 7) === chave; })
+      .sort(function(a, b){ return String(a.data).localeCompare(String(b.data)); });
+  }
+  function finSalarioLinhaHtml(){
+    var st = finSalario;
+    var titulo = '<strong>Salário do cartório</strong>';
+    if (st.estado === "ok") {
+      var sub = st.semDono ? 'no Financeiro ninguém está marcado como "sou eu"'
+        : st.ciclo.rotulo.toLowerCase() + ' (' + st.ciclo.periodo + ') · ' + st.itens.length + ' escritura' + (st.itens.length === 1 ? '' : 's') + ' paga' + (st.itens.length === 1 ? '' : 's') + ' · vem do painel';
+      return '<tr class="salario"><td>—</td><td>' + titulo + '<span class="sub">' + sub + '</span></td><td>Salário</td>' +
+        '<td class="valor entrada">' + moeda(st.total) + '</td><td><button class="row-del" data-role="fin-sair" title="Sair da conta do Financeiro">⎋</button></td></tr>';
+    }
+    var corpo;
+    if (!FIN) corpo = '<span class="sub">A conta do salário não carregou. Recarregue a página.</span>';
+    else if (st.estado === "carregando") corpo = '<span class="sub">Buscando no painel…</span>';
+    else {
+      corpo = '<span class="sub">Vem sozinho do Financeiro do painel. Entre uma vez com a conta de lá:</span>' +
+        (st.estado === "erro" ? '<span class="sub diario-erro">' + escapeHtml(st.msg) + '</span>' : '') +
+        (finSessao ? '<div class="fin-login" style="margin-top:6px"><button type="button" class="ghost-btn" data-role="fin-recarregar">Tentar de novo</button></div>'
+          : '<form class="fin-login" id="finLoginForm" style="margin-top:6px">' +
+            '<input type="email" id="finEmail" placeholder="E-mail" autocomplete="username" required>' +
+            '<input type="password" id="finSenha" placeholder="Senha do Financeiro" autocomplete="current-password" required>' +
+            '<button type="submit" class="btn-add">Entrar</button></form>');
+    }
+    return '<tr class="salario"><td>—</td><td colspan="4">' + titulo + corpo + '</td></tr>';
+  }
+  function renderFinancas(){
+    if (!$("view-financas")) return;
+    var rotulo = finMesCursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    $("finMesLabel").textContent = rotulo;
+    var lista = finLancDoMes();
+    var ent = 0, sai = 0, porCat = {};
+    lista.forEach(function(l){
+      if (l.tipo === "entrada") ent += Number(l.valor) || 0;
+      else { sai += Number(l.valor) || 0; porCat[l.categoria || "Outros"] = (porCat[l.categoria || "Outros"] || 0) + (Number(l.valor) || 0); }
+    });
+    var comSalario = finSalario.estado === "ok" && finSalario.chave === finChaveMes(finMesCursor);
+    if (comSalario) ent += finSalario.total;
+    var saldo = ent - sai;
+    $("finResumo").innerHTML =
+      '<div class="fin-card entrada"><small>Entrou</small><strong>' + moeda(ent) + '</strong></div>' +
+      '<div class="fin-card saida"><small>Saiu</small><strong>' + moeda(sai) + '</strong></div>' +
+      '<div class="fin-card saldo"><small>Sobrou</small><strong>' + moeda(saldo) + '</strong></div>' +
+      (comSalario ? '' : '<div class="fin-card nota">Estes totais ainda estão sem o salário do cartório.</div>');
+    $("finPlanilha").innerHTML = finSalarioLinhaHtml() + (lista.length ? lista.map(function(l){
+      return '<tr><td>' + fmtShort(fromIso(l.data)) + '</td><td' + (l.aMao ? ' class="cursiva"' : '') + '>' + escapeHtml(l.descricao) + '</td><td>' + escapeHtml(l.categoria || "") + '</td>' +
+        '<td class="valor ' + (l.tipo === "entrada" ? "entrada" : "saida") + '">' + (l.tipo === "entrada" ? "" : "− ") + moeda(l.valor) + '</td>' +
+        '<td><button class="row-del" data-role="fin-del" data-id="' + l.id + '" title="Apagar linha">✕</button></td></tr>';
+    }).join("") : '<tr><td colspan="5" class="empty" style="padding:14px 10px">Nada lançado neste mês ainda.</td></tr>');
+    var cats = Object.keys(porCat).sort(function(a, b){ return porCat[b] - porCat[a]; });
+    $("finCats").innerHTML = cats.length ? '<div class="hint" style="font-size:12px;font-weight:700;color:var(--muted)">Para onde foi</div>' + cats.map(function(k){
+      return '<div class="fin-cat"><span>' + escapeHtml(k) + '</span><div class="fin-cat-barra"><span style="width:' + Math.round(porCat[k] / sai * 100) + '%"></span></div><span>' + moeda(porCat[k]) + '</span></div>';
+    }).join("") : "";
+    if (!$("finData").value) $("finData").value = TODAY_ISO;
+
+    var contas = contasAtivas();
+    $("contasLista").innerHTML = contas.length ? contas.map(function(c){
+      return '<div class="conta-card' + (contaDias(c) < 0 ? ' venceu' : '') + '">' + contaLinhaHtml(c, true) +
+        '<div style="text-align:right"><button class="diario-link" data-role="conta-del" data-id="' + c.id + '">tirar esta conta</button></div></div>';
+    }).join("") : '<div class="empty">Nenhuma conta cadastrada. Comece pela que mais escapa — a faxina, o IPTU.</div>';
+    var pagos = [];
+    (state.contas || []).forEach(function(c){ (c.pagamentos || []).forEach(function(p){ pagos.push({ nome: c.nome, p: p }); }); });
+    pagos.sort(function(a, b){ return String(b.p.pagoEm).localeCompare(String(a.p.pagoEm)); });
+    $("contasPagas").innerHTML = pagos.length ? '<div style="font-weight:700;margin-bottom:4px">Pagas por último</div>' + pagos.slice(0, 6).map(function(x){
+      return '<div>✓ ' + escapeHtml(x.nome) + ' · paga em ' + fmtShort(fromIso(x.p.pagoEm)) + (x.p.valor ? ' · ' + moeda(x.p.valor) : '') + '</div>';
+    }).join("") : "";
+    if (!$("contaVenc").value) $("contaVenc").value = TODAY_ISO;
+  }
+
+  $("finMesPrev").addEventListener("click", function(){ finMesCursor = new Date(finMesCursor.getFullYear(), finMesCursor.getMonth() - 1, 1); finCalcularSalario(); renderFinancas(); });
+  $("finMesNext").addEventListener("click", function(){ finMesCursor = new Date(finMesCursor.getFullYear(), finMesCursor.getMonth() + 1, 1); finCalcularSalario(); renderFinancas(); });
+  $("finAddForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var desc = $("finDesc").value.trim(), valor = lerDinheiro($("finValor").value);
+    if (!desc || !valor) return;
+    state.financas.lancamentos.push({ id: uid(), data: $("finData").value || TODAY_ISO, descricao: desc,
+      categoria: $("finCat").value, tipo: $("finTipo").value, valor: valor, aMao: foiAMao($("finDesc")) || undefined });
+    $("finDesc").value = ""; $("finValor").value = "";
+    save(); renderFinancas();
+  });
+  $("contaForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var nome = $("contaNome").value.trim(), venc = $("contaVenc").value;
+    if (!nome || !venc) return;
+    var v = $("contaValor").value.trim();
+    state.contas.push({ id: uid(), nome: nome, aMao: foiAMao($("contaNome")) || undefined, valor: v ? lerDinheiro(v) : null, venc: venc,
+      dia: fromIso(venc).getDate(), repete: $("contaRepete").value, ativa: true, pagamentos: [], criadaEm: Date.now() });
+    $("contaNome").value = ""; $("contaValor").value = "";
+    save(); renderAll();
+  });
+
+  // ════════════════════════════════════════════════════════════════════
+  // DIÁRIO
+  // Ideias, insights, sonhos e pensamentos, organizados pelo dia em que
+  // foram escritos. Fica trancado: o texto vai cifrado para o armazenamento
+  // do aparelho (AES-GCM; chave da senha por PBKDF2, 250 mil voltas — o mesmo
+  // cofre do "Meu financeiro"). A chave que cifra os textos é sorteada uma vez
+  // e guardada embrulhada três vezes: pela senha, pelo código de recuperação e,
+  // se o aparelho deixar, pelo rosto (Face ID via passkey com a extensão PRF).
+  // Destravado, a chave vive só na memória: some ao sair do app ou depois de
+  // cinco minutos parado. Sem a senha e sem o código, nem quem fez o Bússola
+  // lê — por isso o código aparece uma vez, na criação, para ser guardado.
+  // ════════════════════════════════════════════════════════════════════
+  var DIARIO_VOLTAS = 250000;
+  var DIARIO_MINUTOS = 5;
+  var DIARIO_TIPOS = { ideia: "💡 Ideia", insight: "✨ Insight", sonho: "🌙 Sonho", pensamento: "💭 Pensamento" };
+  var diarioChave = null, diarioRaw = null, diarioEntradas = [];
+  var diarioTipo = "ideia", diarioErro = "", diarioModo = "", diarioCodigoNovo = null, diarioOcupado = false;
+  var diarioDiaSel = TODAY_ISO, diarioBusca = "", diarioMesCursor = new Date(today().getFullYear(), today().getMonth(), 1);
+  var diarioTimer = null;
+  var cod = new TextEncoder(), decod = new TextDecoder();
+
+  function b64(buf){ var s = ""; new Uint8Array(buf).forEach(function(b){ s += String.fromCharCode(b); }); return btoa(s); }
+  function deB64(s){ return Uint8Array.from(atob(s), function(c){ return c.charCodeAt(0); }); }
+  function sorteio(n){ return crypto.getRandomValues(new Uint8Array(n)); }
+  function chaveDaSenha(segredo, saltB64){
+    return crypto.subtle.importKey("raw", cod.encode(segredo), "PBKDF2", false, ["deriveKey"]).then(function(k){
+      return crypto.subtle.deriveKey({ name: "PBKDF2", salt: deB64(saltB64), iterations: DIARIO_VOLTAS, hash: "SHA-256" },
+        k, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+    });
+  }
+  function chaveDosBytes(bytes){
+    return crypto.subtle.importKey("raw", bytes, "HKDF", false, ["deriveKey"]).then(function(k){
+      return crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: cod.encode("bussola-diario"), info: cod.encode("rosto") },
+        k, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+    });
+  }
+  function cifrar(chave, bytes){
+    var iv = sorteio(12);
+    return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, chave, bytes).then(function(ct){ return { iv: b64(iv), ct: b64(ct) }; });
+  }
+  function decifrar(chave, p){ return crypto.subtle.decrypt({ name: "AES-GCM", iv: deB64(p.iv) }, chave, deB64(p.ct)); }
+  function gerarCodigo(){
+    var letras = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", b = sorteio(16), s = "";
+    for (var i = 0; i < 16; i++) { s += letras[b[i] % letras.length]; if (i % 4 === 3 && i < 15) s += "-"; }
+    return s;
+  }
+  function normCodigo(c){ return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+
+  function diarioAbrirComRaw(raw){
+    diarioRaw = new Uint8Array(raw);
+    return crypto.subtle.importKey("raw", diarioRaw, "AES-GCM", false, ["encrypt", "decrypt"]).then(function(k){
+      diarioChave = k;
+      var d = state.diario.dados;
+      return d ? decifrar(k, d).then(function(buf){ return JSON.parse(decod.decode(buf)); }) : [];
+    }).then(function(lista){ diarioEntradas = Array.isArray(lista) ? lista : []; diarioAdiarTranca(); });
+  }
+  function diarioGravar(){
+    return cifrar(diarioChave, cod.encode(JSON.stringify(diarioEntradas))).then(function(p){ state.diario.dados = p; save(); });
+  }
+  function diarioCriar(senha){
+    var raw = sorteio(32), codigo = gerarCodigo();
+    var sS = b64(sorteio(16)), sR = b64(sorteio(16));
+    return Promise.all([chaveDaSenha(senha, sS), chaveDaSenha(normCodigo(codigo), sR)]).then(function(ks){
+      return Promise.all([cifrar(ks[0], raw), cifrar(ks[1], raw)]);
+    }).then(function(ws){
+      state.diario = { v: 1, senha: { salt: sS, embrulho: ws[0] }, rec: { salt: sR, embrulho: ws[1] }, face: null, dados: null };
+      return diarioAbrirComRaw(raw);
+    }).then(diarioGravar).then(function(){ return codigo; });
+  }
+  function diarioDestrancar(segredo, viaCodigo){
+    var e = viaCodigo ? state.diario.rec : state.diario.senha;
+    return chaveDaSenha(viaCodigo ? normCodigo(segredo) : segredo, e.salt)
+      .then(function(k){ return decifrar(k, e.embrulho); })
+      .then(diarioAbrirComRaw);
+  }
+  function diarioNovaSenha(senha){
+    var sS = b64(sorteio(16));
+    return chaveDaSenha(senha, sS).then(function(k){ return cifrar(k, diarioRaw); }).then(function(w){
+      state.diario.senha = { salt: sS, embrulho: w }; save();
+    });
+  }
+  function diarioTrancar(){
+    diarioChave = null; diarioRaw = null; diarioEntradas = []; diarioBusca = ""; diarioModo = ""; diarioErro = "";
+    clearTimeout(diarioTimer);
+    renderDiario();
+  }
+  function diarioAdiarTranca(){
+    clearTimeout(diarioTimer);
+    diarioTimer = setTimeout(diarioTrancar, DIARIO_MINUTOS * 60 * 1000);
+  }
+  document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "hidden" && diarioChave) diarioTrancar(); });
+
+  // Rosto: uma passkey do próprio aparelho, e dela sai um segredo (PRF) que
+  // embrulha a chave do diário. Onde o aparelho não oferece isso, o botão
+  // nem aparece — e a senha continua valendo sempre.
+  function rostoPossivel(){ return !!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext); }
+  function rostoSegredo(credId, salt){
+    return navigator.credentials.get({ publicKey: {
+      challenge: sorteio(32), allowCredentials: [{ type: "public-key", id: credId }],
+      userVerification: "required", timeout: 60000, extensions: { prf: { eval: { first: salt } } }
+    } }).then(function(a){
+      var r = a.getClientExtensionResults ? a.getClientExtensionResults() : {};
+      if (!r.prf || !r.prf.results || !r.prf.results.first) throw new Error("sem-prf");
+      return r.prf.results.first;
+    });
+  }
+  function diarioLigarRosto(){
+    var salt = sorteio(32);
+    return navigator.credentials.create({ publicKey: {
+      rp: { name: "Bússola" }, user: { id: sorteio(16), name: "diario-bussola", displayName: "Diário do Bússola" },
+      challenge: sorteio(32), pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+      authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "preferred" },
+      timeout: 60000, extensions: { prf: {} }
+    } }).then(function(cred){
+      var ext = cred.getClientExtensionResults ? cred.getClientExtensionResults() : {};
+      if (ext.prf && ext.prf.enabled === false) throw new Error("sem-prf");
+      return rostoSegredo(cred.rawId, salt).then(chaveDosBytes).then(function(k){ return cifrar(k, diarioRaw); }).then(function(w){
+        state.diario.face = { cred: b64(cred.rawId), salt: b64(salt), embrulho: w }; save();
+      });
+    });
+  }
+  function diarioDestrancarRosto(){
+    var f = state.diario.face;
+    return rostoSegredo(deB64(f.cred), deB64(f.salt)).then(chaveDosBytes)
+      .then(function(k){ return decifrar(k, f.embrulho); }).then(diarioAbrirComRaw);
+  }
+  function rostoErro(e){
+    if (e && e.message === "sem-prf") return "Este aparelho não deixa usar o rosto para trancar o diário. A senha continua valendo.";
+    if (e && e.name === "NotAllowedError") return "O rosto não foi confirmado. Pode usar a senha.";
+    return "Não deu para usar o rosto agora. Pode usar a senha.";
+  }
+
+  function diarioAcao(promessa, erroMsg){
+    diarioOcupado = true; diarioErro = ""; renderDiario();
+    return promessa.catch(function(e){ diarioErro = typeof erroMsg === "function" ? erroMsg(e) : erroMsg; })
+      .then(function(){ diarioOcupado = false; renderDiario(); });
+  }
+
+  function diarioBorraoHtml(){
+    var w = [92, 78, 85, 60, 88, 70];
+    return '<div class="diario-borrao" aria-hidden="true">' + w.map(function(x){ return '<span style="width:' + x + '%"></span>'; }).join("") + '</div>';
+  }
+  // O que se mostra enquanto o diário não está aberto: criar, destravar,
+  // recuperar ou guardar o código. Vale igual no painel do Dia e na aba.
+  function diarioPortaoHtml(){
+    var erro = diarioErro ? '<div class="diario-erro">' + escapeHtml(diarioErro) + '</div>' : '';
+    var ocupado = diarioOcupado ? ' disabled' : '';
+    if (diarioCodigoNovo) {
+      return '<div class="diario-trava" style="position:static;padding:8px 0">' +
+        '<div class="cadeado">🗝️</div><p><strong>Guarde este código.</strong> Ele é a única forma de abrir o diário se você esquecer a senha. Anote num lugar seguro — ele não aparece de novo.</p>' +
+        '<div class="diario-codigo">' + diarioCodigoNovo + '</div>' +
+        '<button type="button" class="btn-add" data-role="diario-guardei">Já guardei</button></div>';
+    }
+    if (!state.diario) {
+      if (diarioModo !== "criar") {
+        return '<div class="diario-trava" style="position:static;padding:8px 0"><div class="cadeado">📔</div>' +
+          '<p>Um lugar só seu para ideias, insights, sonhos e pensamentos. Fica trancado por senha — e pelo rosto, se o aparelho deixar.</p>' +
+          '<button type="button" class="btn-add" data-role="diario-comecar">Criar meu diário</button></div>';
+      }
+      return '<div class="diario-trava" style="position:static;padding:8px 0"><div class="cadeado">🔐</div>' +
+        '<p>Escolha a senha do diário (pelo menos 6 letras ou números).</p>' +
+        '<form class="diario-form" data-form="diario-criar"><input type="password" name="s1" placeholder="Senha" autocomplete="new-password" minlength="6" required>' +
+        '<input type="password" name="s2" placeholder="Repita a senha" autocomplete="new-password" required>' +
+        '<button type="submit" class="btn-add"' + ocupado + '>' + (diarioOcupado ? 'Criando…' : 'Criar') + '</button></form>' + erro +
+        '<button type="button" class="diario-link" data-role="diario-cancelar">agora não</button></div>';
+    }
+    var corpo;
+    if (diarioModo === "codigo") {
+      corpo = '<p>Digite o código de recuperação e a senha nova.</p>' +
+        '<form class="diario-form" data-form="diario-codigo"><input type="text" name="c" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" required>' +
+        '<input type="password" name="s1" placeholder="Senha nova" autocomplete="new-password" minlength="6" required>' +
+        '<button type="submit" class="btn-add"' + ocupado + '>Abrir</button></form>' + erro +
+        '<button type="button" class="diario-link" data-role="diario-cancelar">voltar</button>';
+    } else {
+      corpo = '<p>Seu diário está trancado.</p>' +
+        (state.diario.face && rostoPossivel() ? '<button type="button" class="btn-add" data-role="diario-rosto"' + ocupado + '>🙂 Destravar com o rosto</button>' : '') +
+        '<form class="diario-form" data-form="diario-senha"><input type="password" name="s" placeholder="Senha do diário" autocomplete="current-password" required>' +
+        '<button type="submit" class="ghost-btn"' + ocupado + '>' + (diarioOcupado ? 'Abrindo…' : 'Destravar') + '</button></form>' + erro +
+        '<button type="button" class="diario-link" data-role="diario-esqueci">esqueci a senha</button>';
+    }
+    return '<div class="diario-veu">' + diarioBorraoHtml() + '<div class="diario-trava"><div class="cadeado">🔒</div>' + corpo + '</div></div>';
+  }
+  function diarioEntradaHtml(e, termo){
+    var txt = escapeHtml(e.texto);
+    if (termo) {
+      var t = escapeHtml(termo).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      txt = txt.replace(new RegExp("(" + t + ")", "gi"), "<mark>$1</mark>");
+    }
+    var hora = new Date(e.criadoEm);
+    return '<div class="diario-entrada"><div class="diario-entrada-topo"><span>' + (DIARIO_TIPOS[e.tipo] || "") + '</span>' +
+      '<span>' + pad(hora.getHours()) + ':' + pad(hora.getMinutes()) + '</span>' +
+      '<button class="row-del" data-role="diario-del" data-id="' + e.id + '" title="Apagar">✕</button></div>' +
+      '<div class="diario-entrada-texto' + (e.aMao ? ' cursiva' : '') + '">' + txt + '</div></div>';
+  }
+  function diarioDoDia(dISO){
+    return diarioEntradas.filter(function(e){ return e.date === dISO; })
+      .sort(function(a, b){ return a.criadoEm - b.criadoEm; });
+  }
+  function diarioEscreverHtml(){
+    return '<div class="diario-tipos" role="group" aria-label="Tipo">' + Object.keys(DIARIO_TIPOS).map(function(k){
+      return '<button type="button" data-role="diario-tipo" data-id="' + k + '" aria-pressed="' + (k === diarioTipo) + '">' + DIARIO_TIPOS[k] + '</button>';
+    }).join("") + '</div>' +
+      '<form data-form="diario-escrever"><textarea class="diario-texto" name="t" placeholder="O que passou pela cabeça?" data-caneta></textarea>' +
+      '<div class="diario-rodape">' +
+      '<button type="button" class="diario-link" data-role="diario-travar">🔒 travar</button>' +
+      (!state.diario.face && rostoPossivel() ? '<button type="button" class="diario-link" data-role="diario-ligar-rosto">usar o rosto</button>' : '') +
+      '<button type="submit" class="btn-add">Guardar</button></div></form>' +
+      (diarioErro ? '<div class="diario-erro">' + escapeHtml(diarioErro) + '</div>' : '');
+  }
+  function renderDiarioPainel(){
+    var el = $("diarioPainel");
+    // O código de recuperação vem antes de tudo: o diário acabou de ser
+    // aberto, mas se a tela pulasse direto para a escrita o código se perdia.
+    if (!diarioChave || diarioCodigoNovo) { el.innerHTML = diarioPortaoHtml(); return; }
+    var dISO = iso(dayCursor);
+    var lista = diarioDoDia(dISO);
+    el.innerHTML = (dISO === TODAY_ISO ? diarioEscreverHtml() : '') +
+      (lista.length ? '<div style="margin-top:10px">' + lista.map(function(e){ return diarioEntradaHtml(e); }).join("") + '</div>'
+        : '<div class="empty">' + (dISO === TODAY_ISO ? 'Nada escrito hoje ainda.' : 'Nada escrito neste dia.') + '</div>') +
+      '<div class="diario-rodape"><button type="button" class="ghost-btn" data-role="ir-diario">Ver o mês e buscar →</button>' +
+      (dISO !== TODAY_ISO ? '<button type="button" class="diario-link" data-role="diario-travar">🔒 travar</button>' : '') + '</div>';
+  }
+  function semAcento(s){ return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+  function renderDiarioAba(){
+    var el = $("diarioAba");
+    if (!el) return;
+    if (!diarioChave || diarioCodigoNovo) { el.innerHTML = '<div class="panel">' + diarioPortaoHtml() + '</div>'; return; }
+    // Mês com as marcas dos dias escritos.
+    var m0 = diarioMesCursor, porDia = {};
+    diarioEntradas.forEach(function(e){ porDia[e.date] = (porDia[e.date] || 0) + 1; });
+    var ini = startOfWeek(m0), celulas = "";
+    var fim = new Date(m0.getFullYear(), m0.getMonth() + 1, 0);
+    for (var d = ini; d <= fim || d.getDay() !== 1; d = addDays(d, 1)) {
+      var k = iso(d), fora = d.getMonth() !== m0.getMonth();
+      celulas += '<div class="month-cell' + (fora ? ' outside' : '') + (porDia[k] ? ' tem-diario' : '') + (k === diarioDiaSel ? ' sel' : '') +
+        (k === TODAY_ISO ? ' is-today' : '') + '" data-role="diario-dia" data-id="' + k + '">' +
+        '<div class="month-cell-num">' + d.getDate() + '</div>' + (porDia[k] ? '<div class="diario-conta">' + porDia[k] + '</div>' : '') + '</div>';
+    }
+    var direita;
+    var termo = diarioBusca.trim();
+    if (termo) {
+      var q = semAcento(termo);
+      var achados = diarioEntradas.filter(function(e){ return semAcento(e.texto).indexOf(q) > -1; })
+        .sort(function(a, b){ return b.criadoEm - a.criadoEm; });
+      var grupos = [], atual = null;
+      achados.forEach(function(e){
+        if (!atual || atual.date !== e.date) { atual = { date: e.date, itens: [] }; grupos.push(atual); }
+        atual.itens.push(e);
+      });
+      direita = '<div class="hint" style="font-size:12.5px;font-weight:700;color:var(--muted)">' + achados.length + ' resultado' + (achados.length === 1 ? '' : 's') + ' para "' + escapeHtml(termo) + '"</div>' +
+        (grupos.length ? grupos.map(function(g){
+          return '<div class="diario-dia-titulo">' + fmtLong(fromIso(g.date)) + '</div>' + g.itens.map(function(e){ return diarioEntradaHtml(e, termo); }).join("");
+        }).join("") : '<div class="empty">Nada encontrado.</div>');
+    } else {
+      var doDia = diarioDoDia(diarioDiaSel);
+      direita = '<div class="diario-dia-titulo">' + fmtLong(fromIso(diarioDiaSel)) + '</div>' +
+        (doDia.length ? doDia.map(function(e){ return diarioEntradaHtml(e); }).join("") : '<div class="empty">Nada escrito neste dia.</div>');
+    }
+    el.innerHTML = '<div class="diario-layout"><div class="panel">' +
+      '<div class="month-head"><div class="month-title">' + m0.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) + '</div>' +
+      '<div class="month-nav"><button data-role="diario-mes" data-id="-1" aria-label="Mês anterior">‹</button>' +
+      '<button data-role="diario-mes" data-id="0" id="diarioHoje">Hoje</button>' +
+      '<button data-role="diario-mes" data-id="1" aria-label="Próximo mês">›</button></div></div>' +
+      '<div class="month-grid">' + DOW_LABELS.map(function(l){ return '<div class="month-dow">' + l + '</div>'; }).join("") + '</div>' +
+      '<div class="month-grid" style="margin-top:6px">' + celulas + '</div>' +
+      '<div class="diario-rodape"><button type="button" class="diario-link" data-role="diario-travar">🔒 travar</button></div></div>' +
+      '<div class="panel"><input type="search" class="diario-busca" id="diarioBusca" placeholder="Buscar por palavra…" value="' + escapeHtml(diarioBusca) + '">' +
+      '<div id="diarioResultado">' + direita + '</div></div></div>';
+  }
+  function renderDiario(){ renderDiarioPainel(); renderDiarioAba(); }
+
+  document.addEventListener("input", function(e){
+    if (e.target && e.target.id === "diarioBusca") {
+      diarioBusca = e.target.value; diarioAdiarTranca();
+      var pos = e.target.selectionStart;
+      renderDiarioAba();
+      var campo = $("diarioBusca"); campo.focus(); try { campo.setSelectionRange(pos, pos); } catch(err) {}
+    }
+  });
+  document.addEventListener("submit", function(e){
+    var f = e.target.closest ? e.target.closest("[data-form]") : null;
+    if (f) {
+      e.preventDefault();
+      var tipo = f.getAttribute("data-form");
+      if (tipo === "diario-criar") {
+        if (f.s1.value.length < 6) { diarioErro = "A senha precisa de pelo menos 6 letras ou números."; renderDiario(); return; }
+        if (f.s1.value !== f.s2.value) { diarioErro = "As duas senhas não são iguais."; renderDiario(); return; }
+        var s = f.s1.value;
+        diarioAcao(diarioCriar(s).then(function(c){ diarioCodigoNovo = c; diarioModo = ""; }), "Não deu para criar o diário neste navegador.");
+      } else if (tipo === "diario-senha") {
+        diarioAcao(diarioDestrancar(f.s.value, false), "Senha não confere.");
+      } else if (tipo === "diario-codigo") {
+        if (f.s1.value.length < 6) { diarioErro = "A senha nova precisa de pelo menos 6 letras ou números."; renderDiario(); return; }
+        var nova = f.s1.value;
+        diarioAcao(diarioDestrancar(f.c.value, true).then(function(){ return diarioNovaSenha(nova); }).then(function(){ diarioModo = ""; }),
+          "Código não confere.");
+      } else if (tipo === "diario-escrever") {
+        var texto = f.t.value.trim();
+        if (!texto) return;
+        diarioEntradas.push({ id: uid(), date: TODAY_ISO, tipo: diarioTipo, texto: texto, aMao: foiAMao(f.t) || undefined, criadoEm: Date.now() });
+        diarioAdiarTranca();
+        diarioAcao(diarioGravar(), "Não deu para guardar. Tente de novo.");
+      }
+      return;
+    }
+    if (e.target && e.target.id === "finLoginForm") {
+      e.preventDefault();
+      // Lê antes de redesenhar: o "Buscando…" tira o formulário da tela.
+      var email = $("finEmail").value.trim(), senha = $("finSenha").value;
+      finSalario = { estado: "carregando" }; renderFinancas();
+      finEntrar(email, senha).then(finCarregar).catch(function(err){
+        finSalario = { estado: "erro", msg: finErroLegivel(err && err.message) }; renderFinancas();
+      });
+    }
+  });
+
+  function irPara(v){
+    var btn = document.querySelector('.view-switch button[data-view="' + v + '"]');
+    if (btn) btn.click();
+    window.scrollTo(0, 0);
+  }
+  document.addEventListener("click", function(e){
+    var el = e.target.closest("[data-role]");
+    if (!el) return;
+    var role = el.getAttribute("data-role"), id = el.getAttribute("data-id");
+    if (role.indexOf("diario-") === 0 && diarioChave) diarioAdiarTranca();
+    if (role === "diario-comecar") { diarioModo = "criar"; diarioErro = ""; renderDiario(); }
+    else if (role === "diario-cancelar") { diarioModo = ""; diarioErro = ""; renderDiario(); }
+    else if (role === "diario-esqueci") { diarioModo = "codigo"; diarioErro = ""; renderDiario(); }
+    else if (role === "diario-guardei") {
+      diarioCodigoNovo = null; renderDiario();
+      if (rostoPossivel() && confirm("Quer destravar o diário com o rosto também? (A senha continua valendo.)")) {
+        diarioAcao(diarioLigarRosto(), rostoErro);
+      }
+    }
+    else if (role === "diario-ligar-rosto") diarioAcao(diarioLigarRosto(), rostoErro);
+    else if (role === "diario-rosto") diarioAcao(diarioDestrancarRosto(), rostoErro);
+    else if (role === "diario-travar") diarioTrancar();
+    else if (role === "diario-tipo") {
+      diarioTipo = id;
+      document.querySelectorAll('[data-role="diario-tipo"]').forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-id") === id ? "true" : "false"); });
+    }
+    else if (role === "diario-del") {
+      if (!confirm("Apagar este registro do diário?")) return;
+      diarioEntradas = diarioEntradas.filter(function(x){ return x.id !== id; });
+      diarioAcao(diarioGravar(), "Não deu para apagar. Tente de novo.");
+    }
+    else if (role === "diario-dia") { diarioDiaSel = id; diarioBusca = ""; renderDiarioAba(); }
+    else if (role === "diario-mes") {
+      var n = parseInt(id, 10);
+      diarioMesCursor = n === 0 ? new Date(today().getFullYear(), today().getMonth(), 1)
+        : new Date(diarioMesCursor.getFullYear(), diarioMesCursor.getMonth() + n, 1);
+      if (n === 0) diarioDiaSel = TODAY_ISO;
+      renderDiarioAba();
+    }
+    else if (role === "ir-diario") irPara("diario");
+    else if (role === "ir-financas") irPara("financas");
+    else if (role === "conta-paguei") contaPagar(id);
+    else if (role === "conta-del") {
+      if (!confirm("Tirar esta conta da lista? Os pagamentos já lançados na planilha continuam lá.")) return;
+      state.contas = state.contas.filter(function(c){ return c.id !== id; });
+      save(); renderAll();
+    }
+    else if (role === "fin-del") {
+      state.financas.lancamentos = state.financas.lancamentos.filter(function(l){ return l.id !== id; });
+      save(); renderFinancas();
+    }
+    else if (role === "fin-sair") { if (confirm("Sair da conta do Financeiro neste aparelho?")) finSair(); }
+    else if (role === "fin-recarregar") finCarregar();
+    else if (role === "note-amanha") {
+      var n0 = state.notes.filter(function(x){ return x.id === id; })[0];
+      if (n0) { n0.date = iso(addDays(dayCursor, 1)); n0.pinned = false; save(); renderNotes(); }
+    }
+  });
+
+  // ════════════════════════════════════════════════════════════════════
+  // ESCRITA À MÃO EM QUALQUER CAMPO
+  // Todo campo marcado com data-caneta ganha um ✍️ ao lado. Ele abre um
+  // quadro como o da Página livre; em "Pronto", a escrita vai para a IA
+  // (api/ler-letra.js, no projeto do painel) e volta como texto para o campo.
+  // O que nasce assim leva `aMao: true` e aparece em cursiva — só ele; o
+  // digitado fica na letra de sempre. Ela autorizou a leitura em todos os
+  // campos, inclusive o Diário (22/09/2026). O teclado do tablet continua
+  // valendo: a caneta é uma opção a mais, nunca a única.
+  // ════════════════════════════════════════════════════════════════════
+  var LER_LETRA_URL = "https://cartorio-api.vercel.app/api/ler-letra";
+  var canetaAlvo = null, canetaPad = null, canetaLendo = false;
+
+  // Lê a marca de "veio da caneta" e a consome: o campo é limpo depois de
+  // salvar, e a próxima coisa digitada nele não pode herdar a cursiva.
+  function foiAMao(el){
+    if (!el || !el.dataset || el.dataset.aMao !== "1") return false;
+    delete el.dataset.aMao;
+    return true;
+  }
+  document.addEventListener("input", function(e){
+    var el = e.target;
+    if (el && el.dataset && el.dataset.aMao === "1" && !String(el.value || "").trim()) delete el.dataset.aMao;
+  });
+
+  function canetaEquipar(){
+    document.querySelectorAll("[data-caneta]:not([data-caneta-ok])").forEach(function(el){
+      el.setAttribute("data-caneta-ok", "");
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "caneta-btn"; b.textContent = "✍️";
+      b.title = "Escrever com a caneta"; b.setAttribute("aria-label", "Escrever com a caneta");
+      b.addEventListener("click", function(){ canetaAbrir(el); });
+      el.insertAdjacentElement("afterend", b);
+    });
+  }
+  new MutationObserver(canetaEquipar).observe(document.body, { childList: true, subtree: true });
+  canetaEquipar();
+
+  var canetaFundo = document.createElement("div");
+  canetaFundo.className = "caneta-fundo"; canetaFundo.hidden = true;
+  canetaFundo.innerHTML = '<div class="caneta-janela" role="dialog" aria-label="Escrever com a caneta">' +
+    '<h3>Escreva com a caneta</h3><p>Quando terminar, toque em <strong>Pronto</strong>: a letra vira texto e aparece em cursiva.</p>' +
+    '<div class="sketch-canvas-wrap"><canvas class="sketch-canvas" id="canetaCanvas"></canvas></div>' +
+    '<div class="caneta-acoes"><button type="button" class="ghost-btn" id="canetaDesfazer">Desfazer</button>' +
+    '<button type="button" class="ghost-btn" id="canetaLimpar">Limpar</button>' +
+    '<span class="caneta-msg" id="canetaMsg" aria-live="polite"></span>' +
+    '<button type="button" class="ghost-btn" id="canetaCancelar" style="margin-left:auto">Cancelar</button>' +
+    '<button type="button" class="btn-add" id="canetaPronto" style="margin-left:0">Pronto</button></div></div>';
+  document.body.appendChild(canetaFundo);
+  canetaPad = Sketchpad($("canetaCanvas"), [], null);
+
+  function canetaMsg(txt, erro){ var m = $("canetaMsg"); m.textContent = txt || ""; m.classList.toggle("erro", !!erro); }
+  function canetaAbrir(el){
+    canetaAlvo = el; canetaFundo.hidden = false; canetaMsg("");
+    canetaPad.clear(); canetaPad.resize();
+  }
+  function canetaFechar(){ canetaFundo.hidden = true; canetaAlvo = null; canetaLendo = false; $("canetaPronto").disabled = false; }
+  // A imagem vai com fundo branco e no mesmo formato do quadro: os traços
+  // são guardados de 0 a 1, e esticar para outra proporção deformaria a letra.
+  function canetaImagem(){
+    var r = $("canetaCanvas").getBoundingClientRect();
+    var w = 1200, h = Math.max(200, Math.round(1200 * (r.height / (r.width || 1))));
+    var tinta = document.createElement("canvas"); tinta.width = w; tinta.height = h;
+    var ct = tinta.getContext("2d");
+    canetaPad.getStrokes().forEach(function(s){ paintStroke(ct, s, w, h); });
+    var folha = document.createElement("canvas"); folha.width = w; folha.height = h;
+    var cf = folha.getContext("2d");
+    cf.fillStyle = "#ffffff"; cf.fillRect(0, 0, w, h); cf.drawImage(tinta, 0, 0);
+    return folha.toDataURL("image/png");
+  }
+  function canetaPronto(){
+    if (canetaLendo) return;
+    if (!canetaPad.getStrokes().length) { canetaMsg("Escreva alguma coisa primeiro.", true); return; }
+    if (navigator.onLine === false) { canetaMsg("Sem internet agora — dá para digitar, ou tentar de novo depois.", true); return; }
+    canetaLendo = true; $("canetaPronto").disabled = true; canetaMsg("Lendo sua letra…");
+    fetch(LER_LETRA_URL, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imagem: canetaImagem() }) })
+      .then(function(r){ return r.json().catch(function(){ return { ok: false }; }); })
+      .then(function(j){
+        if (j && j.ok && j.texto) {
+          var el = canetaAlvo, atual = String(el.value || "").replace(/\s+$/, "");
+          el.value = atual ? atual + (el.tagName === "TEXTAREA" ? "\n" : " ") + j.texto : j.texto;
+          el.dataset.aMao = "1";
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          canetaFechar();
+          el.focus();
+          return;
+        }
+        canetaLendo = false; $("canetaPronto").disabled = false;
+        if (j && j.ilegivel) canetaMsg("Não consegui ler. Tente escrever de novo, um pouco maior.", true);
+        else canetaMsg((j && j.erro) || "Não deu para ler agora. Tente de novo, ou digite.", true);
+      })
+      .catch(function(){
+        canetaLendo = false; $("canetaPronto").disabled = false;
+        canetaMsg("Não deu para ler agora. Tente de novo, ou digite.", true);
+      });
+  }
+  $("canetaDesfazer").addEventListener("click", function(){ canetaPad.undo(); });
+  $("canetaLimpar").addEventListener("click", function(){ canetaPad.clear(); canetaMsg(""); });
+  $("canetaCancelar").addEventListener("click", canetaFechar);
+  $("canetaPronto").addEventListener("click", canetaPronto);
+
+  // ════════════════════════════════════════════════════════════════════
+  // MERCADO
+  // Acabou, anota; pegou, risca. O que já acabou uma vez fica lembrado e
+  // volta como atalho ("Acabou de novo?"), porque a lista do mercado é quase
+  // sempre a mesma. Como a lista mora no tablet, "Enviar a lista" manda o
+  // texto para onde ela quiser (WhatsApp, por exemplo) antes de sair de casa.
+  // ════════════════════════════════════════════════════════════════════
+  function mercadoChave(s){ return semAcento(s).trim().replace(/\s+/g, " "); }
+  function mercadoAdicionar(nome, aMao){
+    nome = String(nome || "").trim();
+    if (!nome) return;
+    var m = state.mercado, k = mercadoChave(nome);
+    var ja = m.itens.filter(function(i){ return mercadoChave(i.nome) === k; })[0];
+    if (ja) { ja.pego = false; }
+    else m.itens.push({ id: uid(), nome: nome, aMao: aMao || undefined, pego: false, criadoEm: Date.now() });
+    var h = m.historico[k] || { nome: nome, vezes: 0 };
+    h.vezes += 1; h.ultima = TODAY_ISO; h.nome = nome; if (aMao) h.aMao = true;
+    m.historico[k] = h;
+    save(); renderMercado();
+  }
+  function renderMercado(){
+    var m = state.mercado;
+    var falta = m.itens.filter(function(i){ return !i.pego; }), pegos = m.itens.filter(function(i){ return i.pego; });
+    $("mercadoHint").textContent = falta.length ? falta.length + " para pegar" : "o que acabou";
+    var linha = function(i){
+      return '<div class="mercado-item' + (i.pego ? ' pego' : '') + '">' +
+        '<div class="task-check' + (i.pego ? ' done' : '') + '" data-role="mercado-pegar" data-id="' + i.id + '" title="' + (i.pego ? 'Desmarcar' : 'Peguei') + '">' + (i.pego ? '✓' : '') + '</div>' +
+        '<span class="mercado-nome' + (i.aMao ? ' cursiva' : '') + '">' + escapeHtml(i.nome) + '</span>' +
+        '<button class="row-del" data-role="mercado-del" data-id="' + i.id + '" title="Tirar da lista">✕</button></div>';
+    };
+    $("mercadoLista").innerHTML = m.itens.length ? falta.map(linha).join("") + pegos.map(linha).join("")
+      : '<div class="empty">Nada faltando. Acabou alguma coisa? Anota aqui.</div>';
+    var naLista = {};
+    falta.forEach(function(i){ naLista[mercadoChave(i.nome)] = 1; });
+    var sugestoes = Object.keys(m.historico).filter(function(k){ return !naLista[k]; })
+      .sort(function(a, b){ return (m.historico[b].vezes - m.historico[a].vezes) || String(m.historico[b].ultima).localeCompare(String(m.historico[a].ultima)); })
+      .slice(0, 8);
+    $("mercadoChips").innerHTML = sugestoes.length ? '<div class="mercado-chips"><small>Acabou de novo?</small>' + sugestoes.map(function(k){
+      return '<button type="button" data-role="mercado-de-novo" data-id="' + escapeHtml(k) + '">+ ' + escapeHtml(m.historico[k].nome) + '</button>';
+    }).join("") + '</div>' : "";
+    $("mercadoRodape").innerHTML =
+      (falta.length ? '<button type="button" class="ghost-btn" data-role="mercado-enviar">Enviar a lista</button>' : '') +
+      (pegos.length ? '<button type="button" class="diario-link" data-role="mercado-limpar">tirar os já pegos (' + pegos.length + ')</button>' : '');
+  }
+  $("mercadoForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var input = $("mercadoInput");
+    mercadoAdicionar(input.value, foiAMao(input));
+    input.value = "";
+  });
+  document.addEventListener("click", function(e){
+    var el = e.target.closest("[data-role]");
+    if (!el) return;
+    var role = el.getAttribute("data-role"), id = el.getAttribute("data-id"), m = state.mercado;
+    if (role === "mercado-pegar") {
+      var it = m.itens.filter(function(i){ return i.id === id; })[0];
+      if (it) { it.pego = !it.pego; it.pegoEm = it.pego ? TODAY_ISO : undefined; save(); renderMercado(); }
+    } else if (role === "mercado-del") {
+      m.itens = m.itens.filter(function(i){ return i.id !== id; }); save(); renderMercado();
+    } else if (role === "mercado-limpar") {
+      m.itens = m.itens.filter(function(i){ return !i.pego; }); save(); renderMercado();
+    } else if (role === "mercado-de-novo") {
+      var h = m.historico[id];
+      if (h) mercadoAdicionar(h.nome, h.aMao);
+    } else if (role === "mercado-enviar") {
+      var texto = "Mercado:\n" + m.itens.filter(function(i){ return !i.pego; }).map(function(i){ return "• " + i.nome; }).join("\n");
+      if (navigator.share) navigator.share({ text: texto }).catch(function(){});
+      else if (navigator.clipboard) navigator.clipboard.writeText(texto).then(function(){ alert("Lista copiada. É só colar no WhatsApp."); });
+    }
+  });
 
   // ── Compromissos do painel do cartório ──
   // O Bússola só LÊ o painel, nunca escreve nele. Entra o mesmo que a Agenda
@@ -1257,10 +2319,12 @@
         return r.json();
       });
     }
-    Promise.all([pegar("casos"), pegar("resolucoesCentral")]).then(function(res){
+    Promise.all([pegar("casos"), pegar("resolucoesCentral"), pegar("focos")]).then(function(res){
       painelAplicar(painelEventos(res[0] || {}, res[1] || {}));
+      var pendentes = painelConciliarTarefas(res[2]);
       state.painelSync = { ok: Date.now(), erro: null };
       save(); renderAll();
+      pendentes.forEach(function(p){ tarefaNoPainel(p.t, p.acao); });
     }).catch(function(e){
       // Falhar em silêncio faria a semana parecer vazia sem estar.
       state.painelSync = { ok: state.painelSync && state.painelSync.ok, erro: String(e && e.message || e) };
@@ -1273,12 +2337,15 @@
   }
 
   $("painelSyncBtn").addEventListener("click", painelSincronizar);
+  document.querySelector('.view-switch button[data-view="financas"]').addEventListener("click", function(){
+    if (finSessao && finSalario.estado !== "carregando") finCarregar();
+  });
   document.addEventListener("visibilitychange", function(){
     if (document.visibilityState === "visible") painelSincronizar();
   });
   setInterval(painelSincronizar, 10 * 60 * 1000);
 
-  function renderAll(){ renderDay(); renderNotes(); renderHabits(); renderWeek(); renderMonth(); }
+  function renderAll(){ renderDay(); renderWeek(); renderMonth(); renderDiarioAba(); renderFinancas(); }
   renderAll();
   loadPagePad();
   painelMostrarStatus();

@@ -30,7 +30,8 @@
     "api/registrar-atendimento.js": { "maxDuration": 25 },
     "api/extrair-texto-arquivo.js": { "maxDuration": 60 },
     "api/radar-juridico.js": { "maxDuration": 60 },
-    "api/joaninha-juridico.js": { "maxDuration": 30 }
+    "api/joaninha-juridico.js": { "maxDuration": 30 },
+    "api/ler-letra.js": { "maxDuration": 30 }
   },
   "crons": [
     {

@@ -32,9 +32,14 @@ Tudo funciona 100% no navegador, sem backend: os dados ficam em
   chegam sozinhas do painel (ver "Compromissos do painel" abaixo)
 - **Tarefas**: lista do dia + pendentes de dias anteriores aparecem com aviso
   neutro; filtro por categoria
-- **Notas rápidas**: modo texto OU desenho (ver abaixo)
-- **Hábitos**: checkbox diário com sequência dos últimos 7 dias
-- **Página livre**: uma folha em branco por dia para escrever/desenhar
+- **Agenda** (antes "Linha do tempo"): compromissos do dia, assinaturas do
+  painel e as contas que vencem no dia ("💸 Pagar: …")
+- **Página livre + Bloco de notas, lado a lado**: o que se escreve à mão na
+  página vira cartão no bloco ("Guardar no bloco →"); cada nota tem data e
+  "→ amanhã" a leva para o dia seguinte. 📌 fixa em todos os dias; nota
+  antiga sem data aparece todo dia.
+- **Diário** (no lugar dos Hábitos — ver abaixo)
+- **Finanças** e **Contas a pagar** (aba própria — ver abaixo)
 - **Desenho à mão / caneta**: componente `Sketchpad` (dentro do `<script>`)
   captura eventos de pointer (mouse, touque, caneta com pressão), guarda os
   traços como pontos normalizados (0–1) por canvas, então é responsivo a
@@ -49,13 +54,18 @@ Tudo funciona 100% no navegador, sem backend: os dados ficam em
 ### Modelo de dados (localStorage)
 ```js
 {
-  tasks: [{ id, text, category: "pessoal"|"profissional", done, date: "YYYY-MM-DD"|null, focus, createdAt }],
+  tasks: [{ id, text, category: "pessoal"|"profissional", done, date: "YYYY-MM-DD"|null, focus, createdAt,
+            painel?: { id: "bussola-<id>", estado: "enviando"|"ok"|"removida", ultimoDone, erro } }],
   appointments: [{ id, title, date, time, category, source: "manual"|"painel", painelKey?, createdAt }],
   notes: [
     { id, type: undefined /* texto */, text, pinned, createdAt },
     { id, type: "drawing", strokes: [{color, width, erase, points:[[fx,fy],...]}], pinned, createdAt }
+    // as duas ganharam `date` ("YYYY-MM-DD"): o bloco é do dia
   ],
-  habits: [{ id, name, category, history: { "YYYY-MM-DD": true } }],
+  habits: [...],   // não aparece mais na tela; ficou guardado, não foi apagado
+  diario: { v, senha:{salt,embrulho}, rec:{salt,embrulho}, face:{cred,salt,embrulho}|null, dados:{iv,ct} } | null,
+  financas: { lancamentos: [{ id, data, descricao, categoria, tipo: "entrada"|"saida", valor, contaId? }] },
+  contas: [{ id, nome, valor|null, venc, dia, repete: "nao"|"semana"|"quinzena"|"mes"|"ano", ativa, pagamentos:[{venc,pagoEm,valor}] }],
   pages: { "YYYY-MM-DD": { strokes: [...] } },
   lastCategory: "pessoal"|"profissional",
   palette: "rose"|"lavanda"|"pessego",
@@ -109,8 +119,92 @@ voltar a caminho absoluto `/bussola/...`, que quebra no projeto próprio.
 Os dados ficam no `localStorage` do domínio, então o que ela escreveu em
 `/bussola/bussola.html` continua lá em `/bussola/`.
 
+## Pedidos de 22/09/2026
+
+### Tarefa profissional vai para o painel
+Tarefa ✦ Profissional vira lembrete no **Bloco de Notas do painel, aba
+Shirley** (`/focos`, o nó que o formulário do painel grava, com
+`resp: "shirley"` e `origem: "bussola"`). **Concluir vale nos dois lados**, a
+pedido dela. O painel grava `/focos` como uma lista inteira; o Bússola nunca
+regrava a lista — só acrescenta no fim (`PUT /focos/<n>`), marca `done` no
+índice (`PATCH`) ou apaga o índice. `ultimoDone` é o último estado em que os
+dois concordaram: mudou no painel, vale o painel; mudou aqui, sobe na próxima
+conferência. Se o banco recusar, a linha diz "ainda não chegou ao painel" e a
+conferência seguinte tenta de novo. Só vai tarefa criada depois desta
+mudança; pessoal nunca vai.
+
+### Diário
+Ideias, insights, sonhos e pensamentos, pelo dia em que foram escritos. Na
+aba Diário, o mês marca os dias escritos e a busca por palavra ignora acento
+e caixa. **Trancado por padrão**: aparece como um véu opaco, e o texto nem
+está na página. Cifrado no aparelho (AES-GCM, chave da senha por PBKDF2 com
+250 mil voltas, como o cofre do painel); a chave que cifra é sorteada uma vez
+e embrulhada pela senha, pelo **código de recuperação** (mostrado uma vez, na
+criação) e, se o aparelho deixar, pelo **rosto** (passkey com a extensão PRF
+do WebAuthn — onde não houver, o botão não aparece e a senha vale sempre).
+Tranca sozinho ao sair do app e após 5 minutos parado. Sem senha e sem código,
+ninguém lê — nem quem fez o Bússola.
+
+### Finanças do mês e contas a pagar
+Planilha do mês do calendário (entrou / saiu / sobrou, por categoria). O
+**salário do cartório vem do painel**, pedido dela: é o `finMeuSalario()` do
+painel, recortado do `index.html` para `fin-motor.js` por
+`scripts/gerar-bussola-fin.mjs` — **nunca editar o fin-motor.js à mão**, e
+rodar o script depois de mexer no financeiro do painel (o
+`testes/bussola.mjs` falha se ele ficar para trás). O salário do mês é o do
+fechamento que termina nele (setembro = 26/08 a 25/09). Ler o Financeiro exige
+entrar com a conta dele (Firebase Auth por REST); fica guardado só o token de
+renovação (`bussola-fin-sessao`), nunca a senha nem os lançamentos.
+
+**Contas a pagar**: cada conta tem o próximo vencimento e a repetição.
+Vencida ou vencendo em até 3 dias, aparece no topo do Dia ("venceu há 28
+dias", sem bronca) e na Agenda do dia do vencimento. "Paguei" lança a saída na
+planilha (pergunta o valor se a conta não tem valor fixo) e empurra o
+vencimento; conta de uma vez só se encerra.
+
+**Sem cópia de segurança, por decisão dela (22/09/2026)**: tudo fica só no
+tablet. Se ela mudar de ideia, a pergunta foi: botão de baixar cópia, ou
+cópia cifrada no banco com a conta do Financeiro.
+
+### Mercado (pedido junto, 22/09/2026)
+Quadro no Dia, entre Tarefas e Diário. Acabou, anota; pegou, risca ("tirar os
+já pegos" limpa). Tudo o que já entrou fica em `mercado.historico` e volta como
+atalho "Acabou de novo?" (os oito mais frequentes que não estão na lista). O
+mesmo item não entra duas vezes (a chave ignora acento e caixa). Como a lista
+mora no tablet, "Enviar a lista" manda o texto pela folha de compartilhar do
+aparelho (ou copia, onde ela não existe) — nada sai sem ela tocar.
+
+### Escrever à mão em qualquer campo
+Todo campo com `data-caneta` ganha um ✍️ (um `MutationObserver` equipa também
+os campos redesenhados, como o do Diário). O quadro é o mesmo `Sketchpad` da
+Página livre; em "Pronto" a escrita vai como PNG de fundo branco para
+**`api/ler-letra.js`, no projeto do painel** (cartorio-api.vercel.app — é lá
+que mora a chave da IA), e o texto volta para o campo. O item salvo leva
+`aMao: true` e aparece em **cursiva** (Dancing Script) — só o que veio da
+caneta, por decisão dela; o digitado fica na letra de sempre. A marca é
+consumida ao salvar (`foiAMao()`), para não vazar para o próximo digitado.
+Ela autorizou a leitura pela IA **em todos os campos, inclusive o Diário**
+(22/09/2026): o texto passa pela IA e volta, nada fica guardado lá; no Bússola
+ele continua cifrado. Letra ilegível ou sem internet: a janela avisa e não
+fecha. O aparelho dela é **Android com caneta** — o teclado de escrita à mão do
+próprio Android continua funcionando nos campos, como alternativa.
+
+A função só responde às origens do Bússola e do painel (e ao teste local),
+recusa imagem acima de 2 MB e usa `claude-opus-5` com esforço baixo e
+`fallbacks: "default"` (se o modelo recusar por engano, o servidor tenta outro).
+
+## Testes
+`node testes/bussola.mjs` — banco do painel e leitura da letra fingidos,
+passa por todos os pedidos acima e termina com fotos em
+`testes/saida/bussola-*.png`, num tablet e num iPhone 13. Sem internet as
+fontes não chegam e as fotos saem na letra de reserva; para foto fiel (a
+cursiva, principalmente), aponte `BUSSOLA_FONTES` para um CSS local com as
+mesmas fontes em `@font-face` (dá para montar com os pacotes `@fontsource/*`).
+
 ## Arquivos
 - `index.html` — o app completo
 - `bussola.html` — só redireciona para `./` (o primeiro endereço publicado)
+- `../api/ler-letra.js` — a leitura da letra de mão (no projeto do painel)
+- `fin-motor.js` — GERADO: a conta do salário, recortada do painel
 - `manifest.json`, `sw.js`, `icons/` — o que faz dele um aplicativo separado
   do painel. Os ícones são uma rosa-dos-ventos nas cores da paleta Rosé.
