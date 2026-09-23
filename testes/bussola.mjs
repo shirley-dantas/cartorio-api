@@ -542,10 +542,12 @@ await passo('para convidar, liga-se a agenda pessoal uma vez — e ela diz de qu
   await pg.fill('#agendaUrlCampo', 'https://exemplo.com/qualquer');
   await pg.click('[data-role="agenda-ligar"]');
   if (!/não é o do script/.test(await pg.textContent('#agendaLigacao'))) throw new Error('aceitou endereço errado');
-  await pg.fill('#agendaUrlCampo', 'https://script.google.com/macros/s/AKfyTESTE_123/exec');
+  // Com duas contas Google no navegador, o endereço vem com /u/1/ no meio.
+  await pg.fill('#agendaUrlCampo', 'https://script.google.com/macros/u/1/s/AKfyTESTE_123/exec');
   await pg.click('[data-role="agenda-ligar"]');
   await pg.waitForFunction(() => /dantasshy@gmail\.com/.test(document.getElementById('agendaLigacao').textContent));
   if (!await pg.isVisible('#apptConvidados')) throw new Error('o campo de convidados não apareceu');
+  igual((await estado(pg)).agendaUrl, 'https://script.google.com/macros/s/AKfyTESTE_123/exec', 'o /u/1/ saiu do endereço');
   await pg.click('#toggleApptForm');
 });
 await passo('compromisso com e-mail vira convite na agenda do Google', async () => {
