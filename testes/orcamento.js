@@ -391,13 +391,31 @@ const doacaoAlta = orcCalcular({atoId: 'doacao', valores: {doacao: 20000000},
 ok('doação acima do teto não levanta aviso de isenção',
    !doacaoAlta.alertas.some(a => /UFESP/.test(a.texto)));
 
-console.log('\n— As isenções são apontadas, nunca aplicadas —');
+console.log('\n— A isenção do ITBI é apontada sozinha, e só aplicada com um clique dela —');
 const barato = orcCalcular({atoId: 'compra-venda', data: '2026-03-10',
   valores: {transacao: 20000000}, imovelMunicipio: 'São Paulo', imovelUf: 'SP',
-  flags: {residencial: true}, despesas: {taxaAdicional: false}});
+  flags: {}, despesas: {taxaAdicional: false}});
 ok('o teto de 2026 é R$ 245.527,77', R(orcTetoIsencaoItbi('2026-03-10')) === '245527.77');
-ok('base abaixo do teto levanta o aviso', barato.alertas.some(a => /isenção do ITBI/.test(a.texto)));
+ok('base abaixo do teto levanta o aviso sozinho, sem marcar nada antes',
+   barato.alertas.some(a => /isenção do ITBI/.test(a.texto)));
+ok('o aviso vem com a chave que a tela usa para o botão',
+   barato.alertas.some(a => a.chave === 'isencaoItbiPrimeiroImovel'));
 ok('mas o ITBI continua na conta — quem decide é ela', barato.tributos[0].valor > 0);
+const isento = orcCalcular({atoId: 'compra-venda', data: '2026-03-10',
+  valores: {transacao: 20000000}, imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+  flags: {isencaoItbiConfirmada: true}, despesas: {taxaAdicional: false}});
+ok('confirmado por ela, o ITBI zera', isento.tributos[0].valor === 0);
+ok('e o tributo fica marcado como isento, com o valor de antes guardado',
+   isento.tributos[0].isento === true && isento.tributos[0].valorAntesDaIsencao > 0);
+ok('o aviso muda para "isento", confirmando o que ela decidiu',
+   isento.alertas.some(a => a.chave === 'isencaoItbiAplicada'));
+ok('o CHECK FINAL some das "isenções conferidas" pendentes',
+   isento.check.find(c => c.rot === 'Isenções conferidas').estado === 'ok');
+const grande = orcCalcular({atoId: 'compra-venda', data: '2026-03-10',
+  valores: {transacao: 30000000}, imovelMunicipio: 'São Paulo', imovelUf: 'SP',
+  flags: {isencaoItbiConfirmada: true}, despesas: {taxaAdicional: false}});
+ok('acima do teto, confirmar não zera nada — o motor não aplica o que não se enquadra',
+   grande.tributos[0].valor > 0 && !grande.tributos[0].isento);
 ok('o teto de 2019 é outro', R(orcTetoIsencaoItbi('2019-06-01')) === '169153.88');
 
 console.log('\n— A regra especial de ZEIS engole os atos da escritura —');
@@ -773,7 +791,7 @@ ORC_ATOS.forEach(a => {
   const r = orcCalcular({atoId: a.id, data: '2026-08-27', valores: amostra,
     praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
     flags: {folhas: 3, outorgantes: 7, temPensao: true, pensaoMensal: 333333,
-            excedenteOneroso: true, residencial: true},
+            excedenteOneroso: true, isencaoItbiConfirmada: true},
     despesas: {prenotacao: true, matricula: true, registroComMatricula: true,
                taxaAdicional: true, taxaAdicionalValor: 30000}});
   const achados = achaUndefined(r, a.id);
