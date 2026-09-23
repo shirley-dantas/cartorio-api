@@ -623,6 +623,7 @@
               <option value="pessoal">Pessoal</option>
               <option value="profissional">Profissional</option>
             </select>
+            <div id="agendaLigacao" style="flex:1 1 100%"></div>
             <input type="text" id="apptConvidados" placeholder="Convidar por e-mail (opcional)" inputmode="email" autocomplete="off" list="apptConvidadosLista" style="flex:1 1 100%">
             <datalist id="apptConvidadosLista"></datalist>
             <button type="submit" class="btn-add" style="padding:8px 16px;font-size:13px;">Salvar</button>
@@ -1028,7 +1029,7 @@
       time: $("apptTime").value || null, category: $("apptCat").value,
       source: "manual", aMao: foiAMao($("apptTitle")) || undefined, createdAt: Date.now()
     };
-    var emails = conviteEmails($("apptConvidados").value);
+    var emails = conviteEmails(state.agendaUrl ? $("apptConvidados").value : "");
     if (emails.invalidos.length) { alert("Estes e-mails não parecem certos: " + emails.invalidos.join(", ")); return; }
     if (emails.validos.length) novoAppt.convite = { emails: emails.validos, estado: "enviando" };
     state.appointments.push(novoAppt);
@@ -2375,22 +2376,59 @@
 
   // ════════════════════════════════════════════════════════════════════
   // CONVITE DA AGENDA
-  // Compromisso com e-mails de convidados vai para a agenda do Google pelo
-  // Apps Script do painel (ação "convidar-evento-calendar"), que manda o
-  // convite; ao aceitar, entra na agenda de cada convidado. Gravar direto na
-  // agenda alheia não existe — o convite é o caminho (decisão dela, 22/09/2026).
-  // A agenda é a da conta Google do Apps Script (a mesma do Drive do painel).
+  // Compromisso com e-mails de convidados vira evento com convidados na
+  // agenda PESSOAL dela (dantasshy@gmail.com), por um Apps Script pequeno que
+  // mora naquela conta (apps-script/bussola-agenda.js) — o convite sai do
+  // e-mail pessoal, e a conta do cartório não participa (decisão dela,
+  // 23/09/2026). Ao aceitar, o compromisso entra na agenda do convidado.
+  // O endereço do script é uma chave (quem o tem manda convite em nome dela):
+  // fica só no tablet (`state.agendaUrl`), colado uma vez, nunca no código.
   // ════════════════════════════════════════════════════════════════════
-  var GAS_URL = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
+  var AGENDA_URL_OK = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/;
+  var agendaLigando = false, agendaErro = "";
+  function renderAgendaLigacao(){
+    var el = $("agendaLigacao");
+    if (!el) return;
+    $("apptConvidados").style.display = state.agendaUrl ? "" : "none";
+    if (state.agendaUrl) {
+      el.innerHTML = '<span class="conta-rep">Convites saem da agenda de <strong>' + escapeHtml(state.agendaConta || "sua conta") + '</strong> · ' +
+        '<button type="button" class="diario-link" data-role="agenda-desligar">trocar</button></span>';
+      return;
+    }
+    el.innerHTML = '<div class="conta-rep">Para convidar pessoas por e-mail, ligue sua agenda do Google (uma vez):</div>' +
+      '<div class="fin-login" style="margin-top:4px"><input type="url" id="agendaUrlCampo" placeholder="Endereço do script (termina em /exec)" autocomplete="off">' +
+      '<button type="button" class="ghost-btn" data-role="agenda-ligar"' + (agendaLigando ? ' disabled' : '') + '>' + (agendaLigando ? 'Ligando…' : 'Ligar minha agenda') + '</button></div>' +
+      (agendaErro ? '<div class="diario-erro">' + escapeHtml(agendaErro) + '</div>' : '');
+  }
+  function agendaLigar(){
+    var url = String($("agendaUrlCampo").value || "").trim();
+    if (!AGENDA_URL_OK.test(url)) { agendaErro = "Esse endereço não é o do script. Ele começa com https://script.google.com/macros/s/ e termina em /exec."; renderAgendaLigacao(); return; }
+    agendaLigando = true; agendaErro = ""; renderAgendaLigacao();
+    fetch(url).then(function(r){ return r.json(); }).then(function(j){
+      if (!j || j.funcao !== "agenda-bussola") throw new Error("outro");
+      state.agendaUrl = url; state.agendaConta = j.conta || ""; save();
+    }).catch(function(){
+      agendaErro = "Não consegui falar com esse script. Confira se a implantação é \"App da Web\" com acesso para \"Qualquer pessoa\".";
+    }).then(function(){ agendaLigando = false; renderAgendaLigacao(); });
+  }
+  document.addEventListener("click", function(e){
+    var el = e.target.closest('[data-role="agenda-ligar"], [data-role="agenda-desligar"]');
+    if (!el) return;
+    if (el.getAttribute("data-role") === "agenda-ligar") agendaLigar();
+    else if (confirm("Desligar a agenda? Para convidar de novo, será preciso colar o endereço do script outra vez.")) {
+      state.agendaUrl = null; state.agendaConta = null; save(); renderAgendaLigacao();
+    }
+  });
   function conviteEmails(txt){
     var partes = String(txt || "").split(/[\s,;]+/).map(function(x){ return x.trim(); }).filter(Boolean);
     var ok = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
     return { validos: partes.filter(function(x){ return ok.test(x); }), invalidos: partes.filter(function(x){ return !ok.test(x); }) };
   }
   function gasPedir(corpo){
+    if (!state.agendaUrl) return Promise.reject(new Error("a agenda do Google não está ligada"));
     // Sem cabeçalho de tipo: o Apps Script só aceita pedido "simples" vindo
-    // de outro site — o mesmo jeito que o painel já chama.
-    return fetch(GAS_URL, { method: "POST", body: JSON.stringify(corpo) }).then(function(r){
+    // de outro site — o mesmo jeito que o painel chama o dele.
+    return fetch(state.agendaUrl, { method: "POST", body: JSON.stringify(corpo) }).then(function(r){
       return r.text().then(function(t){
         try { return JSON.parse(t); } catch(e) { throw new Error("o Google não respondeu (pode estar pedindo nova autorização)"); }
       });
@@ -2408,7 +2446,7 @@
         } else {
           a.convite.estado = "erro";
           a.convite.erro = /a[çc][ãa]o desconhecida/i.test(j && j.erro || "")
-            ? "o Apps Script ainda não foi atualizado para mandar convite" : ((j && j.erro) || "motivo desconhecido");
+            ? "o script da agenda está desatualizado" : ((j && j.erro) || "motivo desconhecido");
         }
       }, function(e){ a.convite.estado = "erro"; a.convite.erro = (e && e.message) || "sem conexão com o Google"; })
       .then(function(){ save(); renderDay(); });
@@ -2437,7 +2475,7 @@
     var dl = $("apptConvidadosLista");
     if (dl) dl.innerHTML = (state.convidadosConhecidos || []).map(function(x){ return '<option value="' + escapeHtml(x) + '">'; }).join("");
   }
-  $("toggleApptForm").addEventListener("click", conviteSugestoes);
+  $("toggleApptForm").addEventListener("click", function(){ conviteSugestoes(); renderAgendaLigacao(); });
 
   // ── Compromissos do painel do cartório ──
   // O Bússola só LÊ o painel, nunca escreve nele. Entra o mesmo que a Agenda

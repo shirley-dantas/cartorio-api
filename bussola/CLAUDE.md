@@ -240,19 +240,23 @@ compromisso podia ir para a agenda de outra pessoa. Escolhas dela:
   lista escrita; ela só aperta enviar. Descartadas: mandar pelo número do bot
   (sairia do WhatsApp do cartório, que atende cliente) e SMS (serviço pago à
   parte). "outro jeito" continua abrindo o compartilhar do aparelho.
-- **Agenda, por convite**: gravar na agenda alheia sem aceite não existe. O
-  compromisso com e-mails vai para o Apps Script do painel (ação nova
-  `convidar-evento-calendar`), que cria o evento na agenda principal da conta
-  Google dele — **a mesma do Drive do painel** — com os convidados e
-  `sendInvites: true`; sem hora, vira dia inteiro. A linha do compromisso diz
-  "convite enviado · N" ou "convite não saiu · tentar de novo" (com o motivo;
-  Apps Script sem a ação nova avisa que precisa ser atualizado). Apagar o
-  compromisso pergunta e apaga o evento do Google (`excluir-evento-calendar`).
-  Se o Google avisa ou não o convidado do cancelamento é com o Google — não foi
-  conferido. Editar horário depois ainda não existe no Bússola.
-- **O Apps Script é atualizado à mão** (script.google.com → colar
-  `apps-script/cartorio-drive-api.js` → Implantar → Gerenciar implantações →
-  editar → Nova versão). Até isso, o convite volta "não saiu".
+- **Agenda, por convite, pela conta PESSOAL dela** (dantasshy@gmail.com,
+  escolhida em 23/09/2026 — a conta do cartório não participa). Gravar na
+  agenda alheia sem aceite não existe. Um Apps Script pequeno e separado,
+  `apps-script/bussola-agenda.js`, mora **na conta pessoal** e cria o evento
+  na agenda principal dela, com os convidados e `sendInvites: true`; sem
+  hora, vira dia inteiro. O horário vai com `-03:00` escrito na data, porque
+  projeto novo do Apps Script pode nascer noutro fuso.
+  O endereço do script funciona como chave (quem o tem manda convite em nome
+  dela), então **fica só no tablet** (`state.agendaUrl`), colado uma vez em
+  "Ligar minha agenda" — o Bússola confere pelo GET do script e mostra de qual
+  conta é a agenda. Nunca pôr esse endereço no código.
+  A linha do compromisso diz "convite enviado · N" ou "convite não saiu ·
+  tentar de novo" (com o motivo). Apagar o compromisso pergunta e apaga o
+  evento do Google. Se o Google avisa o convidado do cancelamento não foi
+  conferido. Editar horário depois ainda não existe.
+- **O número do WhatsApp dela não entra no código** (o Bússola é página
+  aberta): ela o cadastra uma vez no Mercado, e ele fica no tablet.
 
 ## Testes
 `node testes/bussola.mjs` — banco do painel e leitura da letra fingidos,

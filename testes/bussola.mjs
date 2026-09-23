@@ -65,7 +65,7 @@ await passo('o painel continua com no máximo 12 funções (limite da Vercel)', 
 // leva os e-mails válidos, manda o aviso, e sem hora vira dia inteiro.
 await passo('o Apps Script cria o evento com os convidados e manda o convite', async () => {
   const vm = await import('node:vm');
-  const codigo = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'apps-script', 'cartorio-drive-api.js'), 'utf8');
+  const codigo = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'apps-script', 'bussola-agenda.js'), 'utf8');
   const criados = [];
   const cal = {
     createEvent: (t, i, f, o) => { criados.push({ t, i, f, o, dia: false }); return { getId: () => 'ev-' + criados.length }; },
@@ -73,12 +73,14 @@ await passo('o Apps Script cria o evento com os convidados e manda o convite', a
   };
   const ctx = { CalendarApp: { getDefaultCalendar: () => cal },
     ContentService: { createTextOutput: (t) => ({ setMimeType: () => t }), MimeType: { JSON: 'json' } },
-    PropertiesService: { getScriptProperties: () => ({ getProperty: () => '' }) }, console };
+    Session: { getEffectiveUser: () => ({ getEmail: () => 'dantasshy@gmail.com' }) }, console };
   vm.runInNewContext(codigo, ctx);
   const chamar = (d) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify({ acao: 'convidar-evento-calendar', ...d }) } }));
   const r1 = chamar({ titulo: 'Almoço', data: '2026-10-02', hora: '12:30', convidados: ['ana@x.com', 'isso não', 'joao@y.com.br'] });
   igual(r1.ok, true, 'criou'); igual(criados[0].o.guests, 'ana@x.com,joao@y.com.br', 'convidados'); igual(criados[0].o.sendInvites, true, 'manda o convite');
   igual(criados[0].f - criados[0].i, 3600000, 'uma hora');
+  igual(criados[0].i.toISOString(), '2026-10-02T15:30:00.000Z', '12h30 de São Paulo, seja qual for o fuso do projeto');
+  igual(JSON.parse(ctx.doGet()).conta, 'dantasshy@gmail.com', 'a conferência diz de qual conta é a agenda');
   const r2 = chamar({ titulo: 'Aniversário', data: '2026-10-05', convidados: ['ana@x.com'] });
   igual(r2.ok, true, 'dia inteiro'); igual(criados[1].dia, true, 'sem hora vira dia inteiro');
   igual(chamar({ titulo: 'x', data: '2026-10-05', convidados: ['nada'] }).ok, false, 'sem e-mail válido não cria');
@@ -170,7 +172,8 @@ async function abrir(opts) {
   });
   await pg.route('**/script.google.com/**', async r => {
     const corpo = JSON.parse(r.request().postData() || '{}');
-    pedidosGoogle.push(corpo);
+    if (r.request().method() !== 'GET') pedidosGoogle.push(corpo);
+    if (r.request().method() === 'GET') return r.fulfill({ body: JSON.stringify({ ok: true, funcao: 'agenda-bussola', conta: 'dantasshy@gmail.com' }), contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
     const resposta = corpo.acao === 'convidar-evento-calendar' ? respostaConvite : { ok: true };
     return r.fulfill({ body: JSON.stringify(resposta), headers: { 'access-control-allow-origin': '*' }, contentType: 'application/json' });
   });
@@ -533,6 +536,18 @@ await passo('a lista do mercado vai para o WhatsApp do contato, já escrita', as
   const texto = decodeURIComponent(url.split('text=')[1]);
   if (!texto.startsWith('Mercado:') || !texto.includes('• leite condensado')) throw new Error('texto: ' + texto);
 });
+await passo('para convidar, liga-se a agenda pessoal uma vez — e ela diz de qual conta é', async () => {
+  await pg.click('#toggleApptForm');
+  if (await pg.isVisible('#apptConvidados')) throw new Error('pediu convidados sem agenda ligada');
+  await pg.fill('#agendaUrlCampo', 'https://exemplo.com/qualquer');
+  await pg.click('[data-role="agenda-ligar"]');
+  if (!/não é o do script/.test(await pg.textContent('#agendaLigacao'))) throw new Error('aceitou endereço errado');
+  await pg.fill('#agendaUrlCampo', 'https://script.google.com/macros/s/AKfyTESTE_123/exec');
+  await pg.click('[data-role="agenda-ligar"]');
+  await pg.waitForFunction(() => /dantasshy@gmail\.com/.test(document.getElementById('agendaLigacao').textContent));
+  if (!await pg.isVisible('#apptConvidados')) throw new Error('o campo de convidados não apareceu');
+  await pg.click('#toggleApptForm');
+});
 await passo('compromisso com e-mail vira convite na agenda do Google', async () => {
   await pg.click('#toggleApptForm');
   await pg.fill('#apptTitle', 'Almoço com a Ana'); await pg.fill('#apptTime', '12:30');
@@ -542,9 +557,9 @@ await passo('compromisso com e-mail vira convite na agenda do Google', async () 
   const p = pedidosGoogle.find(x => x.acao === 'convidar-evento-calendar');
   igual(JSON.stringify(p.convidados), JSON.stringify(['ana@exemplo.com', 'joao@exemplo.com.br']), 'convidados');
   igual(p.hora, '12:30', 'hora'); igual(p.data, HOJE, 'data');
-  // O Apps Script ainda antigo recusa a ação: o compromisso fica, e o motivo aparece.
+  // Um script que não conhece a ação recusa: o compromisso fica, e o motivo aparece.
   const a = (await estado(pg)).appointments.find(x => x.title === 'Almoço com a Ana');
-  if (!/Apps Script ainda não foi atualizado/.test(a.convite.erro)) throw new Error('motivo: ' + a.convite.erro);
+  if (!/script da agenda está desatualizado/.test(a.convite.erro)) throw new Error('motivo: ' + a.convite.erro);
   respostaConvite = { ok: true, eventId: 'ev-123' };
   await pg.click('[data-role="convite-tentar"]');
   await pg.waitForFunction(() => /convite enviado · 2/.test(document.getElementById('timeline').textContent));
