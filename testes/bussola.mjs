@@ -379,6 +379,7 @@ await passo('na aba Diário, o mês marca o dia escrito e a busca acha sem acent
 // ── Finanças e contas ──
 await passo('conta que vence hoje (e a atrasada) vira tarefa do dia, sem bronca', async () => {
   await aba(pg, 'financas');
+  await pg.click('[data-role="contas-abrir"]');
   await pg.fill('#contaNome', 'IPTU'); await pg.fill('#contaValor', '350,00');
   await pg.fill('#contaVenc', dia(-28)); await pg.selectOption('#contaRepete', 'mes');
   await pg.click('#contaForm button[type="submit"]');
@@ -386,6 +387,7 @@ await passo('conta que vence hoje (e a atrasada) vira tarefa do dia, sem bronca'
   await pg.click('#contaForm button[type="submit"]');
   await pg.fill('#contaNome', 'Gás'); await pg.fill('#contaValor', '120,00'); await pg.fill('#contaVenc', dia(2)); await pg.selectOption('#contaRepete', 'mes');
   await pg.click('#contaForm button[type="submit"]');
+  await pg.click('[data-role="contas-fechar"]');
   await aba(pg, 'dia');
   const t = await pg.textContent('#taskList');
   if (!t.includes('IPTU') || !t.includes('venceu há 28 dias')) throw new Error(t);
@@ -427,7 +429,7 @@ await passo('a planilha soma o mês e mostra para onde foi', async () => {
   const r = (await pg.textContent('#finResumo')).replace(/\s/g, ' ');
   if (!r.includes('1.764,56')) throw new Error('saídas: ' + r);
   if (!r.includes('sem o salário')) throw new Error('não avisou que falta o salário');
-  if (!(await pg.textContent('#finCats')).includes('Mercado')) throw new Error('sem as categorias');
+  if (!(await pg.textContent('#finGraficoGastos')).includes('Mercado')) throw new Error('sem as categorias');
 });
 await passo('senha errada do Financeiro diz o que houve', async () => {
   await pg.fill('#finEmail', 'cartorio@shirleydantas.com'); await pg.fill('#finSenha', 'errada');
