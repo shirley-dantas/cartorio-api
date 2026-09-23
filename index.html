@@ -11094,16 +11094,36 @@ function orcAplicarAliquotaDeFora(t, chave, alertas, onde, especie, lugar){
 // todas dependem de declaração da parte, e algumas de um valor (a UFESP) que
 // não veio nos arquivos. Apontar e devolver a decisão é o certo — zerar um
 // imposto por conta própria é o erro que não tem volta.
+//
+// A do ITBI é a exceção que ganhou um botão: o teto (Lei 13.402/2002) é
+// conferido sozinho, na hora, sem precisar marcar nada antes — é conta de
+// valor contra data, e disso o motor pode desconfiar por conta própria. O
+// que ele não sabe — se é a primeira aquisição da parte, ou PMCMV, e se o
+// imóvel é mesmo residencial — continua sendo decisão dela: o motor avisa e
+// oferece "Isenta", e só zera o imposto depois desse clique. Confirmado
+// pedido dela em 23/09/2026.
 function orcConferirIsencoes(ctx){
   const {tributos, flags, data, alertas} = ctx;
   const itbi = tributos.find(t => t.imposto === 'itbi');
-  if(itbi && itbi.valor != null && flags.residencial){
+  if(itbi && itbi.valor != null){
     const teto = orcTetoIsencaoItbi(data || isoHoje());
-    if(teto && itbi.base <= teto)
-      alertas.push({nivel: 'avisa', confianca: 'confirmada',
-        texto: `O valor (${orcMoeda(itbi.base)}) está dentro do teto de isenção do ITBI para imóvel residencial `
-             + `(${orcMoeda(teto)} na data do ato). Se for a primeira aquisição da parte, ou PMCMV, o imposto é isento — `
-             + 'basta a Declaração para Isenção do ITBI-IV. O motor manteve o ITBI na conta: marque a isenção se ela se aplica.'});
+    if(teto && itbi.base <= teto){
+      if(flags.isencaoItbiConfirmada){
+        itbi.isento = true;
+        itbi.valorAntesDaIsencao = itbi.valor;
+        itbi.valor = 0;
+        itbi.fundamento = 'Isento — primeira aquisição de imóvel residencial (ou PMCMV), dentro do teto de '
+          + `${orcMoeda(teto)} (Lei 13.402/2002, art. 3º, com as alterações da Lei 15.891/2013). Confirmado por você.`;
+        alertas.push({nivel: 'avisa', confianca: 'confirmada', chave: 'isencaoItbiAplicada',
+          texto: `ITBI isento: primeira aquisição de imóvel residencial (ou PMCMV) dentro do teto de ${orcMoeda(teto)}. `
+               + 'Basta a Declaração para Isenção do ITBI-IV — o cartório está dispensado de exigir outro documento.'});
+      }else{
+        alertas.push({nivel: 'avisa', confianca: 'confirmada', chave: 'isencaoItbiPrimeiroImovel',
+          texto: `O valor da base (${orcMoeda(itbi.base)}) está dentro do teto de isenção do ITBI para imóvel residencial `
+               + `(${orcMoeda(teto)} na data do ato). Se for a primeira aquisição da parte, ou PMCMV, o imposto é isento — `
+               + 'basta a Declaração para Isenção do ITBI-IV.'});
+      }
+    }
   }
   const itcmd = tributos.find(t => t.imposto === 'itcmd');
   if(itcmd && itcmd.valor != null){
@@ -11185,7 +11205,11 @@ function orcCheckFinal(c){
       c.escrituras.some(x => x.reducao)
         ? 'Há ato com 40% de redução — regra operacional, sem a nota da tabela que a fundamente.'
         : 'Nenhuma redução aplicada.');
-  põe('Isenções conferidas', 'confirmar', 'Nenhuma isenção é aplicada automaticamente — veja os avisos.');
+  const isentos = (c.tributos || []).filter(t => t.isento);
+  põe('Isenções conferidas', isentos.length ? 'ok' : 'confirmar',
+      isentos.length
+        ? `${isentos.map(t => t.rot).join(', ')} isento — confirmado por você. Nenhuma outra isenção é aplicada automaticamente.`
+        : 'Nenhuma isenção é aplicada automaticamente — veja os avisos.');
   põe('Tributos conferidos', c.tributos.some(t => t.valor == null) ? 'falta' : 'ok',
       c.tributos.length ? c.tributos.map(t => t.rot + (t.valor == null ? ' (não calculado)' : '')).join(' · ') : 'Ato sem tributo.');
   põe('Registro conferido', 'ok', c.registros.length ? `${c.registros.length} registro(s).`
@@ -11830,6 +11854,15 @@ window.orcMudarFlag = function(chave, valor){
   orcEmEdicao.flags[chave] = valor;
   renderOrcamentoDoCaso();
 };
+// O botão do aviso de isenção do ITBI — um clique confirma que é a primeira
+// aquisição residencial (ou PMCMV), e o "Desfazer" volta ao estado de aviso,
+// caso ela tenha marcado por engano.
+window.orcConfirmarIsencaoItbi = function(){
+  orcMudarFlag('isencaoItbiConfirmada', true);
+};
+window.orcDesfazerIsencaoItbi = function(){
+  orcMudarFlag('isencaoItbiConfirmada', false);
+};
 window.orcMudarFlagNum = function(chave, txt){
   orcEmEdicao.flags[chave] = /mensal/i.test(chave) ? orcCent(txt) : Math.round(finNum(txt));
   orcRedesenharResultado();
@@ -12288,25 +12321,20 @@ function orcHtmlEspeciais(e, ato){
       </select></div>`);
     if(f.temPensao) bits.push(orcHtmlPensao(e));
   }
-  // Os itens especiais valem para qualquer escritura com valor declarado.
-  // Nenhum caso até hoje usou estas duas — ficam atrás de "Detalhes técnicos",
-  // e o padrão (nenhuma regra especial, não residencial) continua valendo.
-  if(orcVerTecnico){
-    if((ato.campos || []).length)
-      bits.push(`<div class="orc-campo orc-campo-largo"><label class="fin-rot">Regra especial da tabela</label>
-        <select class="fin-select" onchange="orcMudarRegraEspecial(this.value)">
-          <option value=""${!f.zeis && !f.fgtsOuHis && !f.regularizacaoFundiaria ? ' selected' : ''}>Nenhuma — faixa normal da tabela</option>
-          <option value="zeis"${f.zeis ? ' selected' : ''}>Primeira alienação em empreendimento de interesse social em ZEIS (item 1.4)</option>
-          <option value="fgtsOuHis"${f.fgtsOuHis ? ' selected' : ''}>Imóvel FGTS ou programa habitacional de interesse social (item 1.3)</option>
-          <option value="regularizacaoFundiaria"${f.regularizacaoFundiaria ? ' selected' : ''}>Regularização fundiária de interesse social (item 1.2)</option>
-        </select></div>`);
-    if((ato.montar && (ato.id.indexOf('compra-venda') === 0 || ato.id === 'dacao')))
-      bits.push(`<div class="orc-campo"><label class="fin-rot">Imóvel residencial?</label>
-        <select class="fin-select" onchange="orcMudarFlag('residencial',this.value==='1')">
-          <option value="0"${f.residencial ? '' : ' selected'}>Não / não sei</option>
-          <option value="1"${f.residencial ? ' selected' : ''}>Sim — o motor confere o teto de isenção do ITBI</option>
-        </select></div>`);
-  }
+  // A regra especial vale para qualquer escritura com valor declarado.
+  // Nenhum caso até hoje usou nenhuma delas — fica atrás de "Detalhes
+  // técnicos", e o padrão (nenhuma regra especial) continua valendo. O teto
+  // de isenção do ITBI deixou de morar aqui: o motor confere sozinho, contra
+  // o valor e a data, e avisa com um botão quando o caso se enquadra — não
+  // precisa mais desta pergunta antes.
+  if(orcVerTecnico && (ato.campos || []).length)
+    bits.push(`<div class="orc-campo orc-campo-largo"><label class="fin-rot">Regra especial da tabela</label>
+      <select class="fin-select" onchange="orcMudarRegraEspecial(this.value)">
+        <option value=""${!f.zeis && !f.fgtsOuHis && !f.regularizacaoFundiaria ? ' selected' : ''}>Nenhuma — faixa normal da tabela</option>
+        <option value="zeis"${f.zeis ? ' selected' : ''}>Primeira alienação em empreendimento de interesse social em ZEIS (item 1.4)</option>
+        <option value="fgtsOuHis"${f.fgtsOuHis ? ' selected' : ''}>Imóvel FGTS ou programa habitacional de interesse social (item 1.3)</option>
+        <option value="regularizacaoFundiaria"${f.regularizacaoFundiaria ? ' selected' : ''}>Regularização fundiária de interesse social (item 1.2)</option>
+      </select></div>`);
   if(!bits.length) return '';
   return `<div class="orc-bloco">
     <div class="orc-secao"><i class="ti ti-list-check orc-secao-icone"></i><b>O que falta para concluir</b><span>etapas 9 e 13</span></div>
@@ -12486,7 +12514,12 @@ function orcHtmlResultado(e, r){
     </div>` : ''}
     ${r.alertas.length ? `<div class="orc-alertas">
       ${r.alertas.map(a => `<div class="orc-alerta ${a.nivel === 'bloqueia' ? 'grave' : ''}">
-        <span class="orc-selo">${ORC_CONFIANCAS[a.confianca].selo}</span> ${escTxt(a.texto)}</div>`).join('')}
+        <span class="orc-selo">${ORC_CONFIANCAS[a.confianca].selo}</span> ${escTxt(a.texto)}
+        ${a.chave === 'isencaoItbiPrimeiroImovel' ? `<button type="button" class="cx-btn" style="margin-left:8px"
+           onclick="orcConfirmarIsencaoItbi()">✅ Isenta — é a primeira aquisição / PMCMV</button>` : ''}
+        ${a.chave === 'isencaoItbiAplicada' ? `<button type="button" class="cx-btn" style="margin-left:8px"
+           onclick="orcDesfazerIsencaoItbi()">Desfazer</button>` : ''}
+      </div>`).join('')}
     </div>` : ''}
     ${divs.length ? `<div class="orc-alertas">${divs.map(d => `<div class="orc-alerta grave">
       <b>⚠️ Divergência com orçamento anterior.</b> ${escTxt(d.texto)}</div>`).join('')}</div>` : ''}

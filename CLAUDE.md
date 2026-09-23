@@ -530,6 +530,21 @@ procuração, ata e escritura declaratória.
   documento. O painel aponta ("está dentro do teto do primeiro imóvel"), mantém
   o imposto na conta e devolve a decisão. Zerar imposto por engano é o erro mais
   caro que este orçamento poderia cometer.
+  A do ITBI ganhou um botão em 23/09/2026, a pedido dela: o teto da primeira
+  aquisição residencial (Lei 13.402/2002 — R$ 245.527,77 em 2026, tabela por
+  ano dentro de `ORC_TRIBUTOS.itbi.isencaoPrimeiroImovel`) é conferido
+  sozinho, contra o valor e a data, sem precisar marcar nada antes — é conta
+  objetiva, disso o motor pode desconfiar por conta própria. O que ele não
+  sabe — se é mesmo a primeira aquisição da parte (ou PMCMV), e se o imóvel é
+  residencial — continua sendo dela: o aviso vem com "✅ Isenta — é a primeira
+  aquisição / PMCMV" (`orcConfirmarIsencaoItbi`), e só esse clique zera o
+  ITBI (`isencaoItbiConfirmada` nos `flags`) — com "Desfazer" ao lado, se ela
+  marcar por engano. A Declaração ITBI-IV dispensa o cartório de exigir outro
+  documento (Lei 13.402/2002, art. 3º; Decreto 55.196/2014, art. 26 c/c 32) —
+  é por isso que um clique já basta, sem pedir upload de nada. O ITCMD
+  continua só apontado, sem botão: a isenção dele depende da UFESP e do
+  enquadramento no art. 6º da Lei 10.705/2000, que o painel nunca confere
+  sozinho.
 - **A taxa adicional é R$ 300 por padrão**, sem precisar perguntar. Até
   16/09/2026 ela travava o CHECK FINAL esperando resposta a cada orçamento;
   virou regra fixa a pedido dela — R$300 já entra sozinho, e o campo continua
@@ -887,6 +902,7 @@ o `testes/montar.mjs` recorta.
 | A pensão em parcelas | `orcPensaoParcelas()`, `orcPensaoDetalhe()`, `orcMesesAte()`, `orcHtmlPensao()` |
 | A alíquota de fora da Capital | `orcAplicarAliquotaDeFora()`, `orcChaveAliquota()`, `orcHtmlAliquotas()` |
 | A busca da alíquota | `api/aliquota-municipal.js` |
+| A isenção do ITBI (primeiro imóvel / PMCMV) | `orcConferirIsencoes()`, `orcTetoIsencaoItbi()`, `orcConfirmarIsencaoItbi()` |
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |

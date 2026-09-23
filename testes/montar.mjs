@@ -151,7 +151,6 @@ setTimeout(()=>{
   orcNovoDoCaso('c1');
   orcMudarValor('transacao','301.867,16');
   orcMudarCampoTexto('imovelMunicipio','São Paulo');
-  orcMudarFlag('residencial',false);
   orcMudarDespesa('taxaAdicional',true);
   orcAlternarMemoria();
   document.getElementById('cartao-orc').innerHTML=orcFaixaDoCaso('c1');
