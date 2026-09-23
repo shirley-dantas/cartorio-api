@@ -1585,6 +1585,9 @@
   var FIN = window.BussolaFin || null;
   var FB_CHAVE = "AIzaSyA_tR17xeu0uhfonc1y1ksStmjGZtY_tcM";
   var FIN_TOKEN_KEY = "bussola-fin-sessao";
+  // A chave mestra dos extras (Meu financeiro), guardada no tablet depois do
+  // primeiro "Abrir" pra não pedir a senha de novo (pedido dela, 23/09/2026).
+  var FIN_COFRE_CHAVE_KEY = "bussola-fin-cofre-chave";
   var FIN_CATEGORIAS = ["Casa", "Mercado", "Contas", "Saúde", "Transporte", "Lazer", "Compras", "Renda extra", "Outros"];
   var finMesCursor = new Date(today().getFullYear(), today().getMonth(), 1);
   var finSessao = null;         // { email, idToken, exp, refresh }
@@ -1646,7 +1649,12 @@
       return finSessao.idToken;
     });
   }
-  function finSair(){ if (FIN) FIN.trancarCofre(); finSessao = null; finDados = null; finSalario = { estado: "fora" }; finGuardarSessao(); renderFinancas(); }
+  function finSair(){
+    if (FIN) FIN.trancarCofre();
+    finSessao = null; finDados = null; finSalario = { estado: "fora" };
+    try { localStorage.removeItem(FIN_COFRE_CHAVE_KEY); } catch(e) {}
+    finGuardarSessao(); renderFinancas();
+  }
   // O cofre do Meu financeiro tranca junto com o app, como o Diário.
   document.addEventListener("visibilitychange", function(){
     if (document.visibilityState === "hidden" && FIN && FIN.cofreAberto()) { FIN.trancarCofre(); finCalcularSalario(); renderFinancas(); }
@@ -1679,6 +1687,18 @@
       return Promise.all([rs[0].json(), rs[1].json(), rs[2].ok ? rs[2].json() : null]);
     }).then(function(js){
       finDados = { lanc: js[0] || {}, cfg: js[1], cofre: js[2] || null };
+      // Se ela já destrancou os extras neste tablet antes, a chave guardada
+      // abre sozinha — sem pedir a senha de novo (pedido dela, 23/09/2026).
+      if (finDados.cofre && FIN && !FIN.cofreAberto()) {
+        var chaveSalva = null;
+        try { chaveSalva = localStorage.getItem(FIN_COFRE_CHAVE_KEY); } catch(e2) {}
+        if (chaveSalva) {
+          return FIN.abrirCofreComChave(finDados.cofre, chaveSalva).catch(function(){
+            try { localStorage.removeItem(FIN_COFRE_CHAVE_KEY); } catch(e2) {}
+          });
+        }
+      }
+    }).then(function(){
       finCalcularSalario();
     }).catch(function(e){
       finSalario = { estado: "erro", msg: finErroLegivel(e && e.message) };
@@ -2159,7 +2179,10 @@
       e.preventDefault();
       var senhaCofre = $("finCofreSenha").value;
       finCofreAbrindo = true; finCofreErro = ""; renderFinancas();
-      FIN.abrirCofre(finDados.cofre, senhaCofre).then(function(){ finCalcularSalario(); })
+      FIN.abrirCofre(finDados.cofre, senhaCofre).then(function(){
+        finCalcularSalario();
+        try { localStorage.setItem(FIN_COFRE_CHAVE_KEY, FIN.chaveMestra()); } catch(e2) {}
+      })
         .catch(function(){ finCofreErro = "Senha do Meu financeiro não confere."; })
         .then(function(){ finCofreAbrindo = false; renderFinancas(); });
       return;

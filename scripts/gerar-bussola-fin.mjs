@@ -65,6 +65,19 @@ let finCofreBruto=null, finChaveMestra=null, finMestraB64=null, finDadosPessoais
 ${pessoal}
 // Abre o cofre com a senha do Meu financeiro. A chave fica só na memória.
 function abrirCofre(cofre, senha){ finCofreBruto = cofre; return finDestrancar(senha, false); }
+// Abre direto com a chave mestra já em mãos, sem pedir a senha de novo — é o
+// "lembrar no tablet" (pedido dela, 23/09/2026): o Bússola guarda essa chave
+// no localStorage depois do primeiro "Abrir", e usa aqui a partir de então.
+// Quem pegar o tablet destravado vê os extras sem digitar nada — é a troca
+// que ela topou, sabendo disso.
+async function abrirCofreComChave(cofre, chaveB64){
+  finCofreBruto = cofre;
+  finChaveMestra = await finImportarMestra(chaveB64);
+  finMestraB64 = chaveB64;
+  finDadosPessoais = await finDecifrar(finChaveMestra, cofre.dados);
+  if (!Array.isArray(finDadosPessoais.lancamentos)) finDadosPessoais.lancamentos = [];
+}
+function chaveMestra(){ return finMestraB64; }
 function trancarCofre(){ finChaveMestra = null; finMestraB64 = null; finDadosPessoais = { lancamentos: [] }; }
 function cofreAberto(){ return !!finChaveMestra; }
 // O que o Meu financeiro soma no fechamento, como o finHtmlPessoal() faz:
@@ -96,6 +109,8 @@ window.BussolaFin = {
   usar: usar,
   salario: finMeuSalario,
   abrirCofre: abrirCofre,
+  abrirCofreComChave: abrirCofreComChave,
+  chaveMestra: chaveMestra,
   trancarCofre: trancarCofre,
   cofreAberto: cofreAberto,
   pessoal: pessoal,

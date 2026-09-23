@@ -467,11 +467,21 @@ await passo('os serviços extras do Meu financeiro pedem a senha de lá, e entra
   if ((await guardado(pg)).includes('wagner')) throw new Error('o extra foi parar no armazenamento do Bússola');
   await pg.screenshot({ path: SAIDA('bussola-financas.png') });
 });
-await passo('ao sair do app, o cofre do Meu financeiro tranca de novo', async () => {
+await passo('ao sair do app, o cofre tranca — mas volta sozinho, sem pedir a senha de novo neste aparelho', async () => {
   await pg.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
   await pg.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); });
-  if ((await pg.textContent('#finPlanilha')).includes('3.858,07')) throw new Error('continuou aberto');
-  if (!await pg.$('#finCofreForm')) throw new Error('não voltou a pedir a senha');
+  if ((await pg.textContent('#finPlanilha')).includes('3.858,07')) throw new Error('continuou aberto em memória');
+  if (!await pg.$('#finCofreForm')) throw new Error('não trancou de novo');
+  // Ela já digitou a senha uma vez neste aparelho (passo anterior): reabrir a
+  // aba destranca sozinho, com a chave guardada — sem pedir a senha de novo.
+  await pg.click('.view-switch [data-view="financas"]');
+  await pg.waitForFunction(() => /Serviços extras[\s\S]*3\.858,07/.test(document.getElementById('finPlanilha').textContent), null, { timeout: 20000 });
+  if (await pg.$('#finCofreForm')) throw new Error('pediu a senha de novo, mesmo já tendo sido digitada neste aparelho');
+});
+await passo('sair da conta esquece a chave guardada dos extras', async () => {
+  await pg.click('[data-role="fin-sair"]');
+  await pg.waitForSelector('#finLoginForm');
+  if (await pg.evaluate(() => localStorage.getItem('bussola-fin-cofre-chave'))) throw new Error('a chave dos extras continuou guardada depois de sair');
 });
 
 // ── Escrita à mão e Mercado ──
