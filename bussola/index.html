@@ -2401,7 +2401,10 @@
       (agendaErro ? '<div class="diario-erro">' + escapeHtml(agendaErro) + '</div>' : '');
   }
   function agendaLigar(){
-    var url = String($("agendaUrlCampo").value || "").trim();
+    // Com mais de uma conta Google no navegador, o Google devolve o endereço
+    // com "/u/1/" no meio — e aí procura o script na conta errada ("Não foi
+    // possível abrir o arquivo"). O pedaço sai daqui, para ela não editar à mão.
+    var url = String($("agendaUrlCampo").value || "").trim().replace(/\/macros\/u\/\d+\/s\//, "/macros/s/");
     if (!AGENDA_URL_OK.test(url)) { agendaErro = "Esse endereço não é o do script. Ele começa com https://script.google.com/macros/s/ e termina em /exec."; renderAgendaLigacao(); return; }
     agendaLigando = true; agendaErro = ""; renderAgendaLigacao();
     fetch(url).then(function(r){ return r.json(); }).then(function(j){

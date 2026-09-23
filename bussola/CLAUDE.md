@@ -255,6 +255,16 @@ compromisso podia ir para a agenda de outra pessoa. Escolhas dela:
   tentar de novo" (com o motivo). Apagar o compromisso pergunta e apaga o
   evento do Google. Se o Google avisa o convidado do cancelamento não foi
   conferido. Editar horário depois ainda não existe.
+- **Com um toque, por decisão dela (23/09/2026).** Perguntada se a lista podia
+  ir sozinha, sem abrir o WhatsApp: pelo WhatsApp dela não dá (o WhatsApp não
+  deixa site mandar sem o toque). As saídas — número do bot do cartório,
+  ligar o número pessoal ao mesmo robô (não oficial, risco de bloqueio do
+  número), API oficial da Meta (cadastro e custo) — foram mostradas, e ela
+  escolheu manter o toque.
+- **Endereço com `/u/1/`**: com mais de uma conta Google no navegador, o
+  Google devolve o endereço do script com `/macros/u/1/s/` e procura o script
+  na conta errada ("Não foi possível abrir o arquivo" — aconteceu com ela). O
+  Bússola tira esse pedaço ao ligar a agenda.
 - **O número do WhatsApp dela não entra no código** (o Bússola é página
   aberta): ela o cadastra uma vez no Mercado, e ele fica no tablet.
 
