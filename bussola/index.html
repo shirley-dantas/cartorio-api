@@ -623,6 +623,9 @@
               <option value="pessoal">Pessoal</option>
               <option value="profissional">Profissional</option>
             </select>
+            <div id="agendaLigacao" style="flex:1 1 100%"></div>
+            <input type="text" id="apptConvidados" placeholder="Convidar por e-mail (opcional)" inputmode="email" autocomplete="off" list="apptConvidadosLista" style="flex:1 1 100%">
+            <datalist id="apptConvidadosLista"></datalist>
             <button type="submit" class="btn-add" style="padding:8px 16px;font-size:13px;">Salvar</button>
           </form>
         </div>
@@ -1021,14 +1024,20 @@
     e.preventDefault();
     var title = $("apptTitle").value.trim();
     if (!title) return;
-    state.appointments.push({
+    var novoAppt = {
       id: uid(), title: title, date: $("apptDate").value || iso(dayCursor),
       time: $("apptTime").value || null, category: $("apptCat").value,
       source: "manual", aMao: foiAMao($("apptTitle")) || undefined, createdAt: Date.now()
-    });
+    };
+    var emails = conviteEmails(state.agendaUrl ? $("apptConvidados").value : "");
+    if (emails.invalidos.length) { alert("Estes e-mails não parecem certos: " + emails.invalidos.join(", ")); return; }
+    if (emails.validos.length) novoAppt.convite = { emails: emails.validos, estado: "enviando" };
+    state.appointments.push(novoAppt);
+    $("apptConvidados").value = "";
     $("apptTitle").value = ""; $("apptTime").value = "";
     $("apptForm").classList.remove("open");
     save(); renderAll();
+    if (novoAppt.convite) conviteEnviar(novoAppt);
   });
 
   var taskFilterVal = "todas";
@@ -1150,7 +1159,7 @@
           '<div class="appt-time">'+(a.time || "—")+'</div>' +
           '<div class="appt-dot '+a.category+'"></div>' +
           '<div class="appt-body"><div class="appt-title'+(a.aMao?' cursiva':'')+'">'+escapeHtml(a.title)+'</div>' +
-          '<div class="appt-meta">'+(a.category==="pessoal"?"♡ Pessoal":"✦ Profissional")+(a.source==="painel"?'<span class="src-chip">do painel</span>':'')+'</div></div>' +
+          '<div class="appt-meta">'+(a.category==="pessoal"?"♡ Pessoal":"✦ Profissional")+(a.source==="painel"?'<span class="src-chip">do painel</span>':'')+conviteChipHtml(a)+'</div></div>' +
           '<button class="row-del" data-role="del-appt" data-id="'+a.id+'">✕</button></div>';
       }).join("");
     }
@@ -1309,6 +1318,10 @@
       if (ap && ap.painelKey) {
         if (!confirm("Esta assinatura veio do painel do cartório. Tirar só daqui do Bússola? (No painel ela continua.) Se a data mudar lá, ela volta a aparecer.")) return;
         state.painelHidden[ap.painelKey] = true;
+      }
+      if (ap && ap.convite && ap.convite.eventId) {
+        if (!confirm("Este compromisso tem convite na sua agenda do Google. Apagar lá também?")) return;
+        conviteDesfazer(ap.convite.eventId);
       }
       state.appointments = state.appointments.filter(function(x){ return x.id!==id; });
       save(); renderDay(); renderWeek();
@@ -2264,6 +2277,44 @@
     m.historico[k] = h;
     save(); renderMercado();
   }
+  // Enviar a lista para um número (opção A, escolhida por ela em 22/09/2026):
+  // o botão abre o WhatsApp dela já na conversa da pessoa, com a lista
+  // escrita — ela só aperta enviar. Sai do WhatsApp dela, não do número do
+  // cartório, e não depende de servidor nenhum.
+  var mercadoContatoForm = false;
+  function mercadoTexto(){
+    return "Mercado:\n" + state.mercado.itens.filter(function(i){ return !i.pego; }).map(function(i){ return "• " + i.nome; }).join("\n");
+  }
+  // Número do WhatsApp no formato internacional, só dígitos: com DDD e sem o
+  // 55 vira 55 + número; celular brasileiro tem 10 ou 11 dígitos com DDD.
+  function mercadoNumero(s){
+    var d = String(s || "").replace(/\D/g, "").replace(/^0+/, "");
+    if (d.length === 10 || d.length === 11) d = "55" + d;
+    return /^55\d{10,11}$/.test(d) ? d : null;
+  }
+  function mercadoEnviarHtml(){
+    var cts = state.mercado.contatos || [];
+    var botoes = cts.map(function(c){
+      return '<button type="button" class="btn-add" style="padding:8px 14px;font-size:12.5px" data-role="mercado-zap" data-id="' + c.id + '">Enviar para ' + escapeHtml(c.nome) + '</button>' +
+        '<button type="button" class="row-del" data-role="mercado-contato-tirar" data-id="' + c.id + '" title="Tirar ' + escapeHtml(c.nome) + '">✕</button>';
+    }).join("");
+    var form = (mercadoContatoForm || !cts.length)
+      ? '<form class="fin-login" id="mercadoContatoForm" style="flex-basis:100%">' +
+        '<input type="text" id="mercadoContatoNome" placeholder="Para quem? (nome)" required>' +
+        '<input type="tel" id="mercadoContatoNumero" placeholder="WhatsApp com DDD" inputmode="tel" required>' +
+        '<button type="submit" class="ghost-btn">Guardar</button></form>'
+      : '<button type="button" class="diario-link" data-role="mercado-contato-novo">+ outro número</button>';
+    return botoes + form + '<button type="button" class="diario-link" data-role="mercado-enviar">outro jeito</button>';
+  }
+  document.addEventListener("submit", function(e){
+    if (!e.target || e.target.id !== "mercadoContatoForm") return;
+    e.preventDefault();
+    var nome = $("mercadoContatoNome").value.trim(), num = mercadoNumero($("mercadoContatoNumero").value);
+    if (!num) { alert("Esse número não parece um celular com DDD. Ex.: 11 98765-4321"); return; }
+    var m = state.mercado; m.contatos = m.contatos || [];
+    m.contatos.push({ id: uid(), nome: nome || "contato", numero: num });
+    mercadoContatoForm = false; save(); renderMercado();
+  });
   function renderMercado(){
     var m = state.mercado;
     var falta = m.itens.filter(function(i){ return !i.pego; }), pegos = m.itens.filter(function(i){ return i.pego; });
@@ -2285,7 +2336,7 @@
       return '<button type="button" data-role="mercado-de-novo" data-id="' + escapeHtml(k) + '">+ ' + escapeHtml(m.historico[k].nome) + '</button>';
     }).join("") + '</div>' : "";
     $("mercadoRodape").innerHTML =
-      (falta.length ? '<button type="button" class="ghost-btn" data-role="mercado-enviar">Enviar a lista</button>' : '') +
+      (falta.length ? mercadoEnviarHtml() : '') +
       (pegos.length ? '<button type="button" class="diario-link" data-role="mercado-limpar">tirar os já pegos (' + pegos.length + ')</button>' : '');
   }
   $("mercadoForm").addEventListener("submit", function(e){
@@ -2308,12 +2359,123 @@
     } else if (role === "mercado-de-novo") {
       var h = m.historico[id];
       if (h) mercadoAdicionar(h.nome, h.aMao);
+    } else if (role === "mercado-zap") {
+      var ct = (m.contatos || []).filter(function(c){ return c.id === id; })[0];
+      if (ct) window.open("https://wa.me/" + ct.numero + "?text=" + encodeURIComponent(mercadoTexto()), "_blank");
+    } else if (role === "mercado-contato-novo") {
+      mercadoContatoForm = true; renderMercado();
+    } else if (role === "mercado-contato-tirar") {
+      if (!confirm("Tirar este contato da lista do mercado?")) return;
+      m.contatos = (m.contatos || []).filter(function(c){ return c.id !== id; }); save(); renderMercado();
     } else if (role === "mercado-enviar") {
-      var texto = "Mercado:\n" + m.itens.filter(function(i){ return !i.pego; }).map(function(i){ return "• " + i.nome; }).join("\n");
+      var texto = mercadoTexto();
       if (navigator.share) navigator.share({ text: texto }).catch(function(){});
       else if (navigator.clipboard) navigator.clipboard.writeText(texto).then(function(){ alert("Lista copiada. É só colar no WhatsApp."); });
     }
   });
+
+  // ════════════════════════════════════════════════════════════════════
+  // CONVITE DA AGENDA
+  // Compromisso com e-mails de convidados vira evento com convidados na
+  // agenda PESSOAL dela (dantasshy@gmail.com), por um Apps Script pequeno que
+  // mora naquela conta (apps-script/bussola-agenda.js) — o convite sai do
+  // e-mail pessoal, e a conta do cartório não participa (decisão dela,
+  // 23/09/2026). Ao aceitar, o compromisso entra na agenda do convidado.
+  // O endereço do script é uma chave (quem o tem manda convite em nome dela):
+  // fica só no tablet (`state.agendaUrl`), colado uma vez, nunca no código.
+  // ════════════════════════════════════════════════════════════════════
+  var AGENDA_URL_OK = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/;
+  var agendaLigando = false, agendaErro = "";
+  function renderAgendaLigacao(){
+    var el = $("agendaLigacao");
+    if (!el) return;
+    $("apptConvidados").style.display = state.agendaUrl ? "" : "none";
+    if (state.agendaUrl) {
+      el.innerHTML = '<span class="conta-rep">Convites saem da agenda de <strong>' + escapeHtml(state.agendaConta || "sua conta") + '</strong> · ' +
+        '<button type="button" class="diario-link" data-role="agenda-desligar">trocar</button></span>';
+      return;
+    }
+    el.innerHTML = '<div class="conta-rep">Para convidar pessoas por e-mail, ligue sua agenda do Google (uma vez):</div>' +
+      '<div class="fin-login" style="margin-top:4px"><input type="url" id="agendaUrlCampo" placeholder="Endereço do script (termina em /exec)" autocomplete="off">' +
+      '<button type="button" class="ghost-btn" data-role="agenda-ligar"' + (agendaLigando ? ' disabled' : '') + '>' + (agendaLigando ? 'Ligando…' : 'Ligar minha agenda') + '</button></div>' +
+      (agendaErro ? '<div class="diario-erro">' + escapeHtml(agendaErro) + '</div>' : '');
+  }
+  function agendaLigar(){
+    var url = String($("agendaUrlCampo").value || "").trim();
+    if (!AGENDA_URL_OK.test(url)) { agendaErro = "Esse endereço não é o do script. Ele começa com https://script.google.com/macros/s/ e termina em /exec."; renderAgendaLigacao(); return; }
+    agendaLigando = true; agendaErro = ""; renderAgendaLigacao();
+    fetch(url).then(function(r){ return r.json(); }).then(function(j){
+      if (!j || j.funcao !== "agenda-bussola") throw new Error("outro");
+      state.agendaUrl = url; state.agendaConta = j.conta || ""; save();
+    }).catch(function(){
+      agendaErro = "Não consegui falar com esse script. Confira se a implantação é \"App da Web\" com acesso para \"Qualquer pessoa\".";
+    }).then(function(){ agendaLigando = false; renderAgendaLigacao(); });
+  }
+  document.addEventListener("click", function(e){
+    var el = e.target.closest('[data-role="agenda-ligar"], [data-role="agenda-desligar"]');
+    if (!el) return;
+    if (el.getAttribute("data-role") === "agenda-ligar") agendaLigar();
+    else if (confirm("Desligar a agenda? Para convidar de novo, será preciso colar o endereço do script outra vez.")) {
+      state.agendaUrl = null; state.agendaConta = null; save(); renderAgendaLigacao();
+    }
+  });
+  function conviteEmails(txt){
+    var partes = String(txt || "").split(/[\s,;]+/).map(function(x){ return x.trim(); }).filter(Boolean);
+    var ok = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+    return { validos: partes.filter(function(x){ return ok.test(x); }), invalidos: partes.filter(function(x){ return !ok.test(x); }) };
+  }
+  function gasPedir(corpo){
+    if (!state.agendaUrl) return Promise.reject(new Error("a agenda do Google não está ligada"));
+    // Sem cabeçalho de tipo: o Apps Script só aceita pedido "simples" vindo
+    // de outro site — o mesmo jeito que o painel chama o dele.
+    return fetch(state.agendaUrl, { method: "POST", body: JSON.stringify(corpo) }).then(function(r){
+      return r.text().then(function(t){
+        try { return JSON.parse(t); } catch(e) { throw new Error("o Google não respondeu (pode estar pedindo nova autorização)"); }
+      });
+    });
+  }
+  function conviteEnviar(a){
+    a.convite.estado = "enviando"; a.convite.erro = null; save(); renderDay();
+    return gasPedir({ acao: "convidar-evento-calendar", titulo: a.title, data: a.date, hora: a.time || "",
+      convidados: a.convite.emails, descricao: "Marcado no Bússola." })
+      .then(function(j){
+        if (j && j.ok && j.eventId) {
+          a.convite.estado = "ok"; a.convite.eventId = j.eventId;
+          var conhecidos = state.convidadosConhecidos = state.convidadosConhecidos || [];
+          a.convite.emails.forEach(function(x){ if (conhecidos.indexOf(x) < 0) conhecidos.push(x); });
+        } else {
+          a.convite.estado = "erro";
+          a.convite.erro = /a[çc][ãa]o desconhecida/i.test(j && j.erro || "")
+            ? "o script da agenda está desatualizado" : ((j && j.erro) || "motivo desconhecido");
+        }
+      }, function(e){ a.convite.estado = "erro"; a.convite.erro = (e && e.message) || "sem conexão com o Google"; })
+      .then(function(){ save(); renderDay(); });
+  }
+  function conviteDesfazer(eventId){
+    gasPedir({ acao: "excluir-evento-calendar", eventId: eventId }).then(function(j){
+      if (!j || !j.ok) alert("Apaguei aqui, mas a agenda do Google não confirmou: " + ((j && j.erro) || "motivo desconhecido"));
+    }, function(){ alert("Apaguei aqui, mas não consegui falar com a agenda do Google. Apague o evento por lá."); });
+  }
+  function conviteChipHtml(a){
+    if (!a.convite) return "";
+    var quem = a.convite.emails.join(", ");
+    if (a.convite.estado === "ok") return '<span class="painel-chip" title="' + escapeHtml(quem) + '">convite enviado · ' + a.convite.emails.length + '</span>';
+    if (a.convite.estado === "erro") return '<button type="button" class="painel-chip espera" style="border:none;cursor:pointer" data-role="convite-tentar" data-id="' + a.id + '" title="' + escapeHtml(a.convite.erro || "") + '">convite não saiu · tentar de novo</button>';
+    return '<span class="painel-chip espera">enviando convite…</span>';
+  }
+  document.addEventListener("click", function(e){
+    var el = e.target.closest('[data-role="convite-tentar"]');
+    if (!el) return;
+    var a = state.appointments.filter(function(x){ return x.id === el.getAttribute("data-id"); })[0];
+    if (!a) return;
+    if (a.convite.erro) alert("O convite não saiu: " + a.convite.erro + ".\n\nVou tentar de novo agora.");
+    conviteEnviar(a);
+  });
+  function conviteSugestoes(){
+    var dl = $("apptConvidadosLista");
+    if (dl) dl.innerHTML = (state.convidadosConhecidos || []).map(function(x){ return '<option value="' + escapeHtml(x) + '">'; }).join("");
+  }
+  $("toggleApptForm").addEventListener("click", function(){ conviteSugestoes(); renderAgendaLigacao(); });
 
   // ── Compromissos do painel do cartório ──
   // O Bússola só LÊ o painel, nunca escreve nele. Entra o mesmo que a Agenda

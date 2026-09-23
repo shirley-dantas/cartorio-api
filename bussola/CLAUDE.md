@@ -230,6 +230,34 @@ A função só responde às origens do Bússola e do painel (e ao teste local),
 recusa imagem acima de 2 MB e usa `claude-opus-5` com esforço baixo e
 `fallbacks: "default"` (se o modelo recusar por engano, o servidor tenta outro).
 
+### Mercado para um número e convite da agenda (22/09/2026)
+Ela perguntou se dava para mandar a lista sozinha para um número e se um
+compromisso podia ir para a agenda de outra pessoa. Escolhas dela:
+
+- **Mercado, opção A**: contatos guardados em `mercado.contatos`
+  (`{nome, numero}`, número em `55DDDNNNNNNNN`). "Enviar para Maria" abre
+  `wa.me/<número>?text=<lista>` — o WhatsApp **dela**, já na conversa, com a
+  lista escrita; ela só aperta enviar. Descartadas: mandar pelo número do bot
+  (sairia do WhatsApp do cartório, que atende cliente) e SMS (serviço pago à
+  parte). "outro jeito" continua abrindo o compartilhar do aparelho.
+- **Agenda, por convite, pela conta PESSOAL dela** (dantasshy@gmail.com,
+  escolhida em 23/09/2026 — a conta do cartório não participa). Gravar na
+  agenda alheia sem aceite não existe. Um Apps Script pequeno e separado,
+  `apps-script/bussola-agenda.js`, mora **na conta pessoal** e cria o evento
+  na agenda principal dela, com os convidados e `sendInvites: true`; sem
+  hora, vira dia inteiro. O horário vai com `-03:00` escrito na data, porque
+  projeto novo do Apps Script pode nascer noutro fuso.
+  O endereço do script funciona como chave (quem o tem manda convite em nome
+  dela), então **fica só no tablet** (`state.agendaUrl`), colado uma vez em
+  "Ligar minha agenda" — o Bússola confere pelo GET do script e mostra de qual
+  conta é a agenda. Nunca pôr esse endereço no código.
+  A linha do compromisso diz "convite enviado · N" ou "convite não saiu ·
+  tentar de novo" (com o motivo). Apagar o compromisso pergunta e apaga o
+  evento do Google. Se o Google avisa o convidado do cancelamento não foi
+  conferido. Editar horário depois ainda não existe.
+- **O número do WhatsApp dela não entra no código** (o Bússola é página
+  aberta): ela o cadastra uma vez no Mercado, e ele fica no tablet.
+
 ## Testes
 `node testes/bussola.mjs` — banco do painel e leitura da letra fingidos,
 passa por todos os pedidos acima e termina com fotos em

@@ -61,6 +61,31 @@ await passo('o painel continua com no máximo 12 funções (limite da Vercel)', 
   });
 }
 
+// A ação de convite do Apps Script, rodada com o Google fingido: o convite
+// leva os e-mails válidos, manda o aviso, e sem hora vira dia inteiro.
+await passo('o Apps Script cria o evento com os convidados e manda o convite', async () => {
+  const vm = await import('node:vm');
+  const codigo = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'apps-script', 'bussola-agenda.js'), 'utf8');
+  const criados = [];
+  const cal = {
+    createEvent: (t, i, f, o) => { criados.push({ t, i, f, o, dia: false }); return { getId: () => 'ev-' + criados.length }; },
+    createAllDayEvent: (t, d, o) => { criados.push({ t, d, o, dia: true }); return { getId: () => 'ev-' + criados.length }; }
+  };
+  const ctx = { CalendarApp: { getDefaultCalendar: () => cal },
+    ContentService: { createTextOutput: (t) => ({ setMimeType: () => t }), MimeType: { JSON: 'json' } },
+    Session: { getEffectiveUser: () => ({ getEmail: () => 'dantasshy@gmail.com' }) }, console };
+  vm.runInNewContext(codigo, ctx);
+  const chamar = (d) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify({ acao: 'convidar-evento-calendar', ...d }) } }));
+  const r1 = chamar({ titulo: 'Almoço', data: '2026-10-02', hora: '12:30', convidados: ['ana@x.com', 'isso não', 'joao@y.com.br'] });
+  igual(r1.ok, true, 'criou'); igual(criados[0].o.guests, 'ana@x.com,joao@y.com.br', 'convidados'); igual(criados[0].o.sendInvites, true, 'manda o convite');
+  igual(criados[0].f - criados[0].i, 3600000, 'uma hora');
+  igual(criados[0].i.toISOString(), '2026-10-02T15:30:00.000Z', '12h30 de São Paulo, seja qual for o fuso do projeto');
+  igual(JSON.parse(ctx.doGet()).conta, 'dantasshy@gmail.com', 'a conferência diz de qual conta é a agenda');
+  const r2 = chamar({ titulo: 'Aniversário', data: '2026-10-05', convidados: ['ana@x.com'] });
+  igual(r2.ok, true, 'dia inteiro'); igual(criados[1].dia, true, 'sem hora vira dia inteiro');
+  igual(chamar({ titulo: 'x', data: '2026-10-05', convidados: ['nada'] }).ok, false, 'sem e-mail válido não cria');
+});
+
 const p2 = (n) => String(n).padStart(2, '0');
 const dia = (o) => { const x = new Date(); x.setDate(x.getDate() + o); return `${x.getFullYear()}-${p2(x.getMonth() + 1)}-${p2(x.getDate())}`; };
 const HOJE = dia(0);
@@ -101,6 +126,8 @@ banco.financeiro.pessoal = await cofreDoPainel('cofre-da-shirley', [
 ]);
 let escritas = 0, recusarFocos = false;
 const leituras = [];
+const pedidosGoogle = [];
+let respostaConvite = { ok: false, erro: 'Ação desconhecida' };
 let proximaLeitura = { ok: true, texto: 'leite condensado' };
 function caminho(url) { return decodeURIComponent(new URL(url).pathname).replace(/^\//, '').replace(/\.json$/, '').split('/').filter(Boolean); }
 function ler(partes) { return partes.reduce((o, k) => (o == null ? undefined : o[k]), banco); }
@@ -142,6 +169,13 @@ async function abrir(opts) {
     const corpo = JSON.parse(r.request().postData());
     if (corpo.password !== 'senha-certa') return r.fulfill({ status: 400, json: { error: { message: 'INVALID_LOGIN_CREDENTIALS' } }, headers: { 'access-control-allow-origin': '*' } });
     return r.fulfill({ json: { email: corpo.email, idToken: 'token-ok', refreshToken: 'renova', expiresIn: '3600' }, headers: { 'access-control-allow-origin': '*' } });
+  });
+  await pg.route('**/script.google.com/**', async r => {
+    const corpo = JSON.parse(r.request().postData() || '{}');
+    if (r.request().method() !== 'GET') pedidosGoogle.push(corpo);
+    if (r.request().method() === 'GET') return r.fulfill({ body: JSON.stringify({ ok: true, funcao: 'agenda-bussola', conta: 'dantasshy@gmail.com' }), contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
+    const resposta = corpo.acao === 'convidar-evento-calendar' ? respostaConvite : { ok: true };
+    return r.fulfill({ body: JSON.stringify(resposta), headers: { 'access-control-allow-origin': '*' }, contentType: 'application/json' });
   });
   await pg.route(u => u.href.includes('/api/perguntar-joaninha') && u.href.includes('acao=ler-letra'), async r => {
     const req = r.request();
@@ -483,6 +517,76 @@ await passo('quando o leitor da letra não responde, a mensagem diz o motivo', a
   await pg.click('#canetaPronto');
   await pg.waitForFunction(() => /erro 404/.test(document.getElementById('canetaMsg').textContent));
   await pg.click('#canetaCancelar');
+});
+await passo('a lista do mercado vai para o WhatsApp do contato, já escrita', async () => {
+  await pg.evaluate(() => { window.__aberto = []; window.open = (u) => { window.__aberto.push(u); return null; }; });
+  if (!await pg.$('#mercadoContatoForm')) throw new Error('sem contato, não pediu o número');
+  let alerta = null; const pegar = d => { alerta = d.message(); };
+  pg.once('dialog', pegar);
+  await pg.fill('#mercadoContatoNome', 'Maria'); await pg.fill('#mercadoContatoNumero', '9876');
+  await pg.click('#mercadoContatoForm button[type="submit"]');
+  await pg.waitForTimeout(200);
+  if (!/não parece um celular/.test(alerta || '')) throw new Error('aceitou número errado');
+  await pg.fill('#mercadoContatoNumero', '(11) 98765-4321');
+  await pg.click('#mercadoContatoForm button[type="submit"]');
+  const id = (await estado(pg)).mercado.contatos[0].id;
+  await pg.click(`[data-role="mercado-zap"][data-id="${id}"]`);
+  const url = (await pg.evaluate(() => window.__aberto))[0] || '';
+  if (!url.startsWith('https://wa.me/5511987654321?text=')) throw new Error('endereço: ' + url);
+  const texto = decodeURIComponent(url.split('text=')[1]);
+  if (!texto.startsWith('Mercado:') || !texto.includes('• leite condensado')) throw new Error('texto: ' + texto);
+});
+await passo('para convidar, liga-se a agenda pessoal uma vez — e ela diz de qual conta é', async () => {
+  await pg.click('#toggleApptForm');
+  if (await pg.isVisible('#apptConvidados')) throw new Error('pediu convidados sem agenda ligada');
+  await pg.fill('#agendaUrlCampo', 'https://exemplo.com/qualquer');
+  await pg.click('[data-role="agenda-ligar"]');
+  if (!/não é o do script/.test(await pg.textContent('#agendaLigacao'))) throw new Error('aceitou endereço errado');
+  await pg.fill('#agendaUrlCampo', 'https://script.google.com/macros/s/AKfyTESTE_123/exec');
+  await pg.click('[data-role="agenda-ligar"]');
+  await pg.waitForFunction(() => /dantasshy@gmail\.com/.test(document.getElementById('agendaLigacao').textContent));
+  if (!await pg.isVisible('#apptConvidados')) throw new Error('o campo de convidados não apareceu');
+  await pg.click('#toggleApptForm');
+});
+await passo('compromisso com e-mail vira convite na agenda do Google', async () => {
+  await pg.click('#toggleApptForm');
+  await pg.fill('#apptTitle', 'Almoço com a Ana'); await pg.fill('#apptTime', '12:30');
+  await pg.fill('#apptConvidados', 'ana@exemplo.com, joao@exemplo.com.br');
+  await pg.click('#apptForm button[type="submit"]');
+  await pg.waitForFunction(() => /convite não saiu/.test(document.getElementById('timeline').textContent));
+  const p = pedidosGoogle.find(x => x.acao === 'convidar-evento-calendar');
+  igual(JSON.stringify(p.convidados), JSON.stringify(['ana@exemplo.com', 'joao@exemplo.com.br']), 'convidados');
+  igual(p.hora, '12:30', 'hora'); igual(p.data, HOJE, 'data');
+  // Um script que não conhece a ação recusa: o compromisso fica, e o motivo aparece.
+  const a = (await estado(pg)).appointments.find(x => x.title === 'Almoço com a Ana');
+  if (!/script da agenda está desatualizado/.test(a.convite.erro)) throw new Error('motivo: ' + a.convite.erro);
+  respostaConvite = { ok: true, eventId: 'ev-123' };
+  await pg.click('[data-role="convite-tentar"]');
+  await pg.waitForFunction(() => /convite enviado · 2/.test(document.getElementById('timeline').textContent));
+  await pg.click('#toggleApptForm');
+  await pg.fill('#apptTitle', 'Aniversário da Ana'); await pg.fill('#apptConvidados', 'ana@exemplo.com');
+  await (await pg.$('#timeline')).evaluate(el => el.closest('.panel').scrollIntoView());
+  await (await pg.$('#timeline')).evaluate(el => el.closest('.panel')).then(() => null);
+  const painel = await pg.$('#view-dia .day-left .panel:nth-child(2)');
+  await painel.screenshot({ path: SAIDA('bussola-convite.png') });
+  await pg.fill('#apptTitle', ''); await pg.fill('#apptConvidados', ''); await pg.click('#toggleApptForm');
+});
+await passo('e-mail errado não deixa salvar o compromisso', async () => {
+  await pg.click('#toggleApptForm');
+  await pg.fill('#apptTitle', 'Reunião'); await pg.fill('#apptConvidados', 'ana-sem-arroba');
+  let alerta = null; pg.once('dialog', d => { alerta = d.message(); });
+  await pg.click('#apptForm button[type="submit"]');
+  await pg.waitForTimeout(200);
+  if (!/não parecem certos/.test(alerta || '')) throw new Error('não avisou');
+  if ((await estado(pg)).appointments.some(x => x.title === 'Reunião')) throw new Error('salvou mesmo assim');
+  await pg.fill('#apptConvidados', ''); await pg.click('#toggleApptForm');
+});
+await passo('apagar o compromisso apaga também o evento do Google', async () => {
+  const a = (await estado(pg)).appointments.find(x => x.title === 'Almoço com a Ana');
+  await pg.click(`[data-role="del-appt"][data-id="${a.id}"]`);
+  await pg.waitForFunction(() => true);
+  await pg.waitForTimeout(300);
+  if (!pedidosGoogle.some(x => x.acao === 'excluir-evento-calendar' && x.eventId === 'ev-123')) throw new Error('não pediu para apagar no Google');
 });
 await passo('no Diário, a caneta também escreve — e continua cifrado', async () => {
   proximaLeitura = { ok: true, texto: 'Ideia: aula de cerâmica aos sábados' };

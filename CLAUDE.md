@@ -837,6 +837,9 @@ coisas dele encostam no painel:
   texto pela IA (a chave mora no projeto do painel). Só atende às origens do
   Bússola e do painel. O `@anthropic-ai/sdk` entrou no `package.json` por ela.
 
+O convite da agenda do Bússola **não** usa o Apps Script do cartório: sai de
+um script separado na conta pessoal dela (`apps-script/bussola-agenda.js`).
+
 **A Vercel aceita no máximo 12 funções em `api/`, e o painel está no limite.**
 Em 22/09/2026 uma 13ª fez a Vercel recusar a publicação do painel inteiro —
 sem aviso nenhum na tela, o painel só ficou parado na versão anterior. Função
