@@ -183,6 +183,14 @@ dias", sem bronca) e na Agenda do dia do vencimento. "Paguei" lança a saída na
 planilha (pergunta o valor se a conta não tem valor fixo) e empurra o
 vencimento; conta de uma vez só se encerra.
 
+**A conta do dia vira tarefa (23/09/2026)**: "está lançado gás no dia 27.09,
+nesse dia deverá haver uma nota nas tarefas do dia". As Tarefas do dia trazem
+a conta que vence naquele dia (e, hoje, as atrasadas), num fundo próprio e com
+💸; marcar o quadradinho é o "Paguei". Para não repetir a mesma conta em três
+lugares, a Agenda deixou de mostrar contas, e o aviso do topo virou **"Contas
+dos próximos dias"** (vencem em 1 a 3 dias). No filtro Profissional a conta
+não aparece — é da vida pessoal.
+
 **Sem cópia de segurança, por decisão dela (22/09/2026)**: tudo fica só no
 tablet. Se ela mudar de ideia, a pergunta foi: botão de baixar cópia, ou
 cópia cifrada no banco com a conta do Financeiro.

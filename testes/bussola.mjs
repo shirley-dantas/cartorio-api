@@ -377,24 +377,39 @@ await passo('na aba Diário, o mês marca o dia escrito e a busca acha sem acent
 });
 
 // ── Finanças e contas ──
-await passo('conta vencida aparece no Dia, com os dias, sem bronca', async () => {
+await passo('conta que vence hoje (e a atrasada) vira tarefa do dia, sem bronca', async () => {
   await aba(pg, 'financas');
   await pg.fill('#contaNome', 'IPTU'); await pg.fill('#contaValor', '350,00');
   await pg.fill('#contaVenc', dia(-28)); await pg.selectOption('#contaRepete', 'mes');
   await pg.click('#contaForm button[type="submit"]');
   await pg.fill('#contaNome', 'Faxina (Maria)'); await pg.fill('#contaVenc', HOJE); await pg.selectOption('#contaRepete', 'semana');
   await pg.click('#contaForm button[type="submit"]');
+  await pg.fill('#contaNome', 'Gás'); await pg.fill('#contaValor', '120,00'); await pg.fill('#contaVenc', dia(2)); await pg.selectOption('#contaRepete', 'mes');
+  await pg.click('#contaForm button[type="submit"]');
   await aba(pg, 'dia');
-  const t = await pg.textContent('#contasBanner');
+  const t = await pg.textContent('#taskList');
   if (!t.includes('IPTU') || !t.includes('venceu há 28 dias')) throw new Error(t);
   if (!t.includes('Faxina') || !t.includes('vence hoje')) throw new Error(t);
-  if (!(await pg.textContent('#timeline')).includes('Pagar: Faxina')) throw new Error('a faxina não entrou na Agenda de hoje');
+  if (t.includes('Gás')) throw new Error('o gás de daqui a dois dias já entrou nas tarefas de hoje');
+  const b = await pg.textContent('#contasBanner');
+  if (!b.includes('Gás') || !b.includes('vence em 2 dias')) throw new Error('o aviso dos próximos dias: ' + b);
+  if (b.includes('IPTU') || b.includes('Faxina')) throw new Error('as de hoje continuaram no aviso também');
+  if ((await pg.textContent('#timeline')).includes('Faxina')) throw new Error('a conta continuou na Agenda');
+  await pg.click('#taskFilter [data-f="profissional"]');
+  if ((await pg.textContent('#taskList')).includes('IPTU')) throw new Error('conta apareceu no filtro Profissional');
+  await pg.click('#taskFilter [data-f="todas"]');
+  // No dia do vencimento do gás, ele aparece nas tarefas daquele dia.
+  await pg.click('#dayNext'); await pg.click('#dayNext');
+  if (!(await pg.textContent('#taskList')).includes('Gás')) throw new Error('o gás não entrou nas tarefas do dia dele');
+  await pg.click('#dayPrev'); await pg.click('#dayPrev');
+  await pg.evaluate(() => window.scrollTo(0, 0));
+  await pg.screenshot({ path: SAIDA('bussola-contas-tarefas.png'), clip: { x: 0, y: 0, width: 1024, height: 900 } });
 });
-await passo('"Paguei" lança na planilha e empurra o vencimento', async () => {
+await passo('marcar a conta nas tarefas é o "Paguei": lança na planilha e empurra o vencimento', async () => {
   const st = await estado(pg);
   const iptu = st.contas.find(c => c.nome === 'IPTU'), fax = st.contas.find(c => c.nome.startsWith('Faxina'));
-  await pg.click(`#contasBanner [data-role="conta-paguei"][data-id="${iptu.id}"]`);
-  await pg.click(`#contasBanner [data-role="conta-paguei"][data-id="${fax.id}"]`);
+  await pg.click(`#taskList [data-role="conta-paguei"][data-id="${iptu.id}"]`);
+  await pg.click(`#taskList [data-role="conta-paguei"][data-id="${fax.id}"]`);
   const st2 = await estado(pg);
   const i2 = st2.contas.find(c => c.id === iptu.id), f2 = st2.contas.find(c => c.id === fax.id);
   const esperadoIptu = (() => { const d = new Date(dia(-28) + 'T12:00'); const alvo = new Date(d.getFullYear(), d.getMonth() + 1, 1); const ult = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate(); return `${alvo.getFullYear()}-${p2(alvo.getMonth() + 1)}-${p2(Math.min(d.getDate(), ult))}`; })();
