@@ -419,6 +419,10 @@
   .conta-quando { font-size: 12.5px; font-weight: 600; color: var(--muted); }
   .conta-quando.venceu { color: var(--personal); }
   .conta-valor { font-size: 13px; font-weight: 700; margin-left: auto; }
+  .conta-tarefa { background: var(--accent-soft); border-radius: var(--radius-sm); padding-left: 8px; padding-right: 8px; margin-bottom: 4px; }
+  .conta-tarefa .task-text { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+  .conta-tarefa .conta-valor { margin-left: 0; font-size: 13px; }
+  .conta-tarefa-icone { font-size: 15px; flex-shrink: 0; }
   .btn-paguei { border: none; background: var(--done); color: #fff; font: 700 12.5px var(--font-body); padding: 6px 13px; border-radius: 999px; cursor: pointer; }
   .btn-paguei:active { transform: scale(0.96); }
 
@@ -1145,16 +1149,10 @@
 
     var appts = state.appointments.filter(function(a){ return a.date === dISO; })
       .sort(function(a,b){ return (a.time||"99:99").localeCompare(b.time||"99:99"); });
-    var contasDoDia = contasAtivas().filter(function(c){ return c.venc === dISO; });
-    if (!appts.length && !contasDoDia.length) {
+    if (!appts.length) {
       $("timeline").innerHTML = '<div class="empty">Nenhum compromisso neste dia. Use "+ Compromisso" para marcar algo.</div>';
     } else {
-      $("timeline").innerHTML = contasDoDia.map(function(c){
-        return '<div class="appt-row"><div class="appt-time">—</div><div class="appt-dot" style="background:var(--accent)"></div>' +
-          '<div class="appt-body"><div class="appt-title">💸 Pagar: <span'+(c.aMao?' class="cursiva"':'')+'>'+escapeHtml(c.nome)+'</span></div>' +
-          '<div class="appt-meta">'+(c.valor?moeda(c.valor)+' · ':'')+CONTA_REPETE[c.repete||"nao"]+'</div></div>' +
-          '<button type="button" class="btn-paguei" data-role="conta-paguei" data-id="'+c.id+'">Paguei</button></div>';
-      }).join("") + appts.map(function(a){
+      $("timeline").innerHTML = appts.map(function(a){
         return '<div class="appt-row">' +
           '<div class="appt-time">'+(a.time || "—")+'</div>' +
           '<div class="appt-dot '+a.category+'"></div>' +
@@ -1170,10 +1168,30 @@
       tasks = tasks.concat(overdue);
     }
     if (taskFilterVal !== "todas") tasks = tasks.filter(function(t){ return t.category === taskFilterVal; });
-    if (!tasks.length) {
+    // A conta que vence no dia entra como tarefa (pedido dela, 23/09/2026:
+    // "está lançado gás no dia 27.09, nesse dia deverá haver uma nota nas
+    // tarefas do dia"). Hoje entram também as que já venceram, até serem
+    // pagas. Marcar o quadradinho é o "Paguei": lança na planilha e empurra
+    // o vencimento. Conta é da vida pessoal, então some no filtro Profissional.
+    var contasHoje = taskFilterVal === "profissional" ? [] : contasAtivas().filter(function(c){
+      return dISO === TODAY_ISO ? c.venc <= dISO : c.venc === dISO;
+    });
+    var contasHtml = contasHoje.map(function(c){
+      var n = contaDias(c);
+      var quando = n < 0 ? (n === -1 ? "venceu ontem" : "venceu há " + (-n) + " dias") : "vence hoje";
+      return '<div class="task-row conta-tarefa">' +
+        '<div class="task-check" data-role="conta-paguei" data-id="'+c.id+'" title="Paguei"></div>' +
+        '<span class="conta-tarefa-icone" aria-hidden="true">💸</span>' +
+        '<span class="task-text"><span'+(c.aMao?' class="cursiva"':'')+'>'+escapeHtml(c.nome)+'</span> ' +
+        '<span class="conta-quando'+(n<0?' venceu':'')+'">'+quando+'</span></span>' +
+        (c.valor ? '<span class="conta-valor">'+moeda(c.valor)+'</span>' : '') + '</div>';
+    }).join("");
+    if (!tasks.length && contasHtml) {
+      $("taskList").innerHTML = contasHtml;
+    } else if (!tasks.length) {
       $("taskList").innerHTML = '<div class="empty">Nada por aqui ainda. Use a barra no topo para adicionar sua primeira tarefa.</div>';
     } else {
-      $("taskList").innerHTML = tasks.map(function(t){
+      $("taskList").innerHTML = contasHtml + tasks.map(function(t){
         var isFocus = !!t.focus;
         return '<div class="task-row">' +
           '<div class="task-check'+(t.done?' done':'')+'" data-role="toggle-task" data-id="'+t.id+'">'+(t.done?'✓':'')+'</div>' +
@@ -1481,7 +1499,9 @@
     return (state.contas || []).filter(function(c){ return c.ativa; })
       .sort(function(a, b){ return a.venc < b.venc ? -1 : a.venc > b.venc ? 1 : 0; });
   }
-  function contasPedindoAtencao(){ return contasAtivas().filter(function(c){ return contaDias(c) <= 3; }); }
+  // Hoje e atrasadas já estão nas Tarefas do dia; o aviso do topo fica com
+  // o que vem nos próximos três dias, para dar tempo de se preparar.
+  function contasChegando(){ return contasAtivas().filter(function(c){ var n = contaDias(c); return n >= 1 && n <= 3; }); }
   function moeda(v){ return FIN ? FIN.moeda(v) : "R$ " + Number(v || 0).toFixed(2).replace(".", ","); }
   function lerDinheiro(s){ return FIN ? FIN.num(s) : parseFloat(String(s).replace(/\./g, "").replace(",", ".")) || 0; }
 
@@ -1496,9 +1516,9 @@
   }
   function renderContasBanner(){
     var el = $("contasBanner");
-    var lista = iso(dayCursor) === TODAY_ISO ? contasPedindoAtencao() : [];
+    var lista = iso(dayCursor) === TODAY_ISO ? contasChegando() : [];
     if (!lista.length) { el.innerHTML = ""; return; }
-    el.innerHTML = '<div class="contas-banner"><h3>Contas pedindo atenção' +
+    el.innerHTML = '<div class="contas-banner"><h3>Contas dos próximos dias' +
       '<button type="button" data-role="ir-financas">ver todas →</button></h3>' +
       lista.map(function(c){ return contaLinhaHtml(c, false); }).join("") + '</div>';
   }
