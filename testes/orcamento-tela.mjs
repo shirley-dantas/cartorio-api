@@ -761,6 +761,35 @@ await passo('tabela vencida trava o orçamento em vez de sair com o número velh
     throw new Error('não mandou procurar a tabela nova');
 });
 
+// O aviso da isenção do ITBI não pode passar batido no meio dos outros —
+// pedido dela em 23/09/2026, depois de dizer que a isenção "funcionou", mas
+// o aviso não chamava a atenção. Pula uma vez quando aparece; não fica
+// piscando a cada tecla enquanto o valor continuar dentro do teto; e pula de
+// novo se ela sair do teto e voltar — é um achado novo, não o mesmo de antes.
+await passo('o aviso da isenção do ITBI pula na tela quando é identificado', async () => {
+  await pg.evaluate(() => orcNovoDoCaso('c1'));
+  await pg.waitForSelector('#modal-orcamento-caso.open');
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '200.000,00'));
+  await pg.waitForSelector('#orc-alerta-isencao-itbi');
+  const pulou = await pg.evaluate(() =>
+    document.getElementById('orc-alerta-isencao-itbi').classList.contains('jn-destaque'));
+  if(!pulou) throw new Error('o aviso apareceu sem pular na tela');
+  await pg.waitForFunction(() =>
+    !document.getElementById('orc-alerta-isencao-itbi').classList.contains('jn-destaque'));
+  await pg.evaluate(() => orcMudarValor('transacao', '200.001,00'));
+  const aindaPulando = await pg.evaluate(() =>
+    document.getElementById('orc-alerta-isencao-itbi').classList.contains('jn-destaque'));
+  if(aindaPulando) throw new Error('pulou de novo sem sair do teto — ia piscar a cada tecla');
+  await pg.evaluate(() => orcMudarValor('transacao', '300.000,00'));
+  await pg.waitForFunction(() => !document.getElementById('orc-alerta-isencao-itbi'));
+  await pg.evaluate(() => orcMudarValor('transacao', '200.000,00'));
+  await pg.waitForSelector('#orc-alerta-isencao-itbi');
+  const pulouDeNovo = await pg.evaluate(() =>
+    document.getElementById('orc-alerta-isencao-itbi').classList.contains('jn-destaque'));
+  if(!pulouDeNovo) throw new Error('voltou a se enquadrar no teto e não pulou de novo');
+});
+
 // ── E no celular, que é onde ela confere ──
 const cel = await b.newPage({viewport:{width:390, height:844}, deviceScaleFactor:3, isMobile:true, hasTouch:true});
 cel.on('pageerror', e => erros.push('pageerror (celular): ' + e.message));
