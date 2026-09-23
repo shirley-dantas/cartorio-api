@@ -8,6 +8,50 @@ Desenhado pensando em uma pessoa com TDAH e tendência à procrastinação: capt
 rápida sem fricção, "Foco do dia" limitado a 3 itens, linguagem não-punitiva para
 tarefas atrasadas.
 
+## Onde paramos — 23/09/2026 (leia primeiro)
+
+**Tudo abaixo está no ar** (última junção: PR #148). Ela seguiu numa janela
+nova a partir daqui.
+
+**Confirmado por ela, funcionando no tablet:** instalação como app próprio
+(bussola-mu.vercel.app); assinaturas do painel na Agenda; a caneta ✍️ lendo a
+letra (a função respondeu `chaveDaIA: true`) e a cursiva, inclusive na Página
+livre; Finanças com salário e extras do Meu financeiro (bateu com o print do
+painel: setembro R$ 5.785,98 de salário + R$ 23.170,03 de extras); a agenda
+pessoal ligada (o convite chegou — veio com Google Meet, ver abaixo); a lista
+do Mercado indo para o WhatsApp com um toque.
+
+**Com ela, por fazer:** desligar o Meet automático no Google Agenda da
+dantasshy (Configurações → Geral → Configurações do evento → desmarcar
+"Adicionar automaticamente videoconferências do Google Meet aos eventos que eu
+criar"). O Meet vem dessa configuração da conta, não do código. Ela também
+ia cadastrar o gás (vence 27/09, todo mês) para ver a conta virar tarefa.
+
+**No ar, mas ela ainda não contou se usou de verdade:** Diário (criar,
+destravar com o rosto), Contas a pagar no dia a dia, tarefa profissional
+aparecendo no Bloco de Notas do painel.
+
+**Ideias levantadas e não feitas (perguntar antes de fazer):**
+- editar um compromisso depois de criado (hoje só apaga e recria; o convite
+  do Google não acompanha a mudança);
+- cópia de segurança (hoje tudo fica só no tablet — ela disse "não precisa
+  agora" em 22/09);
+- notificação que apita no tablet com o app fechado (hoje o aviso é só
+  dentro do app).
+
+### Como ela trabalha — vale para toda janela nova
+- Não é da área técnica e pede passo a passo "de leiga": uma ação por passo,
+  dizendo onde tocar e o que deve aparecer; "me manda um print" quando travar.
+- Usa um **tablet Android com caneta**, com mais de uma conta Google no
+  navegador (daí o `/u/1/`).
+- Quer **ver a imagem antes de publicar** e responde "pode publicar". Publicar
+  é abrir PR e juntar na `main`; a Vercel sobe o painel e o Bússola sozinha.
+- Arquivo para ela abrir "tem de abrir com um clique": o que ela precisa
+  copiar vai numa página com botão Copiar (foi feita uma para o script da
+  agenda, como artifact do Claude), não como anexo.
+- Dado dela que funcionaria como chave (endereço do script, número do
+  WhatsApp) fica **no tablet**, nunca no código — o Bússola é página aberta.
+
 ## Estado atual
 Arquivo único autocontido: `index.html` (HTML + CSS + JS vanilla, sem build
 step, sem dependências externas além de fontes do Google Fonts). Servido pela
@@ -32,8 +76,9 @@ Tudo funciona 100% no navegador, sem backend: os dados ficam em
   chegam sozinhas do painel (ver "Compromissos do painel" abaixo)
 - **Tarefas**: lista do dia + pendentes de dias anteriores aparecem com aviso
   neutro; filtro por categoria
-- **Agenda** (antes "Linha do tempo"): compromissos do dia, assinaturas do
-  painel e as contas que vencem no dia ("💸 Pagar: …")
+- **Agenda** (antes "Linha do tempo"): compromissos do dia e assinaturas do
+  painel; compromisso com e-mail vira convite na agenda pessoal (ver abaixo).
+  Contas não entram mais aqui — vão para as Tarefas (23/09/2026)
 - **Página livre + Bloco de notas, lado a lado**: o que se escreve à mão na
   página vira cartão no bloco ("Guardar no bloco →") — **lido pela IA e em
   cursiva** desde 22/09/2026, a pedido dela depois de a caneta funcionar;
@@ -47,7 +92,8 @@ Tudo funciona 100% no navegador, sem backend: os dados ficam em
 - **Desenho à mão / caneta**: componente `Sketchpad` (dentro do `<script>`)
   captura eventos de pointer (mouse, touque, caneta com pressão), guarda os
   traços como pontos normalizados (0–1) por canvas, então é responsivo a
-  redimensionamento. Usado em Notas (modo Desenho) e na Página livre.
+  redimensionamento. Usado na Página livre e na janela da caneta ✍️ (o modo
+  Desenho do bloco de notas saiu: a Página livre faz esse papel).
 - **Temas trocáveis**: três paletas — Rosé, Lavanda, Pêssego — via atributo
   `data-palette` na tag `<html>`, escolha salva no state. Suporte automático a
   dark mode do sistema em cada paleta.
@@ -178,8 +224,8 @@ planilha do Bússola; somar as duas contaria em dobro.
 aparecia depois de salvar, e ela achou que não tinha funcionado.
 
 **Contas a pagar**: cada conta tem o próximo vencimento e a repetição.
-Vencida ou vencendo em até 3 dias, aparece no topo do Dia ("venceu há 28
-dias", sem bronca) e na Agenda do dia do vencimento. "Paguei" lança a saída na
+Vencida ou do dia, aparece nas Tarefas do dia ("venceu há 28 dias", sem
+bronca); vencendo em 1 a 3 dias, no aviso do topo. "Paguei" lança a saída na
 planilha (pergunta o valor se a conta não tem valor fixo) e empurra o
 vencimento; conta de uma vez só se encerra.
 
@@ -226,9 +272,9 @@ da Joaninha (`api/perguntar-joaninha.js?acao=ler-letra`), e o
 `testes/bussola.mjs` falha se `api/` passar de 12 arquivos.
 
 **No primeiro uso de verdade (22/09/2026) a leitura falhou** com a mensagem
-genérica, que só aparece quando o servidor nem responde direito (função fora
-do ar, quebra ao carregar, tempo esgotado ou recusa de origem). Daqui não dá
-para abrir a Vercel, então a causa não foi achada. Desde então a janela diz o
+genérica, que só aparece quando o servidor nem responde direito. O ambiente de
+trabalho não abre a Vercel, então a causa só apareceu com o print dela (o 404
+do limite de funções, acima). Desde então a janela diz o
 motivo ("sem resposta do servidor", "erro 404", "demorou demais") e a função
 responde a um **GET** — abrir `https://cartorio-api.vercel.app/api/perguntar-joaninha?acao=ler-letra`
 no navegador mostra se ela está no ar e se tem a chave da IA (`chaveDaIA`),
@@ -275,6 +321,19 @@ compromisso podia ir para a agenda de outra pessoa. Escolhas dela:
   Bússola tira esse pedaço ao ligar a agenda.
 - **O número do WhatsApp dela não entra no código** (o Bússola é página
   aberta): ela o cadastra uma vez no Mercado, e ele fica no tablet.
+
+## Como se publica e o que depende de quê
+- Branch de trabalho `claude/projeto-em-conjunto-0ppevs`; PR para a `main`;
+  depois de juntar, a branch recomeça da `main` a cada entrega nova.
+- Dois projetos na Vercel sobem da mesma `main`: o painel
+  (cartorio-api.vercel.app, com as funções de `api/`) e o `bussola`
+  (Root Directory `bussola`, bussola-mu.vercel.app, só arquivos).
+- O ambiente de trabalho **não alcança** a Vercel nem o site do Bússola (rede
+  bloqueada): conferir o que está no ar é pedir a ela um print.
+- Apps Scripts são atualizados à mão por ela em script.google.com:
+  `cartorio-drive-api.js` (cartório — o Bússola não depende dele) e
+  `bussola-agenda.js` (conta pessoal dantasshy@gmail.com, implantado como App
+  da Web, "Executar como: Eu", "Qualquer pessoa").
 
 ## Testes
 `node testes/bussola.mjs` — banco do painel e leitura da letra fingidos,

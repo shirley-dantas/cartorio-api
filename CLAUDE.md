@@ -821,7 +821,8 @@ fechado nas regras do banco, e por isso pede conta e senha do Firebase.
 ## O Bússola (planner pessoal dela)
 
 Mora em `bussola/`, publicado num projeto próprio da Vercel
-(https://bussola-mu.vercel.app). Tem o próprio `CLAUDE.md` lá dentro. Três
+(https://bussola-mu.vercel.app). Tem o próprio `CLAUDE.md` lá dentro — **para
+continuar o Bússola, comece pela seção "Onde paramos" de `bussola/CLAUDE.md`**. Três
 coisas dele encostam no painel:
 
 - **Ele escreve em `/focos`**: tarefa profissional anotada no Bússola vira
