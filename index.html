@@ -10266,24 +10266,52 @@ const ORC_ATOS = [
   },
   {
     id: 'compra-venda-vagas',
-    nome: 'Compra e venda com mais de um imóvel (vagas ou imóveis distintos)',
+    nome: 'Compra e venda com vagas individualizadas',
     grupo: 'Compra e venda',
     campos: ['unidades'],
-    // A escritura é uma só, sobre o global; o registro é um por matrícula, e
-    // cada um cai na SUA faixa. Somar tudo e registrar de uma vez daria outro
-    // número — é a diferença que esta regra existe para não deixar passar.
-    //
-    // Nasceu do caso do apartamento com vagas, mas a conta é a mesma para
-    // qualquer escritura com mais de uma matrícula — cinco imóveis distintos
-    // na mesma escritura fazem a mesma soma. Só o nome não dizia isso; o
-    // cálculo sempre serviu aos dois casos.
-    comoElaEscreveu: '1 ato sobre o valor da transação, 1 registro sobre os valores individualizados de cada imóvel (o apartamento e as vagas, ou imóveis distintos), cada um na sua faixa, 1 ITBI do valor global de 3%.',
+    // A escritura é uma só, sobre o global — é UM negócio jurídico, o
+    // apartamento com as vagas dele, ainda que o registro saia matrícula por
+    // matrícula. Isso não serve para imóveis DISTINTOS (lotes de dono
+    // diferente, ou vendidos como coisas separadas): ali cada um tem sua
+    // própria escritura, e somar tudo antes de aplicar a faixa dá um número
+    // menor do que é — a tabela é regressiva, e 29/09/2026 pegou esse erro no
+    // caso da Dra. Iara (5 imóveis a R$ 40.000,00: R$ 3.400,86 sobre o
+    // global contra R$ 9.538,00 de cinco escrituras separadas). Por isso
+    // "imóveis distintos" tem ato próprio — `compra-venda-imoveis-distintos`.
+    comoElaEscreveu: '1 ato sobre o valor da transação, 1 registro sobre os valores individualizados do apartamento e das vagas, cada um na sua faixa, 1 ITBI do valor global de 3%.',
     montar(e){
       const uni = (e.unidades || []).filter(u => u && u.valor > 0);
       const global = uni.reduce((s, u) => s + u.valor, 0);
       return {
         escrituras: [orcLinhaEscritura(global, {rot: 'Escritura de compra e venda — valor global'})],
         registros: uni.map(u => orcLinhaRegistro(u.valor, {rot: 'Registro — ' + (u.rotulo || 'unidade')})),
+        tributos: [orcLinhaTributo('itbi', global, {rot: 'ITBI sobre o valor global'})]
+      };
+    }
+  },
+  {
+    id: 'compra-venda-imoveis-distintos',
+    nome: 'Compra e venda de imóveis distintos (cada um com escritura própria)',
+    grupo: 'Compra e venda',
+    campos: ['imoveisDistintos'],
+    // O caso da Dra. Iara: cinco imóveis, sem relação entre si (não é um
+    // apartamento com vagas — são coisas separadas, cada uma com seu preço).
+    // Cada um sai numa escritura própria, na SUA faixa, e num registro
+    // próprio, também na sua faixa. Só o ITBI é sobre o valor global — é
+    // imposto sobre a transmissão, e a base dele é o negócio inteiro.
+    //
+    // Diferença que importa: a tabela de emolumentos é regressiva (faixa
+    // maior paga proporcionalmente menos), então cinco escrituras de
+    // R$ 40.000,00 somam MAIS do que uma escritura de R$ 200.000,00. Somar
+    // os valores antes de aplicar a faixa (como no ato das vagas) dá um
+    // número menor do que ela cobra — foi o que ela apontou em 29/09/2026.
+    comoElaEscreveu: '1 escritura por imóvel, cada uma na sua faixa, 1 registro por imóvel, cada um na sua faixa, 1 ITBI de 3% sobre o valor global.',
+    montar(e){
+      const uni = (e.imoveisDistintos || []).filter(u => u && u.valor > 0);
+      const global = uni.reduce((s, u) => s + u.valor, 0);
+      return {
+        escrituras: uni.map(u => orcLinhaEscritura(u.valor, {rot: 'Escritura — ' + (u.rotulo || 'imóvel')})),
+        registros: uni.map(u => orcLinhaRegistro(u.valor, {rot: 'Registro — ' + (u.rotulo || 'imóvel')})),
         tributos: [orcLinhaTributo('itbi', global, {rot: 'ITBI sobre o valor global'})]
       };
     }
@@ -10674,7 +10702,9 @@ const ORC_CAMPOS = {
   meacao:        {rot: 'Valor da meação',             pergunta: 'Qual o valor da meação?'},
   excedente:     {rot: 'Quinhão excedente',           pergunta: 'Qual o valor do quinhão excedente?'},
   totalPartilha: {rot: 'Valor total da partilha',     pergunta: 'Qual o valor total da partilha?'},
-  unidades:      {rot: 'Valores individualizados',    pergunta: 'Quais os valores de cada imóvel (o apartamento e cada vaga, ou cada imóvel distinto)?', lista: true},
+  unidades:      {rot: 'Valores individualizados',    pergunta: 'Quais os valores do apartamento e de cada vaga?', lista: true},
+  imoveisDistintos: {rot: 'Imóveis (cada um com escritura própria)', lista: true,
+                     pergunta: 'Quais os valores de cada imóvel? Cada um sai numa escritura própria, na sua faixa.'},
   imoveis:       {rot: 'Imóveis a registrar',         pergunta: 'Qual o valor de cada imóvel a registrar?', lista: true},
   // Opcional, e vale para qualquer ato que gere registro. Nasceu de um caso
   // real: uma compra e venda simples com duas vagas de garagem
@@ -11509,9 +11539,9 @@ function orcAdivinharAto(texto){
   if(tem('venda', 'resolutiv')) return 'compra-venda-resolutiva';
   if(tem('venda', 'novacao') || tem('venda', 'confissao')) return 'compra-venda-novacao';
   if(tem('venda', 'vaga')) return 'compra-venda-vagas';
-  // "5 imóveis", "3 imoveis" — a mesma conta da vaga individualizada, só que
-  // sem apartamento no meio: imóveis distintos numa escritura só.
-  if(t.includes('venda') && /\d+\s*im[oó]veis?/.test(t)) return 'compra-venda-vagas';
+  // "5 imóveis", "3 imoveis" — imóveis distintos, não um apartamento com
+  // vagas: cada um vai ganhar escritura própria, não uma sobre o global.
+  if(t.includes('venda') && /\d+\s*im[oó]veis?/.test(t)) return 'compra-venda-imoveis-distintos';
   if(tem('doacao', 'usufruto')) return 'doacao-usufruto';
   if(t.includes('doacao')) return 'doacao';
   if(tem('inventario', 'desigual') && t.includes('meacao')) return 'inventario-desigual-meacao';

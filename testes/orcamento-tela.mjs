@@ -268,6 +268,32 @@ await passo('e o ato com vagas não ganha um segundo bloco de imóveis', async (
     throw new Error('duas listas de imóveis no mesmo formulário: ' + blocos.join(' / '));
 });
 
+// O ato "imóveis distintos" (caso da Dra. Iara, 29/09/2026): cinco imóveis
+// sem relação entre si, cada um com escritura própria — bem diferente do ato
+// das vagas, onde a escritura é uma só sobre o global. Confere que a tela
+// mostra o total certo (R$ 9.538,00, não R$ 3.400,86) e não o do ato errado.
+await passo('o ato de imóveis distintos soma cada escritura na SUA faixa, não a global', async () => {
+  await pg.evaluate(() => orcTrocarAto('compra-venda-imoveis-distintos'));
+  await pg.waitForSelector('#modal-orcamento-caso.open');
+  await pg.evaluate(() => {
+    orcMudarItem('imoveisDistintos', 0, 'rotulo', 'Lote 1');
+    orcMudarItem('imoveisDistintos', 0, 'valor', '40.000,00');
+    for(let i = 1; i < 5; i++){
+      orcMaisItem('imoveisDistintos');
+      orcMudarItem('imoveisDistintos', i, 'rotulo', 'Lote ' + (i + 1));
+      orcMudarItem('imoveisDistintos', i, 'valor', '40.000,00');
+    }
+  });
+  await pg.waitForFunction(() => /200\.000,00/.test(
+    document.getElementById('orc-soma-imoveisDistintos').textContent));
+  await abrirMemoria(pg);
+  const mem = await pg.textContent('.orc-memoria');
+  if(!/9\.538,00/.test(mem)) throw new Error('a escritura não somou 9.538,00: ' + mem.slice(0, 400));
+  if(/3\.400,86/.test(mem)) throw new Error('calculou a escritura sobre o global, como o ato das vagas');
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
 await passo('o inventário também soma os imóveis dele', async () => {
   await pg.evaluate(() => orcTrocarAto('inventario'));
   await pg.evaluate(() => {
