@@ -819,6 +819,10 @@ ok('"venda e compra com alienação fiduciária" vira o ato certo',
 ok('"doação com reserva de usufruto" vira o ato certo',
    orcAdivinharAto('Doação com reserva de usufruto') === 'doacao-usufruto');
 ok('"inventário e partilha" vira inventário', orcAdivinharAto('Inventário e partilha') === 'inventario');
+ok('"venda de 5 imóveis" vira o ato de mais de um imóvel — mesma conta da vaga',
+   orcAdivinharAto('Venda de 5 imóveis') === 'compra-venda-vagas');
+ok('"compra e venda" sozinho, sem números, continua indo para o ato simples',
+   orcAdivinharAto('Compra e venda') === 'compra-venda');
 ok('campo vazio não vira palpite', orcAdivinharAto('') === '');
 ok('texto que não bate com nada não vira palpite', orcAdivinharAto('abertura de firma') === '');
 

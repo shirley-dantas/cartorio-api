@@ -10266,13 +10266,18 @@ const ORC_ATOS = [
   },
   {
     id: 'compra-venda-vagas',
-    nome: 'Compra e venda com vagas individualizadas',
+    nome: 'Compra e venda com mais de um imóvel (vagas ou imóveis distintos)',
     grupo: 'Compra e venda',
     campos: ['unidades'],
     // A escritura é uma só, sobre o global; o registro é um por matrícula, e
     // cada um cai na SUA faixa. Somar tudo e registrar de uma vez daria outro
     // número — é a diferença que esta regra existe para não deixar passar.
-    comoElaEscreveu: '1 ato sobre o valor da transação, 1 registro sobre os valores individualizados do apartamento e das vagas, cada um na sua faixa, 1 ITBI do valor global de 3%.',
+    //
+    // Nasceu do caso do apartamento com vagas, mas a conta é a mesma para
+    // qualquer escritura com mais de uma matrícula — cinco imóveis distintos
+    // na mesma escritura fazem a mesma soma. Só o nome não dizia isso; o
+    // cálculo sempre serviu aos dois casos.
+    comoElaEscreveu: '1 ato sobre o valor da transação, 1 registro sobre os valores individualizados de cada imóvel (o apartamento e as vagas, ou imóveis distintos), cada um na sua faixa, 1 ITBI do valor global de 3%.',
     montar(e){
       const uni = (e.unidades || []).filter(u => u && u.valor > 0);
       const global = uni.reduce((s, u) => s + u.valor, 0);
@@ -10669,7 +10674,7 @@ const ORC_CAMPOS = {
   meacao:        {rot: 'Valor da meação',             pergunta: 'Qual o valor da meação?'},
   excedente:     {rot: 'Quinhão excedente',           pergunta: 'Qual o valor do quinhão excedente?'},
   totalPartilha: {rot: 'Valor total da partilha',     pergunta: 'Qual o valor total da partilha?'},
-  unidades:      {rot: 'Valores individualizados',    pergunta: 'Quais os valores do apartamento e de cada vaga?', lista: true},
+  unidades:      {rot: 'Valores individualizados',    pergunta: 'Quais os valores de cada imóvel (o apartamento e cada vaga, ou cada imóvel distinto)?', lista: true},
   imoveis:       {rot: 'Imóveis a registrar',         pergunta: 'Qual o valor de cada imóvel a registrar?', lista: true},
   // Opcional, e vale para qualquer ato que gere registro. Nasceu de um caso
   // real: uma compra e venda simples com duas vagas de garagem
@@ -11504,6 +11509,9 @@ function orcAdivinharAto(texto){
   if(tem('venda', 'resolutiv')) return 'compra-venda-resolutiva';
   if(tem('venda', 'novacao') || tem('venda', 'confissao')) return 'compra-venda-novacao';
   if(tem('venda', 'vaga')) return 'compra-venda-vagas';
+  // "5 imóveis", "3 imoveis" — a mesma conta da vaga individualizada, só que
+  // sem apartamento no meio: imóveis distintos numa escritura só.
+  if(t.includes('venda') && /\d+\s*im[oó]veis?/.test(t)) return 'compra-venda-vagas';
   if(tem('doacao', 'usufruto')) return 'doacao-usufruto';
   if(t.includes('doacao')) return 'doacao';
   if(tem('inventario', 'desigual') && t.includes('meacao')) return 'inventario-desigual-meacao';

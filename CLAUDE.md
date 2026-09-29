@@ -510,6 +510,13 @@ procuração, ata e escritura declaratória.
   exatamente nesse caso e somem no caso de imóvel único. O botão *"Tem mais de
   uma matrícula?"* vale em **qualquer** ato com registro, não só no ato das
   vagas: matrícula separada é característica do imóvel, não do ato.
+  O ato **"Compra e venda com mais de um imóvel (vagas ou imóveis
+  distintos)"** (`compra-venda-vagas`) mudou só de nome em 29/09/2026 — a
+  conta sempre foi a mesma para uma escritura com cinco imóveis distintos e
+  para um apartamento com duas vagas, mas o nome só dizia "vagas", e ela não
+  achou onde lançar uma escritura de vários imóveis separados. O
+  reconhecimento pelo card (regra 10) também aprendeu o padrão "N imóveis"
+  (`/\d+\s*im[oó]veis?/`) ao lado de "vaga".
 - **Fora da Capital o painel procura, mas não decide.** ITBI é municipal e
   ITCMD é estadual. Antes o imposto simplesmente ficava sem valor, e ela tinha
   de procurar à mão no meio do atendimento — foi o que aconteceu com um imóvel
