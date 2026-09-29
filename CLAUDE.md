@@ -417,9 +417,10 @@ vez de apagado ou misturado com o resto.
 
 ### As regras de cobrança
 
-Vinte atos, cada um com a frase dela junto (`comoElaEscreveu`), para que a
+Vinte e um atos (eram vinte; o de imóveis distintos entrou em 29/09/2026),
+cada um com a frase dela junto (`comoElaEscreveu`), para que a
 conferência seja contra o original e não contra o que o painel entendeu.
-Compra e venda em cinco variações, doação com e sem usufruto, inventário com e
+Compra e venda em seis variações, doação com e sem usufruto, inventário com e
 sem meação e com partilha desigual, divórcio em três formas, dação, confissão,
 procuração, ata e escritura declaratória.
 
@@ -510,13 +511,24 @@ procuração, ata e escritura declaratória.
   exatamente nesse caso e somem no caso de imóvel único. O botão *"Tem mais de
   uma matrícula?"* vale em **qualquer** ato com registro, não só no ato das
   vagas: matrícula separada é característica do imóvel, não do ato.
-  O ato **"Compra e venda com mais de um imóvel (vagas ou imóveis
-  distintos)"** (`compra-venda-vagas`) mudou só de nome em 29/09/2026 — a
-  conta sempre foi a mesma para uma escritura com cinco imóveis distintos e
-  para um apartamento com duas vagas, mas o nome só dizia "vagas", e ela não
-  achou onde lançar uma escritura de vários imóveis separados. O
-  reconhecimento pelo card (regra 10) também aprendeu o padrão "N imóveis"
-  (`/\d+\s*im[oó]veis?/`) ao lado de "vaga".
+  **Vagas e imóveis distintos não são o mesmo cálculo**, e 29/09/2026 quase
+  virou o erro que esta regra existe para não deixar passar. O ato das vagas
+  (`compra-venda-vagas`) primeiro ganhou um nome mais largo — "Compra e venda
+  com mais de um imóvel" — porque ela não achava onde lançar uma escritura
+  de vários imóveis separados (caso da Dra. Iara, 5 imóveis). Mas a conta
+  **não é a mesma**: no apartamento com vagas é **um** negócio jurídico, uma
+  escritura só sobre o global; em imóveis distintos são **vários** negócios,
+  cada um com escritura própria, na sua faixa. Como a tabela é regressiva
+  (faixa maior paga proporcionalmente menos), somar antes de aplicar a faixa
+  dá um número **menor** do que é: 5 imóveis de R$ 40.000,00 deram
+  R$ 3.400,86 pelo caminho do global contra R$ 9.538,00 pela soma das cinco
+  escrituras — e ela conferiu à mão que o certo é R$ 9.538,00. O nome do ato
+  das vagas voltou ao original, e o caso dela ganhou ato próprio,
+  **`compra-venda-imoveis-distintos`**: escritura e registro, um por imóvel,
+  cada um na sua faixa; só o ITBI continua sobre o valor global. O
+  reconhecimento pelo card (regra 10) aprendeu o padrão "N imóveis"
+  (`/\d+\s*im[oó]veis?/`) e manda para o ato certo — o das vagas continua
+  reconhecido só por "vaga".
 - **Fora da Capital o painel procura, mas não decide.** ITBI é municipal e
   ITCMD é estadual. Antes o imposto simplesmente ficava sem valor, e ela tinha
   de procurar à mão no meio do atendimento — foi o que aconteceu com um imóvel

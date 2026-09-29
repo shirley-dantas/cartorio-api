@@ -198,6 +198,27 @@ ok('somar tudo e registrar de uma vez daria outro número',
    vg.totais.registro !== orcFaixa(ORC_TABELA_REGISTRO.faixas, 35186716).comMatricula);
 ok('o ITBI é sobre o valor global', vg.tributos[0].base === 35186716);
 
+console.log('\n— Imóveis distintos: cada um com escritura própria (regra 29/09/2026, caso Dra. Iara) —');
+const distintos = orcCalcular({atoId: 'compra-venda-imoveis-distintos',
+  valores: {imoveisDistintos: [
+    {rotulo: 'Lote 1', valor: 4000000}, {rotulo: 'Lote 2', valor: 4000000},
+    {rotulo: 'Lote 3', valor: 4000000}, {rotulo: 'Lote 4', valor: 4000000},
+    {rotulo: 'Lote 5', valor: 4000000}]},
+  flags: {}, despesas: {taxaAdicional: false}});
+ok('cinco escrituras, uma por imóvel', distintos.escrituras.length === 5);
+ok('cada escritura sai na faixa do PRÓPRIO valor, não do global',
+   distintos.escrituras.every(x => x.base === 4000000));
+// É exatamente o caso que ela relatou: 5 × R$ 40.000,00 dá R$ 9.538,00 de
+// escritura — bem diferente dos R$ 3.400,86 que uma escritura só sobre os
+// R$ 200.000,00 globais daria (a tabela é regressiva).
+ok('a soma das cinco escrituras é R$ 9.538,00, como ela conferiu à mão',
+   distintos.totais.escritura === 953800, distintos.totais.escritura);
+ok('uma escritura só sobre o global daria menos — é a diferença que a regra existe para não deixar passar',
+   orcLinhaEscritura(20000000).valor < distintos.totais.escritura);
+ok('cinco registros, um por imóvel, cada um na sua faixa', distintos.registros.length === 5);
+ok('o ITBI é sobre o valor global, não a soma dos ITBIs individuais',
+   distintos.tributos[0].base === 20000000 && distintos.tributos[0].valor === 600000);
+
 console.log('\n— Mais de uma matrícula em qualquer ato, não só no ato das vagas —');
 // O caso que apareceu no primeiro orçamento de verdade: uma compra e venda
 // simples com duas vagas individualizadas. A escritura e o ITBI saem do valor
@@ -819,8 +840,8 @@ ok('"venda e compra com alienação fiduciária" vira o ato certo',
 ok('"doação com reserva de usufruto" vira o ato certo',
    orcAdivinharAto('Doação com reserva de usufruto') === 'doacao-usufruto');
 ok('"inventário e partilha" vira inventário', orcAdivinharAto('Inventário e partilha') === 'inventario');
-ok('"venda de 5 imóveis" vira o ato de mais de um imóvel — mesma conta da vaga',
-   orcAdivinharAto('Venda de 5 imóveis') === 'compra-venda-vagas');
+ok('"venda de 5 imóveis" vira o ato de imóveis distintos, não o das vagas',
+   orcAdivinharAto('Venda de 5 imóveis') === 'compra-venda-imoveis-distintos');
 ok('"compra e venda" sozinho, sem números, continua indo para o ato simples',
    orcAdivinharAto('Compra e venda') === 'compra-venda');
 ok('campo vazio não vira palpite', orcAdivinharAto('') === '');
