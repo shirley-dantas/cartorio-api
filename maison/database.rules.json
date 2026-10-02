@@ -1,0 +1,54 @@
+{
+  "rules": {
+    // ══════════════════════════════════════════════════════════════════════
+    // REGRAS DO BANCO — Maison Beauty
+    //
+    // Fica num projeto Firebase PRÓPRIO, separado do cartório.
+    // Tudo é negado por padrão; só vale o que está listado aqui.
+    //
+    // Quem é quem mora em /acesso/{uid} = { nome, perfil, pro }, escrito à mão
+    // no console (o painel nunca escreve ali — ninguém se libera sozinho):
+    //   perfil "admin"       → Tháriga: as duas unidades e o dinheiro
+    //   perfil "funcionaria" → Rafael, Laís, Mariana: só a Maison Beauty
+    //   pro                  → rafael | lais | mariana | tha
+    // ══════════════════════════════════════════════════════════════════════
+
+    "acesso": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+
+    // ── Maison Beauty: Tháriga e as três funcionárias ──
+    "maison": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+    },
+
+    // ── Estúdio Florença: só a Tháriga ──
+    "florenca": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
+    },
+
+    // ── Dinheiro cobrado em cada atendimento ──
+    // A funcionária registra o valor ao concluir (só cria, nunca lê nem corrige);
+    // quem lê e corrige é a Tháriga. É o que mantém comissão e faturamento
+    // fora da vista delas de verdade, e não só escondidos na tela.
+    "financeiro": {
+      "valores": {
+        ".read": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
+        "$id": {
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (!data.exists() && root.child('acesso').child(auth.uid).exists()))"
+        }
+      }
+    },
+
+    // ── Fornecedores, contas, cursos, aulas e configurações: só a Tháriga ──
+    "admin": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
+    }
+  }
+}
