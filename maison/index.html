@@ -333,8 +333,11 @@ const meuPro=()=>S.user?.pro;
 // Cadastro único por cliente; mora na Maison (mai/ambas) ou no Florença (flo).
 const clientes=()=>[...arr(C.mClientes).map(c=>({...c,_p:'maison'})),...arr(C.fClientes).map(c=>({...c,_p:'florenca'}))];
 const agenda=()=>[...arr(C.mAgenda).map(a=>({...a,_p:'maison'})),...arr(C.fAgenda).map(a=>({...a,_p:'florenca'}))];
+const agendaAtiva=()=>agenda().filter(a=>a.st!=='Cancelado');
 const anamDe=id=>C.mAnam[id]||C.fAnam[id]||null;
-const histAll=()=>[...arr(C.mAtend).map(h=>({...h,_p:'maison'})),...arr(C.fAtend).map(h=>({...h,_p:'florenca'}))]
+// Atendimento cancelado não some: fica gravado com a marca "cancelado" e sai das contas.
+const histAll=(comCancelados=false)=>[...arr(C.mAtend).map(h=>({...h,_p:'maison'})),...arr(C.fAtend).map(h=>({...h,_p:'florenca'}))]
+  .filter(h=>comCancelados||!h.cancelado)
   .map(h=>({...h,valor:C.valores[h.id]?.valor,pag:C.valores[h.id]?.pag})).sort((a,b)=>a.date.localeCompare(b.date));
 const cli=id=>clientes().find(c=>c.id===id)||{id,n:'(cliente removida)',tel:'',niver:'01-01',unit:'mai'};
 const uTag=u=>`<span class="tag ${u}">${U[u].n}</span>`;
@@ -391,7 +394,7 @@ function telaEntrar(msg){
       try{await sendPasswordResetEmail(auth,m);toast('Enviamos o link para o seu e-mail')}catch(er){toast('Não foi possível enviar o link')}};
   }
 }
-function entrou(u){S.user=u;S.tab='hoje';S.unit=isAdmin()?'todas':'mai';
+function entrou(u){S.user=u;S.tab='hoje';S.q='';S.day=0;S.unit=isAdmin()?'todas':'mai';
   document.getElementById('entrada').hidden=true;document.getElementById('entrada').innerHTML='';
   document.getElementById('app').hidden=false;document.getElementById('bnav').hidden=false;
   comecarLeituras();render()}
@@ -430,7 +433,7 @@ const cliVisiveis=()=>clientes().filter(c=>isAdmin()||c.unit!=='flo');
 function vHoje(){
   const t=iso(TODAY),u=unitFor(TODAY);
   const hr=new Date().getHours(),saud=hr<12?'Bom dia':hr<18?'Boa tarde':'Boa noite';
-  const minhas=agenda().filter(a=>a.date===t&&(isAdmin()?a.pro==='tha':a.unit==='mai')).sort((a,b)=>a.hora.localeCompare(b.hora));
+  const minhas=agendaAtiva().filter(a=>a.date===t&&(isAdmin()?a.pro==='tha':a.unit==='mai')).sort((a,b)=>a.hora.localeCompare(b.hora));
   const semana=[...Array(7)].map((_,i)=>iso(addD(TODAY,i)).slice(5,10));
   const niver=cliVisiveis().filter(c=>semana.includes(c.niver)).sort((a,b)=>semana.indexOf(a.niver)-semana.indexOf(b.niver));
   const ult={};histAll().forEach(h=>{if(isAdmin()||h.unit==='mai')ult[h.cli]=h});
@@ -464,13 +467,13 @@ function vAgenda(){
   const days=[...Array(7)].map((_,i)=>addD(TODAY,i));
   const d=iso(days[S.day]),du=unitFor(d);
   const pros=['tha',...STAFF];
-  const ap=agenda().filter(a=>a.date===d&&visUnit(a.unit)).sort((a,b)=>a.hora.localeCompare(b.hora));
+  const ap=agendaAtiva().filter(a=>a.date===d&&visUnit(a.unit)).sort((a,b)=>a.hora.localeCompare(b.hora));
   const cols=pros.map(p=>{
     if(p==='lais'&&!laisDay(d))return '';
     const list=ap.filter(a=>a.pro===p);
     const u=p==='tha'?du:'mai';if(!visUnit(u))return '';
     return `<div class="box"><h3>${PEOPLE[p].n} ${uTag(u)}</h3>${list.map(a=>`<div class="appt ${a.st==='Atendido'?'done':''}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}<div class="small muted">${esc(sv(a.serv,a.unit).n)}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}</div>
-     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?'<span class="tag ok">Atendido</span>':`<span class="tag">${esc(a.st)}</span><button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button>`}</div></div>`).join('')||'<p class="small muted">Sem horários marcados.</p>'}</div>`}).join('');
+     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?'<span class="tag ok">Atendido</span>':`<span class="tag">${esc(a.st)}</span><button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}</div></div>`).join('')||'<p class="small muted">Sem horários marcados.</p>'}</div>`}).join('');
   return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Maison Beauty: ${U.mai.dias}, ${U.mai.hora}. Laís atende somente às segundas-feiras.`:`Agenda completa da Maison Beauty — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}<button class="btn p" id="novo">Novo agendamento</button></div></div>
   <div class="days">${days.map((x,i)=>`<button class="${S.day===i?'on':''}" data-day="${i}">${x.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')}<b>${x.getDate()}</b><i style="background:var(--${unitFor(x)})"></i></button>`).join('')}</div>
@@ -493,6 +496,27 @@ function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.ser
       await DB.set(p+'/agenda/'+a.id+'/st','Atendido');
     },'Atendimento registrado');
     if(ok)closeDlg();else btn.disabled=false}}
+function remarcarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)return;
+  openDlg('Remarcar agendamento',`<p><b>${esc(cli(a.cli).n)}</b><br><span class="muted">${esc(sv(a.serv,a.unit).n)} com ${esc(PEOPLE[a.pro]?.n)} · ${U[a.unit].n}</span></p>
+  <div style="display:flex;gap:10px"><label class="f" style="flex:1">Data<input type="date" id="rd" value="${a.date}"></label><label class="f" style="flex:1">Hora<input type="time" id="rh" value="${a.hora}"></label></div>
+  <div id="ravisos"></div><button class="btn p" id="rsave">Salvar nova data</button>`);
+  const rd=document.getElementById('rd'),rh=document.getElementById('rh'),rav=document.getElementById('ravisos'),rs=document.getElementById('rsave');
+  const check=()=>{const d=rd.value;let ok=!!d&&!!rh.value;const msgs=[];
+    if(d){
+      if(a.pro==='tha'){if(unitFor(d)!==a.unit){ok=false;msgs.push(`Neste dia a Tháriga atende no ${U[unitFor(d)].n}. Cancele este agendamento e crie um novo.`)}}
+      else{if(unitFor(d)!=='mai'){ok=false;msgs.push('Neste dia o Maison Beauty está fechado — é dia do Florença.')}
+        if(a.pro==='lais'&&!laisDay(d)){ok=false;msgs.push('A Laís atende somente às segundas-feiras.')}}
+      const choque=agendaAtiva().find(x=>x.id!==a.id&&x.pro===a.pro&&x.date===d&&x.hora===rh.value&&x.st!=='Atendido');
+      if(choque)msgs.push(`${PEOPLE[a.pro].n} já tem ${cli(choque.cli).n} às ${rh.value}. Dá para remarcar mesmo assim.`);
+    }
+    rav.innerHTML=msgs.map(m=>`<div class="alert">${esc(m)}</div>`).join('');rs.disabled=!ok};
+  [rd,rh].forEach(e=>e.onchange=check);check();
+  rs.onclick=async()=>{if(rs.disabled)return;rs.disabled=true;
+    const ok=await grava(()=>DB.upd(p+'/agenda/'+a.id,{date:rd.value,hora:rh.value}),'Agendamento remarcado');
+    if(ok)closeDlg();else rs.disabled=false}}
+async function cancelarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)return;
+  if(!confirm(`Cancelar o agendamento de ${cli(a.cli).n} em ${fd(a.date)} às ${a.hora}?`))return;
+  await grava(()=>DB.upd(p+'/agenda/'+id,{st:'Cancelado',canceladoPor:S.user.nome,canceladoEm:iso(TODAY)}),'Agendamento cancelado')}
 function novoAg(){
   const visiveis=cliVisiveis();
   if(!visiveis.length){
@@ -511,7 +535,7 @@ function novoAg(){
     if(p==='tha'){u=unitFor(d||iso(TODAY));}
     else{u='mai';if(d&&unitFor(d)!=='mai'){ok=false;msgs.push(`Neste dia o Maison Beauty está fechado — é dia do Florença.`)}}
     if(p==='lais'&&d&&!laisDay(d)){ok=false;msgs.push('A Laís atende somente às segundas-feiras.')}
-    const choque=agenda().find(a=>a.pro===p&&a.date===d&&a.hora===nh.value&&a.st!=='Atendido');
+    const choque=agendaAtiva().find(a=>a.pro===p&&a.date===d&&a.hora===nh.value&&a.st!=='Atendido');
     if(choque)msgs.push(`${PEOPLE[p].n} já tem ${cli(choque.cli).n} às ${nh.value}. Dá para agendar mesmo assim.`);
     const opts=(SERV[u]||[]).map(s=>`<option value="${s.id}">${esc(s.n)}${isAdmin()?' · '+brl(s.p):''}${s.d?' · '+s.d+'min':''}</option>`).join('');
     if(ns.innerHTML!==opts){const cur=ns.value;ns.innerHTML=opts;if([...ns.options].some(o=>o.value===cur))ns.value=cur}
@@ -550,17 +574,60 @@ function novoCliente(){
    const ok=await grava(()=>DB.push((unit==='flo'?'florenca':'maison')+'/clientes',{n,tel:document.getElementById('vt').value.trim(),niver:b?b.slice(5,10):'',unit}),'Cliente cadastrada');
    if(ok)closeDlg();else btn.disabled=false}}
 function ficha(id){const c=cli(id),an=anamDe(id);
-  const h=histAll().filter(x=>x.cli===id&&(isAdmin()||x.unit==='mai')).slice(-6).reverse();
+  const h=histAll(isAdmin()).filter(x=>x.cli===id&&(isAdmin()||x.unit==='mai')).slice(-12).reverse();
   openDlg(esc(c.n),`<p class="muted small">${esc(c.tel)||'sem telefone'} · Aniversário ${c.niver?c.niver.split('-').reverse().join('/'):'não informado'}</p>
   ${an&&an.flags&&an.flags.length?`<div class="alert">Atenção: ${esc(an.flags.join(', '))}</div>`:''}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><button class="btn sm" id="fed">Editar dados</button>${isAdmin()?'<button class="btn sm" id="fex" style="color:var(--warn);border-color:var(--warn)">Excluir cliente</button>':''}</div>
   <h3 style="margin-top:14px">Anamnese</h3>
   <p class="small">${an?`Assinada em ${fd(an.data,{day:'2-digit',month:'2-digit',year:'numeric'})} · Fotos: ${an.fotoOk?'autorizadas':'não autorizadas'}. ${anamVencida(c)?'<span class="tag warn">Passou de 6 meses, pedir atualização</span>':'<span class="tag ok">Válida</span>'}`:'<span class="tag warn">Ainda não preenchida</span>'}</p>
   ${an&&an.assinatura?`<img alt="Assinatura" src="${esc(an.assinatura)}" style="max-width:220px;border:1px solid var(--line);border-radius:8px;background:#fff">`:''}
   <div style="margin-top:8px"><button class="btn" id="anb">${an?'Atualizar anamnese':'Preencher anamnese'}</button></div>
   <h3 style="margin-top:20px">Fotos</h3><div class="photos"><div class="ph">Foto inicial<br>(envio na próxima etapa)</div><div class="ph">Foto de acompanhamento<br>(envio na próxima etapa)</div></div>
   <h3 style="margin-top:20px">Últimos atendimentos</h3>
-  ${h.map(x=>`<div class="row small"><span>${fd(x.date)}</span><div class="grow">${esc(sv(x.serv,x.unit).n)}<span class="muted"> com ${esc(PEOPLE[x.pro]?.n)}</span></div>${isAdmin()?uTag(x.unit):''}</div>`).join('')||'<p class="muted small">Sem atendimentos registrados.</p>'}`);
-  document.getElementById('anb').onclick=()=>anamnese(id)}
+  ${h.map(x=>`<div class="row small" style="${x.cancelado?'opacity:.55':''}"><span>${fd(x.date)}</span><div class="grow">${esc(sv(x.serv,x.unit).n)}<span class="muted"> com ${esc(PEOPLE[x.pro]?.n)}</span>${isAdmin()&&x.valor!=null?`<div class="muted">${brl(x.valor)} · ${esc(x.pag||'')}</div>`:''}</div>${x.cancelado?'<span class="tag warn">Cancelado</span>':''}${isAdmin()?uTag(x.unit):''}${isAdmin()&&!x.cancelado?`<button class="btn sm" data-corr="${x.id}" data-p="${x._p}">Corrigir</button><button class="btn sm" data-canc="${x.id}" data-p="${x._p}">Cancelar</button>`:''}</div>`).join('')||'<p class="muted small">Sem atendimentos registrados.</p>'}`);
+  document.getElementById('anb').onclick=()=>anamnese(id);
+  document.getElementById('fed').onclick=()=>editarCliente(id);
+  const fx=document.getElementById('fex');if(fx)fx.onclick=()=>excluirCliente(id);
+  dlg.querySelectorAll('[data-corr]').forEach(b=>b.onclick=()=>corrigirAtend(b.dataset.corr,b.dataset.p,id));
+  dlg.querySelectorAll('[data-canc]').forEach(b=>b.onclick=()=>cancelarAtend(b.dataset.canc,b.dataset.p,id))}
+function editarCliente(id){const c=cli(id);
+  openDlg('Editar '+esc(c.n),`<label class="f">Nome completo<input id="en" value="${esc(c.n)}"></label>
+  <label class="f">Telefone<input id="et" value="${esc(c.tel)}" inputmode="tel"></label>
+  <label class="f">Aniversário (dia e mês)<input id="eb" type="date" value="${c.niver?'2000-'+c.niver:''}"></label>
+  <button class="btn p" id="esave">Salvar</button>`);
+  document.getElementById('esave').onclick=async()=>{const n=document.getElementById('en').value.trim();if(!n){toast('Digite o nome da cliente');return}
+    const b=document.getElementById('eb').value;const btn=document.getElementById('esave');btn.disabled=true;
+    const ok=await grava(()=>DB.upd(c._p+'/clientes/'+id,{n,tel:document.getElementById('et').value.trim(),niver:b?b.slice(5,10):''}),'Dados atualizados');
+    if(ok){closeDlg();ficha(id)}else btn.disabled=false}}
+async function excluirCliente(id){const c=cli(id);
+  // Quem já tem atendimento (mesmo cancelado) ou agendamento aberto fica: apagar levaria o histórico junto.
+  if(histAll(true).some(h=>h.cli===id)){toast('Esta cliente tem atendimentos no histórico e não pode ser excluída.');return}
+  if(agendaAtiva().some(a=>a.cli===id)){toast('Cancele os agendamentos desta cliente antes de excluí-la.');return}
+  if(!confirm(`Excluir ${c.n} e a anamnese dela? Isso não pode ser desfeito.`))return;
+  const base=c._p;
+  const ok=await grava(async()=>{await DB.del(base+'/clientes/'+id);await DB.del(base+'/anamneses/'+id)},'Cliente excluída');
+  if(ok)closeDlg()}
+function corrigirAtend(id,p,cid){const h=histAll(true).find(x=>x.id===id&&x._p===p);if(!h)return;
+  openDlg('Corrigir atendimento',`<p><b>${esc(cli(h.cli).n)}</b><br><span class="muted">${esc(sv(h.serv,h.unit).n)} · ${fd(h.date)}</span></p>
+  <label class="f">Valor cobrado<input type="number" step="0.01" id="xv" value="${h.valor??''}"></label>
+  <label class="f">Forma de pagamento<select id="xp">${PAG.map(x=>`<option ${x===h.pag?'selected':''}>${x}</option>`).join('')}</select></label>
+  <button class="btn p" id="xsave">Salvar correção</button>`);
+  document.getElementById('xsave').onclick=async()=>{const valor=parseFloat(document.getElementById('xv').value);
+    if(!(valor>=0)){toast('Digite o valor cobrado');return}
+    const btn=document.getElementById('xsave');btn.disabled=true;
+    const ok=await grava(()=>DB.upd('financeiro/valores/'+id,{valor,pag:document.getElementById('xp').value,corrigidoPor:S.user.nome,corrigidoEm:iso(TODAY)}),'Atendimento corrigido');
+    if(ok){closeDlg();ficha(cid)}else btn.disabled=false}}
+function cancelarAtend(id,p,cid){const h=histAll(true).find(x=>x.id===id&&x._p===p);if(!h)return;
+  openDlg('Cancelar atendimento',`<p><b>${esc(cli(h.cli).n)}</b><br><span class="muted">${esc(sv(h.serv,h.unit).n)} · ${fd(h.date)} · ${brl(h.valor)}</span></p>
+  <p class="small muted">O atendimento fica guardado como cancelado e sai do financeiro e das comissões. Se veio da agenda, o horário volta a "Agendado".</p>
+  <label class="f">Motivo (opcional)<input id="xm"></label>
+  <button class="btn p" id="xcanc">Cancelar atendimento</button>`);
+  document.getElementById('xcanc').onclick=async()=>{const btn=document.getElementById('xcanc');btn.disabled=true;
+    const ok=await grava(async()=>{
+      await DB.upd(p+'/atendimentos/'+id,{cancelado:true,canceladoPor:S.user.nome,canceladoEm:iso(TODAY),motivoCancelamento:document.getElementById('xm').value});
+      if(h.agenda)await DB.set(p+'/agenda/'+h.agenda+'/st','Agendado');
+    },'Atendimento cancelado');
+    if(ok){closeDlg();ficha(cid)}else btn.disabled=false}}
 function anamnese(id){const c=cli(id);
   openDlg('Anamnese de '+esc(c.n),`<p class="small muted">A cliente pode preencher no celular ou tablet. Respostas "sim" aparecem como alerta na ficha.</p>
   <label class="f">Serviço/procedimento a ser realizado<input id="aserv" placeholder="Ex.: micropigmentação, design + henna..."></label>
@@ -590,7 +657,7 @@ function vFinanceiro(){
   const m=monthRecs();const mes=TODAY.toLocaleDateString('pt-BR',{month:'long'});
   const mai=m.filter(h=>h.unit==='mai'),flo=m.filter(h=>h.unit==='flo');
   const sum=a=>a.reduce((s,h)=>s+(h.valor||0),0);
-  const fatM=sum(mai),com=sum(mai.filter(h=>h.pro==='rafael'||h.pro==='mariana'))*.5,desp=arr(C.contas).filter(c=>c.unit==='mai'&&c.pago).reduce((s,c)=>s+c.v,0);
+  const fatM=sum(mai),com=sum(mai.filter(h=>h.pro==='rafael'||h.pro==='mariana'))*.5,desp=arr(C.contas).filter(c=>c.unit==='mai'&&c.pago&&!c.cancelada).reduce((s,c)=>s+c.v,0);
   const fatF=sum(flo),rep=fatF*repasse()/100;
   const porPag=PAG.map(p=>[p,sum(m.filter(h=>h.pag===p&&visUnit(h.unit)))]);
   const showM=visUnit('mai'),showF=visUnit('flo');
@@ -646,16 +713,16 @@ function detCom(p){const r=periodRecs().filter(h=>h.pro===p);
   ${r.map(h=>`<tr><td>${fd(h.date)}</td><td>${esc(cli(h.cli).n)}</td><td>${esc(sv(h.serv,h.unit).n)}</td><td class="n">${brl(h.valor)}</td>${p==='lais'?'':`<td class="n">${brl((h.valor||0)/2)}</td>`}</tr>`).join('')||`<tr><td colspan="${p==='lais'?4:5}" class="muted">Nenhum atendimento nesta quinzena.</td></tr>`}</table></div>`)}
 
 function vFornecedores(){
-  const c=arr(C.contas).filter(x=>visUnit(x.unit)).sort((a,b)=>(!!a.pago-!!b.pago)||a.venc.localeCompare(b.venc));
+  const c=arr(C.contas).filter(x=>visUnit(x.unit)).sort((a,b)=>(!!a.cancelada-!!b.cancelada)||(!!a.pago-!!b.pago)||a.venc.localeCompare(b.venc));
   const f=arr(C.fornecedores);
   return `<div class="top"><div><h1>Fornecedores</h1><div class="sub">Contatos e contas a pagar.</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}<button class="btn" id="novofor">Novo fornecedor</button><button class="btn p" id="novaconta">Nova conta</button></div></div>
   <div class="note">Tháriga vai enviar a lista de fornecedores e o controle de estoque depois — por enquanto, cadastre aqui o que já for surgindo.</div>
   <div class="grid g2">
    <div class="box"><h2>Contas</h2>${c.length?c.map(x=>{const d=(new Date(x.venc+'T00:00')-TODAY)/864e5;
-    return `<div class="row"><div class="grow"><b>${esc(x.f)}</b><div class="small muted">${esc(x.d)} · vence ${fd(x.venc)}</div></div><b>${brl(x.v)}</b>
-    ${x.pago?'<span class="tag ok">Pago</span>':`<span class="tag ${d<=3?'warn':''}">${d<0?'Vencida':d===0?'Vence hoje':'Em '+d+' dias'}</span><button class="btn sm" data-pc="${x.id}">Pagar</button>`}</div>`}).join(''):'<p class="muted">Nenhuma conta cadastrada ainda.</p>'}</div>
-   <div class="box"><h2>Cadastro</h2>${f.length?f.map(x=>`<div class="row"><div class="avatar">${esc(x.n[0])}</div><div class="grow"><b>${esc(x.n)}</b><div class="small muted">${esc(x.cat)} · ${esc(x.tel)}</div></div></div>`).join(''):'<p class="muted">Nenhum fornecedor cadastrado ainda.</p>'}</div>
+    return `<div class="row" style="${x.cancelada?'opacity:.55':''}"><div class="grow"><b>${esc(x.f)}</b><div class="small muted">${esc(x.d)} · vence ${fd(x.venc)}</div></div><b>${brl(x.v)}</b>
+    ${x.cancelada?'<span class="tag warn">Cancelada</span>':x.pago?'<span class="tag ok">Pago</span>':`<span class="tag ${d<=3?'warn':''}">${d<0?'Vencida':d===0?'Vence hoje':'Em '+d+' dias'}</span><button class="btn sm" data-pc="${x.id}">Pagar</button>`}<button class="btn sm" data-ec="${x.id}">Editar</button></div>`}).join(''):'<p class="muted">Nenhuma conta cadastrada ainda.</p>'}</div>
+   <div class="box"><h2>Cadastro</h2>${f.length?f.map(x=>`<div class="row"><div class="avatar">${esc(x.n[0])}</div><div class="grow"><b>${esc(x.n)}</b><div class="small muted">${esc(x.cat)} · ${esc(x.tel)}</div></div><button class="btn sm" data-ef="${x.id}">Editar</button></div>`).join(''):'<p class="muted">Nenhum fornecedor cadastrado ainda.</p>'}</div>
   </div>`;
 }
 function novoFornecedor(){
@@ -665,6 +732,38 @@ function novoFornecedor(){
    const btn=document.getElementById('fsave');btn.disabled=true;
    const ok=await grava(()=>DB.push('admin/fornecedores',{n,cat:document.getElementById('fc').value||'—',tel:document.getElementById('ft').value}),'Fornecedor cadastrado');
    if(ok)closeDlg();else btn.disabled=false}}
+function editarConta(id){const x=arr(C.contas).find(y=>y.id===id);if(!x)return;
+  openDlg('Editar conta',`<label class="f">Fornecedor<input id="qf" value="${esc(x.f)}"></label>
+  <label class="f">Descrição<input id="qd" value="${esc(x.d)}"></label>
+  <label class="f">Valor<input id="qv" type="number" step="0.01" value="${x.v}"></label>
+  <label class="f">Vencimento<input id="qvenc" type="date" value="${esc(x.venc)}"></label>
+  <label class="f">Unidade<select id="qu"><option value="flo" ${x.unit==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${x.unit==='mai'?'selected':''}>Maison Beauty</option></select></label>
+  <label class="ck"><input type="checkbox" id="qpago" ${x.pago?'checked':''}>Conta paga</label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn p" id="qsave">Salvar</button>
+  <button class="btn" id="qcanc" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">${x.cancelada?'Reativar conta':'Cancelar conta'}</button></div>`);
+  document.getElementById('qsave').onclick=async()=>{const f=document.getElementById('qf').value.trim();if(!f){toast('Digite o fornecedor');return}
+    const ok=await grava(()=>DB.upd('admin/contas/'+id,{f,d:document.getElementById('qd').value,v:parseFloat(document.getElementById('qv').value)||0,venc:document.getElementById('qvenc').value||iso(TODAY),unit:document.getElementById('qu').value,pago:document.getElementById('qpago').checked}),'Conta atualizada');
+    if(ok)closeDlg()};
+  document.getElementById('qcanc').onclick=async()=>{
+    if(!x.cancelada&&!confirm('Cancelar esta conta? Ela fica guardada, mas sai das contas.'))return;
+    const ok=await grava(()=>DB.upd('admin/contas/'+id,x.cancelada?{cancelada:false}:{cancelada:true,canceladaEm:iso(TODAY)}),x.cancelada?'Conta reativada':'Conta cancelada');
+    if(ok)closeDlg()}}
+function editarFornecedor(id){const x=arr(C.fornecedores).find(y=>y.id===id);if(!x)return;
+  openDlg('Editar fornecedor',`<label class="f">Nome<input id="fn" value="${esc(x.n)}"></label><label class="f">O que fornece<input id="fc" value="${esc(x.cat)}"></label><label class="f">Telefone<input id="ft" value="${esc(x.tel)}"></label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="fsave">Salvar</button><button class="btn" id="fdel" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Excluir fornecedor</button></div>`);
+  document.getElementById('fsave').onclick=async()=>{const n=document.getElementById('fn').value.trim();if(!n){toast('Digite o nome do fornecedor');return}
+    if(await grava(()=>DB.upd('admin/fornecedores/'+id,{n,cat:document.getElementById('fc').value||'—',tel:document.getElementById('ft').value}),'Fornecedor atualizado'))closeDlg()};
+  document.getElementById('fdel').onclick=async()=>{if(!confirm('Excluir este fornecedor?'))return;if(await grava(()=>DB.del('admin/fornecedores/'+id),'Fornecedor excluído'))closeDlg()}}
+function editarCurso(id){const c=arr(C.cursos).find(y=>y.id===id);if(!c)return;
+  openDlg('Editar curso',`<label class="f">Nome da aluna<input id="kn" value="${esc(c.aluna)}"></label>
+  <label class="f">Técnica<select id="kt">${TECNICAS.map(t=>`<option ${t===c.tecnica?'selected':''}>${t}</option>`).join('')}</select></label>
+  <label class="f">Quantidade de dias<input id="kd" type="number" value="${c.dias}" min="1"></label>
+  <label class="f">Data<input id="kdt" type="date" value="${esc(c.data||'')}"></label>
+  <label class="f">Status<select id="ks">${['Aguardando data','Confirmado','Concluído'].map(t=>`<option ${t===c.status?'selected':''}>${t}</option>`).join('')}</select></label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="ksave">Salvar</button><button class="btn" id="kdel" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Excluir curso</button></div>`);
+  document.getElementById('ksave').onclick=async()=>{const n=document.getElementById('kn').value.trim();if(!n){toast('Digite o nome da aluna');return}
+    if(await grava(()=>DB.upd('admin/cursos/'+id,{aluna:n,tecnica:document.getElementById('kt').value,dias:Math.max(1,parseInt(document.getElementById('kd').value)||1),data:document.getElementById('kdt').value||null,status:document.getElementById('ks').value}),'Curso atualizado'))closeDlg()};
+  document.getElementById('kdel').onclick=async()=>{if(!confirm('Excluir este curso?'))return;if(await grava(()=>DB.del('admin/cursos/'+id),'Curso excluído'))closeDlg()}}
 function novaConta(){
   openDlg('Nova conta a pagar',`<label class="f">Fornecedor<input id="qf" placeholder="Nome do fornecedor"></label>
   <label class="f">Descrição<input id="qd" placeholder="Ex.: kit de pigmentos"></label>
@@ -686,7 +785,7 @@ function vCursos(){
     <div><div class="lbl">Valor</div><div class="stat">${brl(1000)} <span class="small muted" style="font-weight:400">por dia</span></div></div>
     <div><div class="lbl">Pagamento</div><div class="stat" style="font-size:20px">4x no crédito</div></div></div>
    <p class="small muted" style="margin-top:10px">Parcelado em 4x no cartão de crédito, com os juros da maquininha.</p></div>
-  <div class="box">${cs.length?cs.map(c=>`<div class="row"><div class="avatar">${esc(c.aluna[0])}</div><div class="grow"><b>${esc(c.aluna)}</b><div class="small muted">${esc(c.tecnica)} · ${c.dias} dia(s) · ${c.data?fd(c.data,{day:'2-digit',month:'2-digit',year:'numeric'}):'Data a definir'} · ${brl(c.dias*1000)}</div></div><span class="tag ${c.status==='Concluído'?'ok':c.status==='Confirmado'?'':'warn'}">${esc(c.status)}</span></div>`).join(''):'<p class="muted">Nenhum curso agendado ainda — ainda sem data definida.</p>'}</div>`;
+  <div class="box">${cs.length?cs.map(c=>`<div class="row"><div class="avatar">${esc(c.aluna[0])}</div><div class="grow"><b>${esc(c.aluna)}</b><div class="small muted">${esc(c.tecnica)} · ${c.dias} dia(s) · ${c.data?fd(c.data,{day:'2-digit',month:'2-digit',year:'numeric'}):'Data a definir'} · ${brl(c.dias*1000)}</div></div><span class="tag ${c.status==='Concluído'?'ok':c.status==='Confirmado'?'':'warn'}">${esc(c.status)}</span><button class="btn sm" data-ecu="${c.id}">Editar</button></div>`).join(''):'<p class="muted">Nenhum curso agendado ainda — ainda sem data definida.</p>'}</div>`;
 }
 function novoCurso(){
   openDlg('Novo agendamento de curso VIP',`<label class="f">Nome da aluna<input id="kn"></label>
@@ -790,6 +889,11 @@ function render(){
   main.querySelectorAll('[data-payrent]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/pagamentos/'+qzChave('lais_aluguel'),true),'Aluguel marcado como pago'));
   main.querySelectorAll('[data-det]').forEach(b=>b.onclick=()=>detCom(b.dataset.det));
   main.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/contas/'+b.dataset.pc+'/pago',true),'Conta marcada como paga'));
+  main.querySelectorAll('[data-remarcar]').forEach(b=>b.onclick=()=>remarcarAg(b.dataset.remarcar,b.dataset.p));
+  main.querySelectorAll('[data-cancelag]').forEach(b=>b.onclick=()=>cancelarAg(b.dataset.cancelag,b.dataset.p));
+  main.querySelectorAll('[data-ec]').forEach(b=>b.onclick=()=>editarConta(b.dataset.ec));
+  main.querySelectorAll('[data-ef]').forEach(b=>b.onclick=()=>editarFornecedor(b.dataset.ef));
+  main.querySelectorAll('[data-ecu]').forEach(b=>b.onclick=()=>editarCurso(b.dataset.ecu));
   const nv=document.getElementById('novo');if(nv)nv.onclick=novoAg;
   const q=document.getElementById('q');if(q){q.oninput=e=>{S.q=e.target.value;const pos=e.target.selectionStart;render();const n=document.getElementById('q');n.focus();n.setSelectionRange(pos,pos)}}
   const rp=document.getElementById('rep');if(rp)rp.onchange=e=>grava(()=>DB.set('admin/config/repasse',Math.min(100,Math.max(0,+e.target.value||0))));

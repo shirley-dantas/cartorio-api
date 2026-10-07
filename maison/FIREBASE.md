@@ -30,13 +30,21 @@ dados de outra pessoa e de clientes que nada têm a ver com o 20º Tabelião.
 
 | Caminho | Tháriga | Funcionárias |
 |---|---|---|
-| `/maison/*` (clientes, agenda, atendimentos, anamneses) | lê e escreve | lê e escreve |
+| `/maison/clientes`, `agenda`, `anamneses` | lê, cria, corrige e apaga | lê, cria e corrige (**não apaga**) |
+| `/maison/atendimentos` | lê, cria, corrige e cancela | lê e cria (**não corrige nem cancela**) |
 | `/florenca/*` | lê e escreve | **negado** |
 | `/financeiro/valores` (valor cobrado) | lê e escreve | só **cria** ao concluir; não lê nem corrige |
 | `/admin/*` (fornecedores, contas, cursos, aulas, config, pagamentos) | lê e escreve | **negado** |
 
 Cliente da unidade Florença mora em `/florenca/clientes`; "Maison" e "As duas"
 moram em `/maison/clientes`.
+
+## Corrigir e cancelar
+- **Agendamento:** remarcar e cancelar (fica guardado como "Cancelado").
+- **Atendimento concluído:** só a Tháriga corrige valor e forma de pagamento, ou cancela. Cancelar **não apaga**: fica marcado como cancelado, sai do financeiro e das comissões, e o horário volta a "Agendado".
+- **Cliente:** editar dados; excluir só pela Tháriga, e só quem nunca teve atendimento.
+- **Conta a pagar:** editar e cancelar (guardada como cancelada). **Fornecedor e curso:** editar e excluir.
+- **Se mudar a regra de quem pode o quê, republique** `database.rules.json` no console.
 
 ## Ainda não feito
 - Upload das fotos da anamnese (Firebase Storage). A assinatura já é guardada.
