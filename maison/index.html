@@ -378,7 +378,13 @@ function telaEntrar(msg){
   if(DEMO){document.getElementById('demobtn').onclick=()=>{const [pro,perfil]=document.getElementById('demo').value.split('|');entrou({nome:PEOPLE[pro].n,perfil,pro})}}
   else{
     const go=async()=>{try{await signInWithEmailAndPassword(auth,document.getElementById('le').value.trim(),document.getElementById('ls').value)}
-      catch(er){telaEntrar('E-mail ou senha não conferem.')}};
+      catch(er){
+        const c=er.code||'';
+        const m={'auth/invalid-credential':'E-mail ou senha não conferem.','auth/wrong-password':'E-mail ou senha não conferem.','auth/user-not-found':'E-mail ou senha não conferem.',
+          'auth/invalid-email':'Esse e-mail não parece válido.','auth/too-many-requests':'Muitas tentativas. Espere alguns minutos ou use "Esqueci a senha".',
+          'auth/network-request-failed':'Sem conexão com o Firebase. Confira a internet.','auth/unauthorized-domain':'Este endereço ainda não foi autorizado no Firebase.',
+          'auth/api-key-not-valid.-please-pass-a-valid-api-key.':'A chave do Firebase no painel não é válida.'};
+        telaEntrar((m[c]||'Não foi possível entrar.')+(m[c]?'':' ('+(c||er.message)+')'))}};
     document.getElementById('lb').onclick=go;
     document.getElementById('ls').onkeydown=ev=>{if(ev.key==='Enter')go()};
     document.getElementById('lr').onclick=async()=>{const m=document.getElementById('le').value.trim();if(!m){toast('Digite o e-mail primeiro');return}
