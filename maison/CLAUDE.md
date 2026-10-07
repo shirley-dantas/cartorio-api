@@ -16,6 +16,11 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
   A trava é das **regras do banco** (`database.rules.json`); esconder aba é só cortesia.
 - **O valor cobrado mora em `/financeiro/valores/{id}`**, longe do registro do
   atendimento: a funcionária só cria, nunca lê.
+- **Nada que mexe em dinheiro é apagado de vez.** Atendimento cancelado e conta
+  cancelada ficam guardados com a marca e quem cancelou, e saem das contas
+  (`histAll()` esconde cancelados por padrão). Só a Tháriga corrige valor ou
+  cancela atendimento; as regras do banco impedem a funcionária de apagar
+  cliente ou mexer em atendimento já registrado.
 - **Comissão:** Rafael e Mariana 50% do valor cheio (sem desconto de cartão ou
   material). Laís não tem comissão: paga R$ 500/mês de aluguel da sala, só
   às segundas, e fica com 100% do que cobra.

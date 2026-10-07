@@ -21,9 +21,23 @@
     },
 
     // ── Maison Beauty: Tháriga e as três funcionárias ──
+    // Todas leem. Escrever, cada caminho tem a sua regra: a funcionária cria e
+    // corrige clientes, agenda e anamnese, mas só a Tháriga apaga cliente,
+    // anamnese, e corrige ou cancela atendimento já registrado.
     "maison": {
-      ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
-      ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+      ".read": "auth != null && root.child('acesso').child(auth.uid).exists()",
+      "clientes": {
+        "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
+      },
+      "agenda": {
+        "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
+      },
+      "atendimentos": {
+        "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && !data.exists()))" }
+      },
+      "anamneses": {
+        "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
+      }
     },
 
     // ── Estúdio Florença: só a Tháriga ──
