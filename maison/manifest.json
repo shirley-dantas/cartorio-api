@@ -1,0 +1,12 @@
+{
+  "name": "Maison Beauty — Painel",
+  "short_name": "Maison",
+  "description": "Painel de Tháriga Brito — Estúdio Florença e Maison Beauty",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAF7F1",
+  "theme_color": "#FAF7F1",
+  "icons": []
+}
