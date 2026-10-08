@@ -75,11 +75,13 @@ O botão **Preciso de ajuda** grava o pedido em `/maison/suporte` (nunca se perd
 
 ## Convites pela Google Agenda
 Quando a cliente tem **e-mail** no cadastro, ao agendar sai um convite da Google Agenda **em nome da Tháriga** (thariga.pmu@gmail.com). A cliente aceita ou recusa pelo próprio e-mail, e a resposta aparece no cartão da agenda (*Aceitou*, *Recusou*, *sem resposta*). Remarcar atualiza o mesmo evento; cancelar avisa a cliente. Sem e-mail, o agendamento segue normal, sem convite. O evento leva só serviço, unidade e horário.
-1. Abra **script.google.com** **com a conta thariga.pmu@gmail.com** (é ela que aparece como organizadora) e crie um projeto novo.
-2. Cole o conteúdo de `apps-script/agenda.js`.
-3. No menu da esquerda, ao lado de **Serviços**, clique em **+**, escolha **Google Calendar API** e clique em **Adicionar**.
-4. **Implantar → Nova implantação → App da Web.** *Executar como:* eu. *Quem pode acessar:* qualquer pessoa. Autorize quando pedir.
+**Jeito mais simples (sem a Tháriga criar nada):**
+1. A Tháriga, em calendar.google.com, abre **Configurações e compartilhamento** da agenda dela e, em **Compartilhar com pessoas específicas**, adiciona `dantasshy@gmail.com` com a permissão **Fazer alterações em eventos**.
+2. Quem dá suporte (`dantasshy@gmail.com`) abre **script.google.com**, cria um projeto e cola `apps-script/agenda.js`.
+3. No menu da esquerda, ao lado de **Serviços**, clique em **+**, escolha **Google Calendar API** e **Adicionar**.
+4. **Implantar → Nova implantação → App da Web.** *Executar como:* eu. *Quem pode acessar:* qualquer pessoa. Autorize.
 5. Copie o endereço que termina em `/exec` e coloque em `AGENDA_URL`, no começo do `<script>` do `index.html`.
+- O primeiro convite de teste mostra como o e-mail aparece para a cliente. Se ficar estranho, os mesmos passos valem rodando o script direto na conta da Tháriga (sem o passo 1).
 - Se o convite não sair, o cartão mostra **Convite não enviado** e o botão **Reenviar convite**. O agendamento nunca se perde.
 - A chave `AGENDA_CHAVE` só barra mensagem aleatória; não é senha.
 

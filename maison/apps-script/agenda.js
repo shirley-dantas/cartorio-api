@@ -1,6 +1,6 @@
 /**
  * Convites da Google Agenda do painel Maison Beauty.
- * Roda na conta da Tháriga (thariga.pmu@gmail.com): o convite sai em nome dela,
+ * Mexe na agenda da Tháriga (thariga.pmu@gmail.com): o convite sai por ela,
  * e a cliente aceita ou recusa pelo próprio e-mail.
  *
  * Como publicar: ver maison/FIREBASE.md ("Convites pela Google Agenda").
@@ -11,6 +11,9 @@
 // Tem de ser igual ao AGENDA_CHAVE do index.html. Não é senha forte: só barra mensagem aleatória.
 const CHAVE = 'EXiC2WouRkPbh2W8AjhCWhpx4lUZJxRB';
 const FUSO = 'America/Sao_Paulo';
+// A agenda da Tháriga. Funciona rodando na conta dela ou na de quem dá suporte,
+// desde que ela tenha compartilhado a agenda com "Fazer alterações em eventos".
+const AGENDA = 'thariga.pmu@gmail.com';
 
 function doPost(e) {
   try {
@@ -47,18 +50,18 @@ function criar(d) {
     end: j.end,
     attendees: [{ email: d.email }],
     reminders: { useDefault: true },
-  }, 'primary', { sendUpdates: 'all' });
+  }, AGENDA, { sendUpdates: 'all' });
   return { ok: true, id: ev.id };
 }
 
 function atualizar(d) {
   const j = janela(d.data, d.hora, d.minutos);
-  Calendar.Events.patch({ start: j.start, end: j.end }, 'primary', d.id, { sendUpdates: 'all' });
+  Calendar.Events.patch({ start: j.start, end: j.end }, AGENDA, d.id, { sendUpdates: 'all' });
   return { ok: true };
 }
 
 function cancelar(d) {
-  Calendar.Events.remove('primary', d.id, { sendUpdates: 'all' });
+  Calendar.Events.remove(AGENDA, d.id, { sendUpdates: 'all' });
   return { ok: true };
 }
 
@@ -68,7 +71,7 @@ function status(d) {
   const saida = {};
   (d.ids || []).forEach(function (x) {
     try {
-      const ev = Calendar.Events.get('primary', x.id);
+      const ev = Calendar.Events.get(AGENDA, x.id);
       if (ev.status === 'cancelled') { saida[x.id] = 'cancelado'; return; }
       const g = (ev.attendees || []).filter(function (a) { return a.email && a.email.toLowerCase() === String(x.email).toLowerCase(); })[0];
       saida[x.id] = g ? (mapa[g.responseStatus] || 'sem-resposta') : 'sem-resposta';
