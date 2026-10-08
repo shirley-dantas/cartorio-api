@@ -32,6 +32,7 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
 - **Preços e serviços** são editáveis pela Tháriga (`/maison/servicos`, sobre a tabela de partida `SERV`). Valor cobrado de atendimento já registrado nunca muda sozinho.
 - **Suporte:** botão "Preciso de ajuda" grava em `/maison/suporte` e manda e-mail pelo Apps Script (`apps-script/suporte.js`, `SUPORTE_URL` no `index.html`).
 - **Instagram (fase 1, aba só da administradora):** plano da semana (um tema por dia: seg dicas, ter bastidores, qua conversa, qui cuidados, sex autocuidado, sáb horários, dom descanso; ★ = mínimo se a semana apertar), com banco de ideias recolhido embaixo; legenda, hashtags e o que fotografar; nada é publicado pelo painel. A troca de ideia do dia fica em `/admin/instagram/plano/{data}`. Sem promessa de resultado, sem preço e sem foto de cliente. O que ela edita e o que marca como postado fica em `/admin/instagram`.
+- **Avisar a cliente do horário (sem script):** ao agendar ou remarcar abre a mensagem pronta e editável, com botões **WhatsApp** (como a anamnese) e **e-mail**, e um link que salva o horário na agenda da própria cliente. Também há o botão "Avisar a cliente" em cada cartão da agenda. A mensagem não leva valor. É o caminho principal; o convite pela Google Agenda é opcional.
 - **Convite da agenda:** o evento leva só serviço, unidade e horário (nunca ficha, anamnese ou valor). Remarcar atualiza o mesmo evento, nunca cria outro.
 - **A Laís só atende às segundas, na tela e nas regras do banco** (o agendamento leva `ts` e a regra confere o dia da semana).
 - **Todo serviço exige anamnese** válida (vence em 6 meses). Retorno padrão: 20 dias.
@@ -51,7 +52,7 @@ testar: `python3 -m http.server` dentro de `maison/` e abrir `index.html`.
 Passo a passo do Firebase em `FIREBASE.md`.
 
 ## Na fila
-- **Google Agenda** já está no painel (`apps-script/agenda.js`, `AGENDA_URL` no `index.html`): só falta a Tháriga autorizar o script na conta dela. Convite só sai para cliente com e-mail; falha aparece escrita, com "Reenviar convite".
+- **Google Agenda (opcional)** já está no painel (`apps-script/agenda.js`, `AGENDA_URL` no `index.html`): só falta a Tháriga autorizar o script na conta dela. Convite só sai para cliente com e-mail; falha aparece escrita, com "Reenviar convite".
 - **Instagram, fase 2:** conectar a conta profissional (Página do Facebook + app da Meta) e publicar pelo painel; e ideias geradas pela IA (precisa de chave da API na Vercel). Foto de cliente só com termo de divulgação, que a ficha atual não dá.
 - Mariana (mariibriit00@gmail.com): criar a conta e o cadastro em `acesso`.
 - Logo e ícones já estão no painel (`logo.png`, `icon-192.png`, `icon-512.png`), tirados do PDF que a Tháriga mandou.

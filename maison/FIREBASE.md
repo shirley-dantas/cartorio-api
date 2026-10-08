@@ -76,7 +76,10 @@ O botão **Preciso de ajuda** grava o pedido em `/maison/suporte` (nunca se perd
 - **Limite:** o Gmail comum deixa o Apps Script mandar cerca de **100 e-mails por dia**. Para um estúdio, sobra.
 - A chave que acompanha o pedido só barra mensagens aleatórias; não é senha. Os pedidos também ficam no banco.
 
-## Convites pela Google Agenda
+## Avisar a cliente do horário
+Ao agendar ou remarcar, o painel abre uma mensagem pronta para a cliente, com **WhatsApp** e **e-mail** (se houver telefone e e-mail no cadastro) e um link que salva o horário na agenda dela. Não precisa de script nem de configuração. Também dá para avisar depois, pelo botão **Avisar a cliente** no cartão da agenda.
+
+## Convites pela Google Agenda (opcional)
 Quando a cliente tem **e-mail** no cadastro, ao agendar sai um convite da Google Agenda **em nome da Tháriga** (thariga.pmu@gmail.com). A cliente aceita ou recusa pelo próprio e-mail, e a resposta aparece no cartão da agenda (*Aceitou*, *Recusou*, *sem resposta*). Remarcar atualiza o mesmo evento; cancelar avisa a cliente. Sem e-mail, o agendamento segue normal, sem convite. O evento leva só serviço, unidade e horário.
 **Jeito mais simples (sem a Tháriga criar nada):**
 1. A Tháriga, em calendar.google.com, abre **Configurações e compartilhamento** da agenda dela e, em **Compartilhar com pessoas específicas**, adiciona `dantasshy@gmail.com` com a permissão **Fazer alterações em eventos**.
