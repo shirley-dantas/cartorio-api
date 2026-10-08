@@ -31,6 +31,7 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
 - **Anamnese por link:** a cliente preenche em `anamnese.html?t=CÓDIGO`, sem conta (login anônimo). Código de 32 caracteres, 7 dias, uso único; o envio vai para `/maison/pendentes` e **só vale na ficha depois que a equipe integra**. O convite guarda só o primeiro nome. Só clientes da Maison (não Florença).
 - **Preços e serviços** são editáveis pela Tháriga (`/maison/servicos`, sobre a tabela de partida `SERV`). Valor cobrado de atendimento já registrado nunca muda sozinho.
 - **Suporte:** botão "Preciso de ajuda" grava em `/maison/suporte` e manda e-mail pelo Apps Script (`apps-script/suporte.js`, `SUPORTE_URL` no `index.html`).
+- **Convite da agenda:** o evento leva só serviço, unidade e horário (nunca ficha, anamnese ou valor). Remarcar atualiza o mesmo evento, nunca cria outro.
 - **Todo serviço exige anamnese** válida (vence em 6 meses). Retorno padrão: 20 dias.
 - **Unidade do dia** vem do dia da semana: Florença quinta–sábado, Maison
   domingo–quarta. Tháriga não escolhe unidade à mão.
@@ -48,7 +49,7 @@ testar: `python3 -m http.server` dentro de `maison/` e abrir `index.html`.
 Passo a passo do Firebase em `FIREBASE.md`.
 
 ## Na fila
-- **Google Agenda** (convite para a cliente aceitar ou recusar, saindo da conta thariga.pmu@gmail.com): precisa do e-mail da cliente no cadastro e de um Apps Script autorizado pela Tháriga.
+- **Google Agenda** já está no painel (`apps-script/agenda.js`, `AGENDA_URL` no `index.html`): só falta a Tháriga autorizar o script na conta dela. Convite só sai para cliente com e-mail; falha aparece escrita, com "Reenviar convite".
 - **Instagram:** sugestões de post (ideias, legendas, imagens); depois publicar pelo painel. Foto de cliente só com termo de divulgação, que a ficha atual não dá.
 - Mariana (mariibriit00@gmail.com): criar a conta e o cadastro em `acesso`.
 - Logo e ícones já estão no painel (`logo.png`, `icon-192.png`, `icon-512.png`), tirados do PDF que a Tháriga mandou.

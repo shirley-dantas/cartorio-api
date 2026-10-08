@@ -98,6 +98,7 @@ function formulario(db,conv){
   <label class="f">Nome completo<input id="n" autocomplete="name"></label>
   <label class="f">Nascimento<input id="nasc" type="date"></label>
   <label class="f">Telefone<input id="tel" type="tel" autocomplete="tel"></label>
+  <label class="f">E-mail (opcional, para receber o convite do horário)<input id="mail" type="email" autocomplete="email"></label>
   <label class="f">Contato de emergência e telefone<input id="em"></label>
   <label class="f">Responsável legal, se aplicável, e telefone<input id="resp"></label>
   <div class="sec">Serviço solicitado</div>
@@ -139,7 +140,7 @@ function formulario(db,conv){
     if(!signed)return erro('Falta a sua assinatura.');
     const btn=document.getElementById('enviar');btn.disabled=true;btn.textContent='Enviando…';
     const out=document.createElement('canvas');out.width=cv.width/2;out.height=cv.height/2;const o=out.getContext('2d');o.fillStyle='#fff';o.fillRect(0,0,out.width,out.height);o.drawImage(cv,0,0,out.width,out.height);
-    const reg={nome:v('n'),nascimento:v('nasc'),telefone:v('tel'),emergencia:v('em'),responsavel:v('resp'),servicos,outro:v('outro'),area:v('area'),respostas,
+    const reg={nome:v('n'),nascimento:v('nasc'),telefone:v('tel'),email:v('mail'),emergencia:v('em'),responsavel:v('resp'),servicos,outro:v('outro'),area:v('area'),respostas,
       flags:PERGUNTAS.filter((q,i)=>respostas['q'+i]==='sim').map(q=>q[1]),obs:v('obs'),fotoOk:foto.value==='sim',
       assinatura:out.toDataURL('image/png'),data:iso(new Date()),enviadoEm:Date.now()};
     try{await set(ref(db,'maison/pendentes/'+token),reg);aviso('Ficha enviada! ✓','Obrigada, '+esc(conv.nome||'')+'. A Maison Beauty já recebeu. Pode fechar esta página.')}
