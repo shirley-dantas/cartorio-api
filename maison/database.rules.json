@@ -30,7 +30,13 @@
         "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
       },
       "agenda": {
-        "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
+        // A Laís só atende às segundas. `ts` é a data à meia-noite UTC em milissegundos:
+        // (dias desde 1970 + 4) % 7 dá o dia da semana (0 = domingo, 1 = segunda).
+        // Agendamento antigo, de antes do `ts`, continua podendo ser atualizado.
+        "$id": {
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))",
+          ".validate": "!newData.exists() || newData.child('pro').val() !== 'lais' || (data.exists() && !newData.child('ts').exists()) || (newData.child('ts').isNumber() && (newData.child('ts').val() / 86400000 + 4) % 7 === 1)"
+        }
       },
       "atendimentos": {
         "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && !data.exists()))" }
