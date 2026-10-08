@@ -27,6 +27,7 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
 - **Fechamento quinzenal:** 1–15 pago dia 20; 16–31 pago dia 5 do mês seguinte.
 - **Florença:** o percentual do acerto com a dona do estúdio **não está
   confirmado** (40% é provisório) — fica configurável, nunca travado no código.
+- **A anamnese segue a ficha oficial da Maison Beauty** (PDF da Tháriga, página 1): identificação, serviço solicitado, 12 perguntas de saúde com Sim/Não **todas obrigatórias**, detalhes, autorização de foto e assinatura. A página 2 (registro do atendimento pelo profissional) ainda não foi feita.
 - **Todo serviço exige anamnese** válida (vence em 6 meses). Retorno padrão: 20 dias.
 - **Unidade do dia** vem do dia da semana: Florença quinta–sábado, Maison
   domingo–quarta. Tháriga não escolhe unidade à mão.
@@ -44,7 +45,7 @@ testar: `python3 -m http.server` dentro de `maison/` e abrir `index.html`.
 Passo a passo do Firebase em `FIREBASE.md`.
 
 ## Na fila
-- Logo: o arquivo `logo.jpg` não veio (estava embutido no protótipo); pedir em alta resolução.
+- Logo e ícones já estão no painel (`logo.png`, `icon-192.png`, `icon-512.png`), tirados do PDF que a Tháriga mandou.
 - Upload das fotos da anamnese (Storage).
 - Número novo da Mariana, lista de fornecedores/contas, dados de estoque.
 - Roteiros de aula de cílios, lash lifting e brow lamination.
