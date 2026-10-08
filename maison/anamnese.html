@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Ficha de anamnese · Maison Beauty</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF7F1;--panel:#fff;--ink:#262220;--muted:#8A7D6E;--line:#E9E1D2;--berry:#9C7A2E;--berry-soft:#F1E9D4;--warn:#A8551C;--warn-soft:#FBEBDD;--ok:#3F7A57;--ok-soft:#E2F1E7;
+ --serif:"Cormorant",Georgia,serif;--sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+.logo{display:block;margin:6px auto 4px;width:220px;max-width:70%;height:auto}
+h1{font-family:var(--serif);font-weight:600;font-size:30px;margin:10px 0 4px;text-align:center}
+.sub{color:var(--muted);text-align:center;font-size:14px;margin-bottom:18px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.sec{background:var(--berry-soft);padding:9px 12px;border-radius:8px;font-weight:600;margin:20px 0 12px}
+label.f{display:block;margin-bottom:12px;font-size:14px;color:var(--muted)}
+label.f input,label.f textarea,label.f select{display:block;width:100%;margin-top:4px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+.q{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:15px}
+.q .sn{display:flex;gap:18px;flex:none}
+.q label,.sv label,.fo label{display:inline-flex;gap:8px;align-items:center;cursor:pointer}
+input[type=radio],input[type=checkbox]{width:22px;height:22px;accent-color:var(--berry)}
+.sv{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}
+.fo{display:flex;gap:20px;flex-wrap:wrap;margin:6px 0}
+.small{font-size:13px;color:var(--muted)}
+canvas.sig{width:100%;height:150px;border:1px dashed var(--muted);border-radius:12px;background:#fff;touch-action:none}
+.btn{border:1px solid var(--line);background:var(--panel);padding:10px 18px;border-radius:999px;font:inherit;font-weight:500}
+.btn.p{background:var(--berry);border-color:var(--berry);color:#fff;width:100%;padding:14px;font-size:17px;margin-top:16px}
+.btn:disabled{opacity:.5}
+.msg{text-align:center;padding:30px 10px}
+.msg h2{font-family:var(--serif);font-size:28px;margin:0 0 8px}
+.alert{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px;margin:10px 0}
+.erro{color:var(--warn);font-size:14px;margin-top:8px;min-height:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="logo" src="logo.png" alt="Maison Beauty">
+  <div id="tela"><div class="msg"><p class="small">Abrindo a sua ficha…</p></div></div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
+import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
+
+// Mesmo projeto Firebase do painel. A cliente entra de forma anônima, só para esta ficha:
+// as regras do banco deixam ela ler o próprio convite e gravar uma única vez em /maison/pendentes.
+const firebaseConfig = {
+  apiKey: "AIzaSyD0p5Y0HDL2rcDLE6qFNSb4nyPe3yFjXos",
+  authDomain: "maison-beauty-2e7da.firebaseapp.com",
+  databaseURL: "https://maison-beauty-2e7da-default-rtdb.firebaseio.com",
+  projectId: "maison-beauty-2e7da",
+  storageBucket: "maison-beauty-2e7da.firebasestorage.app",
+  messagingSenderId: "30042816821",
+  appId: "1:30042816821:web:e0e5cbcfe596d3a1a40c7c"
+};
+const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
+ ['Tem alergia a cosméticos, cola, látex, metais ou medicamentos?','Alergia a cosméticos, látex, metais ou medicamentos'],
+ ['Usa medicamentos, suplementos, ácidos ou isotretinoína?','Uso de medicamentos, ácidos ou isotretinoína'],
+ ['Tem diabetes ou dificuldade de cicatrização?','Diabetes ou dificuldade de cicatrização'],
+ ['Tem sangramento fácil ou usa anticoagulantes?','Sangramento fácil ou uso de anticoagulante'],
+ ['Tem histórico de queloide ou cicatrizes elevadas?','Histórico de queloide'],
+ ['Tem doença de pele, herpes ou infecção na área?','Doença de pele, herpes ou infecção na área'],
+ ['Tem doença ocular, irritação nos olhos ou cirurgia ocular recente?','Doença ocular ou cirurgia ocular recente'],
+ ['Tem doença crônica, imunossupressão ou tratamento em andamento?','Doença crônica ou imunossupressão'],
+ ['Tem anemia, deficiência de G6PD ou diagnóstico de favismo?','Anemia, G6PD ou favismo'],
+ ['Teve exposição solar intensa ou bronzeamento recente?','Exposição solar intensa recente'],
+ ['Fez procedimento recente na área ou teve reação anterior?','Procedimento recente na área ou reação anterior']];
+const SERVICOS=['Unhas','Laser remoção','Micropigmentação','Ozonioterapia','Piercing','Depilação a laser','Extensão de cílios','Brow lamination','Lash lifting','Avaliação de unhas com suspeita de fungos'];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const tela=document.getElementById('tela');
+const aviso=(t,m)=>{tela.innerHTML=`<div class="msg"><h2>${t}</h2><p>${m}</p></div>`};
+
+const token=new URLSearchParams(location.search).get('t')||'';
+async function iniciar(){
+  if(!/^[A-Za-z0-9_-]{20,64}$/.test(token))return aviso('Link inválido','Peça um novo link à Maison Beauty.');
+  let db;
+  try{const app=initializeApp(firebaseConfig);await signInAnonymously(getAuth(app));db=getDatabase(app)}
+  catch(e){return aviso('Sem conexão','Confira a internet e abra o link de novo.')}
+  let conv;
+  try{conv=(await get(ref(db,'maison/convites/'+token))).val()}
+  catch(e){return aviso('Link inválido','Peça um novo link à Maison Beauty.')}
+  if(!conv)return aviso('Link inválido','Peça um novo link à Maison Beauty.');
+  if(conv.usado)return aviso('Ficha já enviada','Esta ficha já foi recebida. Obrigada!');
+  if(conv.exp<Date.now())return aviso('Link vencido','Este link passou da validade. Peça um novo à Maison Beauty.');
+  let jaEnviou=null;
+  formulario(db,conv);
+}
+function formulario(db,conv){
+  tela.innerHTML=`<h1>Olá, ${esc(conv.nome||'')}!</h1><div class="sub">Ficha de anamnese · preencha com calma, leva uns 3 minutos.<br>Ficha individual e confidencial.</div>
+  <div class="box">
+  <div class="sec" style="margin-top:0">Identificação</div>
+  <label class="f">Nome completo<input id="n" autocomplete="name"></label>
+  <label class="f">Nascimento<input id="nasc" type="date"></label>
+  <label class="f">Telefone<input id="tel" type="tel" autocomplete="tel"></label>
+  <label class="f">Contato de emergência e telefone<input id="em"></label>
+  <label class="f">Responsável legal, se aplicável, e telefone<input id="resp"></label>
+  <div class="sec">Serviço solicitado</div>
+  <div class="sv">${SERVICOS.map((x,i)=>`<label><input type="checkbox" data-sv="${i}">${x}</label>`).join('')}</div>
+  <label class="f">Outro<input id="outro"></label>
+  <label class="f">Área a ser atendida e objetivo<textarea id="area" rows="2"></textarea></label>
+  <div class="sec">Histórico de saúde</div>
+  <p class="small" style="margin:0 0 6px">Marque Sim ou Não em todas. Se for Sim, conte os detalhes mais abaixo.</p>
+  ${PERGUNTAS.map((q,i)=>`<div class="q" data-q="${i}"><span>${q[0]}</span><span class="sn"><label><input type="radio" name="q${i}" value="sim">Sim</label><label><input type="radio" name="q${i}" value="nao">Não</label></span></div>`).join('')}
+  <label class="f" style="margin-top:12px">Detalhes das respostas e outras condições de saúde<textarea id="obs" rows="3"></textarea></label>
+  <div class="sec">Fotos do atendimento</div>
+  <div class="fo"><label><input type="radio" name="foto" value="sim">Autorizo</label><label><input type="radio" name="foto" value="nao">Não autorizo</label></div>
+  <p class="small">Fotos para registro do atendimento. Isso não autoriza divulgação em redes sociais ou publicidade.</p>
+  <div class="sec">Assinatura</div>
+  <p class="small">Declaro que as informações prestadas são verdadeiras e comunicarei alterações.</p>
+  <canvas class="sig" id="sig"></canvas>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="small">Assine com o dedo</span><button class="btn" id="limpa" type="button">Limpar</button></div>
+  <div class="erro" id="erro"></div>
+  <button class="btn p" id="enviar">Enviar minha ficha</button>
+  </div>`;
+  const cv=document.getElementById('sig'),ctx=cv.getContext('2d');let dr=false,signed=false;
+  const fit=()=>{const r=cv.getBoundingClientRect();cv.width=r.width*2;cv.height=r.height*2;ctx.scale(2,2);ctx.lineWidth=2.2;ctx.lineCap='round';ctx.strokeStyle='#262220'};fit();
+  const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+  cv.onpointerdown=e=>{dr=true;signed=true;ctx.beginPath();ctx.moveTo(...pos(e));cv.setPointerCapture(e.pointerId)};
+  cv.onpointermove=e=>{if(dr){ctx.lineTo(...pos(e));ctx.stroke()}};cv.onpointerup=cv.onpointerleave=()=>dr=false;
+  document.getElementById('limpa').onclick=()=>{ctx.clearRect(0,0,cv.width,cv.height);signed=false};
+  const erro=m=>{document.getElementById('erro').textContent=m};
+  document.getElementById('enviar').onclick=async()=>{
+    erro('');
+    const v=i=>document.getElementById(i).value.trim();
+    if(v('n').length<3)return erro('Escreva o seu nome completo.');
+    const respostas={};let falta=-1;
+    PERGUNTAS.forEach((q,i)=>{const r=document.querySelector(`input[name=q${i}]:checked`);if(r)respostas['q'+i]=r.value;else if(falta<0)falta=i});
+    if(falta>=0){document.querySelector(`[data-q="${falta}"]`).scrollIntoView({block:'center'});return erro('Falta responder Sim ou Não em todas as perguntas de saúde.')}
+    const servicos=[...document.querySelectorAll('[data-sv]:checked')].map(i=>SERVICOS[+i.dataset.sv]);
+    if(!servicos.length&&!v('outro'))return erro('Marque o serviço que você procura.');
+    const foto=document.querySelector('input[name=foto]:checked');
+    if(!foto)return erro('Marque se autoriza ou não as fotos.');
+    if(!signed)return erro('Falta a sua assinatura.');
+    const btn=document.getElementById('enviar');btn.disabled=true;btn.textContent='Enviando…';
+    const out=document.createElement('canvas');out.width=cv.width/2;out.height=cv.height/2;const o=out.getContext('2d');o.fillStyle='#fff';o.fillRect(0,0,out.width,out.height);o.drawImage(cv,0,0,out.width,out.height);
+    const reg={nome:v('n'),nascimento:v('nasc'),telefone:v('tel'),emergencia:v('em'),responsavel:v('resp'),servicos,outro:v('outro'),area:v('area'),respostas,
+      flags:PERGUNTAS.filter((q,i)=>respostas['q'+i]==='sim').map(q=>q[1]),obs:v('obs'),fotoOk:foto.value==='sim',
+      assinatura:out.toDataURL('image/png'),data:iso(new Date()),enviadoEm:Date.now()};
+    try{await set(ref(db,'maison/pendentes/'+token),reg);aviso('Ficha enviada! ✓','Obrigada, '+esc(conv.nome||'')+'. A Maison Beauty já recebeu. Pode fechar esta página.')}
+    catch(e){btn.disabled=false;btn.textContent='Enviar minha ficha';erro('Não foi possível enviar. Confira a internet e toque de novo. Se continuar, peça um novo link.')}
+  };
+}
+iniciar();
+</script>
+</body>
+</html>
