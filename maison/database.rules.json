@@ -37,6 +37,19 @@
       },
       "anamneses": {
         "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
+      },
+      // Registro do atendimento (página 2 da ficha): todas preenchem e corrigem, ninguém além da Tháriga apaga.
+      "registros": {
+        "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
+      },
+      // Fotos: reduzidas no aparelho e guardadas aqui. Funcionária envia, só a Tháriga apaga.
+      "fotos": {
+        "$cid": {
+          "$fid": {
+            ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && !data.exists()))",
+            ".validate": "newData.hasChildren(['tipo','data','img']) && newData.child('img').isString() && newData.child('img').val().length < 700000"
+          }
+        }
       }
     },
 

@@ -31,6 +31,8 @@ dados de outra pessoa e de clientes que nada têm a ver com o 20º Tabelião.
 | Caminho | Tháriga | Funcionárias |
 |---|---|---|
 | `/maison/clientes`, `agenda`, `anamneses` | lê, cria, corrige e apaga | lê, cria e corrige (**não apaga**) |
+| `/maison/registros` (registro do atendimento) | lê, cria, corrige e apaga | lê, cria e corrige (**não apaga**) |
+| `/maison/fotos` | lê, envia e apaga | lê e envia (**não apaga**) |
 | `/maison/atendimentos` | lê, cria, corrige e cancela | lê e cria (**não corrige nem cancela**) |
 | `/florenca/*` | lê e escreve | **negado** |
 | `/financeiro/valores` (valor cobrado) | lê e escreve | só **cria** ao concluir; não lê nem corrige |
@@ -46,7 +48,13 @@ moram em `/maison/clientes`.
 - **Conta a pagar:** editar e cancelar (guardada como cancelada). **Fornecedor e curso:** editar e excluir.
 - **Se mudar a regra de quem pode o quê, republique** `database.rules.json` no console.
 
+## Fotos e registro do atendimento
+- As fotos são **reduzidas no aparelho** (lado maior de 1280 px, JPEG) e gravadas em `/{unidade}/fotos/{cliente}/{foto}`; as regras recusam foto com mais de ~700 mil caracteres.
+- Só se envia foto de cliente que **autorizou na anamnese**.
+- O registro (página 2 da ficha) é por atendimento, em `/{unidade}/registros/{atendimento}`. Todas preenchem; o nome e a data de quem preencheu ficam gravados.
+- **Republique as regras** depois desta versão: sem isso o banco recusa registros e fotos.
+
 ## Ainda não feito
-- Upload das fotos da anamnese (Firebase Storage). A assinatura já é guardada.
+- Fotos em alta resolução (Firebase Storage): hoje as fotos são reduzidas a no máximo 1280 px e guardadas no próprio banco. Migrar para o Storage só se o volume crescer.
 - A Laís só atende às segundas: hoje a trava está na tela, ainda não nas regras.
 - Estoque (aguarda os dados da Tháriga).
