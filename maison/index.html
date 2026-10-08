@@ -1195,10 +1195,14 @@ const IG_IDEIAS=[
  {id:'v4',t:'conv',f:'Foto',n:'Horários da semana',l:'Estamos com horários abertos esta semana. 📅\nChame no direct ou no WhatsApp e escolha o seu.\nEstúdio Florença: quinta a sábado. Maison Beauty (Itaquera): domingo a quarta.',h:'#agendeseuhorario #horariosdisponiveis',foto:'Arte simples com os dias e o endereço, fundo claro.',q:'minimal calendar beige'},
  {id:'v5',t:'conv',f:'Reels',n:'Novidade do mês',l:'Novidade chegando por aqui. ✨\nFique de olho nos stories para saber primeiro.',h:'#novidade #fiqueligada',foto:'Vídeo curto de mistério: produto ou espaço coberto, revelando só no final.',q:'gift box pastel'}
 ];
-function igDoDia(){
-  const feitas=new Set(Object.keys(C.instagram||{}).filter(k=>{const e=(C.instagram[k]||{}).postadoEm;return e&&e!==iso(TODAY)}));
-  const pend=IG_IDEIAS.filter(x=>!feitas.has(x.id));const lista=pend.length?pend:IG_IDEIAS;
-  const dia=Math.floor(new Date(iso(TODAY)+'T12:00').getTime()/864e5);return lista[dia%lista.length]}
+// Um tema por dia da semana: ela abre e vê só "o que posto hoje". ★ = o mínimo, se a semana apertar.
+const IG_SEMANA={1:{t:'dica',e:1,r:'Dica'},2:{t:'bast',r:'Bastidores'},3:{t:'conv',e:1,r:'Conversa'},4:{t:'cuid',r:'Cuidados'},5:{t:'auto',e:1,r:'Autocuidado'},6:{t:'conv',r:'Horários e conversa',s:1},0:{t:'auto',r:'Descanso (opcional)',s:1}};
+const DIAS_PT=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const igSemanaDe=off=>{const h=new Date(iso(TODAY)+'T12:00');h.setDate(h.getDate()-((h.getDay()+6)%7)+7*(off||0));return [...Array(7)].map((_,i)=>{const x=new Date(h);x.setDate(h.getDate()+i);return iso(x)})};
+// Ideia sugerida para uma data: gira dentro do tema do dia, sem repetir na semana seguinte; a troca dela fica guardada.
+function igIdeiaDe(data){const pl=(C.instagram||{}).plano||{};const ja=IG_IDEIAS.find(x=>x.id===pl[data]);if(ja)return ja;
+  const dow=new Date(data+'T12:00').getDay(),cfg=IG_SEMANA[dow],pool=IG_IDEIAS.filter(x=>x.t===cfg.t),n=pool.length;
+  const w=Math.floor(new Date(data+'T12:00').getTime()/6048e5),slot=cfg.s?1:0;return pool[(w+slot*Math.floor(n/2))%n]}
 function igCard(x,destaque){const r=(C.instagram||{})[x.id]||{};const leg=(r.legenda!=null?r.legenda:x.l);
   const q=encodeURIComponent(x.q);
   return `<div class="box" style="margin-bottom:12px${destaque?';border-color:var(--rose,#c9a0a0)':''}"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><h3 style="margin:0">${esc(x.n)}</h3><span class="tag">${esc(x.f)}</span><span class="tag">${esc(IG_TEMAS[x.t])}</span>${r.postadoEm?`<span class="tag ok">Postado em ${esc(fd(r.postadoEm,{day:'2-digit',month:'2-digit'}))}</span>`:''}</div>
@@ -1209,13 +1213,26 @@ function igCard(x,destaque){const r=(C.instagram||{})[x.id]||{};const leg=(r.leg
    <a class="btn sm" style="color:inherit;text-decoration:none" target="_blank" rel="noopener" href="https://www.pexels.com/pt-br/procurar/${q}/">Fotos no Pexels</a><a class="btn sm" style="color:inherit;text-decoration:none" target="_blank" rel="noopener" href="https://unsplash.com/s/photos/${q}">Fotos no Unsplash</a>
    <button class="btn sm" data-igpost="${x.id}">${r.postadoEm?'Desmarcar postado':'Marcar como postado'}</button></div></div>`}
 function vInstagram(){
-  const t=S.igTema||'todos',lista=IG_IDEIAS.filter(x=>t==='todos'||x.t===t),dia=igDoDia();
-  return `<div class="top"><div><h1>Instagram</h1><div class="sub">Ideias de post com legenda pronta, hashtags e o que fotografar. Nada é publicado daqui: você copia, ajusta e posta.</div></div></div>
-  <div class="note" style="margin-bottom:14px">Foto de cliente só com autorização específica de divulgação. A ficha de anamnese <b>não</b> dá essa autorização. Para as fotos, prefira o seu espaço, materiais e banco de imagens gratuito (confira a licença de cada foto).</div>
-  <h2>Sugestão de hoje</h2>${igCard(dia,true)}
-  <h2 style="margin-top:18px">Todas as ideias</h2>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"><button class="btn sm ${t==='todos'?'p':''}" data-igtema="todos">Todas</button>${Object.entries(IG_TEMAS).map(([k,v])=>`<button class="btn sm ${t===k?'p':''}" data-igtema="${k}">${v}</button>`).join('')}</div>
-  ${lista.filter(x=>x.id!==dia.id).map(x=>igCard(x,false)).join('')}`}
+  const off=S.igSem||0,dias=igSemanaDe(off),hoje=iso(TODAY);
+  const sel=dias.includes(S.igDia)?S.igDia:(dias.includes(hoje)?hoje:dias[0]);
+  const lin=dias.map(d=>{const dow=new Date(d+'T12:00').getDay(),cfg=IG_SEMANA[dow],x=igIdeiaDe(d),r=(C.instagram||{})[x.id]||{},feito=r.postadoEm;
+    return `<button class="row" data-igdia="${d}" style="width:100%;text-align:left;cursor:pointer;background:${d===sel?'var(--panel2,#f3ece0)':'transparent'};border:0;border-bottom:1px solid var(--line);padding:10px 4px">
+     <div style="min-width:78px"><b>${DIAS_PT[dow].slice(0,3)}</b> ${esc(fd(d))}${d===hoje?' <span class="tag">hoje</span>':''}</div>
+     <div class="grow"><b>${esc(x.n)}</b><div class="small muted">${esc(cfg.r)} · ${esc(x.f)}${cfg.e?' · ★ essencial':cfg.s?' · se der tempo':''}</div></div>
+     ${feito?'<span class="tag ok">Postado</span>':''}</button>`}).join('');
+  const dsel=sel,xsel=igIdeiaDe(dsel);
+  const t=S.igTema||'todos',lista=IG_IDEIAS.filter(x=>t==='todos'||x.t===t);
+  return `<div class="top"><div><h1>Instagram</h1><div class="sub">O que postar em cada dia da semana. Você copia, ajusta e posta; nada é publicado daqui.</div></div></div>
+  <div class="note" style="margin-bottom:14px">Sem tempo? Faça só os dias com <b>★</b> (segunda, quarta e sexta). Foto de cliente só com autorização específica de divulgação: a ficha de anamnese <b>não</b> dá essa autorização.</div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap"><button class="btn sm" data-igsem="${off-1}">‹ Semana anterior</button><b>${esc(fd(dias[0]))} a ${esc(fd(dias[6]))}</b><button class="btn sm" data-igsem="${off+1}">Semana seguinte ›</button>${off?`<button class="btn sm" data-igsem="0">Esta semana</button>`:''}</div>
+  <div class="box" style="margin-bottom:14px;padding:6px 12px">${lin}</div>
+  <h2>${DIAS_PT[new Date(dsel+'T12:00').getDay()]}, ${esc(fd(dsel))}</h2>${igCard(xsel,true)}
+  <div style="margin:-4px 0 14px"><button class="btn sm" data-igtroca="${dsel}">Trocar por outra ideia do mesmo tema</button></div>
+  <details style="margin-top:6px"><summary style="cursor:pointer;font-weight:600;margin-bottom:10px">Ver todas as ideias (${IG_IDEIAS.length})</summary>
+   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"><button class="btn sm ${t==='todos'?'p':''}" data-igtema="todos">Todas</button>${Object.entries(IG_TEMAS).map(([k,v])=>`<button class="btn sm ${t===k?'p':''}" data-igtema="${k}">${v}</button>`).join('')}</div>
+   ${lista.map(x=>igCard(x,false)).join('')}</details>`}
+async function igTrocar(data){const dow=new Date(data+'T12:00').getDay(),pool=IG_IDEIAS.filter(x=>x.t===IG_SEMANA[dow].t),at=igIdeiaDe(data);
+  const prox=pool[(pool.findIndex(x=>x.id===at.id)+1)%pool.length];await grava(()=>DB.upd('admin/instagram/plano',{[data]:prox.id}),'Ideia trocada')}
 async function igCopiar(id){const x=IG_IDEIAS.find(y=>y.id===id),ta=document.getElementById('igl-'+id);
   const txt=ta.value.trim()+'\n\n'+x.h+' '+IG_BASE;
   try{await navigator.clipboard.writeText(txt);toast('Copiado. É só colar no Instagram.')}
@@ -1254,6 +1271,9 @@ function render(){
   main.querySelectorAll('[data-ecu]').forEach(b=>b.onclick=()=>editarCurso(b.dataset.ecu));
   main.querySelectorAll('[data-es]').forEach(b=>{const [u,i]=b.dataset.es.split('|');b.onclick=()=>editarServico(u,i)});
   main.querySelectorAll('[data-ns]').forEach(b=>b.onclick=()=>editarServico(b.dataset.ns,null));
+  main.querySelectorAll('[data-igdia]').forEach(b=>b.onclick=()=>{S.igDia=b.dataset.igdia;render()});
+  main.querySelectorAll('[data-igsem]').forEach(b=>b.onclick=()=>{S.igSem=+b.dataset.igsem;S.igDia=null;render()});
+  main.querySelectorAll('[data-igtroca]').forEach(b=>b.onclick=()=>igTrocar(b.dataset.igtroca));
   main.querySelectorAll('[data-igtema]').forEach(b=>b.onclick=()=>{S.igTema=b.dataset.igtema;render()});
   main.querySelectorAll('[data-igcopy]').forEach(b=>b.onclick=()=>igCopiar(b.dataset.igcopy));
   main.querySelectorAll('[data-igsave]').forEach(b=>b.onclick=()=>igSalvar(b.dataset.igsave));
