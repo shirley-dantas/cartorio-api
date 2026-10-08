@@ -81,6 +81,17 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .btn.sm{padding:4px 11px;font-size:13px}
 .note{background:var(--warn-soft);color:var(--warn);padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:18px}
 .note.err{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.cal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:16px;max-width:460px}
+.cal-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.cal-top h3{margin:0;font-size:18px}
+.cal-top .btn{padding:5px 12px}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.cal-g .sem{font-size:11px;font-weight:600;color:var(--muted);padding:4px 0}
+.cal-g button{border:0;background:transparent;border-radius:10px;min-height:42px;padding:4px 0;font-size:15px;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.cal-g button.fora{color:var(--muted);opacity:.55}
+.cal-g button.hoje{background:var(--berry-soft);color:var(--berry);font-weight:600}
+.cal-g button.sel{outline:2px solid var(--berry);outline-offset:-2px}
+.cal-g button i{display:block;width:6px;height:6px;border-radius:50%;background:transparent}
 .days{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px}
 .days button{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:8px 12px;text-align:center;min-width:64px}
 .days button b{display:block;font-family:var(--serif);font-size:22px;line-height:1}
@@ -484,7 +495,7 @@ function telaEntrar(msg){
       try{await sendPasswordResetEmail(auth,m);toast('Enviamos o link para o seu e-mail')}catch(er){toast('Não foi possível enviar o link')}};
   }
 }
-function entrou(u){S.user=u;S.tab='hoje';S.q='';S.day=0;S.unit=isAdmin()?'todas':'mai';
+function entrou(u){S.user=u;S.tab='hoje';S.q='';S.agData=null;S.agMes=null;S.unit=isAdmin()?'todas':'mai';
   document.getElementById('entrada').hidden=true;document.getElementById('entrada').innerHTML='';
   document.getElementById('app').hidden=false;document.getElementById('bnav').hidden=false;
   comecarLeituras();render()}
@@ -554,9 +565,19 @@ function msgDlg(tipo,cid){const c=cli(cid),nome=c.n.split(' ')[0];
   <button class="btn p" id="wa" ${c.tel?'':'disabled'}>Abrir no WhatsApp</button>`);
   document.getElementById('wa').onclick=()=>{window.open(zapLink(c.tel,document.getElementById('mt').value),'_blank','noopener');closeDlg()}}
 
+// Calendário do mês: bolinha nos dias com horário marcado (só da unidade que a pessoa pode ver).
+const prim1=t=>t.charAt(0).toUpperCase()+t.slice(1);
+function agCalendario(sel){
+  const mes=S.agMes||sel.slice(0,7),[y,m]=mes.split('-').map(Number);
+  const prim=new Date(y,m-1,1,12),inicio=addD(prim,-prim.getDay());
+  const marcados={},unid={};agendaAtiva().filter(a=>visUnit(a.unit)).forEach(a=>{marcados[a.date]=(marcados[a.date]||0)+1;unid[a.date]=unid[a.date]||a.unit});
+  const celulas=[...Array(42)].map((_,i)=>{const x=addD(inicio,i),di=iso(x),fora=x.getMonth()!==m-1,n=marcados[di]||0;
+    return `<button type="button" data-agdia="${di}" class="${fora?'fora ':''}${di===iso(TODAY)?'hoje ':''}${di===sel?'sel':''}" aria-label="${esc(fd(di,{weekday:'long',day:'numeric',month:'long'}))}${n?', '+n+' horário'+(n>1?'s':''):''}">${x.getDate()}<i ${n?`style="background:var(--${unid[di]})"`:''}></i></button>`});
+  const ult=celulas.length&&new Date(addD(inicio,35)).getMonth()!==m-1;
+  return `<div class="cal"><div class="cal-top"><button class="btn sm" data-agmes="-1" aria-label="Mês anterior">‹</button><h3>${esc(prim1(prim.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})))}</h3><span style="display:flex;gap:6px"><button class="btn sm" data-agmes="0">Hoje</button><button class="btn sm" data-agmes="1" aria-label="Próximo mês">›</button></span></div>
+   <div class="cal-g">${['D','S','T','Q','Q','S','S'].map(l=>`<div class="sem">${l}</div>`).join('')}${(ult?celulas.slice(0,35):celulas).join('')}</div></div>`}
 function vAgenda(){
-  const days=[...Array(7)].map((_,i)=>addD(TODAY,i));
-  const d=iso(days[S.day]),du=unitFor(d);
+  const d=S.agData||iso(TODAY),du=unitFor(d);
   const pros=['tha',...STAFF];
   const ap=agendaAtiva().filter(a=>a.date===d&&visUnit(a.unit)).sort((a,b)=>a.hora.localeCompare(b.hora));
   const cols=pros.map(p=>{
@@ -567,7 +588,8 @@ function vAgenda(){
      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${(()=>{const at=histAll(true).find(h=>h.agenda===a.id&&!h.cancelado);return at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''})()}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}</div></div>`).join('')||'<p class="small muted">Sem horários marcados.</p>'}</div>`}).join('');
   return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Maison Beauty: ${U.mai.dias}, ${U.mai.hora}. Laís atende somente às segundas-feiras.`:`Agenda completa da Maison Beauty — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}${AGENDA_URL?'<button class="btn" id="resp">Atualizar respostas</button>':''}<button class="btn p" id="novo">Novo agendamento</button></div></div>
-  <div class="days">${days.map((x,i)=>`<button class="${S.day===i?'on':''}" data-day="${i}">${x.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')}<b>${x.getDate()}</b><i style="background:var(--${unitFor(x)})"></i></button>`).join('')}</div>
+  ${agCalendario(d)}
+  <h2 style="margin:0 0 10px">${esc(prim1(new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})))}</h2>
   <div class="cols">${cols||'<p class="muted">Nada para mostrar nesta unidade neste dia.</p>'}</div>`;
 }
 function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.serv,a.unit);
@@ -623,7 +645,7 @@ function novoAg(){
   const pros=isAdmin()?['tha',...STAFF]:STAFF;
   openDlg('Novo agendamento',`<label class="f">Cliente<select id="nc">${visiveis.map(c=>`<option value="${c.id}">${esc(c.n)}</option>`).join('')}</select></label>
   <label class="f">Profissional<select id="np">${pros.map(p=>`<option value="${p}" ${p===meuPro()?'selected':''}>${PEOPLE[p].n}</option>`).join('')}</select></label>
-  <div style="display:flex;gap:10px"><label class="f" style="flex:1">Data<input type="date" id="nd" value="${iso(addD(TODAY,S.day))}"></label><label class="f" style="flex:1">Hora<input type="time" id="nh" value="10:00"></label></div>
+  <div style="display:flex;gap:10px"><label class="f" style="flex:1">Data<input type="date" id="nd" value="${S.agData||iso(TODAY)}"></label><label class="f" style="flex:1">Hora<input type="time" id="nh" value="10:00"></label></div>
   <label class="f">Serviço<select id="ns"></select></label>
   <div id="navisos"></div><button class="btn p" id="nsave">Agendar</button>`);
   const nc=document.getElementById('nc'),ns=document.getElementById('ns'),np=document.getElementById('np'),nd=document.getElementById('nd'),nh=document.getElementById('nh'),navisos=document.getElementById('navisos'),nsave=document.getElementById('nsave');
@@ -1280,7 +1302,11 @@ function render(){
   main.innerHTML=aviso+(DEMO?'<div class="note">Demonstração: os dados ficam só na memória deste navegador e somem ao recarregar.</div>':'')+V[S.tab]();
   bindSeg();
   const rt=document.getElementById('retry');if(rt)rt.onclick=()=>{S.erros={};comecarLeituras()};
-  main.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{S.day=+b.dataset.day;render()});
+  main.querySelectorAll('[data-agdia]').forEach(b=>b.onclick=()=>{S.agData=b.dataset.agdia;S.agMes=b.dataset.agdia.slice(0,7);render()});
+  main.querySelectorAll('[data-agmes]').forEach(b=>b.onclick=()=>{const n=+b.dataset.agmes;
+    if(n===0){S.agData=iso(TODAY);S.agMes=null}
+    else{const [y,m]=(S.agMes||(S.agData||iso(TODAY)).slice(0,7)).split('-').map(Number),x=new Date(y,m-1+n,1,12);S.agMes=iso(x).slice(0,7)}
+    render()});
   main.querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>concluir(b.dataset.done,b.dataset.p));
   main.querySelectorAll('[data-msg]').forEach(b=>b.onclick=()=>msgDlg(b.dataset.msg,b.dataset.c));
   main.querySelectorAll('[data-cli]').forEach(b=>b.onclick=()=>ficha(b.dataset.cli));
