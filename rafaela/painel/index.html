@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Caderno da Rafaela</title>
-<meta name="theme-color" content="#F3EADA">
+<meta name="theme-color" content="#F2EBDC">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-/* Caderno da Rafaela — beje, palha e areia.
+/* Caderno da Rafaela — palha, bege, branco e preto (os post-its guardam as cores próprias deles).
    Abas: Início (mural de post-its) · Acervo · Meus erros e dúvidas · Estatísticas · Macetes.
    O Acervo é o painel de vestibulares de antes, inteiro; o resto nasce em cima dos mesmos dados. */
 :root{
   color-scheme:light;
-  --bg:#F3EADA; --panel:#FBF6EC; --ink:#3A2E24; --mut:#76675A; --line:#DFD0B8; --accent:#8A6338; --accent-ink:#FFFDF8;
-  --soft:#EADBC2; --palha:#EBD9A0; --areia:#E4CDA8; --ok:#4F7040; --bad:#A4412F; --warn:#8F6310;
+  --bg:#F2EBDC; --panel:#FFFFFF; --ink:#111111; --mut:#5F584B; --line:#DDD2BC; --accent:#111111; --accent-ink:#FFFFFF;
+  --soft:#EBE2CD; --palha:#EBD9A0; --areia:#E9DFC8; --ok:#3F5E34; --bad:#9B3A2B; --warn:#7A5A10;
   --f-display:"Fraunces",Georgia,serif; --f-body:"Source Sans 3",system-ui,sans-serif; --f-mao:"Caveat","Segoe Print",cursive;
 }
 *{box-sizing:border-box}
@@ -53,7 +53,7 @@ h3.t{font:700 20px var(--f-display);margin:0 0 6px}
 .chip[aria-pressed=true] small{color:inherit;opacity:.85}
 .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
 .filters>div{min-width:0}
-select,.num,input.txt,textarea.txt{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#FFFCF5;color:var(--ink);font-size:16px}
+select,.num,input.txt,textarea.txt{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#FFFFFF;color:var(--ink);font-size:16px}
 textarea.txt{resize:vertical;min-height:84px;line-height:1.4}
 .result{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
 .count{font:700 28px var(--f-display)}
@@ -72,12 +72,12 @@ textarea.txt{resize:vertical;min-height:84px;line-height:1.4}
 .q{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .qh{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px}
 .qh b{font-family:var(--f-display);font-size:16px}
-.qf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);background:#F7EFE0}
+.qf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);background:#F6F0E2}
 .tag{background:var(--soft);border-radius:6px;padding:2px 8px;font-size:13px;color:var(--ink)}
 .q .img{background:#fff;padding:8px;min-height:80px;display:grid;place-items:center;overflow-x:auto}
 .q img{display:block;max-width:100%;height:auto}
 .mut{color:var(--mut)}
-.modal{position:fixed;inset:0;background:rgba(48,34,20,.58);z-index:20;display:grid;place-items:center;padding:16px}
+.modal{position:fixed;inset:0;background:rgba(17,17,17,.55);z-index:20;display:grid;place-items:center;padding:16px}
 .dlg{background:var(--panel);color:var(--ink);border-radius:16px;max-width:760px;width:100%;max-height:calc(100% - 8px);overflow:auto;padding:20px}
 .dlg h3{font:700 22px var(--f-display);margin:0 0 4px}
 .gab{columns:4 120px;column-gap:20px;margin:16px 0;font:600 18px var(--f-body);font-variant-numeric:tabular-nums}
@@ -113,13 +113,13 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
 .resumo b{display:block;font:700 28px var(--f-display);font-variant-numeric:tabular-nums}
 .resumo span{color:var(--mut);font-size:14px}
 .rev{display:grid;gap:8px}
-.rev-i{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#FFFCF5;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.rev-i{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#FFFFFF;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .rev-i b{font-weight:700}
 .mural-wrap{background:
   radial-gradient(circle at 20% 10%,rgba(255,255,255,.35),transparent 55%),
-  var(--areia);border-radius:18px;padding:18px 14px 12px;margin-top:14px;border:1px solid #D4BC93}
-.mural-wrap h2{color:#6B5439}
-.mural{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:26px 16px;padding:12px 4px 8px}
+  var(--areia);border-radius:18px;padding:18px 14px 12px;margin-top:14px;border:1px solid #D6C9A8}
+.mural-wrap h2{color:#5B5238}
+.mural{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:26px 18px;padding:12px 4px 8px}
 .postit{--rot:0deg;--pc:#F2DF9B;position:relative;min-height:176px;padding:24px 14px 10px;display:flex;flex-direction:column;
   background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,0) 30%),var(--pc);color:#3A2E24;
   transform:rotate(var(--rot));border-radius:2px 2px 16px 2px;
@@ -128,7 +128,7 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
   box-shadow:0 1px 2px rgba(60,40,20,.14);transform:rotate(-2.5deg)}
 @media (prefers-reduced-motion:no-preference){.postit{transition:transform .15s,box-shadow .15s}.postit:hover,.postit:focus-within{transform:rotate(0) translateY(-3px) scale(1.02)}}
 .postit.c1{--pc:#F2DF9B}.postit.c2{--pc:#E7CFA9}.postit.c3{--pc:#E9C7AA}.postit.c4{--pc:#F1E8D0}
-.postit textarea{flex:1;min-height:100px;border:0;background:transparent;resize:none;font:700 22px/1.12 var(--f-mao);color:inherit;padding:0;outline:0}
+.postit textarea{flex:1;min-height:100px;border:0;background:transparent;resize:none;font:700 23px/1.12 var(--f-mao);color:inherit;padding:0;outline:0}
 .postit.feito textarea{text-decoration:line-through;opacity:.5}
 .pf{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px}
 .cores{display:flex;gap:7px}
@@ -180,7 +180,7 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
 .fm .l small{font-weight:400;color:var(--mut)}
 .fm2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .achados{display:grid;gap:6px;margin-top:6px}
-.achado{text-align:left;border:1px solid var(--line);background:#FFFCF5;color:var(--ink);border-radius:10px;padding:9px 12px;cursor:pointer;font-size:14.5px}
+.achado{text-align:left;border:1px solid var(--line);background:#FFFFFF;color:var(--ink);border-radius:10px;padding:9px 12px;cursor:pointer;font-size:14.5px}
 .achado:hover{background:var(--soft)}
 .qsel{border:2px solid var(--accent);border-radius:12px;overflow:hidden;background:#fff}
 .qsel .qh{background:var(--panel)}
@@ -210,6 +210,8 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
 .q-bar .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
 .q-bar .fim{margin-left:auto}
 @media (max-width:560px){
+  .mural{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:26px 16px}
+  .postit textarea{font-size:22px}
   .count{font-size:24px}
   .bar{grid-template-columns:minmax(80px,120px) 1fr 36px}
   .ola{font-size:26px}
@@ -266,7 +268,7 @@ const norm=s=>(s||"").toString().normalize("NFD").replace(DIAC,"").toLowerCase()
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const MAT_ORDER=["Matemática","Física","Química","Biologia","Português","Literatura","História","Geografia","Filosofia","Sociologia","Inglês","Espanhol","Artes","Educação Física"];
-const COR_BANCA={enem:"#6F7F46",fuvest:"#8A6338",unicamp:"#B2573F"};
+const COR_BANCA={enem:"#111111",fuvest:"#B39A4A",unicamp:"#8C7F66"};
 const TIPOS_ERRO=["conceito","interpretação","cálculo","atenção","método","memorização","tempo/chute"];
 const NOME_TIPO_ERRO={"conceito":"Conceito","interpretação":"Interpretação","cálculo":"Cálculo","atenção":"Atenção","método":"Método","memorização":"Memorização","tempo/chute":"Tempo / chute","indefinido":"Ainda não sei"};
 let D={bancas:[],fontes:[],q:[]}, BANCA={}, FONTE={}, QID={}, ACERVO_OK=false;

@@ -1,7 +1,7 @@
 # Caderno da Rafaela
 
-Painel de estudos para o vestibular (ENEM, FUVEST, UNICAMP), nas cores **beje,
-palha e areia**. Nasceu do *Acervo de Vestibulares* (as 247 questões com
+Painel de estudos para o vestibular (ENEM, FUVEST, UNICAMP), nas cores **palha, bege, branco e preto** (os post-its do mural
+guardam as cores próprias deles — palha, areia, argila e linho — e não mudam com a paleta). Nasceu do *Acervo de Vestibulares* (as 247 questões com
 imagem, gabarito e matéria) e ganhou, em 08/10/2026, as abas de erros,
 estatísticas e macetes — sem tirar nada do acervo. Um arquivo só:
 **`painel/index.html`**; a IA mora em `painel/api/ia.js`.
