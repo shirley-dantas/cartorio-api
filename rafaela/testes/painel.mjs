@@ -254,6 +254,38 @@ console.log("• Cópia de segurança");
   await ctx.close();
 }
 
+console.log("• Quadro da caneta (tablet)");
+{
+  const {ctx, p, erros} = await nova({...devices["iPad (gen 7)"], hasTouch: true});
+  await aba(p, "erros"); await p.click("#novo-reg"); await p.selectOption("#f-mat", "Matemática");
+  await p.click("#f-quadro-ab"); await p.waitForSelector("#f-quadro canvas");
+  const caixa = await p.locator("#f-quadro canvas").boundingBox();
+  ok(caixa.width > 300 && caixa.height > 300, "quadro tem tamanho de escrever");
+  const evento = (tipo, tipoPonteiro, x, y, id) => p.evaluate(([t, pt, x, y, id]) => { const c = document.querySelector("#f-quadro canvas"); const r = c.getBoundingClientRect();
+    c.dispatchEvent(new PointerEvent(t, {bubbles: true, cancelable: true, pointerId: id, pointerType: pt, pressure: pt === "pen" ? .7 : .5, button: 0, buttons: 1, clientX: r.left + x, clientY: r.top + y, isPrimary: true})); }, [tipo, tipoPonteiro, x, y, id]);
+  // um dedo escreve enquanto não há caneta
+  await evento("pointerdown", "touch", 30, 30, 1); await evento("pointermove", "touch", 80, 60, 1); await evento("pointerup", "touch", 80, 60, 1);
+  ok(await p.locator("#f-quadro canvas").getAttribute("data-tracos") === "1", "sem caneta, o dedo escreve");
+  // a caneta aparece: escreve, e a palma (toque) passa a ser ignorada
+  await evento("pointerdown", "pen", 40, 120, 2); for (let i = 1; i <= 8; i++) await evento("pointermove", "pen", 40 + i * 25, 120 + (i % 2) * 20, 2); await evento("pointerup", "pen", 240, 120, 2);
+  ok(await p.locator("#f-quadro canvas").getAttribute("data-tracos") === "2", "a caneta escreve");
+  await evento("pointerdown", "touch", 100, 200, 3); await evento("pointerup", "touch", 100, 200, 3);
+  ok(await p.locator("#f-quadro canvas").getAttribute("data-tracos") === "2", "palma da mão ignorada depois da caneta");
+  const pintou = await p.evaluate(() => { const c = document.querySelector("#f-quadro canvas"); const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 120) n++; return n; });
+  ok(pintou > 200, "o traço aparece no quadro (" + pintou + " pixels)");
+  await p.click("[data-q=desfazer]"); ok(await p.locator("#f-quadro canvas").getAttribute("data-tracos") === "1", "desfazer tira o último traço");
+  await p.mouse.move(caixa.x + 50, caixa.y + 200); await p.mouse.down(); await p.mouse.move(caixa.x + 200, caixa.y + 240, {steps: 6}); await p.mouse.up();
+  await p.screenshot({path: path.join(SAIDA, "tablet-quadro.png")});
+  await p.click("[data-q=anexar]"); await p.waitForSelector("#f-fotos img[src]");
+  ok(await p.locator("#f-fotos .foto").count() === 1, "o desenho vira foto da resolução");
+  ok(await p.locator("#f-quadro canvas").getAttribute("data-tracos") === "0", "quadro limpo para a próxima página");
+  await p.fill("#f-dif", "resolvi à mão"); await p.click("#f-save-ia"); await p.waitForSelector(".corr h4");
+  const ped = pedidos.at(-1); ok(ped.imagens.length === 1 && ped.imagens[0].rotulo.includes("resolução") && ped.imagens[0].dados.length > 500, "a página escrita à mão segue para a IA como imagem");
+  await p.click("[data-q=anexar]").catch(() => {});
+  ok(!erros.length, "sem erro de script no tablet: " + erros.join(" | "));
+  await ctx.close();
+}
+
 console.log("• Celular (iPhone 13)");
 {
   const {ctx, p, erros} = await nova({...devices["iPhone 13"]});

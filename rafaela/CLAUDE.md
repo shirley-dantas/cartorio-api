@@ -29,7 +29,7 @@ do repositório, e o limite de 12 funções do painel do cartório não vale aqu
 |---|---|
 | **Início** | Saudação, o que revisar agora e o **mural de post-its** (lembretes: cor, concluir, apagar; escritos à mão, levemente tortos, com fita). Cópia de segurança. |
 | **Acervo** | O painel de antes, inteiro: banca → matéria → filtros, PDF, resolver online, gabarito, busca. Cada questão ganhou *Errei esta* / *Tenho dúvida*. |
-| **Meus erros e dúvidas** | Registro com matéria, assunto, alternativa marcada, **como resolvi**, **onde tive dificuldade**, observações e **fotos** (da resolução e da questão). Liga ao acervo. *Corrigir com a IA*, *Tentar de novo*, *Marcar como dominado*. |
+| **Meus erros e dúvidas** | Registro com matéria, assunto, alternativa marcada, **como resolvi**, **onde tive dificuldade**, observações, **fotos** (da resolução e da questão) e o **quadro da caneta** (resolver à mão na tela; o desenho vira foto da resolução). Liga ao acervo. *Corrigir com a IA*, *Tentar de novo*, *Marcar como dominado*. |
 | **Estatísticas** | Revisar primeiro · matérias e assuntos em que mais erra · tipos de questão que confundem · por que erra · erros recorrentes · onde vai melhor. Embaixo, as estatísticas do acervo de antes. |
 | **Macetes** | A IA lê as estatísticas dela e escreve macete, dica prática, como reconhecer e um "antes de marcar" por assunto prioritário. Dá para fixar no mural. |
 
@@ -74,6 +74,7 @@ do repositório, e o limite de 12 funções do painel do cartório não vale aqu
 | O acervo (filtros, lista, PDF) | `baseFiltro()`, `render()`, `lista()`, `#b-pdf` |
 | Resolver online / tentar de novo | `abrirResolver()` — grava as tentativas |
 | Formulário de registro | `formRegistro()`, `buscarQ()` |
+| Quadro da caneta | `quadroCaneta()` — pressão vira espessura; depois que a caneta aparece, o toque (palma) é ignorado; traços em fração da largura |
 | A correção | `corrigir()`, `htmlCorrecao()`, `assinatura()` |
 | As contas das estatísticas | `calc()` — puro, exposto em `window.__rafa.calc` |
 | Estatísticas e prioridades na tela | `renderStats()` |
@@ -86,7 +87,7 @@ do repositório, e o limite de 12 funções do painel do cartório não vale aqu
 
 ```bash
 node rafaela/testes/ia.mjs       # a porta da IA, sem internet e sem chave
-node rafaela/testes/painel.mjs   # o painel no Chromium (e no iPhone 13), IA fingida
+node rafaela/testes/painel.mjs   # o painel no Chromium (iPad e iPhone 13), IA fingida
 ```
 
 O `painel.mjs` sobe um servidor com os arquivos de verdade (inclusive as 247
@@ -96,6 +97,8 @@ Ele cobre o caminho que ela descreveu: Acervo → *Errei esta* → foto →
 semeados à mão para conferir cada número.
 
 ## Na fila
+
+- O quadro da caneta foi testado com eventos de caneta simulados num iPad virtual; **ainda não numa caneta de verdade**. Se o traço sair falhado, ou a palma escrever, é o primeiro lugar a olhar.
 
 - A IA **ainda não foi chamada de verdade** (sem chave aqui): o formato da
   resposta e o prompt estão testados com cliente fingido. A primeira correção

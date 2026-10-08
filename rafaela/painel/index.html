@@ -200,6 +200,15 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
 .dica li::before{content:"☐";position:absolute;left:0;color:var(--accent)}
 .macete{background:var(--palha);border-radius:10px;padding:10px 12px;font-weight:600;margin-top:4px;white-space:pre-wrap}
 .sep{height:1px;background:var(--line);margin:22px 0 4px;border:0}
+
+/* ---------- quadro da caneta ---------- */
+.quadro{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;margin-top:6px}
+.quadro canvas{display:block;width:100%;touch-action:none;cursor:crosshair;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.q-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px;background:var(--panel);border-bottom:1px solid var(--line)}
+.q-bar .sw{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);cursor:pointer;padding:0}
+.q-bar .sw[aria-pressed=true]{border-color:var(--ink)}
+.q-bar .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.q-bar .fim{margin-left:auto}
 @media (max-width:560px){
   .count{font-size:24px}
   .bar{grid-template-columns:minmax(80px,120px) 1fr 36px}
@@ -755,6 +764,22 @@ function formRegistro(base,opt){
       <div class="actions"><label class="btn mini sec upl"><input type="file" accept="image/*" multiple id="f-up-res">📷 Foto da minha resolução</label>
       <label class="btn mini sec upl" id="f-up-q-l"><input type="file" accept="image/*" multiple id="f-up-q">🖼️ Foto da questão</label></div>
       <div class="fotos" id="f-fotos"></div></div>
+    <div class="l"><span>Resolver à mão <small>(com a caneta ou o dedo — vira foto da resolução)</small></span>
+      <div><button type="button" class="btn mini sec" id="f-quadro-ab">✍️ Abrir o quadro da caneta</button></div>
+      <div class="quadro" id="f-quadro" hidden>
+        <div class="q-bar" role="toolbar" aria-label="Ferramentas do quadro">
+          <button type="button" class="sw" data-cor="#2B2118" style="background:#2B2118" aria-pressed="true" aria-label="Tinta preta"></button>
+          <button type="button" class="sw" data-cor="#A4412F" style="background:#A4412F" aria-pressed="false" aria-label="Tinta vermelha"></button>
+          <button type="button" class="sw" data-cor="#2F5D8A" style="background:#2F5D8A" aria-pressed="false" aria-label="Tinta azul"></button>
+          <button type="button" class="btn mini sec" data-larg="fina" aria-pressed="true">Fina</button>
+          <button type="button" class="btn mini sec" data-larg="grossa" aria-pressed="false">Grossa</button>
+          <button type="button" class="btn mini sec" data-ferr="borracha" aria-pressed="false">Borracha</button>
+          <button type="button" class="btn mini sec" data-q="desfazer">Desfazer</button>
+          <button type="button" class="btn mini sec" data-q="limpar">Limpar</button>
+          <button type="button" class="btn mini pri fim" data-q="anexar">ANEXAR COMO FOTO</button>
+        </div>
+        <canvas aria-label="Quadro para escrever a resolução à mão"></canvas>
+      </div></div>
     <div class="nota erro" id="f-erro" hidden></div>
     <div class="row"><button type="button" class="btn sec" id="f-cancel">CANCELAR</button>
       <div class="actions"><button type="button" class="btn sec" id="f-save">SALVAR</button><button type="button" class="btn pri" id="f-save-ia">SALVAR E CORRIGIR COM A IA</button></div></div>
@@ -847,7 +872,66 @@ function formRegistro(base,opt){
   }
   d.querySelector("#f-save").onclick=()=>guardar(false);
   d.querySelector("#f-save-ia").onclick=()=>guardar(true);
+  const qb=d.querySelector("#f-quadro");let qpronto=false;
+  d.querySelector("#f-quadro-ab").onclick=()=>{qb.hidden=!qb.hidden;if(!qb.hidden&&!qpronto){qpronto=true;quadroCaneta(qb,async b=>{await addFotos([b],"resolucao");aviso("Página anexada à resolução.")})}if(!qb.hidden)qb.scrollIntoView({block:"nearest"})};
   pintarTipo();pintarAlts();pintarQ();pintarFotos();
+}
+
+/* ---------- quadro da caneta ---------- */
+// Caneta de tablet (pointer events): pressão vira espessura; depois que uma caneta
+// aparece, o toque (a palma da mão) é ignorado. Sem caneta, o dedo e o mouse escrevem.
+// Os traços guardam posição em fração da largura, para o desenho sobreviver a girar o tablet.
+function quadroCaneta(box,anexar){
+  const cv=box.querySelector("canvas"),ctx=cv.getContext("2d");
+  let tracos=[],atual=null,cor="#2B2118",larg=2.4,borracha=false,penVisto=false,W=0;
+  const marca=()=>{cv.dataset.tracos=tracos.length};
+  function ajustar(){
+    const w=Math.max(260,cv.parentNode.clientWidth),h=Math.round(Math.max(320,w*.72)),r=window.devicePixelRatio||1;
+    W=w;cv.style.height=h+"px";cv.width=Math.round(w*r);cv.height=Math.round(h*r);ctx.setTransform(r,0,0,r,0,0);redesenhar();
+  }
+  function seg(t,a,b){
+    ctx.strokeStyle=t.cor;ctx.lineCap="round";ctx.lineJoin="round";
+    ctx.lineWidth=t.larg*(t.pen?.45+b.p*1.1:1);
+    ctx.beginPath();ctx.moveTo(a.x*W,a.y*W);ctx.lineTo(b.x*W,b.y*W);ctx.stroke();
+  }
+  function redesenhar(){
+    ctx.fillStyle="#fff";ctx.fillRect(0,0,cv.width,cv.height);
+    tracos.forEach(t=>{if(t.pts.length===1){const p=t.pts[0];seg(t,p,{x:p.x+.0001,y:p.y,p:p.p})}for(let i=1;i<t.pts.length;i++)seg(t,t.pts[i-1],t.pts[i])});
+  }
+  const pt=e=>{const r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)/W,y:(e.clientY-r.top)/W,p:e.pointerType==="pen"&&e.pressure?e.pressure:.5}};
+  cv.addEventListener("pointerdown",e=>{
+    if(e.pointerType==="pen")penVisto=true;
+    if(e.pointerType==="touch"&&penVisto)return; // palma
+    if(e.pointerType==="mouse"&&e.button!==0)return;
+    e.preventDefault();try{cv.setPointerCapture(e.pointerId)}catch(_){}
+    atual={cor:borracha?"#ffffff":cor,larg:borracha?16:larg,pen:e.pointerType==="pen",pts:[pt(e)],id:e.pointerId};
+    tracos.push(atual);seg(atual,atual.pts[0],{x:atual.pts[0].x+.0001,y:atual.pts[0].y,p:atual.pts[0].p});marca();
+  });
+  cv.addEventListener("pointermove",e=>{
+    if(!atual||e.pointerId!==atual.id)return;e.preventDefault();
+    const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];
+    (evs.length?evs:[e]).forEach(ev=>{const p=pt(ev);seg(atual,atual.pts[atual.pts.length-1],p);atual.pts.push(p)});
+  });
+  const solta=e=>{if(atual&&e.pointerId===atual.id)atual=null};
+  cv.addEventListener("pointerup",solta);cv.addEventListener("pointercancel",solta);
+  cv.addEventListener("contextmenu",e=>e.preventDefault());
+  box.addEventListener("click",e=>{
+    const sw=e.target.closest("[data-cor]");
+    if(sw){cor=sw.dataset.cor;borracha=false;box.querySelectorAll("[data-cor]").forEach(b=>b.setAttribute("aria-pressed",b===sw));box.querySelector("[data-ferr]").setAttribute("aria-pressed","false");return}
+    const lg=e.target.closest("[data-larg]");
+    if(lg){larg=lg.dataset.larg==="fina"?2.4:5;box.querySelectorAll("[data-larg]").forEach(b=>b.setAttribute("aria-pressed",b===lg));return}
+    const fe=e.target.closest("[data-ferr]");
+    if(fe){borracha=!borracha;fe.setAttribute("aria-pressed",borracha);return}
+    const q=e.target.closest("[data-q]");if(!q)return;
+    if(q.dataset.q==="desfazer"){tracos.pop();redesenhar();marca()}
+    else if(q.dataset.q==="limpar"){if(!tracos.length||confirm("Limpar o quadro?")){tracos=[];redesenhar();marca()}}
+    else if(q.dataset.q==="anexar"){
+      if(!tracos.length){aviso("O quadro está vazio.");return}
+      cv.toBlob(async b=>{if(!b){aviso("Não consegui guardar o desenho.");return}await anexar(b);tracos=[];redesenhar();marca()},"image/png");
+    }
+  });
+  new ResizeObserver(()=>{if(box.hidden||Math.abs(box.clientWidth-W)<2)return;ajustar()}).observe(box);
+  marca();ajustar();
 }
 
 /* ============ Estatísticas — feitas só com os registros dela ============ */
