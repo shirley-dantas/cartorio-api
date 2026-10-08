@@ -388,7 +388,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -424,7 +424,7 @@ function comecarLeituras(){
   if(isAdmin()){
     ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');
     ouvir('financeiro/valores','valores');
-    ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');
+    ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');ouvir('admin/instagram','instagram');
     // A carga inicial dos roteiros é idempotente: chaves fixas, só cria o que falta.
     DB.get('admin/aulas').then(v=>{if(!v)AULAS_INICIAIS.forEach((a,i)=>DB.set('admin/aulas/a'+(i+1),{...a,ordem:i+1}).catch(()=>{}))}).catch(()=>{});
   }
@@ -479,7 +479,7 @@ else{
 }
 
 // ═══ Telas ═════════════════════════════════════════════════════════════
-const TABS=[['hoje','Hoje'],['agenda','Agenda'],['clientes','Clientes'],['anamnese','Anamnese'],['financeiro','Financeiro',1],['comissoes','Comissões',1],['servicos','Serviços e preços',1],['fornecedores','Fornecedores',1],['cursos','Cursos',1],['aulas','Aulas',1]];
+const TABS=[['hoje','Hoje'],['agenda','Agenda'],['clientes','Clientes'],['anamnese','Anamnese'],['financeiro','Financeiro',1],['comissoes','Comissões',1],['servicos','Serviços e preços',1],['fornecedores','Fornecedores',1],['cursos','Cursos',1],['aulas','Aulas',1],['instagram','Instagram',1]];
 function renderChrome(){
   const tabs=TABS.filter(t=>isAdmin()||!t[2]);
   if(!tabs.find(t=>t[0]===S.tab))S.tab='hoje';
@@ -1164,10 +1164,70 @@ function openDlg(t,h){dlg.innerHTML=`<div class="dh"><h2 style="margin:0">${t}</
 function closeDlg(){if(dlg.open)dlg.close()}
 dlg.addEventListener('click',e=>{if(e.target===dlg)closeDlg()});
 
+// ═══ Instagram: ideias de post ════════════════════════════════════════════
+// Fase 1: banco de ideias com legenda, hashtags e o que fotografar. Nada é publicado daqui:
+// a Tháriga copia, ajusta e posta. Sem promessa de resultado, sem preço, sem foto de cliente.
+const IG_TEMAS={auto:'Autocuidado',dica:'Dicas',cuid:'Cuidados',bast:'Bastidores',conv:'Conversa'};
+const IG_BASE='#maisonbeauty #sobrancelhas #designdesobrancelhas #cilios #micropigmentacao #autocuidado #beleza';
+const IG_IDEIAS=[
+ {id:'a1',t:'auto',f:'Foto',n:'Um momento só seu',l:'Você tem um momento só seu na semana? 🤍\nCuidar de si não é luxo, é pausa. Um café quentinho, um respiro e o cuidado que faz você se olhar com carinho.\nQuando foi a última vez que você parou para se priorizar?',h:'#pausa #cuidadocomavoce',foto:'Xícara de café ou chá em bancada clara, com flores ao lado, luz de janela.',q:'coffee cup flowers morning light'},
+ {id:'a2',t:'auto',f:'Foto',n:'Rotina de manhã',l:'Manhã tranquila começa com pequenos rituais ☀️\nUma água, um skincare, um minuto de calma. Qual é o seu ritual favorito?',h:'#rotina #skincare',foto:'Frascos de skincare em bandeja, tons neutros, luz natural.',q:'skincare bottles neutral tray'},
+ {id:'a3',t:'auto',f:'Stories',n:'Enquete: o que te faz sentir bonita?',l:'Enquete nos stories: o que faz você se sentir bonita?\n✨ Sobrancelha em dia\n✨ Olhar marcante\n✨ Pele cuidada\n✨ Um batom e pronto',h:'#enquete #belezareal',foto:'Fundo liso claro com texto da enquete (feito no próprio Instagram).',q:'soft beige background minimal'},
+ {id:'a4',t:'auto',f:'Foto',n:'Autoestima começa no olhar',l:'O olhar é o primeiro lugar onde a gente se encontra no espelho. 🤍\nCuidar dele é uma forma de se tratar bem.',h:'#olhar #autoestima',foto:'Close de olho com cílios naturais, luz suave (pode ser banco de imagens; pessoa sem identificação).',q:'woman eye natural lashes close up'},
+ {id:'a5',t:'auto',f:'Reels',n:'Dia de se cuidar',l:'Hoje é dia de cuidado. 💆‍♀️\nMarque aquela amiga que merece uma pausa e vá junto.',h:'#diadecuidado #amigas',foto:'Vídeo curto do espaço: porta, recepção, bancada arrumada, sem clientes aparecendo.',q:'beauty studio interior cozy'},
+ {id:'d1',t:'dica',f:'Carrossel',n:'3 erros ao fazer a sobrancelha em casa',l:'3 erros comuns na sobrancelha de casa 👇\n1️⃣ Tirar demais do começo\n2️⃣ Seguir o formato de outra pessoa\n3️⃣ Fazer sem olhar o rosto todo\nO desenho ideal respeita a sua expressão. Quer entender o que combina com você? Me chama no direct.',h:'#dicadesobrancelha #sobrancelhaperfeita',foto:'Carrossel com 4 telas de fundo claro: capa e um erro por tela, texto grande.',q:'minimal beige template typography'},
+ {id:'d2',t:'dica',f:'Foto',n:'Mapeamento: por que importa',l:'Antes de qualquer procedimento, vem o mapeamento. 📏\nÉ ele que define o desenho que combina com o seu rosto e com o seu jeito, e não um modelo pronto.',h:'#mapeamento #sobrancelhadesign',foto:'Régua, compasso e lápis de sobrancelha sobre bancada branca.',q:'eyebrow pencil ruler flat lay'},
+ {id:'d3',t:'dica',f:'Carrossel',n:'Cor da sobrancelha: como escolher',l:'Como escolher a cor da sobrancelha? 🎨\nO tom costuma conversar com a cor do cabelo e do tom de pele. No atendimento a gente avalia junto, com calma, antes de decidir.',h:'#coresobrancelha #henna',foto:'Paleta de tons de sobrancelha em fundo neutro.',q:'brown color palette swatches neutral'},
+ {id:'d4',t:'dica',f:'Reels',n:'Mito ou verdade',l:'Mito ou verdade? 🤔\nResponda nos comentários o que você ouve por aí sobre sobrancelha e cílios. Eu comento os mais curiosos nos próximos posts.',h:'#mitoouverdade #beleza',foto:'Vídeo falando para a câmera, ou texto simples sobre fundo claro.',q:'question mark pastel background'},
+ {id:'d5',t:'dica',f:'Carrossel',n:'Quando fazer a manutenção',l:'Cada pele e cada fio tem o seu tempo. ⏳\nPor isso a manutenção é combinada no atendimento, de acordo com o seu caso. Quer saber o seu prazo? Me chama no direct.',h:'#manutencao #agendeseuhorario',foto:'Calendário/agenda aberta com caneta, tons claros.',q:'planner calendar pen minimal'},
+ {id:'d6',t:'dica',f:'Foto',n:'Formato de rosto e sobrancelha',l:'Rosto redondo, quadrado, alongado… cada um pede um desenho. ✨\nO segredo é equilíbrio, e não copiar a moda do momento.',h:'#formatoderosto #harmonia',foto:'Ilustração simples de formatos de rosto (pode ser feita no Canva).',q:'face shapes illustration minimal'},
+ {id:'c1',t:'cuid',f:'Carrossel',n:'Cuidados depois do procedimento',l:'Cuidados depois do procedimento 🤍\nCada procedimento tem a sua orientação, e eu passo tudo certinho no atendimento. Siga o combinado e, na dúvida, me chame. O cuidado em casa faz parte do resultado.',h:'#poscuidado #orientacoes',foto:'Telas claras com ícones simples (água, sol, toque) e letras grandes.',q:'clean icons white background'},
+ {id:'c2',t:'cuid',f:'Foto',n:'Protetor solar também no rosto todo',l:'Protetor solar todos os dias, no rosto inteiro. ☀️\nÉ um dos cuidados mais simples para a pele ficar bem.',h:'#protetorsolar #peleboa',foto:'Tubo de protetor solar sobre toalha clara, sombra suave.',q:'sunscreen tube towel soft shadow'},
+ {id:'c3',t:'cuid',f:'Stories',n:'Perguntas que mais recebo',l:'Caixinha de perguntas aberta! 🙋‍♀️\nMe pergunte o que quiser sobre sobrancelha, cílios e micropigmentação. Respondo com carinho nos stories.',h:'#perguntas #tiraduvidas',foto:'Fundo liso com a caixinha de perguntas do Instagram.',q:'pastel gradient background'},
+ {id:'c4',t:'cuid',f:'Foto',n:'Avaliação antes de tudo',l:'Todo atendimento começa com conversa e uma ficha de saúde. 📋\nÉ assim que o procedimento fica seguro e feito para você.',h:'#seguranca #atendimentoresponsavel',foto:'Prancheta com ficha em branco e caneta, sem nenhum dado visível.',q:'clipboard blank form pen'},
+ {id:'b1',t:'bast',f:'Reels',n:'Preparando a sala',l:'Bastidores: preparando tudo antes de você chegar. ✨\nMaterial separado, bancada arrumada e o ambiente do jeito que você merece.',h:'#bastidores #organizacao',foto:'Vídeo de 10 a 15 segundos arrumando a bancada, sem clientes na imagem.',q:'beauty tools organized table'},
+ {id:'b2',t:'bast',f:'Foto',n:'Meus materiais favoritos',l:'Esses são alguns dos meus queridinhos de trabalho. 🖤\nVocê tem algum item de beleza que não vive sem?',h:'#queridinhos #materiais',foto:'Foto dos materiais (pincéis, pigmentos fechados) em fundo claro.',q:'makeup brushes flat lay'},
+ {id:'b3',t:'bast',f:'Stories',n:'Dia na Maison',l:'Um pouquinho do meu dia por aqui. 🤍\nAcompanhe nos stories.',h:'#diaadia #maisonbeauty',foto:'Stories curtos: café, agenda do dia (sem nomes), bancada pronta.',q:'studio morning coffee planner'},
+ {id:'b4',t:'bast',f:'Foto',n:'Equipe',l:'Nossa equipe cuida de você com carinho. 🤍\nConheça quem está por trás de cada atendimento.',h:'#equipe #maisonbeauty',foto:'Foto da equipe (Rafael, Laís, Mariana e Tháriga), com a autorização de todos.',q:'team portrait studio warm light'},
+ {id:'v1',t:'conv',f:'Foto',n:'Pergunta para os comentários',l:'Sobrancelha: natural ou bem marcada? 👀\nConta aqui nos comentários o seu estilo!',h:'#sobrancelhanatural #voce',foto:'Duas imagens lado a lado de estilos (do banco de imagens, sem rosto identificável).',q:'eyebrows natural vs bold'},
+ {id:'v2',t:'conv',f:'Stories',n:'Marque uma amiga',l:'Marque a amiga que vive pedindo dica de sobrancelha. 😄',h:'#amigas #marqueumaamiga',foto:'Fundo claro com o texto no próprio Instagram.',q:'friends coffee flat lay'},
+ {id:'v3',t:'conv',f:'Foto',n:'Obrigada!',l:'Obrigada por confiar no meu trabalho. 🤍\nCada atendimento é feito com muito carinho. Vamos juntas!',h:'#gratidao #maisonbeauty',foto:'Foto sua em ambiente claro, sorrindo, ou o espaço com flores.',q:'thank you flowers soft background'},
+ {id:'v4',t:'conv',f:'Foto',n:'Horários da semana',l:'Estamos com horários abertos esta semana. 📅\nChame no direct ou no WhatsApp e escolha o seu.\nEstúdio Florença: quinta a sábado. Maison Beauty (Itaquera): domingo a quarta.',h:'#agendeseuhorario #horariosdisponiveis',foto:'Arte simples com os dias e o endereço, fundo claro.',q:'minimal calendar beige'},
+ {id:'v5',t:'conv',f:'Reels',n:'Novidade do mês',l:'Novidade chegando por aqui. ✨\nFique de olho nos stories para saber primeiro.',h:'#novidade #fiqueligada',foto:'Vídeo curto de mistério: produto ou espaço coberto, revelando só no final.',q:'gift box pastel'}
+];
+function igDoDia(){
+  const feitas=new Set(Object.keys(C.instagram||{}).filter(k=>{const e=(C.instagram[k]||{}).postadoEm;return e&&e!==iso(TODAY)}));
+  const pend=IG_IDEIAS.filter(x=>!feitas.has(x.id));const lista=pend.length?pend:IG_IDEIAS;
+  const dia=Math.floor(new Date(iso(TODAY)+'T12:00').getTime()/864e5);return lista[dia%lista.length]}
+function igCard(x,destaque){const r=(C.instagram||{})[x.id]||{};const leg=(r.legenda!=null?r.legenda:x.l);
+  const q=encodeURIComponent(x.q);
+  return `<div class="box" style="margin-bottom:12px${destaque?';border-color:var(--rose,#c9a0a0)':''}"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><h3 style="margin:0">${esc(x.n)}</h3><span class="tag">${esc(x.f)}</span><span class="tag">${esc(IG_TEMAS[x.t])}</span>${r.postadoEm?`<span class="tag ok">Postado em ${esc(fd(r.postadoEm,{day:'2-digit',month:'2-digit'}))}</span>`:''}</div>
+  <label class="f" style="margin-top:8px">Legenda (edite à vontade)<textarea rows="5" id="igl-${x.id}">${esc(leg)}</textarea></label>
+  <div class="small muted" style="margin-bottom:6px">Hashtags: ${esc(x.h)} ${esc(IG_BASE)}</div>
+  <div class="small" style="margin-bottom:8px"><b>O que fotografar:</b> ${esc(x.foto)}</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn p sm" data-igcopy="${x.id}">Copiar legenda e hashtags</button><button class="btn sm" data-igsave="${x.id}">Guardar minha versão</button>
+   <a class="btn sm" style="color:inherit;text-decoration:none" target="_blank" rel="noopener" href="https://www.pexels.com/pt-br/procurar/${q}/">Fotos no Pexels</a><a class="btn sm" style="color:inherit;text-decoration:none" target="_blank" rel="noopener" href="https://unsplash.com/s/photos/${q}">Fotos no Unsplash</a>
+   <button class="btn sm" data-igpost="${x.id}">${r.postadoEm?'Desmarcar postado':'Marcar como postado'}</button></div></div>`}
+function vInstagram(){
+  const t=S.igTema||'todos',lista=IG_IDEIAS.filter(x=>t==='todos'||x.t===t),dia=igDoDia();
+  return `<div class="top"><div><h1>Instagram</h1><div class="sub">Ideias de post com legenda pronta, hashtags e o que fotografar. Nada é publicado daqui: você copia, ajusta e posta.</div></div></div>
+  <div class="note" style="margin-bottom:14px">Foto de cliente só com autorização específica de divulgação. A ficha de anamnese <b>não</b> dá essa autorização. Para as fotos, prefira o seu espaço, materiais e banco de imagens gratuito (confira a licença de cada foto).</div>
+  <h2>Sugestão de hoje</h2>${igCard(dia,true)}
+  <h2 style="margin-top:18px">Todas as ideias</h2>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"><button class="btn sm ${t==='todos'?'p':''}" data-igtema="todos">Todas</button>${Object.entries(IG_TEMAS).map(([k,v])=>`<button class="btn sm ${t===k?'p':''}" data-igtema="${k}">${v}</button>`).join('')}</div>
+  ${lista.filter(x=>x.id!==dia.id).map(x=>igCard(x,false)).join('')}`}
+async function igCopiar(id){const x=IG_IDEIAS.find(y=>y.id===id),ta=document.getElementById('igl-'+id);
+  const txt=ta.value.trim()+'\n\n'+x.h+' '+IG_BASE;
+  try{await navigator.clipboard.writeText(txt);toast('Copiado. É só colar no Instagram.')}
+  catch(e){ta.focus();ta.select();toast('Selecione o texto e copie (Ctrl+C).')}}
+async function igSalvar(id){const ta=document.getElementById('igl-'+id);await grava(()=>DB.upd('admin/instagram/'+id,{legenda:ta.value}),'Sua versão foi guardada')}
+async function igPostado(id){const r=(C.instagram||{})[id]||{};
+  await grava(()=>DB.upd('admin/instagram/'+id,{postadoEm:r.postadoEm?null:iso(TODAY)}),r.postadoEm?'Desmarcado':'Marcado como postado')}
+
 function render(){
   if(!S.user)return;
   renderChrome();
-  const V={hoje:vHoje,agenda:vAgenda,clientes:vClientes,anamnese:vAnamnese,financeiro:vFinanceiro,comissoes:vComissoes,servicos:vServicos,fornecedores:vFornecedores,cursos:vCursos,aulas:vAulas};
+  const V={hoje:vHoje,agenda:vAgenda,clientes:vClientes,anamnese:vAnamnese,financeiro:vFinanceiro,comissoes:vComissoes,servicos:vServicos,fornecedores:vFornecedores,cursos:vCursos,aulas:vAulas,instagram:vInstagram};
   const main=document.getElementById('main');
   const erros=Object.entries(S.erros);
   const aviso=erros.length?`<div class="note err"><span>Não foi possível ler parte dos dados (${erros.map(([p,m])=>esc(p+': '+m)).join('; ')}). A tela pode estar incompleta.</span><button class="btn sm" id="retry">Tentar de novo</button></div>`:'';
@@ -1194,6 +1254,10 @@ function render(){
   main.querySelectorAll('[data-ecu]').forEach(b=>b.onclick=()=>editarCurso(b.dataset.ecu));
   main.querySelectorAll('[data-es]').forEach(b=>{const [u,i]=b.dataset.es.split('|');b.onclick=()=>editarServico(u,i)});
   main.querySelectorAll('[data-ns]').forEach(b=>b.onclick=()=>editarServico(b.dataset.ns,null));
+  main.querySelectorAll('[data-igtema]').forEach(b=>b.onclick=()=>{S.igTema=b.dataset.igtema;render()});
+  main.querySelectorAll('[data-igcopy]').forEach(b=>b.onclick=()=>igCopiar(b.dataset.igcopy));
+  main.querySelectorAll('[data-igsave]').forEach(b=>b.onclick=()=>igSalvar(b.dataset.igsave));
+  main.querySelectorAll('[data-igpost]').forEach(b=>b.onclick=()=>igPostado(b.dataset.igpost));
   main.querySelectorAll('[data-pend]').forEach(b=>b.onclick=()=>revisarPendente(b.dataset.pend));
   const nv=document.getElementById('novo');if(nv)nv.onclick=novoAg;
   const q=document.getElementById('q');if(q){q.oninput=e=>{S.q=e.target.value;const pos=e.target.selectionStart;render();const n=document.getElementById('q');n.focus();n.setSelectionRange(pos,pos)}}
