@@ -27,7 +27,10 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
 - **Fechamento quinzenal:** 1–15 pago dia 20; 16–31 pago dia 5 do mês seguinte.
 - **Florença:** o percentual do acerto com a dona do estúdio **não está
   confirmado** (40% é provisório) — fica configurável, nunca travado no código.
-- **A anamnese segue a ficha oficial da Maison Beauty** (PDF da Tháriga, página 1): identificação, serviço solicitado, 12 perguntas de saúde com Sim/Não **todas obrigatórias**, detalhes, autorização de foto e assinatura. A página 2 (registro do atendimento pelo profissional) ainda não foi feita.
+- **A anamnese segue a ficha oficial da Maison Beauty** (PDF da Tháriga, página 1): identificação, serviço solicitado, 12 perguntas de saúde com Sim/Não **todas obrigatórias**, detalhes, autorização de foto e assinatura. A página 2 (registro do atendimento) é por atendimento, preenchida por todas, com o nome e a data de quem preencheu (sem nova assinatura da cliente). **Fotos só de quem autorizou**, reduzidas no aparelho e guardadas no próprio banco.
+- **Anamnese por link:** a cliente preenche em `anamnese.html?t=CÓDIGO`, sem conta (login anônimo). Código de 32 caracteres, 7 dias, uso único; o envio vai para `/maison/pendentes` e **só vale na ficha depois que a equipe integra**. O convite guarda só o primeiro nome. Só clientes da Maison (não Florença).
+- **Preços e serviços** são editáveis pela Tháriga (`/maison/servicos`, sobre a tabela de partida `SERV`). Valor cobrado de atendimento já registrado nunca muda sozinho.
+- **Suporte:** botão "Preciso de ajuda" grava em `/maison/suporte` e manda e-mail pelo Apps Script (`apps-script/suporte.js`, `SUPORTE_URL` no `index.html`).
 - **Todo serviço exige anamnese** válida (vence em 6 meses). Retorno padrão: 20 dias.
 - **Unidade do dia** vem do dia da semana: Florença quinta–sábado, Maison
   domingo–quarta. Tháriga não escolhe unidade à mão.
@@ -45,8 +48,11 @@ testar: `python3 -m http.server` dentro de `maison/` e abrir `index.html`.
 Passo a passo do Firebase em `FIREBASE.md`.
 
 ## Na fila
+- **Google Agenda** (convite para a cliente aceitar ou recusar, saindo da conta thariga.pmu@gmail.com): precisa do e-mail da cliente no cadastro e de um Apps Script autorizado pela Tháriga.
+- **Instagram:** sugestões de post (ideias, legendas, imagens); depois publicar pelo painel. Foto de cliente só com termo de divulgação, que a ficha atual não dá.
+- Mariana (mariibriit00@gmail.com): criar a conta e o cadastro em `acesso`.
 - Logo e ícones já estão no painel (`logo.png`, `icon-192.png`, `icon-512.png`), tirados do PDF que a Tháriga mandou.
-- Upload das fotos da anamnese (Storage).
+- Fotos em alta resolução (Storage), só se o volume crescer.
 - Número novo da Mariana, lista de fornecedores/contas, dados de estoque.
 - Roteiros de aula de cílios, lash lifting e brow lamination.
 - Trava da Laís (só segunda) também nas regras do banco.

@@ -119,6 +119,10 @@ canvas.sig{width:100%;height:130px;border:1px dashed var(--muted);border-radius:
 .svgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 14px;font-size:14px;margin-bottom:10px}
 .fotor{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;margin:6px 0}
 .fotor label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.fgrid figure{margin:0}
+.fgrid img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:pointer;display:block}
+.fgrid figcaption{margin-top:3px}
 .hero-unit{display:inline-flex;align-items:center;gap:8px;margin-top:10px;font-size:14px}
 .hero-unit i{width:9px;height:9px;border-radius:50%}
 .mob{display:none}
@@ -145,9 +149,10 @@ canvas.sig{width:100%;height:130px;border:1px dashed var(--muted);border-radius:
     <div><img class="logo-wide" src="logo.png" alt="Maison Beauty"><div class="sub-brand">Tháriga Brito · Florença &amp; Maison Beauty · @mais.on.beauty</div></div>
     <nav id="nav"></nav>
     <div class="who" id="quem"></div>
+    <button class="btn" id="ajuda1">Preciso de ajuda</button>
   </aside>
   <div>
-    <div class="mob"><img class="logo-wide sm" src="logo.png" alt="Maison Beauty"><button class="btn sm" id="sair2">Sair</button></div>
+    <div class="mob"><img class="logo-wide sm" src="logo.png" alt="Maison Beauty"><span><button class="btn sm" id="ajuda2">Ajuda</button> <button class="btn sm" id="sair2">Sair</button></span></div>
     <main id="main"></main>
   </div>
 </div>
@@ -174,6 +179,9 @@ const firebaseConfig = {
   appId: "1:30042816821:web:e0e5cbcfe596d3a1a40c7c"
 };
 const DEMO = !firebaseConfig.apiKey;
+// Suporte: endereço do Apps Script que manda o e-mail (ver apps-script/suporte.js e FIREBASE.md). Em branco = só grava no banco.
+const SUPORTE_URL='https://script.google.com/macros/s/AKfycbwoAlGyx8BElcl4Xf2rVknbdbAPvFuilPTDadFsZc-NnufV6g8bhYCp95O758FAOQNeMg/exec';
+const SUPORTE_CHAVE='YeW0wL5MBpOcA1bkiv3KCz9xhpb_iSEV';
 
 // ═══ Camada de dados ═══════════════════════════════════════════════════
 // Duas portas com a mesma cara: o banco de verdade e a memória (demonstração).
@@ -198,9 +206,14 @@ const DB={
   async get(p){if(DEMO)return memGet(p);return (await get(ref(fb,p))).val()}
 };
 // Grava e avisa: devolve true/false; nunca diz "salvo" sem ter salvo.
-async function grava(fn,ok){try{await fn();if(ok)toast(ok);return true}catch(e){console.error(e);
+const ERROS_RECENTES=[];
+const guardaErro=m=>{ERROS_RECENTES.push(new Date().toISOString().slice(11,19)+' '+String(m).slice(0,300));if(ERROS_RECENTES.length>5)ERROS_RECENTES.shift()};
+window.addEventListener('error',e=>guardaErro(e.message));
+window.addEventListener('unhandledrejection',e=>guardaErro(e.reason&&e.reason.message||e.reason));
+async function grava(fn,ok){try{await fn();if(ok)toast(ok);return true}catch(e){console.error(e);guardaErro(e.message);
   toast('Não foi possível salvar: '+(/permission/i.test(e.message)?'o banco recusou (permissão)':e.message));return false}}
 
+if(DEMO)setTimeout(()=>{window.__DB=DB},0);
 // ═══ Dados do negócio ══════════════════════════════════════════════════
 const U={
  flo:{n:'Estúdio Florença',s:'Itaim Bibi',dias:'Quinta, sexta e sábado',hora:'09:00–19:00'},
@@ -241,7 +254,13 @@ const SERV={
   {id:'piercing',n:'Aplicação de piercing',p:15,d:30,obs:'Somente aplicação; joia à parte'},
  ]};
 for(const u in SERV) SERV[u].forEach(s=>{s.anam=true;s.ret=20});
-const sv=(id,unit)=>(SERV[unit]||[]).find(s=>s.id===id)||{n:id,p:0,ret:20};
+// Preços e serviços: o que a Tháriga muda em "Serviços e preços" vale por cima da tabela de partida.
+function servicosDe(unit,comInativos=true){
+  const ov=(unit==='flo'?C.fServ:C.mServ)||{},bs=SERV[unit]||[];
+  const base=bs.map(x=>({...x,...(ov[x.id]||{}),id:x.id,base:true}));
+  const extra=Object.entries(ov).filter(([id])=>!bs.some(x=>x.id===id)).map(([id,o])=>({anam:true,ret:20,...o,id,base:false})).sort((a,b)=>(a.criado||'').localeCompare(b.criado||''));
+  const todos=[...base,...extra];return comInativos?todos:todos.filter(x=>x.ativo!==false)}
+const sv=(id,unit)=>servicosDe(unit).find(x=>x.id===id)||{n:id,p:0,ret:20};
 const PAG=['Pix','Crédito','Débito','Dinheiro'];
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
 const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
@@ -339,7 +358,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -347,6 +366,7 @@ const meuPro=()=>S.user?.pro;
 const clientes=()=>[...arr(C.mClientes).map(c=>({...c,_p:'maison'})),...arr(C.fClientes).map(c=>({...c,_p:'florenca'}))];
 const agenda=()=>[...arr(C.mAgenda).map(a=>({...a,_p:'maison'})),...arr(C.fAgenda).map(a=>({...a,_p:'florenca'}))];
 const agendaAtiva=()=>agenda().filter(a=>a.st!=='Cancelado');
+const regDe=(id,p)=>(p==='florenca'?C.fReg:C.mReg)[id]||null;
 const anamDe=id=>C.mAnam[id]||C.fAnam[id]||null;
 // Atendimento cancelado não some: fica gravado com a marca "cancelado" e sai das contas.
 const histAll=(comCancelados=false)=>[...arr(C.mAtend).map(h=>({...h,_p:'maison'})),...arr(C.fAtend).map(h=>({...h,_p:'florenca'}))]
@@ -370,9 +390,9 @@ function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];
 let rq=0;function agendarRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;if(S.user)render()})}
 function comecarLeituras(){
   pararLeituras();
-  ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');
+  ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
   if(isAdmin()){
-    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');
+    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');
     ouvir('financeiro/valores','valores');
     ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');
     // A carga inicial dos roteiros é idempotente: chaves fixas, só cria o que falta.
@@ -413,6 +433,7 @@ function entrou(u){S.user=u;S.tab='hoje';S.q='';S.day=0;S.unit=isAdmin()?'todas'
   comecarLeituras();render()}
 async function sair(){pararLeituras();S.user=null;S.erros={};for(const k in C)C[k]={};if(!DEMO)await signOut(auth);telaEntrar()}
 document.getElementById('sair2').onclick=sair;
+document.getElementById('ajuda1').onclick=()=>abrirSuporte();document.getElementById('ajuda2').onclick=()=>abrirSuporte();
 
 if(DEMO){telaEntrar()}
 else{
@@ -428,7 +449,7 @@ else{
 }
 
 // ═══ Telas ═════════════════════════════════════════════════════════════
-const TABS=[['hoje','Hoje'],['agenda','Agenda'],['clientes','Clientes'],['anamnese','Anamnese'],['financeiro','Financeiro',1],['comissoes','Comissões',1],['fornecedores','Fornecedores',1],['cursos','Cursos',1],['aulas','Aulas',1]];
+const TABS=[['hoje','Hoje'],['agenda','Agenda'],['clientes','Clientes'],['anamnese','Anamnese'],['financeiro','Financeiro',1],['comissoes','Comissões',1],['servicos','Serviços e preços',1],['fornecedores','Fornecedores',1],['cursos','Cursos',1],['aulas','Aulas',1]];
 function renderChrome(){
   const tabs=TABS.filter(t=>isAdmin()||!t[2]);
   if(!tabs.find(t=>t[0]===S.tab))S.tab='hoje';
@@ -486,7 +507,7 @@ function vAgenda(){
     const list=ap.filter(a=>a.pro===p);
     const u=p==='tha'?du:'mai';if(!visUnit(u))return '';
     return `<div class="box"><h3>${PEOPLE[p].n} ${uTag(u)}</h3>${list.map(a=>`<div class="appt ${a.st==='Atendido'?'done':''}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}<div class="small muted">${esc(sv(a.serv,a.unit).n)}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}</div>
-     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?'<span class="tag ok">Atendido</span>':`<span class="tag">${esc(a.st)}</span><button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}</div></div>`).join('')||'<p class="small muted">Sem horários marcados.</p>'}</div>`}).join('');
+     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${(()=>{const at=histAll(true).find(h=>h.agenda===a.id&&!h.cancelado);return at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''})()}`:`<span class="tag">${esc(a.st)}</span><button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}</div></div>`).join('')||'<p class="small muted">Sem horários marcados.</p>'}</div>`}).join('');
   return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Maison Beauty: ${U.mai.dias}, ${U.mai.hora}. Laís atende somente às segundas-feiras.`:`Agenda completa da Maison Beauty — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}<button class="btn p" id="novo">Novo agendamento</button></div></div>
   <div class="days">${days.map((x,i)=>`<button class="${S.day===i?'on':''}" data-day="${i}">${x.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')}<b>${x.getDate()}</b><i style="background:var(--${unitFor(x)})"></i></button>`).join('')}</div>
@@ -550,7 +571,7 @@ function novoAg(){
     if(p==='lais'&&d&&!laisDay(d)){ok=false;msgs.push('A Laís atende somente às segundas-feiras.')}
     const choque=agendaAtiva().find(a=>a.pro===p&&a.date===d&&a.hora===nh.value&&a.st!=='Atendido');
     if(choque)msgs.push(`${PEOPLE[p].n} já tem ${cli(choque.cli).n} às ${nh.value}. Dá para agendar mesmo assim.`);
-    const opts=(SERV[u]||[]).map(s=>`<option value="${s.id}">${esc(s.n)}${isAdmin()?' · '+brl(s.p):''}${s.d?' · '+s.d+'min':''}</option>`).join('');
+    const opts=servicosDe(u,false).map(s=>`<option value="${s.id}">${esc(s.n)}${isAdmin()?' · '+brl(s.p):''}${s.d?' · '+s.d+'min':''}</option>`).join('');
     if(ns.innerHTML!==opts){const cur=ns.value;ns.innerHTML=opts;if([...ns.options].some(o=>o.value===cur))ns.value=cur}
     if(p==='tha')msgs.unshift(`Neste dia a Tháriga atende no ${U[u].n}.`);
     const an=anamDe(c.id);
@@ -597,15 +618,148 @@ function ficha(id){const c=cli(id),an=anamDe(id);
   ${an&&an.obs?`<p class="small">Detalhes de saúde: ${esc(an.obs)}</p>`:''}
   ${an&&an.emergencia?`<p class="small muted">Emergência: ${esc(an.emergencia)}</p>`:''}
   ${an&&an.assinatura?`<img alt="Assinatura" src="${esc(an.assinatura)}" style="max-width:220px;border:1px solid var(--line);border-radius:8px;background:#fff">`:''}
-  <div style="margin-top:8px"><button class="btn" id="anb">${an?'Atualizar anamnese':'Preencher anamnese'}</button></div>
-  <h3 style="margin-top:20px">Fotos</h3><div class="photos"><div class="ph">Foto inicial<br>(envio na próxima etapa)</div><div class="ph">Foto de acompanhamento<br>(envio na próxima etapa)</div></div>
+  <div style="margin-top:8px"><button class="btn" id="anb">${an?'Atualizar anamnese':'Preencher anamnese'}</button>${c._p==='maison'?' <button class="btn" id="anl">Enviar anamnese por link</button>':''}</div>
+  <h3 style="margin-top:20px">Fotos</h3><div id="fotos-box" class="small muted">Carregando…</div><div id="fotos-box-v"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" id="fadd-i">Foto inicial</button><button class="btn sm" id="fadd-a">Foto de acompanhamento</button></div>
   <h3 style="margin-top:20px">Últimos atendimentos</h3>
-  ${h.map(x=>`<div class="row small" style="${x.cancelado?'opacity:.55':''}"><span>${fd(x.date)}</span><div class="grow">${esc(sv(x.serv,x.unit).n)}<span class="muted"> com ${esc(PEOPLE[x.pro]?.n)}</span>${isAdmin()&&x.valor!=null?`<div class="muted">${brl(x.valor)} · ${esc(x.pag||'')}</div>`:''}</div>${x.cancelado?'<span class="tag warn">Cancelado</span>':''}${isAdmin()?uTag(x.unit):''}${isAdmin()&&!x.cancelado?`<button class="btn sm" data-corr="${x.id}" data-p="${x._p}">Corrigir</button><button class="btn sm" data-canc="${x.id}" data-p="${x._p}">Cancelar</button>`:''}</div>`).join('')||'<p class="muted small">Sem atendimentos registrados.</p>'}`);
+  ${h.map(x=>`<div class="row small" style="flex-wrap:wrap;${x.cancelado?'opacity:.55':''}"><span>${fd(x.date)}</span><div class="grow" style="min-width:190px">${esc(sv(x.serv,x.unit).n)}<span class="muted"> com ${esc(PEOPLE[x.pro]?.n)}</span>${isAdmin()&&x.valor!=null?`<div class="muted">${brl(x.valor)} · ${esc(x.pag||'')}</div>`:''}</div>${x.cancelado?'<span class="tag warn">Cancelado</span>':regDe(x.id,x._p)?'<span class="tag ok">Registro</span>':'<span class="tag warn">Sem registro</span>'}${isAdmin()?uTag(x.unit):''}${x.cancelado?'':`<button class="btn sm" data-reg="${x.id}" data-p="${x._p}">${regDe(x.id,x._p)?'Ver registro':'Preencher registro'}</button>`}${isAdmin()&&!x.cancelado?`<button class="btn sm" data-corr="${x.id}" data-p="${x._p}">Corrigir</button><button class="btn sm" data-canc="${x.id}" data-p="${x._p}">Cancelar</button>`:''}</div>`).join('')||'<p class="muted small">Sem atendimentos registrados.</p>'}`);
   document.getElementById('anb').onclick=()=>anamnese(id);
+  const anl=document.getElementById('anl');if(anl)anl.onclick=()=>enviarLinkAnamnese(id);
   document.getElementById('fed').onclick=()=>editarCliente(id);
   const fx=document.getElementById('fex');if(fx)fx.onclick=()=>excluirCliente(id);
+  carregarFotos(id,'fotos-box',null);
+  document.getElementById('fadd-i').onclick=()=>escolherFoto(id,'inicial',null,()=>carregarFotos(id,'fotos-box',null));
+  document.getElementById('fadd-a').onclick=()=>escolherFoto(id,'acompanhamento',null,()=>carregarFotos(id,'fotos-box',null));
+  dlg.querySelectorAll('[data-reg]').forEach(b=>b.onclick=()=>abrirRegistro(b.dataset.reg,b.dataset.p,()=>ficha(id)));
   dlg.querySelectorAll('[data-corr]').forEach(b=>b.onclick=()=>corrigirAtend(b.dataset.corr,b.dataset.p,id));
   dlg.querySelectorAll('[data-canc]').forEach(b=>b.onclick=()=>cancelarAtend(b.dataset.canc,b.dataset.p,id))}
+// ── Fotos: reduzidas no aparelho e guardadas no próprio banco ──
+// Ficam em /{unidade}/fotos/{cliente}/{foto}. Só se envia foto de quem autorizou na anamnese.
+function podeFoto(cid){const an=anamDe(cid);
+  if(!an)return 'Preencha a anamnese antes de tirar fotos.';
+  if(an.fotoOk!==true)return 'Esta cliente não autorizou fotos na anamnese.';
+  return null}
+function reduzirFoto(file){return new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{URL.revokeObjectURL(url);const r=Math.min(1,1280/Math.max(im.width,im.height));
+    const cv=document.createElement('canvas');cv.width=Math.round(im.width*r);cv.height=Math.round(im.height*r);
+    cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+    for(const q of [.72,.6,.5,.4]){const d=cv.toDataURL('image/jpeg',q);if(d.length<=600000||q===.4)return res(d)}};
+  im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('Não foi possível ler essa imagem.'))};im.src=url})}
+function escolherFoto(cid,tipo,atendId,depois){const msg=podeFoto(cid);if(msg){toast(msg);return}
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=async()=>{const f=inp.files[0];if(!f)return;toast('Enviando a foto…');
+    try{const img=await reduzirFoto(f),c=cli(cid),base=c._p==='florenca'?'florenca':'maison';
+      const reg={tipo,data:iso(TODAY),img,por:S.user.nome};if(atendId)reg.atend=atendId;
+      if(await grava(()=>DB.push(base+'/fotos/'+cid,reg),'Foto salva')&&depois)depois()}
+    catch(e){toast(e.message)}};
+  inp.click()}
+async function carregarFotos(cid,boxId,atendId){const box=document.getElementById(boxId);if(!box)return;
+  const c=cli(cid),base=c._p==='florenca'?'florenca':'maison';let v;
+  try{v=await DB.get(base+'/fotos/'+cid)}catch(e){box.textContent='Não foi possível carregar as fotos: '+e.message;return}
+  let fs=Object.entries(v||{}).map(([id,f])=>({id,...f})).sort((a,b)=>a.data.localeCompare(b.data));
+  if(atendId)fs=fs.filter(f=>f.atend===atendId);
+  box.innerHTML=fs.length?`<div class="fgrid">${fs.map(f=>`<figure><img src="${esc(f.img)}" data-foto="${f.id}" alt="Foto ${f.tipo==='inicial'?'inicial':'de acompanhamento'}"><figcaption class="small muted">${f.tipo==='inicial'?'Inicial':'Acompanhamento'} · ${fd(f.data)}</figcaption></figure>`).join('')}</div>`:'Nenhuma foto ainda.';
+  box.querySelectorAll('[data-foto]').forEach(i=>i.onclick=()=>mostrarFoto(cid,fs.find(f=>f.id===i.dataset.foto),boxId,atendId))}
+// A foto ampliada abre no próprio lugar, sem trocar a janela: o que já foi digitado no registro não se perde.
+function mostrarFoto(cid,f,boxId,atendId){const c=cli(cid),base=c._p==='florenca'?'florenca':'maison',vw=document.getElementById(boxId+'-v');if(!vw)return;
+  vw.innerHTML=`<div class="box" style="margin-top:10px;padding:12px"><img src="${esc(f.img)}" alt="" style="width:100%;border-radius:10px;display:block">
+  <p class="small muted" style="margin:8px 0">${f.tipo==='inicial'?'Foto inicial':'Foto de acompanhamento'} · ${fd(f.data,{day:'2-digit',month:'2-digit',year:'numeric'})} · enviada por ${esc(f.por||'')}</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="fv-v">Fechar foto</button>${isAdmin()?'<button class="btn sm" id="fv-d" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Excluir foto</button>':''}</div></div>`;
+  vw.scrollIntoView({block:'nearest'});
+  document.getElementById('fv-v').onclick=()=>{vw.innerHTML=''};
+  const d=document.getElementById('fv-d');if(d)d.onclick=async()=>{if(!confirm('Excluir esta foto?'))return;
+    if(await grava(()=>DB.del(base+'/fotos/'+cid+'/'+f.id),'Foto excluída')){vw.innerHTML='';carregarFotos(cid,boxId,atendId)}}}
+
+// ── Registro do atendimento (página 2 da ficha oficial) ──
+function abrirRegistro(aid,p,voltar){const h=histAll(true).find(x=>x.id===aid&&x._p===p);if(!h)return;
+  const c=cli(h.cli),old=regDe(aid,p)||{},an=anamDe(h.cli)||{},s=sv(h.serv,h.unit);
+  const comFungos=!!old.fungos||s.id==='laserfungo'||(an.servicos||[]).includes('Avaliação de unhas com suspeita de fungos');
+  const fg=old.fungos||{};
+  openDlg('Registro do atendimento',`<p><b>${esc(c.n)}</b><br><span class="muted">${esc(s.n)} · ${fd(h.date,{day:'2-digit',month:'2-digit',year:'numeric'})} · ${esc(PEOPLE[h.pro]?.n)}</span></p>
+  ${an.flags&&an.flags.length?`<div class="alert">Atenção na ficha: ${esc(an.flags.join(', '))}</div>`:''}
+  <div class="sec">Avaliação e registro pelo profissional</div>
+  <label class="f">Aspecto da pele, olhos ou unhas e queixa principal<textarea rows="2" id="rg-av">${esc(old.avaliacao||'')}</textarea></label>
+  <label class="f">Procedimento, técnica e área atendida<textarea rows="2" id="rg-pr">${esc(old.procedimento||'')}</textarea></label>
+  <label class="f">Produtos, lote, validade ou equipamento e parâmetros utilizados<textarea rows="3" id="rg-pd">${esc(old.produtos||'')}</textarea></label>
+  <div class="small muted" style="margin-bottom:4px">Conduta</div>
+  <div class="fotor">${[['realizar','Realizar'],['adiar','Adiar'],['encaminhar','Encaminhar para avaliação']].map(([v,l])=>`<label><input type="radio" name="rc" value="${v}" ${old.conduta===v?'checked':''}>${l}</label>`).join('')}</div>
+  <label class="f">Orientações, intercorrências e retorno<textarea rows="3" id="rg-or">${esc(old.orientacoes||'')}</textarea></label>
+  <div class="sec">Unhas com suspeita ou diagnóstico de fungos</div>
+  <label class="ck" style="border-top:0"><input type="checkbox" id="rg-f" ${comFungos?'checked':''}>Este atendimento envolve unhas com suspeita ou diagnóstico de fungos</label>
+  <div id="rg-fbox" ${comFungos?'':'hidden'}>
+   <label class="f">Unha(s) afetada(s) e tempo de alteração<textarea rows="2" id="rg-fu">${esc(fg.unhas||'')}</textarea></label>
+   <div class="fotor">${[['suspeita','Suspeita'],['diagnostico','Diagnóstico informado pela cliente'],['exame','Exame apresentado']].map(([v,l])=>`<label><input type="radio" name="rf" value="${v}" ${fg.tipo===v?'checked':''}>${l}</label>`).join('')}</div>
+   <label class="f">Tratamento atual, acompanhamento e evolução<textarea rows="3" id="rg-ft">${esc(fg.tratamento||'')}</textarea></label>
+  </div>
+  <div class="sec">Fotos do atendimento</div>
+  <div id="rg-fotos" class="small muted">Carregando…</div><div id="rg-fotos-v"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" id="rg-fi">Foto inicial</button><button class="btn sm" id="rg-fa">Foto de acompanhamento</button></div>
+  <p class="small muted">${an.fotoOk===true?'A cliente autorizou fotos para registro. Isso não autoriza divulgação em redes sociais ou publicidade.':an.fotoOk===false?'A cliente NÃO autorizou fotos.':'Anamnese ainda não preenchida: sem autorização de foto registrada.'}</p>
+  <div class="sec">Observações finais do profissional</div>
+  <label class="f"><textarea rows="3" id="rg-ob">${esc(old.obsFinais||'')}</textarea></label>
+  <p class="small muted">${old.por?`Registro de ${esc(old.por)} em ${fd(old.em,{day:'2-digit',month:'2-digit',year:'numeric'})}${old.atualizadoPor&&old.atualizadoPor!==old.por?`, atualizado por ${esc(old.atualizadoPor)}`:''}.`:`Será registrado em nome de ${esc(S.user.nome)}, hoje.`}</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="rg-save">Salvar registro</button><button class="btn" id="rg-v">${voltar?'Voltar':'Fechar'}</button></div>`);
+  const fb=document.getElementById('rg-fbox');
+  document.getElementById('rg-f').onchange=e=>{fb.hidden=!e.target.checked};
+  carregarFotos(h.cli,'rg-fotos',aid);
+  document.getElementById('rg-fi').onclick=()=>escolherFoto(h.cli,'inicial',aid,()=>carregarFotos(h.cli,'rg-fotos',aid));
+  document.getElementById('rg-fa').onclick=()=>escolherFoto(h.cli,'acompanhamento',aid,()=>carregarFotos(h.cli,'rg-fotos',aid));
+  document.getElementById('rg-v').onclick=()=>voltar?voltar():closeDlg();
+  document.getElementById('rg-save').onclick=async()=>{
+    const v=i=>document.getElementById(i).value.trim();
+    if(!v('rg-pr')){toast('Descreva o procedimento, a técnica e a área atendida');return}
+    const cond=document.querySelector('input[name=rc]:checked');
+    if(!cond){toast('Marque a conduta: realizar, adiar ou encaminhar');return}
+    const reg={avaliacao:v('rg-av'),procedimento:v('rg-pr'),produtos:v('rg-pd'),conduta:cond.value,orientacoes:v('rg-or'),obsFinais:v('rg-ob'),
+      por:old.por||S.user.nome,em:old.em||iso(TODAY),atualizadoPor:S.user.nome,atualizadoEm:iso(TODAY)};
+    if(document.getElementById('rg-f').checked){const t=document.querySelector('input[name=rf]:checked');
+      reg.fungos={unhas:v('rg-fu'),tipo:t?t.value:'',tratamento:v('rg-ft')}}
+    const btn=document.getElementById('rg-save');btn.disabled=true;
+    const ok=await grava(()=>DB.set(p+'/registros/'+aid,reg),'Registro salvo');
+    if(ok){voltar?voltar():closeDlg()}else btn.disabled=false}}
+// ── Anamnese pelo link: a cliente preenche no celular e a equipe confere e integra ──
+const LINK_VALE_DIAS=7;
+function novoToken(){const b=crypto.getRandomValues(new Uint8Array(24));return btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function enviarLinkAnamnese(cid){const c=cli(cid);
+  // Reaproveita o link de quem ainda não usou e não venceu; senão cria um novo.
+  let token=Object.entries(C.mConv||{}).find(([t,v])=>v.cli===cid&&!v.usado&&v.exp>Date.now())?.[0];
+  if(!token){token=novoToken();
+    const ok=await grava(()=>DB.set('maison/convites/'+token,{cli:cid,nome:c.n.split(' ')[0],exp:Date.now()+LINK_VALE_DIAS*864e5,usado:false,por:S.user.nome,em:iso(TODAY)}));
+    if(!ok)return}
+  const link=new URL('anamnese.html',location.href).href.replace(/[?#].*$/,'')+'?t='+token;
+  const msg=`Oi, ${c.n.split(' ')[0]}! Para agilizar o seu atendimento na Maison Beauty, preencha a sua ficha de anamnese pelo celular, é rapidinho: ${link} (o link vale ${LINK_VALE_DIAS} dias). Obrigada!`;
+  openDlg('Anamnese por link',`<p class="small muted">Envie este link para ${esc(c.n)}. Ela preenche e assina no próprio celular. Quando ela enviar, aparece em <b>Anamnese</b>, em "Recebidas pelo link", para a equipe conferir e integrar à ficha.</p>
+  <label class="f">Mensagem pronta<textarea rows="5" id="lk-m">${esc(msg)}</textarea></label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="lk-w" ${c.tel?'':'disabled'}>Enviar pelo WhatsApp</button><button class="btn" id="lk-c">Copiar mensagem</button><button class="btn" id="lk-f">Fechar</button></div>
+  <p class="small muted" style="margin-top:10px">O link vale ${LINK_VALE_DIAS} dias e só pode ser usado uma vez.${c.tel?'':' Cadastre o telefone da cliente para enviar pelo WhatsApp.'}</p>`);
+  document.getElementById('lk-w').onclick=()=>{window.open(zapLink(c.tel,document.getElementById('lk-m').value),'_blank','noopener')};
+  document.getElementById('lk-c').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('lk-m').value);toast('Mensagem copiada')}catch(e){toast('Não foi possível copiar')}};
+  document.getElementById('lk-f').onclick=()=>ficha(cid)}
+const imgSegura=s=>/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(s||'')?s:'';
+function revisarPendente(token){const x=C.mPend[token],cv=C.mConv[token];if(!x||!cv)return;const c=cli(cv.cli);
+  const sims=PERGUNTAS.filter((q,i)=>x.respostas&&x.respostas['q'+i]==='sim').map(q=>q[1]);
+  openDlg('Anamnese recebida',`<p><b>${esc(c.n)}</b><br><span class="muted">Enviada pela cliente em ${x.data?fd(x.data,{day:'2-digit',month:'2-digit',year:'numeric'}):''}${x.nome&&x.nome!==c.n?` · assinou como "${esc(x.nome)}"`:''}</span></p>
+  ${sims.length?`<div class="alert">Respostas "sim": ${esc(sims.join(', '))}</div>`:'<p class="small">Todas as respostas de saúde foram "não".</p>'}
+  <p class="small">Serviço: ${esc([...(x.servicos||[]),x.outro].filter(Boolean).join(', ')||'—')}${x.area?` · ${esc(x.area)}`:''}</p>
+  ${x.obs?`<p class="small">Detalhes de saúde: ${esc(x.obs)}</p>`:''}
+  <p class="small muted">Nascimento ${x.nascimento?fd(x.nascimento,{day:'2-digit',month:'2-digit',year:'numeric'}):'não informado'} · Telefone ${esc(x.telefone||'—')} · Emergência ${esc(x.emergencia||'—')}${x.responsavel?` · Responsável ${esc(x.responsavel)}`:''}</p>
+  <p class="small">Fotos: ${x.fotoOk?'<span class="tag ok">autorizadas</span>':'<span class="tag warn">não autorizadas</span>'}</p>
+  ${imgSegura(x.assinatura)?`<img alt="Assinatura" src="${imgSegura(x.assinatura)}" style="max-width:220px;border:1px solid var(--line);border-radius:8px;background:#fff">`:''}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn p" id="pd-i">Integrar à ficha</button><button class="btn" id="pd-d" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Descartar e pedir de novo</button></div>`);
+  document.getElementById('pd-i').onclick=async()=>{const btn=document.getElementById('pd-i');btn.disabled=true;
+    const reg={data:x.data||iso(TODAY),nascimento:x.nascimento||'',telefone:x.telefone||'',emergencia:x.emergencia||'',responsavel:x.responsavel||'',unidade:'mai',servicos:x.servicos||[],outro:x.outro||'',area:x.area||'',respostas:x.respostas||{},flags:sims,obs:x.obs||'',fotoOk:!!x.fotoOk,assinatura:imgSegura(x.assinatura),por:'Cliente, pelo link',integradoPor:S.user.nome};
+    const ok=await grava(async()=>{
+      await DB.set('maison/anamneses/'+cv.cli,reg);
+      const cad={};if(x.nascimento&&!c.niver)cad.niver=x.nascimento.slice(5,10);if(x.telefone&&!c.tel)cad.tel=x.telefone;
+      if(Object.keys(cad).length)await DB.upd('maison/clientes/'+cv.cli,cad);
+      // O link só fecha depois de integrado: se fechasse antes, apagar o envio deixaria a cliente mandar de novo.
+      await DB.upd('maison/convites/'+token,{usado:true,integradoEm:iso(TODAY),integradoPor:S.user.nome});
+      await DB.del('maison/pendentes/'+token);
+    },'Anamnese integrada à ficha');
+    if(ok)closeDlg();else btn.disabled=false};
+  document.getElementById('pd-d').onclick=async()=>{if(!confirm('Descartar esta anamnese? O link volta a valer para ela preencher de novo.'))return;
+    if(await grava(()=>DB.del('maison/pendentes/'+token),'Anamnese descartada'))closeDlg()}}
 function editarCliente(id){const c=cli(id);
   openDlg('Editar '+esc(c.n),`<label class="f">Nome completo<input id="en" value="${esc(c.n)}"></label>
   <label class="f">Telefone<input id="et" value="${esc(c.tel)}" inputmode="tel"></label>
@@ -763,6 +917,48 @@ function detCom(p){const r=periodRecs().filter(h=>h.pro===p);
   openDlg('Atendimentos de '+PEOPLE[p].n,`<div class="scroll"><table><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th class="n">Valor</th>${p==='lais'?'':'<th class="n">Comissão</th>'}</tr>
   ${r.map(h=>`<tr><td>${fd(h.date)}</td><td>${esc(cli(h.cli).n)}</td><td>${esc(sv(h.serv,h.unit).n)}</td><td class="n">${brl(h.valor)}</td>${p==='lais'?'':`<td class="n">${brl((h.valor||0)/2)}</td>`}</tr>`).join('')||`<tr><td colspan="${p==='lais'?4:5}" class="muted">Nenhum atendimento nesta quinzena.</td></tr>`}</table></div>`)}
 
+function abrirSuporte(){if(!S.user)return;
+  openDlg('Preciso de ajuda',`<p class="small muted">A mensagem vai para quem cuida do painel, junto com a tela em que você estava e o último erro, se houve. Não precisa explicar o lado técnico.</p>
+  <div class="fotor"><label><input type="radio" name="st" value="erro" checked>Deu erro ou não funciona</label><label><input type="radio" name="st" value="pedido">Quero pedir uma mudança</label></div>
+  <label class="f">O que aconteceu, ou o que você precisa?<textarea rows="5" id="sm" placeholder="Ex.: ao concluir o atendimento da Ana apareceu um aviso vermelho"></textarea></label>
+  <button class="btn p" id="ssend">Enviar</button>`);
+  document.getElementById('ssend').onclick=async()=>{const msg=document.getElementById('sm').value.trim();
+    if(msg.length<5){toast('Conte um pouco do que aconteceu');return}
+    const btn=document.getElementById('ssend');btn.disabled=true;
+    const reg={tipo:document.querySelector('input[name=st]:checked').value,msg,por:S.user.nome,perfil:S.user.perfil,tela:S.tab,
+      em:new Date().toISOString(),navegador:navigator.userAgent.slice(0,200),erros:ERROS_RECENTES.join(' | ')};
+    // Primeiro guarda no banco (nunca se perde); depois tenta o e-mail.
+    const salvou=await grava(()=>DB.push('maison/suporte',reg));
+    let mandou=false;
+    if(SUPORTE_URL){try{await fetch(SUPORTE_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({chave:SUPORTE_CHAVE,...reg})});mandou=true}catch(e){guardaErro(e.message)}}
+    if(salvou||mandou){toast(mandou?'Pedido enviado ao suporte':'Pedido guardado. O suporte vai ver em breve.');closeDlg()}else btn.disabled=false}}
+function vServicos(){
+  const sec=u=>`<div class="box" style="margin-bottom:16px"><h2>${U[u].n}</h2>${servicosDe(u).map(x=>`<div class="row" style="${x.ativo===false?'opacity:.55':''}"><div class="grow"><b>${esc(x.n)}</b><div class="small muted">${x.d?x.d+' min':'sem duração'}${x.obs?' · '+esc(x.obs):''}${x.ativo===false?' · desativado':''}</div></div><b>${brl(x.p)}</b><button class="btn sm" data-es="${u}|${x.id}">Editar</button></div>`).join('')}<div style="margin-top:12px"><button class="btn" data-ns="${u}">Novo serviço no ${U[u].n}</button></div></div>`;
+  return `<div class="top"><div><h1>Serviços e preços</h1><div class="sub">Mude o valor, renomeie, ative ou desative cada serviço. O novo preço vale para os próximos atendimentos; os já registrados mantêm o valor que foi cobrado.</div></div></div>${sec('mai')}${sec('flo')}`}
+function editarServico(u,id){const novo=!id,x=novo?{n:'',p:0,d:0,obs:'',ativo:true,base:false}:servicosDe(u).find(y=>y.id===id);if(!x)return;
+  openDlg(novo?'Novo serviço':'Editar serviço',`<p class="small muted">${U[u].n}</p>
+  <label class="f">Nome<input id="sn" value="${esc(x.n)}"></label>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="f" style="flex:1;min-width:140px">Valor (R$)<input id="sp" type="number" step="0.01" min="0" value="${x.p}"></label>
+   <label class="f" style="flex:1;min-width:140px">Duração (minutos)<input id="sd" type="number" min="0" value="${x.d||''}"></label></div>
+  <label class="f">Observação<input id="so" value="${esc(x.obs||'')}" placeholder="Ex.: valor por sessão"></label>
+  <label class="ck"><input type="checkbox" id="sa" ${x.ativo!==false?'checked':''}>Serviço ativo (aparece na agenda)</label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn p" id="ssave">Salvar</button>${!novo&&!x.base?'<button class="btn" id="sdel" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Excluir serviço</button>':''}</div>`);
+  document.getElementById('ssave').onclick=async()=>{
+    const n=document.getElementById('sn').value.trim(),pr=parseFloat(document.getElementById('sp').value);
+    if(!n){toast('Dê um nome ao serviço');return}
+    if(!(pr>=0)){toast('Digite o valor do serviço');return}
+    const sid=novo?'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,5):id;
+    const dado={n,p:pr,d:parseInt(document.getElementById('sd').value)||0,obs:document.getElementById('so').value.trim(),ativo:document.getElementById('sa').checked,alteradoPor:S.user.nome,alteradoEm:iso(TODAY)};
+    if(novo)dado.criado=iso(TODAY);else if(pr!==x.p)dado.pAnterior=x.p;
+    const btn=document.getElementById('ssave');btn.disabled=true;
+    const ok=await grava(()=>DB.upd((u==='flo'?'florenca':'maison')+'/servicos/'+sid,dado),'Serviço salvo');
+    if(ok)closeDlg();else btn.disabled=false};
+  const del=document.getElementById('sdel');
+  if(del)del.onclick=async()=>{
+    // Serviço já usado fica: apagar tiraria o nome do histórico. Nesse caso, desative.
+    if(histAll(true).some(h=>h.serv===id&&h.unit===u)||agenda().some(a=>a.serv===id&&a.unit===u)){toast('Este serviço já foi usado. Desative em vez de excluir.');return}
+    if(!confirm('Excluir este serviço?'))return;
+    if(await grava(()=>DB.del((u==='flo'?'florenca':'maison')+'/servicos/'+id),'Serviço excluído'))closeDlg()}}
 function vFornecedores(){
   const c=arr(C.contas).filter(x=>visUnit(x.unit)).sort((a,b)=>(!!a.cancelada-!!b.cancelada)||(!!a.pago-!!b.pago)||a.venc.localeCompare(b.venc));
   const f=arr(C.fornecedores);
@@ -902,6 +1098,7 @@ function vAnamnese(){
    <div class="box"><div class="lbl">Em dia</div><div class="stat" style="color:var(--ok)">${ok.length}</div></div>
    <div class="box"><div class="lbl">Com alerta de saúde</div><div class="stat">${em.length}</div></div>
   </div>
+  ${(()=>{const rec=arr(C.mPend).filter(x=>C.mConv[x.id]);return rec.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Recebidas pelo link (${rec.length})</h2>${rec.map(x=>`<div class="row"><div class="avatar">${esc(cli(C.mConv[x.id].cli).n[0])}</div><div class="grow"><b>${esc(cli(C.mConv[x.id].cli).n)}</b><div class="small muted">Enviada em ${x.data?fd(x.data,{day:'2-digit',month:'2-digit',year:'numeric'}):''}</div></div><button class="btn sm" data-pend="${x.id}">Revisar e integrar</button></div>`).join('')}</div>`:''})()}
   <input class="search" id="q" placeholder="Buscar cliente pelo nome" value="${esc(S.q)}">
   <div class="box">
    ${pend.length?`<h3>Pendentes ou vencidas</h3>${pend.map(rowAnam).join('')}`:''}
@@ -925,7 +1122,7 @@ dlg.addEventListener('click',e=>{if(e.target===dlg)closeDlg()});
 function render(){
   if(!S.user)return;
   renderChrome();
-  const V={hoje:vHoje,agenda:vAgenda,clientes:vClientes,anamnese:vAnamnese,financeiro:vFinanceiro,comissoes:vComissoes,fornecedores:vFornecedores,cursos:vCursos,aulas:vAulas};
+  const V={hoje:vHoje,agenda:vAgenda,clientes:vClientes,anamnese:vAnamnese,financeiro:vFinanceiro,comissoes:vComissoes,servicos:vServicos,fornecedores:vFornecedores,cursos:vCursos,aulas:vAulas};
   const main=document.getElementById('main');
   const erros=Object.entries(S.erros);
   const aviso=erros.length?`<div class="note err"><span>Não foi possível ler parte dos dados (${erros.map(([p,m])=>esc(p+': '+m)).join('; ')}). A tela pode estar incompleta.</span><button class="btn sm" id="retry">Tentar de novo</button></div>`:'';
@@ -940,11 +1137,15 @@ function render(){
   main.querySelectorAll('[data-payrent]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/pagamentos/'+qzChave('lais_aluguel'),true),'Aluguel marcado como pago'));
   main.querySelectorAll('[data-det]').forEach(b=>b.onclick=()=>detCom(b.dataset.det));
   main.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/contas/'+b.dataset.pc+'/pago',true),'Conta marcada como paga'));
+  main.querySelectorAll('[data-regat]').forEach(b=>b.onclick=()=>abrirRegistro(b.dataset.regat,b.dataset.p,null));
   main.querySelectorAll('[data-remarcar]').forEach(b=>b.onclick=()=>remarcarAg(b.dataset.remarcar,b.dataset.p));
   main.querySelectorAll('[data-cancelag]').forEach(b=>b.onclick=()=>cancelarAg(b.dataset.cancelag,b.dataset.p));
   main.querySelectorAll('[data-ec]').forEach(b=>b.onclick=()=>editarConta(b.dataset.ec));
   main.querySelectorAll('[data-ef]').forEach(b=>b.onclick=()=>editarFornecedor(b.dataset.ef));
   main.querySelectorAll('[data-ecu]').forEach(b=>b.onclick=()=>editarCurso(b.dataset.ecu));
+  main.querySelectorAll('[data-es]').forEach(b=>{const [u,i]=b.dataset.es.split('|');b.onclick=()=>editarServico(u,i)});
+  main.querySelectorAll('[data-ns]').forEach(b=>b.onclick=()=>editarServico(b.dataset.ns,null));
+  main.querySelectorAll('[data-pend]').forEach(b=>b.onclick=()=>revisarPendente(b.dataset.pend));
   const nv=document.getElementById('novo');if(nv)nv.onclick=novoAg;
   const q=document.getElementById('q');if(q){q.oninput=e=>{S.q=e.target.value;const pos=e.target.selectionStart;render();const n=document.getElementById('q');n.focus();n.setSelectionRange(pos,pos)}}
   const rp=document.getElementById('rep');if(rp)rp.onchange=e=>grava(()=>DB.set('admin/config/repasse',Math.min(100,Math.max(0,+e.target.value||0))));

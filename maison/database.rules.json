@@ -37,6 +37,44 @@
       },
       "anamneses": {
         "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
+      },
+      // Registro do atendimento (página 2 da ficha): todas preenchem e corrigem, ninguém além da Tháriga apaga.
+      "registros": {
+        "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
+      },
+      // Fotos: reduzidas no aparelho e guardadas aqui. Funcionária envia, só a Tháriga apaga.
+      "fotos": {
+        "$cid": {
+          "$fid": {
+            ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && !data.exists()))",
+            ".validate": "newData.hasChildren(['tipo','data','img']) && newData.child('img').isString() && newData.child('img').val().length < 700000"
+          }
+        }
+      },
+      // Preços e serviços: todas leem (precisam do valor para concluir), só a Tháriga muda.
+      "servicos": {
+        ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
+      },
+      // Anamnese por link. A cliente entra sem conta (login anônimo): lê só o convite dela
+      // e grava UMA vez em /pendentes, enquanto o convite estiver aberto e dentro da validade.
+      "convites": {
+        ".read": "auth != null && root.child('acesso').child(auth.uid).exists()",
+        "$t": {
+          ".read": "auth != null",
+          ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+        }
+      },
+      "pendentes": {
+        ".read": "auth != null && root.child('acesso').child(auth.uid).exists()",
+        "$t": {
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).exists() || (!data.exists() && root.child('maison').child('convites').child($t).child('usado').val() === false && root.child('maison').child('convites').child($t).child('exp').val() > now))",
+          ".validate": "newData.hasChildren(['nome','respostas','assinatura']) && newData.child('assinatura').isString() && newData.child('assinatura').val().length < 300000"
+        }
+      },
+      // Pedidos de ajuda: todas enviam, só a administradora lê (o suporte também recebe por e-mail).
+      "suporte": {
+        ".read": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
+        "$id": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && !data.exists()" }
       }
     },
 
