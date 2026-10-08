@@ -33,6 +33,7 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
 - **Suporte:** botão "Preciso de ajuda" grava em `/maison/suporte` e manda e-mail pelo Apps Script (`apps-script/suporte.js`, `SUPORTE_URL` no `index.html`).
 - **Instagram (fase 1, aba só da administradora):** plano da semana (um tema por dia: seg dicas, ter bastidores, qua conversa, qui cuidados, sex autocuidado, sáb horários, dom descanso; ★ = mínimo se a semana apertar), com banco de ideias recolhido embaixo; legenda, hashtags e o que fotografar; nada é publicado pelo painel. A troca de ideia do dia fica em `/admin/instagram/plano/{data}`. Sem promessa de resultado, sem preço e sem foto de cliente. O que ela edita e o que marca como postado fica em `/admin/instagram`.
 - **Convite da agenda:** o evento leva só serviço, unidade e horário (nunca ficha, anamnese ou valor). Remarcar atualiza o mesmo evento, nunca cria outro.
+- **A Laís só atende às segundas, na tela e nas regras do banco** (o agendamento leva `ts` e a regra confere o dia da semana).
 - **Todo serviço exige anamnese** válida (vence em 6 meses). Retorno padrão: 20 dias.
 - **Unidade do dia** vem do dia da semana: Florença quinta–sábado, Maison
   domingo–quarta. Tháriga não escolhe unidade à mão.
@@ -57,4 +58,3 @@ Passo a passo do Firebase em `FIREBASE.md`.
 - Fotos em alta resolução (Storage), só se o volume crescer.
 - Número novo da Mariana, lista de fornecedores/contas, dados de estoque.
 - Roteiros de aula de cílios, lash lifting e brow lamination.
-- Trava da Laís (só segunda) também nas regras do banco.

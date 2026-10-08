@@ -207,6 +207,8 @@ const DB={
   async del(p){if(DEMO)return memSet(p,null);await remove(ref(fb,p))},
   async get(p){if(DEMO)return memGet(p);return (await get(ref(fb,p))).val()}
 };
+// Data em milissegundos (meia-noite UTC): as regras do banco usam para conferir o dia da semana da Laís.
+const tsDe=d=>{const [y,m,x]=d.split('-').map(Number);return Date.UTC(y,m-1,x)};
 // ── Convites pela Google Agenda (Apps Script rodando na conta da Tháriga) ──
 const emailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e||'');
 async function agendaChama(corpo){
@@ -576,7 +578,7 @@ function remarcarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)re
     rav.innerHTML=msgs.map(m=>`<div class="alert">${esc(m)}</div>`).join('');rs.disabled=!ok};
   [rd,rh].forEach(e=>e.onchange=check);check();
   rs.onclick=async()=>{if(rs.disabled)return;rs.disabled=true;
-    const ok=await grava(()=>DB.upd(p+'/agenda/'+a.id,{date:rd.value,hora:rh.value}),'Agendamento remarcado');
+    const ok=await grava(()=>DB.upd(p+'/agenda/'+a.id,{date:rd.value,ts:tsDe(rd.value),hora:rh.value}),'Agendamento remarcado');
     if(!ok){rs.disabled=false;return}
     closeDlg();
     if(a.evento&&AGENDA_URL){const sent=await convidar(a.id,p,{...a,date:rd.value,hora:rh.value});
@@ -616,7 +618,7 @@ function novoAg(){
     nsave.disabled=!ok;return u};
   [nc,np,nd,nh].forEach(e=>e.onchange=check);check();
   nsave.onclick=async()=>{const u=check();if(nsave.disabled)return;nsave.disabled=true;
-    const base=u==='flo'?'florenca':'maison',novo={date:nd.value,hora:nh.value,cli:nc.value,serv:ns.value,pro:np.value,unit:u,st:'Agendado'};let nid;
+    const base=u==='flo'?'florenca':'maison',novo={date:nd.value,ts:tsDe(nd.value),hora:nh.value,cli:nc.value,serv:ns.value,pro:np.value,unit:u,st:'Agendado'};let nid;
     const ok=await grava(async()=>{nid=await DB.push(base+'/agenda',novo)},'Agendado');
     if(!ok){nsave.disabled=false;return}
     closeDlg();

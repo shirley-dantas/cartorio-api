@@ -44,6 +44,9 @@ dados de outra pessoa e de clientes que nada têm a ver com o 20º Tabelião.
 Cliente da unidade Florença mora em `/florenca/clientes`; "Maison" e "As duas"
 moram em `/maison/clientes`.
 
+## A Laís só atende às segundas
+O agendamento leva `ts` (a data em milissegundos, à meia-noite UTC) e as regras do banco recusam agendamento da Laís que não caia numa segunda. A conta é `(dias desde 1970 + 4) % 7 = 1`. Agendamento antigo, sem `ts`, continua podendo ser atualizado. **Republique as regras** depois desta versão.
+
 ## Corrigir e cancelar
 - **Agendamento:** remarcar e cancelar (fica guardado como "Cancelado").
 - **Atendimento concluído:** só a Tháriga corrige valor e forma de pagamento, ou cancela. Cancelar **não apaga**: fica marcado como cancelado, sai do financeiro e das comissões, e o horário volta a "Agendado".
@@ -90,5 +93,4 @@ A aba **Serviços e preços** (só administradora) muda valor, nome, duração e
 
 ## Ainda não feito
 - Fotos em alta resolução (Firebase Storage): hoje as fotos são reduzidas a no máximo 1280 px e guardadas no próprio banco. Migrar para o Storage só se o volume crescer.
-- A Laís só atende às segundas: hoje a trava está na tela, ainda não nas regras.
 - Estoque (aguarda os dados da Tháriga).
