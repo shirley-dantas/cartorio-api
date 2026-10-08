@@ -118,8 +118,8 @@ function formulario(db,conv){
   <div class="fo"><label><input type="radio" name="foto" value="sim">Autorizo</label><label><input type="radio" name="foto" value="nao">Não autorizo</label></div>
   <p class="small">Fotos para registro do atendimento. Isso não autoriza divulgação em redes sociais ou publicidade.</p>
   <div id="fbox" hidden>
-   <p class="small" style="margin:10px 0 6px"><b>Quer já mandar uma foto?</b> É opcional. Foto do rosto, de frente e com boa luz ajuda a equipe. Até 3 fotos.</p>
-   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="fcam" type="button">Tirar uma foto agora</button><button class="btn" id="fgal" type="button">Escolher da galeria</button></div>
+   <p class="small" style="margin:10px 0 6px"><b>Tire agora uma foto do rosto</b>, de frente e com boa luz. Ela já vai junto com a sua ficha.</p>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="fcam" type="button">Tirar uma foto agora</button></div>
    <div id="fgrid" class="fgrid"></div>
    <div class="erro" id="ferro"></div>
   </div>
@@ -140,12 +140,12 @@ function formulario(db,conv){
     im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('Não consegui ler essa imagem. Tente outra.'))};im.src=url});
   const desenhaFotos=()=>{fgrid.innerHTML=fotos.map((f,i)=>`<figure><img src="${f}" alt="Foto ${i+1}"><button type="button" data-fx="${i}" aria-label="Remover foto ${i+1}">×</button></figure>`).join('');
     fgrid.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{fotos.splice(+b.dataset.fx,1);desenhaFotos()});
-    document.getElementById('fcam').disabled=document.getElementById('fgal').disabled=fotos.length>=3};
-  const pegaFoto=camera=>{if(fotos.length>=3){ferro.textContent='Já são 3 fotos. Remova uma para trocar.';return}
+    const cam=document.getElementById('fcam');cam.disabled=fotos.length>=3;cam.textContent=fotos.length?'Tirar outra foto':'Tirar uma foto agora'};
+  const pegaFoto=camera=>{if(fotos.length>=3){ferro.textContent='Já são 3 fotos. Remova uma para tirar outra.';return}
     const inp=document.createElement('input');inp.type='file';inp.accept='image/*';if(camera)inp.setAttribute('capture','user');
     inp.onchange=async()=>{const f=inp.files[0];if(!f)return;ferro.textContent='';
       try{fotos.push(await reduzir(f));desenhaFotos()}catch(e){ferro.textContent=e.message}};inp.click()};
-  document.getElementById('fcam').onclick=()=>pegaFoto(true);document.getElementById('fgal').onclick=()=>pegaFoto(false);
+  document.getElementById('fcam').onclick=()=>pegaFoto(true);
   document.querySelectorAll('input[name=foto]').forEach(r=>r.onchange=()=>{const sim=document.querySelector('input[name=foto]:checked').value==='sim';
     fbox.hidden=!sim;if(!sim){fotos.length=0;desenhaFotos();ferro.textContent=''}});
   const cv=document.getElementById('sig'),ctx=cv.getContext('2d');let dr=false,signed=false;
@@ -166,6 +166,7 @@ function formulario(db,conv){
     if(!servicos.length&&!v('outro'))return erro('Marque o serviço que você procura.');
     const foto=document.querySelector('input[name=foto]:checked');
     if(!foto)return erro('Marque se autoriza ou não as fotos.');
+    if(foto.value==='sim'&&!fotos.length){fbox.scrollIntoView({block:'center'});return erro('Falta a sua foto. Toque em "Tirar uma foto agora".')}
     if(!signed)return erro('Falta a sua assinatura.');
     const btn=document.getElementById('enviar');btn.disabled=true;btn.textContent='Enviando…';
     const out=document.createElement('canvas');out.width=cv.width/2;out.height=cv.height/2;const o=out.getContext('2d');o.fillStyle='#fff';o.fillRect(0,0,out.width,out.height);o.drawImage(cv,0,0,out.width,out.height);
