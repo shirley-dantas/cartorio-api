@@ -687,11 +687,13 @@ function vClientes(){
    ${isAdmin()?(c.unit==='ambas'?'<span class="tag">Os dois</span>':uTag(c.unit)):''}</div>`}).join('')||'<p class="muted">Nenhuma cliente cadastrada ainda. Toque em "Nova cliente" para começar.</p>'}</div>`;
 }
 function novoCliente(){
+  const uPadrao=S.unit==='flo'||S.unit==='mai'?S.unit:unitFor(iso(TODAY));
   openDlg('Nova cliente',`<label class="f">Nome completo<input id="vn" placeholder="Nome da cliente"></label>
   <label class="f">Telefone<input id="vt" placeholder="(11) 9...." inputmode="tel"></label>
   <label class="f">E-mail (para enviar o convite da agenda)<input id="vm" type="email" placeholder="opcional" autocomplete="off"></label>
   <label class="f">Aniversário (dia e mês)<input id="vb" type="date"></label>
-  ${isAdmin()?`<label class="f">Unidade onde atende<select id="vu"><option value="flo">Estúdio Florença</option><option value="mai" selected>Maison Beauty</option><option value="ambas">As duas</option></select></label>`:''}
+  ${isAdmin()?`<label class="f">Unidade onde atende<select id="vu"><option value="flo" ${uPadrao==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${uPadrao==='mai'?'selected':''}>Maison Beauty</option><option value="ambas">As duas</option></select></label>
+  <p class="small muted" style="margin:-6px 0 12px">${S.unit==='flo'||S.unit==='mai'?'Escolhida pelo filtro de unidade da tela.':`Escolhida pelo dia de hoje (${esc(U[uPadrao].n)}).`} Cada cliente fica só na unidade em que foi cadastrada.</p>`:''}
   <button class="btn p" id="vsave">Cadastrar cliente</button>`);
   document.getElementById('vsave').onclick=async()=>{const n=document.getElementById('vn').value.trim();if(!n){toast('Digite o nome da cliente');return}
    {const m=(document.getElementById('vm')||document.getElementById('em')).value.trim();if(m&&!emailOk(m)){toast('Esse e-mail não parece válido');return}}
@@ -831,6 +833,9 @@ async function enviarLinkAnamnese(cid){const c=cli(cid);
   document.getElementById('lk-c').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('lk-m').value);toast('Mensagem copiada')}catch(e){toast('Não foi possível copiar')}};
   document.getElementById('lk-f').onclick=()=>ficha(cid)}
 const imgSegura=s=>/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(s||'')?s:'';
+// Foto enviada pela cliente: só JPEG em base64 e de tamanho razoável; qualquer outra coisa é ignorada.
+const fotoSegura=s=>typeof s==='string'&&s.length<700000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(s)?s:'';
+const fotosDoLink=x=>x&&x.fotoOk===true&&x.fotos?Object.entries(x.fotos).map(([k,v])=>[k,fotoSegura(v)]).filter(f=>f[1]).slice(0,3):[];
 function revisarPendente(token){const x=C.mPend[token],cv=C.mConv[token];if(!x||!cv)return;const c=cli(cv.cli);
   const sims=PERGUNTAS.filter((q,i)=>x.respostas&&x.respostas['q'+i]==='sim').map(q=>q[1]);
   openDlg('Anamnese recebida',`<p><b>${esc(c.n)}</b><br><span class="muted">Enviada pela cliente em ${x.data?fd(x.data,{day:'2-digit',month:'2-digit',year:'numeric'}):''}${x.nome&&x.nome!==c.n?` · assinou como "${esc(x.nome)}"`:''}</span></p>
@@ -839,6 +844,7 @@ function revisarPendente(token){const x=C.mPend[token],cv=C.mConv[token];if(!x||
   ${x.obs?`<p class="small">Detalhes de saúde: ${esc(x.obs)}</p>`:''}
   <p class="small muted">Nascimento ${x.nascimento?fd(x.nascimento,{day:'2-digit',month:'2-digit',year:'numeric'}):'não informado'} · Telefone ${esc(x.telefone||'—')} · Emergência ${esc(x.emergencia||'—')}${x.responsavel?` · Responsável ${esc(x.responsavel)}`:''}</p>
   <p class="small">Fotos: ${x.fotoOk?'<span class="tag ok">autorizadas</span>':'<span class="tag warn">não autorizadas</span>'}</p>
+  ${fotosDoLink(x).length?`<p class="small" style="margin-bottom:6px"><b>A cliente mandou ${fotosDoLink(x).length} foto(s).</b> Desmarque as que não quiser anexar ao cadastro.</p><div class="fgrid">${fotosDoLink(x).map(([k,f])=>`<figure><img src="${f}" alt="Foto enviada pela cliente"><label class="small" style="display:flex;gap:6px;align-items:center;margin-top:4px"><input type="checkbox" data-pf="${esc(k)}" checked>Anexar</label></figure>`).join('')}</div>`:''}
   ${imgSegura(x.assinatura)?`<img alt="Assinatura" src="${imgSegura(x.assinatura)}" style="max-width:220px;border:1px solid var(--line);border-radius:8px;background:#fff">`:''}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn p" id="pd-i">Integrar à ficha</button><button class="btn" id="pd-d" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Descartar e pedir de novo</button></div>`);
   document.getElementById('pd-i').onclick=async()=>{const btn=document.getElementById('pd-i');btn.disabled=true;
@@ -847,6 +853,12 @@ function revisarPendente(token){const x=C.mPend[token],cv=C.mConv[token];if(!x||
       await DB.set('maison/anamneses/'+cv.cli,reg);
       const cad={};if(x.nascimento&&!c.niver)cad.niver=x.nascimento.slice(5,10);if(x.telefone&&!c.tel)cad.tel=x.telefone;if(emailOk(x.email)&&!c.email)cad.email=x.email;
       if(Object.keys(cad).length)await DB.upd('maison/clientes/'+cv.cli,cad);
+      // Fotos marcadas viram "foto inicial" do cadastro. Chave fixa por link: se der erro no meio e a equipe tentar de novo, não duplica.
+      const marcadas=new Set([...document.querySelectorAll('[data-pf]:checked')].map(i=>i.dataset.pf));
+      for(const [k,img] of fotosDoLink(x)){if(!marcadas.has(k))continue;
+        const chave='link'+k+'_'+token.slice(0,8);
+        if(await DB.get('maison/fotos/'+cv.cli+'/'+chave))continue;
+        await DB.set('maison/fotos/'+cv.cli+'/'+chave,{tipo:'inicial',data:x.data||iso(TODAY),img,por:'Cliente, pelo link'})}
       // O link só fecha depois de integrado: se fechasse antes, apagar o envio deixaria a cliente mandar de novo.
       await DB.upd('maison/convites/'+token,{usado:true,integradoEm:iso(TODAY),integradoPor:S.user.nome});
       await DB.del('maison/pendentes/'+token);

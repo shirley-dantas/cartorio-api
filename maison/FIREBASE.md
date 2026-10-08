@@ -64,6 +64,7 @@ O agendamento leva `ts` (a data em milissegundos, à meia-noite UTC) e as regras
 - A cliente abre `anamnese.html?t=CÓDIGO` no celular, **sem conta**. O painel gera o código (32 caracteres, impossível de adivinhar), com validade de **7 dias** e **uso único**.
 - Para isso, em **Authentication → Método de login**, ligue **Anônimo**. Só a página da ficha usa isso; a cliente não vê nada do painel.
 - O que a cliente envia vai para `/maison/pendentes/{código}`, que só a equipe lê. A equipe confere em **Anamnese → Recebidas pelo link** e toca em **Integrar**. Só aí o link fecha.
+- **Fotos pela ficha:** se a cliente marcar "Autorizo", pode tirar ou escolher até 3 fotos no próprio celular. Na conferência (**Recebidas pelo link**) a equipe vê as miniaturas, desmarca as que não quer e toca em **Integrar**: as marcadas viram "foto inicial" no cadastro. **Republique as regras** depois desta versão: elas limitam a 3 fotos e só aceitam foto de quem autorizou.
 - A cliente só consegue gravar **uma vez** e **enquanto o convite estiver aberto**: isso é checado pelas regras do banco.
 - Disponível para clientes da Maison; clientes do Florença seguem pelo preenchimento na tela.
 

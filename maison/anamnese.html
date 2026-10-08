@@ -25,6 +25,11 @@ label.f input,label.f textarea,label.f select{display:block;width:100%;margin-to
 input[type=radio],input[type=checkbox]{width:22px;height:22px;accent-color:var(--berry)}
 .sv{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}
 .fo{display:flex;gap:20px;flex-wrap:wrap;margin:6px 0}
+[hidden]{display:none!important}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.fgrid figure{margin:0;position:relative}
+.fgrid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block}
+.fgrid button{position:absolute;top:4px;right:4px;border:0;border-radius:999px;background:rgba(38,34,32,.78);color:#fff;width:28px;height:28px;font-size:16px;line-height:1;cursor:pointer}
 .small{font-size:13px;color:var(--muted)}
 canvas.sig{width:100%;height:150px;border:1px dashed var(--muted);border-radius:12px;background:#fff;touch-action:none}
 .btn{border:1px solid var(--line);background:var(--panel);padding:10px 18px;border-radius:999px;font:inherit;font-weight:500}
@@ -112,6 +117,12 @@ function formulario(db,conv){
   <div class="sec">Fotos do atendimento</div>
   <div class="fo"><label><input type="radio" name="foto" value="sim">Autorizo</label><label><input type="radio" name="foto" value="nao">Não autorizo</label></div>
   <p class="small">Fotos para registro do atendimento. Isso não autoriza divulgação em redes sociais ou publicidade.</p>
+  <div id="fbox" hidden>
+   <p class="small" style="margin:10px 0 6px"><b>Quer já mandar uma foto?</b> É opcional. Foto do rosto, de frente e com boa luz ajuda a equipe. Até 3 fotos.</p>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="fcam" type="button">Tirar uma foto agora</button><button class="btn" id="fgal" type="button">Escolher da galeria</button></div>
+   <div id="fgrid" class="fgrid"></div>
+   <div class="erro" id="ferro"></div>
+  </div>
   <div class="sec">Assinatura</div>
   <p class="small">Declaro que as informações prestadas são verdadeiras e comunicarei alterações.</p>
   <canvas class="sig" id="sig"></canvas>
@@ -119,6 +130,24 @@ function formulario(db,conv){
   <div class="erro" id="erro"></div>
   <button class="btn p" id="enviar">Enviar minha ficha</button>
   </div>`;
+  // Fotos opcionais, só de quem autoriza. Reduzidas no próprio aparelho antes de enviar.
+  const fotos=[];const fbox=document.getElementById('fbox'),fgrid=document.getElementById('fgrid'),ferro=document.getElementById('ferro');
+  const reduzir=file=>new Promise((res,rej)=>{const url=URL.createObjectURL(file),im=new Image();
+    im.onload=()=>{URL.revokeObjectURL(url);const r=Math.min(1,1280/Math.max(im.width,im.height));
+      const c=document.createElement('canvas');c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);
+      c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+      for(const q of [.72,.6,.5,.4]){const d=c.toDataURL('image/jpeg',q);if(d.length<=600000||q===.4)return res(d)}};
+    im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('Não consegui ler essa imagem. Tente outra.'))};im.src=url});
+  const desenhaFotos=()=>{fgrid.innerHTML=fotos.map((f,i)=>`<figure><img src="${f}" alt="Foto ${i+1}"><button type="button" data-fx="${i}" aria-label="Remover foto ${i+1}">×</button></figure>`).join('');
+    fgrid.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{fotos.splice(+b.dataset.fx,1);desenhaFotos()});
+    document.getElementById('fcam').disabled=document.getElementById('fgal').disabled=fotos.length>=3};
+  const pegaFoto=camera=>{if(fotos.length>=3){ferro.textContent='Já são 3 fotos. Remova uma para trocar.';return}
+    const inp=document.createElement('input');inp.type='file';inp.accept='image/*';if(camera)inp.setAttribute('capture','user');
+    inp.onchange=async()=>{const f=inp.files[0];if(!f)return;ferro.textContent='';
+      try{fotos.push(await reduzir(f));desenhaFotos()}catch(e){ferro.textContent=e.message}};inp.click()};
+  document.getElementById('fcam').onclick=()=>pegaFoto(true);document.getElementById('fgal').onclick=()=>pegaFoto(false);
+  document.querySelectorAll('input[name=foto]').forEach(r=>r.onchange=()=>{const sim=document.querySelector('input[name=foto]:checked').value==='sim';
+    fbox.hidden=!sim;if(!sim){fotos.length=0;desenhaFotos();ferro.textContent=''}});
   const cv=document.getElementById('sig'),ctx=cv.getContext('2d');let dr=false,signed=false;
   const fit=()=>{const r=cv.getBoundingClientRect();cv.width=r.width*2;cv.height=r.height*2;ctx.scale(2,2);ctx.lineWidth=2.2;ctx.lineCap='round';ctx.strokeStyle='#262220'};fit();
   const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
@@ -143,6 +172,7 @@ function formulario(db,conv){
     const reg={nome:v('n'),nascimento:v('nasc'),telefone:v('tel'),email:v('mail'),emergencia:v('em'),responsavel:v('resp'),servicos,outro:v('outro'),area:v('area'),respostas,
       flags:PERGUNTAS.filter((q,i)=>respostas['q'+i]==='sim').map(q=>q[1]),obs:v('obs'),fotoOk:foto.value==='sim',
       assinatura:out.toDataURL('image/png'),data:iso(new Date()),enviadoEm:Date.now()};
+    if(foto.value==='sim'&&fotos.length)reg.fotos=Object.fromEntries(fotos.map((f,i)=>['f'+i,f]));
     try{await set(ref(db,'maison/pendentes/'+token),reg);aviso('Ficha enviada! ✓','Obrigada, '+esc(conv.nome||'')+'. A Maison Beauty já recebeu. Pode fechar esta página.')}
     catch(e){btn.disabled=false;btn.textContent='Enviar minha ficha';erro('Não foi possível enviar. Confira a internet e toque de novo. Se continuar, peça um novo link.')}
   };

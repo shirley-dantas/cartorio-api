@@ -74,7 +74,10 @@
         ".read": "auth != null && root.child('acesso').child(auth.uid).exists()",
         "$t": {
           ".write": "auth != null && (root.child('acesso').child(auth.uid).exists() || (!data.exists() && root.child('maison').child('convites').child($t).child('usado').val() === false && root.child('maison').child('convites').child($t).child('exp').val() > now))",
-          ".validate": "newData.hasChildren(['nome','respostas','assinatura']) && newData.child('assinatura').isString() && newData.child('assinatura').val().length < 300000"
+          ".validate": "newData.hasChildren(['nome','respostas','assinatura']) && newData.child('assinatura').isString() && newData.child('assinatura').val().length < 300000 && (!newData.child('fotos').exists() || (newData.child('fotoOk').val() === true && newData.child('fotos').numChildren() <= 3))",
+          "fotos": {
+            "$i": { ".validate": "newData.isString() && newData.val().length < 700000" }
+          }
         }
       },
       // Pedidos de ajuda: todas enviam, só a administradora lê (o suporte também recebe por e-mail).
