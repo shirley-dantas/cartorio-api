@@ -1,0 +1,386 @@
+{
+"unicamp-2027-sim-qt-q01": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q02": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q03": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q04": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q05": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q06": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q07": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q08": {
+"materia": "Física",
+"subtema": "Cinemática",
+"tags": []
+},
+"unicamp-2027-sim-qt-q09": {
+"materia": "Física",
+"subtema": "Calorimetria",
+"tags": []
+},
+"unicamp-2027-sim-qt-q10": {
+"materia": "Física",
+"subtema": "Hidrostática",
+"tags": [
+"Matemática"
+]
+},
+"unicamp-2027-sim-qt-q11": {
+"materia": "Física",
+"subtema": "Física moderna",
+"tags": [
+"Energia"
+]
+},
+"unicamp-2027-sim-qt-q12": {
+"materia": "Física",
+"subtema": "Ondulatória",
+"tags": []
+},
+"unicamp-2027-sim-qt-q13": {
+"materia": "Física",
+"subtema": "Termologia",
+"tags": []
+},
+"unicamp-2027-sim-qt-q14": {
+"materia": "Física",
+"subtema": "Eletricidade",
+"tags": []
+},
+"unicamp-2027-sim-qt-q15": {
+"materia": "Geografia",
+"subtema": "Relevo",
+"tags": []
+},
+"unicamp-2027-sim-qt-q16": {
+"materia": "Geografia",
+"subtema": "Agropecuária",
+"tags": []
+},
+"unicamp-2027-sim-qt-q17": {
+"materia": "Geografia",
+"subtema": "Recursos hídricos",
+"tags": []
+},
+"unicamp-2027-sim-qt-q18": {
+"materia": "Geografia",
+"subtema": "Cartografia",
+"tags": []
+},
+"unicamp-2027-sim-qt-q19": {
+"materia": "Geografia",
+"subtema": "Geopolítica",
+"tags": []
+},
+"unicamp-2027-sim-qt-q20": {
+"materia": "Geografia",
+"subtema": "Europa",
+"tags": [
+"História"
+]
+},
+"unicamp-2027-sim-qt-q21": {
+"materia": "Geografia",
+"subtema": "Urbanização",
+"tags": []
+},
+"unicamp-2027-sim-qt-q22": {
+"materia": "Sociologia",
+"subtema": "Família e gênero",
+"tags": [
+"História"
+]
+},
+"unicamp-2027-sim-qt-q23": {
+"materia": "Sociologia",
+"subtema": "Trabalho",
+"tags": []
+},
+"unicamp-2027-sim-qt-q24": {
+"materia": "Sociologia",
+"subtema": "Trabalho",
+"tags": []
+},
+"unicamp-2027-sim-qt-q25": {
+"materia": "Filosofia",
+"subtema": "Filosofia política",
+"tags": [
+"Sociologia"
+]
+},
+"unicamp-2027-sim-qt-q26": {
+"materia": "Filosofia",
+"subtema": "Liberdade",
+"tags": []
+},
+"unicamp-2027-sim-qt-q27": {
+"materia": "Filosofia",
+"subtema": "Contratualismo",
+"tags": []
+},
+"unicamp-2027-sim-qt-q28": {
+"materia": "História",
+"subtema": "Roma Antiga",
+"tags": []
+},
+"unicamp-2027-sim-qt-q29": {
+"materia": "História",
+"subtema": "América pré-colombiana",
+"tags": []
+},
+"unicamp-2027-sim-qt-q30": {
+"materia": "História",
+"subtema": "Mundo islâmico e África",
+"tags": []
+},
+"unicamp-2027-sim-qt-q31": {
+"materia": "História",
+"subtema": "Escravidão moderna",
+"tags": []
+},
+"unicamp-2027-sim-qt-q32": {
+"materia": "História",
+"subtema": "Brasil República",
+"tags": []
+},
+"unicamp-2027-sim-qt-q33": {
+"materia": "História",
+"subtema": "Brasil e China (Ditadura militar)",
+"tags": []
+},
+"unicamp-2027-sim-qt-q34": {
+"materia": "Biologia",
+"subtema": "Ecologia",
+"tags": [
+"Geografia"
+]
+},
+"unicamp-2027-sim-qt-q35": {
+"materia": "Biologia",
+"subtema": "Fisiologia comparada",
+"tags": []
+},
+"unicamp-2027-sim-qt-q36": {
+"materia": "Biologia",
+"subtema": "Citologia",
+"tags": []
+},
+"unicamp-2027-sim-qt-q37": {
+"materia": "Biologia",
+"subtema": "Botânica",
+"tags": []
+},
+"unicamp-2027-sim-qt-q38": {
+"materia": "Biologia",
+"subtema": "Ecologia",
+"tags": []
+},
+"unicamp-2027-sim-qt-q39": {
+"materia": "Biologia",
+"subtema": "Genética",
+"tags": []
+},
+"unicamp-2027-sim-qt-q40": {
+"materia": "Biologia",
+"subtema": "Evolução",
+"tags": []
+},
+"unicamp-2027-sim-qt-q41": {
+"materia": "Biologia",
+"subtema": "Fisiologia humana",
+"tags": [
+"Química"
+]
+},
+"unicamp-2027-sim-qt-q42": {
+"materia": "Física",
+"subtema": "Eletricidade",
+"tags": []
+},
+"unicamp-2027-sim-qt-q43": {
+"materia": "Matemática",
+"subtema": "Logaritmos e progressões",
+"tags": []
+},
+"unicamp-2027-sim-qt-q44": {
+"materia": "Matemática",
+"subtema": "Geometria plana",
+"tags": []
+},
+"unicamp-2027-sim-qt-q45": {
+"materia": "Matemática",
+"subtema": "Geometria plana",
+"tags": []
+},
+"unicamp-2027-sim-qt-q46": {
+"materia": "Matemática",
+"subtema": "Geometria plana",
+"tags": []
+},
+"unicamp-2027-sim-qt-q47": {
+"materia": "Matemática",
+"subtema": "Polinômios",
+"tags": []
+},
+"unicamp-2027-sim-qt-q48": {
+"materia": "Matemática",
+"subtema": "Estatística",
+"tags": []
+},
+"unicamp-2027-sim-qt-q49": {
+"materia": "Matemática",
+"subtema": "Geometria espacial",
+"tags": []
+},
+"unicamp-2027-sim-qt-q50": {
+"materia": "Matemática",
+"subtema": "Álgebra",
+"tags": []
+},
+"unicamp-2027-sim-qt-q51": {
+"materia": "Matemática",
+"subtema": "Sistemas lineares",
+"tags": []
+},
+"unicamp-2027-sim-qt-q52": {
+"materia": "Matemática",
+"subtema": "Polinômios",
+"tags": []
+},
+"unicamp-2027-sim-qt-q53": {
+"materia": "Matemática",
+"subtema": "Funções",
+"tags": []
+},
+"unicamp-2027-sim-qt-q54": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q55": {
+"materia": "Português",
+"subtema": "Linguagem e preconceito",
+"tags": []
+},
+"unicamp-2027-sim-qt-q56": {
+"materia": "Português",
+"subtema": "Gramática",
+"tags": []
+},
+"unicamp-2027-sim-qt-q57": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q58": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q59": {
+"materia": "Português",
+"subtema": "Intertextualidade",
+"tags": [
+"Sociologia"
+]
+},
+"unicamp-2027-sim-qt-q60": {
+"materia": "Literatura",
+"subtema": "Lima Barreto",
+"tags": []
+},
+"unicamp-2027-sim-qt-q61": {
+"materia": "Literatura",
+"subtema": "Literatura brasileira",
+"tags": []
+},
+"unicamp-2027-sim-qt-q62": {
+"materia": "Literatura",
+"subtema": "Literatura brasileira",
+"tags": []
+},
+"unicamp-2027-sim-qt-q63": {
+"materia": "Literatura",
+"subtema": "Poesia",
+"tags": []
+},
+"unicamp-2027-sim-qt-q64": {
+"materia": "Literatura",
+"subtema": "Literatura africana",
+"tags": [
+"Inglês"
+]
+},
+"unicamp-2027-sim-qt-q65": {
+"materia": "Literatura",
+"subtema": "Literatura brasileira",
+"tags": []
+},
+"unicamp-2027-sim-qt-q66": {
+"materia": "Química",
+"subtema": "Combustão e gases",
+"tags": []
+},
+"unicamp-2027-sim-qt-q67": {
+"materia": "Química",
+"subtema": "Termoquímica",
+"tags": []
+},
+"unicamp-2027-sim-qt-q68": {
+"materia": "Química",
+"subtema": "Interações intermoleculares",
+"tags": []
+},
+"unicamp-2027-sim-qt-q69": {
+"materia": "Química",
+"subtema": "Estequiometria",
+"tags": []
+},
+"unicamp-2027-sim-qt-q70": {
+"materia": "Química",
+"subtema": "Química orgânica",
+"tags": [
+"Biologia"
+]
+},
+"unicamp-2027-sim-qt-q71": {
+"materia": "Química",
+"subtema": "Polímeros",
+"tags": [
+"Química orgânica"
+]
+},
+"unicamp-2027-sim-qt-q72": {
+"materia": "Química",
+"subtema": "Cinética química",
+"tags": [
+"Estequiometria"
+]
+}
+}

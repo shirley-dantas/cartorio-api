@@ -1,0 +1,428 @@
+{
+"fuvest-2027-sim2-s1-q01": {
+"materia": "Biologia",
+"subtema": "Ecologia",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q02": {
+"materia": "Literatura",
+"subtema": "Prosa contemporânea",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q03": {
+"materia": "Geografia",
+"subtema": "Populações tradicionais e território",
+"tags": [
+"Sociologia"
+]
+},
+"fuvest-2027-sim2-s1-q04": {
+"materia": "Geografia",
+"subtema": "Domínios morfoclimáticos",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q05": {
+"materia": "Geografia",
+"subtema": "Climatologia",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q06": {
+"materia": "Geografia",
+"subtema": "Questões ambientais",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q07": {
+"materia": "Química",
+"subtema": "Polímeros",
+"tags": [
+"Química orgânica"
+]
+},
+"fuvest-2027-sim2-s1-q08": {
+"materia": "Química",
+"subtema": "Reações inorgânicas",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q09": {
+"materia": "Física",
+"subtema": "Gases",
+"tags": [
+"Termologia"
+]
+},
+"fuvest-2027-sim2-s1-q10": {
+"materia": "Química",
+"subtema": "Interações intermoleculares",
+"tags": [
+"Biologia"
+]
+},
+"fuvest-2027-sim2-s1-q11": {
+"materia": "Química",
+"subtema": "Ligações químicas",
+"tags": [
+"Química orgânica"
+]
+},
+"fuvest-2027-sim2-s1-q12": {
+"materia": "Biologia",
+"subtema": "Fisiologia humana",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q13": {
+"materia": "Matemática",
+"subtema": "Geometria espacial",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q14": {
+"materia": "Física",
+"subtema": "Dinâmica",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q15": {
+"materia": "Física",
+"subtema": "Dinâmica",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q16": {
+"materia": "Matemática",
+"subtema": "Análise combinatória",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q17": {
+"materia": "Geografia",
+"subtema": "Urbanização",
+"tags": [
+"Sociologia"
+]
+},
+"fuvest-2027-sim2-s1-q18": {
+"materia": "Geografia",
+"subtema": "Movimentos da Terra",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q19": {
+"materia": "Filosofia",
+"subtema": "Kant",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q20": {
+"materia": "Física",
+"subtema": "Ondulatória",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q21": {
+"materia": "Física",
+"subtema": "Energia e termodinâmica",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q22": {
+"materia": "Química",
+"subtema": "Eletroquímica",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q23": {
+"materia": "Química",
+"subtema": "Radioatividade",
+"tags": [
+"Física"
+]
+},
+"fuvest-2027-sim2-s1-q24": {
+"materia": "Física",
+"subtema": "Física nuclear",
+"tags": [
+"Química"
+]
+},
+"fuvest-2027-sim2-s1-q25": {
+"materia": "Física",
+"subtema": "Magnetismo",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q26": {
+"materia": "Química",
+"subtema": "Cinética química",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q27": {
+"materia": "Química",
+"subtema": "Ácido-base",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q28": {
+"materia": "Biologia",
+"subtema": "Biologia molecular",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q29": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q30": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q31": {
+"materia": "Biologia",
+"subtema": "Citologia",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q32": {
+"materia": "História",
+"subtema": "Nazismo",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q33": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q34": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q35": {
+"materia": "Educação Física",
+"subtema": "Lutas e esporte",
+"tags": [
+"História"
+]
+},
+"fuvest-2027-sim2-s1-q36": {
+"materia": "Artes",
+"subtema": "Artes visuais",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q37": {
+"materia": "História",
+"subtema": "Direitos civis nos EUA",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q38": {
+"materia": "História",
+"subtema": "Revolução Russa",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q39": {
+"materia": "Geografia",
+"subtema": "Geopolítica e conflitos",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q40": {
+"materia": "Geografia",
+"subtema": "Globalização e cultura",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q41": {
+"materia": "Literatura",
+"subtema": "Romance",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q42": {
+"materia": "Artes",
+"subtema": "Cinema",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q43": {
+"materia": "História",
+"subtema": "Brasil República",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q44": {
+"materia": "Sociologia",
+"subtema": "Desigualdade racial",
+"tags": [
+"Geografia"
+]
+},
+"fuvest-2027-sim2-s1-q45": {
+"materia": "História",
+"subtema": "Brasil Império",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q46": {
+"materia": "Literatura",
+"subtema": "Literatura brasileira contemporânea",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q47": {
+"materia": "Artes",
+"subtema": "Artes visuais",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q48": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q49": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q50": {
+"materia": "Sociologia",
+"subtema": "Inclusão e acessibilidade",
+"tags": [
+"Artes"
+]
+},
+"fuvest-2027-sim2-s1-q51": {
+"materia": "Matemática",
+"subtema": "Geometria plana",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q52": {
+"materia": "Biologia",
+"subtema": "Genética",
+"tags": [
+"Sociologia"
+]
+},
+"fuvest-2027-sim2-s1-q53": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q54": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q55": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q56": {
+"materia": "Educação Física",
+"subtema": "Esporte e tecnologia",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q57": {
+"materia": "Matemática",
+"subtema": "Probabilidade",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q58": {
+"materia": "Física",
+"subtema": "Ondulatória",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q59": {
+"materia": "Matemática",
+"subtema": "Funções exponenciais",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q60": {
+"materia": "Física",
+"subtema": "Óptica",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q61": {
+"materia": "Matemática",
+"subtema": "Funções",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q62": {
+"materia": "Matemática",
+"subtema": "Sequências",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q63": {
+"materia": "Matemática",
+"subtema": "Funções",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q64": {
+"materia": "Biologia",
+"subtema": "Evolução",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q65": {
+"materia": "Biologia",
+"subtema": "Evolução",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q66": {
+"materia": "Biologia",
+"subtema": "Evolução",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q67": {
+"materia": "Literatura",
+"subtema": "Clarice Lispector",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q68": {
+"materia": "História",
+"subtema": "Idade Média",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q69": {
+"materia": "Literatura",
+"subtema": "Gêneros líricos",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q70": {
+"materia": "Literatura",
+"subtema": "Literaturas africanas de língua portuguesa",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q71": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q72": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q73": {
+"materia": "Literatura",
+"subtema": "Poesia",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q74": {
+"materia": "Literatura",
+"subtema": "Poesia romântica inglesa",
+"tags": [
+"Inglês"
+]
+},
+"fuvest-2027-sim2-s1-q75": {
+"materia": "Matemática",
+"subtema": "Geometria espacial",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q76": {
+"materia": "Química",
+"subtema": "Equilíbrio de solubilidade",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q77": {
+"materia": "Geografia",
+"subtema": "Território",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q78": {
+"materia": "Geografia",
+"subtema": "Transportes e mineração",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q79": {
+"materia": "História",
+"subtema": "Brasil Império",
+"tags": []
+},
+"fuvest-2027-sim2-s1-q80": {
+"materia": "História",
+"subtema": "Brasil colonial",
+"tags": []
+}
+}

@@ -881,6 +881,15 @@ sem aviso nenhum na tela, o painel só ficou parado na versão anterior. Funçã
 nova entra em `lib/` e é atendida por uma porta que já existe; o
 `testes/bussola.mjs` acusa se `api/` passar de 12.
 
+## O Caderno da Rafaela (projeto à parte)
+
+Mora em `rafaela/`, num projeto próprio da Vercel (*Root Directory*
+`rafaela/painel`), com o próprio `package.json` e a própria função de IA — por
+isso **não conta** nas 12 funções do painel e não encosta em nada daqui.
+É o painel de estudos de vestibular dela (acervo de questões, erros e dúvidas
+com correção por IA, estatísticas, macetes e um mural de post-its). **Para
+continuar, comece por `rafaela/CLAUDE.md`.**
+
 ## Onde as coisas estão
 
 Tudo no `index.html`. O bloco financeiro vai do comentário
