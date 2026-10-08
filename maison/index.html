@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Painel Maison Beauty</title>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;1,500&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -106,6 +108,17 @@ label.f input,label.f select,label.f textarea{display:block;width:100%;margin-to
 canvas.sig{width:100%;height:130px;border:1px dashed var(--muted);border-radius:10px;background:var(--bg);touch-action:none}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
+.logo-wide{display:block;width:100%;max-width:190px;height:auto;background:#fff;border-radius:12px;padding:4px 8px}
+.logo-wide.sm{width:auto;height:42px;max-width:none;padding:2px 8px;border-radius:8px}
+.sub-brand{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.35}
+.sec{background:var(--berry-soft);color:var(--ink);padding:8px 12px;border-radius:8px;font-weight:600;margin:18px 0 10px}
+.q{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.q .sn{display:flex;gap:16px;flex:none}
+.q .sn label,.svgrid label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.q input[type=radio],.svgrid input,.fotor input{accent-color:var(--berry);width:18px;height:18px}
+.svgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 14px;font-size:14px;margin-bottom:10px}
+.fotor{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;margin:6px 0}
+.fotor label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
 .hero-unit{display:inline-flex;align-items:center;gap:8px;margin-top:10px;font-size:14px}
 .hero-unit i{width:9px;height:9px;border-radius:50%}
 .mob{display:none}
@@ -129,12 +142,12 @@ canvas.sig{width:100%;height:130px;border:1px dashed var(--muted);border-radius:
 <div id="entrada"></div>
 <div class="app" id="app" hidden>
   <aside>
-    <div class="brandwrap"><img class="logo" src="logo.jpg" alt="" onerror="this.style.display='none'"><div class="brand">Maison Beauty<small>Tháriga Brito · Florença &amp; Maison Beauty · @mais.on.beauty</small></div></div>
+    <div><img class="logo-wide" src="logo.png" alt="Maison Beauty"><div class="sub-brand">Tháriga Brito · Florença &amp; Maison Beauty · @mais.on.beauty</div></div>
     <nav id="nav"></nav>
     <div class="who" id="quem"></div>
   </aside>
   <div>
-    <div class="mob"><div class="brandwrap"><img class="logo sm" src="logo.jpg" alt="" onerror="this.style.display='none'"><div class="brand">Maison Beauty</div></div><button class="btn sm" id="sair2">Sair</button></div>
+    <div class="mob"><img class="logo-wide sm" src="logo.png" alt="Maison Beauty"><button class="btn sm" id="sair2">Sair</button></div>
     <main id="main"></main>
   </div>
 </div>
@@ -369,7 +382,7 @@ function comecarLeituras(){
 function telaEntrar(msg){
   document.getElementById('app').hidden=true;document.getElementById('bnav').hidden=true;
   const e=document.getElementById('entrada');e.hidden=false;
-  e.innerHTML=`<div class="entrar"><div class="box"><div class="brandwrap" style="margin-bottom:18px"><img class="logo" src="logo.jpg" alt="" onerror="this.style.display='none'"><div class="brand">Maison Beauty<small>Painel · Tháriga Brito</small></div></div>
+  e.innerHTML=`<div class="entrar"><div class="box"><img class="logo-wide" src="logo.png" alt="Maison Beauty" style="max-width:260px;margin:0 auto"><div class="sub-brand" style="text-align:center;margin-bottom:18px">Painel · Tháriga Brito</div>
   ${DEMO?`<div class="note">Demonstração: nada é gravado. Escolha quem entra.</div>
   <label class="f">Entrar como<select id="demo">${[['tha','Tháriga (administradora)','admin'],['rafael','Rafael (funcionária, Maison)','funcionaria'],['lais','Laís (funcionária, Maison)','funcionaria'],['mariana','Mariana (funcionária, Maison)','funcionaria']].map(([k,l,p])=>`<option value="${k}|${p}">${l}</option>`).join('')}</select></label>
   <button class="btn p" id="demobtn">Entrar</button>`:
@@ -580,6 +593,9 @@ function ficha(id){const c=cli(id),an=anamDe(id);
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><button class="btn sm" id="fed">Editar dados</button>${isAdmin()?'<button class="btn sm" id="fex" style="color:var(--warn);border-color:var(--warn)">Excluir cliente</button>':''}</div>
   <h3 style="margin-top:14px">Anamnese</h3>
   <p class="small">${an?`Assinada em ${fd(an.data,{day:'2-digit',month:'2-digit',year:'numeric'})} · Fotos: ${an.fotoOk?'autorizadas':'não autorizadas'}. ${anamVencida(c)?'<span class="tag warn">Passou de 6 meses, pedir atualização</span>':'<span class="tag ok">Válida</span>'}`:'<span class="tag warn">Ainda não preenchida</span>'}</p>
+  ${an&&an.servicos&&an.servicos.length||an&&an.outro?`<p class="small">Serviço solicitado: ${esc([...(an.servicos||[]),an.outro].filter(Boolean).join(', '))}${an.area?` · ${esc(an.area)}`:''}</p>`:''}
+  ${an&&an.obs?`<p class="small">Detalhes de saúde: ${esc(an.obs)}</p>`:''}
+  ${an&&an.emergencia?`<p class="small muted">Emergência: ${esc(an.emergencia)}</p>`:''}
   ${an&&an.assinatura?`<img alt="Assinatura" src="${esc(an.assinatura)}" style="max-width:220px;border:1px solid var(--line);border-radius:8px;background:#fff">`:''}
   <div style="margin-top:8px"><button class="btn" id="anb">${an?'Atualizar anamnese':'Preencher anamnese'}</button></div>
   <h3 style="margin-top:20px">Fotos</h3><div class="photos"><div class="ph">Foto inicial<br>(envio na próxima etapa)</div><div class="ph">Foto de acompanhamento<br>(envio na próxima etapa)</div></div>
@@ -628,31 +644,66 @@ function cancelarAtend(id,p,cid){const h=histAll(true).find(x=>x.id===id&&x._p==
       if(h.agenda)await DB.set(p+'/agenda/'+h.agenda+'/st','Agendado');
     },'Atendimento cancelado');
     if(ok){closeDlg();ficha(cid)}else btn.disabled=false}}
-function anamnese(id){const c=cli(id);
-  openDlg('Anamnese de '+esc(c.n),`<p class="small muted">A cliente pode preencher no celular ou tablet. Respostas "sim" aparecem como alerta na ficha.</p>
-  <label class="f">Serviço/procedimento a ser realizado<input id="aserv" placeholder="Ex.: micropigmentação, design + henna..."></label>
-  <label class="f">Contato de emergência e telefone<input id="aemerg"></label>
-  ${PERGUNTAS.map((q,i)=>`<label class="ck"><input type="checkbox" data-q="${i}">${q[0]}</label>`).join('')}
-  <label class="f" style="margin-top:12px">Detalhes das respostas e outras condições de saúde<textarea rows="2" id="aobs"></textarea></label>
-  <label class="ck"><input type="checkbox" id="afoto">Autorizo fotos para registro do atendimento (não autoriza divulgação em redes sociais ou publicidade)</label>
-  <div class="small" style="margin:10px 0 8px">Declaro que as informações prestadas são verdadeiras e comunicarei alterações.</div>
-  <canvas class="sig" id="sig"></canvas><div style="display:flex;justify-content:space-between;margin-top:6px"><span class="small muted">Assine com o dedo ou o mouse</span><button class="btn sm" id="limpa">Limpar</button></div>
+const SERVICOS_ANAM=['Unhas','Laser remoção','Micropigmentação','Ozonioterapia','Piercing','Depilação a laser','Extensão de cílios','Brow lamination','Lash lifting','Avaliação de unhas com suspeita de fungos'];
+// Segue a "Ficha básica de anamnese" da Maison Beauty (página 1), campo a campo.
+function anamnese(id){const c=cli(id),old=anamDe(id)||{};
+  const un=old.unidade||(c.unit==='ambas'?unitFor(TODAY):c.unit);
+  const resp=old.respostas||{};
+  openDlg('Ficha de anamnese',`<p class="small muted">Preenchimento pela cliente e revisão pelo profissional antes do atendimento. Ficha individual e confidencial.</p>
+  <div class="sec">Identificação</div>
+  <label class="f">Nome completo<input value="${esc(c.n)}" readonly></label>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="f" style="flex:1;min-width:150px">Nascimento<input type="date" id="an-nasc" value="${esc(old.nascimento||'')}"></label>
+   <label class="f" style="flex:1;min-width:150px">Telefone<input id="an-tel" value="${esc(old.telefone||c.tel||'')}" inputmode="tel"></label></div>
+  <label class="f">Contato de emergência e telefone<input id="an-em" value="${esc(old.emergencia||'')}"></label>
+  <label class="f">Responsável legal, se aplicável, e telefone<input id="an-resp" value="${esc(old.responsavel||'')}"></label>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="f" style="flex:1;min-width:150px">Data<input value="${fd(iso(TODAY),{day:'2-digit',month:'2-digit',year:'numeric'})}" readonly></label>
+   <label class="f" style="flex:1;min-width:150px">Unidade<select id="an-un"><option value="mai" ${un==='mai'?'selected':''}>Maison Beauty</option>${isAdmin()?`<option value="flo" ${un==='flo'?'selected':''}>Estúdio Florença</option>`:''}</select></label></div>
+  <div class="sec">Serviço solicitado</div>
+  <div class="svgrid">${SERVICOS_ANAM.map((x,i)=>`<label><input type="checkbox" data-sv="${i}" ${(old.servicos||[]).includes(x)?'checked':''}>${x}</label>`).join('')}</div>
+  <label class="f">Outro<input id="an-outro" value="${esc(old.outro||'')}"></label>
+  <label class="f">Área a ser atendida e objetivo<textarea rows="2" id="an-area">${esc(old.area||'')}</textarea></label>
+  <div class="sec">Histórico de saúde</div>
+  <p class="small muted" style="margin:0 0 6px">Marque Sim ou Não. Detalhe as respostas positivas nas linhas abaixo.</p>
+  ${PERGUNTAS.map((q,i)=>`<div class="q" data-qrow="${i}"><span>${q[0]}</span><span class="sn"><label><input type="radio" name="q${i}" value="sim" ${resp['q'+i]==='sim'?'checked':''}>Sim</label><label><input type="radio" name="q${i}" value="nao" ${resp['q'+i]==='nao'?'checked':''}>Não</label></span></div>`).join('')}
+  <label class="f" style="margin-top:12px">Detalhes das respostas e outras condições de saúde<textarea rows="3" id="aobs">${esc(old.obs||'')}</textarea></label>
+  <div class="sec">Fotos do atendimento</div>
+  <div class="fotor"><label><input type="radio" name="foto" value="sim" ${old.fotoOk===true?'checked':''}>Autorizo</label><label><input type="radio" name="foto" value="nao" ${old.fotoOk===false?'checked':''}>Não autorizo</label></div>
+  <p class="small muted">Fotos para registro do atendimento. O registro não autoriza divulgação em redes sociais ou publicidade.</p>
+  <div class="small" style="margin:14px 0 8px">Declaro que as informações prestadas são verdadeiras e comunicarei alterações.</div>
+  <canvas class="sig" id="sig"></canvas><div style="display:flex;justify-content:space-between;margin-top:6px"><span class="small muted">Cliente ou responsável: assine com o dedo ou o mouse</span><button class="btn sm" id="limpa">Limpar</button></div>
   <button class="btn p" id="asave" style="margin-top:14px">Salvar anamnese assinada</button>`);
   const cv=document.getElementById('sig'),ctx=cv.getContext('2d');let dr=false,signed=false;
   const fit=()=>{const r=cv.getBoundingClientRect();cv.width=r.width*2;cv.height=r.height*2;ctx.scale(2,2);ctx.lineWidth=2;ctx.lineCap='round';ctx.strokeStyle='#262220'};fit();
   const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
   cv.onpointerdown=e=>{dr=true;signed=true;ctx.beginPath();ctx.moveTo(...pos(e));cv.setPointerCapture(e.pointerId)};cv.onpointermove=e=>{if(dr){ctx.lineTo(...pos(e));ctx.stroke()}};cv.onpointerup=cv.onpointerleave=()=>dr=false;
   document.getElementById('limpa').onclick=()=>{ctx.clearRect(0,0,cv.width,cv.height);signed=false};
-  document.getElementById('asave').onclick=async()=>{if(!signed){toast('Falta a assinatura da cliente');return}
+  document.getElementById('asave').onclick=async()=>{
+    // Saúde: toda pergunta precisa de Sim ou Não — pergunta em branco não pode valer como "não".
+    const respostas={};let falta=-1;
+    PERGUNTAS.forEach((q,i)=>{const r=document.querySelector(`input[name=q${i}]:checked`);if(r)respostas['q'+i]=r.value;else if(falta<0)falta=i});
+    if(falta>=0){toast('Falta responder Sim ou Não em todas as perguntas de saúde');document.querySelector(`[data-qrow="${falta}"]`).scrollIntoView({block:'center'});return}
+    const servicos=[...document.querySelectorAll('[data-sv]:checked')].map(i=>SERVICOS_ANAM[+i.dataset.sv]);
+    const outro=document.getElementById('an-outro').value.trim();
+    if(!servicos.length&&!outro){toast('Marque o serviço solicitado');return}
+    const foto=document.querySelector('input[name=foto]:checked');
+    if(!foto){toast('Marque se autoriza ou não as fotos');return}
+    if(!signed){toast('Falta a assinatura da cliente');return}
     const btn=document.getElementById('asave');btn.disabled=true;
     // A assinatura sai sobre fundo branco, para continuar legível em qualquer tema.
     const out=document.createElement('canvas');out.width=cv.width/2;out.height=cv.height/2;const o=out.getContext('2d');o.fillStyle='#fff';o.fillRect(0,0,out.width,out.height);o.drawImage(cv,0,0,out.width,out.height);
-    const reg={data:iso(TODAY),flags:[...document.querySelectorAll('[data-q]:checked')].map(i=>PERGUNTAS[+i.dataset.q][1]),
-      fotoOk:document.getElementById('afoto').checked,obs:document.getElementById('aobs').value,servico:document.getElementById('aserv').value,
-      emergencia:document.getElementById('aemerg').value,assinatura:out.toDataURL('image/png'),por:S.user.nome};
-    const ok=await grava(()=>DB.set((c._p==='florenca'?'florenca':'maison')+'/anamneses/'+id,reg),'Anamnese salva');
+    const nasc=document.getElementById('an-nasc').value,tel=document.getElementById('an-tel').value.trim();
+    const reg={data:iso(TODAY),nascimento:nasc,telefone:tel,emergencia:document.getElementById('an-em').value.trim(),responsavel:document.getElementById('an-resp').value.trim(),
+      unidade:document.getElementById('an-un').value,servicos,outro,area:document.getElementById('an-area').value.trim(),respostas,
+      flags:PERGUNTAS.filter((q,i)=>respostas['q'+i]==='sim').map(q=>q[1]),obs:document.getElementById('aobs').value.trim(),
+      fotoOk:foto.value==='sim',assinatura:out.toDataURL('image/png'),por:S.user.nome};
+    const base=c._p==='florenca'?'florenca':'maison';
+    const ok=await grava(async()=>{
+      await DB.set(base+'/anamneses/'+id,reg);
+      // O que a ficha trouxe e o cadastro ainda não tinha, o cadastro aproveita.
+      const cad={};if(nasc&&!c.niver)cad.niver=nasc.slice(5,10);if(tel&&!c.tel)cad.tel=tel;
+      if(Object.keys(cad).length)await DB.upd(base+'/clientes/'+id,cad);
+    },'Anamnese salva');
     if(ok){closeDlg();ficha(id)}else btn.disabled=false}}
-
 function vFinanceiro(){
   const m=monthRecs();const mes=TODAY.toLocaleDateString('pt-BR',{month:'long'});
   const mai=m.filter(h=>h.unit==='mai'),flo=m.filter(h=>h.unit==='flo');
