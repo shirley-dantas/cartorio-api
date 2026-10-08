@@ -34,6 +34,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 :focus-visible{outline:2px solid var(--berry);outline-offset:2px}
 [hidden]{display:none!important}
 .app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+.app>div{min-width:0}
 aside{border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:env(safe-area-inset-top,0px);height:100vh;display:flex;flex-direction:column;gap:20px}
 .brandwrap{display:flex;align-items:center;gap:12px}
 .logo{width:46px;height:46px;border-radius:10px;object-fit:cover;flex:none}
@@ -61,7 +62,8 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
 .stat{font-family:var(--serif);font-size:32px;font-weight:600;line-height:1.1}
 .lbl{color:var(--muted);font-size:13px}
-.row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.row>.grow{min-width:140px}
 .row:first-of-type{border-top:0}
 .row .grow{flex:1;min-width:0}
 .row .t{font-weight:600;font-variant-numeric:tabular-nums;width:48px;flex:none}
@@ -210,6 +212,28 @@ const DB={
 };
 // Data em milissegundos (meia-noite UTC): as regras do banco usam para conferir o dia da semana da Laís.
 const tsDe=d=>{const [y,m,x]=d.split('-').map(Number);return Date.UTC(y,m-1,x)};
+// ── Confirmação do horário para a cliente (WhatsApp ou e-mail, sem precisar de script) ──
+function msgConfirmacao(a,remarcado){
+  const c=cli(a.cli),s=sv(a.serv,a.unit),u=U[a.unit],p=PEOPLE[a.pro]?.n;
+  const dia=new Date(a.date+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
+  const [y,m,d]=a.date.split('-').map(Number),[h,mi]=a.hora.split(':').map(Number),pad=n=>String(n).padStart(2,'0');
+  const f=new Date(Date.UTC(y,m-1,d,h,mi)+(s.d||60)*60000);
+  const ini=a.date.replace(/-/g,'')+'T'+a.hora.replace(':','')+'00';
+  const fim=f.getUTCFullYear()+pad(f.getUTCMonth()+1)+pad(f.getUTCDate())+'T'+pad(f.getUTCHours())+pad(f.getUTCMinutes())+'00';
+  const link='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(s.n+' · '+u.n)+'&dates='+ini+'/'+fim+'&ctz=America%2FSao_Paulo&location='+encodeURIComponent(u.n+' · '+u.s);
+  const nome=(c.n||'').split(' ')[0];
+  const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, no ${u.n} (${u.s}).\n\nPara salvar na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
+  return {texto,assunto:(remarcado?'Horário remarcado: ':'Horário confirmado: ')+s.n+' · '+dia+' às '+a.hora}}
+function confirmarAg(a,remarcado){const c=cli(a.cli),m=msgConfirmacao(a,remarcado);
+  openDlg(remarcado?'Avisar a cliente do novo horário':'Avisar a cliente do horário',`<p class="small muted"><b>${esc(c.n)}</b> · ${esc(fd(a.date,{weekday:'short',day:'2-digit',month:'2-digit'}))} às ${esc(a.hora)}. O horário já está salvo; aqui você só avisa a cliente.</p>
+  <label class="f">Mensagem pronta (edite à vontade)<textarea rows="7" id="cf-m">${esc(m.texto)}</textarea></label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="cf-w" ${c.tel?'':'disabled'}>Enviar pelo WhatsApp</button><button class="btn" id="cf-e" ${emailOk(c.email)?'':'disabled'}>Enviar por e-mail</button><button class="btn" id="cf-c">Copiar mensagem</button><button class="btn" id="cf-f">Agora não</button></div>
+  <p class="small muted" style="margin-top:10px">${c.tel?'':'Sem telefone cadastrado: cadastre em "Editar dados" da cliente para enviar pelo WhatsApp. '}${emailOk(c.email)?'':'Sem e-mail cadastrado para enviar por e-mail. '}O link no fim da mensagem salva o horário na agenda da própria cliente.</p>`);
+  const txt=()=>document.getElementById('cf-m').value;
+  document.getElementById('cf-w').onclick=()=>{window.open(zapLink(c.tel,txt()),'_blank','noopener')};
+  document.getElementById('cf-e').onclick=()=>{window.location.href='mailto:'+encodeURIComponent(c.email)+'?subject='+encodeURIComponent(m.assunto)+'&body='+encodeURIComponent(txt())};
+  document.getElementById('cf-c').onclick=async()=>{try{await navigator.clipboard.writeText(txt());toast('Mensagem copiada')}catch(e){toast('Não foi possível copiar')}};
+  document.getElementById('cf-f').onclick=()=>closeDlg()}
 // ── Convites pela Google Agenda (Apps Script rodando na conta da Tháriga) ──
 const emailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e||'');
 async function agendaChama(corpo){
@@ -540,7 +564,7 @@ function vAgenda(){
     const list=ap.filter(a=>a.pro===p);
     const u=p==='tha'?du:'mai';if(!visUnit(u))return '';
     return `<div class="box"><h3>${PEOPLE[p].n} ${uTag(u)}</h3>${list.map(a=>`<div class="appt ${a.st==='Atendido'?'done':''}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}<div class="small muted">${esc(sv(a.serv,a.unit).n)}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}</div>
-     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${(()=>{const at=histAll(true).find(h=>h.agenda===a.id&&!h.cancelado);return at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''})()}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}</div></div>`).join('')||'<p class="small muted">Sem horários marcados.</p>'}</div>`}).join('');
+     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${(()=>{const at=histAll(true).find(h=>h.agenda===a.id&&!h.cancelado);return at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''})()}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}</div></div>`).join('')||'<p class="small muted">Sem horários marcados.</p>'}</div>`}).join('');
   return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Maison Beauty: ${U.mai.dias}, ${U.mai.hora}. Laís atende somente às segundas-feiras.`:`Agenda completa da Maison Beauty — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}${AGENDA_URL?'<button class="btn" id="resp">Atualizar respostas</button>':''}<button class="btn p" id="novo">Novo agendamento</button></div></div>
   <div class="days">${days.map((x,i)=>`<button class="${S.day===i?'on':''}" data-day="${i}">${x.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')}<b>${x.getDate()}</b><i style="background:var(--${unitFor(x)})"></i></button>`).join('')}</div>
@@ -583,7 +607,8 @@ function remarcarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)re
     if(!ok){rs.disabled=false;return}
     closeDlg();
     if(a.evento&&AGENDA_URL){const sent=await convidar(a.id,p,{...a,date:rd.value,hora:rh.value});
-      toast(sent?'Convite atualizado: a cliente recebe o novo horário':'Remarcado, mas a Google Agenda não atualizou. Use "Reenviar convite".')}}}
+      toast(sent?'Convite atualizado: a cliente recebe o novo horário':'Remarcado, mas a Google Agenda não atualizou. Use "Reenviar convite".')}
+    confirmarAg({...a,date:rd.value,hora:rh.value},true)}}
 async function cancelarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)return;
   if(!confirm(`Cancelar o agendamento de ${cli(a.cli).n} em ${fd(a.date)} às ${a.hora}?`))return;
   const ok=await grava(()=>DB.upd(p+'/agenda/'+id,{st:'Cancelado',canceladoPor:S.user.nome,canceladoEm:iso(TODAY)}),'Agendamento cancelado');
@@ -626,7 +651,8 @@ function novoAg(){
     const em=cli(novo.cli).email;
     if(AGENDA_URL&&emailOk(em)){toast('Enviando o convite…');
       const sent=await convidar(nid,base,novo);
-      toast(sent?'Convite enviado para '+em:'Agendado, mas o convite não saiu. Use "Reenviar convite" na agenda.')}}
+      toast(sent?'Convite enviado para '+em:'Agendado, mas o convite não saiu. Use "Reenviar convite" na agenda.')}
+    confirmarAg(novo,false)}
 }
 
 function vClientes(){
@@ -1264,6 +1290,7 @@ function render(){
   main.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/contas/'+b.dataset.pc+'/pago',true),'Conta marcada como paga'));
   main.querySelectorAll('[data-regat]').forEach(b=>b.onclick=()=>abrirRegistro(b.dataset.regat,b.dataset.p,null));
   main.querySelectorAll('[data-remarcar]').forEach(b=>b.onclick=()=>remarcarAg(b.dataset.remarcar,b.dataset.p));
+  main.querySelectorAll('[data-confirma]').forEach(b=>b.onclick=()=>{const a=agenda().find(x=>x.id===b.dataset.confirma&&x._p===b.dataset.p);if(a)confirmarAg(a,false)});
   main.querySelectorAll('[data-reconvite]').forEach(b=>b.onclick=async()=>{const a=agenda().find(x=>x.id===b.dataset.reconvite&&x._p===b.dataset.p);if(!a)return;b.disabled=true;
     const sent=await convidar(a.id,a._p,a);toast(sent?'Convite enviado':'Ainda não consegui enviar. Tente de novo em instantes.')});
   const rb=document.getElementById('resp');if(rb)rb.onclick=()=>respostasAgenda(true);
