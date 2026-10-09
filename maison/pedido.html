@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Pedir um horário · Maison Beauty</title>
+<title>Agendar horário · Maison Beauty</title>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Maison Beauty">
-<meta property="og:title" content="Peça o seu horário · Maison Beauty">
-<meta property="og:description" content="Escolha o serviço e os melhores dias. Nossa equipe responde pelo WhatsApp.">
+<meta property="og:title" content="Agende o seu horário · Maison Beauty">
+<meta property="og:description" content="Escolha o serviço, o dia e o horário. Sem conversa: já fica marcado.">
 <meta property="og:image" content="https://cartorio-api-maison.vercel.app/og-pedido.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -62,6 +62,13 @@ canvas.sig{width:100%;height:150px;border:1px dashed var(--muted);border-radius:
 .chips input{position:absolute;opacity:0;pointer-events:none}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 </style>
+<style>
+.slots{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}
+.slots button{border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:10px 16px;font:inherit;font-size:16px;color:var(--ink);min-width:78px}
+.slots button.on{background:var(--berry);border-color:var(--berry);color:#fff;font-weight:600}
+.dia{font-weight:600;margin:14px 0 2px}
+.resumo{background:var(--berry-soft);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:15px}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -71,11 +78,11 @@ canvas.sig{width:100%;height:150px;border:1px dashed var(--muted);border-radius:
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
-import { getDatabase, ref, push } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
+import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 
-// Mesmo projeto Firebase do painel. A cliente entra de forma anônima, só para mandar este pedido:
-// as regras do banco deixam ela CRIAR um pedido (nunca ler nem mudar o dos outros).
+// Mesmo projeto Firebase do painel. A cliente entra de forma anônima, só para marcar o horário:
+// lê os horários ocupados (sem nome de ninguém) e cria UMA reserva. Nada mais.
 const firebaseConfig = {
   apiKey: "AIzaSyD0p5Y0HDL2rcDLE6qFNSb4nyPe3yFjXos",
   authDomain: "maison-beauty-2e7da.firebaseapp.com",
@@ -85,19 +92,29 @@ const firebaseConfig = {
   messagingSenderId: "30042816821",
   appId: "1:30042816821:web:e0e5cbcfe596d3a1a40c7c"
 };
-// Nomes dos serviços de cada unidade (os mesmos do painel). "Outro" cobre o que não estiver na lista.
+// Serviços (nome e duração em minutos) de cada unidade: os mesmos do painel.
 const UN={
- mai:{n:'Maison Beauty',s:'Itaquera',dias:[[0,'Domingo'],[1,'Segunda'],[2,'Terça'],[3,'Quarta']],hora:'07:30 às 19:00',base:'maison',serv:["Design de sobrancelhas", "Design + henna", "Buço", "Depilação facial", "Micropigmentação", "Alongamento de cílios", "Manutenção de cílios", "Remoção de cílios", "Mão tradicional", "Pé tradicional", "Alongamento de unhas", "Manutenção de unhas", "Remoção de alongamento de unhas", "Remoção de pigmento a laser", "Laser para tratamento de fungos", "Depilação a laser", "Ozonioterapia", "Aplicação de piercing"]},
- flo:{n:'Estúdio Florença',s:'Itaim Bibi',dias:[[4,'Quinta'],[5,'Sexta'],[6,'Sábado']],hora:'09:00 às 19:00',base:'florenca',serv:["Design de sobrancelhas", "Design + henna", "Buço", "Depilação facial", "Lash lifting", "Brow lamination", "Micropigmentação", "Alongamento de cílios", "Manutenção de cílios"]}};
+ mai:{n:'Maison Beauty',s:'Itaquera',dias:[[0,'Domingo'],[1,'Segunda'],[2,'Terça'],[3,'Quarta']],base:'maison',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Micropigmentação", 90], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90], ["Remoção de cílios", 30], ["Mão tradicional", 30], ["Pé tradicional", 40], ["Alongamento de unhas", 120], ["Manutenção de unhas", 90], ["Remoção de alongamento de unhas", 30], ["Remoção de pigmento a laser", 30], ["Laser para tratamento de fungos", 30], ["Depilação a laser", 30], ["Ozonioterapia", 60], ["Aplicação de piercing", 30]]},
+ flo:{n:'Estúdio Florença',s:'Itaim Bibi',dias:[[4,'Quinta'],[5,'Sexta'],[6,'Sábado']],base:'florenca',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Lash lifting", 60], ["Brow lamination", 60], ["Micropigmentação", 120], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90]]}};
+const NOMES=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const minDe=h=>{const [a,b]=h.split(':').map(Number);return a*60+(b||0)};
+const hhmm=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+const fdata=d=>{const x=new Date(d+'T12:00');return `${NOMES[x.getDay()]}, ${x.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`};
 const tela=document.getElementById('tela');
-let un='';
+let db=null,un='',pub=null,escolha=null;
+
+async function entrar(){
+  if(db)return db;
+  const app=initializeApp(firebaseConfig);await signInAnonymously(getAuth(app));db=getDatabase(app);return db}
+
 function formulario(){
-  tela.innerHTML=`<h1>Peça o seu horário</h1><div class="sub">Responda em menos de 1 minuto. Nossa equipe confirma pelo WhatsApp.</div>
+  tela.innerHTML=`<h1>Agende o seu horário</h1><div class="sub">Escolha o dia e o horário livre: já fica marcado, sem conversa.</div>
   <div class="box">
    <div class="sec" style="margin-top:0">Onde você quer ser atendida?</div>
-   <div class="un" id="uns">${Object.entries(UN).map(([k,u])=>`<label data-u="${k}"><input type="radio" name="un" value="${k}"><b>${u.n}</b><span>${u.s} · ${u.dias.map(d=>d[1]).join(', ')} · ${u.hora}</span></label>`).join('')}</div>
+   <div class="un" id="uns">${Object.entries(UN).map(([k,u])=>`<label><input type="radio" name="un" value="${k}"><b>${u.n}</b><span>${u.s} · ${u.dias.map(d=>d[1]).join(', ')}</span></label>`).join('')}</div>
+   <div id="aviso"></div>
    <div id="resto" hidden>
     <div class="sec">Seus dados</div>
     <label class="f">Nome<input id="n" autocomplete="name" maxlength="80"></label>
@@ -109,43 +126,88 @@ function formulario(){
     <div class="small" style="margin-bottom:8px">Marque um ou mais dias</div>
     <div class="chips" id="dias"></div>
     <div class="small" style="margin-bottom:8px">Período</div>
-    <div class="chips" id="per"><label class="on"><input type="radio" name="per" value="Qualquer" checked>Qualquer</label><label><input type="radio" name="per" value="Manhã">Manhã</label><label><input type="radio" name="per" value="Tarde">Tarde</label></div>
-    <label class="f">Quer nos contar mais alguma coisa? (opcional)<textarea id="o" rows="2" maxlength="300"></textarea></label>
-    <div class="hp" aria-hidden="true"><label>Site<input id="site" tabindex="-1" autocomplete="off"></label></div>
-    <div class="erro" id="erro"></div>
-    <button class="btn p" id="enviar">Enviar pedido</button>
-    <p class="small" style="text-align:center;margin-top:10px">Isso não é uma confirmação. A equipe responde com o horário disponível.</p>
+    <div class="chips" id="per"><label class="on"><input type="radio" name="per" value="M" checked>Manhã</label><label><input type="radio" name="per" value="T">Tarde</label></div>
+    <div class="sec">Horários livres</div>
+    <div id="slots"><p class="small">Marque pelo menos um dia para ver os horários.</p></div>
+    <div id="conf" hidden>
+     <div class="resumo" id="resumo"></div>
+     <label class="f">Quer nos contar mais alguma coisa? (opcional)<textarea id="o" rows="2" maxlength="300"></textarea></label>
+     <div class="erro" id="erro"></div>
+     <button class="btn p" id="enviar">Confirmar agendamento</button>
+    </div>
    </div>
   </div>`;
-  const marca=(box,sel)=>box.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));
-  document.getElementById('uns').addEventListener('change',e=>{un=e.target.value;marca(document.getElementById('uns'));escolhe()});
-  document.getElementById('per').addEventListener('change',()=>marca(document.getElementById('per')));
-  document.getElementById('enviar').onclick=enviar;
-}
-function escolhe(){const u=UN[un];document.getElementById('resto').hidden=false;
-  document.getElementById('s').innerHTML=u.serv.map(x=>`<option>${esc(x)}</option>`).join('')+'<option>Outro / ainda não sei qual escolher</option>';
-  const d=document.getElementById('dias');d.innerHTML=u.dias.map(x=>`<label><input type="checkbox" value="${x[1]}">${x[1]}</label>`).join('');
-  d.onchange=()=>d.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));
-  document.getElementById('n').focus({preventScroll:true})}
+  const marca=box=>box.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));
+  const uns=document.getElementById('uns');
+  uns.addEventListener('change',e=>{un=e.target.value;marca(uns);escolheUnidade()});
+  document.getElementById('per').addEventListener('change',()=>{marca(document.getElementById('per'));desenhaSlots()});
+  document.getElementById('s').onchange=desenhaSlots;
+  document.getElementById('enviar').onclick=enviar}
+
+async function escolheUnidade(){
+  const u=UN[un],aviso=document.getElementById('aviso'),resto=document.getElementById('resto');
+  escolha=null;resto.hidden=true;aviso.innerHTML='<p class="small">Carregando os horários…</p>';
+  try{await entrar();pub=(await get(ref(db,'publico/agenda/'+un))).val()||{}}
+  catch(e){aviso.innerHTML='<div class="alert">Não foi possível carregar os horários. Confira a internet e tente de novo.</div>';return}
+  if(!pub.cfg||pub.cfg.ativo!==true){aviso.innerHTML=`<div class="alert">O agendamento online do ${u.n} não está disponível agora. Fale com a gente pelo WhatsApp.</div>`;return}
+  aviso.innerHTML='';resto.hidden=false;
+  document.getElementById('s').innerHTML=u.serv.map((x,i)=>`<option value="${i}">${esc(x[0])} · ${x[1]} min</option>`).join('');
+  const d=document.getElementById('dias');d.innerHTML=u.dias.map(x=>`<label><input type="checkbox" value="${x[0]}">${x[1]}</label>`).join('');
+  d.onchange=()=>{d.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));desenhaSlots()};
+  desenhaSlots()}
+
+// Horários livres: dentro da abertura, no período, com vaga (menos atendimentos sobrepostos que o limite) e longe o bastante de agora.
+function livres(data,dur,periodo){
+  const c=pub.cfg,ini=minDe(c.ini),fim=minDe(c.fim),passo=c.passo||30,par=c.paralelo||1,oc=Object.values((pub.ocup||{})[data]||{}).map(x=>[minDe(x.h),minDe(x.h)+(x.m||30)]);
+  const agora=new Date(),hoje=iso(agora),limite=agora.getHours()*60+agora.getMinutes()+(c.antecH||0)*60,out=[];
+  for(let t=ini;t+dur<=fim;t+=passo){
+    if((periodo==='M')!==(t<720))continue;
+    if(data===hoje&&t<limite)continue;
+    if(oc.filter(([a,b])=>a<t+dur&&b>t).length>=par)continue;
+    out.push(t)}
+  return out}
+function desenhaSlots(){
+  const u=UN[un],c=pub.cfg,box=document.getElementById('slots'),conf=document.getElementById('conf');
+  escolha=null;conf.hidden=true;
+  const dias=[...document.querySelectorAll('#dias input:checked')].map(i=>+i.value);
+  if(!dias.length){box.innerHTML='<p class="small">Marque pelo menos um dia para ver os horários.</p>';return}
+  const dur=u.serv[+document.getElementById('s').value][1],per=document.querySelector('input[name=per]:checked').value,fech=c.fechados||[];
+  const hoje=new Date();hoje.setHours(12,0,0,0);let html='',n=0;
+  for(let i=0;i<=(c.dias||21);i++){const d=new Date(hoje);d.setDate(d.getDate()+i);const data=iso(d);
+    if(!dias.includes(d.getDay())||fech.includes(data))continue;
+    const L=livres(data,dur,per);if(!L.length)continue;n+=L.length;
+    html+=`<div class="dia">${fdata(data)}</div><div class="slots">${L.map(t=>`<button type="button" data-d="${data}" data-h="${hhmm(t)}">${hhmm(t)}</button>`).join('')}</div>`}
+  box.innerHTML=n?html:'<p class="small">Não há horários livres nesses dias e período. Tente outro período ou outros dias.</p>';
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{box.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    escolha={data:b.dataset.d,hora:b.dataset.h,dur};
+    document.getElementById('resumo').innerHTML=`<b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(u.serv[+document.getElementById('s').value][0])} · ${dur} min<br>${u.n} (${u.s})`;
+    conf.hidden=false;conf.scrollIntoView({behavior:'smooth',block:'nearest'})})}
 const erro=m=>{document.getElementById('erro').textContent=m};
 async function enviar(){
-  const v=id=>document.getElementById(id).value.trim();
-  if(!un)return erro('Escolha onde quer ser atendida.');
+  const v=id=>document.getElementById(id).value.trim(),u=UN[un];
+  if(!escolha)return erro('Escolha um horário.');
   if(v('n').length<2)return erro('Falta o seu nome.');
-  const dig=v('t').replace(/\D/g,'');if(dig.length<10)return erro('Confira o WhatsApp: precisa do DDD.');
-  const dias=[...document.querySelectorAll('#dias input:checked')].map(i=>i.value);
-  if(!dias.length)return erro('Marque pelo menos um dia.');
-  const btn=document.getElementById('enviar');btn.disabled=true;btn.textContent='Enviando…';
-  // Campo escondido preenchido = robô: finge que deu certo e não grava nada.
-  if(v('site')){return pronto()}
-  const u=UN[un],reg={un,nome:v('n'),tel:v('t'),serv:v('s'),dias:dias.join(', '),per:document.querySelector('input[name=per]:checked').value,
-    nova:document.querySelector('input[name=nova]:checked').value==='sim',em:Date.now(),data:iso(new Date())};
+  if(v('t').replace(/\D/g,'').length<10)return erro('Confira o WhatsApp: precisa do DDD.');
+  const btn=document.getElementById('enviar');btn.disabled=true;btn.textContent='Marcando…';erro('');
+  const sv=u.serv[+v('s')],reg={un,nome:v('n'),tel:v('t'),serv:sv[0],data:escolha.data,hora:escolha.hora,m:escolha.dur,
+    nova:document.querySelector('input[name=nova]:checked').value==='sim',em:Date.now()};
   if(v('o'))reg.obs=v('o');
-  try{const app=initializeApp(firebaseConfig);await signInAnonymously(getAuth(app));
-    await push(ref(getDatabase(app),u.base+'/pedidos'),reg);pronto()}
-  catch(e){btn.disabled=false;btn.textContent='Enviar pedido';erro('Não foi possível enviar. Confira a internet e toque de novo. Se continuar, nos chame pelo WhatsApp.')}
-}
-function pronto(){tela.innerHTML=`<div class="msg"><h2>Pedido enviado! ✓</h2><p>Obrigada! A equipe do ${UN[un].n} já recebeu e vai responder pelo WhatsApp com o horário disponível. Pode fechar esta página.</p></div>`}
+  const par=pub.cfg.paralelo||1;let feito=false;
+  // Uma vaga por tentativa: se alguém marcou o mesmo horário um instante antes, o banco recusa e tentamos a próxima vaga.
+  for(let k=1;k<=par&&!feito;k++){
+    const chave=`${escolha.data}_${escolha.hora.replace(':','')}_${k}`;
+    try{await set(ref(db,u.base+'/reservas/'+chave),reg);feito=true;
+      try{await set(ref(db,'publico/agenda/'+un+'/ocup/'+escolha.data+'/'+chave),{h:escolha.hora,m:escolha.dur})}catch(e){}}
+    catch(e){if(!/permission|denied/i.test(e.message||''))break}}
+  if(!feito){
+    try{pub=(await get(ref(db,'publico/agenda/'+un))).val()||pub}catch(e){}
+    btn.disabled=false;btn.textContent='Confirmar agendamento';desenhaSlots();
+    return erro('Esse horário acabou de ser ocupado por outra pessoa. Escolha outro, por favor.')}
+  const q=new URLSearchParams({s:sv[0],d:escolha.data,h:escolha.hora,m:String(escolha.dur),u:un==='flo'?'flo':'mai'});
+  tela.innerHTML=`<div class="msg"><h2>Agendamento confirmado ✓</h2><p>${esc(reg.nome.split(' ')[0])}, você está marcada:</p>
+   <div class="resumo" style="text-align:left"><b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(sv[0])}<br>${u.n} (${u.s})</div>
+   <p><a class="btn p" style="display:block;text-decoration:none" href="/h?${q}">Salvar na minha agenda</a></p>
+   <p class="small">Precisa mudar? É só nos chamar pelo WhatsApp. Se for a sua primeira vez, vamos te enviar uma ficha rápida para preencher antes do atendimento.</p></div>`}
 formulario();
 </script>
 </body>

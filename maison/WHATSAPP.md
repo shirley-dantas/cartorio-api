@@ -1,8 +1,10 @@
 # WhatsApp da Tháriga: como configurar o WhatsApp Business
 
 O painel **não lê** as conversas do WhatsApp (o app Business não deixa). O caminho é levar a cliente
-para a página de pedido, `https://cartorio-api-maison.vercel.app/p`, onde ela escolhe a unidade, o serviço e os dias.
-O pedido cai na aba **Hoje**, em *Pedidos de horário*: só a equipe da unidade vê (o do Florença é só da Tháriga).
+para a página de agendamento, `https://cartorio-api-maison.vercel.app/p`: ela escolhe a unidade, o serviço, os dias e o período,
+vê só os **horários livres** e marca sozinha. O horário entra na agenda sozinho; a aba **Hoje** mostra *Marcados pelo link*
+(só a equipe da unidade vê; o do Florença é só da Tháriga) e a equipe pode **remarcar ou recusar**.
+Antes de divulgar o link, ligue a agenda online em *Serviços e preços → Agenda online* (começa desligada).
 
 Tudo abaixo é feito **no celular da Tháriga**, no app WhatsApp Business. Os nomes dos menus mudam um pouco
 entre Android e iPhone: Android, três pontinhos → *Ferramentas comerciais*; iPhone, *Configurações* → *Ferramentas comerciais*.
@@ -14,7 +16,7 @@ entre Android e iPhone: Android, três pontinhos → *Ferramentas comerciais*; i
 *Ferramentas comerciais → Mensagem de saudação*: ativar, destinatários **Todos que me enviarem mensagem** (ou "Quem não está nos meus contatos") e colar:
 
 > Oi! Que bom ter você por aqui 💛 Aqui é a Maison Beauty / Estúdio Florença.
-> Para eu te atender mais rápido, escolha o serviço e os melhores dias por aqui, leva menos de 1 minuto:
+> Para marcar o seu horário, escolha o serviço, o dia e a hora livre por aqui (leva menos de 1 minuto):
 > https://cartorio-api-maison.vercel.app/p
 > Se preferir, é só me contar o que você precisa.
 
@@ -39,5 +41,6 @@ Na conversa, digite `/` e escolha o atalho.
 Instagram (bio), cartão, QR code na recepção. O mesmo link serve para as duas unidades: a cliente escolhe lá.
 
 ## O que o painel faz sozinho
-Reconhece pelo telefone quem já é cliente, cadastra quem é nova, sugere a primeira data nos dias que ela marcou e deixa a resposta pronta
-(só envia o que a Tháriga mandar). Nada é enviado automaticamente.
+Mostra só os horários livres (considera a duração do serviço e quantas pessoas atendem ao mesmo tempo), reconhece pelo telefone
+quem já é cliente, cadastra quem é nova, escolhe a profissional que está livre e põe na agenda. A equipe só confere em **Hoje**.
+Para recusar, o painel cancela e deixa a mensagem pronta no WhatsApp (só sai o que a equipe mandar).

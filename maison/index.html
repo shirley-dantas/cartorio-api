@@ -444,7 +444,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{},mPed:{},fPed:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{},pubMai:{},pubFlo:{},mRes:{},fRes:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -472,13 +472,13 @@ const qzChave=p=>`${iso(QZ.ini)}_${p}`;
 const subs=[];
 function pararLeituras(){subs.splice(0).forEach(f=>f&&f())}
 function errLeitura(p,e){S.erros[p]=e.code==='PERMISSION_DENIED'||/permission/i.test(e.message)?'o banco recusou a leitura (permissão)':e.message;render()}
-function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];agendarRender()},errLeitura))}
+function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];agendarRender();if(/agenda|reservas|publico/.test(p))agendarSecretaria()},errLeitura))}
 let rq=0;function agendarRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;if(S.user)render()})}
 function comecarLeituras(){
   pararLeituras();
-  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/pedidos','mPed');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
+  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/reservas','mRes');ouvir('publico/agenda/mai','pubMai');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
   if(isAdmin()){
-    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/pedidos','fPed');ouvir('florenca/pendentes','fPend');
+    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/reservas','fRes');ouvir('publico/agenda/flo','pubFlo');ouvir('florenca/pendentes','fPend');
     ouvir('financeiro/valores','valores');
     ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');ouvir('admin/instagram','instagram');
     // A carga inicial dos roteiros é idempotente: chaves fixas, só cria o que falta.
@@ -563,7 +563,7 @@ function vHoje(){
   const recebidas=recebidasLink();
   const boxRec=recebidas.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Fichas recebidas pelo link (${recebidas.length})</h2>${recebidas.map(x=>`<div class="row">${avatarHtml(cli(x._cv.cli))}<div class="grow"><b>${esc(cli(x._cv.cli).n)}</b><div class="small muted">Enviada em ${x.data?esc(fd(x.data,{day:'2-digit',month:'2-digit'})):''}</div></div><button class="btn sm" data-pend="${x.id}" data-pb="${x._b}">Revisar e integrar</button></div>`).join('')}</div>`:'';
   return `<div class="top"><div><h1>${saud}, ${esc(S.user.nome)}</h1>${onde}</div></div>
-  ${pedidosHtml()}${boxRec}
+  ${linkHtml()}${boxRec}
   <div class="box" style="margin-bottom:16px"><h2>${isAdmin()?'Seus atendimentos de hoje':'Agenda de hoje na Maison'}</h2>
    ${minhas.length?`<h3 style="margin:10px 0 2px">Hoje · ${minhas.length===1?'1 atendimento':minhas.length+' atendimentos'}</h3>`+minhas.map(a=>`<div class="row">${avatarHtml(cli(a.cli))}<div class="grow"><b>${esc(cli(a.cli).n)}</b><div class="small muted">${esc(a.hora)} · ${esc(sv(a.serv,a.unit).n)}${isAdmin()?'':' com '+esc(PEOPLE[a.pro]?.n)}</div></div>${anamVencida(cli(a.cli))?'<span class="tag warn">Anamnese</span>':''}<span class="tag ${a.st==='Atendido'?'ok':''}">${esc(a.st)}</span></div>`).join(''):'<p class="muted">Nenhum atendimento marcado para hoje. Cadastre uma cliente e crie o primeiro agendamento na aba Agenda.</p>'}
   </div>
@@ -628,7 +628,7 @@ function vAgenda(){
     if(p==='lais'&&!laisDay(d))return '';
     const list=ap.filter(a=>a.pro===p);
     const u=p==='tha'?du:'mai';if(!visUnit(u))return '';
-    return `<div class="box"><h3>${PEOPLE[p].n} ${uTag(u)}</h3>${list.map(a=>`<div class="appt ${a.st==='Atendido'?'done':''}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}<div class="small muted">${esc(sv(a.serv,a.unit).n)}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}</div>
+    return `<div class="box"><h3>${PEOPLE[p].n} ${uTag(u)}</h3>${list.map(a=>`<div class="appt ${a.st==='Atendido'?'done':''}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}${a.origem==='link'?' <span class="tag">Pelo link</span>':''}<div class="small muted">${esc(sv(a.serv,a.unit).n)}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}</div>
      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${(()=>{const at=histAll(true).find(h=>h.agenda===a.id&&!h.cancelado);return at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''})()}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}</div></div>`).join('')||'<p class="small muted">Sem horários marcados.</p>'}</div>`}).join('');
   return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Maison Beauty: ${U.mai.dias}, ${U.mai.hora}. Laís atende somente às segundas-feiras.`:`Agenda completa da Maison Beauty — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}${AGENDA_URL?'<button class="btn" id="resp">Atualizar respostas</button>':''}<button class="btn p" id="novo">Novo agendamento</button></div></div>
@@ -743,30 +743,75 @@ async function cancelarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if
   if(ok&&a.evento&&AGENDA_URL){const r=await agendaChama({acao:'cancelar',id:a.evento});
     toast(r.ok?'A cliente recebeu o aviso de cancelamento':'Cancelado aqui, mas o convite continua na Google Agenda: apague o evento por lá.')}}
 
-// ── Pedidos de horário: a cliente preenche a página pública /p (pelo link do WhatsApp) e o pedido cai na equipe da unidade ──
-const pedidosAbertos=()=>[...arr(C.mPed).map(x=>({...x,_p:'maison'})),...(isAdmin()?arr(C.fPed).map(x=>({...x,_p:'florenca'})):[])].filter(x=>x.st!=='resolvido').sort((a,b)=>(a.em||0)-(b.em||0));
-const clienteDoPedido=x=>{const d=soDigitos(x.tel).slice(-8);return d.length<8?null:cliVisiveis().find(c=>(c._p===x._p)&&soDigitos(c.tel).slice(-8)===d)||null};
-const DIAS_SEM={Domingo:0,Segunda:1,Terça:2,Quarta:3,Quinta:4,Sexta:5,Sábado:6};
-// Primeira data, a partir de amanhã, que cai num dos dias que a cliente marcou.
-function dataDoPedido(x){const alvo=String(x.dias||'').split(',').map(d=>DIAS_SEM[d.trim()]).filter(n=>n!=null);if(!alvo.length)return iso(addD(TODAY,1));
-  for(let i=1;i<=14;i++){const d=addD(TODAY,i);if(alvo.includes(d.getDay()))return iso(d)}return iso(addD(TODAY,1))}
-const pedidosHtml=()=>{const L=pedidosAbertos();if(!L.length)return '';
-  return `<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Pedidos de horário (${L.length})</h2>${L.map(x=>{const c=clienteDoPedido(x),u=x.un==='flo'?'flo':'mai';
-   return `<div class="row" style="align-items:flex-start">${avatarHtml(c||{n:x.nome})}<div class="grow"><b>${esc(x.nome)}</b> ${c?'<span class="tag ok">Já é cliente</span>':'<span class="tag warn">Cliente nova</span>'}${x.nova&&c?'<span class="tag warn">Disse que é a 1ª vez</span>':''}
-    <div class="small">${esc(x.serv)}</div><div class="small muted">${uTag(u)} ${esc(x.dias)} · ${esc(x.per||'Qualquer período')} · ${esc(x.tel)}</div>${x.obs?`<div class="small" style="margin-top:2px">“${esc(x.obs)}”</div>`:''}
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm p" data-pag="${x.id}" data-pp="${x._p}">Agendar</button><button class="btn sm" data-prz="${x.id}" data-pp="${x._p}">Responder</button><button class="btn sm" data-pok="${x.id}" data-pp="${x._p}">Já resolvi</button></div></div><span class="small muted">${x.data?esc(fd(x.data,{day:'2-digit',month:'2-digit'})):''}</span></div>`}).join('')}</div>`};
-async function pedidoAgendar(id,p){const x=pedidosAbertos().find(y=>y.id===id&&y._p===p);if(!x)return;
-  let c=clienteDoPedido(x),cid=c&&c.id;
-  if(!c){const ok=await grava(async()=>{cid=await DB.push(p+'/clientes',{n:x.nome,tel:x.tel,email:'',niver:'',nasc:'',unit:x.un==='flo'?'flo':'mai'})},'Cliente cadastrada');if(!ok)return;await new Promise(r=>setTimeout(r,120))}
-  const sv0=servicosDe(x.un==='flo'?'flo':'mai',false).find(s=>s.n===x.serv);
-  novoAg({cli:cid,serv:sv0&&sv0.id,data:dataDoPedido(x),hora:x.per==='Tarde'?'14:00':'10:00',pedido:{id,p}})}
-function pedidoResponder(id,p){const x=pedidosAbertos().find(y=>y.id===id&&y._p===p);if(!x)return;const u=U[x.un==='flo'?'flo':'mai'],nome=x.nome.split(' ')[0];
-  const txt=`Oi, ${nome}! Aqui é do ${u.n}. Recebi o seu pedido de ${x.serv} 💛 Tenho horário disponível: [escreva aqui o dia e a hora]. Fica bom para você?`;
-  openDlg('Responder '+esc(x.nome),`<p class="small muted">Pedido: ${esc(x.serv)} · ${esc(x.dias)} · ${esc(x.per||'qualquer período')}</p><label class="f">Mensagem (edite o horário antes de enviar)<textarea rows="5" id="pr-m">${esc(txt)}</textarea></label>
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="pr-w">Abrir no WhatsApp</button><button class="btn" id="pr-c">Copiar</button></div>`);
-  document.getElementById('pr-w').onclick=()=>{const t=document.getElementById('pr-m').value;if(t.includes('[escreva aqui')){toast('Troque o trecho entre colchetes pelo horário.');return}window.open(zapLink(x.tel,t),'_blank','noopener');closeDlg()};
-  document.getElementById('pr-c').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('pr-m').value);toast('Mensagem copiada')}catch(e){toast('Não foi possível copiar')}}}
-const pedidoResolver=(id,p)=>grava(()=>DB.upd(p+'/pedidos/'+id,{st:'resolvido',por:S.user.nome}),'Pedido resolvido');
+
+// ── Agenda online: a "secretária" ──
+// A cliente marca sozinha na página pública /p, num horário que o painel diz estar livre.
+//  • /publico/agenda/{u}/cfg   → liga/desliga e as regras (a Tháriga define)
+//  • /publico/agenda/{u}/ocup  → só HORÁRIOS ocupados, sem nome nenhum (o painel mantém sempre igual à agenda)
+//  • /{base}/reservas/{data}_{hhmm}_{n} → o que a cliente grava; o painel transforma em agendamento
+// Quem cuida disso é qualquer pessoa com o painel aberto; nada exige servidor.
+const AGON_PADRAO={mai:{ativo:false,ini:'07:30',fim:'19:00',paralelo:2},flo:{ativo:false,ini:'09:00',fim:'19:00',paralelo:1}};
+const agonCfg=u=>({...AGON_PADRAO[u],passo:30,dias:21,antecH:3,fechados:[],...(((u==='flo'?C.pubFlo:C.pubMai)||{}).cfg||{})});
+const durServ=a=>sv(a.serv,a.unit).d||30;
+let secT=0;const convertendo=new Set();
+function agendarSecretaria(){clearTimeout(secT);secT=setTimeout(()=>{sincronizarPublico().catch(e=>guardaErro(e.message));converterReservas().catch(e=>guardaErro(e.message))},1500)}
+async function sincronizarPublico(){if(!S.user)return;
+  const hoje=iso(TODAY),ate=iso(addD(TODAY,70));
+  for(const u of (isAdmin()?['mai','flo']:['mai'])){
+    const pub=(u==='flo'?C.pubFlo:C.pubMai)||{},ocup=pub.ocup||{},deseja={};
+    const poe=(d,k,h,m)=>{(deseja[d]=deseja[d]||{})[k]={h,m}};
+    agendaAtiva().filter(a=>a.unit===u&&a.date>=hoje&&a.date<=ate).forEach(a=>poe(a.date,a.res||a.id,a.hora,durServ(a)));
+    arr(u==='flo'?C.fRes:C.mRes).filter(r=>!r.st&&r.data>=hoje).forEach(r=>poe(r.data,r.id,r.hora,r.m||30));
+    const base='publico/agenda/'+u+'/ocup/';
+    for(const d of new Set([...Object.keys(deseja),...Object.keys(ocup)])){
+      const want=deseja[d]||{},have=ocup[d]||{};
+      for(const k of Object.keys(want))if(!have[k]||have[k].h!==want[k].h||have[k].m!==want[k].m)await DB.set(base+d+'/'+k,want[k]);
+      for(const k of Object.keys(have))if(!want[k])await DB.del(base+d+'/'+k)}}}
+// Quem estiver livre naquele horário: Maison tem Rafael e Mariana (e a Laís às segundas); o Florença é só a Tháriga.
+function proLivre(u,data,hora,dur){const lista=u==='flo'?['tha']:['rafael','mariana',...(laisDay(data)?['lais']:[])];
+  const i0=minDe(hora),f0=i0+dur;
+  const ocupado=p=>agendaAtiva().some(a=>a.unit===u&&a.pro===p&&a.date===data&&minDe(a.hora)<f0&&minDe(a.hora)+durServ(a)>i0);
+  const livre=lista.find(p=>!ocupado(p));return{pro:livre||lista[0],conflito:!livre}}
+const minDe=h=>{const [a,b]=String(h).split(':').map(Number);return a*60+(b||0)};
+async function converterReservas(){if(!S.user)return;
+  for(const u of (isAdmin()?['mai','flo']:['mai'])){const base=u==='flo'?'florenca':'maison';
+    for(const r of arr(u==='flo'?C.fRes:C.mRes).filter(x=>!x.st)){const ch=base+'/'+r.id;if(convertendo.has(ch))continue;convertendo.add(ch);
+      try{
+        const aid='lk_'+r.id,dig=soDigitos(r.tel).slice(-8);
+        let c=dig.length<8?null:clientes().find(x=>x._p===base&&soDigitos(x.tel).slice(-8)===dig),cid=c&&c.id;
+        if(!c){cid='lk_'+soDigitos(r.tel).slice(-11);await DB.set(base+'/clientes/'+cid,{n:r.nome,tel:r.tel,email:'',niver:'',nasc:'',unit:u==='flo'?'flo':'mai',origem:'link'})}
+        const s0=servicosDe(u,false).find(x=>x.n===r.serv),sid=s0?s0.id:r.serv,{pro,conflito}=proLivre(u,r.data,r.hora,r.m||30);
+        if(!agenda().some(a=>a.id===aid&&a._p===base)){
+          const reg={date:r.data,ts:tsDe(r.data),hora:r.hora,cli:cid,serv:sid,pro,unit:u,st:'Agendado',origem:'link',res:r.id,visto:false,pedidoEm:r.em||0};if(conflito)reg.conflito=true;if(r.obs)reg.obsLink=r.obs;
+          await DB.set(base+'/agenda/'+aid,reg)}
+        await DB.upd(base+'/reservas/'+r.id,{st:'convertida',agenda:aid});
+      }catch(e){guardaErro('reserva '+r.id+': '+e.message)}finally{convertendo.delete(ch)}}}}
+const marcadosPeloLink=()=>agendaAtiva().filter(a=>a.origem==='link'&&!a.visto&&a.date>=iso(TODAY)).sort((a,b)=>(a.pedidoEm||0)-(b.pedidoEm||0));
+const diaLongo=d=>{const x=new Date(d+'T12:00');return prim1(x.toLocaleDateString('pt-BR',{weekday:'long'}))+', '+fd(d)};
+function linkHtml(){const L=marcadosPeloLink();if(!L.length)return '';
+  return `<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Marcados pelo link (${L.length})</h2><p class="small muted" style="margin:-4px 0 8px">Já estão na agenda. Confira; se precisar, remarque ou recuse.</p>${L.map(a=>{const c=cli(a.cli),nova=c.origem==='link'&&!anamDe(c.id);
+   return `<div class="row" style="align-items:flex-start">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b> ${nova?'<span class="tag warn">Cliente nova</span>':'<span class="tag ok">Já é cliente</span>'}${a.conflito?' <span class="tag warn">Horário em conflito</span>':''}
+    <div class="small">${esc(sv(a.serv,a.unit).n)}</div><div class="small muted">${uTag(a.unit)} ${esc(diaLongo(a.date))} · ${esc(a.hora)} · ${esc(PEOPLE[a.pro]?.n||'')} · ${esc(c.tel||'')}</div>${a.obsLink?`<div class="small" style="margin-top:2px">“${esc(a.obsLink)}”</div>`:''}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm p" data-lkok="${a.id}" data-pp="${a._p}">Ok, vi</button><button class="btn sm" data-lkrem="${a.id}" data-pp="${a._p}">Remarcar</button><button class="btn sm" data-lkrec="${a.id}" data-pp="${a._p}">Recusar</button>${nova?`<button class="btn sm" data-lkfi="${c.id}">Enviar ficha</button>`:''}</div></div></div>`}).join('')}</div>`}
+const lkVisto=(id,p)=>DB.upd(p+'/agenda/'+id,{visto:true}).catch(e=>guardaErro(e.message));
+function lkRecusar(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)return;const c=cli(a.cli),u=U[a.unit];
+  const txt=`Oi, ${c.n.split(' ')[0]}! Aqui é do ${u.n}. Poxa, infelizmente não conseguimos te atender ${diaLongo(a.date).toLowerCase()} às ${a.hora}. Posso te oferecer [escreva aqui outro dia e hora]? Desculpa o transtorno 💛`;
+  openDlg('Recusar este horário',`<p class="small muted">${esc(c.n)} · ${esc(sv(a.serv,a.unit).n)} · ${esc(diaLongo(a.date))} às ${esc(a.hora)}</p><label class="f">Mensagem para a cliente<textarea rows="5" id="lr-m">${esc(txt)}</textarea></label>
+  <p class="small muted">O horário é cancelado e volta a ficar livre na página. A mensagem abre no WhatsApp para você enviar.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="lr-ok">Cancelar o horário e abrir o WhatsApp</button></div>`);
+  document.getElementById('lr-ok').onclick=async()=>{const t=document.getElementById('lr-m').value;if(t.includes('[escreva aqui')){toast('Troque o trecho entre colchetes pela nova proposta.');return}
+    const ok=await grava(()=>DB.upd(p+'/agenda/'+id,{st:'Cancelado',visto:true,canceladoPor:S.user.nome,canceladoEm:iso(TODAY),motivo:'recusado'}),'Horário cancelado');
+    if(ok){closeDlg();window.open(zapLink(c.tel,t),'_blank','noopener')}}}
+// Configuração (Serviços e preços): a Tháriga liga cada unidade e define as regras.
+function agonBox(){const bloco=u=>{const g=agonCfg(u);return `<div class="box" style="margin:0 0 12px;background:var(--bg)"><h3 style="margin:0 0 8px">${U[u].n}</h3>
+   <label class="ck"><input type="checkbox" id="ag-${u}-on" ${g.ativo?'checked':''}>Receber marcações pelo link</label>
+   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><label class="f" style="margin:0">Abre às<input type="time" id="ag-${u}-i" value="${g.ini}"></label><label class="f" style="margin:0">Último horário termina às<input type="time" id="ag-${u}-f" value="${g.fim}"></label>
+   <label class="f" style="margin:0">Atendimentos ao mesmo tempo<input type="number" id="ag-${u}-p" min="1" max="6" value="${g.paralelo}" style="width:90px"></label></div>
+   <label class="f" style="margin:10px 0 0">Dias sem atendimento (datas AAAA-MM-DD separadas por vírgula)<input id="ag-${u}-x" value="${esc((g.fechados||[]).join(', '))}" placeholder="2026-12-25, 2027-01-01"></label></div>`};
+  return `<div class="box" style="margin-bottom:16px"><h2>Agenda online (a secretária)</h2>
+   <p class="small muted" style="margin-top:0">A cliente abre o link, escolhe serviço, dias e período, vê só os horários livres e já marca. O horário entra na agenda sozinho. Comece ligando só uma unidade para testar.</p>
+   <p class="small" style="margin:0 0 12px">Link para o WhatsApp e o Instagram: <b>${esc(location.origin)}/p</b> <button class="btn sm" id="ag-copy">Copiar</button></p>
+   ${bloco('mai')}${bloco('flo')}<button class="btn p sm" id="ag-save">Salvar agenda online</button></div>`}
 function novoAg(pre){
   pre=pre&&typeof pre==='object'&&!(pre instanceof Event)?pre:{};
   const visiveis=cliVisiveis();
@@ -797,18 +842,17 @@ function novoAg(pre){
     if(an&&an.flags&&an.flags.length)msgs.push(`Atenção na ficha: ${an.flags.join(', ')}.`);
     navisos.innerHTML=msgs.map((m,i)=>i===0&&p==='tha'?`<div class="small muted" style="margin-bottom:8px">${esc(m)}</div>`:`<div class="alert">${esc(m)}</div>`).join('')+(c&&anamVencida(c)?`<div style="margin:-2px 0 10px"><button type="button" class="btn sm" id="nlink">Enviar o link da ficha para a cliente</button></div>`:'');
     const nl=document.getElementById('nlink');
-    if(nl)nl.onclick=()=>{const est={cli:nc.value,pro:np.value,data:nd.value,hora:nh.value,serv:ns.value,pedido:pre.pedido};
+    if(nl)nl.onclick=()=>{const est={cli:nc.value,pro:np.value,data:nd.value,hora:nh.value,serv:ns.value};
       // Cliente da Maison recebe o link no celular; o Florença não tem link (a ficha é preenchida na tela). Depois de enviar, volta ao agendamento.
       enviarLinkAnamnese(c.id,()=>novoAg(est))};
     nsave.disabled=!ok;return u};
   [nc,np,nd,nh].forEach(e=>e.onchange=check);check();
   if(pre.serv&&[...ns.options].some(o=>o.value===pre.serv)){ns.value=pre.serv;check()}
-  document.getElementById('nnc').onclick=e=>{e.preventDefault();const est={pro:np.value,data:nd.value,hora:nh.value,serv:ns.value,pedido:pre.pedido};novoCliente({voltar:id=>novoAg({...est,cli:id})})};
+  document.getElementById('nnc').onclick=e=>{e.preventDefault();const est={pro:np.value,data:nd.value,hora:nh.value,serv:ns.value};novoCliente({voltar:id=>novoAg({...est,cli:id})})};
   nsave.onclick=async()=>{const u=check();if(nsave.disabled)return;nsave.disabled=true;
     const base=u==='flo'?'florenca':'maison',novo={date:nd.value,ts:tsDe(nd.value),hora:nh.value,cli:nc.value,serv:ns.value,pro:np.value,unit:u,st:'Agendado'};let nid;
     const ok=await grava(async()=>{nid=await DB.push(base+'/agenda',novo)},'Agendado');
     if(!ok){nsave.disabled=false;return}
-    if(pre.pedido)DB.upd(pre.pedido.p+'/pedidos/'+pre.pedido.id,{st:'resolvido',por:S.user.nome}).catch(e=>guardaErro(e.message));
     closeDlg();
     const em=cli(novo.cli).email;
     if(AGENDA_URL&&emailOk(em)){toast('Enviando o convite…');
@@ -1244,7 +1288,7 @@ function vServicos(){
   const brindeBox=regraBox+`<div class="box" style="margin-bottom:16px"><h2>Texto do brinde</h2><p class="small muted" style="margin-top:0">Fecha as mensagens de aniversário de quem ainda não recebeu um código. Escreva o que você quer oferecer, por exemplo: <i>um mimo especial no seu próximo atendimento</i>. Desconto de verdade só existe pelo código.</p>
    <label class="f"><input id="brinde" value="${esc((C.mCfg&&C.mCfg.brinde)||'')}" placeholder="${esc(BRINDE_PADRAO)}"></label><button class="btn p sm" id="brindesalvar">Salvar brinde</button></div>`;
   const sec=u=>`<div class="box" style="margin-bottom:16px"><h2>${U[u].n}</h2>${servicosDe(u).map(x=>`<div class="row" style="${x.ativo===false?'opacity:.55':''}"><div class="grow"><b>${esc(x.n)}</b><div class="small muted">${x.d?x.d+' min':'sem duração'}${x.obs?' · '+esc(x.obs):''}${x.ativo===false?' · desativado':''}</div></div><b>${brl(x.p)}</b><button class="btn sm" data-es="${u}|${x.id}">Editar</button></div>`).join('')}<div style="margin-top:12px"><button class="btn" data-ns="${u}">Novo serviço no ${U[u].n}</button></div></div>`;
-  return `<div class="top"><div><h1>Serviços e preços</h1><div class="sub">Mude o valor, renomeie, ative ou desative cada serviço. O novo preço vale para os próximos atendimentos; os já registrados mantêm o valor que foi cobrado.</div></div></div>${brindeBox}${sec('mai')}${sec('flo')}`}
+  return `<div class="top"><div><h1>Serviços e preços</h1><div class="sub">Mude o valor, renomeie, ative ou desative cada serviço. O novo preço vale para os próximos atendimentos; os já registrados mantêm o valor que foi cobrado.</div></div></div>${agonBox()}${brindeBox}${sec('mai')}${sec('flo')}`}
 function editarServico(u,id){const novo=!id,x=novo?{n:'',p:0,d:0,obs:'',ativo:true,base:false}:servicosDe(u).find(y=>y.id===id);if(!x)return;
   openDlg(novo?'Novo serviço':'Editar serviço',`<p class="small muted">${U[u].n}</p>
   <label class="f">Nome<input id="sn" value="${esc(x.n)}"></label>
@@ -1582,9 +1626,18 @@ function render(){
     else{const [y,m]=(S.agMes||(S.agData||iso(TODAY)).slice(0,7)).split('-').map(Number),x=new Date(y,m-1+n,1,12);S.agMes=iso(x).slice(0,7)}
     render()});
   main.querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>concluir(b.dataset.done,b.dataset.p));
-  main.querySelectorAll('[data-pag]').forEach(b=>b.onclick=()=>pedidoAgendar(b.dataset.pag,b.dataset.pp));
-  main.querySelectorAll('[data-prz]').forEach(b=>b.onclick=()=>pedidoResponder(b.dataset.prz,b.dataset.pp));
-  main.querySelectorAll('[data-pok]').forEach(b=>b.onclick=()=>pedidoResolver(b.dataset.pok,b.dataset.pp));
+  main.querySelectorAll('[data-lkok]').forEach(b=>b.onclick=()=>lkVisto(b.dataset.lkok,b.dataset.pp));
+  main.querySelectorAll('[data-lkrem]').forEach(b=>b.onclick=()=>{lkVisto(b.dataset.lkrem,b.dataset.pp);remarcarAg(b.dataset.lkrem,b.dataset.pp)});
+  main.querySelectorAll('[data-lkrec]').forEach(b=>b.onclick=()=>lkRecusar(b.dataset.lkrec,b.dataset.pp));
+  main.querySelectorAll('[data-lkfi]').forEach(b=>b.onclick=()=>enviarLinkAnamnese(b.dataset.lkfi));
+  const agc=document.getElementById('ag-copy');if(agc)agc.onclick=async()=>{try{await navigator.clipboard.writeText(location.origin+'/p');toast('Link copiado')}catch(e){toast('Não foi possível copiar')}};
+  const ags=document.getElementById('ag-save');if(ags)ags.onclick=async()=>{ags.disabled=true;let ok=true;
+    for(const u of ['mai','flo']){const g=id=>document.getElementById('ag-'+u+'-'+id),ini=g('i').value,fim=g('f').value,par=Math.max(1,Math.min(6,parseInt(g('p').value)||1));
+      if(!ini||!fim||minDe(fim)<=minDe(ini)){toast(`${U[u].n}: confira o horário de abrir e fechar`);ags.disabled=false;return}
+      const fech=g('x').value.split(/[,;\s]+/).filter(Boolean);if(fech.some(d=>!/^\d{4}-\d{2}-\d{2}$/.test(d))){toast(`${U[u].n}: as datas sem atendimento precisam estar como AAAA-MM-DD`);ags.disabled=false;return}
+      const cfg={ativo:g('on').checked,ini,fim,paralelo:par,passo:30,dias:21,antecH:3};if(fech.length)cfg.fechados=fech;
+      ok=await grava(()=>DB.set('publico/agenda/'+u+'/cfg',cfg))&&ok}
+    if(ok)toast('Agenda online salva');ags.disabled=false};
   main.querySelectorAll('[data-lib]').forEach(b=>b.onclick=async()=>{b.disabled=true;await liberarBrinde(b.dataset.lib);b.disabled=false});
   main.querySelectorAll('[data-dper]').forEach(b=>b.onclick=()=>{S.descPer=b.dataset.dper;render()});
   main.querySelectorAll('[data-msg]').forEach(b=>b.onclick=()=>msgDlg(b.dataset.msg,b.dataset.c));

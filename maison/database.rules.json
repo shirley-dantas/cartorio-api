@@ -94,23 +94,24 @@
           ".validate": "!newData.exists() || (newData.hasChildren(['cli','valeAte','limite','pctAte','pctAcima','usado']) && newData.child('pctAte').val() <= 10 && newData.child('pctAcima').val() <= 10)"
         }
       },
-      // Pedido de horário (página pública /p): a cliente só CRIA o pedido; a equipe lê, resolve e apaga.
-      "pedidos": {
+      // Agendamento pela página pública /p: a cliente só CRIA a reserva (uma por horário; a chave é data+hora+vaga),
+      // e só enquanto a agenda online da unidade estiver ligada. Quem lê, converte em agendamento e apaga é a equipe.
+      "reservas": {
         "$id": {
-          ".write": "auth != null && (root.child('acesso').child(auth.uid).exists() || (!data.exists() && newData.exists()))",
-          ".validate": "!newData.exists() || newData.hasChildren(['nome','tel','serv','un','em'])",
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).exists() || (!data.exists() && newData.exists() && root.child('publico').child('agenda').child('mai').child('cfg').child('ativo').val() === true && $id.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}_[1-9]$/) && $id.beginsWith(newData.child('data').val())))",
+          ".validate": "!newData.exists() || newData.hasChildren(['nome','tel','serv','un','data','hora','m','em'])",
             "un": { ".validate": "newData.val() === 'mai'" },
             "nome": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 80" },
             "tel": { ".validate": "newData.isString() && newData.val().length >= 8 && newData.val().length <= 30" },
             "serv": { ".validate": "newData.isString() && newData.val().length <= 120" },
-            "dias": { ".validate": "newData.isString() && newData.val().length <= 80" },
-            "per": { ".validate": "newData.isString() && newData.val().length <= 12" },
+            "data": { ".validate": "newData.isString() && newData.val().length === 10" },
+            "hora": { ".validate": "newData.isString() && newData.val().length === 5" },
+            "m": { ".validate": "newData.isNumber() && newData.val() >= 5 && newData.val() <= 480" },
             "nova": { ".validate": "newData.isBoolean()" },
             "obs": { ".validate": "newData.isString() && newData.val().length <= 300" },
             "em": { ".validate": "newData.isNumber()" },
-            "data": { ".validate": "newData.isString() && newData.val().length <= 10" },
             "st": { ".validate": "newData.isString() && newData.val().length <= 20" },
-            "por": { ".validate": "newData.isString() && newData.val().length <= 40" },
+            "agenda": { ".validate": "newData.isString() && newData.val().length <= 80" },
             "$outra": { ".validate": false }
         }
       },
@@ -130,23 +131,24 @@
       "convites": {
         "$t": { ".read": "auth != null" }
       },
-      // Pedido de horário do Florença: a cliente só CRIA; quem lê, resolve e apaga é a Tháriga (regra do /florenca).
-      "pedidos": {
+      // Agendamento pela página pública /p: a cliente só CRIA a reserva (uma por horário; a chave é data+hora+vaga),
+      // e só enquanto a agenda online da unidade estiver ligada. Quem lê, converte em agendamento e apaga é a equipe.
+      "reservas": {
         "$id": {
-          ".write": "auth != null && !data.exists() && newData.exists()",
-          ".validate": "!newData.exists() || newData.hasChildren(['nome','tel','serv','un','em'])",
+          ".write": "auth != null && ((!data.exists() && newData.exists() && root.child('publico').child('agenda').child('flo').child('cfg').child('ativo').val() === true && $id.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}_[1-9]$/) && $id.beginsWith(newData.child('data').val())))",
+          ".validate": "!newData.exists() || newData.hasChildren(['nome','tel','serv','un','data','hora','m','em'])",
             "un": { ".validate": "newData.val() === 'flo'" },
             "nome": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 80" },
             "tel": { ".validate": "newData.isString() && newData.val().length >= 8 && newData.val().length <= 30" },
             "serv": { ".validate": "newData.isString() && newData.val().length <= 120" },
-            "dias": { ".validate": "newData.isString() && newData.val().length <= 80" },
-            "per": { ".validate": "newData.isString() && newData.val().length <= 12" },
+            "data": { ".validate": "newData.isString() && newData.val().length === 10" },
+            "hora": { ".validate": "newData.isString() && newData.val().length === 5" },
+            "m": { ".validate": "newData.isNumber() && newData.val() >= 5 && newData.val() <= 480" },
             "nova": { ".validate": "newData.isBoolean()" },
             "obs": { ".validate": "newData.isString() && newData.val().length <= 300" },
             "em": { ".validate": "newData.isNumber()" },
-            "data": { ".validate": "newData.isString() && newData.val().length <= 10" },
             "st": { ".validate": "newData.isString() && newData.val().length <= 20" },
-            "por": { ".validate": "newData.isString() && newData.val().length <= 40" },
+            "agenda": { ".validate": "newData.isString() && newData.val().length <= 80" },
             "$outra": { ".validate": false }
         }
       },
@@ -159,6 +161,26 @@
             "f1": { ".validate": "newData.isString() && newData.val().length < 700000" },
             "f2": { ".validate": "newData.isString() && newData.val().length < 700000" },
             "$outra": { ".validate": false }
+          }
+        }
+      }
+    },
+
+    // ── Agenda online (página /p): horários ocupados, sem nome de ninguém ──
+    // Qualquer pessoa autenticada (inclusive a cliente anônima) lê. Só a Tháriga muda as regras (cfg).
+    // O painel mantém a lista de horários ocupados; a cliente só acrescenta o dela, e só com a agenda online ligada.
+    "publico": {
+      "agenda": {
+        "$u": {
+          ".read": "auth != null",
+          "cfg": { ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'" },
+          "ocup": {
+            "$d": {
+              "$k": {
+                ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && $u === 'mai') || (!data.exists() && newData.exists() && root.child('publico').child('agenda').child($u).child('cfg').child('ativo').val() === true && $k.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}_[1-9]$/)))",
+                ".validate": "!newData.exists() || (newData.hasChildren(['h','m']) && newData.child('h').isString() && newData.child('h').val().length === 5 && newData.child('m').isNumber())"
+              }
+            }
           }
         }
       }
