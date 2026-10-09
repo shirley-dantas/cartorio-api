@@ -54,6 +54,9 @@ O agendamento leva `ts` (a data em milissegundos, à meia-noite UTC) e as regras
 - **Conta a pagar:** editar e cancelar (guardada como cancelada). **Fornecedor e curso:** editar e excluir.
 - **Se mudar a regra de quem pode o quê, republique** `database.rules.json` no console.
 
+## Página do horário (`/h`)
+A mensagem de aviso do horário leva um link `/h?...` (precisa do `vercel.json` desta pasta). É uma página pública, sem login, que mostra só serviço, dia, hora, unidade e profissional, com a logo na prévia do WhatsApp (`og-horario.png`).
+
 ## Brinde de aniversário
 A Tháriga escreve o brinde em **Serviços e preços**; ele fica em `/maison/config/brinde` (só a administradora altera, toda a equipe lê) e fecha as mensagens de aniversário. **Republique as regras** depois desta versão, senão salvar o brinde é recusado.
 

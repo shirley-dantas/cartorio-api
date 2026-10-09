@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Seu horário · Maison Beauty</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Maison Beauty">
+<meta property="og:title" content="Seu horário · Maison Beauty">
+<meta property="og:description" content="Veja os detalhes e salve o horário na sua agenda.">
+<meta property="og:image" content="https://cartorio-api-maison.vercel.app/og-horario.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF7F1;--panel:#fff;--ink:#262220;--muted:#8A7D6E;--line:#E9E1D2;--berry:#9C7A2E;--berry-soft:#F1E9D4;
+ --serif:"Cormorant",Georgia,serif;--sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.wrap{max-width:520px;margin:0 auto;padding:20px 16px 50px}
+.logo{display:block;margin:6px auto 4px;width:220px;max-width:70%;height:auto}
+h1{font-family:var(--serif);font-weight:600;font-size:30px;margin:14px 0 4px;text-align:center}
+.sub{color:var(--muted);text-align:center;margin-bottom:18px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+.lin{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.lin:first-child{border-top:0}
+.lin b{display:block}.lin span{color:var(--muted);font-size:14px}
+.btn{display:block;width:100%;text-align:center;text-decoration:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:13px 16px;border-radius:999px;font:500 16px var(--sans);margin-top:10px;cursor:pointer}
+.btn.p{background:var(--berry);border-color:var(--berry);color:#fff}
+.nota{font-size:13px;color:var(--muted);text-align:center;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="logo" src="/logo.png" alt="Maison Beauty">
+  <div id="tela"></div>
+</div>
+<script>
+const U={flo:{n:'Estúdio Florença',s:'Itaim Bibi'},mai:{n:'Maison Beauty',s:'Itaquera'}};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const q=new URLSearchParams(location.search),tela=document.getElementById('tela');
+const s=(q.get('s')||'').slice(0,80),d=q.get('d')||'',h=q.get('h')||'',m=Math.min(600,Math.max(5,parseInt(q.get('m'))||60)),u=U[q.get('u')],p=(q.get('p')||'').slice(0,40);
+if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(d)||!/^\d{2}:\d{2}$/.test(h)||!u){
+  tela.innerHTML='<h1>Link inválido</h1><div class="sub">Peça um novo link à Maison Beauty.</div>';
+}else{
+  const dia=new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  const [y,mo,da]=d.split('-').map(Number),[hh,mi]=h.split(':').map(Number),pad=n=>String(n).padStart(2,'0');
+  const f=new Date(Date.UTC(y,mo-1,da,hh,mi)+m*60000);
+  const ini=d.replace(/-/g,'')+'T'+h.replace(':','')+'00';
+  const fim=f.getUTCFullYear()+pad(f.getUTCMonth()+1)+pad(f.getUTCDate())+'T'+pad(f.getUTCHours())+pad(f.getUTCMinutes())+'00';
+  const titulo=s+' · '+u.n,local=u.n+' · '+u.s;
+  const gcal='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(titulo)+'&dates='+ini+'/'+fim+'&location='+encodeURIComponent(local);
+  const ics=t=>String(t).replace(/([,;\\])/g,'\\$1');
+  tela.innerHTML=`<h1>Seu horário está confirmado</h1><div class="sub">Maison Beauty</div>
+  <div class="box">
+   <div class="lin"><div><b>${esc(s)}</b><span>Serviço${p?' · com '+esc(p):''}</span></div></div>
+   <div class="lin"><div><b>${esc(dia.charAt(0).toUpperCase()+dia.slice(1))}</b><span>Data</span></div></div>
+   <div class="lin"><div><b>${esc(h)}</b><span>Horário</span></div></div>
+   <div class="lin"><div><b>${esc(u.n)}</b><span>${esc(u.s)}</span></div></div>
+  </div>
+  <a class="btn p" href="${esc(gcal)}" target="_blank" rel="noopener">Salvar no Google Agenda</a>
+  <a class="btn" href="#" id="ics">Salvar no calendário do celular (.ics)</a>
+  <p class="nota">Qualquer imprevisto, é só avisar pelo WhatsApp. Até lá! 🤍</p>`;
+  document.getElementById('ics').onclick=e=>{e.preventDefault();
+    const t=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Maison Beauty//PT','BEGIN:VEVENT','UID:'+ini+'-'+Math.random().toString(36).slice(2,10)+'@maisonbeauty',
+     'DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''),'DTSTART:'+ini,'DTEND:'+fim,'SUMMARY:'+ics(titulo),'LOCATION:'+ics(local),'END:VEVENT','END:VCALENDAR'].join('\r\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/calendar'}));a.download='horario-maison-beauty.ics';document.body.appendChild(a);a.click();a.remove()};
+}
+</script>
+</body>
+</html>

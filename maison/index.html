@@ -240,20 +240,17 @@ const tsDe=d=>{const [y,m,x]=d.split('-').map(Number);return Date.UTC(y,m-1,x)};
 function msgConfirmacao(a,remarcado){
   const c=cli(a.cli),s=sv(a.serv,a.unit),u=U[a.unit],p=PEOPLE[a.pro]?.n;
   const dia=new Date(a.date+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
-  const [y,m,d]=a.date.split('-').map(Number),[h,mi]=a.hora.split(':').map(Number),pad=n=>String(n).padStart(2,'0');
-  const f=new Date(Date.UTC(y,m-1,d,h,mi)+(s.d||60)*60000);
-  const ini=a.date.replace(/-/g,'')+'T'+a.hora.replace(':','')+'00';
-  const fim=f.getUTCFullYear()+pad(f.getUTCMonth()+1)+pad(f.getUTCDate())+'T'+pad(f.getUTCHours())+pad(f.getUTCMinutes())+'00';
-  const link='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(s.n)+'&dates='+ini+'/'+fim;
+  // Página própria (horario.html, atalho /h): na prévia do WhatsApp aparece a logo da Maison Beauty, e ela traz os botões de salvar na agenda.
+  const link=location.origin+'/h?s='+encodeURIComponent(s.n)+'&d='+a.date+'&h='+a.hora+'&m='+(s.d||60)+'&u='+a.unit+(p?'&p='+encodeURIComponent(p):'');
   const nome=(c.n||'').split(' ')[0];
-  const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, no ${u.n} (${u.s}).\n\nPara salvar na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
+  const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, no ${u.n} (${u.s}).\n\nVeja os detalhes e salve na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
   return {texto,assunto:(remarcado?'Horário remarcado: ':'Horário confirmado: ')+s.n+' · '+dia+' às '+a.hora}}
 function confirmarAg(a,remarcado){const c=cli(a.cli),m=msgConfirmacao(a,remarcado);
   openDlg(remarcado?'Avisar a cliente do novo horário':'Avisar a cliente do horário',`<p class="small muted"><b>${esc(c.n)}</b> · ${esc(fd(a.date,{weekday:'short',day:'2-digit',month:'2-digit'}))} às ${esc(a.hora)}. O horário já está salvo; aqui você só avisa a cliente.</p>
   <label class="f">Mensagem pronta (edite à vontade)<textarea rows="7" id="cf-m">${esc(m.texto)}</textarea></label>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="cf-w" ${c.tel?'':'disabled'}>Enviar pelo WhatsApp</button><button class="btn" id="cf-e" ${emailOk(c.email)?'':'disabled'}>Enviar por e-mail (Gmail)</button><button class="btn" id="cf-c">Copiar mensagem</button><button class="btn" id="cf-f">Agora não</button></div>
   ${emailOk(c.email)?'<p class="small" style="margin:8px 0 0"><a href="#" id="cf-mt">Usar o aplicativo de e-mail do aparelho</a></p>':''}
-  <p class="small muted" style="margin-top:10px">${c.tel?'':'Sem telefone cadastrado: cadastre em "Editar dados" da cliente para enviar pelo WhatsApp. '}${emailOk(c.email)?'':'Sem e-mail cadastrado para enviar por e-mail. '}O link no fim da mensagem salva o horário na agenda da própria cliente.</p>`);
+  <p class="small muted" style="margin-top:10px">${c.tel?'':'Sem telefone cadastrado: cadastre em "Editar dados" da cliente para enviar pelo WhatsApp. '}${emailOk(c.email)?'':'Sem e-mail cadastrado para enviar por e-mail. '}O link no fim da mensagem abre uma página com a logo, os detalhes e o botão de salvar o horário na agenda da própria cliente.</p>`);
   const txt=()=>document.getElementById('cf-m').value;
   document.getElementById('cf-w').onclick=()=>{window.open(zapLink(c.tel,txt()),'_blank','noopener')};
   // Abre o Gmail já com a mensagem pronta (funciona no computador e no celular, sem depender de app de e-mail configurado).
@@ -558,7 +555,10 @@ function vHoje(){
   const comFuturo=new Set(agendaAtiva().filter(a=>a.date>=t&&a.st!=='Atendido').map(a=>a.cli));
   const retornos=Object.values(ult).filter(h=>!comFuturo.has(h.cli)).map(h=>({h,dias:Math.round((TODAY-new Date(h.date+'T00:00'))/864e5),s:sv(h.serv,h.unit)})).filter(x=>x.s.ret&&x.dias>=x.s.ret).sort((a,b)=>b.dias-a.dias).slice(0,5);
   const onde=isAdmin()?`<div class="hero-unit"><i style="background:var(--${u})"></i>Hoje você atende no ${U[u].n}, ${U[u].s} (${U[u].hora})</div>`:`<div class="hero-unit"><i style="background:var(--mai)"></i>Maison Beauty, Itaquera (${U.mai.hora})</div>`;
+  const recebidas=arr(C.mPend).filter(x=>C.mConv[x.id]);
+  const boxRec=recebidas.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Fichas recebidas pelo link (${recebidas.length})</h2>${recebidas.map(x=>`<div class="row">${avatarHtml(cli(C.mConv[x.id].cli))}<div class="grow"><b>${esc(cli(C.mConv[x.id].cli).n)}</b><div class="small muted">Enviada em ${x.data?esc(fd(x.data,{day:'2-digit',month:'2-digit'})):''}</div></div><button class="btn sm" data-pend="${x.id}">Revisar e integrar</button></div>`).join('')}</div>`:'';
   return `<div class="top"><div><h1>${saud}, ${esc(S.user.nome)}</h1>${onde}</div></div>
+  ${boxRec}${isAdmin()?cursosHojeHtml():''}
   <div class="grid g2">
    <div class="box"><h2>${isAdmin()?'Seus atendimentos de hoje':'Agenda de hoje na Maison'}</h2>
     ${minhas.length?minhas.map(a=>`<div class="row"><span class="t">${esc(a.hora)}</span><div class="grow"><b>${esc(cli(a.cli).n)}</b><div class="small muted">${esc(sv(a.serv,a.unit).n)}${isAdmin()?'':' com '+esc(PEOPLE[a.pro]?.n)}</div></div>${anamVencida(cli(a.cli))?'<span class="tag warn">Anamnese</span>':''}<span class="tag ${a.st==='Atendido'?'ok':''}">${esc(a.st)}</span></div>`).join(''):'<p class="muted">Nenhum atendimento marcado para hoje. Cadastre uma cliente e crie o primeiro agendamento na aba Agenda.</p>'}
@@ -700,7 +700,11 @@ function novoAg(pre){
     const an=anamDe(c.id);
     if(c&&anamVencida(c))msgs.push(`${c.n} precisa preencher ou atualizar a anamnese antes deste procedimento.`);
     if(an&&an.flags&&an.flags.length)msgs.push(`Atenção na ficha: ${an.flags.join(', ')}.`);
-    navisos.innerHTML=msgs.map((m,i)=>i===0&&p==='tha'?`<div class="small muted" style="margin-bottom:8px">${esc(m)}</div>`:`<div class="alert">${esc(m)}</div>`).join('');
+    navisos.innerHTML=msgs.map((m,i)=>i===0&&p==='tha'?`<div class="small muted" style="margin-bottom:8px">${esc(m)}</div>`:`<div class="alert">${esc(m)}</div>`).join('')+(c&&anamVencida(c)?`<div style="margin:-2px 0 10px"><button type="button" class="btn sm" id="nlink">${c._p==='florenca'?'Preencher a ficha agora':'Enviar o link da ficha para a cliente'}</button></div>`:'');
+    const nl=document.getElementById('nlink');
+    if(nl)nl.onclick=()=>{const est={cli:nc.value,pro:np.value,data:nd.value,hora:nh.value,serv:ns.value};
+      // Cliente da Maison recebe o link no celular; o Florença não tem link (a ficha é preenchida na tela). Depois de enviar, volta ao agendamento.
+      if(c._p==='florenca')anamnese(c.id);else enviarLinkAnamnese(c.id,()=>novoAg(est))};
     nsave.disabled=!ok;return u};
   [nc,np,nd,nh].forEach(e=>e.onchange=check);check();
   if(pre.serv&&[...ns.options].some(o=>o.value===pre.serv)){ns.value=pre.serv;check()}
@@ -866,7 +870,7 @@ const LINK_VALE_DIAS=7;
 // Link curto /f/CÓDIGO (precisa do vercel.json). Se um dia o link curto falhar, é só trocar para false.
 const LINK_CURTO=true;
 function novoToken(){const b=crypto.getRandomValues(new Uint8Array(16));return btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
-async function enviarLinkAnamnese(cid){const c=cli(cid);
+async function enviarLinkAnamnese(cid,voltar){const c=cli(cid);
   // Reaproveita o link de quem ainda não usou e não venceu; senão cria um novo.
   let token=Object.entries(C.mConv||{}).find(([t,v])=>v.cli===cid&&!v.usado&&v.exp>Date.now())?.[0];
   // O que já está no cadastro vai junto no convite, para a cliente não digitar de novo. Os serviços listados são os das duas unidades.
@@ -879,11 +883,11 @@ async function enviarLinkAnamnese(cid){const c=cli(cid);
   const msg=`Oi, ${c.n.split(' ')[0]}! Para agilizar o seu atendimento na Maison Beauty, preencha a sua ficha de anamnese pelo celular, é rapidinho: ${link} (o link vale ${LINK_VALE_DIAS} dias). Obrigada!`;
   openDlg('Anamnese por link',`<p class="small muted">Envie este link para ${esc(c.n)}. Ela preenche e assina no próprio celular. Quando ela enviar, aparece em <b>Anamnese</b>, em "Recebidas pelo link", para a equipe conferir e integrar à ficha.</p>
   <label class="f">Mensagem pronta<textarea rows="5" id="lk-m">${esc(msg)}</textarea></label>
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="lk-w" ${c.tel?'':'disabled'}>Enviar pelo WhatsApp</button><button class="btn" id="lk-c">Copiar mensagem</button><button class="btn" id="lk-f">Fechar</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="lk-w" ${c.tel?'':'disabled'}>Enviar pelo WhatsApp</button><button class="btn" id="lk-c">Copiar mensagem</button><button class="btn" id="lk-f">${voltar?'Voltar ao agendamento':'Fechar'}</button></div>
   <p class="small muted" style="margin-top:10px">O link vale ${LINK_VALE_DIAS} dias e só pode ser usado uma vez.${c.tel?'':' Cadastre o telefone da cliente para enviar pelo WhatsApp.'}</p>`);
   document.getElementById('lk-w').onclick=()=>{window.open(zapLink(c.tel,document.getElementById('lk-m').value),'_blank','noopener')};
   document.getElementById('lk-c').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('lk-m').value);toast('Mensagem copiada')}catch(e){toast('Não foi possível copiar')}};
-  document.getElementById('lk-f').onclick=()=>ficha(cid)}
+  document.getElementById('lk-f').onclick=()=>voltar?voltar():ficha(cid)}
 const imgSegura=s=>/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(s||'')?s:'';
 // Foto enviada pela cliente: só JPEG em base64 e de tamanho razoável; qualquer outra coisa é ignorada.
 const fotoSegura=s=>typeof s==='string'&&s.length<700000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(s)?s:'';
@@ -1200,6 +1204,27 @@ function novaConta(){
      if(cadastrar)await DB.push('admin/fornecedores',{n:f,cat:'—',tel:'',unit:document.getElementById('qu').value})},'Conta adicionada');
    if(ok)closeDlg();else btn.disabled=false}}
 
+// ── Agenda dos cursos: quantas alunas por dia e quais cursos estão rodando (dias seguidos, a partir da data inicial) ──
+const cursoDias=c=>c.data?[...Array(Math.max(1,c.dias||1))].map((_,i)=>iso(addD(new Date(c.data+'T12:00'),i))):[];
+function cursosPorDia(ate){const hoje=iso(TODAY),m={};
+  arr(C.cursos).filter(c=>c.status!=='Concluído').forEach(c=>{const ds=cursoDias(c);ds.forEach((d,i)=>{if(d>=hoje&&d<=ate)(m[d]=m[d]||[]).push({c,i:i+1,n:ds.length})})});return m}
+const cursoLinha=(x,btn)=>`<div class="row"><div class="avatar">${esc(x.c.aluna[0])}</div><div class="grow"><b>${esc(x.c.aluna)}</b><div class="small muted">${esc(x.c.tecnica)} · dia ${x.i} de ${x.n}</div></div><span class="tag ${x.c.status==='Confirmado'?'':'warn'}">${esc(x.c.status)}</span>${btn?`<button class="btn sm" data-ecu="${x.c.id}">Editar</button>`:''}</div>`;
+const nAlunas=n=>n===1?'1 aluna':n+' alunas';
+function cursosHojeHtml(){const hoje=iso(TODAY),amanha=iso(addD(TODAY,1)),m=cursosPorDia(amanha);
+  if(!m[hoje]&&!m[amanha])return '';
+  const bloco=(rot,d)=>m[d]?`<h3 style="margin:10px 0 2px">${rot} · ${nAlunas(m[d].length)}</h3>${m[d].map(x=>cursoLinha(x,false)).join('')}`:'';
+  return `<div class="box" style="margin-bottom:16px"><h2>Cursos</h2>${bloco('Hoje',hoje)}${bloco('Amanhã',amanha)}</div>`}
+function cursosAgendaHtml(){const hoje=iso(TODAY),ate=iso(addD(TODAY,60)),m=cursosPorDia(ate),dias=Object.keys(m).sort();
+  const ativos=arr(C.cursos).filter(c=>c.status!=='Concluído'),semData=ativos.filter(c=>!c.data);
+  const passou=ativos.filter(c=>c.data&&cursoDias(c).every(d=>d<hoje));
+  const n7=Object.entries(m).filter(([d])=>d<=iso(addD(TODAY,6))).reduce((a,[,v])=>a+v.length,0);
+  const dia=d=>{const x=new Date(d+'T12:00'),r=d===hoje?'Hoje':d===iso(addD(TODAY,1))?'Amanhã':x.toLocaleDateString('pt-BR',{weekday:'long'});return r.charAt(0).toUpperCase()+r.slice(1)+' · '+fd(d)};
+  return `<div class="box" style="margin-bottom:16px"><h2>Agenda dos cursos</h2>
+   <div class="grid g3" style="margin-bottom:6px"><div><div class="lbl">Hoje</div><div class="stat">${(m[hoje]||[]).length}</div></div><div><div class="lbl">Próximos 7 dias</div><div class="stat">${n7}</div></div><div><div class="lbl">Sem data ainda</div><div class="stat">${semData.length}</div></div></div>
+   ${passou.length?`<div class="alert" style="margin:10px 0">Já passou a data de ${passou.map(c=>esc(c.aluna)).join(', ')}. Abra o curso e marque como Concluído, ou ajuste a data.</div>`:''}
+   ${dias.length?dias.map(d=>`<h3 style="margin:14px 0 2px">${esc(dia(d))} · ${nAlunas(m[d].length)}</h3>${m[d].map(x=>cursoLinha(x,true)).join('')}`).join(''):'<p class="muted" style="margin:10px 0 0">Nenhuma aula marcada para os próximos 60 dias.</p>'}
+   ${semData.length?`<h3 style="margin:16px 0 2px">Aguardando data</h3>${semData.map(c=>`<div class="row"><div class="avatar">${esc(c.aluna[0])}</div><div class="grow"><b>${esc(c.aluna)}</b><div class="small muted">${esc(c.tecnica)} · ${c.dias} dia(s)</div></div><button class="btn sm" data-ecu="${c.id}">Marcar data</button></div>`).join('')}`:''}
+   <p class="small muted" style="margin:12px 0 0">Os dias de cada curso contam em sequência a partir da data inicial.</p></div>`}
 function vCursos(){
   const cs=arr(C.cursos);
   return `<div class="top"><div><h1>Cursos</h1><div class="sub">Aulas particulares no formato VIP: uma aluna por vez, em design de sobrancelhas, alongamento de cílios, lash lifting ou brow lamination.</div></div>
@@ -1209,6 +1234,7 @@ function vCursos(){
     <div><div class="lbl">Valor</div><div class="stat">${brl(1000)} <span class="small muted" style="font-weight:400">por dia</span></div></div>
     <div><div class="lbl">Pagamento</div><div class="stat" style="font-size:20px">4x no crédito</div></div></div>
    <p class="small muted" style="margin-top:10px">Parcelado em 4x no cartão de crédito, com os juros da maquininha.</p></div>
+  ${cursosAgendaHtml()}
   <div class="box">${cs.length?cs.map(c=>`<div class="row"><div class="avatar">${esc(c.aluna[0])}</div><div class="grow"><b>${esc(c.aluna)}</b><div class="small muted">${esc(c.tecnica)} · ${c.dias} dia(s) · ${c.data?fd(c.data,{day:'2-digit',month:'2-digit',year:'numeric'}):'Data a definir'} · ${brl(c.dias*1000)}</div></div><span class="tag ${c.status==='Concluído'?'ok':c.status==='Confirmado'?'':'warn'}">${esc(c.status)}</span><button class="btn sm" data-ecu="${c.id}">Editar</button></div>`).join(''):'<p class="muted">Nenhum curso agendado ainda — ainda sem data definida.</p>'}</div>`;
 }
 function novoCurso(){
