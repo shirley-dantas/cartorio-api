@@ -439,7 +439,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -473,7 +473,7 @@ function comecarLeituras(){
   pararLeituras();
   ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
   if(isAdmin()){
-    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');
+    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/pendentes','fPend');
     ouvir('financeiro/valores','valores');
     ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');ouvir('admin/instagram','instagram');
     // A carga inicial dos roteiros é idempotente: chaves fixas, só cria o que falta.
@@ -555,8 +555,8 @@ function vHoje(){
   const comFuturo=new Set(agendaAtiva().filter(a=>a.date>=t&&a.st!=='Atendido').map(a=>a.cli));
   const retornos=Object.values(ult).filter(h=>!comFuturo.has(h.cli)).map(h=>({h,dias:Math.round((TODAY-new Date(h.date+'T00:00'))/864e5),s:sv(h.serv,h.unit)})).filter(x=>x.s.ret&&x.dias>=x.s.ret).sort((a,b)=>b.dias-a.dias).slice(0,5);
   const onde=isAdmin()?`<div class="hero-unit"><i style="background:var(--${u})"></i>Hoje você atende no ${U[u].n}, ${U[u].s} (${U[u].hora})</div>`:`<div class="hero-unit"><i style="background:var(--mai)"></i>Maison Beauty, Itaquera (${U.mai.hora})</div>`;
-  const recebidas=arr(C.mPend).filter(x=>C.mConv[x.id]);
-  const boxRec=recebidas.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Fichas recebidas pelo link (${recebidas.length})</h2>${recebidas.map(x=>`<div class="row">${avatarHtml(cli(C.mConv[x.id].cli))}<div class="grow"><b>${esc(cli(C.mConv[x.id].cli).n)}</b><div class="small muted">Enviada em ${x.data?esc(fd(x.data,{day:'2-digit',month:'2-digit'})):''}</div></div><button class="btn sm" data-pend="${x.id}">Revisar e integrar</button></div>`).join('')}</div>`:'';
+  const recebidas=recebidasLink();
+  const boxRec=recebidas.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Fichas recebidas pelo link (${recebidas.length})</h2>${recebidas.map(x=>`<div class="row">${avatarHtml(cli(x._cv.cli))}<div class="grow"><b>${esc(cli(x._cv.cli).n)}</b><div class="small muted">Enviada em ${x.data?esc(fd(x.data,{day:'2-digit',month:'2-digit'})):''}</div></div><button class="btn sm" data-pend="${x.id}" data-pb="${x._b}">Revisar e integrar</button></div>`).join('')}</div>`:'';
   return `<div class="top"><div><h1>${saud}, ${esc(S.user.nome)}</h1>${onde}</div></div>
   ${boxRec}${isAdmin()?cursosHojeHtml():''}
   <div class="grid g2">
@@ -700,11 +700,11 @@ function novoAg(pre){
     const an=anamDe(c.id);
     if(c&&anamVencida(c))msgs.push(`${c.n} precisa preencher ou atualizar a anamnese antes deste procedimento.`);
     if(an&&an.flags&&an.flags.length)msgs.push(`Atenção na ficha: ${an.flags.join(', ')}.`);
-    navisos.innerHTML=msgs.map((m,i)=>i===0&&p==='tha'?`<div class="small muted" style="margin-bottom:8px">${esc(m)}</div>`:`<div class="alert">${esc(m)}</div>`).join('')+(c&&anamVencida(c)?`<div style="margin:-2px 0 10px"><button type="button" class="btn sm" id="nlink">${c._p==='florenca'?'Preencher a ficha agora':'Enviar o link da ficha para a cliente'}</button></div>`:'');
+    navisos.innerHTML=msgs.map((m,i)=>i===0&&p==='tha'?`<div class="small muted" style="margin-bottom:8px">${esc(m)}</div>`:`<div class="alert">${esc(m)}</div>`).join('')+(c&&anamVencida(c)?`<div style="margin:-2px 0 10px"><button type="button" class="btn sm" id="nlink">Enviar o link da ficha para a cliente</button></div>`:'');
     const nl=document.getElementById('nlink');
     if(nl)nl.onclick=()=>{const est={cli:nc.value,pro:np.value,data:nd.value,hora:nh.value,serv:ns.value};
       // Cliente da Maison recebe o link no celular; o Florença não tem link (a ficha é preenchida na tela). Depois de enviar, volta ao agendamento.
-      if(c._p==='florenca')anamnese(c.id);else enviarLinkAnamnese(c.id,()=>novoAg(est))};
+      enviarLinkAnamnese(c.id,()=>novoAg(est))};
     nsave.disabled=!ok;return u};
   [nc,np,nd,nh].forEach(e=>e.onchange=check);check();
   if(pre.serv&&[...ns.options].some(o=>o.value===pre.serv)){ns.value=pre.serv;check()}
@@ -761,7 +761,7 @@ function ficha(id){const c=cli(id),an=anamDe(id);
   ${an&&an.obs?`<p class="small">Detalhes de saúde: ${esc(an.obs)}</p>`:''}
   ${an&&an.emergencia?`<p class="small muted">Emergência: ${esc(an.emergencia)}</p>`:''}
   ${an&&an.assinatura?`<img alt="Assinatura" src="${esc(an.assinatura)}" style="max-width:220px;border:1px solid var(--line);border-radius:8px;background:#fff">`:''}
-  <div style="margin-top:8px"><button class="btn" id="anb">${an?'Atualizar anamnese':'Preencher anamnese'}</button>${c._p==='maison'?' <button class="btn" id="anl">Enviar anamnese por link</button>':''}</div>
+  <div style="margin-top:8px"><button class="btn" id="anb">${an?'Atualizar anamnese':'Preencher anamnese'}</button> <button class="btn" id="anl">Enviar anamnese por link</button></div>
   <h3 style="margin-top:20px">Fotos</h3><div id="fotos-box" class="small muted">Carregando…</div><div id="fotos-box-v"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" id="fadd-i">Foto inicial</button><button class="btn sm" id="fadd-a">Foto de acompanhamento</button></div>
   <h3 style="margin-top:20px">Últimos atendimentos</h3>
@@ -869,18 +869,21 @@ function abrirRegistro(aid,p,voltar){const h=histAll(true).find(x=>x.id===aid&&x
 const LINK_VALE_DIAS=7;
 // Link curto /f/CÓDIGO (precisa do vercel.json). Se um dia o link curto falhar, é só trocar para false.
 const LINK_CURTO=true;
+const baseDe=c=>c&&c._p==='florenca'?'florenca':'maison';
+// Fichas recebidas pelo link, das duas unidades (a da Florença só chega para a Tháriga).
+const recebidasLink=()=>[...arr(C.mPend).filter(x=>C.mConv[x.id]).map(x=>({...x,_b:'maison',_cv:C.mConv[x.id]})),...(isAdmin()?arr(C.fPend).filter(x=>C.fConv[x.id]).map(x=>({...x,_b:'florenca',_cv:C.fConv[x.id]})):[])];
 function novoToken(){const b=crypto.getRandomValues(new Uint8Array(16));return btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
-async function enviarLinkAnamnese(cid,voltar){const c=cli(cid);
+async function enviarLinkAnamnese(cid,voltar){const c=cli(cid),base=baseDe(c),convs=base==='florenca'?C.fConv:C.mConv,estudio=base==='florenca'?'no Estúdio Florença':'na Maison Beauty';
   // Reaproveita o link de quem ainda não usou e não venceu; senão cria um novo.
-  let token=Object.entries(C.mConv||{}).find(([t,v])=>v.cli===cid&&!v.usado&&v.exp>Date.now())?.[0];
+  let token=Object.entries(convs||{}).find(([t,v])=>v.cli===cid&&!v.usado&&v.exp>Date.now())?.[0];
   // O que já está no cadastro vai junto no convite, para a cliente não digitar de novo. Os serviços listados são os das duas unidades.
   const dados={nasc:c.nasc||'',niver:c.niver||'',tel:c.tel||'',email:emailOk(c.email)?c.email:'',servs:servicosFicha()};
   if(!token){token=novoToken();
-    const ok=await grava(()=>DB.set('maison/convites/'+token,{cli:cid,nome:c.n.split(' ')[0],exp:Date.now()+LINK_VALE_DIAS*864e5,usado:false,por:S.user.nome,em:iso(TODAY),...dados}));
+    const ok=await grava(()=>DB.set(base+'/convites/'+token,{cli:cid,nome:c.n.split(' ')[0],exp:Date.now()+LINK_VALE_DIAS*864e5,usado:false,por:S.user.nome,em:iso(TODAY),...dados}));
     if(!ok)return}
-  else await grava(()=>DB.upd('maison/convites/'+token,dados));
+  else await grava(()=>DB.upd(base+'/convites/'+token,dados));
   const link=LINK_CURTO?location.origin+'/f/'+token:new URL('anamnese.html',location.href).href.replace(/[?#].*$/,'')+'?t='+token;
-  const msg=`Oi, ${c.n.split(' ')[0]}! Para agilizar o seu atendimento na Maison Beauty, preencha a sua ficha de anamnese pelo celular, é rapidinho: ${link} (o link vale ${LINK_VALE_DIAS} dias). Obrigada!`;
+  const msg=`Oi, ${c.n.split(' ')[0]}! Para agilizar o seu atendimento ${estudio}, preencha a sua ficha de anamnese pelo celular, é rapidinho: ${link} (o link vale ${LINK_VALE_DIAS} dias). Obrigada!`;
   openDlg('Anamnese por link',`<p class="small muted">Envie este link para ${esc(c.n)}. Ela preenche e assina no próprio celular. Quando ela enviar, aparece em <b>Anamnese</b>, em "Recebidas pelo link", para a equipe conferir e integrar à ficha.</p>
   <label class="f">Mensagem pronta<textarea rows="5" id="lk-m">${esc(msg)}</textarea></label>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="lk-w" ${c.tel?'':'disabled'}>Enviar pelo WhatsApp</button><button class="btn" id="lk-c">Copiar mensagem</button><button class="btn" id="lk-f">${voltar?'Voltar ao agendamento':'Fechar'}</button></div>
@@ -892,7 +895,7 @@ const imgSegura=s=>/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(s||'')?s:'';
 // Foto enviada pela cliente: só JPEG em base64 e de tamanho razoável; qualquer outra coisa é ignorada.
 const fotoSegura=s=>typeof s==='string'&&s.length<700000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(s)?s:'';
 const fotosDoLink=x=>x&&x.fotoOk===true&&x.fotos?Object.entries(x.fotos).map(([k,v])=>[k,fotoSegura(v)]).filter(f=>f[1]).slice(0,3):[];
-function revisarPendente(token){const x=C.mPend[token],cv=C.mConv[token];if(!x||!cv)return;const c=cli(cv.cli);
+function revisarPendente(token,base){base=base||'maison';const fl=base==='florenca',x=(fl?C.fPend:C.mPend)[token],cv=(fl?C.fConv:C.mConv)[token];if(!x||!cv)return;const c=cli(cv.cli);
   const sims=PERGUNTAS.filter((q,i)=>x.respostas&&x.respostas['q'+i]==='sim').map(q=>q[1]);
   openDlg('Anamnese recebida',`<p><b>${esc(c.n)}</b><br><span class="muted">Enviada pela cliente em ${x.data?fd(x.data,{day:'2-digit',month:'2-digit',year:'numeric'}):''}${x.nome&&x.nome!==c.n?` · assinou como "${esc(x.nome)}"`:''}</span></p>
   ${sims.length?`<div class="alert">Respostas "sim": ${esc(sims.join(', '))}</div>`:'<p class="small">Todas as respostas de saúde foram "não".</p>'}
@@ -904,25 +907,25 @@ function revisarPendente(token){const x=C.mPend[token],cv=C.mConv[token];if(!x||
   ${imgSegura(x.assinatura)?`<img alt="Assinatura" src="${imgSegura(x.assinatura)}" style="max-width:220px;border:1px solid var(--line);border-radius:8px;background:#fff">`:''}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn p" id="pd-i">Integrar à ficha</button><button class="btn" id="pd-d" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Descartar e pedir de novo</button></div>`);
   document.getElementById('pd-i').onclick=async()=>{const btn=document.getElementById('pd-i');btn.disabled=true;
-    const reg={data:x.data||iso(TODAY),nascimento:x.nascimento||'',telefone:x.telefone||'',emergencia:x.emergencia||'',responsavel:x.responsavel||'',unidade:'mai',servicos:x.servicos||[],outro:x.outro||'',area:x.area||'',respostas:x.respostas||{},flags:sims,obs:x.obs||'',fotoOk:!!x.fotoOk,assinatura:imgSegura(x.assinatura),por:'Cliente, pelo link',integradoPor:S.user.nome};
+    const reg={data:x.data||iso(TODAY),nascimento:x.nascimento||'',telefone:x.telefone||'',emergencia:x.emergencia||'',responsavel:x.responsavel||'',unidade:fl?'flo':'mai',servicos:x.servicos||[],outro:x.outro||'',area:x.area||'',respostas:x.respostas||{},flags:sims,obs:x.obs||'',fotoOk:!!x.fotoOk,assinatura:imgSegura(x.assinatura),por:'Cliente, pelo link',integradoPor:S.user.nome};
     const ok=await grava(async()=>{
-      await DB.set('maison/anamneses/'+cv.cli,reg);
+      await DB.set(base+'/anamneses/'+cv.cli,reg);
       const cad={};if(x.nascimento&&!c.niver)cad.niver=x.nascimento.slice(5,10);if(x.nascimento&&!c.nasc)cad.nasc=x.nascimento;if(x.telefone&&!c.tel)cad.tel=x.telefone;if(emailOk(x.email)&&!c.email)cad.email=x.email;
-      if(Object.keys(cad).length)await DB.upd('maison/clientes/'+cv.cli,cad);
+      if(Object.keys(cad).length)await DB.upd(base+'/clientes/'+cv.cli,cad);
       // Fotos marcadas viram "foto inicial" do cadastro. Chave fixa por link: se der erro no meio e a equipe tentar de novo, não duplica.
       let avatarFeito=false;const marcadas=new Set([...document.querySelectorAll('[data-pf]:checked')].map(i=>i.dataset.pf));
       for(const [k,img] of fotosDoLink(x)){if(!marcadas.has(k))continue;
         const chave='link'+k+'_'+token.slice(0,8);
-        if(await DB.get('maison/fotos/'+cv.cli+'/'+chave))continue;
-        await DB.set('maison/fotos/'+cv.cli+'/'+chave,{tipo:'inicial',data:x.data||iso(TODAY),img,por:'Cliente, pelo link'});
-        if(!c.avatar&&!avatarFeito){avatarFeito=true;try{await DB.upd('maison/clientes/'+cv.cli,{avatar:await miniatura(img)})}catch(e){guardaErro(e.message)}}}
+        if(await DB.get(base+'/fotos/'+cv.cli+'/'+chave))continue;
+        await DB.set(base+'/fotos/'+cv.cli+'/'+chave,{tipo:'inicial',data:x.data||iso(TODAY),img,por:'Cliente, pelo link'});
+        if(!c.avatar&&!avatarFeito){avatarFeito=true;try{await DB.upd(base+'/clientes/'+cv.cli,{avatar:await miniatura(img)})}catch(e){guardaErro(e.message)}}}
       // O link só fecha depois de integrado: se fechasse antes, apagar o envio deixaria a cliente mandar de novo.
-      await DB.upd('maison/convites/'+token,{usado:true,integradoEm:iso(TODAY),integradoPor:S.user.nome});
-      await DB.del('maison/pendentes/'+token);
+      await DB.upd(base+'/convites/'+token,{usado:true,integradoEm:iso(TODAY),integradoPor:S.user.nome});
+      await DB.del(base+'/pendentes/'+token);
     },'Anamnese integrada à ficha');
     if(ok)closeDlg();else btn.disabled=false};
   document.getElementById('pd-d').onclick=async()=>{if(!confirm('Descartar esta anamnese? O link volta a valer para ela preencher de novo.'))return;
-    if(await grava(()=>DB.del('maison/pendentes/'+token),'Anamnese descartada'))closeDlg()}}
+    if(await grava(()=>DB.del(base+'/pendentes/'+token),'Anamnese descartada'))closeDlg()}}
 function editarCliente(id){const c=cli(id);
   openDlg('Editar '+esc(c.n),`<label class="f">Nome completo<input id="en" value="${esc(c.n)}"></label>
   <label class="f">Telefone<input id="et" value="${esc(c.tel)}" inputmode="tel"></label>
@@ -1318,7 +1321,7 @@ function vAnamnese(){
    <div class="box"><div class="lbl">Em dia</div><div class="stat" style="color:var(--ok)">${ok.length}</div></div>
    <div class="box"><div class="lbl">Com alerta de saúde</div><div class="stat">${em.length}</div></div>
   </div>
-  ${(()=>{const rec=arr(C.mPend).filter(x=>C.mConv[x.id]);return rec.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Recebidas pelo link (${rec.length})</h2>${rec.map(x=>`<div class="row">${avatarHtml(cli(C.mConv[x.id].cli))}<div class="grow"><b>${esc(cli(C.mConv[x.id].cli).n)}</b><div class="small muted">Enviada em ${x.data?fd(x.data,{day:'2-digit',month:'2-digit',year:'numeric'}):''}</div></div><button class="btn sm" data-pend="${x.id}">Revisar e integrar</button></div>`).join('')}</div>`:''})()}
+  ${(()=>{const rec=recebidasLink();return rec.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Recebidas pelo link (${rec.length})</h2>${rec.map(x=>`<div class="row">${avatarHtml(cli(x._cv.cli))}<div class="grow"><b>${esc(cli(x._cv.cli).n)}</b><div class="small muted">Enviada em ${x.data?fd(x.data,{day:'2-digit',month:'2-digit',year:'numeric'}):''}</div></div><button class="btn sm" data-pend="${x.id}" data-pb="${x._b}">Revisar e integrar</button></div>`).join('')}</div>`:''})()}
   <input class="search" id="q" placeholder="Buscar cliente pelo nome" value="${esc(S.q)}">
   <div class="box">
    ${pend.length?`<h3>Pendentes ou vencidas</h3>${pend.map(rowAnam).join('')}`:''}
@@ -1468,7 +1471,7 @@ function render(){
   main.querySelectorAll('[data-igcopy]').forEach(b=>b.onclick=()=>igCopiar(b.dataset.igcopy,b));
   main.querySelectorAll('[data-igsave]').forEach(b=>b.onclick=()=>igSalvar(b.dataset.igsave,b));
   main.querySelectorAll('[data-igpost]').forEach(b=>b.onclick=()=>igPostado(b.dataset.igpost));
-  main.querySelectorAll('[data-pend]').forEach(b=>b.onclick=()=>revisarPendente(b.dataset.pend));
+  main.querySelectorAll('[data-pend]').forEach(b=>b.onclick=()=>revisarPendente(b.dataset.pend,b.dataset.pb));
   const nv=document.getElementById('novo');if(nv)nv.onclick=novoAg;
   const q=document.getElementById('q');if(q){q.oninput=e=>{S.q=e.target.value;const pos=e.target.selectionStart;render();const n=document.getElementById('q');n.focus();n.setSelectionRange(pos,pos)}}
   const rp=document.getElementById('rep');if(rp)rp.onchange=e=>grava(()=>DB.set('admin/config/repasse',Math.min(100,Math.max(0,+e.target.value||0))));

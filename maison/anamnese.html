@@ -98,16 +98,17 @@ async function iniciar(){
   let db;
   try{const app=initializeApp(firebaseConfig);await signInAnonymously(getAuth(app));db=getDatabase(app)}
   catch(e){return aviso('Sem conexão','Confira a internet e abra o link de novo.')}
-  let conv;
-  try{conv=(await get(ref(db,'maison/convites/'+token))).val()}
+  let conv,base='maison';
+  try{conv=(await get(ref(db,'maison/convites/'+token))).val();
+    if(!conv){conv=(await get(ref(db,'florenca/convites/'+token))).val();if(conv)base='florenca'}}
   catch(e){return aviso('Link inválido','Peça um novo link à Maison Beauty.')}
   if(!conv)return aviso('Link inválido','Peça um novo link à Maison Beauty.');
   if(conv.usado)return aviso('Ficha já enviada','Esta ficha já foi recebida. Obrigada!');
   if(conv.exp<Date.now())return aviso('Link vencido','Este link passou da validade. Peça um novo à Maison Beauty.');
   let jaEnviou=null;
-  formulario(db,conv);
+  formulario(db,conv,base);
 }
-function formulario(db,conv){
+function formulario(db,conv,base){
   const SERVICOS=Array.isArray(conv.servs)&&conv.servs.length?conv.servs.filter(x=>typeof x==='string').slice(0,60):SERVICOS_BASE;
   tela.innerHTML=`<h1>Olá, ${esc(conv.nome||'')}!</h1><div class="sub">Ficha de anamnese · preencha com calma, leva uns 3 minutos.<br>Ficha individual e confidencial.</div>
   <div class="box">
@@ -186,7 +187,7 @@ function formulario(db,conv){
       flags:PERGUNTAS.filter((q,i)=>respostas['q'+i]==='sim').map(q=>q[1]),obs:v('obs'),fotoOk:foto.value==='sim',
       assinatura:out.toDataURL('image/png'),data:iso(new Date()),enviadoEm:Date.now()};
     if(foto.value==='sim'&&fotos.length)reg.fotos=Object.fromEntries(fotos.map((f,i)=>['f'+i,f]));
-    try{await set(ref(db,'maison/pendentes/'+token),reg);aviso('Ficha enviada! ✓','Obrigada, '+esc(conv.nome||'')+'. A Maison Beauty já recebeu. Pode fechar esta página.')}
+    try{await set(ref(db,base+'/pendentes/'+token),reg);aviso('Ficha enviada! ✓','Obrigada, '+esc(conv.nome||'')+'. '+(base==='florenca'?'O Estúdio Florença':'A Maison Beauty')+' já recebeu. Pode fechar esta página.')}
     catch(e){btn.disabled=false;btn.textContent='Enviar minha ficha';erro('Não foi possível enviar. Confira a internet e toque de novo. Se continuar, peça um novo link.')}
   };
 }
