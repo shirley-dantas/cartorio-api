@@ -1,0 +1,1314 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Caderno da Rafaela</title>
+<meta name="theme-color" content="#F2EBDC">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Caderno da Rafaela — palha, bege, branco e preto (os post-its guardam as cores próprias deles).
+   Abas: Início (mural de post-its) · Acervo · Meus erros e dúvidas · Estatísticas · Macetes.
+   O Acervo é o painel de vestibulares de antes, inteiro; o resto nasce em cima dos mesmos dados. */
+:root{
+  color-scheme:light;
+  --bg:#F2EBDC; --panel:#FFFFFF; --ink:#111111; --mut:#5F584B; --line:#DDD2BC; --accent:#111111; --accent-ink:#FFFFFF;
+  --soft:#EBE2CD; --palha:#EBD9A0; --areia:#E9DFC8; --ok:#3F5E34; --bad:#9B3A2B; --warn:#7A5A10;
+  --f-display:"Fraunces",Georgia,serif; --f-body:"Source Sans 3",system-ui,sans-serif; --f-mao:"Caveat","Segoe Print",cursive;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--f-body);padding-inline:16px;padding-block:0 56px}
+body.trava{overflow:hidden}
+.wrap{max-width:1040px;margin:0 auto}
+header{padding-block:14px 0;display:grid;gap:10px}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+h1{font:700 27px/1.1 var(--f-display);margin:0;letter-spacing:-.01em}
+.brand small{color:var(--mut);font-size:14px;letter-spacing:.04em}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 8px;margin-inline:-2px}
+.tabs-fixa{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin-inline:-16px;padding:6px 16px 8px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 15px;border-radius:999px;font:600 14px var(--f-body);cursor:pointer;min-height:40px}
+.tab[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.search{display:flex;gap:8px;margin-top:6px}
+.search input{flex:1;min-width:0;font:400 17px var(--f-body);padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink)}
+button,input,select,textarea{font-family:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+h2{font:700 13px var(--f-body);text-transform:uppercase;letter-spacing:.09em;color:var(--mut);margin:0 0 10px}
+h3.t{font:700 20px var(--f-display);margin:0 0 6px}
+.bancas{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.banca{border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:16px;text-align:left;cursor:pointer;display:grid;gap:2px;border-left:8px solid var(--c)}
+.banca b{font:700 22px var(--f-display)}
+.banca span{color:var(--mut);font-size:14px}
+.banca[aria-pressed=true]{background:var(--soft);border-color:var(--c)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 14px;border-radius:10px;font:600 15px var(--f-body);cursor:pointer;min-height:44px}
+.chip small{color:var(--mut);font-weight:600;margin-left:6px}
+.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip[aria-pressed=true] small{color:inherit;opacity:.85}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.filters>div{min-width:0}
+select,.num,input.txt,textarea.txt{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#FFFFFF;color:var(--ink);font-size:16px}
+textarea.txt{resize:vertical;min-height:84px;line-height:1.4}
+.result{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.count{font:700 28px var(--f-display)}
+.count small{display:block;font:400 14px var(--f-body);color:var(--mut)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:0;border-radius:12px;padding:13px 18px;font:700 15px var(--f-body);letter-spacing:.03em;cursor:pointer;background:var(--ink);color:var(--bg);min-height:48px}
+.btn.sec{background:var(--soft);color:var(--ink)}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}
+.btn.mini{min-height:38px;padding:8px 13px;font-size:14px;letter-spacing:0;border-radius:10px}
+.btn.fant{background:transparent;color:var(--mut);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hint{color:var(--mut);font-size:14px;margin:8px 0 0}
+.nota{background:var(--palha);border-radius:12px;padding:10px 14px;font-size:14.5px;margin:10px 0}
+.nota.erro{background:#EFCFC4}
+.list{display:grid;gap:12px}
+.q{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.qh{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.qh b{font-family:var(--f-display);font-size:16px}
+.qf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);background:#F6F0E2}
+.tag{background:var(--soft);border-radius:6px;padding:2px 8px;font-size:13px;color:var(--ink)}
+.q .img{background:#fff;padding:8px;min-height:80px;display:grid;place-items:center;overflow-x:auto}
+.q img{display:block;max-width:100%;height:auto}
+.mut{color:var(--mut)}
+.modal{position:fixed;inset:0;background:rgba(17,17,17,.55);z-index:20;display:grid;place-items:center;padding:16px}
+.dlg{background:var(--panel);color:var(--ink);border-radius:16px;max-width:760px;width:100%;max-height:calc(100% - 8px);overflow:auto;padding:20px}
+.dlg h3{font:700 22px var(--f-display);margin:0 0 4px}
+.gab{columns:4 120px;column-gap:20px;margin:16px 0;font:600 18px var(--f-body);font-variant-numeric:tabular-nums}
+.gab div{break-inside:avoid;padding:3px 0}
+.row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+.prog{height:8px;background:var(--soft);border-radius:99px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent);width:0}
+.alts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.alt{width:60px;height:56px;border-radius:12px;border:2px solid var(--line);background:var(--panel);color:var(--ink);font:700 20px var(--f-display);cursor:pointer}
+.alts.peq .alt{width:48px;height:44px;font-size:17px}
+.alt[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.score{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
+.score div{background:var(--soft);border-radius:12px;padding:12px}
+.score b{display:block;font:700 30px var(--f-display);font-variant-numeric:tabular-nums}
+.bar{display:grid;grid-template-columns:minmax(90px,170px) 1fr 44px;gap:10px;align-items:center;margin:5px 0;font-size:15px}
+.bar i{display:block;height:14px;border-radius:4px;background:var(--c,var(--accent))}
+.bar span:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+.tw{overflow-x:auto}
+.empty{padding:28px;text-align:center;color:var(--mut)}
+.pgbar{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);border-radius:12px;padding:12px 16px;z-index:30;font-weight:600}
+.pgbar .prog{margin-top:8px;background:rgba(255,255,255,.25)}
+.pgbar .prog i{background:var(--bg)}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:520px;margin:0 auto;background:var(--ink);color:var(--bg);border-radius:12px;padding:12px 16px;z-index:40;font-weight:600;text-align:center}
+@media (prefers-reduced-motion:no-preference){.prog i{transition:width .2s}}
+
+/* ---------- Início: saudação e mural ---------- */
+.ola{font:700 30px/1.15 var(--f-display);margin:18px 0 2px}
+.ola-sub{color:var(--mut);margin:0}
+.resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.resumo div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.resumo b{display:block;font:700 28px var(--f-display);font-variant-numeric:tabular-nums}
+.resumo span{color:var(--mut);font-size:14px}
+.rev{display:grid;gap:8px}
+.rev-i{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#FFFFFF;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.rev-i b{font-weight:700}
+.mural-wrap{background:
+  radial-gradient(circle at 20% 10%,rgba(255,255,255,.35),transparent 55%),
+  var(--areia);border-radius:18px;padding:18px 14px 12px;margin-top:14px;border:1px solid #D6C9A8}
+.mural-wrap h2{color:#5B5238}
+.mural{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:26px 18px;padding:12px 4px 8px}
+.postit{--rot:0deg;--pc:#F2DF9B;position:relative;min-height:176px;padding:24px 14px 10px;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,0) 30%),var(--pc);color:#3A2E24;
+  transform:rotate(var(--rot));border-radius:2px 2px 16px 2px;
+  box-shadow:0 1px 1px rgba(60,40,20,.18),0 12px 14px -9px rgba(60,40,20,.42)}
+.postit::before{content:"";position:absolute;top:-10px;left:50%;width:62px;height:20px;margin-left:-31px;background:rgba(255,252,240,.55);
+  box-shadow:0 1px 2px rgba(60,40,20,.14);transform:rotate(-2.5deg)}
+@media (prefers-reduced-motion:no-preference){.postit{transition:transform .15s,box-shadow .15s}.postit:hover,.postit:focus-within{transform:rotate(0) translateY(-3px) scale(1.02)}}
+.postit.c1{--pc:#F2DF9B}.postit.c2{--pc:#E7CFA9}.postit.c3{--pc:#E9C7AA}.postit.c4{--pc:#F1E8D0}
+.postit textarea{flex:1;min-height:100px;border:0;background:transparent;resize:none;font:700 23px/1.12 var(--f-mao);color:inherit;padding:0;outline:0}
+.postit.feito textarea{text-decoration:line-through;opacity:.5}
+.pf{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px}
+.cores{display:flex;gap:7px}
+.cor{width:22px;height:22px;border-radius:50%;border:2px solid rgba(60,40,20,.28);cursor:pointer;padding:0}
+.cor[aria-pressed=true]{border-color:#3A2E24}
+.cor.c1{background:#F2DF9B}.cor.c2{background:#E7CFA9}.cor.c3{background:#E9C7AA}.cor.c4{background:#F1E8D0}
+.pf-b{display:flex;gap:2px}
+.pf-b button{border:0;background:transparent;cursor:pointer;font-size:18px;min-width:36px;min-height:36px;border-radius:8px;color:#3A2E24}
+.pf-b button:hover{background:rgba(60,40,20,.12)}
+.postit.novo{background:transparent;box-shadow:none;border:2px dashed #A98B5E;color:#6B5439;border-radius:6px;cursor:pointer;
+  align-items:center;justify-content:center;font:700 24px var(--f-mao);transform:rotate(0)}
+.postit.novo::before{display:none}
+.postit.novo span{display:block;font-size:24px}
+.postit.novo b{font:400 38px/1 var(--f-body)}
+
+/* ---------- Erros e dúvidas ---------- */
+.barra{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+.barra label{display:grid;gap:4px;font-size:13px;color:var(--mut);font-weight:600}
+.reg{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.reg-h{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.pill{border-radius:999px;padding:3px 10px;font-size:13px;font-weight:700;background:var(--soft)}
+.pill.erro{background:#EFCFC4;color:#6E2A1C}
+.pill.duvida{background:#E3DDB0;color:#5A5012}
+.pill.ok{background:#D5E0C4;color:#33501F}
+.pill.pend{background:var(--palha)}
+.reg p{margin:8px 0 0;white-space:pre-wrap}
+.reg .rot{font-size:13px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:10px 0 0}
+.fotos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.foto{position:relative;width:84px;height:84px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--soft);padding:0;cursor:zoom-in}
+.foto img{width:100%;height:100%;object-fit:cover;display:block}
+.foto .k{position:absolute;left:0;right:0;bottom:0;background:rgba(48,34,20,.7);color:#fff;font-size:10px;text-align:center;padding:1px}
+.foto .x{position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(48,34,20,.8);color:#fff;cursor:pointer;font-size:14px;line-height:1}
+.reg-a{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.corr{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+.corr h4{font:700 15px var(--f-display);margin:12px 0 2px}
+.corr ol,.corr ul{margin:4px 0 0;padding-left:22px}
+.corr li{margin:3px 0;white-space:pre-wrap}
+.corr .fixar{background:var(--palha);border-radius:10px;padding:10px 12px;font-weight:600;white-space:pre-wrap}
+.corr select{width:auto;padding:6px 8px;font-size:14px}
+.rodando{display:flex;align-items:center;gap:10px;margin-top:12px;color:var(--mut)}
+.spin{width:18px;height:18px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){.spin{animation:gira 1s linear infinite}}
+@keyframes gira{to{transform:rotate(360deg)}}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;border:2px solid var(--line);background:var(--panel);color:var(--ink);padding:10px;border-radius:12px;font:700 15px var(--f-body);cursor:pointer;min-height:46px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.fm{display:grid;gap:14px}
+.fm label.l,.fm .l{display:grid;gap:4px;font-weight:700;font-size:14px}
+.fm .l small{font-weight:400;color:var(--mut)}
+.fm2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.achados{display:grid;gap:6px;margin-top:6px}
+.achado{text-align:left;border:1px solid var(--line);background:#FFFFFF;color:var(--ink);border-radius:10px;padding:9px 12px;cursor:pointer;font-size:14.5px}
+.achado:hover{background:var(--soft)}
+.qsel{border:2px solid var(--accent);border-radius:12px;overflow:hidden;background:#fff}
+.qsel .qh{background:var(--panel)}
+.qsel img{display:block;max-width:100%;max-height:260px;margin:6px auto}
+.upl{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.upl input{position:absolute;opacity:0;width:1px;height:1px}
+.upl:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+
+/* ---------- Estatísticas e macetes ---------- */
+.lead{font-size:15px;color:var(--mut);margin:-4px 0 10px}
+.dica{background:var(--panel);border:1px solid var(--line);border-left:8px solid var(--accent);border-radius:14px;padding:14px 16px}
+.dica h3{font:700 19px var(--f-display);margin:0}
+.dica .rot{font-size:13px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:12px 0 0}
+.dica p{margin:3px 0 0;white-space:pre-wrap}
+.dica ul{margin:4px 0 0;padding-left:0;list-style:none}
+.dica li{padding-left:26px;position:relative;margin:4px 0}
+.dica li::before{content:"☐";position:absolute;left:0;color:var(--accent)}
+.macete{background:var(--palha);border-radius:10px;padding:10px 12px;font-weight:600;margin-top:4px;white-space:pre-wrap}
+.sep{height:1px;background:var(--line);margin:22px 0 4px;border:0}
+
+/* ---------- quadro da caneta ---------- */
+.quadro{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;margin-top:6px}
+.quadro canvas{display:block;width:100%;touch-action:none;cursor:crosshair;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.q-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px;background:var(--panel);border-bottom:1px solid var(--line)}
+.q-bar .sw{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);cursor:pointer;padding:0}
+.q-bar .sw[aria-pressed=true]{border-color:var(--ink)}
+.q-bar .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.q-bar .fim{margin-left:auto}
+@media (max-width:560px){
+  .mural{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:26px 16px}
+  .postit textarea{font-size:22px}
+  .count{font-size:24px}
+  .bar{grid-template-columns:minmax(80px,120px) 1fr 36px}
+  .ola{font-size:26px}
+  .dlg{padding:16px;border-radius:14px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><h1>Caderno da Rafaela</h1><small>estudos · vestibulares</small></div>
+</header>
+  <div class="tabs-fixa"><nav class="tabs" role="tablist" aria-label="Seções do caderno">
+    <button class="tab" role="tab" id="tab-inicio" data-aba="inicio" aria-selected="true">Início</button>
+    <button class="tab" role="tab" id="tab-acervo" data-aba="acervo" aria-selected="false">Acervo</button>
+    <button class="tab" role="tab" id="tab-erros" data-aba="erros" aria-selected="false">Meus erros e dúvidas</button>
+    <button class="tab" role="tab" id="tab-stats" data-aba="stats" aria-selected="false">Estatísticas</button>
+    <button class="tab" role="tab" id="tab-dicas" data-aba="dicas" aria-selected="false">Macetes</button>
+  </nav></div>
+  <div class="search" hidden><input id="busca" type="search" placeholder="Buscar: FUVEST 2022 química · estequiometria · hidrostática" autocomplete="off" aria-label="Buscar questões"></div>
+
+<main id="v-inicio"></main>
+
+<main id="v-acervo" hidden>
+  <div class="nota" id="nota-acervo" hidden></div>
+  <section class="card" id="s-minhas"><div class="row"><div><h2 style="margin:0">Minhas questões</h2><p class="hint" style="margin:2px 0 0" id="minhas-n"></p></div>
+    <button class="btn sec" id="b-addq">＋ ADICIONAR QUESTÃO</button></div></section>
+  <section class="card"><h2>1 · Banca</h2><div class="bancas" id="bancas"></div></section>
+  <section class="card" id="s-mat" hidden><h2>2 · Matéria</h2><div class="chips" id="materias"></div></section>
+  <section class="card" id="s-fil" hidden><h2>3 · Filtros</h2>
+    <div class="filters">
+      <div style="grid-column:1/-1"><h2>Ano (pode marcar vários)</h2><div class="chips" id="anos"></div></div>
+      <div style="grid-column:1/-1"><h2>Edição da prova</h2><div class="chips" id="provas"></div></div>
+      <div><h2>Subtema</h2><select id="subtema" aria-label="Subtema"></select></div>
+      <div><h2>Número da questão</h2><input class="num" id="nums" inputmode="text" placeholder="ex.: 1-10, 15" aria-label="Número da questão"></div>
+    </div></section>
+  <section class="card" id="s-res"><div class="result">
+      <div class="count"><span id="n">0</span> <span id="nlabel">questões encontradas</span><small id="escopo"></small></div>
+      <div class="actions"><button class="btn pri" id="b-pdf">GERAR PDF</button><button class="btn sec" id="b-online">RESOLVER ONLINE</button><button class="btn sec" id="b-gab">VER GABARITO</button></div>
+    </div><p class="hint" id="aviso"></p></section>
+  <section style="margin-top:14px"><div class="list" id="lista"></div><div style="text-align:center;margin-top:14px"><button class="btn sec" id="mais" hidden>Mostrar mais</button></div></section>
+</main>
+
+<main id="v-erros" hidden></main>
+<main id="v-stats" hidden></main>
+<main id="v-dicas" hidden></main>
+</div>
+<div id="overlay"></div>
+
+<script>
+(function(){
+"use strict";
+const DIAC=new RegExp("[\\u0300-\\u036f]","g");
+const $=s=>document.querySelector(s);
+const norm=s=>(s||"").toString().normalize("NFD").replace(DIAC,"").toLowerCase().trim();
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const MAT_ORDER=["Matemática","Física","Química","Biologia","Português","Literatura","História","Geografia","Filosofia","Sociologia","Inglês","Espanhol","Artes","Educação Física"];
+const COR_BANCA={enem:"#111111",fuvest:"#B39A4A",unicamp:"#8C7F66"};
+const TIPOS_ERRO=["conceito","interpretação","cálculo","atenção","método","memorização","tempo/chute"];
+const NOME_TIPO_ERRO={"conceito":"Conceito","interpretação":"Interpretação","cálculo":"Cálculo","atenção":"Atenção","método":"Método","memorização":"Memorização","tempo/chute":"Tempo / chute","indefinido":"Ainda não sei"};
+let D={bancas:[],fontes:[],q:[]}, BANCA={}, FONTE={}, QID={}, ACERVO_OK=false;
+const S={banca:null,materia:null,anos:new Set(),provas:new Set(),subtema:"",nums:"",q:"",shown:30};
+let ABA="inicio";
+
+/* ============ guardar no aparelho ============ */
+// Tudo o que é dela mora neste aparelho: texto no localStorage, fotos no IndexedDB.
+function lerLS(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function gravarLS(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){aviso("Não consegui guardar neste aparelho. Faça uma cópia de segurança (aba Início).");return false}}
+let REG=lerLS("rafa.registros",[]), TENT=lerLS("rafa.tentativas",[]), LEMB=lerLS("rafa.lembretes",[]), DICAS=lerLS("rafa.dicas",null);
+const salvarReg=()=>gravarLS("rafa.registros",REG), salvarTent=()=>gravarLS("rafa.tentativas",TENT), salvarLemb=()=>gravarLS("rafa.lembretes",LEMB), salvarDicas=()=>gravarLS("rafa.dicas",DICAS);
+
+let _idb=null;
+function idb(){return _idb||(_idb=new Promise((ok,ko)=>{
+  if(!window.indexedDB)return ko(new Error("sem IndexedDB"));
+  const r=indexedDB.open("caderno-rafaela",1);
+  r.onupgradeneeded=()=>r.result.createObjectStore("fotos");
+  r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)}))}
+async function fotoPut(id,blob){const db=await idb();return new Promise((ok,ko)=>{const t=db.transaction("fotos","readwrite");t.objectStore("fotos").put(blob,id);t.oncomplete=()=>ok();t.onerror=()=>ko(t.error)})}
+async function fotoGet(id){const db=await idb();return new Promise((ok,ko)=>{const t=db.transaction("fotos").objectStore("fotos").get(id);t.onsuccess=()=>ok(t.result||null);t.onerror=()=>ko(t.error)})}
+async function fotoDel(id){try{const db=await idb();await new Promise(ok=>{const t=db.transaction("fotos","readwrite");t.objectStore("fotos").delete(id);t.oncomplete=()=>ok();t.onerror=()=>ok()})}catch(e){}}
+const FURL={};
+async function urlFoto(id){if(FURL[id])return FURL[id];try{const b=await fotoGet(id);if(!b)return null;return FURL[id]=URL.createObjectURL(b)}catch(e){return null}}
+
+/* ============ apoio ============ */
+let _toast=null;
+function aviso(msg){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");document.body.appendChild(t)}
+  t.textContent=msg;clearTimeout(_toast);_toast=setTimeout(()=>t.remove(),4200)}
+function modal(html,fixo){const o=$("#overlay");document.body.classList.add("trava");
+  o.innerHTML=`<div class="modal"${fixo?' data-fixo="1"':""}><div class="dlg" role="dialog" aria-modal="true">${html}</div></div>`;
+  const m=o.querySelector(".modal");m.onclick=e=>{if(!fixo&&e.target===m)fechar()};return o.querySelector(".dlg")}
+function fechar(){$("#overlay").innerHTML="";document.body.classList.remove("trava")}
+document.addEventListener("keydown",e=>{const m=$("#overlay .modal");if(e.key==="Escape"&&m&&!m.dataset.fixo)fechar()});
+const dataBR=iso=>{try{return new Date(iso).toLocaleDateString("pt-BR")}catch(e){return ""}};
+function baixar(blob,nome){const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+const blobB64=b=>new Promise((ok,ko)=>{const f=new FileReader();f.onload=()=>ok(String(f.result).split(",")[1]||"");f.onerror=()=>ko(f.error);f.readAsDataURL(b)});
+async function reduzir(arq,max,qual){ // devolve um JPEG menor: foto de celular tem 5 MB, e o banco e a IA não precisam disso
+  let bmp;try{bmp=await createImageBitmap(arq)}catch(e){bmp=await new Promise((ok,ko)=>{const im=new Image(),u=URL.createObjectURL(arq);im.onload=()=>{URL.revokeObjectURL(u);ok(im)};im.onerror=ko;im.src=u})}
+  const w=bmp.width||bmp.naturalWidth,h=bmp.height||bmp.naturalHeight,e=Math.min(1,max/Math.max(w,h));
+  const c=document.createElement("canvas");c.width=Math.max(1,Math.round(w*e));c.height=Math.max(1,Math.round(h*e));
+  const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(bmp,0,0,c.width,c.height);
+  return new Promise((ok,ko)=>c.toBlob(b=>b?ok(b):ko(new Error("imagem")),"image/jpeg",qual))}
+
+/* ============ minhas questões (acervo pessoal, só neste aparelho) ============ */
+// A foto da questão fica no IndexedDB (chave = id da questão); os dados no localStorage.
+// Depois de montadas, entram em D.q como as do acervo: mesmos filtros, PDF, resolver online.
+let QP=lerLS("rafa.questoes",[]);
+const salvarQP=()=>gravarLS("rafa.questoes",QP);
+const slug=s=>norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const nAlts=q=>q.alts||(BANCA[q.b]&&BANCA[q.b].alts)||5;
+function bancaIdDe(nome){const n=norm(nome);if(n==="comvest")return "unicamp";if(["enem","fuvest","unicamp"].includes(n))return n;return "p-"+(slug(nome)||"outra")}
+function prepararQ(q){q.hay=norm([q.m,q.s,(q.t||[]).join(" "),BANCA[q.b].nome,q.a,q.tx].join(" "));q.tg=[q.m,...(q.t||[]).filter(t=>MAT_ORDER.includes(t))]}
+function montarPessoais(){
+  D.q=D.q.filter(q=>!q.pessoal);D.fontes=D.fontes.filter(f=>!f.pessoal);D.bancas=D.bancas.filter(b=>!b.pessoal);
+  [QID,BANCA,FONTE].forEach(m=>Object.keys(m).forEach(k=>{if(m[k].pessoal)delete m[k]}));
+  QP.forEach(p=>{
+    if(!BANCA[p.b]){const b={id:p.b,nome:p.bancaNome,alts:p.alts||5,cor:"#8C7F66",pessoal:true};BANCA[p.b]=b;D.bancas.push(b)}
+    const fid=`p-${p.b}-${p.a}`;
+    if(!FONTE[fid]){const f={id:fid,banca:p.b,ano:p.a,edicao:"Minhas questões",prova:"Adicionadas por mim",n_questoes:0,pessoal:true};FONTE[fid]=f;D.fontes.push(f)}
+    FONTE[fid].n_questoes++;
+    const q={id:p.id,b:p.b,a:p.a,f:fid,n:p.n,v:null,m:p.m,s:p.s,t:[],r:p.r||null,x:0,k:["idb"],w:p.w,h:p.h,tx:p.tx||"",alts:p.alts,pessoal:true};
+    prepararQ(q);QID[q.id]=q;D.q.push(q);
+  });
+  ACERVO_OK=D.q.length>0;
+}
+async function dimensoes(blob){const b=await createImageBitmap(blob);return {w:b.width,h:b.height}}
+
+/* ============ carga do acervo ============ */
+fetch("data.json").then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{
+  D=d;ACERVO_OK=true;d.bancas.forEach(b=>BANCA[b.id]=b);d.fontes.forEach(f=>FONTE[f.id]=f);
+  d.q.forEach(q=>{QID[q.id]=q;q.hay=norm([q.m,q.s,q.t.join(" "),BANCA[q.b].nome,q.a,q.tx].join(" "));q.tg=[q.m,...q.t.filter(t=>MAT_ORDER.includes(t))];});
+  montarPessoais();
+  if(d.q.some(q=>!q.k)){const n=$("#nota-acervo");n.hidden=false;n.textContent="Atenção: parte das questões não tem imagem nesta versão do acervo (importe as provas novamente — veja o LEIA-ME)."}
+  aba(ABA,true);
+}).catch(()=>{montarPessoais();const n=$("#nota-acervo");n.hidden=false;n.className="nota erro";n.textContent="Não foi possível carregar o acervo agora. Os registros de erros e dúvidas continuam funcionando.";aba(ABA,true)});
+
+/* ============ imagens do acervo (packs base64) ============ */
+const packs={}, urls={}, blobs={};
+function pack(f){return packs[f]||(packs[f]=fetch(f).then(r=>r.text()))}
+function imgBlob(q){
+  if(!q||!q.k)return Promise.resolve(null);
+  if(blobs[q.id])return blobs[q.id];
+  if(q.pessoal)return blobs[q.id]=fotoGet(q.id).catch(()=>null);
+  return blobs[q.id]=(async()=>{const t=await pack(q.k[0]);const bin=atob(t.substr(q.k[1],q.k[2]));
+    const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+    return new Blob([a],{type:"image/webp"})})();
+}
+function imgUrl(q){
+  if(!q||!q.k)return Promise.resolve(null);
+  return urls[q.id]||(urls[q.id]=imgBlob(q).then(b=>URL.createObjectURL(b)));
+}
+const SEM_IMG='<span class="mut">A imagem desta questão ainda não foi importada.</span>';
+
+/* ============ filtros do acervo ============ */
+function parseNums(s){
+  const out=[];s.split(/[,;\s]+/).filter(Boolean).forEach(p=>{const m=p.match(/^(\d+)(?:-(\d+))?$/);if(m)out.push([+m[1],+(m[2]||m[1])])});
+  return out;
+}
+const STOP=new Set(["de","da","do","das","dos","e","em","questoes","questao","quest","a","o","as","os","para","sobre","com"]);
+function parseBusca(s){
+  const r={bancas:new Set(),anos:new Set(),mats:new Set(),words:[]};
+  norm(s).split(/[\s,;]+/).filter(Boolean).forEach(w=>{
+    if(["enem","fuvest","unicamp"].includes(w))r.bancas.add(w);
+    else if(w==="comvest")r.bancas.add("unicamp");
+    else if(/^(19|20)\d\d$/.test(w))r.anos.add(+w);
+    else{const m=MAT_ORDER.find(x=>norm(x)===w)||(w==="matematica"?"Matemática":null);
+      if(m)r.mats.add(m);else if(w.length>=3&&!STOP.has(w))r.words.push(w)}});
+  return r;
+}
+function baseFiltro(ign){ // ign: chaves a ignorar (para contagens)
+  const B=parseBusca(S.q), nr=parseNums(S.nums);
+  return D.q.filter(q=>{
+    if(S.banca&&q.b!==S.banca)return false;
+    if(B.bancas.size&&!B.bancas.has(q.b))return false;
+    if(!ign.includes("materia")){
+      if(S.materia&&!q.tg.includes(S.materia))return false;
+      if(B.mats.size&&!q.tg.some(t=>B.mats.has(t)))return false}
+    if(!ign.includes("ano")){
+      if(S.anos.size&&!S.anos.has(q.a))return false;
+      if(B.anos.size&&!B.anos.has(q.a))return false}
+    if(!ign.includes("prova")&&S.provas.size&&!S.provas.has(q.f))return false;
+    if(!ign.includes("subtema")&&S.subtema&&q.s!==S.subtema)return false;
+    if(!ign.includes("nums")&&nr.length&&!nr.some(([a,b])=>q.n>=a&&q.n<=b))return false;
+    for(const w of B.words)if(!q.hay.includes(w))return false;
+    return true;});
+}
+const ordem=(a,b)=>a.b.localeCompare(b.b)||a.a-b.a||a.f.localeCompare(b.f)||a.n-b.n||(a.v||"").localeCompare(b.v||"");
+function resultado(){return baseFiltro([]).sort(ordem)}
+const cnt=(arr,fn)=>{const m={};arr.forEach(x=>{const k=fn(x);m[k]=(m[k]||0)+1});return m};
+
+/* ============ Acervo na tela ============ */
+function chip(label,n,pressed,on){
+  const b=document.createElement("button");b.className="chip";b.type="button";b.setAttribute("aria-pressed",pressed);
+  b.innerHTML=label+(n!=null?`<small>${n}</small>`:"");b.onclick=on;return b}
+function render(){
+  if(S.banca&&!BANCA[S.banca]){S.banca=null;S.materia=null;S.subtema="";S.anos.clear();S.provas.clear()} // a banca pessoal foi apagada
+  const bc=cnt(D.q,q=>q.b), bx=$("#bancas");bx.innerHTML="";
+  D.bancas.forEach(b=>{const e=document.createElement("button");e.className="banca";e.type="button";e.style.setProperty("--c",COR_BANCA[b.id]||b.cor);
+    e.setAttribute("aria-pressed",S.banca===b.id);e.innerHTML=`<b>${b.nome}</b><span>${bc[b.id]||0} ${(bc[b.id]||0)===1?"questão":"questões"}</span>`;
+    e.onclick=()=>{S.banca=S.banca===b.id?null:b.id;S.materia=null;S.anos.clear();S.provas.clear();S.subtema="";S.shown=30;render()};bx.appendChild(e)});
+  $("#minhas-n").textContent=QP.length?`${QP.length} ${QP.length===1?"questão adicionada":"questões adicionadas"} por você, só neste aparelho.`:"Fotografe uma questão que não está no acervo e ela entra nos filtros, no PDF e no “Resolver online”.";
+  $("#s-mat").hidden=!(S.banca||S.q||S.materia||S.subtema);
+  const mx=$("#materias");mx.innerHTML="";
+  const pool=baseFiltro(["materia","ano","prova","subtema","nums"]);
+  const mc={};pool.forEach(q=>q.tg.forEach(t=>{if(!(t in mc))mc[t]=0;mc[t]++}));
+  mx.appendChild(chip("Todas",pool.length,!S.materia,()=>{S.materia=null;S.subtema="";S.shown=30;render()}));
+  Object.keys(mc).sort((a,b)=>MAT_ORDER.indexOf(a)-MAT_ORDER.indexOf(b)).forEach(m=>
+    mx.appendChild(chip(m,mc[m],S.materia===m,()=>{S.materia=S.materia===m?null:m;S.subtema="";S.shown=30;render()})));
+  $("#s-fil").hidden=$("#s-mat").hidden;
+  const pAno=baseFiltro(["ano","prova"]);
+  const ax=$("#anos");ax.innerHTML="";const ac=cnt(pAno,q=>q.a);
+  Object.keys(ac).sort().forEach(a=>ax.appendChild(chip(a,ac[a],S.anos.has(+a),()=>{S.anos.has(+a)?S.anos.delete(+a):S.anos.add(+a);S.shown=30;render()})));
+  const px=$("#provas");px.innerHTML="";const pc=cnt(baseFiltro(["prova"]),q=>q.f);
+  Object.keys(pc).forEach(id=>{const f=FONTE[id];px.appendChild(chip(`${f.ano} · ${f.edicao} · ${f.prova}`,pc[id],S.provas.has(id),()=>{S.provas.has(id)?S.provas.delete(id):S.provas.add(id);S.shown=30;render()}))});
+  const sc=cnt(baseFiltro(["subtema"]),q=>q.s), sel=$("#subtema");
+  sel.innerHTML='<option value="">Todos os subtemas</option>'+Object.keys(sc).sort((a,b)=>a.localeCompare(b,"pt")).map(s=>`<option value="${esc(s)}">${esc(s)} (${sc[s]})</option>`).join("");
+  sel.value=S.subtema;
+  const R=resultado();
+  $("#n").textContent=R.length;$("#nlabel").textContent=R.length===1?"questão encontrada":"questões encontradas";
+  $("#escopo").textContent=escopo();
+  ["#b-pdf","#b-online","#b-gab"].forEach(i=>$(i).disabled=!R.length);
+  $("#aviso").textContent=R.length?"O PDF e a prática online não mostram respostas. O gabarito só aparece ao clicar em VER GABARITO.":"Nenhuma questão com esses filtros.";
+  lista(R);
+}
+function escopo(){
+  const p=[];if(S.banca)p.push(BANCA[S.banca].nome);if(S.materia)p.push(S.materia);
+  if(S.anos.size)p.push([...S.anos].sort().join(", "));if(S.subtema)p.push(S.subtema);if(S.q)p.push("busca: “"+S.q+"”");
+  return p.join(" · ")||"Todo o acervo";
+}
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){obs.unobserve(e.target);const q=QID[e.target.dataset.id];
+  imgUrl(q).then(u=>{e.target.innerHTML=u?`<img alt="Questão ${q.n}" src="${u}" width="${q.w}" height="${q.h}">`:SEM_IMG})}}),{rootMargin:"600px"});
+function cabQ(q,i){
+  const f=FONTE[q.f];return `<b>Questão ${i}</b><span>${BANCA[q.b].nome} ${q.a}</span><span class="mut">${f.edicao} · ${f.prova} · nº ${q.n}</span><span class="tag">${q.m}</span><span class="tag">${q.s}</span>${q.pessoal?'<span class="tag" style="background:var(--palha)">minha</span>':""}`+q.t.filter(t=>MAT_ORDER.includes(t)).map(t=>`<span class="tag">+ ${t}</span>`).join("")}
+function lista(R){
+  const L=$("#lista");L.innerHTML="";
+  if(!R.length){L.innerHTML='<div class="empty">Escolha uma banca ou use a busca para ver as questões.</div>';$("#mais").hidden=true;return}
+  R.slice(0,S.shown).forEach((q,i)=>{const d=document.createElement("article");d.className="q";
+    const nreg=REG.filter(r=>r.qid===q.id).length;
+    d.innerHTML=`<div class="qh">${cabQ(q,i+1)}</div><div class="img" data-id="${q.id}"><span class="mut">carregando…</span></div>
+      <div class="qf"><button class="btn mini sec" data-q="${q.id}" data-t="erro">Errei esta</button><button class="btn mini sec" data-q="${q.id}" data-t="duvida">Tenho dúvida</button>${nreg?`<span class="pill pend">📝 ${nreg} registro${nreg>1?"s":""} no caderno</span>`:""}${q.pessoal?`<span style="margin-left:auto"></span><button class="btn mini fant" data-pe="${q.id}">Editar questão</button><button class="btn mini fant" data-pd="${q.id}">Apagar questão</button>`:""}</div>`;
+    L.appendChild(d);obs.observe(d.querySelector(".img"))});
+  $("#mais").hidden=R.length<=S.shown;$("#mais").textContent=`Mostrar mais (${R.length-S.shown} restantes)`;
+}
+$("#lista").addEventListener("click",e=>{
+  const b=e.target.closest("[data-q]");if(b){formRegistro({tipo:b.dataset.t,qid:b.dataset.q});return}
+  const pe=e.target.closest("[data-pe]");if(pe){formQuestao(pe.dataset.pe);return}
+  const pd=e.target.closest("[data-pd]");if(pd)apagarQuestao(pd.dataset.pd)});
+$("#b-addq").onclick=()=>formQuestao();
+$("#mais").onclick=()=>{S.shown+=30;render()};
+$("#busca").addEventListener("input",e=>{S.q=e.target.value;S.shown=30;render()});
+$("#subtema").onchange=e=>{S.subtema=e.target.value;S.shown=30;render()};
+$("#nums").addEventListener("input",e=>{S.nums=e.target.value;S.shown=30;render()});
+
+function titulo(){return (S.banca?BANCA[S.banca].nome.split(" ")[0]:"ACERVO")+" — "+(S.materia||"TODAS AS MATÉRIAS")}
+
+/* leva para o Acervo já filtrado por matéria e assunto */
+function irAcervo(materia,assunto){
+  S.banca=null;S.anos.clear();S.provas.clear();S.nums="";$("#nums").value="";S.shown=30;S.q="";$("#busca").value="";S.subtema="";S.materia=null;
+  const mat=MAT_ORDER.find(m=>norm(m)===norm(materia));
+  if(mat)S.materia=mat;
+  const sub=D.q.find(q=>norm(q.s)===norm(assunto)&&(!mat||q.tg.includes(mat)));
+  if(sub)S.subtema=sub.s;else if(assunto){S.q=assunto;$("#busca").value=assunto}
+  aba("acervo");
+}
+
+/* ---------- gabarito ---------- */
+$("#b-gab").onclick=()=>{
+  const R=resultado();
+  const d=modal(`<h3>GABARITO — ${esc(escopo().toUpperCase())}</h3><div class="mut">Numeração igual à do PDF e da prática online.</div>
+  <div class="gab">${R.map((q,i)=>`<div>${i+1}. ${q.x?"Anulada":(q.r||"—")}</div>`).join("")}</div>
+  <div class="row"><span class="mut">${R.length} questões</span><button class="btn" id="x">FECHAR</button></div>`);
+  d.querySelector("#x").onclick=fechar;
+};
+
+/* ---------- resolver online ---------- */
+// Serve ao Acervo inteiro e também ao "tentar de novo" de um registro (opt.registro).
+// Cada resposta vira uma tentativa guardada: é dela que sai "onde vou melhor" nas estatísticas.
+function abrirResolver(R,opt){
+  opt=opt||{};const resp={};let i=0;const sess=uid();
+  const alts=q=>"ABCDE".slice(0,nAlts(q));
+  function tela(){
+    const q=R[i];
+    const d=modal(`<div class="row"><b>Questão ${i+1} de ${R.length}</b><span class="mut">${BANCA[q.b].nome} ${q.a}</span></div>
+      <div class="prog" style="margin:8px 0 12px"><i style="width:${(Object.keys(resp).length/R.length*100).toFixed(0)}%"></i></div>
+      <div class="q"><div class="img" id="qi"><span class="mut">carregando…</span></div></div>
+      <div class="alts" role="group" aria-label="Alternativas">${alts(q).split("").map(l=>`<button class="alt" data-l="${l}" aria-pressed="${resp[i]===l}">${l}</button>`).join("")}</div>
+      <div class="row"><div class="actions"><button class="btn sec" id="ant" ${i?"":"disabled"}>ANTERIOR</button><button class="btn sec" id="prox" ${i<R.length-1?"":"disabled"}>PRÓXIMA</button></div>
+      <div class="actions"><button class="btn sec" id="sair">SAIR</button><button class="btn pri" id="fin">FINALIZAR</button></div></div>
+      <p class="hint">${Object.keys(resp).length} de ${R.length} respondidas</p>`,true);
+    imgUrl(q).then(u=>{const e=d.querySelector("#qi");if(e)e.innerHTML=u?`<img alt="" src="${u}">`:SEM_IMG});
+    d.querySelectorAll(".alt").forEach(b=>b.onclick=()=>{resp[i]=resp[i]===b.dataset.l?undefined:b.dataset.l;if(resp[i]===undefined)delete resp[i];
+      if(i<R.length-1&&resp[i]){i++}tela()});
+    d.querySelector("#ant").onclick=()=>{i--;tela()};d.querySelector("#prox").onclick=()=>{i++;tela()};
+    d.querySelector("#sair").onclick=fechar;d.querySelector("#fin").onclick=fim;
+  }
+  function fim(){
+    let ok=0,err=0,nr=0,an=0,sg=0;const erradas=[],log=[];
+    R.forEach((q,k)=>{
+      if(q.x){an++;return}
+      if(!q.r){sg++;return}
+      if(!resp[k]){nr++;erradas.push([k,q,null]);return}
+      const certo=resp[k]===q.r;if(certo)ok++;else{err++;erradas.push([k,q,resp[k]])}
+      log.push({em:new Date().toISOString(),sess,qid:q.id,b:q.b,a:q.a,m:q.m,s:q.s,ok:certo});
+    });
+    // Finalizar de novo depois de "voltar às questões" troca as respostas desta rodada, não soma.
+    TENT=TENT.filter(t=>t.sess!==sess).concat(log);salvarTent();
+    if(opt.registro){const r=REG.find(x=>x.id===opt.registro);if(r&&log.length){(r.retentativas=r.retentativas||[]).push({em:log[0].em,ok:log[0].ok});salvarReg()}}
+    const tot=ok+err+nr, pc=tot?Math.round(ok/tot*100):0;
+    let corpo;
+    if(opt.registro){
+      const l=log[0],q=R[0];
+      corpo=`<h3>${!l?"Sem resposta":l.ok?"Acertou desta vez! 🎉":"Ainda não foi desta vez"}</h3>
+        ${l?`<p>Sua resposta: <b>${esc(resp[0])}</b> · gabarito: <b>${esc(q.r)}</b></p>`:`<p class="mut">${q.x?"Esta questão foi anulada.":!q.r?"Esta questão está sem gabarito no acervo.":"Você não marcou nenhuma alternativa."}</p>`}
+        <p class="hint">${l&&!l.ok?"Volte à correção do registro e confira o passo em que o caminho se desvia.":""}</p>
+        <div class="row" style="margin-top:14px">${l&&l.ok?'<button class="btn pri" id="dom">MARCAR COMO DOMINADO</button>':"<span></span>"}<button class="btn" id="x">FECHAR</button></div>`;
+    }else{
+      corpo=`<h3>Resultado</h3><div class="mut">${esc(escopo())}</div>
+      <div class="score"><div><b style="color:var(--ok)">${ok}</b>acertos</div><div><b style="color:var(--bad)">${err}</b>erros</div><div><b>${pc}%</b>de acerto</div>${nr?`<div><b>${nr}</b>em branco</div>`:""}</div>
+      ${an?`<p class="hint">${an} questão(ões) anulada(s) não entram na conta.</p>`:""}${sg?`<p class="hint">${sg} questão(ões) sem gabarito no acervo não entram na conta.</p>`:""}
+      <h2>Questões que errei</h2>${erradas.length?`<div class="tw"><table><tr><th>Nº</th><th>Questão</th><th>Minha resposta</th><th>Gabarito</th><th></th></tr>${erradas.map(([k,q,a],j)=>`<tr><td>${k+1}</td><td>${BANCA[q.b].nome} ${q.a} · nº ${q.n}</td><td>${a||"—"}</td><td>${q.r}</td><td><button class="btn mini sec" data-reg="${j}">Registrar no caderno</button></td></tr>`).join("")}</table></div>`:'<div class="empty">Nenhuma. 🎉</div>'}
+      <div class="row" style="margin-top:14px"><button class="btn sec" id="volta">VOLTAR ÀS QUESTÕES</button><button class="btn" id="x">FECHAR</button></div>`;
+    }
+    const d=modal(corpo,true);
+    d.querySelector("#x").onclick=fechar;
+    const v=d.querySelector("#volta");if(v)v.onclick=()=>{i=0;tela()};
+    const dom=d.querySelector("#dom");if(dom)dom.onclick=()=>{const r=REG.find(x=>x.id===opt.registro);if(r){r.status="dominado";salvarReg()}fechar();aviso("Marcado como dominado.");if(ABA==="erros")listaErros()};
+    d.querySelectorAll("[data-reg]").forEach(b=>b.onclick=()=>{const [k,q,a]=erradas[+b.dataset.reg];
+      formRegistro({tipo:"erro",qid:q.id,minhaResposta:a||"",origem:"online"})});
+  }
+  tela();
+}
+$("#b-online").onclick=()=>{const R=resultado();if(R.length)abrirResolver(R)};
+
+/* ---------- PDF ---------- */
+function paraJpeg(url){return new Promise((ok,ko)=>{const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=im.naturalWidth;c.height=im.naturalHeight;
+  const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0);ok(c.toDataURL("image/jpeg",0.93))};im.onerror=ko;im.src=url})}
+$("#b-pdf").onclick=async()=>{
+  const R=resultado().filter(q=>q.k);
+  if(!R.length){aviso("Nenhuma das questões deste filtro tem imagem para o PDF.");return}
+  const bar=document.createElement("div");bar.className="pgbar";bar.innerHTML='<span id="pt">Gerando PDF…</span><div class="prog"><i></i></div>';document.body.appendChild(bar);
+  try{
+    const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"});
+    const PW=210, PH=297, M=14, CW=PW-2*M, MAXH=PH-2*M-22;
+    let y=M;
+    doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text(titulo(),M,y+6);y+=11;
+    doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(90);
+    const anos=[...new Set(R.map(q=>q.a))].sort();
+    doc.text(`${R.length} questões · ${anos.length>1?anos[0]+"–"+anos[anos.length-1]:anos[0]}${S.subtema?" · "+S.subtema:""}`,M,y+2);y+=10;
+    for(let i=0;i<R.length;i++){
+      const q=R[i], f=FONTE[q.f];
+      bar.querySelector("#pt").textContent=`Gerando PDF… ${i+1} de ${R.length}`;bar.querySelector("i").style.width=((i+1)/R.length*100)+"%";
+      const jpg=await paraJpeg(await imgUrl(q));
+      let w=Math.min(CW,q.w*0.1411*1.7), h=w*q.h/q.w;
+      if(h>MAXH){h=MAXH;w=h*q.w/q.h}
+      if(y+14+h>PH-M-8){doc.addPage();y=M}
+      doc.setTextColor(0);doc.setFont("helvetica","bold");doc.setFontSize(12);
+      doc.text(`Questão ${i+1} — ${BANCA[q.b].nome.split(" ")[0]} ${q.a}`,M,y+4);
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(110);
+      doc.text(`${f.edicao} · ${f.prova} · nº ${q.n}${q.v?" ("+(q.v==="ingles"?"inglês":"espanhol")+")":""}`,M,y+8.5);
+      doc.addImage(jpg,"JPEG",M,y+11,w,h);y+=11+h+8;
+    }
+    const n=doc.getNumberOfPages();
+    for(let p=1;p<=n;p++){doc.setPage(p);doc.setFontSize(8);doc.setTextColor(130);doc.text(`Caderno da Rafaela · ${titulo()}`,M,PH-8);doc.text(`${p}/${n}`,PW-M,PH-8,{align:"right"})}
+    const nome=("Acervo_"+(S.banca?BANCA[S.banca].nome.split(" ")[0]:"Geral")+"_"+(S.materia||"Todas")+".pdf").normalize("NFD").replace(DIAC,"").replace(/\s+/g,"_");
+    bar.remove();baixar(doc.output("blob"),nome);
+  }catch(e){bar.remove();modal(`<h3>Erro ao gerar o PDF</h3><p>${esc(e&&e.message||e)}</p><button class="btn" id="x">FECHAR</button>`).querySelector("#x").onclick=fechar}
+};
+
+/* ---------- adicionar / editar / apagar questão ---------- */
+async function apagarQuestao(id){
+  const q=QID[id];if(!q)return;
+  const n=REG.filter(r=>r.qid===id).length;
+  if(!confirm(`Apagar esta questão (${BANCA[q.b].nome} ${q.a} · nº ${q.n})?${n?` Há ${n} registro(s) no caderno ligado(s) a ela: eles ficam, mas perdem a ligação com a questão.`:""}`))return;
+  await fotoDel(id);delete blobs[id];delete urls[id];
+  QP=QP.filter(p=>p.id!==id);salvarQP();montarPessoais();render();
+}
+function formQuestao(pid,pre){
+  const ed=pid?QP.find(x=>x.id===pid):null;
+  pre=pre||{};
+  const st={blob:null,alts:ed?ed.alts||5:(pre.alts||5),gab:ed&&ed.r||"",tx:ed&&ed.tx||"",novaFoto:false};
+  const bancas=[...new Set(["ENEM","FUVEST","UNICAMP"].concat(QP.map(p=>p.bancaNome)))];
+  const assuntos=[...new Set(D.q.map(q=>q.s).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt"));
+  const v=(k,d)=>ed?ed[k]:(pre[k]!=null?pre[k]:d);
+  const d=modal(`<h3>${ed?"Editar questão":"Adicionar questão ao acervo"}</h3>
+   <p class="hint" style="margin-top:0">A questão fica guardada <b>neste aparelho</b>, junto com as do acervo.</p>
+   <div class="fm" style="margin-top:12px">
+    <div class="l"><span>Foto da questão <small>(enunciado e alternativas, bem enquadrados e legíveis)</small></span>
+      <label class="btn mini sec upl" style="width:fit-content"><input type="file" accept="image/*" id="fq-foto">📷 Tirar foto ou escolher imagem</label>
+      <div id="fq-prev"></div></div>
+    <div class="fm2">
+      <label class="l">Banca / prova<input class="txt" id="fq-ban" list="fq-banl" value="${esc(v("bancaNome",""))}" placeholder="ex.: UNESP, Escola…"><datalist id="fq-banl">${bancas.map(b=>`<option value="${esc(b)}">`).join("")}</datalist></label>
+      <label class="l">Ano<input class="txt" id="fq-ano" inputmode="numeric" maxlength="4" value="${esc(v("a",""))}" placeholder="ex.: 2025"></label>
+      <label class="l">Nº da questão <small>(opcional)</small><input class="txt" id="fq-num" inputmode="numeric" value="${ed?esc(ed.n):""}"></label>
+    </div>
+    <div class="l"><span>Quantas alternativas?</span><div class="seg"><button type="button" data-n="4">4 (A–D)</button><button type="button" data-n="5">5 (A–E)</button></div></div>
+    <div class="l"><span>Gabarito <small>(opcional — sem ele a questão não entra na conta de acertos)</small></span><div class="alts peq" id="fq-gab" style="margin:0"></div></div>
+    <div class="fm2">
+      <label class="l">Matéria<select id="fq-mat"><option value="">Escolha…</option>${MAT_ORDER.map(m=>`<option${ed&&ed.m===m?" selected":""}>${m}</option>`).join("")}</select></label>
+      <label class="l">Assunto<input class="txt" id="fq-ass" list="fq-assl" value="${esc(ed&&ed.s!=="Sem assunto informado"?ed.s:"")}" placeholder="ex.: Cinemática"><datalist id="fq-assl">${assuntos.map(a=>`<option value="${esc(a)}">`).join("")}</datalist></label>
+    </div>
+    <div><button type="button" class="btn mini sec" id="fq-ia">✨ Sugerir matéria e assunto pela foto</button>
+      <p class="hint" id="fq-ia-msg" style="margin-top:6px">A IA lê a foto e sugere; você confere. Ela também guarda o texto da questão para a busca.</p></div>
+    <div class="nota erro" id="fq-erro" hidden></div>
+    <div class="row"><button type="button" class="btn sec" id="fq-cancel">CANCELAR</button>
+      <div class="actions">${ed?"":'<button type="button" class="btn sec" id="fq-outra">SALVAR E ADICIONAR OUTRA</button>'}<button type="button" class="btn pri" id="fq-save">SALVAR</button></div></div>
+   </div>`,true);
+  const $q=s=>d.querySelector(s);
+  const pintarAlts=()=>{
+    d.querySelectorAll("[data-n]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.n===st.alts));
+    const ls="ABCDE".slice(0,st.alts);if(st.gab&&!ls.includes(st.gab))st.gab="";
+    $q("#fq-gab").innerHTML=ls.split("").map(l=>`<button type="button" class="alt" data-l="${l}" aria-pressed="${st.gab===l}">${l}</button>`).join("");
+  };
+  const pintarPrev=async()=>{
+    const box=$q("#fq-prev");let u=null;
+    if(st.blob)u=URL.createObjectURL(st.blob);else if(ed)u=await imgUrl(QID[ed.id]);
+    box.innerHTML=u?`<div class="q" style="margin-top:8px"><div class="img"><img alt="Pré-visualização da questão" src="${u}" style="max-height:340px;width:auto"></div></div>`:"";
+  };
+  d.addEventListener("click",e=>{
+    const n=e.target.closest("[data-n]");if(n){st.alts=+n.dataset.n;pintarAlts();return}
+    const a=e.target.closest("#fq-gab .alt");if(a){st.gab=st.gab===a.dataset.l?"":a.dataset.l;pintarAlts()}
+  });
+  $q("#fq-foto").onchange=async e=>{
+    const f=e.target.files[0];e.target.value="";if(!f)return;
+    try{st.blob=await reduzir(f,1800,.86);st.novaFoto=true;st.tx="";await pintarPrev()}catch(err){aviso("Não consegui ler esta foto.")}
+  };
+  $q("#fq-ia").onclick=async()=>{
+    const msg=$q("#fq-ia-msg"),btn=$q("#fq-ia");
+    let blob=st.blob;if(!blob&&ed)blob=await fotoGet(ed.id).catch(()=>null);
+    if(!blob){msg.textContent="Escolha a foto primeiro.";return}
+    btn.disabled=true;msg.textContent="Lendo a questão…";
+    try{
+      const dados=await blobB64(await reduzir(blob,1400,.8));
+      const j=await chamarIA({acao:"classificar",imagem:{dados,tipo:"image/jpeg"},materias:MAT_ORDER,assuntos:assuntos.slice(0,60)});
+      const c=j.classificacao;
+      if(!c.legivel){msg.textContent=c.aviso||"Não consegui ler a questão nesta foto. Tente uma foto mais de perto e com luz melhor."}
+      else{
+        if(c.materia)$q("#fq-mat").value=c.materia;if(c.assunto)$q("#fq-ass").value=c.assunto;st.tx=c.texto||"";
+        msg.textContent=`Sugestão da IA: ${c.materia||"matéria não identificada"}${c.assunto?" · "+c.assunto:""}. Confira antes de salvar.${c.aviso?" "+c.aviso:""}`;
+      }
+    }catch(err){msg.textContent=err.message}
+    btn.disabled=false;
+  };
+  $q("#fq-cancel").onclick=()=>{if(!ed&&st.blob&&!confirm("Descartar esta questão?"))return;fechar()};
+  async function guardar(outra){
+    const erro=$q("#fq-erro"),ban=$q("#fq-ban").value.trim(),ano=$q("#fq-ano").value.trim(),mat=$q("#fq-mat").value;
+    const falha=m=>{erro.hidden=false;erro.textContent=m};
+    if(!st.blob&&!ed)return falha("Escolha a foto da questão.");
+    if(!ban)return falha("Diga a banca ou a prova (ex.: UNESP, Escola).");
+    if(!/^(19|20)\d\d$/.test(ano))return falha("Escreva o ano com 4 números (ex.: 2025).");
+    if(!mat)return falha("Escolha a matéria — ou use “Sugerir pela foto”.");
+    d.querySelectorAll("button").forEach(b=>b.disabled=true);
+    const id=ed?ed.id:"p"+uid(), b=bancaIdDe(ban), a=+ano;
+    try{
+      let dim={w:ed?ed.w:0,h:ed?ed.h:0};
+      if(st.blob){await fotoPut(id,st.blob);dim=await dimensoes(st.blob);delete blobs[id];delete urls[id]}
+      const doMesmo=QP.filter(p=>p.id!==id&&p.b===b&&p.a===a);
+      const n=+$q("#fq-num").value||(ed&&ed.b===b&&ed.a===a?ed.n:Math.max(0,...doMesmo.map(p=>p.n))+1);
+      const alts=b==="enem"||b==="fuvest"?5:b==="unicamp"?4:st.alts;
+      const reg={id,b,bancaNome:BANCA[b]&&!BANCA[b].pessoal?BANCA[b].nome:ban,a,n,m:mat,s:$q("#fq-ass").value.trim()||"Sem assunto informado",r:st.gab||null,alts,w:dim.w,h:dim.h,tx:st.tx||""};
+      if(ed)QP[QP.indexOf(ed)]=reg;else QP.push(reg);
+      salvarQP();montarPessoais();
+    }catch(err){d.querySelectorAll("button").forEach(x=>x.disabled=false);return falha("Este aparelho não conseguiu guardar a foto. Tente de novo ou use uma foto menor.")}
+    fechar();
+    S.banca=null;S.materia=null;S.anos.clear();S.provas.clear();S.subtema="";S.nums="";$("#nums").value="";S.q="";$("#busca").value="";S.shown=30;
+    if(outra){aviso("Questão adicionada. Pode mandar a próxima.");formQuestao(null,{bancaNome:ban,a:ano,alts:st.alts});return}
+    S.banca=bancaIdDe(ban);aba("acervo");aviso("Questão adicionada ao acervo.");
+  }
+  $q("#fq-save").onclick=()=>guardar(false);
+  const o=$q("#fq-outra");if(o)o.onclick=()=>guardar(true);
+  pintarAlts();pintarPrev();
+}
+
+/* ============ IA (api/ia) ============ */
+async function chamarIA(corpo,jaPediuCodigo){
+  const cod=lerLS("rafa.codigo","");
+  let r,j=null;
+  try{r=await fetch("api/ia",{method:"POST",headers:Object.assign({"Content-Type":"application/json"},cod?{"x-codigo":cod}:{}),body:JSON.stringify(corpo)})}
+  catch(e){throw new Error("Sem conexão com a internet no momento.")}
+  try{j=await r.json()}catch(e){}
+  if(r.status===401&&!jaPediuCodigo){
+    const c=window.prompt("Digite o código de acesso da IA (quem montou o caderno sabe qual é):");
+    if(c){gravarLS("rafa.codigo",c.trim());return chamarIA(corpo,true)}
+  }
+  if(!r.ok||!j||!j.ok)throw new Error((j&&j.erro)||"A IA não respondeu agora. Tente de novo em instantes.");
+  return j;
+}
+
+/* ============ Meus erros e dúvidas ============ */
+const E={tipo:"",materia:"",sit:"",q:""};
+const EMCURSO=new Set(), ERRO_IA={};
+const ehDominado=r=>r.status==="dominado";
+const tipoErroDe=r=>r.tipoErro||(r.correcao&&r.correcao.tipo_erro)||"";
+function assinatura(r){return JSON.stringify([r.tipo,r.qid,r.materia,r.assunto,r.minhaResposta,r.gabarito,r.raciocinio,r.dificuldade,r.obs,(r.fotos||[]).map(f=>f.id).sort(),(r.esclarecimentos||[]).length])}
+function situacao(r){return ehDominado(r)?"dominado":!r.correcao?"sem":assinatura(r)!==r.correcao.assin?"desat":"corrigido"}
+
+function renderErros(){
+  const v=$("#v-erros");
+  const mats=[...new Set(REG.map(r=>r.materia).filter(Boolean))].sort((a,b)=>MAT_ORDER.indexOf(a)-MAT_ORDER.indexOf(b));
+  v.innerHTML=`<section class="card"><div class="row"><div><h3 class="t">Meus erros e dúvidas</h3><p class="lead" style="margin:0">Registre o que errou ou não entendeu, escreva onde sentiu dificuldade e junte a foto da sua resolução. A IA lê o seu raciocínio e explica.</p></div>
+    <button class="btn pri" id="novo-reg">＋ NOVO REGISTRO</button></div></section>
+    <section class="card"><div class="barra">
+      <label>Tipo<select id="e-tipo"><option value="">Todos</option><option value="erro">Erros</option><option value="duvida">Dúvidas</option></select></label>
+      <label>Matéria<select id="e-mat"><option value="">Todas</option>${mats.map(m=>`<option>${esc(m)}</option>`).join("")}</select></label>
+      <label>Situação<select id="e-sit"><option value="">Todas</option><option value="sem">Sem correção</option><option value="corrigido">Corrigidos</option><option value="aberto">Para revisar (não dominados)</option><option value="dominado">Dominados</option></select></label>
+      <label>Buscar<input class="txt" id="e-q" type="search" placeholder="assunto, palavra…"></label></div></section>
+    <div class="list" id="lista-erros" style="margin-top:14px"></div>`;
+  $("#e-tipo").value=E.tipo;$("#e-mat").value=E.materia;$("#e-sit").value=E.sit;$("#e-q").value=E.q;
+  $("#novo-reg").onclick=()=>formRegistro({});
+  $("#e-tipo").onchange=e=>{E.tipo=e.target.value;listaErros()};$("#e-mat").onchange=e=>{E.materia=e.target.value;listaErros()};
+  $("#e-sit").onchange=e=>{E.sit=e.target.value;listaErros()};$("#e-q").oninput=e=>{E.q=e.target.value;listaErros()};
+  listaErros();
+}
+function descQuestao(r){
+  const q=r.qid?QID[r.qid]:null;
+  if(q){const f=FONTE[q.f];return `${BANCA[q.b].nome} ${q.a}${f?` · ${f.edicao} · ${f.prova}`:""} · nº ${q.n}${q.v?` (${q.v})`:""}`}
+  return [r.banca,r.ano,r.numero?`nº ${r.numero}`:""].filter(Boolean).join(" · ");
+}
+function filtrarRegs(){
+  const q=norm(E.q);
+  return REG.filter(r=>{
+    if(E.tipo&&r.tipo!==E.tipo)return false;
+    if(E.materia&&r.materia!==E.materia)return false;
+    const s=situacao(r);
+    if(E.sit==="sem"&&s!=="sem")return false;
+    if(E.sit==="corrigido"&&s!=="corrigido"&&s!=="desat")return false;
+    if(E.sit==="aberto"&&s==="dominado")return false;
+    if(E.sit==="dominado"&&s!=="dominado")return false;
+    if(q&&!norm([r.materia,r.assunto,r.raciocinio,r.dificuldade,r.obs,r.padrao,r.tipoQuestao,descQuestao(r)].join(" ")).includes(q))return false;
+    return true}).sort((a,b)=>(b.criado||"").localeCompare(a.criado||""));
+}
+function htmlCorrecao(r){
+  const c=r.correcao;if(!c)return "";
+  const s=situacao(r);
+  const tipo=tipoErroDe(r)||"indefinido";
+  const lista=(a,ol)=>a&&a.length?`<${ol?"ol":"ul"}>${a.map(x=>`<li>${esc(x)}</li>`).join("")}</${ol?"ol":"ul"}>`:"";
+  const pergs=c.perguntas_para_ela||[];
+  return `<div class="corr">
+    <div class="reg-h"><b style="font-family:var(--f-display)">Correção</b><span class="mut" style="font-size:13px">${dataBR(c.quando)}</span>
+      ${r.tipo==="erro"?`<label class="mut" style="font-size:13px">Tipo de erro: <select data-tipoerro="${r.id}">${TIPOS_ERRO.concat(["indefinido"]).map(t=>`<option value="${t}"${t===tipo?" selected":""}>${NOME_TIPO_ERRO[t]}</option>`).join("")}</select></label>`:""}
+      ${s==="desat"?'<span class="pill pend">você mudou algo depois da correção</span>':""}</div>
+    ${c.aviso?`<div class="nota">${esc(c.aviso)}</div>`:""}
+    <h4>${r.tipo==="duvida"?"O que está faltando":"Onde você errou"}</h4><p>${esc(c.onde_errou)}</p>
+    ${pergs.length?`<div class="nota"><b>Não dá para ter certeza do motivo só com o que foi registrado.</b> Responda para a análise ficar certa:
+      <ul>${pergs.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>
+      <textarea class="txt" data-resp="${r.id}" placeholder="Escreva aqui o que você pensou na hora…"></textarea>
+      <div style="margin-top:8px"><button class="btn mini pri" data-act="reanalisar" data-id="${r.id}">REANALISAR COM A MINHA RESPOSTA</button></div></div>`:""}
+    ${c.forma_correta&&c.forma_correta.length?`<h4>O caminho certo</h4>${lista(c.forma_correta,true)}${c.resposta_correta?`<p><b>Resposta:</b> ${esc(c.resposta_correta)}</p>`:""}`:""}
+    ${c.como_reconhecer&&c.como_reconhecer.length?`<h4>Como reconhecer questões parecidas</h4>${lista(c.como_reconhecer)}`:""}
+    ${c.para_fixar?`<h4>Para fixar</h4><div class="fixar">${esc(c.para_fixar)}</div>`:""}
+  </div>`;
+}
+function htmlReg(r){
+  const s=situacao(r), q=r.qid?QID[r.qid]:null;
+  const quando=dataBR(r.criado);
+  const pill=s==="dominado"?'<span class="pill ok">dominado</span>':s==="sem"?'<span class="pill pend">sem correção</span>':s==="desat"?'<span class="pill pend">corrigido (mudou depois)</span>':'<span class="pill ok">corrigido</span>';
+  const temFotos=(r.fotos||[]).length;
+  const podeRetentar=!!(q&&q.k&&q.r);
+  const re=r.retentativas||[];
+  return `<article class="reg" data-reg="${r.id}">
+    <div class="reg-h"><span class="pill ${r.tipo}">${r.tipo==="duvida"?"Dúvida":"Erro"}</span><b>${esc(r.materia||"Sem matéria")}${r.assunto?" · "+esc(r.assunto):""}</b>${pill}<span class="mut" style="font-size:13px;margin-left:auto">${quando}</span></div>
+    ${descQuestao(r)?`<div class="mut" style="font-size:14px;margin-top:4px">${esc(descQuestao(r))}${r.tipo==="erro"&&(r.minhaResposta||r.gabarito)?` · marquei <b>${esc(r.minhaResposta||"?")}</b>, gabarito <b>${esc(r.gabarito||"?")}</b>`:""}</div>`:""}
+    ${r.raciocinio?`<div class="rot">Como resolvi</div><p>${esc(r.raciocinio)}</p>`:""}
+    ${r.dificuldade?`<div class="rot">Onde tive dificuldade</div><p>${esc(r.dificuldade)}</p>`:""}
+    ${r.obs?`<div class="rot">Observações</div><p>${esc(r.obs)}</p>`:""}
+    ${temFotos?`<div class="fotos">${r.fotos.map(f=>`<button class="foto" data-ampliar="${f.id}" aria-label="Ampliar foto"><img data-foto="${f.id}" alt=""><span class="k">${f.kind==="questao"?"questão":"resolução"}</span></button>`).join("")}</div>`:""}
+    ${q?`<div class="qver" data-qver="${r.id}" hidden></div>`:""}
+    ${re.length?`<p class="mut" style="font-size:13.5px">Tentou de novo ${re.length}×: ${re.map(x=>x.ok?"✓":"✗").join(" ")}</p>`:""}
+    ${EMCURSO.has(r.id)?'<div class="rodando"><span class="spin"></span>Lendo o seu raciocínio e preparando a correção… pode levar até um minuto.</div>':""}
+    ${ERRO_IA[r.id]?`<div class="nota erro">${esc(ERRO_IA[r.id])}</div>`:""}
+    ${htmlCorrecao(r)}
+    <div class="reg-a">
+      ${EMCURSO.has(r.id)?"":`<button class="btn mini pri" data-act="corrigir" data-id="${r.id}">${r.correcao?"CORRIGIR DE NOVO":"CORRIGIR COM A IA"}</button>`}
+      ${q?`<button class="btn mini sec" data-act="verq" data-id="${r.id}">Ver a questão</button>`:""}
+      ${podeRetentar?`<button class="btn mini sec" data-act="retentar" data-id="${r.id}">Tentar de novo</button>`:""}
+      ${s!=="dominado"?`<button class="btn mini sec" data-act="dominar" data-id="${r.id}">Marcar como dominado</button>`:`<button class="btn mini sec" data-act="reabrir" data-id="${r.id}">Voltar para revisar</button>`}
+      <button class="btn mini fant" data-act="editar" data-id="${r.id}">Editar</button>
+      <button class="btn mini fant" data-act="apagar" data-id="${r.id}">Apagar</button>
+    </div></article>`;
+}
+function listaErros(){
+  const L=$("#lista-erros");if(!L)return;
+  const R=filtrarRegs();
+  L.innerHTML=R.length?R.map(htmlReg).join(""):`<div class="empty">${REG.length?"Nenhum registro com esses filtros.":"Ainda não há registros. Toque em “Novo registro” — ou, no Acervo, em “Errei esta” embaixo de qualquer questão."}</div>`;
+  L.querySelectorAll("img[data-foto]").forEach(im=>urlFoto(im.dataset.foto).then(u=>{if(u)im.src=u}));
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-act],[data-ampliar]");if(!t||!t.closest("#v-erros"))return;
+  if(t.dataset.ampliar){urlFoto(t.dataset.ampliar).then(u=>{if(!u)return;const d=modal(`<img src="${u}" alt="Foto ampliada" style="max-width:100%;display:block;margin:0 auto"><div class="row" style="margin-top:12px"><span></span><button class="btn" id="x">FECHAR</button></div>`);d.querySelector("#x").onclick=fechar});return}
+  const r=REG.find(x=>x.id===t.dataset.id);if(!r)return;
+  const a=t.dataset.act;
+  if(a==="corrigir")corrigir(r.id);
+  else if(a==="reanalisar"){const ta=document.querySelector(`[data-resp="${r.id}"]`);const resp=ta?ta.value.trim():"";if(!resp){aviso("Escreva a sua resposta primeiro.");return}corrigir(r.id,resp)}
+  else if(a==="editar")formRegistro({id:r.id});
+  else if(a==="apagar"){if(confirm("Apagar este registro e as fotos dele? Não dá para desfazer.")){(r.fotos||[]).forEach(f=>fotoDel(f.id));REG=REG.filter(x=>x.id!==r.id);salvarReg();listaErros()}}
+  else if(a==="dominar"){r.status="dominado";salvarReg();listaErros()}
+  else if(a==="reabrir"){r.status="aberto";salvarReg();listaErros()}
+  else if(a==="retentar"){const q=QID[r.qid];abrirResolver([q],{registro:r.id})}
+  else if(a==="verq"){const box=document.querySelector(`[data-qver="${r.id}"]`);if(!box)return;
+    if(!box.hidden){box.hidden=true;return}
+    box.hidden=false;box.innerHTML='<div class="q" style="margin-top:10px"><div class="img"><span class="mut">carregando…</span></div></div>';
+    imgUrl(QID[r.qid]).then(u=>{box.querySelector(".img").innerHTML=u?`<img alt="Questão" src="${u}">`:SEM_IMG})}
+});
+document.addEventListener("change",e=>{const s=e.target.closest("[data-tipoerro]");if(!s)return;
+  const r=REG.find(x=>x.id===s.dataset.tipoerro);if(r){r.tipoErro=s.value;salvarReg()}});
+
+/* ---------- a IA corrige ---------- */
+async function montarImagens(r){
+  const q=r.qid?QID[r.qid]:null;
+  const itens=[];
+  if(q&&q.k){const b=await imgBlob(q);if(b)itens.push({rotulo:"Enunciado da questão (do acervo)",blob:b})}
+  for(const f of (r.fotos||[]).filter(f=>f.kind==="questao")){const b=await fotoGet(f.id).catch(()=>null);if(b)itens.push({rotulo:"Foto do enunciado da questão",blob:b})}
+  let n=0;
+  for(const f of (r.fotos||[]).filter(f=>f.kind!=="questao")){if(n>=4)break;const b=await fotoGet(f.id).catch(()=>null);if(b){n++;itens.push({rotulo:`Foto da resolução dela (${n})`,blob:b})}}
+  // A Vercel recusa corpo acima de 4,5 MB: reduz até caber.
+  for(const [max,qual] of [[1400,.82],[1100,.72],[800,.62],[640,.55]]){
+    const out=[];let total=0;
+    for(const it of itens){const b=await reduzir(it.blob,max,qual);const dados=await blobB64(b);total+=dados.length;out.push({rotulo:it.rotulo,dados,tipo:"image/jpeg"})}
+    if(total<3.4*1024*1024)return out;
+  }
+  return [];
+}
+function padroesExistentes(){return [...new Set(REG.map(r=>r.padrao).filter(Boolean))].slice(-25)}
+function tiposExistentes(){return [...new Set(REG.map(r=>r.tipoQuestao).filter(Boolean))].slice(-25)}
+async function corrigir(id,esclarecimento){
+  const r=REG.find(x=>x.id===id);if(!r||EMCURSO.has(id))return;
+  if(esclarecimento){(r.esclarecimentos=r.esclarecimentos||[]).push({em:new Date().toISOString(),perguntas:(r.correcao&&r.correcao.perguntas_para_ela)||[],resposta:esclarecimento})}
+  EMCURSO.add(id);delete ERRO_IA[id];if($("#lista-erros"))listaErros();
+  try{
+    const q=r.qid?QID[r.qid]:null;
+    const imagens=await montarImagens(r);
+    const j=await chamarIA({acao:"corrigir",
+      registro:{tipo:r.tipo,banca:q?BANCA[q.b].nome:r.banca,ano:q?q.a:r.ano,numero:q?q.n:r.numero,materia:r.materia,assunto:r.assunto,minhaResposta:r.minhaResposta,gabarito:r.gabarito,raciocinio:r.raciocinio,dificuldade:r.dificuldade,obs:r.obs},
+      questaoTexto:q&&q.tx?q.tx:"",esclarecimentos:r.esclarecimentos||[],imagens,padroes:padroesExistentes(),tipos:tiposExistentes()});
+    const c=j.correcao;
+    r.correcao=Object.assign({},c,{quando:new Date().toISOString(),assin:""});
+    r.correcao.assin=assinatura(r);
+    r.padrao=c.padrao||"";r.tipoQuestao=c.tipo_questao||r.tipoQuestao||"";
+    if(!r.tipoErroManual)r.tipoErro=c.tipo_erro==="indefinido"?"":c.tipo_erro;
+    if(!r.assunto&&c.assunto)r.assunto=c.assunto;
+    salvarReg();
+  }catch(e){ERRO_IA[id]=e.message;if(esclarecimento)r.esclarecimentos.pop()}
+  EMCURSO.delete(id);if($("#lista-erros"))listaErros();
+}
+
+/* ---------- formulário de registro ---------- */
+function buscarQ(txt){
+  if(!ACERVO_OK)return [];
+  const B=parseBusca(txt), nums=norm(txt).split(/[\s,;]+/).filter(w=>/^\d{1,3}$/.test(w)).map(Number);
+  if(!B.bancas.size&&!B.anos.size&&!B.mats.size&&!B.words.length&&!nums.length)return [];
+  return D.q.filter(q=>{
+    if(B.bancas.size&&!B.bancas.has(q.b))return false;
+    if(B.anos.size&&!B.anos.has(q.a))return false;
+    if(B.mats.size&&!q.tg.some(t=>B.mats.has(t)))return false;
+    if(nums.length&&!nums.includes(q.n))return false;
+    return B.words.every(w=>q.hay.includes(w))}).sort(ordem).slice(0,8);
+}
+function formRegistro(base,opt){
+  opt=opt||{};
+  const ed=base&&base.id?REG.find(r=>r.id===base.id):null;
+  const r0=Object.assign({tipo:"erro",materia:"",assunto:"",banca:"",ano:"",numero:"",qid:"",minhaResposta:"",gabarito:"",raciocinio:"",dificuldade:"",obs:"",fotos:[]},ed?ed:(base||{}));
+  const q0=r0.qid?QID[r0.qid]:null;
+  if(q0){ // veio de uma questão do acervo: o que ela já sabe, o formulário já traz
+    if(!r0.materia&&MAT_ORDER.includes(q0.m))r0.materia=q0.m;
+    if(!r0.assunto)r0.assunto=q0.s;
+    r0.banca=BANCA[q0.b].nome;r0.ano=q0.a;r0.numero=q0.n;
+    if(!r0.gabarito&&q0.r&&!q0.x)r0.gabarito=q0.r;
+  }else r0.qid="";
+  const st={tipo:r0.tipo,qid:r0.qid||"",fotos:(r0.fotos||[]).map(f=>Object.assign({},f)),novas:{},remover:new Set(),mr:r0.minhaResposta||"",gab:r0.gabarito||""};
+  const mats=MAT_ORDER.slice(); if(r0.materia&&!mats.includes(r0.materia))mats.push(r0.materia);
+  const assuntos=[...new Set(D.q.map(q=>q.s).concat(REG.map(r=>r.assunto)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt"));
+  const d=modal(`<h3>${ed?"Editar registro":"Novo registro"}</h3>
+   <div class="fm" style="margin-top:12px">
+    <div class="seg" role="group" aria-label="Tipo"><button type="button" data-tipo="erro">Errei uma questão</button><button type="button" data-tipo="duvida">Tenho uma dúvida</button></div>
+    <div class="l"><span>Questão do acervo <small>(opcional — liga este registro à questão original, para você refazê-la depois)</small></span>
+      <div id="f-qbox"></div></div>
+    <div class="fm2">
+      <label class="l">Matéria<select id="f-mat"><option value="">Escolha…</option>${mats.map(m=>`<option${m===r0.materia?" selected":""}>${esc(m)}</option>`).join("")}</select></label>
+      <label class="l">Assunto<input class="txt" id="f-ass" list="f-assl" value="${esc(r0.assunto)}" placeholder="ex.: Estequiometria"><datalist id="f-assl">${assuntos.map(a=>`<option value="${esc(a)}">`).join("")}</datalist></label>
+    </div>
+    <div class="fm2" id="f-manual">
+      <label class="l">Banca / prova<input class="txt" id="f-ban" list="f-banl" value="${esc(r0.banca)}" placeholder="ex.: FUVEST, simulado…"><datalist id="f-banl"><option>ENEM</option><option>FUVEST</option><option>UNICAMP</option><option>UNESP</option><option>UERJ</option><option>Simulado</option><option>Lista da escola</option></datalist></label>
+      <label class="l">Ano<input class="txt" id="f-ano" inputmode="numeric" value="${esc(r0.ano)}" placeholder="ex.: 2025"></label>
+      <label class="l">Nº da questão<input class="txt" id="f-num" inputmode="numeric" value="${esc(r0.numero)}"></label>
+    </div>
+    <div id="f-alts"></div>
+    <label class="l"><span id="f-l1"></span><textarea class="txt" id="f-rac" placeholder="Escreva como você pensou, passo a passo. Quanto mais fiel ao que você fez, mais certeira a correção.">${esc(r0.raciocinio)}</textarea></label>
+    <label class="l"><span id="f-l2"></span><textarea class="txt" id="f-dif" style="min-height:70px">${esc(r0.dificuldade)}</textarea></label>
+    <label class="l">Observações <small>(opcional)</small><textarea class="txt" id="f-obs" style="min-height:60px">${esc(r0.obs)}</textarea></label>
+    <div class="l"><span>Fotos</span>
+      <div class="actions"><label class="btn mini sec upl"><input type="file" accept="image/*" multiple id="f-up-res">📷 Foto da minha resolução</label>
+      <label class="btn mini sec upl" id="f-up-q-l"><input type="file" accept="image/*" multiple id="f-up-q">🖼️ Foto da questão</label></div>
+      <div class="fotos" id="f-fotos"></div></div>
+    <div class="l"><span>Resolver à mão <small>(com a caneta ou o dedo — vira foto da resolução)</small></span>
+      <div><button type="button" class="btn mini sec" id="f-quadro-ab">✍️ Abrir o quadro da caneta</button></div>
+      <div class="quadro" id="f-quadro" hidden>
+        <div class="q-bar" role="toolbar" aria-label="Ferramentas do quadro">
+          <button type="button" class="sw" data-cor="#2B2118" style="background:#2B2118" aria-pressed="true" aria-label="Tinta preta"></button>
+          <button type="button" class="sw" data-cor="#A4412F" style="background:#A4412F" aria-pressed="false" aria-label="Tinta vermelha"></button>
+          <button type="button" class="sw" data-cor="#2F5D8A" style="background:#2F5D8A" aria-pressed="false" aria-label="Tinta azul"></button>
+          <button type="button" class="btn mini sec" data-larg="fina" aria-pressed="true">Fina</button>
+          <button type="button" class="btn mini sec" data-larg="grossa" aria-pressed="false">Grossa</button>
+          <button type="button" class="btn mini sec" data-ferr="borracha" aria-pressed="false">Borracha</button>
+          <button type="button" class="btn mini sec" data-q="desfazer">Desfazer</button>
+          <button type="button" class="btn mini sec" data-q="limpar">Limpar</button>
+          <button type="button" class="btn mini pri fim" data-q="anexar">ANEXAR COMO FOTO</button>
+        </div>
+        <canvas aria-label="Quadro para escrever a resolução à mão"></canvas>
+      </div></div>
+    <div class="nota erro" id="f-erro" hidden></div>
+    <div class="row"><button type="button" class="btn sec" id="f-cancel">CANCELAR</button>
+      <div class="actions"><button type="button" class="btn sec" id="f-save">SALVAR</button><button type="button" class="btn pri" id="f-save-ia">SALVAR E CORRIGIR COM A IA</button></div></div>
+   </div>`,true);
+
+  const pintarTipo=()=>{
+    d.querySelectorAll("[data-tipo]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.tipo===st.tipo));
+    d.querySelector("#f-alts").hidden=st.tipo!=="erro";
+    d.querySelector("#f-l1").innerHTML=st.tipo==="erro"?"Como eu resolvi <small>(o seu raciocínio)</small>":"Qual é a minha dúvida? <small>(e o que já tentei)</small>";
+    d.querySelector("#f-l2").innerHTML=st.tipo==="erro"?"Onde tive dificuldade":"Onde me perdi";
+  };
+  const pintarAlts=()=>{
+    const q=st.qid?QID[st.qid]:null, n=q?nAlts(q):5, ls="ABCDE".slice(0,n);
+    const grupo=(rot,chave,val)=>`<div class="l"><span>${rot}</span><div class="alts peq" style="margin:0" data-g="${chave}">${ls.split("").map(l=>`<button type="button" class="alt" data-l="${l}" aria-pressed="${val===l}">${l}</button>`).join("")}</div></div>`;
+    d.querySelector("#f-alts").innerHTML=`<div class="fm2" style="grid-template-columns:1fr">${grupo("Alternativa que marquei","mr",st.mr)}${grupo("Gabarito"+(q&&q.r?"":" (se souber)"),"gab",st.gab)}</div>`;
+  };
+  const pintarQ=()=>{
+    const box=d.querySelector("#f-qbox"), q=st.qid?QID[st.qid]:null;
+    d.querySelector("#f-manual").querySelectorAll("input").forEach(i=>{ if(q)i.readOnly=true; else i.readOnly=false });
+    d.querySelector("#f-up-q-l").hidden=!!q;
+    if(q){
+      const f=FONTE[q.f];
+      box.innerHTML=`<div class="qsel"><div class="qh"><b>${BANCA[q.b].nome} ${q.a}</b><span class="mut">${esc(f.edicao)} · ${esc(f.prova)} · nº ${q.n}</span><span class="tag">${esc(q.m)}</span><span class="tag">${esc(q.s)}</span></div>
+        <div class="img" id="f-qimg" style="text-align:center"><span class="mut">carregando…</span></div></div><div style="margin-top:6px"><button type="button" class="btn mini fant" id="f-qtrocar">Trocar / tirar a questão</button></div>`;
+      imgUrl(q).then(u=>{const e=d.querySelector("#f-qimg");if(e)e.innerHTML=u?`<img alt="Questão" src="${u}">`:SEM_IMG});
+      d.querySelector("#f-qtrocar").onclick=()=>{st.qid="";pintarQ();pintarAlts()};
+    }else{
+      box.innerHTML=ACERVO_OK?`<input class="txt" id="f-busca" type="search" placeholder="Procure: fuvest 2027 química 10 · enem 2025 matemática…" autocomplete="off"><div class="achados" id="f-achados"></div>`
+        :'<div class="mut" style="font-size:14px">O acervo não carregou agora — preencha os dados à mão.</div>';
+      const inp=d.querySelector("#f-busca");
+      if(inp)inp.oninput=()=>{const R=buscarQ(inp.value);d.querySelector("#f-achados").innerHTML=R.length?R.map(q=>`<button type="button" class="achado" data-pick="${q.id}"><b>${BANCA[q.b].nome} ${q.a}</b> · nº ${q.n}${q.v?` (${q.v})`:""} — ${esc(q.m)} · ${esc(q.s)}</button>`).join(""):(inp.value.trim()?'<div class="mut" style="font-size:14px">Nenhuma questão com isso.</div>':"")};
+    }
+  };
+  let assAuto="";
+  const escolher=id=>{
+    const q=QID[id];if(!q)return;
+    st.qid=id;
+    d.querySelector("#f-mat").value=MAT_ORDER.includes(q.m)?q.m:"";
+    const fa=d.querySelector("#f-ass");if(!fa.value||fa.value===assAuto){fa.value=q.s;assAuto=q.s}
+    d.querySelector("#f-ban").value=BANCA[q.b].nome;d.querySelector("#f-ano").value=q.a;d.querySelector("#f-num").value=q.n;
+    if(q.r&&!q.x)st.gab=q.r;
+    pintarQ();pintarAlts();
+  };
+  const pintarFotos=()=>{
+    const box=d.querySelector("#f-fotos");
+    box.innerHTML=st.fotos.map(f=>`<div class="foto" style="cursor:default"><img data-fid="${f.id}" alt=""><span class="k">${f.kind==="questao"?"questão":"resolução"}</span><button type="button" class="x" data-rm="${f.id}" aria-label="Tirar esta foto">✕</button></div>`).join("");
+    box.querySelectorAll("img[data-fid]").forEach(im=>urlFoto(im.dataset.fid).then(u=>{if(u)im.src=u}));
+  };
+  const addFotos=async(files,kind)=>{
+    for(const arq of files){
+      try{const b=await reduzir(arq,1600,.82),id=uid();st.novas[id]=b;FURL[id]=URL.createObjectURL(b);st.fotos.push({id,kind})}
+      catch(e){aviso("Não consegui ler uma das fotos.")}
+    }
+    pintarFotos();
+  };
+  d.addEventListener("click",e=>{
+    const t=e.target.closest("[data-tipo]");if(t){st.tipo=t.dataset.tipo;pintarTipo();return}
+    const p=e.target.closest("[data-pick]");if(p){escolher(p.dataset.pick);return}
+    const a=e.target.closest("[data-g] .alt");if(a){const g=a.parentNode.dataset.g;const cur=g==="mr"?st.mr:st.gab;const nv=cur===a.dataset.l?"":a.dataset.l;if(g==="mr")st.mr=nv;else st.gab=nv;
+      a.parentNode.querySelectorAll(".alt").forEach(x=>x.setAttribute("aria-pressed",x.dataset.l===nv));return}
+    const x=e.target.closest("[data-rm]");if(x){const id=x.dataset.rm;st.fotos=st.fotos.filter(f=>f.id!==id);if(st.novas[id])delete st.novas[id];else st.remover.add(id);pintarFotos()}
+  });
+  d.querySelector("#f-up-res").onchange=e=>{addFotos([...e.target.files],"resolucao");e.target.value=""};
+  d.querySelector("#f-up-q").onchange=e=>{addFotos([...e.target.files],"questao");e.target.value=""};
+  d.querySelector("#f-cancel").onclick=()=>{ if(!ed&&(d.querySelector("#f-rac").value||d.querySelector("#f-dif").value||st.fotos.length)&&!confirm("Descartar o que você escreveu?"))return; fechar()};
+
+  async function guardar(comIA){
+    const erro=d.querySelector("#f-erro"), mat=d.querySelector("#f-mat").value;
+    const rac=d.querySelector("#f-rac").value.trim(),dif=d.querySelector("#f-dif").value.trim(),ob=d.querySelector("#f-obs").value.trim();
+    if(!mat){erro.hidden=false;erro.textContent="Escolha a matéria.";return}
+    if(!st.qid&&!rac&&!dif&&!ob&&!st.fotos.length&&!d.querySelector("#f-ass").value.trim()){erro.hidden=false;erro.textContent="Conte um pouco: o assunto, o que você pensou, ou anexe uma foto.";return}
+    d.querySelectorAll("button").forEach(b=>b.disabled=true);
+    const q=st.qid?QID[st.qid]:null;
+    const dados={tipo:st.tipo,qid:st.qid,materia:mat,assunto:d.querySelector("#f-ass").value.trim(),
+      banca:q?BANCA[q.b].nome:d.querySelector("#f-ban").value.trim(),ano:q?q.a:d.querySelector("#f-ano").value.trim(),numero:q?q.n:d.querySelector("#f-num").value.trim(),
+      minhaResposta:st.tipo==="erro"?st.mr:"",gabarito:st.tipo==="erro"?st.gab:"",raciocinio:rac,dificuldade:dif,obs:ob};
+    const fotosOk=[];let falhou=false;
+    for(const f of st.fotos){
+      if(st.novas[f.id]){try{await fotoPut(f.id,st.novas[f.id]);fotosOk.push(f)}catch(e){falhou=true}}else fotosOk.push(f);
+    }
+    st.remover.forEach(id=>fotoDel(id));
+    dados.fotos=fotosOk;
+    let rec=ed;
+    if(ed)Object.assign(ed,dados,{atualizado:new Date().toISOString()});
+    else{rec=Object.assign({id:uid(),criado:new Date().toISOString(),status:"aberto",origem:base&&base.origem||"manual"},dados);REG.unshift(rec)}
+    salvarReg();fechar();
+    if(falhou)aviso("O registro foi salvo, mas este aparelho não guardou as fotos.");
+    aba("erros");
+    if(comIA)corrigir(rec.id);
+  }
+  d.querySelector("#f-save").onclick=()=>guardar(false);
+  d.querySelector("#f-save-ia").onclick=()=>guardar(true);
+  const qb=d.querySelector("#f-quadro");let qpronto=false;
+  d.querySelector("#f-quadro-ab").onclick=()=>{qb.hidden=!qb.hidden;if(!qb.hidden&&!qpronto){qpronto=true;quadroCaneta(qb,async b=>{await addFotos([b],"resolucao");aviso("Página anexada à resolução.")})}if(!qb.hidden)qb.scrollIntoView({block:"nearest"})};
+  pintarTipo();pintarAlts();pintarQ();pintarFotos();
+}
+
+/* ---------- quadro da caneta ---------- */
+// Caneta de tablet (pointer events): pressão vira espessura; depois que uma caneta
+// aparece, o toque (a palma da mão) é ignorado. Sem caneta, o dedo e o mouse escrevem.
+// Os traços guardam posição em fração da largura, para o desenho sobreviver a girar o tablet.
+function quadroCaneta(box,anexar){
+  const cv=box.querySelector("canvas"),ctx=cv.getContext("2d");
+  let tracos=[],atual=null,cor="#2B2118",larg=2.4,borracha=false,penVisto=false,W=0;
+  const marca=()=>{cv.dataset.tracos=tracos.length};
+  function ajustar(){
+    const w=Math.max(260,cv.parentNode.clientWidth),h=Math.round(Math.max(320,w*.72)),r=window.devicePixelRatio||1;
+    W=w;cv.style.height=h+"px";cv.width=Math.round(w*r);cv.height=Math.round(h*r);ctx.setTransform(r,0,0,r,0,0);redesenhar();
+  }
+  function seg(t,a,b){
+    ctx.strokeStyle=t.cor;ctx.lineCap="round";ctx.lineJoin="round";
+    ctx.lineWidth=t.larg*(t.pen?.45+b.p*1.1:1);
+    ctx.beginPath();ctx.moveTo(a.x*W,a.y*W);ctx.lineTo(b.x*W,b.y*W);ctx.stroke();
+  }
+  function redesenhar(){
+    ctx.fillStyle="#fff";ctx.fillRect(0,0,cv.width,cv.height);
+    tracos.forEach(t=>{if(t.pts.length===1){const p=t.pts[0];seg(t,p,{x:p.x+.0001,y:p.y,p:p.p})}for(let i=1;i<t.pts.length;i++)seg(t,t.pts[i-1],t.pts[i])});
+  }
+  const pt=e=>{const r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)/W,y:(e.clientY-r.top)/W,p:e.pointerType==="pen"&&e.pressure?e.pressure:.5}};
+  cv.addEventListener("pointerdown",e=>{
+    if(e.pointerType==="pen")penVisto=true;
+    if(e.pointerType==="touch"&&penVisto)return; // palma
+    if(e.pointerType==="mouse"&&e.button!==0)return;
+    e.preventDefault();try{cv.setPointerCapture(e.pointerId)}catch(_){}
+    atual={cor:borracha?"#ffffff":cor,larg:borracha?16:larg,pen:e.pointerType==="pen",pts:[pt(e)],id:e.pointerId};
+    tracos.push(atual);seg(atual,atual.pts[0],{x:atual.pts[0].x+.0001,y:atual.pts[0].y,p:atual.pts[0].p});marca();
+  });
+  cv.addEventListener("pointermove",e=>{
+    if(!atual||e.pointerId!==atual.id)return;e.preventDefault();
+    const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];
+    (evs.length?evs:[e]).forEach(ev=>{const p=pt(ev);seg(atual,atual.pts[atual.pts.length-1],p);atual.pts.push(p)});
+  });
+  const solta=e=>{if(atual&&e.pointerId===atual.id)atual=null};
+  cv.addEventListener("pointerup",solta);cv.addEventListener("pointercancel",solta);
+  cv.addEventListener("contextmenu",e=>e.preventDefault());
+  box.addEventListener("click",e=>{
+    const sw=e.target.closest("[data-cor]");
+    if(sw){cor=sw.dataset.cor;borracha=false;box.querySelectorAll("[data-cor]").forEach(b=>b.setAttribute("aria-pressed",b===sw));box.querySelector("[data-ferr]").setAttribute("aria-pressed","false");return}
+    const lg=e.target.closest("[data-larg]");
+    if(lg){larg=lg.dataset.larg==="fina"?2.4:5;box.querySelectorAll("[data-larg]").forEach(b=>b.setAttribute("aria-pressed",b===lg));return}
+    const fe=e.target.closest("[data-ferr]");
+    if(fe){borracha=!borracha;fe.setAttribute("aria-pressed",borracha);return}
+    const q=e.target.closest("[data-q]");if(!q)return;
+    if(q.dataset.q==="desfazer"){tracos.pop();redesenhar();marca()}
+    else if(q.dataset.q==="limpar"){if(!tracos.length||confirm("Limpar o quadro?")){tracos=[];redesenhar();marca()}}
+    else if(q.dataset.q==="anexar"){
+      if(!tracos.length){aviso("O quadro está vazio.");return}
+      cv.toBlob(async b=>{if(!b){aviso("Não consegui guardar o desenho.");return}await anexar(b);tracos=[];redesenhar();marca()},"image/png");
+    }
+  });
+  new ResizeObserver(()=>{if(box.hidden||Math.abs(box.clientWidth-W)<2)return;ajustar()}).observe(box);
+  marca();ajustar();
+}
+
+/* ============ Estatísticas — feitas só com os registros dela ============ */
+const DIA=86400000;
+function calc(){
+  const agora=Date.now();
+  const R=REG.filter(r=>r.tipo==="erro"||r.tipo==="duvida");
+  const rotulo=(m,a)=>a?`${m} · ${a}`:`${m} (sem assunto)`;
+  const por=(arr,fn)=>{const m={};arr.forEach(x=>{const k=fn(x);if(!k)return;(m[norm(k)]=m[norm(k)]||{nome:k,itens:[]}).itens.push(x)});return Object.values(m)};
+  const ord=a=>a.sort((x,y)=>y.n-x.n||x.nome.localeCompare(y.nome,"pt"));
+  const ultima=itens=>itens.map(r=>r.criado||"").sort().pop();
+  // Tentativas online (acertos de verdade): matéria e assunto
+  const tm={},ta={};
+  TENT.forEach(t=>{const km=norm(t.m),ka=norm(t.m)+"|"+norm(t.s);
+    (tm[km]=tm[km]||{nome:t.m,n:0,ok:0}).n++;(ta[ka]=ta[ka]||{materia:t.m,assunto:t.s,n:0,ok:0}).n++;
+    if(t.ok){tm[km].ok++;ta[ka].ok++}});
+  const materias=ord(por(R,r=>r.materia).map(g=>({nome:g.nome,n:g.itens.length,tent:tm[norm(g.nome)]||null})));
+  const assuntos=ord(por(R.filter(r=>r.materia&&r.assunto),r=>norm(r.materia)+"|"+norm(r.assunto)).map(g=>({nome:rotulo(g.itens[0].materia,g.itens[0].assunto),materia:g.itens[0].materia,assunto:g.itens[0].assunto,n:g.itens.length})));
+  const tiposQuestao=ord(por(R,r=>r.tipoQuestao).map(g=>({nome:g.nome,n:g.itens.length})));
+  const tiposErro=ord(por(R.filter(r=>r.tipo==="erro"),r=>{const t=tipoErroDe(r);return t&&t!=="indefinido"?t:""}).map(g=>({nome:g.nome,n:g.itens.length})));
+  const recorrentes=ord(por(R,r=>r.padrao).map(g=>({nome:g.nome,n:g.itens.length,onde:[...new Set(g.itens.map(r=>rotulo(r.materia||"?",r.assunto)))],ultima:ultima(g.itens)}))).filter(x=>x.n>=2);
+  const combos=ord(por(R.filter(r=>r.materia&&r.assunto&&r.tipo==="erro"&&tipoErroDe(r)&&tipoErroDe(r)!=="indefinido"),r=>norm(r.materia)+"|"+norm(r.assunto)+"|"+tipoErroDe(r))
+    .map(g=>({nome:rotulo(g.itens[0].materia,g.itens[0].assunto),tipo:tipoErroDe(g.itens[0]),n:g.itens.length}))).filter(x=>x.n>=2);
+  const melhoresAssuntos=Object.values(ta).filter(x=>x.n>=3).map(x=>({nome:rotulo(x.materia,x.assunto),n:x.n,ok:x.ok,taxa:x.ok/x.n})).sort((a,b)=>b.taxa-a.taxa||b.n-a.n).slice(0,5);
+  const melhoresMaterias=Object.values(tm).filter(x=>x.n>=5).map(x=>({nome:x.nome,n:x.n,ok:x.ok,taxa:x.ok/x.n})).sort((a,b)=>b.taxa-a.taxa||b.n-a.n).slice(0,4);
+  // Prioridade de revisão: o que ainda está em aberto, e o que erra de novo agora.
+  const prioridades=por(R.filter(r=>r.materia&&!ehDominado(r)),r=>norm(r.materia)+"|"+norm(r.assunto||"")).map(g=>{
+    const it=g.itens, m=it[0].materia, a=it[0].assunto||"";
+    const recentes=it.filter(r=>agora-new Date(r.criado||0).getTime()<=21*DIA).length;
+    const t=ta[norm(m)+"|"+norm(a)];
+    const taxaErro=t&&t.n>=3?1-t.ok/t.n:null;
+    let score=it.length*2+recentes+(taxaErro!=null&&taxaErro>=.5?2:0);
+    const motivos=[`${it.length} ${it.length===1?"registro ainda em aberto":"registros ainda em aberto"}`];
+    if(recentes)motivos.push(`${recentes} nos últimos 21 dias`);
+    if(taxaErro!=null&&taxaErro>=.5)motivos.push(`acertou só ${Math.round((1-taxaErro)*100)}% de ${t.n} questões resolvidas online`);
+    const pads=[...new Set(it.map(r=>r.padrao).filter(Boolean))];
+    return {nome:rotulo(m,a),materia:m,assunto:a,abertos:it.length,recentes,score,motivos,padroes:pads,registros:it};
+  }).sort((x,y)=>y.score-x.score||y.abertos-x.abertos).slice(0,6);
+  return {total:R.length,erros:R.filter(r=>r.tipo==="erro").length,duvidas:R.filter(r=>r.tipo==="duvida").length,
+    semCorrecao:R.filter(r=>!r.correcao).length,tentativas:TENT.length,acertosOnline:TENT.filter(t=>t.ok).length,
+    materias,assuntos,tiposQuestao,tiposErro,recorrentes,combos,melhoresAssuntos,melhoresMaterias,prioridades};
+}
+const barrasH=(arr,fnLabel,fnVal,max)=>{const m=max||Math.max(...arr.map(fnVal),1);return arr.map(x=>`<div class="bar"><span>${esc(fnLabel(x))}</span><i style="width:${Math.max(3,fnVal(x)/m*100)}%"></i><span>${fnVal(x)}</span></div>`).join("")};
+function secao(titulo,lead,corpo,vazio){return `<section class="card"><h2>${titulo}</h2>${lead?`<p class="lead">${lead}</p>`:""}${corpo||`<div class="mut">${vazio}</div>`}</section>`}
+function renderStats(){
+  const c=calc(), v=$("#v-stats");
+  const pdesc=(p)=>`<div class="rev-i"><div><b>${esc(p.nome)}</b><div class="mut" style="font-size:14px">${esc(p.motivos.join(" · "))}</div>${p.padroes.length?`<div style="font-size:14px">Padrão: ${p.padroes.map(esc).join("; ")}</div>`:""}</div>
+      <div class="actions"><button class="btn mini sec" data-st="acervo" data-m="${esc(p.materia)}" data-a="${esc(p.assunto)}">Treinar no acervo</button><button class="btn mini sec" data-st="macete" data-m="${esc(p.materia)}" data-a="${esc(p.assunto)}">Macetes</button><button class="btn mini fant" data-st="fixar" data-m="${esc(p.materia)}" data-a="${esc(p.assunto)}">Fixar no mural</button></div></div>`;
+  const semDados=!c.total;
+  v.innerHTML=`<section class="card"><h3 class="t">Como você está indo</h3>
+    <p class="lead" style="margin:0">Tudo aqui é calculado com os seus registros e as suas resoluções online — nada é estimado.</p>
+    <div class="resumo"><div><b>${c.total}</b><span>registros (${c.erros} erros · ${c.duvidas} dúvidas)</span></div><div><b>${c.semCorrecao}</b><span>ainda sem correção</span></div><div><b>${c.tentativas?Math.round(c.acertosOnline/c.tentativas*100)+"%":"—"}</b><span>de acerto nas ${c.tentativas} questões resolvidas online</span></div></div></section>
+   ${semDados?`<section class="card"><div class="empty">Ainda não há registros. Registre um erro ou dúvida (aba “Meus erros e dúvidas”) e resolva questões online no Acervo — as estatísticas aparecem aqui.</div></section>`:""}
+   ${secao("Revisar primeiro","Assuntos com mais registros em aberto, recentes ou com muitos erros na prática online.",c.prioridades.length?`<div class="rev">${c.prioridades.map(pdesc).join("")}</div>`:"","Nada em aberto. Quando um erro for marcado como dominado, ele sai desta lista.")}
+   ${secao("Matérias em que mais erro","Quantidade de erros e dúvidas registrados por matéria.",c.materias.length?c.materias.map(m=>`<div class="bar"><span>${esc(m.nome)}</span><i style="width:${Math.max(3,m.n/c.materias[0].n*100)}%"></i><span>${m.n}</span></div>${m.tent&&m.tent.n>=5?`<div class="hint" style="margin:-2px 0 6px">na prática online: ${Math.round(m.tent.ok/m.tent.n*100)}% de acerto em ${m.tent.n} questões</div>`:""}`).join(""):"","Registre erros para ver as matérias.")}
+   ${secao("Assuntos em que mais erro","",c.assuntos.length?barrasH(c.assuntos.slice(0,10),x=>x.nome,x=>x.n):"","Preencha o assunto nos registros (ou deixe a IA preencher na correção).")}
+   ${secao("Tipos de questão que mais me confundem","A IA dá o nome do tipo de questão ao corrigir.",c.tiposQuestao.length?barrasH(c.tiposQuestao.slice(0,8),x=>x.nome,x=>x.n):"",c.semCorrecao?`Ainda não há tipos de questão — ${c.semCorrecao} registro(s) esperam correção.`:"Ainda não há tipos de questão classificados.")}
+   ${secao("Por que eu erro","Tipo de erro, nos registros em que o motivo foi identificado.",c.tiposErro.length?barrasH(c.tiposErro,x=>NOME_TIPO_ERRO[x.nome]||x.nome,x=>x.n):"","Ainda não há erros com o motivo identificado.")}
+   ${secao("Meus erros mais recorrentes","Só entra o que se repetiu duas vezes ou mais.",
+      (c.recorrentes.length||c.combos.length)?(c.recorrentes.map(x=>`<div class="rev-i"><div><b>${esc(x.nome)}</b><div class="mut" style="font-size:14px">${x.n} vezes · ${esc(x.onde.join("; "))} · última em ${dataBR(x.ultima)}</div></div></div>`).join("")+
+        c.combos.map(x=>`<div class="rev-i"><div><b>${esc(x.nome)}</b><div class="mut" style="font-size:14px">erro de ${esc(NOME_TIPO_ERRO[x.tipo]||x.tipo).toLowerCase()} · ${x.n} vezes</div></div></div>`).join("")).replace(/^/,'<div class="rev">')+"</div>":"",
+      "Nenhum erro se repetiu ainda — ótimo sinal, ou ainda são poucos registros.")}
+   ${secao("Onde vou melhor","Calculado a partir das questões que você resolveu online no Acervo (mínimo de 3 por assunto, 5 por matéria).",
+      (c.melhoresAssuntos.length||c.melhoresMaterias.length)?(c.melhoresMaterias.length?'<h2 style="margin-top:4px">Matérias</h2>'+barrasH(c.melhoresMaterias,x=>`${x.nome} (${x.ok}/${x.n})`,x=>Math.round(x.taxa*100),100):"")+(c.melhoresAssuntos.length?'<h2 style="margin-top:12px">Assuntos</h2>'+barrasH(c.melhoresAssuntos,x=>`${x.nome} (${x.ok}/${x.n})`,x=>Math.round(x.taxa*100),100):""):"",
+      "Ainda não há resoluções suficientes. Resolva questões online no Acervo (“Resolver online”) — cada acerto e erro entra aqui.")}
+   <hr class="sep">
+   <h2 style="margin-top:18px">O acervo</h2>${htmlAcervoStats()}`;
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-st]");if(!b)return;
+  const m=b.dataset.m,a=b.dataset.a;
+  if(b.dataset.st==="acervo")irAcervo(m,a);
+  else if(b.dataset.st==="macete"){aba("dicas");gerarDicas(a?`${m} · ${a}`:m,{materia:m,assunto:a})}
+  else if(b.dataset.st==="fixar"){novoLembrete(`Revisar: ${a?m+" · "+a:m}`);aviso("Fixado no mural, na aba Início.")}
+});
+function htmlAcervoStats(){
+  const Q=D.q;
+  const bars=(obj,cor)=>{const m=Math.max(...Object.values(obj),1);return Object.entries(obj).map(([k,n])=>`<div class="bar" style="--c:${cor||"var(--accent)"}"><span>${esc(k)}</span><i style="width:${n/m*100}%"></i><span>${n}</span></div>`).join("")};
+  const porB=D.bancas.map(b=>{const qs=Q.filter(q=>q.b===b.id);const mc=cnt(qs,q=>q.m);
+    const sorted=Object.fromEntries(Object.entries(mc).sort((a,b)=>b[1]-a[1]));
+    return `<section class="card"><h2>${b.nome} · ${qs.length} questões</h2>${qs.length?bars(sorted,COR_BANCA[b.id]||b.cor):'<div class="mut">Ainda sem provas importadas.</div>'}</section>`}).join("");
+  const anos=cnt(Q,q=>q.a), tem=Object.entries(cnt(Q,q=>q.m+" · "+q.s)).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  if(!Q.length)return '<section class="card"><div class="empty">O acervo não carregou agora.</div></section>';
+  return `<section class="card"><h2>Total</h2><div class="count">${Q.length}<small>questões em ${D.fontes.length} provas · contagem pela matéria principal</small></div></section>${porB}
+   <section class="card"><h2>Por ano</h2>${bars(Object.fromEntries(Object.entries(anos).sort()))}</section>
+   <section class="card"><h2>Temas com mais questões</h2>${bars(Object.fromEntries(tem))}</section>
+   <section class="card"><h2>Provas no acervo</h2><div class="tw"><table><tr><th>Banca</th><th>Ano</th><th>Edição</th><th>Prova</th><th>Questões</th></tr>${D.fontes.map(f=>`<tr><td>${BANCA[f.banca].nome}</td><td>${f.ano}</td><td>${f.edicao}</td><td>${f.prova}</td><td>${f.n_questoes}</td></tr>`).join("")}</table></div></section>`;
+}
+
+/* ============ Macetes e dicas ============ */
+const cortar=(s,n)=>String(s||"").length>n?String(s).slice(0,n)+"…":String(s||"");
+function resumoParaIA(foco){
+  const c=calc();
+  let pr=c.prioridades;
+  if(foco)pr=c.prioridades.filter(p=>norm(p.materia)===norm(foco.materia)&&(!foco.assunto||norm(p.assunto)===norm(foco.assunto)));
+  if(foco&&!pr.length)pr=calc().prioridades;
+  pr=pr.slice(0,foco?1:5);
+  return {totais:{registros:c.total,erros:c.erros,duvidas:c.duvidas,questoesResolvidasOnline:c.tentativas},
+    prioridades:pr.map(p=>({materia:p.materia,assunto:p.assunto||"(sem assunto informado)",registrosEmAberto:p.abertos,padroesDeErro:p.padroes,
+      tiposDeErro:p.registros.reduce((m,r)=>{const t=tipoErroDe(r);if(t){m[t]=(m[t]||0)+1}return m},{}),
+      tiposDeQuestao:[...new Set(p.registros.map(r=>r.tipoQuestao).filter(Boolean))],
+      relatos:p.registros.slice(0,4).map(r=>({tipo:r.tipo,comoResolveu:cortar(r.raciocinio,350),dificuldade:cortar(r.dificuldade,350),resumoDaCorrecao:cortar(r.correcao&&r.correcao.onde_errou,300)}))})),
+    recorrentes:c.recorrentes.slice(0,5).map(x=>({padrao:x.nome,vezes:x.n}))};
+}
+let GERANDO=null, ERRO_DICAS="";
+async function gerarDicas(rotulo,foco){
+  if(GERANDO)return;
+  const c=calc();
+  if(!c.total){aviso("Registre pelo menos um erro ou dúvida para gerar macetes.");return}
+  GERANDO=rotulo||"geral";ERRO_DICAS="";renderDicas();
+  try{
+    const j=await chamarIA({acao:"dicas",resumo:resumoParaIA(foco),foco:foco?rotulo:""});
+    const novo=j.dicas;
+    if(!DICAS||!foco)DICAS={quando:new Date().toISOString(),baseadoEm:c.total,resumo:novo.resumo,aviso:novo.aviso,itens:novo.itens};
+    else{ // dicas de um assunto só entram sem apagar as outras
+      const ch=i=>norm(i.materia)+"|"+norm(i.assunto);const ks=new Set(novo.itens.map(ch));
+      DICAS.itens=novo.itens.concat(DICAS.itens.filter(i=>!ks.has(ch(i))));DICAS.quando=new Date().toISOString();DICAS.baseadoEm=c.total}
+    salvarDicas();
+  }catch(e){ERRO_DICAS=e.message}
+  GERANDO=null;if(ABA==="dicas")renderDicas();
+}
+function renderDicas(){
+  const v=$("#v-dicas"), c=calc();
+  const novos=DICAS?Math.max(0,c.total-(DICAS.baseadoEm||0)):0;
+  v.innerHTML=`<section class="card"><div class="row"><div><h3 class="t">Macetes e dicas para mim</h3>
+    <p class="lead" style="margin:0">Feitos a partir dos seus próprios erros e do seu raciocínio — por isso mudam conforme você registra mais.</p></div>
+    <button class="btn pri" id="d-gerar" ${GERANDO||!c.total?"disabled":""}>${DICAS?"GERAR DE NOVO":"GERAR MEUS MACETES"}</button></div>
+    ${!c.total?'<p class="hint">Ainda não há registros. Registre erros na aba “Meus erros e dúvidas” e volte aqui.</p>':""}
+    ${c.total&&c.total<3?'<p class="hint">Poucos registros ainda: as dicas vão sair mais gerais e ficam mais certeiras com o tempo.</p>':""}</section>
+   ${GERANDO?`<div class="rodando card" style="margin-top:14px"><span class="spin"></span>Estudando os seus erros${GERANDO!=="geral"?" de "+esc(GERANDO):""}… pode levar até um minuto.</div>`:""}
+   ${ERRO_DICAS?`<div class="nota erro">${esc(ERRO_DICAS)}</div>`:""}
+   ${DICAS?`<section class="card"><h2>Resumo</h2><p style="margin:0;white-space:pre-wrap">${esc(DICAS.resumo)}</p>
+     <p class="hint">Gerado em ${dataBR(DICAS.quando)} com base em ${DICAS.baseadoEm} registro(s).${novos?` Você registrou mais ${novos} desde então — gere de novo para incluí-los.`:""}</p>
+     ${DICAS.aviso?`<div class="nota">${esc(DICAS.aviso)}</div>`:""}</section>
+     <div class="list" style="margin-top:14px">${DICAS.itens.map((i,k)=>`<article class="dica">
+       <h3>${esc(i.materia)}${i.assunto?" · "+esc(i.assunto):""}</h3>
+       ${i.padrao?`<div class="mut" style="font-size:14px">O erro que esta dica ataca: ${esc(i.padrao)}</div>`:""}
+       ${i.macete?`<div class="rot">Macete</div><div class="macete">${esc(i.macete)}</div>`:""}
+       ${i.dica_pratica?`<div class="rot">Dica prática</div><p>${esc(i.dica_pratica)}</p>`:""}
+       ${i.como_reconhecer?`<div class="rot">Como reconhecer</div><p>${esc(i.como_reconhecer)}</p>`:""}
+       ${(i.antes_de_marcar||[]).length?`<div class="rot">Antes de marcar a alternativa</div><ul>${i.antes_de_marcar.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+       <div class="reg-a"><button class="btn mini sec" data-dk="acervo" data-i="${k}">Treinar no acervo</button><button class="btn mini fant" data-dk="fixar" data-i="${k}">Fixar no mural</button></div></article>`).join("")}</div>`:
+     (GERANDO?"":c.total?'<div class="empty">Toque em “Gerar meus macetes”.</div>':"")}`;
+  const g=$("#d-gerar");if(g)g.onclick=()=>gerarDicas();
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-dk]");if(!b||!DICAS)return;
+  const i=DICAS.itens[+b.dataset.i];if(!i)return;
+  if(b.dataset.dk==="acervo")irAcervo(i.materia,i.assunto);
+  else{novoLembrete(cortar(`${i.assunto||i.materia}: ${i.macete||i.dica_pratica}`,170));aviso("Fixado no mural, na aba Início.")}
+});
+
+/* ============ Início: saudação, revisão e mural de post-its ============ */
+const rot=id=>{let h=0;for(const ch of id)h=(h*31+ch.charCodeAt(0))|0;return ((Math.abs(h)%50)/10-2.5).toFixed(1)};
+function novoLembrete(texto){LEMB.unshift({id:uid(),texto:texto||"",cor:["c1","c2","c3","c4"][LEMB.length%4],feito:false,criado:new Date().toISOString()});salvarLemb();return LEMB[0]}
+function htmlPostit(l){
+  return `<div class="postit ${l.cor}${l.feito?" feito":""}" data-l="${l.id}" style="--rot:${rot(l.id)}deg">
+    <textarea aria-label="Lembrete" maxlength="400" placeholder="Escreva aqui…">${esc(l.texto)}</textarea>
+    <div class="pf"><div class="cores" role="group" aria-label="Cor">${["c1","c2","c3","c4"].map(c=>`<button class="cor ${c}" data-cor="${c}" aria-pressed="${l.cor===c}" aria-label="Cor ${c}"></button>`).join("")}</div>
+    <div class="pf-b"><button data-lx="feito" aria-label="${l.feito?"Reabrir":"Concluir"}" title="${l.feito?"Reabrir":"Concluir"}">${l.feito?"↩":"✓"}</button><button data-lx="del" aria-label="Apagar" title="Apagar">✕</button></div></div></div>`;
+}
+function desenharMural(focoId){
+  const m=$("#mural");if(!m)return;
+  const ord=LEMB.slice().sort((a,b)=>(a.feito-b.feito)||(b.criado||"").localeCompare(a.criado||""));
+  m.innerHTML=ord.map(htmlPostit).join("")+`<button class="postit novo" id="novo-lemb" aria-label="Novo lembrete"><b>＋</b><span>Novo lembrete</span></button>`;
+  if(focoId){const t=m.querySelector(`[data-l="${focoId}"] textarea`);if(t)t.focus()}
+}
+function renderInicio(){
+  const h=new Date().getHours(), sau=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";
+  const c=calc(), emAberto=REG.filter(r=>!ehDominado(r)).length;
+  const v=$("#v-inicio");
+  v.innerHTML=`<div class="ola">${sau}, Rafaela.</div>
+   <p class="ola-sub">${emAberto?`Você tem ${emAberto} ${emAberto===1?"erro ou dúvida":"erros e dúvidas"} para revisar.`:"Nada para revisar agora — que tal resolver umas questões?"}</p>
+   <div class="resumo"><div><b>${D.q.length||"—"}</b><span>questões no acervo</span></div><div><b>${REG.length}</b><span>registros no caderno</span></div><div><b>${c.tentativas}</b><span>questões resolvidas online</span></div></div>
+   ${c.prioridades.length?`<section class="card"><h2>Para revisar agora</h2><div class="rev">${c.prioridades.slice(0,3).map(p=>`<div class="rev-i"><div><b>${esc(p.nome)}</b><div class="mut" style="font-size:14px">${esc(p.motivos.join(" · "))}</div></div><div class="actions"><button class="btn mini sec" data-st="acervo" data-m="${esc(p.materia)}" data-a="${esc(p.assunto)}">Treinar</button><button class="btn mini fant" data-st="fixar" data-m="${esc(p.materia)}" data-a="${esc(p.assunto)}">Fixar no mural</button></div></div>`).join("")}</div></section>`:""}
+   <div class="mural-wrap"><h2>Meus lembretes</h2><div class="mural" id="mural"></div></div>
+   <section class="card" style="margin-top:18px"><h2>Cópia de segurança</h2>
+     <p class="lead">Seus registros, fotos e lembretes ficam guardados <b>neste aparelho</b>. Faça uma cópia de vez em quando — e use “Restaurar” para levar tudo para outro aparelho.</p>
+     <div class="actions"><button class="btn sec mini" id="bk-salvar">Salvar cópia</button><label class="btn sec mini upl"><input type="file" accept="application/json,.json" id="bk-abrir">Restaurar de uma cópia</label></div></section>`;
+  desenharMural();
+  $("#bk-salvar").onclick=salvarCopia;
+  $("#bk-abrir").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)restaurarCopia(f)};
+}
+$("#v-inicio").addEventListener("click",e=>{
+  if(e.target.closest("#novo-lemb")){const l=novoLembrete("");desenharMural(l.id);return}
+  const p=e.target.closest(".postit[data-l]");if(!p)return;
+  const l=LEMB.find(x=>x.id===p.dataset.l);if(!l)return;
+  const cor=e.target.closest("[data-cor]");
+  if(cor){l.cor=cor.dataset.cor;salvarLemb();p.className=`postit ${l.cor}${l.feito?" feito":""}`;p.querySelectorAll(".cor").forEach(b=>b.setAttribute("aria-pressed",b.dataset.cor===l.cor));return}
+  const x=e.target.closest("[data-lx]");
+  if(x&&x.dataset.lx==="feito"){l.feito=!l.feito;salvarLemb();desenharMural()}
+  else if(x&&x.dataset.lx==="del"){if(!l.texto.trim()||confirm("Apagar este lembrete?")){LEMB=LEMB.filter(y=>y.id!==l.id);salvarLemb();desenharMural()}}
+});
+let _tl=null;
+$("#v-inicio").addEventListener("input",e=>{
+  const p=e.target.closest(".postit[data-l]");if(!p||e.target.tagName!=="TEXTAREA")return;
+  const l=LEMB.find(x=>x.id===p.dataset.l);if(!l)return;l.texto=e.target.value;
+  clearTimeout(_tl);_tl=setTimeout(salvarLemb,350);
+});
+window.addEventListener("pagehide",()=>{if(_tl){clearTimeout(_tl);salvarLemb()}});
+
+/* ---------- cópia de segurança ---------- */
+async function salvarCopia(){
+  try{
+    const fotos={};
+    for(const r of REG)for(const f of (r.fotos||[])){const b=await fotoGet(f.id).catch(()=>null);if(b)fotos[f.id]={tipo:b.type,dados:await blobB64(b)}}
+    for(const p of QP){const b=await fotoGet(p.id).catch(()=>null);if(b)fotos[p.id]={tipo:b.type,dados:await blobB64(b)}}
+    const corpo={app:"caderno-rafaela",versao:1,em:new Date().toISOString(),registros:REG,tentativas:TENT,lembretes:LEMB,dicas:DICAS,questoes:QP,fotos};
+    baixar(new Blob([JSON.stringify(corpo)],{type:"application/json"}),`caderno-rafaela-${new Date().toISOString().slice(0,10)}.json`);
+    aviso("Cópia salva. Guarde o arquivo num lugar seguro.");
+  }catch(e){aviso("Não consegui montar a cópia: "+(e&&e.message||e))}
+}
+async function restaurarCopia(arq){
+  try{
+    const c=JSON.parse(await arq.text());
+    if(c.app!=="caderno-rafaela"||!Array.isArray(c.registros))throw new Error("Este arquivo não é uma cópia do caderno.");
+    if(!confirm(`Restaurar ${c.registros.length} registro(s)? Isto SUBSTITUI o que está neste aparelho agora.`))return;
+    for(const [id,f] of Object.entries(c.fotos||{})){const bin=atob(f.dados),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);delete FURL[id];await fotoPut(id,new Blob([a],{type:f.tipo||"image/jpeg"}))}
+    REG=c.registros;TENT=c.tentativas||[];LEMB=c.lembretes||[];DICAS=c.dicas||null;QP=c.questoes||[];
+    Object.keys(blobs).forEach(k=>{delete blobs[k];delete urls[k]});
+    salvarReg();salvarTent();salvarLemb();salvarDicas();salvarQP();montarPessoais();renderInicio();aviso("Cópia restaurada.");
+  }catch(e){aviso(e&&e.message||"Não consegui ler esta cópia.")}
+}
+
+/* ============ abas ============ */
+function aba(a,silencioso){
+  ABA=a;
+  ["inicio","acervo","erros","stats","dicas"].forEach(x=>{$("#v-"+x).hidden=x!==a;$("#tab-"+x).setAttribute("aria-selected",x===a)});
+  $(".search").hidden=a!=="acervo";
+  if(a==="inicio")renderInicio();else if(a==="acervo")render();else if(a==="erros")renderErros();else if(a==="stats")renderStats();else renderDicas();
+  if(!silencioso)window.scrollTo(0,0);
+}
+document.querySelector(".tabs").addEventListener("click",e=>{const t=e.target.closest("[data-aba]");if(t)aba(t.dataset.aba)});
+aba("inicio",true);
+window.__rafa={calc,estado:()=>({REG,TENT,LEMB,DICAS})};
+})();
+</script>
+</body>
+</html>
