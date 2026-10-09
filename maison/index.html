@@ -640,7 +640,7 @@ function vAgenda(){
 // ── Brinde de aniversário como voucher ──
 // O desconto só existe se a Tháriga liberou antes: um código por cliente, uso único, com prazo.
 // Quem atende não digita desconto: aplica o voucher, e o painel calcula. Desconto sem voucher exige motivo e fica marcado.
-const BRINDE_REGRA_PADRAO={limite:200,pctAte:10,pctAcima:5,dias:30};
+const BRINDE_REGRA_PADRAO={limite:200,pctAte:5,pctAcima:10,dias:30};
 const regraBrinde=()=>({...BRINDE_REGRA_PADRAO,...((C.mCfg&&C.mCfg.brindeRegra)||{})});
 const vouchers=()=>[...arr(C.mVou).map(v=>({...v,_p:'maison'})),...(isAdmin()?arr(C.fVou).map(v=>({...v,_p:'florenca'})):[])];
 const pctBrinde=(preco,v)=>preco<=v.limite?v.pctAte:v.pctAcima;
