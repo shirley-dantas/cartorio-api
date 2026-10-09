@@ -1,6 +1,8 @@
 // A IA do Caderno da Rafaela. Uma porta só, duas ações:
 //   acao: "corrigir"  → lê a questão, o raciocínio e as fotos dela e explica o erro
 //   acao: "dicas"     → lê o resumo das estatísticas dela e escreve macetes
+//   acao: "classificar" → lê a foto de uma questão que ela está adicionando ao acervo
+//                         e sugere matéria e assunto (ela confere) + transcreve o texto
 //
 // Nada é guardado aqui: o que entra sai respondido, e quem guarda é o próprio
 // aparelho dela. A chave da IA mora nas variáveis de ambiente da Vercel.
@@ -89,6 +91,24 @@ Responda SOMENTE com um objeto JSON válido neste formato:
  "aviso": ""
 }`;
 
+const SISTEMA_CLASSIFICAR = `${REGRAS_COMUNS}
+
+Sua tarefa: a Rafaela fotografou uma questão (de vestibular ou da escola) para guardá-la no acervo dela. Você deve:
+1. Transcrever fielmente o enunciado e as alternativas, em texto simples. Figuras, gráficos e tabelas: uma frase entre colchetes, no estilo [figura: reação química com dois reagentes]. NÃO resolva a questão e NÃO diga qual é a alternativa correta — o gabarito é decisão dela.
+2. Escolher a matéria, exatamente uma da lista "materias" que vem no pedido.
+3. Dar o assunto específico em até 6 palavras. Se a lista "assuntos" tiver um assunto que descreve o mesmo conteúdo, repita-o exatamente igual.
+
+Se a imagem estiver ilegível, cortada, desfocada ou não for uma questão, responda legivel=false, deixe materia, assunto e texto vazios e explique o motivo em aviso. Não adivinhe a partir de trechos que você não consegue ler.
+
+Responda SOMENTE com um objeto JSON válido neste formato:
+{
+ "legivel": true,
+ "materia": "",
+ "assunto": "",
+ "texto": "",
+ "aviso": ""
+}`;
+
 let cliente = null;
 let clienteDeTeste = null;
 const obterCliente = () => clienteDeTeste || cliente || (cliente = new Anthropic());
@@ -152,6 +172,19 @@ function limparDicas(j) {
   };
 }
 
+function limparClassificacao(j, materias) {
+  const lista = (Array.isArray(materias) ? materias : []).map(m => txt(m, 40));
+  const materia = lista.includes(j.materia) ? j.materia : "";
+  const legivel = j.legivel !== false && !!txt(j.texto, 5);
+  return {
+    legivel,
+    materia: legivel ? materia : "",
+    assunto: legivel ? txt(j.assunto, 80) : "",
+    texto: legivel ? txt(j.texto, 6000) : "",
+    aviso: txt(j.aviso, 400)
+  };
+}
+
 function montarPedidoCorrigir(d) {
   const r = d.registro || {};
   const linhas = [
@@ -203,6 +236,22 @@ async function corrigir(d) {
   return { status: 200, corpo: { ok: true, correcao: limparCorrecao(r.json), modelo: MODELO } };
 }
 
+async function classificar(d) {
+  const im = d.imagem || {};
+  const dados = String(im.dados || "").replace(/^data:image\/[a-z]+;base64,/, "");
+  if (!dados) return { status: 400, corpo: { ok: false, erro: "Faltou a foto da questão." } };
+  const materias = Array.isArray(d.materias) ? d.materias.slice(0, 30) : [];
+  const assuntos = lista(d.assuntos, 60, 80);
+  const conteudo = [
+    { type: "image", source: { type: "base64", media_type: /^image\/(jpeg|png|webp)$/.test(im.tipo) ? im.tipo : "image/jpeg", data: dados } },
+    { type: "text", text: `materias: ${materias.map(m => txt(m, 40)).join(" | ")}\nassuntos: ${assuntos.join(" | ") || "(nenhum ainda)"}` }
+  ];
+  const r = await chamar(SISTEMA_CLASSIFICAR, conteudo, 3500);
+  if (r.recusou) return { status: 422, corpo: { ok: false, erro: "Não consegui ler esta questão." } };
+  if (!r.json) return { status: 502, corpo: { ok: false, erro: "A resposta da IA veio num formato que não consegui ler. Tente de novo." } };
+  return { status: 200, corpo: { ok: true, classificacao: limparClassificacao(r.json, materias), modelo: MODELO } };
+}
+
 async function dicas(d) {
   const resumo = d.resumo;
   if (!resumo || !Array.isArray(resumo.prioridades) || !resumo.prioridades.length) {
@@ -237,16 +286,16 @@ async function handler(req, res) {
   try { d = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {}); }
   catch { return res.status(400).json({ ok: false, erro: "JSON inválido" }); }
 
-  if (d.acao !== "corrigir" && d.acao !== "dicas") return res.status(400).json({ ok: false, erro: "Ação desconhecida" });
+  if (!["corrigir", "dicas", "classificar"].includes(d.acao)) return res.status(400).json({ ok: false, erro: "Ação desconhecida" });
   if (!clienteDeTeste && !process.env.ANTHROPIC_API_KEY) return res.status(500).json({ ok: false, erro: "A chave da IA não está configurada neste painel." });
 
-  if (d.acao === "corrigir") {
-    const total = (Array.isArray(d.imagens) ? d.imagens : []).reduce((s, i) => s + String((i && i.dados) || "").length, 0);
+  if (d.acao === "corrigir" || d.acao === "classificar") {
+    const total = (d.acao === "classificar" ? [d.imagem] : (Array.isArray(d.imagens) ? d.imagens : [])).reduce((s, i) => s + String((i && i.dados) || "").length, 0);
     if (total > MAX_BASE64_TOTAL) return res.status(413).json({ ok: false, erro: "As fotos ficaram grandes demais. Tente com menos fotos." });
   }
 
   try {
-    const r = d.acao === "corrigir" ? await corrigir(d) : await dicas(d);
+    const r = d.acao === "corrigir" ? await corrigir(d) : d.acao === "classificar" ? await classificar(d) : await dicas(d);
     return res.status(r.status).json(r.corpo);
   } catch (e) {
     if (Anthropic.RateLimitError && e instanceof Anthropic.RateLimitError) return res.status(429).json({ ok: false, erro: "Muitos pedidos seguidos. Tente de novo em instantes." });
@@ -256,4 +305,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports.__teste = { extrairJSON, limparCorrecao, limparDicas, montarPedidoCorrigir, origemPermitida, definirCliente: c => { clienteDeTeste = c; } };
+module.exports.__teste = { extrairJSON, limparClassificacao, limparCorrecao, limparDicas, montarPedidoCorrigir, origemPermitida, definirCliente: c => { clienteDeTeste = c; } };

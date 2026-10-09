@@ -23,6 +23,7 @@ const srv = http.createServer((req, res) => {
       const corpo = b ? JSON.parse(b) : {}; pedidos.push(corpo);
       res.setHeader("Content-Type", "application/json");
       if (modoIA === "falha") { res.statusCode = 500; return res.end(JSON.stringify({ok: false, erro: "A IA não respondeu agora. Tente de novo em instantes."})); }
+      if (corpo.acao === "classificar") return res.end(JSON.stringify({ok: true, classificacao: {legivel: true, materia: "Física", assunto: "Cinemática", texto: "Um carro parte do repouso com aceleração constante. Qual a velocidade após 2 s? (A) 2 m/s (B) 4 m/s (C) 6 m/s (D) 8 m/s", aviso: ""}}));
       if (corpo.acao === "dicas") return res.end(JSON.stringify({ok: true, dicas: {resumo: "Você erra mais em Química, quase sempre no cálculo.", aviso: "", itens: [
         {materia: "Química", assunto: "Estequiometria", padrao: "esquece de converter gramas em mols", macete: "Sempre: gramas → mols → regra de três → de volta.", dica_pratica: "Escreva a equação balanceada antes de qualquer conta.", como_reconhecer: "Pede massa de um produto a partir da massa de um reagente.", antes_de_marcar: ["Balanceei a equação?", "Converti tudo para mol?"]}]}}));
       const vago = modoIA === "vago" && !(corpo.esclarecimentos || []).length;
@@ -43,7 +44,7 @@ async function nova(ctxOpts = {}) {
   const ctx = await navegador.newContext(ctxOpts);
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, r => r.abort()); // sem internet de verdade: fontes e jsPDF caem no padrão
   const p = await ctx.newPage(); const erros = [];
-  p.on("pageerror", e => erros.push(e.message)); p.on("dialog", d => d.accept());
+  p.on("pageerror", e => erros.push(e.message + " @ " + String(e.stack).split("\n").slice(1, 3).join(" "))); p.on("dialog", d => d.accept());
   await p.goto(URL_); await p.waitForFunction(() => document.querySelector("#v-inicio").children.length);
   await p.waitForFunction(() => window.__rafa && document.querySelectorAll("#v-inicio .resumo b")[0].textContent !== "—");
   return {ctx, p, erros};
@@ -254,6 +255,75 @@ console.log("• Cópia de segurança");
   await ctx.close();
 }
 
+console.log("• Minhas questões (acervo pessoal)");
+{
+  const {ctx, p, erros} = await nova({viewport: {width: 1100, height: 1000}});
+  await aba(p, "acervo");
+  ok((await p.textContent("#minhas-n")).includes("Fotografe"), "convite para adicionar a primeira questão");
+  await p.click("#b-addq"); await p.waitForSelector("#fq-foto");
+  await p.click("#fq-save"); ok((await p.textContent("#fq-erro")).includes("foto"), "pede a foto");
+  await p.setInputFiles("#fq-foto", foto); await p.waitForSelector("#fq-prev img");
+  await p.click("#fq-save"); ok((await p.textContent("#fq-erro")).includes("banca"), "pede a banca");
+  await p.fill("#fq-ban", "Escola Modelo"); await p.fill("#fq-ano", "26"); await p.click("#fq-save");
+  ok((await p.textContent("#fq-erro")).includes("4 números"), "ano precisa de 4 números");
+  await p.fill("#fq-ano", "2026"); await p.click("#fq-save"); ok((await p.textContent("#fq-erro")).includes("matéria"), "pede a matéria");
+  await p.click("#fq-ia"); await p.waitForFunction(() => document.querySelector("#fq-ia-msg").textContent.includes("Sugestão da IA"));
+  ok((await p.inputValue("#fq-mat")) === "Física" && (await p.inputValue("#fq-ass")) === "Cinemática", "a IA sugere matéria e assunto");
+  const ped = pedidos.at(-1); ok(ped.acao === "classificar" && ped.imagem.dados.length > 500 && ped.materias.includes("Física"), "foto e lista de matérias vão para a IA");
+  await p.click("[data-n='4']"); await p.click("#fq-gab [data-l=B]");
+  ok(await p.locator("#fq-gab .alt").count() === 4, "4 alternativas");
+  await p.click("#fq-save"); await p.waitForFunction(() => document.querySelectorAll(".banca").length === 4);
+  const nb = await p.locator(".banca").count(); ok(nb === 4, "a banca nova vira um cartão (4 bancas) - achou " + nb);
+  ok((await p.textContent(".banca[aria-pressed=true]")).includes("Escola Modelo") && (await p.textContent("#n")) === "1", "mostra a questão adicionada");
+  await p.waitForSelector("#lista .q img"); ok(await p.locator("#lista .tag:has-text('minha')").count() === 1, "marcada como minha");
+  ok(await p.locator("#lista img").evaluate(i => new Promise(r => { if (i.complete && i.naturalWidth) r(true); else { i.onload = () => r(true); setTimeout(() => r(false), 3000); } })), "a foto aparece na lista");
+
+  // funciona como as do acervo: resolver online, errei esta, busca pelo texto lido
+  await p.click("#b-online"); await p.waitForSelector(".alts .alt");
+  ok(await p.locator(".alts .alt").count() === 4, "o resolver usa as 4 alternativas");
+  await p.click(".alts .alt[data-l=B]"); await p.click("#fin"); await p.waitForSelector(".score");
+  ok((await p.evaluate(() => window.__rafa.estado().TENT)).filter(t => t.ok).length === 1, "acerto da questão pessoal conta nas tentativas (o gabarito é o dela)");
+  await p.click("#x");
+  await p.click("#lista .q [data-t=erro]"); await p.waitForSelector("#f-qimg img");
+  ok((await p.inputValue("#f-mat")) === "Física" && (await p.inputValue("#f-ban")) === "Escola Modelo", "'Errei esta' vem preenchido");
+  await p.click("#f-cancel"); await p.click("#overlay .modal", {position: {x: 2, y: 2}}).catch(() => {});
+  await p.evaluate(() => document.querySelector("#overlay").innerHTML = "");
+  await p.fill("#busca", "aceleração constante"); ok((await p.textContent("#n")) === "1", "a busca acha pelo texto que a IA leu da foto");
+  await p.fill("#busca", "");
+
+  // sem gabarito: aparece, mas não entra na conta
+  await p.click("#b-addq"); await p.setInputFiles("#fq-foto", foto); await p.waitForSelector("#fq-prev img");
+  await p.fill("#fq-ban", "FUVEST"); await p.fill("#fq-ano", "2026"); await p.selectOption("#fq-mat", "Matemática"); await p.fill("#fq-ass", "Geometria plana");
+  await p.click("#fq-save"); await p.waitForFunction(() => /81/.test(document.querySelector(".banca[aria-pressed=true]")?.textContent || ""));
+  ok(await p.locator(".banca").count() === 4 && (await p.textContent(".banca[aria-pressed=true]")).includes("81"), "banca já existente: soma 80 + 1 e não cria cartão novo");
+  await p.click("#b-online"); await p.waitForSelector(".alts .alt"); await p.click(".alts .alt[data-l=A]"); await p.click("#fin"); await p.waitForSelector(".score");
+  ok(await p.locator(".dlg .hint:has-text('sem gabarito')").count() >= 0, "sem gabarito segue sem quebrar");
+  await p.click("#x");
+
+  // fica guardada: recarrega, e a cópia de segurança leva a questão e a foto
+  await p.reload(); await p.waitForFunction(() => window.__rafa && document.querySelector("#v-inicio .resumo b").textContent !== "—");
+  await aba(p, "acervo"); await p.click(".banca >> text=Escola Modelo"); await p.waitForSelector("#lista .q img", {state: "attached"});
+  ok((await p.textContent("#n")) === "1", "a questão sobrevive ao recarregar");
+  await aba(p, "inicio");
+  const [dl] = await Promise.all([p.waitForEvent("download"), p.click("#bk-salvar")]);
+  const arq = path.join(SAIDA, "copia2.json"); await dl.saveAs(arq);
+  const c = JSON.parse(fs.readFileSync(arq, "utf8"));
+  ok(c.questoes.length === 2 && c.questoes.every(q => c.fotos[q.id]), "a cópia leva as questões e as fotos delas");
+  await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForFunction(() => window.__rafa && document.querySelector("#v-inicio .resumo b").textContent !== "—");
+  await aba(p, "acervo"); ok(await p.locator(".banca").count() === 3, "sem a cópia, voltam as 3 bancas");
+  await aba(p, "inicio"); await p.setInputFiles("#bk-abrir", arq); await p.waitForTimeout(800);
+  await aba(p, "acervo"); ok(await p.locator(".banca").count() === 4, "restaurar devolve a banca pessoal");
+
+  // editar e apagar
+  await p.click(".banca >> text=Escola Modelo"); await p.waitForSelector("#lista .q");
+  await p.click("[data-pe]"); await p.waitForSelector("#fq-ass"); await p.fill("#fq-ass", "Movimento uniforme"); await p.click("#fq-save");
+  await p.waitForFunction(() => document.querySelector("#lista")?.textContent.includes("Movimento uniforme")); ok((await p.textContent("#lista .q")).includes("Movimento uniforme"), "editar muda o assunto");
+  await p.click("[data-pd]"); await p.waitForTimeout(400);
+  ok(await p.locator(".banca").count() === 3, "apagar remove a banca pessoal que ficou vazia");
+  ok(!erros.length, "sem erro de script: " + erros.join(" | "));
+  await ctx.close();
+}
+
 console.log("• Quadro da caneta (tablet)");
 {
   const {ctx, p, erros} = await nova({...devices["iPad (gen 7)"], hasTouch: true});
@@ -300,6 +370,11 @@ console.log("• Celular (iPhone 13)");
   const pequenos = await p.evaluate(() => [...document.querySelectorAll(".dlg button, .dlg select, .dlg input:not([type=file])")].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.height && (r.height < 36) }).map(e => e.id || e.className));
   ok(pequenos.length === 0, "alvos de toque com pelo menos 36px: " + pequenos.join(","));
   await p.screenshot({path: path.join(SAIDA, "celular-form.png")});
+  await p.evaluate(() => document.querySelector("#overlay").innerHTML = ""); await aba(p, "acervo"); await p.click("#b-addq"); await p.waitForSelector("#fq-foto");
+  const l2 = await largura(); ok(l2.sw <= l2.cw + 1, "formulário de adicionar questão cabe no celular");
+  const mini = await p.evaluate(() => [...document.querySelectorAll(".dlg button, .dlg select, .dlg input:not([type=file])")].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.height < 36 }).map(e => e.id || e.className));
+  ok(mini.length === 0, "alvos de toque do formulário de questão: " + mini.join(","));
+  await p.screenshot({path: path.join(SAIDA, "celular-addq.png")});
   ok(!erros.length, "sem erro de script no celular: " + erros.join(" | "));
   await ctx.close();
 }

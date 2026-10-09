@@ -238,6 +238,8 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
 
 <main id="v-acervo" hidden>
   <div class="nota" id="nota-acervo" hidden></div>
+  <section class="card" id="s-minhas"><div class="row"><div><h2 style="margin:0">Minhas questões</h2><p class="hint" style="margin:2px 0 0" id="minhas-n"></p></div>
+    <button class="btn sec" id="b-addq">＋ ADICIONAR QUESTÃO</button></div></section>
   <section class="card"><h2>1 · Banca</h2><div class="bancas" id="bancas"></div></section>
   <section class="card" id="s-mat" hidden><h2>2 · Matéria</h2><div class="chips" id="materias"></div></section>
   <section class="card" id="s-fil" hidden><h2>3 · Filtros</h2>
@@ -314,13 +316,38 @@ async function reduzir(arq,max,qual){ // devolve um JPEG menor: foto de celular 
   const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(bmp,0,0,c.width,c.height);
   return new Promise((ok,ko)=>c.toBlob(b=>b?ok(b):ko(new Error("imagem")),"image/jpeg",qual))}
 
+/* ============ minhas questões (acervo pessoal, só neste aparelho) ============ */
+// A foto da questão fica no IndexedDB (chave = id da questão); os dados no localStorage.
+// Depois de montadas, entram em D.q como as do acervo: mesmos filtros, PDF, resolver online.
+let QP=lerLS("rafa.questoes",[]);
+const salvarQP=()=>gravarLS("rafa.questoes",QP);
+const slug=s=>norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const nAlts=q=>q.alts||(BANCA[q.b]&&BANCA[q.b].alts)||5;
+function bancaIdDe(nome){const n=norm(nome);if(n==="comvest")return "unicamp";if(["enem","fuvest","unicamp"].includes(n))return n;return "p-"+(slug(nome)||"outra")}
+function prepararQ(q){q.hay=norm([q.m,q.s,(q.t||[]).join(" "),BANCA[q.b].nome,q.a,q.tx].join(" "));q.tg=[q.m,...(q.t||[]).filter(t=>MAT_ORDER.includes(t))]}
+function montarPessoais(){
+  D.q=D.q.filter(q=>!q.pessoal);D.fontes=D.fontes.filter(f=>!f.pessoal);D.bancas=D.bancas.filter(b=>!b.pessoal);
+  [QID,BANCA,FONTE].forEach(m=>Object.keys(m).forEach(k=>{if(m[k].pessoal)delete m[k]}));
+  QP.forEach(p=>{
+    if(!BANCA[p.b]){const b={id:p.b,nome:p.bancaNome,alts:p.alts||5,cor:"#8C7F66",pessoal:true};BANCA[p.b]=b;D.bancas.push(b)}
+    const fid=`p-${p.b}-${p.a}`;
+    if(!FONTE[fid]){const f={id:fid,banca:p.b,ano:p.a,edicao:"Minhas questões",prova:"Adicionadas por mim",n_questoes:0,pessoal:true};FONTE[fid]=f;D.fontes.push(f)}
+    FONTE[fid].n_questoes++;
+    const q={id:p.id,b:p.b,a:p.a,f:fid,n:p.n,v:null,m:p.m,s:p.s,t:[],r:p.r||null,x:0,k:["idb"],w:p.w,h:p.h,tx:p.tx||"",alts:p.alts,pessoal:true};
+    prepararQ(q);QID[q.id]=q;D.q.push(q);
+  });
+  ACERVO_OK=D.q.length>0;
+}
+async function dimensoes(blob){const b=await createImageBitmap(blob);return {w:b.width,h:b.height}}
+
 /* ============ carga do acervo ============ */
 fetch("data.json").then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{
   D=d;ACERVO_OK=true;d.bancas.forEach(b=>BANCA[b.id]=b);d.fontes.forEach(f=>FONTE[f.id]=f);
   d.q.forEach(q=>{QID[q.id]=q;q.hay=norm([q.m,q.s,q.t.join(" "),BANCA[q.b].nome,q.a,q.tx].join(" "));q.tg=[q.m,...q.t.filter(t=>MAT_ORDER.includes(t))];});
+  montarPessoais();
   if(d.q.some(q=>!q.k)){const n=$("#nota-acervo");n.hidden=false;n.textContent="Atenção: parte das questões não tem imagem nesta versão do acervo (importe as provas novamente — veja o LEIA-ME)."}
   aba(ABA,true);
-}).catch(()=>{const n=$("#nota-acervo");n.hidden=false;n.className="nota erro";n.textContent="Não foi possível carregar o acervo agora. Os registros de erros e dúvidas continuam funcionando.";aba(ABA,true)});
+}).catch(()=>{montarPessoais();const n=$("#nota-acervo");n.hidden=false;n.className="nota erro";n.textContent="Não foi possível carregar o acervo agora. Os registros de erros e dúvidas continuam funcionando.";aba(ABA,true)});
 
 /* ============ imagens do acervo (packs base64) ============ */
 const packs={}, urls={}, blobs={};
@@ -328,6 +355,7 @@ function pack(f){return packs[f]||(packs[f]=fetch(f).then(r=>r.text()))}
 function imgBlob(q){
   if(!q||!q.k)return Promise.resolve(null);
   if(blobs[q.id])return blobs[q.id];
+  if(q.pessoal)return blobs[q.id]=fotoGet(q.id).catch(()=>null);
   return blobs[q.id]=(async()=>{const t=await pack(q.k[0]);const bin=atob(t.substr(q.k[1],q.k[2]));
     const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
     return new Blob([a],{type:"image/webp"})})();
@@ -380,10 +408,12 @@ function chip(label,n,pressed,on){
   const b=document.createElement("button");b.className="chip";b.type="button";b.setAttribute("aria-pressed",pressed);
   b.innerHTML=label+(n!=null?`<small>${n}</small>`:"");b.onclick=on;return b}
 function render(){
+  if(S.banca&&!BANCA[S.banca]){S.banca=null;S.materia=null;S.subtema="";S.anos.clear();S.provas.clear()} // a banca pessoal foi apagada
   const bc=cnt(D.q,q=>q.b), bx=$("#bancas");bx.innerHTML="";
   D.bancas.forEach(b=>{const e=document.createElement("button");e.className="banca";e.type="button";e.style.setProperty("--c",COR_BANCA[b.id]||b.cor);
-    e.setAttribute("aria-pressed",S.banca===b.id);e.innerHTML=`<b>${b.nome}</b><span>${bc[b.id]||0} questões</span>`;
+    e.setAttribute("aria-pressed",S.banca===b.id);e.innerHTML=`<b>${b.nome}</b><span>${bc[b.id]||0} ${(bc[b.id]||0)===1?"questão":"questões"}</span>`;
     e.onclick=()=>{S.banca=S.banca===b.id?null:b.id;S.materia=null;S.anos.clear();S.provas.clear();S.subtema="";S.shown=30;render()};bx.appendChild(e)});
+  $("#minhas-n").textContent=QP.length?`${QP.length} ${QP.length===1?"questão adicionada":"questões adicionadas"} por você, só neste aparelho.`:"Fotografe uma questão que não está no acervo e ela entra nos filtros, no PDF e no “Resolver online”.";
   $("#s-mat").hidden=!(S.banca||S.q||S.materia||S.subtema);
   const mx=$("#materias");mx.innerHTML="";
   const pool=baseFiltro(["materia","ano","prova","subtema","nums"]);
@@ -415,18 +445,22 @@ function escopo(){
 const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){obs.unobserve(e.target);const q=QID[e.target.dataset.id];
   imgUrl(q).then(u=>{e.target.innerHTML=u?`<img alt="Questão ${q.n}" src="${u}" width="${q.w}" height="${q.h}">`:SEM_IMG})}}),{rootMargin:"600px"});
 function cabQ(q,i){
-  const f=FONTE[q.f];return `<b>Questão ${i}</b><span>${BANCA[q.b].nome} ${q.a}</span><span class="mut">${f.edicao} · ${f.prova} · nº ${q.n}</span><span class="tag">${q.m}</span><span class="tag">${q.s}</span>`+q.t.filter(t=>MAT_ORDER.includes(t)).map(t=>`<span class="tag">+ ${t}</span>`).join("")}
+  const f=FONTE[q.f];return `<b>Questão ${i}</b><span>${BANCA[q.b].nome} ${q.a}</span><span class="mut">${f.edicao} · ${f.prova} · nº ${q.n}</span><span class="tag">${q.m}</span><span class="tag">${q.s}</span>${q.pessoal?'<span class="tag" style="background:var(--palha)">minha</span>':""}`+q.t.filter(t=>MAT_ORDER.includes(t)).map(t=>`<span class="tag">+ ${t}</span>`).join("")}
 function lista(R){
   const L=$("#lista");L.innerHTML="";
   if(!R.length){L.innerHTML='<div class="empty">Escolha uma banca ou use a busca para ver as questões.</div>';$("#mais").hidden=true;return}
   R.slice(0,S.shown).forEach((q,i)=>{const d=document.createElement("article");d.className="q";
     const nreg=REG.filter(r=>r.qid===q.id).length;
     d.innerHTML=`<div class="qh">${cabQ(q,i+1)}</div><div class="img" data-id="${q.id}"><span class="mut">carregando…</span></div>
-      <div class="qf"><button class="btn mini sec" data-q="${q.id}" data-t="erro">Errei esta</button><button class="btn mini sec" data-q="${q.id}" data-t="duvida">Tenho dúvida</button>${nreg?`<span class="pill pend">📝 ${nreg} registro${nreg>1?"s":""} no caderno</span>`:""}</div>`;
+      <div class="qf"><button class="btn mini sec" data-q="${q.id}" data-t="erro">Errei esta</button><button class="btn mini sec" data-q="${q.id}" data-t="duvida">Tenho dúvida</button>${nreg?`<span class="pill pend">📝 ${nreg} registro${nreg>1?"s":""} no caderno</span>`:""}${q.pessoal?`<span style="margin-left:auto"></span><button class="btn mini fant" data-pe="${q.id}">Editar questão</button><button class="btn mini fant" data-pd="${q.id}">Apagar questão</button>`:""}</div>`;
     L.appendChild(d);obs.observe(d.querySelector(".img"))});
   $("#mais").hidden=R.length<=S.shown;$("#mais").textContent=`Mostrar mais (${R.length-S.shown} restantes)`;
 }
-$("#lista").addEventListener("click",e=>{const b=e.target.closest("[data-q]");if(b)formRegistro({tipo:b.dataset.t,qid:b.dataset.q})});
+$("#lista").addEventListener("click",e=>{
+  const b=e.target.closest("[data-q]");if(b){formRegistro({tipo:b.dataset.t,qid:b.dataset.q});return}
+  const pe=e.target.closest("[data-pe]");if(pe){formQuestao(pe.dataset.pe);return}
+  const pd=e.target.closest("[data-pd]");if(pd)apagarQuestao(pd.dataset.pd)});
+$("#b-addq").onclick=()=>formQuestao();
 $("#mais").onclick=()=>{S.shown+=30;render()};
 $("#busca").addEventListener("input",e=>{S.q=e.target.value;S.shown=30;render()});
 $("#subtema").onchange=e=>{S.subtema=e.target.value;S.shown=30;render()};
@@ -458,7 +492,7 @@ $("#b-gab").onclick=()=>{
 // Cada resposta vira uma tentativa guardada: é dela que sai "onde vou melhor" nas estatísticas.
 function abrirResolver(R,opt){
   opt=opt||{};const resp={};let i=0;const sess=uid();
-  const alts=q=>"ABCDE".slice(0,BANCA[q.b].alts);
+  const alts=q=>"ABCDE".slice(0,nAlts(q));
   function tela(){
     const q=R[i];
     const d=modal(`<div class="row"><b>Questão ${i+1} de ${R.length}</b><span class="mut">${BANCA[q.b].nome} ${q.a}</span></div>
@@ -546,6 +580,110 @@ $("#b-pdf").onclick=async()=>{
     bar.remove();baixar(doc.output("blob"),nome);
   }catch(e){bar.remove();modal(`<h3>Erro ao gerar o PDF</h3><p>${esc(e&&e.message||e)}</p><button class="btn" id="x">FECHAR</button>`).querySelector("#x").onclick=fechar}
 };
+
+/* ---------- adicionar / editar / apagar questão ---------- */
+async function apagarQuestao(id){
+  const q=QID[id];if(!q)return;
+  const n=REG.filter(r=>r.qid===id).length;
+  if(!confirm(`Apagar esta questão (${BANCA[q.b].nome} ${q.a} · nº ${q.n})?${n?` Há ${n} registro(s) no caderno ligado(s) a ela: eles ficam, mas perdem a ligação com a questão.`:""}`))return;
+  await fotoDel(id);delete blobs[id];delete urls[id];
+  QP=QP.filter(p=>p.id!==id);salvarQP();montarPessoais();render();
+}
+function formQuestao(pid,pre){
+  const ed=pid?QP.find(x=>x.id===pid):null;
+  pre=pre||{};
+  const st={blob:null,alts:ed?ed.alts||5:(pre.alts||5),gab:ed&&ed.r||"",tx:ed&&ed.tx||"",novaFoto:false};
+  const bancas=[...new Set(["ENEM","FUVEST","UNICAMP"].concat(QP.map(p=>p.bancaNome)))];
+  const assuntos=[...new Set(D.q.map(q=>q.s).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt"));
+  const v=(k,d)=>ed?ed[k]:(pre[k]!=null?pre[k]:d);
+  const d=modal(`<h3>${ed?"Editar questão":"Adicionar questão ao acervo"}</h3>
+   <p class="hint" style="margin-top:0">A questão fica guardada <b>neste aparelho</b>, junto com as do acervo.</p>
+   <div class="fm" style="margin-top:12px">
+    <div class="l"><span>Foto da questão <small>(enunciado e alternativas, bem enquadrados e legíveis)</small></span>
+      <label class="btn mini sec upl" style="width:fit-content"><input type="file" accept="image/*" id="fq-foto">📷 Tirar foto ou escolher imagem</label>
+      <div id="fq-prev"></div></div>
+    <div class="fm2">
+      <label class="l">Banca / prova<input class="txt" id="fq-ban" list="fq-banl" value="${esc(v("bancaNome",""))}" placeholder="ex.: UNESP, Escola…"><datalist id="fq-banl">${bancas.map(b=>`<option value="${esc(b)}">`).join("")}</datalist></label>
+      <label class="l">Ano<input class="txt" id="fq-ano" inputmode="numeric" maxlength="4" value="${esc(v("a",""))}" placeholder="ex.: 2025"></label>
+      <label class="l">Nº da questão <small>(opcional)</small><input class="txt" id="fq-num" inputmode="numeric" value="${ed?esc(ed.n):""}"></label>
+    </div>
+    <div class="l"><span>Quantas alternativas?</span><div class="seg"><button type="button" data-n="4">4 (A–D)</button><button type="button" data-n="5">5 (A–E)</button></div></div>
+    <div class="l"><span>Gabarito <small>(opcional — sem ele a questão não entra na conta de acertos)</small></span><div class="alts peq" id="fq-gab" style="margin:0"></div></div>
+    <div class="fm2">
+      <label class="l">Matéria<select id="fq-mat"><option value="">Escolha…</option>${MAT_ORDER.map(m=>`<option${ed&&ed.m===m?" selected":""}>${m}</option>`).join("")}</select></label>
+      <label class="l">Assunto<input class="txt" id="fq-ass" list="fq-assl" value="${esc(ed&&ed.s!=="Sem assunto informado"?ed.s:"")}" placeholder="ex.: Cinemática"><datalist id="fq-assl">${assuntos.map(a=>`<option value="${esc(a)}">`).join("")}</datalist></label>
+    </div>
+    <div><button type="button" class="btn mini sec" id="fq-ia">✨ Sugerir matéria e assunto pela foto</button>
+      <p class="hint" id="fq-ia-msg" style="margin-top:6px">A IA lê a foto e sugere; você confere. Ela também guarda o texto da questão para a busca.</p></div>
+    <div class="nota erro" id="fq-erro" hidden></div>
+    <div class="row"><button type="button" class="btn sec" id="fq-cancel">CANCELAR</button>
+      <div class="actions">${ed?"":'<button type="button" class="btn sec" id="fq-outra">SALVAR E ADICIONAR OUTRA</button>'}<button type="button" class="btn pri" id="fq-save">SALVAR</button></div></div>
+   </div>`,true);
+  const $q=s=>d.querySelector(s);
+  const pintarAlts=()=>{
+    d.querySelectorAll("[data-n]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.n===st.alts));
+    const ls="ABCDE".slice(0,st.alts);if(st.gab&&!ls.includes(st.gab))st.gab="";
+    $q("#fq-gab").innerHTML=ls.split("").map(l=>`<button type="button" class="alt" data-l="${l}" aria-pressed="${st.gab===l}">${l}</button>`).join("");
+  };
+  const pintarPrev=async()=>{
+    const box=$q("#fq-prev");let u=null;
+    if(st.blob)u=URL.createObjectURL(st.blob);else if(ed)u=await imgUrl(QID[ed.id]);
+    box.innerHTML=u?`<div class="q" style="margin-top:8px"><div class="img"><img alt="Pré-visualização da questão" src="${u}" style="max-height:340px;width:auto"></div></div>`:"";
+  };
+  d.addEventListener("click",e=>{
+    const n=e.target.closest("[data-n]");if(n){st.alts=+n.dataset.n;pintarAlts();return}
+    const a=e.target.closest("#fq-gab .alt");if(a){st.gab=st.gab===a.dataset.l?"":a.dataset.l;pintarAlts()}
+  });
+  $q("#fq-foto").onchange=async e=>{
+    const f=e.target.files[0];e.target.value="";if(!f)return;
+    try{st.blob=await reduzir(f,1800,.86);st.novaFoto=true;st.tx="";await pintarPrev()}catch(err){aviso("Não consegui ler esta foto.")}
+  };
+  $q("#fq-ia").onclick=async()=>{
+    const msg=$q("#fq-ia-msg"),btn=$q("#fq-ia");
+    let blob=st.blob;if(!blob&&ed)blob=await fotoGet(ed.id).catch(()=>null);
+    if(!blob){msg.textContent="Escolha a foto primeiro.";return}
+    btn.disabled=true;msg.textContent="Lendo a questão…";
+    try{
+      const dados=await blobB64(await reduzir(blob,1400,.8));
+      const j=await chamarIA({acao:"classificar",imagem:{dados,tipo:"image/jpeg"},materias:MAT_ORDER,assuntos:assuntos.slice(0,60)});
+      const c=j.classificacao;
+      if(!c.legivel){msg.textContent=c.aviso||"Não consegui ler a questão nesta foto. Tente uma foto mais de perto e com luz melhor."}
+      else{
+        if(c.materia)$q("#fq-mat").value=c.materia;if(c.assunto)$q("#fq-ass").value=c.assunto;st.tx=c.texto||"";
+        msg.textContent=`Sugestão da IA: ${c.materia||"matéria não identificada"}${c.assunto?" · "+c.assunto:""}. Confira antes de salvar.${c.aviso?" "+c.aviso:""}`;
+      }
+    }catch(err){msg.textContent=err.message}
+    btn.disabled=false;
+  };
+  $q("#fq-cancel").onclick=()=>{if(!ed&&st.blob&&!confirm("Descartar esta questão?"))return;fechar()};
+  async function guardar(outra){
+    const erro=$q("#fq-erro"),ban=$q("#fq-ban").value.trim(),ano=$q("#fq-ano").value.trim(),mat=$q("#fq-mat").value;
+    const falha=m=>{erro.hidden=false;erro.textContent=m};
+    if(!st.blob&&!ed)return falha("Escolha a foto da questão.");
+    if(!ban)return falha("Diga a banca ou a prova (ex.: UNESP, Escola).");
+    if(!/^(19|20)\d\d$/.test(ano))return falha("Escreva o ano com 4 números (ex.: 2025).");
+    if(!mat)return falha("Escolha a matéria — ou use “Sugerir pela foto”.");
+    d.querySelectorAll("button").forEach(b=>b.disabled=true);
+    const id=ed?ed.id:"p"+uid(), b=bancaIdDe(ban), a=+ano;
+    try{
+      let dim={w:ed?ed.w:0,h:ed?ed.h:0};
+      if(st.blob){await fotoPut(id,st.blob);dim=await dimensoes(st.blob);delete blobs[id];delete urls[id]}
+      const doMesmo=QP.filter(p=>p.id!==id&&p.b===b&&p.a===a);
+      const n=+$q("#fq-num").value||(ed&&ed.b===b&&ed.a===a?ed.n:Math.max(0,...doMesmo.map(p=>p.n))+1);
+      const alts=b==="enem"||b==="fuvest"?5:b==="unicamp"?4:st.alts;
+      const reg={id,b,bancaNome:BANCA[b]&&!BANCA[b].pessoal?BANCA[b].nome:ban,a,n,m:mat,s:$q("#fq-ass").value.trim()||"Sem assunto informado",r:st.gab||null,alts,w:dim.w,h:dim.h,tx:st.tx||""};
+      if(ed)QP[QP.indexOf(ed)]=reg;else QP.push(reg);
+      salvarQP();montarPessoais();
+    }catch(err){d.querySelectorAll("button").forEach(x=>x.disabled=false);return falha("Este aparelho não conseguiu guardar a foto. Tente de novo ou use uma foto menor.")}
+    fechar();
+    S.banca=null;S.materia=null;S.anos.clear();S.provas.clear();S.subtema="";S.nums="";$("#nums").value="";S.q="";$("#busca").value="";S.shown=30;
+    if(outra){aviso("Questão adicionada. Pode mandar a próxima.");formQuestao(null,{bancaNome:ban,a:ano,alts:st.alts});return}
+    S.banca=bancaIdDe(ban);aba("acervo");aviso("Questão adicionada ao acervo.");
+  }
+  $q("#fq-save").onclick=()=>guardar(false);
+  const o=$q("#fq-outra");if(o)o.onclick=()=>guardar(true);
+  pintarAlts();pintarPrev();
+}
 
 /* ============ IA (api/ia) ============ */
 async function chamarIA(corpo,jaPediuCodigo){
@@ -795,7 +933,7 @@ function formRegistro(base,opt){
     d.querySelector("#f-l2").innerHTML=st.tipo==="erro"?"Onde tive dificuldade":"Onde me perdi";
   };
   const pintarAlts=()=>{
-    const q=st.qid?QID[st.qid]:null, n=q?BANCA[q.b].alts:5, ls="ABCDE".slice(0,n);
+    const q=st.qid?QID[st.qid]:null, n=q?nAlts(q):5, ls="ABCDE".slice(0,n);
     const grupo=(rot,chave,val)=>`<div class="l"><span>${rot}</span><div class="alts peq" style="margin:0" data-g="${chave}">${ls.split("").map(l=>`<button type="button" class="alt" data-l="${l}" aria-pressed="${val===l}">${l}</button>`).join("")}</div></div>`;
     d.querySelector("#f-alts").innerHTML=`<div class="fm2" style="grid-template-columns:1fr">${grupo("Alternativa que marquei","mr",st.mr)}${grupo("Gabarito"+(q&&q.r?"":" (se souber)"),"gab",st.gab)}</div>`;
   };
@@ -1141,7 +1279,8 @@ async function salvarCopia(){
   try{
     const fotos={};
     for(const r of REG)for(const f of (r.fotos||[])){const b=await fotoGet(f.id).catch(()=>null);if(b)fotos[f.id]={tipo:b.type,dados:await blobB64(b)}}
-    const corpo={app:"caderno-rafaela",versao:1,em:new Date().toISOString(),registros:REG,tentativas:TENT,lembretes:LEMB,dicas:DICAS,fotos};
+    for(const p of QP){const b=await fotoGet(p.id).catch(()=>null);if(b)fotos[p.id]={tipo:b.type,dados:await blobB64(b)}}
+    const corpo={app:"caderno-rafaela",versao:1,em:new Date().toISOString(),registros:REG,tentativas:TENT,lembretes:LEMB,dicas:DICAS,questoes:QP,fotos};
     baixar(new Blob([JSON.stringify(corpo)],{type:"application/json"}),`caderno-rafaela-${new Date().toISOString().slice(0,10)}.json`);
     aviso("Cópia salva. Guarde o arquivo num lugar seguro.");
   }catch(e){aviso("Não consegui montar a cópia: "+(e&&e.message||e))}
@@ -1152,8 +1291,9 @@ async function restaurarCopia(arq){
     if(c.app!=="caderno-rafaela"||!Array.isArray(c.registros))throw new Error("Este arquivo não é uma cópia do caderno.");
     if(!confirm(`Restaurar ${c.registros.length} registro(s)? Isto SUBSTITUI o que está neste aparelho agora.`))return;
     for(const [id,f] of Object.entries(c.fotos||{})){const bin=atob(f.dados),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);delete FURL[id];await fotoPut(id,new Blob([a],{type:f.tipo||"image/jpeg"}))}
-    REG=c.registros;TENT=c.tentativas||[];LEMB=c.lembretes||[];DICAS=c.dicas||null;
-    salvarReg();salvarTent();salvarLemb();salvarDicas();renderInicio();aviso("Cópia restaurada.");
+    REG=c.registros;TENT=c.tentativas||[];LEMB=c.lembretes||[];DICAS=c.dicas||null;QP=c.questoes||[];
+    Object.keys(blobs).forEach(k=>{delete blobs[k];delete urls[k]});
+    salvarReg();salvarTent();salvarLemb();salvarDicas();salvarQP();montarPessoais();renderInicio();aviso("Cópia restaurada.");
   }catch(e){aviso(e&&e.message||"Não consegui ler esta cópia.")}
 }
 

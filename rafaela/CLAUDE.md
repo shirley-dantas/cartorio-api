@@ -28,7 +28,7 @@ do repositório, e o limite de 12 funções do painel do cartório não vale aqu
 | Aba | O que faz |
 |---|---|
 | **Início** | Saudação, o que revisar agora e o **mural de post-its** (lembretes: cor, concluir, apagar; escritos à mão, levemente tortos, com fita). Cópia de segurança. |
-| **Acervo** | O painel de antes, inteiro: banca → matéria → filtros, PDF, resolver online, gabarito, busca. Cada questão ganhou *Errei esta* / *Tenho dúvida*. |
+| **Acervo** | O painel de antes, inteiro: banca → matéria → filtros, PDF, resolver online, gabarito, busca. Cada questão ganhou *Errei esta* / *Tenho dúvida*. **Minhas questões**: ela fotografa uma questão de fora e ela entra no acervo dela (a IA sugere matéria e assunto e lê o texto para a busca; o gabarito é opcional). |
 | **Meus erros e dúvidas** | Registro com matéria, assunto, alternativa marcada, **como resolvi**, **onde tive dificuldade**, observações, **fotos** (da resolução e da questão) e o **quadro da caneta** (resolver à mão na tela; o desenho vira foto da resolução). Liga ao acervo. *Corrigir com a IA*, *Tentar de novo*, *Marcar como dominado*. |
 | **Estatísticas** | Revisar primeiro · matérias e assuntos em que mais erra · tipos de questão que confundem · por que erra · erros recorrentes · onde vai melhor. Embaixo, as estatísticas do acervo de antes. |
 | **Macetes** | A IA lê as estatísticas dela e escreve macete, dica prática, como reconhecer e um "antes de marcar" por assunto prioritário. Dá para fixar no mural. |
@@ -61,6 +61,7 @@ do repositório, e o limite de 12 funções do painel do cartório não vale aqu
   IndexedDB). Nada vai a um banco; a IA recebe o que é preciso para cada
   chamada e não guarda nada. Por isso existe a **cópia de segurança** na aba
   Início — e é o primeiro lugar a olhar se ela disser que "sumiu".
+- **Questão adicionada por ela é dela, não do acervo oficial.** Fica só no aparelho (e na cópia de segurança), marcada *minha*, e o gabarito é o que ela digitar — a IA **nunca** diz qual alternativa é a certa ao classificar (o prompt veda e o teste confere). Sem gabarito a questão aparece e pode ser resolvida, mas não entra na conta de acertos. Escrever a banca como ENEM, FUVEST ou UNICAMP põe a questão sob a banca oficial; qualquer outro nome cria uma banca nova.
 - **As fotos são reduzidas antes de sair** (JPEG, até 1.400 px; abaixo disso
   se não couber): a Vercel recusa corpo acima de 4,5 MB. No máximo 5 imagens
   por correção (o enunciado do acervo + 4 fotos).
@@ -73,6 +74,7 @@ do repositório, e o limite de 12 funções do painel do cartório não vale aqu
 | Redução das fotos | `reduzir()`, `montarImagens()` |
 | O acervo (filtros, lista, PDF) | `baseFiltro()`, `render()`, `lista()`, `#b-pdf` |
 | Resolver online / tentar de novo | `abrirResolver()` — grava as tentativas |
+| Minhas questões (acervo pessoal) | `formQuestao()`, `montarPessoais()` — entram em `D.q` com `pessoal: true`; foto no IndexedDB (chave = id da questão), dados em `rafa.questoes` |
 | Formulário de registro | `formRegistro()`, `buscarQ()` |
 | Quadro da caneta | `quadroCaneta()` — pressão vira espessura; depois que a caneta aparece, o toque (palma) é ignorado; traços em fração da largura |
 | A correção | `corrigir()`, `htmlCorrecao()`, `assinatura()` |
@@ -103,8 +105,9 @@ semeados à mão para conferir cada número.
 - A IA **ainda não foi chamada de verdade** (sem chave aqui): o formato da
   resposta e o prompt estão testados com cliente fingido. A primeira correção
   real é o primeiro lugar a olhar se algo vier estranho.
-- O `data.json` tem 247 questões / 3 provas. Para ampliar o acervo, ver
-  `LEIA-ME.md` (importar PDFs → classificar → `gerar_painel.py`).
+- O `data.json` tem 247 questões / 3 provas. Para ampliar o acervo oficial
+  (provas inteiras), ver `LEIA-ME.md` (importar PDFs → classificar →
+  `gerar_painel.py`); questões soltas ela mesma adiciona pelo painel.
 - Os registros ainda não vão para a nuvem: trocar de aparelho é por cópia de
   segurança. Se ela quiser sincronizar celular e computador, o caminho é um
   Firebase próprio dela — não o do cartório.

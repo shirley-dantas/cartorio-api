@@ -75,6 +75,21 @@ ok(chamadas.at(-1).messages[0].content[0].text.includes("esquece de converter gr
 ok(/Fale apenas dos assuntos/.test(chamadas.at(-1).system) && /macete vazio|deixe macete vazio/.test(chamadas.at(-1).system), "o prompt veda assunto inventado e macete duvidoso");
 r = await chamar({acao: "dicas", resumo: {prioridades: []}}); ok(r.codigo === 400, "sem registros não gera dicas");
 
+// 6b. classificar a foto de uma questão
+const MATS = ["Matemática", "Física", "Química"];
+proxima = () => texto({legivel: true, materia: "Física", assunto: "Cinemática", texto: "Um carro parte do repouso... (A) 2 m/s (B) 4 m/s", aviso: ""});
+r = await chamar({acao: "classificar", imagem: {dados: "AAAA", tipo: "image/jpeg"}, materias: MATS, assuntos: ["Cinemática"]});
+ok(r.codigo === 200 && r.corpo.classificacao.materia === "Física" && r.corpo.classificacao.assunto === "Cinemática" && r.corpo.classificacao.legivel, "sugere matéria e assunto");
+let env2 = chamadas.at(-1); ok(env2.messages[0].content[0].type === "image" && env2.messages[0].content.at(-1).text.includes("Matemática | Física"), "a foto e as listas vão no pedido");
+ok(/NÃO resolva/.test(env2.system) && /ilegível/.test(env2.system), "o prompt veda resolver e manda recusar foto ilegível");
+proxima = () => texto({legivel: true, materia: "Astrologia", assunto: "x", texto: "enunciado ok"});
+r = await chamar({acao: "classificar", imagem: {dados: "AAAA"}, materias: MATS}); ok(r.corpo.classificacao.materia === "", "matéria fora da lista não passa");
+proxima = () => texto({legivel: false, materia: "Física", assunto: "x", texto: "", aviso: "Foto cortada."});
+r = await chamar({acao: "classificar", imagem: {dados: "AAAA"}, materias: MATS}); ok(r.corpo.classificacao.legivel === false && r.corpo.classificacao.materia === "" && r.corpo.classificacao.aviso === "Foto cortada.", "ilegível não devolve palpite");
+r = await chamar({acao: "classificar", materias: MATS}); ok(r.codigo === 400, "sem foto, 400");
+r = await chamar({acao: "classificar", imagem: {dados: "A".repeat(4 * 1024 * 1024)}, materias: MATS}); ok(r.codigo === 413, "foto grande demais");
+proxima = () => texto(bom);
+
 // 7. trancas
 const antes = chamadas.length;
 r = await chamar(pedidoBase, {origem: "https://site-de-outro.com"}); ok(r.codigo === 403 && chamadas.length === antes, "origem estranha é recusada sem gastar a IA");
