@@ -348,7 +348,7 @@ fetch("data.json").then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{
   D=d;ACERVO_OK=true;d.bancas.forEach(b=>BANCA[b.id]=b);d.fontes.forEach(f=>FONTE[f.id]=f);
   d.q.forEach(q=>{QID[q.id]=q;q.hay=norm([q.m,q.s,q.t.join(" "),BANCA[q.b].nome,q.a,q.tx].join(" "));q.tg=[q.m,...q.t.filter(t=>MAT_ORDER.includes(t))];});
   montarPessoais();
-  if(d.q.some(q=>!q.k)){const n=$("#nota-acervo");n.hidden=false;n.textContent="Atenção: parte das questões não tem imagem nesta versão do acervo (importe as provas novamente — veja o LEIA-ME)."}
+  if(d.q.some(q=>!temImg(q))){const n=$("#nota-acervo");n.hidden=false;n.textContent="Atenção: parte das questões não tem imagem nesta versão do acervo (importe as provas novamente — veja o LEIA-ME)."}
   aba(ABA,true);
 }).catch(()=>{montarPessoais();const n=$("#nota-acervo");n.hidden=false;n.className="nota erro";n.textContent="Não foi possível carregar o acervo agora. Os registros de erros e dúvidas continuam funcionando.";aba(ABA,true)});
 
@@ -356,17 +356,19 @@ fetch("data.json").then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{
 const packs={}, urls={}, blobs={};
 function pack(f){return packs[f]||(packs[f]=fetch(f).then(r=>r.text()))}
 function imgBlob(q){
-  if(!q||!q.k)return Promise.resolve(null);
+  if(!temImg(q))return Promise.resolve(null);
   if(blobs[q.id])return blobs[q.id];
   if(q.pessoal)return blobs[q.id]=fotoGet(q.id).catch(()=>null);
+  if(q.u)return blobs[q.id]=fetch(q.u).then(r=>{if(!r.ok)throw 0;return r.blob()}).catch(()=>{delete blobs[q.id];return null});
   return blobs[q.id]=(async()=>{const t=await pack(q.k[0]);const bin=atob(t.substr(q.k[1],q.k[2]));
     const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
     return new Blob([a],{type:"image/webp"})})();
 }
 function imgUrl(q){
-  if(!q||!q.k)return Promise.resolve(null);
-  return urls[q.id]||(urls[q.id]=imgBlob(q).then(b=>URL.createObjectURL(b)));
+  if(!temImg(q))return Promise.resolve(null);
+  return urls[q.id]||(urls[q.id]=imgBlob(q).then(b=>b?URL.createObjectURL(b):null));
 }
+const temImg=q=>!!(q&&(q.k||q.u)); // k = pacote antigo (base64); u = arquivo próprio da questão (q/<id>.webp)
 const SEM_IMG='<span class="mut">A imagem desta questão ainda não foi importada.</span>';
 
 /* ============ filtros do acervo ============ */
@@ -553,7 +555,7 @@ $("#b-online").onclick=()=>{const R=resultado();if(R.length)abrirResolver(R)};
 function paraJpeg(url){return new Promise((ok,ko)=>{const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=im.naturalWidth;c.height=im.naturalHeight;
   const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0);ok(c.toDataURL("image/jpeg",0.93))};im.onerror=ko;im.src=url})}
 $("#b-pdf").onclick=async()=>{
-  const R=resultado().filter(q=>q.k);
+  const R=resultado().filter(temImg);
   if(!R.length){aviso("Nenhuma das questões deste filtro tem imagem para o PDF.");return}
   const bar=document.createElement("div");bar.className="pgbar";bar.innerHTML='<span id="pt">Gerando PDF…</span><div class="prog"><i></i></div>';document.body.appendChild(bar);
   try{
@@ -772,7 +774,7 @@ function htmlReg(r){
   const quando=dataBR(r.criado);
   const pill=s==="dominado"?'<span class="pill ok">dominado</span>':s==="sem"?'<span class="pill pend">sem correção</span>':s==="desat"?'<span class="pill pend">corrigido (mudou depois)</span>':'<span class="pill ok">corrigido</span>';
   const temFotos=(r.fotos||[]).length;
-  const podeRetentar=!!(q&&q.k&&q.r);
+  const podeRetentar=!!(q&&temImg(q)&&q.r);
   const re=r.retentativas||[];
   return `<article class="reg" data-reg="${r.id}">
     <div class="reg-h"><span class="pill ${r.tipo}">${r.tipo==="duvida"?"Dúvida":"Erro"}</span><b>${esc(r.materia||"Sem matéria")}${r.assunto?" · "+esc(r.assunto):""}</b>${pill}<span class="mut" style="font-size:13px;margin-left:auto">${quando}</span></div>
@@ -825,7 +827,7 @@ document.addEventListener("change",e=>{const s=e.target.closest("[data-tipoerro]
 async function montarImagens(r){
   const q=r.qid?QID[r.qid]:null;
   const itens=[];
-  if(q&&q.k){const b=await imgBlob(q);if(b)itens.push({rotulo:"Enunciado da questão (do acervo)",blob:b})}
+  if(temImg(q)){const b=await imgBlob(q);if(b)itens.push({rotulo:"Enunciado da questão (do acervo)",blob:b})}
   for(const f of (r.fotos||[]).filter(f=>f.kind==="questao")){const b=await fotoGet(f.id).catch(()=>null);if(b)itens.push({rotulo:"Foto do enunciado da questão",blob:b})}
   let n=0;
   for(const f of (r.fotos||[]).filter(f=>f.kind!=="questao")){if(n>=4)break;const b=await fotoGet(f.id).catch(()=>null);if(b){n++;itens.push({rotulo:`Foto da resolução dela (${n})`,blob:b})}}

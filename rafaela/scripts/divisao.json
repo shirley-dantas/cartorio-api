@@ -1,0 +1,29 @@
+{
+  "FUVEST.pdf": {
+    "fuvest2024_1fase_gabarito.pdf":        ["fuvest", 1, 2],
+    "fuvest2024_1fase_prova_K.pdf":         ["fuvest", 3, 38],
+    "fuvest2025_1fase_gabarito.pdf":        ["fuvest", 39, 40],
+    "fuvest2025_1fase_prova_V1.pdf":        ["fuvest", 41, 74],
+    "fuvest2026_1fase_gabarito.pdf":        ["fuvest", 75, 76],
+    "fuvest2026_1fase_prova_V1.pdf":        ["fuvest", 77, 114],
+    "gabarito-simulado-fuvest-2027.pdf":    ["fuvest", 115, 116],
+    "prova-s1-simulado-fuvest-2027.pdf":    ["fuvest", 117, 149]
+  },
+  "ENEM.pdf": {
+    "enem2024-2_2dia_prova_amarelo.pdf":    ["enem", 1, 32],
+    "enem2024-2_2dia_gabarito_amarelo.pdf": ["enem", 33, 33],
+    "enem2024-2_1dia_gabarito_amarelo.pdf": ["enem", 34, 34],
+    "enem2024-2_1dia_prova_amarelo.pdf":    ["enem", 35, 66],
+    "enem2025-2_2dia_gabarito.pdf":         ["enem", 67, 67],
+    "enem2025-2_2dia_prova.pdf":            ["enem", 68, 99]
+  },
+  "UNICAMP.pdf": {
+    "unicamp2024_1fase_prova_QY.pdf":       ["unicamp", 1, 21],
+    "unicamp2025_1fase_gabarito_QZ.pdf":    ["unicamp", 22, 22],
+    "unicamp2025_1fase_prova_QZ.pdf":       ["unicamp", 23, 45],
+    "unicamp2026_1fase_gabarito_QX.pdf":    ["unicamp", 68, 68],
+    "unicamp2026_1fase_prova_QX.pdf":       ["unicamp", 69, 95],
+    "unicamp2023_1fase_prova_QZ.pdf":       ["unicamp", 96, 120],
+    "unicamp2024_1fase_gabarito_Q_Y.pdf":   ["unicamp", 121, 121]
+  }
+}

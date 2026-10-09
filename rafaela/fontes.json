@@ -19,7 +19,7 @@
     "y_top": 33,
     "y_bot": 809,
     "marcador": "\\{(\\d{1,2})\\}",
-    "prefacio": "Texto para as quest[õo]es.*"
+    "prefacio": "(?i)Texto para as quest[õo]es.*"
    },
    "alternativas": 5,
    "cor": "#2457C5"
@@ -67,6 +67,180 @@
    "prova": "Provas Q e T",
    "pdf": "pdfs/unicamp/unicamp2027_simulado_prova.pdf",
    "gabarito": "pdfs/unicamp/unicamp2027_simulado_gabarito.pdf"
+  },
+  {
+   "id": "fuvest-2024-1fase-k",
+   "banca": "fuvest",
+   "ano": 2024,
+   "edicao": "1ª fase",
+   "prova": "Prova K",
+   "pdf": "pdfs/fuvest/fuvest2024_1fase_prova_K.pdf",
+   "gabarito": "pdfs/fuvest/fuvest2024_1fase_gabarito.pdf",
+   "gab_args": {
+    "prova": "K",
+    "total": 90
+   },
+   "esperadas": 90,
+   "layout": {
+    "marcador": "^(\\d{2})$",
+    "marcador_x": 8
+   }
+  },
+  {
+   "id": "fuvest-2025-1fase-v1",
+   "banca": "fuvest",
+   "ano": 2025,
+   "edicao": "1ª fase",
+   "prova": "Prova V1",
+   "pdf": "pdfs/fuvest/fuvest2025_1fase_prova_V1.pdf",
+   "gabarito": "pdfs/fuvest/fuvest2025_1fase_gabarito.pdf",
+   "gab_args": {
+    "prova": "V1",
+    "total": 90
+   },
+   "esperadas": 90
+  },
+  {
+   "id": "fuvest-2026-1fase-v1",
+   "banca": "fuvest",
+   "ano": 2026,
+   "edicao": "1ª fase",
+   "prova": "Prova V1",
+   "pdf": "pdfs/fuvest/fuvest2026_1fase_prova_V1.pdf",
+   "gabarito": "pdfs/fuvest/fuvest2026_1fase_gabarito.pdf",
+   "gab_args": {
+    "prova": "V1",
+    "total": 90
+   },
+   "esperadas": 90
+  },
+  {
+   "id": "fuvest-2027-sim1-s1",
+   "banca": "fuvest",
+   "ano": 2027,
+   "edicao": "Simulado 1ª edição",
+   "prova": "Prova S1",
+   "pdf": "pdfs/fuvest/prova-s1-simulado-fuvest-2027.pdf",
+   "gabarito": "pdfs/fuvest/gabarito-simulado-fuvest-2027.pdf",
+   "gab_args": {
+    "prova": "S1",
+    "total": 80
+   },
+   "esperadas": 80,
+   "layout": {}
+  },
+  {
+   "id": "enem-2024-2apl-d1-amarelo",
+   "banca": "enem",
+   "ano": 2024,
+   "edicao": "2ª aplicação",
+   "prova": "1º dia · Caderno 2 Amarelo",
+   "pdf": "pdfs/enem/enem2024-2_1dia_prova_amarelo.pdf",
+   "gabarito": "pdfs/enem/enem2024-2_1dia_gabarito_amarelo.pdf",
+   "esperadas": 95,
+   "layout": {
+    "y_top": 62,
+    "y_bot": 740,
+    "divisoria_centro": true,
+    "paginas_largas": "auto"
+   }
+  },
+  {
+   "id": "enem-2024-2apl-d2-amarelo",
+   "banca": "enem",
+   "ano": 2024,
+   "edicao": "2ª aplicação",
+   "prova": "2º dia · Caderno 5 Amarelo",
+   "pdf": "pdfs/enem/enem2024-2_2dia_prova_amarelo.pdf",
+   "gabarito": "pdfs/enem/enem2024-2_2dia_gabarito_amarelo.pdf",
+   "gabarito_parser": "enem_dia2",
+   "esperadas": 90,
+   "layout": {
+    "marcador": "QUEST[ãÃ]O\\s+(\\d{2,3})\\s*$",
+    "fim_pagina": "^(PROPOSTA DE REDA|INSTRUÇÕES PARA A REDA|MATEMÁTICA E SUAS TECNOLOGIAS$|CIÊNCIAS DA NATUREZA E SUAS TECNOLOGIAS$)",
+    "y_top": 62,
+    "y_bot": 740,
+    "divisoria_centro": true,
+    "paginas_largas": "auto"
+   }
+  },
+  {
+   "id": "enem-2025-2apl-d2-amarelo",
+   "banca": "enem",
+   "ano": 2025,
+   "edicao": "2ª aplicação",
+   "prova": "2º dia · Caderno 5 Amarelo",
+   "pdf": "pdfs/enem/enem2025-2_2dia_prova.pdf",
+   "gabarito": "pdfs/enem/enem2025-2_2dia_gabarito.pdf",
+   "gabarito_parser": "enem_dia2",
+   "esperadas": 90,
+   "layout": {
+    "marcador": "QUEST[ãÃ]O\\s+(\\d{2,3})\\s*$",
+    "fim_pagina": "^(PROPOSTA DE REDA|INSTRUÇÕES PARA A REDA|MATEMÁTICA E SUAS TECNOLOGIAS$|CIÊNCIAS DA NATUREZA E SUAS TECNOLOGIAS$)"
+   }
+  },
+  {
+   "id": "unicamp-2023-1fase-qz",
+   "banca": "unicamp",
+   "ano": 2023,
+   "edicao": "1ª fase",
+   "prova": "Prova Q e Z",
+   "pdf": "pdfs/unicamp/unicamp2023_1fase_prova_QZ.pdf",
+   "gabarito": null,
+   "esperadas": 72,
+   "layout": {
+    "divisoria_centro": true,
+    "prefacio": "(?i)(Texto comum às quest[õo]es [\\d, e]+|O texto a seguir será usado para responder às quest[õo]es [\\d, e]+|Texto para as quest[õo]es [\\d, e]+)"
+   }
+  },
+  {
+   "id": "unicamp-2024-1fase-qy",
+   "banca": "unicamp",
+   "ano": 2024,
+   "edicao": "1ª fase",
+   "prova": "Prova Q e Y",
+   "pdf": "pdfs/unicamp/unicamp2024_1fase_prova_QY.pdf",
+   "gabarito": "pdfs/unicamp/unicamp2024_1fase_gabarito_Q_Y.pdf",
+   "esperadas": 72,
+   "layout": {
+    "divisoria_centro": true,
+    "prefacio": "(?i)(Texto comum às quest[õo]es [\\d, e]+|O texto a seguir será usado para responder às quest[õo]es [\\d, e]+|Texto para as quest[õo]es [\\d, e]+)"
+   }
+  },
+  {
+   "id": "unicamp-2025-1fase-qz",
+   "banca": "unicamp",
+   "ano": 2025,
+   "edicao": "1ª fase",
+   "prova": "Prova Q e Z",
+   "pdf": "pdfs/unicamp/unicamp2025_1fase_prova_QZ.pdf",
+   "gabarito": "pdfs/unicamp/unicamp2025_1fase_gabarito_QZ.pdf",
+   "esperadas": 72,
+   "layout": {
+    "divisoria_centro": true,
+    "prefacio": "(?i)(Texto comum às quest[õo]es [\\d, e]+|O texto a seguir será usado para responder às quest[õo]es [\\d, e]+|Texto para as quest[õo]es [\\d, e]+)"
+   }
+  },
+  {
+   "id": "unicamp-2026-1fase-qx",
+   "banca": "unicamp",
+   "ano": 2026,
+   "edicao": "1ª fase",
+   "prova": "Prova Q e X",
+   "pdf": "pdfs/unicamp/unicamp2026_1fase_prova_QX.pdf",
+   "gabarito": "pdfs/unicamp/unicamp2026_1fase_gabarito_QX.pdf",
+   "esperadas": 72,
+   "layout": {
+    "divisoria_centro": true,
+    "prefacio": "(?i)(Texto comum às quest[õo]es [\\d, e]+|O texto a seguir será usado para responder às quest[õo]es [\\d, e]+|Texto para as quest[õo]es [\\d, e]+)",
+    "paginas_largas": [
+     14
+    ]
+   }
   }
- ]
+ ],
+ "imagem": {
+  "qualidade": 80,
+  "metodo": 4
+ }
 }
