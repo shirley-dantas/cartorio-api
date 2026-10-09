@@ -558,20 +558,17 @@ function vHoje(){
   const recebidas=recebidasLink();
   const boxRec=recebidas.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Fichas recebidas pelo link (${recebidas.length})</h2>${recebidas.map(x=>`<div class="row">${avatarHtml(cli(x._cv.cli))}<div class="grow"><b>${esc(cli(x._cv.cli).n)}</b><div class="small muted">Enviada em ${x.data?esc(fd(x.data,{day:'2-digit',month:'2-digit'})):''}</div></div><button class="btn sm" data-pend="${x.id}" data-pb="${x._b}">Revisar e integrar</button></div>`).join('')}</div>`:'';
   return `<div class="top"><div><h1>${saud}, ${esc(S.user.nome)}</h1>${onde}</div></div>
-  ${boxRec}${isAdmin()?cursosHojeHtml():''}
-  <div class="grid g2">
-   <div class="box"><h2>${isAdmin()?'Seus atendimentos de hoje':'Agenda de hoje na Maison'}</h2>
-    ${minhas.length?minhas.map(a=>`<div class="row"><span class="t">${esc(a.hora)}</span><div class="grow"><b>${esc(cli(a.cli).n)}</b><div class="small muted">${esc(sv(a.serv,a.unit).n)}${isAdmin()?'':' com '+esc(PEOPLE[a.pro]?.n)}</div></div>${anamVencida(cli(a.cli))?'<span class="tag warn">Anamnese</span>':''}<span class="tag ${a.st==='Atendido'?'ok':''}">${esc(a.st)}</span></div>`).join(''):'<p class="muted">Nenhum atendimento marcado para hoje. Cadastre uma cliente e crie o primeiro agendamento na aba Agenda.</p>'}
-   </div>
-   <div class="grid">
-    <div class="box"><h2>Aniversários da semana</h2>
-     ${niver.length?niver.map(c=>`<div class="row">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b><div class="small muted">${c.niver.split('-').reverse().join('/')}${c.niver===iso(TODAY).slice(5)?' · hoje':''}</div></div><button class="btn sm" data-msg="niver" data-c="${c.id}">Mensagem</button></div>`).join(''):'<p class="muted">Ninguém faz aniversário nesta semana.</p>'}
-    </div>
-    <div class="box"><h2>Hora de voltar</h2>
-     ${retornos.map(r=>`<div class="row">${avatarHtml(cli(r.h.cli))}<div class="grow"><b>${esc(cli(r.h.cli).n)}</b><div class="small muted">${esc(r.s.n)} há ${r.dias} dias</div></div><button class="btn sm" data-msg="ret" data-c="${r.h.cli}">Mensagem</button></div>`).join('')||'<p class="muted">Nenhuma cliente com retorno pendente.</p>'}
-    </div>
-   </div>
-  </div>`;
+  ${boxRec}
+  <div class="box" style="margin-bottom:16px"><h2>${isAdmin()?'Seus atendimentos de hoje':'Agenda de hoje na Maison'}</h2>
+   ${minhas.length?`<h3 style="margin:10px 0 2px">Hoje · ${minhas.length===1?'1 atendimento':minhas.length+' atendimentos'}</h3>`+minhas.map(a=>`<div class="row">${avatarHtml(cli(a.cli))}<div class="grow"><b>${esc(cli(a.cli).n)}</b><div class="small muted">${esc(a.hora)} · ${esc(sv(a.serv,a.unit).n)}${isAdmin()?'':' com '+esc(PEOPLE[a.pro]?.n)}</div></div>${anamVencida(cli(a.cli))?'<span class="tag warn">Anamnese</span>':''}<span class="tag ${a.st==='Atendido'?'ok':''}">${esc(a.st)}</span></div>`).join(''):'<p class="muted">Nenhum atendimento marcado para hoje. Cadastre uma cliente e crie o primeiro agendamento na aba Agenda.</p>'}
+  </div>
+  <div class="box" style="margin-bottom:16px"><h2>Aniversários da semana</h2>
+   ${niver.length?`<h3 style="margin:10px 0 2px">Esta semana · ${niver.length===1?'1 cliente':niver.length+' clientes'}</h3>`+niver.map(c=>`<div class="row">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b><div class="small muted">${c.niver.split('-').reverse().join('/')}${c.niver===iso(TODAY).slice(5)?' · hoje':''}</div></div><button class="btn sm" data-msg="niver" data-c="${c.id}">Mensagem</button></div>`).join(''):'<p class="muted">Ninguém faz aniversário nesta semana.</p>'}
+  </div>
+  <div class="box" style="margin-bottom:16px"><h2>Hora de voltar</h2>
+   ${retornos.length?`<h3 style="margin:10px 0 2px">Retorno pendente · ${retornos.length===1?'1 cliente':retornos.length+' clientes'}</h3>`+retornos.map(r=>`<div class="row">${avatarHtml(cli(r.h.cli))}<div class="grow"><b>${esc(cli(r.h.cli).n)}</b><div class="small muted">${esc(r.s.n)} há ${r.dias} dias</div></div><button class="btn sm" data-msg="ret" data-c="${r.h.cli}">Mensagem</button></div>`).join(''):'<p class="muted">Nenhuma cliente com retorno pendente.</p>'}
+  </div>
+  ${isAdmin()?cursosHojeHtml():''}`;
 }
 function zapLink(tel,txt){let d=String(tel||'').replace(/\D/g,'');if(d&&!d.startsWith('55'))d='55'+d;return `https://wa.me/${d}?text=${encodeURIComponent(txt)}`}
 // Mensagens de aniversário: várias, para a cliente não perceber sempre o mesmo texto. Cada uma termina com o brinde,
