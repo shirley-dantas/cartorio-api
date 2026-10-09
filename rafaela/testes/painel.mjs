@@ -1,5 +1,5 @@
 // Caderno da Rafaela no Chromium: do clique até o número na tela, com a IA fingida.
-// Roda por cima do painel/index.html de verdade (e do data.json com as 247 questões).
+// Roda por cima do painel/index.html de verdade (e do data.json com as 1.160 questões).
 //   node rafaela/testes/painel.mjs            → confere tudo e guarda imagens em testes/saida/
 import http from "node:http";
 import fs from "node:fs";
@@ -103,7 +103,7 @@ console.log("• Acervo continua inteiro");
   await aba(p, "acervo");
   const bancas = await p.locator(".banca").count(); ok(bancas === 3, "3 bancas");
   await p.click(".banca >> text=FUVEST"); await p.click("#materias .chip >> text=Química");
-  const n = +(await p.textContent("#n")); ok(n > 5 && n < 30, "filtro por banca e matéria: " + n);
+  const n = +(await p.textContent("#n")); ok(n > 5 && n < 200, "filtro por banca e matéria: " + n);
   await p.waitForSelector("#lista .q img");
   ok(await p.locator("#b-pdf").isEnabled() && await p.locator("#b-gab").isEnabled(), "botões do acervo");
   await p.click("#b-gab"); ok((await p.textContent(".gab")).includes("1."), "gabarito abre"); await p.click("#x");
@@ -223,7 +223,7 @@ console.log("• Estatísticas com registros de verdade");
   const txt = await p.textContent("#v-stats");
   ok(txt.includes("Revisar primeiro") && txt.includes("Química · Estequiometria"), "tela mostra a prioridade");
   ok(txt.includes("Tipos de questão que mais me confundem") && txt.includes("cálculo estequiométrico"), "tela mostra tipos de questão");
-  ok(txt.includes("O acervo") && txt.includes("247"), "estatísticas do acervo continuam lá");
+  ok(txt.includes("O acervo") && txt.includes("1160"), "estatísticas do acervo continuam lá");
   await p.screenshot({path: path.join(SAIDA, "stats-desktop.png"), fullPage: true});
 
   console.log("• Macetes");
@@ -248,11 +248,11 @@ console.log("• Estatísticas com registros de verdade");
 console.log("• Resolver online alimenta as estatísticas");
 {
   const {ctx, p} = await nova({viewport: {width: 1100, height: 900}});
-  await aba(p, "acervo"); await p.click(".banca >> text=UNICAMP"); await p.fill("#nums", "1-3");
+  await aba(p, "acervo"); await p.click(".banca >> text=UNICAMP"); await p.click("#anos .chip >> text=2024"); await p.fill("#nums", "1-3");
   await p.click("#b-online"); await p.waitForSelector(".alts .alt");
   for (let i = 0; i < 3; i++) { await p.click(".alts .alt[data-l=A]"); }
   await p.click("#fin"); await p.waitForSelector(".score");
-  const t = await p.evaluate(() => window.__rafa.estado().TENT); ok(t.length === 3, "3 tentativas guardadas");
+  const t = await p.evaluate(() => window.__rafa.estado().TENT); ok(t.length === 3, "3 tentativas guardadas: " + t.length);
   await p.click("#fin").catch(() => {});
   if (await p.locator("[data-reg]").count()) { await p.click("[data-reg] >> nth=0"); await p.waitForSelector("#f-rac"); ok((await p.inputValue("#f-mat")).length > 0, "'Registrar no caderno' abre o formulário já ligado à questão"); }
   await ctx.close();
@@ -314,8 +314,8 @@ console.log("• Minhas questões (acervo pessoal)");
   // sem gabarito: aparece, mas não entra na conta
   await p.click("#b-addq"); await p.setInputFiles("#fq-foto", foto); await p.waitForSelector("#fq-prev img");
   await p.fill("#fq-ban", "FUVEST"); await p.fill("#fq-ano", "2026"); await p.selectOption("#fq-mat", "Matemática"); await p.fill("#fq-ass", "Geometria plana");
-  await p.click("#fq-save"); await p.waitForFunction(() => /81/.test(document.querySelector(".banca[aria-pressed=true]")?.textContent || ""));
-  ok(await p.locator(".banca").count() === 4 && (await p.textContent(".banca[aria-pressed=true]")).includes("81"), "banca já existente: soma 80 + 1 e não cria cartão novo");
+  await p.click("#fq-save"); await p.waitForFunction(() => /431/.test(document.querySelector(".banca[aria-pressed=true]")?.textContent || ""));
+  ok(await p.locator(".banca").count() === 4 && (await p.textContent(".banca[aria-pressed=true]")).includes("431"), "banca já existente: soma 430 + 1 e não cria cartão novo");
   await p.click("#b-online"); await p.waitForSelector(".alts .alt"); await p.click(".alts .alt[data-l=A]"); await p.click("#fin"); await p.waitForSelector(".score");
   ok(await p.locator(".dlg .hint:has-text('sem gabarito')").count() >= 0, "sem gabarito segue sem quebrar");
   await p.click("#x");

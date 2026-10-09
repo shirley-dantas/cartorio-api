@@ -1,0 +1,374 @@
+{
+"unicamp-2023-1fase-qz-q01": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q02": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q03": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q04": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q05": {
+"materia": "Português",
+"subtema": "Linguagem e gêneros",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q06": {
+"materia": "Português",
+"subtema": "Variação linguística",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q07": {
+"materia": "Literatura",
+"subtema": "Realismo",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q08": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q09": {
+"materia": "Literatura",
+"subtema": "Literatura de informação",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q10": {
+"materia": "Literatura",
+"subtema": "Literatura",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q11": {
+"materia": "Literatura",
+"subtema": "Simbolismo",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q12": {
+"materia": "Literatura",
+"subtema": "Literatura contemporânea",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q13": {
+"materia": "Química",
+"subtema": "Química verde",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q14": {
+"materia": "Química",
+"subtema": "Química verde",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q15": {
+"materia": "Química",
+"subtema": "Química verde",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q16": {
+"materia": "Química",
+"subtema": "Química ambiental",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q17": {
+"materia": "Química",
+"subtema": "Química orgânica",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q18": {
+"materia": "Química",
+"subtema": "Equilíbrio químico",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q19": {
+"materia": "Química",
+"subtema": "Termoquímica",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q20": {
+"materia": "Química",
+"subtema": "Química do nitrogênio",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q21": {
+"materia": "Geografia",
+"subtema": "Geopolítica",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q22": {
+"materia": "Geografia",
+"subtema": "Tecnologia e espaço",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q23": {
+"materia": "Geografia",
+"subtema": "Geologia",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q24": {
+"materia": "Geografia",
+"subtema": "Relevo",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q25": {
+"materia": "Geografia",
+"subtema": "Migrações",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q26": {
+"materia": "Geografia",
+"subtema": "Meio ambiente",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q27": {
+"materia": "Geografia",
+"subtema": "Amazônia",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q28": {
+"materia": "Filosofia",
+"subtema": "Foucault",
+"tags": [
+"biopolítica"
+]
+},
+"unicamp-2023-1fase-qz-q29": {
+"materia": "Física",
+"subtema": "Cinemática",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q30": {
+"materia": "Física",
+"subtema": "Cinemática",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q31": {
+"materia": "Física",
+"subtema": "Energia",
+"tags": [
+"trabalho"
+]
+},
+"unicamp-2023-1fase-qz-q32": {
+"materia": "Física",
+"subtema": "Termologia",
+"tags": [
+"gases"
+]
+},
+"unicamp-2023-1fase-qz-q33": {
+"materia": "Física",
+"subtema": "Eletricidade",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q34": {
+"materia": "Física",
+"subtema": "Gravitação",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q35": {
+"materia": "Física",
+"subtema": "Eletricidade",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q36": {
+"materia": "Física",
+"subtema": "Óptica",
+"tags": [
+"refração"
+]
+},
+"unicamp-2023-1fase-qz-q37": {
+"materia": "Biologia",
+"subtema": "Virologia",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q38": {
+"materia": "Biologia",
+"subtema": "Fotossíntese",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q39": {
+"materia": "Biologia",
+"subtema": "Evolução",
+"tags": [
+"filogenia"
+]
+},
+"unicamp-2023-1fase-qz-q40": {
+"materia": "Biologia",
+"subtema": "Biotecnologia",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q41": {
+"materia": "Biologia",
+"subtema": "Genética",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q42": {
+"materia": "Biologia",
+"subtema": "Ecologia",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q43": {
+"materia": "Biologia",
+"subtema": "Microbiologia",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q44": {
+"materia": "Biologia",
+"subtema": "Ecologia",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q45": {
+"materia": "Matemática",
+"subtema": "Razão e proporção",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q46": {
+"materia": "Matemática",
+"subtema": "Funções",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q47": {
+"materia": "Matemática",
+"subtema": "Estatística",
+"tags": [
+"gráficos"
+]
+},
+"unicamp-2023-1fase-qz-q48": {
+"materia": "Matemática",
+"subtema": "Progressões",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q49": {
+"materia": "Matemática",
+"subtema": "Funções",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q50": {
+"materia": "Matemática",
+"subtema": "Geometria espacial",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q51": {
+"materia": "Matemática",
+"subtema": "Funções",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q52": {
+"materia": "Matemática",
+"subtema": "Sequências",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q53": {
+"materia": "Matemática",
+"subtema": "Sistemas lineares",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q54": {
+"materia": "Matemática",
+"subtema": "Trigonometria",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q55": {
+"materia": "Matemática",
+"subtema": "Análise combinatória",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q56": {
+"materia": "Matemática",
+"subtema": "Funções",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q57": {
+"materia": "História",
+"subtema": "História da América",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q58": {
+"materia": "História",
+"subtema": "História do Brasil",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q59": {
+"materia": "História",
+"subtema": "Revolução Francesa",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q60": {
+"materia": "História",
+"subtema": "História do Brasil",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q61": {
+"materia": "História",
+"subtema": "República Velha",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q62": {
+"materia": "História",
+"subtema": "Brasil República",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q63": {
+"materia": "História",
+"subtema": "América Latina",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q64": {
+"materia": "História",
+"subtema": "História contemporânea",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q65": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q66": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q67": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q68": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q69": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q70": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q71": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"unicamp-2023-1fase-qz-q72": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+}
+}
