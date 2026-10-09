@@ -444,7 +444,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{},mPed:{},fPed:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -476,9 +476,9 @@ function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];
 let rq=0;function agendarRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;if(S.user)render()})}
 function comecarLeituras(){
   pararLeituras();
-  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
+  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/pedidos','mPed');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
   if(isAdmin()){
-    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/pendentes','fPend');
+    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/pedidos','fPed');ouvir('florenca/pendentes','fPend');
     ouvir('financeiro/valores','valores');
     ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');ouvir('admin/instagram','instagram');
     // A carga inicial dos roteiros é idempotente: chaves fixas, só cria o que falta.
@@ -563,7 +563,7 @@ function vHoje(){
   const recebidas=recebidasLink();
   const boxRec=recebidas.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Fichas recebidas pelo link (${recebidas.length})</h2>${recebidas.map(x=>`<div class="row">${avatarHtml(cli(x._cv.cli))}<div class="grow"><b>${esc(cli(x._cv.cli).n)}</b><div class="small muted">Enviada em ${x.data?esc(fd(x.data,{day:'2-digit',month:'2-digit'})):''}</div></div><button class="btn sm" data-pend="${x.id}" data-pb="${x._b}">Revisar e integrar</button></div>`).join('')}</div>`:'';
   return `<div class="top"><div><h1>${saud}, ${esc(S.user.nome)}</h1>${onde}</div></div>
-  ${boxRec}
+  ${pedidosHtml()}${boxRec}
   <div class="box" style="margin-bottom:16px"><h2>${isAdmin()?'Seus atendimentos de hoje':'Agenda de hoje na Maison'}</h2>
    ${minhas.length?`<h3 style="margin:10px 0 2px">Hoje · ${minhas.length===1?'1 atendimento':minhas.length+' atendimentos'}</h3>`+minhas.map(a=>`<div class="row">${avatarHtml(cli(a.cli))}<div class="grow"><b>${esc(cli(a.cli).n)}</b><div class="small muted">${esc(a.hora)} · ${esc(sv(a.serv,a.unit).n)}${isAdmin()?'':' com '+esc(PEOPLE[a.pro]?.n)}</div></div>${anamVencida(cli(a.cli))?'<span class="tag warn">Anamnese</span>':''}<span class="tag ${a.st==='Atendido'?'ok':''}">${esc(a.st)}</span></div>`).join(''):'<p class="muted">Nenhum atendimento marcado para hoje. Cadastre uma cliente e crie o primeiro agendamento na aba Agenda.</p>'}
   </div>
@@ -742,6 +742,31 @@ async function cancelarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if
   const ok=await grava(()=>DB.upd(p+'/agenda/'+id,{st:'Cancelado',canceladoPor:S.user.nome,canceladoEm:iso(TODAY)}),'Agendamento cancelado');
   if(ok&&a.evento&&AGENDA_URL){const r=await agendaChama({acao:'cancelar',id:a.evento});
     toast(r.ok?'A cliente recebeu o aviso de cancelamento':'Cancelado aqui, mas o convite continua na Google Agenda: apague o evento por lá.')}}
+
+// ── Pedidos de horário: a cliente preenche a página pública /p (pelo link do WhatsApp) e o pedido cai na equipe da unidade ──
+const pedidosAbertos=()=>[...arr(C.mPed).map(x=>({...x,_p:'maison'})),...(isAdmin()?arr(C.fPed).map(x=>({...x,_p:'florenca'})):[])].filter(x=>x.st!=='resolvido').sort((a,b)=>(a.em||0)-(b.em||0));
+const clienteDoPedido=x=>{const d=soDigitos(x.tel).slice(-8);return d.length<8?null:cliVisiveis().find(c=>(c._p===x._p)&&soDigitos(c.tel).slice(-8)===d)||null};
+const DIAS_SEM={Domingo:0,Segunda:1,Terça:2,Quarta:3,Quinta:4,Sexta:5,Sábado:6};
+// Primeira data, a partir de amanhã, que cai num dos dias que a cliente marcou.
+function dataDoPedido(x){const alvo=String(x.dias||'').split(',').map(d=>DIAS_SEM[d.trim()]).filter(n=>n!=null);if(!alvo.length)return iso(addD(TODAY,1));
+  for(let i=1;i<=14;i++){const d=addD(TODAY,i);if(alvo.includes(d.getDay()))return iso(d)}return iso(addD(TODAY,1))}
+const pedidosHtml=()=>{const L=pedidosAbertos();if(!L.length)return '';
+  return `<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Pedidos de horário (${L.length})</h2>${L.map(x=>{const c=clienteDoPedido(x),u=x.un==='flo'?'flo':'mai';
+   return `<div class="row" style="align-items:flex-start">${avatarHtml(c||{n:x.nome})}<div class="grow"><b>${esc(x.nome)}</b> ${c?'<span class="tag ok">Já é cliente</span>':'<span class="tag warn">Cliente nova</span>'}${x.nova&&c?'<span class="tag warn">Disse que é a 1ª vez</span>':''}
+    <div class="small">${esc(x.serv)}</div><div class="small muted">${uTag(u)} ${esc(x.dias)} · ${esc(x.per||'Qualquer período')} · ${esc(x.tel)}</div>${x.obs?`<div class="small" style="margin-top:2px">“${esc(x.obs)}”</div>`:''}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm p" data-pag="${x.id}" data-pp="${x._p}">Agendar</button><button class="btn sm" data-prz="${x.id}" data-pp="${x._p}">Responder</button><button class="btn sm" data-pok="${x.id}" data-pp="${x._p}">Já resolvi</button></div></div><span class="small muted">${x.data?esc(fd(x.data,{day:'2-digit',month:'2-digit'})):''}</span></div>`}).join('')}</div>`};
+async function pedidoAgendar(id,p){const x=pedidosAbertos().find(y=>y.id===id&&y._p===p);if(!x)return;
+  let c=clienteDoPedido(x),cid=c&&c.id;
+  if(!c){const ok=await grava(async()=>{cid=await DB.push(p+'/clientes',{n:x.nome,tel:x.tel,email:'',niver:'',nasc:'',unit:x.un==='flo'?'flo':'mai'})},'Cliente cadastrada');if(!ok)return;await new Promise(r=>setTimeout(r,120))}
+  const sv0=servicosDe(x.un==='flo'?'flo':'mai',false).find(s=>s.n===x.serv);
+  novoAg({cli:cid,serv:sv0&&sv0.id,data:dataDoPedido(x),hora:x.per==='Tarde'?'14:00':'10:00',pedido:{id,p}})}
+function pedidoResponder(id,p){const x=pedidosAbertos().find(y=>y.id===id&&y._p===p);if(!x)return;const u=U[x.un==='flo'?'flo':'mai'],nome=x.nome.split(' ')[0];
+  const txt=`Oi, ${nome}! Aqui é do ${u.n}. Recebi o seu pedido de ${x.serv} 💛 Tenho horário disponível: [escreva aqui o dia e a hora]. Fica bom para você?`;
+  openDlg('Responder '+esc(x.nome),`<p class="small muted">Pedido: ${esc(x.serv)} · ${esc(x.dias)} · ${esc(x.per||'qualquer período')}</p><label class="f">Mensagem (edite o horário antes de enviar)<textarea rows="5" id="pr-m">${esc(txt)}</textarea></label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="pr-w">Abrir no WhatsApp</button><button class="btn" id="pr-c">Copiar</button></div>`);
+  document.getElementById('pr-w').onclick=()=>{const t=document.getElementById('pr-m').value;if(t.includes('[escreva aqui')){toast('Troque o trecho entre colchetes pelo horário.');return}window.open(zapLink(x.tel,t),'_blank','noopener');closeDlg()};
+  document.getElementById('pr-c').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('pr-m').value);toast('Mensagem copiada')}catch(e){toast('Não foi possível copiar')}}}
+const pedidoResolver=(id,p)=>grava(()=>DB.upd(p+'/pedidos/'+id,{st:'resolvido',por:S.user.nome}),'Pedido resolvido');
 function novoAg(pre){
   pre=pre&&typeof pre==='object'&&!(pre instanceof Event)?pre:{};
   const visiveis=cliVisiveis();
@@ -772,17 +797,18 @@ function novoAg(pre){
     if(an&&an.flags&&an.flags.length)msgs.push(`Atenção na ficha: ${an.flags.join(', ')}.`);
     navisos.innerHTML=msgs.map((m,i)=>i===0&&p==='tha'?`<div class="small muted" style="margin-bottom:8px">${esc(m)}</div>`:`<div class="alert">${esc(m)}</div>`).join('')+(c&&anamVencida(c)?`<div style="margin:-2px 0 10px"><button type="button" class="btn sm" id="nlink">Enviar o link da ficha para a cliente</button></div>`:'');
     const nl=document.getElementById('nlink');
-    if(nl)nl.onclick=()=>{const est={cli:nc.value,pro:np.value,data:nd.value,hora:nh.value,serv:ns.value};
+    if(nl)nl.onclick=()=>{const est={cli:nc.value,pro:np.value,data:nd.value,hora:nh.value,serv:ns.value,pedido:pre.pedido};
       // Cliente da Maison recebe o link no celular; o Florença não tem link (a ficha é preenchida na tela). Depois de enviar, volta ao agendamento.
       enviarLinkAnamnese(c.id,()=>novoAg(est))};
     nsave.disabled=!ok;return u};
   [nc,np,nd,nh].forEach(e=>e.onchange=check);check();
   if(pre.serv&&[...ns.options].some(o=>o.value===pre.serv)){ns.value=pre.serv;check()}
-  document.getElementById('nnc').onclick=e=>{e.preventDefault();const est={pro:np.value,data:nd.value,hora:nh.value,serv:ns.value};novoCliente({voltar:id=>novoAg({...est,cli:id})})};
+  document.getElementById('nnc').onclick=e=>{e.preventDefault();const est={pro:np.value,data:nd.value,hora:nh.value,serv:ns.value,pedido:pre.pedido};novoCliente({voltar:id=>novoAg({...est,cli:id})})};
   nsave.onclick=async()=>{const u=check();if(nsave.disabled)return;nsave.disabled=true;
     const base=u==='flo'?'florenca':'maison',novo={date:nd.value,ts:tsDe(nd.value),hora:nh.value,cli:nc.value,serv:ns.value,pro:np.value,unit:u,st:'Agendado'};let nid;
     const ok=await grava(async()=>{nid=await DB.push(base+'/agenda',novo)},'Agendado');
     if(!ok){nsave.disabled=false;return}
+    if(pre.pedido)DB.upd(pre.pedido.p+'/pedidos/'+pre.pedido.id,{st:'resolvido',por:S.user.nome}).catch(e=>guardaErro(e.message));
     closeDlg();
     const em=cli(novo.cli).email;
     if(AGENDA_URL&&emailOk(em)){toast('Enviando o convite…');
@@ -1556,6 +1582,9 @@ function render(){
     else{const [y,m]=(S.agMes||(S.agData||iso(TODAY)).slice(0,7)).split('-').map(Number),x=new Date(y,m-1+n,1,12);S.agMes=iso(x).slice(0,7)}
     render()});
   main.querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>concluir(b.dataset.done,b.dataset.p));
+  main.querySelectorAll('[data-pag]').forEach(b=>b.onclick=()=>pedidoAgendar(b.dataset.pag,b.dataset.pp));
+  main.querySelectorAll('[data-prz]').forEach(b=>b.onclick=()=>pedidoResponder(b.dataset.prz,b.dataset.pp));
+  main.querySelectorAll('[data-pok]').forEach(b=>b.onclick=()=>pedidoResolver(b.dataset.pok,b.dataset.pp));
   main.querySelectorAll('[data-lib]').forEach(b=>b.onclick=async()=>{b.disabled=true;await liberarBrinde(b.dataset.lib);b.disabled=false});
   main.querySelectorAll('[data-dper]').forEach(b=>b.onclick=()=>{S.descPer=b.dataset.dper;render()});
   main.querySelectorAll('[data-msg]').forEach(b=>b.onclick=()=>msgDlg(b.dataset.msg,b.dataset.c));

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Pedir um horário · Maison Beauty</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Maison Beauty">
+<meta property="og:title" content="Peça o seu horário · Maison Beauty">
+<meta property="og:description" content="Escolha o serviço e os melhores dias. Nossa equipe responde pelo WhatsApp.">
+<meta property="og:image" content="https://cartorio-api-maison.vercel.app/og-pedido.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF7F1;--panel:#fff;--ink:#262220;--muted:#8A7D6E;--line:#E9E1D2;--berry:#9C7A2E;--berry-soft:#F1E9D4;--warn:#A8551C;--warn-soft:#FBEBDD;--ok:#3F7A57;--ok-soft:#E2F1E7;
+ --serif:"Cormorant",Georgia,serif;--sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+.logo{display:block;margin:6px auto 4px;width:220px;max-width:70%;height:auto}
+h1{font-family:var(--serif);font-weight:600;font-size:30px;margin:10px 0 4px;text-align:center}
+.sub{color:var(--muted);text-align:center;font-size:14px;margin-bottom:18px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.sec{background:var(--berry-soft);padding:9px 12px;border-radius:8px;font-weight:600;margin:20px 0 12px}
+label.f{display:block;margin-bottom:12px;font-size:14px;color:var(--muted)}
+label.f input,label.f textarea,label.f select{display:block;width:100%;margin-top:4px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+.q{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:15px}
+.q .sn{display:flex;gap:18px;flex:none}
+.q label,.sv label,.fo label{display:inline-flex;gap:8px;align-items:center;cursor:pointer}
+input[type=radio],input[type=checkbox]{width:22px;height:22px;accent-color:var(--berry)}
+.sv{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}
+.fo{display:flex;gap:20px;flex-wrap:wrap;margin:6px 0}
+[hidden]{display:none!important}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.fgrid figure{margin:0;position:relative}
+.fgrid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block}
+.fgrid button{position:absolute;top:4px;right:4px;border:0;border-radius:999px;background:rgba(38,34,32,.78);color:#fff;width:28px;height:28px;font-size:16px;line-height:1;cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+canvas.sig{width:100%;height:150px;border:1px dashed var(--muted);border-radius:12px;background:#fff;touch-action:none}
+.btn{border:1px solid var(--line);background:var(--panel);padding:10px 18px;border-radius:999px;font:inherit;font-weight:500}
+.btn.p{background:var(--berry);border-color:var(--berry);color:#fff;width:100%;padding:14px;font-size:17px;margin-top:16px}
+.btn:disabled{opacity:.5}
+.msg{text-align:center;padding:30px 10px}
+.msg h2{font-family:var(--serif);font-size:28px;margin:0 0 8px}
+.alert{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px;margin:10px 0}
+.erro{color:var(--warn);font-size:14px;margin-top:8px;min-height:20px}
+</style>
+<style>
+.un{display:grid;gap:10px;margin-bottom:6px}
+.un label{position:relative;display:block;border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--panel);cursor:pointer}
+.un label.on{border-color:var(--berry);background:var(--berry-soft)}
+.un input{position:absolute;opacity:0;pointer-events:none}
+.un b{display:block;font-size:17px}
+.un span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chips label{position:relative;display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:999px;padding:9px 16px;background:var(--panel);cursor:pointer;font-size:15px;color:var(--ink)}
+.chips label.on{border-color:var(--berry);background:var(--berry-soft);font-weight:600}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="logo" src="/logo.png" alt="Maison Beauty">
+  <div id="tela"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
+import { getDatabase, ref, push } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
+
+// Mesmo projeto Firebase do painel. A cliente entra de forma anônima, só para mandar este pedido:
+// as regras do banco deixam ela CRIAR um pedido (nunca ler nem mudar o dos outros).
+const firebaseConfig = {
+  apiKey: "AIzaSyD0p5Y0HDL2rcDLE6qFNSb4nyPe3yFjXos",
+  authDomain: "maison-beauty-2e7da.firebaseapp.com",
+  databaseURL: "https://maison-beauty-2e7da-default-rtdb.firebaseio.com",
+  projectId: "maison-beauty-2e7da",
+  storageBucket: "maison-beauty-2e7da.firebasestorage.app",
+  messagingSenderId: "30042816821",
+  appId: "1:30042816821:web:e0e5cbcfe596d3a1a40c7c"
+};
+// Nomes dos serviços de cada unidade (os mesmos do painel). "Outro" cobre o que não estiver na lista.
+const UN={
+ mai:{n:'Maison Beauty',s:'Itaquera',dias:[[0,'Domingo'],[1,'Segunda'],[2,'Terça'],[3,'Quarta']],hora:'07:30 às 19:00',base:'maison',serv:["Design de sobrancelhas", "Design + henna", "Buço", "Depilação facial", "Micropigmentação", "Alongamento de cílios", "Manutenção de cílios", "Remoção de cílios", "Mão tradicional", "Pé tradicional", "Alongamento de unhas", "Manutenção de unhas", "Remoção de alongamento de unhas", "Remoção de pigmento a laser", "Laser para tratamento de fungos", "Depilação a laser", "Ozonioterapia", "Aplicação de piercing"]},
+ flo:{n:'Estúdio Florença',s:'Itaim Bibi',dias:[[4,'Quinta'],[5,'Sexta'],[6,'Sábado']],hora:'09:00 às 19:00',base:'florenca',serv:["Design de sobrancelhas", "Design + henna", "Buço", "Depilação facial", "Lash lifting", "Brow lamination", "Micropigmentação", "Alongamento de cílios", "Manutenção de cílios"]}};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const tela=document.getElementById('tela');
+let un='';
+function formulario(){
+  tela.innerHTML=`<h1>Peça o seu horário</h1><div class="sub">Responda em menos de 1 minuto. Nossa equipe confirma pelo WhatsApp.</div>
+  <div class="box">
+   <div class="sec" style="margin-top:0">Onde você quer ser atendida?</div>
+   <div class="un" id="uns">${Object.entries(UN).map(([k,u])=>`<label data-u="${k}"><input type="radio" name="un" value="${k}"><b>${u.n}</b><span>${u.s} · ${u.dias.map(d=>d[1]).join(', ')} · ${u.hora}</span></label>`).join('')}</div>
+   <div id="resto" hidden>
+    <div class="sec">Seus dados</div>
+    <label class="f">Nome<input id="n" autocomplete="name" maxlength="80"></label>
+    <label class="f">WhatsApp com DDD<input id="t" type="tel" autocomplete="tel" placeholder="(11) 9...." maxlength="30"></label>
+    <div class="fo"><span class="small" style="width:100%">Já foi atendida por nós?</span><label><input type="radio" name="nova" value="nao" checked>Sim, já sou cliente</label><label><input type="radio" name="nova" value="sim">Primeira vez</label></div>
+    <div class="sec">O que você quer fazer?</div>
+    <label class="f">Serviço<select id="s"></select></label>
+    <div class="sec">Quando fica bom para você?</div>
+    <div class="small" style="margin-bottom:8px">Marque um ou mais dias</div>
+    <div class="chips" id="dias"></div>
+    <div class="small" style="margin-bottom:8px">Período</div>
+    <div class="chips" id="per"><label class="on"><input type="radio" name="per" value="Qualquer" checked>Qualquer</label><label><input type="radio" name="per" value="Manhã">Manhã</label><label><input type="radio" name="per" value="Tarde">Tarde</label></div>
+    <label class="f">Quer nos contar mais alguma coisa? (opcional)<textarea id="o" rows="2" maxlength="300"></textarea></label>
+    <div class="hp" aria-hidden="true"><label>Site<input id="site" tabindex="-1" autocomplete="off"></label></div>
+    <div class="erro" id="erro"></div>
+    <button class="btn p" id="enviar">Enviar pedido</button>
+    <p class="small" style="text-align:center;margin-top:10px">Isso não é uma confirmação. A equipe responde com o horário disponível.</p>
+   </div>
+  </div>`;
+  const marca=(box,sel)=>box.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));
+  document.getElementById('uns').addEventListener('change',e=>{un=e.target.value;marca(document.getElementById('uns'));escolhe()});
+  document.getElementById('per').addEventListener('change',()=>marca(document.getElementById('per')));
+  document.getElementById('enviar').onclick=enviar;
+}
+function escolhe(){const u=UN[un];document.getElementById('resto').hidden=false;
+  document.getElementById('s').innerHTML=u.serv.map(x=>`<option>${esc(x)}</option>`).join('')+'<option>Outro / ainda não sei qual escolher</option>';
+  const d=document.getElementById('dias');d.innerHTML=u.dias.map(x=>`<label><input type="checkbox" value="${x[1]}">${x[1]}</label>`).join('');
+  d.onchange=()=>d.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));
+  document.getElementById('n').focus({preventScroll:true})}
+const erro=m=>{document.getElementById('erro').textContent=m};
+async function enviar(){
+  const v=id=>document.getElementById(id).value.trim();
+  if(!un)return erro('Escolha onde quer ser atendida.');
+  if(v('n').length<2)return erro('Falta o seu nome.');
+  const dig=v('t').replace(/\D/g,'');if(dig.length<10)return erro('Confira o WhatsApp: precisa do DDD.');
+  const dias=[...document.querySelectorAll('#dias input:checked')].map(i=>i.value);
+  if(!dias.length)return erro('Marque pelo menos um dia.');
+  const btn=document.getElementById('enviar');btn.disabled=true;btn.textContent='Enviando…';
+  // Campo escondido preenchido = robô: finge que deu certo e não grava nada.
+  if(v('site')){return pronto()}
+  const u=UN[un],reg={un,nome:v('n'),tel:v('t'),serv:v('s'),dias:dias.join(', '),per:document.querySelector('input[name=per]:checked').value,
+    nova:document.querySelector('input[name=nova]:checked').value==='sim',em:Date.now(),data:iso(new Date())};
+  if(v('o'))reg.obs=v('o');
+  try{const app=initializeApp(firebaseConfig);await signInAnonymously(getAuth(app));
+    await push(ref(getDatabase(app),u.base+'/pedidos'),reg);pronto()}
+  catch(e){btn.disabled=false;btn.textContent='Enviar pedido';erro('Não foi possível enviar. Confira a internet e toque de novo. Se continuar, nos chame pelo WhatsApp.')}
+}
+function pronto(){tela.innerHTML=`<div class="msg"><h2>Pedido enviado! ✓</h2><p>Obrigada! A equipe do ${UN[un].n} já recebeu e vai responder pelo WhatsApp com o horário disponível. Pode fechar esta página.</p></div>`}
+formulario();
+</script>
+</body>
+</html>

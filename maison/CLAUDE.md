@@ -74,3 +74,11 @@ Desconto só existe por **código liberado pela Tháriga**: `NIVER-XXXXXX`, um p
 - `financeiro/valores` guarda `tabela` e `desc`. Regras: só admin cria o código; a funcionária só marca "usado" uma vez; um valor com `desc.tipo = brinde` só é aceito se o código já está ligado àquele atendimento.
 - Relatório **Descontos dados** em Financeiro (só Tháriga): total, brinde, com motivo, sem motivo, e a lista de códigos.
 - Limite honesto: o painel controla o que é registrado; cobrar um valor e registrar outro ele não vê. Por isso desvios aparecem.
+
+## Pedido de horário pela página pública (rascunho, ainda não publicado)
+
+Um número de WhatsApp só para as duas unidades. A saudação do WhatsApp Business leva a cliente para `/p` (`pedido.html`): ela escolhe a unidade, o serviço, os dias (só os da unidade) e o período, e o pedido vai para `/maison/pedidos` ou `/florenca/pedidos`. Aparece em **Pedidos de horário**, na aba Hoje, só para a equipe da unidade (Florença: só a Tháriga). Botões: *Agendar* (reconhece a cliente pelo telefone ou cadastra, abre o agendamento preenchido e resolve o pedido ao salvar), *Responder* (WhatsApp com o horário a preencher) e *Já resolvi*.
+
+- O painel **não lê** conversas do WhatsApp; só recebe o que a cliente preenche. Passo a passo do app em `maison/WHATSAPP.md`.
+- Regras do banco: a cliente (anônima) só CRIA o pedido, com campos limitados; ler, resolver e apagar é da equipe. Campo escondido (`site`) barra robô. Spam se apaga na mão.
+- A lista de serviços da página é copiada do painel; serviço novo criado em *Serviços e preços* só aparece no campo "Outro".

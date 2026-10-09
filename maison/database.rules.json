@@ -94,6 +94,26 @@
           ".validate": "!newData.exists() || (newData.hasChildren(['cli','valeAte','limite','pctAte','pctAcima','usado']) && newData.child('pctAte').val() <= 10 && newData.child('pctAcima').val() <= 10)"
         }
       },
+      // Pedido de horário (página pública /p): a cliente só CRIA o pedido; a equipe lê, resolve e apaga.
+      "pedidos": {
+        "$id": {
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).exists() || (!data.exists() && newData.exists()))",
+          ".validate": "!newData.exists() || newData.hasChildren(['nome','tel','serv','un','em'])",
+            "un": { ".validate": "newData.val() === 'mai'" },
+            "nome": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 80" },
+            "tel": { ".validate": "newData.isString() && newData.val().length >= 8 && newData.val().length <= 30" },
+            "serv": { ".validate": "newData.isString() && newData.val().length <= 120" },
+            "dias": { ".validate": "newData.isString() && newData.val().length <= 80" },
+            "per": { ".validate": "newData.isString() && newData.val().length <= 12" },
+            "nova": { ".validate": "newData.isBoolean()" },
+            "obs": { ".validate": "newData.isString() && newData.val().length <= 300" },
+            "em": { ".validate": "newData.isNumber()" },
+            "data": { ".validate": "newData.isString() && newData.val().length <= 10" },
+            "st": { ".validate": "newData.isString() && newData.val().length <= 20" },
+            "por": { ".validate": "newData.isString() && newData.val().length <= 40" },
+            "$outra": { ".validate": false }
+        }
+      },
       // Pedidos de ajuda: todas enviam, só a administradora lê (o suporte também recebe por e-mail).
       "suporte": {
         ".read": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
@@ -109,6 +129,26 @@
       ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
       "convites": {
         "$t": { ".read": "auth != null" }
+      },
+      // Pedido de horário do Florença: a cliente só CRIA; quem lê, resolve e apaga é a Tháriga (regra do /florenca).
+      "pedidos": {
+        "$id": {
+          ".write": "auth != null && !data.exists() && newData.exists()",
+          ".validate": "!newData.exists() || newData.hasChildren(['nome','tel','serv','un','em'])",
+            "un": { ".validate": "newData.val() === 'flo'" },
+            "nome": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 80" },
+            "tel": { ".validate": "newData.isString() && newData.val().length >= 8 && newData.val().length <= 30" },
+            "serv": { ".validate": "newData.isString() && newData.val().length <= 120" },
+            "dias": { ".validate": "newData.isString() && newData.val().length <= 80" },
+            "per": { ".validate": "newData.isString() && newData.val().length <= 12" },
+            "nova": { ".validate": "newData.isBoolean()" },
+            "obs": { ".validate": "newData.isString() && newData.val().length <= 300" },
+            "em": { ".validate": "newData.isNumber()" },
+            "data": { ".validate": "newData.isString() && newData.val().length <= 10" },
+            "st": { ".validate": "newData.isString() && newData.val().length <= 20" },
+            "por": { ".validate": "newData.isString() && newData.val().length <= 40" },
+            "$outra": { ".validate": false }
+        }
       },
       "pendentes": {
         "$t": {
