@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/f/:codigo", "destination": "/anamnese.html" }
+  ]
+}

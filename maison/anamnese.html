@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Ficha de anamnese · Maison Beauty</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Maison Beauty">
+<meta property="og:title" content="Sua ficha de anamnese · Maison Beauty">
+<meta property="og:description" content="Preencha em poucos minutos, direto do celular. Ficha individual e confidencial.">
+<meta property="og:image" content="https://cartorio-api-maison.vercel.app/og-ficha.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#FAF7F1;--panel:#fff;--ink:#262220;--muted:#8A7D6E;--line:#E9E1D2;--berry:#9C7A2E;--berry-soft:#F1E9D4;--warn:#A8551C;--warn-soft:#FBEBDD;--ok:#3F7A57;--ok-soft:#E2F1E7;
@@ -43,7 +52,7 @@ canvas.sig{width:100%;height:150px;border:1px dashed var(--muted);border-radius:
 </head>
 <body>
 <div class="wrap">
-  <img class="logo" src="logo.png" alt="Maison Beauty">
+  <img class="logo" src="/logo.png" alt="Maison Beauty">
   <div id="tela"><div class="msg"><p class="small">Abrindo a sua ficha…</p></div></div>
 </div>
 
@@ -75,13 +84,15 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
  ['Tem anemia, deficiência de G6PD ou diagnóstico de favismo?','Anemia, G6PD ou favismo'],
  ['Teve exposição solar intensa ou bronzeamento recente?','Exposição solar intensa recente'],
  ['Fez procedimento recente na área ou teve reação anterior?','Procedimento recente na área ou reação anterior']];
-const SERVICOS=['Unhas','Laser remoção','Micropigmentação','Ozonioterapia','Piercing','Depilação a laser','Extensão de cílios','Brow lamination','Lash lifting','Avaliação de unhas com suspeita de fungos'];
+// Lista de reserva; o convite traz a lista completa dos serviços das duas unidades (campo servs).
+const SERVICOS_BASE=['Unhas','Laser remoção','Micropigmentação','Ozonioterapia','Piercing','Depilação a laser','Extensão de cílios','Brow lamination','Lash lifting','Avaliação de unhas com suspeita de fungos'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const tela=document.getElementById('tela');
 const aviso=(t,m)=>{tela.innerHTML=`<div class="msg"><h2>${t}</h2><p>${m}</p></div>`};
 
-const token=new URLSearchParams(location.search).get('t')||'';
+// O link curto é /f/CÓDIGO (a Vercel serve esta mesma página); o endereço antigo ?t=CÓDIGO continua valendo.
+const token=new URLSearchParams(location.search).get('t')||(location.pathname.startsWith('/f/')?location.pathname.slice(3).replace(/[^A-Za-z0-9_-]/g,''):'');
 async function iniciar(){
   if(!/^[A-Za-z0-9_-]{20,64}$/.test(token))return aviso('Link inválido','Peça um novo link à Maison Beauty.');
   let db;
@@ -97,13 +108,14 @@ async function iniciar(){
   formulario(db,conv);
 }
 function formulario(db,conv){
+  const SERVICOS=Array.isArray(conv.servs)&&conv.servs.length?conv.servs.filter(x=>typeof x==='string').slice(0,60):SERVICOS_BASE;
   tela.innerHTML=`<h1>Olá, ${esc(conv.nome||'')}!</h1><div class="sub">Ficha de anamnese · preencha com calma, leva uns 3 minutos.<br>Ficha individual e confidencial.</div>
   <div class="box">
   <div class="sec" style="margin-top:0">Identificação</div>
   <label class="f">Nome completo<input id="n" autocomplete="name"></label>
-  <label class="f">Nascimento<input id="nasc" type="date"></label>
-  <label class="f">Telefone<input id="tel" type="tel" autocomplete="tel"></label>
-  <label class="f">E-mail (opcional, para receber o convite do horário)<input id="mail" type="email" autocomplete="email"></label>
+  <label class="f">Nascimento<input id="nasc" type="date" value="${esc(/^\d{4}-\d{2}-\d{2}$/.test(conv.nasc||'')?conv.nasc:'')}"></label>${!/^\d{4}-\d{2}-\d{2}$/.test(conv.nasc||'')&&/^\d{2}-\d{2}$/.test(conv.niver||'')?`<p class="small" style="margin:-6px 0 12px">O seu aniversário (${esc(conv.niver.split('-').reverse().join('/'))}) já está no cadastro. Falta só o ano.</p>`:''}
+  <label class="f">Telefone<input id="tel" type="tel" autocomplete="tel" value="${esc(conv.tel||'')}"></label>
+  <label class="f">E-mail (opcional, para receber o convite do horário)<input id="mail" type="email" autocomplete="email" value="${esc(conv.email||'')}"></label>
   <label class="f">Contato de emergência e telefone<input id="em"></label>
   <label class="f">Responsável legal, se aplicável, e telefone<input id="resp"></label>
   <div class="sec">Serviço solicitado</div>

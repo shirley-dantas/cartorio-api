@@ -61,6 +61,9 @@
       "servicos": {
         ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
       },
+      "config": {
+        ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
+      },
       // Anamnese por link. A cliente entra sem conta (login anônimo): lê só o convite dela
       // e grava UMA vez em /pendentes, enquanto o convite estiver aberto e dentro da validade.
       "convites": {
@@ -74,9 +77,12 @@
         ".read": "auth != null && root.child('acesso').child(auth.uid).exists()",
         "$t": {
           ".write": "auth != null && (root.child('acesso').child(auth.uid).exists() || (!data.exists() && root.child('maison').child('convites').child($t).child('usado').val() === false && root.child('maison').child('convites').child($t).child('exp').val() > now))",
-          ".validate": "newData.hasChildren(['nome','respostas','assinatura']) && newData.child('assinatura').isString() && newData.child('assinatura').val().length < 300000 && (newData.child('fotoOk').val() === true ? (newData.child('fotos').exists() && newData.child('fotos').numChildren() <= 3) : !newData.child('fotos').exists())",
+          ".validate": "newData.hasChildren(['nome','respostas','assinatura']) && newData.child('assinatura').isString() && newData.child('assinatura').val().length < 300000 && ((newData.child('fotoOk').val() === true && newData.child('fotos').hasChild('f0')) || (newData.child('fotoOk').val() !== true && !newData.child('fotos').exists()))",
           "fotos": {
-            "$i": { ".validate": "newData.isString() && newData.val().length < 700000" }
+            "f0": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "f1": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "f2": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "$outra": { ".validate": false }
           }
         }
       },

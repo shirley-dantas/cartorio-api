@@ -101,7 +101,8 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .appt{border-left:3px solid var(--berry);padding:8px 10px;margin-top:8px;background:var(--bg);border-radius:0 8px 8px 0}
 .appt.done{opacity:.55}
 .search{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:14px}
-.avatar{width:38px;height:38px;border-radius:50%;background:var(--berry-soft);color:var(--berry);display:grid;place-items:center;font-family:var(--serif);font-weight:600;font-size:17px;flex:none}
+.avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+.avatar{overflow:hidden;width:38px;height:38px;border-radius:50%;background:var(--berry-soft);color:var(--berry);display:grid;place-items:center;font-family:var(--serif);font-weight:600;font-size:17px;flex:none}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{text-align:left;padding:9px 8px;border-top:1px solid var(--line);white-space:nowrap}
 th{color:var(--muted);font-weight:500;border-top:0}
@@ -221,6 +222,18 @@ const DB={
   async del(p){if(DEMO)return memSet(p,null);await remove(ref(fb,p))},
   async get(p){if(DEMO)return memGet(p);return (await get(ref(fb,p))).val()}
 };
+// ── Cadastros repetidos: o painel pergunta antes de duplicar ──
+const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+const soDigitos=t=>String(t||'').replace(/\D/g,'');
+// Devolve true se pode seguir: nada parecido, ou ela confirmou que quer duplicar.
+const podeDuplicar=(existente,oque)=>!existente||confirm(`Já existe ${oque}: ${existente}.\n\nQuer cadastrar mesmo assim, duplicando?`);
+function clienteParecida(n,tel,ignorarId){const nn=norm(n),td=soDigitos(tel).slice(-9);
+  return cliVisiveis().find(c=>c.id!==ignorarId&&(norm(c.n)===nn||(td.length>=8&&soDigitos(c.tel).slice(-9)===td)))}
+const descCli=c=>`"${c.n}"${isAdmin()?' ('+(c.unit==='ambas'?'nas duas unidades':U[c.unit]?.n||'')+')':''}${c.tel?' · '+c.tel:''}`;
+// Foto pequena do cadastro (miniatura de 96 px guardada no próprio cliente); sem foto, a inicial do nome.
+const avatarHtml=c=>c&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(c.avatar||'')?`<div class="avatar"><img src="${c.avatar}" alt=""></div>`:`<div class="avatar">${esc(((c&&c.n)||'?')[0])}</div>`;
+function miniatura(dataUrl){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const t=Math.min(im.width,im.height),cv=document.createElement('canvas');cv.width=cv.height=96;
+  cv.getContext('2d').drawImage(im,(im.width-t)/2,(im.height-t)/2,t,t,0,0,96,96);res(cv.toDataURL('image/jpeg',.72))};im.onerror=()=>rej(new Error('Não consegui ler a foto.'));im.src=dataUrl})}
 // Data em milissegundos (meia-noite UTC): as regras do banco usam para conferir o dia da semana da Laís.
 const tsDe=d=>{const [y,m,x]=d.split('-').map(Number);return Date.UTC(y,m-1,x)};
 // ── Confirmação do horário para a cliente (WhatsApp ou e-mail, sem precisar de script) ──
@@ -231,18 +244,21 @@ function msgConfirmacao(a,remarcado){
   const f=new Date(Date.UTC(y,m-1,d,h,mi)+(s.d||60)*60000);
   const ini=a.date.replace(/-/g,'')+'T'+a.hora.replace(':','')+'00';
   const fim=f.getUTCFullYear()+pad(f.getUTCMonth()+1)+pad(f.getUTCDate())+'T'+pad(f.getUTCHours())+pad(f.getUTCMinutes())+'00';
-  const link='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(s.n+' · '+u.n)+'&dates='+ini+'/'+fim+'&ctz=America%2FSao_Paulo&location='+encodeURIComponent(u.n+' · '+u.s);
+  const link='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(s.n)+'&dates='+ini+'/'+fim;
   const nome=(c.n||'').split(' ')[0];
   const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, no ${u.n} (${u.s}).\n\nPara salvar na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
   return {texto,assunto:(remarcado?'Horário remarcado: ':'Horário confirmado: ')+s.n+' · '+dia+' às '+a.hora}}
 function confirmarAg(a,remarcado){const c=cli(a.cli),m=msgConfirmacao(a,remarcado);
   openDlg(remarcado?'Avisar a cliente do novo horário':'Avisar a cliente do horário',`<p class="small muted"><b>${esc(c.n)}</b> · ${esc(fd(a.date,{weekday:'short',day:'2-digit',month:'2-digit'}))} às ${esc(a.hora)}. O horário já está salvo; aqui você só avisa a cliente.</p>
   <label class="f">Mensagem pronta (edite à vontade)<textarea rows="7" id="cf-m">${esc(m.texto)}</textarea></label>
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="cf-w" ${c.tel?'':'disabled'}>Enviar pelo WhatsApp</button><button class="btn" id="cf-e" ${emailOk(c.email)?'':'disabled'}>Enviar por e-mail</button><button class="btn" id="cf-c">Copiar mensagem</button><button class="btn" id="cf-f">Agora não</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="cf-w" ${c.tel?'':'disabled'}>Enviar pelo WhatsApp</button><button class="btn" id="cf-e" ${emailOk(c.email)?'':'disabled'}>Enviar por e-mail (Gmail)</button><button class="btn" id="cf-c">Copiar mensagem</button><button class="btn" id="cf-f">Agora não</button></div>
+  ${emailOk(c.email)?'<p class="small" style="margin:8px 0 0"><a href="#" id="cf-mt">Usar o aplicativo de e-mail do aparelho</a></p>':''}
   <p class="small muted" style="margin-top:10px">${c.tel?'':'Sem telefone cadastrado: cadastre em "Editar dados" da cliente para enviar pelo WhatsApp. '}${emailOk(c.email)?'':'Sem e-mail cadastrado para enviar por e-mail. '}O link no fim da mensagem salva o horário na agenda da própria cliente.</p>`);
   const txt=()=>document.getElementById('cf-m').value;
   document.getElementById('cf-w').onclick=()=>{window.open(zapLink(c.tel,txt()),'_blank','noopener')};
-  document.getElementById('cf-e').onclick=()=>{window.location.href='mailto:'+encodeURIComponent(c.email)+'?subject='+encodeURIComponent(m.assunto)+'&body='+encodeURIComponent(txt())};
+  // Abre o Gmail já com a mensagem pronta (funciona no computador e no celular, sem depender de app de e-mail configurado).
+  document.getElementById('cf-e').onclick=()=>{window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(c.email)+'&su='+encodeURIComponent(m.assunto)+'&body='+encodeURIComponent(txt()),'_blank','noopener')};
+  const mt=document.getElementById('cf-mt');if(mt)mt.onclick=e=>{e.preventDefault();window.location.href='mailto:'+c.email+'?subject='+encodeURIComponent(m.assunto)+'&body='+encodeURIComponent(txt())};
   document.getElementById('cf-c').onclick=async()=>{try{await navigator.clipboard.writeText(txt());toast('Mensagem copiada')}catch(e){toast('Não foi possível copiar')}};
   document.getElementById('cf-f').onclick=()=>closeDlg()}
 // ── Convites pela Google Agenda (Apps Script rodando na conta da Tháriga) ──
@@ -426,7 +442,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -458,7 +474,7 @@ function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];
 let rq=0;function agendarRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;if(S.user)render()})}
 function comecarLeituras(){
   pararLeituras();
-  ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
+  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
   if(isAdmin()){
     ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');
     ouvir('financeiro/valores','valores');
@@ -539,7 +555,8 @@ function vHoje(){
   const semana=[...Array(7)].map((_,i)=>iso(addD(TODAY,i)).slice(5,10));
   const niver=cliVisiveis().filter(c=>semana.includes(c.niver)).sort((a,b)=>semana.indexOf(a.niver)-semana.indexOf(b.niver));
   const ult={};histAll().forEach(h=>{if(isAdmin()||h.unit==='mai')ult[h.cli]=h});
-  const retornos=Object.values(ult).map(h=>({h,dias:Math.round((TODAY-new Date(h.date+'T00:00'))/864e5),s:sv(h.serv,h.unit)})).filter(x=>x.s.ret&&x.dias>=x.s.ret).sort((a,b)=>b.dias-a.dias).slice(0,5);
+  const comFuturo=new Set(agendaAtiva().filter(a=>a.date>=t&&a.st!=='Atendido').map(a=>a.cli));
+  const retornos=Object.values(ult).filter(h=>!comFuturo.has(h.cli)).map(h=>({h,dias:Math.round((TODAY-new Date(h.date+'T00:00'))/864e5),s:sv(h.serv,h.unit)})).filter(x=>x.s.ret&&x.dias>=x.s.ret).sort((a,b)=>b.dias-a.dias).slice(0,5);
   const onde=isAdmin()?`<div class="hero-unit"><i style="background:var(--${u})"></i>Hoje você atende no ${U[u].n}, ${U[u].s} (${U[u].hora})</div>`:`<div class="hero-unit"><i style="background:var(--mai)"></i>Maison Beauty, Itaquera (${U.mai.hora})</div>`;
   return `<div class="top"><div><h1>${saud}, ${esc(S.user.nome)}</h1>${onde}</div></div>
   <div class="grid g2">
@@ -548,22 +565,41 @@ function vHoje(){
    </div>
    <div class="grid">
     <div class="box"><h2>Aniversários da semana</h2>
-     ${niver.length?niver.map(c=>`<div class="row"><div class="avatar">${esc(c.n[0])}</div><div class="grow"><b>${esc(c.n)}</b><div class="small muted">${c.niver.split('-').reverse().join('/')}${c.niver===iso(TODAY).slice(5)?' · hoje':''}</div></div><button class="btn sm" data-msg="niver" data-c="${c.id}">Mensagem</button></div>`).join(''):'<p class="muted">Ninguém faz aniversário nesta semana.</p>'}
+     ${niver.length?niver.map(c=>`<div class="row">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b><div class="small muted">${c.niver.split('-').reverse().join('/')}${c.niver===iso(TODAY).slice(5)?' · hoje':''}</div></div><button class="btn sm" data-msg="niver" data-c="${c.id}">Mensagem</button></div>`).join(''):'<p class="muted">Ninguém faz aniversário nesta semana.</p>'}
     </div>
     <div class="box"><h2>Hora de voltar</h2>
-     ${retornos.map(r=>`<div class="row"><div class="avatar">${esc(cli(r.h.cli).n[0])}</div><div class="grow"><b>${esc(cli(r.h.cli).n)}</b><div class="small muted">${esc(r.s.n)} há ${r.dias} dias</div></div><button class="btn sm" data-msg="ret" data-c="${r.h.cli}">Mensagem</button></div>`).join('')||'<p class="muted">Nenhuma cliente com retorno pendente.</p>'}
+     ${retornos.map(r=>`<div class="row">${avatarHtml(cli(r.h.cli))}<div class="grow"><b>${esc(cli(r.h.cli).n)}</b><div class="small muted">${esc(r.s.n)} há ${r.dias} dias</div></div><button class="btn sm" data-msg="ret" data-c="${r.h.cli}">Mensagem</button></div>`).join('')||'<p class="muted">Nenhuma cliente com retorno pendente.</p>'}
     </div>
    </div>
   </div>`;
 }
 function zapLink(tel,txt){let d=String(tel||'').replace(/\D/g,'');if(d&&!d.startsWith('55'))d='55'+d;return `https://wa.me/${d}?text=${encodeURIComponent(txt)}`}
+// Mensagens de aniversário: várias, para a cliente não perceber sempre o mesmo texto. Cada uma termina com o brinde,
+// que a Tháriga define em "Serviços e preços" (o painel não inventa desconto).
+const BRINDE_PADRAO='um mimo especial no seu próximo atendimento';
+const brindeAtual=()=>((C.mCfg&&C.mCfg.brinde)||BRINDE_PADRAO).trim().replace(/[.!\s]+$/,'');
+const NIVER_MSGS=[
+ n=>`Parabéns, ${n}! 🎂 Que o seu novo ano seja leve, lindo e cheio de realizações. Foi um prazer cuidar de você!`,
+ n=>`${n}, hoje o dia é seu! 🥳 Desejo um ano de muita saúde, alegria e autoestima lá em cima. Obrigada por confiar no nosso trabalho.`,
+ n=>`Feliz aniversário, ${n}! 🌷 Que a vida te traga só motivos para sorrir. Um abraço de toda a equipe da Maison Beauty.`,
+ n=>`Oi, ${n}! Passando para te desejar um aniversário cheio de carinho e coisas boas. ✨ Você merece tudo de melhor!`,
+ n=>`Parabéns pelo seu dia, ${n}! 🎉 Que este novo ciclo venha com muita paz, beleza e momentos para cuidar de você.`,
+ n=>`${n}, feliz vida nova! 💛 Obrigada por fazer parte da nossa história. Que seu ano seja do tamanho dos seus sonhos.`,
+ n=>`Hoje é dia de comemorar você, ${n}! 🍰 Muitas felicidades, saúde e um ano lindo pela frente.`,
+ n=>`Um brinde a você, ${n}! 🥂 Feliz aniversário, com todo o nosso carinho.`];
+const hashTxt=t=>[...String(t)].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);
+function textoNiver(c,i){const nome=c.n.split(' ')[0],k=((i%NIVER_MSGS.length)+NIVER_MSGS.length)%NIVER_MSGS.length;
+  return `${NIVER_MSGS[k](nome)}\n\n🎁 Para comemorar, preparamos um presente para você: ${brindeAtual()}.\n\nCom carinho, Maison Beauty 🤍`}
 function msgDlg(tipo,cid){const c=cli(cid),nome=c.n.split(' ')[0];
-  // Sem promessa de desconto: o texto de exemplo do protótipo oferecia 15%, que ninguém confirmou.
-  const txt=tipo==='niver'?`Oi, ${nome}! Feliz aniversário! Que seu novo ano seja lindo. Com carinho, Tháriga`:
+  // O ponto de partida muda de cliente para cliente e de ano para ano; o botão "Outra mensagem" passa para a próxima.
+  let ni=hashTxt(c.id)+new Date().getFullYear();
+  const txt=()=>tipo==='niver'?textoNiver(c,ni):
    `Oi, ${nome}! Tudo bem? Já está na hora da manutenção da sua sobrancelha. Quer que eu reserve um horário para você esta semana? Beijo, Tháriga`;
-  openDlg('Mensagem para '+esc(c.n),`<p class="small muted">Enviar para ${esc(c.tel)||'(sem telefone cadastrado)'}</p><label class="f">Texto (edite à vontade)<textarea rows="5" id="mt">${esc(txt)}</textarea></label>
-  <button class="btn p" id="wa" ${c.tel?'':'disabled'}>Abrir no WhatsApp</button>`);
-  document.getElementById('wa').onclick=()=>{window.open(zapLink(c.tel,document.getElementById('mt').value),'_blank','noopener');closeDlg()}}
+  openDlg('Mensagem para '+esc(c.n),`<p class="small muted">Enviar para ${esc(c.tel)||'(sem telefone cadastrado)'}</p><label class="f">Texto (edite à vontade)<textarea rows="${tipo==='niver'?8:5}" id="mt">${esc(txt())}</textarea></label>
+  ${tipo==='niver'?`<p class="small muted" style="margin:-4px 0 10px">${!(C.mCfg&&C.mCfg.brinde)&&isAdmin()?'O brinde ainda é o texto padrão. Defina o seu em <b>Serviços e preços</b>.':'O brinde vem de <b>Serviços e preços</b>.'}</p>`:''}
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="wa" ${c.tel?'':'disabled'}>Abrir no WhatsApp</button>${tipo==='niver'?'<button class="btn" id="outra">Outra mensagem</button>':''}</div>`);
+  document.getElementById('wa').onclick=()=>{window.open(zapLink(c.tel,document.getElementById('mt').value),'_blank','noopener');closeDlg()};
+  const ou=document.getElementById('outra');if(ou)ou.onclick=()=>{ni++;document.getElementById('mt').value=txt()}}
 
 // Calendário do mês: bolinha nos dias com horário marcado (só da unidade que a pessoa pode ver).
 const prim1=t=>t.charAt(0).toUpperCase()+t.slice(1);
@@ -636,16 +672,18 @@ async function cancelarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if
   const ok=await grava(()=>DB.upd(p+'/agenda/'+id,{st:'Cancelado',canceladoPor:S.user.nome,canceladoEm:iso(TODAY)}),'Agendamento cancelado');
   if(ok&&a.evento&&AGENDA_URL){const r=await agendaChama({acao:'cancelar',id:a.evento});
     toast(r.ok?'A cliente recebeu o aviso de cancelamento':'Cancelado aqui, mas o convite continua na Google Agenda: apague o evento por lá.')}}
-function novoAg(){
+function novoAg(pre){
+  pre=pre&&typeof pre==='object'&&!(pre instanceof Event)?pre:{};
   const visiveis=cliVisiveis();
   if(!visiveis.length){
-    openDlg('Novo agendamento','<p class="muted">Ainda não há nenhuma cliente cadastrada. Cadastre a primeira cliente antes de criar um agendamento.</p><button class="btn p" id="irnc">Cadastrar cliente</button>');
-    document.getElementById('irnc').onclick=()=>{closeDlg();novoCliente()};return;
+    // Sem nenhuma cliente ainda: já abre o cadastro e, ao salvar, volta para o agendamento.
+    novoCliente({voltar:id=>novoAg({...pre,cli:id})});return;
   }
   const pros=isAdmin()?['tha',...STAFF]:STAFF;
-  openDlg('Novo agendamento',`<label class="f">Cliente<select id="nc">${visiveis.map(c=>`<option value="${c.id}">${esc(c.n)}</option>`).join('')}</select></label>
-  <label class="f">Profissional<select id="np">${pros.map(p=>`<option value="${p}" ${p===meuPro()?'selected':''}>${PEOPLE[p].n}</option>`).join('')}</select></label>
-  <div style="display:flex;gap:10px"><label class="f" style="flex:1">Data<input type="date" id="nd" value="${S.agData||iso(TODAY)}"></label><label class="f" style="flex:1">Hora<input type="time" id="nh" value="10:00"></label></div>
+  openDlg('Novo agendamento',`<label class="f">Cliente<select id="nc">${visiveis.map(c=>`<option value="${c.id}" ${c.id===pre.cli?'selected':''}>${esc(c.n)}</option>`).join('')}</select></label>
+  <p style="margin:-6px 0 12px"><a href="#" id="nnc">+ Cadastrar uma cliente nova agora</a></p>
+  <label class="f">Profissional<select id="np">${pros.map(p=>`<option value="${p}" ${p===(pre.pro||meuPro())?'selected':''}>${PEOPLE[p].n}</option>`).join('')}</select></label>
+  <div style="display:flex;gap:10px"><label class="f" style="flex:1">Data<input type="date" id="nd" value="${pre.data||S.agData||iso(TODAY)}"></label><label class="f" style="flex:1">Hora<input type="time" id="nh" value="${pre.hora||'10:00'}"></label></div>
   <label class="f">Serviço<select id="ns"></select></label>
   <div id="navisos"></div><button class="btn p" id="nsave">Agendar</button>`);
   const nc=document.getElementById('nc'),ns=document.getElementById('ns'),np=document.getElementById('np'),nd=document.getElementById('nd'),nh=document.getElementById('nh'),navisos=document.getElementById('navisos'),nsave=document.getElementById('nsave');
@@ -665,6 +703,8 @@ function novoAg(){
     navisos.innerHTML=msgs.map((m,i)=>i===0&&p==='tha'?`<div class="small muted" style="margin-bottom:8px">${esc(m)}</div>`:`<div class="alert">${esc(m)}</div>`).join('');
     nsave.disabled=!ok;return u};
   [nc,np,nd,nh].forEach(e=>e.onchange=check);check();
+  if(pre.serv&&[...ns.options].some(o=>o.value===pre.serv)){ns.value=pre.serv;check()}
+  document.getElementById('nnc').onclick=e=>{e.preventDefault();const est={pro:np.value,data:nd.value,hora:nh.value,serv:ns.value};novoCliente({voltar:id=>novoAg({...est,cli:id})})};
   nsave.onclick=async()=>{const u=check();if(nsave.disabled)return;nsave.disabled=true;
     const base=u==='flo'?'florenca':'maison',novo={date:nd.value,ts:tsDe(nd.value),hora:nh.value,cli:nc.value,serv:ns.value,pro:np.value,unit:u,st:'Agendado'};let nid;
     const ok=await grava(async()=>{nid=await DB.push(base+'/agenda',novo)},'Agendado');
@@ -682,27 +722,30 @@ function vClientes(){
   return `<div class="top"><div><h1>Clientes</h1><div class="sub">Ficha, anamnese e histórico de cada cliente.</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}<button class="btn p" id="novacli">Nova cliente</button></div></div>
   <input class="search" id="q" placeholder="Buscar cliente pelo nome" value="${esc(S.q)}">
-  <div class="box">${list.map(c=>{const an=anamDe(c.id);return `<div class="row" style="cursor:pointer" data-cli="${c.id}"><div class="avatar">${esc(c.n[0])}</div><div class="grow"><b>${esc(c.n)}</b><div class="small muted">${esc(c.tel)||'sem telefone'}</div></div>
+  <div class="box">${list.map(c=>{const an=anamDe(c.id);return `<div class="row" style="cursor:pointer" data-cli="${c.id}">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b><div class="small muted">${esc(c.tel)||'sem telefone'}</div></div>
    ${an&&an.flags&&an.flags.length?'<span class="tag warn">Alerta</span>':''}${anamVencida(c)?'<span class="tag warn">Anamnese pendente</span>':'<span class="tag ok">Anamnese em dia</span>'}
    ${isAdmin()?(c.unit==='ambas'?'<span class="tag">Os dois</span>':uTag(c.unit)):''}</div>`}).join('')||'<p class="muted">Nenhuma cliente cadastrada ainda. Toque em "Nova cliente" para começar.</p>'}</div>`;
 }
-function novoCliente(){
+function novoCliente(opts={}){
   const uPadrao=S.unit==='flo'||S.unit==='mai'?S.unit:unitFor(iso(TODAY));
   openDlg('Nova cliente',`<label class="f">Nome completo<input id="vn" placeholder="Nome da cliente"></label>
   <label class="f">Telefone<input id="vt" placeholder="(11) 9...." inputmode="tel"></label>
   <label class="f">E-mail (para enviar o convite da agenda)<input id="vm" type="email" placeholder="opcional" autocomplete="off"></label>
-  <label class="f">Aniversário (dia e mês)<input id="vb" type="date"></label>
+  <label class="f">Data de nascimento (com o ano)<input id="vb" type="date"></label>
   ${isAdmin()?`<label class="f">Unidade onde atende<select id="vu"><option value="flo" ${uPadrao==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${uPadrao==='mai'?'selected':''}>Maison Beauty</option><option value="ambas">As duas</option></select></label>
   <p class="small muted" style="margin:-6px 0 12px">${S.unit==='flo'||S.unit==='mai'?'Escolhida pelo filtro de unidade da tela.':`Escolhida pelo dia de hoje (${esc(U[uPadrao].n)}).`} Cada cliente fica só na unidade em que foi cadastrada.</p>`:''}
   <button class="btn p" id="vsave">Cadastrar cliente</button>`);
   document.getElementById('vsave').onclick=async()=>{const n=document.getElementById('vn').value.trim();if(!n){toast('Digite o nome da cliente');return}
+   {const par=clienteParecida(n,document.getElementById('vt').value);if(!podeDuplicar(par&&descCli(par),'uma cliente parecida'))return}
    {const m=(document.getElementById('vm')||document.getElementById('em')).value.trim();if(m&&!emailOk(m)){toast('Esse e-mail não parece válido');return}}
    const b=document.getElementById('vb').value;
    const unit=isAdmin()?document.getElementById('vu').value:'mai';
    const btn=document.getElementById('vsave');btn.disabled=true;
    // Cliente "flo" mora no caminho que só a Tháriga lê; "mai" e "ambas" moram na Maison.
-   const ok=await grava(()=>DB.push((unit==='flo'?'florenca':'maison')+'/clientes',{n,tel:document.getElementById('vt').value.trim(),email:document.getElementById('vm').value.trim(),niver:b?b.slice(5,10):'',unit}),'Cliente cadastrada');
-   if(ok)closeDlg();else btn.disabled=false}}
+   let nid;
+   const ok=await grava(async()=>{nid=await DB.push((unit==='flo'?'florenca':'maison')+'/clientes',{n,tel:document.getElementById('vt').value.trim(),email:document.getElementById('vm').value.trim(),niver:b?b.slice(5,10):'',nasc:b||'',unit})},'Cliente cadastrada');
+   if(!ok){btn.disabled=false;return}
+   if(opts.voltar){await new Promise(r=>setTimeout(r,80));opts.voltar(nid)}else closeDlg()}}
 function ficha(id){const c=cli(id),an=anamDe(id);
   const h=histAll(isAdmin()).filter(x=>x.cli===id&&(isAdmin()||x.unit==='mai')).slice(-12).reverse();
   openDlg(esc(c.n),`<p class="muted small">${esc(c.tel)||'sem telefone'}${c.email?' · '+esc(c.email):''} · Aniversário ${c.niver?c.niver.split('-').reverse().join('/'):'não informado'}</p>
@@ -747,7 +790,10 @@ function escolherFoto(cid,tipo,atendId,depois){const msg=podeFoto(cid);if(msg){t
   inp.onchange=async()=>{const f=inp.files[0];if(!f)return;toast('Enviando a foto…');
     try{const img=await reduzirFoto(f),c=cli(cid),base=c._p==='florenca'?'florenca':'maison';
       const reg={tipo,data:iso(TODAY),img,por:S.user.nome};if(atendId)reg.atend=atendId;
-      if(await grava(()=>DB.push(base+'/fotos/'+cid,reg),'Foto salva')&&depois)depois()}
+      const salvou=await grava(async()=>{await DB.push(base+'/fotos/'+cid,reg);
+        // A primeira foto inicial vira também a foto pequena do cadastro (aparece nas listas).
+        if(tipo==='inicial'&&!c.avatar){try{await DB.upd(base+'/clientes/'+cid,{avatar:await miniatura(img)})}catch(e){guardaErro(e.message)}}},'Foto salva');
+      if(salvou&&depois)depois()}
     catch(e){toast(e.message)}};
   inp.click()}
 async function carregarFotos(cid,boxId,atendId){const box=document.getElementById(boxId);if(!box)return;
@@ -761,9 +807,10 @@ async function carregarFotos(cid,boxId,atendId){const box=document.getElementByI
 function mostrarFoto(cid,f,boxId,atendId){const c=cli(cid),base=c._p==='florenca'?'florenca':'maison',vw=document.getElementById(boxId+'-v');if(!vw)return;
   vw.innerHTML=`<div class="box" style="margin-top:10px;padding:12px"><img src="${esc(f.img)}" alt="" style="width:100%;border-radius:10px;display:block">
   <p class="small muted" style="margin:8px 0">${f.tipo==='inicial'?'Foto inicial':'Foto de acompanhamento'} · ${fd(f.data,{day:'2-digit',month:'2-digit',year:'numeric'})} · enviada por ${esc(f.por||'')}</p>
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="fv-v">Fechar foto</button>${isAdmin()?'<button class="btn sm" id="fv-d" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Excluir foto</button>':''}</div></div>`;
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="fv-v">Fechar foto</button><button class="btn sm" id="fv-av">Usar como foto do cadastro</button>${isAdmin()?'<button class="btn sm" id="fv-d" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Excluir foto</button>':''}</div></div>`;
   vw.scrollIntoView({block:'nearest'});
   document.getElementById('fv-v').onclick=()=>{vw.innerHTML=''};
+  document.getElementById('fv-av').onclick=async()=>{try{const m=await miniatura(f.img);await grava(()=>DB.upd(base+'/clientes/'+cid,{avatar:m}),'Foto do cadastro atualizada')}catch(e){toast(e.message)}};
   const d=document.getElementById('fv-d');if(d)d.onclick=async()=>{if(!confirm('Excluir esta foto?'))return;
     if(await grava(()=>DB.del(base+'/fotos/'+cid+'/'+f.id),'Foto excluída')){vw.innerHTML='';carregarFotos(cid,boxId,atendId)}}}
 
@@ -816,14 +863,19 @@ function abrirRegistro(aid,p,voltar){const h=histAll(true).find(x=>x.id===aid&&x
     if(ok){voltar?voltar():closeDlg()}else btn.disabled=false}}
 // ── Anamnese pelo link: a cliente preenche no celular e a equipe confere e integra ──
 const LINK_VALE_DIAS=7;
-function novoToken(){const b=crypto.getRandomValues(new Uint8Array(24));return btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+// Link curto /f/CÓDIGO (precisa do vercel.json). Se um dia o link curto falhar, é só trocar para false.
+const LINK_CURTO=true;
+function novoToken(){const b=crypto.getRandomValues(new Uint8Array(16));return btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 async function enviarLinkAnamnese(cid){const c=cli(cid);
   // Reaproveita o link de quem ainda não usou e não venceu; senão cria um novo.
   let token=Object.entries(C.mConv||{}).find(([t,v])=>v.cli===cid&&!v.usado&&v.exp>Date.now())?.[0];
+  // O que já está no cadastro vai junto no convite, para a cliente não digitar de novo. Os serviços listados são os das duas unidades.
+  const dados={nasc:c.nasc||'',niver:c.niver||'',tel:c.tel||'',email:emailOk(c.email)?c.email:'',servs:servicosFicha()};
   if(!token){token=novoToken();
-    const ok=await grava(()=>DB.set('maison/convites/'+token,{cli:cid,nome:c.n.split(' ')[0],exp:Date.now()+LINK_VALE_DIAS*864e5,usado:false,por:S.user.nome,em:iso(TODAY)}));
+    const ok=await grava(()=>DB.set('maison/convites/'+token,{cli:cid,nome:c.n.split(' ')[0],exp:Date.now()+LINK_VALE_DIAS*864e5,usado:false,por:S.user.nome,em:iso(TODAY),...dados}));
     if(!ok)return}
-  const link=new URL('anamnese.html',location.href).href.replace(/[?#].*$/,'')+'?t='+token;
+  else await grava(()=>DB.upd('maison/convites/'+token,dados));
+  const link=LINK_CURTO?location.origin+'/f/'+token:new URL('anamnese.html',location.href).href.replace(/[?#].*$/,'')+'?t='+token;
   const msg=`Oi, ${c.n.split(' ')[0]}! Para agilizar o seu atendimento na Maison Beauty, preencha a sua ficha de anamnese pelo celular, é rapidinho: ${link} (o link vale ${LINK_VALE_DIAS} dias). Obrigada!`;
   openDlg('Anamnese por link',`<p class="small muted">Envie este link para ${esc(c.n)}. Ela preenche e assina no próprio celular. Quando ela enviar, aparece em <b>Anamnese</b>, em "Recebidas pelo link", para a equipe conferir e integrar à ficha.</p>
   <label class="f">Mensagem pronta<textarea rows="5" id="lk-m">${esc(msg)}</textarea></label>
@@ -851,14 +903,15 @@ function revisarPendente(token){const x=C.mPend[token],cv=C.mConv[token];if(!x||
     const reg={data:x.data||iso(TODAY),nascimento:x.nascimento||'',telefone:x.telefone||'',emergencia:x.emergencia||'',responsavel:x.responsavel||'',unidade:'mai',servicos:x.servicos||[],outro:x.outro||'',area:x.area||'',respostas:x.respostas||{},flags:sims,obs:x.obs||'',fotoOk:!!x.fotoOk,assinatura:imgSegura(x.assinatura),por:'Cliente, pelo link',integradoPor:S.user.nome};
     const ok=await grava(async()=>{
       await DB.set('maison/anamneses/'+cv.cli,reg);
-      const cad={};if(x.nascimento&&!c.niver)cad.niver=x.nascimento.slice(5,10);if(x.telefone&&!c.tel)cad.tel=x.telefone;if(emailOk(x.email)&&!c.email)cad.email=x.email;
+      const cad={};if(x.nascimento&&!c.niver)cad.niver=x.nascimento.slice(5,10);if(x.nascimento&&!c.nasc)cad.nasc=x.nascimento;if(x.telefone&&!c.tel)cad.tel=x.telefone;if(emailOk(x.email)&&!c.email)cad.email=x.email;
       if(Object.keys(cad).length)await DB.upd('maison/clientes/'+cv.cli,cad);
       // Fotos marcadas viram "foto inicial" do cadastro. Chave fixa por link: se der erro no meio e a equipe tentar de novo, não duplica.
-      const marcadas=new Set([...document.querySelectorAll('[data-pf]:checked')].map(i=>i.dataset.pf));
+      let avatarFeito=false;const marcadas=new Set([...document.querySelectorAll('[data-pf]:checked')].map(i=>i.dataset.pf));
       for(const [k,img] of fotosDoLink(x)){if(!marcadas.has(k))continue;
         const chave='link'+k+'_'+token.slice(0,8);
         if(await DB.get('maison/fotos/'+cv.cli+'/'+chave))continue;
-        await DB.set('maison/fotos/'+cv.cli+'/'+chave,{tipo:'inicial',data:x.data||iso(TODAY),img,por:'Cliente, pelo link'})}
+        await DB.set('maison/fotos/'+cv.cli+'/'+chave,{tipo:'inicial',data:x.data||iso(TODAY),img,por:'Cliente, pelo link'});
+        if(!c.avatar&&!avatarFeito){avatarFeito=true;try{await DB.upd('maison/clientes/'+cv.cli,{avatar:await miniatura(img)})}catch(e){guardaErro(e.message)}}}
       // O link só fecha depois de integrado: se fechasse antes, apagar o envio deixaria a cliente mandar de novo.
       await DB.upd('maison/convites/'+token,{usado:true,integradoEm:iso(TODAY),integradoPor:S.user.nome});
       await DB.del('maison/pendentes/'+token);
@@ -870,12 +923,12 @@ function editarCliente(id){const c=cli(id);
   openDlg('Editar '+esc(c.n),`<label class="f">Nome completo<input id="en" value="${esc(c.n)}"></label>
   <label class="f">Telefone<input id="et" value="${esc(c.tel)}" inputmode="tel"></label>
   <label class="f">E-mail (para enviar o convite da agenda)<input id="em" type="email" value="${esc(c.email||'')}" autocomplete="off"></label>
-  <label class="f">Aniversário (dia e mês)<input id="eb" type="date" value="${c.niver?'2000-'+c.niver:''}"></label>
+  <label class="f">Data de nascimento (com o ano)<input id="eb" type="date" value="${esc(c.nasc||'')}"></label>${!c.nasc&&c.niver?`<p class="small muted" style="margin:-6px 0 12px">Hoje só tem o aniversário (${esc(c.niver.split('-').reverse().join('/'))}). Coloque o ano para a ficha já vir preenchida.</p>`:''}
   <button class="btn p" id="esave">Salvar</button>`);
   document.getElementById('esave').onclick=async()=>{const n=document.getElementById('en').value.trim();if(!n){toast('Digite o nome da cliente');return}
    {const m=(document.getElementById('vm')||document.getElementById('em')).value.trim();if(m&&!emailOk(m)){toast('Esse e-mail não parece válido');return}}
     const b=document.getElementById('eb').value;const btn=document.getElementById('esave');btn.disabled=true;
-    const ok=await grava(()=>DB.upd(c._p+'/clientes/'+id,{n,tel:document.getElementById('et').value.trim(),email:document.getElementById('em').value.trim(),niver:b?b.slice(5,10):''}),'Dados atualizados');
+    const ok=await grava(()=>DB.upd(c._p+'/clientes/'+id,{n,tel:document.getElementById('et').value.trim(),email:document.getElementById('em').value.trim(),...(b?{niver:b.slice(5,10),nasc:b}:{})}),'Dados atualizados');
     if(ok){closeDlg();ficha(id)}else btn.disabled=false}}
 async function excluirCliente(id){const c=cli(id);
   // Quem já tem atendimento (mesmo cancelado) ou agendamento aberto fica: apagar levaria o histórico junto.
@@ -906,7 +959,9 @@ function cancelarAtend(id,p,cid){const h=histAll(true).find(x=>x.id===id&&x._p==
       if(h.agenda)await DB.set(p+'/agenda/'+h.agenda+'/st','Agendado');
     },'Atendimento cancelado');
     if(ok){closeDlg();ficha(cid)}else btn.disabled=false}}
-const SERVICOS_ANAM=['Unhas','Laser remoção','Micropigmentação','Ozonioterapia','Piercing','Depilação a laser','Extensão de cílios','Brow lamination','Lash lifting','Avaliação de unhas com suspeita de fungos'];
+// A ficha lista todos os serviços ativos das duas unidades (sem repetir o nome) e mantém a avaliação de unhas, que abre o bloco de fungos no registro.
+const FUNGOS_ANAM='Avaliação de unhas com suspeita de fungos';
+const servicosFicha=()=>[...new Set([...servicosDe('mai',false),...servicosDe('flo',false)].map(x=>x.n)),FUNGOS_ANAM];
 // Segue a "Ficha básica de anamnese" da Maison Beauty (página 1), campo a campo.
 function anamnese(id){const c=cli(id),old=anamDe(id)||{};
   const un=old.unidade||(c.unit==='ambas'?unitFor(TODAY):c.unit);
@@ -914,14 +969,14 @@ function anamnese(id){const c=cli(id),old=anamDe(id)||{};
   openDlg('Ficha de anamnese',`<p class="small muted">Preenchimento pela cliente e revisão pelo profissional antes do atendimento. Ficha individual e confidencial.</p>
   <div class="sec">Identificação</div>
   <label class="f">Nome completo<input value="${esc(c.n)}" readonly></label>
-  <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="f" style="flex:1;min-width:150px">Nascimento<input type="date" id="an-nasc" value="${esc(old.nascimento||'')}"></label>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="f" style="flex:1;min-width:150px">Nascimento<input type="date" id="an-nasc" value="${esc(old.nascimento||c.nasc||'')}"></label>
    <label class="f" style="flex:1;min-width:150px">Telefone<input id="an-tel" value="${esc(old.telefone||c.tel||'')}" inputmode="tel"></label></div>
   <label class="f">Contato de emergência e telefone<input id="an-em" value="${esc(old.emergencia||'')}"></label>
   <label class="f">Responsável legal, se aplicável, e telefone<input id="an-resp" value="${esc(old.responsavel||'')}"></label>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="f" style="flex:1;min-width:150px">Data<input value="${fd(iso(TODAY),{day:'2-digit',month:'2-digit',year:'numeric'})}" readonly></label>
    <label class="f" style="flex:1;min-width:150px">Unidade<select id="an-un"><option value="mai" ${un==='mai'?'selected':''}>Maison Beauty</option>${isAdmin()?`<option value="flo" ${un==='flo'?'selected':''}>Estúdio Florença</option>`:''}</select></label></div>
   <div class="sec">Serviço solicitado</div>
-  <div class="svgrid">${SERVICOS_ANAM.map((x,i)=>`<label><input type="checkbox" data-sv="${i}" ${(old.servicos||[]).includes(x)?'checked':''}>${x}</label>`).join('')}</div>
+  <div class="svgrid">${servicosFicha().map((x,i)=>`<label><input type="checkbox" data-sv="${i}" ${(old.servicos||[]).includes(x)?'checked':''}>${x}</label>`).join('')}</div>
   <label class="f">Outro<input id="an-outro" value="${esc(old.outro||'')}"></label>
   <label class="f">Área a ser atendida e objetivo<textarea rows="2" id="an-area">${esc(old.area||'')}</textarea></label>
   <div class="sec">Histórico de saúde</div>
@@ -944,7 +999,7 @@ function anamnese(id){const c=cli(id),old=anamDe(id)||{};
     const respostas={};let falta=-1;
     PERGUNTAS.forEach((q,i)=>{const r=document.querySelector(`input[name=q${i}]:checked`);if(r)respostas['q'+i]=r.value;else if(falta<0)falta=i});
     if(falta>=0){toast('Falta responder Sim ou Não em todas as perguntas de saúde');document.querySelector(`[data-qrow="${falta}"]`).scrollIntoView({block:'center'});return}
-    const servicos=[...document.querySelectorAll('[data-sv]:checked')].map(i=>SERVICOS_ANAM[+i.dataset.sv]);
+    const servicos=[...document.querySelectorAll('[data-sv]:checked')].map(i=>servicosFicha()[+i.dataset.sv]);
     const outro=document.getElementById('an-outro').value.trim();
     if(!servicos.length&&!outro){toast('Marque o serviço solicitado');return}
     const foto=document.querySelector('input[name=foto]:checked');
@@ -962,7 +1017,7 @@ function anamnese(id){const c=cli(id),old=anamDe(id)||{};
     const ok=await grava(async()=>{
       await DB.set(base+'/anamneses/'+id,reg);
       // O que a ficha trouxe e o cadastro ainda não tinha, o cadastro aproveita.
-      const cad={};if(nasc&&!c.niver)cad.niver=nasc.slice(5,10);if(tel&&!c.tel)cad.tel=tel;
+      const cad={};if(nasc&&!c.niver)cad.niver=nasc.slice(5,10);if(nasc&&!c.nasc)cad.nasc=nasc;if(tel&&!c.tel)cad.tel=tel;
       if(Object.keys(cad).length)await DB.upd(base+'/clientes/'+id,cad);
     },'Anamnese salva');
     if(ok){closeDlg();ficha(id)}else btn.disabled=false}}
@@ -1041,8 +1096,10 @@ function abrirSuporte(){if(!S.user)return;
     if(SUPORTE_URL){try{await fetch(SUPORTE_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({chave:SUPORTE_CHAVE,...reg})});mandou=true}catch(e){guardaErro(e.message)}}
     if(salvou||mandou){toast(mandou?'Pedido enviado ao suporte':'Pedido guardado. O suporte vai ver em breve.');closeDlg()}else btn.disabled=false}}
 function vServicos(){
+  const brindeBox=`<div class="box" style="margin-bottom:16px"><h2>Brinde de aniversário</h2><p class="small muted" style="margin-top:0">Fecha todas as mensagens de aniversário. Escreva o que você quer oferecer, por exemplo: <i>10% de desconto no seu próximo atendimento até o fim do mês</i>.</p>
+   <label class="f"><input id="brinde" value="${esc((C.mCfg&&C.mCfg.brinde)||'')}" placeholder="${esc(BRINDE_PADRAO)}"></label><button class="btn p sm" id="brindesalvar">Salvar brinde</button></div>`;
   const sec=u=>`<div class="box" style="margin-bottom:16px"><h2>${U[u].n}</h2>${servicosDe(u).map(x=>`<div class="row" style="${x.ativo===false?'opacity:.55':''}"><div class="grow"><b>${esc(x.n)}</b><div class="small muted">${x.d?x.d+' min':'sem duração'}${x.obs?' · '+esc(x.obs):''}${x.ativo===false?' · desativado':''}</div></div><b>${brl(x.p)}</b><button class="btn sm" data-es="${u}|${x.id}">Editar</button></div>`).join('')}<div style="margin-top:12px"><button class="btn" data-ns="${u}">Novo serviço no ${U[u].n}</button></div></div>`;
-  return `<div class="top"><div><h1>Serviços e preços</h1><div class="sub">Mude o valor, renomeie, ative ou desative cada serviço. O novo preço vale para os próximos atendimentos; os já registrados mantêm o valor que foi cobrado.</div></div></div>${sec('mai')}${sec('flo')}`}
+  return `<div class="top"><div><h1>Serviços e preços</h1><div class="sub">Mude o valor, renomeie, ative ou desative cada serviço. O novo preço vale para os próximos atendimentos; os já registrados mantêm o valor que foi cobrado.</div></div></div>${brindeBox}${sec('mai')}${sec('flo')}`}
 function editarServico(u,id){const novo=!id,x=novo?{n:'',p:0,d:0,obs:'',ativo:true,base:false}:servicosDe(u).find(y=>y.id===id);if(!x)return;
   openDlg(novo?'Novo serviço':'Editar serviço',`<p class="small muted">${U[u].n}</p>
   <label class="f">Nome<input id="sn" value="${esc(x.n)}"></label>
@@ -1055,6 +1112,7 @@ function editarServico(u,id){const novo=!id,x=novo?{n:'',p:0,d:0,obs:'',ativo:tr
     const n=document.getElementById('sn').value.trim(),pr=parseFloat(document.getElementById('sp').value);
     if(!n){toast('Dê um nome ao serviço');return}
     if(!(pr>=0)){toast('Digite o valor do serviço');return}
+    if(novo){const ja=servicosDe(u).find(y=>norm(y.n)===norm(n));if(!podeDuplicar(ja&&`"${ja.n}" nesta unidade`,'um serviço com esse nome'))return}
     const sid=novo?'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,5):id;
     const dado={n,p:pr,d:parseInt(document.getElementById('sd').value)||0,obs:document.getElementById('so').value.trim(),ativo:document.getElementById('sa').checked,alteradoPor:S.user.nome,alteradoEm:iso(TODAY)};
     if(novo)dado.criado=iso(TODAY);else if(pr!==x.p)dado.pAnterior=x.p;
@@ -1069,7 +1127,7 @@ function editarServico(u,id){const novo=!id,x=novo?{n:'',p:0,d:0,obs:'',ativo:tr
     if(await grava(()=>DB.del((u==='flo'?'florenca':'maison')+'/servicos/'+id),'Serviço excluído'))closeDlg()}}
 function vFornecedores(){
   const c=arr(C.contas).filter(x=>visUnit(x.unit)).sort((a,b)=>(!!a.cancelada-!!b.cancelada)||(!!a.pago-!!b.pago)||a.venc.localeCompare(b.venc));
-  const f=arr(C.fornecedores);
+  const f=arr(C.fornecedores).filter(x=>!x.unit||x.unit==='ambas'||S.unit==='todas'||x.unit===S.unit);
   return `<div class="top"><div><h1>Fornecedores</h1><div class="sub">Contatos e contas a pagar.</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}<button class="btn" id="novofor">Novo fornecedor</button><button class="btn p" id="novaconta">Nova conta</button></div></div>
   <div class="note">Tháriga vai enviar a lista de fornecedores e o controle de estoque depois — por enquanto, cadastre aqui o que já for surgindo.</div>
@@ -1077,15 +1135,18 @@ function vFornecedores(){
    <div class="box"><h2>Contas</h2>${c.length?c.map(x=>{const d=(new Date(x.venc+'T00:00')-TODAY)/864e5;
     return `<div class="row" style="${x.cancelada?'opacity:.55':''}"><div class="grow"><b>${esc(x.f)}</b><div class="small muted">${esc(x.d)} · vence ${fd(x.venc)}</div></div><b>${brl(x.v)}</b>
     ${x.cancelada?'<span class="tag warn">Cancelada</span>':x.pago?'<span class="tag ok">Pago</span>':`<span class="tag ${d<=3?'warn':''}">${d<0?'Vencida':d===0?'Vence hoje':'Em '+d+' dias'}</span><button class="btn sm" data-pc="${x.id}">Pagar</button>`}<button class="btn sm" data-ec="${x.id}">Editar</button></div>`}).join(''):'<p class="muted">Nenhuma conta cadastrada ainda.</p>'}</div>
-   <div class="box"><h2>Cadastro</h2>${f.length?f.map(x=>`<div class="row"><div class="avatar">${esc(x.n[0])}</div><div class="grow"><b>${esc(x.n)}</b><div class="small muted">${esc(x.cat)} · ${esc(x.tel)}</div></div><button class="btn sm" data-ef="${x.id}">Editar</button></div>`).join(''):'<p class="muted">Nenhum fornecedor cadastrado ainda.</p>'}</div>
+   <div class="box"><h2>Cadastro</h2>${f.length?f.map(x=>`<div class="row"><div class="avatar">${esc(x.n[0])}</div><div class="grow"><b>${esc(x.n)}</b><div class="small muted">${esc(x.cat)} · ${esc(x.tel)}</div></div>${x.unit==='ambas'?'<span class="tag">As duas</span>':x.unit?uTag(x.unit):'<span class="tag warn">Sem unidade</span>'}<button class="btn sm" data-ef="${x.id}">Editar</button></div>`).join(''):'<p class="muted">Nenhum fornecedor cadastrado ainda.</p>'}</div>
   </div>`;
 }
 function novoFornecedor(){
+  const uf=S.unit==='flo'||S.unit==='mai'?S.unit:'mai';
   openDlg('Novo fornecedor',`<label class="f">Nome<input id="fn"></label><label class="f">O que fornece<input id="fc" placeholder="Ex.: pigmentos, descartáveis..."></label><label class="f">Telefone<input id="ft"></label>
+  <label class="f">Unidade<select id="fu"><option value="flo" ${uf==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${uf==='mai'?'selected':''}>Maison Beauty</option><option value="ambas">As duas</option></select></label>
   <button class="btn p" id="fsave">Cadastrar</button>`);
   document.getElementById('fsave').onclick=async()=>{const n=document.getElementById('fn').value.trim();if(!n){toast('Digite o nome do fornecedor');return}
+   {const ja=arr(C.fornecedores).find(x=>norm(x.n)===norm(n));if(!podeDuplicar(ja&&`"${ja.n}"`,'um fornecedor com esse nome'))return}
    const btn=document.getElementById('fsave');btn.disabled=true;
-   const ok=await grava(()=>DB.push('admin/fornecedores',{n,cat:document.getElementById('fc').value||'—',tel:document.getElementById('ft').value}),'Fornecedor cadastrado');
+   const ok=await grava(()=>DB.push('admin/fornecedores',{n,cat:document.getElementById('fc').value||'—',tel:document.getElementById('ft').value,unit:document.getElementById('fu').value}),'Fornecedor cadastrado');
    if(ok)closeDlg();else btn.disabled=false}}
 function editarConta(id){const x=arr(C.contas).find(y=>y.id===id);if(!x)return;
   openDlg('Editar conta',`<label class="f">Fornecedor<input id="qf" value="${esc(x.f)}"></label>
@@ -1105,9 +1166,10 @@ function editarConta(id){const x=arr(C.contas).find(y=>y.id===id);if(!x)return;
     if(ok)closeDlg()}}
 function editarFornecedor(id){const x=arr(C.fornecedores).find(y=>y.id===id);if(!x)return;
   openDlg('Editar fornecedor',`<label class="f">Nome<input id="fn" value="${esc(x.n)}"></label><label class="f">O que fornece<input id="fc" value="${esc(x.cat)}"></label><label class="f">Telefone<input id="ft" value="${esc(x.tel)}"></label>
+  <label class="f">Unidade<select id="fu"><option value="" ${x.unit?'':'selected'} disabled>Escolha a unidade</option><option value="flo" ${x.unit==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${x.unit==='mai'?'selected':''}>Maison Beauty</option><option value="ambas" ${x.unit==='ambas'?'selected':''}>As duas</option></select></label>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="fsave">Salvar</button><button class="btn" id="fdel" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Excluir fornecedor</button></div>`);
   document.getElementById('fsave').onclick=async()=>{const n=document.getElementById('fn').value.trim();if(!n){toast('Digite o nome do fornecedor');return}
-    if(await grava(()=>DB.upd('admin/fornecedores/'+id,{n,cat:document.getElementById('fc').value||'—',tel:document.getElementById('ft').value}),'Fornecedor atualizado'))closeDlg()};
+    if(await grava(()=>DB.upd('admin/fornecedores/'+id,{n,cat:document.getElementById('fc').value||'—',tel:document.getElementById('ft').value,...(document.getElementById('fu').value?{unit:document.getElementById('fu').value}:{})}),'Fornecedor atualizado'))closeDlg()};
   document.getElementById('fdel').onclick=async()=>{if(!confirm('Excluir este fornecedor?'))return;if(await grava(()=>DB.del('admin/fornecedores/'+id),'Fornecedor excluído'))closeDlg()}}
 function editarCurso(id){const c=arr(C.cursos).find(y=>y.id===id);if(!c)return;
   openDlg('Editar curso',`<label class="f">Nome da aluna<input id="kn" value="${esc(c.aluna)}"></label>
@@ -1120,15 +1182,22 @@ function editarCurso(id){const c=arr(C.cursos).find(y=>y.id===id);if(!c)return;
     if(await grava(()=>DB.upd('admin/cursos/'+id,{aluna:n,tecnica:document.getElementById('kt').value,dias:Math.max(1,parseInt(document.getElementById('kd').value)||1),data:document.getElementById('kdt').value||null,status:document.getElementById('ks').value}),'Curso atualizado'))closeDlg()};
   document.getElementById('kdel').onclick=async()=>{if(!confirm('Excluir este curso?'))return;if(await grava(()=>DB.del('admin/cursos/'+id),'Curso excluído'))closeDlg()}}
 function novaConta(){
-  openDlg('Nova conta a pagar',`<label class="f">Fornecedor<input id="qf" placeholder="Nome do fornecedor"></label>
+  openDlg('Nova conta a pagar',`<label class="f">Fornecedor<input id="qf" list="qflist" placeholder="Escolha da lista ou digite um novo" autocomplete="off"></label>
+  <datalist id="qflist">${arr(C.fornecedores).map(x=>`<option value="${esc(x.n)}">`).join('')}</datalist>
+  <label class="ck" id="qnovo-w" hidden><input type="checkbox" id="qnovo" checked>Cadastrar este fornecedor também</label>
   <label class="f">Descrição<input id="qd" placeholder="Ex.: kit de pigmentos"></label>
   <label class="f">Valor<input id="qv" type="number" step="0.01"></label>
   <label class="f">Vencimento<input id="qvenc" type="date"></label>
   <label class="f">Unidade<select id="qu"><option value="flo">Estúdio Florença</option><option value="mai" selected>Maison Beauty</option></select></label>
   <button class="btn p" id="qsave">Adicionar conta</button>`);
+  const qf=document.getElementById('qf');qf.oninput=()=>{document.getElementById('qnovo-w').hidden=!qf.value.trim()||arr(C.fornecedores).some(x=>norm(x.n)===norm(qf.value))};
   document.getElementById('qsave').onclick=async()=>{const f=document.getElementById('qf').value.trim();if(!f){toast('Digite o fornecedor');return}
+   const v=parseFloat(document.getElementById('qv').value)||0,venc=document.getElementById('qvenc').value||iso(TODAY);
+   {const ja=arr(C.contas).find(x=>!x.cancelada&&norm(x.f)===norm(f)&&x.v===v&&x.venc===venc);if(!podeDuplicar(ja&&`${ja.f}, ${brl(ja.v)}, vence ${fd(ja.venc)}`,'uma conta igual'))return}
    const btn=document.getElementById('qsave');btn.disabled=true;
-   const ok=await grava(()=>DB.push('admin/contas',{f,d:document.getElementById('qd').value,v:parseFloat(document.getElementById('qv').value)||0,venc:document.getElementById('qvenc').value||iso(TODAY),unit:document.getElementById('qu').value,pago:false}),'Conta adicionada');
+   const cadastrar=!document.getElementById('qnovo-w').hidden&&document.getElementById('qnovo').checked;
+   const ok=await grava(async()=>{await DB.push('admin/contas',{f,d:document.getElementById('qd').value,v,venc,unit:document.getElementById('qu').value,pago:false});
+     if(cadastrar)await DB.push('admin/fornecedores',{n:f,cat:'—',tel:'',unit:document.getElementById('qu').value})},'Conta adicionada');
    if(ok)closeDlg();else btn.disabled=false}}
 
 function vCursos(){
@@ -1151,6 +1220,7 @@ function novoCurso(){
   <p class="small muted">Valor calculado automaticamente: R$ 1.000,00 por dia, parcelado em 4x no crédito (juros da maquininha).</p>
   <button class="btn p" id="ksave">Agendar curso</button>`);
   document.getElementById('ksave').onclick=async()=>{const n=document.getElementById('kn').value.trim();if(!n){toast('Digite o nome da aluna');return}
+   {const ja=arr(C.cursos).find(x=>norm(x.aluna)===norm(n)&&x.tecnica===document.getElementById('kt').value&&(x.data||'')===(document.getElementById('kdt').value||''));if(!podeDuplicar(ja&&`${ja.aluna}, ${ja.tecnica}${ja.data?', '+fd(ja.data):''}`,'um curso igual'))return}
    const btn=document.getElementById('ksave');btn.disabled=true;
    const ok=await grava(()=>DB.push('admin/cursos',{aluna:n,tecnica:document.getElementById('kt').value,dias:Math.max(1,parseInt(document.getElementById('kd').value)||1),data:document.getElementById('kdt').value||null,status:document.getElementById('ks').value}),'Curso agendado');
    if(ok)closeDlg();else btn.disabled=false}}
@@ -1171,19 +1241,34 @@ function vAulas(){
     <span class="tag">${esc(a.dur)}</span>${a.editado?'<span class="tag ok">Editado por você</span>':'<span class="tag warn">Sugestão pronta</span>'}
    </div>`).join('')||'<p class="muted">Nenhum tema ainda.</p>'}</div>`;
 }
+// Ideias de dinâmica e referências de foto para cada tema (como o Instagram): só links de busca em bancos de imagem gratuitos, nada é baixado.
+const AULA_IDEIAS={
+ 'Micropigmentação — introdução':{ideias:['Comece mostrando 3 desenhos de sobrancelha prontos (fio a fio, sombreado e híbrido) e pergunte à aluna qual combina com cada rosto.','Faça uma demonstração em pele sintética: traçado, profundidade e ângulo da agulha, uma etapa de cada vez, antes da prática.','Deixe a cartela de pigmentos à luz natural e peça que a aluna escolha o tom por subtom de pele.','Termine com um quiz rápido de contraindicações: ela diz Sim ou Não para 8 situações.','Entregue um checklist de biossegurança de uma folha para a aluna levar.'],
+  refs:[['Treino em pele sintética','synthetic skin eyebrow practice'],['Cartela de pigmentos','pigment color swatches beauty'],['Bancada montada','microblading workstation']],
+  fotografar:['Seu traçado na pele sintética, antes e depois da correção.','A cartela de pigmentos sob luz de janela.','A bancada montada, com tudo descartável aberto na frente da aluna.']},
+ 'Atendimento, precificação e pós-venda':{ideias:['Faça um teatro de 5 minutos: uma aluna é a cliente indecisa e a outra conduz a conversa.','Monte com a aluna a conta de um serviço: material, tempo e comissão, em uma tabela simples.','Mostre 3 mensagens de retorno prontas e peça que ela reescreva uma com a voz dela.','Peça para a aluna criar a ficha de uma cliente fictícia, do cadastro à data de retorno.','Feche com uma regra simples para pedir indicação sem constranger.'],
+  refs:[['Recepção de estúdio','beauty salon reception'],['Tabela de preços simples','price list menu minimal'],['Agenda e planejamento','planner calendar pen']],
+  fotografar:['A tabela de preços de exemplo impressa, ao lado da agenda.','A recepção do estúdio, arrumada, sem clientes na imagem.','As mensagens de retorno impressas, como material de apoio.']}};
+const aulaBusca=t=>{const x=norm(t);return /cilio/.test(x)?'eyelash extension':/lash/.test(x)?'lash lift':/laminat|brow/.test(x)?'eyebrow lamination':/sobrancelh/.test(x)?'eyebrow design':/micro/.test(x)?'microblading eyebrow practice':/atendimento|precific|venda|cliente/.test(x)?'beauty salon reception':'beauty studio'};
+function aulaIdeiasHtml(a){const d=AULA_IDEIAS[a.tema]||{ideias:['Abra com o objetivo da aula em uma frase e mostre o resultado final antes de começar.','Faça a demonstração ao vivo, uma etapa de cada vez, e depois deixe a aluna repetir com a sua supervisão.','Mostre os 3 erros mais comuns do tema e como corrigir cada um.','Termine com uma pergunta ou um exercício curto para saber o que ficou.','Entregue um material de apoio de uma folha para a aluna levar.'],
+   refs:[['Fotos do tema',aulaBusca(a.tema)],['Estúdio e bancada','beauty studio workstation']],fotografar:['O resultado final do tema, em boa luz.','A bancada pronta antes da aula.','Um passo a passo em 3 fotos, para o material de apoio.']};
+  const link=(t,q)=>`<a class="btn sm" style="color:inherit;text-decoration:none" target="_blank" rel="noopener" href="https://www.pexels.com/pt-br/procurar/${encodeURIComponent(q)}/">${esc(t)}</a>`;
+  return `<div class="box" style="margin:12px 0;background:var(--berry-soft)"><h3 style="margin-top:0">Ideias para esta aula</h3><ul style="margin:0 0 12px;padding-left:18px">${d.ideias.map(i=>`<li class="small" style="margin-bottom:4px">${esc(i)}</li>`).join('')}</ul>
+   <h3>O que fotografar para o seu material</h3><ul style="margin:0 0 12px;padding-left:18px">${d.fotografar.map(i=>`<li class="small" style="margin-bottom:4px">${esc(i)}</li>`).join('')}</ul>
+   <h3>Fotos de referência</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${d.refs.map(r=>link('Pexels: '+r[0],r[1])).join('')}${d.refs.map(r=>`<a class="btn sm" style="color:inherit;text-decoration:none" target="_blank" rel="noopener" href="https://unsplash.com/s/photos/${encodeURIComponent(r[1])}">Unsplash: ${esc(r[0])}</a>`).join('')}</div>
+   <p class="small muted" style="margin:8px 0 0">São buscas em bancos de imagens gratuitos. Confira a licença de cada foto antes de usar no material. Foto de aluna ou cliente só com autorização.</p></div>`}
 function verAula(id){const a=arr(C.aulas).find(x=>x.id===id);if(!a)return;
   openDlg(esc(a.tema),`<label class="f">Duração<input id="adur" value="${esc(a.dur)}" style="max-width:120px"></label>
   <label class="f">Resumo curto (aparece na lista de temas)<input id="ares" value="${esc(a.resumo)}"></label>
   <label class="f">Roteiro da aula<textarea id="acont" rows="14">${esc(a.conteudo)}</textarea></label>
   <p class="small muted">Este roteiro é uma sugestão de partida. Ajuste a ordem, os exemplos e o material de apoio do jeito que você dá a aula, e o painel guarda a sua versão.</p>
+  ${aulaIdeiasHtml(a)}
   <div style="display:flex;gap:8px;flex-wrap:wrap">
    <button class="btn p" id="asalvar">Salvar roteiro</button>
-   <button class="btn" id="aoriginal">Ver sugestão original</button>
    <button class="btn" id="aexcluir" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Excluir tema</button>
   </div>`);
   document.getElementById('asalvar').onclick=async()=>{const novo={dur:document.getElementById('adur').value,resumo:document.getElementById('ares').value,conteudo:document.getElementById('acont').value,editado:true,original:a.original||a.conteudo};
     if(await grava(()=>DB.upd('admin/aulas/'+id,novo),'Roteiro salvo'))closeDlg()};
-  document.getElementById('aoriginal').onclick=()=>{if(a.original)document.getElementById('acont').value=a.original;else toast('Esta é a versão original sugerida')};
   document.getElementById('aexcluir').onclick=async()=>{if(!confirm('Excluir este tema de aula?'))return;if(await grava(()=>DB.del('admin/aulas/'+id),'Tema excluído'))closeDlg()};
 }
 function novoTema(){
@@ -1193,6 +1278,7 @@ function novoTema(){
   <label class="f">Roteiro da aula<textarea id="ntc" rows="8" placeholder="Objetivo, passo a passo e material de apoio."></textarea></label>
   <button class="btn p" id="ntsave">Adicionar tema</button>`);
   document.getElementById('ntsave').onclick=async()=>{const t=document.getElementById('ntt').value.trim();if(!t){toast('Dê um nome ao tema');return}
+   {const ja=arr(C.aulas).find(a=>norm(a.tema)===norm(t));if(!podeDuplicar(ja&&`"${ja.tema}"`,'um tema com esse nome'))return}
    const ordem=Math.max(0,...arr(C.aulas).map(a=>a.ordem||0))+1;
    if(await grava(()=>DB.push('admin/aulas',{tema:t,dur:document.getElementById('ntd').value||'—',resumo:document.getElementById('ntr').value,conteudo:document.getElementById('ntc').value||'Roteiro ainda não preenchido.',editado:true,ordem}),'Tema adicionado'))closeDlg()}}
 
@@ -1206,7 +1292,7 @@ function vAnamnese(){
    <div class="box"><div class="lbl">Em dia</div><div class="stat" style="color:var(--ok)">${ok.length}</div></div>
    <div class="box"><div class="lbl">Com alerta de saúde</div><div class="stat">${em.length}</div></div>
   </div>
-  ${(()=>{const rec=arr(C.mPend).filter(x=>C.mConv[x.id]);return rec.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Recebidas pelo link (${rec.length})</h2>${rec.map(x=>`<div class="row"><div class="avatar">${esc(cli(C.mConv[x.id].cli).n[0])}</div><div class="grow"><b>${esc(cli(C.mConv[x.id].cli).n)}</b><div class="small muted">Enviada em ${x.data?fd(x.data,{day:'2-digit',month:'2-digit',year:'numeric'}):''}</div></div><button class="btn sm" data-pend="${x.id}">Revisar e integrar</button></div>`).join('')}</div>`:''})()}
+  ${(()=>{const rec=arr(C.mPend).filter(x=>C.mConv[x.id]);return rec.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Recebidas pelo link (${rec.length})</h2>${rec.map(x=>`<div class="row">${avatarHtml(cli(C.mConv[x.id].cli))}<div class="grow"><b>${esc(cli(C.mConv[x.id].cli).n)}</b><div class="small muted">Enviada em ${x.data?fd(x.data,{day:'2-digit',month:'2-digit',year:'numeric'}):''}</div></div><button class="btn sm" data-pend="${x.id}">Revisar e integrar</button></div>`).join('')}</div>`:''})()}
   <input class="search" id="q" placeholder="Buscar cliente pelo nome" value="${esc(S.q)}">
   <div class="box">
    ${pend.length?`<h3>Pendentes ou vencidas</h3>${pend.map(rowAnam).join('')}`:''}
@@ -1215,7 +1301,7 @@ function vAnamnese(){
   </div>`;
 }
 function rowAnam(c){const an=anamDe(c.id);
-  return `<div class="row"><div class="avatar">${esc(c.n[0])}</div><div class="grow"><b>${esc(c.n)}</b><div class="small muted">${an?'Assinada em '+fd(an.data,{day:'2-digit',month:'2-digit',year:'numeric'}):'Nunca preenchida'}${an&&an.flags&&an.flags.length?' · '+esc(an.flags.join(', ')):''}</div></div>
+  return `<div class="row">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b><div class="small muted">${an?'Assinada em '+fd(an.data,{day:'2-digit',month:'2-digit',year:'numeric'}):'Nunca preenchida'}${an&&an.flags&&an.flags.length?' · '+esc(an.flags.join(', ')):''}</div></div>
   ${isAdmin()?(c.unit==='ambas'?'<span class="tag">Os dois</span>':uTag(c.unit)):''}
   ${anamVencida(c)?'<span class="tag warn">Pendente</span>':'<span class="tag ok">Em dia</span>'}
   <button class="btn sm" data-anamform="${c.id}">${an?'Atualizar':'Preencher'}</button>
@@ -1279,28 +1365,37 @@ function vInstagram(){
   const off=S.igSem||0,dias=igSemanaDe(off),hoje=iso(TODAY);
   const sel=dias.includes(S.igDia)?S.igDia:(dias.includes(hoje)?hoje:dias[0]);
   const lin=dias.map(d=>{const dow=new Date(d+'T12:00').getDay(),cfg=IG_SEMANA[dow],x=igIdeiaDe(d),r=(C.instagram||{})[x.id]||{},feito=r.postadoEm;
-    return `<button class="row" data-igdia="${d}" style="width:100%;text-align:left;cursor:pointer;background:${d===sel?'var(--panel2,#f3ece0)':'transparent'};border:0;border-bottom:1px solid var(--line);padding:10px 4px">
+    return `<button class="row" data-igdia="${d}" style="width:100%;text-align:left;cursor:pointer;background:transparent;border:0;border-bottom:1px solid var(--line);padding:10px 4px">
      <div style="min-width:78px"><b>${DIAS_PT[dow].slice(0,3)}</b> ${esc(fd(d))}${d===hoje?' <span class="tag">hoje</span>':''}</div>
      <div class="grow"><b>${esc(x.n)}</b><div class="small muted">${esc(cfg.r)} · ${esc(x.f)}${cfg.e?' · ★ essencial':cfg.s?' · se der tempo':''}</div></div>
      ${feito?'<span class="tag ok">Postado</span>':''}</button>`}).join('');
-  const dsel=sel,xsel=igIdeiaDe(dsel);
   const t=S.igTema||'todos',lista=IG_IDEIAS.filter(x=>t==='todos'||x.t===t);
-  return `<div class="top"><div><h1>Instagram</h1><div class="sub">O que postar em cada dia da semana. Você copia, ajusta e posta; nada é publicado daqui.</div></div></div>
+  return `<div class="top"><div><h1>Instagram</h1><div class="sub">Toque em um dia para abrir a sugestão. Você copia, ajusta e posta; nada é publicado daqui.</div></div></div>
   <div class="note" style="margin-bottom:14px">Sem tempo? Faça só os dias com <b>★</b> (segunda, quarta e sexta). Foto de cliente só com autorização específica de divulgação: a ficha de anamnese <b>não</b> dá essa autorização.</div>
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap"><button class="btn sm" data-igsem="${off-1}">‹ Semana anterior</button><b>${esc(fd(dias[0]))} a ${esc(fd(dias[6]))}</b><button class="btn sm" data-igsem="${off+1}">Semana seguinte ›</button>${off?`<button class="btn sm" data-igsem="0">Esta semana</button>`:''}</div>
   <div class="box" style="margin-bottom:14px;padding:6px 12px">${lin}</div>
-  <h2>${DIAS_PT[new Date(dsel+'T12:00').getDay()]}, ${esc(fd(dsel))}</h2>${igCard(xsel,true)}
-  <div style="margin:-4px 0 14px"><button class="btn sm" data-igtroca="${dsel}">Trocar por outra ideia do mesmo tema</button></div>
   <details style="margin-top:6px"><summary style="cursor:pointer;font-weight:600;margin-bottom:10px">Ver todas as ideias (${IG_IDEIAS.length})</summary>
    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"><button class="btn sm ${t==='todos'?'p':''}" data-igtema="todos">Todas</button>${Object.entries(IG_TEMAS).map(([k,v])=>`<button class="btn sm ${t===k?'p':''}" data-igtema="${k}">${v}</button>`).join('')}</div>
    ${lista.map(x=>igCard(x,false)).join('')}</details>`}
-async function igTrocar(data){const dow=new Date(data+'T12:00').getDay(),pool=IG_IDEIAS.filter(x=>x.t===IG_SEMANA[dow].t),at=igIdeiaDe(data);
-  const prox=pool[(pool.findIndex(x=>x.id===at.id)+1)%pool.length];await grava(()=>DB.upd('admin/instagram/plano',{[data]:prox.id}),'Ideia trocada')}
-async function igCopiar(id){const x=IG_IDEIAS.find(y=>y.id===id),ta=document.getElementById('igl-'+id);
+// Pop-up do dia: a sugestão aparece por cima da tela, com ‹ › para passar pelas ideias do mesmo tema. A escolha fica guardada para aquele dia.
+function igAbrir(date,idx){
+  const dow=new Date(date+'T12:00').getDay(),cfg=IG_SEMANA[dow],pool=IG_IDEIAS.filter(x=>x.t===cfg.t);
+  if(idx==null)idx=Math.max(0,pool.findIndex(x=>x.id===igIdeiaDe(date).id));
+  idx=((idx%pool.length)+pool.length)%pool.length;const x=pool[idx];
+  openDlg(esc(DIAS_PT[dow]+', '+fd(date)+' · '+cfg.r),`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px"><button class="btn sm" id="igp">‹ Anterior</button><span class="small muted">Sugestão ${idx+1} de ${pool.length}</span><button class="btn sm" id="ign">Próxima ›</button></div>${igCard(x,false)}`);
+  const ir=async passo=>{const ta=dlg.querySelector('textarea'),r=(C.instagram||{})[x.id]||{},atual=r.legenda!=null?r.legenda:x.l;
+    if(ta&&ta.value!==atual&&!confirm('Você mudou a legenda e não guardou. Trocar de sugestão perde essa mudança. Continuar?'))return;
+    const novoIdx=((idx+passo)%pool.length+pool.length)%pool.length;
+    await grava(()=>DB.upd('admin/instagram/plano',{[date]:pool[novoIdx].id}));igAbrir(date,novoIdx)};
+  document.getElementById('igp').onclick=()=>ir(-1);document.getElementById('ign').onclick=()=>ir(1);
+  dlg.querySelectorAll('[data-igcopy]').forEach(b=>b.onclick=()=>igCopiar(b.dataset.igcopy,b));
+  dlg.querySelectorAll('[data-igsave]').forEach(b=>b.onclick=async()=>{await igSalvar(b.dataset.igsave,b)});
+  dlg.querySelectorAll('[data-igpost]').forEach(b=>b.onclick=async()=>{await igPostado(b.dataset.igpost);setTimeout(()=>igAbrir(date,idx),200)})}
+async function igCopiar(id,b){const x=IG_IDEIAS.find(y=>y.id===id),ta=b?b.closest('.box').querySelector('textarea'):document.getElementById('igl-'+id);
   const txt=ta.value.trim()+'\n\n'+x.h+' '+IG_BASE;
   try{await navigator.clipboard.writeText(txt);toast('Copiado. É só colar no Instagram.')}
   catch(e){ta.focus();ta.select();toast('Selecione o texto e copie (Ctrl+C).')}}
-async function igSalvar(id){const ta=document.getElementById('igl-'+id);await grava(()=>DB.upd('admin/instagram/'+id,{legenda:ta.value}),'Sua versão foi guardada')}
+async function igSalvar(id,b){const ta=b?b.closest('.box').querySelector('textarea'):document.getElementById('igl-'+id);await grava(()=>DB.upd('admin/instagram/'+id,{legenda:ta.value}),'Sua versão foi guardada')}
 async function igPostado(id){const r=(C.instagram||{})[id]||{};
   await grava(()=>DB.upd('admin/instagram/'+id,{postadoEm:r.postadoEm?null:iso(TODAY)}),r.postadoEm?'Desmarcado':'Marcado como postado')}
 
@@ -1337,14 +1432,15 @@ function render(){
   main.querySelectorAll('[data-ec]').forEach(b=>b.onclick=()=>editarConta(b.dataset.ec));
   main.querySelectorAll('[data-ef]').forEach(b=>b.onclick=()=>editarFornecedor(b.dataset.ef));
   main.querySelectorAll('[data-ecu]').forEach(b=>b.onclick=()=>editarCurso(b.dataset.ecu));
+  const bs=document.getElementById('brindesalvar');if(bs)bs.onclick=async()=>{const v=document.getElementById('brinde').value.trim();bs.disabled=true;
+    await grava(()=>DB.set('maison/config/brinde',v||null),v?'Brinde guardado':'Brinde voltou ao texto padrão');bs.disabled=false};
   main.querySelectorAll('[data-es]').forEach(b=>{const [u,i]=b.dataset.es.split('|');b.onclick=()=>editarServico(u,i)});
   main.querySelectorAll('[data-ns]').forEach(b=>b.onclick=()=>editarServico(b.dataset.ns,null));
-  main.querySelectorAll('[data-igdia]').forEach(b=>b.onclick=()=>{S.igDia=b.dataset.igdia;render()});
+  main.querySelectorAll('[data-igdia]').forEach(b=>b.onclick=()=>igAbrir(b.dataset.igdia));
   main.querySelectorAll('[data-igsem]').forEach(b=>b.onclick=()=>{S.igSem=+b.dataset.igsem;S.igDia=null;render()});
-  main.querySelectorAll('[data-igtroca]').forEach(b=>b.onclick=()=>igTrocar(b.dataset.igtroca));
   main.querySelectorAll('[data-igtema]').forEach(b=>b.onclick=()=>{S.igTema=b.dataset.igtema;render()});
-  main.querySelectorAll('[data-igcopy]').forEach(b=>b.onclick=()=>igCopiar(b.dataset.igcopy));
-  main.querySelectorAll('[data-igsave]').forEach(b=>b.onclick=()=>igSalvar(b.dataset.igsave));
+  main.querySelectorAll('[data-igcopy]').forEach(b=>b.onclick=()=>igCopiar(b.dataset.igcopy,b));
+  main.querySelectorAll('[data-igsave]').forEach(b=>b.onclick=()=>igSalvar(b.dataset.igsave,b));
   main.querySelectorAll('[data-igpost]').forEach(b=>b.onclick=()=>igPostado(b.dataset.igpost));
   main.querySelectorAll('[data-pend]').forEach(b=>b.onclick=()=>revisarPendente(b.dataset.pend));
   const nv=document.getElementById('novo');if(nv)nv.onclick=novoAg;
