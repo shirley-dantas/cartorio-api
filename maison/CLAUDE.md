@@ -88,3 +88,7 @@ Um número de WhatsApp para as duas unidades. A saudação do WhatsApp Business 
 ## Endereço que a cliente vê
 
 Tudo que a cliente recebe (ficha `/f/…`, horário `/h`, agendamento `/p`, prévias do WhatsApp) usa **`https://thariga-brito.vercel.app`** (`DOMINIO_PUBLICO` no `index.html`; as tags `og:image` dos três `.html` apontam para ele). O endereço antigo (`cartorio-api-maison…`) continua funcionando, mas **não pode aparecer** para cliente.
+
+### Regra viva do brinde (atualização)
+
+A porcentagem **não fica gravada no código**: vale a regra do momento (`/maison/config/brindeRegra`, `v:2`: `pct`, `limite` (0 = sem limite), `pctAte` para serviços até o limite, `dias` (0 = sem prazo)). Mudar a regra muda na hora para todos os códigos ainda não usados; o atendimento grava a porcentagem que foi aplicada (`desc.pct`). O prazo também é calculado ao vivo (`emitido` + `dias`). Os campos `valeAte/limite/pctAte/pctAcima` do código são só marcadores para as regras antigas do banco.

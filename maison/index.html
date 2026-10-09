@@ -612,7 +612,7 @@ function msgDlg(tipo,cid){const c=cli(cid),nome=c.n.split(' ')[0];
   document.getElementById('cp-m').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('mt').value);toast('Mensagem copiada, com os emojis. Cole na conversa.')}catch(e){toast('Não foi possível copiar')}};
   const ou=document.getElementById('outra');if(ou)ou.onclick=()=>{ni++;document.getElementById('mt').value=txt()};
   const stat=()=>{const e=document.getElementById('vstat');if(!e)return;const lb=document.getElementById('libb');
-    if(vv){e.innerHTML=`<span class="tag ok">Brinde liberado</span> ${esc(vv.id)} · até ${fd(vv.valeAte)}`;if(lb)lb.hidden=true}
+    if(vv){e.innerHTML=`<span class="tag ok">Brinde liberado</span> ${esc(vv.id)} · ${ateTxt(vv)}`;if(lb)lb.hidden=true}
     else{const ja=voucherRecente(cid);e.innerHTML=ja&&ja.usado?'<span class="tag">Brinde deste ano já usado</span> A mensagem leva só o texto do brinde.':isAdmin()?'Sem código: a mensagem leva só o texto do brinde (definido em <b>Serviços e preços</b>). Para dar desconto, libere o brinde com código.':'A Tháriga ainda não liberou o desconto desta cliente. A mensagem leva só o texto do brinde.'}};
   stat();
   const lb=document.getElementById('libb');if(lb)lb.onclick=async()=>{lb.disabled=true;const v=await liberarBrinde(cid);if(v){vv=v;document.getElementById('mt').value=txt();stat()}lb.disabled=false}}
@@ -648,26 +648,32 @@ function vAgenda(){
 // ── Brinde de aniversário como voucher ──
 // O desconto só existe se a Tháriga liberou antes: um código por cliente, uso único, com prazo.
 // Quem atende não digita desconto: aplica o voucher, e o painel calcula. Desconto sem voucher exige motivo e fica marcado.
-const BRINDE_REGRA_PADRAO={limite:200,pctAte:5,pctAcima:10,dias:30};
-const regraBrinde=()=>({...BRINDE_REGRA_PADRAO,...((C.mCfg&&C.mCfg.brindeRegra)||{})});
-const vouchers=()=>[...arr(C.mVou).map(v=>({...v,_p:'maison'})),...(isAdmin()?arr(C.fVou).map(v=>({...v,_p:'florenca'})):[])];
-const pctBrinde=(preco,v)=>preco<=v.limite?v.pctAte:v.pctAcima;
+// A regra é VIVA: quem muda aqui muda na hora para todos os códigos que ainda não foram usados (nada fica gravado no código além de quem é e quando saiu).
+// pct = desconto padrão; limite > 0 = serviço até esse valor recebe pctAte (o mais barato); limite 0 = sem limite, todos recebem pct; dias 0 = sem prazo.
+const BRINDE_REGRA_PADRAO={pct:10,limite:0,pctAte:5,dias:0};
+const regraBrinde=()=>{const c=(C.mCfg&&C.mCfg.brindeRegra)||{};return {...BRINDE_REGRA_PADRAO,...(c.v===2?c:{})}};
+const valeAteDe=(v,r)=>r.dias>0&&v.emitido?iso(addD(new Date(v.emitido+'T12:00'),r.dias)):'';
+const vouchers=()=>{const r=regraBrinde();return [...arr(C.mVou).map(v=>({...v,_p:'maison'})),...(isAdmin()?arr(C.fVou).map(v=>({...v,_p:'florenca'})):[])].map(v=>({...v,valeAte:valeAteDe(v,r)}))};
+const venceu=(v,data)=>!!v.valeAte&&v.valeAte<data;
+const ateTxt=v=>v.valeAte?'até '+fd(v.valeAte):'sem prazo';
+const pctBrinde=(preco,r)=>r.limite>0&&preco<=r.limite?r.pctAte:r.pct;
 const centavos=v=>Math.round(v*100)/100;
-const calcBrinde=(preco,v)=>{const pct=pctBrinde(preco,v),desc=Math.round(preco*pct)/100;return{pct,desc,final:centavos(preco-desc)}};
-const voucherAtivo=(cid,data)=>vouchers().filter(v=>v.cli===cid&&!v.usado&&!v.cancelado&&v.valeAte>=data).sort((a,b)=>(b.emitido||'').localeCompare(a.emitido||''))[0]||null;
+const calcBrinde=(preco,r=regraBrinde())=>{const pct=pctBrinde(preco,r),desc=Math.round(preco*pct)/100;return{pct,desc,final:centavos(preco-desc)}};
+const voucherAtivo=(cid,data)=>vouchers().filter(v=>v.cli===cid&&!v.usado&&!v.cancelado&&!venceu(v,data)).sort((a,b)=>(b.emitido||'').localeCompare(a.emitido||''))[0]||null;
 const voucherRecente=cid=>vouchers().filter(v=>v.cli===cid&&!v.cancelado).sort((a,b)=>(b.emitido||'').localeCompare(a.emitido||''))[0]||null;
 const MOTIVOS_DESC=['Cortesia autorizada pela Tháriga','Pacote ou combinado com a cliente','Correção de preço','Outro'];
 function novoCodigo(){const al='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',b=crypto.getRandomValues(new Uint8Array(6));return 'NIVER-'+[...b].map(x=>al[x%al.length]).join('')}
-const textoVoucher=v=>{const l=brl(v.limite).replace(/,00$/,'');
-  const regra=v.pctAte===v.pctAcima?`${v.pctAte}% de desconto no seu próximo atendimento`:`${v.pctAte}% de desconto nos serviços até ${l} e ${v.pctAcima}% nos acima disso`;
-  return `${regra}, válido até ${fd(v.valeAte,{day:'2-digit',month:'2-digit',year:'numeric'})}. Seu código: ${v.id}. É só falar o código na hora do atendimento.`};
-async function liberarBrinde(cid){if(!isAdmin())return null;const c=cli(cid),r=regraBrinde(),ano=TODAY.getFullYear();
+const textoVoucher=v=>{const r=regraBrinde(),l=brl(r.limite).replace(/,00$/,'');
+  const regra=r.limite>0&&r.pctAte!==r.pct?`${r.pctAte}% de desconto nos serviços até ${l} e ${r.pct}% nos acima disso`:`${r.pct}% de desconto no seu próximo atendimento`;
+  return `${regra}${v.valeAte?', válido até '+fd(v.valeAte,{day:'2-digit',month:'2-digit',year:'numeric'}):''}. Seu código: ${v.id}. É só falar o código na hora do atendimento.`};
+async function liberarBrinde(cid){if(!isAdmin())return null;const c=cli(cid),ano=TODAY.getFullYear();
   const ja=vouchers().find(v=>v.cli===cid&&v.ano===ano&&!v.cancelado);
   if(ja){toast('Esta cliente já tem brinde neste ano.');return ja}
   const cod=novoCodigo(),base=c._p==='florenca'?'florenca':'maison';
-  const dado={cli:cid,nome:c.n,ano,emitido:iso(TODAY),emitidoPor:S.user.nome,valeAte:iso(addD(TODAY,r.dias)),limite:r.limite,pctAte:r.pctAte,pctAcima:r.pctAcima,usado:false};
+  // valeAte/limite/pctAte/pctAcima ficam só como marcadores, para as regras do banco antigas continuarem aceitando; quem manda é a regra viva.
+  const dado={cli:cid,nome:c.n,ano,emitido:iso(TODAY),emitidoPor:S.user.nome,valeAte:'-',limite:0,pctAte:0,pctAcima:0,usado:false};
   const ok=await grava(()=>DB.set(base+'/vouchers/'+cod,dado),'Brinde liberado para '+c.n.split(' ')[0]);
-  return ok?{id:cod,...dado,_p:base}:null}
+  return ok?{id:cod,...dado,valeAte:valeAteDe(dado,regraBrinde()),_p:base}:null}
 const motivoHtml=()=>`<div id="cmot" class="alert" hidden style="margin-bottom:12px"><b>Valor abaixo da tabela.</b> Diga o motivo: a Tháriga vê este desconto em Financeiro.
   <label class="f" style="margin-top:8px">Motivo<select id="cm"><option value="">Escolha…</option>${MOTIVOS_DESC.map(x=>`<option>${x}</option>`).join('')}</select></label>
   <label class="f" style="margin-bottom:0">Detalhe (quem autorizou, o que combinou)<input id="cmd" maxlength="140"></label></div>`;
@@ -677,7 +683,7 @@ const lerMotivo=()=>{const m=document.getElementById('cm').value,d=document.getE
   return{tipo:'manual',motivo:m,det:d,por:S.user.nome,em:iso(TODAY)}};
 function brindeTag(cid){const v=voucherRecente(cid);
   if(!v)return isAdmin()?`<button class="btn sm" data-lib="${cid}">Liberar brinde</button>`:'';
-  return v.usado?'<span class="tag">Brinde usado</span>':v.valeAte<iso(TODAY)?'<span class="tag warn">Brinde venceu</span>':`<span class="tag ok" title="${esc(v.id)}">🎁 até ${fd(v.valeAte)}</span>`}
+  return v.usado?'<span class="tag">Brinde usado</span>':venceu(v,iso(TODAY))?'<span class="tag warn">Brinde venceu</span>':`<span class="tag ok" title="${esc(v.id)}">🎁 ${ateTxt(v)}</span>`}
 function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.serv,a.unit);
   let vou=voucherAtivo(a.cli,a.date),aplicar=!!vou;
   openDlg('Concluir atendimento',`<p><b>${esc(cli(a.cli).n)}</b><br><span class="muted">${esc(s.n)} com ${esc(PEOPLE[a.pro]?.n)} · ${U[a.unit].n}</span></p>
@@ -689,8 +695,8 @@ function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.ser
   <button class="btn p" id="csave">Registrar atendimento</button>`);
   const cv=document.getElementById('cv'),box=document.getElementById('cvbox'),mot=document.getElementById('cmot');
   const atualiza=()=>{
-    if(vou&&aplicar){const k=calcBrinde(s.p,vou);cv.value=k.final.toFixed(2);cv.readOnly=true;mot.hidden=true;
-      box.innerHTML=`<div class="voucher"><div class="vt">🎁 Brinde de aniversário</div><div class="vl"><span>Tabela</span><b>${brl(s.p)}</b></div><div class="vl"><span>Desconto de ${k.pct}%</span><b>− ${brl(k.desc)}</b></div><div class="vl tot"><span>A cobrar</span><b>${brl(k.final)}</b></div><div class="small muted" style="margin-top:6px">Código ${esc(vou.id)} · vale até ${fd(vou.valeAte)} · uso único. O valor está travado.</div><button type="button" class="btn sm" id="vno" style="margin-top:8px">Não aplicar o brinde</button></div>`;
+    if(vou&&aplicar){const k=calcBrinde(s.p);cv.value=k.final.toFixed(2);cv.readOnly=true;mot.hidden=true;
+      box.innerHTML=`<div class="voucher"><div class="vt">🎁 Brinde de aniversário</div><div class="vl"><span>Tabela</span><b>${brl(s.p)}</b></div><div class="vl"><span>Desconto de ${String(k.pct).replace('.',',')}%</span><b>− ${brl(k.desc)}</b></div><div class="vl tot"><span>A cobrar</span><b>${brl(k.final)}</b></div><div class="small muted" style="margin-top:6px">Código ${esc(vou.id)} · ${vou.valeAte?'vale até '+fd(vou.valeAte):'sem prazo'} · uso único. O valor está travado.</div><button type="button" class="btn sm" id="vno" style="margin-top:8px">Não aplicar o brinde</button></div>`;
       document.getElementById('vno').onclick=()=>{aplicar=false;cv.value=s.p;atualiza()}}
     else{cv.readOnly=false;
       box.innerHTML=vou?`<div class="voucher off"><div class="vt">🎁 Brinde disponível, não aplicado</div><button type="button" class="btn sm" id="vyes">Aplicar o brinde</button></div>`:`<div class="voucher semv"><div class="vt">Tem código de brinde?</div><div style="display:flex;gap:8px"><input id="vcod" placeholder="NIVER-XXXXXX" autocapitalize="characters" style="flex:1"><button type="button" class="btn sm" id="vcheck">Conferir</button></div><div class="small" id="vmsg" style="margin-top:6px"></div></div>`;
@@ -700,7 +706,7 @@ function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.ser
         if(!v||v.cancelado){m.textContent='Código não encontrado.';return}
         if(v.cli!==a.cli){m.textContent='Este código é de outra cliente. Não vale neste atendimento.';return}
         if(v.usado){m.textContent='Este código já foi usado.';return}
-        if(v.valeAte<a.date){m.textContent='Este código venceu em '+fd(v.valeAte)+'.';return}
+        if(venceu(v,a.date)){m.textContent='Este código venceu em '+fd(v.valeAte)+'.';return}
         vou=v;aplicar=true;atualiza()};
       mot.hidden=!(parseFloat(cv.value)<s.p-0.005)}};
   cv.oninput=()=>{if(!(vou&&aplicar))mot.hidden=!(parseFloat(cv.value)<s.p-0.005)};
@@ -710,7 +716,7 @@ function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.ser
     const valor=parseFloat(cv.value);
     if(!(valor>=0)){toast('Digite o valor cobrado');btn.disabled=false;return}
     const usaV=vou&&aplicar;let desc=null,k=null;
-    if(usaV){k=calcBrinde(s.p,vou);if(Math.abs(valor-k.final)>0.005){toast('O valor do brinde não pode ser mudado.');btn.disabled=false;return}
+    if(usaV){k=calcBrinde(s.p);if(Math.abs(valor-k.final)>0.005){toast('O valor do brinde não pode ser mudado.');btn.disabled=false;return}
       desc={tipo:'brinde',voucher:vou.id,pct:k.pct,valorDesc:k.desc,por:S.user.nome,em:iso(TODAY)}}
     else if(valor<s.p-0.005){desc=lerMotivo();if(!desc){btn.disabled=false;return}}
     const ok=await grava(async()=>{
@@ -1206,7 +1212,7 @@ function descontosHtml(){
   const soma=a=>a.reduce((s,x)=>s+x.d,0),bri=linhas.filter(x=>x.origem==='brinde'),man=linhas.filter(x=>x.origem==='manual'),sem=linhas.filter(x=>x.origem==='sem');
   const fat=recs.reduce((s,h)=>s+h.valor,0),tot=soma(linhas);
   const ordem={sem:0,manual:1,brinde:2};linhas.sort((a,b)=>ordem[a.origem]-ordem[b.origem]||b.h.date.localeCompare(a.h.date));
-  const vs=vouchers(),vAtivos=vs.filter(v=>!v.usado&&!v.cancelado&&v.valeAte>=iso(TODAY)),vUsados=vs.filter(v=>v.usado),vVenc=vs.filter(v=>!v.usado&&!v.cancelado&&v.valeAte<iso(TODAY));
+  const vs=vouchers(),vAtivos=vs.filter(v=>!v.usado&&!v.cancelado&&!venceu(v,iso(TODAY))),vUsados=vs.filter(v=>v.usado),vVenc=vs.filter(v=>!v.usado&&!v.cancelado&&venceu(v,iso(TODAY)));
   const tag=x=>x.origem==='brinde'?`<span class="tag ok">Brinde de aniversário · ${x.h.desc.pct}%</span>`:x.origem==='manual'?`<span class="tag warn">${esc(x.h.desc.motivo)}</span>`:'<span class="tag" style="background:#fbe3e0;color:#9b2c1f">Sem motivo registrado</span>';
   const det=x=>x.origem==='manual'?`<div class="small">${esc(x.h.desc.det)} · registrado por ${esc(x.h.desc.por||'')}</div>`:x.origem==='brinde'?`<div class="small muted">Código ${esc(x.h.desc.voucher)}</div>`:`<div class="small" style="color:#9b2c1f">Cobrado abaixo da tabela, sem voucher e sem motivo.${x.h.tabela==null?' Atendimento de antes do controle: comparado ao preço de hoje.':''}${x.h.corrigidoPor?' Corrigido por '+esc(x.h.corrigidoPor)+'.':''}</div>`;
   return `<div class="box" style="margin-top:16px" id="descontos"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Descontos dados</h2>
@@ -1220,7 +1226,7 @@ function descontosHtml(){
    <div style="margin-top:8px">${linhas.length?linhas.map(x=>`<div class="row" style="align-items:flex-start"><div class="grow"><b>${esc(cli(x.h.cli).n)}</b><div class="small muted">${fd(x.h.date)} · ${esc(sv(x.h.serv,x.h.unit).n)} · ${esc(PEOPLE[x.h.pro]?.n||'')} · ${U[x.h.unit].n}</div>${det(x)}</div><div style="text-align:right"><div class="small muted"><s>${brl(x.tab)}</s> → <b>${brl(x.h.valor)}</b></div><div><b>− ${brl(x.d)}</b></div>${tag(x)}</div></div>`).join(''):'<p class="muted">Nenhum desconto neste período.</p>'}</div>
    <h3 style="margin:18px 0 4px">Códigos de brinde</h3>
    <div class="grid g3"><div><div class="lbl">Liberados e valendo</div><div class="stat" style="font-size:26px">${vAtivos.length}</div></div><div><div class="lbl">Usados</div><div class="stat" style="font-size:26px">${vUsados.length}</div></div><div><div class="lbl">Venceram sem uso</div><div class="stat" style="font-size:26px">${vVenc.length}</div></div></div>
-   ${vs.length?vs.sort((a,b)=>(b.emitido||'').localeCompare(a.emitido||'')).slice(0,12).map(v=>`<div class="row"><div class="grow"><b>${esc(v.nome||cli(v.cli).n)}</b><div class="small muted">${esc(v.id)} · liberado em ${fd(v.emitido)} por ${esc(v.emitidoPor||'')} · vale até ${fd(v.valeAte)}</div></div>${v.usado?`<span class="tag">Usado em ${fd(v.usadoEm)}${v.usadoPor?' · '+esc(v.usadoPor):''}</span>`:v.valeAte<iso(TODAY)?'<span class="tag warn">Venceu</span>':'<span class="tag ok">Valendo</span>'}</div>`).join(''):'<p class="muted">Nenhum código liberado ainda. Libere na aba Hoje, em Aniversários da semana.</p>'}</div>`}
+   ${vs.length?vs.sort((a,b)=>(b.emitido||'').localeCompare(a.emitido||'')).slice(0,12).map(v=>`<div class="row"><div class="grow"><b>${esc(v.nome||cli(v.cli).n)}</b><div class="small muted">${esc(v.id)} · liberado em ${fd(v.emitido)} por ${esc(v.emitidoPor||'')} · ${v.valeAte?'vale até '+fd(v.valeAte):'sem prazo'}</div></div>${v.usado?`<span class="tag">Usado em ${fd(v.usadoEm)}${v.usadoPor?' · '+esc(v.usadoPor):''}</span>`:venceu(v,iso(TODAY))?'<span class="tag warn">Venceu</span>':'<span class="tag ok">Valendo</span>'}</div>`).join(''):'<p class="muted">Nenhum código liberado ainda. Libere na aba Hoje, em Aniversários da semana.</p>'}</div>`}
 function vFinanceiro(){
   const m=monthRecs();const mes=TODAY.toLocaleDateString('pt-BR',{month:'long'});
   const mai=m.filter(h=>h.unit==='mai'),flo=m.filter(h=>h.unit==='flo');
@@ -1297,18 +1303,19 @@ function abrirSuporte(){if(!S.user)return;
     if(SUPORTE_URL){try{await fetch(SUPORTE_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({chave:SUPORTE_CHAVE,...reg})});mandou=true}catch(e){guardaErro(e.message)}}
     if(salvou||mandou){toast(mandou?'Pedido enviado ao suporte':'Pedido guardado. O suporte vai ver em breve.');closeDlg()}else btn.disabled=false}}
 function vServicos(){
-  const rg=regraBrinde(),ex=servicosDe('mai').filter(x=>x.ativo!==false&&x.p>0).slice(0,4);
-  const pctSel=(id,v)=>`<select id="${id}" style="width:auto"><option value="5" ${v===5?'selected':''}>5%</option><option value="10" ${v===10?'selected':''}>10%</option></select>`;
+  const rg=regraBrinde();
   const regraBox=`<div class="box" style="margin-bottom:16px"><h2>Desconto do brinde de aniversário</h2>
-   <p class="small muted" style="margin-top:0">O desconto só vale com o <b>código</b> que você libera para cada aniversariante: uso único, com prazo. Quem atende não digita desconto, só aplica o código, e o valor sai calculado e travado.</p>
+   <p class="small muted" style="margin-top:0">O desconto só vale com o <b>código</b> que você libera para cada aniversariante, e uso único. Quem atende não digita desconto, só aplica o código, e o valor sai calculado e travado. <b>Se você mudar a porcentagem, muda na hora para todos os códigos que ainda não foram usados</b> (as mensagens já enviadas continuam citando a porcentagem da época).</p>
    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-    <label class="f" style="margin:0">Serviço até (R$)<input type="number" id="bl" min="0" step="1" value="${rg.limite}" style="width:110px"></label>
-    <label class="f" style="margin:0">Desconto<br>${pctSel('bpa',rg.pctAte)}</label>
-    <label class="f" style="margin:0">Acima disso<br>${pctSel('bpb',rg.pctAcima)}</label>
-    <label class="f" style="margin:0">Vale por (dias)<input type="number" id="bd" min="1" max="90" value="${rg.dias}" style="width:90px"></label></div>
+    <label class="f" style="margin:0">Desconto (%)<input type="number" id="bp" min="0" max="100" step="0.5" value="${rg.pct}" style="width:100px"></label>
+    <label class="f" style="margin:0">Vale por (dias)<input type="number" id="bd" min="0" max="365" step="1" value="${rg.dias||''}" placeholder="sem prazo" style="width:110px"></label></div>
+   <details style="margin:12px 0 0" ${rg.limite>0?'open':''}><summary class="small" style="cursor:pointer">Dar um desconto diferente para os serviços mais baratos (opcional)</summary>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px">
+     <label class="f" style="margin:0">Serviço até (R$)<input type="number" id="bl" min="0" step="1" value="${rg.limite||''}" placeholder="sem limite" style="width:120px"></label>
+     <label class="f" style="margin:0">Esses recebem (%)<input type="number" id="bpa" min="0" max="100" step="0.5" value="${rg.pctAte}" style="width:100px"></label></div>
+    <p class="small muted" style="margin:6px 0 0">Em branco = sem limite: todos os serviços recebem o mesmo desconto.</p></details>
    <div id="bprev" class="small" style="margin:12px 0"></div>
-   <button class="btn p sm" id="regrasalvar">Salvar regra</button>
-   <p class="small muted" style="margin:10px 0 0">A regra vale para os códigos liberados daqui para frente. Os já liberados mantêm a regra de quando foram criados.</p></div>`;
+   <button class="btn p sm" id="regrasalvar">Salvar regra</button></div>`;
   const brindeBox=regraBox+`<div class="box" style="margin-bottom:16px"><h2>Texto do brinde</h2><p class="small muted" style="margin-top:0">Fecha as mensagens de aniversário de quem ainda não recebeu um código. Escreva o que você quer oferecer, por exemplo: <i>um mimo especial no seu próximo atendimento</i>. Desconto de verdade só existe pelo código.</p>
    <label class="f"><input id="brinde" value="${esc((C.mCfg&&C.mCfg.brinde)||'')}" placeholder="${esc(BRINDE_PADRAO)}"></label><button class="btn p sm" id="brindesalvar">Salvar brinde</button></div>`;
   const sec=u=>`<div class="box" style="margin-bottom:16px"><h2>${U[u].n}</h2>${servicosDe(u).map(x=>`<div class="row" style="${x.ativo===false?'opacity:.55':''}"><div class="grow"><b>${esc(x.n)}</b><div class="small muted">${x.d?x.d+' min':'sem duração'}${x.obs?' · '+esc(x.obs):''}${x.ativo===false?' · desativado':''}</div></div><b>${brl(x.p)}</b><button class="btn sm" data-es="${u}|${x.id}">Editar</button></div>`).join('')}<div style="margin-top:12px"><button class="btn" data-ns="${u}">Novo serviço no ${U[u].n}</button></div></div>`;
@@ -1686,11 +1693,12 @@ function render(){
   const bs=document.getElementById('brindesalvar');if(bs)bs.onclick=async()=>{const v=document.getElementById('brinde').value.trim();bs.disabled=true;
     await grava(()=>DB.set('maison/config/brinde',v||null),v?'Brinde guardado':'Brinde voltou ao texto padrão');bs.disabled=false};
   const rs=document.getElementById('regrasalvar');if(rs){
-    const prev=()=>{const l=+document.getElementById('bl').value||0,a=+document.getElementById('bpa').value,b=+document.getElementById('bpb').value,v={limite:l,pctAte:a,pctAcima:b};
-      const ord=servicosDe('mai').filter(x=>x.ativo!==false&&x.p>0).sort((a,b)=>a.p-b.p);document.getElementById('bprev').innerHTML=(ord.length>4?[...ord.slice(0,2),...ord.slice(-2)]:ord).map(x=>{const k=calcBrinde(x.p,v);return `<div>${esc(x.n)}: ${brl(x.p)} → <b>${k.pct}%</b> → <b>${brl(k.final)}</b></div>`}).join('')||'Cadastre serviços para ver o exemplo.'};
-    ['bl','bpa','bpb'].forEach(i=>document.getElementById(i).oninput=prev);prev();
-    rs.onclick=async()=>{const r={limite:Math.max(0,+document.getElementById('bl').value||0),pctAte:+document.getElementById('bpa').value,pctAcima:+document.getElementById('bpb').value,dias:Math.min(90,Math.max(1,parseInt(document.getElementById('bd').value)||30))};
-      rs.disabled=true;await grava(()=>DB.set('maison/config/brindeRegra',r),'Regra do brinde salva');rs.disabled=false}}
+    const clamp=(v,d)=>{v=parseFloat(v);return isNaN(v)?d:Math.max(0,Math.min(100,v))};
+    const lerRegra=()=>({v:2,pct:clamp(document.getElementById('bp').value,10),limite:Math.max(0,+document.getElementById('bl').value||0),pctAte:clamp(document.getElementById('bpa').value,5),dias:Math.max(0,Math.min(365,parseInt(document.getElementById('bd').value)||0))});
+    const prev=()=>{const r=lerRegra(),ord=servicosDe('mai').filter(x=>x.ativo!==false&&x.p>0).sort((a,b)=>a.p-b.p);
+      document.getElementById('bprev').innerHTML=(ord.length>4?[...ord.slice(0,2),...ord.slice(-2)]:ord).map(x=>{const k=calcBrinde(x.p,r);return `<div>${esc(x.n)}: ${brl(x.p)} → <b>${String(k.pct).replace('.',',')}%</b> → <b>${brl(k.final)}</b></div>`}).join('')||'Cadastre serviços para ver o exemplo.'};
+    ['bp','bl','bpa','bd'].forEach(i=>document.getElementById(i).oninput=prev);prev();
+    rs.onclick=async()=>{rs.disabled=true;await grava(()=>DB.set('maison/config/brindeRegra',lerRegra()),'Regra do brinde salva. Vale na hora para os códigos ainda não usados.');rs.disabled=false}}
   main.querySelectorAll('[data-es]').forEach(b=>{const [u,i]=b.dataset.es.split('|');b.onclick=()=>editarServico(u,i)});
   main.querySelectorAll('[data-ns]').forEach(b=>b.onclick=()=>editarServico(b.dataset.ns,null));
   main.querySelectorAll('[data-igdia]').forEach(b=>b.onclick=()=>igAbrir(b.dataset.igdia));
