@@ -30,7 +30,7 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
 - **A anamnese segue a ficha oficial da Maison Beauty** (PDF da Tháriga, página 1): identificação, serviço solicitado, 12 perguntas de saúde com Sim/Não **todas obrigatórias**, detalhes, autorização de foto e assinatura. A página 2 (registro do atendimento) é por atendimento, preenchida por todas, com o nome e a data de quem preencheu (sem nova assinatura da cliente). **Fotos só de quem autorizou**, reduzidas no aparelho e guardadas no próprio banco.
 - **Cada unidade fica com os seus clientes.** A funcionária da Maison lança sempre na Maison; a Tháriga vê a unidade já escolhida pelo filtro da tela (ou, sem filtro, pelo dia de hoje: Florença quinta a sábado, Maison domingo a quarta) e pode trocar. Cliente do Florença mora em `/florenca` e a equipe da Maison nunca lê.
 - **Foto pela ficha é obrigatória para quem autoriza:** quem marca "Autorizo" na anamnese por link tira a foto na hora (câmera do celular, sem galeria; de 1 a 3 fotos, reduzidas no aparelho) e a ficha só é enviada com ela. Quem marca "Não autorizo" não manda foto e a ficha segue normal. A equipe confere e marca "Anexar" ao integrar; viram "foto inicial" do cadastro. As regras do banco exigem foto quando há autorização e recusam foto quando não há.
-- **Anamnese por link:** a cliente preenche em `anamnese.html?t=CÓDIGO`, sem conta (login anônimo). Código de 32 caracteres, 7 dias, uso único; o envio vai para `/maison/pendentes` e **só vale na ficha depois que a equipe integra**. O convite guarda só o primeiro nome. Só clientes da Maison (não Florença).
+- **Anamnese por link:** a cliente abre `/f/CÓDIGO` (a Vercel serve `anamnese.html`; o `?t=` antigo continua valendo), sem conta (login anônimo). O link mostra a logo da Maison Beauty na prévia do WhatsApp (`og-ficha.png` e as tags `og:` do `anamnese.html`). Código de 22 caracteres, 7 dias, uso único; o envio vai para `/maison/pendentes` e **só vale na ficha depois que a equipe integra**. O convite guarda o primeiro nome e o que já está no cadastro (nascimento, telefone, e-mail) para a ficha vir preenchida, e a lista de serviços das duas unidades. Só clientes da Maison (não Florença).
 - **Preços e serviços** são editáveis pela Tháriga (`/maison/servicos`, sobre a tabela de partida `SERV`). Valor cobrado de atendimento já registrado nunca muda sozinho.
 - **Suporte:** botão "Preciso de ajuda" grava em `/maison/suporte` e manda e-mail pelo Apps Script (`apps-script/suporte.js`, `SUPORTE_URL` no `index.html`).
 - **Instagram (fase 1, aba só da administradora):** plano da semana (um tema por dia: seg dicas, ter bastidores, qua conversa, qui cuidados, sex autocuidado, sáb horários, dom descanso; ★ = mínimo se a semana apertar), com banco de ideias recolhido embaixo; legenda, hashtags e o que fotografar; nada é publicado pelo painel. A troca de ideia do dia fica em `/admin/instagram/plano/{data}`. Sem promessa de resultado, sem preço e sem foto de cliente. O que ela edita e o que marca como postado fica em `/admin/instagram`.
@@ -38,6 +38,7 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
 - **Avisar a cliente do horário (sem script):** ao agendar ou remarcar abre a mensagem pronta e editável, com botões **WhatsApp** (como a anamnese) e **e-mail**, e um link que salva o horário na agenda da própria cliente. Também há o botão "Avisar a cliente" em cada cartão da agenda. A mensagem não leva valor. É o caminho principal; o convite pela Google Agenda é opcional.
 - **Convite da agenda:** o evento leva só serviço, unidade e horário (nunca ficha, anamnese ou valor). Remarcar atualiza o mesmo evento, nunca cria outro.
 - **A Laís só atende às segundas, na tela e nas regras do banco** (o agendamento leva `ts` e a regra confere o dia da semana).
+- **Cadastro repetido pergunta antes de duplicar** (cliente por nome ou telefone, fornecedor, conta, serviço, curso, tema). Cliente, fornecedor e conta podem ser cadastrados na hora, dentro do agendamento ou da conta. O cadastro da cliente guarda a data de nascimento completa; a foto inicial vira a foto pequena da cliente nas listas (`avatar`). Fornecedor tem unidade.
 - **Todo serviço exige anamnese** válida (vence em 6 meses). Retorno padrão: 20 dias.
 - **Unidade do dia** vem do dia da semana: Florença quinta–sábado, Maison
   domingo–quarta. Tháriga não escolhe unidade à mão.
@@ -46,8 +47,7 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
   avisa se o banco recusar; toda leitura que falha mostra o motivo e o botão
   "Tentar de novo". Nunca "salvo" sem ter salvo.
 - **Texto digitado vai por `esc()`** antes de entrar no HTML (são dados de clientes).
-- A mensagem de aniversário **não promete desconto**: o texto do protótipo
-  oferecia 15% que ninguém confirmou.
+- **Mensagem de aniversário:** são 8 textos que se alternam (o ponto de partida muda por cliente e por ano; o botão "Outra mensagem" passa para a próxima), todos fechando com o **brinde que a Tháriga escreve** em *Serviços e preços* (`/maison/config/brinde`). O painel **não inventa desconto**: sem brinde definido usa um texto neutro ("um mimo especial no seu próximo atendimento"). O protótipo oferecia 15% que ninguém confirmou.
 
 ## Rodando
 Sem `apiKey` em `firebaseConfig`, abre em **demonstração** (memória). Para

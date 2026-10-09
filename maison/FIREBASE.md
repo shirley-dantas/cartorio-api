@@ -54,6 +54,9 @@ O agendamento leva `ts` (a data em milissegundos, à meia-noite UTC) e as regras
 - **Conta a pagar:** editar e cancelar (guardada como cancelada). **Fornecedor e curso:** editar e excluir.
 - **Se mudar a regra de quem pode o quê, republique** `database.rules.json` no console.
 
+## Brinde de aniversário
+A Tháriga escreve o brinde em **Serviços e preços**; ele fica em `/maison/config/brinde` (só a administradora altera, toda a equipe lê) e fecha as mensagens de aniversário. **Republique as regras** depois desta versão, senão salvar o brinde é recusado.
+
 ## Fotos e registro do atendimento
 - As fotos são **reduzidas no aparelho** (lado maior de 1280 px, JPEG) e gravadas em `/{unidade}/fotos/{cliente}/{foto}`; as regras recusam foto com mais de ~700 mil caracteres.
 - Só se envia foto de cliente que **autorizou na anamnese**.
@@ -61,7 +64,7 @@ O agendamento leva `ts` (a data em milissegundos, à meia-noite UTC) e as regras
 - **Republique as regras** depois desta versão: sem isso o banco recusa registros e fotos.
 
 ## Anamnese por link
-- A cliente abre `anamnese.html?t=CÓDIGO` no celular, **sem conta**. O painel gera o código (32 caracteres, impossível de adivinhar), com validade de **7 dias** e **uso único**.
+- A cliente abre `/f/CÓDIGO` no celular, **sem conta** (precisa do `vercel.json` desta pasta; o endereço antigo `anamnese.html?t=CÓDIGO` continua valendo). O painel gera o código (22 caracteres, impossível de adivinhar), com validade de **7 dias** e **uso único**.
 - Para isso, em **Authentication → Método de login**, ligue **Anônimo**. Só a página da ficha usa isso; a cliente não vê nada do painel.
 - O que a cliente envia vai para `/maison/pendentes/{código}`, que só a equipe lê. A equipe confere em **Anamnese → Recebidas pelo link** e toca em **Integrar**. Só aí o link fecha.
 - **Foto pela ficha (obrigatória para quem autoriza):** se a cliente marcar "Autorizo", precisa tirar a foto na hora, pelo celular (de 1 a 3 fotos), para enviar a ficha. Se marcar "Não autorizo", não manda foto. Na conferência (**Recebidas pelo link**) a equipe vê as miniaturas, desmarca as que não quer e toca em **Integrar**: as marcadas viram "foto inicial" no cadastro. **Republique as regras** depois desta versão: elas exigem a foto de quem autoriza, limitam a 3 e recusam foto de quem não autorizou.
