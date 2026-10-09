@@ -84,3 +84,7 @@ Um número de WhatsApp para as duas unidades. A saudação do WhatsApp Business 
 - **A equipe só confere:** em Hoje, *Marcados pelo link* com *Ok, vi*, *Remarcar*, *Recusar* (cancela, libera o horário e deixa a mensagem no WhatsApp) e *Enviar ficha* para cliente nova.
 - **Regras do banco:** a cliente (anônima) só CRIA a reserva e o horário ocupado dela, e só com a agenda online da unidade ligada (é o interruptor de emergência contra spam). Florença: reservas só a Tháriga lê.
 - **Limites honestos:** o painel não lê conversas do WhatsApp; a conversão para a agenda acontece quando alguém está com o painel aberto (a vaga já fica travada antes disso); dois agendamentos de durações diferentes que se sobreponham, marcados no mesmo instante, podem escapar (aparece "Horário em conflito"); a lista de serviços da página é uma cópia da do painel. Passo a passo do app em `maison/WHATSAPP.md`.
+
+## Endereço que a cliente vê
+
+Tudo que a cliente recebe (ficha `/f/…`, horário `/h`, agendamento `/p`, prévias do WhatsApp) usa **`https://thariga-brito.vercel.app`** (`DOMINIO_PUBLICO` no `index.html`; as tags `og:image` dos três `.html` apontam para ele). O endereço antigo (`cartorio-api-maison…`) continua funcionando, mas **não pode aparecer** para cliente.

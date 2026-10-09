@@ -1,7 +1,7 @@
 # WhatsApp da Tháriga: como configurar o WhatsApp Business
 
 O painel **não lê** as conversas do WhatsApp (o app Business não deixa). O caminho é levar a cliente
-para a página de agendamento, `https://cartorio-api-maison.vercel.app/p`: ela escolhe a unidade, o serviço, os dias e o período,
+para a página de agendamento, `https://thariga-brito.vercel.app/p`: ela escolhe a unidade, o serviço, os dias e o período,
 vê só os **horários livres** e marca sozinha. O horário entra na agenda sozinho; a aba **Hoje** mostra *Marcados pelo link*
 (só a equipe da unidade vê; o do Florença é só da Tháriga) e a equipe pode **remarcar ou recusar**.
 Antes de divulgar o link, ligue a agenda online em *Serviços e preços → Agenda online* (começa desligada).
@@ -17,14 +17,14 @@ entre Android e iPhone: Android, três pontinhos → *Ferramentas comerciais*; i
 
 > Oi! Que bom ter você por aqui 💛 Aqui é a Maison Beauty / Estúdio Florença.
 > Para marcar o seu horário, escolha o serviço, o dia e a hora livre por aqui (leva menos de 1 minuto):
-> https://cartorio-api-maison.vercel.app/p
+> https://thariga-brito.vercel.app/p
 > Se preferir, é só me contar o que você precisa.
 
 ## 3. Mensagem de ausência (fora do horário)
 *Ferramentas comerciais → Mensagem de ausência*: ativar, **Enviar fora do horário de atendimento**, e colar:
 
 > Oi! Neste momento estamos fora do horário. Deixe o seu pedido de horário aqui e respondo assim que voltar 💛
-> https://cartorio-api-maison.vercel.app/p
+> https://thariga-brito.vercel.app/p
 
 ## 4. Respostas rápidas
 *Ferramentas comerciais → Respostas rápidas → +*. Atalhos úteis:

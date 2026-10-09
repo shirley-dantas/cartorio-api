@@ -203,8 +203,8 @@ const DEMO = !firebaseConfig.apiKey;
 const SUPORTE_URL='https://script.google.com/macros/s/AKfycbwoAlGyx8BElcl4Xf2rVknbdbAPvFuilPTDadFsZc-NnufV6g8bhYCp95O758FAOQNeMg/exec';
 const SUPORTE_CHAVE='YeW0wL5MBpOcA1bkiv3KCz9xhpb_iSEV';
 // Endereço que a CLIENTE vê nos links (ficha, horário, agendamento). Em branco = o endereço em que o painel foi aberto.
-// Preencha com o endereço sem "cartorio" quando o domínio novo existir na Vercel, ex.: 'https://maison-beauty.vercel.app'.
-const DOMINIO_PUBLICO='';
+// Endereço sem "cartorio" (domínio criado na Vercel, projeto maison). Não use o endereço antigo em nada que a cliente veja.
+const DOMINIO_PUBLICO='https://thariga-brito.vercel.app';
 const origemPublica=()=>(DOMINIO_PUBLICO||location.origin).replace(/\/$/,'');
 const AGENDA_URL='';
 const AGENDA_CHAVE='EXiC2WouRkPbh2W8AjhCWhpx4lUZJxRB';
@@ -559,7 +559,7 @@ function vHoje(){
   const hr=new Date().getHours(),saud=hr<12?'Bom dia':hr<18?'Boa tarde':'Boa noite';
   const minhas=agendaAtiva().filter(a=>a.date===t&&(isAdmin()?a.pro==='tha':a.unit==='mai')).sort((a,b)=>a.hora.localeCompare(b.hora));
   const semana=[...Array(7)].map((_,i)=>iso(addD(TODAY,i)).slice(5,10));
-  const niver=cliVisiveis().filter(c=>semana.includes(c.niver)).sort((a,b)=>semana.indexOf(a.niver)-semana.indexOf(b.niver));
+  const niver=cliVisiveis().filter(c=>semana.includes(c.niver)&&c.niverFeito!==TODAY.getFullYear()).sort((a,b)=>semana.indexOf(a.niver)-semana.indexOf(b.niver));
   const ult={};histAll().forEach(h=>{if(isAdmin()||h.unit==='mai')ult[h.cli]=h});
   const comFuturo=new Set(agendaAtiva().filter(a=>a.date>=t&&a.st!=='Atendido').map(a=>a.cli));
   const retornos=Object.values(ult).filter(h=>!comFuturo.has(h.cli)).map(h=>({h,dias:Math.round((TODAY-new Date(h.date+'T00:00'))/864e5),s:sv(h.serv,h.unit)})).filter(x=>x.s.ret&&x.dias>=x.s.ret).sort((a,b)=>b.dias-a.dias).slice(0,5);
@@ -572,14 +572,17 @@ function vHoje(){
    ${minhas.length?`<h3 style="margin:10px 0 2px">Hoje · ${minhas.length===1?'1 atendimento':minhas.length+' atendimentos'}</h3>`+minhas.map(a=>`<div class="row">${avatarHtml(cli(a.cli))}<div class="grow"><b>${esc(cli(a.cli).n)}</b><div class="small muted">${esc(a.hora)} · ${esc(sv(a.serv,a.unit).n)}${isAdmin()?'':' com '+esc(PEOPLE[a.pro]?.n)}</div></div>${anamVencida(cli(a.cli))?'<span class="tag warn">Anamnese</span>':''}<span class="tag ${a.st==='Atendido'?'ok':''}">${esc(a.st)}</span></div>`).join(''):'<p class="muted">Nenhum atendimento marcado para hoje. Cadastre uma cliente e crie o primeiro agendamento na aba Agenda.</p>'}
   </div>
   <div class="box" style="margin-bottom:16px"><h2>Aniversários da semana</h2>
-   ${niver.length?`<h3 style="margin:10px 0 2px">Esta semana · ${niver.length===1?'1 cliente':niver.length+' clientes'}</h3>`+niver.map(c=>`<div class="row">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b><div class="small muted">${c.niver.split('-').reverse().join('/')}${c.niver===iso(TODAY).slice(5)?' · hoje':''}</div></div>${brindeTag(c.id)}<button class="btn sm" data-msg="niver" data-c="${c.id}">Mensagem</button></div>`).join(''):'<p class="muted">Ninguém faz aniversário nesta semana.</p>'}
+   ${niver.length?`<h3 style="margin:10px 0 2px">Esta semana · ${niver.length===1?'1 cliente':niver.length+' clientes'}</h3>`+niver.map(c=>`<div class="row">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b><div class="small muted">${c.niver.split('-').reverse().join('/')}${c.niver===iso(TODAY).slice(5)?' · hoje':''}</div></div>${brindeTag(c.id)}<button class="btn sm" data-msg="niver" data-c="${c.id}">Mensagem</button><button class="btn sm" data-nvok="${c.id}" data-nvp="${c._p}" title="Tira da lista deste ano">Já enviei</button></div>`).join(''):'<p class="muted">Ninguém faz aniversário nesta semana.</p>'}
   </div>
   <div class="box" style="margin-bottom:16px"><h2>Hora de voltar</h2>
    ${retornos.length?`<h3 style="margin:10px 0 2px">Retorno pendente · ${retornos.length===1?'1 cliente':retornos.length+' clientes'}</h3>`+retornos.map(r=>`<div class="row">${avatarHtml(cli(r.h.cli))}<div class="grow"><b>${esc(cli(r.h.cli).n)}</b><div class="small muted">${esc(r.s.n)} há ${r.dias} dias</div></div><button class="btn sm" data-msg="ret" data-c="${r.h.cli}">Mensagem</button></div>`).join(''):'<p class="muted">Nenhuma cliente com retorno pendente.</p>'}
   </div>
   ${isAdmin()?cursosHojeHtml():''}`;
 }
-function zapLink(tel,txt){let d=String(tel||'').replace(/\D/g,'');if(d&&!d.startsWith('55'))d='55'+d;return `https://wa.me/${d}?text=${encodeURIComponent(txt)}`}
+// Alguns WhatsApp (principalmente o aplicativo do Windows) mostram "�" no lugar do emoji quando o texto vem por link.
+// Por isso o texto que vai pelo link sai SEM emoji; quem quiser os emojis usa "Copiar mensagem" e cola na conversa.
+const semEmoji=t=>String(t||'').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,'').replace(/[ \t]{2,}/g,' ').replace(/^[ \t]+|[ \t]+$/gm,'').replace(/ +([!?.,;:])/g,'$1');
+function zapLink(tel,txt){let d=String(tel||'').replace(/\D/g,'');if(d&&!d.startsWith('55'))d='55'+d;return `https://wa.me/${d}?text=${encodeURIComponent(semEmoji(txt))}`}
 // Mensagens de aniversário: várias, para a cliente não perceber sempre o mesmo texto. Cada uma termina com o brinde,
 // que a Tháriga define em "Serviços e preços" (o painel não inventa desconto).
 const BRINDE_PADRAO='um mimo especial no seu próximo atendimento';
@@ -604,8 +607,9 @@ function msgDlg(tipo,cid){const c=cli(cid),nome=c.n.split(' ')[0];
    `Oi, ${nome}! Tudo bem? Já está na hora da manutenção da sua sobrancelha. Quer que eu reserve um horário para você esta semana? Beijo, Tháriga`;
   openDlg('Mensagem para '+esc(c.n),`<p class="small muted">Enviar para ${esc(c.tel)||'(sem telefone cadastrado)'}</p><label class="f">Texto (edite à vontade)<textarea rows="${tipo==='niver'?8:5}" id="mt">${esc(txt())}</textarea></label>
   ${tipo==='niver'?`<div id="vstat" class="small" style="margin:-4px 0 10px"></div>`:''}
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="wa" ${c.tel?'':'disabled'}>Abrir no WhatsApp</button>${tipo==='niver'&&isAdmin()?'<button class="btn" id="libb">Liberar brinde com código</button>':''}${tipo==='niver'?'<button class="btn" id="outra">Outra mensagem</button>':''}</div>`);
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="wa" ${c.tel?'':'disabled'}>Abrir no WhatsApp</button><button class="btn" id="cp-m">Copiar mensagem</button>${tipo==='niver'&&isAdmin()?'<button class="btn" id="libb">Liberar brinde com código</button>':''}${tipo==='niver'?'<button class="btn" id="outra">Outra mensagem</button>':''}</div>`);
   document.getElementById('wa').onclick=()=>{window.open(zapLink(c.tel,document.getElementById('mt').value),'_blank','noopener');closeDlg()};
+  document.getElementById('cp-m').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('mt').value);toast('Mensagem copiada, com os emojis. Cole na conversa.')}catch(e){toast('Não foi possível copiar')}};
   const ou=document.getElementById('outra');if(ou)ou.onclick=()=>{ni++;document.getElementById('mt').value=txt()};
   const stat=()=>{const e=document.getElementById('vstat');if(!e)return;const lb=document.getElementById('libb');
     if(vv){e.innerHTML=`<span class="tag ok">Brinde liberado</span> ${esc(vv.id)} · até ${fd(vv.valeAte)}`;if(lb)lb.hidden=true}
@@ -1081,12 +1085,28 @@ function editarCliente(id){const c=cli(id);
     const b=document.getElementById('eb').value;const btn=document.getElementById('esave');btn.disabled=true;
     const ok=await grava(()=>DB.upd(c._p+'/clientes/'+id,{n,tel:document.getElementById('et').value.trim(),email:document.getElementById('em').value.trim(),...(b?{niver:b.slice(5,10),nasc:b}:{})}),'Dados atualizados');
     if(ok){closeDlg();ficha(id)}else btn.disabled=false}}
-async function excluirCliente(id){const c=cli(id);
-  // Quem já tem atendimento (mesmo cancelado) ou agendamento aberto fica: apagar levaria o histórico junto.
-  if(histAll(true).some(h=>h.cli===id)){toast('Esta cliente tem atendimentos no histórico e não pode ser excluída.');return}
-  if(agendaAtiva().some(a=>a.cli===id)){toast('Cancele os agendamentos desta cliente antes de excluí-la.');return}
+async function excluirCliente(id){const c=cli(id),base=baseDe(c);
+  const ags=agenda().filter(a=>a.cli===id&&a._p===base),ats=histAll(true).filter(h=>h.cli===id&&h._p===base);
+  const temHist=ats.length||ags.length;
+  if(temHist){
+    if(!isAdmin()){toast('Esta cliente tem agendamentos ou atendimentos no histórico. Só a Tháriga pode excluí-la.');return}
+    // Cadastro de teste ou duplicado: a Tháriga pode apagar a cliente e tudo o que está ligado a ela (agendamentos, atendimentos e o dinheiro deles).
+    const dinheiro=ats.reduce((t,h)=>t+(h.valor||0),0);
+    openDlg('Excluir '+esc(c.n)+' e tudo dela',`<div class="alert"><b>Isto apaga de vez</b> e não dá para desfazer:<br>• o cadastro e a anamnese<br>• ${ags.length} agendamento(s)<br>• ${ats.length} atendimento(s) já registrado(s)${dinheiro>0?`, somando <b>${brl(dinheiro)}</b> do Financeiro e das Comissões`:''}<br>• os códigos de brinde dela</div>
+    <p class="small muted">Use só para cliente de teste ou cadastro duplicado. Se a cliente é de verdade, prefira manter o histórico.</p>
+    <label class="f">Para confirmar, escreva EXCLUIR<input id="xc-t" autocomplete="off"></label>
+    <button class="btn p" id="xc-ok" style="background:var(--warn);border-color:var(--warn)">Excluir tudo</button>`);
+    document.getElementById('xc-ok').onclick=async()=>{if(document.getElementById('xc-t').value.trim().toUpperCase()!=='EXCLUIR'){toast('Escreva EXCLUIR para confirmar');return}
+      const btn=document.getElementById('xc-ok');btn.disabled=true;
+      const ok=await grava(async()=>{
+        for(const h of ats){await DB.del(base+'/atendimentos/'+h.id);await DB.del('financeiro/valores/'+h.id);await DB.del(base+'/registros/'+h.id).catch(()=>{})}
+        for(const a of ags)await DB.del(base+'/agenda/'+a.id);
+        for(const v of vouchers().filter(v=>v.cli===id))await DB.del(v._p+'/vouchers/'+v.id);
+        await DB.del(base+'/fotos/'+id).catch(()=>{});
+        await DB.del(base+'/anamneses/'+id);await DB.del(base+'/clientes/'+id)},'Cliente e histórico excluídos');
+      if(ok)closeDlg();else btn.disabled=false};
+    return}
   if(!confirm(`Excluir ${c.n} e a anamnese dela? Isso não pode ser desfeito.`))return;
-  const base=c._p;
   const ok=await grava(async()=>{await DB.del(base+'/clientes/'+id);await DB.del(base+'/anamneses/'+id)},'Cliente excluída');
   if(ok)closeDlg()}
 function corrigirAtend(id,p,cid){const h=histAll(true).find(x=>x.id===id&&x._p===p);if(!h)return;
@@ -1349,7 +1369,8 @@ function editarConta(id){const x=arr(C.contas).find(y=>y.id===id);if(!x)return;
   <label class="f">Unidade<select id="qu"><option value="flo" ${x.unit==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${x.unit==='mai'?'selected':''}>Maison Beauty</option></select></label>
   <label class="ck"><input type="checkbox" id="qpago" ${x.pago?'checked':''}>Conta paga</label>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn p" id="qsave">Salvar</button>
-  <button class="btn" id="qcanc" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">${x.cancelada?'Reativar conta':'Cancelar conta'}</button></div>`);
+  <button class="btn" id="qcanc" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">${x.cancelada?'Reativar conta':'Cancelar conta'}</button><button class="btn" id="qdel" style="color:var(--warn);border-color:var(--warn)">Excluir de vez</button></div>`);
+  document.getElementById('qdel').onclick=async()=>{if(!confirm('Excluir esta conta de vez? Isso não pode ser desfeito.'))return;if(await grava(()=>DB.del('admin/contas/'+id),'Conta excluída'))closeDlg()};
   document.getElementById('qsave').onclick=async()=>{const f=document.getElementById('qf').value.trim();if(!f){toast('Digite o fornecedor');return}
     const ok=await grava(()=>DB.upd('admin/contas/'+id,{f,d:document.getElementById('qd').value,v:parseFloat(document.getElementById('qv').value)||0,venc:document.getElementById('qvenc').value||iso(TODAY),unit:document.getElementById('qu').value,pago:document.getElementById('qpago').checked}),'Conta atualizada');
     if(ok)closeDlg()};
@@ -1642,6 +1663,7 @@ function render(){
       const cfg={ativo:g('on').checked,ini,fim,paralelo:par,passo:30,dias:21,antecH:3};if(fech.length)cfg.fechados=fech;
       ok=await grava(()=>DB.set('publico/agenda/'+u+'/cfg',cfg))&&ok}
     if(ok)toast('Agenda online salva');ags.disabled=false};
+  main.querySelectorAll('[data-nvok]').forEach(b=>b.onclick=()=>grava(()=>DB.upd(b.dataset.nvp+'/clientes/'+b.dataset.nvok,{niverFeito:TODAY.getFullYear()}),'Aniversário dispensado da lista'));
   main.querySelectorAll('[data-lib]').forEach(b=>b.onclick=async()=>{b.disabled=true;await liberarBrinde(b.dataset.lib);b.disabled=false});
   main.querySelectorAll('[data-dper]').forEach(b=>b.onclick=()=>{S.descPer=b.dataset.dper;render()});
   main.querySelectorAll('[data-msg]').forEach(b=>b.onclick=()=>msgDlg(b.dataset.msg,b.dataset.c));
