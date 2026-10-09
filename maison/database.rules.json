@@ -94,9 +94,26 @@
     },
 
     // ── Estúdio Florença: só a Tháriga ──
+    // Única exceção: a ficha por link. A cliente (login anônimo) lê só o convite dela
+    // e grava UMA vez em /pendentes, como na Maison. Nada mais do Florença fica aberto.
     "florenca": {
       ".read":  "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
-      ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
+      ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
+      "convites": {
+        "$t": { ".read": "auth != null" }
+      },
+      "pendentes": {
+        "$t": {
+          ".write": "auth != null && !data.exists() && root.child('florenca').child('convites').child($t).child('usado').val() === false && root.child('florenca').child('convites').child($t).child('exp').val() > now",
+          ".validate": "newData.hasChildren(['nome','respostas','assinatura']) && newData.child('assinatura').isString() && newData.child('assinatura').val().length < 300000 && ((newData.child('fotoOk').val() === true && newData.child('fotos').hasChild('f0')) || (newData.child('fotoOk').val() !== true && !newData.child('fotos').exists()))",
+          "fotos": {
+            "f0": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "f1": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "f2": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "$outra": { ".validate": false }
+          }
+        }
+      }
     },
 
     // ── Dinheiro cobrado em cada atendimento ──
