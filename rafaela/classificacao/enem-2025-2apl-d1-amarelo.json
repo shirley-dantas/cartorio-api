@@ -1,0 +1,483 @@
+{
+"enem-2025-2apl-d1-amarelo-q01-espanhol": {
+"materia": "Espanhol",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q01-ingles": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q02-espanhol": {
+"materia": "Espanhol",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q02-ingles": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q03-espanhol": {
+"materia": "Espanhol",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q03-ingles": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q04-espanhol": {
+"materia": "Espanhol",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q04-ingles": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q05-espanhol": {
+"materia": "Espanhol",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q05-ingles": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q06": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q07": {
+"materia": "Literatura",
+"subtema": "Classicismo",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q08": {
+"materia": "Português",
+"subtema": "Variação linguística",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q09": {
+"materia": "Português",
+"subtema": "Variação linguística",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q10": {
+"materia": "Literatura",
+"subtema": "Modernismo",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q11": {
+"materia": "Português",
+"subtema": "Linguagem digital",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q12": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q13": {
+"materia": "Literatura",
+"subtema": "Realismo",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q14": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q15": {
+"materia": "Português",
+"subtema": "Argumentação",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q16": {
+"materia": "Literatura",
+"subtema": "Poesia contemporânea",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q17": {
+"materia": "Português",
+"subtema": "Intertextualidade",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q18": {
+"materia": "Artes",
+"subtema": "Escultura",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q19": {
+"materia": "Português",
+"subtema": "Argumentação",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q20": {
+"materia": "Português",
+"subtema": "Linguagem e tecnologia",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q21": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q22": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q23": {
+"materia": "Português",
+"subtema": "Variação linguística",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q24": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q25": {
+"materia": "Português",
+"subtema": "Gramática",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q26": {
+"materia": "Literatura",
+"subtema": "Realismo",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q27": {
+"materia": "Literatura",
+"subtema": "Poesia contemporânea",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q28": {
+"materia": "Artes",
+"subtema": "Artes visuais",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q29": {
+"materia": "Educação Física",
+"subtema": "Lutas",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q30": {
+"materia": "Português",
+"subtema": "Variação linguística",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q31": {
+"materia": "Literatura",
+"subtema": "Literatura afro-brasileira",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q32": {
+"materia": "Português",
+"subtema": "Letra de música",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q33": {
+"materia": "Português",
+"subtema": "Letra de música",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q34": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q35": {
+"materia": "Literatura",
+"subtema": "Poesia",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q36": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q37": {
+"materia": "Artes",
+"subtema": "Música e cultura popular",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q38": {
+"materia": "Português",
+"subtema": "Gramática",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q39": {
+"materia": "Educação Física",
+"subtema": "Esporte e sociedade",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q40": {
+"materia": "Literatura",
+"subtema": "Modernismo",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q41": {
+"materia": "Artes",
+"subtema": "Cinema",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q42": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q43": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q44": {
+"materia": "Português",
+"subtema": "Linguagem e tecnologia",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q45": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q46": {
+"materia": "História",
+"subtema": "Ditadura militar",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q47": {
+"materia": "Geografia",
+"subtema": "Questão agrária",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q48": {
+"materia": "História",
+"subtema": "Era Vargas",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q49": {
+"materia": "História",
+"subtema": "Ditaduras na América Latina",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q50": {
+"materia": "Sociologia",
+"subtema": "Cultura e religiosidade",
+"tags": [
+"História"
+]
+},
+"enem-2025-2apl-d1-amarelo-q51": {
+"materia": "Sociologia",
+"subtema": "Racismo e ações afirmativas",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q52": {
+"materia": "História",
+"subtema": "Imperialismo",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q53": {
+"materia": "Geografia",
+"subtema": "Impactos socioambientais",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q54": {
+"materia": "Sociologia",
+"subtema": "Violência contra a mulher",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q55": {
+"materia": "Geografia",
+"subtema": "Questão agrária",
+"tags": [
+"Sociologia"
+]
+},
+"enem-2025-2apl-d1-amarelo-q56": {
+"materia": "História",
+"subtema": "América Latina contemporânea",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q57": {
+"materia": "Sociologia",
+"subtema": "Poder e política",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q58": {
+"materia": "Filosofia",
+"subtema": "Ética e memória",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q59": {
+"materia": "História",
+"subtema": "Abolicionismo",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q60": {
+"materia": "Geografia",
+"subtema": "Recursos genéticos e biodiversidade",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q61": {
+"materia": "Filosofia",
+"subtema": "Poder disciplinar (Foucault)",
+"tags": [
+"Sociologia"
+]
+},
+"enem-2025-2apl-d1-amarelo-q62": {
+"materia": "Sociologia",
+"subtema": "Sociedade em rede",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q63": {
+"materia": "História",
+"subtema": "Imprensa",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q64": {
+"materia": "Geografia",
+"subtema": "Mudanças climáticas",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q65": {
+"materia": "História",
+"subtema": "Guerra do Contestado",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q66": {
+"materia": "Geografia",
+"subtema": "Povos indígenas e clima",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q67": {
+"materia": "Geografia",
+"subtema": "Indicação geográfica",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q68": {
+"materia": "Sociologia",
+"subtema": "Gênero e raça",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q69": {
+"materia": "Filosofia",
+"subtema": "Platão",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q70": {
+"materia": "História",
+"subtema": "Brasil Império",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q71": {
+"materia": "Geografia",
+"subtema": "Geopolítica",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q72": {
+"materia": "História",
+"subtema": "Formação territorial do Brasil",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q73": {
+"materia": "História",
+"subtema": "Brasil Império",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q74": {
+"materia": "Filosofia",
+"subtema": "Ética",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q75": {
+"materia": "Sociologia",
+"subtema": "Trabalho e plataformas",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q76": {
+"materia": "História",
+"subtema": "Escravidão no Brasil",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q77": {
+"materia": "História",
+"subtema": "Escravidão no Brasil",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q78": {
+"materia": "Sociologia",
+"subtema": "Cidadania e mídia",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q79": {
+"materia": "Geografia",
+"subtema": "Geopolítica e BRICS",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q80": {
+"materia": "Geografia",
+"subtema": "Redes e conectividade",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q81": {
+"materia": "História",
+"subtema": "Historiografia",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q82": {
+"materia": "Sociologia",
+"subtema": "Gênero e cultura",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q83": {
+"materia": "Filosofia",
+"subtema": "Santo Agostinho",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q84": {
+"materia": "Geografia",
+"subtema": "Amazônia e geopolítica",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q85": {
+"materia": "História",
+"subtema": "Brasil Império",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q86": {
+"materia": "Sociologia",
+"subtema": "Religião e cultura",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q87": {
+"materia": "Geografia",
+"subtema": "Recursos energéticos",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q88": {
+"materia": "História",
+"subtema": "Escravidão no Brasil",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q89": {
+"materia": "Geografia",
+"subtema": "Urbanização",
+"tags": []
+},
+"enem-2025-2apl-d1-amarelo-q90": {
+"materia": "Filosofia",
+"subtema": "Aristóteles",
+"tags": []
+}
+}

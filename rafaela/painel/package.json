@@ -1,0 +1,7 @@
+{
+  "name": "caderno-rafaela",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0"
+  }
+}

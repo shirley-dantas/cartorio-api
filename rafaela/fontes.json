@@ -1,0 +1,72 @@
+{
+ "bancas": {
+  "enem": {
+   "nome": "ENEM",
+   "layout": {
+    "y_top": 73,
+    "y_bot": 743,
+    "marcador": "QUEST[ãÃ]O\\s+(\\d{1,2})\\s*$",
+    "variantes_ate": 5,
+    "fim_secao": "^Quest[õo]es de \\d{2} a \\d{2}",
+    "fim_pagina": "^(PROPOSTA DE REDA|INSTRUÇÕES PARA A REDA|CIÊNCIAS HUMANAS E SUAS TECNOLOGIAS$)"
+   },
+   "alternativas": 5,
+   "cor": "#1F8A5B"
+  },
+  "fuvest": {
+   "nome": "FUVEST",
+   "layout": {
+    "y_top": 33,
+    "y_bot": 809,
+    "marcador": "\\{(\\d{1,2})\\}",
+    "prefacio": "Texto para as quest[õo]es.*"
+   },
+   "alternativas": 5,
+   "cor": "#2457C5"
+  },
+  "unicamp": {
+   "nome": "UNICAMP (COMVEST)",
+   "layout": {
+    "y_top": 44,
+    "y_bot": 812,
+    "marcador": "QUEST[ÃãA]O\\s+(\\d{1,2})\\s*$",
+    "prefacio": "Texto para as quest[õo]es [\\d, e]+\\.",
+    "fim_secao": "^RASCUNHO\\s*$"
+   },
+   "alternativas": 4,
+   "cor": "#C23B4B"
+  }
+ },
+ "provas": [
+  {
+   "id": "fuvest-2027-sim2-s1",
+   "banca": "fuvest",
+   "ano": 2027,
+   "edicao": "Simulado 2ª edição",
+   "prova": "Prova S1",
+   "pdf": "pdfs/fuvest/prova-s1-simulado-fuvest-2027-2edicao.pdf",
+   "gabarito": "pdfs/fuvest/gabarito-simulado-fuvest-2027-2edicao.pdf",
+   "gab_args": {
+    "prova": "S1"
+   }
+  },
+  {
+   "id": "enem-2025-2apl-d1-amarelo",
+   "banca": "enem",
+   "ano": 2025,
+   "edicao": "2ª aplicação",
+   "prova": "1º dia · Caderno 2 Amarelo",
+   "pdf": "pdfs/enem/enem2025-2_1dia_prova.pdf",
+   "gabarito": "pdfs/enem/enem2025-2_1dia_gabarito.pdf"
+  },
+  {
+   "id": "unicamp-2027-sim-qt",
+   "banca": "unicamp",
+   "ano": 2027,
+   "edicao": "Simulado 1ª fase",
+   "prova": "Provas Q e T",
+   "pdf": "pdfs/unicamp/unicamp2027_simulado_prova.pdf",
+   "gabarito": "pdfs/unicamp/unicamp2027_simulado_gabarito.pdf"
+  }
+ ]
+}
