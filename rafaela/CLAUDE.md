@@ -110,7 +110,7 @@ semeados à mão para conferir cada número.
 - A IA **ainda não foi chamada de verdade** (sem chave aqui): o formato da
   resposta e o prompt estão testados com cliente fingido. A primeira correção
   real é o primeiro lugar a olhar se algo vier estranho.
-- O `data.json` tem 1.160 questões / 15 provas (ENEM 370, FUVEST 430, UNICAMP 360; as imagens ficam em `painel/q/`, ~83 MB). A UNICAMP 2023 não tem gabarito (aparece, mas fica fora da conta de acertos); a UNICAMP 2025 tem a Q53 anulada. Para ampliar o acervo oficial
+- O `data.json` tem 1.160 questões / 14 provas (ENEM 370, FUVEST 430, UNICAMP 360; as imagens ficam em `painel/q/`, ~83 MB). A UNICAMP 2023 não tem gabarito (aparece, mas fica fora da conta de acertos); a UNICAMP 2025 tem a Q53 anulada. Para ampliar o acervo oficial
   (provas inteiras), ver `LEIA-ME.md` (importar PDFs → classificar →
   `gerar_painel.py`); questões soltas ela mesma adiciona pelo painel.
 - Os registros ainda não vão para a nuvem: trocar de aparelho é por cópia de
