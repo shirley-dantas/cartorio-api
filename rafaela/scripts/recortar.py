@@ -13,16 +13,34 @@ import re
 import pymupdf
 from PIL import Image
 
-ESCALA = 2.5  # ~180 dpi
+ESCALA = 2.2  # ~160 dpi (as provas importadas até 08/10/2026 usaram 2.5)
+CORTES = []  # (questão, página, o que foi cortado ao meio pela borda do recorte)
+VAZIAS = []  # números de questão cujo recorte saiu vazio (para o teste apontar)
 
 
-def _divisoria(page):
+def _divisoria(page, lay=None):
     W = page.rect.width
     for d in page.get_drawings():
         r = d["rect"]
         if r.width < 3 and r.height > 300 and 0.4 * W < r.x0 < 0.6 * W:
             return (r.x0 + r.x1) / 2
+    if lay and lay.get("divisoria_centro"):  # provas sem fio desenhado entre as colunas (ENEM 2024): o meio da página
+        return W / 2
     return None
+
+
+def _pagina_larga(page, lay, dx):
+    """Página em largura total: linhas de texto ou uma figura grande atravessam o meio (ENEM 2024 tem várias)."""
+    top, bot = lay["y_top"], lay["y_bot"]
+    cruzam = 0
+    for blk in page.get_text("dict")["blocks"]:
+        for ln in blk.get("lines", []):
+            x0, y0, x1, y1 = ln["bbox"]
+            if top <= y0 <= bot and x0 < dx - 25 and x1 > dx + 25 and "".join(s["text"] for s in ln["spans"]).strip():
+                cruzam += 1
+    figs = sum(1 for im in page.get_image_info()
+               if top <= im["bbox"][1] <= bot and im["bbox"][0] < dx - 40 and im["bbox"][2] > dx + 40 and (im["bbox"][3] - im["bbox"][1]) > 40)
+    return cruzam >= 3 or figs >= 1
 
 
 def _segmentos(doc, lay):
@@ -30,7 +48,10 @@ def _segmentos(doc, lay):
     segs = []
     for pno, page in enumerate(doc):
         W = page.rect.width
-        dx = _divisoria(page)
+        dx = _divisoria(page, lay)
+        largas = lay.get("paginas_largas", [])
+        if dx is not None and (largas == "auto" and _pagina_larga(page, lay, dx) or (isinstance(largas, list) and (pno + 1) in largas)):
+            dx = None  # página inteira em uma coluna só
         duas = dx is not None
         top, bot = lay["y_top"], lay["y_bot"]
         xm = lay.get("x_margem", 8)
@@ -49,7 +70,16 @@ def _segmentos(doc, lay):
             b = im["bbox"]
             if (b[3] - b[1]) < 15 and (b[2] - b[0]) > 150:
                 seps.append((b[1], b[3], b[0]))
-        cols = [(xm, dxx - 2), (dxx + 2, W - xm)] if duas else [(xm, W - xm)]
+        x1_esq = dxx - 2 if duas else None
+        if duas:  # linha da coluna esquerda que passa da divisória por poucos pontos não pode ser cortada...
+            linhas = [ln for blk in page.get_text("dict")["blocks"] for ln in blk.get("lines", [])
+                      if top <= ln["bbox"][1] <= bot and "".join(s["text"] for s in ln["spans"]).strip()]
+            x0_dir = min([ln["bbox"][0] for ln in linhas if ln["bbox"][0] >= dxx] or [dxx + 16])
+            limite = min(dxx + 16, x0_dir - 3)  # ...mas sem engolir o começo do texto da coluna direita
+            for ln in linhas:
+                if ln["bbox"][0] < dxx and dxx - 2 < ln["bbox"][2] < limite:
+                    x1_esq = max(x1_esq, ln["bbox"][2] + 1)
+        cols = [(xm, x1_esq), (max(dxx + 2, x1_esq + 1), W - xm)] if duas else [(xm, W - xm)]
         for col, (x0, x1) in enumerate(cols):
             if xs_l[col]:  # alinha o recorte pela margem do texto da coluna
                 x0 = max(x0, min(xs_l[col]) - 6)
@@ -84,7 +114,8 @@ def _itens(doc, segs, lay):
                 if not (segs[si]["rect"].y0 - 3 <= y0 <= segs[si]["rect"].y1):
                     continue
                 m = rx_m.match(t)
-                if m:
+                if m and (lay.get("marcador_x") is None or x0 <= segs[si]["rect"].x0 + lay["marcador_x"]):
+                    # marcador_x: o número da questão só vale colado na margem da coluna (evita "10" de eixo de gráfico)
                     itens.append({"tipo": "q", "seg": si, "y": y0, "num": int(m.group(1))})
                     continue
                 if rx_f and rx_f.match(t):
@@ -94,7 +125,7 @@ def _itens(doc, segs, lay):
                     mp = rx_p.search(t)
                     if mp:
                         nums = [int(n) for n in re.findall(r"\d+", mp.group(0))]
-                        if re.search(r"\d+\s+a\s+\d+", mp.group(0)) and len(nums) == 2:
+                        if re.search(r"\d+\s+a\s+\d+", mp.group(0), re.I) and len(nums) == 2:
                             nums = list(range(nums[0], nums[1] + 1))
                         itens.append({"tipo": "p", "seg": si, "y": y0, "nums": nums})
     itens.sort(key=lambda i: (i["seg"], i["y"]))
@@ -124,6 +155,21 @@ def _pecas(segs, ini, fim, lay):
         if r.height > 6:
             out.append((s, r))
     return out
+
+
+def _conferir_bordas(page, rect, num):
+    """Registra em CORTES o texto ou a imagem que a borda lateral do recorte atravessa (sinal de página em largura total)."""
+    for blk in page.get_text("dict")["blocks"]:
+        for ln in blk.get("lines", []):
+            x0, y0, x1, y1 = ln["bbox"]
+            if rect.y0 <= y0 and y1 <= rect.y1:
+                t = "".join(s["text"] for s in ln["spans"]).strip()
+                if t and ((x0 < rect.x1 - 2 < x1 - 4 and x1 - x0 > 20) or (x0 + 4 < rect.x0 + 2 < x1 and x1 - x0 > 20)):
+                    CORTES.append((num, page.number + 1, "texto: " + t[:50]))
+    for im in page.get_image_info():
+        x0, y0, x1, y1 = im["bbox"]
+        if rect.y0 <= y0 and y1 <= rect.y1 and (y1 - y0) > 30 and ((x0 < rect.x1 - 2 < x1 - 6) or (x0 + 6 < rect.x0 + 2 < x1)):
+            CORTES.append((num, page.number + 1, "imagem larga"))
 
 
 def _renderizar(page, rect):
@@ -182,12 +228,16 @@ def recortar(pdf_path, lay):
                                (nx["seg"], _corte_antes(segs[nx["seg"]], nx["y"], pad)), lay)
         imgs, textos, pags = [], [], []
         for s, r in pref + pecas:
+            _conferir_bordas(doc[segs[s]["pno"]], r, it["num"])
             im = _renderizar(doc[segs[s]["pno"]], r)
             if im is not None:
                 imgs.append(im)
                 textos.append(doc[segs[s]["pno"]].get_text("text", clip=r).strip())
                 pags.append(segs[s]["pno"] + 1)
         n = it["num"]
+        if not imgs:  # marcador achado, mas nada para recortar: aparece como "faltam" no teste
+            VAZIAS.append(n)
+            continue
         variante = None
         if lay.get("variantes_ate") and n <= lay["variantes_ate"]:
             k = vistos.get(n, 0)

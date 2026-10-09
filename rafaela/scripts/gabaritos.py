@@ -9,32 +9,39 @@ def _tokens(path):
     return [t.strip() for p in d for t in p.get_text("text").split("\n") if t.strip()], d
 
 
-def fuvest(path, prova="S1"):
-    """Tabela por prova (S1..S4): linhas de 16 tokens; confere com a página de correspondência."""
+def fuvest(path, prova="S1", total=80):
+    """Tabela por versão da prova (S1..S4, V1..V4, V/K/Q/X/Z): linhas com 4 tokens por versão (n, letra, n+metade, letra).
+    Confere cada resposta com a página 'Gabarito de correspondência' (a mesma questão nas outras versões)."""
     d = pymupdf.open(path)
     tk = [t.strip() for t in d[0].get_text("text").split("\n") if t.strip()]
-    i = tk.index("PROVA S4") + 1
-    rows = tk[i:]
-    col = {"S1": 0, "S2": 1, "S3": 2, "S4": 3}[prova]
-    res = {}
-    for r in range(0, len(rows) - 15, 16):
-        blk = rows[r:r + 16][col * 4:col * 4 + 4]
-        for n, l in ((blk[0], blk[1]), (blk[2], blk[3])):
-            res[(int(n), None)] = l
-    # conferência com "Gabarito de correspondência"
+    heads = [i for i, t in enumerate(tk) if re.fullmatch(r"PROVA [A-Z]\d?", t)]
+    versoes = [tk[i].split()[1] for i in heads]
+    nv, meta = len(versoes), total // 2
+    assert prova in versoes, (prova, versoes)
+    rows = tk[heads[-1] + 1:]
+    todas = {v: {} for v in versoes}
+    for r in range(meta):
+        linha = rows[r * 4 * nv:(r + 1) * 4 * nv]
+        assert len(linha) == 4 * nv, ("tabela curta", r)
+        for k, v in enumerate(versoes):
+            n1, l1, n2, l2 = linha[k * 4:k * 4 + 4]
+            assert int(n1) == r + 1 and int(n2) == r + 1 + meta, ("ordem da tabela", v, r, n1, n2)
+            todas[v][int(n1)] = l1
+            todas[v][int(n2)] = l2
+    # conferência com "Gabarito de correspondência": [resposta, nº na versão 1, nº na versão 2, ...] x total
     t2 = [t.strip() for t in d[1].get_text("text").split("\n") if t.strip()]
-    tt = [t for t in t2[5:] if "PROVA" not in t]
-    cor = {}
-    for k in range(0, len(tt) - 9, 10):
-        for off in (0, 5):
-            b = tt[k + off:k + off + 5]
-            if len(b) == 5 and b[1].isdigit():
-                cor[int(b[1 + col])] = "*" if b[0].startswith("*") else b[0]
-    assert len(cor) == 80, len(cor)
-    for n, l in res.items():
-        c = cor[n[0]]
-        assert c == l, f"FUVEST gabarito diverge Q{n[0]}: tabela={l} correspondência={c}"
-    assert len(res) == 80, len(res)
+    h2 = [i for i, t in enumerate(t2) if t.startswith("RESPOSTA PROVA")]
+    dados = t2[h2[-1] + 1:]
+    grupo = 1 + nv
+    assert len(dados) >= total * grupo, ("correspondência curta", len(dados), total * grupo)
+    for g in range(total):
+        b = dados[g * grupo:(g + 1) * grupo]
+        letra = "*" if b[0].startswith("*") else b[0]
+        for k, v in enumerate(versoes):
+            n = int(b[1 + k])
+            assert todas[v][n] == letra, f"FUVEST gabarito diverge versão {v} Q{n}: tabela={todas[v][n]} correspondência={letra}"
+    res = {(n, None): l for n, l in todas[prova].items()}
+    assert len(res) == total, len(res)
     return res
 
 
@@ -61,6 +68,17 @@ def enem(path):
     return res
 
 
+def enem_dia2(path, primeira=91, ultima=180):
+    """2º dia do ENEM: duas tabelas 'QUESTÃO GABARITO n letra' (91-135 e 136-180)."""
+    tk, _ = _tokens(path)
+    res = {}
+    for k in range(len(tk) - 1):
+        if tk[k].isdigit() and primeira <= int(tk[k]) <= ultima and re.fullmatch(r"[A-E*]", tk[k + 1]):
+            res[(int(tk[k]), None)] = tk[k + 1]
+    assert len(res) == ultima - primeira + 1, len(res)
+    return res
+
+
 def unicamp(path):
     tk, _ = _tokens(path)
     res = {}
@@ -71,4 +89,4 @@ def unicamp(path):
     return res
 
 
-PARSERS = {"fuvest": fuvest, "enem": enem, "unicamp": unicamp}
+PARSERS = {"fuvest": fuvest, "enem": enem, "enem_dia2": enem_dia2, "unicamp": unicamp}

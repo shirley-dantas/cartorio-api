@@ -1,7 +1,7 @@
 # Caderno da Rafaela
 
 Painel de estudos para o vestibular (ENEM, FUVEST, UNICAMP), nas cores **palha, bege, branco e preto** (os post-its do mural
-guardam as cores próprias deles — palha, areia, argila e linho — e não mudam com a paleta). Nasceu do *Acervo de Vestibulares* (as 247 questões com
+guardam as cores próprias deles — palha, areia, argila e linho — e não mudam com a paleta). Nasceu do *Acervo de Vestibulares* (as questões com
 imagem, gabarito e matéria) e ganhou, em 08/10/2026, as abas de erros,
 estatísticas e macetes — sem tirar nada do acervo. Um arquivo só:
 **`painel/index.html`**; a IA mora em `painel/api/ia.js`.
@@ -97,7 +97,7 @@ node rafaela/testes/ia.mjs       # a porta da IA, sem internet e sem chave
 node rafaela/testes/painel.mjs   # o painel no Chromium (iPad e iPhone 13), IA fingida
 ```
 
-O `painel.mjs` sobe um servidor com os arquivos de verdade (inclusive as 247
+O `painel.mjs` sobe um servidor com os arquivos de verdade (inclusive as 1.160
 questões) e um `/api/ia` fingido, e guarda imagens em `rafaela/testes/saida/`.
 Ele cobre o caminho que ela descreveu: Acervo → *Errei esta* → foto →
 *Salvar e corrigir* → *Tentar de novo*; e as estatísticas com registros
@@ -110,7 +110,7 @@ semeados à mão para conferir cada número.
 - A IA **ainda não foi chamada de verdade** (sem chave aqui): o formato da
   resposta e o prompt estão testados com cliente fingido. A primeira correção
   real é o primeiro lugar a olhar se algo vier estranho.
-- O `data.json` tem 247 questões / 3 provas. Para ampliar o acervo oficial
+- O `data.json` tem 1.160 questões / 14 provas (ENEM 370, FUVEST 430, UNICAMP 360; as imagens ficam em `painel/q/`, ~83 MB). A UNICAMP 2023 não tem gabarito (aparece, mas fica fora da conta de acertos); a UNICAMP 2025 tem a Q53 anulada. Para ampliar o acervo oficial
   (provas inteiras), ver `LEIA-ME.md` (importar PDFs → classificar →
   `gerar_painel.py`); questões soltas ela mesma adiciona pelo painel.
 - Os registros ainda não vão para a nuvem: trocar de aparelho é por cópia de
