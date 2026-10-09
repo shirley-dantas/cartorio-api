@@ -62,6 +62,11 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
 .stat{font-family:var(--serif);font-size:32px;font-weight:600;line-height:1.1}
 .lbl{color:var(--muted);font-size:13px}
+.voucher{border:1.5px solid var(--berry);background:var(--berry-soft);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.voucher.off,.voucher.semv{border-style:dashed;background:transparent;border-color:var(--line)}
+.voucher .vt{font-weight:600;margin-bottom:6px}
+.voucher .vl{display:flex;justify-content:space-between;padding:2px 0}
+.voucher .vl.tot{border-top:1px solid var(--line);margin-top:4px;padding-top:6px;font-size:1.1em}
 .row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);flex-wrap:wrap}
 .row>.grow{min-width:140px}
 .row:first-of-type{border-top:0}
@@ -439,7 +444,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -452,7 +457,7 @@ const anamDe=id=>C.mAnam[id]||C.fAnam[id]||null;
 // Atendimento cancelado não some: fica gravado com a marca "cancelado" e sai das contas.
 const histAll=(comCancelados=false)=>[...arr(C.mAtend).map(h=>({...h,_p:'maison'})),...arr(C.fAtend).map(h=>({...h,_p:'florenca'}))]
   .filter(h=>comCancelados||!h.cancelado)
-  .map(h=>({...h,valor:C.valores[h.id]?.valor,pag:C.valores[h.id]?.pag})).sort((a,b)=>a.date.localeCompare(b.date));
+  .map(h=>({...h,valor:C.valores[h.id]?.valor,pag:C.valores[h.id]?.pag,tabela:C.valores[h.id]?.tabela,desc:C.valores[h.id]?.desc,corrigidoPor:C.valores[h.id]?.corrigidoPor})).sort((a,b)=>a.date.localeCompare(b.date));
 const cli=id=>clientes().find(c=>c.id===id)||{id,n:'(cliente removida)',tel:'',niver:'01-01',unit:'mai'};
 const uTag=u=>`<span class="tag ${u}">${U[u].n}</span>`;
 const anamVencida=c=>{const a=anamDe(c.id);return !a||(TODAY-new Date(a.data+'T00:00'))/864e5>180};
@@ -471,9 +476,9 @@ function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];
 let rq=0;function agendarRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;if(S.user)render()})}
 function comecarLeituras(){
   pararLeituras();
-  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
+  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
   if(isAdmin()){
-    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/pendentes','fPend');
+    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/pendentes','fPend');
     ouvir('financeiro/valores','valores');
     ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');ouvir('admin/instagram','instagram');
     // A carga inicial dos roteiros é idempotente: chaves fixas, só cria o que falta.
@@ -563,7 +568,7 @@ function vHoje(){
    ${minhas.length?`<h3 style="margin:10px 0 2px">Hoje · ${minhas.length===1?'1 atendimento':minhas.length+' atendimentos'}</h3>`+minhas.map(a=>`<div class="row">${avatarHtml(cli(a.cli))}<div class="grow"><b>${esc(cli(a.cli).n)}</b><div class="small muted">${esc(a.hora)} · ${esc(sv(a.serv,a.unit).n)}${isAdmin()?'':' com '+esc(PEOPLE[a.pro]?.n)}</div></div>${anamVencida(cli(a.cli))?'<span class="tag warn">Anamnese</span>':''}<span class="tag ${a.st==='Atendido'?'ok':''}">${esc(a.st)}</span></div>`).join(''):'<p class="muted">Nenhum atendimento marcado para hoje. Cadastre uma cliente e crie o primeiro agendamento na aba Agenda.</p>'}
   </div>
   <div class="box" style="margin-bottom:16px"><h2>Aniversários da semana</h2>
-   ${niver.length?`<h3 style="margin:10px 0 2px">Esta semana · ${niver.length===1?'1 cliente':niver.length+' clientes'}</h3>`+niver.map(c=>`<div class="row">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b><div class="small muted">${c.niver.split('-').reverse().join('/')}${c.niver===iso(TODAY).slice(5)?' · hoje':''}</div></div><button class="btn sm" data-msg="niver" data-c="${c.id}">Mensagem</button></div>`).join(''):'<p class="muted">Ninguém faz aniversário nesta semana.</p>'}
+   ${niver.length?`<h3 style="margin:10px 0 2px">Esta semana · ${niver.length===1?'1 cliente':niver.length+' clientes'}</h3>`+niver.map(c=>`<div class="row">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b><div class="small muted">${c.niver.split('-').reverse().join('/')}${c.niver===iso(TODAY).slice(5)?' · hoje':''}</div></div>${brindeTag(c.id)}<button class="btn sm" data-msg="niver" data-c="${c.id}">Mensagem</button></div>`).join(''):'<p class="muted">Ninguém faz aniversário nesta semana.</p>'}
   </div>
   <div class="box" style="margin-bottom:16px"><h2>Hora de voltar</h2>
    ${retornos.length?`<h3 style="margin:10px 0 2px">Retorno pendente · ${retornos.length===1?'1 cliente':retornos.length+' clientes'}</h3>`+retornos.map(r=>`<div class="row">${avatarHtml(cli(r.h.cli))}<div class="grow"><b>${esc(cli(r.h.cli).n)}</b><div class="small muted">${esc(r.s.n)} há ${r.dias} dias</div></div><button class="btn sm" data-msg="ret" data-c="${r.h.cli}">Mensagem</button></div>`).join(''):'<p class="muted">Nenhuma cliente com retorno pendente.</p>'}
@@ -585,18 +590,24 @@ const NIVER_MSGS=[
  n=>`Hoje é dia de comemorar você, ${n}! 🍰 Muitas felicidades, saúde e um ano lindo pela frente.`,
  n=>`Um brinde a você, ${n}! 🥂 Feliz aniversário, com todo o nosso carinho.`];
 const hashTxt=t=>[...String(t)].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);
-function textoNiver(c,i){const nome=c.n.split(' ')[0],k=((i%NIVER_MSGS.length)+NIVER_MSGS.length)%NIVER_MSGS.length;
-  return `${NIVER_MSGS[k](nome)}\n\n🎁 Para comemorar, preparamos um presente para você: ${brindeAtual()}.\n\nCom carinho, Maison Beauty 🤍`}
+function textoNiver(c,i,v){const nome=c.n.split(' ')[0],k=((i%NIVER_MSGS.length)+NIVER_MSGS.length)%NIVER_MSGS.length;
+  return `${NIVER_MSGS[k](nome)}\n\n🎁 Para comemorar, preparamos um presente para você: ${v?textoVoucher(v):brindeAtual()+'.'}\n\nCom carinho, Maison Beauty 🤍`}
 function msgDlg(tipo,cid){const c=cli(cid),nome=c.n.split(' ')[0];
   // O ponto de partida muda de cliente para cliente e de ano para ano; o botão "Outra mensagem" passa para a próxima.
   let ni=hashTxt(c.id)+new Date().getFullYear();
-  const txt=()=>tipo==='niver'?textoNiver(c,ni):
+  let vv=tipo==='niver'?voucherAtivo(cid,iso(TODAY)):null;
+  const txt=()=>tipo==='niver'?textoNiver(c,ni,vv):
    `Oi, ${nome}! Tudo bem? Já está na hora da manutenção da sua sobrancelha. Quer que eu reserve um horário para você esta semana? Beijo, Tháriga`;
   openDlg('Mensagem para '+esc(c.n),`<p class="small muted">Enviar para ${esc(c.tel)||'(sem telefone cadastrado)'}</p><label class="f">Texto (edite à vontade)<textarea rows="${tipo==='niver'?8:5}" id="mt">${esc(txt())}</textarea></label>
-  ${tipo==='niver'?`<p class="small muted" style="margin:-4px 0 10px">${!(C.mCfg&&C.mCfg.brinde)&&isAdmin()?'O brinde ainda é o texto padrão. Defina o seu em <b>Serviços e preços</b>.':'O brinde vem de <b>Serviços e preços</b>.'}</p>`:''}
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="wa" ${c.tel?'':'disabled'}>Abrir no WhatsApp</button>${tipo==='niver'?'<button class="btn" id="outra">Outra mensagem</button>':''}</div>`);
+  ${tipo==='niver'?`<div id="vstat" class="small" style="margin:-4px 0 10px"></div>`:''}
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="wa" ${c.tel?'':'disabled'}>Abrir no WhatsApp</button>${tipo==='niver'&&isAdmin()?'<button class="btn" id="libb">Liberar brinde com código</button>':''}${tipo==='niver'?'<button class="btn" id="outra">Outra mensagem</button>':''}</div>`);
   document.getElementById('wa').onclick=()=>{window.open(zapLink(c.tel,document.getElementById('mt').value),'_blank','noopener');closeDlg()};
-  const ou=document.getElementById('outra');if(ou)ou.onclick=()=>{ni++;document.getElementById('mt').value=txt()}}
+  const ou=document.getElementById('outra');if(ou)ou.onclick=()=>{ni++;document.getElementById('mt').value=txt()};
+  const stat=()=>{const e=document.getElementById('vstat');if(!e)return;const lb=document.getElementById('libb');
+    if(vv){e.innerHTML=`<span class="tag ok">Brinde liberado</span> ${esc(vv.id)} · até ${fd(vv.valeAte)}`;if(lb)lb.hidden=true}
+    else{const ja=voucherRecente(cid);e.innerHTML=ja&&ja.usado?'<span class="tag">Brinde deste ano já usado</span> A mensagem leva só o texto do brinde.':isAdmin()?'Sem código: a mensagem leva só o texto do brinde (definido em <b>Serviços e preços</b>). Para dar desconto, libere o brinde com código.':'A Tháriga ainda não liberou o desconto desta cliente. A mensagem leva só o texto do brinde.'}};
+  stat();
+  const lb=document.getElementById('libb');if(lb)lb.onclick=async()=>{lb.disabled=true;const v=await liberarBrinde(cid);if(v){vv=v;document.getElementById('mt').value=txt();stat()}lb.disabled=false}}
 
 // Calendário do mês: bolinha nos dias com horário marcado (só da unidade que a pessoa pode ver).
 const prim1=t=>t.charAt(0).toUpperCase()+t.slice(1);
@@ -625,22 +636,84 @@ function vAgenda(){
   <h2 style="margin:0 0 10px">${esc(prim1(new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})))}</h2>
   <div class="cols">${cols||'<p class="muted">Nada para mostrar nesta unidade neste dia.</p>'}</div>`;
 }
+
+// ── Brinde de aniversário como voucher ──
+// O desconto só existe se a Tháriga liberou antes: um código por cliente, uso único, com prazo.
+// Quem atende não digita desconto: aplica o voucher, e o painel calcula. Desconto sem voucher exige motivo e fica marcado.
+const BRINDE_REGRA_PADRAO={limite:200,pctAte:10,pctAcima:5,dias:30};
+const regraBrinde=()=>({...BRINDE_REGRA_PADRAO,...((C.mCfg&&C.mCfg.brindeRegra)||{})});
+const vouchers=()=>[...arr(C.mVou).map(v=>({...v,_p:'maison'})),...(isAdmin()?arr(C.fVou).map(v=>({...v,_p:'florenca'})):[])];
+const pctBrinde=(preco,v)=>preco<=v.limite?v.pctAte:v.pctAcima;
+const centavos=v=>Math.round(v*100)/100;
+const calcBrinde=(preco,v)=>{const pct=pctBrinde(preco,v),desc=Math.round(preco*pct)/100;return{pct,desc,final:centavos(preco-desc)}};
+const voucherAtivo=(cid,data)=>vouchers().filter(v=>v.cli===cid&&!v.usado&&!v.cancelado&&v.valeAte>=data).sort((a,b)=>(b.emitido||'').localeCompare(a.emitido||''))[0]||null;
+const voucherRecente=cid=>vouchers().filter(v=>v.cli===cid&&!v.cancelado).sort((a,b)=>(b.emitido||'').localeCompare(a.emitido||''))[0]||null;
+const MOTIVOS_DESC=['Cortesia autorizada pela Tháriga','Pacote ou combinado com a cliente','Correção de preço','Outro'];
+function novoCodigo(){const al='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',b=crypto.getRandomValues(new Uint8Array(6));return 'NIVER-'+[...b].map(x=>al[x%al.length]).join('')}
+const textoVoucher=v=>{const l=brl(v.limite).replace(/,00$/,'');
+  const regra=v.pctAte===v.pctAcima?`${v.pctAte}% de desconto no seu próximo atendimento`:`${v.pctAte}% de desconto nos serviços até ${l} e ${v.pctAcima}% nos acima disso`;
+  return `${regra}, válido até ${fd(v.valeAte,{day:'2-digit',month:'2-digit',year:'numeric'})}. Seu código: ${v.id}. É só falar o código na hora do atendimento.`};
+async function liberarBrinde(cid){if(!isAdmin())return null;const c=cli(cid),r=regraBrinde(),ano=TODAY.getFullYear();
+  const ja=vouchers().find(v=>v.cli===cid&&v.ano===ano&&!v.cancelado);
+  if(ja){toast('Esta cliente já tem brinde neste ano.');return ja}
+  const cod=novoCodigo(),base=c._p==='florenca'?'florenca':'maison';
+  const dado={cli:cid,nome:c.n,ano,emitido:iso(TODAY),emitidoPor:S.user.nome,valeAte:iso(addD(TODAY,r.dias)),limite:r.limite,pctAte:r.pctAte,pctAcima:r.pctAcima,usado:false};
+  const ok=await grava(()=>DB.set(base+'/vouchers/'+cod,dado),'Brinde liberado para '+c.n.split(' ')[0]);
+  return ok?{id:cod,...dado,_p:base}:null}
+const motivoHtml=()=>`<div id="cmot" class="alert" hidden style="margin-bottom:12px"><b>Valor abaixo da tabela.</b> Diga o motivo: a Tháriga vê este desconto em Financeiro.
+  <label class="f" style="margin-top:8px">Motivo<select id="cm"><option value="">Escolha…</option>${MOTIVOS_DESC.map(x=>`<option>${x}</option>`).join('')}</select></label>
+  <label class="f" style="margin-bottom:0">Detalhe (quem autorizou, o que combinou)<input id="cmd" maxlength="140"></label></div>`;
+const lerMotivo=()=>{const m=document.getElementById('cm').value,d=document.getElementById('cmd').value.trim();
+  if(!m){toast('Escolha o motivo do desconto');return null}
+  if(!d){toast('Escreva o detalhe do desconto');return null}
+  return{tipo:'manual',motivo:m,det:d,por:S.user.nome,em:iso(TODAY)}};
+function brindeTag(cid){const v=voucherRecente(cid);
+  if(!v)return isAdmin()?`<button class="btn sm" data-lib="${cid}">Liberar brinde</button>`:'';
+  return v.usado?'<span class="tag">Brinde usado</span>':v.valeAte<iso(TODAY)?'<span class="tag warn">Brinde venceu</span>':`<span class="tag ok" title="${esc(v.id)}">🎁 até ${fd(v.valeAte)}</span>`}
 function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.serv,a.unit);
+  let vou=voucherAtivo(a.cli,a.date),aplicar=!!vou;
   openDlg('Concluir atendimento',`<p><b>${esc(cli(a.cli).n)}</b><br><span class="muted">${esc(s.n)} com ${esc(PEOPLE[a.pro]?.n)} · ${U[a.unit].n}</span></p>
+  <div id="cvbox"></div>
   <label class="f">Valor cobrado<input type="number" step="0.01" id="cv" value="${s.p}"></label>
+  ${motivoHtml()}
   <label class="f">Forma de pagamento<select id="cp">${PAG.map(x=>`<option>${x}</option>`).join('')}</select></label>
   <label class="f">Observações e produtos usados<textarea rows="2" id="co" placeholder="Ex.: henna castanho médio, fixação 8 min"></textarea></label>
   <button class="btn p" id="csave">Registrar atendimento</button>`);
+  const cv=document.getElementById('cv'),box=document.getElementById('cvbox'),mot=document.getElementById('cmot');
+  const atualiza=()=>{
+    if(vou&&aplicar){const k=calcBrinde(s.p,vou);cv.value=k.final.toFixed(2);cv.readOnly=true;mot.hidden=true;
+      box.innerHTML=`<div class="voucher"><div class="vt">🎁 Brinde de aniversário</div><div class="vl"><span>Tabela</span><b>${brl(s.p)}</b></div><div class="vl"><span>Desconto de ${k.pct}%</span><b>− ${brl(k.desc)}</b></div><div class="vl tot"><span>A cobrar</span><b>${brl(k.final)}</b></div><div class="small muted" style="margin-top:6px">Código ${esc(vou.id)} · vale até ${fd(vou.valeAte)} · uso único. O valor está travado.</div><button type="button" class="btn sm" id="vno" style="margin-top:8px">Não aplicar o brinde</button></div>`;
+      document.getElementById('vno').onclick=()=>{aplicar=false;cv.value=s.p;atualiza()}}
+    else{cv.readOnly=false;
+      box.innerHTML=vou?`<div class="voucher off"><div class="vt">🎁 Brinde disponível, não aplicado</div><button type="button" class="btn sm" id="vyes">Aplicar o brinde</button></div>`:`<div class="voucher semv"><div class="vt">Tem código de brinde?</div><div style="display:flex;gap:8px"><input id="vcod" placeholder="NIVER-XXXXXX" autocapitalize="characters" style="flex:1"><button type="button" class="btn sm" id="vcheck">Conferir</button></div><div class="small" id="vmsg" style="margin-top:6px"></div></div>`;
+      const y=document.getElementById('vyes');if(y)y.onclick=()=>{aplicar=true;atualiza()};
+      const ck=document.getElementById('vcheck');if(ck)ck.onclick=()=>{const cod=document.getElementById('vcod').value.trim().toUpperCase(),m=document.getElementById('vmsg'),v=vouchers().find(x=>x.id===cod);
+        if(!cod){m.textContent='Digite o código.';return}
+        if(!v||v.cancelado){m.textContent='Código não encontrado.';return}
+        if(v.cli!==a.cli){m.textContent='Este código é de outra cliente. Não vale neste atendimento.';return}
+        if(v.usado){m.textContent='Este código já foi usado.';return}
+        if(v.valeAte<a.date){m.textContent='Este código venceu em '+fd(v.valeAte)+'.';return}
+        vou=v;aplicar=true;atualiza()};
+      mot.hidden=!(parseFloat(cv.value)<s.p-0.005)}};
+  cv.oninput=()=>{if(!(vou&&aplicar))mot.hidden=!(parseFloat(cv.value)<s.p-0.005)};
+  atualiza();
   document.getElementById('csave').onclick=async()=>{
     const btn=document.getElementById('csave');btn.disabled=true;
-    const valor=parseFloat(document.getElementById('cv').value);
+    const valor=parseFloat(cv.value);
     if(!(valor>=0)){toast('Digite o valor cobrado');btn.disabled=false;return}
+    const usaV=vou&&aplicar;let desc=null,k=null;
+    if(usaV){k=calcBrinde(s.p,vou);if(Math.abs(valor-k.final)>0.005){toast('O valor do brinde não pode ser mudado.');btn.disabled=false;return}
+      desc={tipo:'brinde',voucher:vou.id,pct:k.pct,valorDesc:k.desc,por:S.user.nome,em:iso(TODAY)}}
+    else if(valor<s.p-0.005){desc=lerMotivo();if(!desc){btn.disabled=false;return}}
     const ok=await grava(async()=>{
       // O registro do atendimento não leva dinheiro; o valor vai para o caminho que a funcionária só cria e não lê.
       const hid=await DB.push(p+'/atendimentos',{date:a.date,cli:a.cli,serv:a.serv,pro:a.pro,unit:a.unit,obs:document.getElementById('co').value,agenda:a.id});
-      await DB.set('financeiro/valores/'+hid,{valor,pag:document.getElementById('cp').value});
+      // O voucher é marcado como usado primeiro, já ligado a este atendimento: é isso que autoriza o valor com brinde.
+      if(usaV)await DB.upd(vou._p+'/vouchers/'+vou.id,{usado:true,usadoEm:iso(TODAY),usadoPor:S.user.nome,atend:hid});
+      const reg={valor,pag:document.getElementById('cp').value,tabela:s.p};if(desc)reg.desc=desc;
+      await DB.set('financeiro/valores/'+hid,reg);
       await DB.set(p+'/agenda/'+a.id+'/st','Atendido');
-    },'Atendimento registrado');
+    },usaV?'Atendimento registrado com o brinde':'Atendimento registrado');
     if(ok)closeDlg();else btn.disabled=false}}
 function remarcarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)return;
   openDlg('Remarcar agendamento',`<p><b>${esc(cli(a.cli).n)}</b><br><span class="muted">${esc(sv(a.serv,a.unit).n)} com ${esc(PEOPLE[a.pro]?.n)} · ${U[a.unit].n}</span></p>
@@ -945,12 +1018,18 @@ async function excluirCliente(id){const c=cli(id);
 function corrigirAtend(id,p,cid){const h=histAll(true).find(x=>x.id===id&&x._p===p);if(!h)return;
   openDlg('Corrigir atendimento',`<p><b>${esc(cli(h.cli).n)}</b><br><span class="muted">${esc(sv(h.serv,h.unit).n)} · ${fd(h.date)}</span></p>
   <label class="f">Valor cobrado<input type="number" step="0.01" id="xv" value="${h.valor??''}"></label>
+  ${motivoHtml()}
   <label class="f">Forma de pagamento<select id="xp">${PAG.map(x=>`<option ${x===h.pag?'selected':''}>${x}</option>`).join('')}</select></label>
   <button class="btn p" id="xsave">Salvar correção</button>`);
-  document.getElementById('xsave').onclick=async()=>{const valor=parseFloat(document.getElementById('xv').value);
+  const tab=C.valores[id]?.tabela??sv(h.serv,h.unit).p,mot=document.getElementById('cmot'),xv=document.getElementById('xv'),brindeAntes=C.valores[id]?.desc?.tipo==='brinde';
+  const vemMot=()=>!brindeAntes&&parseFloat(xv.value)<tab-0.005&&!C.valores[id]?.desc;
+  xv.oninput=()=>{mot.hidden=!vemMot()};mot.hidden=!vemMot();
+  document.getElementById('xsave').onclick=async()=>{const valor=parseFloat(xv.value);
     if(!(valor>=0)){toast('Digite o valor cobrado');return}
+    let desc=null;if(vemMot()){desc=lerMotivo();if(!desc)return}
     const btn=document.getElementById('xsave');btn.disabled=true;
-    const ok=await grava(()=>DB.upd('financeiro/valores/'+id,{valor,pag:document.getElementById('xp').value,corrigidoPor:S.user.nome,corrigidoEm:iso(TODAY)}),'Atendimento corrigido');
+    const novo={valor,pag:document.getElementById('xp').value,corrigidoPor:S.user.nome,corrigidoEm:iso(TODAY)};if(desc)novo.desc=desc;if(C.valores[id]?.tabela==null)novo.tabela=tab;
+    const ok=await grava(()=>DB.upd('financeiro/valores/'+id,novo),'Atendimento corrigido');
     if(ok){closeDlg();ficha(cid)}else btn.disabled=false}}
 function cancelarAtend(id,p,cid){const h=histAll(true).find(x=>x.id===id&&x._p===p);if(!h)return;
   openDlg('Cancelar atendimento',`<p><b>${esc(cli(h.cli).n)}</b><br><span class="muted">${esc(sv(h.serv,h.unit).n)} · ${fd(h.date)} · ${brl(h.valor)}</span></p>
@@ -1025,6 +1104,29 @@ function anamnese(id){const c=cli(id),old=anamDe(id)||{};
       if(Object.keys(cad).length)await DB.upd(base+'/clientes/'+id,cad);
     },'Anamnese salva');
     if(ok){closeDlg();ficha(id)}else btn.disabled=false}}
+function descontosHtml(){
+  const per=S.descPer||'mes',ini=per==='mes'?iso(TODAY).slice(0,7):per==='passado'?iso(new Date(TODAY.getFullYear(),TODAY.getMonth()-1,1,12)).slice(0,7):'';
+  const recs=histAll().filter(h=>h.valor!=null&&(!ini||h.date.slice(0,7)===ini)&&visUnit(h.unit));
+  const linhas=recs.map(h=>{const atual=sv(h.serv,h.unit).p,tab=h.tabela??atual,d=centavos(tab-h.valor);
+    return{h,tab,d,origem:h.desc?h.desc.tipo:(d>0.005?'sem':null),mudou:h.tabela!=null&&Math.abs(h.tabela-atual)>0.005}}).filter(x=>x.d>0.005||(x.h.desc&&x.h.desc.tipo==='brinde'));
+  const soma=a=>a.reduce((s,x)=>s+x.d,0),bri=linhas.filter(x=>x.origem==='brinde'),man=linhas.filter(x=>x.origem==='manual'),sem=linhas.filter(x=>x.origem==='sem');
+  const fat=recs.reduce((s,h)=>s+h.valor,0),tot=soma(linhas);
+  const ordem={sem:0,manual:1,brinde:2};linhas.sort((a,b)=>ordem[a.origem]-ordem[b.origem]||b.h.date.localeCompare(a.h.date));
+  const vs=vouchers(),vAtivos=vs.filter(v=>!v.usado&&!v.cancelado&&v.valeAte>=iso(TODAY)),vUsados=vs.filter(v=>v.usado),vVenc=vs.filter(v=>!v.usado&&!v.cancelado&&v.valeAte<iso(TODAY));
+  const tag=x=>x.origem==='brinde'?`<span class="tag ok">Brinde de aniversário · ${x.h.desc.pct}%</span>`:x.origem==='manual'?`<span class="tag warn">${esc(x.h.desc.motivo)}</span>`:'<span class="tag" style="background:#fbe3e0;color:#9b2c1f">Sem motivo registrado</span>';
+  const det=x=>x.origem==='manual'?`<div class="small">${esc(x.h.desc.det)} · registrado por ${esc(x.h.desc.por||'')}</div>`:x.origem==='brinde'?`<div class="small muted">Código ${esc(x.h.desc.voucher)}</div>`:`<div class="small" style="color:#9b2c1f">Cobrado abaixo da tabela, sem voucher e sem motivo.${x.h.tabela==null?' Atendimento de antes do controle: comparado ao preço de hoje.':''}${x.h.corrigidoPor?' Corrigido por '+esc(x.h.corrigidoPor)+'.':''}</div>`;
+  return `<div class="box" style="margin-top:16px" id="descontos"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Descontos dados</h2>
+   <div class="seg">${[['mes','Este mês'],['passado','Mês passado'],['tudo','Tudo']].map(([k,l])=>`<button class="${per===k?'on':''}" data-dper="${k}">${l}</button>`).join('')}</div></div>
+   <p class="small muted" style="margin:6px 0 12px">Tudo o que foi cobrado abaixo da tabela. Só o desconto com voucher é do brinde; o resto precisa ter motivo.</p>
+   <div class="grid g3">
+    <div><div class="lbl">Total de descontos</div><div class="stat">${brl(tot)}</div><div class="small muted">${linhas.length} atendimento(s)${fat>0?` · ${(tot/(fat+tot)*100).toFixed(1).replace('.',',')}% do que a tabela previa`:''}</div></div>
+    <div><div class="lbl">Brinde de aniversário</div><div class="stat" style="color:var(--ok)">${brl(soma(bri))}</div><div class="small muted">${bri.length} com voucher</div></div>
+    <div><div class="lbl">Sem voucher</div><div class="stat" style="color:${sem.length?'#9b2c1f':'inherit'}">${brl(soma(man)+soma(sem))}</div><div class="small muted">${man.length} com motivo · <b style="color:${sem.length?'#9b2c1f':'inherit'}">${sem.length} sem motivo</b></div></div></div>
+   ${sem.length?`<div class="alert" style="margin-top:12px"><b>${sem.length} atendimento(s) cobrado(s) abaixo da tabela sem motivo.</b> Confira com quem atendeu.</div>`:''}
+   <div style="margin-top:8px">${linhas.length?linhas.map(x=>`<div class="row" style="align-items:flex-start"><div class="grow"><b>${esc(cli(x.h.cli).n)}</b><div class="small muted">${fd(x.h.date)} · ${esc(sv(x.h.serv,x.h.unit).n)} · ${esc(PEOPLE[x.h.pro]?.n||'')} · ${U[x.h.unit].n}</div>${det(x)}</div><div style="text-align:right"><div class="small muted"><s>${brl(x.tab)}</s> → <b>${brl(x.h.valor)}</b></div><div><b>− ${brl(x.d)}</b></div>${tag(x)}</div></div>`).join(''):'<p class="muted">Nenhum desconto neste período.</p>'}</div>
+   <h3 style="margin:18px 0 4px">Códigos de brinde</h3>
+   <div class="grid g3"><div><div class="lbl">Liberados e valendo</div><div class="stat" style="font-size:26px">${vAtivos.length}</div></div><div><div class="lbl">Usados</div><div class="stat" style="font-size:26px">${vUsados.length}</div></div><div><div class="lbl">Venceram sem uso</div><div class="stat" style="font-size:26px">${vVenc.length}</div></div></div>
+   ${vs.length?vs.sort((a,b)=>(b.emitido||'').localeCompare(a.emitido||'')).slice(0,12).map(v=>`<div class="row"><div class="grow"><b>${esc(v.nome||cli(v.cli).n)}</b><div class="small muted">${esc(v.id)} · liberado em ${fd(v.emitido)} por ${esc(v.emitidoPor||'')} · vale até ${fd(v.valeAte)}</div></div>${v.usado?`<span class="tag">Usado em ${fd(v.usadoEm)}${v.usadoPor?' · '+esc(v.usadoPor):''}</span>`:v.valeAte<iso(TODAY)?'<span class="tag warn">Venceu</span>':'<span class="tag ok">Valendo</span>'}</div>`).join(''):'<p class="muted">Nenhum código liberado ainda. Libere na aba Hoje, em Aniversários da semana.</p>'}</div>`}
 function vFinanceiro(){
   const m=monthRecs();const mes=TODAY.toLocaleDateString('pt-BR',{month:'long'});
   const mai=m.filter(h=>h.unit==='mai'),flo=m.filter(h=>h.unit==='flo');
@@ -1050,7 +1152,8 @@ function vFinanceiro(){
     <p class="small muted">Percentual ainda a confirmar com a Tháriga — ajuste aqui quando ela definir.</p>
     <button class="btn" id="extr">Gerar extrato do acerto</button></div>`:''}
   </div>
-  <div class="box" style="margin-top:16px"><h2>Recebido por forma de pagamento</h2><div class="grid g3">${porPag.map(([p,v])=>`<div><div class="lbl">${p}</div><div class="stat" style="font-size:26px">${brl(v)}</div></div>`).join('')}</div></div>`;
+  <div class="box" style="margin-top:16px"><h2>Recebido por forma de pagamento</h2><div class="grid g3">${porPag.map(([p,v])=>`<div><div class="lbl">${p}</div><div class="stat" style="font-size:26px">${brl(v)}</div></div>`).join('')}</div></div>
+  ${descontosHtml()}`;
 }
 function extrato(){const flo=monthRecs().filter(h=>h.unit==='flo');const tot=flo.reduce((s,h)=>s+(h.valor||0),0);const rep=tot*repasse()/100;
   const txt=`Acerto Estúdio Florença — ${TODAY.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}\nAtendimentos: ${flo.length}\nTotal: ${brl(tot)}\nParte do estúdio (${repasse()}%): ${brl(rep)}\nLíquido Tháriga: ${brl(tot-rep)}`;
@@ -1100,7 +1203,19 @@ function abrirSuporte(){if(!S.user)return;
     if(SUPORTE_URL){try{await fetch(SUPORTE_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({chave:SUPORTE_CHAVE,...reg})});mandou=true}catch(e){guardaErro(e.message)}}
     if(salvou||mandou){toast(mandou?'Pedido enviado ao suporte':'Pedido guardado. O suporte vai ver em breve.');closeDlg()}else btn.disabled=false}}
 function vServicos(){
-  const brindeBox=`<div class="box" style="margin-bottom:16px"><h2>Brinde de aniversário</h2><p class="small muted" style="margin-top:0">Fecha todas as mensagens de aniversário. Escreva o que você quer oferecer, por exemplo: <i>10% de desconto no seu próximo atendimento até o fim do mês</i>.</p>
+  const rg=regraBrinde(),ex=servicosDe('mai').filter(x=>x.ativo!==false&&x.p>0).slice(0,4);
+  const pctSel=(id,v)=>`<select id="${id}" style="width:auto"><option value="5" ${v===5?'selected':''}>5%</option><option value="10" ${v===10?'selected':''}>10%</option></select>`;
+  const regraBox=`<div class="box" style="margin-bottom:16px"><h2>Desconto do brinde de aniversário</h2>
+   <p class="small muted" style="margin-top:0">O desconto só vale com o <b>código</b> que você libera para cada aniversariante: uso único, com prazo. Quem atende não digita desconto, só aplica o código, e o valor sai calculado e travado.</p>
+   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+    <label class="f" style="margin:0">Serviço até (R$)<input type="number" id="bl" min="0" step="1" value="${rg.limite}" style="width:110px"></label>
+    <label class="f" style="margin:0">Desconto<br>${pctSel('bpa',rg.pctAte)}</label>
+    <label class="f" style="margin:0">Acima disso<br>${pctSel('bpb',rg.pctAcima)}</label>
+    <label class="f" style="margin:0">Vale por (dias)<input type="number" id="bd" min="1" max="90" value="${rg.dias}" style="width:90px"></label></div>
+   <div id="bprev" class="small" style="margin:12px 0"></div>
+   <button class="btn p sm" id="regrasalvar">Salvar regra</button>
+   <p class="small muted" style="margin:10px 0 0">A regra vale para os códigos liberados daqui para frente. Os já liberados mantêm a regra de quando foram criados.</p></div>`;
+  const brindeBox=regraBox+`<div class="box" style="margin-bottom:16px"><h2>Texto do brinde</h2><p class="small muted" style="margin-top:0">Fecha as mensagens de aniversário de quem ainda não recebeu um código. Escreva o que você quer oferecer, por exemplo: <i>um mimo especial no seu próximo atendimento</i>. Desconto de verdade só existe pelo código.</p>
    <label class="f"><input id="brinde" value="${esc((C.mCfg&&C.mCfg.brinde)||'')}" placeholder="${esc(BRINDE_PADRAO)}"></label><button class="btn p sm" id="brindesalvar">Salvar brinde</button></div>`;
   const sec=u=>`<div class="box" style="margin-bottom:16px"><h2>${U[u].n}</h2>${servicosDe(u).map(x=>`<div class="row" style="${x.ativo===false?'opacity:.55':''}"><div class="grow"><b>${esc(x.n)}</b><div class="small muted">${x.d?x.d+' min':'sem duração'}${x.obs?' · '+esc(x.obs):''}${x.ativo===false?' · desativado':''}</div></div><b>${brl(x.p)}</b><button class="btn sm" data-es="${u}|${x.id}">Editar</button></div>`).join('')}<div style="margin-top:12px"><button class="btn" data-ns="${u}">Novo serviço no ${U[u].n}</button></div></div>`;
   return `<div class="top"><div><h1>Serviços e preços</h1><div class="sub">Mude o valor, renomeie, ative ou desative cada serviço. O novo preço vale para os próximos atendimentos; os já registrados mantêm o valor que foi cobrado.</div></div></div>${brindeBox}${sec('mai')}${sec('flo')}`}
@@ -1441,6 +1556,8 @@ function render(){
     else{const [y,m]=(S.agMes||(S.agData||iso(TODAY)).slice(0,7)).split('-').map(Number),x=new Date(y,m-1+n,1,12);S.agMes=iso(x).slice(0,7)}
     render()});
   main.querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>concluir(b.dataset.done,b.dataset.p));
+  main.querySelectorAll('[data-lib]').forEach(b=>b.onclick=async()=>{b.disabled=true;await liberarBrinde(b.dataset.lib);b.disabled=false});
+  main.querySelectorAll('[data-dper]').forEach(b=>b.onclick=()=>{S.descPer=b.dataset.dper;render()});
   main.querySelectorAll('[data-msg]').forEach(b=>b.onclick=()=>msgDlg(b.dataset.msg,b.dataset.c));
   main.querySelectorAll('[data-cli]').forEach(b=>b.onclick=()=>ficha(b.dataset.cli));
   main.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/pagamentos/'+qzChave(b.dataset.pay),true),'Comissão marcada como paga'));
@@ -1460,6 +1577,12 @@ function render(){
   main.querySelectorAll('[data-ecu]').forEach(b=>b.onclick=()=>editarCurso(b.dataset.ecu));
   const bs=document.getElementById('brindesalvar');if(bs)bs.onclick=async()=>{const v=document.getElementById('brinde').value.trim();bs.disabled=true;
     await grava(()=>DB.set('maison/config/brinde',v||null),v?'Brinde guardado':'Brinde voltou ao texto padrão');bs.disabled=false};
+  const rs=document.getElementById('regrasalvar');if(rs){
+    const prev=()=>{const l=+document.getElementById('bl').value||0,a=+document.getElementById('bpa').value,b=+document.getElementById('bpb').value,v={limite:l,pctAte:a,pctAcima:b};
+      const ord=servicosDe('mai').filter(x=>x.ativo!==false&&x.p>0).sort((a,b)=>a.p-b.p);document.getElementById('bprev').innerHTML=(ord.length>4?[...ord.slice(0,2),...ord.slice(-2)]:ord).map(x=>{const k=calcBrinde(x.p,v);return `<div>${esc(x.n)}: ${brl(x.p)} → <b>${k.pct}%</b> → <b>${brl(k.final)}</b></div>`}).join('')||'Cadastre serviços para ver o exemplo.'};
+    ['bl','bpa','bpb'].forEach(i=>document.getElementById(i).oninput=prev);prev();
+    rs.onclick=async()=>{const r={limite:Math.max(0,+document.getElementById('bl').value||0),pctAte:+document.getElementById('bpa').value,pctAcima:+document.getElementById('bpb').value,dias:Math.min(90,Math.max(1,parseInt(document.getElementById('bd').value)||30))};
+      rs.disabled=true;await grava(()=>DB.set('maison/config/brindeRegra',r),'Regra do brinde salva');rs.disabled=false}}
   main.querySelectorAll('[data-es]').forEach(b=>{const [u,i]=b.dataset.es.split('|');b.onclick=()=>editarServico(u,i)});
   main.querySelectorAll('[data-ns]').forEach(b=>b.onclick=()=>editarServico(b.dataset.ns,null));
   main.querySelectorAll('[data-igdia]').forEach(b=>b.onclick=()=>igAbrir(b.dataset.igdia));

@@ -86,6 +86,14 @@
           }
         }
       },
+      // Brinde de aniversário: só a Tháriga cria o código. Quem atende só consegue marcá-lo como usado
+      // (de "não usado" para "usado", sem mexer na regra do código), uma única vez.
+      "vouchers": {
+        "$id": {
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && data.exists() && data.child('usado').val() === false && newData.child('usado').val() === true && newData.child('cli').val() === data.child('cli').val() && newData.child('valeAte').val() === data.child('valeAte').val() && newData.child('limite').val() === data.child('limite').val() && newData.child('pctAte').val() === data.child('pctAte').val() && newData.child('pctAcima').val() === data.child('pctAcima').val()))",
+          ".validate": "!newData.exists() || (newData.hasChildren(['cli','valeAte','limite','pctAte','pctAcima','usado']) && newData.child('pctAte').val() <= 10 && newData.child('pctAcima').val() <= 10)"
+        }
+      },
       // Pedidos de ajuda: todas enviam, só a administradora lê (o suporte também recebe por e-mail).
       "suporte": {
         ".read": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
@@ -124,7 +132,9 @@
       "valores": {
         ".read": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
         "$id": {
-          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (!data.exists() && root.child('acesso').child(auth.uid).exists()))"
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (!data.exists() && root.child('acesso').child(auth.uid).exists()))",
+          // Um valor marcado como "brinde" só é aceito se o código existe e já foi ligado a ESTE atendimento.
+          ".validate": "!newData.child('desc').exists() || newData.child('desc').child('tipo').val() !== 'brinde' || root.child('maison').child('vouchers').child(newData.child('desc').child('voucher').val()).child('atend').val() === $id || root.child('florenca').child('vouchers').child(newData.child('desc').child('voucher').val()).child('atend').val() === $id"
         }
       }
     },
