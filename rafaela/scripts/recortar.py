@@ -13,7 +13,7 @@ import re
 import pymupdf
 from PIL import Image
 
-ESCALA = 2.5  # ~180 dpi
+ESCALA = 2.2  # ~160 dpi (as provas importadas até 08/10/2026 usaram 2.5)
 CORTES = []  # (questão, página, o que foi cortado ao meio pela borda do recorte)
 VAZIAS = []  # números de questão cujo recorte saiu vazio (para o teste apontar)
 
