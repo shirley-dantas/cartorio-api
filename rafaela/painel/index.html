@@ -279,6 +279,9 @@ const S={banca:null,materia:null,anos:new Set(),provas:new Set(),subtema:"",nums
 let ABA="inicio";
 
 /* ============ guardar no aparelho ============ */
+// Pede ao navegador que não apague os dados quando faltar espaço (o Safari, por exemplo,
+// limpa o que um site guardou depois de uma semana sem uso — salvo se instalado na tela inicial).
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 // Tudo o que é dela mora neste aparelho: texto no localStorage, fotos no IndexedDB.
 function lerLS(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function gravarLS(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){aviso("Não consegui guardar neste aparelho. Faça uma cópia de segurança (aba Início).");return false}}
@@ -1243,10 +1246,21 @@ function desenharMural(focoId){
 function renderInicio(){
   const h=new Date().getHours(), sau=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";
   const c=calc(), emAberto=REG.filter(r=>!ehDominado(r)).length;
+  const ult=lerLS("rafa.ultimaCopia",0), temDados=REG.length||QP.length||LEMB.length;
+  const boasVindas=!lerLS("rafa.boasvindas",false)?`<section class="card"><h2>Primeiros passos</h2>
+    <ol style="margin:0;padding-left:22px;line-height:1.6">
+      <li><b>Acervo</b>: escolha a banca e a matéria, resolva online ou gere um PDF. Não achou a questão? Fotografe e adicione em “Minhas questões”.</li>
+      <li><b>Errou ou ficou em dúvida?</b> Toque em “Errei esta”, escreva como pensou e anexe a foto — ou resolva à mão no quadro da caneta. A IA corrige e explica.</li>
+      <li><b>Estatísticas</b> e <b>Macetes</b> se montam sozinhos com o que você registra.</li>
+      <li>Anote lembretes no mural abaixo e, de vez em quando, toque em <b>Salvar cópia</b>.</li></ol>
+    <div style="margin-top:12px"><button class="btn mini sec" data-bv="1">Entendi</button></div></section>`:"";
+  const lembreteCopia=temDados&&(!ult||Date.now()-ult>14*DIA)?`<div class="nota"><b>${ult?"Faz mais de 2 semanas que você não salva uma cópia.":"Você ainda não salvou uma cópia de segurança."}</b> Seus registros e fotos ficam só neste aparelho; a cópia guarda tudo caso ele seja limpo ou trocado.
+    <div style="margin-top:8px"><button class="btn mini pri" id="bk-lembrete">SALVAR CÓPIA AGORA</button></div></div>`:"";
   const v=$("#v-inicio");
   v.innerHTML=`<div class="ola">${sau}, Rafaela.</div>
    <p class="ola-sub">${emAberto?`Você tem ${emAberto} ${emAberto===1?"erro ou dúvida":"erros e dúvidas"} para revisar.`:"Nada para revisar agora — que tal resolver umas questões?"}</p>
    <div class="resumo"><div><b>${D.q.length||"—"}</b><span>questões no acervo</span></div><div><b>${REG.length}</b><span>registros no caderno</span></div><div><b>${c.tentativas}</b><span>questões resolvidas online</span></div></div>
+   ${lembreteCopia}${boasVindas}
    ${c.prioridades.length?`<section class="card"><h2>Para revisar agora</h2><div class="rev">${c.prioridades.slice(0,3).map(p=>`<div class="rev-i"><div><b>${esc(p.nome)}</b><div class="mut" style="font-size:14px">${esc(p.motivos.join(" · "))}</div></div><div class="actions"><button class="btn mini sec" data-st="acervo" data-m="${esc(p.materia)}" data-a="${esc(p.assunto)}">Treinar</button><button class="btn mini fant" data-st="fixar" data-m="${esc(p.materia)}" data-a="${esc(p.assunto)}">Fixar no mural</button></div></div>`).join("")}</div></section>`:""}
    <div class="mural-wrap"><h2>Meus lembretes</h2><div class="mural" id="mural"></div></div>
    <section class="card" style="margin-top:18px"><h2>Cópia de segurança</h2>
@@ -1254,9 +1268,11 @@ function renderInicio(){
      <div class="actions"><button class="btn sec mini" id="bk-salvar">Salvar cópia</button><label class="btn sec mini upl"><input type="file" accept="application/json,.json" id="bk-abrir">Restaurar de uma cópia</label></div></section>`;
   desenharMural();
   $("#bk-salvar").onclick=salvarCopia;
+  const bl=$("#bk-lembrete");if(bl)bl.onclick=salvarCopia;
   $("#bk-abrir").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)restaurarCopia(f)};
 }
 $("#v-inicio").addEventListener("click",e=>{
+  if(e.target.closest("[data-bv]")){gravarLS("rafa.boasvindas",true);renderInicio();return}
   if(e.target.closest("#novo-lemb")){const l=novoLembrete("");desenharMural(l.id);return}
   const p=e.target.closest(".postit[data-l]");if(!p)return;
   const l=LEMB.find(x=>x.id===p.dataset.l);if(!l)return;
@@ -1282,6 +1298,7 @@ async function salvarCopia(){
     for(const p of QP){const b=await fotoGet(p.id).catch(()=>null);if(b)fotos[p.id]={tipo:b.type,dados:await blobB64(b)}}
     const corpo={app:"caderno-rafaela",versao:1,em:new Date().toISOString(),registros:REG,tentativas:TENT,lembretes:LEMB,dicas:DICAS,questoes:QP,fotos};
     baixar(new Blob([JSON.stringify(corpo)],{type:"application/json"}),`caderno-rafaela-${new Date().toISOString().slice(0,10)}.json`);
+    gravarLS("rafa.ultimaCopia",Date.now());if(ABA==="inicio")renderInicio();
     aviso("Cópia salva. Guarde o arquivo num lugar seguro.");
   }catch(e){aviso("Não consegui montar a cópia: "+(e&&e.message||e))}
 }

@@ -60,7 +60,11 @@ do repositório, e o limite de 12 funções do painel do cartório não vale aqu
 - **Tudo o que é dela mora no aparelho** (texto no `localStorage`, fotos no
   IndexedDB). Nada vai a um banco; a IA recebe o que é preciso para cada
   chamada e não guarda nada. Por isso existe a **cópia de segurança** na aba
-  Início — e é o primeiro lugar a olhar se ela disser que "sumiu".
+  Início — e é o primeiro lugar a olhar se ela disser que "sumiu". A página pede ao
+  navegador armazenamento persistente (`navigator.storage.persist()`) e cobra uma
+  cópia quando há dados e a última tem mais de 14 dias (ou nunca houve): o Safari
+  apaga o que um site guardou depois de uma semana sem uso, salvo se instalado na
+  tela inicial — por isso o passo "Adicionar à tela inicial" não é enfeite.
 - **Questão adicionada por ela é dela, não do acervo oficial.** Fica só no aparelho (e na cópia de segurança), marcada *minha*, e o gabarito é o que ela digitar — a IA **nunca** diz qual alternativa é a certa ao classificar (o prompt veda e o teste confere). Sem gabarito a questão aparece e pode ser resolvida, mas não entra na conta de acertos. Escrever a banca como ENEM, FUVEST ou UNICAMP põe a questão sob a banca oficial; qualquer outro nome cria uma banca nova.
 - **As fotos são reduzidas antes de sair** (JPEG, até 1.400 px; abaixo disso
   se não couber): a Vercel recusa corpo acima de 4,5 MB. No máximo 5 imagens
@@ -83,7 +87,8 @@ do repositório, e o limite de 12 funções do painel do cartório não vale aqu
 | Macetes | `resumoParaIA()`, `gerarDicas()`, `renderDicas()` |
 | Mural de post-its | `htmlPostit()`, `desenharMural()`, estilo `.postit` |
 | Cópia de segurança | `salvarCopia()`, `restaurarCopia()` |
-| A IA (servidor) | `painel/api/ia.js` — `corrigir()`, `dicas()` |
+| A IA (servidor) | `painel/api/ia.js` — `corrigir()`, `dicas()`, `classificar()` |
+| Primeira visita e lembrete da cópia | `renderInicio()` (`boasVindas`, `lembreteCopia`) |
 
 ## Testes
 
