@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Agendar horário · Maison Beauty</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Maison Beauty">
+<meta property="og:title" content="Agende o seu horário · Maison Beauty">
+<meta property="og:description" content="Escolha o serviço, o dia e o horário. Sem conversa: já fica marcado.">
+<meta property="og:image" content="https://cartorio-api-maison.vercel.app/og-pedido.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAF7F1;--panel:#fff;--ink:#262220;--muted:#8A7D6E;--line:#E9E1D2;--berry:#9C7A2E;--berry-soft:#F1E9D4;--warn:#A8551C;--warn-soft:#FBEBDD;--ok:#3F7A57;--ok-soft:#E2F1E7;
+ --serif:"Cormorant",Georgia,serif;--sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+.logo{display:block;margin:6px auto 4px;width:220px;max-width:70%;height:auto}
+h1{font-family:var(--serif);font-weight:600;font-size:30px;margin:10px 0 4px;text-align:center}
+.sub{color:var(--muted);text-align:center;font-size:14px;margin-bottom:18px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.sec{background:var(--berry-soft);padding:9px 12px;border-radius:8px;font-weight:600;margin:20px 0 12px}
+label.f{display:block;margin-bottom:12px;font-size:14px;color:var(--muted)}
+label.f input,label.f textarea,label.f select{display:block;width:100%;margin-top:4px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+.q{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:15px}
+.q .sn{display:flex;gap:18px;flex:none}
+.q label,.sv label,.fo label{display:inline-flex;gap:8px;align-items:center;cursor:pointer}
+input[type=radio],input[type=checkbox]{width:22px;height:22px;accent-color:var(--berry)}
+.sv{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:10px}
+.fo{display:flex;gap:20px;flex-wrap:wrap;margin:6px 0}
+[hidden]{display:none!important}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.fgrid figure{margin:0;position:relative}
+.fgrid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block}
+.fgrid button{position:absolute;top:4px;right:4px;border:0;border-radius:999px;background:rgba(38,34,32,.78);color:#fff;width:28px;height:28px;font-size:16px;line-height:1;cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+canvas.sig{width:100%;height:150px;border:1px dashed var(--muted);border-radius:12px;background:#fff;touch-action:none}
+.btn{border:1px solid var(--line);background:var(--panel);padding:10px 18px;border-radius:999px;font:inherit;font-weight:500}
+.btn.p{background:var(--berry);border-color:var(--berry);color:#fff;width:100%;padding:14px;font-size:17px;margin-top:16px}
+.btn:disabled{opacity:.5}
+.msg{text-align:center;padding:30px 10px}
+.msg h2{font-family:var(--serif);font-size:28px;margin:0 0 8px}
+.alert{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px;margin:10px 0}
+.erro{color:var(--warn);font-size:14px;margin-top:8px;min-height:20px}
+</style>
+<style>
+.un{display:grid;gap:10px;margin-bottom:6px}
+.un label{position:relative;display:block;border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--panel);cursor:pointer}
+.un label.on{border-color:var(--berry);background:var(--berry-soft)}
+.un input{position:absolute;opacity:0;pointer-events:none}
+.un b{display:block;font-size:17px}
+.un span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chips label{position:relative;display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:999px;padding:9px 16px;background:var(--panel);cursor:pointer;font-size:15px;color:var(--ink)}
+.chips label.on{border-color:var(--berry);background:var(--berry-soft);font-weight:600}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+</style>
+<style>
+.slots{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}
+.slots button{border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:10px 16px;font:inherit;font-size:16px;color:var(--ink);min-width:78px}
+.slots button.on{background:var(--berry);border-color:var(--berry);color:#fff;font-weight:600}
+.dia{font-weight:600;margin:14px 0 2px}
+.resumo{background:var(--berry-soft);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:15px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="logo" src="/logo.png" alt="Maison Beauty">
+  <div id="tela"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
+import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
+
+// Mesmo projeto Firebase do painel. A cliente entra de forma anônima, só para marcar o horário:
+// lê os horários ocupados (sem nome de ninguém) e cria UMA reserva. Nada mais.
+const firebaseConfig = {
+  apiKey: "AIzaSyD0p5Y0HDL2rcDLE6qFNSb4nyPe3yFjXos",
+  authDomain: "maison-beauty-2e7da.firebaseapp.com",
+  databaseURL: "https://maison-beauty-2e7da-default-rtdb.firebaseio.com",
+  projectId: "maison-beauty-2e7da",
+  storageBucket: "maison-beauty-2e7da.firebasestorage.app",
+  messagingSenderId: "30042816821",
+  appId: "1:30042816821:web:e0e5cbcfe596d3a1a40c7c"
+};
+// Serviços (nome e duração em minutos) de cada unidade: os mesmos do painel.
+const UN={
+ mai:{n:'Maison Beauty',s:'Itaquera',dias:[[0,'Domingo'],[1,'Segunda'],[2,'Terça'],[3,'Quarta']],base:'maison',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Micropigmentação", 90], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90], ["Remoção de cílios", 30], ["Mão tradicional", 30], ["Pé tradicional", 40], ["Alongamento de unhas", 120], ["Manutenção de unhas", 90], ["Remoção de alongamento de unhas", 30], ["Remoção de pigmento a laser", 30], ["Laser para tratamento de fungos", 30], ["Depilação a laser", 30], ["Ozonioterapia", 60], ["Aplicação de piercing", 30]]},
+ flo:{n:'Estúdio Florença',s:'Itaim Bibi',dias:[[4,'Quinta'],[5,'Sexta'],[6,'Sábado']],base:'florenca',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Lash lifting", 60], ["Brow lamination", 60], ["Micropigmentação", 120], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90]]}};
+const NOMES=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const minDe=h=>{const [a,b]=h.split(':').map(Number);return a*60+(b||0)};
+const hhmm=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+const fdata=d=>{const x=new Date(d+'T12:00');return `${NOMES[x.getDay()]}, ${x.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`};
+const tela=document.getElementById('tela');
+let db=null,un='',pub=null,escolha=null;
+
+async function entrar(){
+  if(db)return db;
+  const app=initializeApp(firebaseConfig);await signInAnonymously(getAuth(app));db=getDatabase(app);return db}
+
+function formulario(){
+  tela.innerHTML=`<h1>Agende o seu horário</h1><div class="sub">Escolha o dia e o horário livre: já fica marcado, sem conversa.</div>
+  <div class="box">
+   <div class="sec" style="margin-top:0">Onde você quer ser atendida?</div>
+   <div class="un" id="uns">${Object.entries(UN).map(([k,u])=>`<label><input type="radio" name="un" value="${k}"><b>${u.n}</b><span>${u.s} · ${u.dias.map(d=>d[1]).join(', ')}</span></label>`).join('')}</div>
+   <div id="aviso"></div>
+   <div id="resto" hidden>
+    <div class="sec">Seus dados</div>
+    <label class="f">Nome<input id="n" autocomplete="name" maxlength="80"></label>
+    <label class="f">WhatsApp com DDD<input id="t" type="tel" autocomplete="tel" placeholder="(11) 9...." maxlength="30"></label>
+    <div class="fo"><span class="small" style="width:100%">Já foi atendida por nós?</span><label><input type="radio" name="nova" value="nao" checked>Sim, já sou cliente</label><label><input type="radio" name="nova" value="sim">Primeira vez</label></div>
+    <div class="sec">O que você quer fazer?</div>
+    <label class="f">Serviço<select id="s"></select></label>
+    <div class="sec">Quando fica bom para você?</div>
+    <div class="small" style="margin-bottom:8px">Marque um ou mais dias</div>
+    <div class="chips" id="dias"></div>
+    <div class="small" style="margin-bottom:8px">Período</div>
+    <div class="chips" id="per"><label class="on"><input type="radio" name="per" value="M" checked>Manhã</label><label><input type="radio" name="per" value="T">Tarde</label></div>
+    <div class="sec">Horários livres</div>
+    <div id="slots"><p class="small">Marque pelo menos um dia para ver os horários.</p></div>
+    <div id="conf" hidden>
+     <div class="resumo" id="resumo"></div>
+     <label class="f">Quer nos contar mais alguma coisa? (opcional)<textarea id="o" rows="2" maxlength="300"></textarea></label>
+     <div class="erro" id="erro"></div>
+     <button class="btn p" id="enviar">Confirmar agendamento</button>
+    </div>
+   </div>
+  </div>`;
+  const marca=box=>box.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));
+  const uns=document.getElementById('uns');
+  uns.addEventListener('change',e=>{un=e.target.value;marca(uns);escolheUnidade()});
+  document.getElementById('per').addEventListener('change',()=>{marca(document.getElementById('per'));desenhaSlots()});
+  document.getElementById('s').onchange=desenhaSlots;
+  document.getElementById('enviar').onclick=enviar}
+
+async function escolheUnidade(){
+  const u=UN[un],aviso=document.getElementById('aviso'),resto=document.getElementById('resto');
+  escolha=null;resto.hidden=true;aviso.innerHTML='<p class="small">Carregando os horários…</p>';
+  try{await entrar();pub=(await get(ref(db,'publico/agenda/'+un))).val()||{}}
+  catch(e){aviso.innerHTML='<div class="alert">Não foi possível carregar os horários. Confira a internet e tente de novo.</div>';return}
+  if(!pub.cfg||pub.cfg.ativo!==true){aviso.innerHTML=`<div class="alert">O agendamento online do ${u.n} não está disponível agora. Fale com a gente pelo WhatsApp.</div>`;return}
+  aviso.innerHTML='';resto.hidden=false;
+  document.getElementById('s').innerHTML=u.serv.map((x,i)=>`<option value="${i}">${esc(x[0])} · ${x[1]} min</option>`).join('');
+  const d=document.getElementById('dias');d.innerHTML=u.dias.map(x=>`<label><input type="checkbox" value="${x[0]}">${x[1]}</label>`).join('');
+  d.onchange=()=>{d.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));desenhaSlots()};
+  desenhaSlots()}
+
+// Horários livres: dentro da abertura, no período, com vaga (menos atendimentos sobrepostos que o limite) e longe o bastante de agora.
+function livres(data,dur,periodo){
+  const c=pub.cfg,ini=minDe(c.ini),fim=minDe(c.fim),passo=c.passo||30,par=c.paralelo||1,oc=Object.values((pub.ocup||{})[data]||{}).map(x=>[minDe(x.h),minDe(x.h)+(x.m||30)]);
+  const agora=new Date(),hoje=iso(agora),limite=agora.getHours()*60+agora.getMinutes()+(c.antecH||0)*60,out=[];
+  for(let t=ini;t+dur<=fim;t+=passo){
+    if((periodo==='M')!==(t<720))continue;
+    if(data===hoje&&t<limite)continue;
+    if(oc.filter(([a,b])=>a<t+dur&&b>t).length>=par)continue;
+    out.push(t)}
+  return out}
+function desenhaSlots(){
+  const u=UN[un],c=pub.cfg,box=document.getElementById('slots'),conf=document.getElementById('conf');
+  escolha=null;conf.hidden=true;
+  const dias=[...document.querySelectorAll('#dias input:checked')].map(i=>+i.value);
+  if(!dias.length){box.innerHTML='<p class="small">Marque pelo menos um dia para ver os horários.</p>';return}
+  const dur=u.serv[+document.getElementById('s').value][1],per=document.querySelector('input[name=per]:checked').value,fech=c.fechados||[];
+  const hoje=new Date();hoje.setHours(12,0,0,0);let html='',n=0;
+  for(let i=0;i<=(c.dias||21);i++){const d=new Date(hoje);d.setDate(d.getDate()+i);const data=iso(d);
+    if(!dias.includes(d.getDay())||fech.includes(data))continue;
+    const L=livres(data,dur,per);if(!L.length)continue;n+=L.length;
+    html+=`<div class="dia">${fdata(data)}</div><div class="slots">${L.map(t=>`<button type="button" data-d="${data}" data-h="${hhmm(t)}">${hhmm(t)}</button>`).join('')}</div>`}
+  box.innerHTML=n?html:'<p class="small">Não há horários livres nesses dias e período. Tente outro período ou outros dias.</p>';
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{box.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    escolha={data:b.dataset.d,hora:b.dataset.h,dur};
+    document.getElementById('resumo').innerHTML=`<b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(u.serv[+document.getElementById('s').value][0])} · ${dur} min<br>${u.n} (${u.s})`;
+    conf.hidden=false;conf.scrollIntoView({behavior:'smooth',block:'nearest'})})}
+const erro=m=>{document.getElementById('erro').textContent=m};
+async function enviar(){
+  const v=id=>document.getElementById(id).value.trim(),u=UN[un];
+  if(!escolha)return erro('Escolha um horário.');
+  if(v('n').length<2)return erro('Falta o seu nome.');
+  if(v('t').replace(/\D/g,'').length<10)return erro('Confira o WhatsApp: precisa do DDD.');
+  const btn=document.getElementById('enviar');btn.disabled=true;btn.textContent='Marcando…';erro('');
+  const sv=u.serv[+v('s')],reg={un,nome:v('n'),tel:v('t'),serv:sv[0],data:escolha.data,hora:escolha.hora,m:escolha.dur,
+    nova:document.querySelector('input[name=nova]:checked').value==='sim',em:Date.now()};
+  if(v('o'))reg.obs=v('o');
+  const par=pub.cfg.paralelo||1;let feito=false;
+  // Uma vaga por tentativa: se alguém marcou o mesmo horário um instante antes, o banco recusa e tentamos a próxima vaga.
+  for(let k=1;k<=par&&!feito;k++){
+    const chave=`${escolha.data}_${escolha.hora.replace(':','')}_${k}`;
+    try{await set(ref(db,u.base+'/reservas/'+chave),reg);feito=true;
+      try{await set(ref(db,'publico/agenda/'+un+'/ocup/'+escolha.data+'/'+chave),{h:escolha.hora,m:escolha.dur})}catch(e){}}
+    catch(e){if(!/permission|denied/i.test(e.message||''))break}}
+  if(!feito){
+    try{pub=(await get(ref(db,'publico/agenda/'+un))).val()||pub}catch(e){}
+    btn.disabled=false;btn.textContent='Confirmar agendamento';desenhaSlots();
+    return erro('Esse horário acabou de ser ocupado por outra pessoa. Escolha outro, por favor.')}
+  const q=new URLSearchParams({s:sv[0],d:escolha.data,h:escolha.hora,m:String(escolha.dur),u:un==='flo'?'flo':'mai'});
+  tela.innerHTML=`<div class="msg"><h2>Agendamento confirmado ✓</h2><p>${esc(reg.nome.split(' ')[0])}, você está marcada:</p>
+   <div class="resumo" style="text-align:left"><b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(sv[0])}<br>${u.n} (${u.s})</div>
+   <p><a class="btn p" style="display:block;text-decoration:none" href="/h?${q}">Salvar na minha agenda</a></p>
+   <p class="small">Precisa mudar? É só nos chamar pelo WhatsApp. Se for a sua primeira vez, vamos te enviar uma ficha rápida para preencher antes do atendimento.</p></div>`}
+formulario();
+</script>
+</body>
+</html>

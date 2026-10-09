@@ -64,3 +64,23 @@ Passo a passo do Firebase em `FIREBASE.md`.
 - Fotos em alta resolução (Storage), só se o volume crescer.
 - Número novo da Mariana, lista de fornecedores/contas, dados de estoque.
 - Roteiros de aula de cílios, lash lifting e brow lamination.
+
+## Brinde de aniversário como voucher (rascunho, ainda não publicado)
+
+Desconto só existe por **código liberado pela Tháriga**: `NIVER-XXXXXX`, um por cliente por ano, uso único, com prazo (`/maison/vouchers`, `/florenca/vouchers`). A regra de percentual (5% ou 10% conforme o valor do serviço, limite em R$, dias de validade) fica em `/maison/config/brindeRegra`, e cada código guarda a regra de quando foi criado.
+
+- Quem atende **não digita desconto**: ao concluir, o painel acha o código da cliente (ou o digitado, que precisa ser dela), calcula e **trava o valor**. O código é marcado como usado e ligado ao atendimento (`atend`).
+- Valor abaixo da tabela **sem voucher** exige motivo e detalhe (`desc.tipo = manual`); sem isso o atendimento aparece em vermelho no relatório.
+- `financeiro/valores` guarda `tabela` e `desc`. Regras: só admin cria o código; a funcionária só marca "usado" uma vez; um valor com `desc.tipo = brinde` só é aceito se o código já está ligado àquele atendimento.
+- Relatório **Descontos dados** em Financeiro (só Tháriga): total, brinde, com motivo, sem motivo, e a lista de códigos.
+- Limite honesto: o painel controla o que é registrado; cobrar um valor e registrar outro ele não vê. Por isso desvios aparecem.
+
+## Agenda online: a "secretária" (rascunho, ainda não publicado)
+
+Um número de WhatsApp para as duas unidades. A saudação do WhatsApp Business leva a cliente para `/p` (`pedido.html`): ela escolhe a unidade, o serviço, os dias (só os da unidade) e o período, **vê os horários livres e marca sozinha**. O horário já entra na agenda.
+
+- **Quem mantém:** o painel (qualquer pessoa com ele aberto). `/publico/agenda/{mai|flo}/cfg` liga e define as regras (Tháriga, em *Serviços e preços → Agenda online*; nasce **desligada**). `/publico/agenda/{u}/ocup` guarda só os horários ocupados, **sem nome**, e o painel o mantém igual à agenda (`sincronizarPublico`). A cliente grava uma reserva em `/{base}/reservas/{data}_{hhmm}_{vaga}` (chave única: duas clientes no mesmo horário não passam do limite de vagas), e o painel a converte em agendamento (`converterReservas`): reconhece a cliente pelo telefone ou cadastra (`lk_…`), escolhe a profissional livre (Maison: Rafael, Mariana, Laís nas segundas; Florença: Tháriga) e marca `origem:'link'`.
+- **Horário livre** = dentro da abertura, no período, sem passar de "atendimentos ao mesmo tempo" contando a duração do serviço, a 3 h ou mais de agora, até 21 dias à frente, fora dos dias sem atendimento.
+- **A equipe só confere:** em Hoje, *Marcados pelo link* com *Ok, vi*, *Remarcar*, *Recusar* (cancela, libera o horário e deixa a mensagem no WhatsApp) e *Enviar ficha* para cliente nova.
+- **Regras do banco:** a cliente (anônima) só CRIA a reserva e o horário ocupado dela, e só com a agenda online da unidade ligada (é o interruptor de emergência contra spam). Florença: reservas só a Tháriga lê.
+- **Limites honestos:** o painel não lê conversas do WhatsApp; a conversão para a agenda acontece quando alguém está com o painel aberto (a vaga já fica travada antes disso); dois agendamentos de durações diferentes que se sobreponham, marcados no mesmo instante, podem escapar (aparece "Horário em conflito"); a lista de serviços da página é uma cópia da do painel. Passo a passo do app em `maison/WHATSAPP.md`.
