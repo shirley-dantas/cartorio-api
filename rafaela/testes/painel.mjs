@@ -77,6 +77,26 @@ console.log("• Início e post-its");
   await ctx.close();
 }
 
+console.log("• Primeira visita e lembrete da cópia");
+{
+  const {ctx, p, erros} = await nova({viewport: {width: 1100, height: 900}});
+  ok((await p.textContent("#v-inicio")).includes("Primeiros passos"), "primeira visita mostra os primeiros passos");
+  ok(await p.locator("#bk-lembrete").count() === 0, "sem nada guardado, não cobra cópia");
+  await p.click("[data-bv]"); ok(!(await p.textContent("#v-inicio")).includes("Primeiros passos"), "'Entendi' some com os primeiros passos");
+  await p.reload(); await p.waitForFunction(() => window.__rafa && document.querySelector("#v-inicio .resumo b").textContent !== "—");
+  ok(!(await p.textContent("#v-inicio")).includes("Primeiros passos"), "e não volta depois de recarregar");
+  await p.evaluate(() => localStorage.setItem("rafa.registros", JSON.stringify([{id: "z1", tipo: "erro", criado: new Date().toISOString(), status: "aberto", materia: "Física", assunto: "x", fotos: []}])));
+  await p.reload(); await p.waitForFunction(() => window.__rafa && document.querySelector("#v-inicio .resumo b").textContent !== "—");
+  ok(await p.locator("#bk-lembrete").count() === 1, "com registros e sem cópia, lembra de salvar");
+  await Promise.all([p.waitForEvent("download"), p.click("#bk-lembrete")]); await p.waitForTimeout(400);
+  ok(await p.locator("#bk-lembrete").count() === 0, "depois de salvar a cópia, o lembrete some");
+  await p.evaluate(() => localStorage.setItem("rafa.ultimaCopia", String(Date.now() - 20 * 86400000)));
+  await p.reload(); await p.waitForFunction(() => window.__rafa && document.querySelector("#v-inicio .resumo b").textContent !== "—");
+  ok((await p.textContent("#v-inicio")).includes("mais de 2 semanas"), "cópia com mais de 14 dias volta a ser cobrada");
+  ok(!erros.length, "sem erro de script: " + erros.join(" | "));
+  await ctx.close();
+}
+
 console.log("• Acervo continua inteiro");
 {
   const {ctx, p, erros} = await nova({viewport: {width: 1100, height: 900}});
@@ -363,6 +383,8 @@ console.log("• Celular (iPhone 13)");
   for (const a of ["inicio", "acervo", "erros", "stats", "dicas"]) {
     await aba(p, a); await p.waitForTimeout(150);
     const {sw, cw} = await largura(); ok(sw <= cw + 1, `sem rolagem lateral em ${a} (${sw} > ${cw})`);
+    const lixo = await p.evaluate(() => (document.body.innerText.match(/undefined|NaN|\[object|null\b/g) || []).join(","));
+    ok(!lixo, `nenhum "undefined/NaN/null" aparece na tela em ${a}: ${lixo}`);
     await p.screenshot({path: path.join(SAIDA, `celular-${a}.png`)});
   }
   await aba(p, "erros"); await p.click("#novo-reg"); await p.waitForSelector("#f-mat");
