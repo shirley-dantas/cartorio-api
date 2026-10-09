@@ -90,12 +90,10 @@
       // (de "não usado" para "usado", sem mexer na regra do código), uma única vez.
       "vouchers": {
         "$id": {
-          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && data.exists() && data.child('usado').val() === false && newData.child('usado').val() === true && newData.child('cli').val() === data.child('cli').val() && newData.child('valeAte').val() === data.child('valeAte').val() && newData.child('limite').val() === data.child('limite').val() && newData.child('pctAte').val() === data.child('pctAte').val() && newData.child('pctAcima').val() === data.child('pctAcima').val()))",
-          ".validate": "!newData.exists() || (newData.hasChildren(['cli','valeAte','limite','pctAte','pctAcima','usado']) && newData.child('pctAte').val() <= 10 && newData.child('pctAcima').val() <= 10)"
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && data.exists() && data.child('usado').val() === false && newData.child('usado').val() === true && newData.child('cli').val() === data.child('cli').val()))",
+          ".validate": "!newData.exists() || newData.hasChildren(['cli','usado'])"
         }
       },
-      // Agendamento pela página pública /p: a cliente só CRIA a reserva (uma por horário; a chave é data+hora+vaga),
-      // e só enquanto a agenda online da unidade estiver ligada. Quem lê, converte em agendamento e apaga é a equipe.
       "reservas": {
         "$id": {
           ".write": "auth != null && (root.child('acesso').child(auth.uid).exists() || (!data.exists() && newData.exists() && root.child('publico').child('agenda').child('mai').child('cfg').child('ativo').val() === true && $id.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}_[1-9]$/) && $id.beginsWith(newData.child('data').val())))",
