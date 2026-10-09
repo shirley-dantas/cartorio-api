@@ -202,6 +202,10 @@ const DEMO = !firebaseConfig.apiKey;
 // Suporte: endereço do Apps Script que manda o e-mail (ver apps-script/suporte.js e FIREBASE.md). Em branco = só grava no banco.
 const SUPORTE_URL='https://script.google.com/macros/s/AKfycbwoAlGyx8BElcl4Xf2rVknbdbAPvFuilPTDadFsZc-NnufV6g8bhYCp95O758FAOQNeMg/exec';
 const SUPORTE_CHAVE='YeW0wL5MBpOcA1bkiv3KCz9xhpb_iSEV';
+// Endereço que a CLIENTE vê nos links (ficha, horário, agendamento). Em branco = o endereço em que o painel foi aberto.
+// Preencha com o endereço sem "cartorio" quando o domínio novo existir na Vercel, ex.: 'https://maison-beauty.vercel.app'.
+const DOMINIO_PUBLICO='';
+const origemPublica=()=>(DOMINIO_PUBLICO||location.origin).replace(/\/$/,'');
 const AGENDA_URL='';
 const AGENDA_CHAVE='EXiC2WouRkPbh2W8AjhCWhpx4lUZJxRB';
 
@@ -246,7 +250,7 @@ function msgConfirmacao(a,remarcado){
   const c=cli(a.cli),s=sv(a.serv,a.unit),u=U[a.unit],p=PEOPLE[a.pro]?.n;
   const dia=new Date(a.date+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
   // Página própria (horario.html, atalho /h): na prévia do WhatsApp aparece a logo da Maison Beauty, e ela traz os botões de salvar na agenda.
-  const link=location.origin+'/h?s='+encodeURIComponent(s.n)+'&d='+a.date+'&h='+a.hora+'&m='+(s.d||60)+'&u='+a.unit+(p?'&p='+encodeURIComponent(p):'');
+  const link=origemPublica()+'/h?s='+encodeURIComponent(s.n)+'&d='+a.date+'&h='+a.hora+'&m='+(s.d||60)+'&u='+a.unit+(p?'&p='+encodeURIComponent(p):'');
   const nome=(c.n||'').split(' ')[0];
   const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, no ${u.n} (${u.s}).\n\nVeja os detalhes e salve na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
   return {texto,assunto:(remarcado?'Horário remarcado: ':'Horário confirmado: ')+s.n+' · '+dia+' às '+a.hora}}
@@ -810,7 +814,7 @@ function agonBox(){const bloco=u=>{const g=agonCfg(u);return `<div class="box" s
    <label class="f" style="margin:10px 0 0">Dias sem atendimento (datas AAAA-MM-DD separadas por vírgula)<input id="ag-${u}-x" value="${esc((g.fechados||[]).join(', '))}" placeholder="2026-12-25, 2027-01-01"></label></div>`};
   return `<div class="box" style="margin-bottom:16px"><h2>Agenda online (a secretária)</h2>
    <p class="small muted" style="margin-top:0">A cliente abre o link, escolhe serviço, dias e período, vê só os horários livres e já marca. O horário entra na agenda sozinho. Comece ligando só uma unidade para testar.</p>
-   <p class="small" style="margin:0 0 12px">Link para o WhatsApp e o Instagram: <b>${esc(location.origin)}/p</b> <button class="btn sm" id="ag-copy">Copiar</button></p>
+   <p class="small" style="margin:0 0 12px">Link para o WhatsApp e o Instagram: <b>${esc(origemPublica())}/p</b> <button class="btn sm" id="ag-copy">Copiar</button></p>
    ${bloco('mai')}${bloco('flo')}<button class="btn p sm" id="ag-save">Salvar agenda online</button></div>`}
 function novoAg(pre){
   pre=pre&&typeof pre==='object'&&!(pre instanceof Event)?pre:{};
@@ -1022,7 +1026,7 @@ async function enviarLinkAnamnese(cid,voltar){const c=cli(cid),base=baseDe(c),co
     const ok=await grava(()=>DB.set(base+'/convites/'+token,{cli:cid,nome:c.n.split(' ')[0],exp:Date.now()+LINK_VALE_DIAS*864e5,usado:false,por:S.user.nome,em:iso(TODAY),...dados}));
     if(!ok)return}
   else await grava(()=>DB.upd(base+'/convites/'+token,dados));
-  const link=LINK_CURTO?location.origin+'/f/'+token:new URL('anamnese.html',location.href).href.replace(/[?#].*$/,'')+'?t='+token;
+  const link=LINK_CURTO?origemPublica()+'/f/'+token:new URL('anamnese.html',location.href).href.replace(/[?#].*$/,'')+'?t='+token;
   const msg=`Oi, ${c.n.split(' ')[0]}! Para agilizar o seu atendimento ${estudio}, preencha a sua ficha de anamnese pelo celular, é rapidinho: ${link} (o link vale ${LINK_VALE_DIAS} dias). Obrigada!`;
   openDlg('Anamnese por link',`<p class="small muted">Envie este link para ${esc(c.n)}. Ela preenche e assina no próprio celular. Quando ela enviar, aparece em <b>Anamnese</b>, em "Recebidas pelo link", para a equipe conferir e integrar à ficha.</p>
   <label class="f">Mensagem pronta<textarea rows="5" id="lk-m">${esc(msg)}</textarea></label>
@@ -1630,7 +1634,7 @@ function render(){
   main.querySelectorAll('[data-lkrem]').forEach(b=>b.onclick=()=>{lkVisto(b.dataset.lkrem,b.dataset.pp);remarcarAg(b.dataset.lkrem,b.dataset.pp)});
   main.querySelectorAll('[data-lkrec]').forEach(b=>b.onclick=()=>lkRecusar(b.dataset.lkrec,b.dataset.pp));
   main.querySelectorAll('[data-lkfi]').forEach(b=>b.onclick=()=>enviarLinkAnamnese(b.dataset.lkfi));
-  const agc=document.getElementById('ag-copy');if(agc)agc.onclick=async()=>{try{await navigator.clipboard.writeText(location.origin+'/p');toast('Link copiado')}catch(e){toast('Não foi possível copiar')}};
+  const agc=document.getElementById('ag-copy');if(agc)agc.onclick=async()=>{try{await navigator.clipboard.writeText(origemPublica()+'/p');toast('Link copiado')}catch(e){toast('Não foi possível copiar')}};
   const ags=document.getElementById('ag-save');if(ags)ags.onclick=async()=>{ags.disabled=true;let ok=true;
     for(const u of ['mai','flo']){const g=id=>document.getElementById('ag-'+u+'-'+id),ini=g('i').value,fim=g('f').value,par=Math.max(1,Math.min(6,parseInt(g('p').value)||1));
       if(!ini||!fim||minDe(fim)<=minDe(ini)){toast(`${U[u].n}: confira o horário de abrir e fechar`);ags.disabled=false;return}
