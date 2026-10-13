@@ -92,3 +92,7 @@ Tudo que a cliente recebe (ficha `/f/…`, horário `/h`, agendamento `/p`, pré
 ### Regra viva do brinde (atualização)
 
 A porcentagem **não fica gravada no código**: vale a regra do momento (`/maison/config/brindeRegra`, `v:2`: `pct`, `limite` (0 = sem limite), `pctAte` para serviços até o limite, `dias` (0 = sem prazo)). Mudar a regra muda na hora para todos os códigos ainda não usados; o atendimento grava a porcentagem que foi aplicada (`desc.pct`). O prazo também é calculado ao vivo (`emitido` + `dias`). Os campos `valeAte/limite/pctAte/pctAcima` do código são só marcadores para as regras antigas do banco.
+
+## Endereço em toda mensagem para a cliente
+
+Toda mensagem que vai para a cliente (confirmação de horário, aniversário, retorno, ficha por link, recusa, convite do Google e as páginas `/h` e `/p`) leva o **endereço da unidade em que ela é atendida naquele momento** (`linhaEndereco(u)`, `enderecoTxt(u)`). A unidade da conversa vem do último atendimento da cliente, senão do cadastro, senão do dia de hoje (`unidadeDoContato`). O endereço é preenchido pela Tháriga em *Serviços e preços → Agenda online* (campo por unidade, em `/publico/agenda/{u}/cfg/endereco`); sem preencher, sai só o bairro. A assinatura da mensagem de aniversário também é da unidade (nunca da Maison para cliente do Florença).

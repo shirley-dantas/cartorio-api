@@ -43,7 +43,7 @@ h1{font-family:var(--serif);font-weight:600;font-size:30px;margin:14px 0 4px;tex
 const U={flo:{n:'Estúdio Florença',s:'Itaim Bibi'},mai:{n:'Maison Beauty',s:'Itaquera'}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const q=new URLSearchParams(location.search),tela=document.getElementById('tela');
-const s=(q.get('s')||'').slice(0,80),d=q.get('d')||'',h=q.get('h')||'',m=Math.min(600,Math.max(5,parseInt(q.get('m'))||60)),u=U[q.get('u')],p=(q.get('p')||'').slice(0,40);
+const s=(q.get('s')||'').slice(0,80),d=q.get('d')||'',h=q.get('h')||'',m=Math.min(600,Math.max(5,parseInt(q.get('m'))||60)),u=U[q.get('u')],p=(q.get('p')||'').slice(0,40),e=(q.get('e')||'').slice(0,160);
 if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(d)||!/^\d{2}:\d{2}$/.test(h)||!u){
   tela.innerHTML='<h1>Link inválido</h1><div class="sub">Peça um novo link à Maison Beauty.</div>';
 }else{
@@ -52,7 +52,7 @@ if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(d)||!/^\d{2}:\d{2}$/.test(h)||!u){
   const f=new Date(Date.UTC(y,mo-1,da,hh,mi)+m*60000);
   const ini=d.replace(/-/g,'')+'T'+h.replace(':','')+'00';
   const fim=f.getUTCFullYear()+pad(f.getUTCMonth()+1)+pad(f.getUTCDate())+'T'+pad(f.getUTCHours())+pad(f.getUTCMinutes())+'00';
-  const titulo=s+' · '+u.n,local=u.n+' · '+u.s;
+  const titulo=s+' · '+u.n,local=u.n+' · '+(e||u.s);
   const gcal='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(titulo)+'&dates='+ini+'/'+fim+'&location='+encodeURIComponent(local);
   const ics=t=>String(t).replace(/([,;\\])/g,'\\$1');
   tela.innerHTML=`<h1>Seu horário está confirmado</h1><div class="sub">Maison Beauty</div>
@@ -61,6 +61,7 @@ if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(d)||!/^\d{2}:\d{2}$/.test(h)||!u){
    <div class="lin"><div><b>${esc(dia.charAt(0).toUpperCase()+dia.slice(1))}</b><span>Data</span></div></div>
    <div class="lin"><div><b>${esc(h)}</b><span>Horário</span></div></div>
    <div class="lin"><div><b>${esc(u.n)}</b><span>${esc(u.s)}</span></div></div>
+   ${e?`<div class="lin"><div><b>${esc(e)}</b><span>Endereço</span></div></div>`:''}
   </div>
   <a class="btn p" href="${esc(gcal)}" target="_blank" rel="noopener">Salvar no Google Agenda</a>
   <a class="btn" href="#" id="ics">Salvar no calendário do celular (.ics)</a>

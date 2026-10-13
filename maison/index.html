@@ -245,14 +245,21 @@ function miniatura(dataUrl){return new Promise((res,rej)=>{const im=new Image();
   cv.getContext('2d').drawImage(im,(im.width-t)/2,(im.height-t)/2,t,t,0,0,96,96);res(cv.toDataURL('image/jpeg',.72))};im.onerror=()=>rej(new Error('Não consegui ler a foto.'));im.src=dataUrl})}
 // Data em milissegundos (meia-noite UTC): as regras do banco usam para conferir o dia da semana da Laís.
 const tsDe=d=>{const [y,m,x]=d.split('-').map(Number);return Date.UTC(y,m-1,x)};
+// Endereço de cada unidade: a Tháriga preenche em Serviços e preços → Agenda online. Sem preencher, sai só o bairro.
+// TODA mensagem para a cliente leva o endereço da unidade em que ela está sendo atendida naquele momento.
+const enderecoDe=u=>{const c=((u==='flo'?C.pubFlo:C.pubMai)||{}).cfg||{};return (c.endereco||'').trim()};
+const enderecoTxt=u=>enderecoDe(u)||U[u].s;
+const linhaEndereco=u=>`Endereço (${U[u].n}): ${enderecoTxt(u)}`;
+// Unidade da conversa: a do último atendimento dela; senão a unidade do cadastro; se atende nas duas, a do dia de hoje.
+function unidadeDoContato(c){const h=histAll(true).filter(x=>x.cli===c.id).pop();if(h)return h.unit;return c.unit==='flo'?'flo':c.unit==='mai'?'mai':unitFor(TODAY)}
 // ── Confirmação do horário para a cliente (WhatsApp ou e-mail, sem precisar de script) ──
 function msgConfirmacao(a,remarcado){
   const c=cli(a.cli),s=sv(a.serv,a.unit),u=U[a.unit],p=PEOPLE[a.pro]?.n;
   const dia=new Date(a.date+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
   // Página própria (horario.html, atalho /h): na prévia do WhatsApp aparece a logo da Maison Beauty, e ela traz os botões de salvar na agenda.
-  const link=origemPublica()+'/h?s='+encodeURIComponent(s.n)+'&d='+a.date+'&h='+a.hora+'&m='+(s.d||60)+'&u='+a.unit+(p?'&p='+encodeURIComponent(p):'');
+  const link=origemPublica()+'/h?s='+encodeURIComponent(s.n)+'&d='+a.date+'&h='+a.hora+'&m='+(s.d||60)+'&u='+a.unit+(p?'&p='+encodeURIComponent(p):'')+(enderecoDe(a.unit)?'&e='+encodeURIComponent(enderecoDe(a.unit)):'');
   const nome=(c.n||'').split(' ')[0];
-  const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, no ${u.n} (${u.s}).\n\nVeja os detalhes e salve na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
+  const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, no ${u.n}.\n${linhaEndereco(a.unit)}\n\nVeja os detalhes e salve na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
   return {texto,assunto:(remarcado?'Horário remarcado: ':'Horário confirmado: ')+s.n+' · '+dia+' às '+a.hora}}
 function confirmarAg(a,remarcado){const c=cli(a.cli),m=msgConfirmacao(a,remarcado);
   openDlg(remarcado?'Avisar a cliente do novo horário':'Avisar a cliente do horário',`<p class="small muted"><b>${esc(c.n)}</b> · ${esc(fd(a.date,{weekday:'short',day:'2-digit',month:'2-digit'}))} às ${esc(a.hora)}. O horário já está salvo; aqui você só avisa a cliente.</p>
@@ -275,7 +282,7 @@ async function agendaChama(corpo){
   catch(e){guardaErro(e.message);return {ok:false,erro:e.message}}}
 // O evento leva só serviço, unidade e horário: nada de ficha, anamnese ou valor.
 function eventoDe(a){const s=sv(a.serv,a.unit),c=cli(a.cli);
-  return {data:a.date,hora:a.hora,minutos:s.d||60,email:c.email,titulo:s.n+' · '+U[a.unit].n,local:U[a.unit].n,
+  return {data:a.date,hora:a.hora,minutos:s.d||60,email:c.email,titulo:s.n+' · '+U[a.unit].n,local:U[a.unit].n+' · '+enderecoTxt(a.unit),
     descricao:'Horário reservado com a equipe da Tháriga Brito. Para remarcar ou tirar dúvidas, responda por WhatsApp.'}}
 // Convida (ou, se já existe evento, só atualiza o horário). Nunca deixa o agendamento sem dizer o que houve.
 async function convidar(id,p,a){
@@ -588,23 +595,23 @@ function zapLink(tel,txt){let d=String(tel||'').replace(/\D/g,'');if(d&&!d.start
 const BRINDE_PADRAO='um mimo especial no seu próximo atendimento';
 const brindeAtual=()=>((C.mCfg&&C.mCfg.brinde)||BRINDE_PADRAO).trim().replace(/[.!\s]+$/,'');
 const NIVER_MSGS=[
- n=>`Parabéns, ${n}! 🎂 Que o seu novo ano seja leve, lindo e cheio de realizações. Foi um prazer cuidar de você!`,
- n=>`${n}, hoje o dia é seu! 🥳 Desejo um ano de muita saúde, alegria e autoestima lá em cima. Obrigada por confiar no nosso trabalho.`,
- n=>`Feliz aniversário, ${n}! 🌷 Que a vida te traga só motivos para sorrir. Um abraço de toda a equipe da Maison Beauty.`,
- n=>`Oi, ${n}! Passando para te desejar um aniversário cheio de carinho e coisas boas. ✨ Você merece tudo de melhor!`,
- n=>`Parabéns pelo seu dia, ${n}! 🎉 Que este novo ciclo venha com muita paz, beleza e momentos para cuidar de você.`,
- n=>`${n}, feliz vida nova! 💛 Obrigada por fazer parte da nossa história. Que seu ano seja do tamanho dos seus sonhos.`,
- n=>`Hoje é dia de comemorar você, ${n}! 🍰 Muitas felicidades, saúde e um ano lindo pela frente.`,
- n=>`Um brinde a você, ${n}! 🥂 Feliz aniversário, com todo o nosso carinho.`];
+ (n,e)=>`Parabéns, ${n}! 🎂 Que o seu novo ano seja leve, lindo e cheio de realizações. Foi um prazer cuidar de você!`,
+ (n,e)=>`${n}, hoje o dia é seu! 🥳 Desejo um ano de muita saúde, alegria e autoestima lá em cima. Obrigada por confiar no nosso trabalho.`,
+ (n,e)=>`Feliz aniversário, ${n}! 🌷 Que a vida te traga só motivos para sorrir. Um abraço de toda a equipe do ${e}.`,
+ (n,e)=>`Oi, ${n}! Passando para te desejar um aniversário cheio de carinho e coisas boas. ✨ Você merece tudo de melhor!`,
+ (n,e)=>`Parabéns pelo seu dia, ${n}! 🎉 Que este novo ciclo venha com muita paz, beleza e momentos para cuidar de você.`,
+ (n,e)=>`${n}, feliz vida nova! 💛 Obrigada por fazer parte da nossa história. Que seu ano seja do tamanho dos seus sonhos.`,
+ (n,e)=>`Hoje é dia de comemorar você, ${n}! 🍰 Muitas felicidades, saúde e um ano lindo pela frente.`,
+ (n,e)=>`Um brinde a você, ${n}! 🥂 Feliz aniversário, com todo o nosso carinho.`];
 const hashTxt=t=>[...String(t)].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);
-function textoNiver(c,i,v){const nome=c.n.split(' ')[0],k=((i%NIVER_MSGS.length)+NIVER_MSGS.length)%NIVER_MSGS.length;
-  return `${NIVER_MSGS[k](nome)}\n\n🎁 Para comemorar, preparamos um presente para você: ${v?textoVoucher(v):brindeAtual()+'.'}\n\nCom carinho, Maison Beauty 🤍`}
+function textoNiver(c,i,v){const nome=c.n.split(' ')[0],k=((i%NIVER_MSGS.length)+NIVER_MSGS.length)%NIVER_MSGS.length,u=unidadeDoContato(c);
+  return `${NIVER_MSGS[k](nome,U[u].n)}\n\n🎁 Para comemorar, preparamos um presente para você: ${v?textoVoucher(v):brindeAtual()+'.'}\n\n${linhaEndereco(u)}\n\nCom carinho, ${U[u].n} 🤍`}
 function msgDlg(tipo,cid){const c=cli(cid),nome=c.n.split(' ')[0];
   // O ponto de partida muda de cliente para cliente e de ano para ano; o botão "Outra mensagem" passa para a próxima.
   let ni=hashTxt(c.id)+new Date().getFullYear();
   let vv=tipo==='niver'?voucherAtivo(cid,iso(TODAY)):null;
   const txt=()=>tipo==='niver'?textoNiver(c,ni,vv):
-   `Oi, ${nome}! Tudo bem? Já está na hora da manutenção da sua sobrancelha. Quer que eu reserve um horário para você esta semana? Beijo, Tháriga`;
+   `Oi, ${nome}! Tudo bem? Já está na hora da manutenção da sua sobrancelha. Quer que eu reserve um horário para você esta semana?\n\n${linhaEndereco(unidadeDoContato(c))}\n\nBeijo, Tháriga`;
   openDlg('Mensagem para '+esc(c.n),`<p class="small muted">Enviar para ${esc(c.tel)||'(sem telefone cadastrado)'}</p><label class="f">Texto (edite à vontade)<textarea rows="${tipo==='niver'?8:5}" id="mt">${esc(txt())}</textarea></label>
   ${tipo==='niver'?`<div id="vstat" class="small" style="margin:-4px 0 10px"></div>`:''}
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="wa" ${c.tel?'':'disabled'}>Abrir no WhatsApp</button><button class="btn" id="cp-m">Copiar mensagem</button>${tipo==='niver'&&isAdmin()?'<button class="btn" id="libb">Liberar brinde com código</button>':''}${tipo==='niver'?'<button class="btn" id="outra">Outra mensagem</button>':''}</div>`);
@@ -809,7 +816,7 @@ function linkHtml(){const L=marcadosPeloLink();if(!L.length)return '';
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm p" data-lkok="${a.id}" data-pp="${a._p}">Ok, vi</button><button class="btn sm" data-lkrem="${a.id}" data-pp="${a._p}">Remarcar</button><button class="btn sm" data-lkrec="${a.id}" data-pp="${a._p}">Recusar</button>${nova?`<button class="btn sm" data-lkfi="${c.id}">Enviar ficha</button>`:''}</div></div></div>`}).join('')}</div>`}
 const lkVisto=(id,p)=>DB.upd(p+'/agenda/'+id,{visto:true}).catch(e=>guardaErro(e.message));
 function lkRecusar(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)return;const c=cli(a.cli),u=U[a.unit];
-  const txt=`Oi, ${c.n.split(' ')[0]}! Aqui é do ${u.n}. Poxa, infelizmente não conseguimos te atender ${diaLongo(a.date).toLowerCase()} às ${a.hora}. Posso te oferecer [escreva aqui outro dia e hora]? Desculpa o transtorno 💛`;
+  const txt=`Oi, ${c.n.split(' ')[0]}! Aqui é do ${u.n}. Poxa, infelizmente não conseguimos te atender ${diaLongo(a.date).toLowerCase()} às ${a.hora}. Posso te oferecer [escreva aqui outro dia e hora]? Desculpa o transtorno 💛\n\n${linhaEndereco(a.unit)}`;
   openDlg('Recusar este horário',`<p class="small muted">${esc(c.n)} · ${esc(sv(a.serv,a.unit).n)} · ${esc(diaLongo(a.date))} às ${esc(a.hora)}</p><label class="f">Mensagem para a cliente<textarea rows="5" id="lr-m">${esc(txt)}</textarea></label>
   <p class="small muted">O horário é cancelado e volta a ficar livre na página. A mensagem abre no WhatsApp para você enviar.</p>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="lr-ok">Cancelar o horário e abrir o WhatsApp</button></div>`);
@@ -821,6 +828,7 @@ function agonBox(){const bloco=u=>{const g=agonCfg(u);return `<div class="box" s
    <label class="ck"><input type="checkbox" id="ag-${u}-on" ${g.ativo?'checked':''}>Receber marcações pelo link</label>
    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><label class="f" style="margin:0">Abre às<input type="time" id="ag-${u}-i" value="${g.ini}"></label><label class="f" style="margin:0">Último horário termina às<input type="time" id="ag-${u}-f" value="${g.fim}"></label>
    <label class="f" style="margin:0">Atendimentos ao mesmo tempo<input type="number" id="ag-${u}-p" min="1" max="6" value="${g.paralelo}" style="width:90px"></label></div>
+   <label class="f" style="margin:10px 0 0">Endereço (sai em todas as mensagens para a cliente)<input id="ag-${u}-d" maxlength="160" value="${esc(g.endereco||'')}" placeholder="Rua, número, bairro, cidade"></label>${g.endereco?'':`<p class="small" style="color:var(--warn);margin:4px 0 0">Sem endereço, as mensagens saem só com o bairro (${esc(U[u].s)}).</p>`}
    <label class="f" style="margin:10px 0 0">Dias sem atendimento (datas AAAA-MM-DD separadas por vírgula)<input id="ag-${u}-x" value="${esc((g.fechados||[]).join(', '))}" placeholder="2026-12-25, 2027-01-01"></label></div>`};
   return `<div class="box" style="margin-bottom:16px"><h2>Agenda online (a secretária)</h2>
    <p class="small muted" style="margin-top:0">A cliente abre o link, escolhe serviço, dias e período, vê só os horários livres e já marca. O horário entra na agenda sozinho. Comece ligando só uma unidade para testar.</p>
@@ -1037,7 +1045,7 @@ async function enviarLinkAnamnese(cid,voltar){const c=cli(cid),base=baseDe(c),co
     if(!ok)return}
   else await grava(()=>DB.upd(base+'/convites/'+token,dados));
   const link=LINK_CURTO?origemPublica()+'/f/'+token:new URL('anamnese.html',location.href).href.replace(/[?#].*$/,'')+'?t='+token;
-  const msg=`Oi, ${c.n.split(' ')[0]}! Para agilizar o seu atendimento ${estudio}, preencha a sua ficha de anamnese pelo celular, é rapidinho: ${link} (o link vale ${LINK_VALE_DIAS} dias). Obrigada!`;
+  const msg=`Oi, ${c.n.split(' ')[0]}! Para agilizar o seu atendimento ${estudio} (${enderecoTxt(base==='florenca'?'flo':'mai')}), preencha a sua ficha de anamnese pelo celular, é rapidinho: ${link} (o link vale ${LINK_VALE_DIAS} dias). Obrigada!`;
   openDlg('Anamnese por link',`<p class="small muted">Envie este link para ${esc(c.n)}. Ela preenche e assina no próprio celular. Quando ela enviar, aparece em <b>Anamnese</b>, em "Recebidas pelo link", para a equipe conferir e integrar à ficha.</p>
   <label class="f">Mensagem pronta<textarea rows="5" id="lk-m">${esc(msg)}</textarea></label>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="lk-w" ${c.tel?'':'disabled'}>Enviar pelo WhatsApp</button><button class="btn" id="lk-c">Copiar mensagem</button><button class="btn" id="lk-f">${voltar?'Voltar ao agendamento':'Fechar'}</button></div>
@@ -1667,7 +1675,7 @@ function render(){
     for(const u of ['mai','flo']){const g=id=>document.getElementById('ag-'+u+'-'+id),ini=g('i').value,fim=g('f').value,par=Math.max(1,Math.min(6,parseInt(g('p').value)||1));
       if(!ini||!fim||minDe(fim)<=minDe(ini)){toast(`${U[u].n}: confira o horário de abrir e fechar`);ags.disabled=false;return}
       const fech=g('x').value.split(/[,;\s]+/).filter(Boolean);if(fech.some(d=>!/^\d{4}-\d{2}-\d{2}$/.test(d))){toast(`${U[u].n}: as datas sem atendimento precisam estar como AAAA-MM-DD`);ags.disabled=false;return}
-      const cfg={ativo:g('on').checked,ini,fim,paralelo:par,passo:30,dias:21,antecH:3};if(fech.length)cfg.fechados=fech;
+      const cfg={ativo:g('on').checked,ini,fim,paralelo:par,passo:30,dias:21,antecH:3};if(fech.length)cfg.fechados=fech;{const e=g('d').value.trim();if(e)cfg.endereco=e}
       ok=await grava(()=>DB.set('publico/agenda/'+u+'/cfg',cfg))&&ok}
     if(ok)toast('Agenda online salva');ags.disabled=false};
   main.querySelectorAll('[data-nvok]').forEach(b=>b.onclick=()=>grava(()=>DB.upd(b.dataset.nvp+'/clientes/'+b.dataset.nvok,{niverFeito:TODAY.getFullYear()}),'Aniversário dispensado da lista'));
