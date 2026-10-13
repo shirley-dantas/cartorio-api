@@ -180,7 +180,7 @@ function desenhaSlots(){
   box.innerHTML=n?html:'<p class="small">Não há horários livres nesses dias e período. Tente outro período ou outros dias.</p>';
   box.querySelectorAll('button').forEach(b=>b.onclick=()=>{box.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     escolha={data:b.dataset.d,hora:b.dataset.h,dur};
-    document.getElementById('resumo').innerHTML=`<b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(u.serv[+document.getElementById('s').value][0])} · ${dur} min<br>${u.n} (${u.s})`;
+    document.getElementById('resumo').innerHTML=`<b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(u.serv[+document.getElementById('s').value][0])} · ${dur} min<br>${u.n} (${u.s})${pub.cfg.endereco?'<br>'+esc(pub.cfg.endereco):''}`;
     conf.hidden=false;conf.scrollIntoView({behavior:'smooth',block:'nearest'})})}
 const erro=m=>{document.getElementById('erro').textContent=m};
 async function enviar(){
@@ -203,9 +203,9 @@ async function enviar(){
     try{pub=(await get(ref(db,'publico/agenda/'+un))).val()||pub}catch(e){}
     btn.disabled=false;btn.textContent='Confirmar agendamento';desenhaSlots();
     return erro('Esse horário acabou de ser ocupado por outra pessoa. Escolha outro, por favor.')}
-  const q=new URLSearchParams({s:sv[0],d:escolha.data,h:escolha.hora,m:String(escolha.dur),u:un==='flo'?'flo':'mai'});
+  const q=new URLSearchParams({s:sv[0],d:escolha.data,h:escolha.hora,m:String(escolha.dur),u:un==='flo'?'flo':'mai'});if(pub&&pub.cfg&&pub.cfg.endereco)q.set('e',pub.cfg.endereco);
   tela.innerHTML=`<div class="msg"><h2>Agendamento confirmado ✓</h2><p>${esc(reg.nome.split(' ')[0])}, você está marcada:</p>
-   <div class="resumo" style="text-align:left"><b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(sv[0])}<br>${u.n} (${u.s})</div>
+   <div class="resumo" style="text-align:left"><b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(sv[0])}<br>${u.n} (${u.s})${pub&&pub.cfg&&pub.cfg.endereco?'<br>'+esc(pub.cfg.endereco):''}</div>
    <p><a class="btn p" style="display:block;text-decoration:none" href="/h?${q}">Salvar na minha agenda</a></p>
    <p class="small">Precisa mudar? É só nos chamar pelo WhatsApp. Se for a sua primeira vez, vamos te enviar uma ficha rápida para preencher antes do atendimento.</p></div>`}
 formulario();
