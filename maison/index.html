@@ -247,7 +247,9 @@ function miniatura(dataUrl){return new Promise((res,rej)=>{const im=new Image();
 const tsDe=d=>{const [y,m,x]=d.split('-').map(Number);return Date.UTC(y,m-1,x)};
 // Endereço de cada unidade: a Tháriga preenche em Serviços e preços → Agenda online. Sem preencher, sai só o bairro.
 // TODA mensagem para a cliente leva o endereço da unidade em que ela está sendo atendida naquele momento.
-const enderecoDe=u=>{const c=((u==='flo'?C.pubFlo:C.pubMai)||{}).cfg||{};return (c.endereco||'').trim()};
+// Endereços de partida (informados pela Tháriga em 14/10/2026). Se ela escrever outro em Serviços e preços → Agenda online, o dela vale.
+const ENDERECO_PADRAO={mai:'Rua Fontoura Xavier, 717, sala 3, Itaquera, São Paulo - SP, CEP 08295-300',flo:'Rua Pedroso Alvarenga, 502, Itaim Bibi, São Paulo - SP, CEP 04531-001'};
+const enderecoDe=u=>{const c=((u==='flo'?C.pubFlo:C.pubMai)||{}).cfg||{};return (c.endereco||'').trim()||ENDERECO_PADRAO[u]||''};
 const enderecoTxt=u=>enderecoDe(u)||U[u].s;
 const linhaEndereco=u=>`Endereço (${U[u].n}): ${enderecoTxt(u)}`;
 // Unidade da conversa: a do último atendimento dela; senão a unidade do cadastro; se atende nas duas, a do dia de hoje.
@@ -828,7 +830,7 @@ function agonBox(){const bloco=u=>{const g=agonCfg(u);return `<div class="box" s
    <label class="ck"><input type="checkbox" id="ag-${u}-on" ${g.ativo?'checked':''}>Receber marcações pelo link</label>
    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><label class="f" style="margin:0">Abre às<input type="time" id="ag-${u}-i" value="${g.ini}"></label><label class="f" style="margin:0">Último horário termina às<input type="time" id="ag-${u}-f" value="${g.fim}"></label>
    <label class="f" style="margin:0">Atendimentos ao mesmo tempo<input type="number" id="ag-${u}-p" min="1" max="6" value="${g.paralelo}" style="width:90px"></label></div>
-   <label class="f" style="margin:10px 0 0">Endereço (sai em todas as mensagens para a cliente)<input id="ag-${u}-d" maxlength="160" value="${esc(g.endereco||'')}" placeholder="Rua, número, bairro, cidade"></label>${g.endereco?'':`<p class="small" style="color:var(--warn);margin:4px 0 0">Sem endereço, as mensagens saem só com o bairro (${esc(U[u].s)}).</p>`}
+   <label class="f" style="margin:10px 0 0">Endereço (sai em todas as mensagens para a cliente)<input id="ag-${u}-d" maxlength="160" value="${esc(g.endereco||ENDERECO_PADRAO[u]||'')}" placeholder="Rua, número, bairro, cidade"></label>
    <label class="f" style="margin:10px 0 0">Dias sem atendimento (datas AAAA-MM-DD separadas por vírgula)<input id="ag-${u}-x" value="${esc((g.fechados||[]).join(', '))}" placeholder="2026-12-25, 2027-01-01"></label></div>`};
   return `<div class="box" style="margin-bottom:16px"><h2>Agenda online (a secretária)</h2>
    <p class="small muted" style="margin-top:0">A cliente abre o link, escolhe serviço, dias e período, vê só os horários livres e já marca. O horário entra na agenda sozinho. Comece ligando só uma unidade para testar.</p>
