@@ -96,3 +96,10 @@ A porcentagem **não fica gravada no código**: vale a regra do momento (`/maiso
 ## Endereço em toda mensagem para a cliente
 
 Toda mensagem que vai para a cliente (confirmação de horário, aniversário, retorno, ficha por link, recusa, convite do Google e as páginas `/h` e `/p`) leva o **endereço da unidade em que ela é atendida naquele momento** (`linhaEndereco(u)`, `enderecoTxt(u)`). A unidade da conversa vem do último atendimento da cliente, senão do cadastro, senão do dia de hoje (`unidadeDoContato`). O endereço é preenchido pela Tháriga em *Serviços e preços → Agenda online* (campo por unidade, em `/publico/agenda/{u}/cfg/endereco`); sem preencher, sai só o bairro. A assinatura da mensagem de aniversário também é da unidade (nunca da Maison para cliente do Florença).
+
+### Endereços das unidades (registrados em 14/10/2026)
+
+- **Estúdio Florença:** Rua Pedroso Alvarenga, 502 — Itaim Bibi, São Paulo - SP — CEP 04531-001
+- **Maison Beauty:** Rua Fontoura Xavier, 717, sala 3 — Itaquera, São Paulo - SP — CEP 08295-300
+
+Ficam como endereço de partida no `index.html` (`ENDERECO_PADRAO`), no `horario.html` e no `pedido.html`. O que a Tháriga escrever em *Serviços e preços → Agenda online* vale por cima.

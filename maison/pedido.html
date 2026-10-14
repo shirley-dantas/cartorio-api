@@ -94,8 +94,8 @@ const firebaseConfig = {
 };
 // Serviços (nome e duração em minutos) de cada unidade: os mesmos do painel.
 const UN={
- mai:{n:'Maison Beauty',s:'Itaquera',dias:[[0,'Domingo'],[1,'Segunda'],[2,'Terça'],[3,'Quarta']],base:'maison',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Micropigmentação", 90], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90], ["Remoção de cílios", 30], ["Mão tradicional", 30], ["Pé tradicional", 40], ["Alongamento de unhas", 120], ["Manutenção de unhas", 90], ["Remoção de alongamento de unhas", 30], ["Remoção de pigmento a laser", 30], ["Laser para tratamento de fungos", 30], ["Depilação a laser", 30], ["Ozonioterapia", 60], ["Aplicação de piercing", 30]]},
- flo:{n:'Estúdio Florença',s:'Itaim Bibi',dias:[[4,'Quinta'],[5,'Sexta'],[6,'Sábado']],base:'florenca',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Lash lifting", 60], ["Brow lamination", 60], ["Micropigmentação", 120], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90]]}};
+ mai:{n:'Maison Beauty',s:'Itaquera',e:'Rua Fontoura Xavier, 717, sala 3, Itaquera, São Paulo - SP, CEP 08295-300',dias:[[0,'Domingo'],[1,'Segunda'],[2,'Terça'],[3,'Quarta']],base:'maison',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Micropigmentação", 90], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90], ["Remoção de cílios", 30], ["Mão tradicional", 30], ["Pé tradicional", 40], ["Alongamento de unhas", 120], ["Manutenção de unhas", 90], ["Remoção de alongamento de unhas", 30], ["Remoção de pigmento a laser", 30], ["Laser para tratamento de fungos", 30], ["Depilação a laser", 30], ["Ozonioterapia", 60], ["Aplicação de piercing", 30]]},
+ flo:{n:'Estúdio Florença',s:'Itaim Bibi',e:'Rua Pedroso Alvarenga, 502, Itaim Bibi, São Paulo - SP, CEP 04531-001',dias:[[4,'Quinta'],[5,'Sexta'],[6,'Sábado']],base:'florenca',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Lash lifting", 60], ["Brow lamination", 60], ["Micropigmentação", 120], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90]]}};
 const NOMES=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -180,7 +180,7 @@ function desenhaSlots(){
   box.innerHTML=n?html:'<p class="small">Não há horários livres nesses dias e período. Tente outro período ou outros dias.</p>';
   box.querySelectorAll('button').forEach(b=>b.onclick=()=>{box.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     escolha={data:b.dataset.d,hora:b.dataset.h,dur};
-    document.getElementById('resumo').innerHTML=`<b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(u.serv[+document.getElementById('s').value][0])} · ${dur} min<br>${u.n} (${u.s})${pub.cfg.endereco?'<br>'+esc(pub.cfg.endereco):''}`;
+    document.getElementById('resumo').innerHTML=`<b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(u.serv[+document.getElementById('s').value][0])} · ${dur} min<br>${u.n} (${u.s})<br>${esc(pub.cfg.endereco||u.e)}`;
     conf.hidden=false;conf.scrollIntoView({behavior:'smooth',block:'nearest'})})}
 const erro=m=>{document.getElementById('erro').textContent=m};
 async function enviar(){
@@ -203,9 +203,9 @@ async function enviar(){
     try{pub=(await get(ref(db,'publico/agenda/'+un))).val()||pub}catch(e){}
     btn.disabled=false;btn.textContent='Confirmar agendamento';desenhaSlots();
     return erro('Esse horário acabou de ser ocupado por outra pessoa. Escolha outro, por favor.')}
-  const q=new URLSearchParams({s:sv[0],d:escolha.data,h:escolha.hora,m:String(escolha.dur),u:un==='flo'?'flo':'mai'});if(pub&&pub.cfg&&pub.cfg.endereco)q.set('e',pub.cfg.endereco);
+  const q=new URLSearchParams({s:sv[0],d:escolha.data,h:escolha.hora,m:String(escolha.dur),u:un==='flo'?'flo':'mai'});q.set('e',(pub&&pub.cfg&&pub.cfg.endereco)||u.e);
   tela.innerHTML=`<div class="msg"><h2>Agendamento confirmado ✓</h2><p>${esc(reg.nome.split(' ')[0])}, você está marcada:</p>
-   <div class="resumo" style="text-align:left"><b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(sv[0])}<br>${u.n} (${u.s})${pub&&pub.cfg&&pub.cfg.endereco?'<br>'+esc(pub.cfg.endereco):''}</div>
+   <div class="resumo" style="text-align:left"><b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(sv[0])}<br>${u.n} (${u.s})<br>${esc((pub&&pub.cfg&&pub.cfg.endereco)||u.e)}</div>
    <p><a class="btn p" style="display:block;text-decoration:none" href="/h?${q}">Salvar na minha agenda</a></p>
    <p class="small">Precisa mudar? É só nos chamar pelo WhatsApp. Se for a sua primeira vez, vamos te enviar uma ficha rápida para preencher antes do atendimento.</p></div>`}
 formulario();
