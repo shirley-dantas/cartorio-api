@@ -62,6 +62,14 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
 .stat{font-family:var(--serif);font-size:32px;font-weight:600;line-height:1.1}
 .lbl{color:var(--muted);font-size:13px}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:6px}
+.slot{border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 4px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.2}
+.slot small{font-size:10px;color:var(--muted)}
+.slot.parcial{background:var(--berry-soft);border-color:var(--berry)}
+.slot.cheio{background:var(--berry);border-color:var(--berry);color:#fff}.slot.cheio small{color:#fff}
+.slot.fechado{background:repeating-linear-gradient(45deg,#ddd,#ddd 4px,#eee 4px,#eee 8px);border-color:#bbb;color:#555}
+.legenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 3px 0 8px;border:1px solid var(--line)}
+.legenda .pc{background:var(--berry-soft);border-color:var(--berry)}.legenda .ch{background:var(--berry)}.legenda .fe{background:#ccc}
 .voucher{border:1.5px solid var(--berry);background:var(--berry-soft);border-radius:12px;padding:12px 14px;margin-bottom:12px}
 .voucher.off,.voucher.semv{border-style:dashed;background:transparent;border-color:var(--line)}
 .voucher .vt{font-weight:600;margin-bottom:6px}
@@ -457,7 +465,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{},pubMai:{},pubFlo:{},mRes:{},fRes:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{},pubMai:{},pubFlo:{},mRes:{},fRes:{},mBlq:{},fBlq:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -485,13 +493,13 @@ const qzChave=p=>`${iso(QZ.ini)}_${p}`;
 const subs=[];
 function pararLeituras(){subs.splice(0).forEach(f=>f&&f())}
 function errLeitura(p,e){S.erros[p]=e.code==='PERMISSION_DENIED'||/permission/i.test(e.message)?'o banco recusou a leitura (permissão)':e.message;render()}
-function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];agendarRender();if(/agenda|reservas|publico/.test(p))agendarSecretaria()},errLeitura))}
+function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];agendarRender();if(/agenda|reservas|publico|bloqueios/.test(p))agendarSecretaria()},errLeitura))}
 let rq=0;function agendarRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;if(S.user)render()})}
 function comecarLeituras(){
   pararLeituras();
-  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/reservas','mRes');ouvir('publico/agenda/mai','pubMai');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
+  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/reservas','mRes');ouvir('maison/bloqueios','mBlq');ouvir('publico/agenda/mai','pubMai');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
   if(isAdmin()){
-    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/reservas','fRes');ouvir('publico/agenda/flo','pubFlo');ouvir('florenca/pendentes','fPend');
+    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/reservas','fRes');ouvir('florenca/bloqueios','fBlq');ouvir('publico/agenda/flo','pubFlo');ouvir('florenca/pendentes','fPend');
     ouvir('financeiro/valores','valores');
     ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');ouvir('admin/instagram','instagram');
     // A carga inicial dos roteiros é idempotente: chaves fixas, só cria o que falta.
@@ -637,6 +645,51 @@ function agCalendario(sel){
   const ult=celulas.length&&new Date(addD(inicio,35)).getMonth()!==m-1;
   return `<div class="cal"><div class="cal-top"><button class="btn sm" data-agmes="-1" aria-label="Mês anterior">‹</button><h3>${esc(prim1(prim.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})))}</h3><span style="display:flex;gap:6px"><button class="btn sm" data-agmes="0">Hoje</button><button class="btn sm" data-agmes="1" aria-label="Próximo mês">›</button></span></div>
    <div class="cal-g">${['D','S','T','Q','Q','S','S'].map(l=>`<div class="sem">${l}</div>`).join('')}${(ult?celulas.slice(0,35):celulas).join('')}</div></div>`}
+
+// ── Fechar e reservar horários (sem nome de cliente) ──
+// Um bloqueio é um horário que a equipe tira da agenda: "Fechado", "Reservado", almoço, compromisso. Vale para todos ou só para uma profissional,
+// aparece na agenda do dia, e some da página de agendamento da cliente (o espelho público leva só o horário, nunca o motivo).
+const bloqueios=()=>[...arr(C.mBlq).map(b=>({...b,_p:'maison'})),...(isAdmin()?arr(C.fBlq).map(b=>({...b,_p:'florenca'})):[])];
+const hhmmDe=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+const MOTIVOS_BLQ=['Fechado','Reservado','Almoço','Compromisso','Outro'];
+const prosDaUnidade=(u,d)=>u==='flo'?['tha']:['rafael','mariana',...(laisDay(d)?['lais']:[])];
+function bloqueioNoSlot(u,d,t,t2){return bloqueios().filter(b=>b.unit===u&&b.date===d&&minDe(b.hora)<t2&&minDe(b.hora)+b.m>t)}
+function gradeDoDia(u,d){const g=agonCfg(u),par=g.paralelo,ini=minDe(g.ini),fim=minDe(g.fim),out=[];
+  const ags=agendaAtiva().filter(a=>a.unit===u&&a.date===d);
+  for(let t=ini;t<fim;t+=30){const t2=t+30,usados=ags.filter(a=>minDe(a.hora)<t2&&minDe(a.hora)+durServ(a)>t).length,bl=bloqueioNoSlot(u,d,t,t2);
+    const nb=bl.reduce((n,b)=>n+(b.pro==='todos'||!b.pro?par:1),0),total=usados+nb;
+    out.push({t,h:hhmmDe(t),usados,bl,par,estado:bl.some(b=>b.pro==='todos'||!b.pro)?'fechado':total>=par?'cheio':total>0?'parcial':'livre'})}
+  return out}
+function gradeHtml(u,d){const gr=gradeDoDia(u,d),cor={livre:'',parcial:'parcial',cheio:'cheio',fechado:'fechado'};
+  return `<div class="box" style="margin-bottom:16px"><h3 style="margin:0 0 4px">Horários do dia · ${esc(U[u].n)}</h3>
+   <p class="small muted" style="margin:0 0 8px">Toque num horário livre para fechar ou reservar, sem precisar de nome de cliente. <span class="legenda"><i class="lv"></i>livre <i class="pc"></i>parcial <i class="ch"></i>cheio <i class="fe"></i>fechado</span></p>
+   <div class="grade">${gr.map(x=>`<button type="button" class="slot ${cor[x.estado]}" data-slot="${x.h}" data-su="${u}" title="${esc(x.bl.map(b=>b.motivo).join(', '))}">${x.h}${x.estado==='fechado'?'<small>🔒</small>':x.usados||x.bl.length?`<small>${Math.min(x.par,x.usados+x.bl.length)}/${x.par}</small>`:''}</button>`).join('')}</div></div>`}
+function fechadosHtml(u,d){const L=bloqueios().filter(b=>b.unit===u&&b.date===d).sort((a,b)=>a.hora.localeCompare(b.hora));
+  if(!L.length)return '';
+  return `<div class="box" style="margin-bottom:16px"><h3 style="margin:0 0 6px">Fechados e reservados neste dia</h3>${L.map(b=>`<div class="row"><div class="grow"><b>${esc(b.hora)}–${esc(hhmmDe(minDe(b.hora)+b.m))}</b> <span class="tag warn">${esc(b.motivo||'Fechado')}</span><div class="small muted">${b.pro==='todos'||!b.pro?'Para todos':'Só '+esc(PEOPLE[b.pro]?.n||b.pro)}${b.obs?' · '+esc(b.obs):''}${b.por?' · por '+esc(b.por):''}</div></div><button class="btn sm" data-reabrir="${b.id}" data-pp="${b._p}">Reabrir</button></div>`).join('')}</div>`}
+function fecharHorarios(pre){pre=pre&&typeof pre==='object'&&!(pre instanceof Event)?pre:{};
+  const d0=pre.data||S.agData||iso(TODAY),u0=pre.unit||(isAdmin()?unitFor(d0):'mai'),unidades=isAdmin()?['flo','mai']:['mai'];
+  openDlg('Fechar ou reservar horário',`${isAdmin()?`<label class="f">Unidade<select id="bu">${unidades.map(u=>`<option value="${u}" ${u===u0?'selected':''}>${U[u].n}</option>`).join('')}</select></label>`:''}
+  <label class="f">Dia<input type="date" id="bd" value="${d0}"></label>
+  <label class="ck"><input type="checkbox" id="bdia">Dia inteiro</label>
+  <div id="bhoras" style="display:flex;gap:10px"><label class="f" style="flex:1">De<input type="time" id="bh1" value="${pre.hora||'12:00'}" step="1800"></label><label class="f" style="flex:1">Até<input type="time" id="bh2" value="${pre.fim||hhmmDe(minDe(pre.hora||'12:00')+60)}" step="1800"></label></div>
+  <label class="f">Para quem<select id="bp"></select></label>
+  <label class="f">Motivo<select id="bm">${MOTIVOS_BLQ.map(m=>`<option ${m===(pre.motivo||'Fechado')?'selected':''}>${m}</option>`).join('')}</select></label>
+  <label class="f">Anotação (opcional, só a equipe vê)<input id="bo" maxlength="80" placeholder="Ex.: curso, médico, encaixe da Ana"></label>
+  <div id="bav"></div><button class="btn p" id="bsave">Fechar horário</button>`);
+  const g=id=>document.getElementById(id),unid=()=>isAdmin()?g('bu').value:'mai';
+  const prosOpt=()=>{const u=unid(),d=g('bd').value||d0;g('bp').innerHTML=`<option value="todos">Todos (${esc(U[u].n)} fecha)</option>`+prosDaUnidade(u,d).map(p=>`<option value="${p}">${esc(PEOPLE[p].n)}</option>`).join('')};
+  const diaInteiro=()=>{g('bhoras').hidden=g('bdia').checked};
+  prosOpt();g('bdia').onchange=diaInteiro;g('bd').onchange=prosOpt;if(isAdmin())g('bu').onchange=prosOpt;
+  g('bsave').onclick=async()=>{const u=unid(),d=g('bd').value;if(!d){toast('Escolha o dia');return}
+    const cf=agonCfg(u);let h1=g('bh1').value,h2=g('bh2').value;if(g('bdia').checked){h1=cf.ini;h2=cf.fim}
+    if(!h1||!h2||minDe(h2)<=minDe(h1)){toast('O horário final precisa ser depois do inicial');return}
+    const dado={unit:u,date:d,ts:tsDe(d),hora:h1,m:minDe(h2)-minDe(h1),pro:g('bp').value,motivo:g('bm').value,por:S.user.nome,em:Date.now()};
+    const obs=g('bo').value.trim();if(obs)dado.obs=obs;
+    const btn=g('bsave');btn.disabled=true;
+    const ok=await grava(()=>DB.push((u==='flo'?'florenca':'maison')+'/bloqueios',dado),dado.motivo==='Reservado'?'Horário reservado':'Horário fechado');
+    if(ok){closeDlg();S.agData=d;S.agMes=d.slice(0,7);render()}else btn.disabled=false}}
+const reabrirHorario=(id,p)=>grava(()=>DB.del(p+'/bloqueios/'+id),'Horário reaberto');
 function vAgenda(){
   const d=S.agData||iso(TODAY),du=unitFor(d);
   const pros=['tha',...STAFF];
@@ -648,8 +701,9 @@ function vAgenda(){
     return `<div class="box"><h3>${PEOPLE[p].n} ${uTag(u)}</h3>${list.map(a=>`<div class="appt ${a.st==='Atendido'?'done':''}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}${a.origem==='link'?' <span class="tag">Pelo link</span>':''}<div class="small muted">${esc(sv(a.serv,a.unit).n)}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}</div>
      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${(()=>{const at=histAll(true).find(h=>h.agenda===a.id&&!h.cancelado);return at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''})()}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}</div></div>`).join('')||'<p class="small muted">Sem horários marcados.</p>'}</div>`}).join('');
   return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Maison Beauty: ${U.mai.dias}, ${U.mai.hora}. Laís atende somente às segundas-feiras.`:`Agenda completa da Maison Beauty — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
-   <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}${AGENDA_URL?'<button class="btn" id="resp">Atualizar respostas</button>':''}<button class="btn p" id="novo">Novo agendamento</button></div></div>
+   <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}${AGENDA_URL?'<button class="btn" id="resp">Atualizar respostas</button>':''}<button class="btn" id="fechar">Fechar horário</button><button class="btn p" id="novo">Novo agendamento</button></div></div>
   ${agCalendario(d)}
+  ${visUnit(du)?gradeHtml(du,d)+fechadosHtml(du,d):''}
   <h2 style="margin:0 0 10px">${esc(prim1(new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})))}</h2>
   <div class="cols">${cols||'<p class="muted">Nada para mostrar nesta unidade neste dia.</p>'}</div>`;
 }
@@ -782,18 +836,19 @@ async function sincronizarPublico(){if(!S.user)return;
   const hoje=iso(TODAY),ate=iso(addD(TODAY,70));
   for(const u of (isAdmin()?['mai','flo']:['mai'])){
     const pub=(u==='flo'?C.pubFlo:C.pubMai)||{},ocup=pub.ocup||{},deseja={};
-    const poe=(d,k,h,m)=>{(deseja[d]=deseja[d]||{})[k]={h,m}};
+    const poe=(d,k,h,m,n)=>{(deseja[d]=deseja[d]||{})[k]=n&&n>1?{h,m,n}:{h,m}};
     agendaAtiva().filter(a=>a.unit===u&&a.date>=hoje&&a.date<=ate).forEach(a=>poe(a.date,a.res||a.id,a.hora,durServ(a)));
     arr(u==='flo'?C.fRes:C.mRes).filter(r=>!r.st&&r.data>=hoje).forEach(r=>poe(r.data,r.id,r.hora,r.m||30));
+    bloqueios().filter(b=>b.unit===u&&b.date>=hoje&&b.date<=ate).forEach(b=>poe(b.date,'b_'+b.id,b.hora,b.m,b.pro==='todos'||!b.pro?agonCfg(u).paralelo:1));
     const base='publico/agenda/'+u+'/ocup/';
     for(const d of new Set([...Object.keys(deseja),...Object.keys(ocup)])){
       const want=deseja[d]||{},have=ocup[d]||{};
-      for(const k of Object.keys(want))if(!have[k]||have[k].h!==want[k].h||have[k].m!==want[k].m)await DB.set(base+d+'/'+k,want[k]);
+      for(const k of Object.keys(want))if(!have[k]||have[k].h!==want[k].h||have[k].m!==want[k].m||(have[k].n||1)!==(want[k].n||1))await DB.set(base+d+'/'+k,want[k]);
       for(const k of Object.keys(have))if(!want[k])await DB.del(base+d+'/'+k)}}}
 // Quem estiver livre naquele horário: Maison tem Rafael e Mariana (e a Laís às segundas); o Florença é só a Tháriga.
 function proLivre(u,data,hora,dur){const lista=u==='flo'?['tha']:['rafael','mariana',...(laisDay(data)?['lais']:[])];
   const i0=minDe(hora),f0=i0+dur;
-  const ocupado=p=>agendaAtiva().some(a=>a.unit===u&&a.pro===p&&a.date===data&&minDe(a.hora)<f0&&minDe(a.hora)+durServ(a)>i0);
+  const ocupado=p=>agendaAtiva().some(a=>a.unit===u&&a.pro===p&&a.date===data&&minDe(a.hora)<f0&&minDe(a.hora)+durServ(a)>i0)||bloqueios().some(b=>b.unit===u&&b.date===data&&(b.pro==='todos'||!b.pro||b.pro===p)&&minDe(b.hora)<f0&&minDe(b.hora)+b.m>i0);
   const livre=lista.find(p=>!ocupado(p));return{pro:livre||lista[0],conflito:!livre}}
 const minDe=h=>{const [a,b]=String(h).split(':').map(Number);return a*60+(b||0)};
 async function converterReservas(){if(!S.user)return;
@@ -856,6 +911,7 @@ function novoAg(pre){
     if(p==='tha'){u=unitFor(d||iso(TODAY));}
     else{u='mai';if(d&&unitFor(d)!=='mai'){ok=false;msgs.push(`Neste dia o Maison Beauty está fechado — é dia do Florença.`)}}
     if(p==='lais'&&d&&!laisDay(d)){ok=false;msgs.push('A Laís atende somente às segundas-feiras.')}
+    {const t=minDe(nh.value||'00:00'),bq=bloqueios().filter(b=>b.unit===u&&b.date===d&&(b.pro==='todos'||!b.pro||b.pro===p)&&minDe(b.hora)<=t&&minDe(b.hora)+b.m>t);if(bq.length)msgs.push(`Este horário está ${bq[0].motivo==='Reservado'?'reservado':'fechado'} (${bq[0].motivo}${bq[0].obs?': '+bq[0].obs:''}). Dá para agendar mesmo assim.`)}
     const choque=agendaAtiva().find(a=>a.pro===p&&a.date===d&&a.hora===nh.value&&a.st!=='Atendido');
     if(choque)msgs.push(`${PEOPLE[p].n} já tem ${cli(choque.cli).n} às ${nh.value}. Dá para agendar mesmo assim.`);
     const opts=servicosDe(u,false).map(s=>`<option value="${s.id}">${esc(s.n)}${isAdmin()?' · '+brl(s.p):''}${s.d?' · '+s.d+'min':''}</option>`).join('');
@@ -894,15 +950,40 @@ function vClientes(){
    ${an&&an.flags&&an.flags.length?'<span class="tag warn">Alerta</span>':''}${anamVencida(c)?'<span class="tag warn">Anamnese pendente</span>':'<span class="tag ok">Anamnese em dia</span>'}
    ${isAdmin()?(c.unit==='ambas'?'<span class="tag">Os dois</span>':uTag(c.unit)):''}</div>`}).join('')||'<p class="muted">Nenhuma cliente cadastrada ainda. Toque em "Nova cliente" para começar.</p>'}</div>`;
 }
+
+// ── Trazer a cliente dos contatos do celular ──
+// O navegador não deixa nenhum site ler a agenda de contatos sozinho (privacidade): a pessoa toca no botão e ESCOLHE o contato.
+//  • Android (Chrome): "Buscar nos contatos do celular" abre a lista de contatos e preenche nome, telefone e e-mail.
+//  • iPhone e computador: o navegador não oferece isso; o jeito é "Importar contato (.vcf)": compartilha o contato (Compartilhar contato → Salvar em Arquivos) e escolhe o arquivo aqui.
+const temSeletorDeContatos=()=>typeof navigator!=='undefined'&&!!navigator.contacts&&typeof navigator.contacts.select==='function';
+const contatoBotoesHtml=()=>`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${temSeletorDeContatos()?'<button type="button" class="btn sm" id="ct-sel">Buscar nos contatos do celular</button>':''}<button type="button" class="btn sm" id="ct-vcf">Importar contato (.vcf)</button><input type="file" id="ct-arq" accept=".vcf,text/vcard,text/x-vcard,text/directory" hidden></div><div id="ct-msg" class="small muted" style="margin:-6px 0 10px"></div>`;
+// Ordem do telefone: o primeiro que parece celular (começa com 9 depois do DDD), senão o primeiro.
+function melhorTelefone(lista){const l=(lista||[]).map(t=>String(t||'').trim()).filter(Boolean);const cel=l.find(t=>/^\D*(55)?\D*\(?\d{2}\)?\D*9\d{4}\D*\d{4}/.test(t));return cel||l[0]||''}
+function lerVcf(txt){const lim=String(txt||'').replace(/\r\n[ \t]/g,'').replace(/\r/g,'');const cards=lim.split(/BEGIN:VCARD/i).slice(1);
+  return cards.map(c=>{const nome=((c.match(/^FN[^:]*:(.*)$/mi)||[])[1]||'').trim()||(()=>{const n=((c.match(/^N[^:]*:(.*)$/mi)||[])[1]||'').split(';');return [n[1],n[2],n[0]].filter(x=>x&&x.trim()).join(' ').trim()})();
+    const tels=[...c.matchAll(/^(?:item\d+\.)?TEL[^:]*:(.*)$/gmi)].map(m=>m[1].trim().replace(/^tel:/i,'')),emails=[...c.matchAll(/^(?:item\d+\.)?EMAIL[^:]*:(.*)$/gmi)].map(m=>m[1].trim());
+    return {nome,tel:melhorTelefone(tels),email:emails[0]||''}}).filter(x=>x.nome||x.tel)}
+function preencherDoContato(x){const g=id=>document.getElementById(id),msg=g('ct-msg');
+  if(g('vn')&&x.nome)g('vn').value=x.nome;if(g('vt')&&x.tel)g('vt').value=x.tel;if(g('vm')&&x.email&&emailOk(x.email))g('vm').value=x.email;
+  if(msg)msg.textContent=`Contato trazido: ${x.nome||'(sem nome)'}${x.tel?' · '+x.tel:' · sem telefone no contato'}. Confira e toque em "Cadastrar cliente".`}
+function ligarBotoesDeContato(){const sel=document.getElementById('ct-sel'),vcf=document.getElementById('ct-vcf'),arq=document.getElementById('ct-arq'),msg=document.getElementById('ct-msg');
+  if(sel)sel.onclick=async()=>{try{const r=await navigator.contacts.select(['name','tel','email'],{multiple:false});if(!r||!r.length){if(msg)msg.textContent='Nenhum contato escolhido.';return}
+      const c=r[0];preencherDoContato({nome:(c.name&&c.name[0])||'',tel:melhorTelefone(c.tel),email:(c.email&&c.email[0])||''})}
+    catch(e){if(msg)msg.textContent='Não consegui abrir os contatos. Use "Importar contato (.vcf)".'}};
+  if(vcf&&arq){vcf.onclick=()=>arq.click();
+    arq.onchange=async()=>{const f=arq.files&&arq.files[0];if(!f)return;let t='';try{t=await f.text()}catch(e){}
+      const l=lerVcf(t);if(!l.length){if(msg)msg.textContent='Não encontrei nome nem telefone nesse arquivo.';return}
+      preencherDoContato(l[0]);if(msg&&l.length>1)msg.textContent+=` (O arquivo tinha ${l.length} contatos; usei o primeiro.)`;arq.value=''}}}
 function novoCliente(opts={}){
   const uPadrao=S.unit==='flo'||S.unit==='mai'?S.unit:unitFor(iso(TODAY));
-  openDlg('Nova cliente',`<label class="f">Nome completo<input id="vn" placeholder="Nome da cliente"></label>
+  openDlg('Nova cliente',`${contatoBotoesHtml()}<label class="f">Nome completo<input id="vn" placeholder="Nome da cliente"></label>
   <label class="f">Telefone<input id="vt" placeholder="(11) 9...." inputmode="tel"></label>
   <label class="f">E-mail (para enviar o convite da agenda)<input id="vm" type="email" placeholder="opcional" autocomplete="off"></label>
   <label class="f">Data de nascimento (com o ano)<input id="vb" type="date"></label>
   ${isAdmin()?`<label class="f">Unidade onde atende<select id="vu"><option value="flo" ${uPadrao==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${uPadrao==='mai'?'selected':''}>Maison Beauty</option><option value="ambas">As duas</option></select></label>
   <p class="small muted" style="margin:-6px 0 12px">${S.unit==='flo'||S.unit==='mai'?'Escolhida pelo filtro de unidade da tela.':`Escolhida pelo dia de hoje (${esc(U[uPadrao].n)}).`} Cada cliente fica só na unidade em que foi cadastrada.</p>`:''}
   <button class="btn p" id="vsave">Cadastrar cliente</button>`);
+  ligarBotoesDeContato();
   document.getElementById('vsave').onclick=async()=>{const n=document.getElementById('vn').value.trim();if(!n){toast('Digite o nome da cliente');return}
    {const par=clienteParecida(n,document.getElementById('vt').value);if(!podeDuplicar(par&&descCli(par),'uma cliente parecida'))return}
    {const m=(document.getElementById('vm')||document.getElementById('em')).value.trim();if(m&&!emailOk(m)){toast('Esse e-mail não parece válido');return}}
@@ -1102,7 +1183,8 @@ function editarCliente(id){const c=cli(id);
     const ok=await grava(()=>DB.upd(c._p+'/clientes/'+id,{n,tel:document.getElementById('et').value.trim(),email:document.getElementById('em').value.trim(),...(b?{niver:b.slice(5,10),nasc:b}:{})}),'Dados atualizados');
     if(ok){closeDlg();ficha(id)}else btn.disabled=false}}
 async function excluirCliente(id){const c=cli(id),base=baseDe(c);
-  const ags=agenda().filter(a=>a.cli===id&&a._p===base),ats=histAll(true).filter(h=>h.cli===id&&h._p===base);
+  // O histórico pode estar na outra unidade (cadastrada numa, atendida na outra): olha as duas.
+  const ags=agenda().filter(a=>a.cli===id),ats=histAll(true).filter(h=>h.cli===id);
   const temHist=ats.length||ags.length;
   if(temHist){
     if(!isAdmin()){toast('Esta cliente tem agendamentos ou atendimentos no histórico. Só a Tháriga pode excluí-la.');return}
@@ -1115,11 +1197,11 @@ async function excluirCliente(id){const c=cli(id),base=baseDe(c);
     document.getElementById('xc-ok').onclick=async()=>{if(document.getElementById('xc-t').value.trim().toUpperCase()!=='EXCLUIR'){toast('Escreva EXCLUIR para confirmar');return}
       const btn=document.getElementById('xc-ok');btn.disabled=true;
       const ok=await grava(async()=>{
-        for(const h of ats){await DB.del(base+'/atendimentos/'+h.id);await DB.del('financeiro/valores/'+h.id);await DB.del(base+'/registros/'+h.id).catch(()=>{})}
-        for(const a of ags)await DB.del(base+'/agenda/'+a.id);
+        for(const h of ats){await DB.del(h._p+'/atendimentos/'+h.id);await DB.del('financeiro/valores/'+h.id);await DB.del(h._p+'/registros/'+h.id).catch(()=>{})}
+        for(const a of ags)await DB.del(a._p+'/agenda/'+a.id);
         for(const v of vouchers().filter(v=>v.cli===id))await DB.del(v._p+'/vouchers/'+v.id);
-        await DB.del(base+'/fotos/'+id).catch(()=>{});
-        await DB.del(base+'/anamneses/'+id);await DB.del(base+'/clientes/'+id)},'Cliente e histórico excluídos');
+        for(const b of ['maison','florenca']){await DB.del(b+'/fotos/'+id).catch(()=>{});await DB.del(b+'/anamneses/'+id).catch(()=>{})}
+        await DB.del(base+'/clientes/'+id)},'Cliente e histórico excluídos');
       if(ok)closeDlg();else btn.disabled=false};
     return}
   if(!confirm(`Excluir ${c.n} e a anamnese dela? Isso não pode ser desfeito.`))return;
@@ -1681,6 +1763,12 @@ function render(){
       ok=await grava(()=>DB.set('publico/agenda/'+u+'/cfg',cfg))&&ok}
     if(ok)toast('Agenda online salva');ags.disabled=false};
   main.querySelectorAll('[data-nvok]').forEach(b=>b.onclick=()=>grava(()=>DB.upd(b.dataset.nvp+'/clientes/'+b.dataset.nvok,{niverFeito:TODAY.getFullYear()}),'Aniversário dispensado da lista'));
+  const bf=document.getElementById('fechar');if(bf)bf.onclick=()=>fecharHorarios();
+  main.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{const u=b.dataset.su,d=S.agData||iso(TODAY),h=b.dataset.slot,gr=gradeDoDia(u,d).find(x=>x.h===h);
+    if(gr&&gr.estado==='fechado'){toast('Já está fechado. Use "Reabrir" na lista abaixo.');return}
+    if(gr&&gr.estado==='cheio'){toast('Este horário já está cheio de atendimentos.');return}
+    fecharHorarios({data:d,unit:u,hora:h,fim:hhmmDe(minDe(h)+30)})});
+  main.querySelectorAll('[data-reabrir]').forEach(b=>b.onclick=()=>reabrirHorario(b.dataset.reabrir,b.dataset.pp));
   main.querySelectorAll('[data-lib]').forEach(b=>b.onclick=async()=>{b.disabled=true;await liberarBrinde(b.dataset.lib);b.disabled=false});
   main.querySelectorAll('[data-dper]').forEach(b=>b.onclick=()=>{S.descPer=b.dataset.dper;render()});
   main.querySelectorAll('[data-msg]').forEach(b=>b.onclick=()=>msgDlg(b.dataset.msg,b.dataset.c));

@@ -103,3 +103,13 @@ Toda mensagem que vai para a cliente (confirmação de horário, aniversário, r
 - **Maison Beauty:** Rua Fontoura Xavier, 717, sala 3 — Itaquera, São Paulo - SP — CEP 08295-300
 
 Ficam como endereço de partida no `index.html` (`ENDERECO_PADRAO`), no `horario.html` e no `pedido.html`. O que a Tháriga escrever em *Serviços e preços → Agenda online* vale por cima.
+
+## Fechar e reservar horários (rascunho, ainda não publicado)
+
+Pedido da Tháriga: entrar no dia e **fechar ou reservar horários sem colocar nome de cliente**. Na aba Agenda: a grade *Horários do dia* (30 em 30 min; livre, parcial, cheio, fechado) e o botão *Fechar horário* (dia inteiro ou de hora a hora, para todos ou para uma profissional, com motivo: Fechado, Reservado, Almoço, Compromisso, Outro, e anotação). Fica em `/maison/bloqueios` e `/florenca/bloqueios` (Florença só a Tháriga). O bloqueio entra no espelho público (`/publico/agenda/{u}/ocup`) só como horário ocupado, com `n` = vagas consumidas (todas, ou 1 se for de uma profissional); o motivo nunca vai para o público. A página `/p` soma o `n`, e a conversão de reserva escolhe a profissional que não está bloqueada. *Reabrir* apaga o bloqueio. Agendar em horário fechado só avisa.
+
+Correção junto: excluir cliente com histórico olha as **duas unidades** (cadastrada numa e atendida na outra).
+
+## Cliente dos contatos do celular (rascunho, ainda não publicado)
+
+Em *Nova cliente* há **Buscar nos contatos do celular** (só onde o navegador oferece o seletor de contatos: Android/Chrome; preenche nome, o celular e o e-mail do contato escolhido) e **Importar contato (.vcf)** (iPhone e computador: o contato é compartilhado como arquivo e importado aqui). O navegador **não deixa** nenhum site ler a agenda inteira sozinho, por privacidade: a pessoa sempre escolhe o contato.
