@@ -158,12 +158,12 @@ async function escolheUnidade(){
 
 // Horários livres: dentro da abertura, no período, com vaga (menos atendimentos sobrepostos que o limite) e longe o bastante de agora.
 function livres(data,dur,periodo){
-  const c=pub.cfg,ini=minDe(c.ini),fim=minDe(c.fim),passo=c.passo||30,par=c.paralelo||1,oc=Object.values((pub.ocup||{})[data]||{}).map(x=>[minDe(x.h),minDe(x.h)+(x.m||30)]);
+  const c=pub.cfg,ini=minDe(c.ini),fim=minDe(c.fim),passo=c.passo||30,par=c.paralelo||1,oc=Object.values((pub.ocup||{})[data]||{}).map(x=>[minDe(x.h),minDe(x.h)+(x.m||30),x.n||1]);
   const agora=new Date(),hoje=iso(agora),limite=agora.getHours()*60+agora.getMinutes()+(c.antecH||0)*60,out=[];
   for(let t=ini;t+dur<=fim;t+=passo){
     if((periodo==='M')!==(t<720))continue;
     if(data===hoje&&t<limite)continue;
-    if(oc.filter(([a,b])=>a<t+dur&&b>t).length>=par)continue;
+    if(oc.filter(([a,b])=>a<t+dur&&b>t).reduce((n,x)=>n+x[2],0)>=par)continue;
     out.push(t)}
   return out}
 function desenhaSlots(){

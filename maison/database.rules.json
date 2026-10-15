@@ -94,6 +94,13 @@
           ".validate": "!newData.exists() || newData.hasChildren(['cli','usado'])"
         }
       },
+      // Horários fechados ou reservados pela equipe, sem nome de cliente. Todas as da Maison criam e reabrem.
+      "bloqueios": {
+        "$id": {
+          ".write": "auth != null && root.child('acesso').child(auth.uid).exists()",
+          ".validate": "!newData.exists() || (newData.hasChildren(['unit','date','hora','m']) && newData.child('unit').val() === 'mai' && newData.child('hora').isString() && newData.child('hora').val().length === 5 && newData.child('m').isNumber() && newData.child('m').val() > 0 && newData.child('m').val() <= 1440)"
+        }
+      },
       "reservas": {
         "$id": {
           ".write": "auth != null && (root.child('acesso').child(auth.uid).exists() || (!data.exists() && newData.exists() && root.child('publico').child('agenda').child('mai').child('cfg').child('ativo').val() === true && $id.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}_[1-9]$/) && $id.beginsWith(newData.child('data').val())))",
