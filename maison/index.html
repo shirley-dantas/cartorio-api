@@ -950,15 +950,40 @@ function vClientes(){
    ${an&&an.flags&&an.flags.length?'<span class="tag warn">Alerta</span>':''}${anamVencida(c)?'<span class="tag warn">Anamnese pendente</span>':'<span class="tag ok">Anamnese em dia</span>'}
    ${isAdmin()?(c.unit==='ambas'?'<span class="tag">Os dois</span>':uTag(c.unit)):''}</div>`}).join('')||'<p class="muted">Nenhuma cliente cadastrada ainda. Toque em "Nova cliente" para começar.</p>'}</div>`;
 }
+
+// ── Trazer a cliente dos contatos do celular ──
+// O navegador não deixa nenhum site ler a agenda de contatos sozinho (privacidade): a pessoa toca no botão e ESCOLHE o contato.
+//  • Android (Chrome): "Buscar nos contatos do celular" abre a lista de contatos e preenche nome, telefone e e-mail.
+//  • iPhone e computador: o navegador não oferece isso; o jeito é "Importar contato (.vcf)": compartilha o contato (Compartilhar contato → Salvar em Arquivos) e escolhe o arquivo aqui.
+const temSeletorDeContatos=()=>typeof navigator!=='undefined'&&!!navigator.contacts&&typeof navigator.contacts.select==='function';
+const contatoBotoesHtml=()=>`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${temSeletorDeContatos()?'<button type="button" class="btn sm" id="ct-sel">Buscar nos contatos do celular</button>':''}<button type="button" class="btn sm" id="ct-vcf">Importar contato (.vcf)</button><input type="file" id="ct-arq" accept=".vcf,text/vcard,text/x-vcard,text/directory" hidden></div><div id="ct-msg" class="small muted" style="margin:-6px 0 10px"></div>`;
+// Ordem do telefone: o primeiro que parece celular (começa com 9 depois do DDD), senão o primeiro.
+function melhorTelefone(lista){const l=(lista||[]).map(t=>String(t||'').trim()).filter(Boolean);const cel=l.find(t=>/^\D*(55)?\D*\(?\d{2}\)?\D*9\d{4}\D*\d{4}/.test(t));return cel||l[0]||''}
+function lerVcf(txt){const lim=String(txt||'').replace(/\r\n[ \t]/g,'').replace(/\r/g,'');const cards=lim.split(/BEGIN:VCARD/i).slice(1);
+  return cards.map(c=>{const nome=((c.match(/^FN[^:]*:(.*)$/mi)||[])[1]||'').trim()||(()=>{const n=((c.match(/^N[^:]*:(.*)$/mi)||[])[1]||'').split(';');return [n[1],n[2],n[0]].filter(x=>x&&x.trim()).join(' ').trim()})();
+    const tels=[...c.matchAll(/^(?:item\d+\.)?TEL[^:]*:(.*)$/gmi)].map(m=>m[1].trim().replace(/^tel:/i,'')),emails=[...c.matchAll(/^(?:item\d+\.)?EMAIL[^:]*:(.*)$/gmi)].map(m=>m[1].trim());
+    return {nome,tel:melhorTelefone(tels),email:emails[0]||''}}).filter(x=>x.nome||x.tel)}
+function preencherDoContato(x){const g=id=>document.getElementById(id),msg=g('ct-msg');
+  if(g('vn')&&x.nome)g('vn').value=x.nome;if(g('vt')&&x.tel)g('vt').value=x.tel;if(g('vm')&&x.email&&emailOk(x.email))g('vm').value=x.email;
+  if(msg)msg.textContent=`Contato trazido: ${x.nome||'(sem nome)'}${x.tel?' · '+x.tel:' · sem telefone no contato'}. Confira e toque em "Cadastrar cliente".`}
+function ligarBotoesDeContato(){const sel=document.getElementById('ct-sel'),vcf=document.getElementById('ct-vcf'),arq=document.getElementById('ct-arq'),msg=document.getElementById('ct-msg');
+  if(sel)sel.onclick=async()=>{try{const r=await navigator.contacts.select(['name','tel','email'],{multiple:false});if(!r||!r.length){if(msg)msg.textContent='Nenhum contato escolhido.';return}
+      const c=r[0];preencherDoContato({nome:(c.name&&c.name[0])||'',tel:melhorTelefone(c.tel),email:(c.email&&c.email[0])||''})}
+    catch(e){if(msg)msg.textContent='Não consegui abrir os contatos. Use "Importar contato (.vcf)".'}};
+  if(vcf&&arq){vcf.onclick=()=>arq.click();
+    arq.onchange=async()=>{const f=arq.files&&arq.files[0];if(!f)return;let t='';try{t=await f.text()}catch(e){}
+      const l=lerVcf(t);if(!l.length){if(msg)msg.textContent='Não encontrei nome nem telefone nesse arquivo.';return}
+      preencherDoContato(l[0]);if(msg&&l.length>1)msg.textContent+=` (O arquivo tinha ${l.length} contatos; usei o primeiro.)`;arq.value=''}}}
 function novoCliente(opts={}){
   const uPadrao=S.unit==='flo'||S.unit==='mai'?S.unit:unitFor(iso(TODAY));
-  openDlg('Nova cliente',`<label class="f">Nome completo<input id="vn" placeholder="Nome da cliente"></label>
+  openDlg('Nova cliente',`${contatoBotoesHtml()}<label class="f">Nome completo<input id="vn" placeholder="Nome da cliente"></label>
   <label class="f">Telefone<input id="vt" placeholder="(11) 9...." inputmode="tel"></label>
   <label class="f">E-mail (para enviar o convite da agenda)<input id="vm" type="email" placeholder="opcional" autocomplete="off"></label>
   <label class="f">Data de nascimento (com o ano)<input id="vb" type="date"></label>
   ${isAdmin()?`<label class="f">Unidade onde atende<select id="vu"><option value="flo" ${uPadrao==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${uPadrao==='mai'?'selected':''}>Maison Beauty</option><option value="ambas">As duas</option></select></label>
   <p class="small muted" style="margin:-6px 0 12px">${S.unit==='flo'||S.unit==='mai'?'Escolhida pelo filtro de unidade da tela.':`Escolhida pelo dia de hoje (${esc(U[uPadrao].n)}).`} Cada cliente fica só na unidade em que foi cadastrada.</p>`:''}
   <button class="btn p" id="vsave">Cadastrar cliente</button>`);
+  ligarBotoesDeContato();
   document.getElementById('vsave').onclick=async()=>{const n=document.getElementById('vn').value.trim();if(!n){toast('Digite o nome da cliente');return}
    {const par=clienteParecida(n,document.getElementById('vt').value);if(!podeDuplicar(par&&descCli(par),'uma cliente parecida'))return}
    {const m=(document.getElementById('vm')||document.getElementById('em')).value.trim();if(m&&!emailOk(m)){toast('Esse e-mail não parece válido');return}}
