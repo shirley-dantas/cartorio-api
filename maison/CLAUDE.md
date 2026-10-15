@@ -113,3 +113,7 @@ Correção junto: excluir cliente com histórico olha as **duas unidades** (cada
 ## Cliente dos contatos do celular (rascunho, ainda não publicado)
 
 Em *Nova cliente* há **Buscar nos contatos do celular** (só onde o navegador oferece o seletor de contatos: Android/Chrome; preenche nome, o celular e o e-mail do contato escolhido) e **Importar contato (.vcf)** (iPhone e computador: o contato é compartilhado como arquivo e importado aqui). O navegador **não deixa** nenhum site ler a agenda inteira sozinho, por privacidade: a pessoa sempre escolhe o contato.
+
+## Avisos no celular (push) (rascunho, ainda não publicado)
+
+Marcação nova pelo link e ficha recebida geram notificação no celular/tablet, com o painel fechado. As páginas `/p` e `/f` chamam `api/avisar.js` depois de gravar (a função confere no banco e manda um aviso por reserva); `api/push-assinar.js` guarda o aparelho (token do Firebase confere quem é); `sw.js` mostra e abre o painel. Botão *Ativar avisos* no painel; no iPhone só com o painel instalado na tela de início. Precisa das variáveis `FIREBASE_SERVICE_ACCOUNT`, `VAPID_PUBLICA`, `VAPID_PRIVADA` na Vercel. Detalhes em `maison/AVISOS.md`. As funções ficam em `maison/api/` (projeto Vercel próprio, fora do limite de 12 funções do painel do cartório).

@@ -62,6 +62,7 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
 .stat{font-family:var(--serif);font-size:32px;font-weight:600;line-height:1.1}
 .lbl{color:var(--muted);font-size:13px}
+.btn.on{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
 .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:6px}
 .slot{border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 4px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.2}
 .slot small{font-size:10px;color:var(--muted)}
@@ -180,7 +181,7 @@ canvas.sig{width:100%;height:130px;border:1px dashed var(--muted);border-radius:
     <button class="btn" id="ajuda1">Preciso de ajuda</button>
   </aside>
   <div>
-    <div class="mob"><img class="logo-wide sm" src="logo.png" alt="Maison Beauty"><span><button class="btn sm" id="ajuda2">Ajuda</button> <button class="btn sm" id="sair2">Sair</button></span></div>
+    <div class="mob"><img class="logo-wide sm" src="logo.png" alt="Maison Beauty"><span><button class="btn sm" id="avisos2" data-avisos>Ativar avisos</button> <button class="btn sm" id="ajuda2">Ajuda</button> <button class="btn sm" id="sair2">Sair</button></span></div>
     <main id="main"></main>
   </div>
 </div>
@@ -539,7 +540,7 @@ function entrou(u){S.user=u;S.tab='hoje';S.q='';S.agData=null;S.agMes=null;S.uni
   document.getElementById('app').hidden=false;document.getElementById('bnav').hidden=false;
   comecarLeituras();render()}
 async function sair(){pararLeituras();S.user=null;S.erros={};for(const k in C)C[k]={};if(!DEMO)await signOut(auth);telaEntrar()}
-document.getElementById('sair2').onclick=sair;
+document.getElementById('sair2').onclick=sair;document.getElementById('avisos2').onclick=alternarAvisos;
 document.getElementById('ajuda1').onclick=()=>abrirSuporte();document.getElementById('ajuda2').onclick=()=>abrirSuporte();
 
 if(DEMO){telaEntrar()}
@@ -560,8 +561,8 @@ const TABS=[['hoje','Hoje'],['agenda','Agenda'],['clientes','Clientes'],['anamne
 function renderChrome(){
   const tabs=TABS.filter(t=>isAdmin()||!t[2]);
   if(!tabs.find(t=>t[0]===S.tab))S.tab='hoje';
-  document.getElementById('quem').innerHTML=`<b>${esc(S.user.nome)}</b><br>${isAdmin()?'Administradora':'Funcionária · Maison'}${DEMO?' · demonstração':''}<br><button class="btn sm" id="sair1" style="margin-top:8px">Sair</button>`;
-  document.getElementById('sair1').onclick=sair;
+  document.getElementById('quem').innerHTML=`<b>${esc(S.user.nome)}</b><br>${isAdmin()?'Administradora':'Funcionária · Maison'}${DEMO?' · demonstração':''}<br><button class="btn sm" id="avisos1" data-avisos style="margin-top:8px">Ativar avisos</button> <button class="btn sm" id="sair1" style="margin-top:8px">Sair</button>`;
+  document.getElementById('sair1').onclick=sair;document.getElementById('avisos1').onclick=alternarAvisos;atualizarBotaoAvisos();
   document.getElementById('nav').innerHTML=tabs.map(t=>`<button class="${S.tab===t[0]?'on':''}" data-t="${t[0]}">${t[1]}${t[2]?'<span class="lock">só você</span>':''}</button>`).join('');
   document.getElementById('bnav').innerHTML=tabs.map(t=>`<button class="${S.tab===t[0]?'on':''}" data-t="${t[0]}">${t[1]}</button>`).join('');
   document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;render();window.scrollTo(0,0)});
@@ -646,6 +647,37 @@ function agCalendario(sel){
   return `<div class="cal"><div class="cal-top"><button class="btn sm" data-agmes="-1" aria-label="Mês anterior">‹</button><h3>${esc(prim1(prim.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})))}</h3><span style="display:flex;gap:6px"><button class="btn sm" data-agmes="0">Hoje</button><button class="btn sm" data-agmes="1" aria-label="Próximo mês">›</button></span></div>
    <div class="cal-g">${['D','S','T','Q','Q','S','S'].map(l=>`<div class="sem">${l}</div>`).join('')}${(ult?celulas.slice(0,35):celulas).join('')}</div></div>`}
 
+
+// ── Avisos no celular e no tablet (notificação push) ──
+// Funciona com o painel FECHADO: a função em api/avisar.js manda o aviso quando a cliente marca um horário ou envia a ficha.
+// Cada aparelho ativa uma vez. No iPhone/iPad só vale com o painel instalado na tela de início (iOS 16.4 ou mais novo).
+const VAPID_PUBLICA='BBiRYKBXWR744xMUqv0kxK4sEBsDTZSxYrP8Edn13fnpOOUeY2b_r4Zv6G6eGdQkcbALX0FfIioztO0hlweIIF8';
+const suportaAvisos=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const ehIos=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const instaladoNaTela=()=>(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+const chaveParaBytes=b=>{const p='='.repeat((4-b.length%4)%4),r=atob((b+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...r].map(c=>c.charCodeAt(0)))};
+async function assinaturaAtual(){if(!suportaAvisos())return null;try{const reg=await navigator.serviceWorker.ready;return await reg.pushManager.getSubscription()}catch(e){return null}}
+async function avisosAtivos(){return Notification.permission==='granted'&&!!(await assinaturaAtual())}
+async function atualizarBotaoAvisos(){const ativo=suportaAvisos()?await avisosAtivos():false;
+  document.querySelectorAll('[data-avisos]').forEach(b=>{b.textContent=ativo?'Avisos ativos ✓':'Ativar avisos';b.classList.toggle('on',ativo)})}
+async function chamarAvisos(corpo){let tk=null;try{tk=auth&&auth.currentUser?await auth.currentUser.getIdToken():null}catch(e){}
+  const r=await fetch('/api/push-assinar',{method:'POST',headers:{'Content-Type':'application/json',...(tk?{Authorization:'Bearer '+tk}:{})},body:JSON.stringify(corpo)});
+  const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.erro||('erro '+r.status));return j}
+async function alternarAvisos(){
+  if(!suportaAvisos()){openDlg('Avisos neste aparelho',`<p>Este navegador não consegue mostrar avisos com o painel fechado.</p><p class="small muted">No <b>Android</b>, use o <b>Chrome</b>. No <b>iPhone ou iPad</b>, use o Safari e instale o painel na tela de início (veja o passo a passo ao tocar de novo depois de instalar).</p>`);return}
+  if(ehIos()&&!instaladoNaTela()){openDlg('Instalar o painel no iPhone ou iPad',`<p>No iPhone e no iPad, os avisos só funcionam com o painel <b>instalado na tela de início</b>:</p><ol style="padding-left:20px;line-height:1.7"><li>Abra o painel no <b>Safari</b>.</li><li>Toque no botão <b>Compartilhar</b> (o quadrado com a setinha para cima).</li><li>Escolha <b>Adicionar à Tela de Início</b> e toque em <b>Adicionar</b>.</li><li>Abra o painel pelo <b>ícone novo</b> e toque em <b>Ativar avisos</b>.</li></ol><p class="small muted">Precisa do iOS 16.4 ou mais novo.</p>`);return}
+  if(await avisosAtivos()){
+    if(!confirm('Desligar os avisos neste aparelho?'))return;
+    try{const sub=await assinaturaAtual();if(sub){await chamarAvisos({acao:'remover',sub:sub.toJSON()}).catch(()=>{});await sub.unsubscribe()}toast('Avisos desligados neste aparelho')}catch(e){toast('Não consegui desligar: '+e.message)}
+    atualizarBotaoAvisos();return}
+  if(Notification.permission==='denied'){openDlg('Avisos bloqueados',`<p>Os avisos estão <b>bloqueados</b> neste aparelho.</p><p class="small muted">Libere nas configurações do navegador (ou do aplicativo, no iPhone): <b>Notificações → Permitir</b> para este painel. Depois toque em <b>Ativar avisos</b> de novo.</p>`);return}
+  try{
+    const perm=await Notification.requestPermission();if(perm!=='granted'){toast('Os avisos não foram permitidos.');atualizarBotaoAvisos();return}
+    const reg=await navigator.serviceWorker.ready;
+    const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:chaveParaBytes(VAPID_PUBLICA)});
+    await chamarAvisos({sub:sub.toJSON()});toast('Avisos ativados neste aparelho ✓')
+  }catch(e){guardaErro(e.message);toast('Não consegui ativar os avisos: '+e.message)}
+  atualizarBotaoAvisos()}
 // ── Fechar e reservar horários (sem nome de cliente) ──
 // Um bloqueio é um horário que a equipe tira da agenda: "Fechado", "Reservado", almoço, compromisso. Vale para todos ou só para uma profissional,
 // aparece na agenda do dia, e some da página de agendamento da cliente (o espelho público leva só o horário, nunca o motivo).
