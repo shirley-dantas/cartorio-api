@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Seu horário · Maison Beauty</title>
+<title>Seu horário · Tháriga Beauty &amp; Co</title>
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Maison Beauty">
-<meta property="og:title" content="Seu horário · Maison Beauty">
+<meta property="og:site_name" content="Tháriga Beauty &amp; Co">
+<meta property="og:title" content="Seu horário · Tháriga Beauty &amp; Co">
 <meta property="og:description" content="Veja os detalhes e salve o horário na sua agenda.">
 <meta property="og:image" content="https://thariga-brito.vercel.app/og-banner.jpg">
 <meta property="og:image:width" content="1200">
@@ -36,7 +36,7 @@ h1{font-family:var(--serif);font-weight:600;font-size:30px;margin:14px 0 4px;tex
 </head>
 <body>
 <div class="wrap">
-  <img class="logo" src="/logo.png" alt="Maison Beauty">
+  <img class="logo" src="/logo.png" alt="Tháriga Beauty &amp; Co">
   <div id="tela"></div>
 </div>
 <script>
@@ -54,7 +54,7 @@ let s=(q.get('s')||'').slice(0,80),d=q.get('d')||'',h=q.get('h')||'',m=Math.min(
   m=Math.min(600,Math.max(5,parseInt(c[3],36)||60));p=PRO[c[4]]||'';s=s||SV[decodeURIComponent(c[5])]||''}}
 e=(e||(u&&u.e)||'').slice(0,160);
 if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(d)||!/^\d{2}:\d{2}$/.test(h)||!u){
-  tela.innerHTML='<h1>Link inválido</h1><div class="sub">Peça um novo link à Maison Beauty.</div>';
+  tela.innerHTML='<h1>Link inválido</h1><div class="sub">Peça um novo link à Tháriga Beauty & Co.</div>';
 }else{
   const dia=new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
   const [y,mo,da]=d.split('-').map(Number),[hh,mi]=h.split(':').map(Number),pad=n=>String(n).padStart(2,'0');
@@ -76,9 +76,9 @@ if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(d)||!/^\d{2}:\d{2}$/.test(h)||!u){
   <a class="btn" href="#" id="ics">Salvar no calendário do celular (.ics)</a>
   <p class="nota">Qualquer imprevisto, é só avisar pelo WhatsApp. Até lá! 🤍</p>`;
   document.getElementById('ics').onclick=e=>{e.preventDefault();
-    const t=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Maison Beauty//PT','BEGIN:VEVENT','UID:'+ini+'-'+Math.random().toString(36).slice(2,10)+'@maisonbeauty',
+    const t=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Tháriga Beauty & Co//PT','BEGIN:VEVENT','UID:'+ini+'-'+Math.random().toString(36).slice(2,10)+'@maisonbeauty',
      'DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''),'DTSTART:'+ini,'DTEND:'+fim,'SUMMARY:'+ics(titulo),'LOCATION:'+ics(local),'END:VEVENT','END:VCALENDAR'].join('\r\n');
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/calendar'}));a.download='horario-maison-beauty.ics';document.body.appendChild(a);a.click();a.remove()};
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/calendar'}));a.download='horario-thariga-beauty.ics';document.body.appendChild(a);a.click();a.remove()};
 }
 </script>
 </body>
