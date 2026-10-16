@@ -14,8 +14,8 @@
   --bg:#FAF7F1; --panel:#FFFFFF; --ink:#262220; --muted:#8A7D6E; --line:#E9E1D2;
   --berry:#9C7A2E; --berry-soft:#F1E9D4; --flo:#6B5B45; --flo-soft:#EFE7D9; --mai:#9C7A2E; --mai-soft:#F1E9D4;
   --warn:#A8551C; --warn-soft:#FBEBDD; --ok:#3F7A57; --ok-soft:#E2F1E7;
-  --p-tha:#B2706A; --p-raf:#A8926B; --p-mar:#B38B2D; --p-lai:#7C8A6A; --p-txt:#fff;
-  --t-tha:#F6E3DF; --t-raf:#F5EEE0; --t-mar:#F6E8C2; --t-lai:#E6ECDD;
+  --p-tha:#B2706A; --p-raf:#A39279; --p-mar:#B9A44B; --p-lai:#7C8A6A; --p-txt:#fff;
+  --t-tha:#F6E3DF; --t-raf:#F1EBE1; --t-mar:#F7F1D0; --t-lai:#E6ECDD;
   --rose:#B2706A; --rose-soft:#F6E3DF;
   --serif:"Cormorant",Georgia,"Times New Roman",serif; --sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
@@ -24,15 +24,15 @@
   --bg:#1C1A16; --panel:#262320; --ink:#F3EFE6; --muted:#B5A98F; --line:#3B362C;
   --berry:#D4B45E; --berry-soft:#3A331F; --flo:#C9BB9C; --flo-soft:#2E2A20; --mai:#D4B45E; --mai-soft:#3A331F;
   --warn:#EDA46E; --warn-soft:#3A2618; --ok:#8CCBA4; --ok-soft:#1D3024;
-  --p-tha:#D99A8C; --p-raf:#D9C7A3; --p-mar:#D9B24E; --p-lai:#A9B894; --p-txt:#1C1A16;
-  --t-tha:#3D2A27; --t-raf:#38322A; --t-mar:#3D3418; --t-lai:#2B3226;
+  --p-tha:#D99A8C; --p-raf:#CDBFA8; --p-mar:#D8C56A; --p-lai:#A9B894; --p-txt:#1C1A16;
+  --t-tha:#3D2A27; --t-raf:#38332B; --t-mar:#3A3718; --t-lai:#2B3226;
   --rose:#D99A8C; --rose-soft:#3D2A27;}}
 :root[data-theme="dark"]{
   --bg:#1C1A16; --panel:#262320; --ink:#F3EFE6; --muted:#B5A98F; --line:#3B362C;
   --berry:#D4B45E; --berry-soft:#3A331F; --flo:#C9BB9C; --flo-soft:#2E2A20; --mai:#D4B45E; --mai-soft:#3A331F;
   --warn:#EDA46E; --warn-soft:#3A2618; --ok:#8CCBA4; --ok-soft:#1D3024;
-  --p-tha:#D99A8C; --p-raf:#D9C7A3; --p-mar:#D9B24E; --p-lai:#A9B894; --p-txt:#1C1A16;
-  --t-tha:#3D2A27; --t-raf:#38322A; --t-mar:#3D3418; --t-lai:#2B3226;
+  --p-tha:#D99A8C; --p-raf:#CDBFA8; --p-mar:#D8C56A; --p-lai:#A9B894; --p-txt:#1C1A16;
+  --t-tha:#3D2A27; --t-raf:#38332B; --t-mar:#3A3718; --t-lai:#2B3226;
   --rose:#D99A8C; --rose-soft:#3D2A27;}
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
@@ -164,7 +164,7 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .appt.done{opacity:.55}
 .search{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:14px}
 .avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
-.avatar{overflow:hidden;width:38px;height:38px;border-radius:50%;background:var(--berry-soft);color:var(--berry);display:grid;place-items:center;font-family:var(--serif);font-weight:600;font-size:17px;flex:none}
+.avatar{overflow:hidden;width:38px;height:38px;border-radius:50%;background:var(--rose-soft);color:var(--rose);display:grid;place-items:center;font-family:var(--serif);font-weight:600;font-size:17px;flex:none}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{text-align:left;padding:9px 8px;border-top:1px solid var(--line);white-space:nowrap}
 th{color:var(--muted);font-weight:500;border-top:0}
@@ -935,7 +935,7 @@ async function livresImagem(grupos){
   const cv=document.createElement('canvas');cv.width=W;cv.height=Math.max(altura,700);const c=cv.getContext('2d');
   c.fillStyle='#FAF7F1';c.fillRect(0,0,W,cv.height);desenhar(c,false);
   return cv}
-const COR_HEX={tha:'#B2706A',rafael:'#A8926B',mariana:'#B38B2D',lais:'#7C8A6A'};
+const COR_HEX={tha:'#B2706A',rafael:'#A39279',mariana:'#B9A44B',lais:'#7C8A6A'};
 function compartilharLivres(){
   const grupos=livresGrupos();if(!grupos.length){toast('Nenhum horário livre para compartilhar com esse filtro.');return}
   const txt=livresTexto(grupos),esc1=(S.lvSel&&S.lvSel.size)?'Só os horários escolhidos vão na mensagem.':'Nada escolhido: vão todos os horários que estão na tela.';
