@@ -1,5 +1,5 @@
 /**
- * Suporte do painel Maison Beauty.
+ * Suporte do painel Tháriga Beauty & Co.
  * Recebe o pedido de ajuda do painel e manda por e-mail para quem cuida dele.
  *
  * Como publicar: ver maison/FIREBASE.md ("Pedido de ajuda por e-mail").

@@ -11,7 +11,7 @@ const crypto = require('crypto');
 
 const PROJETO = 'maison-beauty-2e7da';
 const DB_URL = 'https://maison-beauty-2e7da-default-rtdb.firebaseio.com';
-const UNIDADES = { mai: 'Maison Beauty', flo: 'Estúdio Florença' };
+const UNIDADES = { mai: 'Tháriga Beauty & Co', flo: 'Estúdio Florença' };
 
 function iniciar() {
   if (!admin.apps.length) admin.initializeApp({ projectId: PROJETO });
