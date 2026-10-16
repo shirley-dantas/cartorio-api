@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/f/:codigo", "destination": "/anamnese.html" },
     { "source": "/h", "destination": "/horario.html" },
+    { "source": "/h/:codigo", "destination": "/horario.html" },
     { "source": "/p", "destination": "/pedido.html" }
   ]
 }

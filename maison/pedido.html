@@ -9,7 +9,7 @@
 <meta property="og:site_name" content="Maison Beauty">
 <meta property="og:title" content="Agende o seu horário · Maison Beauty">
 <meta property="og:description" content="Escolha o serviço, o dia e o horário. Sem conversa: já fica marcado.">
-<meta property="og:image" content="https://thariga-brito.vercel.app/og-pedido.png">
+<meta property="og:image" content="https://thariga-brito.vercel.app/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -21,7 +21,7 @@
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
 .wrap{max-width:640px;margin:0 auto;padding:20px 16px 60px}
-.logo{display:block;margin:6px auto 4px;width:220px;max-width:70%;height:auto}
+.logo{display:block;margin:6px auto 8px;width:150px;max-width:50%;height:auto}
 h1{font-family:var(--serif);font-weight:600;font-size:30px;margin:10px 0 4px;text-align:center}
 .sub{color:var(--muted);text-align:center;font-size:14px;margin-bottom:18px}
 .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
@@ -96,6 +96,11 @@ const firebaseConfig = {
 const UN={
  mai:{n:'Maison Beauty',s:'Itaquera',e:'Rua Fontoura Xavier, 717, sala 3, Itaquera, São Paulo - SP, CEP 08295-300',dias:[[0,'Domingo'],[1,'Segunda'],[2,'Terça'],[3,'Quarta']],base:'maison',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Micropigmentação", 90], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90], ["Remoção de cílios", 30], ["Mão tradicional", 30], ["Pé tradicional", 40], ["Alongamento de unhas", 120], ["Manutenção de unhas", 90], ["Remoção de alongamento de unhas", 30], ["Remoção de pigmento a laser", 30], ["Laser para tratamento de fungos", 30], ["Depilação a laser", 30], ["Ozonioterapia", 60], ["Aplicação de piercing", 30]]},
  flo:{n:'Estúdio Florença',s:'Itaim Bibi',e:'Rua Pedroso Alvarenga, 502, Itaim Bibi, São Paulo - SP, CEP 04531-001',dias:[[4,'Quinta'],[5,'Sexta'],[6,'Sábado']],base:'florenca',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Lash lifting", 60], ["Brow lamination", 60], ["Micropigmentação", 120], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90]]}};
+// Quem faz cada serviço (mesmo mapa do painel, PRO_SERV): cada profissional tem a sua vaga e a sua agenda.
+const RAF=['Remoção de pigmento a laser','Laser para tratamento de fungos','Depilação a laser','Ozonioterapia','Aplicação de piercing'],
+      MAR=['Mão tradicional','Pé tradicional','Alongamento de unhas','Manutenção de unhas','Remoção de alongamento de unhas'];
+const proDe=(u,nome)=>u==='flo'?'tha':RAF.includes(nome)?'rafael':MAR.includes(nome)?'mariana':'tha';
+const VAGA={tha:1,rafael:2,mariana:3};
 const NOMES=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -157,13 +162,13 @@ async function escolheUnidade(){
   desenhaSlots()}
 
 // Horários livres: dentro da abertura, no período, com vaga (menos atendimentos sobrepostos que o limite) e longe o bastante de agora.
-function livres(data,dur,periodo){
-  const c=pub.cfg,ini=minDe(c.ini),fim=minDe(c.fim),passo=c.passo||30,par=c.paralelo||1,oc=Object.values((pub.ocup||{})[data]||{}).map(x=>[minDe(x.h),minDe(x.h)+(x.m||30),x.n||1]);
+function livres(data,dur,periodo,pro){
+  const c=pub.cfg,ini=minDe(c.ini),fim=minDe(c.fim),passo=c.passo||30,oc=Object.values((pub.ocup||{})[data]||{}).map(x=>[minDe(x.h),minDe(x.h)+(x.m||30),x.p||'todos']);
   const agora=new Date(),hoje=iso(agora),limite=agora.getHours()*60+agora.getMinutes()+(c.antecH||0)*60,out=[];
   for(let t=ini;t+dur<=fim;t+=passo){
     if((periodo==='M')!==(t<720))continue;
     if(data===hoje&&t<limite)continue;
-    if(oc.filter(([a,b])=>a<t+dur&&b>t).reduce((n,x)=>n+x[2],0)>=par)continue;
+    if(oc.some(([a,b,p])=>a<t+dur&&b>t&&(p==='todos'||p===pro)))continue;
     out.push(t)}
   return out}
 function desenhaSlots(){
@@ -171,15 +176,15 @@ function desenhaSlots(){
   escolha=null;conf.hidden=true;
   const dias=[...document.querySelectorAll('#dias input:checked')].map(i=>+i.value);
   if(!dias.length){box.innerHTML='<p class="small">Marque pelo menos um dia para ver os horários.</p>';return}
-  const dur=u.serv[+document.getElementById('s').value][1],per=document.querySelector('input[name=per]:checked').value,fech=c.fechados||[];
+  const sv0=u.serv[+document.getElementById('s').value],dur=sv0[1],pro=proDe(un,sv0[0]),per=document.querySelector('input[name=per]:checked').value,fech=c.fechados||[];
   const hoje=new Date();hoje.setHours(12,0,0,0);let html='',n=0;
   for(let i=0;i<=(c.dias||21);i++){const d=new Date(hoje);d.setDate(d.getDate()+i);const data=iso(d);
     if(!dias.includes(d.getDay())||fech.includes(data))continue;
-    const L=livres(data,dur,per);if(!L.length)continue;n+=L.length;
+    const L=livres(data,dur,per,pro);if(!L.length)continue;n+=L.length;
     html+=`<div class="dia">${fdata(data)}</div><div class="slots">${L.map(t=>`<button type="button" data-d="${data}" data-h="${hhmm(t)}">${hhmm(t)}</button>`).join('')}</div>`}
   box.innerHTML=n?html:'<p class="small">Não há horários livres nesses dias e período. Tente outro período ou outros dias.</p>';
   box.querySelectorAll('button').forEach(b=>b.onclick=()=>{box.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-    escolha={data:b.dataset.d,hora:b.dataset.h,dur};
+    escolha={data:b.dataset.d,hora:b.dataset.h,dur,pro};
     document.getElementById('resumo').innerHTML=`<b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(u.serv[+document.getElementById('s').value][0])} · ${dur} min<br>${u.n} (${u.s})<br>${esc(pub.cfg.endereco||u.e)}`;
     conf.hidden=false;conf.scrollIntoView({behavior:'smooth',block:'nearest'})})}
 const erro=m=>{document.getElementById('erro').textContent=m};
@@ -194,13 +199,12 @@ async function enviar(){
   const sv=u.serv[+v('s')],reg={un,nome:v('n'),tel:v('t'),serv:sv[0],data:escolha.data,hora:escolha.hora,m:escolha.dur,
     nova:document.querySelector('input[name=nova]:checked').value==='sim',em:Date.now()};
   if(v('o'))reg.obs=v('o');
-  const par=pub.cfg.paralelo||1;let feito=false;
-  // Uma vaga por tentativa: se alguém marcou o mesmo horário um instante antes, o banco recusa e tentamos a próxima vaga.
-  for(let k=1;k<=par&&!feito;k++){
-    const chave=`${escolha.data}_${escolha.hora.replace(':','')}_${k}`;
+  let feito=false;
+  // Cada profissional tem a sua vaga no horário: se alguém marcou com ela um instante antes, o banco recusa e a cliente escolhe outro.
+  {const chave=`${escolha.data}_${escolha.hora.replace(':','')}_${VAGA[escolha.pro]||1}`;
     try{await set(ref(db,u.base+'/reservas/'+chave),reg);feito=true;avisarEquipe({tipo:'reserva',unit:un,chave});
-      try{await set(ref(db,'publico/agenda/'+un+'/ocup/'+escolha.data+'/'+chave),{h:escolha.hora,m:escolha.dur})}catch(e){}}
-    catch(e){if(!/permission|denied/i.test(e.message||''))break}}
+      try{await set(ref(db,'publico/agenda/'+un+'/ocup/'+escolha.data+'/'+chave),{h:escolha.hora,m:escolha.dur,p:escolha.pro})}catch(e){}}
+    catch(e){}}
   if(!feito){
     try{pub=(await get(ref(db,'publico/agenda/'+un))).val()||pub}catch(e){}
     btn.disabled=false;btn.textContent='Confirmar agendamento';desenhaSlots();
