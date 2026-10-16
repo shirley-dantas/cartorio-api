@@ -114,6 +114,24 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .days button b{display:block;font-family:var(--serif);font-size:22px;line-height:1}
 .days button.on{border-color:var(--berry);background:var(--berry-soft);color:var(--berry)}
 .days button i{display:block;width:6px;height:6px;border-radius:50%;margin:5px auto 0}
+.rol{max-height:300px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--berry) var(--berry-soft)}
+.rol>h2{position:sticky;top:0;background:var(--panel);z-index:1;margin-top:0;padding-bottom:4px}
+.rol::-webkit-scrollbar,.lv-rol::-webkit-scrollbar{width:9px}
+.rol::-webkit-scrollbar-thumb,.lv-rol::-webkit-scrollbar-thumb{background:var(--berry);border-radius:8px}
+.rol::-webkit-scrollbar-track,.lv-rol::-webkit-scrollbar-track{background:var(--berry-soft);border-radius:8px}
+@media (min-width:900px){.hoje-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:0 16px;align-items:start}.hoje-grid>.hg1{max-height:720px}}
+@media (max-width:820px){.rol{max-height:46vh}.rol .row{padding:6px 0;gap:8px;flex-wrap:wrap;font-size:14px}.rol .row .grow{min-width:52%}.rol .row .small{font-size:12px}.rol .tag{font-size:11px;padding:2px 8px}.rol .btn.sm{padding:5px 10px;font-size:12px}.rol h2{font-size:22px}.rol h3{font-size:14px;margin:6px 0 0!important}}
+.rol.wrap .row{flex-wrap:wrap}.rol.wrap .row .grow{min-width:150px}
+.lv-rol{max-height:64vh;min-height:320px;overflow-y:auto;padding-right:6px;margin-bottom:10px;scrollbar-width:thin;scrollbar-color:var(--berry) var(--berry-soft)}
+.lv-dia{margin-bottom:12px}
+.lv-pro{display:flex;gap:10px;margin-top:10px;border-top:1px solid var(--berry-soft);padding-top:10px}
+.lv-pro i{width:4px;border-radius:3px;flex:none}.lv-pro b{display:block;font-size:13px;margin-bottom:6px}
+.lv-ch{display:flex;flex-wrap:wrap;gap:6px}
+.lv-ch button{border:2px solid var(--c);color:var(--c);background:var(--panel);border-radius:10px;padding:5px 9px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.lv-ch button.on{background:var(--c);color:var(--p-txt)}
+.lv-bar{position:sticky;bottom:calc(64px + env(safe-area-inset-bottom,0px));background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 4px 18px #0002;padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:4}
+.lv-bar .t{flex:1;min-width:150px;font-size:14px}
+@media (min-width:821px){.lv-bar{bottom:12px}}
 .chips-pro{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
 .chips-pro button{border:2px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
 .chips-pro button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
@@ -574,7 +592,7 @@ function telaEntrar(msg){
       try{await sendPasswordResetEmail(auth,m);toast('Enviamos o link para o seu e-mail')}catch(er){toast('Não foi possível enviar o link')}};
   }
 }
-function entrou(u){S.user=u;S.tab='hoje';S.q='';S.agData=null;S.agMes=null;S.unit=isAdmin()?'todas':'mai';
+function entrou(u){S.user=u;S.tab='hoje';S.q='';S.agData=null;S.agMes=null;S.lvPro=null;S.lvServ='';S.lvSel=null;S.lvDias=7;S.agPro=null;S.agSel=null;S.unit=isAdmin()?'todas':'mai';
   document.getElementById('entrada').hidden=true;document.getElementById('entrada').innerHTML='';
   document.getElementById('app').hidden=false;document.getElementById('bnav').hidden=false;
   comecarLeituras();render()}
@@ -596,7 +614,7 @@ else{
 }
 
 // ═══ Telas ═════════════════════════════════════════════════════════════
-const TABS=[['hoje','Hoje'],['agenda','Agenda'],['clientes','Clientes'],['anamnese','Anamnese'],['financeiro','Financeiro',1],['comissoes','Comissões',1],['servicos','Serviços e preços',1],['fornecedores','Fornecedores',1],['cursos','Cursos',1],['aulas','Aulas',1],['instagram','Instagram',1]];
+const TABS=[['hoje','Hoje'],['agenda','Agenda'],['livres','Horários livres'],['clientes','Clientes'],['anamnese','Anamnese'],['financeiro','Financeiro',1],['comissoes','Comissões',1],['servicos','Serviços e preços',1],['fornecedores','Fornecedores',1],['cursos','Cursos',1],['aulas','Aulas',1],['instagram','Instagram',1]];
 function renderChrome(){
   const tabs=TABS.filter(t=>isAdmin()||!t[2]);
   if(!tabs.find(t=>t[0]===S.tab))S.tab='hoje';
@@ -625,15 +643,15 @@ function vHoje(){
   const boxRec=recebidas.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Fichas recebidas pelo link (${recebidas.length})</h2>${recebidas.map(x=>`<div class="row">${avatarHtml(cli(x._cv.cli))}<div class="grow"><b>${esc(cli(x._cv.cli).n)}</b><div class="small muted">Enviada em ${x.data?esc(fd(x.data,{day:'2-digit',month:'2-digit'})):''}</div></div><button class="btn sm" data-pend="${x.id}" data-pb="${x._b}">Revisar e integrar</button></div>`).join('')}</div>`:'';
   return `<div class="top"><div><h1>${saud}, ${esc(S.user.nome)}</h1>${onde}</div></div>
   ${linkHtml()}${boxRec}
-  <div class="box" style="margin-bottom:16px"><h2>${isAdmin()?'Seus atendimentos de hoje':'Agenda de hoje na Maison'}</h2>
+  <div class="hoje-grid"><div class="box rol hg1" style="margin-bottom:16px"><h2>${isAdmin()?'Seus atendimentos de hoje':'Agenda de hoje na Maison'}</h2>
    ${minhas.length?`<h3 style="margin:10px 0 2px">Hoje · ${minhas.length===1?'1 atendimento':minhas.length+' atendimentos'}</h3>`+minhas.map(a=>`<div class="row">${avatarHtml(cli(a.cli))}<div class="grow"><b>${esc(cli(a.cli).n)}</b><div class="small muted">${esc(a.hora)} · ${esc(sv(a.serv,a.unit).n)}${isAdmin()?'':' com '+esc(PEOPLE[a.pro]?.n)}</div></div>${anamVencida(cli(a.cli))?'<span class="tag warn">Anamnese</span>':''}<span class="tag ${a.st==='Atendido'?'ok':''}">${esc(a.st)}</span></div>`).join(''):'<p class="muted">Nenhum atendimento marcado para hoje. Cadastre uma cliente e crie o primeiro agendamento na aba Agenda.</p>'}
   </div>
-  <div class="box" style="margin-bottom:16px"><h2>Aniversários da semana</h2>
+  <div class="hg2"><div class="box rol wrap" style="margin-bottom:16px"><h2>Aniversários da semana</h2>
    ${niver.length?`<h3 style="margin:10px 0 2px">Esta semana · ${niver.length===1?'1 cliente':niver.length+' clientes'}</h3>`+niver.map(c=>`<div class="row">${avatarHtml(c)}<div class="grow"><b>${esc(c.n)}</b><div class="small muted">${c.niver.split('-').reverse().join('/')}${c.niver===iso(TODAY).slice(5)?' · hoje':''}</div></div>${brindeTag(c.id)}<button class="btn sm" data-msg="niver" data-c="${c.id}">Mensagem</button><button class="btn sm" data-nvok="${c.id}" data-nvp="${c._p}" title="Tira da lista deste ano">Já enviei</button></div>`).join(''):'<p class="muted">Ninguém faz aniversário nesta semana.</p>'}
   </div>
-  <div class="box" style="margin-bottom:16px"><h2>Hora de voltar</h2>
+  <div class="box rol wrap" style="margin-bottom:16px"><h2>Hora de voltar</h2>
    ${retornos.length?`<h3 style="margin:10px 0 2px">Retorno pendente · ${retornos.length===1?'1 cliente':retornos.length+' clientes'}</h3>`+retornos.map(r=>`<div class="row">${avatarHtml(cli(r.h.cli))}<div class="grow"><b>${esc(cli(r.h.cli).n)}</b><div class="small muted">${esc(r.s.n)} há ${r.dias} dias</div></div><button class="btn sm" data-msg="ret" data-c="${r.h.cli}">Mensagem</button></div>`).join(''):'<p class="muted">Nenhuma cliente com retorno pendente.</p>'}
-  </div>
+  </div></div></div>
   ${isAdmin()?cursosHojeHtml():''}`;
 }
 // WhatsApp: api.whatsapp.com/send é o endereço oficial para onde o wa.me redireciona; os emojis seguem no texto (em UTF-8, via encodeURIComponent).
@@ -811,6 +829,114 @@ function vAgenda(){
   <h2 style="margin:0 0 6px">${esc(prim1(new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})))}</h2>
   ${mostrar?`${chips}${detalhe}${quadros}<p class="small muted" style="margin:8px 0 14px">Toque num bloco para concluir, remarcar ou avisar a cliente. Toque num espaço vazio para agendar ou fechar aquele horário.</p>`:'<p class="muted">Nada para mostrar nesta unidade neste dia.</p>'}`;
 }
+
+// ── Horários livres: o que está vazio na agenda, ao vivo ──
+// Funciona como a agenda: nada é copiado, tudo é calculado em cima dos agendamentos, das reservas pelo link e dos horários fechados.
+// Tocar num horário o escolhe; dali dá para agendar uma cliente ou mandar os horários (texto ou imagem) por onde a cliente preferir.
+const livresVis=u=>isAdmin()||u==='mai';
+function livresDoDia(u,d,pro,dur){
+  const cf=agonCfg(u),ini=minDe(cf.ini),fim=minDe(cf.fim),passo=cf.passo||30;
+  if((cf.fechados||[]).includes(d))return [];
+  const oc=[];
+  agendaAtiva().filter(a=>a.unit===u&&a.date===d&&a.pro===pro).forEach(a=>oc.push([minDe(a.hora),minDe(a.hora)+durServ(a)]));
+  bloqueios().filter(b=>b.unit===u&&b.date===d&&(b.pro==='todos'||!b.pro||b.pro===pro)).forEach(b=>oc.push([minDe(b.hora),minDe(b.hora)+b.m]));
+  arr(u==='flo'?C.fRes:C.mRes).filter(r=>!r.st&&r.data===d).forEach(r=>{const s0=servicosDe(u,false).find(x=>x.n===r.serv),p=s0&&proDoServico(s0.id,u);if(!p||p===pro)oc.push([minDe(r.hora),minDe(r.hora)+(r.m||30)])});
+  const agora=new Date(),hoje=iso(agora),lim=agora.getHours()*60+agora.getMinutes(),out=[];
+  for(let t=ini;t+dur<=fim;t+=passo){if(d===hoje&&t<lim)continue;if(oc.some(([a,b])=>a<t+dur&&b>t))continue;out.push(t)}
+  return out}
+function livresDados(){
+  const sid=S.lvServ||'',n=S.lvDias||7,out=[];
+  for(let i=0;i<n;i++){const d=iso(addD(TODAY,i)),u=unitFor(d),vis=livresVis(u),sv0=sid?servicosDe(u,false).find(x=>x.id===sid):null,dur=sv0?(sv0.d||30):30;
+    let pros=prosDaUnidade(u,d);
+    if(sid){const dono=proDoServico(sid,u);pros=sv0?(dono?pros.filter(p=>p===dono):pros):[]}
+    if(S.lvPro&&S.lvPro!=='todas')pros=pros.filter(p=>p===S.lvPro);
+    out.push({d,u,vis,dur,naoOferece:!!sid&&!sv0,pros:vis?pros.map(p=>({p,t:livresDoDia(u,d,p,dur)})):[]})}
+  return out}
+const diaCurto=d=>{const x=new Date(d+'T12:00');return prim1(x.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.',''))+' '+x.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})};
+const livresServicos=()=>{const m=new Map();for(const u of (isAdmin()?['mai','flo']:['mai']))servicosDe(u,false).forEach(s=>{if(!m.has(s.id))m.set(s.id,s)});return [...m.values()]};
+function vLivres(){
+  if(!S.lvSel)S.lvSel=new Set();
+  const dias=livresDados(),sel=S.lvSel,pros=['tha','rafael','mariana'],pSel=S.lvPro||'todas';
+  // some da seleção o que deixou de estar livre
+  const livres=new Set();dias.forEach(x=>x.pros.forEach(p=>p.t.forEach(t=>livres.add(`${x.d}|${hhmmDe(t)}|${p.p}`))));
+  [...sel].forEach(k=>{if(!livres.has(k))sel.delete(k)});
+  const svs=livresServicos();
+  const blocos=dias.map(x=>{
+    const cab=`<h3 style="margin:0 0 2px;font-family:var(--serif);font-size:22px">${esc(prim1(new Date(x.d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})))}</h3><div class="small muted">${esc(U[x.u].n)} · ${esc(U[x.u].s)}</div>`;
+    if(!x.vis)return `<div class="box lv-dia">${cab}<p class="small muted" style="margin:8px 0 0">Sem atendimento na sua unidade neste dia.</p></div>`;
+    if(x.naoOferece)return `<div class="box lv-dia">${cab}<p class="small muted" style="margin:8px 0 0">Este serviço não é feito nesta unidade.</p></div>`;
+    const linhas=x.pros.filter(p=>p.t.length).map(p=>`<div class="lv-pro"><i style="background:${COR_PRO[p.p]}"></i><div><b>${esc(PEOPLE[p.p].n)}</b><div class="lv-ch">${p.t.map(t=>{const k=`${x.d}|${hhmmDe(t)}|${p.p}`,on=sel.has(k);return `<button type="button" class="${on?'on':''}" style="--c:${COR_PRO[p.p]}" data-lv="${k}">${hhmmDe(t)}</button>`}).join('')}</div></div></div>`).join('');
+    return `<div class="box lv-dia">${cab}${linhas||'<p class="small muted" style="margin:8px 0 0">Sem horários livres neste dia.</p>'}</div>`}).join('');
+  const um=sel.size===1;
+  return `<div class="top"><div><h1>Horários livres</h1><div class="sub">Mostra o que está vazio na agenda, na hora. Marcou ou fechou, o horário some daqui.</div></div></div>
+  <div class="chips-pro">${[['todas','Todas'],...pros.map(p=>[p,PEOPLE[p].n])].map(([k,l])=>`<button type="button" class="${pSel===k?'on':''}" data-lvpro="${k}" style="${pSel===k&&k!=='todas'?'background:'+COR_PRO[k]+';border-color:'+COR_PRO[k]:''}">${esc(l)}</button>`).join('')}</div>
+  <div style="margin:0 0 10px"><button class="btn" id="lv-comp0">Mandar os horários da tela para a cliente</button></div>
+  <label class="f" style="max-width:520px">Serviço (define o tempo necessário)<select id="lvserv"><option value="">Qualquer serviço · 30 min</option>${svs.map(s=>`<option value="${s.id}" ${S.lvServ===s.id?'selected':''}>${esc(s.n)} · ${s.d||30} min</option>`).join('')}</select></label>
+  <div class="lv-rol">${blocos}
+  <div style="margin:0 0 6px"><button class="btn" id="lv-mais">Ver mais 7 dias</button></div></div>
+  ${sel.size?`<div class="lv-bar"><div class="t"><b>${sel.size+(sel.size===1?' horário escolhido':' horários escolhidos')}</b></div>
+   <button class="btn" id="lv-limpar">Limpar</button><button class="btn" id="lv-comp">Compartilhar</button><button class="btn p" id="lv-ag" ${um?'':'disabled'}>Agendar</button></div>`:''}`}
+// Texto e imagem com o que foi escolhido (ou, sem escolha, tudo o que está na tela).
+function livresGrupos(){
+  const dias=livresDados(),sel=S.lvSel||new Set(),usar=sel.size?(d,h,p)=>sel.has(`${d}|${h}|${p}`):()=>true,g=new Map();
+  dias.forEach(x=>x.pros.forEach(p=>{const t=p.t.map(hhmmDe).filter(h=>usar(x.d,h,p.p));if(!t.length)return;const k=p.p+'|'+x.u;if(!g.has(k))g.set(k,{p:p.p,u:x.u,dias:[]});g.get(k).dias.push({d:x.d,t})}));
+  return [...g.values()].sort((a,b)=>['tha','rafael','mariana'].indexOf(a.p)-['tha','rafael','mariana'].indexOf(b.p)||(a.u<b.u?-1:1))}
+function livresTexto(grupos){
+  const sv0=S.lvServ&&livresServicos().find(x=>x.id===S.lvServ),us=[...new Set(grupos.map(g=>g.u))];
+  let t='Horários livres · '+U.mai.n+'\n'+(sv0?'Serviço: '+sv0.n+'\n':'')+'\n';
+  grupos.forEach(g=>{t+=`*${PEOPLE[g.p].n}* · ${U[g.u].n}\n`+g.dias.map(x=>`${diaCurto(x.d)}: ${x.t.join(', ')}`).join('\n')+'\n\n'});
+  t+='Para marcar, escolha o horário por aqui: '+origemPublica()+'/p\n';
+  us.forEach(u=>{t+=linhaEndereco(u)+'\n'});
+  return t.trim()}
+async function livresImagem(grupos){
+  const W=1080,P=56,IN=40,logo=await new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src='logo.png'});
+  const SERIF='Georgia,"Times New Roman",serif',SANS='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  const sv0=S.lvServ&&livresServicos().find(x=>x.id===S.lvServ);
+  const desenhar=(c,seco)=>{
+    const f=(fn)=>{if(!seco)fn()};let y=0;
+    f(()=>{const g=c.createLinearGradient(0,0,W,300);g.addColorStop(0,'#9C7A2E');g.addColorStop(1,'#C9A94E');c.fillStyle=g;c.fillRect(0,0,W,300);
+      if(logo){c.save();c.beginPath();c.arc(215,150,95,0,7);c.clip();c.drawImage(logo,120,55,190,190);c.restore()}
+      c.fillStyle='#fff';c.textBaseline='alphabetic';c.font='600 72px '+SERIF;c.fillText('Horários livres',345,150);c.font='500 28px '+SANS;c.fillText(U.mai.n+(sv0?' · '+sv0.n:''),347,198)});
+    y=344;
+    grupos.forEach(g=>{
+      const ini=y;y+=34+46;f(()=>{c.fillStyle='#262220';c.font='600 46px '+SERIF;c.fillText(PEOPLE[g.p].n,P+IN,ini+34+38)});
+      y+=40;f(()=>{c.fillStyle='#8A7D6E';c.font='26px '+SANS;c.fillText(U[g.u].n+' · '+U[g.u].s,P+IN,y-12)});
+      g.dias.forEach(x=>{
+        y+=12;f(()=>{c.fillStyle='#F1E9D4';c.fillRect(P+IN,y,W-2*(P+IN),2)});y+=34;
+        f(()=>{c.fillStyle='#262220';c.font='700 30px '+SANS;c.fillText(diaCurto(x.d).toLowerCase(),P+IN,y)});y+=16;
+        let cx=P+IN;c.font='700 32px '+SANS;
+        x.t.forEach(h=>{const w=c.measureText(h).width+52;if(cx+w>W-P-IN){cx=P+IN;y+=62+14}
+          const yy=y;f(()=>{c.fillStyle=COR_HEX[g.p];c.beginPath();c.roundRect(cx,yy,w,62,16);c.fill();c.fillStyle='#fff';c.font='700 32px '+SANS;c.fillText(h,cx+26,yy+43)});cx+=w+14});
+        y+=62});
+      y+=34;const fim=y;f(()=>{c.strokeStyle='#E9E1D2';c.lineWidth=2;c.beginPath();c.roundRect(P,ini,W-2*P,fim-ini,28);c.stroke()});y+=28});
+    y+=10;const rodY=y;y+=150;
+    f(()=>{c.fillStyle='#262220';c.fillRect(0,rodY,W,150);c.fillStyle='#D4B45E';c.font='700 34px '+SANS;c.fillText('Agende pelo link, sem conversa:',P,rodY+60);c.fillStyle='#F1E9D4';c.font='28px '+SANS;c.fillText(origemPublica().replace('https://','')+'/p',P,rodY+108)});
+    return y};
+  // duas passadas: a primeira só mede a altura, a segunda pinta (mesmo jeito da via do cliente no cartório)
+  const altura=desenhar(document.createElement('canvas').getContext('2d'),true);
+  const cv=document.createElement('canvas');cv.width=W;cv.height=Math.max(altura,700);const c=cv.getContext('2d');
+  c.fillStyle='#FAF7F1';c.fillRect(0,0,W,cv.height);desenhar(c,false);
+  return cv}
+const COR_HEX={tha:'#9C7A2E',rafael:'#6B5B45',mariana:'#A0675B',lais:'#7C8A6A'};
+function compartilharLivres(){
+  const grupos=livresGrupos();if(!grupos.length){toast('Nenhum horário livre para compartilhar com esse filtro.');return}
+  const txt=livresTexto(grupos),esc1=(S.lvSel&&S.lvSel.size)?'Só os horários escolhidos vão na mensagem.':'Nada escolhido: vão todos os horários que estão na tela.';
+  openDlg('Mandar horários livres',`<p class="small muted" style="margin-top:0">${esc1}</p>
+   <label class="f">Mensagem (edite à vontade)<textarea rows="9" id="lv-m">${esc(txt)}</textarea></label>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="lv-w">Enviar pelo WhatsApp</button><button class="btn" id="lv-c">Copiar mensagem</button><button class="btn" id="lv-i">Gerar imagem</button></div>
+   <div id="lv-img" style="margin-top:12px"></div>`);
+  const t=()=>document.getElementById('lv-m').value;
+  document.getElementById('lv-w').onclick=()=>window.open(zapLink('',t()),'_blank','noopener');
+  document.getElementById('lv-c').onclick=async()=>{try{await navigator.clipboard.writeText(t());toast('Mensagem copiada')}catch(e){toast('Não foi possível copiar')}};
+  document.getElementById('lv-i').onclick=async()=>{const b=document.getElementById('lv-i');b.disabled=true;
+    const cv=await livresImagem(grupos),url=cv.toDataURL('image/png'),box=document.getElementById('lv-img');
+    box.innerHTML=`<img src="${url}" alt="Horários livres" style="width:100%;border-radius:12px;border:1px solid var(--line)"><p class="small muted" style="margin:6px 0">No computador: clique com o botão direito e "Copiar imagem". No celular: toque e segure.</p>
+     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="lvi-c">Copiar imagem</button><button class="btn" id="lvi-b">Baixar</button>${navigator.canShare?'<button class="btn" id="lvi-s">Compartilhar</button>':''}</div>`;
+    const blob=()=>new Promise(r=>cv.toBlob(r,'image/png'));
+    document.getElementById('lvi-b').onclick=async()=>{const a=document.createElement('a');a.href=URL.createObjectURL(await blob());a.download='horarios-livres.png';document.body.appendChild(a);a.click();a.remove()};
+    document.getElementById('lvi-c').onclick=async()=>{try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob()})]);toast('Imagem copiada')}catch(e){toast('Este aparelho não copia imagem: use Baixar ou segure a imagem.')}};
+    const sh=document.getElementById('lvi-s');if(sh)sh.onclick=async()=>{try{const f=new File([await blob()],'horarios-livres.png',{type:'image/png'});if(navigator.canShare({files:[f]}))await navigator.share({files:[f]});else toast('Este aparelho não compartilha imagem: use Baixar.')}catch(e){}};
+    b.disabled=false}}
 
 // ── Brinde de aniversário como voucher ──
 // O desconto só existe se a Tháriga liberou antes: um código por cliente, uso único, com prazo.
@@ -1845,7 +1971,7 @@ async function igPostado(id){const r=(C.instagram||{})[id]||{};
 function render(){
   if(!S.user)return;
   renderChrome();
-  const V={hoje:vHoje,agenda:vAgenda,clientes:vClientes,anamnese:vAnamnese,financeiro:vFinanceiro,comissoes:vComissoes,servicos:vServicos,fornecedores:vFornecedores,cursos:vCursos,aulas:vAulas,instagram:vInstagram};
+  const V={hoje:vHoje,agenda:vAgenda,livres:vLivres,clientes:vClientes,anamnese:vAnamnese,financeiro:vFinanceiro,comissoes:vComissoes,servicos:vServicos,fornecedores:vFornecedores,cursos:vCursos,aulas:vAulas,instagram:vInstagram};
   const main=document.getElementById('main');
   const erros=Object.entries(S.erros);
   const aviso=erros.length?`<div class="note err"><span>Não foi possível ler parte dos dados (${erros.map(([p,m])=>esc(p+': '+m)).join('; ')}). A tela pode estar incompleta.</span><button class="btn sm" id="retry">Tentar de novo</button></div>`:'';
@@ -1877,6 +2003,13 @@ function render(){
     if(gr&&gr.estado==='cheio'){toast('Este horário já está cheio de atendimentos.');return}
     fecharHorarios({data:d,unit:u,hora:h,fim:hhmmDe(minDe(h)+30)})});
   main.querySelectorAll('[data-reabrir]').forEach(b=>b.onclick=()=>reabrirHorario(b.dataset.reabrir,b.dataset.pp));
+  main.querySelectorAll('[data-lvpro]').forEach(b=>b.onclick=()=>{S.lvPro=b.dataset.lvpro;render()});
+  const lvs=document.getElementById('lvserv');if(lvs)lvs.onchange=()=>{S.lvServ=lvs.value;S.lvSel=new Set();render()};
+  main.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{const k=b.dataset.lv;if(S.lvSel.has(k))S.lvSel.delete(k);else S.lvSel.add(k);render()});
+  const lvm=document.getElementById('lv-mais');if(lvm)lvm.onclick=()=>{S.lvDias=Math.min(28,(S.lvDias||7)+7);render()};
+  const lvl=document.getElementById('lv-limpar');if(lvl)lvl.onclick=()=>{S.lvSel=new Set();render()};
+  const lvc=document.getElementById('lv-comp');if(lvc)lvc.onclick=compartilharLivres;const lvc0=document.getElementById('lv-comp0');if(lvc0)lvc0.onclick=compartilharLivres;
+  const lva=document.getElementById('lv-ag');if(lva)lva.onclick=()=>{const [d,h,p]=[...S.lvSel][0].split('|');S.agData=d;S.agMes=d.slice(0,7);novoAg({data:d,hora:h,pro:p,serv:S.lvServ||undefined})};
   main.querySelectorAll('[data-agpro]').forEach(b=>b.onclick=()=>{S.agPro=b.dataset.agpro;S.agSel=null;render()});
   main.querySelectorAll('[data-tlsel]').forEach(b=>b.onclick=e=>{e.stopPropagation();S.agSel=S.agSel===b.dataset.tlsel?null:b.dataset.tlsel;render();const x=document.getElementById('agsel');if(x)x.scrollIntoView({block:'nearest',behavior:'smooth'})});
   main.querySelectorAll('[data-tlc]').forEach(c=>c.onclick=e=>{if(e.target!==c)return;

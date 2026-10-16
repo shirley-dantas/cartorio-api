@@ -130,3 +130,9 @@ Pedido da Tháriga em 16/10/2026: a agenda dela no celular é uma linha do tempo
 - **Logo**: a nova (círculo dourado TB · Tháriga Beauty & Co) está em `logo.png`, `icon-192/512.png` e na imagem de prévia `og-banner.jpg` (substituiu `og-*.png`, com nome novo para o WhatsApp não usar a imagem antiga em cache). Os textos ainda dizem "Maison Beauty".
 
 - **Nome (16/10/2026):** a marca e a unidade de Itaquera passam a se chamar **Tháriga Beauty & Co** em tudo que aparece (painel, páginas da cliente, prévias, mensagens, avisos). O Estúdio Florença continua com o nome dele. O `U.mai.n` carrega o nome e `em`/`de` (na/da) para as frases. Caminhos do banco (`/maison/...`) e identificadores do código seguem `maison`, de propósito.
+
+## Horários livres (rascunho, ainda não publicado)
+
+Aba **Horários livres** (`vLivres()`, `livresDoDia()`): mostra os próximos 7 dias de uma vez (botão *Ver mais 7 dias*, até 28), com os horários vazios de cada profissional, calculados ao vivo em cima da agenda, das reservas pelo link ainda não convertidas e dos horários fechados (`livresDoDia`). O serviço escolhido define o tempo necessário e quem faz (`proDoServico`). Tocar nos horários os escolhe: um só liga *Agendar* (abre `novoAg` já preenchido); qualquer quantidade liga *Compartilhar* (texto pronto com link `/p` e endereço, e imagem 1080 px desenhada em canvas, no padrão do orçamento do cartório). Sem escolha, *Mandar os horários da tela* leva tudo o que está visível. A equipe vê só Itaquera; dias de Florença aparecem com aviso. A lista rola dentro de uma caixa (`.lv-rol`) para a página não ficar enorme.
+
+Aba **Hoje**: atendimentos, aniversários e *Hora de voltar* são caixas menores com barra de rolagem própria (`.rol`); no computador ficam lado a lado.
