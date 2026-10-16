@@ -187,7 +187,7 @@ function formulario(db,conv,base){
       flags:PERGUNTAS.filter((q,i)=>respostas['q'+i]==='sim').map(q=>q[1]),obs:v('obs'),fotoOk:foto.value==='sim',
       assinatura:out.toDataURL('image/png'),data:iso(new Date()),enviadoEm:Date.now()};
     if(foto.value==='sim'&&fotos.length)reg.fotos=Object.fromEntries(fotos.map((f,i)=>['f'+i,f]));
-    try{await set(ref(db,base+'/pendentes/'+token),reg);try{fetch('/api/avisar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tipo:'ficha',token}),keepalive:true}).catch(()=>{})}catch(e){}aviso('Ficha enviada! ✓','Obrigada, '+esc(conv.nome||'')+'. '+(base==='florenca'?'O Estúdio Florença':'A Maison Beauty')+' já recebeu. Pode fechar esta página.')}
+    try{await set(ref(db,base+'/pendentes/'+token),reg);try{fetch('/api/avisar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tipo:'ficha',token}),keepalive:true}).catch(()=>{})}catch(e){}aviso('Ficha enviada! ✓','Obrigada, '+esc(conv.nome||'')+'. '+(base==='florenca'?'O Estúdio Florença':'A Tháriga Beauty & Co')+' já recebeu. Pode fechar esta página.')}
     catch(e){btn.disabled=false;btn.textContent='Enviar minha ficha';erro('Não foi possível enviar. Confira a internet e toque de novo. Se continuar, peça um novo link.')}
   };
 }

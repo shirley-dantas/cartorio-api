@@ -194,7 +194,7 @@ canvas.sig{width:100%;height:130px;border:1px dashed var(--muted);border-radius:
 <div id="entrada"></div>
 <div class="app" id="app" hidden>
   <aside>
-    <div><img class="logo-wide" src="logo.png" alt="Tháriga Beauty &amp; Co"><div class="sub-brand">Tháriga Brito · Florença &amp; Maison Beauty · @mais.on.beauty</div></div>
+    <div><img class="logo-wide" src="logo.png" alt="Tháriga Beauty &amp; Co"><div class="sub-brand">Tháriga Brito · Florença &amp; Itaquera · @mais.on.beauty</div></div>
     <nav id="nav"></nav>
     <div class="who" id="quem"></div>
     <button class="btn" id="ajuda1">Preciso de ajuda</button>
@@ -213,7 +213,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getDatabase, ref, onValue, get, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 
-// ── O projeto Firebase do Maison Beauty (separado do cartório) ──
+// ── O projeto Firebase do Tháriga Beauty & Co (separado do cartório) ──
 // Preencher com os dados do projeto novo (Configurações do projeto → Seus apps).
 // Enquanto estiver em branco o painel abre em DEMONSTRAÇÃO: dados só na memória
 // do navegador, nada é gravado. Passo a passo no FIREBASE.md.
@@ -294,10 +294,10 @@ function linkHorario(a,s){const [y,mo,d]=a.date.split('-').map(Number),[hh,mi]=a
 function msgConfirmacao(a,remarcado){
   const c=cli(a.cli),s=sv(a.serv,a.unit),u=U[a.unit],p=PEOPLE[a.pro]?.n;
   const dia=new Date(a.date+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
-  // Página própria (horario.html, atalho /h): na prévia do WhatsApp aparece a logo da Maison Beauty, e ela traz os botões de salvar na agenda.
+  // Página própria (horario.html, atalho /h): na prévia do WhatsApp aparece a logo da Tháriga Beauty & Co, e ela traz os botões de salvar na agenda.
   const link=linkHorario(a,s);
   const nome=(c.n||'').split(' ')[0];
-  const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, no ${u.n}.\n${linhaEndereco(a.unit)}\n\nVeja os detalhes e salve na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
+  const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, ${u.em} ${u.n}.\n${linhaEndereco(a.unit)}\n\nVeja os detalhes e salve na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
   return {texto,assunto:(remarcado?'Horário remarcado: ':'Horário confirmado: ')+s.n+' · '+dia+' às '+a.hora}}
 function confirmarAg(a,remarcado){const c=cli(a.cli),m=msgConfirmacao(a,remarcado);
   openDlg(remarcado?'Avisar a cliente do novo horário':'Avisar a cliente do horário',`<p class="small muted"><b>${esc(c.n)}</b> · ${esc(fd(a.date,{weekday:'short',day:'2-digit',month:'2-digit'}))} às ${esc(a.hora)}. O horário já está salvo; aqui você só avisa a cliente.</p>
@@ -351,8 +351,8 @@ async function grava(fn,ok){try{await fn();if(ok)toast(ok);return true}catch(e){
 if(DEMO)setTimeout(()=>{window.__DB=DB},0);
 // ═══ Dados do negócio ══════════════════════════════════════════════════
 const U={
- flo:{n:'Estúdio Florença',s:'Itaim Bibi',dias:'Quinta, sexta e sábado',hora:'09:00–19:00'},
- mai:{n:'Maison Beauty',s:'Itaquera',dias:'Domingo, segunda, terça e quarta',hora:'07:30–19:00'}};
+ flo:{n:'Estúdio Florença',em:'no',de:'do',s:'Itaim Bibi',dias:'Quinta, sexta e sábado',hora:'09:00–19:00'},
+ mai:{n:'Tháriga Beauty & Co',em:'na',de:'da',s:'Itaquera',dias:'Domingo, segunda, terça e quarta',hora:'07:30–19:00'}};
 const PEOPLE={tha:{n:'Tháriga'},rafael:{n:'Rafael'},lais:{n:'Laís'},mariana:{n:'Mariana'}};
 const STAFF=['rafael','lais','mariana'];
 // Quem faz cada serviço (Tháriga, 16/10/2026): cada um cai na agenda de quem faz, para não misturar as agendas.
@@ -607,7 +607,7 @@ function renderChrome(){
   document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;render();window.scrollTo(0,0)});
 }
 function unitSeg(){if(!isAdmin())return '';
-  return `<div class="seg">${[['todas','Os dois'],['flo','Florença'],['mai','Maison Beauty']].map(([k,l])=>`<button class="${S.unit===k?'on':''}" data-u="${k}">${l}</button>`).join('')}</div>`}
+  return `<div class="seg">${[['todas','Os dois'],['flo','Florença'],['mai','Tháriga Beauty & Co']].map(([k,l])=>`<button class="${S.unit===k?'on':''}" data-u="${k}">${l}</button>`).join('')}</div>`}
 function bindSeg(){document.querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>{S.unit=b.dataset.u;render()})}
 const cliVisiveis=()=>clientes().filter(c=>isAdmin()||c.unit!=='flo');
 
@@ -620,7 +620,7 @@ function vHoje(){
   const ult={};histAll().forEach(h=>{if(isAdmin()||h.unit==='mai')ult[h.cli]=h});
   const comFuturo=new Set(agendaAtiva().filter(a=>a.date>=t&&a.st!=='Atendido').map(a=>a.cli));
   const retornos=Object.values(ult).filter(h=>!comFuturo.has(h.cli)).map(h=>({h,dias:Math.round((TODAY-new Date(h.date+'T00:00'))/864e5),s:sv(h.serv,h.unit)})).filter(x=>x.s.ret&&x.dias>=x.s.ret).sort((a,b)=>b.dias-a.dias).slice(0,5);
-  const onde=isAdmin()?`<div class="hero-unit"><i style="background:var(--${u})"></i>Hoje você atende no ${U[u].n}, ${U[u].s} (${U[u].hora})</div>`:`<div class="hero-unit"><i style="background:var(--mai)"></i>Maison Beauty, Itaquera (${U.mai.hora})</div>`;
+  const onde=isAdmin()?`<div class="hero-unit"><i style="background:var(--${u})"></i>Hoje você atende ${U[u].em} ${U[u].n}, ${U[u].s} (${U[u].hora})</div>`:`<div class="hero-unit"><i style="background:var(--mai)"></i>Tháriga Beauty & Co, Itaquera (${U.mai.hora})</div>`;
   const recebidas=recebidasLink();
   const boxRec=recebidas.length?`<div class="box" style="margin-bottom:16px;border-color:var(--berry)"><h2>Fichas recebidas pelo link (${recebidas.length})</h2>${recebidas.map(x=>`<div class="row">${avatarHtml(cli(x._cv.cli))}<div class="grow"><b>${esc(cli(x._cv.cli).n)}</b><div class="small muted">Enviada em ${x.data?esc(fd(x.data,{day:'2-digit',month:'2-digit'})):''}</div></div><button class="btn sm" data-pend="${x.id}" data-pb="${x._b}">Revisar e integrar</button></div>`).join('')}</div>`:'';
   return `<div class="top"><div><h1>${saud}, ${esc(S.user.nome)}</h1>${onde}</div></div>
@@ -805,7 +805,7 @@ function vAgenda(){
   let detalhe='';
   if(st==='a'){const a=agendaAtiva().find(x=>x.id===sid&&x._p===sp&&x.date===d);if(a&&visUnit(a.unit))detalhe=`<div id="agsel" class="box" style="margin:0 0 12px">${cartaoAg(a)}</div>`}
   if(st==='b'){const b=bloqueios().find(x=>x.id===sid&&x._p===sp&&x.date===d);if(b)detalhe=`<div id="agsel" class="box" style="margin:0 0 12px"><div class="row"><div class="grow"><b>${esc(b.hora)}–${esc(hhmmDe(minDe(b.hora)+b.m))}</b> <span class="tag warn">${esc(b.motivo||'Fechado')}</span><div class="small muted">${b.pro==='todos'||!b.pro?'Para todos':'Só '+esc(PEOPLE[b.pro]?.n||b.pro)}${b.obs?' · '+esc(b.obs):''}${b.por?' · por '+esc(b.por):''}</div></div><button class="btn sm" data-reabrir="${b.id}" data-pp="${b._p}">Reabrir</button></div></div>`}
-  return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Maison Beauty: ${U.mai.dias}, ${U.mai.hora}. Cada serviço fica na agenda de quem faz.`:`Agenda completa da Maison Beauty — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
+  return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Tháriga Beauty & Co: ${U.mai.dias}, ${U.mai.hora}. Cada serviço fica na agenda de quem faz.`:`Agenda completa da Tháriga Beauty & Co — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}${AGENDA_URL?'<button class="btn" id="resp">Atualizar respostas</button>':''}<button class="btn" id="fechar">Fechar horário</button><button class="btn p" id="novo">Novo agendamento</button></div></div>
   ${agCalendario(d)}
   <h2 style="margin:0 0 6px">${esc(prim1(new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})))}</h2>
@@ -903,8 +903,8 @@ function remarcarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)re
   const rd=document.getElementById('rd'),rh=document.getElementById('rh'),rav=document.getElementById('ravisos'),rs=document.getElementById('rsave');
   const check=()=>{const d=rd.value;let ok=!!d&&!!rh.value;const msgs=[];
     if(d){
-      if(a.pro==='tha'){if(unitFor(d)!==a.unit){ok=false;msgs.push(`Neste dia a Tháriga atende no ${U[unitFor(d)].n}. Cancele este agendamento e crie um novo.`)}}
-      else{if(unitFor(d)!=='mai'){ok=false;msgs.push('Neste dia o Maison Beauty está fechado — é dia do Florença.')}
+      if(a.pro==='tha'){if(unitFor(d)!==a.unit){ok=false;msgs.push(`Neste dia a Tháriga atende ${U[unitFor(d)].em} ${U[unitFor(d)].n}. Cancele este agendamento e crie um novo.`)}}
+      else{if(unitFor(d)!=='mai'){ok=false;msgs.push('Neste dia a Tháriga Beauty & Co está fechada — é dia do Florença.')}
         if(a.pro==='lais'&&!laisDay(d)){ok=false;msgs.push('A Laís atende somente às segundas-feiras.')}}
       const choque=agendaAtiva().find(x=>x.id!==a.id&&x.pro===a.pro&&x.date===d&&x.hora===rh.value&&x.st!=='Atendido');
       if(choque)msgs.push(`${PEOPLE[a.pro].n} já tem ${cli(choque.cli).n} às ${rh.value}. Dá para remarcar mesmo assim.`);
@@ -978,7 +978,7 @@ function linkHtml(){const L=marcadosPeloLink();if(!L.length)return '';
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm p" data-lkok="${a.id}" data-pp="${a._p}">Ok, vi</button><button class="btn sm" data-lkrem="${a.id}" data-pp="${a._p}">Remarcar</button><button class="btn sm" data-lkrec="${a.id}" data-pp="${a._p}">Recusar</button>${nova?`<button class="btn sm" data-lkfi="${c.id}">Enviar ficha</button>`:''}</div></div></div>`}).join('')}</div>`}
 const lkVisto=(id,p)=>DB.upd(p+'/agenda/'+id,{visto:true}).catch(e=>guardaErro(e.message));
 function lkRecusar(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)return;const c=cli(a.cli),u=U[a.unit];
-  const txt=`Oi, ${c.n.split(' ')[0]}! Aqui é do ${u.n}. Poxa, infelizmente não conseguimos te atender ${diaLongo(a.date).toLowerCase()} às ${a.hora}. Posso te oferecer [escreva aqui outro dia e hora]? Desculpa o transtorno 💛\n\n${linhaEndereco(a.unit)}`;
+  const txt=`Oi, ${c.n.split(' ')[0]}! Aqui é ${u.de} ${u.n}. Poxa, infelizmente não conseguimos te atender ${diaLongo(a.date).toLowerCase()} às ${a.hora}. Posso te oferecer [escreva aqui outro dia e hora]? Desculpa o transtorno 💛\n\n${linhaEndereco(a.unit)}`;
   openDlg('Recusar este horário',`<p class="small muted">${esc(c.n)} · ${esc(sv(a.serv,a.unit).n)} · ${esc(diaLongo(a.date))} às ${esc(a.hora)}</p><label class="f">Mensagem para a cliente<textarea rows="5" id="lr-m">${esc(txt)}</textarea></label>
   <p class="small muted">O horário é cancelado e volta a ficar livre na página. A mensagem abre no WhatsApp para você enviar.</p>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="lr-ok">Cancelar o horário e abrir o WhatsApp</button></div>`);
@@ -1013,7 +1013,7 @@ function novoAg(pre){
   const check=()=>{const p=np.value,d=nd.value,c=cli(nc.value);let ok=!!d;const msgs=[];
     let u;
     if(p==='tha'){u=unitFor(d||iso(TODAY));if(!isAdmin()&&u==='flo'){ok=false;msgs.push('Neste dia a Tháriga atende no Florença: só ela agenda por lá.')}}
-    else{u='mai';if(d&&unitFor(d)!=='mai'){ok=false;msgs.push(`Neste dia o Maison Beauty está fechado — é dia do Florença.`)}}
+    else{u='mai';if(d&&unitFor(d)!=='mai'){ok=false;msgs.push(`Neste dia a Tháriga Beauty & Co está fechada — é dia do Florença.`)}}
     if(p==='lais'&&d&&!laisDay(d)){ok=false;msgs.push('A Laís atende somente às segundas-feiras.')}
     {const t=minDe(nh.value||'00:00'),bq=bloqueios().filter(b=>b.unit===u&&b.date===d&&(b.pro==='todos'||!b.pro||b.pro===p)&&minDe(b.hora)<=t&&minDe(b.hora)+b.m>t);if(bq.length)msgs.push(`Este horário está ${bq[0].motivo==='Reservado'?'reservado':'fechado'} (${bq[0].motivo}${bq[0].obs?': '+bq[0].obs:''}). Dá para agendar mesmo assim.`)}
     const choque=agendaAtiva().find(a=>a.pro===p&&a.date===d&&a.hora===nh.value&&a.st!=='Atendido');
@@ -1021,7 +1021,7 @@ function novoAg(pre){
     const opts=servicosDe(u,false).map(s=>`<option value="${s.id}">${esc(s.n)}${isAdmin()?' · '+brl(s.p):''}${s.d?' · '+s.d+'min':''}</option>`).join('');
     if(ns.innerHTML!==opts){const cur=ns.value;ns.innerHTML=opts;if([...ns.options].some(o=>o.value===cur))ns.value=cur}
     {const dono=proDoServico(ns.value,u);if(dono&&dono!==p)msgs.push(`${sv(ns.value,u).n} costuma ser com ${PEOPLE[dono].n}. Confira o profissional.`)}
-    if(p==='tha')msgs.unshift(`Neste dia a Tháriga atende no ${U[u].n}.`);
+    if(p==='tha')msgs.unshift(`Neste dia a Tháriga atende ${U[u].em} ${U[u].n}.`);
     const an=anamDe(c.id);
     if(c&&anamVencida(c))msgs.push(`${c.n} precisa preencher ou atualizar a anamnese antes deste procedimento.`);
     if(an&&an.flags&&an.flags.length)msgs.push(`Atenção na ficha: ${an.flags.join(', ')}.`);
@@ -1088,7 +1088,7 @@ function novoCliente(opts={}){
   <label class="f">Telefone<input id="vt" placeholder="(11) 9...." inputmode="tel"></label>
   <label class="f">E-mail (para enviar o convite da agenda)<input id="vm" type="email" placeholder="opcional" autocomplete="off"></label>
   <label class="f">Data de nascimento (com o ano)<input id="vb" type="date"></label>
-  ${isAdmin()?`<label class="f">Unidade onde atende<select id="vu"><option value="flo" ${uPadrao==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${uPadrao==='mai'?'selected':''}>Maison Beauty</option><option value="ambas">As duas</option></select></label>
+  ${isAdmin()?`<label class="f">Unidade onde atende<select id="vu"><option value="flo" ${uPadrao==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${uPadrao==='mai'?'selected':''}>Tháriga Beauty & Co</option><option value="ambas">As duas</option></select></label>
   <p class="small muted" style="margin:-6px 0 12px">${S.unit==='flo'||S.unit==='mai'?'Escolhida pelo filtro de unidade da tela.':`Escolhida pelo dia de hoje (${esc(U[uPadrao].n)}).`} Cada cliente fica só na unidade em que foi cadastrada.</p>`:''}
   <button class="btn p" id="vsave">Cadastrar cliente</button>`);
   ligarBotoesDeContato();
@@ -1226,7 +1226,7 @@ const baseDe=c=>c&&c._p==='florenca'?'florenca':'maison';
 // Fichas recebidas pelo link, das duas unidades (a da Florença só chega para a Tháriga).
 const recebidasLink=()=>[...arr(C.mPend).filter(x=>C.mConv[x.id]).map(x=>({...x,_b:'maison',_cv:C.mConv[x.id]})),...(isAdmin()?arr(C.fPend).filter(x=>C.fConv[x.id]).map(x=>({...x,_b:'florenca',_cv:C.fConv[x.id]})):[])];
 function novoToken(){const b=crypto.getRandomValues(new Uint8Array(16));return btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
-async function enviarLinkAnamnese(cid,voltar){const c=cli(cid),base=baseDe(c),convs=base==='florenca'?C.fConv:C.mConv,estudio=base==='florenca'?'no Estúdio Florença':'na Maison Beauty';
+async function enviarLinkAnamnese(cid,voltar){const c=cli(cid),base=baseDe(c),convs=base==='florenca'?C.fConv:C.mConv,estudio=base==='florenca'?'no Estúdio Florença':'na Tháriga Beauty & Co';
   // Reaproveita o link de quem ainda não usou e não venceu; senão cria um novo.
   let token=Object.entries(convs||{}).find(([t,v])=>v.cli===cid&&!v.usado&&v.exp>Date.now())?.[0];
   // O que já está no cadastro vai junto no convite, para a cliente não digitar de novo. Os serviços listados são os das duas unidades.
@@ -1345,7 +1345,7 @@ function cancelarAtend(id,p,cid){const h=histAll(true).find(x=>x.id===id&&x._p==
 // A ficha lista todos os serviços ativos das duas unidades (sem repetir o nome) e mantém a avaliação de unhas, que abre o bloco de fungos no registro.
 const FUNGOS_ANAM='Avaliação de unhas com suspeita de fungos';
 const servicosFicha=()=>[...new Set([...servicosDe('mai',false),...servicosDe('flo',false)].map(x=>x.n)),FUNGOS_ANAM];
-// Segue a "Ficha básica de anamnese" da Maison Beauty (página 1), campo a campo.
+// Segue a "Ficha básica de anamnese" da Tháriga Beauty & Co (página 1), campo a campo.
 function anamnese(id){const c=cli(id),old=anamDe(id)||{};
   const un=old.unidade||(c.unit==='ambas'?unitFor(TODAY):c.unit);
   const resp=old.respostas||{};
@@ -1357,7 +1357,7 @@ function anamnese(id){const c=cli(id),old=anamDe(id)||{};
   <label class="f">Contato de emergência e telefone<input id="an-em" value="${esc(old.emergencia||'')}"></label>
   <label class="f">Responsável legal, se aplicável, e telefone<input id="an-resp" value="${esc(old.responsavel||'')}"></label>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="f" style="flex:1;min-width:150px">Data<input value="${fd(iso(TODAY),{day:'2-digit',month:'2-digit',year:'numeric'})}" readonly></label>
-   <label class="f" style="flex:1;min-width:150px">Unidade<select id="an-un"><option value="mai" ${un==='mai'?'selected':''}>Maison Beauty</option>${isAdmin()?`<option value="flo" ${un==='flo'?'selected':''}>Estúdio Florença</option>`:''}</select></label></div>
+   <label class="f" style="flex:1;min-width:150px">Unidade<select id="an-un"><option value="mai" ${un==='mai'?'selected':''}>Tháriga Beauty & Co</option>${isAdmin()?`<option value="flo" ${un==='flo'?'selected':''}>Estúdio Florença</option>`:''}</select></label></div>
   <div class="sec">Serviço solicitado</div>
   <div class="svgrid">${servicosFicha().map((x,i)=>`<label><input type="checkbox" data-sv="${i}" ${(old.servicos||[]).includes(x)?'checked':''}>${x}</label>`).join('')}</div>
   <label class="f">Outro<input id="an-outro" value="${esc(old.outro||'')}"></label>
@@ -1438,7 +1438,7 @@ function vFinanceiro(){
   return `<div class="top"><div><h1>Financeiro</h1><div class="sub">Resumo de ${mes} até hoje.</div></div>${unitSeg()}</div>
   ${!m.length?'<div class="note">Ainda não há atendimentos registrados neste mês. Os números aparecem conforme você for concluindo atendimentos na Agenda.</div>':''}
   <div class="grid g2">
-  ${showM?`<div class="box"><h2>Maison Beauty</h2><div class="grid g3">
+  ${showM?`<div class="box"><h2>Tháriga Beauty & Co</h2><div class="grid g3">
     <div><div class="lbl">Faturamento</div><div class="stat">${brl(fatM)}</div></div>
     <div><div class="lbl">Comissões (Rafael + Mariana, 50%)</div><div class="stat">${brl(com)}</div></div>
     <div><div class="lbl">Despesas pagas</div><div class="stat">${brl(desp)}</div></div></div>
@@ -1561,7 +1561,7 @@ function vFornecedores(){
 function novoFornecedor(){
   const uf=S.unit==='flo'||S.unit==='mai'?S.unit:'mai';
   openDlg('Novo fornecedor',`<label class="f">Nome<input id="fn"></label><label class="f">O que fornece<input id="fc" placeholder="Ex.: pigmentos, descartáveis..."></label><label class="f">Telefone<input id="ft"></label>
-  <label class="f">Unidade<select id="fu"><option value="flo" ${uf==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${uf==='mai'?'selected':''}>Maison Beauty</option><option value="ambas">As duas</option></select></label>
+  <label class="f">Unidade<select id="fu"><option value="flo" ${uf==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${uf==='mai'?'selected':''}>Tháriga Beauty & Co</option><option value="ambas">As duas</option></select></label>
   <button class="btn p" id="fsave">Cadastrar</button>`);
   document.getElementById('fsave').onclick=async()=>{const n=document.getElementById('fn').value.trim();if(!n){toast('Digite o nome do fornecedor');return}
    {const ja=arr(C.fornecedores).find(x=>norm(x.n)===norm(n));if(!podeDuplicar(ja&&`"${ja.n}"`,'um fornecedor com esse nome'))return}
@@ -1573,7 +1573,7 @@ function editarConta(id){const x=arr(C.contas).find(y=>y.id===id);if(!x)return;
   <label class="f">Descrição<input id="qd" value="${esc(x.d)}"></label>
   <label class="f">Valor<input id="qv" type="number" step="0.01" value="${x.v}"></label>
   <label class="f">Vencimento<input id="qvenc" type="date" value="${esc(x.venc)}"></label>
-  <label class="f">Unidade<select id="qu"><option value="flo" ${x.unit==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${x.unit==='mai'?'selected':''}>Maison Beauty</option></select></label>
+  <label class="f">Unidade<select id="qu"><option value="flo" ${x.unit==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${x.unit==='mai'?'selected':''}>Tháriga Beauty & Co</option></select></label>
   <label class="ck"><input type="checkbox" id="qpago" ${x.pago?'checked':''}>Conta paga</label>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn p" id="qsave">Salvar</button>
   <button class="btn" id="qcanc" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">${x.cancelada?'Reativar conta':'Cancelar conta'}</button><button class="btn" id="qdel" style="color:var(--warn);border-color:var(--warn)">Excluir de vez</button></div>`);
@@ -1587,7 +1587,7 @@ function editarConta(id){const x=arr(C.contas).find(y=>y.id===id);if(!x)return;
     if(ok)closeDlg()}}
 function editarFornecedor(id){const x=arr(C.fornecedores).find(y=>y.id===id);if(!x)return;
   openDlg('Editar fornecedor',`<label class="f">Nome<input id="fn" value="${esc(x.n)}"></label><label class="f">O que fornece<input id="fc" value="${esc(x.cat)}"></label><label class="f">Telefone<input id="ft" value="${esc(x.tel)}"></label>
-  <label class="f">Unidade<select id="fu"><option value="" ${x.unit?'':'selected'} disabled>Escolha a unidade</option><option value="flo" ${x.unit==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${x.unit==='mai'?'selected':''}>Maison Beauty</option><option value="ambas" ${x.unit==='ambas'?'selected':''}>As duas</option></select></label>
+  <label class="f">Unidade<select id="fu"><option value="" ${x.unit?'':'selected'} disabled>Escolha a unidade</option><option value="flo" ${x.unit==='flo'?'selected':''}>Estúdio Florença</option><option value="mai" ${x.unit==='mai'?'selected':''}>Tháriga Beauty & Co</option><option value="ambas" ${x.unit==='ambas'?'selected':''}>As duas</option></select></label>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="fsave">Salvar</button><button class="btn" id="fdel" style="margin-left:auto;color:var(--warn);border-color:var(--warn)">Excluir fornecedor</button></div>`);
   document.getElementById('fsave').onclick=async()=>{const n=document.getElementById('fn').value.trim();if(!n){toast('Digite o nome do fornecedor');return}
     if(await grava(()=>DB.upd('admin/fornecedores/'+id,{n,cat:document.getElementById('fc').value||'—',tel:document.getElementById('ft').value,...(document.getElementById('fu').value?{unit:document.getElementById('fu').value}:{})}),'Fornecedor atualizado'))closeDlg()};
@@ -1609,7 +1609,7 @@ function novaConta(){
   <label class="f">Descrição<input id="qd" placeholder="Ex.: kit de pigmentos"></label>
   <label class="f">Valor<input id="qv" type="number" step="0.01"></label>
   <label class="f">Vencimento<input id="qvenc" type="date"></label>
-  <label class="f">Unidade<select id="qu"><option value="flo">Estúdio Florença</option><option value="mai" selected>Maison Beauty</option></select></label>
+  <label class="f">Unidade<select id="qu"><option value="flo">Estúdio Florença</option><option value="mai" selected>Tháriga Beauty & Co</option></select></label>
   <button class="btn p" id="qsave">Adicionar conta</button>`);
   const qf=document.getElementById('qf');qf.oninput=()=>{document.getElementById('qnovo-w').hidden=!qf.value.trim()||arr(C.fornecedores).some(x=>norm(x.n)===norm(qf.value))};
   document.getElementById('qsave').onclick=async()=>{const f=document.getElementById('qf').value.trim();if(!f){toast('Digite o fornecedor');return}
@@ -1784,7 +1784,7 @@ const IG_IDEIAS=[
  {id:'v1',t:'conv',f:'Foto',n:'Pergunta para os comentários',l:'Sobrancelha: natural ou bem marcada? 👀\nConta aqui nos comentários o seu estilo!',h:'#sobrancelhanatural #voce',foto:'Duas imagens lado a lado de estilos (do banco de imagens, sem rosto identificável).',q:'eyebrows natural vs bold'},
  {id:'v2',t:'conv',f:'Stories',n:'Marque uma amiga',l:'Marque a amiga que vive pedindo dica de sobrancelha. 😄',h:'#amigas #marqueumaamiga',foto:'Fundo claro com o texto no próprio Instagram.',q:'friends coffee flat lay'},
  {id:'v3',t:'conv',f:'Foto',n:'Obrigada!',l:'Obrigada por confiar no meu trabalho. 🤍\nCada atendimento é feito com muito carinho. Vamos juntas!',h:'#gratidao #maisonbeauty',foto:'Foto sua em ambiente claro, sorrindo, ou o espaço com flores.',q:'thank you flowers soft background'},
- {id:'v4',t:'conv',f:'Foto',n:'Horários da semana',l:'Estamos com horários abertos esta semana. 📅\nChame no direct ou no WhatsApp e escolha o seu.\nEstúdio Florença: quinta a sábado. Maison Beauty (Itaquera): domingo a quarta.',h:'#agendeseuhorario #horariosdisponiveis',foto:'Arte simples com os dias e o endereço, fundo claro.',q:'minimal calendar beige'},
+ {id:'v4',t:'conv',f:'Foto',n:'Horários da semana',l:'Estamos com horários abertos esta semana. 📅\nChame no direct ou no WhatsApp e escolha o seu.\nEstúdio Florença: quinta a sábado. Tháriga Beauty & Co (Itaquera): domingo a quarta.',h:'#agendeseuhorario #horariosdisponiveis',foto:'Arte simples com os dias e o endereço, fundo claro.',q:'minimal calendar beige'},
  {id:'v5',t:'conv',f:'Reels',n:'Novidade do mês',l:'Novidade chegando por aqui. ✨\nFique de olho nos stories para saber primeiro.',h:'#novidade #fiqueligada',foto:'Vídeo curto de mistério: produto ou espaço coberto, revelando só no final.',q:'gift box pastel'}
 ];
 // Um tema por dia da semana: ela abre e vê só "o que posto hoje". ★ = o mínimo, se a semana apertar.

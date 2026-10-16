@@ -94,8 +94,8 @@ const firebaseConfig = {
 };
 // Serviços (nome e duração em minutos) de cada unidade: os mesmos do painel.
 const UN={
- mai:{n:'Maison Beauty',s:'Itaquera',e:'Rua Fontoura Xavier, 717, sala 3, Itaquera, São Paulo - SP, CEP 08295-300',dias:[[0,'Domingo'],[1,'Segunda'],[2,'Terça'],[3,'Quarta']],base:'maison',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Micropigmentação", 90], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90], ["Remoção de cílios", 30], ["Mão tradicional", 30], ["Pé tradicional", 40], ["Alongamento de unhas", 120], ["Manutenção de unhas", 90], ["Remoção de alongamento de unhas", 30], ["Remoção de pigmento a laser", 30], ["Laser para tratamento de fungos", 30], ["Depilação a laser", 30], ["Ozonioterapia", 60], ["Aplicação de piercing", 30]]},
- flo:{n:'Estúdio Florença',s:'Itaim Bibi',e:'Rua Pedroso Alvarenga, 502, Itaim Bibi, São Paulo - SP, CEP 04531-001',dias:[[4,'Quinta'],[5,'Sexta'],[6,'Sábado']],base:'florenca',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Lash lifting", 60], ["Brow lamination", 60], ["Micropigmentação", 120], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90]]}};
+ mai:{n:'Tháriga Beauty & Co',em:'na',de:'da',s:'Itaquera',e:'Rua Fontoura Xavier, 717, sala 3, Itaquera, São Paulo - SP, CEP 08295-300',dias:[[0,'Domingo'],[1,'Segunda'],[2,'Terça'],[3,'Quarta']],base:'maison',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Micropigmentação", 90], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90], ["Remoção de cílios", 30], ["Mão tradicional", 30], ["Pé tradicional", 40], ["Alongamento de unhas", 120], ["Manutenção de unhas", 90], ["Remoção de alongamento de unhas", 30], ["Remoção de pigmento a laser", 30], ["Laser para tratamento de fungos", 30], ["Depilação a laser", 30], ["Ozonioterapia", 60], ["Aplicação de piercing", 30]]},
+ flo:{n:'Estúdio Florença',em:'no',de:'do',s:'Itaim Bibi',e:'Rua Pedroso Alvarenga, 502, Itaim Bibi, São Paulo - SP, CEP 04531-001',dias:[[4,'Quinta'],[5,'Sexta'],[6,'Sábado']],base:'florenca',serv:[["Design de sobrancelhas", 30], ["Design + henna", 60], ["Buço", 10], ["Depilação facial", 30], ["Lash lifting", 60], ["Brow lamination", 60], ["Micropigmentação", 120], ["Alongamento de cílios", 120], ["Manutenção de cílios", 90]]}};
 // Quem faz cada serviço (mesmo mapa do painel, PRO_SERV): cada profissional tem a sua vaga e a sua agenda.
 const RAF=['Remoção de pigmento a laser','Laser para tratamento de fungos','Depilação a laser','Ozonioterapia','Aplicação de piercing'],
       MAR=['Mão tradicional','Pé tradicional','Alongamento de unhas','Manutenção de unhas','Remoção de alongamento de unhas'];
@@ -154,7 +154,7 @@ async function escolheUnidade(){
   escolha=null;resto.hidden=true;aviso.innerHTML='<p class="small">Carregando os horários…</p>';
   try{await entrar();pub=(await get(ref(db,'publico/agenda/'+un))).val()||{}}
   catch(e){aviso.innerHTML='<div class="alert">Não foi possível carregar os horários. Confira a internet e tente de novo.</div>';return}
-  if(!pub.cfg||pub.cfg.ativo!==true){aviso.innerHTML=`<div class="alert">O agendamento online do ${u.n} não está disponível agora. Fale com a gente pelo WhatsApp.</div>`;return}
+  if(!pub.cfg||pub.cfg.ativo!==true){aviso.innerHTML=`<div class="alert">O agendamento online ${u.de} ${u.n} não está disponível agora. Fale com a gente pelo WhatsApp.</div>`;return}
   aviso.innerHTML='';resto.hidden=false;
   document.getElementById('s').innerHTML=u.serv.map((x,i)=>`<option value="${i}">${esc(x[0])} · ${x[1]} min</option>`).join('');
   const d=document.getElementById('dias');d.innerHTML=u.dias.map(x=>`<label><input type="checkbox" value="${x[0]}">${x[1]}</label>`).join('');
