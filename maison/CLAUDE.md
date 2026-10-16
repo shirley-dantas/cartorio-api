@@ -59,7 +59,7 @@ Passo a passo do Firebase em `FIREBASE.md`.
 ## Na fila
 - **Google Agenda (opcional)** já está no painel (`apps-script/agenda.js`, `AGENDA_URL` no `index.html`): só falta a Tháriga autorizar o script na conta dela. Convite só sai para cliente com e-mail; falha aparece escrita, com "Reenviar convite".
 - **Instagram, fase 2:** conectar a conta profissional (Página do Facebook + app da Meta) e publicar pelo painel; e ideias geradas pela IA (precisa de chave da API na Vercel). Foto de cliente só com termo de divulgação, que a ficha atual não dá.
-- Mariana (mariibriit00@gmail.com): criar a conta e o cadastro em `acesso`.
+- Mariana (mariibriitt00@gmail.com): criar a conta e o cadastro em `acesso`.
 - Logo e ícones já estão no painel (`logo.png`, `icon-192.png`, `icon-512.png`), tirados do PDF que a Tháriga mandou.
 - Fotos em alta resolução (Storage), só se o volume crescer.
 - Número novo da Mariana, lista de fornecedores/contas, dados de estoque.
