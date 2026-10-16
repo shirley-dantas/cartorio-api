@@ -183,6 +183,8 @@ function desenhaSlots(){
     document.getElementById('resumo').innerHTML=`<b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(u.serv[+document.getElementById('s').value][0])} · ${dur} min<br>${u.n} (${u.s})<br>${esc(pub.cfg.endereco||u.e)}`;
     conf.hidden=false;conf.scrollIntoView({behavior:'smooth',block:'nearest'})})}
 const erro=m=>{document.getElementById('erro').textContent=m};
+// Só avisa a equipe (notificação no celular); se falhar, a reserva já está salva e a equipe a vê ao abrir o painel.
+const avisarEquipe=c=>{try{fetch('/api/avisar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c),keepalive:true}).catch(()=>{})}catch(e){}};
 async function enviar(){
   const v=id=>document.getElementById(id).value.trim(),u=UN[un];
   if(!escolha)return erro('Escolha um horário.');
@@ -196,7 +198,7 @@ async function enviar(){
   // Uma vaga por tentativa: se alguém marcou o mesmo horário um instante antes, o banco recusa e tentamos a próxima vaga.
   for(let k=1;k<=par&&!feito;k++){
     const chave=`${escolha.data}_${escolha.hora.replace(':','')}_${k}`;
-    try{await set(ref(db,u.base+'/reservas/'+chave),reg);feito=true;
+    try{await set(ref(db,u.base+'/reservas/'+chave),reg);feito=true;avisarEquipe({tipo:'reserva',unit:un,chave});
       try{await set(ref(db,'publico/agenda/'+un+'/ocup/'+escolha.data+'/'+chave),{h:escolha.hora,m:escolha.dur})}catch(e){}}
     catch(e){if(!/permission|denied/i.test(e.message||''))break}}
   if(!feito){
