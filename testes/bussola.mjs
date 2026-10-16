@@ -22,13 +22,16 @@ await passo('a conta do salário é a mesma que está no index.html do painel', 
   if (readFileSync(DESTINO, 'utf8') !== gerar()) throw new Error('bussola/fin-motor.js ficou para trás: rode node scripts/gerar-bussola-fin.mjs');
 });
 
-// O plano da Vercel aceita no máximo 12 funções em api/. Uma 13ª (a primeira
-// ler-letra.js) fez a Vercel recusar a publicação do painel inteiro em
-// 22/09/2026 — e nada avisou: o painel só ficou parado na versão anterior.
-await passo('o painel continua com no máximo 12 funções (limite da Vercel)', async () => {
+// O plano Hobby da Vercel aceita no máximo 12 funções em api/. Uma 13ª (a
+// primeira ler-letra.js) fez a Vercel recusar a publicação do painel inteiro
+// em 22/09/2026 — e nada avisou. Em 16/10/2026 o painel passou ao plano Pro
+// (webhook do Tally = 13ª função), que não tem esse teto. Se um dia voltar ao
+// Hobby, baixe LIMITE_FUNCOES para 12.
+const LIMITE_FUNCOES = 40;
+await passo('o painel não passa do limite de funções da Vercel', async () => {
   const {readdirSync} = await import('node:fs');
   const funcoes = readdirSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'api')).filter(f => /\.(js|mjs|ts)$/.test(f));
-  if (funcoes.length > 12) throw new Error(funcoes.length + ' funções em api/ — a Vercel recusa a publicação acima de 12');
+  if (funcoes.length > LIMITE_FUNCOES) throw new Error(funcoes.length + ' funções em api/ — acima do limite combinado de ' + LIMITE_FUNCOES);
 });
 
 // A leitura da letra (lib/ler-letra.js, pela porta da Joaninha) só abre para

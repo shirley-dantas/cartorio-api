@@ -875,11 +875,23 @@ coisas dele encostam no painel:
 O convite da agenda do Bússola **não** usa o Apps Script do cartório: sai de
 um script separado na conta pessoal dela (`apps-script/bussola-agenda.js`).
 
-**A Vercel aceita no máximo 12 funções em `api/`, e o painel está no limite.**
-Em 22/09/2026 uma 13ª fez a Vercel recusar a publicação do painel inteiro —
-sem aviso nenhum na tela, o painel só ficou parado na versão anterior. Função
-nova entra em `lib/` e é atendida por uma porta que já existe; o
-`testes/bussola.mjs` acusa se `api/` passar de 12.
+**O painel está no plano Pro da Vercel desde 16/10/2026.** Antes, no Hobby, o
+teto era 12 funções em `api/`: em 22/09/2026 uma 13ª fez a Vercel recusar a
+publicação do painel inteiro, sem aviso na tela. O Pro não tem esse teto (o
+`testes/bussola.mjs` guarda um limite largo). Se a assinatura for cancelada,
+volte a 12 e mova função nova para `lib/`, atendida por uma porta existente.
+
+## Documentos por link do cliente (Tally)
+
+O cliente abre o formulário do Tally com `?cardId={id}`, envia os documentos, e
+o Tally avisa `api/tally-webhook.js` (assinatura em `TALLY_SIGNING_SECRET`).
+A função baixa cada arquivo na hora (o link expira), dá o nome
+`{Card}_{Tipo}_{AAAA-MM-DD}_{n}.{ext}` e manda ao Apps Script
+(`receber-documento-cliente`), que salva na pasta do card, lê com a IA e grava
+em `casos/{id}/documentos/{chave}` com `origem: "link do cliente"`. O texto lido
+é o que faz o MINUTAR enxergar o documento. Reenvio do mesmo aviso não duplica
+(a chave vem do `responseId`). Parte pura e testes: `lib/tally-upload.js`,
+`testes/tally.mjs`.
 
 ## O Caderno da Rafaela (projeto à parte)
 
