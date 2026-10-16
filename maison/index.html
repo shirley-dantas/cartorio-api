@@ -799,8 +799,8 @@ const reabrirHorario=(id,p)=>grava(()=>DB.del(p+'/bloqueios/'+id),'Horário reab
 // Tocar num bloco abre as ações dele; tocar num espaço vazio oferece agendar ou fechar aquele horário.
 const PX30=44;
 function cartaoAg(a){const at=a.st==='Atendido'?histAll(true).find(h=>h.agenda===a.id&&!h.cancelado):null;
-  return `<div class="appt ${a.st==='Atendido'?'done':''}" style="border-left-color:${COR_PRO[a.pro]||'var(--berry)'}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}${a.origem==='link'?' <span class="tag">Pelo link</span>':''}<div class="small muted">${esc(sv(a.serv,a.unit).n)} · ${esc(PEOPLE[a.pro]?.n||'')}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}${(()=>{const cb=combinadoDe(a);return cb?` · <b style="color:var(--rose)">Valor combinado ${brl(cb.valor)}</b> (${esc(cb.motivo)})`:''})()}</div>
-   <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button>${isAdmin()?`<button class="btn sm" data-comb="${a.id}" data-p="${a._p}">${combinadoDe(a)?'Alterar valor combinado':'Valor combinado'}</button>`:''}<button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}${isAdmin()?`<button class="btn sm" data-troc="${a.id}" data-p="${a._p}">Trocar cliente</button>`:''}</div></div>`}
+  return `<div class="appt ${a.st==='Atendido'?'done':''}" style="border-left-color:${COR_PRO[a.pro]||'var(--berry)'}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}${a.origem==='link'?' <span class="tag">Pelo link</span>':''}<div class="small muted">${esc(sv(a.serv,a.unit).n)} · ${esc(PEOPLE[a.pro]?.n||'')}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}${(()=>{const cb=combinadoDe(a);return cb?` · <b style="color:var(--rose)">Condição especial ${brl(cb.valor)}</b> (${esc(cb.motivo)})`:''})()}</div>
+   <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button>${isAdmin()?`<button class="btn sm" data-comb="${a.id}" data-p="${a._p}">${combinadoDe(a)?'Alterar condição especial':'Condição especial'}</button>`:''}<button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}${isAdmin()?`<button class="btn sm" data-troc="${a.id}" data-p="${a._p}">Trocar cliente</button>`:''}</div></div>`}
 // Troca a cliente de um horário (só a Tháriga): serve para corrigir agendamentos que ficaram no nome errado.
 // Vale também para o que já foi atendido: o histórico e o valor cobrado ficam como estão, só muda de quem é.
 function trocarCliente(id,p,pre){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a||!isAdmin())return;
@@ -969,7 +969,7 @@ function compartilharLivres(){
     const sh=document.getElementById('lvi-s');if(sh)sh.onclick=async()=>{try{const f=new File([await blob()],'horarios-livres.png',{type:'image/png'});if(navigator.canShare({files:[f]}))await navigator.share({files:[f]});else toast('Este aparelho não compartilha imagem: use Baixar.')}catch(e){}};
     b.disabled=false}}
 
-// ── Valor combinado no agendamento ──
+// ── Condição especial no agendamento (no banco e no código, "combinado") ──
 // Só a Tháriga define (as regras do banco só deixam o administrador gravar em /combinados). Quem atende vê o valor e o motivo no cartão e ao concluir,
 // mas não consegue mudá-lo: o atendimento só é aceito com desconto "combinado" se o valor bate com o que ela gravou. O desconto aparece em "Descontos dados" com o motivo.
 const MOTIVOS_COMB=[['insta','Marcou o estúdio no Instagram (10%)'],['cortesia','Cortesia autorizada pela Tháriga'],['pacote','Pacote ou combinado com a cliente'],['outro','Outro motivo']];
@@ -977,10 +977,10 @@ const INSTA_PCT=10;
 const combinadoDe=a=>(a._p==='florenca'?C.fComb:C.mComb)[a.id]||null;
 function combinadoUI(box,preco,atual){
   let tab=preco||0;
-  box.innerHTML=`<div class="voucher semv" style="margin-bottom:12px"><label class="ck" style="margin:0"><input type="checkbox" id="cb-on" ${atual?'checked':''}>Cobrar um valor combinado (só você define)</label>
+  box.innerHTML=`<div class="voucher semv" style="margin-bottom:12px"><label class="ck" style="margin:0"><input type="checkbox" id="cb-on" ${atual?'checked':''}>Aplicar condição especial (só você define)</label>
    <div id="cb-in" ${atual?'':'hidden'} style="margin-top:8px"><div class="small muted" id="cb-tab"></div>
    <label class="f">Motivo<select id="cb-m">${MOTIVOS_COMB.map(([k,l])=>`<option value="${k}" ${atual&&atual.tipoMotivo===k?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
-   <label class="f">Valor combinado (R$)<input type="number" step="0.01" min="0" id="cb-v" value="${atual?atual.valor:''}"></label>
+   <label class="f">Valor com a condição especial (R$)<input type="number" step="0.01" min="0" id="cb-v" value="${atual?atual.valor:''}"></label>
    <label class="f" id="cb-dl" hidden>Detalhe (obrigatório)<input id="cb-d" maxlength="80" value="${esc(atual&&atual.detalhe||'')}"></label>
    <div class="small" id="cb-r"></div></div></div>`;
   const g=id=>box.querySelector('#'+id);
@@ -993,18 +993,18 @@ function combinadoUI(box,preco,atual){
   return {setPreco(p){tab=p||0;atualiza()},
    ligar(){g('cb-on').checked=true;g('cb-in').hidden=false;atualiza()},
    ler(){if(!g('cb-on').checked)return null;const m=g('cb-m').value,v=parseFloat(g('cb-v').value);
-     if(!(v>=0)){toast('Digite o valor combinado');return false}
-     if(!(tab>0&&v<tab-0.005)){toast('O valor combinado precisa ser menor que o da tabela ('+brl(tab)+')');return false}
-     const det=g('cb-d').value.trim();if(m!=='insta'&&det.length<3){toast('Escreva o detalhe do valor combinado');return false}
+     if(!(v>=0)){toast('Digite o valor da condição especial');return false}
+     if(!(tab>0&&v<tab-0.005)){toast('O valor da condição especial precisa ser menor que o da tabela ('+brl(tab)+')');return false}
+     const det=g('cb-d').value.trim();if(m!=='insta'&&det.length<3){toast('Escreva o detalhe da condição especial');return false}
      const o={valor:centavos(v),tabela:tab,tipoMotivo:m,motivo:MOTIVOS_COMB.find(x=>x[0]===m)[1],pct:m==='insta'?INSTA_PCT:Math.round((1-v/tab)*10000)/100,por:S.user.nome,em:iso(TODAY)};
      if(det&&m!=='insta')o.detalhe=det;return o}}}
 function dlgCombinado(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)return;const s=sv(a.serv,a.unit),atual=combinadoDe(a);
-  openDlg('Valor combinado',`<p><b>${esc(cli(a.cli).n)}</b><br><span class="muted">${esc(s.n)} · ${esc(diaLongo(a.date))} às ${esc(a.hora)}</span></p><div id="dc-box"></div>
-   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="dc-ok">Guardar</button>${atual?'<button class="btn" id="dc-rm">Tirar o valor combinado</button>':''}</div>`);
+  openDlg('Condição especial',`<p><b>${esc(cli(a.cli).n)}</b><br><span class="muted">${esc(s.n)} · ${esc(diaLongo(a.date))} às ${esc(a.hora)}</span></p><div id="dc-box"></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="dc-ok">Guardar</button>${atual?'<button class="btn" id="dc-rm">Tirar a condição especial</button>':''}</div>`);
   const ui=combinadoUI(document.getElementById('dc-box'),s.p,atual);if(!atual)ui.ligar();
-  document.getElementById('dc-ok').onclick=async()=>{const cb=ui.ler();if(cb===false)return;if(!cb){toast('Marque "Cobrar um valor combinado" ou use "Tirar".');return}
-    if(await grava(()=>DB.set(p+'/combinados/'+id,cb),'Valor combinado guardado'))closeDlg()};
-  const rm=document.getElementById('dc-rm');if(rm)rm.onclick=async()=>{if(await grava(()=>DB.del(p+'/combinados/'+id),'Valor combinado retirado'))closeDlg()}}
+  document.getElementById('dc-ok').onclick=async()=>{const cb=ui.ler();if(cb===false)return;if(!cb){toast('Marque "Aplicar condição especial" ou use "Tirar".');return}
+    if(await grava(()=>DB.set(p+'/combinados/'+id,cb),'Condição especial guardada'))closeDlg()};
+  const rm=document.getElementById('dc-rm');if(rm)rm.onclick=async()=>{if(await grava(()=>DB.del(p+'/combinados/'+id),'Condição especial retirada'))closeDlg()}}
 
 // ── Brinde de aniversário como voucher ──
 // O desconto só existe se a Tháriga liberou antes: um código por cliente, uso único, com prazo.
@@ -1057,7 +1057,7 @@ function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.ser
   const cv=document.getElementById('cv'),box=document.getElementById('cvbox'),mot=document.getElementById('cmot');
   const atualiza=()=>{
     if(comb){cv.value=comb.valor.toFixed(2);cv.readOnly=true;mot.hidden=true;
-      box.innerHTML=`<div class="voucher"><div class="vt">💰 Valor combinado</div><div class="vl"><span>Tabela</span><b>${brl(s.p)}</b></div><div class="vl"><span>${esc(comb.motivo)}</span><b>− ${brl(centavos(s.p-comb.valor))}</b></div><div class="vl tot"><span>A cobrar</span><b>${brl(comb.valor)}</b></div>${comb.detalhe?`<div class="small muted" style="margin-top:6px">${esc(comb.detalhe)}</div>`:''}<div class="small muted" style="margin-top:6px">Combinado por ${esc(comb.por||'')}. Para mudar, fale com a Tháriga.</div></div>`;return}
+      box.innerHTML=`<div class="voucher"><div class="vt">💰 Condição especial</div><div class="vl"><span>Tabela</span><b>${brl(s.p)}</b></div><div class="vl"><span>${esc(comb.motivo)}</span><b>− ${brl(centavos(s.p-comb.valor))}</b></div><div class="vl tot"><span>A cobrar</span><b>${brl(comb.valor)}</b></div>${comb.detalhe?`<div class="small muted" style="margin-top:6px">${esc(comb.detalhe)}</div>`:''}<div class="small muted" style="margin-top:6px">Definida por ${esc(comb.por||'')}. Para mudar, fale com a Tháriga.</div></div>`;return}
     if(vou&&aplicar){const k=calcBrinde(s.p);cv.value=k.final.toFixed(2);cv.readOnly=true;mot.hidden=true;
       box.innerHTML=`<div class="voucher"><div class="vt">🎁 Brinde de aniversário</div><div class="vl"><span>Tabela</span><b>${brl(s.p)}</b></div><div class="vl"><span>Desconto de ${String(k.pct).replace('.',',')}%</span><b>− ${brl(k.desc)}</b></div><div class="vl tot"><span>A cobrar</span><b>${brl(k.final)}</b></div><div class="small muted" style="margin-top:6px">Código ${esc(vou.id)} · ${vou.valeAte?'vale até '+fd(vou.valeAte):'sem prazo'} · uso único. O valor está travado.</div><button type="button" class="btn sm" id="vno" style="margin-top:8px">Não aplicar o brinde</button></div>`;
       document.getElementById('vno').onclick=()=>{aplicar=false;cv.value=s.p;atualiza()}}
@@ -1079,7 +1079,7 @@ function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.ser
     const valor=parseFloat(cv.value);
     if(!(valor>=0)){toast('Digite o valor cobrado');btn.disabled=false;return}
     const usaV=vou&&aplicar;let desc=null,k=null;
-    if(comb){if(Math.abs(valor-comb.valor)>0.005){toast('O valor combinado não pode ser mudado aqui.');btn.disabled=false;return}
+    if(comb){if(Math.abs(valor-comb.valor)>0.005){toast('A condição especial não pode ser mudada aqui.');btn.disabled=false;return}
       desc={tipo:'combinado',agenda:a.id,tipoMotivo:comb.tipoMotivo,motivo:comb.motivo,pct:comb.pct,valorDesc:centavos(s.p-valor),por:comb.por||'',em:comb.em||iso(TODAY)};if(comb.detalhe)desc.detalhe=comb.detalhe}
     else if(usaV){k=calcBrinde(s.p);if(Math.abs(valor-k.final)>0.005){toast('O valor do brinde não pode ser mudado.');btn.disabled=false;return}
       desc={tipo:'brinde',voucher:vou.id,pct:k.pct,valorDesc:k.desc,por:S.user.nome,em:iso(TODAY)}}
@@ -1243,7 +1243,7 @@ function novoAg(pre){
     const base=u==='flo'?'florenca':'maison',novo={date:nd.value,ts:tsDe(nd.value),hora:nh.value,cli:nc.value,serv:ns.value,pro:np.value,unit:u,st:'Agendado'};let nid;
     const ok=await grava(async()=>{nid=await DB.push(base+'/agenda',novo)},'Agendado');
     if(!ok){nsave.disabled=false;return}
-    if(cb)await grava(()=>DB.set(base+'/combinados/'+nid,cb),'Valor combinado guardado');
+    if(cb)await grava(()=>DB.set(base+'/combinados/'+nid,cb),'Condição especial guardada');
     closeDlg();
     const em=cli(novo.cli).email;
     if(AGENDA_URL&&emailOk(em)){toast('Enviando o convite…');
@@ -1616,8 +1616,8 @@ function descontosHtml(){
   const fat=recs.reduce((s,h)=>s+h.valor,0),tot=soma(linhas);
   const ordem={sem:0,manual:1,combinado:1,brinde:2};linhas.sort((a,b)=>ordem[a.origem]-ordem[b.origem]||b.h.date.localeCompare(a.h.date));
   const vs=vouchers(),vAtivos=vs.filter(v=>!v.usado&&!v.cancelado&&!venceu(v,iso(TODAY))),vUsados=vs.filter(v=>v.usado),vVenc=vs.filter(v=>!v.usado&&!v.cancelado&&venceu(v,iso(TODAY)));
-  const tag=x=>x.origem==='brinde'?`<span class="tag ok">Brinde de aniversário · ${x.h.desc.pct}%</span>`:x.origem==='manual'?`<span class="tag warn">${esc(x.h.desc.motivo)}</span>`:x.origem==='combinado'?`<span class="tag rose">Combinado · ${esc(x.h.desc.motivo)}</span>`:'<span class="tag" style="background:#fbe3e0;color:#9b2c1f">Sem motivo registrado</span>';
-  const det=x=>x.origem==='combinado'?`<div class="small">${x.h.desc.detalhe?esc(x.h.desc.detalhe)+' · ':''}combinado por ${esc(x.h.desc.por||'')} antes do atendimento</div>`:x.origem==='manual'?`<div class="small">${esc(x.h.desc.det)} · registrado por ${esc(x.h.desc.por||'')}</div>`:x.origem==='brinde'?`<div class="small muted">Código ${esc(x.h.desc.voucher)}</div>`:`<div class="small" style="color:#9b2c1f">Cobrado abaixo da tabela, sem voucher e sem motivo.${x.h.tabela==null?' Atendimento de antes do controle: comparado ao preço de hoje.':''}${x.h.corrigidoPor?' Corrigido por '+esc(x.h.corrigidoPor)+'.':''}</div>`;
+  const tag=x=>x.origem==='brinde'?`<span class="tag ok">Brinde de aniversário · ${x.h.desc.pct}%</span>`:x.origem==='manual'?`<span class="tag warn">${esc(x.h.desc.motivo)}</span>`:x.origem==='combinado'?`<span class="tag rose">Condição especial · ${esc(x.h.desc.motivo)}</span>`:'<span class="tag" style="background:#fbe3e0;color:#9b2c1f">Sem motivo registrado</span>';
+  const det=x=>x.origem==='combinado'?`<div class="small">${x.h.desc.detalhe?esc(x.h.desc.detalhe)+' · ':''}condição especial definida por ${esc(x.h.desc.por||'')} antes do atendimento</div>`:x.origem==='manual'?`<div class="small">${esc(x.h.desc.det)} · registrado por ${esc(x.h.desc.por||'')}</div>`:x.origem==='brinde'?`<div class="small muted">Código ${esc(x.h.desc.voucher)}</div>`:`<div class="small" style="color:#9b2c1f">Cobrado abaixo da tabela, sem voucher e sem motivo.${x.h.tabela==null?' Atendimento de antes do controle: comparado ao preço de hoje.':''}${x.h.corrigidoPor?' Corrigido por '+esc(x.h.corrigidoPor)+'.':''}</div>`;
   return `<div class="box" style="margin-top:16px" id="descontos"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Descontos dados</h2>
    <div class="seg">${[['mes','Este mês'],['passado','Mês passado'],['tudo','Tudo']].map(([k,l])=>`<button class="${per===k?'on':''}" data-dper="${k}">${l}</button>`).join('')}</div></div>
    <p class="small muted" style="margin:6px 0 12px">Tudo o que foi cobrado abaixo da tabela. Só o desconto com voucher é do brinde; o resto precisa ter motivo.</p>
