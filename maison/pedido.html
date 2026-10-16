@@ -101,6 +101,9 @@ const RAF=['Remoção de pigmento a laser','Laser para tratamento de fungos','De
       MAR=['Mão tradicional','Pé tradicional','Alongamento de unhas','Manutenção de unhas','Remoção de alongamento de unhas'];
 const proDe=(u,nome)=>u==='flo'?'tha':RAF.includes(nome)?'rafael':MAR.includes(nome)?'mariana':'tha';
 const VAGA={tha:1,rafael:2,mariana:3};
+// Dias de cada profissional: a Tháriga fica em Itaquera de domingo a quarta e no Florença de quinta a sábado; o Rafael e a Mariana atendem em Itaquera de segunda a sábado.
+const DIAS_PRO={mai:{tha:[0,1,2,3],rafael:[1,2,3,4,5,6],mariana:[1,2,3,4,5,6]},flo:{tha:[4,5,6]}};
+UN.mai.diasTxt='Segunda a sábado';UN.flo.diasTxt='Quinta, sexta e sábado';
 const NOMES=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -118,7 +121,7 @@ function formulario(){
   tela.innerHTML=`<h1>Agende o seu horário</h1><div class="sub">Escolha o dia e o horário livre: já fica marcado, sem conversa.</div>
   <div class="box">
    <div class="sec" style="margin-top:0">Onde você quer ser atendida?</div>
-   <div class="un" id="uns">${Object.entries(UN).map(([k,u])=>`<label><input type="radio" name="un" value="${k}"><b>${u.n}</b><span>${u.s} · ${u.dias.map(d=>d[1]).join(', ')}</span></label>`).join('')}</div>
+   <div class="un" id="uns">${Object.entries(UN).map(([k,u])=>`<label><input type="radio" name="un" value="${k}"><b>${u.n}</b><span>${u.s} · ${u.diasTxt}</span></label>`).join('')}</div>
    <div id="aviso"></div>
    <div id="resto" hidden>
     <div class="sec">Seus dados</div>
@@ -146,9 +149,12 @@ function formulario(){
   const uns=document.getElementById('uns');
   uns.addEventListener('change',e=>{un=e.target.value;marca(uns);escolheUnidade()});
   document.getElementById('per').addEventListener('change',()=>{marca(document.getElementById('per'));desenhaSlots()});
-  document.getElementById('s').onchange=desenhaSlots;
+  document.getElementById('s').onchange=()=>{montaDias();desenhaSlots()};
   document.getElementById('enviar').onclick=enviar}
 
+// Os dias oferecidos dependem de quem faz o serviço escolhido.
+function montaDias(){const d=document.getElementById('dias'),u=UN[un],sv0=u.serv[+document.getElementById('s').value],marcados=new Set([...d.querySelectorAll('input:checked')].map(i=>+i.value));
+  d.innerHTML=(DIAS_PRO[un][proDe(un,sv0[0])]||[]).map(n=>`<label class="${marcados.has(n)?'on':''}"><input type="checkbox" value="${n}" ${marcados.has(n)?'checked':''}>${NOMES[n]}</label>`).join('')}
 async function escolheUnidade(){
   const u=UN[un],aviso=document.getElementById('aviso'),resto=document.getElementById('resto');
   escolha=null;resto.hidden=true;aviso.innerHTML='<p class="small">Carregando os horários…</p>';
@@ -157,7 +163,7 @@ async function escolheUnidade(){
   if(!pub.cfg||pub.cfg.ativo!==true){aviso.innerHTML=`<div class="alert">O agendamento online ${u.de} ${u.n} não está disponível agora. Fale com a gente pelo WhatsApp.</div>`;return}
   aviso.innerHTML='';resto.hidden=false;
   document.getElementById('s').innerHTML=u.serv.map((x,i)=>`<option value="${i}">${esc(x[0])} · ${x[1]} min</option>`).join('');
-  const d=document.getElementById('dias');d.innerHTML=u.dias.map(x=>`<label><input type="checkbox" value="${x[0]}">${x[1]}</label>`).join('');
+  const d=document.getElementById('dias');montaDias();
   d.onchange=()=>{d.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));desenhaSlots()};
   desenhaSlots()}
 
