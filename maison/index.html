@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Painel Maison Beauty</title>
+<title>Painel Tháriga Beauty &amp; Co</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -194,13 +194,13 @@ canvas.sig{width:100%;height:130px;border:1px dashed var(--muted);border-radius:
 <div id="entrada"></div>
 <div class="app" id="app" hidden>
   <aside>
-    <div><img class="logo-wide" src="logo.png" alt="Maison Beauty"><div class="sub-brand">Tháriga Brito · Florença &amp; Maison Beauty · @mais.on.beauty</div></div>
+    <div><img class="logo-wide" src="logo.png" alt="Tháriga Beauty &amp; Co"><div class="sub-brand">Tháriga Brito · Florença &amp; Maison Beauty · @mais.on.beauty</div></div>
     <nav id="nav"></nav>
     <div class="who" id="quem"></div>
     <button class="btn" id="ajuda1">Preciso de ajuda</button>
   </aside>
   <div>
-    <div class="mob"><img class="logo-wide sm" src="logo.png" alt="Maison Beauty"><span><button class="btn sm" id="avisos2" data-avisos>Ativar avisos</button> <button class="btn sm" id="ajuda2">Ajuda</button> <button class="btn sm" id="sair2">Sair</button></span></div>
+    <div class="mob"><img class="logo-wide sm" src="logo.png" alt="Tháriga Beauty &amp; Co"><span><button class="btn sm" id="avisos2" data-avisos>Ativar avisos</button> <button class="btn sm" id="ajuda2">Ajuda</button> <button class="btn sm" id="sair2">Sair</button></span></div>
     <main id="main"></main>
   </div>
 </div>
@@ -549,7 +549,7 @@ function comecarLeituras(){
 function telaEntrar(msg){
   document.getElementById('app').hidden=true;document.getElementById('bnav').hidden=true;
   const e=document.getElementById('entrada');e.hidden=false;
-  e.innerHTML=`<div class="entrar"><div class="box"><img class="logo-wide" src="logo.png" alt="Maison Beauty" style="max-width:150px;margin:0 auto"><div class="sub-brand" style="text-align:center;margin-bottom:18px">Painel · Tháriga Brito</div>
+  e.innerHTML=`<div class="entrar"><div class="box"><img class="logo-wide" src="logo.png" alt="Tháriga Beauty &amp; Co" style="max-width:150px;margin:0 auto"><div class="sub-brand" style="text-align:center;margin-bottom:18px">Painel · Tháriga Brito</div>
   ${DEMO?`<div class="note">Demonstração: nada é gravado. Escolha quem entra.</div>
   <label class="f">Entrar como<select id="demo">${[['tha','Tháriga (administradora)','admin'],['rafael','Rafael (funcionária, Maison)','funcionaria'],['lais','Laís (funcionária, Maison)','funcionaria'],['mariana','Mariana (funcionária, Maison)','funcionaria']].map(([k,l,p])=>`<option value="${k}|${p}">${l}</option>`).join('')}</select></label>
   <button class="btn p" id="demobtn">Entrar</button>`:
