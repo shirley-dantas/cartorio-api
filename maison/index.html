@@ -14,7 +14,8 @@
   --bg:#FAF7F1; --panel:#FFFFFF; --ink:#262220; --muted:#8A7D6E; --line:#E9E1D2;
   --berry:#9C7A2E; --berry-soft:#F1E9D4; --flo:#6B5B45; --flo-soft:#EFE7D9; --mai:#9C7A2E; --mai-soft:#F1E9D4;
   --warn:#A8551C; --warn-soft:#FBEBDD; --ok:#3F7A57; --ok-soft:#E2F1E7;
-  --p-tha:#9C7A2E; --p-raf:#6B5B45; --p-mar:#A0675B; --p-lai:#7C8A6A; --p-txt:#fff;
+  --p-tha:#A8843A; --p-raf:#7A6A58; --p-mar:#B2706A; --p-lai:#7C8A6A; --p-txt:#fff;
+  --t-tha:#F6EDD6; --t-raf:#EEE7DD; --t-mar:#F6E3DF; --t-lai:#E6ECDD;
   --serif:"Cormorant",Georgia,"Times New Roman",serif; --sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -22,12 +23,14 @@
   --bg:#1C1A16; --panel:#262320; --ink:#F3EFE6; --muted:#B5A98F; --line:#3B362C;
   --berry:#D4B45E; --berry-soft:#3A331F; --flo:#C9BB9C; --flo-soft:#2E2A20; --mai:#D4B45E; --mai-soft:#3A331F;
   --warn:#EDA46E; --warn-soft:#3A2618; --ok:#8CCBA4; --ok-soft:#1D3024;
-  --p-tha:#D4B45E; --p-raf:#C9BB9C; --p-mar:#D99A8C; --p-lai:#A9B894; --p-txt:#1C1A16;}}
+  --p-tha:#D4B45E; --p-raf:#C9BB9C; --p-mar:#D99A8C; --p-lai:#A9B894; --p-txt:#1C1A16;
+  --t-tha:#3A331F; --t-raf:#322E27; --t-mar:#3D2A27; --t-lai:#2B3226;}}
 :root[data-theme="dark"]{
   --bg:#1C1A16; --panel:#262320; --ink:#F3EFE6; --muted:#B5A98F; --line:#3B362C;
   --berry:#D4B45E; --berry-soft:#3A331F; --flo:#C9BB9C; --flo-soft:#2E2A20; --mai:#D4B45E; --mai-soft:#3A331F;
   --warn:#EDA46E; --warn-soft:#3A2618; --ok:#8CCBA4; --ok-soft:#1D3024;
-  --p-tha:#D4B45E; --p-raf:#C9BB9C; --p-mar:#D99A8C; --p-lai:#A9B894; --p-txt:#1C1A16;}
+  --p-tha:#D4B45E; --p-raf:#C9BB9C; --p-mar:#D99A8C; --p-lai:#A9B894; --p-txt:#1C1A16;
+  --t-tha:#3A331F; --t-raf:#322E27; --t-mar:#3D2A27; --t-lai:#2B3226;}
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);min-height:100%}
@@ -135,19 +138,23 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .chips-pro{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
 .chips-pro button{border:2px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
 .chips-pro button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
-.tl-hd{display:flex;margin-bottom:0;background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;overflow:hidden}
+.tl-hd{display:flex;margin-bottom:0;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:3}
 .tl-hd i{flex:0 0 46px}
 .tl-hd div{flex:1;min-width:0;text-align:center;font-weight:700;font-size:13px;padding:7px 2px;border-bottom:3px solid;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tl{position:relative;display:flex;background:var(--panel);border:1px solid var(--line);border-radius:0 0 10px 10px;overflow:hidden}
+.tl{position:relative;display:flex;background:var(--panel)}
 .tl-gut{position:relative;flex:0 0 46px}
 .tl-gut span{position:absolute;left:6px;font-size:11px;color:var(--muted,#777);transform:translateY(-7px)}
 .tl-cols{position:relative;flex:1;display:flex;min-width:0;background-image:linear-gradient(#ece6f3 1px,transparent 1px)}
 .tl-col{position:relative;flex:1;min-width:0;cursor:pointer;border-left:1px solid #ece6f3}
-.tl-ev{position:absolute;box-sizing:border-box;border:1px solid #fff;border-radius:6px;color:var(--p-txt);text-align:left;padding:3px 5px;font:inherit;font-size:12px;line-height:1.25;overflow:hidden;cursor:pointer}
+.tl-ev{position:absolute;box-sizing:border-box;background:var(--t);border:1px solid var(--c);border-left:5px solid var(--c);border-radius:8px;color:var(--ink);text-align:left;padding:4px 7px;font:inherit;font-size:12px;line-height:1.25;overflow:hidden;cursor:pointer;box-shadow:0 1px 2px #0001}
 .tl-ev b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tl-ev small{display:block;opacity:.92;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tl-ev.feito{opacity:.55}.tl-ev.sel{outline:3px solid var(--ink);z-index:2}
-.tl-ev.blq{color:#fff;background:repeating-linear-gradient(45deg,#2c2c2c,#2c2c2c 6px,#1a1a1a 6px,#1a1a1a 12px)}
+.tl-ev.feito{opacity:.6;filter:saturate(.6)}.tl-ev.sel{outline:3px solid var(--ink);z-index:2}
+.tl-ev.blq{color:var(--ink);border-color:#B9AE9A;border-left-color:#8A7D6E;background:repeating-linear-gradient(45deg,#ECE6DA,#ECE6DA 6px,#E1D9CA 6px,#E1D9CA 12px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tl-ev.blq{background:repeating-linear-gradient(45deg,#3a352c,#3a352c 6px,#312d25 6px,#312d25 12px);border-color:#6a6050}}
+:root[data-theme="dark"] .tl-ev.blq{background:repeating-linear-gradient(45deg,#3a352c,#3a352c 6px,#312d25 6px,#312d25 12px);border-color:#6a6050}
+.tl-scroll{max-height:68vh;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel);scrollbar-width:thin;scrollbar-color:var(--berry) var(--berry-soft)}
+.tl-scroll::-webkit-scrollbar{width:9px;height:9px}.tl-scroll::-webkit-scrollbar-thumb{background:var(--berry);border-radius:8px}.tl-scroll::-webkit-scrollbar-track{background:var(--berry-soft)}
 .cols{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
 .appt{border-left:3px solid var(--berry);padding:8px 10px;margin-top:8px;background:var(--bg);border-radius:0 8px 8px 0}
 .appt.done{opacity:.55}
@@ -370,7 +377,7 @@ if(DEMO)setTimeout(()=>{window.__DB=DB},0);
 // ═══ Dados do negócio ══════════════════════════════════════════════════
 const U={
  flo:{n:'Estúdio Florença',em:'no',de:'do',s:'Itaim Bibi',dias:'Quinta, sexta e sábado',hora:'09:00–19:00'},
- mai:{n:'Tháriga Beauty & Co',em:'na',de:'da',s:'Itaquera',dias:'Domingo, segunda, terça e quarta',hora:'07:30–19:00'}};
+ mai:{n:'Tháriga Beauty & Co',em:'na',de:'da',s:'Itaquera',dias:'Rafael e Mariana: qualquer dia; Tháriga: domingo a quarta',hora:'07:30–19:00'}};
 const PEOPLE={tha:{n:'Tháriga'},rafael:{n:'Rafael'},lais:{n:'Laís'},mariana:{n:'Mariana'}};
 const STAFF=['rafael','lais','mariana'];
 // Quem faz cada serviço (Tháriga, 16/10/2026): cada um cai na agenda de quem faz, para não misturar as agendas.
@@ -381,6 +388,7 @@ const PRO_SERV={rafael:['laserpig','laserfungo','laserdepil','ozonio','piercing'
 const VAGA_PRO={tha:1,rafael:2,mariana:3,lais:4};
 // Paleta da agenda que já existia (dourado, marrom, creme): variáveis --p-* no CSS, claras e escuras.
 const COR_PRO={tha:'var(--p-tha)',rafael:'var(--p-raf)',mariana:'var(--p-mar)',lais:'var(--p-lai)'};
+const TINT_PRO={tha:'var(--t-tha)',rafael:'var(--t-raf)',mariana:'var(--t-mar)',lais:'var(--t-lai)'};
 // Valores e tempos informados por Tháriga em 30/09/2026. Todos os serviços exigem anamnese. Retorno padrão: 20 dias.
 const SERV={
  flo:[
@@ -592,7 +600,7 @@ function telaEntrar(msg){
       try{await sendPasswordResetEmail(auth,m);toast('Enviamos o link para o seu e-mail')}catch(er){toast('Não foi possível enviar o link')}};
   }
 }
-function entrou(u){S.user=u;S.tab='hoje';S.q='';S.agData=null;S.agMes=null;S.lvPro=null;S.lvServ='';S.lvSel=null;S.lvDias=7;S.agPro=null;S.agSel=null;S.unit=isAdmin()?'todas':'mai';
+function entrou(u){S.user=u;S.tab='hoje';S.q='';S.agData=null;S.agMes=null;S.lvPro=null;S.lvServ='';S.lvSel=null;S.lvDias=7;S.rolagem={};S.rolagemLv=0;S.agPro=null;S.agSel=null;S.unit=isAdmin()?'todas':'mai';
   document.getElementById('entrada').hidden=true;document.getElementById('entrada').innerHTML='';
   document.getElementById('app').hidden=false;document.getElementById('bnav').hidden=false;
   comecarLeituras();render()}
@@ -740,7 +748,11 @@ async function alternarAvisos(){
 const bloqueios=()=>[...arr(C.mBlq).map(b=>({...b,_p:'maison'})),...(isAdmin()?arr(C.fBlq).map(b=>({...b,_p:'florenca'})):[])];
 const hhmmDe=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
 const MOTIVOS_BLQ=['Fechado','Reservado','Almoço','Compromisso','Outro'];
-const prosDaUnidade=(u,d)=>u==='flo'?['tha']:['tha','rafael','mariana'];
+// Tháriga (16/10/2026): ela fica em Itaquera de domingo a quarta e no Florença de quinta a sábado; a agenda do Rafael e da Mariana fica aberta todos os dias, e eles mesmos fecham os dias em que não atendem.
+const dowDe=d=>new Date((typeof d==='string'?d:iso(d))+'T12:00').getDay();
+const STAFF_DIAS=[0,1,2,3,4,5,6]; // agendas abertas todos os dias: quem não atende num dia fecha o horário (Fechar horário → dia inteiro)
+const prosDaUnidade=(u,d)=>{if(u==='flo')return ['tha'];const w=dowDe(d);return [...(w<=3?['tha']:[]),...(STAFF_DIAS.includes(w)?['rafael','mariana']:[])]};
+const unidadesDoDia=d=>dowDe(d)>=4?['flo','mai']:['mai'];
 function bloqueioNoSlot(u,d,t,t2){return bloqueios().filter(b=>b.unit===u&&b.date===d&&minDe(b.hora)<t2&&minDe(b.hora)+b.m>t)}
 function gradeDoDia(u,d){const g=agonCfg(u),par=g.paralelo,ini=minDe(g.ini),fim=minDe(g.fim),out=[];
   const ags=agendaAtiva().filter(a=>a.unit===u&&a.date===d);
@@ -803,19 +815,20 @@ function linhaDoTempo(u,d,pros){
       ...bl.filter(b=>b.pro==='todos'||!b.pro||b.pro===p).map(b=>({t:'b',id:b.id,_p:b._p,ini:minDe(b.hora),fim:minDe(b.hora)+b.m,b}))];
     return `<div class="tl-col" data-tlc="${p}" data-tlu="${u}" data-tli="${ini}">${raias(itens).map(it=>{const top=px(it.ini),h=Math.max(20,(it.fim-it.ini)/30*PX30-2),w=100/it.n,esq=it.raia*w,sel=S.agSel===it.t+':'+it.id+':'+it._p;
       if(it.t==='b'){const b=it.b;return `<button type="button" class="tl-ev blq ${sel?'sel':''}" data-tlsel="b:${it.id}:${it._p}" style="top:${top}px;height:${h}px;left:${esq}%;width:${w}%"><b>${esc(b.motivo||'Fechado')}</b><small>${esc(b.obs||'')}${b.hora?' '+esc(b.hora):''}</small></button>`}
-      const a=it.a;return `<button type="button" class="tl-ev ${a.st==='Atendido'?'feito':''} ${sel?'sel':''}" data-tlsel="a:${it.id}:${it._p}" style="top:${top}px;height:${h}px;left:${esq}%;width:${w}%;background:${COR_PRO[p]||'#666'}"><b>${esc(cli(a.cli).n)}</b>${h>34?`<small>${esc(sv(a.serv,a.unit).n)} · ${esc(a.hora)}–${esc(hhmmDe(it.fim))}</small>`:''}</button>`}).join('')}</div>`};
-  return `<div class="tl-hd"><i></i>${pros.map(p=>`<div style="border-color:${COR_PRO[p]};color:${COR_PRO[p]}">${esc(PEOPLE[p].n)}</div>`).join('')}</div>
-   <div class="tl" style="height:${alt}px"><div class="tl-gut">${horas.join('')}</div><div class="tl-cols" style="background-size:100% ${PX30*2}px">${pros.map(col).join('')}</div></div>`}
+      const a=it.a;return `<button type="button" class="tl-ev ${a.st==='Atendido'?'feito':''} ${sel?'sel':''}" data-tlsel="a:${it.id}:${it._p}" style="top:${top}px;height:${h}px;left:${esq}%;width:${w}%;--c:${COR_PRO[p]||'#666'};--t:${TINT_PRO[p]||'#eee'}"><b>${a.st==='Atendido'?'✓ ':''}${esc(cli(a.cli).n)}</b>${h>34?`<small>${esc(sv(a.serv,a.unit).n)} · ${esc(a.hora)}–${esc(hhmmDe(it.fim))}</small>`:''}</button>`}).join('')}</div>`};
+  return `<div class="tl-scroll" data-tlscroll="${u}|${d}" data-tlini="${ini}"><div class="tl-hd"><i></i>${pros.map(p=>`<div style="border-color:${COR_PRO[p]};color:${COR_PRO[p]}">${esc(PEOPLE[p].n)}</div>`).join('')}</div>
+   <div class="tl" style="height:${alt}px"><div class="tl-gut">${horas.join('')}</div><div class="tl-cols" style="background-size:100% ${PX30*2}px">${pros.map(col).join('')}</div></div></div>`}
 function vAgenda(){
-  const d=S.agData||iso(TODAY),du=unitFor(d),outra=du==='flo'?'mai':'flo';
+  const d=S.agData||iso(TODAY);
   const ap=agendaAtiva().filter(a=>a.date===d&&visUnit(a.unit));
-  // A unidade do dia manda; a outra só aparece se tiver horário marcado nesse dia (dado fora do comum, mas nunca some da tela).
-  const unidades=[du,...(ap.some(a=>a.unit===outra)?[outra]:[])].filter(visUnit);
-  const prosDe=u=>[...prosDaUnidade(u,d),...(ap.some(a=>a.unit===u&&a.pro==='lais')?['lais']:[])];
-  const todosPros=unidades.length?(unidades[0]===du?prosDe(du):prosDe(unidades[0])):[];
+  // As unidades que atendem no dia (quinta a sábado: Florença com a Tháriga e Itaquera com a equipe); uma unidade fora do comum só aparece se tiver horário marcado.
+  const unidades=[...new Set([...unidadesDoDia(d),...ap.map(a=>a.unit)])].filter(visUnit);
+  const ORD=['tha','rafael','mariana','lais'];
+  const prosDe=u=>[...new Set([...prosDaUnidade(u,d),...ap.filter(a=>a.unit===u).map(a=>a.pro)])].sort((x,y)=>ORD.indexOf(x)-ORD.indexOf(y));
+  const todosPros=[...new Set(unidades.flatMap(prosDe))].sort((x,y)=>ORD.indexOf(x)-ORD.indexOf(y));
   const sel=todosPros.includes(S.agPro)?S.agPro:'todas';
   const chips=todosPros.length>1?`<div class="chips-pro"><button type="button" class="${sel==='todas'?'on':''}" data-agpro="todas">Todas</button>${todosPros.map(p=>`<button type="button" class="${sel===p?'on':''}" data-agpro="${p}" style="${sel===p?'background:'+COR_PRO[p]+';border-color:'+COR_PRO[p]:''}">${esc(PEOPLE[p].n)}</button>`).join('')}</div>`:'';
-  const quadros=unidades.map((u,i)=>{let pros=prosDe(u);if(i>0)pros=pros.filter(p=>ap.some(a=>a.unit===u&&a.pro===p));
+  const quadros=unidades.map(u=>{let pros=prosDe(u);
     if(sel!=='todas')pros=pros.filter(p=>p===sel);if(!pros.length)return '';
     return `<div class="small muted" style="margin:0 0 8px">📍 ${esc(U[u].n)} · ${esc(U[u].s)}</div>${linhaDoTempo(u,d,pros)}${fechadosHtml(u,d)}`}).join('<div style="height:14px"></div>');
   const mostrar=unidades.length>0;
@@ -846,11 +859,12 @@ function livresDoDia(u,d,pro,dur){
   return out}
 function livresDados(){
   const sid=S.lvServ||'',n=S.lvDias||7,out=[];
-  for(let i=0;i<n;i++){const d=iso(addD(TODAY,i)),u=unitFor(d),vis=livresVis(u),sv0=sid?servicosDe(u,false).find(x=>x.id===sid):null,dur=sv0?(sv0.d||30):30;
+  for(let i=0;i<n;i++){const d=iso(addD(TODAY,i));for(const u of unidadesDoDia(d)){const vis=livresVis(u);if(!vis)continue;const sv0=sid?servicosDe(u,false).find(x=>x.id===sid):null,dur=sv0?(sv0.d||30):30;
     let pros=prosDaUnidade(u,d);
     if(sid){const dono=proDoServico(sid,u);pros=sv0?(dono?pros.filter(p=>p===dono):pros):[]}
     if(S.lvPro&&S.lvPro!=='todas')pros=pros.filter(p=>p===S.lvPro);
-    out.push({d,u,vis,dur,naoOferece:!!sid&&!sv0,pros:vis?pros.map(p=>({p,t:livresDoDia(u,d,p,dur)})):[]})}
+    if(!pros.length&&unidadesDoDia(d).length>1)continue;
+    out.push({d,u,vis,dur,naoOferece:!!sid&&!sv0,pros:pros.map(p=>({p,t:livresDoDia(u,d,p,dur)}))})}}
   return out}
 const diaCurto=d=>{const x=new Date(d+'T12:00');return prim1(x.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.',''))+' '+x.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})};
 const livresServicos=()=>{const m=new Map();for(const u of (isAdmin()?['mai','flo']:['mai']))servicosDe(u,false).forEach(s=>{if(!m.has(s.id))m.set(s.id,s)});return [...m.values()]};
@@ -1030,7 +1044,7 @@ function remarcarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)re
   const check=()=>{const d=rd.value;let ok=!!d&&!!rh.value;const msgs=[];
     if(d){
       if(a.pro==='tha'){if(unitFor(d)!==a.unit){ok=false;msgs.push(`Neste dia a Tháriga atende ${U[unitFor(d)].em} ${U[unitFor(d)].n}. Cancele este agendamento e crie um novo.`)}}
-      else{if(unitFor(d)!=='mai'){ok=false;msgs.push('Neste dia a Tháriga Beauty & Co está fechada — é dia do Florença.')}
+      else{if(!STAFF_DIAS.includes(dowDe(d))){ok=false;msgs.push(`${PEOPLE[a.pro]?.n||'Esta profissional'} não atende aos domingos.`)}
         if(a.pro==='lais'&&!laisDay(d)){ok=false;msgs.push('A Laís atende somente às segundas-feiras.')}}
       const choque=agendaAtiva().find(x=>x.id!==a.id&&x.pro===a.pro&&x.date===d&&x.hora===rh.value&&x.st!=='Atendido');
       if(choque)msgs.push(`${PEOPLE[a.pro].n} já tem ${cli(choque.cli).n} às ${rh.value}. Dá para remarcar mesmo assim.`);
@@ -1139,7 +1153,7 @@ function novoAg(pre){
   const check=()=>{const p=np.value,d=nd.value,c=cli(nc.value);let ok=!!d;const msgs=[];
     let u;
     if(p==='tha'){u=unitFor(d||iso(TODAY));if(!isAdmin()&&u==='flo'){ok=false;msgs.push('Neste dia a Tháriga atende no Florença: só ela agenda por lá.')}}
-    else{u='mai';if(d&&unitFor(d)!=='mai'){ok=false;msgs.push(`Neste dia a Tháriga Beauty & Co está fechada — é dia do Florença.`)}}
+    else{u='mai';if(d&&!STAFF_DIAS.includes(dowDe(d))){ok=false;msgs.push(`${PEOPLE[p].n} não atende aos domingos.`)}}
     if(p==='lais'&&d&&!laisDay(d)){ok=false;msgs.push('A Laís atende somente às segundas-feiras.')}
     {const t=minDe(nh.value||'00:00'),bq=bloqueios().filter(b=>b.unit===u&&b.date===d&&(b.pro==='todos'||!b.pro||b.pro===p)&&minDe(b.hora)<=t&&minDe(b.hora)+b.m>t);if(bq.length)msgs.push(`Este horário está ${bq[0].motivo==='Reservado'?'reservado':'fechado'} (${bq[0].motivo}${bq[0].obs?': '+bq[0].obs:''}). Dá para agendar mesmo assim.`)}
     const choque=agendaAtiva().find(a=>a.pro===p&&a.date===d&&a.hora===nh.value&&a.st!=='Atendido');
@@ -1977,6 +1991,11 @@ function render(){
   const aviso=erros.length?`<div class="note err"><span>Não foi possível ler parte dos dados (${erros.map(([p,m])=>esc(p+': '+m)).join('; ')}). A tela pode estar incompleta.</span><button class="btn sm" id="retry">Tentar de novo</button></div>`:'';
   main.innerHTML=aviso+(DEMO?'<div class="note">Demonstração: os dados ficam só na memória deste navegador e somem ao recarregar.</div>':'')+V[S.tab]();
   bindSeg();
+  // As caixas com rolagem não podem voltar ao topo a cada toque: guardam e devolvem a posição.
+  main.querySelectorAll('[data-tlscroll]').forEach(el=>{const k=el.dataset.tlscroll,top=S.rolagem&&S.rolagem[k];
+    if(top!=null)el.scrollTop=top;else{const e=el.querySelector('.tl-ev'),ini=+el.dataset.tlini;el.scrollTop=e?Math.max(0,e.offsetTop-60):0}
+    el.onscroll=()=>{(S.rolagem=S.rolagem||{})[k]=el.scrollTop}});
+  const lvr=main.querySelector('.lv-rol');if(lvr){lvr.scrollTop=S.rolagemLv||0;lvr.onscroll=()=>{S.rolagemLv=lvr.scrollTop}}
   const rt=document.getElementById('retry');if(rt)rt.onclick=()=>{S.erros={};comecarLeituras()};
   main.querySelectorAll('[data-agdia]').forEach(b=>b.onclick=()=>{S.agData=b.dataset.agdia;S.agMes=b.dataset.agdia.slice(0,7);render()});
   main.querySelectorAll('[data-agmes]').forEach(b=>b.onclick=()=>{const n=+b.dataset.agmes;
