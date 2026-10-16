@@ -148,3 +148,5 @@ A linha do tempo tem **barra de rolagem própria** (`.tl-scroll`, abre no primei
 **Cores (16/10/2026):** a agenda usa só **dourado** (Tháriga), **champanhe** (Rafael) e **rosé** (Mariana), em tom claro com faixa forte (`--p-*` e `--t-*`, claro e escuro). Marrom saiu.
 
 **Cores, ajuste final (16/10/2026):** **rosé** para a Tháriga, **champanhe** para o Rafael e **dourado** para a Mariana. As etiquetas de anamnese (*Anamnese*, *Anamnese pendente*) são rosé (`.tag.rose`, `--rose`).
+
+**Cores, ajuste de 16/10/2026 (noite):** **rosé** Tháriga, **bege** Rafael, **palha** Mariana. As bolinhas de cadastro (iniciais das clientes, `.avatar`) também são rosé.
