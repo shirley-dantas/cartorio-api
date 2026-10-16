@@ -9,7 +9,7 @@
 <meta property="og:site_name" content="Maison Beauty">
 <meta property="og:title" content="Seu horário · Maison Beauty">
 <meta property="og:description" content="Veja os detalhes e salve o horário na sua agenda.">
-<meta property="og:image" content="https://thariga-brito.vercel.app/og-horario.png">
+<meta property="og:image" content="https://thariga-brito.vercel.app/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -22,7 +22,7 @@
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
 .wrap{max-width:520px;margin:0 auto;padding:20px 16px 50px}
-.logo{display:block;margin:6px auto 4px;width:220px;max-width:70%;height:auto}
+.logo{display:block;margin:6px auto 8px;width:150px;max-width:50%;height:auto}
 h1{font-family:var(--serif);font-weight:600;font-size:30px;margin:14px 0 4px;text-align:center}
 .sub{color:var(--muted);text-align:center;margin-bottom:18px}
 .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
@@ -43,7 +43,16 @@ h1{font-family:var(--serif);font-weight:600;font-size:30px;margin:14px 0 4px;tex
 const U={flo:{n:'Estúdio Florença',s:'Itaim Bibi',e:'Rua Pedroso Alvarenga, 502, Itaim Bibi, São Paulo - SP, CEP 04531-001'},mai:{n:'Maison Beauty',s:'Itaquera',e:'Rua Fontoura Xavier, 717, sala 3, Itaquera, São Paulo - SP, CEP 08295-300'}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const q=new URLSearchParams(location.search),tela=document.getElementById('tela');
-const s=(q.get('s')||'').slice(0,80),d=q.get('d')||'',h=q.get('h')||'',m=Math.min(600,Math.max(5,parseInt(q.get('m'))||60)),u=U[q.get('u')],p=(q.get('p')||'').slice(0,40),e=(q.get('e')||(u&&u.e)||'').slice(0,160);
+// Nomes dos serviços de partida (o link só traz o nome quando ele foi trocado) e das profissionais.
+const SV={design:'Design de sobrancelhas',henna:'Design + henna',buco:'Buço',depfacial:'Depilação facial',lashlift:'Lash lifting',browlam:'Brow lamination',micro:'Micropigmentação',cilios:'Alongamento de cílios',ciliosmanut:'Manutenção de cílios',ciliosrem:'Remoção de cílios',unhamao:'Mão tradicional',unhape:'Pé tradicional',unhaalong:'Alongamento de unhas',unhamanut:'Manutenção de unhas',unharem:'Remoção de alongamento de unhas',laserpig:'Remoção de pigmento a laser',laserfungo:'Laser para tratamento de fungos',laserdepil:'Depilação a laser',ozonio:'Ozonioterapia',piercing:'Aplicação de piercing'};
+const PRO={tha:'Tháriga',rafael:'Rafael',mariana:'Mariana',lais:'Laís'};
+let s=(q.get('s')||'').slice(0,80),d=q.get('d')||'',h=q.get('h')||'',m=Math.min(600,Math.max(5,parseInt(q.get('m'))||60)),u=U[q.get('u')],p=(q.get('p')||'').slice(0,40),e=(q.get('e')||'').slice(0,160);
+// Link curto: /h/f-93f0-u-tha-design
+{const c=location.pathname.match(/^\/h\/([a-z]+)-([0-9a-z]+)-([0-9a-z]+)-([a-z]+)-(.+)$/i);
+ if(c){const t=new Date(Date.UTC(2026,0,1)+parseInt(c[2],36)*60000),pad=n=>String(n).padStart(2,'0');
+  u=U[c[1]==='f'?'flo':'mai'];d=`${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}-${pad(t.getUTCDate())}`;h=`${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`;
+  m=Math.min(600,Math.max(5,parseInt(c[3],36)||60));p=PRO[c[4]]||'';s=s||SV[decodeURIComponent(c[5])]||''}}
+e=(e||(u&&u.e)||'').slice(0,160);
 if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(d)||!/^\d{2}:\d{2}$/.test(h)||!u){
   tela.innerHTML='<h1>Link inválido</h1><div class="sub">Peça um novo link à Maison Beauty.</div>';
 }else{
@@ -55,7 +64,7 @@ if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(d)||!/^\d{2}:\d{2}$/.test(h)||!u){
   const titulo=s+' · '+u.n,local=u.n+' · '+(e||u.s);
   const gcal='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(titulo)+'&dates='+ini+'/'+fim+'&location='+encodeURIComponent(local);
   const ics=t=>String(t).replace(/([,;\\])/g,'\\$1');
-  tela.innerHTML=`<h1>Seu horário está confirmado</h1><div class="sub">Maison Beauty</div>
+  tela.innerHTML=`<h1>Seu horário está confirmado</h1><div class="sub">${esc(u.n)}</div>
   <div class="box">
    <div class="lin"><div><b>${esc(s)}</b><span>Serviço${p?' · com '+esc(p):''}</span></div></div>
    <div class="lin"><div><b>${esc(dia.charAt(0).toUpperCase()+dia.slice(1))}</b><span>Data</span></div></div>
