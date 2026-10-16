@@ -14,17 +14,20 @@
   --bg:#FAF7F1; --panel:#FFFFFF; --ink:#262220; --muted:#8A7D6E; --line:#E9E1D2;
   --berry:#9C7A2E; --berry-soft:#F1E9D4; --flo:#6B5B45; --flo-soft:#EFE7D9; --mai:#9C7A2E; --mai-soft:#F1E9D4;
   --warn:#A8551C; --warn-soft:#FBEBDD; --ok:#3F7A57; --ok-soft:#E2F1E7;
+  --p-tha:#9C7A2E; --p-raf:#6B5B45; --p-mar:#A0675B; --p-lai:#7C8A6A; --p-txt:#fff;
   --serif:"Cormorant",Georgia,"Times New Roman",serif; --sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#1C1A16; --panel:#262320; --ink:#F3EFE6; --muted:#B5A98F; --line:#3B362C;
   --berry:#D4B45E; --berry-soft:#3A331F; --flo:#C9BB9C; --flo-soft:#2E2A20; --mai:#D4B45E; --mai-soft:#3A331F;
-  --warn:#EDA46E; --warn-soft:#3A2618; --ok:#8CCBA4; --ok-soft:#1D3024;}}
+  --warn:#EDA46E; --warn-soft:#3A2618; --ok:#8CCBA4; --ok-soft:#1D3024;
+  --p-tha:#D4B45E; --p-raf:#C9BB9C; --p-mar:#D99A8C; --p-lai:#A9B894; --p-txt:#1C1A16;}}
 :root[data-theme="dark"]{
   --bg:#1C1A16; --panel:#262320; --ink:#F3EFE6; --muted:#B5A98F; --line:#3B362C;
   --berry:#D4B45E; --berry-soft:#3A331F; --flo:#C9BB9C; --flo-soft:#2E2A20; --mai:#D4B45E; --mai-soft:#3A331F;
-  --warn:#EDA46E; --warn-soft:#3A2618; --ok:#8CCBA4; --ok-soft:#1D3024;}
+  --warn:#EDA46E; --warn-soft:#3A2618; --ok:#8CCBA4; --ok-soft:#1D3024;
+  --p-tha:#D4B45E; --p-raf:#C9BB9C; --p-mar:#D99A8C; --p-lai:#A9B894; --p-txt:#1C1A16;}
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);min-height:100%}
@@ -113,7 +116,7 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .days button i{display:block;width:6px;height:6px;border-radius:50%;margin:5px auto 0}
 .chips-pro{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
 .chips-pro button{border:2px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
-.chips-pro button.on{background:#333;border-color:#333;color:#fff}
+.chips-pro button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .tl-hd{display:flex;margin-bottom:0;background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;overflow:hidden}
 .tl-hd i{flex:0 0 46px}
 .tl-hd div{flex:1;min-width:0;text-align:center;font-weight:700;font-size:13px;padding:7px 2px;border-bottom:3px solid;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -122,11 +125,11 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 .tl-gut span{position:absolute;left:6px;font-size:11px;color:var(--muted,#777);transform:translateY(-7px)}
 .tl-cols{position:relative;flex:1;display:flex;min-width:0;background-image:linear-gradient(#ece6f3 1px,transparent 1px)}
 .tl-col{position:relative;flex:1;min-width:0;cursor:pointer;border-left:1px solid #ece6f3}
-.tl-ev{position:absolute;box-sizing:border-box;border:1px solid #fff;border-radius:6px;color:#fff;text-align:left;padding:3px 5px;font:inherit;font-size:12px;line-height:1.25;overflow:hidden;cursor:pointer}
+.tl-ev{position:absolute;box-sizing:border-box;border:1px solid #fff;border-radius:6px;color:var(--p-txt);text-align:left;padding:3px 5px;font:inherit;font-size:12px;line-height:1.25;overflow:hidden;cursor:pointer}
 .tl-ev b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tl-ev small{display:block;opacity:.92;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tl-ev.feito{opacity:.55}.tl-ev.sel{outline:3px solid #111;z-index:2}
-.tl-ev.blq{background:repeating-linear-gradient(45deg,#2c2c2c,#2c2c2c 6px,#1a1a1a 6px,#1a1a1a 12px)}
+.tl-ev.feito{opacity:.55}.tl-ev.sel{outline:3px solid var(--ink);z-index:2}
+.tl-ev.blq{color:#fff;background:repeating-linear-gradient(45deg,#2c2c2c,#2c2c2c 6px,#1a1a1a 6px,#1a1a1a 12px)}
 .cols{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
 .appt{border-left:3px solid var(--berry);padding:8px 10px;margin-top:8px;background:var(--bg);border-radius:0 8px 8px 0}
 .appt.done{opacity:.55}
@@ -358,7 +361,8 @@ const STAFF=['rafael','lais','mariana'];
 // O mesmo mapa existe (por nome) no pedido.html: se mudar aqui, mude lá.
 const PRO_SERV={rafael:['laserpig','laserfungo','laserdepil','ozonio','piercing'],mariana:['unhamao','unhape','unhaalong','unhamanut','unharem']};
 const VAGA_PRO={tha:1,rafael:2,mariana:3,lais:4};
-const COR_PRO={tha:'#6d3fc0',rafael:'#1f78d1',mariana:'#d6458a',lais:'#1f9d6b'};
+// Paleta da agenda que já existia (dourado, marrom, creme): variáveis --p-* no CSS, claras e escuras.
+const COR_PRO={tha:'var(--p-tha)',rafael:'var(--p-raf)',mariana:'var(--p-mar)',lais:'var(--p-lai)'};
 // Valores e tempos informados por Tháriga em 30/09/2026. Todos os serviços exigem anamnese. Retorno padrão: 20 dias.
 const SERV={
  flo:[
