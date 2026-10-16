@@ -146,3 +146,5 @@ A linha do tempo tem **barra de rolagem própria** (`.tl-scroll`, abre no primei
 **Ajuste de 16/10/2026 (mais tarde):** a Tháriga pediu a agenda do Rafael e da Mariana **aberta todos os dias** (`STAFF_DIAS` = domingo a sábado, e `DIAS_PRO` no `pedido.html`), mesmo que na prática atendam só em alguns dias: eles têm liberdade de mudar e fecham o que não atendem com *Fechar horário* (dia inteiro). A Tháriga continua em Itaquera de domingo a quarta e no Florença de quinta a sábado.
 
 **Cores (16/10/2026):** a agenda usa só **dourado** (Tháriga), **champanhe** (Rafael) e **rosé** (Mariana), em tom claro com faixa forte (`--p-*` e `--t-*`, claro e escuro). Marrom saiu.
+
+**Cores, ajuste final (16/10/2026):** **rosé** para a Tháriga, **champanhe** para o Rafael e **dourado** para a Mariana. As etiquetas de anamnese (*Anamnese*, *Anamnese pendente*) são rosé (`.tag.rose`, `--rose`).
