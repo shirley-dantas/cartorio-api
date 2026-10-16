@@ -10,7 +10,7 @@ Quando a cliente marca um horário pelo link ou envia a ficha, a equipe recebe u
 5. Ao tocar, abre o painel; ao abrir, a reserva vira agendamento.
 
 ## Configuração (uma vez), na Vercel do painel (projeto da pasta `maison`) → Settings → Environment Variables
-- `FIREBASE_SERVICE_ACCOUNT`: o arquivo JSON da conta de serviço (Firebase → Configurações do projeto → Contas de serviço → Gerar nova chave privada), colado inteiro. **Nunca vai para o GitHub nem para o chat.**
+- `FIREBASE_DB_SECRET`: o "Secret do Database" (Firebase → Configurações do projeto → Contas de serviço → Secrets do Database → Mostrar). **Nunca vai para o GitHub nem para o chat.** (A organização do Google bloqueia criar chave de conta de serviço, por isso as funções usam o secret pela API REST.)
 - `VAPID_PUBLICA`: a mesma chave que está em `VAPID_PUBLICA` no `index.html`.
 - `VAPID_PRIVADA`: a chave privada correspondente.
 - Depois, **Redeploy** para valer.
