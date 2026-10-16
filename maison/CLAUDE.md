@@ -150,3 +150,5 @@ A linha do tempo tem **barra de rolagem própria** (`.tl-scroll`, abre no primei
 **Cores, ajuste final (16/10/2026):** **rosé** para a Tháriga, **champanhe** para o Rafael e **dourado** para a Mariana. As etiquetas de anamnese (*Anamnese*, *Anamnese pendente*) são rosé (`.tag.rose`, `--rose`).
 
 **Cores, ajuste de 16/10/2026 (noite):** **rosé** Tháriga, **bege** Rafael, **palha** Mariana. As bolinhas de cadastro (iniciais das clientes, `.avatar`) também são rosé.
+
+**Trocar cliente (16/10/2026):** o cartão do agendamento (só para a Tháriga) tem **Trocar cliente** (`trocarCliente()`): corrige agendamentos que ficaram no nome de um cadastro genérico (ex.: "Cliente Florença"), inclusive os já atendidos, sem mexer em valor nem histórico. A unidade da cliente continua no cadastro dela.
