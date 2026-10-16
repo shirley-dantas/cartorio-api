@@ -377,7 +377,7 @@ if(DEMO)setTimeout(()=>{window.__DB=DB},0);
 // ═══ Dados do negócio ══════════════════════════════════════════════════
 const U={
  flo:{n:'Estúdio Florença',em:'no',de:'do',s:'Itaim Bibi',dias:'Quinta, sexta e sábado',hora:'09:00–19:00'},
- mai:{n:'Tháriga Beauty & Co',em:'na',de:'da',s:'Itaquera',dias:'Segunda a sábado (a Tháriga, de domingo a quarta)',hora:'07:30–19:00'}};
+ mai:{n:'Tháriga Beauty & Co',em:'na',de:'da',s:'Itaquera',dias:'Rafael e Mariana: qualquer dia; Tháriga: domingo a quarta',hora:'07:30–19:00'}};
 const PEOPLE={tha:{n:'Tháriga'},rafael:{n:'Rafael'},lais:{n:'Laís'},mariana:{n:'Mariana'}};
 const STAFF=['rafael','lais','mariana'];
 // Quem faz cada serviço (Tháriga, 16/10/2026): cada um cai na agenda de quem faz, para não misturar as agendas.
@@ -748,9 +748,9 @@ async function alternarAvisos(){
 const bloqueios=()=>[...arr(C.mBlq).map(b=>({...b,_p:'maison'})),...(isAdmin()?arr(C.fBlq).map(b=>({...b,_p:'florenca'})):[])];
 const hhmmDe=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
 const MOTIVOS_BLQ=['Fechado','Reservado','Almoço','Compromisso','Outro'];
-// Tháriga (16/10/2026): ela fica em Itaquera de domingo a quarta e no Florença de quinta a sábado; o Rafael e a Mariana atendem em Itaquera de segunda a sábado.
+// Tháriga (16/10/2026): ela fica em Itaquera de domingo a quarta e no Florença de quinta a sábado; a agenda do Rafael e da Mariana fica aberta todos os dias, e eles mesmos fecham os dias em que não atendem.
 const dowDe=d=>new Date((typeof d==='string'?d:iso(d))+'T12:00').getDay();
-const STAFF_DIAS=[1,2,3,4,5,6];
+const STAFF_DIAS=[0,1,2,3,4,5,6]; // agendas abertas todos os dias: quem não atende num dia fecha o horário (Fechar horário → dia inteiro)
 const prosDaUnidade=(u,d)=>{if(u==='flo')return ['tha'];const w=dowDe(d);return [...(w<=3?['tha']:[]),...(STAFF_DIAS.includes(w)?['rafael','mariana']:[])]};
 const unidadesDoDia=d=>dowDe(d)>=4?['flo','mai']:['mai'];
 function bloqueioNoSlot(u,d,t,t2){return bloqueios().filter(b=>b.unit===u&&b.date===d&&minDe(b.hora)<t2&&minDe(b.hora)+b.m>t)}

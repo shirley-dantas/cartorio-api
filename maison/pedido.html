@@ -101,9 +101,9 @@ const RAF=['Remoção de pigmento a laser','Laser para tratamento de fungos','De
       MAR=['Mão tradicional','Pé tradicional','Alongamento de unhas','Manutenção de unhas','Remoção de alongamento de unhas'];
 const proDe=(u,nome)=>u==='flo'?'tha':RAF.includes(nome)?'rafael':MAR.includes(nome)?'mariana':'tha';
 const VAGA={tha:1,rafael:2,mariana:3};
-// Dias de cada profissional: a Tháriga fica em Itaquera de domingo a quarta e no Florença de quinta a sábado; o Rafael e a Mariana atendem em Itaquera de segunda a sábado.
-const DIAS_PRO={mai:{tha:[0,1,2,3],rafael:[1,2,3,4,5,6],mariana:[1,2,3,4,5,6]},flo:{tha:[4,5,6]}};
-UN.mai.diasTxt='Segunda a sábado';UN.flo.diasTxt='Quinta, sexta e sábado';
+// Dias de cada profissional: a Tháriga fica em Itaquera de domingo a quarta e no Florença de quinta a sábado; a agenda do Rafael e da Mariana fica aberta todos os dias (eles fecham os dias em que não atendem).
+const DIAS_PRO={mai:{tha:[0,1,2,3],rafael:[0,1,2,3,4,5,6],mariana:[0,1,2,3,4,5,6]},flo:{tha:[4,5,6]}};
+UN.mai.diasTxt='Todos os dias';UN.flo.diasTxt='Quinta, sexta e sábado';
 const NOMES=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
