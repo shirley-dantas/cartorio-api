@@ -95,6 +95,12 @@
         }
       },
       // Horários fechados ou reservados pela equipe, sem nome de cliente. Todas as da Maison criam e reabrem.
+      "combinados": {
+        "$id": {
+          ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
+          ".validate": "!newData.exists() || (newData.hasChildren(['valor','tabela','motivo']) && newData.child('valor').isNumber() && newData.child('valor').val() >= 0)"
+        }
+      },
       "bloqueios": {
         "$id": {
           ".write": "auth != null && root.child('acesso').child(auth.uid).exists()",
@@ -201,7 +207,8 @@
         "$id": {
           ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (!data.exists() && root.child('acesso').child(auth.uid).exists()))",
           // Um valor marcado como "brinde" só é aceito se o código existe e já foi ligado a ESTE atendimento.
-          ".validate": "!newData.child('desc').exists() || newData.child('desc').child('tipo').val() !== 'brinde' || root.child('maison').child('vouchers').child(newData.child('desc').child('voucher').val()).child('atend').val() === $id || root.child('florenca').child('vouchers').child(newData.child('desc').child('voucher').val()).child('atend').val() === $id"
+          // Um valor marcado como "combinado" só é aceito se a Tháriga gravou aquele valor para aquele agendamento (/combinados, que só o administrador escreve).
+          ".validate": "(!newData.child('desc').exists() || newData.child('desc').child('tipo').val() !== 'brinde' || root.child('maison').child('vouchers').child(newData.child('desc').child('voucher').val()).child('atend').val() === $id || root.child('florenca').child('vouchers').child(newData.child('desc').child('voucher').val()).child('atend').val() === $id) && (!newData.child('desc').exists() || newData.child('desc').child('tipo').val() !== 'combinado' || root.child('maison').child('combinados').child(newData.child('desc').child('agenda').val()).child('valor').val() === newData.child('valor').val() || root.child('florenca').child('combinados').child(newData.child('desc').child('agenda').val()).child('valor').val() === newData.child('valor').val())"
         }
       }
     },

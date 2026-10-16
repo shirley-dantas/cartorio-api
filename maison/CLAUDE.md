@@ -152,3 +152,10 @@ A linha do tempo tem **barra de rolagem própria** (`.tl-scroll`, abre no primei
 **Cores, ajuste de 16/10/2026 (noite):** **rosé** Tháriga, **bege** Rafael, **palha** Mariana. As bolinhas de cadastro (iniciais das clientes, `.avatar`) também são rosé.
 
 **Trocar cliente (16/10/2026):** o cartão do agendamento (só para a Tháriga) tem **Trocar cliente** (`trocarCliente()`): corrige agendamentos que ficaram no nome de um cadastro genérico (ex.: "Cliente Florença"), inclusive os já atendidos, sem mexer em valor nem histórico. A unidade da cliente continua no cadastro dela.
+## Valor combinado no agendamento (rascunho, ainda não publicado)
+
+Pedido da Tháriga (via a cliente dela): poder mudar o valor na hora de agendar, sem mexer na tabela. No *Novo agendamento* (só para a administradora) há **Cobrar um valor combinado**: motivo (**Marcou o estúdio no Instagram (10%)**, que calcula sozinho sobre a tabela; cortesia; pacote; outro, estes com detalhe obrigatório) e o valor, sempre **menor que a tabela**. Também dá para criar/alterar depois pelo botão **Valor combinado** do cartão da agenda (`dlgCombinado`).
+- Fica em `/maison/combinados/{agendamento}` (ou `/florenca/combinados`): **só o administrador grava** (regras do banco). A equipe lê, para saber quanto cobrar.
+- Ao **concluir**, o valor vem travado (`readOnly`) com o motivo, e o atendimento grava `desc.tipo = 'combinado'`. As regras de `financeiro/valores` só aceitam esse desconto se o valor bate com o gravado pela Tháriga, então a equipe não consegue inventar desconto.
+- Em **Descontos dados** aparece como "Combinado · motivo", com quem combinou, e conta em "Sem voucher — com motivo".
+- Precisa publicar as regras novas (`database.rules.json`: `combinados` e a validação de `valores`). Enquanto não publicar, salvar o valor combinado avisa que o banco recusou.

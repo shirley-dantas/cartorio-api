@@ -535,7 +535,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{},pubMai:{},pubFlo:{},mRes:{},fRes:{},mBlq:{},fBlq:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{},pubMai:{},pubFlo:{},mRes:{},fRes:{},mBlq:{},fBlq:{},mComb:{},fComb:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -567,9 +567,9 @@ function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];
 let rq=0;function agendarRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;if(S.user)render()})}
 function comecarLeituras(){
   pararLeituras();
-  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/reservas','mRes');ouvir('maison/bloqueios','mBlq');ouvir('publico/agenda/mai','pubMai');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
+  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/reservas','mRes');ouvir('maison/bloqueios','mBlq');ouvir('maison/combinados','mComb');ouvir('publico/agenda/mai','pubMai');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
   if(isAdmin()){
-    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/reservas','fRes');ouvir('florenca/bloqueios','fBlq');ouvir('publico/agenda/flo','pubFlo');ouvir('florenca/pendentes','fPend');
+    ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/reservas','fRes');ouvir('florenca/bloqueios','fBlq');ouvir('florenca/combinados','fComb');ouvir('publico/agenda/flo','pubFlo');ouvir('florenca/pendentes','fPend');
     ouvir('financeiro/valores','valores');
     ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');ouvir('admin/instagram','instagram');
     // A carga inicial dos roteiros é idempotente: chaves fixas, só cria o que falta.
@@ -799,8 +799,8 @@ const reabrirHorario=(id,p)=>grava(()=>DB.del(p+'/bloqueios/'+id),'Horário reab
 // Tocar num bloco abre as ações dele; tocar num espaço vazio oferece agendar ou fechar aquele horário.
 const PX30=44;
 function cartaoAg(a){const at=a.st==='Atendido'?histAll(true).find(h=>h.agenda===a.id&&!h.cancelado):null;
-  return `<div class="appt ${a.st==='Atendido'?'done':''}" style="border-left-color:${COR_PRO[a.pro]||'var(--berry)'}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}${a.origem==='link'?' <span class="tag">Pelo link</span>':''}<div class="small muted">${esc(sv(a.serv,a.unit).n)} · ${esc(PEOPLE[a.pro]?.n||'')}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}</div>
-   <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}${isAdmin()?`<button class="btn sm" data-troc="${a.id}" data-p="${a._p}">Trocar cliente</button>`:''}</div></div>`}
+  return `<div class="appt ${a.st==='Atendido'?'done':''}" style="border-left-color:${COR_PRO[a.pro]||'var(--berry)'}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}${a.origem==='link'?' <span class="tag">Pelo link</span>':''}<div class="small muted">${esc(sv(a.serv,a.unit).n)} · ${esc(PEOPLE[a.pro]?.n||'')}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}${(()=>{const cb=combinadoDe(a);return cb?` · <b style="color:var(--rose)">Valor combinado ${brl(cb.valor)}</b> (${esc(cb.motivo)})`:''})()}</div>
+   <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button>${isAdmin()?`<button class="btn sm" data-comb="${a.id}" data-p="${a._p}">${combinadoDe(a)?'Alterar valor combinado':'Valor combinado'}</button>`:''}<button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}${isAdmin()?`<button class="btn sm" data-troc="${a.id}" data-p="${a._p}">Trocar cliente</button>`:''}</div></div>`}
 // Troca a cliente de um horário (só a Tháriga): serve para corrigir agendamentos que ficaram no nome errado.
 // Vale também para o que já foi atendido: o histórico e o valor cobrado ficam como estão, só muda de quem é.
 function trocarCliente(id,p,pre){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a||!isAdmin())return;
@@ -969,6 +969,43 @@ function compartilharLivres(){
     const sh=document.getElementById('lvi-s');if(sh)sh.onclick=async()=>{try{const f=new File([await blob()],'horarios-livres.png',{type:'image/png'});if(navigator.canShare({files:[f]}))await navigator.share({files:[f]});else toast('Este aparelho não compartilha imagem: use Baixar.')}catch(e){}};
     b.disabled=false}}
 
+// ── Valor combinado no agendamento ──
+// Só a Tháriga define (as regras do banco só deixam o administrador gravar em /combinados). Quem atende vê o valor e o motivo no cartão e ao concluir,
+// mas não consegue mudá-lo: o atendimento só é aceito com desconto "combinado" se o valor bate com o que ela gravou. O desconto aparece em "Descontos dados" com o motivo.
+const MOTIVOS_COMB=[['insta','Marcou o estúdio no Instagram (10%)'],['cortesia','Cortesia autorizada pela Tháriga'],['pacote','Pacote ou combinado com a cliente'],['outro','Outro motivo']];
+const INSTA_PCT=10;
+const combinadoDe=a=>(a._p==='florenca'?C.fComb:C.mComb)[a.id]||null;
+function combinadoUI(box,preco,atual){
+  let tab=preco||0;
+  box.innerHTML=`<div class="voucher semv" style="margin-bottom:12px"><label class="ck" style="margin:0"><input type="checkbox" id="cb-on" ${atual?'checked':''}>Cobrar um valor combinado (só você define)</label>
+   <div id="cb-in" ${atual?'':'hidden'} style="margin-top:8px"><div class="small muted" id="cb-tab"></div>
+   <label class="f">Motivo<select id="cb-m">${MOTIVOS_COMB.map(([k,l])=>`<option value="${k}" ${atual&&atual.tipoMotivo===k?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
+   <label class="f">Valor combinado (R$)<input type="number" step="0.01" min="0" id="cb-v" value="${atual?atual.valor:''}"></label>
+   <label class="f" id="cb-dl" hidden>Detalhe (obrigatório)<input id="cb-d" maxlength="80" value="${esc(atual&&atual.detalhe||'')}"></label>
+   <div class="small" id="cb-r"></div></div></div>`;
+  const g=id=>box.querySelector('#'+id);
+  const atualiza=()=>{const m=g('cb-m').value;g('cb-tab').textContent='Tabela: '+brl(tab);
+    if(m==='insta'){g('cb-v').value=centavos(tab-Math.round(tab*INSTA_PCT)/100).toFixed(2);g('cb-v').readOnly=true}else g('cb-v').readOnly=false;
+    g('cb-dl').hidden=m==='insta';
+    const v=parseFloat(g('cb-v').value);g('cb-r').textContent=v>=0&&tab>0&&v<tab?`Desconto de ${brl(tab-v)} (${String(Math.round((1-v/tab)*10000)/100).replace('.',',')}%)`:''};
+  g('cb-on').onchange=()=>{g('cb-in').hidden=!g('cb-on').checked;atualiza()};g('cb-m').onchange=atualiza;g('cb-v').oninput=atualiza;
+  atualiza();
+  return {setPreco(p){tab=p||0;atualiza()},
+   ligar(){g('cb-on').checked=true;g('cb-in').hidden=false;atualiza()},
+   ler(){if(!g('cb-on').checked)return null;const m=g('cb-m').value,v=parseFloat(g('cb-v').value);
+     if(!(v>=0)){toast('Digite o valor combinado');return false}
+     if(!(tab>0&&v<tab-0.005)){toast('O valor combinado precisa ser menor que o da tabela ('+brl(tab)+')');return false}
+     const det=g('cb-d').value.trim();if(m!=='insta'&&det.length<3){toast('Escreva o detalhe do valor combinado');return false}
+     const o={valor:centavos(v),tabela:tab,tipoMotivo:m,motivo:MOTIVOS_COMB.find(x=>x[0]===m)[1],pct:m==='insta'?INSTA_PCT:Math.round((1-v/tab)*10000)/100,por:S.user.nome,em:iso(TODAY)};
+     if(det&&m!=='insta')o.detalhe=det;return o}}}
+function dlgCombinado(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)return;const s=sv(a.serv,a.unit),atual=combinadoDe(a);
+  openDlg('Valor combinado',`<p><b>${esc(cli(a.cli).n)}</b><br><span class="muted">${esc(s.n)} · ${esc(diaLongo(a.date))} às ${esc(a.hora)}</span></p><div id="dc-box"></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="dc-ok">Guardar</button>${atual?'<button class="btn" id="dc-rm">Tirar o valor combinado</button>':''}</div>`);
+  const ui=combinadoUI(document.getElementById('dc-box'),s.p,atual);if(!atual)ui.ligar();
+  document.getElementById('dc-ok').onclick=async()=>{const cb=ui.ler();if(cb===false)return;if(!cb){toast('Marque "Cobrar um valor combinado" ou use "Tirar".');return}
+    if(await grava(()=>DB.set(p+'/combinados/'+id,cb),'Valor combinado guardado'))closeDlg()};
+  const rm=document.getElementById('dc-rm');if(rm)rm.onclick=async()=>{if(await grava(()=>DB.del(p+'/combinados/'+id),'Valor combinado retirado'))closeDlg()}}
+
 // ── Brinde de aniversário como voucher ──
 // O desconto só existe se a Tháriga liberou antes: um código por cliente, uso único, com prazo.
 // Quem atende não digita desconto: aplica o voucher, e o painel calcula. Desconto sem voucher exige motivo e fica marcado.
@@ -1008,8 +1045,8 @@ const lerMotivo=()=>{const m=document.getElementById('cm').value,d=document.getE
 function brindeTag(cid){const v=voucherRecente(cid);
   if(!v)return isAdmin()?`<button class="btn sm" data-lib="${cid}">Liberar brinde</button>`:'';
   return v.usado?'<span class="tag">Brinde usado</span>':venceu(v,iso(TODAY))?'<span class="tag warn">Brinde venceu</span>':`<span class="tag ok" title="${esc(v.id)}">🎁 ${ateTxt(v)}</span>`}
-function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.serv,a.unit);
-  let vou=voucherAtivo(a.cli,a.date),aplicar=!!vou;
+function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.serv,a.unit),comb=combinadoDe(a);
+  let vou=comb?null:voucherAtivo(a.cli,a.date),aplicar=!!vou;
   openDlg('Concluir atendimento',`<p><b>${esc(cli(a.cli).n)}</b><br><span class="muted">${esc(s.n)} com ${esc(PEOPLE[a.pro]?.n)} · ${U[a.unit].n}</span></p>
   <div id="cvbox"></div>
   <label class="f">Valor cobrado<input type="number" step="0.01" id="cv" value="${s.p}"></label>
@@ -1019,6 +1056,8 @@ function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.ser
   <button class="btn p" id="csave">Registrar atendimento</button>`);
   const cv=document.getElementById('cv'),box=document.getElementById('cvbox'),mot=document.getElementById('cmot');
   const atualiza=()=>{
+    if(comb){cv.value=comb.valor.toFixed(2);cv.readOnly=true;mot.hidden=true;
+      box.innerHTML=`<div class="voucher"><div class="vt">💰 Valor combinado</div><div class="vl"><span>Tabela</span><b>${brl(s.p)}</b></div><div class="vl"><span>${esc(comb.motivo)}</span><b>− ${brl(centavos(s.p-comb.valor))}</b></div><div class="vl tot"><span>A cobrar</span><b>${brl(comb.valor)}</b></div>${comb.detalhe?`<div class="small muted" style="margin-top:6px">${esc(comb.detalhe)}</div>`:''}<div class="small muted" style="margin-top:6px">Combinado por ${esc(comb.por||'')}. Para mudar, fale com a Tháriga.</div></div>`;return}
     if(vou&&aplicar){const k=calcBrinde(s.p);cv.value=k.final.toFixed(2);cv.readOnly=true;mot.hidden=true;
       box.innerHTML=`<div class="voucher"><div class="vt">🎁 Brinde de aniversário</div><div class="vl"><span>Tabela</span><b>${brl(s.p)}</b></div><div class="vl"><span>Desconto de ${String(k.pct).replace('.',',')}%</span><b>− ${brl(k.desc)}</b></div><div class="vl tot"><span>A cobrar</span><b>${brl(k.final)}</b></div><div class="small muted" style="margin-top:6px">Código ${esc(vou.id)} · ${vou.valeAte?'vale até '+fd(vou.valeAte):'sem prazo'} · uso único. O valor está travado.</div><button type="button" class="btn sm" id="vno" style="margin-top:8px">Não aplicar o brinde</button></div>`;
       document.getElementById('vno').onclick=()=>{aplicar=false;cv.value=s.p;atualiza()}}
@@ -1040,7 +1079,9 @@ function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.ser
     const valor=parseFloat(cv.value);
     if(!(valor>=0)){toast('Digite o valor cobrado');btn.disabled=false;return}
     const usaV=vou&&aplicar;let desc=null,k=null;
-    if(usaV){k=calcBrinde(s.p);if(Math.abs(valor-k.final)>0.005){toast('O valor do brinde não pode ser mudado.');btn.disabled=false;return}
+    if(comb){if(Math.abs(valor-comb.valor)>0.005){toast('O valor combinado não pode ser mudado aqui.');btn.disabled=false;return}
+      desc={tipo:'combinado',agenda:a.id,tipoMotivo:comb.tipoMotivo,motivo:comb.motivo,pct:comb.pct,valorDesc:centavos(s.p-valor),por:comb.por||'',em:comb.em||iso(TODAY)};if(comb.detalhe)desc.detalhe=comb.detalhe}
+    else if(usaV){k=calcBrinde(s.p);if(Math.abs(valor-k.final)>0.005){toast('O valor do brinde não pode ser mudado.');btn.disabled=false;return}
       desc={tipo:'brinde',voucher:vou.id,pct:k.pct,valorDesc:k.desc,por:S.user.nome,em:iso(TODAY)}}
     else if(valor<s.p-0.005){desc=lerMotivo();if(!desc){btn.disabled=false;return}}
     const ok=await grava(async()=>{
@@ -1165,7 +1206,9 @@ function novoAg(pre){
   <label class="f">Profissional<select id="np">${pros.map(p=>`<option value="${p}" ${p===(pre.pro||meuPro())?'selected':''}>${PEOPLE[p].n}</option>`).join('')}</select></label>
   <div style="display:flex;gap:10px"><label class="f" style="flex:1">Data<input type="date" id="nd" value="${pre.data||S.agData||iso(TODAY)}"></label><label class="f" style="flex:1">Hora<input type="time" id="nh" value="${pre.hora||'10:00'}"></label></div>
   <label class="f">Serviço<select id="ns"></select></label>
+  ${isAdmin()?'<div id="ncomb"></div>':''}
   <div id="navisos"></div><button class="btn p" id="nsave">Agendar</button>`);
+  const comb=isAdmin()?combinadoUI(document.getElementById('ncomb'),0,null):null;
   const nc=document.getElementById('nc'),ns=document.getElementById('ns'),np=document.getElementById('np'),nd=document.getElementById('nd'),nh=document.getElementById('nh'),navisos=document.getElementById('navisos'),nsave=document.getElementById('nsave');
   const check=()=>{const p=np.value,d=nd.value,c=cli(nc.value);let ok=!!d;const msgs=[];
     let u;
@@ -1177,6 +1220,7 @@ function novoAg(pre){
     if(choque)msgs.push(`${PEOPLE[p].n} já tem ${cli(choque.cli).n} às ${nh.value}. Dá para agendar mesmo assim.`);
     const opts=servicosDe(u,false).map(s=>`<option value="${s.id}">${esc(s.n)}${isAdmin()?' · '+brl(s.p):''}${s.d?' · '+s.d+'min':''}</option>`).join('');
     if(ns.innerHTML!==opts){const cur=ns.value;ns.innerHTML=opts;if([...ns.options].some(o=>o.value===cur))ns.value=cur}
+    if(comb)comb.setPreco(sv(ns.value,u).p);
     {const dono=proDoServico(ns.value,u);if(dono&&dono!==p)msgs.push(`${sv(ns.value,u).n} costuma ser com ${PEOPLE[dono].n}. Confira o profissional.`)}
     if(p==='tha')msgs.unshift(`Neste dia a Tháriga atende ${U[u].em} ${U[u].n}.`);
     const an=anamDe(c.id);
@@ -1195,9 +1239,11 @@ function novoAg(pre){
   if(pre.serv&&[...ns.options].some(o=>o.value===pre.serv)){ns.value=pre.serv;if(!pre.pro)donoDoServico();check()}
   document.getElementById('nnc').onclick=e=>{e.preventDefault();const est={pro:np.value,data:nd.value,hora:nh.value,serv:ns.value};novoCliente({voltar:id=>novoAg({...est,cli:id})})};
   nsave.onclick=async()=>{const u=check();if(nsave.disabled)return;nsave.disabled=true;
+    const cb=comb?comb.ler():null;if(cb===false){nsave.disabled=false;return}
     const base=u==='flo'?'florenca':'maison',novo={date:nd.value,ts:tsDe(nd.value),hora:nh.value,cli:nc.value,serv:ns.value,pro:np.value,unit:u,st:'Agendado'};let nid;
     const ok=await grava(async()=>{nid=await DB.push(base+'/agenda',novo)},'Agendado');
     if(!ok){nsave.disabled=false;return}
+    if(cb)await grava(()=>DB.set(base+'/combinados/'+nid,cb),'Valor combinado guardado');
     closeDlg();
     const em=cli(novo.cli).email;
     if(AGENDA_URL&&emailOk(em)){toast('Enviando o convite…');
@@ -1566,19 +1612,19 @@ function descontosHtml(){
   const recs=histAll().filter(h=>h.valor!=null&&(!ini||h.date.slice(0,7)===ini)&&visUnit(h.unit));
   const linhas=recs.map(h=>{const atual=sv(h.serv,h.unit).p,tab=h.tabela??atual,d=centavos(tab-h.valor);
     return{h,tab,d,origem:h.desc?h.desc.tipo:(d>0.005?'sem':null),mudou:h.tabela!=null&&Math.abs(h.tabela-atual)>0.005}}).filter(x=>x.d>0.005||(x.h.desc&&x.h.desc.tipo==='brinde'));
-  const soma=a=>a.reduce((s,x)=>s+x.d,0),bri=linhas.filter(x=>x.origem==='brinde'),man=linhas.filter(x=>x.origem==='manual'),sem=linhas.filter(x=>x.origem==='sem');
+  const soma=a=>a.reduce((s,x)=>s+x.d,0),bri=linhas.filter(x=>x.origem==='brinde'),man=linhas.filter(x=>x.origem==='manual'),cmb=linhas.filter(x=>x.origem==='combinado'),sem=linhas.filter(x=>x.origem==='sem');
   const fat=recs.reduce((s,h)=>s+h.valor,0),tot=soma(linhas);
-  const ordem={sem:0,manual:1,brinde:2};linhas.sort((a,b)=>ordem[a.origem]-ordem[b.origem]||b.h.date.localeCompare(a.h.date));
+  const ordem={sem:0,manual:1,combinado:1,brinde:2};linhas.sort((a,b)=>ordem[a.origem]-ordem[b.origem]||b.h.date.localeCompare(a.h.date));
   const vs=vouchers(),vAtivos=vs.filter(v=>!v.usado&&!v.cancelado&&!venceu(v,iso(TODAY))),vUsados=vs.filter(v=>v.usado),vVenc=vs.filter(v=>!v.usado&&!v.cancelado&&venceu(v,iso(TODAY)));
-  const tag=x=>x.origem==='brinde'?`<span class="tag ok">Brinde de aniversário · ${x.h.desc.pct}%</span>`:x.origem==='manual'?`<span class="tag warn">${esc(x.h.desc.motivo)}</span>`:'<span class="tag" style="background:#fbe3e0;color:#9b2c1f">Sem motivo registrado</span>';
-  const det=x=>x.origem==='manual'?`<div class="small">${esc(x.h.desc.det)} · registrado por ${esc(x.h.desc.por||'')}</div>`:x.origem==='brinde'?`<div class="small muted">Código ${esc(x.h.desc.voucher)}</div>`:`<div class="small" style="color:#9b2c1f">Cobrado abaixo da tabela, sem voucher e sem motivo.${x.h.tabela==null?' Atendimento de antes do controle: comparado ao preço de hoje.':''}${x.h.corrigidoPor?' Corrigido por '+esc(x.h.corrigidoPor)+'.':''}</div>`;
+  const tag=x=>x.origem==='brinde'?`<span class="tag ok">Brinde de aniversário · ${x.h.desc.pct}%</span>`:x.origem==='manual'?`<span class="tag warn">${esc(x.h.desc.motivo)}</span>`:x.origem==='combinado'?`<span class="tag rose">Combinado · ${esc(x.h.desc.motivo)}</span>`:'<span class="tag" style="background:#fbe3e0;color:#9b2c1f">Sem motivo registrado</span>';
+  const det=x=>x.origem==='combinado'?`<div class="small">${x.h.desc.detalhe?esc(x.h.desc.detalhe)+' · ':''}combinado por ${esc(x.h.desc.por||'')} antes do atendimento</div>`:x.origem==='manual'?`<div class="small">${esc(x.h.desc.det)} · registrado por ${esc(x.h.desc.por||'')}</div>`:x.origem==='brinde'?`<div class="small muted">Código ${esc(x.h.desc.voucher)}</div>`:`<div class="small" style="color:#9b2c1f">Cobrado abaixo da tabela, sem voucher e sem motivo.${x.h.tabela==null?' Atendimento de antes do controle: comparado ao preço de hoje.':''}${x.h.corrigidoPor?' Corrigido por '+esc(x.h.corrigidoPor)+'.':''}</div>`;
   return `<div class="box" style="margin-top:16px" id="descontos"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Descontos dados</h2>
    <div class="seg">${[['mes','Este mês'],['passado','Mês passado'],['tudo','Tudo']].map(([k,l])=>`<button class="${per===k?'on':''}" data-dper="${k}">${l}</button>`).join('')}</div></div>
    <p class="small muted" style="margin:6px 0 12px">Tudo o que foi cobrado abaixo da tabela. Só o desconto com voucher é do brinde; o resto precisa ter motivo.</p>
    <div class="grid g3">
     <div><div class="lbl">Total de descontos</div><div class="stat">${brl(tot)}</div><div class="small muted">${linhas.length} atendimento(s)${fat>0?` · ${(tot/(fat+tot)*100).toFixed(1).replace('.',',')}% do que a tabela previa`:''}</div></div>
     <div><div class="lbl">Brinde de aniversário</div><div class="stat" style="color:var(--ok)">${brl(soma(bri))}</div><div class="small muted">${bri.length} com voucher</div></div>
-    <div><div class="lbl">Sem voucher</div><div class="stat" style="color:${sem.length?'#9b2c1f':'inherit'}">${brl(soma(man)+soma(sem))}</div><div class="small muted">${man.length} com motivo · <b style="color:${sem.length?'#9b2c1f':'inherit'}">${sem.length} sem motivo</b></div></div></div>
+    <div><div class="lbl">Sem voucher</div><div class="stat" style="color:${sem.length?'#9b2c1f':'inherit'}">${brl(soma(man)+soma(cmb)+soma(sem))}</div><div class="small muted">${man.length+cmb.length} com motivo · <b style="color:${sem.length?'#9b2c1f':'inherit'}">${sem.length} sem motivo</b></div></div></div>
    ${sem.length?`<div class="alert" style="margin-top:12px"><b>${sem.length} atendimento(s) cobrado(s) abaixo da tabela sem motivo.</b> Confira com quem atendeu.</div>`:''}
    <div style="margin-top:8px">${linhas.length?linhas.map(x=>`<div class="row" style="align-items:flex-start"><div class="grow"><b>${esc(cli(x.h.cli).n)}</b><div class="small muted">${fd(x.h.date)} · ${esc(sv(x.h.serv,x.h.unit).n)} · ${esc(PEOPLE[x.h.pro]?.n||'')} · ${U[x.h.unit].n}</div>${det(x)}</div><div style="text-align:right"><div class="small muted"><s>${brl(x.tab)}</s> → <b>${brl(x.h.valor)}</b></div><div><b>− ${brl(x.d)}</b></div>${tag(x)}</div></div>`).join(''):'<p class="muted">Nenhum desconto neste período.</p>'}</div>
    <h3 style="margin:18px 0 4px">Códigos de brinde</h3>
@@ -2047,6 +2093,7 @@ function render(){
   const lvc=document.getElementById('lv-comp');if(lvc)lvc.onclick=compartilharLivres;const lvc0=document.getElementById('lv-comp0');if(lvc0)lvc0.onclick=compartilharLivres;
   const lva=document.getElementById('lv-ag');if(lva)lva.onclick=()=>{const [d,h,p]=[...S.lvSel][0].split('|');S.agData=d;S.agMes=d.slice(0,7);novoAg({data:d,hora:h,pro:p,serv:S.lvServ||undefined})};
   main.querySelectorAll('[data-troc]').forEach(b=>b.onclick=()=>trocarCliente(b.dataset.troc,b.dataset.p));
+  main.querySelectorAll('[data-comb]').forEach(b=>b.onclick=()=>dlgCombinado(b.dataset.comb,b.dataset.p));
   main.querySelectorAll('[data-agpro]').forEach(b=>b.onclick=()=>{S.agPro=b.dataset.agpro;S.agSel=null;render()});
   main.querySelectorAll('[data-tlsel]').forEach(b=>b.onclick=e=>{e.stopPropagation();S.agSel=S.agSel===b.dataset.tlsel?null:b.dataset.tlsel;render();const x=document.getElementById('agsel');if(x)x.scrollIntoView({block:'nearest',behavior:'smooth'})});
   main.querySelectorAll('[data-tlc]').forEach(c=>c.onclick=e=>{if(e.target!==c)return;
