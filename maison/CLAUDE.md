@@ -144,3 +144,5 @@ Quem atende onde (`prosDaUnidade()`, `unidadesDoDia()`, `STAFF_DIAS`): **Thárig
 A linha do tempo tem **barra de rolagem própria** (`.tl-scroll`, abre no primeiro compromisso e guarda a posição entre toques). Cores dos blocos: **tonais** (fundo claro da cor da profissional com faixa forte na lateral, `--t-*` e `--p-*`); horário fechado em listras de bege. Atendido fica esmaecido, com ✓.
 
 **Ajuste de 16/10/2026 (mais tarde):** a Tháriga pediu a agenda do Rafael e da Mariana **aberta todos os dias** (`STAFF_DIAS` = domingo a sábado, e `DIAS_PRO` no `pedido.html`), mesmo que na prática atendam só em alguns dias: eles têm liberdade de mudar e fecham o que não atendem com *Fechar horário* (dia inteiro). A Tháriga continua em Itaquera de domingo a quarta e no Florença de quinta a sábado.
+
+**Cores (16/10/2026):** a agenda usa só **dourado** (Tháriga), **champanhe** (Rafael) e **rosé** (Mariana), em tom claro com faixa forte (`--p-*` e `--t-*`, claro e escuro). Marrom saiu.
