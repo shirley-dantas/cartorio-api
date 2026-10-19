@@ -1093,7 +1093,7 @@ function lerDocumentoComIA(base64, mimetype, preservarIntegral) {
       : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
     var instrucaoInicial = preservarIntegral
       ? "Este documento é uma escritura ou ato notarial já pronto. Transcreva o texto completo do documento, na íntegra, sem resumir, sem comentar e sem omitir nenhuma parte. Apenas o texto puro da minuta."
-      : "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Depois, numa nova linha, extraia com fidelidade total as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Não omita nenhum dado relevante — mas não transcreva o documento inteiro: cláusula, preâmbulo ou trecho que não carregue um fato novo, não precisa aparecer. O objetivo é o fato, não o texto do documento.";
+      : "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Depois, numa nova linha, extraia com fidelidade total as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. NÚMEROS DE DOCUMENTO (RG, CPF, CNH, matrícula, registro): copie dígito por dígito, exatamente como estão impressos, sem corrigir, completar ou reordenar. Dígitos parecidos (0/6/8, 1/7, 3/8, 5/6) devem ser conferidos duas vezes olhando o desenho de cada um; releia o número inteiro antes de responder. Se algum dígito não estiver nítido, escreva '?' no lugar dele em vez de adivinhar. Na CNH, o número do RG aparece no campo de identidade/órgão emissor: copie-o com o mesmo cuidado. Não omita nenhum dado relevante — mas não transcreva o documento inteiro: cláusula, preâmbulo ou trecho que não carregue um fato novo, não precisa aparecer. O objetivo é o fato, não o texto do documento.";
 
     var resultado = extrairArquivoComContinuacao(function (pass, textoAteAqui) {
       return [
@@ -1420,6 +1420,7 @@ function pedidoDoCliente(token) {
   var pedido = firebaseLer("/pedidos/" + token);
   if (!pedido || !pedido.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(pedido.casoId))) return null;
   if (pedido.expiraEm && Date.now() > pedido.expiraEm) return null;
+  if (pedido.concluidoEm) return null; // já enviado: o link fecha, para não confundir o card com um segundo preenchimento
   var caso = firebaseLer("/casos/" + pedido.casoId);
   if (!caso || typeof caso !== "object") return null;
   return { pedido: pedido, caso: caso, casoId: pedido.casoId, token: token };
@@ -1456,7 +1457,7 @@ function extrairIdArquivo(url) {
 
 function clienteArquivo(dados) {
   var ctx = pedidoDoCliente(dados.t);
-  if (!ctx) return resp({ ok: false, erro: "Link inválido ou vencido." });
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
   var mime = String(dados.mimetype || "").toLowerCase();
   var ext = MIMES_CLIENTE[mime];
   if (!ext) return resp({ ok: false, erro: "Tipo de arquivo não aceito." });
@@ -1546,7 +1547,7 @@ function montarFichaCliente(d, dataTxt, rotulos) {
 
 function clienteDados(dados) {
   var ctx = pedidoDoCliente(dados.t);
-  if (!ctx) return resp({ ok: false, erro: "Link inválido ou vencido." });
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
   var rotulos = {};
   (ctx.pedido.blocos || []).forEach(function (b) { (b.campos || []).forEach(function (c) { rotulos[b.id + "." + c.id] = c.rotulo; }); });
   var agora = new Date();
@@ -1559,7 +1560,9 @@ function clienteDados(dados) {
   } catch (e) { /* o registro no card é o que importa */ }
   var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/" + fichaKey, registroFicha);
   if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou os dados (" + gravou.getResponseCode() + ")." });
+  // O link fecha (concluidoEm) e o card ganha o aviso que o Jornal mostra no topo do painel.
   try { firebaseGravar("patch", "/pedidos/" + ctx.token, { concluidoEm: Date.now() }); } catch (e) { /* só um carimbo */ }
+  try { firebaseGravar("put", "/casos/" + ctx.casoId + "/envioCliente", { em: Date.now(), pedido: ctx.token, arquivos: Math.max(0, Math.min(999, Number(dados.nArquivos) || 0)), ato: textoCliente(ctx.pedido.ato, 80), visto: false }); } catch (e) { /* o aviso é cortesia */ }
   try { enviarWhatsApp("📥 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou os documentos pelo link. Já estão no card."); } catch (e) { /* aviso é cortesia */ }
   return resp({ ok: true });
 }
