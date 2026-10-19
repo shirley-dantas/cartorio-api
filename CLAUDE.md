@@ -902,7 +902,8 @@ Regras dela que **não devem ser mexidas sem perguntar**:
 - **Pacto antenupcial:** num ato em que o casal declara regime que exige pacto, pede-se
   o pacto e o registro dele no RI do primeiro domicílio. Na escritura *de* pacto
   não se fala em registro, só nas certidões do casal.
-- **União estável não é estado civil da lista**: é documento que ela marca (RCPN, Livro E).
+- **União estável não é estado civil da lista**: quem não é casado marca "Vivo em união estável" no link e o
+  espaço da escritura (RCPN, Livro E) abre nos documentos dele. A janela não pede mais para marcar união nem pacto.
 - **Comprador de construtora** só informa os próprios dados — a construtora e o
   vendedor ela identifica pela matrícula. Testamento ela não faz; as certidões que
   ela busca na internet nascem desmarcadas.
@@ -974,6 +975,29 @@ Regras que **não devem ser mexidas sem perguntar**:
   Divorciando(a) 2, Noivo(a) 2) — o papel vai para a ficha e para o nome do arquivo.
 - **A IA copia números de documento dígito por dígito** (`lerDocumentoComIA`) e marca `?` no que não
   estiver nítido; as fotos saem com até 2600 px (antes 1800) para o 6 não virar 8.
+- **Os documentos vão por último.** A página pede primeiro os dados (e, se a pessoa é casada, o regime e os
+  dados do cônjuge logo em seguida) e só no fim abre o cartão **Documentos**, com um espaço por documento de
+  cada parte (cada um mostra "Falta anexar" / "✓ Anexado"). **Regime de bens: só três** — comunhão parcial,
+  comunhão universal e separação total (universal e separação total pedem o pacto e o registro dele).
+- **O envio é rápido porque a IA não segura a fila.** O arquivo sobe com `lerDepois` e é guardado na hora; a
+  leitura pela IA sai numa chamada à parte (`cliente-ler`, também depois de o link fechar) e o card mostra
+  "lendo…" até terminar. A numeração dos nomes vem de um contador pequeno em `/pedidos/{código}/contagem`.
+- **A prévia do WhatsApp tem imagem** (`og-envio.png`, 1200×630, com a marca PRIME) e o link é curto
+  (`/e/{código}`, reescrita no `vercel.json`). Com o link, **a mensagem é curta** (recado + link): a lista já
+  está na página. O endereço do link ainda é o do projeto até haver um domínio neutro (`ENVIO_BASE_URL`).
+- **O topo não leva o nome PRIME**: só o arco champagne na faixa petróleo; abaixo, *Envio de documentos*,
+  *20º Tabelião de Notas* e, por último, a escrevente (Shirley Dantas, WhatsApp (11) 95492-9643, com link).
+- **Casado, em qualquer ato, abre o regime de bens** (3 opções, obrigatório); os dados do cônjuge vêm junto
+  onde o ato os pede. **Viúvo**: certidão de casamento com averbação do óbito; a de óbito do cônjuge só na
+  lista de inventário. **O falecido do inventário** (`k:'falecido'`) pergunta o estado civil **na data do
+  óbito**: solteiro → nascimento; casado → regime, dados do cônjuge, casamento (e pacto + registro se o regime
+  exige); viúvo/divorciado/separado → casamento com averbação; certidão de óbito e RG/CPF sempre.
+- **Preenchimento do celular**: os campos levam o `autocomplete` certo (nome, CEP, rua, cidade…), e o que
+  responde depois (o CEP) troca **só o bloco do endereço**, sem mexer no campo em que a pessoa está.
+- **O advogado só sobe a carteira da OAB**: nenhum campo de nome, número ou endereço. **Pacto e união estável
+  são decididos pelo cliente**: o pacto abre na pílula de quem é casado em regime com pacto; a escritura de união
+  estável, na de quem marcou que vive nela (quem já é convivente, noivo ou divorciando não é perguntado).
+- A página usa letra grande e tinta cheia (17 px, títulos de documento 18 px em negrito); a marca PRIME no topo.
 - **A certidão de estado civil aparece desde o início** (genérica até ela escolher o estado civil) e o
   endereço se recolhe depois do CEP (rua/bairro/cidade/UF viram uma linha com *Editar*).
 - **"Tirar foto" no computador abre a webcam** (`abrirCamera()`); no celular continua o `capture` nativo.

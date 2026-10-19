@@ -39,7 +39,8 @@ passo('inventário: só pede os documentos dos bens marcados', () => {
 });
 passo('inventário: o advogado só entra no pedido para o advogado', () => {
   assert(!txt({tipo: 'Inventário', publico: 'cliente'}).includes('OAB'));
-  assert(txt({tipo: 'Inventário', publico: 'advogado'}).includes('OAB'));
+  assert(txt({tipo: 'Inventário', publico: 'advogado'}).includes('carteira da OAB'));
+  assert(P.formulario({tipo: 'Inventário', publico: 'advogado'}).some((b) => b.k === 'advogado'), 'o bloco do advogado continua (só o documento)');
 });
 passo('pacto marcado em outro ato: pede o pacto E o registro no RI do primeiro domicílio', () => {
   const t = txt({tipo: 'Escritura de Compra e Venda', pacto: true});
@@ -167,6 +168,17 @@ passo('divórcio, união e pacto: cada parte recebe só o seu bloco; "os dois" t
   assert.deepEqual(papeis('União Estável', 'conv1'), ['Convivente 1']);
   assert.deepEqual(papeis('Pacto Antenupcial', 'noivo2'), ['Noivo(a) 2']);
   assert.deepEqual(P.formulario({tipo: 'Procuração', papel: 'outorgante'}).filter((b) => b.k === 'pessoa').map((b) => b.papeis[0]), ['Outorgante']);
+});
+passo('só a lista de inventário marca a pessoa para pedir o óbito do cônjuge', () => {
+  const marca = (tipo) => P.formulario({tipo, publico: 'advogado'}).filter((b) => b.k === 'pessoa').some((b) => b.obito);
+  assert(marca('Inventário') && !marca('Escritura de Compra e Venda') && !marca('Doação') && !marca('Divórcio'));
+});
+passo('a janela não pede mais para marcar união estável nem pacto: quem responde é o cliente no link', () => {
+  const f = P.formulario({tipo: 'Escritura de Compra e Venda', publico: 'advogado'});
+  assert(!f.some((b) => /opc\.(uniao|pacto)/.test(b.id)), 'nada de união nem pacto por padrão');
+  assert(P.formulario({tipo: 'União Estável', publico: 'cliente', papel: 'conv1'}).find((b) => b.k === 'pessoa').semUniao === true, 'convivente não é perguntado se vive em união estável');
+  for (const t of ['Divórcio', 'Pacto Antenupcial']) assert(P.formulario({tipo: t, publico: 'advogado'}).find((b) => b.k === 'pessoa').semUniao);
+  assert(!P.formulario({tipo: 'Escritura de Compra e Venda', publico: 'cliente'}).find((b) => b.k === 'pessoa').semUniao);
 });
 console.log(erros ? '\n' + erros + ' falha(s)' : '\ntudo certo');
 process.exit(erros ? 1 : 0);

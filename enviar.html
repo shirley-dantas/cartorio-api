@@ -7,96 +7,128 @@
 <title>Envio de documentos — 20º Tabelião de Notas</title>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="20º Tabelião de Notas">
-<meta property="og:title" content="Envio de documentos para a sua escritura">
-<meta property="og:description" content="20º Tabelião de Notas · Preencha seus dados e envie os documentos pelo celular, de forma segura.">
-<meta name="description" content="Envio de documentos para a elaboração da sua escritura — 20º Tabelião de Notas">
+<meta property="og:title" content="Envio de documentos">
+<meta property="og:description" content="20º Tabelião de Notas · envie seus dados e documentos com segurança">
+<meta property="og:image" content="https://cartorio-api.vercel.app/og-envio.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1F3B4D">
+<meta name="description" content="Envio de documentos — 20º Tabelião de Notas">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Jost:wght@200;400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Jost:wght@300;400&display=swap">
 <style>
 :root{
-  --fundo:#F2EFE9; --sup:#FFFFFF; --sup-2:#FAF8F4; --linha:#E6E0D5; --linha-forte:#D8D0C1;
-  --tinta:#1F2A33; --tinta-2:#5B6B78; --champagne:#A9895A; --ok:#2F7A4F; --critico:#B3261E;
+  --fundo:#F4F1EB; --sup:#FFFFFF; --sup-2:#F8F5EF; --linha:#DDD6C8; --linha-forte:#B9B0A0;
+  --tinta:#16283A; --tinta-2:#3E4C58; --petroleo:#1F3B4D; --champagne:#A9895A; --ok:#1F7A47; --critico:#B3261E; --atencao:#8A5A0B;
 }
 *{box-sizing:border-box;margin:0}
 [hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;scroll-padding-bottom:170px;scroll-padding-top:20px}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--fundo);color:var(--tinta);
-  font-size:16px;line-height:1.45;padding:0 16px calc(130px + env(safe-area-inset-bottom))}
-.miolo{max-width:560px;margin:0 auto}
-header{text-align:center;padding:28px 0 14px}
-.eyebrow{font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.34em;text-indent:.34em;text-transform:uppercase;color:var(--tinta-2)}
-h1{font-family:'Jost',sans-serif;font-weight:200;font-size:34px;line-height:1.1;margin:10px 0 8px}
-.sub{color:var(--tinta-2);font-size:15px}
-.ato{display:inline-block;margin-top:12px;padding:6px 14px;border:1px solid var(--linha-forte);border-radius:99px;background:var(--sup);font-size:14px}
+  font-size:17px;line-height:1.5;padding:0 16px calc(150px + env(safe-area-inset-bottom))}
+.miolo{max-width:600px;margin:0 auto}
+.topo{margin:0 -16px;padding:calc(24px + env(safe-area-inset-top)) 16px 20px;background:var(--petroleo);text-align:center}
+.topo svg{display:block;height:46px;width:auto;margin:0 auto}
+.orgao{font-family:'Jost',sans-serif;font-weight:400;font-size:15px;letter-spacing:.26em;text-indent:.26em;text-transform:uppercase;color:var(--champagne);margin-top:8px}
+.escrevente{margin-top:16px;font-size:15.5px;color:var(--tinta-2);line-height:1.5}
+.escrevente b{color:var(--tinta);font-weight:600}
+.escrevente a{color:var(--petroleo);font-weight:600;text-decoration:none;border-bottom:1.5px solid var(--champagne)}
+.titulo{text-align:center;padding:22px 0 6px}
+h1{font-family:'Jost',sans-serif;font-weight:400;font-size:32px;line-height:1.15;color:var(--tinta)}
+.sub{color:var(--tinta-2);font-size:16.5px;margin-top:8px}
+.ato{display:inline-block;margin-top:12px;padding:7px 16px;border:1.5px solid var(--linha-forte);border-radius:99px;background:var(--sup);font-size:15px;font-weight:500}
 
-.bloco{background:var(--sup);border:1px solid var(--linha);border-radius:16px;padding:16px;margin-top:12px}
-.bloco h2{font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.bloco h3{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-2);margin:16px 0 8px}
-.num{flex:none;width:26px;height:26px;border-radius:50%;background:var(--tinta);color:#fff;font-size:13px;font-weight:600;display:grid;place-items:center}
+.bloco{background:var(--sup);border:1.5px solid var(--linha);border-radius:18px;padding:18px 16px;margin-top:14px}
+.bloco h2{font-size:20px;font-weight:600;display:flex;align-items:center;gap:12px;margin-bottom:14px;line-height:1.25}
+.bloco h3{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);margin:20px 0 10px}
+.num{flex:none;width:32px;height:32px;border-radius:50%;background:var(--petroleo);color:#fff;font-size:16px;font-weight:600;display:grid;place-items:center}
 .num.ok{background:var(--ok)}
-.campo{margin-bottom:10px}
-.campo label{display:block;font-size:13px;color:var(--tinta-2);margin-bottom:4px}
+.campo{margin-bottom:14px}
+.campo label{display:block;font-size:16px;font-weight:500;color:var(--tinta);margin-bottom:6px}
 .campo label i{color:var(--critico);font-style:normal}
-input[type=text],input[type=tel],input[type=date],select,textarea{width:100%;font:inherit;font-size:16px;padding:11px 12px;border-radius:10px;border:1px solid var(--linha-forte);background:#fff;color:var(--tinta)}
-textarea{min-height:90px;resize:vertical}
-.duas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.tres{display:grid;grid-template-columns:2fr 1fr;gap:10px}
-.marca{display:flex;gap:10px;align-items:center;font-size:14px;margin:4px 0 10px}
-.marca input{width:20px;height:20px;accent-color:var(--tinta)}
-.sec-conj{margin-top:14px;padding:12px;border-radius:12px;background:var(--sup-2);border:1px solid var(--linha)}
+input[type=text],input[type=tel],input[type=date],select,textarea{width:100%;font:inherit;font-size:18px;min-height:54px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--linha-forte);background:#fff;color:var(--tinta)}
+input:focus,select:focus,textarea:focus{outline:3px solid rgba(169,137,90,.35);border-color:var(--champagne)}
+textarea{min-height:100px;resize:vertical}
+.duas{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tres{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.marca{display:flex;gap:12px;align-items:center;font-size:16.5px;margin:6px 0 14px}
+.marca input{width:24px;height:24px;accent-color:var(--petroleo)}
+.sec-conj{margin-top:16px;padding:14px;border-radius:14px;background:var(--sup-2);border:1.5px solid var(--linha)}
+.opcoes{display:grid;gap:10px}
+.opcao{display:block;cursor:pointer}
+.opcao input{position:absolute;opacity:0;width:1px;height:1px}
+.opcao span{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 14px;border:1.5px solid var(--linha-forte);border-radius:14px;background:#fff;font-size:17px;font-weight:500;line-height:1.3}
+.opcao span::before{content:"";flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--linha-forte);background:#fff}
+.opcao input:checked+span{border-color:var(--petroleo);background:#EAF0F3;box-shadow:inset 0 0 0 1px var(--petroleo)}
+.opcao input:checked+span::before{border-color:var(--petroleo);background:radial-gradient(circle,var(--petroleo) 0 45%,#fff 50%)}
+.opcao input:focus-visible+span{outline:3px solid rgba(169,137,90,.5)}
 
-.slot{margin:10px 0}
-.slot>b{display:block;font-weight:500;font-size:14px;margin-bottom:6px}
-.slot>b small{color:var(--tinta-2);font-weight:400}
-.acoes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid var(--linha-forte);background:var(--sup-2);color:var(--tinta);font:500 15px 'Inter',sans-serif;cursor:pointer;text-align:center}
-.btn:active{background:var(--linha)}
+.slot{margin:0 0 14px;padding:14px;border:1.5px solid var(--linha);border-radius:16px;background:var(--sup-2)}
+.slot.ok{border-color:#A8D2B8;background:#F1F9F4}
+.slot-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.slot-topo b{font-size:18px;font-weight:600;line-height:1.3;color:var(--tinta)}
+.chip{flex:none;font-size:13px;font-weight:700;padding:4px 10px;border-radius:99px;white-space:nowrap;background:#FBEFD2;color:var(--atencao)}
+.chip.ok{background:#D5EEDD;color:var(--ok)}
+.chip.opc{background:#E8E5DE;color:var(--tinta-2)}
+.acoes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--petroleo);background:#fff;color:var(--petroleo);font:600 17px 'Inter',sans-serif;cursor:pointer;text-align:center}
+.btn:active{background:#EAF0F3}
 .btn input{display:none}
 .btn.so{grid-column:1/-1}
-.btn.suave{min-height:40px;font-size:14px;background:#fff}
-.lista{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}
-.arq{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid var(--linha);border-radius:12px;background:var(--sup-2)}
-.mini{flex:none;width:46px;height:46px;border-radius:8px;background:var(--linha) center/cover;display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--tinta-2)}
+.btn.suave{min-height:50px;font-size:16.5px}
+.lista{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:10px}
+.lista:empty{display:none}
+.arq{display:flex;align-items:center;gap:12px;padding:10px;border:1.5px solid var(--linha);border-radius:14px;background:#fff}
+.mini{flex:none;width:52px;height:52px;border-radius:10px;background:var(--linha) center/cover;display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--tinta-2)}
 .info{flex:1;min-width:0}
-.info b{display:block;font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.info small{color:var(--tinta-2);font-size:13px}
-.info small.ok{color:var(--ok)} .info small.erro{color:var(--critico)}
-.barra{height:4px;background:var(--linha);border-radius:4px;margin-top:6px;overflow:hidden}
+.info b{display:block;font-weight:600;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info small{color:var(--tinta-2);font-size:14.5px}
+.info small.ok{color:var(--ok);font-weight:600} .info small.erro{color:var(--critico);font-weight:600}
+.barra{height:5px;background:var(--linha);border-radius:5px;margin-top:6px;overflow:hidden}
 .barra i{display:block;height:100%;background:var(--champagne);width:0;transition:width .2s}
-.tirar{flex:none;width:44px;height:44px;border:0;background:none;color:var(--tinta-2);font-size:22px;cursor:pointer}
-.opcional-nota{color:var(--tinta-2);font-weight:400}
-.dica{font-size:13px;color:var(--tinta-2);margin:-2px 0 8px}
-.repete{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
-.remover{border:0;background:none;color:var(--critico);font:500 14px 'Inter',sans-serif;cursor:pointer;padding:8px}
+.tirar{flex:none;width:48px;height:48px;border:0;background:none;color:var(--tinta-2);font-size:26px;cursor:pointer}
+.opcional-nota{color:var(--tinta-2);font-weight:400;font-size:16px}
+.dica{font-size:15.5px;color:var(--tinta-2);margin:6px 0 0}
+.intro-docs{font-size:16.5px;color:var(--tinta-2);margin:-4px 0 16px}
+.grupo-docs{font-size:15px;font-weight:700;color:var(--petroleo);margin:18px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--linha)}
+.grupo-docs:first-of-type{margin-top:0}
+.repete{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.remover{border:0;background:none;color:var(--critico);font:600 16px 'Inter',sans-serif;cursor:pointer;padding:10px}
 
-.lgpd{margin-top:16px;padding:14px;font-size:13px;color:var(--tinta-2);text-align:center}
-.rodape{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(242,239,233,.94);backdrop-filter:blur(8px);border-top:1px solid var(--linha)}
-.rodape .miolo{display:grid;gap:6px}
-.enviar{width:100%;min-height:54px;border:0;border-radius:14px;background:var(--tinta);color:#fff;font:600 17px 'Inter',sans-serif;cursor:pointer}
+.lgpd{margin-top:18px;padding:14px;font-size:14.5px;color:var(--tinta-2);text-align:center}
+.rodape{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(244,241,235,.96);backdrop-filter:blur(8px);border-top:1.5px solid var(--linha)}
+.rodape .miolo{display:grid;gap:8px}
+.enviar{width:100%;min-height:58px;border:0;border-radius:16px;background:var(--petroleo);color:#fff;font:600 19px 'Inter',sans-serif;cursor:pointer}
 .enviar:disabled{background:var(--linha-forte);color:var(--tinta-2);cursor:default}
-.resumo{text-align:center;font-size:13px;color:var(--tinta-2)}
+.resumo{text-align:center;font-size:15.5px;font-weight:500;color:var(--tinta-2)}
 .tela{display:none;text-align:center;padding:56px 8px}
-.tela .visto{width:72px;height:72px;margin:0 auto 16px;border-radius:50%;background:var(--ok);color:#fff;font-size:38px;display:grid;place-items:center}
+.tela .visto{width:76px;height:76px;margin:0 auto 16px;border-radius:50%;background:var(--ok);color:#fff;font-size:40px;display:grid;place-items:center}
 .tela.erro .visto{background:var(--critico)}
-.tela h2{font-family:'Jost',sans-serif;font-weight:200;font-size:30px;margin-bottom:8px}
+.tela h2{font-family:'Jost',sans-serif;font-weight:400;font-size:30px;margin-bottom:8px}
 body.concluido #final,body.invalido #invalido{display:block}
-body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.invalido .formulario,body.invalido .rodape,body.invalido .lgpd,body.invalido header p.sub{display:none}
-.veu{position:fixed;inset:0;z-index:40;background:rgba(20,26,31,.55);display:grid;place-items:end center;padding:16px}
-.folha{background:#fff;border-radius:20px;max-width:520px;width:100%;max-height:86vh;overflow:auto;padding:20px}
-.folha h2{font-family:'Jost',sans-serif;font-weight:400;font-size:22px;margin-bottom:8px}
-.folha ul{margin:10px 0 14px 20px;font-size:15px}
-.folha .duas{margin-top:12px}
-.enviar.falta{background:var(--linha-forte);color:var(--tinta)}
-.aviso{margin-top:12px;padding:12px 14px;border-radius:12px;background:#FBF3E3;border:1px solid #E8D6AE;font-size:14px;color:#6B5321}
+body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.invalido .formulario,body.invalido .rodape,body.invalido .lgpd,body.invalido .titulo .sub{display:none}
+.veu{position:fixed;inset:0;z-index:40;background:rgba(20,26,31,.6);display:grid;place-items:end center;padding:16px}
+.folha{background:#fff;border-radius:22px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:22px}
+.folha h2{font-family:'Jost',sans-serif;font-weight:400;font-size:25px;margin-bottom:10px}
+.folha ul{margin:12px 0 16px 22px;font-size:17px}
+.folha .duas{margin-top:14px}
+.enviar.falta{background:#D9D2C3;color:var(--tinta)}
+.aviso{margin-top:14px;padding:14px 16px;border-radius:14px;background:#FBF3E3;border:1.5px solid #E8D6AE;font-size:16px;color:#5E4616}
 </style>
 </head>
 <body>
 <div class="miolo">
-  <header>
-    <div class="eyebrow">20º Tabelião de Notas</div>
-    <h1>Envio de documentos</h1>
-    <p class="sub" id="intro">Preencha os dados e anexe os documentos. Não precisa de cadastro nem senha.</p>
-    <span class="ato" id="ato" hidden></span>
+  <header class="topo">
+    <svg viewBox="0 0 600 90" role="img" aria-label="20º Tabelião de Notas"><defs><linearGradient id="arco" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#BE9E6C"/><stop offset="40%" stop-color="#E8D3A4"/><stop offset="58%" stop-color="#F8EDD3"/><stop offset="78%" stop-color="#E8D3A4"/><stop offset="100%" stop-color="#BE9E6C"/></linearGradient></defs><path d="M64,72 C184,0 388,-6 536,42 C388,6 184,12 64,72 Z" fill="url(#arco)"/></svg>
   </header>
+  <div class="titulo">
+    <h1>Envio de documentos</h1>
+    <div class="orgao">20º Tabelião de Notas</div>
+    <p class="sub" id="intro">Preencha os seus dados e, no fim, anexe os documentos. Não precisa de cadastro nem senha.</p>
+    <span class="ato" id="ato" hidden></span>
+    <p class="escrevente">Escrevente <b>Shirley Dantas</b><br><a href="https://wa.me/5511954929643" rel="noopener">WhatsApp (11) 95492-9643</a></p>
+  </div>
 
   <div class="formulario" id="formulario"></div>
   <p class="lgpd">🔒 Seus documentos serão usados exclusivamente para a elaboração do ato notarial e tratados conforme a LGPD.</p>
@@ -117,12 +149,12 @@ body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.inva
 <script>
 const FIREBASE='https://painel-cartorio-default-rtdb.firebaseio.com';
 const GAS_URL='https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec';
-const MAX_LADO=2600, QUALIDADE=.9, MAX_BYTES=8*1024*1024, PARALELO=3;
+const MAX_LADO=2400, QUALIDADE=.85, MAX_BYTES=8*1024*1024, PARALELO=4;
 const DICA_CPF='Se o seu RG não trouxer o CPF, anexe o CPF junto, na mesma foto ou em outra.';
 const ESTADOS_CIVIS=['Solteiro(a)','Casado(a)','Divorciado(a)','Viúvo(a)','Separado(a)'];
-const REGIMES=['Comunhão parcial de bens','Comunhão universal de bens','Separação convencional de bens','Separação obrigatória de bens','Participação final nos aquestos'];
+const REGIMES=['Comunhão parcial de bens','Comunhão universal de bens','Separação total de bens'];
 // Estes regimes só existem com pacto antenupcial: aí a página pede o pacto e o registro dele.
-const REGIMES_COM_PACTO=['Comunhão universal de bens','Separação convencional de bens','Participação final nos aquestos'];
+const REGIMES_COM_PACTO=['Comunhão universal de bens','Separação total de bens'];
 const UFS=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
 const CELULAR=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
@@ -130,9 +162,9 @@ const $=s=>document.querySelector(s);
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const kb=n=>n>1048576?(n/1048576).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(n/1024))+' KB';
 
-const token=new URLSearchParams(location.search).get('t')||'';
+const token=(location.pathname.match(/\/e\/([A-Za-z0-9_-]+)/)||[])[1]||new URLSearchParams(location.search).get('t')||'';
 let pedido=null;
-const E={ pessoas:{}, campos:{}, banco:{}, filhos:[], adv:{}, clausulas:{}, obs:'', arquivos:{} }; // arquivos: chave -> [{id,file,estado,erro,pct}]
+const E={ pessoas:{}, falecidos:{}, campos:{}, banco:{}, filhos:[], adv:{}, clausulas:{}, obs:'', arquivos:{} }; // arquivos: chave -> [{id,file,estado,erro,pct}]
 let seq=0, enviando=false;
 
 // ── Carregar o pedido ─────────────────────────────────────────────────
@@ -150,6 +182,7 @@ async function carregar(){
   pedido.blocos.forEach(b=>{
     if(b.k==='pessoa') E.pessoas[b.id]=(b.papeis||['Parte']).map(p=>novaPessoa(p));
     if(b.k==='filhos') E.filhos=[];
+    if(b.k==='falecido') E.falecidos[b.id]={nome:'',ec:'',regime:'',conj:{nome:'',prof:''}};
   });
   desenharTudo();
 }
@@ -199,60 +232,128 @@ function linhasArq(chave){
     return `<li class="arq">${mini}<div class="info"><b>${esc(x.original.name)}</b>${sit}<div class="barra"><i style="width:${x.estado==='enviado'?100:x.pct||0}%"></i></div></div>${x.estado==='enviado'||enviando?'':`<button class="tirar" aria-label="Tirar" data-tirar="${esc(chave)}|${x.id}">×</button>`}</li>`;
   }).join('');
 }
-function desenharSlot(chave){ const l=document.querySelector(`[data-lista="${CSS.escape(chave)}"]`); if(l) l.innerHTML=linhasArq(chave); }
+function chipDe(chave,opcional){
+  const n=(E.arquivos[chave]||[]).filter(x=>x.estado!=='erro').length;
+  return n?`<span class="chip ok" data-chip="${esc(chave)}">✓ ${n===1?'Anexado':n+' anexados'}</span>`:opcional?`<span class="chip opc" data-chip="${esc(chave)}">Opcional</span>`:`<span class="chip" data-chip="${esc(chave)}">Falta anexar</span>`;
+}
+const opcionais={};
+function desenharSlot(chave){
+  const l=document.querySelector(`[data-lista="${CSS.escape(chave)}"]`); if(l) l.innerHTML=linhasArq(chave);
+  const c=document.querySelector(`[data-chip="${CSS.escape(chave)}"]`); if(c){ c.outerHTML=chipDe(chave,opcionais[chave]); }
+  const caixa=document.querySelector(`[data-slotbox="${CSS.escape(chave)}"]`); if(caixa) caixa.classList.toggle('ok',(E.arquivos[chave]||[]).some(x=>x.estado!=='erro'));
+}
+// Os documentos ficam todos no fim: durante o desenho os slots vão para FIM, agrupados por pessoa.
+let FIM=null, GRUPO='';
 function slot(chave,rotulo,opcional,dica){
-  return `<div class="slot"><b>${esc(rotulo)}${opcional?' <small>(opcional)</small>':''}</b>${dica?`<div class="dica">${esc(dica)}</div>`:''}
+  opcionais[chave]=!!opcional;
+  const ok=(E.arquivos[chave]||[]).some(x=>x.estado!=='erro');
+  const h=`<div class="slot${ok?' ok':''}" data-slotbox="${esc(chave)}"><div class="slot-topo"><b>${esc(rotulo)}</b>${chipDe(chave,opcional)}</div>${dica?`<div class="dica">${esc(dica)}</div>`:''}
     <div class="acoes">${CELULAR?`<label class="btn">📷 Tirar foto<input type="file" accept="image/*" capture="environment" data-slot="${esc(chave)}"></label>`:`<button type="button" class="btn" data-camera="${esc(chave)}">📷 Tirar foto</button>`}
     <label class="btn">📁 Escolher<input type="file" accept="image/*,application/pdf" multiple data-slot="${esc(chave)}"></label></div>
     <ul class="lista" data-lista="${esc(chave)}">${linhasArq(chave)}</ul></div>`;
+  if(FIM){ let g=FIM.find(x=>x.titulo===GRUPO); if(!g) FIM.push(g={titulo:GRUPO,itens:[]}); g.itens.push(h); return ''; }
+  return h;
+}
+function htmlDocumentos(n){
+  const g=(FIM||[]).filter(x=>x.itens.length); if(!g.length) return '';
+  return `<div class="bloco"><h2><span class="num">${n}</span>Documentos</h2><p class="intro-docs">Por último, anexe os documentos. Toque em <b>Tirar foto</b> ou em <b>Escolher</b> (foto ou PDF do aparelho).</p>`+
+    g.map(x=>(g.length>1&&x.titulo?`<div class="grupo-docs">${esc(x.titulo)}</div>`:'')+x.itens.join('')).join('')+'</div>';
 }
 
 // ── Campos ────────────────────────────────────────────────────────────
+// Escolha com 3 ou 4 opções: cartões grandes, com a opção marcada bem visível (no celular o select
+// escondia as opções e o cliente não via as palavras inteiras).
+function opcoesRadio(rot,val,opcoes,att,obrig,nome){
+  return `<div class="campo"><label>${esc(rot)}${obrig?' <i>*</i>':''}</label><div class="opcoes">${opcoes.map(o=>`<label class="opcao"><input type="radio" name="${esc(nome)}" value="${esc(o)}" ${att}${o===val?' checked':''}><span>${esc(o)}</span></label>`).join('')}</div></div>`;
+}
 function input(rot,val,att,obrig,tipo){ return `<div class="campo"><label>${esc(rot)}${obrig?' <i>*</i>':''}</label><input type="${tipo||'text'}" value="${esc(val)}" ${att}></div>`; }
 function select(rot,val,opcoes,att,obrig){ return `<div class="campo"><label>${esc(rot)}${obrig?' <i>*</i>':''}</label><select ${att}><option value="">Escolha…</option>${opcoes.map(o=>`<option${o===val?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`; }
 
-function certidoes(p,chave){
-  const ec=p.ec; let h='';
-  if(ec==='Solteiro(a)') h+=slot(chave+'.cert','Certidão de nascimento');
-  else if(ec==='Casado(a)') h+=slot(chave+'.cert','Certidão de casamento');
-  else if(ec==='Divorciado(a)') h+=slot(chave+'.cert','Certidão de casamento, com a averbação do divórcio');
-  else if(ec==='Viúvo(a)') h+=slot(chave+'.cert','Certidão de casamento')+slot(chave+'.obito','Certidão de óbito do cônjuge');
-  else if(ec==='Separado(a)') h+=slot(chave+'.cert','Certidão de casamento, com a averbação da separação');
-  else h+=slot(chave+'.cert','Certidão de estado civil',false,'Nascimento (solteiro), casamento (casado, divorciado, separado ou viúvo). Escolha o estado civil acima e o nome certo aparece.');
-  return h;
+function certidoes(p,chave,b){
+  const ec=p.ec;
+  if(ec==='Solteiro(a)') slot(chave+'.cert','Certidão de nascimento');
+  else if(ec==='Casado(a)') slot(chave+'.cert','Certidão de casamento');
+  else if(ec==='Divorciado(a)') slot(chave+'.cert','Certidão de casamento, com a averbação do divórcio');
+  else if(ec==='Viúvo(a)'){
+    // A certidão de casamento com a averbação do óbito já serve; a de óbito só no inventário.
+    slot(chave+'.cert','Certidão de casamento, com a averbação do óbito do cônjuge');
+    if(b&&b.obito) slot(chave+'.obito','Certidão de óbito do cônjuge');
+  }
+  else if(ec==='Separado(a)') slot(chave+'.cert','Certidão de casamento, com a averbação da separação');
+  else slot(chave+'.cert','Certidão de estado civil',false,'Nascimento (solteiro) ou casamento (casado, divorciado, separado ou viúvo). Escolha o estado civil acima e o nome certo aparece.');
+}
+// O endereço mora num bloco próprio, e é só ele que se refaz quando o CEP responde: o resto da
+// página (e o que a pessoa está digitando) não se mexe.
+function htmlEndereco(b,i){
+  const p=E.pessoas[b.id][i], k=`${b.id}.${i}`, A=`data-b="${b.id}" data-i="${i}"`;
+  if(p.rua&&p.cidade&&!p.editEnd) return `<div class="campo"><label>Endereço</label><div class="dica" style="margin:0;color:var(--tinta);font-size:16.5px">${esc([p.rua,p.bairro,[p.cidade,p.uf].filter(Boolean).join('/')].filter(Boolean).join(' — '))} <button type="button" class="remover" data-editend="${b.id}|${i}" style="padding:4px 8px">Editar</button></div></div>`+input('Complemento',p.compl,`${A} data-f="compl" autocomplete="address-line2"`);
+  return input('Rua',p.rua,`${A} data-f="rua" id="rua-${k}" autocomplete="address-line1"`,true)+
+    `<div class="duas">${input('Complemento',p.compl,`${A} data-f="compl" autocomplete="address-line2"`)}${input('Bairro',p.bairro,`${A} data-f="bairro" id="bairro-${k}" autocomplete="address-level3"`)}</div>`+
+    `<div class="tres">${input('Cidade',p.cidade,`${A} data-f="cidade" id="cidade-${k}" autocomplete="address-level2"`)}<div class="campo"><label>UF</label><select ${A} data-f="uf" id="uf-${k}" autocomplete="address-level1"><option value=""></option>${UFS.map(u=>`<option${u===p.uf?' selected':''}>${u}</option>`).join('')}</select></div></div>`;
+}
+function refazEndereco(blocoId,i){
+  const el=document.getElementById(`end-${blocoId}.${i}`), b=pedido.blocos.find(x=>x.id===blocoId);
+  if(el&&b) el.innerHTML=htmlEndereco(b,i);
 }
 function htmlPessoa(b,i,n){
   const lista=E.pessoas[b.id], p=lista[i], k=`${b.id}.${i}`, A=`data-b="${b.id}" data-i="${i}"`;
   const simples=!!b.simples;
+  GRUPO=p.papel+(p.nome?' — '+p.nome:'');
   let h=`<div class="bloco" data-bloco="${b.id}"><h2><span class="num${p.nome?' ok':''}">${n}</span>${esc(p.papel)}</h2>`;
   h+=input('Nome completo',p.nome,`${A} data-f="nome" autocomplete="name"`,true);
   if(!simples) h+=select('Estado civil',p.ec,ESTADOS_CIVIS,`${A} data-f="ec"`,true);
-  h+=input('Profissão',p.prof,`${A} data-f="prof"`,true);
-  h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="off" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div><div class="dica" id="cepmsg-${k}" hidden style="color:var(--critico);margin:-4px 0 8px"></div>`;
-  const fim=p.rua&&p.cidade&&!p.editEnd;
-  if(fim) h+=`<div class="campo"><label>Endereço</label><div class="dica" style="margin:0;color:var(--tinta)">${esc([p.rua,p.bairro,[p.cidade,p.uf].filter(Boolean).join('/')].filter(Boolean).join(' — '))} <button type="button" class="remover" data-editend="${b.id}|${i}" style="padding:4px 8px">Editar</button></div></div>`+input('Complemento',p.compl,`${A} data-f="compl"`);
-  else{
-    h+=input('Rua',p.rua,`${A} data-f="rua" id="rua-${k}" autocomplete="off"`,true);
-    h+=`<div class="duas">${input('Complemento',p.compl,`${A} data-f="compl"`)}${input('Bairro',p.bairro,`${A} data-f="bairro" id="bairro-${k}"`)}</div>`;
-    h+=`<div class="tres">${input('Cidade',p.cidade,`${A} data-f="cidade" id="cidade-${k}"`)}<div class="campo"><label>UF</label><select ${A} data-f="uf" id="uf-${k}"><option value=""></option>${UFS.map(u=>`<option${u===p.uf?' selected':''}>${u}</option>`).join('')}</select></div></div>`;
+  // Quem não é casado e vive em união estável marca aqui, e o espaço da escritura abre nos documentos dele.
+  if(!simples&&!b.semUniao&&p.ec&&p.ec!=='Casado(a)') h+=`<label class="marca"><input type="checkbox" ${A} data-uniao="1"${p.uniao?' checked':''}> Vivo em união estável</label>`;
+  h+=input('Profissão',p.prof,`${A} data-f="prof" autocomplete="organization-title"`,true);
+  h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div><div class="dica" id="cepmsg-${k}" hidden style="color:var(--critico);margin:-6px 0 10px"></div>`;
+  h+=`<div id="end-${k}">${htmlEndereco(b,i)}</div>`;
+  // O que vem depois dos dados da pessoa: se é casada, o regime e o cônjuge logo em seguida.
+  if(!simples&&p.ec==='Casado(a)'){
+    h+=opcoesRadio('Regime de bens do casamento',p.regime,REGIMES,`${A} data-f="regime"`,true,`regime-${k}`);
   }
-  h+=`<h3>Documentos</h3>`+slot(k+'.rg','RG ou CNH (frente e verso)',false,DICA_CPF);
+  if(!simples&&p.ec==='Casado(a)'&&b.conjuge){
+    h+=`<div class="sec-conj"><h3 style="margin-top:0">Dados do cônjuge</h3>`+
+      input('Nome completo do cônjuge',p.conj.nome,`${A} data-c="nome"`,true)+input('Profissão do cônjuge',p.conj.prof,`${A} data-c="prof"`,true)+
+      `<label class="marca"><input type="checkbox" ${A} data-c="mesmo"${p.conj.mesmo?' checked':''}> Mora no mesmo endereço</label>`+
+      (p.conj.mesmo?'':input('Endereço do cônjuge',p.conj.end,`${A} data-c="end"`,true))+`</div>`;
+  }
+  // Os documentos desta pessoa vão para o fim da página (FIM), agrupados sob o nome dela.
+  slot(k+'.rg','RG ou CNH (frente e verso)',false,DICA_CPF);
   if(!simples){
-    h+=certidoes(p,k);
-    if(p.ec==='Casado(a)'&&b.conjuge){
-      h+=select('Regime de bens do casamento',p.regime,REGIMES,`${A} data-f="regime"`);
-      if(REGIMES_COM_PACTO.includes(p.regime)) h+=slot(k+'.pacto','Escritura do pacto antenupcial')+slot(k+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis');
-      h+=`<div class="sec-conj"><h3 style="margin-top:0">Cônjuge</h3>`+
-        input('Nome completo do cônjuge',p.conj.nome,`${A} data-c="nome"`,true)+input('Profissão do cônjuge',p.conj.prof,`${A} data-c="prof"`,true)+
-        `<label class="marca"><input type="checkbox" ${A} data-c="mesmo"${p.conj.mesmo?' checked':''}> Mora no mesmo endereço</label>`+
-        (p.conj.mesmo?'':input('Endereço do cônjuge',p.conj.end,`${A} data-c="end"`,true))+
-        slot(k+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF)+`</div>`;
-    }
+    certidoes(p,k,b);
+    if(p.uniao&&p.ec!=='Casado(a)') slot(k+'.uniao','Escritura pública de união estável (registrada no RCPN, Livro E)');
+    if(p.ec==='Casado(a)'&&REGIMES_COM_PACTO.includes(p.regime)){ slot(k+'.pacto','Escritura do pacto antenupcial'); slot(k+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis'); }
+    if(p.ec==='Casado(a)'&&b.conjuge) slot(k+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF);
   }
   if(lista.length>1&&i>=(b.papeis||[]).length) h+=`<div class="repete"><span></span><button class="remover" data-remover="${b.id}|${i}">Remover esta pessoa</button></div>`;
   return h+'</div>';
 }
+// O falecido: o estado civil que ele tinha na data do óbito decide a certidão, o regime e o cônjuge.
+function htmlFalecido(b,n){
+  const f=E.falecidos[b.id], A=`data-fal="${b.id}"`;
+  GRUPO='Falecido(a)'+(f.nome?' — '+f.nome:'');
+  let h=`<div class="bloco"><h2><span class="num${f.nome?' ok':''}">${n}</span>Falecido(a)</h2>`;
+  h+=input('Nome completo do falecido(a)',f.nome,`${A} data-f="nome"`,true);
+  h+=select('Estado civil na data do óbito',f.ec,ESTADOS_CIVIS,`${A} data-f="ec"`,true);
+  if(f.ec==='Casado(a)'){
+    h+=opcoesRadio('Regime de bens do casamento',f.regime,REGIMES,`${A} data-f="regime"`,true,`regime-${b.id}`);
+    h+=`<div class="sec-conj"><h3 style="margin-top:0">Dados do cônjuge</h3>`+input('Nome completo do cônjuge',f.conj.nome,`${A} data-fc="nome"`,true)+input('Profissão do cônjuge',f.conj.prof,`${A} data-fc="prof"`)+`</div>`;
+  }
+  slot(b.id+'.rg','RG ou CNH do falecido(a) (com o CPF)',false,DICA_CPF);
+  slot(b.id+'.obito','Certidão de óbito');
+  if(f.ec==='Solteiro(a)') slot(b.id+'.cert','Certidão de nascimento');
+  else if(f.ec==='Casado(a)'){
+    slot(b.id+'.cert','Certidão de casamento');
+    if(REGIMES_COM_PACTO.includes(f.regime)){ slot(b.id+'.pacto','Escritura do pacto antenupcial'); slot(b.id+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis'); }
+    slot(b.id+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF);
+  }
+  else if(f.ec) slot(b.id+'.cert',f.ec==='Viúvo(a)'?'Certidão de casamento, com a averbação do óbito do cônjuge':f.ec==='Divorciado(a)'?'Certidão de casamento, com a averbação do divórcio':'Certidão de casamento, com a averbação da separação');
+  else slot(b.id+'.cert','Certidão de estado civil',false,'Escolha acima o estado civil na data do óbito e o nome certo aparece.');
+  return h+'</div>';
+}
 function htmlBloco(b,n){
+  if(b.k==='falecido') return htmlFalecido(b,n.v++);
+  if(b.k==='advogado'){ GRUPO='Advogado(a)'; slot(b.id+'.oab','Carteira da OAB'); return ''; }
   if(b.k==='pessoa'){
     let h=E.pessoas[b.id].map((_,i)=>htmlPessoa(b,i,n.v++)).join('');
     const opt=(b.papeis||['Parte']);
@@ -260,12 +361,14 @@ function htmlBloco(b,n){
     h+=`<div class="bloco" style="text-align:center"><button class="btn suave so" data-mais="${b.id}" style="width:100%">+ ${par?'Acrescentar '+esc(prox):'Acrescentar outra pessoa'}</button></div>`;
     return h;
   }
+  // Blocos que só pedem arquivo não ganham cartão: os arquivos vão para o cartão "Documentos", no fim.
+  if(b.k==='doc'){ GRUPO='Do imóvel e do ato'; slot(b.id,b.rotulo,b.opcional); return ''; }
+  if(b.k==='docs'&&!(b.campos||[]).length){ GRUPO=b.titulo||'Outros documentos'; (b.docs||[]).forEach(d=>slot(`${b.id}.${d.id}`,d.rotulo,d.opcional)); return ''; }
   const num=n.v++;
   let h=`<div class="bloco"><h2><span class="num">${num}</span>${esc(b.titulo||b.rotulo||'')}</h2>`;
-  if(b.k==='doc') h+=slot(b.id,b.rotulo,b.opcional);
-  else if(b.k==='docs'){
+  if(b.k==='docs'){
     (b.campos||[]).forEach(c=>h+=htmlCampo(b.id,c));
-    (b.docs||[]).forEach(d=>h+=slot(`${b.id}.${d.id}`,d.rotulo,d.opcional));
+    GRUPO=b.titulo||'Outros documentos'; (b.docs||[]).forEach(d=>slot(`${b.id}.${d.id}`,d.rotulo,d.opcional));
   }
   else if(b.k==='campos') (b.campos||[]).forEach(c=>h+=htmlCampo(b.id,c));
   else if(b.k==='banco'){
@@ -273,15 +376,13 @@ function htmlBloco(b,n){
     h+=input('Banco',v.banco||'',`${A} data-f="banco"`,true)+`<div class="duas">${input('Agência',v.agencia||'',`${A} data-f="agencia"`,true)}${input('Conta',v.conta||'',`${A} data-f="conta"`,true)}</div>`+input('Titular da conta',v.titular||'',`${A} data-f="titular"`,true)+input('Chave PIX (opcional)',v.pix||'',`${A} data-f="pix"`);
   }
   else if(b.k==='pagamento') h+=htmlPagamento(b);
-  else if(b.k==='advogado'){
-    const v=E.adv, A='data-adv="1"';
-    h+=input('Nome completo',v.nome||'',`${A} data-f="nome"`,true)+input('Número da OAB',v.oab||'',`${A} data-f="oab"`,true)+select('Estado civil',v.ec||'',ESTADOS_CIVIS,`${A} data-f="ec"`)+input('Endereço completo',v.end||'',`${A} data-f="end"`)+slot(b.id+'.oab','Carteira da OAB');
-  }
+  else if(b.k==='advogado'){ /* o advogado só sobe o documento: nada para digitar */ }
   else if(b.k==='filhos'){
     h+=`<p class="opcional-nota" style="margin-bottom:8px">Se não houver filhos, deixe em branco.</p>`;
     E.filhos.forEach((f,i)=>{
       const A=`data-filho="${i}"`;
-      h+=`<div class="sec-conj"><h3 style="margin-top:0">Filho(a) ${i+1}</h3>`+input('Nome completo',f.nome||'',`${A} data-f="nome"`,true)+select('Estado civil',f.ec||'',ESTADOS_CIVIS,`${A} data-f="ec"`)+input('Profissão',f.prof||'',`${A} data-f="prof"`)+input('Endereço completo',f.end||'',`${A} data-f="end"`)+slot(`${b.id}.${i}.rg`,'RG ou CNH',false,DICA_CPF)+`<div class="repete"><span></span><button class="remover" data-rmfilho="${i}">Remover</button></div></div>`;
+      GRUPO=`Filho(a) ${i+1}`+(f.nome?' — '+f.nome:''); slot(`${b.id}.${i}.rg`,'RG ou CNH',false,DICA_CPF);
+      h+=`<div class="sec-conj"><h3 style="margin-top:0">Filho(a) ${i+1}</h3>`+input('Nome completo',f.nome||'',`${A} data-f="nome"`,true)+select('Estado civil',f.ec||'',ESTADOS_CIVIS,`${A} data-f="ec"`)+input('Profissão',f.prof||'',`${A} data-f="prof"`)+input('Endereço completo',f.end||'',`${A} data-f="end"`)+`<div class="repete"><span></span><button class="remover" data-rmfilho="${i}">Remover</button></div></div>`;
     });
     h+=`<button class="btn suave so" data-maisfilho="1" style="width:100%;margin-top:10px">+ Acrescentar filho(a)</button>`;
     h+=input('Pensão estipulada para os filhos (R$), se houver',(E.campos[b.id]||{}).pensao||'',`data-cb="${b.id}" data-f="pensao" inputmode="decimal"`);
@@ -317,16 +418,29 @@ function htmlPagamento(b){
 }
 function htmlCampo(bid,c){
   const v=(E.campos[bid]||{})[c.id]||'', A=`data-cb="${bid}" data-f="${c.id}"`;
-  if(c.tipo==='regime') return select(c.rotulo,v,REGIMES,A,!c.opcional);
+  if(c.tipo==='regime') return opcoesRadio(c.rotulo,v,REGIMES,A,!c.opcional,`reg-${bid}-${c.id}`);
   if(c.tipo==='data') return input(c.rotulo,v,`${A} inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" autocomplete="off" data-mascara="data"`,!c.opcional);
   if(c.tipo==='moeda') return input(c.rotulo,v,`${A} inputmode="decimal" placeholder="0,00"`,!c.opcional);
   return input(c.rotulo,v,A,!c.opcional);
 }
+function marcaFoco(){
+  const a=document.activeElement; if(!a||a===document.body||!a.closest||!a.closest('#formulario')) return null;
+  const sel=a.id?`#${CSS.escape(a.id)}`:['data-b','data-i','data-f','data-c','data-cb','data-banco','data-fal','data-fc','data-adv','data-filho'].filter(x=>a.hasAttribute(x)).map(x=>`[${x}="${a.getAttribute(x)}"]`).join('');
+  return sel&&a.tagName!=='BUTTON'&&a.type!=='file'&&a.type!=='radio'&&a.type!=='checkbox'?{sel:a.tagName.toLowerCase()+sel,ini:a.selectionStart,fim:a.selectionEnd}:null;
+}
+function voltaFoco(m){
+  if(!m) return; try{ const el=document.querySelector(m.sel); if(!el) return; el.focus({preventScroll:true}); if(m.ini!=null&&el.setSelectionRange) el.setSelectionRange(m.ini,m.fim); }catch(_){ }
+}
 function desenharTudo(){
+  const foco=marcaFoco(), rolagem=window.scrollY;
   const n={v:1};
-  const pos=document.activeElement&&document.activeElement.getAttribute&&document.activeElement.getAttribute('data-f');
-  $('#formulario').innerHTML=pedido.blocos.map(b=>htmlBloco(b,n)).join('')+
+  FIM=[]; GRUPO='';
+  const corpo=pedido.blocos.map(b=>htmlBloco(b,n)).join('');
+  const docs=htmlDocumentos(n.v); if(docs) n.v++;
+  FIM=null;
+  $('#formulario').innerHTML=corpo+docs+
     `<div class="bloco"><h2><span class="num">${n.v}</span>Observações</h2><div class="campo"><label>Quer deixar algum recado para a nossa equipe, para constar na minuta? <span class="opcional-nota">(opcional)</span></label><textarea id="obs">${esc(E.obs)}</textarea></div></div>`;
+  voltaFoco(foco); window.scrollTo(0,rolagem);
   resumo();
 }
 
@@ -339,7 +453,7 @@ async function abrirCamera(chave){
   catch(e){ alert('Não consegui abrir a câmera. Libere o acesso à câmera no navegador ou use "Escolher" para anexar uma foto.'); return; }
   const m=document.createElement('div'); m.id='camera';
   m.style.cssText='position:fixed;inset:0;z-index:50;background:rgba(20,26,31,.92);display:grid;place-items:center;padding:16px';
-  m.innerHTML='<div style="background:#fff;border-radius:16px;padding:12px;max-width:680px;width:100%"><video autoplay playsinline muted style="width:100%;border-radius:10px;background:#000;max-height:60vh"></video><div class="acoes" style="margin-top:10px"><button type="button" class="btn" data-cam="cancelar">Cancelar</button><button type="button" class="btn" data-cam="foto" style="background:var(--tinta);color:#fff">📷 Tirar a foto</button></div></div>';
+  m.innerHTML='<div style="background:#fff;border-radius:16px;padding:12px;max-width:680px;width:100%"><video autoplay playsinline muted style="width:100%;border-radius:10px;background:#000;max-height:60vh"></video><div class="acoes" style="margin-top:10px"><button type="button" class="btn" data-cam="cancelar">Cancelar</button><button type="button" class="btn" data-cam="foto" style="background:var(--petroleo);color:#fff">📷 Tirar a foto</button></div></div>';
   document.body.appendChild(m);
   const v=m.querySelector('video'); v.srcObject=fluxo;
   const fechar=()=>{ fluxo.getTracks().forEach(t=>t.stop()); m.remove(); };
@@ -359,8 +473,10 @@ const dataOk=v=>{ const m=String(v||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if
 raiz.addEventListener('input',e=>{
   const t=e.target, f=t.dataset.f; if(t.id==='obs'){E.obs=t.value;return;}
   if(t.dataset.mascara==='data'){ const v=mascaraData(t.value); if(v!==t.value) t.value=v; }
+  if(t.dataset.fal!==undefined){ const f=E.falecidos[t.dataset.fal]; if(t.dataset.fc) f.conj[t.dataset.fc]=t.value; else if(t.dataset.f!=='ec'&&t.dataset.f!=='regime') f[t.dataset.f]=t.value; resumo(); return; }
   if(t.dataset.b!==undefined){
     const p=E.pessoas[t.dataset.b][+t.dataset.i];
+    if(t.dataset.uniao!==undefined) return;
     if(t.dataset.c) { p.conj[t.dataset.c]=t.type==='checkbox'?t.checked:t.value; return; }
     if(f!=='ec'&&f!=='regime'&&f!=='uf') p[f]=t.value;
     if(f==='cep') cep(t,p);
@@ -373,15 +489,17 @@ raiz.addEventListener('input',e=>{
 raiz.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.f==='cep'&&t.dataset.b!==undefined){ const p=E.pessoas[t.dataset.b][+t.dataset.i]; p.cep=t.value; cep(t,p); }
+  if(t.dataset.fal!==undefined){ const f=E.falecidos[t.dataset.fal]; if(t.dataset.fc){ f.conj[t.dataset.fc]=t.value; resumo(); return; } f[t.dataset.f]=t.value; if(t.dataset.f==='ec'||t.dataset.f==='regime'){ desenharTudo(); return; } resumo(); return; }
   if(t.dataset.slot){ adicionar(t.dataset.slot,[...t.files]); t.value=''; return; }
   if(t.dataset.clausula){ E.clausulas[t.dataset.clausula]=t.checked; return; }
   if(t.dataset.b!==undefined){
     const p=E.pessoas[t.dataset.b][+t.dataset.i], f=t.dataset.f;
+    if(t.dataset.uniao!==undefined){ p.uniao=t.checked; desenharTudo(); return; }
     if(t.dataset.c){ p.conj[t.dataset.c]=t.type==='checkbox'?t.checked:t.value; desenharTudo(); return; }
     if(f==='ec'||f==='regime'){ p[f]=t.value; desenharTudo(); return; }
     if(f==='uf') p.uf=t.value;
   }
-  if(t.tagName==='SELECT'&&t.dataset.cb) (E.campos[t.dataset.cb]=E.campos[t.dataset.cb]||{})[t.dataset.f]=t.value;
+  if((t.tagName==='SELECT'||t.type==='radio')&&t.dataset.cb) (E.campos[t.dataset.cb]=E.campos[t.dataset.cb]||{})[t.dataset.f]=t.value;
   if(t.tagName==='SELECT'&&t.dataset.cb&&(t.dataset.f==='sinal'||t.dataset.f==='forma')){ desenharTudo(); return; }
   if(t.tagName==='SELECT'&&t.dataset.adv) E.adv[t.dataset.f]=t.value;
   if(t.tagName==='SELECT'&&t.dataset.filho!==undefined) E.filhos[+t.dataset.filho][t.dataset.f]=t.value;
@@ -393,7 +511,7 @@ raiz.addEventListener('click',e=>{
   else if(b.dataset.tirar){ const [c,id]=b.dataset.tirar.split('|'); tirar(c,+id); }
   else if(b.dataset.mais){ const bl=pedido.blocos.find(x=>x.id===b.dataset.mais); E.pessoas[bl.id].push(novaPessoa(proximoPapel(bl))); desenharTudo(); }
   else if(b.dataset.remover){ const [id,i]=b.dataset.remover.split('|'); E.pessoas[id].splice(+i,1); desenharTudo(); }
-  else if(b.dataset.editend){ const [id,i]=b.dataset.editend.split('|'); E.pessoas[id][+i].editEnd=true; desenharTudo(); }
+  else if(b.dataset.editend){ const [id,i]=b.dataset.editend.split('|'); E.pessoas[id][+i].editEnd=true; refazEndereco(id,+i); }
   else if(b.dataset.maisfilho){ E.filhos.push({}); desenharTudo(); }
   else if(b.dataset.rmfilho){ E.filhos.splice(+b.dataset.rmfilho,1); desenharTudo(); }
 });
@@ -411,8 +529,9 @@ async function cep(t,p){
     if(!j||j.erro){ aviso('Não achei esse CEP. Confira os números ou preencha a rua à mão.'); return; }
     cacheCep[d]=j; p.cepBuscado=d; aviso('');
     if(j.logradouro) p.rua=j.logradouro; if(j.bairro) p.bairro=j.bairro; if(j.localidade) p.cidade=j.localidade; if(j.uf) p.uf=j.uf;
-    p.editEnd=false; desenharTudo();
-    const n=document.querySelector(`[data-b="${t.dataset.b}"][data-i="${t.dataset.i}"][data-f="num"]`); if(n) n.focus();
+    p.editEnd=false; refazEndereco(t.dataset.b,+t.dataset.i); resumo();
+    // Só leva o cursor para o número se a pessoa ainda estiver no CEP: nunca rouba o campo em que ela está.
+    if(document.activeElement===t){ const n=document.querySelector(`[data-b="${t.dataset.b}"][data-i="${t.dataset.i}"][data-f="num"]`); if(n) n.focus(); }
   }catch(_){ aviso('Não consegui buscar o CEP agora. Preencha a rua, o bairro e a cidade à mão.'); }
 }
 
@@ -421,11 +540,20 @@ function faltas(){
   const f=[]; if(!pedido) return f;
   const tem=c=>(E.arquivos[c]||[]).some(x=>x.estado!=='erro');
   pedido.blocos.forEach(b=>{
-    if(b.k==='pessoa') E.pessoas[b.id].forEach((p,i)=>{
+    if(b.k==='falecido'){
+      const d=E.falecidos[b.id], k=b.id;
+      if(!d.nome) f.push('Falecido(a): nome'); if(!d.ec) f.push('Falecido(a): estado civil na data do óbito');
+      if(d.ec==='Casado(a)'){ if(!d.regime) f.push('Falecido(a): regime de bens'); if(!d.conj.nome) f.push('Falecido(a): dados do cônjuge'); }
+      if(!tem(k+'.rg')) f.push('Falecido(a): RG ou CNH'); if(!tem(k+'.obito')) f.push('Falecido(a): certidão de óbito');
+      if(d.ec&&!tem(k+'.cert')) f.push('Falecido(a): certidão de '+(d.ec==='Solteiro(a)'?'nascimento':'casamento'));
+    }
+    else if(b.k==='pessoa') E.pessoas[b.id].forEach((p,i)=>{
       const k=`${b.id}.${i}`, q=p.papel;
       if(!p.nome) f.push(`${q}: nome`); if(!b.simples&&!p.ec) f.push(`${q}: estado civil`); if(!p.prof) f.push(`${q}: profissão`);
       if(!(p.rua&&p.num)) f.push(`${q}: endereço`);
+      if(!b.simples&&p.ec==='Casado(a)'&&!p.regime) f.push(`${q}: regime de bens`);
       if(!tem(k+'.rg')) f.push(`${q}: RG ou CNH`);
+      if(p.uniao&&p.ec!=='Casado(a)'&&!tem(k+'.uniao')) f.push(`${q}: escritura de união estável`);
       if(!b.simples&&p.ec&&!tem(k+'.cert')) f.push(`${q}: certidão de estado civil`);
       if(p.ec==='Casado(a)'&&b.conjuge&&!p.conj.nome) f.push(`${q}: dados do cônjuge`);
     });
@@ -438,7 +566,7 @@ function faltas(){
       if(lado!=='comprador'&&!ok(E.banco[b.id+'.recebedor'])) f.push('Conta que receberá o pagamento');
     }
     else if(b.k==='banco'){ const v=E.banco[b.id]||{}; if(!(v.banco&&v.agencia&&v.conta&&v.titular)) f.push('Dados bancários'); }
-    else if(b.k==='advogado'){ if(!(E.adv.nome&&E.adv.oab)) f.push('Advogado(a): nome e OAB'); }
+    else if(b.k==='advogado'){ if(!tem(b.id+'.oab')) f.push('Advogado(a): carteira da OAB'); }
   });
   return f;
 }
@@ -476,7 +604,11 @@ async function chamar(corpo){
   return j;
 }
 function rotuloDoSlot(chave){
-  const nomes={rg:'RG_CNH',cpf:'CPF',cert:'CERTIDAO_ESTADO_CIVIL',obito:'CERTIDAO_OBITO_CONJUGE',pacto:'PACTO_ANTENUPCIAL',pactoreg:'REGISTRO_DO_PACTO',rgconj:'RG_CNH_CONJUGE'};
+  const nomes={uniao:'ESCRITURA_UNIAO_ESTAVEL',rg:'RG_CNH',cpf:'CPF',cert:'CERTIDAO_ESTADO_CIVIL',obito:'CERTIDAO_OBITO_CONJUGE',pacto:'PACTO_ANTENUPCIAL',pactoreg:'REGISTRO_DO_PACTO',rgconj:'RG_CNH_CONJUGE'};
+  for(const b of pedido.blocos) if(b.k==='falecido'&&chave.startsWith(b.id+'.')){
+    const suf=chave.slice(b.id.length+1), fal={rg:'RG_CNH_FALECIDO',obito:'CERTIDAO_OBITO_FALECIDO',cert:'CERTIDAO_ESTADO_CIVIL_FALECIDO',pacto:'PACTO_ANTENUPCIAL_FALECIDO',pactoreg:'REGISTRO_DO_PACTO_FALECIDO',rgconj:'RG_CNH_CONJUGE_DO_FALECIDO'};
+    if(fal[suf]) return {pessoa:E.falecidos[b.id].nome||'Falecido',papel:'Falecido(a)',tipo:fal[suf]};
+  }
   const m=chave.match(/^(.+)\.(\d+)\.(\w+)$/);
   if(m&&E.pessoas[m[1]]){ const p=E.pessoas[m[1]][+m[2]]; return {pessoa:p.nome||p.papel,papel:p.papel,tipo:nomes[m[3]]||m[3].toUpperCase()}; }
   if(m&&pedido.blocos.some(b=>b.k==='filhos'&&b.id===m[1])) return {pessoa:(E.filhos[+m[2]]||{}).nome||('Filho '+(+m[2]+1)),papel:'Filho(a)',tipo:'RG_CNH'};
@@ -490,8 +622,9 @@ function rotuloDoSlot(chave){
 function montarDados(){
   const end=p=>[[p.rua,p.num,p.compl].filter(Boolean).join(', '),p.bairro,[p.cidade,p.uf].filter(Boolean).join('/'),p.cep].filter(Boolean).join(' — ');
   return { ato:pedido.ato, enviadoEm:new Date().toISOString(),
-    pessoas:Object.entries(E.pessoas).flatMap(([bloco,l])=>l.map(p=>({bloco,papel:p.papel,nome:p.nome,estadoCivil:p.ec,profissao:p.prof,endereco:end(p),regime:p.regime||'',
+    pessoas:Object.entries(E.pessoas).flatMap(([bloco,l])=>l.map(p=>({bloco,papel:p.papel,nome:p.nome,estadoCivil:p.ec,profissao:p.prof,endereco:end(p),regime:p.regime||'',uniaoEstavel:!!(p.uniao&&p.ec!=='Casado(a)'),
       conjuge:p.ec==='Casado(a)'&&(p.conj.nome)?{nome:p.conj.nome,profissao:p.conj.prof,endereco:p.conj.mesmo?end(p):p.conj.end}:null}))),
+    falecidos:Object.entries(E.falecidos).map(([bloco,d])=>({bloco,nome:d.nome,estadoCivil:d.ec,regime:d.ec==='Casado(a)'?d.regime:'',conjuge:d.ec==='Casado(a)'&&d.conj.nome?{nome:d.conj.nome,profissao:d.conj.prof}:null})),
     campos:E.campos, banco:E.banco, advogado:E.adv, filhos:E.filhos, clausulas:Object.keys(E.clausulas).filter(k=>E.clausulas[k]), observacoes:E.obs };
 }
 async function enviarArquivo(chave,it){
@@ -499,7 +632,9 @@ async function enviarArquivo(chave,it){
   const meta=rotuloDoSlot(chave);
   try{
     const base64=await b64(it.file); it.pct=40; desenharSlot(chave);
-    await chamar({acao:'cliente-arquivo',t:token,chave,papel:meta.papel,pessoa:meta.pessoa,tipo:meta.tipo,nomeArquivo:it.file.name,mimetype:it.file.type||'application/octet-stream',base64});
+    const r=await chamar({acao:'cliente-arquivo',t:token,chave,papel:meta.papel,pessoa:meta.pessoa,tipo:meta.tipo,nomeArquivo:it.file.name,mimetype:it.file.type||'application/octet-stream',lerDepois:true,base64});
+    // A leitura pela IA corre à parte (não segura o envio) e segue mesmo se a página for fechada.
+    if(r.docKey) try{ fetch(GAS_URL,{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({acao:'cliente-ler',t:token,docKey:r.docKey})}).catch(()=>{}); }catch(_){ }
     it.estado='enviado'; it.pct=100;
   }catch(e){ it.estado='erro'; it.erro='Não enviou. Toque em Enviar para tentar de novo.'; }
   desenharSlot(chave);

@@ -25,7 +25,7 @@ function mundo({recusaBanco = false, iaFalha = false} = {}) {
   class Pasta {
     constructor(nome) { this.nome = nome; this.arquivos = []; this.sub = []; this.id = 'pasta' + (Pasta.n = (Pasta.n || 0) + 1); }
     getUrl() { return 'https://drive.google.com/drive/folders/' + this.id; }
-    createFile(a, b) { const id = 'arq' + (Pasta.nf = (Pasta.nf || 0) + 1) + 'abcdefghij'; const f = {id, nome: a.name || a, bytes: a.bytes || b, lixeira: false, getId: () => id, getUrl: () => 'https://drive.google.com/file/d/' + id + '/view?usp=drivesdk', setTrashed(v) { f.lixeira = v; }}; this.arquivos.push(f); ARQUIVOS[id] = f; return f; }
+    createFile(a, b) { const id = 'arq' + (Pasta.nf = (Pasta.nf || 0) + 1) + 'abcdefghij'; const f = {id, nome: a.name || a, bytes: a.bytes || b, lixeira: false, getId: () => id, getUrl: () => 'https://drive.google.com/file/d/' + id + '/view?usp=drivesdk', setTrashed(v) { f.lixeira = v; }, getBlob: () => ({getContentType: () => 'image/jpeg', getBytes: () => f.bytes})}; this.arquivos.push(f); ARQUIVOS[id] = f; return f; }
     getFoldersByName(n) { const l = this.sub.filter((p) => p.nome === n); let i = 0; return {hasNext: () => i < l.length, next: () => l[i++]}; }
     createFolder(n) { const p = new Pasta(n); this.sub.push(p); return p; }
   }
@@ -46,6 +46,7 @@ function mundo({recusaBanco = false, iaFalha = false} = {}) {
     DriveApp: {getFolderById(id) { if (!todas[id]) throw new Error('sem pasta ' + id); return todas[id]; }, getFileById(id) { if (!ARQUIVOS[id]) throw new Error('sem arquivo ' + id); return ARQUIVOS[id]; }},
     Utilities: {
       computeHmacSha256Signature: (texto, chave) => Array.from(createHmac('sha256', chave).update(texto).digest()).map((b) => (b > 127 ? b - 256 : b)),
+      base64Encode: (b) => Buffer.from(b).toString('base64'),
       base64Decode: (s) => Array.from(Buffer.from(s, 'base64')),
       newBlob: (bytes, mime, name) => ({bytes, mime, name}),
       formatDate: (d, tz, f) => { const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit'}).formatToParts(d).map((x) => [x.type, x.value])); return f === 'yyyy-MM-dd' ? `${p.year}-${p.month}-${p.day}` : `${p.day}/${p.month}/${p.year}`; },
@@ -140,6 +141,37 @@ await passo('enviou, fechou: o link expira, o card ganha o aviso (não visto) e 
 await passo('a leitura da IA manda copiar os números do RG/CPF dígito por dígito e marcar "?" no que não estiver nítido', () => {
   const fonte = readFileSync(new URL('../apps-script/cartorio-drive-api.js', import.meta.url), 'utf8');
   assert(/dígito por dígito/.test(fonte) && /escreva '\?'/.test(fonte));
+});
+await passo('envio rápido: com lerDepois o arquivo é guardado sem chamar a IA, e cliente-ler lê depois (mesmo com o link já concluído)', () => {
+  const m = mundo(); semear(m); let chamadasIA = 0;
+  m.caixa.lerDocumentoComIA = () => { chamadasIA++; return {texto: 'TIPO_DOCUMENTO: CNH\nRG: 123456', truncou: false}; };
+  const r = m.chamar({...arq(), lerDepois: true}); assert.equal(r.ok, true); assert(r.docKey, 'devolve a chave do documento'); assert.equal(chamadasIA, 0, 'não esperou a IA');
+  const doc = m.db.casos['-Caso1'].documentos[r.docKey]; assert(!doc.texto && doc.lendo > 0, 'fica marcado como lendo');
+  m.chamar({acao: 'cliente-dados', t: TOKEN, dados: {}}); assert(m.db.pedidos[TOKEN].concluidoEm > 0, 'o link fechou antes de a leitura terminar');
+  const l = m.chamar({acao: 'cliente-ler', t: TOKEN, docKey: r.docKey}); assert.equal(l.ok, true); assert.equal(l.leu, true); assert.equal(chamadasIA, 1);
+  const d2 = m.db.casos['-Caso1'].documentos[r.docKey]; assert(/RG: 123456/.test(d2.texto) && !d2.lendo, 'o texto entra e o "lendo" some');
+  assert.equal(m.chamar({acao: 'cliente-ler', t: TOKEN, docKey: r.docKey}).leu, true); assert.equal(chamadasIA, 1, 'ler de novo não refaz');
+});
+await passo('cliente-ler só lê o que nasceu do link: chave de outro link, sem selo ou inexistente é recusado; IA fora limpa o "lendo"', () => {
+  const m = mundo(); semear(m); m.caixa.lerDocumentoComIA = () => { throw new Error('IA fora'); };
+  const r = m.chamar({...arq(), lerDepois: true});
+  assert.equal(m.chamar({acao: 'cliente-ler', t: TOKEN, docKey: 'cli_ZZZZZZ_1'}).ok, false);
+  m.db.casos['-Caso1'].documentos.cli_aB3dE6_falso = {nome: 'x', origem: 'link do cliente', link: 'https://drive.google.com/file/d/' + Object.keys(ARQUIVOS)[0] + '/view'};
+  const f = m.chamar({acao: 'cliente-ler', t: TOKEN, docKey: 'cli_aB3dE6_falso'}); assert.equal(f.leu, false, 'sem selo não lê o arquivo');
+  const l = m.chamar({acao: 'cliente-ler', t: TOKEN, docKey: r.docKey}); assert.equal(l.ok, true); assert.equal(l.leu, false);
+  assert(!m.db.casos['-Caso1'].documentos[r.docKey].lendo, 'IA fora: deixa de dizer "lendo" e o card mostra "sem leitura"');
+});
+await passo('a numeração e o limite vêm de um contador pequeno do pedido (sem ler todos os documentos do caso)', () => {
+  const m = mundo(); semear(m);
+  m.chamar({...arq(), lerDepois: true}); m.chamar({...arq(), lerDepois: true});
+  const nomes = Object.values(m.db.casos['-Caso1'].documentos).map((d) => d.nome).sort(); assert(/_1\.jpg$/.test(nomes[0]) && /_2\.jpg$/.test(nomes[1]), nomes.join('|'));
+  assert.equal(m.db.pedidos[TOKEN].contagem._total, 2);
+});
+await passo('a ficha traz o falecido: estado civil na data do óbito, regime e cônjuge', () => {
+  const m = mundo(); semear(m);
+  m.chamar({acao: 'cliente-dados', t: TOKEN, dados: {falecidos: [{bloco: 'falecido', nome: 'José Souza', estadoCivil: 'Casado(a)', regime: 'Comunhão universal de bens', conjuge: {nome: 'Maria Souza', profissao: 'Professora'}}]}});
+  const f = m.db.casos['-Caso1'].documentos['ficha_' + TOKEN.slice(0, 10)].texto;
+  for (const t of ['FALECIDO(A) — José Souza', 'Estado civil na data do óbito: Casado(a)', 'Regime de bens: Comunhão universal de bens', 'Cônjuge: Maria Souza, Professora']) assert(f.includes(t), t);
 });
 await passo('texto de cliente com quebra de linha e instrução escondida vira uma linha só e é cortado', () => {
   const m = mundo(); semear(m);

@@ -1,4 +1,7 @@
 {
+  "rewrites": [
+    { "source": "/e/:t", "destination": "/enviar.html" }
+  ],
   "headers": [
     {
       "source": "/index.html",

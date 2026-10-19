@@ -11853,7 +11853,7 @@ async function criarLinkEnvio(id,{estado,blocos,token}){
       ? 'O banco recusou a gravação. As regras novas do Firebase (com o caminho /pedidos) ainda não foram publicadas — o passo está no FIREBASE.md.'
       : 'Não consegui gravar o pedido: '+((e&&e.message)||e));
   }
-  return {token:cod,url:(ENVIO_BASE_URL||location.origin).replace(/\/+$/,'')+'/enviar.html?t='+cod};
+  return {token:cod,url:(ENVIO_BASE_URL||location.origin).replace(/\/+$/,'')+'/e/'+cod};
 }
 
 // Excluir o que o cliente mandou errado: o arquivo vai para a lixeira do Drive e o registro sai do card
@@ -11905,7 +11905,8 @@ function pedidoRecebidosHtml(c){
   const lidos=arquivos.filter(x=>x.d.texto).length;
   const linhas=docs.sort((a,b)=>String(a.d.salvoEm).localeCompare(String(b.d.salvoEm))).map(({k,d})=>{
     const nome=d.link?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.nome)}</a>`:escTxt(d.nome);
-    const sit=d.tipo==='informacoes'?'dados digitados':(d.texto?'lido':'<b>sem leitura</b>');
+    const lendoAgora=d.lendo&&Date.now()-Number(d.lendo)<10*60*1000;
+    const sit=d.tipo==='informacoes'?'dados digitados':(d.texto?'lido':(lendoAgora?'lendo…':'<b>sem leitura</b>'));
     const del=c&&c.id?`<button type="button" class="cx-ped-x" title="Excluir — enviado errado" aria-label="Excluir ${esc(d.nome)}" onclick="excluirDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-trash"></i></button>`:'';
     return `<li><span class="cx-ped-nome">${nome}</span> <span>${sit}</span>${del}</li>`;
   }).join('');

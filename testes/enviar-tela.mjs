@@ -81,16 +81,16 @@ await passo('o estado civil decide a certidão: solteiro → nascimento; casado 
   await pg.selectOption('[data-f="ec"]', 'Solteiro(a)'); assert(/Certidão de nascimento/.test(await pg.textContent('#formulario')));
   await pg.selectOption('[data-f="ec"]', 'Casado(a)');
   let t = await pg.textContent('#formulario');
-  assert(/Certidão de casamento/.test(t) && /Cônjuge/.test(t) && !/Certidão de nascimento/.test(t));
+  assert(/Certidão de casamento/.test(t) && /cônjuge/i.test(t) && !/Certidão de nascimento/.test(t));
   await pg.selectOption('[data-f="ec"]', 'Divorciado(a)');
-  t = await pg.textContent('#formulario'); assert(/averbação do divórcio/.test(t) && !/Cônjuge/.test(t));
+  t = await pg.textContent('#formulario'); assert(/averbação do divórcio/.test(t) && !/cônjuge/i.test(t));
 });
 
 await passo('regime que exige pacto pede o pacto e o registro; comunhão parcial não pede', async () => {
   const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
   await pg.selectOption('[data-f="ec"]', 'Casado(a)');
-  await pg.selectOption('[data-f="regime"]', 'Comunhão parcial de bens'); assert(!/pacto/i.test(await pg.textContent('#formulario')));
-  await pg.selectOption('[data-f="regime"]', 'Separação convencional de bens');
+  await pg.check('input[data-f="regime"][value="Comunhão parcial de bens"]', {force: true}); assert(!/pacto/i.test(await pg.textContent('#formulario')));
+  await pg.check('input[data-f="regime"][value="Separação total de bens"]', {force: true});
   const t = await pg.textContent('#formulario'); assert(/Escritura do pacto/.test(t) && /registro do pacto/.test(t));
 });
 
@@ -108,7 +108,7 @@ await passo('cabeçalho personalizado, certidão visível desde o início e câm
   const {pg} = await abrir({...compra, tipo:'Escritura de Compra e Venda', publico:'cliente', papel:'comprador'}, {mobile: false, viewport: {width: 1100, height: 800}});
   await pg.waitForSelector('[data-b="partes"]');
   assert.ok(!/Para a elaboração/.test(await pg.innerText('#intro')), 'o cabeçalho não explica o ato: o link já vem personalizado');
-  assert.ok(!/cartorio-api/i.test(await pg.content()), 'a página nunca cita cartorio-api');
+  assert.ok(!/cartorio-api/i.test(await pg.innerText('body')) && !/cartorio-api/i.test(await pg.title()), 'a página nunca mostra cartorio-api (só a imagem de prévia mora lá)');
   assert.ok(/og:title/.test(await pg.content()));
   assert.ok(await pg.locator('text=Certidão de estado civil').count() > 0, 'o espaço da certidão aparece antes de escolher o estado civil');
   assert.equal(await pg.locator('input[capture]').count(), 0, 'no computador não há capture');
@@ -168,6 +168,103 @@ await passo('convivente 1 acrescenta o outro: a pessoa nova é "Convivente 2", n
   assert.equal(await pg.locator('[data-remover]').count(), 1);
 });
 
+await passo('documentos por último: casado → regime (só 3) e cônjuge logo depois dos dados; os arquivos só no cartão final', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  await pg.selectOption('[data-f="ec"]', 'Casado(a)');
+  const regimes = await pg.locator('input[data-f="regime"]').evaluateAll((l) => l.map((x) => x.value));
+  assert.deepEqual(regimes, ['Comunhão parcial de bens', 'Comunhão universal de bens', 'Separação total de bens'], 'só os três regimes');
+  const ordem = await pg.evaluate(() => { const f = document.getElementById('formulario'); const blocos = [...f.querySelectorAll('.bloco')];
+    const i = (re) => blocos.findIndex((b) => re.test(b.textContent)); const slots = [...f.querySelectorAll('.slot')];
+    return {conj: i(/Dados do cônjuge/), docs: blocos.findIndex((b) => b.querySelector('.intro-docs')), pag: i(/Pagamento|Valor da transação/), slotsForaDoFim: slots.filter((x) => !x.closest('.bloco').querySelector('.intro-docs')).length, ultimo: blocos.length - 1}; });
+  assert(ordem.conj >= 0 && ordem.docs > ordem.conj && ordem.docs > ordem.pag, JSON.stringify(ordem));
+  assert.equal(ordem.slotsForaDoFim, 0, 'nenhum envio de arquivo antes do cartão Documentos');
+  assert(/RG ou CNH do cônjuge/.test(await pg.innerText('.intro-docs >> xpath=..')), 'o RG do cônjuge está nos documentos');
+  assert.equal(await pg.locator('.chip:has-text("Falta anexar")').count() > 1, true, 'cada documento mostra se falta ou se já foi anexado');
+});
+await passo('envio rápido: o arquivo sobe sem esperar a IA (lerDepois) e a leitura sai numa chamada à parte, para cada arquivo', async () => {
+  let n = 0;
+  const {pg, chamadas} = await abrir(compra, {gas: (c) => c.acao === 'cliente-arquivo' ? {ok: true, docKey: 'cli_aB3dE6_' + (++n)} : {ok: true}});
+  await pg.waitForSelector('[data-b="partes"]'); await preencher(pg);
+  await pg.click('#enviar'); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
+  await pg.waitForFunction(() => true); await new Promise((r) => setTimeout(r, 400));
+  const subidas = chamadas.filter((c) => c.acao === 'cliente-arquivo'), leituras = chamadas.filter((c) => c.acao === 'cliente-ler');
+  assert(subidas.length === 2 && subidas.every((c) => c.lerDepois === true), 'sobe sem esperar a leitura');
+  assert.deepEqual(leituras.map((c) => c.docKey).sort(), ['cli_aB3dE6_1', 'cli_aB3dE6_2'], 'uma leitura por arquivo guardado'); assert(leituras.every((c) => c.t === TOKEN));
+});
+
+await passo('viúvo: a certidão de casamento com a averbação do óbito basta; a de óbito só na lista de inventário', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  await pg.selectOption('[data-f="ec"]', 'Viúvo(a)'); let t = await pg.textContent('#formulario');
+  assert(/averbação do óbito/.test(t) && !/Certidão de óbito/.test(t), 'compra e venda não pede óbito');
+  const inv = await abrir({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true}}, {viewport: {width: 1100, height: 900}, mobile: false});
+  await inv.pg.waitForSelector('[data-b="herdeiros"]'); await inv.pg.selectOption('[data-b="herdeiros"][data-f="ec"]', 'Viúvo(a)');
+  t = await inv.pg.textContent('#formulario'); assert(/averbação do óbito/.test(t) && /Certidão de óbito do cônjuge/.test(t), 'inventário pede as duas');
+});
+
+await passo('topo: sem o nome PRIME; título, 20º Tabelião de Notas e, por último, a escrevente com o WhatsApp', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  const t = await pg.innerText('body'); assert(!/PRIME/.test(t) && !(await pg.content()).includes('>PRIME<'), 'sem PRIME');
+  const topo = await pg.innerText('.titulo'); const tl = topo.toLowerCase(); assert(tl.indexOf('envio de documentos') < tl.indexOf('20º tabelião de notas') && tl.indexOf('20º tabelião de notas') < tl.indexOf('escrevente shirley dantas'), topo);
+  assert.equal(await pg.getAttribute('.escrevente a', 'href'), 'https://wa.me/5511954929643'); assert(/\(11\) 95492-9643/.test(topo));
+});
+await passo('casado, em qualquer ato, abre o regime de bens (divórcio e união também)', async () => {
+  for (const [tipo, papel, bloco] of [['Divórcio', 'div1', 'divorciandos'], ['União Estável', 'conv1', 'conviventes']]) {
+    const {pg} = await abrir({tipo, publico: 'cliente', papel}); await pg.waitForSelector(`[data-b="${bloco}"]`);
+    await pg.selectOption('[data-b][data-f="ec"]', 'Casado(a)'); assert.equal(await pg.locator('input[data-b][data-f="regime"]').count(), 3, tipo);
+  }
+});
+await passo('preenchimento do celular: campos com autocomplete certo, e o CEP troca só o endereço (não mexe no campo em que a pessoa está)', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  const at = async (f) => pg.getAttribute(`[data-b][data-f="${f}"]`, 'autocomplete');
+  assert.equal(await at('nome'), 'name'); assert.equal(await at('cep'), 'postal-code'); assert.equal(await at('rua'), 'address-line1'); assert.equal(await at('cidade'), 'address-level2');
+  await pg.fill('[data-f="cep"]', '01452000'); await pg.focus('[data-f="prof"]'); await pg.keyboard.type('Prof');
+  await pg.waitForSelector('[data-editend]');
+  assert.equal(await pg.evaluate(() => document.activeElement.dataset.f), 'prof', 'o foco continua onde a pessoa estava'); assert.equal(await pg.inputValue('[data-f="prof"]'), 'Prof');
+});
+await passo('inventário: o falecido pergunta o estado civil na data do óbito e só então pede a certidão certa', async () => {
+  const {pg} = await abrir({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true}}, {viewport: {width: 1100, height: 900}, mobile: false});
+  await pg.waitForSelector('[data-fal]'); let t = await pg.textContent('#formulario');
+  assert(/Estado civil na data do óbito/.test(t) && !/Escritura do pacto/.test(t) && !/Certidão de casamento/.test(t) && /Certidão de estado civil/.test(t), 'antes de escolher, nada de casamento ou pacto');
+  const ec = (v) => pg.selectOption('[data-fal][data-f="ec"]', v);
+  await ec('Casado(a)'); assert.equal(await pg.locator('input[data-fal][data-f="regime"]').count(), 3); t = await pg.textContent('#formulario');
+  assert(/Dados do cônjuge/.test(t) && /Certidão de casamento/.test(t) && /RG ou CNH do cônjuge/.test(t) && !/Escritura do pacto/.test(t), 'casado: cônjuge e casamento; pacto só com regime que exige');
+  await pg.check('input[data-fal][data-f="regime"][value="Separação total de bens"]', {force: true}); t = await pg.textContent('#formulario');
+  assert(/Escritura do pacto/.test(t) && /registro do pacto/.test(t), 'separação total pede o pacto e o registro');
+  await pg.fill('[data-fal][data-fc="nome"]', 'Viúva Silva');
+  await ec('Viúvo(a)'); t = await pg.textContent('#formulario'); assert(/averbação do óbito/.test(t) && !/Escritura do pacto/.test(t) && !/RG ou CNH do cônjuge/.test(t) && !/Dados do cônjuge/.test(t));
+  await ec('Divorciado(a)'); assert(/averbação do divórcio/.test(await pg.textContent('#formulario')));
+  await ec('Solteiro(a)'); t = await pg.textContent('#formulario'); assert(/Certidão de nascimento/.test(t) && !/Certidão de casamento/.test(t));
+  assert(/Certidão de óbito/.test(t), 'a certidão de óbito vale para qualquer estado civil');
+});
+
+await passo('advogado: só sobe a carteira da OAB, sem número, nome nem endereço para digitar', async () => {
+  const {pg} = await abrir({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true}}, {viewport: {width: 1100, height: 900}, mobile: false});
+  await pg.waitForSelector('[data-fal]'); assert.equal(await pg.locator('[data-adv]').count(), 0, 'nenhum campo de advogado');
+  assert(/Carteira da OAB/.test(await pg.textContent('.intro-docs >> xpath=..')), 'a carteira está nos documentos');
+  assert(!/Número da OAB/.test(await pg.textContent('#formulario')));
+});
+await passo('união estável: quem não é casado marca "Vivo em união estável" e o espaço da escritura abre só nos documentos dele', async () => {
+  const {pg} = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'advogado'}, {viewport: {width: 1100, height: 900}, mobile: false});
+  await pg.waitForSelector('[data-b="partes"]'); assert(!/união estável/i.test(await pg.textContent('#formulario')), 'sem escolher, nada de união estável');
+  const ec = (i, v) => pg.locator(`select[data-b="partes"][data-i="${i}"][data-f="ec"]`).selectOption(v);
+  await ec(0, 'Solteiro(a)'); await ec(1, 'Casado(a)');
+  assert.equal(await pg.locator('[data-uniao]').count(), 1, 'a pergunta só aparece para quem não é casado');
+  await pg.check('[data-uniao]', {force: true});
+  const grupos = await pg.evaluate(() => [...document.querySelectorAll('.intro-docs ~ *')].map((x) => x.className.includes('grupo-docs') ? '#' + x.textContent : x.className.includes('slot') ? x.querySelector('b').textContent : '').filter(Boolean));
+  const iU = grupos.findIndex((x) => /união estável/.test(x)), iG1 = grupos.findIndex((x) => x.startsWith('#') && /Vendedor/.test(x)), iG2 = grupos.findIndex((x) => x.startsWith('#') && /Comprador/.test(x));
+  assert(iU > iG1 && iU < iG2, 'a escritura abre na pílula de quem marcou (o vendedor): ' + grupos.join(' | '));
+  await pg.click('#enviar'); assert(/escritura de união estável/.test(await pg.innerText('.folha')), 'e passa a faltar até anexar');
+});
+await passo('pacto: abre só para quem é casado em regime que exige pacto, na pílula dele', async () => {
+  const {pg} = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'advogado'}, {viewport: {width: 1100, height: 900}, mobile: false});
+  await pg.waitForSelector('[data-b="partes"]'); assert(!/pacto/i.test(await pg.textContent('#formulario')));
+  await pg.locator('select[data-b="partes"][data-i="1"][data-f="ec"]').selectOption('Casado(a)');
+  await pg.check('input[data-i="1"][data-f="regime"][value="Comunhão parcial de bens"]', {force: true}); assert(!/pacto/i.test(await pg.textContent('#formulario')));
+  await pg.check('input[data-i="1"][data-f="regime"][value="Comunhão universal de bens"]', {force: true});
+  const t = await pg.textContent('#formulario'); assert(/Escritura do pacto/.test(t) && /registro do pacto/.test(t));
+  assert((t.match(/Escritura do pacto antenupcial/g) || []).length === 1, 'só uma vez, na pessoa que escolheu');
+});
+
 let tela;
 await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os dados vão por último', async () => {
   const {pg, chamadas} = await abrir(compra); tela = pg; await pg.waitForSelector('[data-b="partes"]');
@@ -202,7 +299,7 @@ await passo('o advogado manda vários herdeiros: acrescentar e remover pessoa', 
   await pg.waitForSelector('[data-b="herdeiros"]');
   await pg.click('[data-mais="herdeiros"]'); assert.equal(await pg.locator('[data-b="herdeiros"][data-f="nome"]').count(), 2);
   await pg.click('[data-remover]'); assert.equal(await pg.locator('[data-b="herdeiros"][data-f="nome"]').count(), 1);
-  const t = await pg.textContent('#formulario'); assert(/Falecido/.test(t) && /Número da OAB/.test(t) && /Matrícula do imóvel urbano/.test(t));
+  const t = await pg.textContent('#formulario'); assert(/Falecido/.test(t) && /Carteira da OAB/.test(t) && !/Número da OAB/.test(t) && /Matrícula do imóvel urbano/.test(t));
   await pg.screenshot({path: SAIDA('env-desk-inventario.png'), fullPage: true});
 });
 
