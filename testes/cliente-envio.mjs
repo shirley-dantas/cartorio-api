@@ -78,7 +78,7 @@ await passo('link inválido, inexistente ou vencido: recusa sem dizer qual', () 
   const m = mundo(); semear(m);
   assert.equal(m.chamar(arq({t: 'curto'})).ok, false);
   assert.equal(m.chamar(arq({t: 'zZ3dE6gH9jK2mN5pQ8sT1vX4'})).ok, false);
-  const v = mundo(); semear(v, {expira: Date.now() - 1}); const r = v.chamar(arq()); assert.equal(r.ok, false); assert(/inválido ou vencido/.test(r.erro));
+  const v = mundo(); semear(v, {expira: Date.now() - 1}); const r = v.chamar(arq()); assert.equal(r.ok, false); assert(/inválido, vencido ou já usado/.test(r.erro));
 });
 await passo('o arquivo vai para o caso do LINK, mesmo que a página mande outro id', () => {
   const m = mundo(); semear(m); const pasta = m.raiz.createFolder('X'); m.db.casos['-Caso1'].driveUrl = pasta.getUrl();
@@ -128,6 +128,18 @@ await passo('os dados digitados viram um documento do caso, com os rótulos do p
   assert.equal(f.tipo, 'informacoes'); assert.equal(f.origem, 'link do cliente');
   for (const t of ['COMPRADOR(A) — Maria da Silva', 'Estado civil: Casado(a)', 'Cônjuge: João Souza', 'Valor da transação (R$): 450.000,00', 'Houve sinal (entrada já paga)?: Sim', 'Valor a pagar no ato da escritura (R$): 405.000,00', 'Forma de pagamento no ato: PIX', 'CONTA DE ONDE SAIRÁ O PAGAMENTO', 'Banco: BB', 'CONTA QUE RECEBERÁ O PAGAMENTO', 'PIX: joao@x.com', 'OBSERVAÇÕES DO CLIENTE (para a equipe conferir antes de usar na minuta): Constar nome de solteira', 'ainda não conferidos']) assert(f.texto.includes(t), 'faltou: ' + t);
   assert(m.db.pedidos[TOKEN].concluidoEm > 0); assert(m.externos.length >= 1, 'a equipe é avisada pelo WhatsApp');
+});
+await passo('enviou, fechou: o link expira, o card ganha o aviso (não visto) e um segundo preenchimento é recusado', () => {
+  const m = mundo(); semear(m);
+  const r = m.chamar({acao: 'cliente-dados', t: TOKEN, nArquivos: 3, dados: {pessoas: [{papel: 'Convivente 2', nome: 'Ana'}]}});
+  assert.equal(r.ok, true);
+  const e = m.db.casos['-Caso1'].envioCliente; assert(e && e.visto === false && e.arquivos === 3 && e.em > 0 && e.pedido === TOKEN);
+  assert.match(m.db.casos['-Caso1'].documentos['ficha_' + TOKEN.slice(0, 10)].texto, /CONVIVENTE 2 — Ana/);
+  for (const acao of [arq(), {acao: 'cliente-dados', t: TOKEN, dados: {}}]) { const x = m.chamar(acao); assert.equal(x.ok, false); assert(/já usado/.test(x.erro)); }
+});
+await passo('a leitura da IA manda copiar os números do RG/CPF dígito por dígito e marcar "?" no que não estiver nítido', () => {
+  const fonte = readFileSync(new URL('../apps-script/cartorio-drive-api.js', import.meta.url), 'utf8');
+  assert(/dígito por dígito/.test(fonte) && /escreva '\?'/.test(fonte));
 });
 await passo('texto de cliente com quebra de linha e instrução escondida vira uma linha só e é cortado', () => {
   const m = mundo(); semear(m);

@@ -1566,6 +1566,14 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cc-jornal-resumo{display:block;font-size:13.5px;color:var(--cc-tinta);line-height:1.45;margin-top:4px}
 .cc-jornal-alerta{display:block;font-size:12.5px;color:var(--cc-critico);line-height:1.45;
   margin-top:6px;padding-left:9px;border-left:2px solid var(--cc-critico)}
+.cc-envios{display:grid;gap:8px;margin:0 0 10px}
+.cc-envio{display:flex;align-items:center;gap:12px;background:#EEF6F0;border:1px solid #BFDCC8;border-radius:16px;padding:12px 14px;font-family:'Inter',sans-serif}
+.cc-envio-ico{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:#2F7A4F;color:#fff;display:grid;place-items:center;font-size:16px}
+.cc-envio-txt{flex:1;min-width:0;font-size:13.5px;line-height:1.4;color:var(--cc-tinta)}
+.cc-envio-txt b{font-weight:600}.cc-envio-txt small{display:block;color:var(--cc-tinta-3);font-size:11.5px}
+.cc-envio-btn{flex-shrink:0;border:1px solid var(--cc-linha-forte);background:#fff;border-radius:10px;padding:7px 11px;font:500 12.5px 'Inter',sans-serif;cursor:pointer;color:var(--cc-tinta)}
+.cc-envio-btn.forte{background:#2F7A4F;border-color:#2F7A4F;color:#fff}
+@media(max-width:520px){.cc-envio{flex-wrap:wrap}.cc-envio-btn{flex:1}}
 .cc-jornal-seta{flex-shrink:0;color:var(--cc-tinta-3);font-size:15px;align-self:center}
 @media(max-width:520px){.cc-jornal-seta{display:none}.cc-jornal-selos{margin-left:0;width:100%}}
 
@@ -2401,6 +2409,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
        Nasce escondida e só aparece quando o Radar tiver passado ao menos uma
        vez — faixa vazia dizendo "nada ainda" todo dia vira moldura que
        ninguém lê. -->
+  <!-- Chegou do cliente: o link de envio foi concluído. Mora junto do Jornal, no topo, e some quando ela
+       vê (o card guarda envioCliente.visto). -->
+  <div class="cc-envios" id="cc-envios" style="display:none"></div>
   <button type="button" class="cc-jornal" id="cc-jornal" style="display:none" onclick="abrirRadar()">
     <span class="cc-jornal-selo"><i class="ti ti-scale"></i></span>
     <span class="cc-jornal-corpo">
@@ -3351,6 +3362,7 @@ onValue(casosRef,(snap)=>{
     renderStats();
     renderCasos();
     renderCentralComando();
+    renderEnvios();
     montarSaudacao();
   }
   setSyncStatus(true);
@@ -13588,6 +13600,25 @@ function radarClasseDoSelo(selo){
 }
 
 // ── A faixa do cabeçalho ─────────────────────────────────────────────────
+// Cliente que concluiu o link de envio e o aviso ainda não foi visto.
+function renderEnvios(){
+  const el=document.getElementById('cc-envios'); if(!el) return;
+  const lista=Object.values(casos||{}).filter(c=>c&&c.envioCliente&&!c.envioCliente.visto)
+    .sort((a,b)=>(b.envioCliente.em||0)-(a.envioCliente.em||0));
+  if(!lista.length){ el.style.display='none'; el.innerHTML=''; return; }
+  const quando=ms=>{ if(!ms) return ''; const d=new Date(ms); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+  el.style.display='grid';
+  el.innerHTML=lista.map(c=>{ const e=c.envioCliente, n=e.arquivos||0;
+    return `<div class="cc-envio"><span class="cc-envio-ico"><i class="ti ti-inbox"></i></span>
+      <span class="cc-envio-txt"><b>Cliente enviou os documentos</b> — ${escTxt(c.nome)}<small>${quando(e.em)}${n?` · ${n} ${n===1?'arquivo':'arquivos'}`:''}${e.ato?` · ${escTxt(e.ato)}`:''} · o link já foi fechado</small></span>
+      <button type="button" class="cc-envio-btn forte" onclick="abrirEnvioCliente('${esc(c.id)}')">Abrir o card</button>
+      <button type="button" class="cc-envio-btn" onclick="vistoEnvioCliente('${esc(c.id)}')">Já vi</button></div>`; }).join('');
+}
+window.vistoEnvioCliente=function(id){
+  return update(ref(db,'casos/'+id+'/envioCliente'),{visto:true,vistoEm:Date.now()}).catch(e=>alert('Não consegui marcar como visto: '+(e&&e.message||e)));
+};
+window.abrirEnvioCliente=function(id){ window.vistoEnvioCliente(id); window.irParaCasoPorId(id); };
+
 function renderJornal(){
   const faixa = document.getElementById('cc-jornal');
   if(!faixa) return;

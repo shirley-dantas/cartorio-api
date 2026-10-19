@@ -104,5 +104,18 @@ await passo('excluir pelo painel: pergunta antes, chama o Apps Script com o caso
   r = await rodar({resposta: {ok: false, erro: 'ação desconhecida: cliente-excluir'}}); assert(r.avisos.some((a) => /ainda não conhece a exclusão/.test(a)), 'Apps Script desatualizado diz o que fazer');
   r = await rodar({falha: true}); assert(r.avisos.some((a) => /Erro de conexão/.test(a)));
 });
+await passo('aviso de envio no topo do painel: só o que ainda não foi visto, o card abre, "visto" é gravado', async () => {
+  const html = readFileSync(join(AQUI, '..', 'index.html'), 'utf8');
+  const i = html.indexOf('function renderEnvios()'); const f = html.slice(i, html.indexOf('function renderJornal()', i));
+  const el = {style: {}, innerHTML: ''}; const gravou = []; const abriu = [];
+  const caixa = {document: {getElementById: (id) => id === 'cc-envios' ? el : null}, window: {irParaCasoPorId: (id) => abriu.push(id)}, Date, JSON, Object, db: {}, ref: (_, c) => c, escTxt: (x) => String(x), esc: (x) => String(x), alert: () => {},
+    update: (c, d) => { gravou.push([c, d]); return Promise.resolve(); },
+    casos: {A: {id: 'A', nome: 'RENATO TESTE', envioCliente: {em: Date.now(), arquivos: 3, ato: 'União Estável', visto: false}}, B: {id: 'B', nome: 'JA VISTO', envioCliente: {em: 1, visto: true}}, C: {id: 'C', nome: 'SEM ENVIO'}}};
+  vm.createContext(caixa); vm.runInContext(f, caixa); vm.runInContext('renderEnvios()', caixa);
+  assert.equal(el.style.display, 'grid'); assert(/RENATO TESTE/.test(el.innerHTML) && /3 arquivos/.test(el.innerHTML) && /link já foi fechado/.test(el.innerHTML));
+  assert(!/JA VISTO|SEM ENVIO/.test(el.innerHTML), 'só o que não foi visto');
+  await caixa.window.abrirEnvioCliente('A'); assert.deepEqual(abriu, ['A']); assert.equal(gravou[0][0], 'casos/A/envioCliente'); assert.equal(gravou[0][1].visto, true);
+  caixa.casos.A.envioCliente.visto = true; vm.runInContext('renderEnvios()', caixa); assert.equal(el.style.display, 'none', 'sem pendência, o aviso some');
+});
 await b.close(); servidor.close();
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);

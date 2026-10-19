@@ -80,6 +80,12 @@ textarea{min-height:90px;resize:vertical}
 .tela h2{font-family:'Jost',sans-serif;font-weight:200;font-size:30px;margin-bottom:8px}
 body.concluido #final,body.invalido #invalido{display:block}
 body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.invalido .formulario,body.invalido .rodape,body.invalido .lgpd,body.invalido header p.sub{display:none}
+.veu{position:fixed;inset:0;z-index:40;background:rgba(20,26,31,.55);display:grid;place-items:end center;padding:16px}
+.folha{background:#fff;border-radius:20px;max-width:520px;width:100%;max-height:86vh;overflow:auto;padding:20px}
+.folha h2{font-family:'Jost',sans-serif;font-weight:400;font-size:22px;margin-bottom:8px}
+.folha ul{margin:10px 0 14px 20px;font-size:15px}
+.folha .duas{margin-top:12px}
+.enviar.falta{background:var(--linha-forte);color:var(--tinta)}
 .aviso{margin-top:12px;padding:12px 14px;border-radius:12px;background:#FBF3E3;border:1px solid #E8D6AE;font-size:14px;color:#6B5321}
 </style>
 </head>
@@ -111,7 +117,7 @@ body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.inva
 <script>
 const FIREBASE='https://painel-cartorio-default-rtdb.firebaseio.com';
 const GAS_URL='https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec';
-const MAX_LADO=1800, QUALIDADE=.82, MAX_BYTES=8*1024*1024, PARALELO=3;
+const MAX_LADO=2600, QUALIDADE=.9, MAX_BYTES=8*1024*1024, PARALELO=3;
 const DICA_CPF='Se o seu RG não trouxer o CPF, anexe o CPF junto, na mesma foto ou em outra.';
 const ESTADOS_CIVIS=['Solteiro(a)','Casado(a)','Divorciado(a)','Viúvo(a)','Separado(a)'];
 const REGIMES=['Comunhão parcial de bens','Comunhão universal de bens','Separação convencional de bens','Separação obrigatória de bens','Participação final nos aquestos'];
@@ -138,6 +144,7 @@ async function carregar(){
     pedido=await r.json();
   }catch(e){ return invalido('Sem conexão. Confira a internet e tente de novo.'); }
   if(!pedido||!Array.isArray(pedido.blocos)) return invalido();
+  if(pedido.concluidoEm) return invalido('Este link já foi usado: o cartório já recebeu o que foi enviado. Se precisar corrigir algo, fale com o cartório.');
   if(pedido.expiraEm&&Date.now()>pedido.expiraEm) return invalido('Este link venceu. Peça um novo ao cartório.');
   if(pedido.ato){ const a=$('#ato'); a.textContent=pedido.ato; a.hidden=false; }
   pedido.blocos.forEach(b=>{
@@ -147,6 +154,14 @@ async function carregar(){
   desenharTudo();
 }
 function invalido(m){ if(m) $('#motivo').textContent=m; document.body.classList.add('invalido'); }
+// "Acrescentar outra pessoa": em ato de duas pontas (convivente 1/2, divorciando 1/2, noivo 1/2) a
+// pessoa que entra é a outra ponta, e não mais um "Convivente 1". Nos demais atos repete o papel.
+function proximoPapel(bl){
+  const base=(bl.papeis||['Parte']), usados=E.pessoas[bl.id].map(p=>p.papel);
+  const m=String(base[0]).match(/^(.*?)\s*([12])$/);
+  if(m){ const outro=m[1]+' '+(m[2]==='1'?'2':'1'); if(!usados.includes(outro)) return outro; }
+  return base[0];
+}
 function novaPessoa(papel){ return {papel,nome:'',ec:'',prof:'',cep:'',rua:'',num:'',compl:'',bairro:'',cidade:'',uf:'',regime:'',conj:{nome:'',prof:'',mesmo:true,end:''}}; }
 
 // ── Arquivos ──────────────────────────────────────────────────────────
@@ -213,11 +228,11 @@ function htmlPessoa(b,i,n){
   h+=input('Nome completo',p.nome,`${A} data-f="nome" autocomplete="name"`,true);
   if(!simples) h+=select('Estado civil',p.ec,ESTADOS_CIVIS,`${A} data-f="ec"`,true);
   h+=input('Profissão',p.prof,`${A} data-f="prof"`,true);
-  h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div>`;
+  h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="off" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div><div class="dica" id="cepmsg-${k}" hidden style="color:var(--critico);margin:-4px 0 8px"></div>`;
   const fim=p.rua&&p.cidade&&!p.editEnd;
   if(fim) h+=`<div class="campo"><label>Endereço</label><div class="dica" style="margin:0;color:var(--tinta)">${esc([p.rua,p.bairro,[p.cidade,p.uf].filter(Boolean).join('/')].filter(Boolean).join(' — '))} <button type="button" class="remover" data-editend="${b.id}|${i}" style="padding:4px 8px">Editar</button></div></div>`+input('Complemento',p.compl,`${A} data-f="compl"`);
   else{
-    h+=input('Rua',p.rua,`${A} data-f="rua" id="rua-${k}" autocomplete="street-address"`,true);
+    h+=input('Rua',p.rua,`${A} data-f="rua" id="rua-${k}" autocomplete="off"`,true);
     h+=`<div class="duas">${input('Complemento',p.compl,`${A} data-f="compl"`)}${input('Bairro',p.bairro,`${A} data-f="bairro" id="bairro-${k}"`)}</div>`;
     h+=`<div class="tres">${input('Cidade',p.cidade,`${A} data-f="cidade" id="cidade-${k}"`)}<div class="campo"><label>UF</label><select ${A} data-f="uf" id="uf-${k}"><option value=""></option>${UFS.map(u=>`<option${u===p.uf?' selected':''}>${u}</option>`).join('')}</select></div></div>`;
   }
@@ -241,7 +256,8 @@ function htmlBloco(b,n){
   if(b.k==='pessoa'){
     let h=E.pessoas[b.id].map((_,i)=>htmlPessoa(b,i,n.v++)).join('');
     const opt=(b.papeis||['Parte']);
-    h+=`<div class="bloco" style="text-align:center"><button class="btn suave so" data-mais="${b.id}" style="width:100%">+ Acrescentar outra pessoa</button></div>`;
+    const prox=proximoPapel(b), par=/\s[12]$/.test(prox)&&prox!==opt[0];
+    h+=`<div class="bloco" style="text-align:center"><button class="btn suave so" data-mais="${b.id}" style="width:100%">+ ${par?'Acrescentar '+esc(prox):'Acrescentar outra pessoa'}</button></div>`;
     return h;
   }
   const num=n.v++;
@@ -302,7 +318,7 @@ function htmlPagamento(b){
 function htmlCampo(bid,c){
   const v=(E.campos[bid]||{})[c.id]||'', A=`data-cb="${bid}" data-f="${c.id}"`;
   if(c.tipo==='regime') return select(c.rotulo,v,REGIMES,A,!c.opcional);
-  if(c.tipo==='data') return input(c.rotulo,v,A,!c.opcional,'date');
+  if(c.tipo==='data') return input(c.rotulo,v,`${A} inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" autocomplete="off" data-mascara="data"`,!c.opcional);
   if(c.tipo==='moeda') return input(c.rotulo,v,`${A} inputmode="decimal" placeholder="0,00"`,!c.opcional);
   return input(c.rotulo,v,A,!c.opcional);
 }
@@ -338,8 +354,11 @@ async function abrirCamera(chave){
 
 // ── Eventos ───────────────────────────────────────────────────────────
 const raiz=$('#formulario');
+const mascaraData=v=>{ const d=v.replace(/\D/g,'').slice(0,8); return d.length>4?`${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}`:d.length>2?`${d.slice(0,2)}/${d.slice(2)}`:d; };
+const dataOk=v=>{ const m=String(v||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(!m) return false; const d=+m[1],mo=+m[2],a=+m[3]; return mo>=1&&mo<=12&&d>=1&&d<=31&&a>=1900&&a<=2100; };
 raiz.addEventListener('input',e=>{
   const t=e.target, f=t.dataset.f; if(t.id==='obs'){E.obs=t.value;return;}
+  if(t.dataset.mascara==='data'){ const v=mascaraData(t.value); if(v!==t.value) t.value=v; }
   if(t.dataset.b!==undefined){
     const p=E.pessoas[t.dataset.b][+t.dataset.i];
     if(t.dataset.c) { p.conj[t.dataset.c]=t.type==='checkbox'?t.checked:t.value; return; }
@@ -353,6 +372,7 @@ raiz.addEventListener('input',e=>{
 });
 raiz.addEventListener('change',e=>{
   const t=e.target;
+  if(t.dataset.f==='cep'&&t.dataset.b!==undefined){ const p=E.pessoas[t.dataset.b][+t.dataset.i]; p.cep=t.value; cep(t,p); }
   if(t.dataset.slot){ adicionar(t.dataset.slot,[...t.files]); t.value=''; return; }
   if(t.dataset.clausula){ E.clausulas[t.dataset.clausula]=t.checked; return; }
   if(t.dataset.b!==undefined){
@@ -371,22 +391,29 @@ raiz.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.camera){ abrirCamera(b.dataset.camera); }
   else if(b.dataset.tirar){ const [c,id]=b.dataset.tirar.split('|'); tirar(c,+id); }
-  else if(b.dataset.mais){ const bl=pedido.blocos.find(x=>x.id===b.dataset.mais); E.pessoas[bl.id].push(novaPessoa((bl.papeis||['Parte'])[0])); desenharTudo(); }
+  else if(b.dataset.mais){ const bl=pedido.blocos.find(x=>x.id===b.dataset.mais); E.pessoas[bl.id].push(novaPessoa(proximoPapel(bl))); desenharTudo(); }
   else if(b.dataset.remover){ const [id,i]=b.dataset.remover.split('|'); E.pessoas[id].splice(+i,1); desenharTudo(); }
   else if(b.dataset.editend){ const [id,i]=b.dataset.editend.split('|'); E.pessoas[id][+i].editEnd=true; desenharTudo(); }
   else if(b.dataset.maisfilho){ E.filhos.push({}); desenharTudo(); }
   else if(b.dataset.rmfilho){ E.filhos.splice(+b.dataset.rmfilho,1); desenharTudo(); }
 });
-const buscasCep={};
+// O CEP manda no endereço: a cada CEP novo de 8 dígitos a rua, o bairro, a cidade e a UF vêm dele,
+// mesmo que o navegador tenha preenchido algo antes (o preenchimento automático do navegador foi o que
+// fez a busca "não ler" na segunda vez). Falha de busca aparece escrita, e o endereço fica à mão.
+const cacheCep={};
 async function cep(t,p){
-  const d=t.value.replace(/\D/g,''); if(d.length!==8||buscasCep[d]) return; buscasCep[d]=1;
+  const d=t.value.replace(/\D/g,''); if(d.length!==8||p.cepBuscado===d) return;
+  const k=`${t.dataset.b}.${t.dataset.i}`, msg=document.getElementById('cepmsg-'+k);
+  const aviso=x=>{ const m=document.getElementById('cepmsg-'+k); if(m){ m.textContent=x; m.hidden=!x; } };
   try{
-    const r=await fetch(`https://viacep.com.br/ws/${d}/json/`); const j=await r.json(); if(j.erro) return;
-    const k=`${t.dataset.b}.${t.dataset.i}`;
-    const poe=(campo,id,val)=>{ if(val&&!p[campo]){ p[campo]=val; const el=document.getElementById(id+'-'+k); if(el) el.value=val; } };
-    poe('rua','rua',j.logradouro); poe('bairro','bairro',j.bairro); poe('cidade','cidade',j.localidade); poe('uf','uf',j.uf);
-    if(p.rua&&p.cidade){ p.editEnd=false; desenharTudo(); const n=document.querySelector(`[data-b="${t.dataset.b}"][data-i="${t.dataset.i}"][data-f="num"]`); if(n) n.focus(); }
-  }catch(_){ /* sem CEP automático: ela digita */ }
+    let j=cacheCep[d];
+    if(!j){ const r=await fetch(`https://viacep.com.br/ws/${d}/json/`); j=await r.json(); }
+    if(!j||j.erro){ aviso('Não achei esse CEP. Confira os números ou preencha a rua à mão.'); return; }
+    cacheCep[d]=j; p.cepBuscado=d; aviso('');
+    if(j.logradouro) p.rua=j.logradouro; if(j.bairro) p.bairro=j.bairro; if(j.localidade) p.cidade=j.localidade; if(j.uf) p.uf=j.uf;
+    p.editEnd=false; desenharTudo();
+    const n=document.querySelector(`[data-b="${t.dataset.b}"][data-i="${t.dataset.i}"][data-f="num"]`); if(n) n.focus();
+  }catch(_){ aviso('Não consegui buscar o CEP agora. Preencha a rua, o bairro e a cidade à mão.'); }
 }
 
 // ── O que falta e o resumo ────────────────────────────────────────────
@@ -404,7 +431,7 @@ function faltas(){
     });
     else if(b.k==='doc'&&!b.opcional&&!tem(b.id)) f.push(b.rotulo);
     else if(b.k==='docs'){ (b.docs||[]).forEach(d=>{ if(!d.opcional&&!tem(`${b.id}.${d.id}`)) f.push(d.rotulo); }); (b.campos||[]).forEach(c=>{ if(!c.opcional&&!((E.campos[b.id]||{})[c.id])) f.push(c.rotulo); }); }
-    else if(b.k==='campos') (b.campos||[]).forEach(c=>{ if(!c.opcional&&!((E.campos[b.id]||{})[c.id])) f.push(c.rotulo); });
+    else if(b.k==='campos') (b.campos||[]).forEach(c=>{ const v=(E.campos[b.id]||{})[c.id]; if(!c.opcional&&!v) f.push(c.rotulo); else if(c.tipo==='data'&&v&&!dataOk(v)) f.push(c.rotulo+' (dd/mm/aaaa)'); });
     else if(b.k==='pagamento'){
       const C=E.campos[b.id]||{}, lado=b.lado||'ambos', ok=v=>v&&v.banco&&v.agencia&&v.conta&&v.titular;
       if(lado!=='vendedor'){ if(!C.valor) f.push('Valor da transação'); if(!C.restante) f.push('Valor a pagar no ato da escritura'); if(!C.forma) f.push('Forma de pagamento (TED ou PIX)'); else if(!ok(E.banco[b.id+'.pagador'])) f.push('Conta de onde sairá o pagamento'); }
@@ -419,7 +446,26 @@ function resumo(){
   if(!pedido) return;
   const n=Object.values(E.arquivos).flat().filter(x=>x.estado!=='erro').length, f=faltas().length;
   $('#resumo').textContent=n?`${n} ${n===1?'documento anexado':'documentos anexados'}${f?` · faltam ${f} ${f===1?'item':'itens'}`:' · tudo preenchido'}`:'Preencha e anexe os documentos';
-  $('#enviar').disabled=enviando;
+  const b=$('#enviar'); b.disabled=enviando; b.classList.toggle('falta',!!f);
+  if(!enviando) b.textContent=f?`Faltam ${f} ${f===1?'item':'itens'}`:'Revisar e enviar';
+}
+// Trava de segurança: o envio é definitivo (o link fecha), então só sai com tudo preenchido e depois
+// de um "confirmo". Faltando algo, o botão mostra o que falta em vez de enviar.
+function folha(html){
+  const v=document.createElement('div'); v.className='veu'; v.innerHTML=`<div class="folha">${html}</div>`;
+  document.body.appendChild(v); return v;
+}
+function revisar(){
+  if(enviando||!pedido) return;
+  const f=faltas();
+  if(f.length){
+    const v=folha(`<h2>Ainda falta preencher</h2><p class="sub">O envio só é liberado com tudo completo, para não ir nada pela metade.</p><ul>${f.slice(0,12).map(x=>`<li>${esc(x)}</li>`).join('')}${f.length>12?`<li>e mais ${f.length-12}</li>`:''}</ul><p class="dica">Se não tiver algum documento, fale com o cartório antes de enviar.</p><button class="btn so" style="width:100%" data-fecha="1">Voltar e completar</button>`);
+    v.addEventListener('click',e=>{ if(e.target.closest('[data-fecha]')||e.target===v) v.remove(); }); return;
+  }
+  const n=Object.values(E.arquivos).flat().filter(x=>x.estado!=='erro').length;
+  const nomes=Object.values(E.pessoas).flat().map(p=>`${esc(p.papel)}: ${esc(p.nome)}`);
+  const v=folha(`<h2>Confira antes de enviar</h2><p class="sub">${nomes.join('<br>')}<br>${n} ${n===1?'documento anexado':'documentos anexados'}</p><p class="aviso">Depois de enviado, <b>este link fecha</b> e não será possível corrigir por aqui. Se algo estiver errado, volte e corrija agora.</p><div class="duas"><button class="btn" data-fecha="1">Voltar e revisar</button><button class="btn" data-ok="1" style="background:var(--tinta);color:#fff">Enviar agora</button></div>`);
+  v.addEventListener('click',e=>{ if(e.target.closest('[data-ok]')){ v.remove(); enviar(); } else if(e.target.closest('[data-fecha]')||e.target===v) v.remove(); });
 }
 
 // ── Enviar ────────────────────────────────────────────────────────────
@@ -460,19 +506,18 @@ async function enviarArquivo(chave,it){
 }
 async function enviar(){
   if(enviando||!pedido) return;
-  const f=faltas();
-  if(f.length&&!confirm('Ainda falta:\n\n• '+f.slice(0,8).join('\n• ')+(f.length>8?`\n• e mais ${f.length-8}`:'')+'\n\nEnviar assim mesmo?')) return;
+  if(faltas().length) return revisar();
   enviando=true; const btn=$('#enviar'); btn.disabled=true; btn.textContent='Enviando…';
   const fila=Object.entries(E.arquivos).flatMap(([c,l])=>l.filter(x=>x.estado==='pronto'||x.estado==='erro'&&x.file.size<=MAX_BYTES).map(x=>[c,x]));
   let i=0; await Promise.all(Array.from({length:Math.min(PARALELO,fila.length)},async()=>{ while(i<fila.length){ const [c,x]=fila[i++]; await enviarArquivo(c,x); } }));
   const falhou=Object.values(E.arquivos).flat().some(x=>x.estado==='erro');
   if(!falhou){
-    try{ await chamar({acao:'cliente-dados',t:token,dados:montarDados()}); document.body.classList.add('concluido'); window.scrollTo(0,0); }
+    try{ await chamar({acao:'cliente-dados',t:token,nArquivos:Object.values(E.arquivos).flat().filter(x=>x.estado==='enviado').length,dados:montarDados()}); document.body.classList.add('concluido'); window.scrollTo(0,0); }
     catch(e){ alert('Os documentos chegaram, mas não consegui enviar os dados preenchidos. Toque em Enviar de novo.'); }
   }else alert('Alguns arquivos não foram enviados. Eles estão marcados em vermelho: toque em Enviar para tentar de novo.');
-  enviando=false; btn.disabled=false; btn.textContent='Enviar'; resumo();
+  enviando=false; btn.disabled=false; resumo();
 }
-$('#enviar').addEventListener('click',enviar);
+$('#enviar').addEventListener('click',revisar);
 carregar();
 </script>
 </body>

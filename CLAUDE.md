@@ -961,6 +961,19 @@ Regras que **não devem ser mexidas sem perguntar**:
 - **"Pedir mais alguma coisa"** (Mais opções): ela escreve o item e escolhe se a pessoa **sobe um
   arquivo** ou **só escreve a informação**, e, quando o link vai para os dois lados, se é para todos ou
   para um só. Informação cai na ficha `DADOS_INFORMADOS_PELO_CLIENTE` com o rótulo escrito por ela.
+- **O envio é definitivo, e tem trava.** O botão da página mostra "Faltam N itens" e, tocado, lista o
+  que falta; só com tudo preenchido vira "Revisar e enviar", que abre uma conferência ("este link fecha")
+  com *Voltar e revisar* / *Enviar agora*. Ao enviar, o Apps Script grava `concluidoEm` no pedido: **o link
+  expira** (a página diz "já foi usado" e as ações `cliente-arquivo`/`cliente-dados` recusam), para um
+  segundo preenchimento não confundir o card. Gerar/atualizar a lista com o mesmo código reabre o link.
+- **O aviso chega no topo do painel**, junto do Jornal (`renderEnvios()`): o Apps Script grava
+  `/casos/{id}/envioCliente` (`em`, `arquivos`, `visto:false`); *Abrir o card* leva ao card e marca visto.
+- **Data em texto, não calendário** (`dd/mm/aaaa` com máscara; data impossível trava o envio). **CEP manda
+  no endereço** (a cada CEP novo a rua/bairro/cidade/UF vêm dele; o autopreenchimento do navegador está
+  desligado nesses campos). **"Acrescentar" em ato de duas pontas** cria a outra ponta (Convivente 2,
+  Divorciando(a) 2, Noivo(a) 2) — o papel vai para a ficha e para o nome do arquivo.
+- **A IA copia números de documento dígito por dígito** (`lerDocumentoComIA`) e marca `?` no que não
+  estiver nítido; as fotos saem com até 2600 px (antes 1800) para o 6 não virar 8.
 - **A certidão de estado civil aparece desde o início** (genérica até ela escolher o estado civil) e o
   endereço se recolhe depois do CEP (rua/bairro/cidade/UF viram uma linha com *Editar*).
 - **"Tirar foto" no computador abre a webcam** (`abrirCamera()`); no celular continua o `capture` nativo.

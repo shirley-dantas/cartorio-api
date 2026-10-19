@@ -25,9 +25,9 @@ await pgTmp.close();
 const RG = SAIDA('rg.png'); writeFileSync(RG, Buffer.from(png, 'base64'));
 const PDF = SAIDA('cert.pdf'); writeFileSync(PDF, '%PDF-1.4\n%%EOF');
 
-async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = true, expira, gas} = {}) {
+async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = true, expira, gas, concluidoEm} = {}) {
   const pg = await b.newPage({viewport, deviceScaleFactor: mobile ? 2 : 1.4, isMobile: mobile, hasTouch: mobile});
-  const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
+  const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), ...(concluidoEm ? {concluidoEm} : {}), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
   const chamadas = [];
   await pg.route('**/*', async (rota) => {
     const u = rota.request().url();
@@ -119,9 +119,7 @@ await passo('cabeçalho personalizado, certidão visível desde o início e câm
   assert.equal(await pg.locator('#camera').count(), 0);
 });
 
-let tela;
-await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os dados vão por último', async () => {
-  const {pg, chamadas} = await abrir(compra); tela = pg; await pg.waitForSelector('[data-b="partes"]');
+async function preencher(pg) {
   await pg.fill('[data-f="nome"]', 'Maria da Silva'); await pg.selectOption('[data-f="ec"]', 'Solteiro(a)'); await pg.fill('[data-f="prof"]', 'Professora');
   await pg.fill('[data-f="cep"]', '01452000'); await pg.waitForSelector('[data-editend]'); await pg.fill('[data-f="num"]', '210');
   await pg.locator('input[type=file][multiple]').nth(0).setInputFiles(RG);
@@ -131,10 +129,53 @@ await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os d
   await pg.fill('[data-f="restante"]', '405.000,00'); await pg.selectOption('[data-f="forma"]', 'PIX');
   await pg.fill('[data-banco="pagamento.pagador"][data-f="banco"]', 'Banco do Brasil'); await pg.fill('[data-banco="pagamento.pagador"][data-f="agencia"]', '1234');
   await pg.fill('[data-banco="pagamento.pagador"][data-f="conta"]', '56789-0'); await pg.fill('[data-banco="pagamento.pagador"][data-f="titular"]', 'Maria da Silva');
+}
+
+await passo('trava: faltando algo o envio não sai; completo, pede confirmação e só envia no "Enviar agora"', async () => {
+  const {pg, chamadas} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  assert(/Faltam \d+ itens/.test(await pg.innerText('#enviar')));
+  await pg.click('#enviar'); assert(/Ainda falta preencher/.test(await pg.innerText('.folha')), 'mostra o que falta');
+  await pg.click('[data-fecha]'); assert.equal(chamadas.length, 0, 'nada saiu');
+  await preencher(pg); await pg.waitForFunction(() => /Revisar e enviar/.test(document.querySelector('#enviar').textContent));
+  await pg.click('#enviar'); assert(/este link fecha/.test(await pg.innerText('.folha')));
+  await pg.click('[data-fecha]'); assert.equal(chamadas.length, 0, 'voltar e revisar não envia');
+  await pg.click('#enviar'); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
+  assert(chamadas.some((c) => c.acao === 'cliente-dados' && c.nArquivos === 2));
+});
+await passo('link já usado (concluidoEm) mostra "já foi usado" e nenhum formulário', async () => {
+  const {pg} = await abrir(compra, {concluidoEm: Date.now() - 1000});
+  await pg.waitForSelector('body.invalido'); assert(/já foi usado/.test(await pg.innerText('#motivo'))); assert.equal(await pg.locator('[data-b]').count(), 0);
+});
+await passo('o CEP lê de novo mesmo com o endereço já preenchido pelo navegador, e um CEP novo troca a rua', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  await pg.fill('[data-f="rua"]', 'Rua digitada antes'); await pg.fill('[data-f="cidade"]', 'Outra');
+  await pg.fill('[data-f="cep"]', '01452000'); await pg.waitForSelector('[data-editend]');
+  assert(/Rua das Palmeiras/.test(await pg.locator('[data-editend]').locator('xpath=..').innerText()));
+  await pg.click('[data-editend]'); assert.equal(await pg.inputValue('[data-f="rua"]'), 'Rua das Palmeiras');
+});
+await passo('data de início da união: campo de texto com máscara dd/mm/aaaa, e só vale data de verdade', async () => {
+  const {pg} = await abrir({tipo: 'União Estável', publico: 'cliente', papel: 'conv1'}); await pg.waitForSelector('[data-b="conviventes"]');
+  const c = pg.locator('[data-cb="convivente.dados"][data-f="inicio"]'); assert.equal(await c.getAttribute('type'), 'text');
+  await c.pressSequentially('15032019'); assert.equal(await c.inputValue(), '15/03/2019');
+  await c.fill(''); await c.pressSequentially('31132019'); await pg.click('#enviar');
+  assert(/Data de início da união \(dd\/mm\/aaaa\)/.test(await pg.innerText('.folha')), 'mês 13 não vale');
+});
+await passo('convivente 1 acrescenta o outro: a pessoa nova é "Convivente 2", no formulário e na ficha', async () => {
+  const {pg, chamadas} = await abrir({tipo: 'União Estável', publico: 'cliente', papel: 'conv1'}); await pg.waitForSelector('[data-b="conviventes"]');
+  assert(/Acrescentar Convivente 2/.test(await pg.innerText('[data-mais]')));
+  await pg.click('[data-mais]');
+  const t = await pg.locator('.bloco h2').allInnerTexts(); assert(t.some((x) => /Convivente 1/.test(x)) && t.some((x) => /Convivente 2/.test(x)), t.join('|'));
+  assert.equal(await pg.locator('[data-remover]').count(), 1);
+});
+
+let tela;
+await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os dados vão por último', async () => {
+  const {pg, chamadas} = await abrir(compra); tela = pg; await pg.waitForSelector('[data-b="partes"]');
+  await preencher(pg);
   await pg.fill('#obs', 'Quero constar o nome de solteira.');
   await pg.waitForFunction(() => /anexados/.test(document.querySelector('#resumo').textContent));
   await pg.screenshot({path: SAIDA('env-cel-cheio.png'), fullPage: true});
-  await pg.click('#enviar'); await pg.waitForSelector('body.concluido');
+  await pg.click('#enviar'); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
   const arqs = chamadas.filter((c) => c.acao === 'cliente-arquivo'), dados = chamadas.find((c) => c.acao === 'cliente-dados');
   assert.equal(arqs.length, 2); assert(chamadas.indexOf(dados) === chamadas.length - 1, 'os dados vão depois dos arquivos');
   const rg = arqs.find((a) => a.tipo === 'RG_CNH'); assert(rg && rg.papel === 'Comprador(a)' && rg.pessoa === 'Maria da Silva' && rg.t === TOKEN);
@@ -149,10 +190,9 @@ await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os d
 
 await passo('se o cartório recusa um arquivo, ele fica marcado e os dados NÃO são enviados como se estivesse tudo certo', async () => {
   const {pg, chamadas} = await abrir(compra, {gas: (c) => c.acao === 'cliente-arquivo' ? {ok: false, erro: 'não deu'} : {ok: true}});
-  await pg.waitForSelector('[data-b="partes"]');
-  await pg.locator('input[type=file][multiple]').nth(0).setInputFiles(RG);
-  await pg.waitForFunction(() => document.querySelector('.arq small')?.textContent.includes('KB'));
-  await pg.click('#enviar'); await pg.waitForFunction(() => document.querySelector('.arq small.erro'));
+  await pg.waitForSelector('[data-b="partes"]'); await preencher(pg);
+  await pg.waitForFunction(() => [...document.querySelectorAll('.arq small')].every((x) => x.textContent.includes('KB')));
+  await pg.click('#enviar'); await pg.click('[data-ok]'); await pg.waitForFunction(() => document.querySelector('.arq small.erro'));
   assert(!chamadas.some((c) => c.acao === 'cliente-dados'), 'dados não podem ir se um arquivo falhou');
   assert(await pg.isHidden('#final'));
 });
