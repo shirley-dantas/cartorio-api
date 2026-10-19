@@ -5179,6 +5179,7 @@ function renderCasos(){
       <div class="cx-orc cx-ped">
         <span class="cx-orc-rot"><i class="ti ti-file-search"></i> Documentos</span>
         <button class="cx-btn destaque" onclick="abrirPedidoDocs('${c.id}')"><i class="ti ti-list-check"></i> Pedir documentos</button>
+        ${pedidoPastaHtml(c)}
         ${pedidoRecebidosHtml(c)}
       </div>
 
@@ -11833,6 +11834,14 @@ async function criarLinkEnvio(id,{estado,blocos,token}){
       : 'Não consegui gravar o pedido: '+((e&&e.message)||e));
   }
   return {token:cod,url:location.origin+'/enviar.html?t='+cod};
+}
+
+// O acesso à pasta do caso no Drive, na própria faixa Documentos: é lá que os arquivos do
+// cliente caem. Só aparece quando o card tem a pasta ligada.
+function pedidoPastaHtml(c){
+  const u=c&&c.driveUrl;
+  if(!u||!/^https:\/\//.test(u)) return '';
+  return `<a class="cx-btn" href="${esc(u)}" target="_blank" rel="noopener"><i class="ti ti-brand-google-drive"></i> Abrir pasta no Drive</a>`;
 }
 
 // O que o cliente já mandou pelo link, na faixa Documentos do card: arquivos com link para o Drive

@@ -63,5 +63,16 @@ await passo('o card lista o que o cliente mandou: arquivos com link, lidos e sem
     c: {nome: 'DADOS_INFORMADOS_PELO_CLIENTE', tipo: 'informacoes', origem: 'link do cliente', texto: 't', salvoEm: '2026-10-19T10:02:00Z'}}});
   assert(/2 arquivos \(1 lidos\) \+ dados digitados/.test(h), h); assert(/href="https:\/\/drive\/x"/.test(h) && /sem leitura/.test(h) && /dados digitados<\/span>/.test(h));
 });
+await passo('a faixa Documentos tem o botão da pasta do Drive, só quando o card tem a pasta e o link é https', () => {
+  const html = readFileSync(join(AQUI, '..', 'index.html'), 'utf8');
+  const i = html.indexOf('function pedidoPastaHtml(c){'); const f = html.slice(i, html.indexOf('\n}\n', i) + 3);
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  const caixa = {esc}; vm.createContext(caixa); vm.runInContext(f, caixa);
+  const h = caixa.pedidoPastaHtml({driveUrl: 'https://drive.google.com/drive/folders/abc'});
+  assert(/href="https:\/\/drive\.google\.com\/drive\/folders\/abc"/.test(h) && /target="_blank"/.test(h) && /noopener/.test(h) && /Abrir pasta no Drive/.test(h));
+  assert.equal(caixa.pedidoPastaHtml({}), ''); assert.equal(caixa.pedidoPastaHtml({driveUrl: ''}), '');
+  assert.equal(caixa.pedidoPastaHtml({driveUrl: 'javascript:alert(1)'}), '', 'link que não é https nunca vira botão');
+  assert(/\$\{pedidoPastaHtml\(c\)\}/.test(html), 'o card chama a função');
+});
 await b.close(); servidor.close();
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
