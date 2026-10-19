@@ -152,3 +152,9 @@ A linha do tempo tem **barra de rolagem própria** (`.tl-scroll`, abre no primei
 **Cores, ajuste de 16/10/2026 (noite):** **rosé** Tháriga, **bege** Rafael, **palha** Mariana. As bolinhas de cadastro (iniciais das clientes, `.avatar`) também são rosé.
 
 **Trocar cliente (16/10/2026):** o cartão do agendamento (só para a Tháriga) tem **Trocar cliente** (`trocarCliente()`): corrige agendamentos que ficaram no nome de um cadastro genérico (ex.: "Cliente Florença"), inclusive os já atendidos, sem mexer em valor nem histórico. A unidade da cliente continua no cadastro dela.
+
+## Ana Luiza, a quarta profissional (19/10/2026, rascunho, ainda não publicado)
+
+Faz **só sobrancelhas e cílios** em Itaquera (design, design + henna, alongamento, manutenção e remoção de cílios: `SERV_ANA`), **todos os dias** como Rafael e Mariana (ela fecha os que não atende), cor **verde sálvia** (`--p-ana`/`--t-ana`), comissão **50% do valor cheio** como os dois. Vaga `5` na chave da reserva (`VAGA_PRO.ana`).
+
+Esses cinco serviços têm **dois donos** (`donosDoServico()`: Tháriga e Ana): na página `/p` a cliente escolhe **"Com quem você prefere?"** (`#q`, `ANA` e `donosDe()` no `pedido.html`) e os dias/horários mostrados são os da escolhida; nos Horários livres aparecem as duas; a reserva diz quem é pela vaga (`proDaReserva()`), e `proLivre()` respeita a escolha. O login dela aceita `pro` = `ana` ou `ana luiza` (`entrou()` normaliza).
