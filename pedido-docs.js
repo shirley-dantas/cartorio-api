@@ -58,6 +58,7 @@
   // "elaboração da Doação", "do Inventário": o artigo certo de cada ato.
   var ARTIGO = { 'Inventário': 'do', 'Divórcio': 'do', 'Pacto Antenupcial': 'do', 'Testamento': 'do' };
   function doDa(tipo) { return (ARTIGO[tipo] || 'da') + ' ' + tipo; }
+  function aDo(tipo) { return (ARTIGO[tipo] === 'do' ? 'o ' : 'a ') + tipo; }
 
   var REGIMES_COM_PACTO = 'comunhão universal, separação convencional ou participação final nos aquestos';
 
@@ -85,7 +86,7 @@
   // todo ato. A certidão de estado civil já cobre solteiro (nascimento) e
   // casado/divorciado (casamento) — quem decide qual é a página de envio.
   var BASICO = 'RG, CPF, certidão de estado civil, endereço e profissão';
-  var CONJUGE = ' — e, se casado(a), os mesmos dados do cônjuge (a certidão de casamento é uma só, do casal)';
+  var CONJUGE = ' (se casado(a), também do cônjuge)';
   // quem: "Vendedor e comprador", "Herdeiros"… opcoes.conjuge: acrescenta a regra do cônjuge.
   function pessoa(id, quem, opcoes) {
     var o = opcoes || {};
@@ -101,7 +102,7 @@
       if (!marc[k]) return;
       BENS[k].itens.forEach(function (t, i) { v.push(item(prefixo + k + '.' + i, t)); });
     });
-    if (marc.outros) v.push(item(prefixo + 'outros', 'Documentos dos demais bens a partilhar'));
+    if (marc.outros) v.push(item(prefixo + 'outros', 'Documentos dos demais bens'));
     return v;
   }
   function secao(id, titulo, itens, extra) {
@@ -133,7 +134,7 @@
       } else {
         S.push(secao('lista', '', [
           pessoa('partes', 'Vendedor e comprador'),
-          item('partes.banco', 'Dados bancários do vendedor e do comprador (banco, agência, conta e titular)'),
+          item('partes.banco', 'Dados bancários de ambos'),
           item('comprador.valor', 'Valor da transação (comprador)'),
           item('imovel.mat', 'Matrícula do imóvel')
         ]));
@@ -143,29 +144,29 @@
       S.push(secao('clausulas', 'Cláusulas', Object.keys(CLAUSULAS).map(function (k) { return item('clausula.' + k, CLAUSULAS[k], false); }), { tipo: 'clausulas' }));
     } else if (modelo === 'inventario') {
       S.push(secao('lista', '', [
-        item('falecido', 'Falecido(a): RG e CPF (do cônjuge também, quando for o caso), certidão de óbito, certidão de casamento e pacto antenupcial, se houver'),
+        item('falecido', 'Falecido(a) e cônjuge: RG, CPF, certidão de óbito e de casamento; pacto antenupcial, se houver'),
         item('falecido.testamento', 'Certidão de inexistência de testamento (você costuma buscar)', false),
         pessoa('herdeiros', 'Herdeiros'),
-        adv(item('advogado', 'Advogado(a): carteira da OAB, estado civil e endereço'))
+        adv(item('advogado', 'Advogado(a): OAB, estado civil e endereço'))
       ]));
       S.push(secao('bens', 'Bens', bens(estado, 'bem.'), { vazio: 'Marque acima o que será inventariado.' }));
     } else if (modelo === 'divorcio') {
       S.push(secao('lista', '', [
         pessoa('divorciandos', 'Divorciandos', { conjuge: false }) ,
-        adv(item('advogado', 'Advogado(a): carteira da OAB, estado civil e endereço')),
-        item('familia.filhos', 'Se têm filhos: de cada um, RG, CPF, estado civil, endereço e profissão, e a pensão estipulada (valor)'),
-        item('familia.nome', 'Algum dos dois vai voltar a usar o nome de solteiro(a)? Qual?')
+        adv(item('advogado', 'Advogado(a): OAB, estado civil e endereço')),
+        item('familia.filhos', 'Se tiverem filhos: RG, CPF, estado civil, endereço e profissão de cada um, e a pensão estipulada (valor)'),
+        item('familia.nome', 'Algum dos dois voltará a usar o nome de solteiro(a)? Qual?')
       ]));
       if (estado.partilha) S.push(secao('bens', 'Bens a partilhar', bens(estado, 'bem.'), { vazio: 'Marque acima o que será partilhado.' }));
     } else if (modelo === 'uniao') {
       S.push(secao('lista', '', [
         pessoa('conviventes', 'Conviventes', { conjuge: false }),
-        item('convivente.dados', 'Data de início da união, primeiro endereço do casal e regime de bens a ser adotado')
+        item('convivente.dados', 'Data de início da união, primeiro endereço do casal e regime de bens')
       ]));
     } else if (modelo === 'pacto') {
       S.push(secao('lista', '', [
         pessoa('noivos', 'Futuros cônjuges', { conjuge: false }),
-        item('noivo.dados', 'Primeiro endereço do casal, regime de bens a ser adotado e se vão mudar o nome (qual)')
+        item('noivo.dados', 'Primeiro endereço do casal, regime de bens e se mudarão de nome (qual)')
       ]));
     } else if (modelo === 'procuracao') {
       var l = [pessoa('outorgante', 'Outorgante'), pessoaSimples('procurador', 'Procurador')];
@@ -178,7 +179,7 @@
       S.push(secao('lista', '', [
         pessoa('partes', 'Devedor e credor'),
         item('bem.mat', 'Matrícula do imóvel'),
-        item('bem.divida', 'Contrato ou histórico da dívida, e o valor')
+        item('bem.divida', 'Contrato ou histórico da dívida e valor')
       ]));
     } else {
       S.push(secao('lista', '', [pessoa('partes', 'Partes')]));
@@ -186,9 +187,9 @@
 
     // Opcionais que ela marca para o caso.
     var opc = [];
-    if (estado.uniaoEstavel) opc.push(item('opc.uniao', 'Escritura pública de união estável, registrada no Registro Civil das Pessoas Naturais (RCPN) da última residência do casal, no Livro E'));
+    if (estado.uniaoEstavel) opc.push(item('opc.uniao', 'Escritura pública de união estável, registrada no RCPN (Livro E) da última residência do casal'));
     if (estado.pacto && modelo !== 'pacto') {
-      opc.push(item('opc.pacto', 'Escritura de pacto antenupcial e a certidão do registro do pacto no Registro de Imóveis do primeiro domicílio do casal'));
+      opc.push(item('opc.pacto', 'Escritura do pacto antenupcial e certidão do seu registro no Registro de Imóveis do primeiro domicílio do casal'));
     }
     var extras = (estado.extras || []).map(function (t, i) { return item('extra.' + i, t); });
     if (opc.length || extras.length) S.push(secao('mais', 'Além disso', opc.concat(extras)));
@@ -207,9 +208,9 @@
     var modelo = modeloDoTipo(estado.tipo);
     var L = [];
     var abertura = {
-      cliente: 'Olá! Para a elaboração ' + doDa(ato) + ', preciso de:',
-      advogado: 'Prezado(a) Dr(a)., para a elaboração ' + doDa(ato) + ', precisamos de:',
-      corretor: 'Olá! Para a elaboração ' + doDa(ato) + ', preciso de:',
+      cliente: 'Olá! Para ' + aDo(ato) + ', preciso de:',
+      advogado: 'Prezado(a) Dr(a)., para ' + aDo(ato) + ', precisamos de:',
+      corretor: 'Olá! Para ' + aDo(ato) + ', preciso de:',
       construtora: 'Olá! Para regularizar a sua compra, preciso de:'
     }[pub];
     L.push(abertura);
@@ -218,7 +219,7 @@
     montar(estado).forEach(function (s) {
       if (s.tipo === 'clausulas') {
         var marc = s.itens.filter(function (i) { return ehMarcado(estado, i); });
-        if (estado.clausulasModo === 'cliente') linhas.push('• Informe se deseja alguma destas cláusulas: ' + s.itens.map(function (i) { return i.texto.toLowerCase(); }).join(', '));
+        if (estado.clausulasModo === 'cliente') linhas.push('• Informe se deseja: ' + s.itens.map(function (i) { return i.texto.toLowerCase(); }).join(', '));
         else if (marc.length) linhas.push('• Cláusulas previstas: ' + marc.map(function (i) { return i.texto.toLowerCase(); }).join(', '));
         return;
       }
@@ -226,9 +227,8 @@
     });
     L = L.concat(linhas, ['']);
 
-    if (estado.link) L.push('Pode enviar tudo por este link: ' + estado.link, '');
-    else L.push('Pode me enviar as fotos ou os PDFs por aqui mesmo.', '');
-    L.push('Qualquer dúvida, estou à disposição.');
+    if (estado.link) L.push('Se preferir, envie tudo por este link: ' + estado.link, '');
+    else L.push('Pode enviar as fotos ou os PDFs por aqui. Agradecemos!', '');
     L.push('20º Tabelião de Notas');
     return L.join('\n');
   }
