@@ -974,6 +974,17 @@ Regras que **não devem ser mexidas sem perguntar**:
   Divorciando(a) 2, Noivo(a) 2) — o papel vai para a ficha e para o nome do arquivo.
 - **A IA copia números de documento dígito por dígito** (`lerDocumentoComIA`) e marca `?` no que não
   estiver nítido; as fotos saem com até 2600 px (antes 1800) para o 6 não virar 8.
+- **Os documentos vão por último.** A página pede primeiro os dados (e, se a pessoa é casada, o regime e os
+  dados do cônjuge logo em seguida) e só no fim abre o cartão **Documentos**, com um espaço por documento de
+  cada parte (cada um mostra "Falta anexar" / "✓ Anexado"). **Regime de bens: só três** — comunhão parcial,
+  comunhão universal e separação total (universal e separação total pedem o pacto e o registro dele).
+- **O envio é rápido porque a IA não segura a fila.** O arquivo sobe com `lerDepois` e é guardado na hora; a
+  leitura pela IA sai numa chamada à parte (`cliente-ler`, também depois de o link fechar) e o card mostra
+  "lendo…" até terminar. A numeração dos nomes vem de um contador pequeno em `/pedidos/{código}/contagem`.
+- **A prévia do WhatsApp tem imagem** (`og-envio.png`, 1200×630, com a marca PRIME) e o link é curto
+  (`/e/{código}`, reescrita no `vercel.json`). Com o link, **a mensagem é curta** (recado + link): a lista já
+  está na página. O endereço do link ainda é o do projeto até haver um domínio neutro (`ENVIO_BASE_URL`).
+- A página usa letra grande e tinta cheia (17 px, títulos de documento 18 px em negrito); a marca PRIME no topo.
 - **A certidão de estado civil aparece desde o início** (genérica até ela escolher o estado civil) e o
   endereço se recolhe depois do CEP (rua/bairro/cidade/UF viram uma linha com *Editar*).
 - **"Tirar foto" no computador abre a webcam** (`abrirCamera()`); no celular continua o `capture` nativo.

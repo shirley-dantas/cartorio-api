@@ -81,16 +81,16 @@ await passo('o estado civil decide a certidão: solteiro → nascimento; casado 
   await pg.selectOption('[data-f="ec"]', 'Solteiro(a)'); assert(/Certidão de nascimento/.test(await pg.textContent('#formulario')));
   await pg.selectOption('[data-f="ec"]', 'Casado(a)');
   let t = await pg.textContent('#formulario');
-  assert(/Certidão de casamento/.test(t) && /Cônjuge/.test(t) && !/Certidão de nascimento/.test(t));
+  assert(/Certidão de casamento/.test(t) && /cônjuge/i.test(t) && !/Certidão de nascimento/.test(t));
   await pg.selectOption('[data-f="ec"]', 'Divorciado(a)');
-  t = await pg.textContent('#formulario'); assert(/averbação do divórcio/.test(t) && !/Cônjuge/.test(t));
+  t = await pg.textContent('#formulario'); assert(/averbação do divórcio/.test(t) && !/cônjuge/i.test(t));
 });
 
 await passo('regime que exige pacto pede o pacto e o registro; comunhão parcial não pede', async () => {
   const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
   await pg.selectOption('[data-f="ec"]', 'Casado(a)');
-  await pg.selectOption('[data-f="regime"]', 'Comunhão parcial de bens'); assert(!/pacto/i.test(await pg.textContent('#formulario')));
-  await pg.selectOption('[data-f="regime"]', 'Separação convencional de bens');
+  await pg.check('input[data-f="regime"][value="Comunhão parcial de bens"]', {force: true}); assert(!/pacto/i.test(await pg.textContent('#formulario')));
+  await pg.check('input[data-f="regime"][value="Separação total de bens"]', {force: true});
   const t = await pg.textContent('#formulario'); assert(/Escritura do pacto/.test(t) && /registro do pacto/.test(t));
 });
 
@@ -108,7 +108,7 @@ await passo('cabeçalho personalizado, certidão visível desde o início e câm
   const {pg} = await abrir({...compra, tipo:'Escritura de Compra e Venda', publico:'cliente', papel:'comprador'}, {mobile: false, viewport: {width: 1100, height: 800}});
   await pg.waitForSelector('[data-b="partes"]');
   assert.ok(!/Para a elaboração/.test(await pg.innerText('#intro')), 'o cabeçalho não explica o ato: o link já vem personalizado');
-  assert.ok(!/cartorio-api/i.test(await pg.content()), 'a página nunca cita cartorio-api');
+  assert.ok(!/cartorio-api/i.test(await pg.innerText('body')) && !/cartorio-api/i.test(await pg.title()), 'a página nunca mostra cartorio-api (só a imagem de prévia mora lá)');
   assert.ok(/og:title/.test(await pg.content()));
   assert.ok(await pg.locator('text=Certidão de estado civil').count() > 0, 'o espaço da certidão aparece antes de escolher o estado civil');
   assert.equal(await pg.locator('input[capture]').count(), 0, 'no computador não há capture');
@@ -166,6 +166,30 @@ await passo('convivente 1 acrescenta o outro: a pessoa nova é "Convivente 2", n
   await pg.click('[data-mais]');
   const t = await pg.locator('.bloco h2').allInnerTexts(); assert(t.some((x) => /Convivente 1/.test(x)) && t.some((x) => /Convivente 2/.test(x)), t.join('|'));
   assert.equal(await pg.locator('[data-remover]').count(), 1);
+});
+
+await passo('documentos por último: casado → regime (só 3) e cônjuge logo depois dos dados; os arquivos só no cartão final', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  await pg.selectOption('[data-f="ec"]', 'Casado(a)');
+  const regimes = await pg.locator('input[data-f="regime"]').evaluateAll((l) => l.map((x) => x.value));
+  assert.deepEqual(regimes, ['Comunhão parcial de bens', 'Comunhão universal de bens', 'Separação total de bens'], 'só os três regimes');
+  const ordem = await pg.evaluate(() => { const f = document.getElementById('formulario'); const blocos = [...f.querySelectorAll('.bloco')];
+    const i = (re) => blocos.findIndex((b) => re.test(b.textContent)); const slots = [...f.querySelectorAll('.slot')];
+    return {conj: i(/Dados do cônjuge/), docs: blocos.findIndex((b) => b.querySelector('.intro-docs')), pag: i(/Pagamento|Valor da transação/), slotsForaDoFim: slots.filter((x) => !x.closest('.bloco').querySelector('.intro-docs')).length, ultimo: blocos.length - 1}; });
+  assert(ordem.conj >= 0 && ordem.docs > ordem.conj && ordem.docs > ordem.pag, JSON.stringify(ordem));
+  assert.equal(ordem.slotsForaDoFim, 0, 'nenhum envio de arquivo antes do cartão Documentos');
+  assert(/RG ou CNH do cônjuge/.test(await pg.innerText('.intro-docs >> xpath=..')), 'o RG do cônjuge está nos documentos');
+  assert.equal(await pg.locator('.chip:has-text("Falta anexar")').count() > 1, true, 'cada documento mostra se falta ou se já foi anexado');
+});
+await passo('envio rápido: o arquivo sobe sem esperar a IA (lerDepois) e a leitura sai numa chamada à parte, para cada arquivo', async () => {
+  let n = 0;
+  const {pg, chamadas} = await abrir(compra, {gas: (c) => c.acao === 'cliente-arquivo' ? {ok: true, docKey: 'cli_aB3dE6_' + (++n)} : {ok: true}});
+  await pg.waitForSelector('[data-b="partes"]'); await preencher(pg);
+  await pg.click('#enviar'); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
+  await pg.waitForFunction(() => true); await new Promise((r) => setTimeout(r, 400));
+  const subidas = chamadas.filter((c) => c.acao === 'cliente-arquivo'), leituras = chamadas.filter((c) => c.acao === 'cliente-ler');
+  assert(subidas.length === 2 && subidas.every((c) => c.lerDepois === true), 'sobe sem esperar a leitura');
+  assert.deepEqual(leituras.map((c) => c.docKey).sort(), ['cli_aB3dE6_1', 'cli_aB3dE6_2'], 'uma leitura por arquivo guardado'); assert(leituras.every((c) => c.t === TOKEN));
 });
 
 let tela;

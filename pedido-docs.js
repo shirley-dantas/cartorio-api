@@ -92,7 +92,7 @@
     return 'Dados do(a) ' + r.toLowerCase();
   }
 
-  var REGIMES_COM_PACTO = 'comunhão universal, separação convencional ou participação final nos aquestos';
+  var REGIMES_COM_PACTO = 'comunhão universal ou separação total de bens';
 
   var BENS = {
     urbano: { rotulo: 'Imóvel urbano', itens: ['Matrícula do imóvel urbano'] },
@@ -272,6 +272,16 @@
       corretor: 'Olá! Para ' + aDo(ato) + ', preciso de:',
       construtora: 'Olá! Para regularizar a sua compra, preciso de:'
     }[pub];
+    // Com o link, a lista inteira já está no formulário: a mensagem fica curta, só com o recado e o link.
+    if (estado.link) {
+      var curta = {
+        cliente: 'Olá! Para ' + aDo(ato) + ', envie seus dados e documentos por este link, pelo celular:',
+        advogado: 'Prezado(a) Dr(a)., para ' + aDo(ato) + ', enviem os dados e documentos por este link:',
+        corretor: 'Olá! Para ' + aDo(ato) + ', envie os dados e documentos por este link, pelo celular:',
+        construtora: 'Olá! Para regularizar a sua compra, envie seus dados e documentos por este link, pelo celular:'
+      }[pub];
+      return [curta, estado.link, '', '20º Tabelião de Notas'].join('\n');
+    }
     L.push(abertura);
 
     var linhas = [];
@@ -286,8 +296,7 @@
     });
     L = L.concat(linhas, ['']);
 
-    if (estado.link) L.push('Envie tudo por este link, pelo celular: ' + estado.link, '');
-    else L.push('Pode enviar as fotos ou os PDFs por aqui. Agradecemos!', '');
+    L.push('Pode enviar as fotos ou os PDFs por aqui. Agradecemos!', '');
     L.push('20º Tabelião de Notas');
     return L.join('\n');
   }
@@ -497,7 +506,7 @@
       est.gerando = true; est.linkErro = ''; desenhar();
       Promise.resolve(ctx.criarLink({ estado: est, blocos: formulario(est), token: est.token || '' })).then(function (r) {
         est.token = r.token; est.link = r.url; est.gerando = false; est.linkAssin = JSON.stringify(formulario(est));
-        if (est.msgEditada) { est.msg = est.msg.replace(/\n*20º Tabelião de Notas\s*$/, '') + '\n\nEnvie tudo por este link, pelo celular: ' + est.link + '\n\n20º Tabelião de Notas'; }
+        if (est.msgEditada) { est.msg = est.msg.replace(/\n*20º Tabelião de Notas\s*$/, '') + '\n\nEnvie seus dados e documentos por este link, pelo celular:\n' + est.link + '\n\n20º Tabelião de Notas'; }
         desenhar();
       }, function (e) { est.gerando = false; est.linkErro = (e && e.message) || 'Erro desconhecido.'; desenhar(); });
     }

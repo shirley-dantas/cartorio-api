@@ -25,8 +25,9 @@ await passo('gerar link: o pedido sai com a lista marcada, o link entra na mensa
   await pg.waitForSelector('[data-acao="copiar-link"]');
   const l = await pg.evaluate(() => window.__links); assert.equal(l.length, 1);
   assert(l[0].blocos.some((x) => x.k === 'pessoa' && x.papeis[0] === 'Comprador(a)') && !JSON.stringify(l[0].blocos).includes('Vendedor'), 'só o comprador');
-  assert(/Envie tudo por este link, pelo celular: https:\/\/painel\.exemplo\/enviar\.html\?t=TOKENFIXO/.test(await msg(pg)));
+  assert(/por este link, pelo celular:\nhttps:\/\/painel\.exemplo\/enviar\.html\?t=TOKENFIXO/.test(await msg(pg)));
   assert(!/Pode enviar as fotos/.test(await msg(pg)), 'com link, não manda enviar "por aqui"');
+  assert(!/•/.test(await msg(pg)) && (await msg(pg)).split('\n').length <= 5, 'com link a mensagem é curta: o recado e o link, sem a lista (ela já está na página)');
 });
 await passo('pedir mais: arquivo ou informação, e para um lado só quando o link vai para os dois', async () => {
   const pg = await abrir('tipo=Escritura%20de%20Compra%20e%20Venda&link=1');
@@ -57,7 +58,7 @@ await passo('se o banco recusa, o erro aparece escrito e o link NÃO é mostrado
 await passo('texto editado à mão recebe o link no fim, antes da assinatura, sem apagar a edição', async () => {
   const pg = await abrir('tipo=Doa%C3%A7%C3%A3o&link=1');
   await pg.fill('#ped-msg', 'Oi! Minha mensagem.\n\n20º Tabelião de Notas'); await pg.click('[data-acao="link"]'); await pg.waitForSelector('[data-acao="copiar-link"]');
-  const t = await msg(pg); assert(t.startsWith('Oi! Minha mensagem.') && /link, pelo celular: https:\/\/painel/.test(t) && t.trim().endsWith('20º Tabelião de Notas'));
+  const t = await msg(pg); assert(t.startsWith('Oi! Minha mensagem.') && /link, pelo celular:\nhttps:\/\/painel/.test(t) && t.trim().endsWith('20º Tabelião de Notas'));
 });
 
 // A lista de recebidos que o card mostra: a função sai do index.html como está.

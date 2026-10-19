@@ -1149,6 +1149,7 @@ function doPost(e) {
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
     if (acao === "cliente-arquivo") return clienteArquivo(dados);
     if (acao === "cliente-dados") return clienteDados(dados);
+    if (acao === "cliente-ler") return clienteLer(dados);
     if (acao === "cliente-excluir") return clienteExcluir(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
@@ -1414,13 +1415,13 @@ function textoCliente(v, max) {
 
 // Devolve {pedido, caso, casoId} ou null. Código errado, vencido ou de caso que
 // não existe mais: tudo a mesma resposta, sem dizer qual dos três.
-function pedidoDoCliente(token) {
+function pedidoDoCliente(token, aceitaConcluido) {
   token = String(token || "");
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
   var pedido = firebaseLer("/pedidos/" + token);
   if (!pedido || !pedido.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(pedido.casoId))) return null;
   if (pedido.expiraEm && Date.now() > pedido.expiraEm) return null;
-  if (pedido.concluidoEm) return null; // já enviado: o link fecha, para não confundir o card com um segundo preenchimento
+  if (pedido.concluidoEm && !aceitaConcluido) return null; // já enviado: o link fecha, para não confundir o card com um segundo preenchimento
   var caso = firebaseLer("/casos/" + pedido.casoId);
   if (!caso || typeof caso !== "object") return null;
   return { pedido: pedido, caso: caso, casoId: pedido.casoId, token: token };
@@ -1472,25 +1473,33 @@ function clienteArquivo(dados) {
   lock.waitLock(30000);
   var docKey, nome, arquivo;
   try {
-    var docs = firebaseLer("/casos/" + ctx.casoId + "/documentos") || {};
-    var chaves = Object.keys(docs);
-    var doCliente = chaves.filter(function (k) { return docs[k] && docs[k].origem === "link do cliente"; }).length;
-    if (doCliente >= CLIENTE_MAX_ARQUIVOS) return resp({ ok: false, erro: "Limite de arquivos deste link atingido." });
+    // A numeração e o limite vêm de um contador pequeno do próprio pedido: ler todos os documentos do
+    // caso (cada um com o texto lido pela IA) a cada arquivo era o que mais pesava no envio.
+    var cont = firebaseLer("/pedidos/" + ctx.token + "/contagem") || {};
+    var total = Number(cont._total) || 0;
+    if (total >= CLIENTE_MAX_ARQUIVOS) return resp({ ok: false, erro: "Limite de arquivos deste link atingido." });
     var data = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
     var prefixo = [nomeSeguroCliente(dados.papel), nomeSeguroCliente(dados.pessoa), nomeSeguroCliente(dados.tipo)].filter(Boolean).join("_") + "_" + data + "_";
-    var n = chaves.filter(function (k) { return docs[k] && String(docs[k].nome || "").indexOf(prefixo) === 0; }).length + 1;
+    var chaveCont = prefixo.replace(/[^A-Za-z0-9_-]/g, "_");
+    var n = (Number(cont[chaveCont]) || 0) + 1;
+    var novaCont = { _total: total + 1 }; novaCont[chaveCont] = n;
+    firebaseGravar("patch", "/pedidos/" + ctx.token + "/contagem", novaCont);
     nome = prefixo + n + "." + ext;
     arquivo = pastaDoCaso(ctx.caso, ctx.casoId).createFile(Utilities.newBlob(bytes, mime, nome));
     docKey = "cli_" + ctx.token.slice(0, 6) + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 8);
     var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/" + docKey, {
       nome: nome, tipo: "documento", tipoDocumento: textoCliente(dados.tipo, 60), papel: textoCliente(dados.papel, 40),
       pessoa: textoCliente(dados.pessoa, 80), origem: "link do cliente", link: arquivo.getUrl(), salvoEm: new Date().toISOString(),
-      selo: seloDoArquivo(docKey, arquivo.getId())
+      selo: seloDoArquivo(docKey, arquivo.getId()),
+      lendo: dados.lerDepois && MIMES_LEITURA_IA.indexOf(mime) !== -1 ? Date.now() : null
     });
     if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." });
   } finally { lock.releaseLock(); }
 
   var leu = false;
+  // Página nova: devolve já, e a leitura pela IA vem numa chamada à parte (cliente-ler), que corre
+  // enquanto o cliente termina de enviar — a IA era o que deixava o envio lento.
+  if (dados.lerDepois) return resp({ ok: true, nome: nome, leu: false, docKey: docKey });
   if (MIMES_LEITURA_IA.indexOf(mime) !== -1) {
     try {
       var r = lerDocumentoComIA(dados.base64, mime, false);
@@ -1500,7 +1509,32 @@ function clienteArquivo(dados) {
       }
     } catch (e) { /* o arquivo fica salvo; a minuta avisa que não conseguiu ler */ }
   }
-  return resp({ ok: true, nome: nome, leu: leu });
+  return resp({ ok: true, nome: nome, leu: leu, docKey: docKey });
+}
+
+// A leitura pela IA de um arquivo já guardado. Vale também depois de o link ser concluído (a leitura
+// termina depois do envio). O arquivo é lido do Drive, pelo registro do card; o código do link só
+// autoriza documentos nascidos dele (a chave leva o começo do código).
+function clienteLer(dados) {
+  var ctx = pedidoDoCliente(dados.t, true);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido ou vencido." });
+  var docKey = String(dados.docKey || "");
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(docKey) || docKey.indexOf("cli_" + ctx.token.slice(0, 6) + "_") !== 0) return resp({ ok: false, erro: "Documento inválido." });
+  var caminho = "/casos/" + ctx.casoId + "/documentos/" + docKey;
+  var doc = firebaseLer(caminho);
+  if (!doc || doc.origem !== "link do cliente") return resp({ ok: false, erro: "Documento não encontrado." });
+  if (doc.texto) return resp({ ok: true, leu: true });
+  var id = extrairIdArquivo(doc.link), leu = false;
+  try {
+    if (!id || !doc.selo || doc.selo !== seloDoArquivo(docKey, id)) throw new Error("sem selo");
+    var blob = DriveApp.getFileById(id).getBlob(), mime = String(blob.getContentType() || "").toLowerCase();
+    if (MIMES_LEITURA_IA.indexOf(mime) !== -1) {
+      var r = lerDocumentoComIA(Utilities.base64Encode(blob.getBytes()), mime, false);
+      if (r && r.texto) { firebaseGravar("patch", caminho, { texto: r.texto, truncado: !!r.truncou, lendo: null }); leu = true; }
+    }
+  } catch (e) { /* fica salvo; o card mostra que não leu */ }
+  if (!leu) firebaseGravar("patch", caminho, { lendo: null });
+  return resp({ ok: true, leu: leu });
 }
 
 // Os dados que o cliente digitou, em texto corrido: é assim que a minuta os lê.
