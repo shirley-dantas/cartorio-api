@@ -341,12 +341,12 @@
       var ehInv = modelo === 'inventario', ehDiv = modelo === 'divorcio';
       var opcoes = '';
       if (est.publico !== 'construtora') {
+        if (ehDiv) opcoes += '<div class="ped-bloco"><div class="ped-tit">Partilha</div>' + check('Com partilha de bens', est.partilha, 'partilha') + '</div>';
         if (ehInv || (ehDiv && est.partilha)) {
           opcoes += '<div class="ped-bloco"><div class="ped-tit">O que será ' + (ehDiv ? 'partilhado' : 'inventariado') + '<small>só pedimos os documentos do que marcar</small></div><div class="ped-grade">' +
             Object.keys(BENS).map(function (k) { return check(BENS[k].rotulo, !!est.bens[k], 'bem:' + k); }).join('') +
             check('Outros bens', !!est.bens.outros, 'bem:outros') + '</div></div>';
         }
-        if (ehDiv) opcoes += '<div class="ped-bloco"><div class="ped-tit">Partilha</div>' + check('Com partilha de bens', est.partilha, 'partilha') + '</div>';
         if (modelo === 'procuracao') opcoes += '<div class="ped-bloco"><div class="ped-tit">Os poderes envolvem<small>define os documentos</small></div><div class="ped-grade">' +
           check('Imóvel', !!est.poderes.imovel, 'poder:imovel') + check('Veículo', !!est.poderes.veiculo, 'poder:veiculo') + '</div></div>';
         if (modelo === 'doacao') opcoes += '<div class="ped-bloco"><div class="ped-tit">Cláusulas<small>quem escolhe?</small></div><div class="ped-chips">' +
