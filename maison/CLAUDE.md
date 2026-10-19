@@ -162,3 +162,9 @@ Pedido da Tháriga (via a cliente dela): poder mudar o valor na hora de agendar,
 - Precisa publicar as regras novas (`database.rules.json`: `combinados` e a validação de `valores`). Enquanto não publicar, salvar o valor combinado avisa que o banco recusou.
 
 Nome (16/10/2026): a Tháriga escolheu **Condição especial**. No banco e no código o caminho continua `combinados` / tipo `combinado`, de propósito: só o texto na tela mudou.
+
+## Ana Luiza, a quarta profissional (19/10/2026, rascunho, ainda não publicado)
+
+Faz **só sobrancelhas e cílios** em Itaquera (design, design + henna, alongamento, manutenção e remoção de cílios: `SERV_ANA`), **todos os dias** como Rafael e Mariana (ela fecha os que não atende), cor **verde sálvia** (`--p-ana`/`--t-ana`), comissão **50% do valor cheio** como os dois. Vaga `5` na chave da reserva (`VAGA_PRO.ana`).
+
+Esses cinco serviços têm **dois donos** (`donosDoServico()`: Tháriga e Ana): na página `/p` a cliente escolhe **"Com quem você prefere?"** (`#q`, `ANA` e `donosDe()` no `pedido.html`) e os dias/horários mostrados são os da escolhida; nos Horários livres aparecem as duas; a reserva diz quem é pela vaga (`proDaReserva()`), e `proLivre()` respeita a escolha. O login dela aceita `pro` = `ana` ou `ana luiza` (`entrou()` normaliza).

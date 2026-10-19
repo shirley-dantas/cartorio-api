@@ -100,9 +100,14 @@ const UN={
 const RAF=['Remoção de pigmento a laser','Laser para tratamento de fungos','Depilação a laser','Ozonioterapia','Aplicação de piercing'],
       MAR=['Mão tradicional','Pé tradicional','Alongamento de unhas','Manutenção de unhas','Remoção de alongamento de unhas'];
 const proDe=(u,nome)=>u==='flo'?'tha':RAF.includes(nome)?'rafael':MAR.includes(nome)?'mariana':'tha';
-const VAGA={tha:1,rafael:2,mariana:3};
+const VAGA={tha:1,rafael:2,mariana:3,ana:5};
+// Sobrancelhas e cílios, em Itaquera, a Tháriga e a Ana Luiza fazem: a cliente escolhe com quem.
+const ANA=['Design de sobrancelhas','Design + henna','Alongamento de cílios','Manutenção de cílios','Remoção de cílios'];
+const NOME_PRO={tha:'Tháriga',ana:'Ana Luiza'};
+const donosDe=(u,nome)=>u==='mai'&&ANA.includes(nome)?['tha','ana']:[proDe(u,nome)];
+const proEscolhida=()=>{const sv0=UN[un].serv[+document.getElementById('s').value],l=donosDe(un,sv0[0]),q=document.getElementById('q');return l.length>1&&q&&l.includes(q.value)?q.value:l[0]};
 // Dias de cada profissional: a Tháriga fica em Itaquera de domingo a quarta e no Florença de quinta a sábado; a agenda do Rafael e da Mariana fica aberta todos os dias (eles fecham os dias em que não atendem).
-const DIAS_PRO={mai:{tha:[0,1,2,3],rafael:[0,1,2,3,4,5,6],mariana:[0,1,2,3,4,5,6]},flo:{tha:[4,5,6]}};
+const DIAS_PRO={mai:{tha:[0,1,2,3],rafael:[0,1,2,3,4,5,6],mariana:[0,1,2,3,4,5,6],ana:[0,1,2,3,4,5,6]},flo:{tha:[4,5,6]}};
 UN.mai.diasTxt='Todos os dias';UN.flo.diasTxt='Quinta, sexta e sábado';
 const NOMES=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -130,6 +135,7 @@ function formulario(){
     <div class="fo"><span class="small" style="width:100%">Já foi atendida por nós?</span><label><input type="radio" name="nova" value="nao" checked>Sim, já sou cliente</label><label><input type="radio" name="nova" value="sim">Primeira vez</label></div>
     <div class="sec">O que você quer fazer?</div>
     <label class="f">Serviço<select id="s"></select></label>
+    <label class="f" id="qw" hidden>Com quem você prefere?<select id="q"></select></label>
     <div class="sec">Quando fica bom para você?</div>
     <div class="small" style="margin-bottom:8px">Marque um ou mais dias</div>
     <div class="chips" id="dias"></div>
@@ -149,12 +155,15 @@ function formulario(){
   const uns=document.getElementById('uns');
   uns.addEventListener('change',e=>{un=e.target.value;marca(uns);escolheUnidade()});
   document.getElementById('per').addEventListener('change',()=>{marca(document.getElementById('per'));desenhaSlots()});
-  document.getElementById('s').onchange=()=>{montaDias();desenhaSlots()};
+  document.getElementById('s').onchange=()=>{montaQuem();montaDias();desenhaSlots()};
+  document.getElementById('q').onchange=()=>{montaDias();desenhaSlots()};
   document.getElementById('enviar').onclick=enviar}
 
 // Os dias oferecidos dependem de quem faz o serviço escolhido.
+function montaQuem(){const sv0=UN[un].serv[+document.getElementById('s').value],l=donosDe(un,sv0[0]),w=document.getElementById('qw'),q=document.getElementById('q'),cur=q.value;
+  w.hidden=l.length<2;q.innerHTML=l.map(p=>`<option value="${p}">${NOME_PRO[p]}</option>`).join('');if(l.includes(cur))q.value=cur}
 function montaDias(){const d=document.getElementById('dias'),u=UN[un],sv0=u.serv[+document.getElementById('s').value],marcados=new Set([...d.querySelectorAll('input:checked')].map(i=>+i.value));
-  d.innerHTML=(DIAS_PRO[un][proDe(un,sv0[0])]||[]).map(n=>`<label class="${marcados.has(n)?'on':''}"><input type="checkbox" value="${n}" ${marcados.has(n)?'checked':''}>${NOMES[n]}</label>`).join('')}
+  d.innerHTML=(DIAS_PRO[un][proEscolhida()]||[]).map(n=>`<label class="${marcados.has(n)?'on':''}"><input type="checkbox" value="${n}" ${marcados.has(n)?'checked':''}>${NOMES[n]}</label>`).join('')}
 async function escolheUnidade(){
   const u=UN[un],aviso=document.getElementById('aviso'),resto=document.getElementById('resto');
   escolha=null;resto.hidden=true;aviso.innerHTML='<p class="small">Carregando os horários…</p>';
@@ -163,7 +172,7 @@ async function escolheUnidade(){
   if(!pub.cfg||pub.cfg.ativo!==true){aviso.innerHTML=`<div class="alert">O agendamento online ${u.de} ${u.n} não está disponível agora. Fale com a gente pelo WhatsApp.</div>`;return}
   aviso.innerHTML='';resto.hidden=false;
   document.getElementById('s').innerHTML=u.serv.map((x,i)=>`<option value="${i}">${esc(x[0])} · ${x[1]} min</option>`).join('');
-  const d=document.getElementById('dias');montaDias();
+  montaQuem();const d=document.getElementById('dias');montaDias();
   d.onchange=()=>{d.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));desenhaSlots()};
   desenhaSlots()}
 
@@ -182,7 +191,7 @@ function desenhaSlots(){
   escolha=null;conf.hidden=true;
   const dias=[...document.querySelectorAll('#dias input:checked')].map(i=>+i.value);
   if(!dias.length){box.innerHTML='<p class="small">Marque pelo menos um dia para ver os horários.</p>';return}
-  const sv0=u.serv[+document.getElementById('s').value],dur=sv0[1],pro=proDe(un,sv0[0]),per=document.querySelector('input[name=per]:checked').value,fech=c.fechados||[];
+  const sv0=u.serv[+document.getElementById('s').value],dur=sv0[1],pro=proEscolhida(),per=document.querySelector('input[name=per]:checked').value,fech=c.fechados||[];
   const hoje=new Date();hoje.setHours(12,0,0,0);let html='',n=0;
   for(let i=0;i<=(c.dias||21);i++){const d=new Date(hoje);d.setDate(d.getDate()+i);const data=iso(d);
     if(!dias.includes(d.getDay())||fech.includes(data))continue;
@@ -191,7 +200,7 @@ function desenhaSlots(){
   box.innerHTML=n?html:'<p class="small">Não há horários livres nesses dias e período. Tente outro período ou outros dias.</p>';
   box.querySelectorAll('button').forEach(b=>b.onclick=()=>{box.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     escolha={data:b.dataset.d,hora:b.dataset.h,dur,pro};
-    document.getElementById('resumo').innerHTML=`<b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(u.serv[+document.getElementById('s').value][0])} · ${dur} min<br>${u.n} (${u.s})<br>${esc(pub.cfg.endereco||u.e)}`;
+    document.getElementById('resumo').innerHTML=`<b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(u.serv[+document.getElementById('s').value][0])} · ${dur} min<br>${u.n} (${u.s})${donosDe(un,sv0[0]).length>1?'<br>Com '+NOME_PRO[pro]:''}<br>${esc(pub.cfg.endereco||u.e)}`;
     conf.hidden=false;conf.scrollIntoView({behavior:'smooth',block:'nearest'})})}
 const erro=m=>{document.getElementById('erro').textContent=m};
 // Só avisa a equipe (notificação no celular); se falhar, a reserva já está salva e a equipe a vê ao abrir o painel.
@@ -215,7 +224,7 @@ async function enviar(){
     try{pub=(await get(ref(db,'publico/agenda/'+un))).val()||pub}catch(e){}
     btn.disabled=false;btn.textContent='Confirmar agendamento';desenhaSlots();
     return erro('Esse horário acabou de ser ocupado por outra pessoa. Escolha outro, por favor.')}
-  const q=new URLSearchParams({s:sv[0],d:escolha.data,h:escolha.hora,m:String(escolha.dur),u:un==='flo'?'flo':'mai'});q.set('e',(pub&&pub.cfg&&pub.cfg.endereco)||u.e);
+  const q=new URLSearchParams({s:sv[0],d:escolha.data,h:escolha.hora,m:String(escolha.dur),u:un==='flo'?'flo':'mai'});q.set('e',(pub&&pub.cfg&&pub.cfg.endereco)||u.e);if(donosDe(un,sv[0]).length>1)q.set('p',NOME_PRO[escolha.pro]);
   tela.innerHTML=`<div class="msg"><h2>Agendamento confirmado ✓</h2><p>${esc(reg.nome.split(' ')[0])}, você está marcada:</p>
    <div class="resumo" style="text-align:left"><b>${fdata(escolha.data)} às ${escolha.hora}</b><br>${esc(sv[0])}<br>${u.n} (${u.s})<br>${esc((pub&&pub.cfg&&pub.cfg.endereco)||u.e)}</div>
    <p><a class="btn p" style="display:block;text-decoration:none" href="/h?${q}">Salvar na minha agenda</a></p>

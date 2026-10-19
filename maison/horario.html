@@ -45,7 +45,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const q=new URLSearchParams(location.search),tela=document.getElementById('tela');
 // Nomes dos serviços de partida (o link só traz o nome quando ele foi trocado) e das profissionais.
 const SV={design:'Design de sobrancelhas',henna:'Design + henna',buco:'Buço',depfacial:'Depilação facial',lashlift:'Lash lifting',browlam:'Brow lamination',micro:'Micropigmentação',cilios:'Alongamento de cílios',ciliosmanut:'Manutenção de cílios',ciliosrem:'Remoção de cílios',unhamao:'Mão tradicional',unhape:'Pé tradicional',unhaalong:'Alongamento de unhas',unhamanut:'Manutenção de unhas',unharem:'Remoção de alongamento de unhas',laserpig:'Remoção de pigmento a laser',laserfungo:'Laser para tratamento de fungos',laserdepil:'Depilação a laser',ozonio:'Ozonioterapia',piercing:'Aplicação de piercing'};
-const PRO={tha:'Tháriga',rafael:'Rafael',mariana:'Mariana',lais:'Laís'};
+const PRO={tha:'Tháriga',rafael:'Rafael',mariana:'Mariana',ana:'Ana Luiza',lais:'Laís'};
 let s=(q.get('s')||'').slice(0,80),d=q.get('d')||'',h=q.get('h')||'',m=Math.min(600,Math.max(5,parseInt(q.get('m'))||60)),u=U[q.get('u')],p=(q.get('p')||'').slice(0,40),e=(q.get('e')||'').slice(0,160);
 // Link curto: /h/f-93f0-u-tha-design
 {const c=location.pathname.match(/^\/h\/([a-z]+)-([0-9a-z]+)-([0-9a-z]+)-([a-z]+)-(.+)$/i);
