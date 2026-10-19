@@ -270,6 +270,34 @@ Shirley e a Grazi, e evita mandar o app pra revisão do Google (que pede
 verificação de domínio e pode demorar semanas) só para uso interno do
 cartório.
 
+## 11. O link de envio de documentos do cliente
+
+O botão **Pedir documentos → Gerar link** cria um endereço (`enviar.html?t=…`)
+em que o cliente preenche os dados e sobe os documentos pelo celular. Tudo cai
+na pasta do caso no Drive e vira documento do card — a minuta lê como lê os
+outros. Para funcionar são **dois passos seus**, os dois uma vez só:
+
+1. **Publicar as regras do banco** (passo 4 acima), porque entrou o caminho
+   `/pedidos`. Sem isso o botão mostra, escrito: *"O banco recusou a gravação…"*.
+   O link só aparece pronto quando o pedido foi de fato gravado.
+2. **Atualizar o Apps Script** (`apps-script/cartorio-drive-api.js`): colar o
+   arquivo inteiro no projeto, salvar e **Implantar → Gerenciar implantações →
+   editar → Nova versão**. Ele ganhou duas ações: `cliente-arquivo` (salva o
+   arquivo no Drive, lê com a IA e grava no card) e `cliente-dados` (grava o
+   que o cliente digitou). Se o Google pedir reautorização, aceite.
+
+Como se protege, para você saber o que esperar:
+
+- O **código do link** é aleatório (24 caracteres) e é a única chave: o Apps
+  Script descobre o caso pelo código, nunca por um id que a página mande.
+- O link **vale 15 dias**. Vencido, a página diz que o link não serve.
+- Aceita só PDF e imagem, até **10 MB** por arquivo e 80 arquivos por caso. A
+  página reduz as fotos no celular antes de enviar.
+- Falha de um arquivo aparece escrita na tela do cliente, e os dados digitados
+  só são enviados quando todos os arquivos chegaram.
+- O que o cliente digita entra na minuta como **"informado pelo cliente, ainda
+  não conferido"**: a equipe confere antes de usar.
+
 ## O que ainda fica aberto, e por quê
 
 `/casos`, `/jobs`, `/modelos`, os caminhos do bot e os do Radar continuam sem

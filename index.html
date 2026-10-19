@@ -1316,7 +1316,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 /* Tela estreita: o modal encosta nas bordas e as linhas que eram colunas
    viram pilha, senão nome e valor brigam pelo mesmo espaço. */
 @media(max-width:600px){
-  #modal-financeiro .modal-box,#modal-meu-financeiro .modal-box{padding:18px 14px;border-radius:20px}
+  #modal-financeiro .modal-box,#modal-meu-financeiro .modal-box,#modal-pedido-docs .modal-box{padding:18px 14px;border-radius:20px}
   .modal-overlay{padding:14px 8px}
   .fin-abas{gap:0}
   .fin-aba{padding:9px 8px;font-size:10px;letter-spacing:.08em}
@@ -1715,6 +1715,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    ser lida por quem não conhece a tabela.                              */
 .cx-orc{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--cc-sup-2);
   border:0.5px solid var(--cc-linha);border-radius:12px;padding:9px 12px;margin-bottom:11px}
+.cx-ped-rec{flex-basis:100%;font-size:12.5px;color:var(--cc-tinta-2)}
+.cx-ped-rec summary{cursor:pointer;font-weight:600;color:var(--cc-tinta)}
+.cx-ped-rec ul{list-style:none;padding:6px 0 0;margin:0;display:grid;gap:4px}
+.cx-ped-rec li{display:flex;gap:8px;justify-content:space-between;align-items:baseline;word-break:break-all}
+.cx-ped-rec li span{flex:none;color:var(--cc-tinta-3);font-size:11.5px}
+.cx-ped-rec li span b{color:var(--cc-atencao)}
+.cx-ped-rec a{color:var(--cc-info);text-decoration:none}
 .cx-orc-rot{font-size:11.5px;color:var(--cc-tinta-3);display:inline-flex;align-items:center;gap:6px}
 .orc-pill{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;
   padding:3px 9px;border-radius:999px;border:1px solid var(--cc-linha);
@@ -3003,6 +3010,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
 </div>
 
+<!-- Pedir documentos: monta a lista do que cada pessoa precisa enviar -->
+<div class="modal-overlay" id="modal-pedido-docs">
+  <div class="modal-box" style="max-width:1000px">
+    <button class="modal-close" onclick="fecharPedidoDocs()">&times;</button>
+    <div class="modal-title"><i class="ti ti-file-search" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Pedir documentos</div>
+    <div class="modal-sub" id="ped-sub">—</div>
+    <div id="ped-conteudo"></div>
+  </div>
+</div>
+
+<script src="pedido-docs.js"></script>
 <script src="design-system/mascots/joaninha/joaninha.js"></script>
 <!-- Google Identity Services (login/token pra abrir o Drive dela) + gapi
      (carrega só a biblioteca do Picker) — ver driveEscolherArquivos() e
@@ -5156,6 +5174,12 @@ function renderCasos(){
       <div class="cx-orc">
         <span class="cx-orc-rot"><i class="ti ti-calculator"></i> Orçamento</span>
         ${typeof orcFaixaDoCaso==='function'?orcFaixaDoCaso(c.id):''}
+      </div>
+
+      <div class="cx-orc cx-ped">
+        <span class="cx-orc-rot"><i class="ti ti-file-search"></i> Documentos</span>
+        <button class="cx-btn destaque" onclick="abrirPedidoDocs('${c.id}')"><i class="ti ti-list-check"></i> Pedir documentos</button>
+        ${pedidoRecebidosHtml(c)}
       </div>
 
       <div class="cx-drive">
@@ -11791,6 +11815,52 @@ function orcAbrirJanela(){
   document.getElementById('modal-orcamento-caso').classList.add('open');
   renderOrcamentoDoCaso();
 }
+// O link de envio: grava o pedido (o que a pessoa deve enviar) no banco e devolve o endereço
+// da página do cliente. O código é aleatório e é a única chave do link. Se o banco recusar
+// (as regras novas ainda não publicadas), o erro sobe escrito para a janela.
+function codigoDeEnvio(){
+  const a=new Uint8Array(18); crypto.getRandomValues(a);
+  return btoa(String.fromCharCode(...a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function criarLinkEnvio(id,{estado,blocos,token}){
+  const cod=token||codigoDeEnvio(), agora=Date.now();
+  try{
+    await set(ref(db,'pedidos/'+cod),{casoId:id,ato:estado.tipo||'',publico:estado.publico||'cliente',papel:estado.papel||'ambos',blocos,criadoEm:agora,expiraEm:agora+15*864e5});
+  }catch(e){
+    const negado=/permission|PERMISSION/.test(String(e&&e.message||e));
+    throw new Error(negado
+      ? 'O banco recusou a gravação. As regras novas do Firebase (com o caminho /pedidos) ainda não foram publicadas — o passo está no FIREBASE.md.'
+      : 'Não consegui gravar o pedido: '+((e&&e.message)||e));
+  }
+  return {token:cod,url:location.origin+'/enviar.html?t='+cod};
+}
+
+// O que o cliente já mandou pelo link, na faixa Documentos do card: arquivos com link para o Drive
+// e se a IA conseguiu ler (é o que a minuta usa).
+function pedidoRecebidosHtml(c){
+  const docs=Object.values((c&&c.documentos)||{}).filter(d=>d&&d.origem==='link do cliente');
+  if(!docs.length) return '';
+  const arquivos=docs.filter(d=>d.tipo!=='informacoes'), ficha=docs.some(d=>d.tipo==='informacoes');
+  const lidos=arquivos.filter(d=>d.texto).length;
+  const linhas=docs.sort((a,b)=>String(a.salvoEm).localeCompare(String(b.salvoEm))).map(d=>{
+    const nome=d.link?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.nome)}</a>`:escTxt(d.nome);
+    const sit=d.tipo==='informacoes'?'dados digitados':(d.texto?'lido':'<b>sem leitura</b>');
+    return `<li>${nome} <span>${sit}</span></li>`;
+  }).join('');
+  return `<details class="cx-ped-rec"><summary><i class="ti ti-inbox"></i> Recebidos do cliente: ${arquivos.length} ${arquivos.length===1?'arquivo':'arquivos'}${arquivos.length?` (${lidos} lidos)`:''}${ficha?' + dados digitados':''}</summary><ul>${linhas}</ul></details>`;
+}
+
+// Pedir documentos: a lista do que pedir (cliente, advogado, corretor…) para o ato do card.
+window.abrirPedidoDocs = function(id){
+  const c = (typeof casos!=='undefined' && casos[id]) || {};
+  document.getElementById('ped-sub').textContent = (c.nome || 'Sem nome') + (c.tipo ? ' — ' + c.tipo : '');
+  PEDIDO.abrirJanela(document.getElementById('ped-conteudo'), {casoNome:c.nome, tipo:c.tipo, tipos:TIPOS_PRINCIPAIS,
+    criarLink:(p)=>criarLinkEnvio(id,p)});
+  document.getElementById('modal-pedido-docs').classList.add('open');
+};
+window.fecharPedidoDocs = function(){
+  document.getElementById('modal-pedido-docs').classList.remove('open');
+};
 window.fecharOrcamentoDoCaso = function(){
   document.getElementById('modal-orcamento-caso').classList.remove('open');
   orcCasoAberto = null; orcEmEdicao = null; orcVerMemoria = false; orcVerCliente = false; orcVerTecnico = false;

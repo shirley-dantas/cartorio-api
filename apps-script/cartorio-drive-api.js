@@ -1085,14 +1085,9 @@ function extrairArquivoComContinuacao(montarConteudo) {
   return { texto: texto || null, truncou: truncou };
 }
 
-function extrairTextoArquivoJob(dados) {
-  var jobId = dados.jobId;
-  try {
-    var base64 = dados.base64 || "";
-    var mimetype = dados.mimetype || "application/pdf";
-    var preservarIntegral = !!dados.preservarIntegral;
-    if (!base64) throw new Error("Arquivo vazio");
-
+// Leitura de um documento pela IA (PDF ou imagem em base64). Devolve
+// {texto, truncou}. Usada pelo anexo do painel e pelo envio do cliente.
+function lerDocumentoComIA(base64, mimetype, preservarIntegral) {
     var blocoArquivo = mimetype === "application/pdf"
       ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
       : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
@@ -1106,6 +1101,18 @@ function extrairTextoArquivoJob(dados) {
         { type: "text", text: pass === 0 ? instrucaoInicial : instrucaoContinuarExtracaoArquivo(textoAteAqui.slice(-1500)) }
       ];
     });
+  return resultado;
+}
+
+function extrairTextoArquivoJob(dados) {
+  var jobId = dados.jobId;
+  try {
+    var base64 = dados.base64 || "";
+    var mimetype = dados.mimetype || "application/pdf";
+    var preservarIntegral = !!dados.preservarIntegral;
+    if (!base64) throw new Error("Arquivo vazio");
+
+    var resultado = lerDocumentoComIA(base64, mimetype, preservarIntegral);
 
     if (jobId) {
       salvarJobFirebase(jobId, { status: "done", ok: true, texto: resultado.texto || "", truncou: resultado.truncou });
@@ -1140,6 +1147,8 @@ function doPost(e) {
     if (acao === "criar-pasta") return criarPasta(dados);
     if (acao === "excluir-pasta") return excluirPasta(dados);
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
+    if (acao === "cliente-arquivo") return clienteArquivo(dados);
+    if (acao === "cliente-dados") return clienteDados(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
     if (acao === "extrair-texto-arquivo") return extrairTextoArquivoJob(dados);
@@ -1364,6 +1373,171 @@ function salvarArquivo(dados) {
   var arquivo = pastaCliente.createFile(blob);
 
   return resp({ ok: true, url: arquivo.getUrl(), nome: nomeArquivo });
+}
+
+// ── Envio de documentos pelo cliente (enviar.html) ─────────────────────────
+// O cliente abre o link que o painel gerou (/pedidos/{código} no Firebase),
+// preenche o formulário e sobe os documentos. A página fala direto com este
+// script, e o que decide a qual caso o arquivo pertence é o CÓDIGO DO LINK,
+// lido aqui no banco — nunca um id que a página mande. Cada arquivo:
+//   1. é salvo na pasta do caso no Drive, com nome padronizado;
+//   2. é lido pela IA (é o texto que faz a minuta enxergar o documento);
+//   3. vira um registro em casos/{id}/documentos, com origem "link do cliente".
+// Quando o cliente termina, os dados que digitou viram mais um documento do
+// caso (DADOS_INFORMADOS_PELO_CLIENTE), que a minuta lê como os outros.
+var MIMES_CLIENTE = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "image/heic": "heic", "image/heif": "heif" };
+var MIMES_LEITURA_IA = ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"];
+var CLIENTE_MAX_BYTES = 10 * 1024 * 1024;
+var CLIENTE_MAX_ARQUIVOS = 80;
+
+function firebaseLer(caminho) {
+  var r = UrlFetchApp.fetch(FIREBASE_URL + caminho + ".json", { muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) return undefined;
+  return JSON.parse(r.getContentText());
+}
+function firebaseGravar(metodo, caminho, obj) {
+  return UrlFetchApp.fetch(FIREBASE_URL + caminho + ".json", {
+    method: metodo, contentType: "application/json", payload: JSON.stringify(obj), muteHttpExceptions: true
+  });
+}
+
+// Só nome de arquivo seguro: sem acento, sem barra, sem nada que o Drive ou o
+// Firebase estranhem. Vem de gente de fora, então nada passa sem lavar.
+function nomeSeguroCliente(texto, max) {
+  return String(texto == null ? "" : texto).replace(/\((a|o)\)/gi, "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^A-Za-z0-9_-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").slice(0, max || 40);
+}
+function textoCliente(v, max) {
+  return String(v == null ? "" : v).replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max || 500);
+}
+
+// Devolve {pedido, caso, casoId} ou null. Código errado, vencido ou de caso que
+// não existe mais: tudo a mesma resposta, sem dizer qual dos três.
+function pedidoDoCliente(token) {
+  token = String(token || "");
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
+  var pedido = firebaseLer("/pedidos/" + token);
+  if (!pedido || !pedido.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(pedido.casoId))) return null;
+  if (pedido.expiraEm && Date.now() > pedido.expiraEm) return null;
+  var caso = firebaseLer("/casos/" + pedido.casoId);
+  if (!caso || typeof caso !== "object") return null;
+  return { pedido: pedido, caso: caso, casoId: pedido.casoId, token: token };
+}
+
+// A pasta do caso: a que está ligada no card; sem ela, a do nome do cliente
+// (a mesma que o painel cria pelo botão "Criar pasta no Drive").
+function pastaDoCaso(caso, casoId) {
+  var id = extrairIdPasta(caso.driveUrl || "");
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { /* link velho: cai na pasta do nome */ } }
+  var pasta = getPastaCliente(String(caso.nome || "Sem nome").toUpperCase());
+  try { firebaseGravar("patch", "/casos/" + casoId, { driveUrl: pasta.getUrl() }); } catch (e) { /* o card só não mostra o link */ }
+  return pasta;
+}
+
+function clienteArquivo(dados) {
+  var ctx = pedidoDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido ou vencido." });
+  var mime = String(dados.mimetype || "").toLowerCase();
+  var ext = MIMES_CLIENTE[mime];
+  if (!ext) return resp({ ok: false, erro: "Tipo de arquivo não aceito." });
+  var bytes;
+  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
+  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais." });
+
+  // Nome, arquivo e registro dentro de uma trava: sem ela, dois arquivos do
+  // mesmo tipo chegando juntos ganhariam o mesmo número, e duas primeiras
+  // gravações criariam duas pastas. A leitura pela IA (demorada) fica de fora.
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  var docKey, nome, arquivo;
+  try {
+    var docs = firebaseLer("/casos/" + ctx.casoId + "/documentos") || {};
+    var chaves = Object.keys(docs);
+    var doCliente = chaves.filter(function (k) { return docs[k] && docs[k].origem === "link do cliente"; }).length;
+    if (doCliente >= CLIENTE_MAX_ARQUIVOS) return resp({ ok: false, erro: "Limite de arquivos deste link atingido." });
+    var data = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
+    var prefixo = [nomeSeguroCliente(dados.papel), nomeSeguroCliente(dados.pessoa), nomeSeguroCliente(dados.tipo)].filter(Boolean).join("_") + "_" + data + "_";
+    var n = chaves.filter(function (k) { return docs[k] && String(docs[k].nome || "").indexOf(prefixo) === 0; }).length + 1;
+    nome = prefixo + n + "." + ext;
+    arquivo = pastaDoCaso(ctx.caso, ctx.casoId).createFile(Utilities.newBlob(bytes, mime, nome));
+    docKey = "cli_" + ctx.token.slice(0, 6) + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 8);
+    var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/" + docKey, {
+      nome: nome, tipo: "documento", tipoDocumento: textoCliente(dados.tipo, 60), papel: textoCliente(dados.papel, 40),
+      pessoa: textoCliente(dados.pessoa, 80), origem: "link do cliente", link: arquivo.getUrl(), salvoEm: new Date().toISOString()
+    });
+    if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." });
+  } finally { lock.releaseLock(); }
+
+  var leu = false;
+  if (MIMES_LEITURA_IA.indexOf(mime) !== -1) {
+    try {
+      var r = lerDocumentoComIA(dados.base64, mime, false);
+      if (r && r.texto) {
+        firebaseGravar("patch", "/casos/" + ctx.casoId + "/documentos/" + docKey, { texto: r.texto, truncado: !!r.truncou });
+        leu = true;
+      }
+    } catch (e) { /* o arquivo fica salvo; a minuta avisa que não conseguiu ler */ }
+  }
+  return resp({ ok: true, nome: nome, leu: leu });
+}
+
+// Os dados que o cliente digitou, em texto corrido: é assim que a minuta os lê.
+function montarFichaCliente(d, dataTxt, rotulos) {
+  d = d || {}; rotulos = rotulos || {};
+  var L = ["DADOS INFORMADOS PELO CLIENTE (preenchidos por ele no link de envio, em " + dataTxt + "; ainda não conferidos pela equipe)"];
+  if (d.ato) L.push("Ato: " + textoCliente(d.ato, 120));
+  (Array.isArray(d.pessoas) ? d.pessoas : []).slice(0, 30).forEach(function (p) {
+    p = p || {};
+    L.push("", textoCliente(p.papel, 40).toUpperCase() + " — " + textoCliente(p.nome, 120));
+    if (p.estadoCivil) L.push("  Estado civil: " + textoCliente(p.estadoCivil, 40));
+    if (p.profissao) L.push("  Profissão: " + textoCliente(p.profissao, 80));
+    if (p.endereco) L.push("  Endereço: " + textoCliente(p.endereco, 300));
+    if (p.regime) L.push("  Regime de bens: " + textoCliente(p.regime, 80));
+    if (p.conjuge && p.conjuge.nome) {
+      L.push("  Cônjuge: " + textoCliente(p.conjuge.nome, 120) + (p.conjuge.profissao ? ", " + textoCliente(p.conjuge.profissao, 80) : "") + (p.conjuge.endereco ? ", " + textoCliente(p.conjuge.endereco, 300) : ""));
+    }
+  });
+  var c = d.campos && typeof d.campos === "object" ? d.campos : {};
+  Object.keys(c).slice(0, 40).forEach(function (b) {
+    var campos = c[b] && typeof c[b] === "object" ? c[b] : {};
+    Object.keys(campos).slice(0, 20).forEach(function (f) {
+      var v = textoCliente(campos[f], 300); if (!v) return;
+      L.push("", (rotulos[b + "." + f] || textoCliente(f, 40)) + ": " + v);
+    });
+  });
+  var bancos = d.banco && typeof d.banco === "object" ? d.banco : {};
+  Object.keys(bancos).slice(0, 5).forEach(function (b) {
+    var v = bancos[b] || {};
+    var titulo = /\.pagador$/.test(b) ? "CONTA DE ONDE SAIRÁ O PAGAMENTO" : /\.recebedor$/.test(b) ? "CONTA QUE RECEBERÁ O PAGAMENTO" : "DADOS BANCÁRIOS";
+    L.push("", titulo, "  Banco: " + textoCliente(v.banco, 60) + " · Agência: " + textoCliente(v.agencia, 20) + " · Conta: " + textoCliente(v.conta, 30) + " · Titular: " + textoCliente(v.titular, 120) + (v.pix ? " · PIX: " + textoCliente(v.pix, 80) : ""));
+  });
+  if (d.advogado && (d.advogado.nome || d.advogado.oab)) {
+    L.push("", "ADVOGADO(A) — " + textoCliente(d.advogado.nome, 120) + " · OAB " + textoCliente(d.advogado.oab, 30) + (d.advogado.ec ? " · " + textoCliente(d.advogado.ec, 40) : "") + (d.advogado.end ? " · " + textoCliente(d.advogado.end, 300) : ""));
+  }
+  (Array.isArray(d.filhos) ? d.filhos : []).slice(0, 20).forEach(function (f, i) {
+    f = f || {};
+    L.push("", "FILHO(A) " + (i + 1) + " — " + textoCliente(f.nome, 120) + (f.ec ? " · " + textoCliente(f.ec, 40) : "") + (f.prof ? " · " + textoCliente(f.prof, 80) : "") + (f.end ? " · " + textoCliente(f.end, 300) : ""));
+  });
+  if (Array.isArray(d.clausulas) && d.clausulas.length) L.push("", "CLÁUSULAS QUE O CLIENTE QUER: " + d.clausulas.slice(0, 10).map(function (x) { return textoCliente(x, 60); }).join(", "));
+  if (d.observacoes) L.push("", "OBSERVAÇÕES DO CLIENTE (para a equipe conferir antes de usar na minuta): " + textoCliente(d.observacoes, 1500));
+  return L.join("\n");
+}
+
+function clienteDados(dados) {
+  var ctx = pedidoDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido ou vencido." });
+  var rotulos = {};
+  (ctx.pedido.blocos || []).forEach(function (b) { (b.campos || []).forEach(function (c) { rotulos[b.id + "." + c.id] = c.rotulo; }); });
+  var agora = new Date();
+  var ficha = montarFichaCliente(dados.dados, Utilities.formatDate(agora, "America/Sao_Paulo", "dd/MM/yyyy"), rotulos);
+  try { pastaDoCaso(ctx.caso, ctx.casoId).createFile("DADOS_INFORMADOS_PELO_CLIENTE_" + Utilities.formatDate(agora, "America/Sao_Paulo", "yyyy-MM-dd") + ".txt", ficha, MimeType.PLAIN_TEXT); } catch (e) { /* o registro no card é o que importa */ }
+  var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/ficha_" + ctx.token.slice(0, 10), {
+    nome: "DADOS_INFORMADOS_PELO_CLIENTE", tipo: "informacoes", origem: "link do cliente", texto: ficha, salvoEm: agora.toISOString()
+  });
+  if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou os dados (" + gravou.getResponseCode() + ")." });
+  try { firebaseGravar("patch", "/pedidos/" + ctx.token, { concluidoEm: Date.now() }); } catch (e) { /* só um carimbo */ }
+  try { enviarWhatsApp("📥 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou os documentos pelo link. Já estão no card."); } catch (e) { /* aviso é cortesia */ }
+  return resp({ ok: true });
 }
 
 // ── Criar minuta doc (via Vercel proxy — retorna resp()) ───────────────────
