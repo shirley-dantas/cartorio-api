@@ -12,7 +12,7 @@ self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { titulo: 'Tháriga Beauty & Co', corpo: e.data ? e.data.text() : '' }; }
   e.waitUntil(self.registration.showNotification(d.titulo || 'Tháriga Beauty & Co', {
-    body: d.corpo || '', icon: '/icon-192.png', badge: '/icon-192.png', tag: d.tag || undefined, data: { url: d.url || '/' },
+    body: d.corpo || '', icon: '/icon-v2-192.png', badge: '/icon-v2-192.png', tag: d.tag || undefined, data: { url: d.url || '/' },
   }));
 });
 self.addEventListener('notificationclick', (e) => {
