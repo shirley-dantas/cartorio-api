@@ -24,14 +24,17 @@
 }
 *{box-sizing:border-box;margin:0}
 [hidden]{display:none!important}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;scroll-padding-bottom:170px;scroll-padding-top:20px}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--fundo);color:var(--tinta);
   font-size:17px;line-height:1.5;padding:0 16px calc(150px + env(safe-area-inset-bottom))}
 .miolo{max-width:600px;margin:0 auto}
-.topo{margin:0 -16px;padding:calc(22px + env(safe-area-inset-top)) 16px 18px;background:var(--petroleo);text-align:center}
-.topo svg{display:block;height:58px;width:auto;margin:0 auto}
-.orgao{font-family:'Jost',sans-serif;font-weight:400;font-size:13px;letter-spacing:.28em;text-indent:.28em;text-transform:uppercase;color:#E8D9B6;margin-top:6px}
-.titulo{text-align:center;padding:24px 0 6px}
+.topo{margin:0 -16px;padding:calc(24px + env(safe-area-inset-top)) 16px 20px;background:var(--petroleo);text-align:center}
+.topo svg{display:block;height:46px;width:auto;margin:0 auto}
+.orgao{font-family:'Jost',sans-serif;font-weight:400;font-size:15px;letter-spacing:.26em;text-indent:.26em;text-transform:uppercase;color:var(--champagne);margin-top:8px}
+.escrevente{margin-top:16px;font-size:15.5px;color:var(--tinta-2);line-height:1.5}
+.escrevente b{color:var(--tinta);font-weight:600}
+.escrevente a{color:var(--petroleo);font-weight:600;text-decoration:none;border-bottom:1.5px solid var(--champagne)}
+.titulo{text-align:center;padding:22px 0 6px}
 h1{font-family:'Jost',sans-serif;font-weight:400;font-size:32px;line-height:1.15;color:var(--tinta)}
 .sub{color:var(--tinta-2);font-size:16.5px;margin-top:8px}
 .ato{display:inline-block;margin-top:12px;padding:7px 16px;border:1.5px solid var(--linha-forte);border-radius:99px;background:var(--sup);font-size:15px;font-weight:500}
@@ -117,13 +120,14 @@ body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.inva
 <body>
 <div class="miolo">
   <header class="topo">
-    <svg viewBox="0 0 600 190" role="img" aria-label="PRIME"><defs><linearGradient id="arco" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#BE9E6C"/><stop offset="40%" stop-color="#E8D3A4"/><stop offset="58%" stop-color="#F8EDD3"/><stop offset="78%" stop-color="#E8D3A4"/><stop offset="100%" stop-color="#BE9E6C"/></linearGradient></defs><path d="M64,98 C184,26 388,20 536,68 C388,32 184,38 64,98 Z" fill="url(#arco)"/><text x="300" y="154" text-anchor="middle" font-family="'Jost','Century Gothic','Futura',sans-serif" font-weight="300" font-size="52" fill="#F7F5F0"><tspan>P</tspan><tspan dx="24">R</tspan><tspan dx="20">I</tspan><tspan dx="20">M</tspan><tspan dx="26">E</tspan></text></svg>
-    <div class="orgao">20º Tabelião de Notas</div>
+    <svg viewBox="0 0 600 90" role="img" aria-label="20º Tabelião de Notas"><defs><linearGradient id="arco" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#BE9E6C"/><stop offset="40%" stop-color="#E8D3A4"/><stop offset="58%" stop-color="#F8EDD3"/><stop offset="78%" stop-color="#E8D3A4"/><stop offset="100%" stop-color="#BE9E6C"/></linearGradient></defs><path d="M64,72 C184,0 388,-6 536,42 C388,6 184,12 64,72 Z" fill="url(#arco)"/></svg>
   </header>
   <div class="titulo">
     <h1>Envio de documentos</h1>
+    <div class="orgao">20º Tabelião de Notas</div>
     <p class="sub" id="intro">Preencha os seus dados e, no fim, anexe os documentos. Não precisa de cadastro nem senha.</p>
     <span class="ato" id="ato" hidden></span>
+    <p class="escrevente">Escrevente <b>Shirley Dantas</b><br><a href="https://wa.me/5511954929643" rel="noopener">WhatsApp (11) 95492-9643</a></p>
   </div>
 
   <div class="formulario" id="formulario"></div>
@@ -160,7 +164,7 @@ const kb=n=>n>1048576?(n/1048576).toFixed(1).replace('.',',')+' MB':Math.max(1,M
 
 const token=(location.pathname.match(/\/e\/([A-Za-z0-9_-]+)/)||[])[1]||new URLSearchParams(location.search).get('t')||'';
 let pedido=null;
-const E={ pessoas:{}, campos:{}, banco:{}, filhos:[], adv:{}, clausulas:{}, obs:'', arquivos:{} }; // arquivos: chave -> [{id,file,estado,erro,pct}]
+const E={ pessoas:{}, falecidos:{}, campos:{}, banco:{}, filhos:[], adv:{}, clausulas:{}, obs:'', arquivos:{} }; // arquivos: chave -> [{id,file,estado,erro,pct}]
 let seq=0, enviando=false;
 
 // ── Carregar o pedido ─────────────────────────────────────────────────
@@ -178,6 +182,7 @@ async function carregar(){
   pedido.blocos.forEach(b=>{
     if(b.k==='pessoa') E.pessoas[b.id]=(b.papeis||['Parte']).map(p=>novaPessoa(p));
     if(b.k==='filhos') E.filhos=[];
+    if(b.k==='falecido') E.falecidos[b.id]={nome:'',ec:'',regime:'',conj:{nome:'',prof:''}};
   });
   desenharTudo();
 }
@@ -277,6 +282,19 @@ function certidoes(p,chave,b){
   else if(ec==='Separado(a)') slot(chave+'.cert','Certidão de casamento, com a averbação da separação');
   else slot(chave+'.cert','Certidão de estado civil',false,'Nascimento (solteiro) ou casamento (casado, divorciado, separado ou viúvo). Escolha o estado civil acima e o nome certo aparece.');
 }
+// O endereço mora num bloco próprio, e é só ele que se refaz quando o CEP responde: o resto da
+// página (e o que a pessoa está digitando) não se mexe.
+function htmlEndereco(b,i){
+  const p=E.pessoas[b.id][i], k=`${b.id}.${i}`, A=`data-b="${b.id}" data-i="${i}"`;
+  if(p.rua&&p.cidade&&!p.editEnd) return `<div class="campo"><label>Endereço</label><div class="dica" style="margin:0;color:var(--tinta);font-size:16.5px">${esc([p.rua,p.bairro,[p.cidade,p.uf].filter(Boolean).join('/')].filter(Boolean).join(' — '))} <button type="button" class="remover" data-editend="${b.id}|${i}" style="padding:4px 8px">Editar</button></div></div>`+input('Complemento',p.compl,`${A} data-f="compl" autocomplete="address-line2"`);
+  return input('Rua',p.rua,`${A} data-f="rua" id="rua-${k}" autocomplete="address-line1"`,true)+
+    `<div class="duas">${input('Complemento',p.compl,`${A} data-f="compl" autocomplete="address-line2"`)}${input('Bairro',p.bairro,`${A} data-f="bairro" id="bairro-${k}" autocomplete="address-level3"`)}</div>`+
+    `<div class="tres">${input('Cidade',p.cidade,`${A} data-f="cidade" id="cidade-${k}" autocomplete="address-level2"`)}<div class="campo"><label>UF</label><select ${A} data-f="uf" id="uf-${k}" autocomplete="address-level1"><option value=""></option>${UFS.map(u=>`<option${u===p.uf?' selected':''}>${u}</option>`).join('')}</select></div></div>`;
+}
+function refazEndereco(blocoId,i){
+  const el=document.getElementById(`end-${blocoId}.${i}`), b=pedido.blocos.find(x=>x.id===blocoId);
+  if(el&&b) el.innerHTML=htmlEndereco(b,i);
+}
 function htmlPessoa(b,i,n){
   const lista=E.pessoas[b.id], p=lista[i], k=`${b.id}.${i}`, A=`data-b="${b.id}" data-i="${i}"`;
   const simples=!!b.simples;
@@ -284,18 +302,14 @@ function htmlPessoa(b,i,n){
   let h=`<div class="bloco" data-bloco="${b.id}"><h2><span class="num${p.nome?' ok':''}">${n}</span>${esc(p.papel)}</h2>`;
   h+=input('Nome completo',p.nome,`${A} data-f="nome" autocomplete="name"`,true);
   if(!simples) h+=select('Estado civil',p.ec,ESTADOS_CIVIS,`${A} data-f="ec"`,true);
-  h+=input('Profissão',p.prof,`${A} data-f="prof"`,true);
-  h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="off" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div><div class="dica" id="cepmsg-${k}" hidden style="color:var(--critico);margin:-6px 0 10px"></div>`;
-  const fim=p.rua&&p.cidade&&!p.editEnd;
-  if(fim) h+=`<div class="campo"><label>Endereço</label><div class="dica" style="margin:0;color:var(--tinta);font-size:16.5px">${esc([p.rua,p.bairro,[p.cidade,p.uf].filter(Boolean).join('/')].filter(Boolean).join(' — '))} <button type="button" class="remover" data-editend="${b.id}|${i}" style="padding:4px 8px">Editar</button></div></div>`+input('Complemento',p.compl,`${A} data-f="compl"`);
-  else{
-    h+=input('Rua',p.rua,`${A} data-f="rua" id="rua-${k}" autocomplete="off"`,true);
-    h+=`<div class="duas">${input('Complemento',p.compl,`${A} data-f="compl"`)}${input('Bairro',p.bairro,`${A} data-f="bairro" id="bairro-${k}"`)}</div>`;
-    h+=`<div class="tres">${input('Cidade',p.cidade,`${A} data-f="cidade" id="cidade-${k}"`)}<div class="campo"><label>UF</label><select ${A} data-f="uf" id="uf-${k}"><option value=""></option>${UFS.map(u=>`<option${u===p.uf?' selected':''}>${u}</option>`).join('')}</select></div></div>`;
-  }
+  h+=input('Profissão',p.prof,`${A} data-f="prof" autocomplete="organization-title"`,true);
+  h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div><div class="dica" id="cepmsg-${k}" hidden style="color:var(--critico);margin:-6px 0 10px"></div>`;
+  h+=`<div id="end-${k}">${htmlEndereco(b,i)}</div>`;
   // O que vem depois dos dados da pessoa: se é casada, o regime e o cônjuge logo em seguida.
+  if(!simples&&p.ec==='Casado(a)'){
+    h+=opcoesRadio('Regime de bens do casamento',p.regime,REGIMES,`${A} data-f="regime"`,true,`regime-${k}`);
+  }
   if(!simples&&p.ec==='Casado(a)'&&b.conjuge){
-    h+=opcoesRadio('Regime de bens do casamento',p.regime,REGIMES,`${A} data-f="regime"`,false,`regime-${k}`);
     h+=`<div class="sec-conj"><h3 style="margin-top:0">Dados do cônjuge</h3>`+
       input('Nome completo do cônjuge',p.conj.nome,`${A} data-c="nome"`,true)+input('Profissão do cônjuge',p.conj.prof,`${A} data-c="prof"`,true)+
       `<label class="marca"><input type="checkbox" ${A} data-c="mesmo"${p.conj.mesmo?' checked':''}> Mora no mesmo endereço</label>`+
@@ -305,15 +319,37 @@ function htmlPessoa(b,i,n){
   slot(k+'.rg','RG ou CNH (frente e verso)',false,DICA_CPF);
   if(!simples){
     certidoes(p,k,b);
-    if(p.ec==='Casado(a)'&&b.conjuge){
-      if(REGIMES_COM_PACTO.includes(p.regime)){ slot(k+'.pacto','Escritura do pacto antenupcial'); slot(k+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis'); }
-      slot(k+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF);
-    }
+    if(p.ec==='Casado(a)'&&REGIMES_COM_PACTO.includes(p.regime)){ slot(k+'.pacto','Escritura do pacto antenupcial'); slot(k+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis'); }
+    if(p.ec==='Casado(a)'&&b.conjuge) slot(k+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF);
   }
   if(lista.length>1&&i>=(b.papeis||[]).length) h+=`<div class="repete"><span></span><button class="remover" data-remover="${b.id}|${i}">Remover esta pessoa</button></div>`;
   return h+'</div>';
 }
+// O falecido: o estado civil que ele tinha na data do óbito decide a certidão, o regime e o cônjuge.
+function htmlFalecido(b,n){
+  const f=E.falecidos[b.id], A=`data-fal="${b.id}"`;
+  GRUPO='Falecido(a)'+(f.nome?' — '+f.nome:'');
+  let h=`<div class="bloco"><h2><span class="num${f.nome?' ok':''}">${n}</span>Falecido(a)</h2>`;
+  h+=input('Nome completo do falecido(a)',f.nome,`${A} data-f="nome"`,true);
+  h+=select('Estado civil na data do óbito',f.ec,ESTADOS_CIVIS,`${A} data-f="ec"`,true);
+  if(f.ec==='Casado(a)'){
+    h+=opcoesRadio('Regime de bens do casamento',f.regime,REGIMES,`${A} data-f="regime"`,true,`regime-${b.id}`);
+    h+=`<div class="sec-conj"><h3 style="margin-top:0">Dados do cônjuge</h3>`+input('Nome completo do cônjuge',f.conj.nome,`${A} data-fc="nome"`,true)+input('Profissão do cônjuge',f.conj.prof,`${A} data-fc="prof"`)+`</div>`;
+  }
+  slot(b.id+'.rg','RG ou CNH do falecido(a) (com o CPF)',false,DICA_CPF);
+  slot(b.id+'.obito','Certidão de óbito');
+  if(f.ec==='Solteiro(a)') slot(b.id+'.cert','Certidão de nascimento');
+  else if(f.ec==='Casado(a)'){
+    slot(b.id+'.cert','Certidão de casamento');
+    if(REGIMES_COM_PACTO.includes(f.regime)){ slot(b.id+'.pacto','Escritura do pacto antenupcial'); slot(b.id+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis'); }
+    slot(b.id+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF);
+  }
+  else if(f.ec) slot(b.id+'.cert',f.ec==='Viúvo(a)'?'Certidão de casamento, com a averbação do óbito do cônjuge':f.ec==='Divorciado(a)'?'Certidão de casamento, com a averbação do divórcio':'Certidão de casamento, com a averbação da separação');
+  else slot(b.id+'.cert','Certidão de estado civil',false,'Escolha acima o estado civil na data do óbito e o nome certo aparece.');
+  return h+'</div>';
+}
 function htmlBloco(b,n){
+  if(b.k==='falecido') return htmlFalecido(b,n.v++);
   if(b.k==='pessoa'){
     let h=E.pessoas[b.id].map((_,i)=>htmlPessoa(b,i,n.v++)).join('');
     const opt=(b.papeis||['Parte']);
@@ -387,7 +423,16 @@ function htmlCampo(bid,c){
   if(c.tipo==='moeda') return input(c.rotulo,v,`${A} inputmode="decimal" placeholder="0,00"`,!c.opcional);
   return input(c.rotulo,v,A,!c.opcional);
 }
+function marcaFoco(){
+  const a=document.activeElement; if(!a||a===document.body||!a.closest||!a.closest('#formulario')) return null;
+  const sel=a.id?`#${CSS.escape(a.id)}`:['data-b','data-i','data-f','data-c','data-cb','data-banco','data-fal','data-fc','data-adv','data-filho'].filter(x=>a.hasAttribute(x)).map(x=>`[${x}="${a.getAttribute(x)}"]`).join('');
+  return sel&&a.tagName!=='BUTTON'&&a.type!=='file'&&a.type!=='radio'&&a.type!=='checkbox'?{sel:a.tagName.toLowerCase()+sel,ini:a.selectionStart,fim:a.selectionEnd}:null;
+}
+function voltaFoco(m){
+  if(!m) return; try{ const el=document.querySelector(m.sel); if(!el) return; el.focus({preventScroll:true}); if(m.ini!=null&&el.setSelectionRange) el.setSelectionRange(m.ini,m.fim); }catch(_){ }
+}
 function desenharTudo(){
+  const foco=marcaFoco(), rolagem=window.scrollY;
   const n={v:1};
   FIM=[]; GRUPO='';
   const corpo=pedido.blocos.map(b=>htmlBloco(b,n)).join('');
@@ -395,6 +440,7 @@ function desenharTudo(){
   FIM=null;
   $('#formulario').innerHTML=corpo+docs+
     `<div class="bloco"><h2><span class="num">${n.v}</span>Observações</h2><div class="campo"><label>Quer deixar algum recado para a nossa equipe, para constar na minuta? <span class="opcional-nota">(opcional)</span></label><textarea id="obs">${esc(E.obs)}</textarea></div></div>`;
+  voltaFoco(foco); window.scrollTo(0,rolagem);
   resumo();
 }
 
@@ -427,6 +473,7 @@ const dataOk=v=>{ const m=String(v||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if
 raiz.addEventListener('input',e=>{
   const t=e.target, f=t.dataset.f; if(t.id==='obs'){E.obs=t.value;return;}
   if(t.dataset.mascara==='data'){ const v=mascaraData(t.value); if(v!==t.value) t.value=v; }
+  if(t.dataset.fal!==undefined){ const f=E.falecidos[t.dataset.fal]; if(t.dataset.fc) f.conj[t.dataset.fc]=t.value; else if(t.dataset.f!=='ec'&&t.dataset.f!=='regime') f[t.dataset.f]=t.value; resumo(); return; }
   if(t.dataset.b!==undefined){
     const p=E.pessoas[t.dataset.b][+t.dataset.i];
     if(t.dataset.c) { p.conj[t.dataset.c]=t.type==='checkbox'?t.checked:t.value; return; }
@@ -441,6 +488,7 @@ raiz.addEventListener('input',e=>{
 raiz.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.f==='cep'&&t.dataset.b!==undefined){ const p=E.pessoas[t.dataset.b][+t.dataset.i]; p.cep=t.value; cep(t,p); }
+  if(t.dataset.fal!==undefined){ const f=E.falecidos[t.dataset.fal]; if(t.dataset.fc){ f.conj[t.dataset.fc]=t.value; resumo(); return; } f[t.dataset.f]=t.value; if(t.dataset.f==='ec'||t.dataset.f==='regime'){ desenharTudo(); return; } resumo(); return; }
   if(t.dataset.slot){ adicionar(t.dataset.slot,[...t.files]); t.value=''; return; }
   if(t.dataset.clausula){ E.clausulas[t.dataset.clausula]=t.checked; return; }
   if(t.dataset.b!==undefined){
@@ -461,7 +509,7 @@ raiz.addEventListener('click',e=>{
   else if(b.dataset.tirar){ const [c,id]=b.dataset.tirar.split('|'); tirar(c,+id); }
   else if(b.dataset.mais){ const bl=pedido.blocos.find(x=>x.id===b.dataset.mais); E.pessoas[bl.id].push(novaPessoa(proximoPapel(bl))); desenharTudo(); }
   else if(b.dataset.remover){ const [id,i]=b.dataset.remover.split('|'); E.pessoas[id].splice(+i,1); desenharTudo(); }
-  else if(b.dataset.editend){ const [id,i]=b.dataset.editend.split('|'); E.pessoas[id][+i].editEnd=true; desenharTudo(); }
+  else if(b.dataset.editend){ const [id,i]=b.dataset.editend.split('|'); E.pessoas[id][+i].editEnd=true; refazEndereco(id,+i); }
   else if(b.dataset.maisfilho){ E.filhos.push({}); desenharTudo(); }
   else if(b.dataset.rmfilho){ E.filhos.splice(+b.dataset.rmfilho,1); desenharTudo(); }
 });
@@ -479,8 +527,9 @@ async function cep(t,p){
     if(!j||j.erro){ aviso('Não achei esse CEP. Confira os números ou preencha a rua à mão.'); return; }
     cacheCep[d]=j; p.cepBuscado=d; aviso('');
     if(j.logradouro) p.rua=j.logradouro; if(j.bairro) p.bairro=j.bairro; if(j.localidade) p.cidade=j.localidade; if(j.uf) p.uf=j.uf;
-    p.editEnd=false; desenharTudo();
-    const n=document.querySelector(`[data-b="${t.dataset.b}"][data-i="${t.dataset.i}"][data-f="num"]`); if(n) n.focus();
+    p.editEnd=false; refazEndereco(t.dataset.b,+t.dataset.i); resumo();
+    // Só leva o cursor para o número se a pessoa ainda estiver no CEP: nunca rouba o campo em que ela está.
+    if(document.activeElement===t){ const n=document.querySelector(`[data-b="${t.dataset.b}"][data-i="${t.dataset.i}"][data-f="num"]`); if(n) n.focus(); }
   }catch(_){ aviso('Não consegui buscar o CEP agora. Preencha a rua, o bairro e a cidade à mão.'); }
 }
 
@@ -489,10 +538,18 @@ function faltas(){
   const f=[]; if(!pedido) return f;
   const tem=c=>(E.arquivos[c]||[]).some(x=>x.estado!=='erro');
   pedido.blocos.forEach(b=>{
-    if(b.k==='pessoa') E.pessoas[b.id].forEach((p,i)=>{
+    if(b.k==='falecido'){
+      const d=E.falecidos[b.id], k=b.id;
+      if(!d.nome) f.push('Falecido(a): nome'); if(!d.ec) f.push('Falecido(a): estado civil na data do óbito');
+      if(d.ec==='Casado(a)'){ if(!d.regime) f.push('Falecido(a): regime de bens'); if(!d.conj.nome) f.push('Falecido(a): dados do cônjuge'); }
+      if(!tem(k+'.rg')) f.push('Falecido(a): RG ou CNH'); if(!tem(k+'.obito')) f.push('Falecido(a): certidão de óbito');
+      if(d.ec&&!tem(k+'.cert')) f.push('Falecido(a): certidão de '+(d.ec==='Solteiro(a)'?'nascimento':'casamento'));
+    }
+    else if(b.k==='pessoa') E.pessoas[b.id].forEach((p,i)=>{
       const k=`${b.id}.${i}`, q=p.papel;
       if(!p.nome) f.push(`${q}: nome`); if(!b.simples&&!p.ec) f.push(`${q}: estado civil`); if(!p.prof) f.push(`${q}: profissão`);
       if(!(p.rua&&p.num)) f.push(`${q}: endereço`);
+      if(!b.simples&&p.ec==='Casado(a)'&&!p.regime) f.push(`${q}: regime de bens`);
       if(!tem(k+'.rg')) f.push(`${q}: RG ou CNH`);
       if(!b.simples&&p.ec&&!tem(k+'.cert')) f.push(`${q}: certidão de estado civil`);
       if(p.ec==='Casado(a)'&&b.conjuge&&!p.conj.nome) f.push(`${q}: dados do cônjuge`);
@@ -545,6 +602,10 @@ async function chamar(corpo){
 }
 function rotuloDoSlot(chave){
   const nomes={rg:'RG_CNH',cpf:'CPF',cert:'CERTIDAO_ESTADO_CIVIL',obito:'CERTIDAO_OBITO_CONJUGE',pacto:'PACTO_ANTENUPCIAL',pactoreg:'REGISTRO_DO_PACTO',rgconj:'RG_CNH_CONJUGE'};
+  for(const b of pedido.blocos) if(b.k==='falecido'&&chave.startsWith(b.id+'.')){
+    const suf=chave.slice(b.id.length+1), fal={rg:'RG_CNH_FALECIDO',obito:'CERTIDAO_OBITO_FALECIDO',cert:'CERTIDAO_ESTADO_CIVIL_FALECIDO',pacto:'PACTO_ANTENUPCIAL_FALECIDO',pactoreg:'REGISTRO_DO_PACTO_FALECIDO',rgconj:'RG_CNH_CONJUGE_DO_FALECIDO'};
+    if(fal[suf]) return {pessoa:E.falecidos[b.id].nome||'Falecido',papel:'Falecido(a)',tipo:fal[suf]};
+  }
   const m=chave.match(/^(.+)\.(\d+)\.(\w+)$/);
   if(m&&E.pessoas[m[1]]){ const p=E.pessoas[m[1]][+m[2]]; return {pessoa:p.nome||p.papel,papel:p.papel,tipo:nomes[m[3]]||m[3].toUpperCase()}; }
   if(m&&pedido.blocos.some(b=>b.k==='filhos'&&b.id===m[1])) return {pessoa:(E.filhos[+m[2]]||{}).nome||('Filho '+(+m[2]+1)),papel:'Filho(a)',tipo:'RG_CNH'};
@@ -560,6 +621,7 @@ function montarDados(){
   return { ato:pedido.ato, enviadoEm:new Date().toISOString(),
     pessoas:Object.entries(E.pessoas).flatMap(([bloco,l])=>l.map(p=>({bloco,papel:p.papel,nome:p.nome,estadoCivil:p.ec,profissao:p.prof,endereco:end(p),regime:p.regime||'',
       conjuge:p.ec==='Casado(a)'&&(p.conj.nome)?{nome:p.conj.nome,profissao:p.conj.prof,endereco:p.conj.mesmo?end(p):p.conj.end}:null}))),
+    falecidos:Object.entries(E.falecidos).map(([bloco,d])=>({bloco,nome:d.nome,estadoCivil:d.ec,regime:d.ec==='Casado(a)'?d.regime:'',conjuge:d.ec==='Casado(a)'&&d.conj.nome?{nome:d.conj.nome,profissao:d.conj.prof}:null})),
     campos:E.campos, banco:E.banco, advogado:E.adv, filhos:E.filhos, clausulas:Object.keys(E.clausulas).filter(k=>E.clausulas[k]), observacoes:E.obs };
 }
 async function enviarArquivo(chave,it){

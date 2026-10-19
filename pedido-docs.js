@@ -188,7 +188,7 @@
       if (pd !== 'donatario') S.push(secao('clausulas', 'Cláusulas', Object.keys(CLAUSULAS).map(function (k) { return item('clausula.' + k, CLAUSULAS[k], false); }), { tipo: 'clausulas' }));
     } else if (modelo === 'inventario') {
       S.push(secao('lista', '', [
-        item('falecido', 'Falecido(a) e cônjuge: RG, CPF, certidão de óbito e de casamento; pacto antenupcial, se houver'),
+        item('falecido', 'Falecido(a): RG, CPF, certidão de óbito, estado civil na data do óbito (e regime de bens e dados do cônjuge, se casado(a))'),
         item('falecido.testamento', 'Certidão de inexistência de testamento (você costuma buscar)', false),
         pessoa('herdeiros', 'Herdeiros', { papeis: ['Herdeiro(a)'], obito: true }),
         adv(item('advogado', 'Advogado(a): OAB, estado civil e endereço'))
@@ -322,9 +322,9 @@
     'imovel.contrato': DOC('Contrato', true),
     'bem.mat': DOC('Matrícula do imóvel'),
     'bem.divida': { k: 'docs', titulo: 'Dívida', docs: [{ id: 'contrato', rotulo: 'Contrato ou histórico da dívida' }], campos: [{ id: 'valor', rotulo: 'Valor da dívida (R$)', tipo: 'moeda' }] },
-    'falecido': { k: 'docs', titulo: 'Falecido(a)', campos: [{ id: 'nome', rotulo: 'Nome completo do falecido(a)', tipo: 'texto' }],
-      docs: [{ id: 'rg', rotulo: 'RG e CPF do falecido(a)' }, { id: 'obito', rotulo: 'Certidão de óbito' }, { id: 'casamento', rotulo: 'Certidão de casamento' },
-        { id: 'pacto', rotulo: 'Pacto antenupcial (se houver)', opcional: true }, { id: 'rgconj', rotulo: 'RG e CPF do cônjuge (se houver)', opcional: true }] },
+    // O falecido tem estado civil NA DATA DO ÓBITO: a página pergunta, e só então pede a certidão certa
+    // (nascimento, casamento com averbação) ou, se casado, o regime, o pacto e os dados do cônjuge.
+    'falecido': { k: 'falecido', titulo: 'Falecido(a)' },
     'falecido.testamento': DOC('Certidão de inexistência de testamento'),
     'advogado': { k: 'advogado', titulo: 'Advogado(a)' },
     'familia.filhos': { k: 'filhos', titulo: 'Filhos' },

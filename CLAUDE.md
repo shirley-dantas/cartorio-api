@@ -984,6 +984,15 @@ Regras que **não devem ser mexidas sem perguntar**:
 - **A prévia do WhatsApp tem imagem** (`og-envio.png`, 1200×630, com a marca PRIME) e o link é curto
   (`/e/{código}`, reescrita no `vercel.json`). Com o link, **a mensagem é curta** (recado + link): a lista já
   está na página. O endereço do link ainda é o do projeto até haver um domínio neutro (`ENVIO_BASE_URL`).
+- **O topo não leva o nome PRIME**: só o arco champagne na faixa petróleo; abaixo, *Envio de documentos*,
+  *20º Tabelião de Notas* e, por último, a escrevente (Shirley Dantas, WhatsApp (11) 95492-9643, com link).
+- **Casado, em qualquer ato, abre o regime de bens** (3 opções, obrigatório); os dados do cônjuge vêm junto
+  onde o ato os pede. **Viúvo**: certidão de casamento com averbação do óbito; a de óbito do cônjuge só na
+  lista de inventário. **O falecido do inventário** (`k:'falecido'`) pergunta o estado civil **na data do
+  óbito**: solteiro → nascimento; casado → regime, dados do cônjuge, casamento (e pacto + registro se o regime
+  exige); viúvo/divorciado/separado → casamento com averbação; certidão de óbito e RG/CPF sempre.
+- **Preenchimento do celular**: os campos levam o `autocomplete` certo (nome, CEP, rua, cidade…), e o que
+  responde depois (o CEP) troca **só o bloco do endereço**, sem mexer no campo em que a pessoa está.
 - A página usa letra grande e tinta cheia (17 px, títulos de documento 18 px em negrito); a marca PRIME no topo.
 - **A certidão de estado civil aparece desde o início** (genérica até ela escolher o estado civil) e o
   endereço se recolhe depois do CEP (rua/bairro/cidade/UF viram uma linha com *Editar*).

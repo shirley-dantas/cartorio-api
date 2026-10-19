@@ -201,6 +201,42 @@ await passo('viúvo: a certidão de casamento com a averbação do óbito basta;
   t = await inv.pg.textContent('#formulario'); assert(/averbação do óbito/.test(t) && /Certidão de óbito do cônjuge/.test(t), 'inventário pede as duas');
 });
 
+await passo('topo: sem o nome PRIME; título, 20º Tabelião de Notas e, por último, a escrevente com o WhatsApp', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  const t = await pg.innerText('body'); assert(!/PRIME/.test(t) && !(await pg.content()).includes('>PRIME<'), 'sem PRIME');
+  const topo = await pg.innerText('.titulo'); const tl = topo.toLowerCase(); assert(tl.indexOf('envio de documentos') < tl.indexOf('20º tabelião de notas') && tl.indexOf('20º tabelião de notas') < tl.indexOf('escrevente shirley dantas'), topo);
+  assert.equal(await pg.getAttribute('.escrevente a', 'href'), 'https://wa.me/5511954929643'); assert(/\(11\) 95492-9643/.test(topo));
+});
+await passo('casado, em qualquer ato, abre o regime de bens (divórcio e união também)', async () => {
+  for (const [tipo, papel, bloco] of [['Divórcio', 'div1', 'divorciandos'], ['União Estável', 'conv1', 'conviventes']]) {
+    const {pg} = await abrir({tipo, publico: 'cliente', papel}); await pg.waitForSelector(`[data-b="${bloco}"]`);
+    await pg.selectOption('[data-b][data-f="ec"]', 'Casado(a)'); assert.equal(await pg.locator('input[data-b][data-f="regime"]').count(), 3, tipo);
+  }
+});
+await passo('preenchimento do celular: campos com autocomplete certo, e o CEP troca só o endereço (não mexe no campo em que a pessoa está)', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  const at = async (f) => pg.getAttribute(`[data-b][data-f="${f}"]`, 'autocomplete');
+  assert.equal(await at('nome'), 'name'); assert.equal(await at('cep'), 'postal-code'); assert.equal(await at('rua'), 'address-line1'); assert.equal(await at('cidade'), 'address-level2');
+  await pg.fill('[data-f="cep"]', '01452000'); await pg.focus('[data-f="prof"]'); await pg.keyboard.type('Prof');
+  await pg.waitForSelector('[data-editend]');
+  assert.equal(await pg.evaluate(() => document.activeElement.dataset.f), 'prof', 'o foco continua onde a pessoa estava'); assert.equal(await pg.inputValue('[data-f="prof"]'), 'Prof');
+});
+await passo('inventário: o falecido pergunta o estado civil na data do óbito e só então pede a certidão certa', async () => {
+  const {pg} = await abrir({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true}}, {viewport: {width: 1100, height: 900}, mobile: false});
+  await pg.waitForSelector('[data-fal]'); let t = await pg.textContent('#formulario');
+  assert(/Estado civil na data do óbito/.test(t) && !/Escritura do pacto/.test(t) && !/Certidão de casamento/.test(t) && /Certidão de estado civil/.test(t), 'antes de escolher, nada de casamento ou pacto');
+  const ec = (v) => pg.selectOption('[data-fal][data-f="ec"]', v);
+  await ec('Casado(a)'); assert.equal(await pg.locator('input[data-fal][data-f="regime"]').count(), 3); t = await pg.textContent('#formulario');
+  assert(/Dados do cônjuge/.test(t) && /Certidão de casamento/.test(t) && /RG ou CNH do cônjuge/.test(t) && !/Escritura do pacto/.test(t), 'casado: cônjuge e casamento; pacto só com regime que exige');
+  await pg.check('input[data-fal][data-f="regime"][value="Separação total de bens"]', {force: true}); t = await pg.textContent('#formulario');
+  assert(/Escritura do pacto/.test(t) && /registro do pacto/.test(t), 'separação total pede o pacto e o registro');
+  await pg.fill('[data-fal][data-fc="nome"]', 'Viúva Silva');
+  await ec('Viúvo(a)'); t = await pg.textContent('#formulario'); assert(/averbação do óbito/.test(t) && !/Escritura do pacto/.test(t) && !/RG ou CNH do cônjuge/.test(t) && !/Dados do cônjuge/.test(t));
+  await ec('Divorciado(a)'); assert(/averbação do divórcio/.test(await pg.textContent('#formulario')));
+  await ec('Solteiro(a)'); t = await pg.textContent('#formulario'); assert(/Certidão de nascimento/.test(t) && !/Certidão de casamento/.test(t));
+  assert(/Certidão de óbito/.test(t), 'a certidão de óbito vale para qualquer estado civil');
+});
+
 let tela;
 await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os dados vão por último', async () => {
   const {pg, chamadas} = await abrir(compra); tela = pg; await pg.waitForSelector('[data-b="partes"]');

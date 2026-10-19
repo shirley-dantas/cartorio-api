@@ -1553,6 +1553,13 @@ function montarFichaCliente(d, dataTxt, rotulos) {
       L.push("  Cônjuge: " + textoCliente(p.conjuge.nome, 120) + (p.conjuge.profissao ? ", " + textoCliente(p.conjuge.profissao, 80) : "") + (p.conjuge.endereco ? ", " + textoCliente(p.conjuge.endereco, 300) : ""));
     }
   });
+  (Array.isArray(d.falecidos) ? d.falecidos : []).slice(0, 5).forEach(function (f) {
+    f = f || {};
+    L.push("", "FALECIDO(A) — " + textoCliente(f.nome, 120));
+    if (f.estadoCivil) L.push("  Estado civil na data do óbito: " + textoCliente(f.estadoCivil, 40));
+    if (f.regime) L.push("  Regime de bens: " + textoCliente(f.regime, 80));
+    if (f.conjuge && f.conjuge.nome) L.push("  Cônjuge: " + textoCliente(f.conjuge.nome, 120) + (f.conjuge.profissao ? ", " + textoCliente(f.conjuge.profissao, 80) : ""));
+  });
   var c = d.campos && typeof d.campos === "object" ? d.campos : {};
   Object.keys(c).slice(0, 40).forEach(function (b) {
     var campos = c[b] && typeof c[b] === "object" ? c[b] : {};
