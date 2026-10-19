@@ -881,6 +881,38 @@ sem aviso nenhum na tela, o painel só ficou parado na versão anterior. Funçã
 nova entra em `lib/` e é atendida por uma porta que já existe; o
 `testes/bussola.mjs` acusa se `api/` passar de 12.
 
+## Pedir documentos
+
+A faixa **Documentos** do card abre o montador (`pedido-docs.js`, carregado pelo
+`index.html`): ela escolhe **para quem** é o pedido (cliente, advogado, corretor
+ou comprador de construtora), o **ato** (vem do card) e, nos atos de dois lados,
+**quem vai receber** (vendedor, comprador ou os dois). A lista nasce marcada pelo
+ato, ela ajusta caixa por caixa, e a mensagem sai **editável** para copiar, abrir
+no e-mail ou no WhatsApp. Nada sai sem ela mandar.
+
+Regras dela que **não devem ser mexidas sem perguntar**:
+
+- **Os dados pessoais vão numa linha só** — RG, CPF, certidão de estado civil,
+  endereço e profissão, e do cônjuge se casado(a). Pedido comprido é trabalho
+  para a equipe; há teste limitando o tamanho.
+- **Só se pede o que o caso tem.** No inventário e na partilha, só os documentos
+  dos bens que ela marcar: a casa pede a matrícula, não o carro.
+- **A certidão de casamento é uma só** para o casal, e nunca se escreve
+  "atualizada" — ela confere isso depois de receber.
+- **Pacto antenupcial:** num ato em que o casal declara regime que exige pacto, pede-se
+  o pacto e o registro dele no RI do primeiro domicílio. Na escritura *de* pacto
+  não se fala em registro, só nas certidões do casal.
+- **União estável não é estado civil da lista**: é documento que ela marca (RCPN, Livro E).
+- **Comprador de construtora** só informa os próprios dados — a construtora e o
+  vendedor ela identifica pela matrícula. Testamento ela não faz; as certidões que
+  ela busca na internet nascem desmarcadas.
+- **Mandar para um lado só** (comprador, donatário…) tira do pedido o que é do
+  outro: o valor da transação é só do comprador, a matrícula nasce desmarcada para ele.
+
+Ainda **não** existe a página de envio do cliente (dados + upload pelo celular,
+sem Tally nem plano pago: página estática falando com o Apps Script). O desenho
+dela está no histórico da branch `ccr-db4bd542-ih6tlq` (`enviar.html`).
+
 ## O Caderno da Rafaela (projeto à parte)
 
 Mora em `rafaela/`, num projeto próprio da Vercel (*Root Directory*
@@ -932,6 +964,7 @@ o `testes/montar.mjs` recorta.
 | A busca da alíquota | `api/aliquota-municipal.js` |
 | A isenção do ITBI (primeiro imóvel / PMCMV) | `orcConferirIsencoes()`, `orcTetoIsencaoItbi()`, `orcConfirmarIsencaoItbi()` |
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
+| Pedir documentos (lista por ato e público) | `pedido-docs.js` → `PEDIDO.montar()`, `comporTexto()`, `abrirJanela()` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |
 | A mensagem sugerida | `redeMensagemSugerida()`, `redeAtoNaFrase()` |
@@ -958,6 +991,7 @@ node testes/rede.mjs && node testes/rede-varredura.mjs
 node testes/radar.mjs && node testes/radar-triagem.mjs
 node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
 node testes/bussola.mjs
+node testes/pedido-docs.mjs
 ```
 
 O `montar.mjs` também gera o `preview-quadro.html`, que é o desenho da seção
