@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pedir documentos (harness)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Jost:wght@200;400&display=swap">
+<style>
+:root{--cc-fundo:#F2EFE9;--cc-sup:#FFFFFF;--cc-sup-2:#FAF8F4;--cc-linha:#E6E0D5;--cc-linha-forte:#D8D0C1;--cc-tinta:#1F2A33;--cc-tinta-2:#5B6B78;--cc-tinta-3:#6B7680;--cc-champagne:#A9895A;--cc-ok:#2F7A4F}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Inter',sans-serif;background:var(--cc-fundo);color:var(--cc-tinta);font-size:14px;padding:16px}
+.modal-box{background:#fff;border-radius:26px;max-width:1000px;padding:26px;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.modal-title{font-size:18px;font-weight:600}.modal-sub{color:var(--cc-tinta-3);font-size:12.5px;margin:2px 0 16px}
+@media(max-width:700px){.modal-box{padding:18px 14px;border-radius:20px}}
+</style></head>
+<body>
+<div class="modal-box">
+  <div class="modal-title">Pedir documentos</div>
+  <div class="modal-sub" id="sub">—</div>
+  <div id="alvo"></div>
+</div>
+<script src="pedido-docs.js"></script>
+<script>
+const q=new URLSearchParams(location.search);
+const tipo=q.get('tipo')||'Escritura de Compra e Venda';
+document.getElementById('sub').textContent='Maria da Silva — '+tipo;
+window.__j=PEDIDO.abrirJanela(document.getElementById('alvo'),{casoNome:'Maria da Silva',tipo,tipos:Object.keys(PEDIDO.MODELO_DO_TIPO)});
+window.__pronto=true;
+</script></body></html>

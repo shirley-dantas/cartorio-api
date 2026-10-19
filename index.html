@@ -1316,7 +1316,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 /* Tela estreita: o modal encosta nas bordas e as linhas que eram colunas
    viram pilha, senão nome e valor brigam pelo mesmo espaço. */
 @media(max-width:600px){
-  #modal-financeiro .modal-box,#modal-meu-financeiro .modal-box{padding:18px 14px;border-radius:20px}
+  #modal-financeiro .modal-box,#modal-meu-financeiro .modal-box,#modal-pedido-docs .modal-box{padding:18px 14px;border-radius:20px}
   .modal-overlay{padding:14px 8px}
   .fin-abas{gap:0}
   .fin-aba{padding:9px 8px;font-size:10px;letter-spacing:.08em}
@@ -3003,6 +3003,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
 </div>
 
+<!-- Pedir documentos: monta a lista do que cada pessoa precisa enviar -->
+<div class="modal-overlay" id="modal-pedido-docs">
+  <div class="modal-box" style="max-width:1000px">
+    <button class="modal-close" onclick="fecharPedidoDocs()">&times;</button>
+    <div class="modal-title"><i class="ti ti-file-search" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Pedir documentos</div>
+    <div class="modal-sub" id="ped-sub">—</div>
+    <div id="ped-conteudo"></div>
+  </div>
+</div>
+
+<script src="pedido-docs.js"></script>
 <script src="design-system/mascots/joaninha/joaninha.js"></script>
 <!-- Google Identity Services (login/token pra abrir o Drive dela) + gapi
      (carrega só a biblioteca do Picker) — ver driveEscolherArquivos() e
@@ -5156,6 +5167,11 @@ function renderCasos(){
       <div class="cx-orc">
         <span class="cx-orc-rot"><i class="ti ti-calculator"></i> Orçamento</span>
         ${typeof orcFaixaDoCaso==='function'?orcFaixaDoCaso(c.id):''}
+      </div>
+
+      <div class="cx-orc cx-ped">
+        <span class="cx-orc-rot"><i class="ti ti-file-search"></i> Documentos</span>
+        <button class="cx-btn destaque" onclick="abrirPedidoDocs('${c.id}')"><i class="ti ti-list-check"></i> Pedir documentos</button>
       </div>
 
       <div class="cx-drive">
@@ -11791,6 +11807,16 @@ function orcAbrirJanela(){
   document.getElementById('modal-orcamento-caso').classList.add('open');
   renderOrcamentoDoCaso();
 }
+// Pedir documentos: a lista do que pedir (cliente, advogado, corretor…) para o ato do card.
+window.abrirPedidoDocs = function(id){
+  const c = (typeof casos!=='undefined' && casos[id]) || {};
+  document.getElementById('ped-sub').textContent = (c.nome || 'Sem nome') + (c.tipo ? ' — ' + c.tipo : '');
+  PEDIDO.abrirJanela(document.getElementById('ped-conteudo'), {casoNome:c.nome, tipo:c.tipo, tipos:TIPOS_PRINCIPAIS});
+  document.getElementById('modal-pedido-docs').classList.add('open');
+};
+window.fecharPedidoDocs = function(){
+  document.getElementById('modal-pedido-docs').classList.remove('open');
+};
 window.fecharOrcamentoDoCaso = function(){
   document.getElementById('modal-orcamento-caso').classList.remove('open');
   orcCasoAberto = null; orcEmEdicao = null; orcVerMemoria = false; orcVerCliente = false; orcVerTecnico = false;
