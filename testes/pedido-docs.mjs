@@ -101,9 +101,12 @@ passo('mandando só para o comprador: nada do vendedor, pagamento sim, matrícul
   assert(/Seus dados: RG, CPF/.test(t) && /Pagamento: valor da transação/.test(t) && /conta de onde sairá/.test(t));
   assert(!/vendedor|Matrícula/i.test(t), t);
 });
-passo('mandando só para o vendedor: matrícula e banco sim, valor da transação não', () => {
+passo('mandando só para o vendedor: dados pessoais, documentos e matrícula; sem valor e sem conta (a conta é um pedido a mais)', () => {
   const t = linhas({tipo: 'Escritura de Compra e Venda', papel: 'vendedor'}).join('\n');
-  assert(/Seus dados/.test(t) && /Matrícula do imóvel/.test(t) && /bancários/.test(t) && !/valor da transação|comprador/i.test(t), t);
+  assert(/Seus dados/.test(t) && /Matrícula do imóvel/.test(t) && !/bancários|valor da transação|comprador/i.test(t), t);
+  assert(!P.formulario({tipo: 'Escritura de Compra e Venda', papel: 'vendedor'}).some((x) => x.k === 'pagamento'));
+  const o = P.formulario({tipo: 'Escritura de Compra e Venda', papel: 'vendedor', marc: {pagamento: true}}).find((x) => x.k === 'pagamento');
+  assert(o && o.lado === 'vendedor', 'ela pode ligar a conta do vendedor');
 });
 passo('o advogado mandando para um lado só fala "Dados do comprador", não "Seus dados"', () => {
   const t = linhas({tipo: 'Escritura de Compra e Venda', papel: 'comprador', publico: 'advogado'}).join('\n');
@@ -131,14 +134,39 @@ passo('valor e dados bancários são UM pedido só, com o valor antes da conta',
 passo('comprador paga (valor, sinal, forma, conta pagadora); vendedor só informa a conta que recebe', () => {
   const c = linhas({tipo: 'Escritura de Compra e Venda', papel: 'comprador'}).join('\n');
   assert(/valor da transação, sinal \(se houve\), forma \(TED ou PIX\) e conta de onde sairá o pagamento/.test(c));
-  const v = linhas({tipo: 'Escritura de Compra e Venda', papel: 'vendedor'}).join('\n');
+  const v = linhas({tipo: 'Escritura de Compra e Venda', papel: 'vendedor', marc: {pagamento: true}}).join('\n');
   assert(/Dados bancários para receber o pagamento/.test(v) && !/valor da transação|sinal/.test(v));
 });
 passo('o formulário do pagamento nasce do pedido: lado e campos com rótulo (é o que a ficha lê)', () => {
-  const b = P.formulario({tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'vendedor'}).find((x) => x.k === 'pagamento');
+  const b = P.formulario({tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'vendedor', marc: {pagamento: true}}).find((x) => x.k === 'pagamento');
   assert.equal(b.lado, 'vendedor'); assert.equal(b.titulo, 'Pagamento');
   assert(b.campos.some((c) => c.id === 'sinalValor' && /sinal/.test(c.rotulo)));
   assert(!P.formulario({tipo: 'Escritura de Compra e Venda', publico: 'corretor'}).some((x) => x.k === 'pagamento'), 'corretor não pede pagamento');
+});
+passo('pedir mais: arquivo ou só informação, para todos ou para um lado; nasce no formulário e no texto', () => {
+  const e = {tipo: 'Escritura de Compra e Venda', papel: 'ambos', extras: [
+    'Comprovante de residência',
+    {texto: 'Número do IPTU', tipo: 'info', para: 'todos'},
+    {texto: 'Certidão do condomínio', tipo: 'arquivo', para: 'vendedor'}]};
+  const f = P.formulario(e);
+  assert(f.some((b) => b.k === 'doc' && b.rotulo === 'Comprovante de residência'), 'texto antigo = arquivo');
+  const i = f.find((b) => b.k === 'campos' && b.titulo === 'Número do IPTU');
+  assert(i && i.campos[0].tipo === 'texto' && !i.campos[0].opcional, 'informação vira campo de texto');
+  assert(f.some((b) => b.k === 'doc' && /^Vendedor: Certidão do condomínio/.test(b.rotulo)), 'com os dois lados, o rótulo diz de quem é');
+  assert(/Informe: Número do IPTU/.test(P.comporTexto(e)));
+  const c = P.formulario({...e, papel: 'comprador'});
+  assert(!c.some((b) => /condomínio/.test(b.rotulo || '')), 'o que é do vendedor não vai para o comprador');
+  assert(c.some((b) => b.titulo === 'Número do IPTU') && c.some((b) => b.rotulo === 'Comprovante de residência'));
+  const v = P.formulario({...e, papel: 'vendedor'}).find((b) => /condomínio/.test(b.rotulo || ''));
+  assert(v && v.rotulo === 'Certidão do condomínio', 'para um lado só, o rótulo não repete quem é');
+});
+passo('divórcio, união e pacto: cada parte recebe só o seu bloco; "os dois" traz as duas', () => {
+  const papeis = (tipo, papel) => P.formulario({tipo, papel}).find((b) => b.k === 'pessoa').papeis;
+  assert.deepEqual(papeis('Divórcio', 'div2'), ['Divorciando(a) 2']);
+  assert.deepEqual(papeis('Divórcio', 'ambos'), ['Divorciando(a) 1', 'Divorciando(a) 2']);
+  assert.deepEqual(papeis('União Estável', 'conv1'), ['Convivente 1']);
+  assert.deepEqual(papeis('Pacto Antenupcial', 'noivo2'), ['Noivo(a) 2']);
+  assert.deepEqual(P.formulario({tipo: 'Procuração', papel: 'outorgante'}).filter((b) => b.k === 'pessoa').map((b) => b.papeis[0]), ['Outorgante']);
 });
 console.log(erros ? '\n' + erros + ' falha(s)' : '\ntudo certo');
 process.exit(erros ? 1 : 0);

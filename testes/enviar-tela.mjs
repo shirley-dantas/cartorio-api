@@ -27,7 +27,7 @@ const PDF = SAIDA('cert.pdf'); writeFileSync(PDF, '%PDF-1.4\n%%EOF');
 
 async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = true, expira, gas} = {}) {
   const pg = await b.newPage({viewport, deviceScaleFactor: mobile ? 2 : 1.4, isMobile: mobile, hasTouch: mobile});
-  const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, atoFrase: P.cabecalho(estado).atoFrase, quem: P.cabecalho(estado).quem, criadoEm: Date.now(), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
+  const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
   const chamadas = [];
   await pg.route('**/*', async (rota) => {
     const u = rota.request().url();
@@ -72,7 +72,7 @@ await passo('pagamento: o sinal e a forma abrem os campos certos; o vendedor só
   await pg.selectOption('[data-f="sinal"]', 'Sim'); assert.equal(await pg.locator('[data-f="sinalValor"]').count(), 1);
   await pg.selectOption('[data-f="forma"]', 'TED'); assert.equal(await pg.locator('[data-banco="pagamento.pagador"][data-f="banco"]').count(), 1);
   assert(/Conta de onde sairá o pagamento/.test(await pg.textContent('#formulario')) && !/Conta que receberá/.test(await pg.textContent('#formulario')));
-  const v = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'vendedor'}); await v.pg.waitForSelector('[data-banco]');
+  const v = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'vendedor', marc: {pagamento: true}}); await v.pg.waitForSelector('[data-banco]');
   const tv = await v.pg.textContent('#formulario'); assert(/Conta que receberá o pagamento/.test(tv) && /Por que pedimos isto/.test(tv)); assert.equal(await v.pg.locator('[data-f="valor"], [data-f="sinal"], [data-f="restante"]').count(), 0, 'o vendedor não preenche valor nem sinal');
 });
 
@@ -107,8 +107,7 @@ await passo('o CEP preenche a rua, o bairro e a cidade', async () => {
 await passo('cabeçalho personalizado, certidão visível desde o início e câmera do computador', async () => {
   const {pg} = await abrir({...compra, tipo:'Escritura de Compra e Venda', publico:'cliente', papel:'comprador'}, {mobile: false, viewport: {width: 1100, height: 800}});
   await pg.waitForSelector('[data-b="partes"]');
-  const intro = await pg.innerText('#intro');
-  assert.ok(/Para a elaboração da Escritura de Compra e Venda/.test(intro) && /como comprador\(a\)/.test(intro), intro);
+  assert.ok(!/Para a elaboração/.test(await pg.innerText('#intro')), 'o cabeçalho não explica o ato: o link já vem personalizado');
   assert.ok(!/cartorio-api/i.test(await pg.content()), 'a página nunca cita cartorio-api');
   assert.ok(/og:title/.test(await pg.content()));
   assert.ok(await pg.locator('text=Certidão de estado civil').count() > 0, 'o espaço da certidão aparece antes de escolher o estado civil');

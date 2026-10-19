@@ -11833,9 +11833,8 @@ function codigoDeEnvio(){
 const ENVIO_BASE_URL = '';
 async function criarLinkEnvio(id,{estado,blocos,token}){
   const cod=token||codigoDeEnvio(), agora=Date.now();
-  const cab=(typeof PEDIDO!=='undefined'&&PEDIDO.cabecalho)?PEDIDO.cabecalho(estado):{atoFrase:'',quem:''};
   try{
-    await set(ref(db,'pedidos/'+cod),{casoId:id,ato:estado.tipo||'',atoFrase:cab.atoFrase||'',quem:cab.quem||'',publico:estado.publico||'cliente',papel:estado.papel||'ambos',blocos,criadoEm:agora,expiraEm:agora+15*864e5});
+    await set(ref(db,'pedidos/'+cod),{casoId:id,ato:estado.tipo||'',publico:estado.publico||'cliente',papel:estado.papel||'ambos',blocos,criadoEm:agora,expiraEm:agora+15*864e5});
   }catch(e){
     const negado=/permission|PERMISSION/.test(String(e&&e.message||e));
     throw new Error(negado

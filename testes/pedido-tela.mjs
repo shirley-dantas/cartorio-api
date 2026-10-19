@@ -28,6 +28,16 @@ await passo('gerar link: o pedido sai com a lista marcada, o link entra na mensa
   assert(/Envie tudo por este link, pelo celular: https:\/\/painel\.exemplo\/enviar\.html\?t=TOKENFIXO/.test(await msg(pg)));
   assert(!/Pode enviar as fotos/.test(await msg(pg)), 'com link, não manda enviar "por aqui"');
 });
+await passo('pedir mais: arquivo ou informação, e para um lado só quando o link vai para os dois', async () => {
+  const pg = await abrir('tipo=Escritura%20de%20Compra%20e%20Venda&link=1');
+  await pg.click('summary:has-text("Mais opções")');
+  await pg.fill('#ped-extra', 'Número do IPTU'); await pg.selectOption('#ped-extra-tipo', 'info'); await pg.selectOption('#ped-extra-para', 'comprador'); await pg.click('[data-acao="extra"]');
+  await pg.fill('#ped-extra', 'Comprovante de residência'); await pg.click('[data-acao="extra"]');
+  assert(/Comprador: Informe: Número do IPTU/.test(await msg(pg)) && /• Comprovante de residência/.test(await msg(pg)), await msg(pg));
+  await pg.click('[data-acao="papel:vendedor"]');
+  assert(!/IPTU/.test(await msg(pg)), 'o que é do comprador não vai para o vendedor');
+  assert.equal(await pg.locator('#ped-extra-para').count(), 0, 'com um lado só, não há para quem');
+});
 await passo('mudar a lista depois do link avisa que está velha; atualizar mantém o MESMO código', async () => {
   const pg = await abrir('tipo=Escritura%20de%20Compra%20e%20Venda&link=1');
   await pg.click('[data-acao="link"]'); await pg.waitForSelector('[data-acao="copiar-link"]');

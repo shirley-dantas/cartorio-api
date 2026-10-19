@@ -66,8 +66,19 @@
     'compra-venda': [['vendedor', 'Vendedor'], ['comprador', 'Comprador'], ['ambos', 'Os dois']],
     'doacao': [['doador', 'Doador'], ['donatario', 'Donatário'], ['ambos', 'Os dois']],
     'dacao': [['devedor', 'Devedor'], ['credor', 'Credor'], ['ambos', 'Os dois']],
-    'procuracao': [['outorgante', 'Outorgante'], ['procurador', 'Procurador'], ['ambos', 'Os dois']]
+    'procuracao': [['outorgante', 'Outorgante'], ['procurador', 'Procurador'], ['ambos', 'Os dois']],
+    'divorcio': [['div1', 'Divorciando(a) 1'], ['div2', 'Divorciando(a) 2'], ['ambos', 'Os dois']],
+    'uniao': [['conv1', 'Convivente 1'], ['conv2', 'Convivente 2'], ['ambos', 'Os dois']],
+    'pacto': [['noivo1', 'Noivo(a) 1'], ['noivo2', 'Noivo(a) 2'], ['ambos', 'Os dois']]
   };
+  // Atos entre duas pessoas do mesmo tipo: quem recebe escolhe 1, 2 ou os dois.
+  // Devolve os nomes dos blocos de pessoa que o link deve trazer.
+  function dosPares(estado, modelo, nomes) {
+    var pp = papelDe(estado, modelo);
+    if (pp === 'ambos') return nomes;
+    var i = PAPEIS[modelo].map(function (x) { return x[0]; }).indexOf(pp);
+    return [nomes[i]];
+  }
   function papelDe(estado, modelo) {
     var lista = PAPEIS[modelo]; if (!lista) return 'ambos';
     var ok = lista.some(function (p) { return p[0] === estado.papel; });
@@ -159,6 +170,8 @@
         var pag = item('pagamento', pp === 'comprador' ? 'Pagamento: valor da transação, sinal (se houve), forma (TED ou PIX) e conta de onde sairá o pagamento'
           : pp === 'vendedor' ? 'Dados bancários para receber o pagamento'
           : 'Pagamento: valor da transação, sinal (se houve), forma (TED ou PIX) e dados bancários de comprador e vendedor');
+        // O vendedor, por padrão, só informa os dados pessoais e sobe os documentos: a conta dele é um pedido a mais.
+        pag.padrao = pp !== 'vendedor';
         pag.f = { k: 'pagamento', lado: pp };
         linhasCV.push(pag);
       }
@@ -182,7 +195,7 @@
       S.push(secao('bens', 'Bens', bens(estado, 'bem.'), { vazio: 'Marque acima o que será inventariado.' }));
     } else if (modelo === 'divorcio') {
       S.push(secao('lista', '', [
-        pessoa('divorciandos', 'Divorciandos', { conjuge: false, papeis: ['Divorciando(a) 1', 'Divorciando(a) 2'] }),
+        pessoa('divorciandos', rotuloDe(estado, modelo, papelDe(estado, modelo), 'Divorciandos'), { conjuge: false, papeis: dosPares(estado, modelo, ['Divorciando(a) 1', 'Divorciando(a) 2']) }),
         adv(item('advogado', 'Advogado(a): OAB, estado civil e endereço')),
         item('familia.filhos', 'Se tiverem filhos: RG, CPF, estado civil, endereço e profissão de cada um, e a pensão estipulada (valor)'),
         item('familia.nome', 'Algum dos dois voltará a usar o nome de solteiro(a)? Qual?')
@@ -190,12 +203,12 @@
       if (estado.partilha) S.push(secao('bens', 'Bens a partilhar', bens(estado, 'bem.'), { vazio: 'Marque acima o que será partilhado.' }));
     } else if (modelo === 'uniao') {
       S.push(secao('lista', '', [
-        pessoa('conviventes', 'Conviventes', { conjuge: false, papeis: ['Convivente 1', 'Convivente 2'] }),
+        pessoa('conviventes', rotuloDe(estado, modelo, papelDe(estado, modelo), 'Conviventes'), { conjuge: false, papeis: dosPares(estado, modelo, ['Convivente 1', 'Convivente 2']) }),
         item('convivente.dados', 'Data de início da união, primeiro endereço do casal e regime de bens')
       ]));
     } else if (modelo === 'pacto') {
       S.push(secao('lista', '', [
-        pessoa('noivos', 'Futuros cônjuges', { conjuge: false, papeis: ['Noivo(a) 1', 'Noivo(a) 2'] }),
+        pessoa('noivos', rotuloDe(estado, modelo, papelDe(estado, modelo), 'Futuros cônjuges'), { conjuge: false, papeis: dosPares(estado, modelo, ['Noivo(a) 1', 'Noivo(a) 2']) }),
         item('noivo.dados', 'Primeiro endereço do casal, regime de bens e se mudarão de nome (qual)')
       ]));
     } else if (modelo === 'procuracao') {
@@ -221,7 +234,23 @@
     if (estado.pacto && modelo !== 'pacto') {
       opc.push(item('opc.pacto', 'Escritura do pacto antenupcial e certidão do seu registro no Registro de Imóveis do primeiro domicílio do casal'));
     }
-    var extras = (estado.extras || []).map(function (t, i) { return item('extra.' + i, t); });
+    // Pedidos a mais, só deste caso: um documento (a pessoa sobe o arquivo) ou uma informação (ela escreve).
+    // "para" diz de quem é, quando o link vai para os dois lados.
+    var papelAtual = papelDe(estado, modelo);
+    var extras = [];
+    (estado.extras || []).forEach(function (x, i) {
+      var e = typeof x === 'string' ? { texto: x } : x;
+      if (!e || !e.texto) return;
+      var para = e.para || 'todos';
+      if (para !== 'todos' && papelAtual !== 'ambos' && papelAtual !== para) return; // é do outro lado
+      var quem = para !== 'todos' && papelAtual === 'ambos' && PAPEIS[modelo] ? PAPEIS[modelo].filter(function (q) { return q[0] === para; }).map(function (q) { return q[1]; })[0] : '';
+      var info = e.tipo === 'info';
+      var it = item('extra.' + i, (quem ? quem + ': ' : '') + (info ? 'Informe: ' : '') + e.texto);
+      it.f = info
+        ? { k: 'campos', titulo: e.texto, campos: [{ id: 'v', rotulo: (quem ? quem + ': ' : '') + e.texto, tipo: 'texto' }] }
+        : { k: 'doc', rotulo: (quem ? quem + ': ' : '') + e.texto, opcional: false };
+      extras.push(it);
+    });
     if (opc.length || extras.length) S.push(secao('mais', 'Além disso', opc.concat(extras)));
     return S;
   }
@@ -320,22 +349,13 @@
     return blocos;
   }
 
-  // O que a página do cliente diz no topo: para qual ato é, e em que papel a pessoa recebe.
-  function cabecalho(estado) {
-    var modelo = modeloDoTipo(estado.tipo), pub = estado.publico || 'cliente';
-    var papel = papelDe(estado, modelo), quem = '';
-    if (pub === 'construtora') quem = 'Comprador(a)';
-    else if (PAPEIS[modelo] && papel !== 'ambos') quem = PAPEIS[modelo].filter(function (p) { return p[0] === papel; })[0][1] + '(a)';
-    return { ato: estado.tipo || '', atoFrase: estado.tipo ? doDa(estado.tipo) : '', quem: quem };
-  }
-
   function assunto(estado) {
     return 'Documentos para ' + (estado.tipo || NOMES_DOS_MODELOS[modeloDoTipo(estado.tipo)]);
   }
 
   var PEDIDO = {
     PUBLICOS: PUBLICOS, BENS: BENS, CLAUSULAS: CLAUSULAS, REGIMES_COM_PACTO: REGIMES_COM_PACTO,
-    modeloDoTipo: modeloDoTipo, montar: montar, comporTexto: comporTexto, formulario: formulario, cabecalho: cabecalho, doDa: doDa, assunto: assunto, ehMarcado: ehMarcado,
+    modeloDoTipo: modeloDoTipo, montar: montar, comporTexto: comporTexto, formulario: formulario, doDa: doDa, assunto: assunto, ehMarcado: ehMarcado,
     NOMES_DOS_MODELOS: NOMES_DOS_MODELOS, MODELO_DO_TIPO: MODELO_DO_TIPO, PAPEIS: PAPEIS, papelDe: papelDe
   };
 
@@ -440,7 +460,11 @@
         '<details class="ped-mais"' + ((est.pacto || est.uniaoEstavel || est.extras.length) ? ' open' : '') + '><summary>Mais opções</summary>' +
         (modelo !== 'pacto' ? check('Casal com pacto antenupcial (regime: ' + REGIMES_COM_PACTO + ')', est.pacto, 'pacto') : '') +
         check('Escritura pública de união estável (RCPN, Livro E)', est.uniaoEstavel, 'uniao') +
-        '<div class="ped-linha-add" style="margin-top:8px"><input type="text" id="ped-extra" placeholder="Acrescentar um item só para este pedido"><button class="ped-btn" data-acao="extra">Acrescentar</button></div></details>';
+        '<div class="ped-sub" style="margin-top:10px">Pedir mais alguma coisa</div>' +
+        '<div class="ped-linha-add"><input type="text" id="ped-extra" placeholder="Ex.: comprovante de residência, número do IPTU"></div>' +
+        '<div class="ped-chips" style="margin-top:8px"><select id="ped-extra-tipo"><option value="arquivo">Pessoa sobe um arquivo</option><option value="info">Pessoa só escreve a informação</option></select>' +
+        (papeis && papelDe(est, modelo) === 'ambos' ? '<select id="ped-extra-para"><option value="todos">Para todos</option>' + papeis.filter(function (p) { return p[0] !== 'ambos'; }).map(function (p) { return '<option value="' + p[0] + '">Só ' + esc(p[1]) + '</option>'; }).join('') + '</select>' : '') +
+        '<button class="ped-btn" data-acao="extra">Acrescentar</button></div></details>';
 
       alvo.innerHTML = '<div class="ped"><div class="ped-layout"><div class="ped-esq">' +
         '<div class="ped-bloco"><div class="ped-chips">' +
@@ -512,7 +536,8 @@
       else if (p[0] === 'modo') { est.clausulasModo = p[1]; desenhar(); }
       else if (a === 'extra') {
         var c = alvo.querySelector('#ped-extra'); var t = (c.value || '').trim();
-        if (t) { est.extras.push(t); desenhar(); }
+        var tp = alvo.querySelector('#ped-extra-tipo'), pa = alvo.querySelector('#ped-extra-para');
+        if (t) { est.extras.push({ texto: t, tipo: tp ? tp.value : 'arquivo', para: pa ? pa.value : 'todos' }); est.msgEditada = false; desenhar(); }
       } else if (a === 'refazer') { est.msgEditada = false; desenhar(); }
       else if (a === 'copiar-link') copiar(est.link).then(function () { aviso('Link copiado.'); }, function () { aviso('Não consegui copiar — selecione o link e copie.'); });
       else if (a === 'link') gerarLink();

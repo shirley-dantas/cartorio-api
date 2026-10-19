@@ -140,11 +140,6 @@ async function carregar(){
   if(!pedido||!Array.isArray(pedido.blocos)) return invalido();
   if(pedido.expiraEm&&Date.now()>pedido.expiraEm) return invalido('Este link venceu. Peça um novo ao cartório.');
   if(pedido.ato){ const a=$('#ato'); a.textContent=pedido.ato; a.hidden=false; }
-  if(pedido.atoFrase){
-    const quem=pedido.quem?`os seus dados como ${pedido.quem.toLowerCase()}`:'os seus dados';
-    $('#intro').textContent=`Para a elaboração ${pedido.atoFrase}, preencha ${quem} e envie os documentos. Não precisa de cadastro nem senha.`;
-    document.title=`Envio de documentos — ${pedido.ato}`;
-  }
   pedido.blocos.forEach(b=>{
     if(b.k==='pessoa') E.pessoas[b.id]=(b.papeis||['Parte']).map(p=>novaPessoa(p));
     if(b.k==='filhos') E.filhos=[];
