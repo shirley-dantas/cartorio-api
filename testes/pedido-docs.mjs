@@ -6,20 +6,28 @@ const P = createRequire(import.meta.url)('../pedido-docs.js');
 let erros = 0;
 const passo = (n, f) => { try { f(); console.log('  ok  ' + n); } catch (e) { erros++; console.log('FALHA ' + n + ' → ' + e.message); } };
 const txt = (e) => P.comporTexto({publico: 'cliente', ...e});
-const itens = (e) => P.montar({publico: 'cliente', ...e}).flatMap(s => s.itens.map(i => i.texto));
+const linhas = (e) => txt(e).split('\n').filter(l => l.startsWith('• '));
+const TODOS = Object.keys(P.MODELO_DO_TIPO);
 
+passo('os dados pessoais vão numa linha só, nunca em seis', () => {
+  const l = linhas({tipo: 'Escritura de Compra e Venda'});
+  assert(l.some(x => /RG, CPF, certidão de estado civil, endereço e profissão/.test(x)));
+  assert(!l.some(x => x === '• Profissão' || x === '• Estado civil' || x === '• RG e CPF'));
+});
+passo('o pedido é curto: no máximo 6 linhas na compra e venda e na doação', () => {
+  assert(linhas({tipo: 'Escritura de Compra e Venda'}).length <= 6);
+  assert(linhas({tipo: 'Doação'}).length <= 6);
+});
 passo('nunca pede certidão "atualizada" nem prazo de 90 dias', () => {
-  for (const tipo of Object.keys(P.MODELO_DO_TIPO)) for (const publico of Object.keys(P.PUBLICOS))
+  for (const tipo of TODOS) for (const publico of Object.keys(P.PUBLICOS))
     assert(!/atualizad|90 dias/i.test(txt({tipo, publico, bens: {urbano: true}, partilha: true, pacto: true, uniaoEstavel: true})), tipo + '/' + publico);
 });
 passo('casado: pede os dados do cônjuge e diz que a certidão é uma só', () => {
   const t = txt({tipo: 'Escritura de Compra e Venda'});
   assert(/mesmos dados do cônjuge/.test(t) && /uma só, do casal/.test(t));
 });
-passo('divorciandos: uma certidão de casamento só, e sem pedir "cônjuge" de novo', () => {
-  const v = itens({tipo: 'Divórcio'});
-  assert.equal(v.filter(t => /certidão de casamento/i.test(t)).length, 1);
-  assert(!v.some(t => /mesmos dados do cônjuge/.test(t)));
+passo('divorciandos: o cônjuge não é pedido de novo (são um o cônjuge do outro)', () => {
+  assert(!/mesmos dados do cônjuge/.test(txt({tipo: 'Divórcio'})));
 });
 passo('inventário: só pede os documentos dos bens marcados', () => {
   assert(!txt({tipo: 'Inventário'}).includes('Matrícula'));
@@ -28,39 +36,43 @@ passo('inventário: só pede os documentos dos bens marcados', () => {
   const rural = txt({tipo: 'Inventário', bens: {rural: true}});
   assert(rural.includes('ITR') && rural.includes('CCIR'));
 });
+passo('inventário: o advogado só entra no pedido para o advogado', () => {
+  assert(!txt({tipo: 'Inventário', publico: 'cliente'}).includes('OAB'));
+  assert(txt({tipo: 'Inventário', publico: 'advogado'}).includes('carteira da OAB'));
+});
 passo('pacto marcado em outro ato: pede o pacto E o registro no RI do primeiro domicílio', () => {
   const t = txt({tipo: 'Escritura de Compra e Venda', pacto: true});
   assert(/pacto antenupcial/.test(t) && /Registro de Imóveis do primeiro domicílio/.test(t));
 });
-passo('na escritura DE pacto não se pede o registro, só certidões do casal', () => {
+passo('na escritura DE pacto não se pede o registro, só os dados e as certidões do casal', () => {
   const t = txt({tipo: 'Pacto Antenupcial', pacto: true});
-  assert(!/Registro de Imóveis/.test(t) && /Certidão de nascimento/.test(t));
+  assert(!/Registro de Imóveis/.test(t) && /certidão de estado civil/.test(t));
 });
 passo('união estável é documento marcável, não estado civil', () => {
-  assert(!txt({tipo: 'Escritura de Compra e Venda'}).includes('Livro E'));
+  assert(!/união estável/i.test(txt({tipo: 'Escritura de Compra e Venda'})), 'sem marcar, não aparece');
   assert(txt({tipo: 'Escritura de Compra e Venda', uniaoEstavel: true}).includes('Livro E'));
-  assert(!/união estável/i.test(txt({tipo: 'Escritura de Compra e Venda'})), 'sem marcar, a união estável não aparece em lugar nenhum');
 });
-passo('compra e venda: valor só do comprador; banco das duas partes; corretor só dados e matrícula', () => {
-  const por = (p) => P.montar({publico: 'cliente', tipo: 'Escritura de Compra e Venda'}).find(s => s.id === p).itens.map(i => i.texto).join('|');
-  assert(!/Valor da transação/.test(por('vendedor')) && /Valor da transação/.test(por('comprador')));
-  assert(/bancários/.test(por('vendedor')) && /bancários/.test(por('comprador')));
+passo('compra e venda: valor só do comprador, banco das duas partes; corretor só dados e matrícula', () => {
+  const t = txt({tipo: 'Escritura de Compra e Venda'});
+  assert(/Valor da transação \(comprador\)/.test(t) && /bancários do vendedor e do comprador/.test(t));
   const c = txt({tipo: 'Escritura de Compra e Venda', publico: 'corretor'});
   assert(/Matrícula/.test(c) && !/bancários|Valor da transação/.test(c));
   assert(!c.includes('Contrato, se houver'), 'o contrato nasce desmarcado');
+  assert(P.comporTexto({publico: 'corretor', tipo: 'Escritura de Compra e Venda', marc: {'imovel.contrato': true}}).includes('Contrato, se houver'));
+});
+passo('construtora: só os dados de quem comprou — nada da construtora, do vendedor nem da matrícula', () => {
+  const l = linhas({tipo: 'Escritura de Compra e Venda', publico: 'construtora'});
+  assert.equal(l.length, 1);
+  assert(/Seus dados/.test(l[0]) && !/vendedor|construtora|Matrícula|bancários/i.test(l[0]));
 });
 passo('doação: cláusulas ou marcadas por ela, ou escolhidas pela pessoa', () => {
-  assert(!txt({tipo: 'Doação'}).includes('Cláusulas'));
-  const m = txt({tipo: 'Doação', marc: {'clausula.usufruto': true, 'clausula.reversao': true}});
-  assert(/Cláusulas previstas: reserva de usufruto, cláusula de reversão/.test(m));
+  assert(!txt({tipo: 'Doação'}).includes('láusulas'));
+  assert(/Cláusulas previstas: reserva de usufruto, cláusula de reversão/.test(txt({tipo: 'Doação', marc: {'clausula.usufruto': true, 'clausula.reversao': true}})));
   assert(/Informe se deseja alguma destas cláusulas/.test(txt({tipo: 'Doação', clausulasModo: 'cliente'})));
 });
-passo('testamento: a certidão de inexistência de testamento nasce desmarcada', () => {
+passo('testamento: a certidão de inexistência nasce desmarcada', () => {
   assert(!txt({tipo: 'Inventário'}).includes('inexistência de testamento'));
-});
-passo('construtora: só os dados de quem comprou', () => {
-  const t = txt({tipo: 'Escritura de Compra e Venda', publico: 'construtora'});
-  assert(/DADOS DE QUEM COMPROU/.test(t) && !/Matrícula|bancários/.test(t));
+  assert(txt({tipo: 'Inventário', marc: {'falecido.testamento': true}}).includes('inexistência de testamento'));
 });
 passo('divórcio sem partilha não traz bens; com partilha traz', () => {
   assert(!txt({tipo: 'Divórcio', bens: {urbano: true}}).includes('Matrícula'));
@@ -71,15 +83,17 @@ passo('o link entra quando existe; sem ele, pede por aqui mesmo', () => {
   assert(txt({tipo: 'Doação', link: 'https://x.y/z'}).includes('https://x.y/z'));
 });
 passo('item desmarcado some do texto; item acrescentado entra', () => {
-  const conta = (t) => t.split('• Profissão').length - 1;
-  assert.equal(conta(txt({tipo: 'Escritura de Compra e Venda'})), 2, 'vendedor e comprador pedem profissão');
-  assert.equal(conta(txt({tipo: 'Escritura de Compra e Venda', marc: {'vendedor.prof': false}})), 1, 'desmarcar tira só a do vendedor');
+  const antes = linhas({tipo: 'Escritura de Compra e Venda'}).length;
+  assert.equal(linhas({tipo: 'Escritura de Compra e Venda', marc: {'imovel.mat': false}}).length, antes - 1);
   assert(txt({tipo: 'Escritura de Compra e Venda', extras: ['Declaração de quitação do condomínio']}).includes('• Declaração de quitação do condomínio'));
 });
 passo('a abertura usa o artigo certo', () => {
   assert(txt({tipo: 'Doação'}).includes('elaboração da Doação'));
   assert(txt({tipo: 'Inventário'}).includes('elaboração do Inventário'));
   assert(txt({tipo: 'Pacto Antenupcial'}).includes('elaboração do Pacto Antenupcial'));
+});
+passo('todo ato de todo público monta sem erro e com ao menos uma linha', () => {
+  for (const tipo of TODOS) for (const publico of Object.keys(P.PUBLICOS)) assert(linhas({tipo, publico}).length >= 1, tipo + '/' + publico);
 });
 console.log(erros ? '\n' + erros + ' falha(s)' : '\ntudo certo');
 process.exit(erros ? 1 : 0);
