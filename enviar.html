@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Envio de documentos — 20º Tabelião de Notas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Jost:wght@200;400&display=swap">
+<style>
+:root{
+  --fundo:#F2EFE9; --sup:#FFFFFF; --sup-2:#FAF8F4; --linha:#E6E0D5; --linha-forte:#D8D0C1;
+  --tinta:#1F2A33; --tinta-2:#5B6B78; --champagne:#A9895A; --ok:#2F7A4F; --critico:#B3261E; --info:#2A6099;
+}
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--fundo);color:var(--tinta);
+  font-size:16px;line-height:1.45;padding:0 16px calc(120px + env(safe-area-inset-bottom))}
+.miolo{max-width:520px;margin:0 auto}
+header{text-align:center;padding:28px 0 18px}
+.eyebrow{font-family:'Jost',sans-serif;font-size:12px;letter-spacing:.34em;text-indent:.34em;text-transform:uppercase;color:var(--tinta-2)}
+h1{font-family:'Jost',sans-serif;font-weight:200;font-size:34px;line-height:1.1;margin:10px 0 8px}
+.sub{color:var(--tinta-2);font-size:15px}
+.nome{display:inline-block;margin-top:12px;padding:6px 14px;border:1px solid var(--linha-forte);border-radius:99px;background:var(--sup);font-size:14px}
+
+.bloco{background:var(--sup);border:1px solid var(--linha);border-radius:16px;padding:16px;margin-top:12px}
+.bloco h2{font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px}
+.bloco .dica{color:var(--tinta-2);font-size:14px;margin:4px 0 12px}
+.num{flex:none;width:26px;height:26px;border-radius:50%;background:var(--tinta);color:#fff;font-size:13px;font-weight:600;display:grid;place-items:center}
+.bloco.tem .num{background:var(--ok)}
+.acoes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 12px;border-radius:12px;
+  border:1px solid var(--linha-forte);background:var(--sup-2);color:var(--tinta);font:500 15px 'Inter',sans-serif;cursor:pointer}
+.btn:active{background:var(--linha)}
+.btn input{display:none}
+.lista{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px}
+.arq{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid var(--linha);border-radius:12px;background:var(--sup-2)}
+.mini{flex:none;width:52px;height:52px;border-radius:8px;background:var(--linha) center/cover;display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--tinta-2)}
+.info{flex:1;min-width:0}
+.info b{display:block;font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info small{color:var(--tinta-2);font-size:13px}
+.info small.ok{color:var(--ok)} .info small.erro{color:var(--critico)}
+.tirar{flex:none;width:44px;height:44px;border:0;background:none;color:var(--tinta-2);font-size:22px;cursor:pointer}
+.barra{height:4px;background:var(--linha);border-radius:4px;margin-top:6px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--champagne);width:0}
+
+.lgpd{margin-top:16px;padding:14px;font-size:13px;color:var(--tinta-2);text-align:center}
+.rodape{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:rgba(242,239,233,.94);backdrop-filter:blur(8px);border-top:1px solid var(--linha)}
+.rodape .miolo{display:grid;gap:6px}
+.enviar{width:100%;min-height:54px;border:0;border-radius:14px;background:var(--tinta);color:#fff;font:600 17px 'Inter',sans-serif;cursor:pointer}
+.enviar:disabled{background:var(--linha-forte);color:var(--tinta-2);cursor:default}
+.resumo{text-align:center;font-size:13px;color:var(--tinta-2)}
+.pronto{display:none;text-align:center;padding:48px 8px}
+.pronto .visto{width:72px;height:72px;margin:0 auto 16px;border-radius:50%;background:var(--ok);color:#fff;font-size:38px;display:grid;place-items:center}
+.pronto h2{font-family:'Jost',sans-serif;font-weight:200;font-size:30px;margin-bottom:8px}
+body.concluido .pronto{display:block}
+body.concluido .formulario,body.concluido .rodape{display:none}
+</style>
+</head>
+<body>
+<div class="miolo">
+  <header>
+    <div class="eyebrow">20º Tabelião de Notas</div>
+    <h1>Envio de documentos</h1>
+    <p class="sub">Tire uma foto ou escolha o arquivo. Não precisa de cadastro nem senha.</p>
+    <span class="nome" id="quem" hidden></span>
+  </header>
+
+  <div class="formulario" id="formulario"></div>
+
+  <p class="lgpd">🔒 Seus documentos serão usados exclusivamente para a elaboração do ato notarial e tratados conforme a LGPD.</p>
+
+  <div class="pronto" id="pronto">
+    <div class="visto">✓</div>
+    <h2>Documentos recebidos</h2>
+    <p class="sub">Obrigado! O cartório já recebeu tudo e vai entrar em contato se faltar alguma coisa.</p>
+  </div>
+</div>
+
+<div class="rodape">
+  <div class="miolo">
+    <div class="resumo" id="resumo">Nenhum documento escolhido ainda</div>
+    <button class="enviar" id="enviar" disabled>Enviar documentos</button>
+  </div>
+</div>
+
+<script>
+const TIPOS=[
+  {id:'RG_CNH',titulo:'RG ou CNH',dica:'Frente e verso. Pode ser foto ou PDF.'},
+  {id:'CERTIDAO',titulo:'Certidão',dica:'Nascimento, casamento ou óbito.'},
+  {id:'COMPROVANTE_RESIDENCIA',titulo:'Comprovante de residência',dica:'Conta de luz, água ou telefone recente.'},
+  {id:'OUTROS',titulo:'Outros documentos',dica:'Qualquer outro papel que o cartório tenha pedido.'}
+];
+const MAX_LADO=1800, QUALIDADE=.82;
+const escolhidos={}; // tipo -> [{id,file,blob,estado}]
+let seq=0;
+
+const $=s=>document.querySelector(s);
+const kb=n=>n>1048576?(n/1048576).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(n/1024))+' KB';
+
+function montar(){
+  $('#formulario').innerHTML=TIPOS.map((t,i)=>`
+    <section class="bloco" id="b-${t.id}">
+      <h2><span class="num">${i+1}</span>${t.titulo}</h2>
+      <p class="dica">${t.dica}</p>
+      <div class="acoes">
+        <label class="btn">📷 Tirar foto<input type="file" accept="image/*" capture="environment" data-t="${t.id}"></label>
+        <label class="btn">📁 Escolher<input type="file" accept="image/*,application/pdf" multiple data-t="${t.id}"></label>
+      </div>
+      <ul class="lista" id="l-${t.id}"></ul>
+    </section>`).join('');
+  document.querySelectorAll('input[type=file]').forEach(el=>el.addEventListener('change',e=>{
+    adicionar(el.dataset.t,[...el.files]); el.value='';
+  }));
+}
+
+// Foto de celular tem 3–8 MB; reduzida cai para ~300 KB–1 MB e continua legível.
+function reduzir(file){
+  if(!file.type.startsWith('image/')||file.type==='image/gif') return Promise.resolve(file);
+  return new Promise(res=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const k=Math.min(1,MAX_LADO/Math.max(img.width,img.height));
+      const c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=>res(b&&b.size<file.size?new File([b],file.name.replace(/\.\w+$/,'')+'.jpg',{type:'image/jpeg'}):file),'image/jpeg',QUALIDADE);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);res(file)}; // ex.: HEIC que o navegador não abre: segue como está
+    img.src=url;
+  });
+}
+
+async function adicionar(tipo,files){
+  for(const f of files){
+    const item={id:++seq,tipo,original:f,file:f,estado:'lendo'};
+    (escolhidos[tipo]=escolhidos[tipo]||[]).push(item);
+    desenhar(tipo);
+    item.file=await reduzir(f); item.estado='pronto';
+    desenhar(tipo);
+  }
+}
+function tirar(tipo,id){ escolhidos[tipo]=escolhidos[tipo].filter(x=>x.id!==id); desenhar(tipo); }
+
+function desenhar(tipo){
+  const lista=escolhidos[tipo]||[];
+  $('#b-'+tipo).classList.toggle('tem',lista.length>0);
+  $('#l-'+tipo).innerHTML=lista.map(x=>{
+    const img=x.file.type.startsWith('image/');
+    const mini=img?`<div class="mini" style="background-image:url('${x.url=x.url||URL.createObjectURL(x.file)}')"></div>`:`<div class="mini">PDF</div>`;
+    const sit=x.estado==='lendo'?'Preparando…':x.estado==='enviado'?'<small class="ok">✓ Enviado</small>':x.estado==='erro'?`<small class="erro">${x.erro||'Não enviou'}</small>`:`<small>${kb(x.file.size)}</small>`;
+    return `<li class="arq">${mini}<div class="info"><b>${x.original.name}</b>${sit.startsWith('<')?sit:`<small>${sit}</small>`}<div class="barra"><i id="p-${x.id}" style="width:${x.estado==='enviado'?100:0}%"></i></div></div>
+      ${x.estado==='enviado'?'':`<button class="tirar" aria-label="Tirar" onclick="tirar('${tipo}',${x.id})">×</button>`}</li>`;
+  }).join('');
+  resumo();
+}
+function resumo(){
+  const todos=Object.values(escolhidos).flat();
+  const n=todos.length, pend=todos.filter(x=>x.estado!=='enviado'&&x.estado!=='lendo').length;
+  $('#resumo').textContent=n?`${n} ${n===1?'documento escolhido':'documentos escolhidos'}`:'Nenhum documento escolhido ainda';
+  $('#enviar').disabled=!pend;
+}
+montar();
+</script>
+</body>
+</html>
