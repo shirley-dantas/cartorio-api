@@ -83,6 +83,16 @@
 
     // ── Painel operacional (segue aberto — ver o aviso lá em cima) ──
     "casos":                 { ".read": true, ".write": true },
+
+    // ── Os links de envio de documentos (enviar.html) ──
+    // /pedidos/{código}: o painel grava o pedido (o que a pessoa deve enviar) e
+    // a página do cliente lê. O código é aleatório (24+ caracteres) e é a única
+    // chave: por isso NÃO há leitura em /pedidos inteiro — só do filho, por quem
+    // já tem o código. Quem recebe os arquivos é o Apps Script, que confere o
+    // código aqui antes de aceitar qualquer coisa.
+    "pedidos": {
+      "$codigo": { ".read": true, ".write": true }
+    },
     "focos":                 { ".read": true, ".write": true },
     "resolucoesCentral":     { ".read": true, ".write": true },
     "lembretes":             { ".read": true, ".write": true },

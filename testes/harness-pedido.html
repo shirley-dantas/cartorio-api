@@ -21,6 +21,11 @@ body{margin:0;font-family:'Inter',sans-serif;background:var(--cc-fundo);color:va
 const q=new URLSearchParams(location.search);
 const tipo=q.get('tipo')||'Escritura de Compra e Venda';
 document.getElementById('sub').textContent='Maria da Silva — '+tipo;
-window.__j=PEDIDO.abrirJanela(document.getElementById('alvo'),{casoNome:'Maria da Silva',tipo,tipos:Object.keys(PEDIDO.MODELO_DO_TIPO)});
+window.__links=[];
+const ctx={casoNome:'Maria da Silva',tipo,tipos:Object.keys(PEDIDO.MODELO_DO_TIPO)};
+if(q.get('link')) ctx.criarLink=(p)=>{ window.__links.push(JSON.parse(JSON.stringify({token:p.token,blocos:p.blocos})));
+  if(q.get('negar')) return Promise.reject(new Error('O banco recusou a gravação.'));
+  return Promise.resolve({token:p.token||'TOKENFIXO0123456789abcd',url:'https://painel.exemplo/enviar.html?t='+(p.token||'TOKENFIXO0123456789abcd')}); };
+window.__j=PEDIDO.abrirJanela(document.getElementById('alvo'),ctx);
 window.__pronto=true;
 </script></body></html>

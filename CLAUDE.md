@@ -909,9 +909,39 @@ Regras dela que **não devem ser mexidas sem perguntar**:
 - **Mandar para um lado só** (comprador, donatário…) tira do pedido o que é do
   outro: o valor da transação é só do comprador, a matrícula nasce desmarcada para ele.
 
-Ainda **não** existe a página de envio do cliente (dados + upload pelo celular,
-sem Tally nem plano pago: página estática falando com o Apps Script). O desenho
-dela está no histórico da branch `ccr-db4bd542-ih6tlq` (`enviar.html`).
+### O link de envio: o cliente sobe os documentos
+
+Na mesma janela, **Gerar link** grava um pedido em `/pedidos/{código}` (a lista
+já resolvida em formulário, `PEDIDO.formulario()`) e devolve `enviar.html?t=…`.
+O cliente abre no celular, sem login, preenche os dados (estado civil,
+profissão, endereço com CEP; do cônjuge se casado; banco, valor, filhos… conforme
+a lista que ela marcou) e sobe os documentos. A página fala direto com o Apps
+Script (`cliente-arquivo`, `cliente-dados`): cada arquivo vai para a **pasta do
+caso** com nome `Papel_Nome_Tipo_AAAA-MM-DD_n.ext`, é lido pela IA e vira
+documento do card (`origem: "link do cliente"`); os dados digitados viram o
+documento `DADOS_INFORMADOS_PELO_CLIENTE`. A minuta lê tudo isso sozinha — o
+`MINUTAR` não mudou. A faixa Documentos do card lista o que chegou.
+
+Regras que **não devem ser mexidas sem perguntar**:
+
+- **A certidão de estado civil vem do estado civil que o cliente escolhe:**
+  solteiro → nascimento; casado → casamento (mais os dados do cônjuge);
+  divorciado/separado → casamento com averbação; viúvo → casamento e óbito do
+  cônjuge. Regime que exige pacto (universal, separação convencional,
+  participação final) pede o pacto e o registro dele no RI.
+- **O caso é o do código do link**, nunca um id mandado pela página. Link vence
+  em 15 dias; só PDF e imagem, até 10 MB.
+- **Os dados só vão depois dos arquivos.** Arquivo que falha fica marcado em
+  vermelho e os dados digitados não são enviados como se estivesse tudo certo.
+- **O que o cliente digita é "ainda não conferido".** Quebras de linha e texto
+  longo são cortados antes de entrar na minuta, para um recado não forjar um
+  documento novo no meio do pedido da IA.
+- **Mudar a lista depois de gerar o link** avisa que o link está velho e pede
+  *Atualizar a lista* — o código continua o mesmo.
+
+Passos manuais (regras do banco com `/pedidos` e Apps Script novo): `FIREBASE.md`,
+seção 11. Testes: `testes/enviar-tela.mjs` (a página), `testes/cliente-envio.mjs`
+(o Apps Script com o Google fingido), `testes/pedido-tela.mjs` (o botão e o card).
 
 ## O Caderno da Rafaela (projeto à parte)
 
@@ -964,7 +994,8 @@ o `testes/montar.mjs` recorta.
 | A busca da alíquota | `api/aliquota-municipal.js` |
 | A isenção do ITBI (primeiro imóvel / PMCMV) | `orcConferirIsencoes()`, `orcTetoIsencaoItbi()`, `orcConfirmarIsencaoItbi()` |
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
-| Pedir documentos (lista por ato e público) | `pedido-docs.js` → `PEDIDO.montar()`, `comporTexto()`, `abrirJanela()` |
+| Pedir documentos (lista por ato e público) | `pedido-docs.js` → `PEDIDO.montar()`, `comporTexto()`, `formulario()`, `abrirJanela()` |
+| O link de envio e o que chegou no card | `criarLinkEnvio()`, `pedidoRecebidosHtml()` (index.html) · `enviar.html` · `clienteArquivo()`, `clienteDados()` (Apps Script) |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |
 | A mensagem sugerida | `redeMensagemSugerida()`, `redeAtoNaFrase()` |
@@ -991,7 +1022,8 @@ node testes/rede.mjs && node testes/rede-varredura.mjs
 node testes/radar.mjs && node testes/radar-triagem.mjs
 node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
 node testes/bussola.mjs
-node testes/pedido-docs.mjs
+node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
+node testes/enviar-tela.mjs && node testes/cliente-envio.mjs
 ```
 
 O `montar.mjs` também gera o `preview-quadro.html`, que é o desenho da seção

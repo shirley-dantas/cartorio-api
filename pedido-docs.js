@@ -109,12 +109,17 @@
   var BASICO = 'RG, CPF, certidão de estado civil, endereço e profissão';
   var CONJUGE = ' (se casado(a), também do cônjuge)';
   // quem: "Vendedor e comprador", "Herdeiros"… opcoes.conjuge: acrescenta a regra do cônjuge.
+  // opcoes.papeis: quem o formulário deve pedir (um bloco por papel).
   function pessoa(id, quem, opcoes) {
     var o = opcoes || {};
-    return item(id, (quem ? quem + ': ' : '') + BASICO + (o.conjuge === false ? '' : CONJUGE));
+    var i = item(id, (quem ? quem + ': ' : '') + BASICO + (o.conjuge === false ? '' : CONJUGE));
+    i.f = { k: 'pessoa', papeis: o.papeis || [quem], conjuge: o.conjuge !== false };
+    return i;
   }
-  function pessoaSimples(id, quem) { // o que ela pede do procurador e do requerente
-    return item(id, quem + ': RG, CPF, endereço e profissão');
+  function pessoaSimples(id, quem, papeis) { // o que ela pede do procurador e do requerente
+    var i = item(id, quem + ': RG, CPF, endereço e profissão');
+    i.f = { k: 'pessoa', papeis: papeis || [quem], simples: true };
+    return i;
   }
   function bens(estado, prefixo) {
     var v = [];
@@ -144,11 +149,11 @@
     // Quem entra pela construtora só informa os próprios dados: a construtora
     // e o vendedor ela já identifica pela matrícula.
     if (pub === 'construtora') {
-      S.push(secao('voce', '', [pessoa('voce', 'Seus dados')]));
+      S.push(secao('voce', '', [pessoa('voce', 'Seus dados', { papeis: ['Comprador(a)'] })]));
     } else if (modelo === 'compra-venda') {
       var pp = papelDe(estado, modelo), ambos = pp === 'ambos';
       var propriosDados = pp === 'comprador' ? 'comprador' : pp === 'vendedor' ? 'vendedor' : null;
-      var linhasCV = [pessoa('partes', rotuloDe(estado, modelo, pp, 'Vendedor e comprador'))];
+      var linhasCV = [pessoa('partes', rotuloDe(estado, modelo, pp, 'Vendedor e comprador'), { papeis: ambos ? ['Vendedor(a)', 'Comprador(a)'] : [pp === 'vendedor' ? 'Vendedor(a)' : 'Comprador(a)'] })];
       if (pub !== 'corretor') {
         linhasCV.push(item('partes.banco', ambos ? 'Dados bancários de ambos' : (pub === 'cliente' ? 'Seus dados bancários' : 'Dados bancários do ' + propriosDados)));
         if (pp !== 'vendedor') linhasCV.push(item('comprador.valor', ambos ? 'Valor da transação (comprador)' : 'Valor da transação'));
@@ -159,7 +164,7 @@
       S.push(secao('lista', '', linhasCV));
     } else if (modelo === 'doacao') {
       var pd = papelDe(estado, modelo);
-      var ld = [pessoa('partes', rotuloDe(estado, modelo, pd, 'Doador e donatário'))];
+      var ld = [pessoa('partes', rotuloDe(estado, modelo, pd, 'Doador e donatário'), { papeis: pd === 'ambos' ? ['Doador(a)', 'Donatário(a)'] : [pd === 'doador' ? 'Doador(a)' : 'Donatário(a)'] })];
       if (pd !== 'donatario') ld.push(item('imovel.mat', 'Matrícula do imóvel'));
       S.push(secao('lista', '', ld));
       if (pd !== 'donatario') S.push(secao('clausulas', 'Cláusulas', Object.keys(CLAUSULAS).map(function (k) { return item('clausula.' + k, CLAUSULAS[k], false); }), { tipo: 'clausulas' }));
@@ -167,13 +172,13 @@
       S.push(secao('lista', '', [
         item('falecido', 'Falecido(a) e cônjuge: RG, CPF, certidão de óbito e de casamento; pacto antenupcial, se houver'),
         item('falecido.testamento', 'Certidão de inexistência de testamento (você costuma buscar)', false),
-        pessoa('herdeiros', 'Herdeiros'),
+        pessoa('herdeiros', 'Herdeiros', { papeis: ['Herdeiro(a)'] }),
         adv(item('advogado', 'Advogado(a): OAB, estado civil e endereço'))
       ]));
       S.push(secao('bens', 'Bens', bens(estado, 'bem.'), { vazio: 'Marque acima o que será inventariado.' }));
     } else if (modelo === 'divorcio') {
       S.push(secao('lista', '', [
-        pessoa('divorciandos', 'Divorciandos', { conjuge: false }) ,
+        pessoa('divorciandos', 'Divorciandos', { conjuge: false, papeis: ['Divorciando(a) 1', 'Divorciando(a) 2'] }),
         adv(item('advogado', 'Advogado(a): OAB, estado civil e endereço')),
         item('familia.filhos', 'Se tiverem filhos: RG, CPF, estado civil, endereço e profissão de cada um, e a pensão estipulada (valor)'),
         item('familia.nome', 'Algum dos dois voltará a usar o nome de solteiro(a)? Qual?')
@@ -181,29 +186,29 @@
       if (estado.partilha) S.push(secao('bens', 'Bens a partilhar', bens(estado, 'bem.'), { vazio: 'Marque acima o que será partilhado.' }));
     } else if (modelo === 'uniao') {
       S.push(secao('lista', '', [
-        pessoa('conviventes', 'Conviventes', { conjuge: false }),
+        pessoa('conviventes', 'Conviventes', { conjuge: false, papeis: ['Convivente 1', 'Convivente 2'] }),
         item('convivente.dados', 'Data de início da união, primeiro endereço do casal e regime de bens')
       ]));
     } else if (modelo === 'pacto') {
       S.push(secao('lista', '', [
-        pessoa('noivos', 'Futuros cônjuges', { conjuge: false }),
+        pessoa('noivos', 'Futuros cônjuges', { conjuge: false, papeis: ['Noivo(a) 1', 'Noivo(a) 2'] }),
         item('noivo.dados', 'Primeiro endereço do casal, regime de bens e se mudarão de nome (qual)')
       ]));
     } else if (modelo === 'procuracao') {
       var pr = papelDe(estado, modelo), l = [];
-      if (pr !== 'procurador') l.push(pessoa('outorgante', rotuloDe(estado, modelo, pr, 'Outorgante')));
-      if (pr !== 'outorgante') l.push(pessoaSimples('procurador', pr === 'procurador' ? rotuloDe(estado, modelo, pr, '') : 'Procurador'));
+      if (pr !== 'procurador') l.push(pessoa('outorgante', rotuloDe(estado, modelo, pr, 'Outorgante'), { papeis: ['Outorgante'] }));
+      if (pr !== 'outorgante') l.push(pessoaSimples('procurador', pr === 'procurador' ? rotuloDe(estado, modelo, pr, '') : 'Procurador', ['Procurador(a)']));
       if (pr !== 'procurador' && estado.poderes && estado.poderes.imovel) l.push(item('poder.imovel', 'Matrícula do imóvel'));
       if (pr !== 'procurador' && estado.poderes && estado.poderes.veiculo) l.push(item('poder.veiculo', 'Documento do veículo'));
       S.push(secao('lista', '', l));
     } else if (modelo === 'ata') {
-      S.push(secao('lista', '', [pessoaSimples('requerente', 'Requerente'), item('material.arquivos', 'Material a registrar (fotos, prints, links)')]));
+      S.push(secao('lista', '', [pessoaSimples('requerente', 'Requerente', ['Requerente']), item('material.arquivos', 'Material a registrar (fotos, prints, links)')]));
     } else if (modelo === 'dacao') {
-      var pc = papelDe(estado, modelo), ldc = [pessoa('partes', rotuloDe(estado, modelo, pc, 'Devedor e credor'))];
+      var pc = papelDe(estado, modelo), ldc = [pessoa('partes', rotuloDe(estado, modelo, pc, 'Devedor e credor'), { papeis: pc === 'ambos' ? ['Devedor(a)', 'Credor(a)'] : [pc === 'credor' ? 'Credor(a)' : 'Devedor(a)'] })];
       if (pc !== 'credor') ldc.push(item('bem.mat', 'Matrícula do imóvel'), item('bem.divida', 'Contrato ou histórico da dívida e valor'));
       S.push(secao('lista', '', ldc));
     } else {
-      S.push(secao('lista', '', [pessoa('partes', 'Partes')]));
+      S.push(secao('lista', '', [pessoa('partes', 'Partes', { papeis: ['Parte'] })]));
     }
 
     // Opcionais que ela marca para o caso.
@@ -248,10 +253,61 @@
     });
     L = L.concat(linhas, ['']);
 
-    if (estado.link) L.push('Se preferir, envie tudo por este link: ' + estado.link, '');
+    if (estado.link) L.push('Envie tudo por este link, pelo celular: ' + estado.link, '');
     else L.push('Pode enviar as fotos ou os PDFs por aqui. Agradecemos!', '');
     L.push('20º Tabelião de Notas');
     return L.join('\n');
+  }
+
+  // ── O formulário que o cliente preenche ────────────────────────────────
+  // Sai da MESMA lista que ela marcou: o que ela desmarcou não vira campo. O
+  // resultado é gravado junto do pedido, então o link continua pedindo o que
+  // foi pedido mesmo que este catálogo mude depois.
+  var DOC = function (rotulo, opcional) { return { k: 'doc', rotulo: rotulo, opcional: !!opcional }; };
+  var CAMPO_ENDERECO = { id: 'endereco', rotulo: 'Primeiro endereço do casal', tipo: 'texto' };
+  var CAMPO_REGIME = { id: 'regime', rotulo: 'Regime de bens', tipo: 'regime' };
+  var FORMS = {
+    'partes.banco': { k: 'banco', titulo: 'Dados bancários' },
+    'comprador.valor': { k: 'campos', titulo: 'Valor', campos: [{ id: 'valor', rotulo: 'Valor da transação (R$)', tipo: 'moeda' }] },
+    'imovel.mat': DOC('Matrícula do imóvel'),
+    'imovel.contrato': DOC('Contrato', true),
+    'bem.mat': DOC('Matrícula do imóvel'),
+    'bem.divida': { k: 'docs', titulo: 'Dívida', docs: [{ id: 'contrato', rotulo: 'Contrato ou histórico da dívida' }], campos: [{ id: 'valor', rotulo: 'Valor da dívida (R$)', tipo: 'moeda' }] },
+    'falecido': { k: 'docs', titulo: 'Falecido(a)', campos: [{ id: 'nome', rotulo: 'Nome completo do falecido(a)', tipo: 'texto' }],
+      docs: [{ id: 'rg', rotulo: 'RG e CPF do falecido(a)' }, { id: 'obito', rotulo: 'Certidão de óbito' }, { id: 'casamento', rotulo: 'Certidão de casamento' },
+        { id: 'pacto', rotulo: 'Pacto antenupcial (se houver)', opcional: true }, { id: 'rgconj', rotulo: 'RG e CPF do cônjuge (se houver)', opcional: true }] },
+    'falecido.testamento': DOC('Certidão de inexistência de testamento'),
+    'advogado': { k: 'advogado', titulo: 'Advogado(a)' },
+    'familia.filhos': { k: 'filhos', titulo: 'Filhos' },
+    'familia.nome': { k: 'campos', titulo: 'Nome', campos: [{ id: 'nome', rotulo: 'Algum dos dois voltará a usar o nome de solteiro(a)? Qual?', tipo: 'texto', opcional: true }] },
+    'convivente.dados': { k: 'campos', titulo: 'Sobre a união', campos: [{ id: 'inicio', rotulo: 'Data de início da união', tipo: 'data' }, CAMPO_ENDERECO, CAMPO_REGIME] },
+    'noivo.dados': { k: 'campos', titulo: 'Sobre o casal', campos: [CAMPO_ENDERECO, CAMPO_REGIME, { id: 'nome', rotulo: 'Vão mudar de nome com o casamento? Qual o nome de cada um?', tipo: 'texto', opcional: true }] },
+    'opc.uniao': DOC('Escritura pública de união estável (RCPN, Livro E)'),
+    'opc.pacto': { k: 'docs', titulo: 'Pacto antenupcial', docs: [{ id: 'escritura', rotulo: 'Escritura do pacto antenupcial' }, { id: 'registro', rotulo: 'Certidão do registro do pacto no Registro de Imóveis' }] },
+    'material.arquivos': { k: 'docs', titulo: 'Material a registrar', docs: [{ id: 'material', rotulo: 'Fotos, prints ou arquivos' }], campos: [{ id: 'links', rotulo: 'Links, se houver', tipo: 'texto', opcional: true }] }
+  };
+
+  // Devolve os blocos do formulário, na ordem da lista.
+  function formulario(estado) {
+    var blocos = [];
+    montar(estado).forEach(function (sec) {
+      if (sec.tipo === 'clausulas') {
+        if (estado.clausulasModo === 'cliente') blocos.push({ k: 'clausulas', id: 'clausulas', titulo: 'Cláusulas', opcoes: sec.itens.map(function (i) { return i.texto; }) });
+        return;
+      }
+      sec.itens.forEach(function (it) {
+        if (!ehMarcado(estado, it)) return;
+        var b;
+        if (it.f) b = JSON.parse(JSON.stringify(it.f));
+        else if (FORMS[it.id]) b = JSON.parse(JSON.stringify(FORMS[it.id]));
+        else b = DOC(it.texto); // bens, poderes e itens avulsos: um documento com o nome do item
+        b.id = it.id;
+        if (b.k === 'pessoa') b.titulo = it.texto;
+        else if (b.k === 'doc' && !b.rotulo) b.rotulo = it.texto;
+        blocos.push(b);
+      });
+    });
+    return blocos;
   }
 
   function assunto(estado) {
@@ -260,7 +316,7 @@
 
   var PEDIDO = {
     PUBLICOS: PUBLICOS, BENS: BENS, CLAUSULAS: CLAUSULAS, REGIMES_COM_PACTO: REGIMES_COM_PACTO,
-    modeloDoTipo: modeloDoTipo, montar: montar, comporTexto: comporTexto, assunto: assunto, ehMarcado: ehMarcado,
+    modeloDoTipo: modeloDoTipo, montar: montar, comporTexto: comporTexto, formulario: formulario, assunto: assunto, ehMarcado: ehMarcado,
     NOMES_DOS_MODELOS: NOMES_DOS_MODELOS, MODELO_DO_TIPO: MODELO_DO_TIPO, PAPEIS: PAPEIS, papelDe: papelDe
   };
 
@@ -310,11 +366,24 @@
     var est = {
       tipo: ctx.tipo || '', publico: 'cliente', papel: 'ambos', bens: {}, poderes: {}, partilha: false,
       pacto: false, uniaoEstavel: false, clausulasModo: 'marcar', extras: [], marc: {},
-      msg: '', msgEditada: false, para: ctx.email || '', aviso: ''
+      msg: '', msgEditada: false, para: ctx.email || '', aviso: '', link: '', token: '', linkAssin: '', gerando: false, linkErro: ''
     };
     var tipos = ctx.tipos || Object.keys(MODELO_DO_TIPO);
 
     function refazTexto() { if (!est.msgEditada) est.msg = comporTexto(est); }
+
+    // O link do formulário: a pessoa sobe os documentos pelo celular e eles vão
+    // direto para a pasta do caso. Só aparece onde o painel sabe gerar o link.
+    function blocoLink() {
+      if (!ctx.criarLink) return '';
+      if (est.linkErro) return '<div class="ped-bloco" style="margin:10px 0 0;background:#fff;border-color:#E6B8B3"><div class="ped-tit" style="color:var(--cc-critico,#B3261E)">Não consegui gerar o link</div><div class="ped-nota" style="margin-top:0">' + esc(est.linkErro) + '</div><div class="ped-acoes"><button class="ped-btn" data-acao="link">Tentar de novo</button></div></div>';
+      if (est.link) {
+        var velho = est.linkAssin !== JSON.stringify(formulario(est));
+        return '<div class="ped-bloco" style="margin:10px 0 0;background:#fff' + (velho ? ';border-color:#E8D6AE' : '') + '"><div class="ped-tit">Link de envio<small>vale por 15 dias</small></div><input type="text" readonly value="' + esc(est.link) + '" onclick="this.select()"><div class="ped-acoes"><button class="ped-btn' + (velho ? '' : ' forte') + '" data-acao="copiar-link">Copiar link</button><button class="ped-btn' + (velho ? ' forte' : '') + '" data-acao="link">Atualizar a lista</button></div>' +
+          (velho ? '<div class="ped-nota" style="color:#8A5A0B"><b>A lista mudou depois que o link foi gerado.</b> Toque em Atualizar a lista, senão a pessoa vê a lista antiga. O link continua o mesmo.</div>' : '<div class="ped-nota">O link já está na mensagem.</div>') + '</div>';
+      }
+      return '<div class="ped-acoes"><button class="ped-btn forte" data-acao="link" style="width:100%"' + (est.gerando ? ' disabled' : '') + '>' + (est.gerando ? 'Gerando…' : 'Gerar link para a pessoa enviar os documentos') + '</button></div><div class="ped-nota">Ela preenche os dados e sobe os documentos pelo celular, e tudo cai na pasta do caso no Drive.</div>';
+    }
 
     function check(rotulo, ligado, acao) {
       return '<label class="ped-lin' + (ligado ? '' : ' off') + '"><input type="checkbox"' + (ligado ? ' checked' : '') + ' data-acao="' + acao + '"><span>' + esc(rotulo) + '</span></label>';
@@ -364,7 +433,7 @@
         '</div><div class="ped-dir"><div class="ped-bloco"><div class="ped-tit">A mensagem<small>pode editar antes de enviar</small></div>' +
         '<textarea id="ped-msg">' + esc(est.msg) + '</textarea>' +
         (est.msgEditada ? '<div class="ped-nota">Você editou o texto, então ele não muda mais sozinho. <button class="ped-btn" data-acao="refazer" style="min-height:32px;padding:4px 10px">Refazer pela lista</button></div>' : '') +
-        '<input type="email" id="ped-para" value="' + esc(est.para) + '" placeholder="E-mail da pessoa (opcional)" style="margin-top:10px">' +
+        '<input type="email" id="ped-para" value="' + esc(est.para) + '" placeholder="E-mail da pessoa (opcional)" style="margin-top:10px">' + blocoLink() +
         '<div class="ped-acoes"><button class="ped-btn forte" data-acao="copiar">Copiar texto</button><button class="ped-btn" data-acao="email">Abrir no e-mail</button><button class="ped-btn" data-acao="zap">WhatsApp</button></div>' +
         '<div class="ped-nota' + (est.aviso ? ' ped-ok' : '') + '" id="ped-aviso">' + esc(est.aviso || 'Nada sai daqui sem você enviar.') + '</div></div></div></div></div>';
       ajustaAltura();
@@ -377,6 +446,16 @@
     }
     // A fonte do painel carrega depois do primeiro desenho e muda a quebra de linha.
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { ajustaAltura(); });
+    // Grava o pedido (a lista marcada, já resolvida em formulário) e devolve o link.
+    // Falha de gravação aparece escrita: link que parece pronto e não funciona é o pior erro.
+    function gerarLink() {
+      est.gerando = true; est.linkErro = ''; desenhar();
+      Promise.resolve(ctx.criarLink({ estado: est, blocos: formulario(est), token: est.token || '' })).then(function (r) {
+        est.token = r.token; est.link = r.url; est.gerando = false; est.linkAssin = JSON.stringify(formulario(est));
+        if (est.msgEditada) { est.msg = est.msg.replace(/\n*20º Tabelião de Notas\s*$/, '') + '\n\nEnvie tudo por este link, pelo celular: ' + est.link + '\n\n20º Tabelião de Notas'; }
+        desenhar();
+      }, function (e) { est.gerando = false; est.linkErro = (e && e.message) || 'Erro desconhecido.'; desenhar(); });
+    }
     function copiar(texto) {
       if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(texto);
       return new Promise(function (ok, erro) {
@@ -414,6 +493,8 @@
         var c = alvo.querySelector('#ped-extra'); var t = (c.value || '').trim();
         if (t) { est.extras.push(t); desenhar(); }
       } else if (a === 'refazer') { est.msgEditada = false; desenhar(); }
+      else if (a === 'copiar-link') copiar(est.link).then(function () { aviso('Link copiado.'); }, function () { aviso('Não consegui copiar — selecione o link e copie.'); });
+      else if (a === 'link') gerarLink();
       else if (a === 'copiar') copiar(est.msg).then(function () { aviso('Texto copiado. É só colar.'); }, function () { aviso('Não consegui copiar — selecione o texto e copie.'); });
       else if (a === 'zap') window.open('https://wa.me/?text=' + encodeURIComponent(est.msg), '_blank', 'noopener');
       else if (a === 'email') {
