@@ -943,6 +943,28 @@ Regras que **não devem ser mexidas sem perguntar**:
 - **O que o cliente digita é "ainda não conferido".** Quebras de linha e texto
   longo são cortados antes de entrar na minuta, para um recado não forjar um
   documento novo no meio do pedido da IA.
+- **Dá para excluir o que o cliente mandou errado**, em cada item da lista recebida
+  (`excluirDocCliente()` → ação `cliente-excluir` do Apps Script): o arquivo vai para a
+  **lixeira do Drive** (volta em até 30 dias) e o registro sai do card, então a minuta
+  deixa de usá-lo. **O Drive só é tocado quando o selo confere** — um HMAC com segredo
+  que só existe no Apps Script (`CLIENTE_SEGREDO`), gravado em cada arquivo recebido —,
+  porque o banco é aberto e um registro forjado poderia apontar para outro arquivo
+  (a minuta, por exemplo). Sem selo (envio antigo ou forjado), o item sai do card e o
+  arquivo fica no Drive, e o painel avisa. Só se exclui o que veio pelo link.
+- **O link já nasce personalizado por quem recebe; a página não explica o ato.** Vendedor: dados
+  pessoais e documentos (a conta bancária dele virou pedido a mais, desmarcado). Comprador: isso mais
+  valor da transação e forma de pagamento. A escolha *quem vai receber* vale em todo ato de duas
+  pontas — vendedor/comprador, doador/donatário, devedor/credor, outorgante/procurador — e também
+  divórcio, união estável e pacto (parte 1, parte 2 ou os dois). **"Os dois" é o link do responsável**
+  (advogado, corretor, inventariante): tudo junto. A prévia do WhatsApp mostra o **endereço do link** —
+  para ele não dizer `cartorio-api`, basta preencher `ENVIO_BASE_URL` (`index.html`).
+- **"Pedir mais alguma coisa"** (Mais opções): ela escreve o item e escolhe se a pessoa **sobe um
+  arquivo** ou **só escreve a informação**, e, quando o link vai para os dois lados, se é para todos ou
+  para um só. Informação cai na ficha `DADOS_INFORMADOS_PELO_CLIENTE` com o rótulo escrito por ela.
+- **A certidão de estado civil aparece desde o início** (genérica até ela escolher o estado civil) e o
+  endereço se recolhe depois do CEP (rua/bairro/cidade/UF viram uma linha com *Editar*).
+- **"Tirar foto" no computador abre a webcam** (`abrirCamera()`); no celular continua o `capture` nativo.
+- A faixa Documentos também tem **Abrir pasta no Drive** (`pedidoPastaHtml()`).
 - **Mudar a lista depois de gerar o link** avisa que o link está velho e pede
   *Atualizar a lista* — o código continua o mesmo.
 

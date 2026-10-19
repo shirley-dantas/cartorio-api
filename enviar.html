@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>Envio de documentos — 20º Tabelião de Notas</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="20º Tabelião de Notas">
+<meta property="og:title" content="Envio de documentos para a sua escritura">
+<meta property="og:description" content="20º Tabelião de Notas · Preencha seus dados e envie os documentos pelo celular, de forma segura.">
+<meta name="description" content="Envio de documentos para a elaboração da sua escritura — 20º Tabelião de Notas">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Jost:wght@200;400&display=swap">
 <style>
@@ -83,7 +88,7 @@ body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.inva
   <header>
     <div class="eyebrow">20º Tabelião de Notas</div>
     <h1>Envio de documentos</h1>
-    <p class="sub">Preencha os dados e anexe os documentos. Não precisa de cadastro nem senha.</p>
+    <p class="sub" id="intro">Preencha os dados e anexe os documentos. Não precisa de cadastro nem senha.</p>
     <span class="ato" id="ato" hidden></span>
   </header>
 
@@ -114,6 +119,7 @@ const REGIMES=['Comunhão parcial de bens','Comunhão universal de bens','Separa
 const REGIMES_COM_PACTO=['Comunhão universal de bens','Separação convencional de bens','Participação final nos aquestos'];
 const UFS=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
+const CELULAR=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
 const $=s=>document.querySelector(s);
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const kb=n=>n>1048576?(n/1048576).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(n/1024))+' KB';
@@ -181,7 +187,7 @@ function linhasArq(chave){
 function desenharSlot(chave){ const l=document.querySelector(`[data-lista="${CSS.escape(chave)}"]`); if(l) l.innerHTML=linhasArq(chave); }
 function slot(chave,rotulo,opcional,dica){
   return `<div class="slot"><b>${esc(rotulo)}${opcional?' <small>(opcional)</small>':''}</b>${dica?`<div class="dica">${esc(dica)}</div>`:''}
-    <div class="acoes"><label class="btn">📷 Tirar foto<input type="file" accept="image/*" capture="environment" data-slot="${esc(chave)}"></label>
+    <div class="acoes">${CELULAR?`<label class="btn">📷 Tirar foto<input type="file" accept="image/*" capture="environment" data-slot="${esc(chave)}"></label>`:`<button type="button" class="btn" data-camera="${esc(chave)}">📷 Tirar foto</button>`}
     <label class="btn">📁 Escolher<input type="file" accept="image/*,application/pdf" multiple data-slot="${esc(chave)}"></label></div>
     <ul class="lista" data-lista="${esc(chave)}">${linhasArq(chave)}</ul></div>`;
 }
@@ -197,6 +203,7 @@ function certidoes(p,chave){
   else if(ec==='Divorciado(a)') h+=slot(chave+'.cert','Certidão de casamento, com a averbação do divórcio');
   else if(ec==='Viúvo(a)') h+=slot(chave+'.cert','Certidão de casamento')+slot(chave+'.obito','Certidão de óbito do cônjuge');
   else if(ec==='Separado(a)') h+=slot(chave+'.cert','Certidão de casamento, com a averbação da separação');
+  else h+=slot(chave+'.cert','Certidão de estado civil',false,'Nascimento (solteiro), casamento (casado, divorciado, separado ou viúvo). Escolha o estado civil acima e o nome certo aparece.');
   return h;
 }
 function htmlPessoa(b,i,n){
@@ -207,9 +214,13 @@ function htmlPessoa(b,i,n){
   if(!simples) h+=select('Estado civil',p.ec,ESTADOS_CIVIS,`${A} data-f="ec"`,true);
   h+=input('Profissão',p.prof,`${A} data-f="prof"`,true);
   h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div>`;
-  h+=input('Rua',p.rua,`${A} data-f="rua" id="rua-${k}" autocomplete="street-address"`,true);
-  h+=`<div class="duas">${input('Complemento',p.compl,`${A} data-f="compl"`)}${input('Bairro',p.bairro,`${A} data-f="bairro" id="bairro-${k}"`)}</div>`;
-  h+=`<div class="tres">${input('Cidade',p.cidade,`${A} data-f="cidade" id="cidade-${k}"`)}<div class="campo"><label>UF</label><select ${A} data-f="uf" id="uf-${k}"><option value=""></option>${UFS.map(u=>`<option${u===p.uf?' selected':''}>${u}</option>`).join('')}</select></div></div>`;
+  const fim=p.rua&&p.cidade&&!p.editEnd;
+  if(fim) h+=`<div class="campo"><label>Endereço</label><div class="dica" style="margin:0;color:var(--tinta)">${esc([p.rua,p.bairro,[p.cidade,p.uf].filter(Boolean).join('/')].filter(Boolean).join(' — '))} <button type="button" class="remover" data-editend="${b.id}|${i}" style="padding:4px 8px">Editar</button></div></div>`+input('Complemento',p.compl,`${A} data-f="compl"`);
+  else{
+    h+=input('Rua',p.rua,`${A} data-f="rua" id="rua-${k}" autocomplete="street-address"`,true);
+    h+=`<div class="duas">${input('Complemento',p.compl,`${A} data-f="compl"`)}${input('Bairro',p.bairro,`${A} data-f="bairro" id="bairro-${k}"`)}</div>`;
+    h+=`<div class="tres">${input('Cidade',p.cidade,`${A} data-f="cidade" id="cidade-${k}"`)}<div class="campo"><label>UF</label><select ${A} data-f="uf" id="uf-${k}"><option value=""></option>${UFS.map(u=>`<option${u===p.uf?' selected':''}>${u}</option>`).join('')}</select></div></div>`;
+  }
   h+=`<h3>Documentos</h3>`+slot(k+'.rg','RG ou CNH (frente e verso)',false,DICA_CPF);
   if(!simples){
     h+=certidoes(p,k);
@@ -303,6 +314,28 @@ function desenharTudo(){
   resumo();
 }
 
+// ── Câmera no computador ──────────────────────────────────────────────
+// No celular o próprio sistema abre a câmera (capture). No computador isso não existe: abre-se a webcam aqui.
+async function abrirCamera(chave){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ alert('Este navegador não deixa usar a câmera. Use "Escolher" para anexar uma foto ou PDF.'); return; }
+  let fluxo;
+  try{ fluxo=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}}); }
+  catch(e){ alert('Não consegui abrir a câmera. Libere o acesso à câmera no navegador ou use "Escolher" para anexar uma foto.'); return; }
+  const m=document.createElement('div'); m.id='camera';
+  m.style.cssText='position:fixed;inset:0;z-index:50;background:rgba(20,26,31,.92);display:grid;place-items:center;padding:16px';
+  m.innerHTML='<div style="background:#fff;border-radius:16px;padding:12px;max-width:680px;width:100%"><video autoplay playsinline muted style="width:100%;border-radius:10px;background:#000;max-height:60vh"></video><div class="acoes" style="margin-top:10px"><button type="button" class="btn" data-cam="cancelar">Cancelar</button><button type="button" class="btn" data-cam="foto" style="background:var(--tinta);color:#fff">📷 Tirar a foto</button></div></div>';
+  document.body.appendChild(m);
+  const v=m.querySelector('video'); v.srcObject=fluxo;
+  const fechar=()=>{ fluxo.getTracks().forEach(t=>t.stop()); m.remove(); };
+  m.addEventListener('click',ev=>{
+    const a=ev.target.closest('[data-cam]'); if(!a) return;
+    if(a.dataset.cam==='cancelar') return fechar();
+    if(!v.videoWidth) return;
+    const c=document.createElement('canvas'); c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+    c.toBlob(b=>{ fechar(); if(b) adicionar(chave,[new File([b],'foto_'+Date.now()+'.jpg',{type:'image/jpeg'})]); },'image/jpeg',.9);
+  });
+}
+
 // ── Eventos ───────────────────────────────────────────────────────────
 const raiz=$('#formulario');
 raiz.addEventListener('input',e=>{
@@ -336,9 +369,11 @@ raiz.addEventListener('change',e=>{
 });
 raiz.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
-  if(b.dataset.tirar){ const [c,id]=b.dataset.tirar.split('|'); tirar(c,+id); }
+  if(b.dataset.camera){ abrirCamera(b.dataset.camera); }
+  else if(b.dataset.tirar){ const [c,id]=b.dataset.tirar.split('|'); tirar(c,+id); }
   else if(b.dataset.mais){ const bl=pedido.blocos.find(x=>x.id===b.dataset.mais); E.pessoas[bl.id].push(novaPessoa((bl.papeis||['Parte'])[0])); desenharTudo(); }
   else if(b.dataset.remover){ const [id,i]=b.dataset.remover.split('|'); E.pessoas[id].splice(+i,1); desenharTudo(); }
+  else if(b.dataset.editend){ const [id,i]=b.dataset.editend.split('|'); E.pessoas[id][+i].editEnd=true; desenharTudo(); }
   else if(b.dataset.maisfilho){ E.filhos.push({}); desenharTudo(); }
   else if(b.dataset.rmfilho){ E.filhos.splice(+b.dataset.rmfilho,1); desenharTudo(); }
 });
@@ -350,6 +385,7 @@ async function cep(t,p){
     const k=`${t.dataset.b}.${t.dataset.i}`;
     const poe=(campo,id,val)=>{ if(val&&!p[campo]){ p[campo]=val; const el=document.getElementById(id+'-'+k); if(el) el.value=val; } };
     poe('rua','rua',j.logradouro); poe('bairro','bairro',j.bairro); poe('cidade','cidade',j.localidade); poe('uf','uf',j.uf);
+    if(p.rua&&p.cidade){ p.editEnd=false; desenharTudo(); const n=document.querySelector(`[data-b="${t.dataset.b}"][data-i="${t.dataset.i}"][data-f="num"]`); if(n) n.focus(); }
   }catch(_){ /* sem CEP automático: ela digita */ }
 }
 

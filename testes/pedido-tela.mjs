@@ -28,6 +28,16 @@ await passo('gerar link: o pedido sai com a lista marcada, o link entra na mensa
   assert(/Envie tudo por este link, pelo celular: https:\/\/painel\.exemplo\/enviar\.html\?t=TOKENFIXO/.test(await msg(pg)));
   assert(!/Pode enviar as fotos/.test(await msg(pg)), 'com link, não manda enviar "por aqui"');
 });
+await passo('pedir mais: arquivo ou informação, e para um lado só quando o link vai para os dois', async () => {
+  const pg = await abrir('tipo=Escritura%20de%20Compra%20e%20Venda&link=1');
+  await pg.click('summary:has-text("Mais opções")');
+  await pg.fill('#ped-extra', 'Número do IPTU'); await pg.selectOption('#ped-extra-tipo', 'info'); await pg.selectOption('#ped-extra-para', 'comprador'); await pg.click('[data-acao="extra"]');
+  await pg.fill('#ped-extra', 'Comprovante de residência'); await pg.click('[data-acao="extra"]');
+  assert(/Comprador: Informe: Número do IPTU/.test(await msg(pg)) && /• Comprovante de residência/.test(await msg(pg)), await msg(pg));
+  await pg.click('[data-acao="papel:vendedor"]');
+  assert(!/IPTU/.test(await msg(pg)), 'o que é do comprador não vai para o vendedor');
+  assert.equal(await pg.locator('#ped-extra-para').count(), 0, 'com um lado só, não há para quem');
+});
 await passo('mudar a lista depois do link avisa que está velha; atualizar mantém o MESMO código', async () => {
   const pg = await abrir('tipo=Escritura%20de%20Compra%20e%20Venda&link=1');
   await pg.click('[data-acao="link"]'); await pg.waitForSelector('[data-acao="copiar-link"]');
@@ -57,11 +67,42 @@ await passo('o card lista o que o cliente mandou: arquivos com link, lidos e sem
   const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;'), escTxt = (t) => String(t).replace(/</g, '&lt;');
   const caixa = {esc, escTxt}; vm.createContext(caixa); vm.runInContext(f, caixa);
   assert.equal(caixa.pedidoRecebidosHtml({documentos: {a: {nome: 'x.pdf', origem: 'foto do bot'}}}), '', 'documento de outra origem não entra');
-  const h = caixa.pedidoRecebidosHtml({documentos: {
+  const h = caixa.pedidoRecebidosHtml({id: '-Caso1', documentos: {
     a: {nome: 'Comprador_RG_1.jpg', origem: 'link do cliente', link: 'https://drive/x', texto: 'lido', salvoEm: '2026-10-19T10:00:00Z'},
     b: {nome: 'Comprador_CERT_1.pdf', origem: 'link do cliente', link: 'https://drive/y', salvoEm: '2026-10-19T10:01:00Z'},
     c: {nome: 'DADOS_INFORMADOS_PELO_CLIENTE', tipo: 'informacoes', origem: 'link do cliente', texto: 't', salvoEm: '2026-10-19T10:02:00Z'}}});
-  assert(/2 arquivos \(1 lidos\) \+ dados digitados/.test(h), h); assert(/href="https:\/\/drive\/x"/.test(h) && /sem leitura/.test(h) && /dados digitados<\/span>/.test(h));
+  assert(/2 arquivos \(1 lidos\) \+ dados digitados/.test(h), h);
+  assert.equal((h.match(/excluirDocCliente\('-Caso1'/g) || []).length, 3, 'um botão de excluir por item, inclusive os dados digitados');
+  assert(/excluirDocCliente\('-Caso1','a'/.test(h) && /excluirDocCliente\('-Caso1','c'/.test(h)); assert(/href="https:\/\/drive\/x"/.test(h) && /sem leitura/.test(h) && /dados digitados<\/span>/.test(h));
+});
+await passo('a faixa Documentos tem o botão da pasta do Drive, só quando o card tem a pasta e o link é https', () => {
+  const html = readFileSync(join(AQUI, '..', 'index.html'), 'utf8');
+  const i = html.indexOf('function pedidoPastaHtml(c){'); const f = html.slice(i, html.indexOf('\n}\n', i) + 3);
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  const caixa = {esc}; vm.createContext(caixa); vm.runInContext(f, caixa);
+  const h = caixa.pedidoPastaHtml({driveUrl: 'https://drive.google.com/drive/folders/abc'});
+  assert(/href="https:\/\/drive\.google\.com\/drive\/folders\/abc"/.test(h) && /target="_blank"/.test(h) && /noopener/.test(h) && /Abrir pasta no Drive/.test(h));
+  assert.equal(caixa.pedidoPastaHtml({}), ''); assert.equal(caixa.pedidoPastaHtml({driveUrl: ''}), '');
+  assert.equal(caixa.pedidoPastaHtml({driveUrl: 'javascript:alert(1)'}), '', 'link que não é https nunca vira botão');
+  assert(/\$\{pedidoPastaHtml\(c\)\}/.test(html), 'o card chama a função');
+});
+await passo('excluir pelo painel: pergunta antes, chama o Apps Script com o caso e o documento, e erro aparece escrito', async () => {
+  const html = readFileSync(join(AQUI, '..', 'index.html'), 'utf8');
+  const i = html.indexOf('window.excluirDocCliente=async function'); const f = html.slice(i, html.indexOf('\n};\n', i) + 4);
+  const rodar = async ({confirma = true, resposta = {ok: true}, falha = false} = {}) => {
+    const chamadas = [], avisos = []; const btn = {disabled: false, innerHTML: '<i></i>'};
+    const caixa = {window: {}, casos: {C1: {documentos: {d1: {nome: 'RG.pdf', texto: 'x'}, f1: {nome: 'FICHA', tipo: 'informacoes'}}}}, GAS_URL: 'https://gas', JSON, console,
+      confirm: (m) => { avisos.push('confirm:' + m); return confirma; }, alert: (m) => avisos.push('alert:' + m),
+      fetch: async (u, o) => { if (falha) throw new Error('sem rede'); chamadas.push(JSON.parse(o.body)); return {json: async () => resposta}; }};
+    vm.createContext(caixa); vm.runInContext(f, caixa);
+    await caixa.window.excluirDocCliente('C1', 'd1', btn); return {chamadas, avisos, btn};
+  };
+  let r = await rodar({confirma: false}); assert.equal(r.chamadas.length, 0, 'recusou na pergunta: nada é chamado'); assert(/lixeira do Drive/.test(r.avisos[0]));
+  r = await rodar(); assert.deepEqual(r.chamadas, [{acao: 'cliente-excluir', casoId: 'C1', docKey: 'd1'}]); assert.equal(r.avisos.length, 1, 'só a pergunta, sem alarme');
+  r = await rodar({resposta: {ok: true, arquivo: 'sem selo'}}); assert(r.avisos.some((a) => /continua no Drive/.test(a)), 'avisa quando o arquivo ficou no Drive');
+  r = await rodar({resposta: {ok: false, erro: 'O banco recusou a exclusão (401).'}}); assert(r.avisos.some((a) => /Não consegui excluir: O banco recusou/.test(a))); assert.equal(r.btn.disabled, false, 'o botão volta');
+  r = await rodar({resposta: {ok: false, erro: 'ação desconhecida: cliente-excluir'}}); assert(r.avisos.some((a) => /ainda não conhece a exclusão/.test(a)), 'Apps Script desatualizado diz o que fazer');
+  r = await rodar({falha: true}); assert(r.avisos.some((a) => /Erro de conexão/.test(a)));
 });
 await b.close(); servidor.close();
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
