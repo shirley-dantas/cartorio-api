@@ -11828,17 +11828,21 @@ function codigoDeEnvio(){
   const a=new Uint8Array(18); crypto.getRandomValues(a);
   return btoa(String.fromCharCode(...a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
+// Endereço que vai no link. Vazio = o próprio painel. Quando houver um endereço neutro (um domínio
+// só do cartório), é só escrevê-lo aqui: o WhatsApp mostra o endereço do link na prévia.
+const ENVIO_BASE_URL = '';
 async function criarLinkEnvio(id,{estado,blocos,token}){
   const cod=token||codigoDeEnvio(), agora=Date.now();
+  const cab=(typeof PEDIDO!=='undefined'&&PEDIDO.cabecalho)?PEDIDO.cabecalho(estado):{atoFrase:'',quem:''};
   try{
-    await set(ref(db,'pedidos/'+cod),{casoId:id,ato:estado.tipo||'',publico:estado.publico||'cliente',papel:estado.papel||'ambos',blocos,criadoEm:agora,expiraEm:agora+15*864e5});
+    await set(ref(db,'pedidos/'+cod),{casoId:id,ato:estado.tipo||'',atoFrase:cab.atoFrase||'',quem:cab.quem||'',publico:estado.publico||'cliente',papel:estado.papel||'ambos',blocos,criadoEm:agora,expiraEm:agora+15*864e5});
   }catch(e){
     const negado=/permission|PERMISSION/.test(String(e&&e.message||e));
     throw new Error(negado
       ? 'O banco recusou a gravação. As regras novas do Firebase (com o caminho /pedidos) ainda não foram publicadas — o passo está no FIREBASE.md.'
       : 'Não consegui gravar o pedido: '+((e&&e.message)||e));
   }
-  return {token:cod,url:location.origin+'/enviar.html?t='+cod};
+  return {token:cod,url:(ENVIO_BASE_URL||location.origin).replace(/\/+$/,'')+'/enviar.html?t='+cod};
 }
 
 // Excluir o que o cliente mandou errado: o arquivo vai para a lixeira do Drive e o registro sai do card

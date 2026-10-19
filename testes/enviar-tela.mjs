@@ -16,7 +16,7 @@ const erros = [];
 const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } catch (e) { erros.push(n); console.log('FALHA ' + n + ' → ' + e.message); } };
 const TOKEN = 'aB3dE6gH9jK2mN5pQ8sT1vX4';
 const servidor = await servir(8199);
-const b = await chromium.launch({executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b = await chromium.launch({executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']});
 
 // Um RG de mentira, grande, para a redução ter o que reduzir.
 const pgTmp = await b.newPage();
@@ -27,7 +27,7 @@ const PDF = SAIDA('cert.pdf'); writeFileSync(PDF, '%PDF-1.4\n%%EOF');
 
 async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = true, expira, gas} = {}) {
   const pg = await b.newPage({viewport, deviceScaleFactor: mobile ? 2 : 1.4, isMobile: mobile, hasTouch: mobile});
-  const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
+  const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, atoFrase: P.cabecalho(estado).atoFrase, quem: P.cabecalho(estado).quem, criadoEm: Date.now(), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
   const chamadas = [];
   await pg.route('**/*', async (rota) => {
     const u = rota.request().url();
@@ -96,15 +96,35 @@ await passo('regime que exige pacto pede o pacto e o registro; comunhão parcial
 
 await passo('o CEP preenche a rua, o bairro e a cidade', async () => {
   const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
-  await pg.fill('[data-f="cep"]', '01452-000'); await pg.waitForFunction(() => document.querySelector('[data-f="rua"]').value === 'Rua das Palmeiras');
+  await pg.fill('[data-f="cep"]', '01452-000'); await pg.waitForSelector('[data-editend]');
+  const txt = await pg.locator('[data-editend]').locator('xpath=..').innerText();
+  assert.ok(/Rua das Palmeiras/.test(txt) && /São Paulo\/SP/.test(txt), 'o endereço resumido traz rua e cidade/UF: ' + txt);
+  assert.equal(await pg.locator('[data-f="rua"]').count(), 0, 'rua, bairro, cidade e UF ficam recolhidos');
+  await pg.click('[data-editend]'); assert.equal(await pg.inputValue('[data-f="rua"]'), 'Rua das Palmeiras');
   assert.equal(await pg.inputValue('[data-f="cidade"]'), 'São Paulo'); assert.equal(await pg.inputValue('[data-f="uf"]'), 'SP');
+});
+
+await passo('cabeçalho personalizado, certidão visível desde o início e câmera do computador', async () => {
+  const {pg} = await abrir({...compra, tipo:'Escritura de Compra e Venda', publico:'cliente', papel:'comprador'}, {mobile: false, viewport: {width: 1100, height: 800}});
+  await pg.waitForSelector('[data-b="partes"]');
+  const intro = await pg.innerText('#intro');
+  assert.ok(/Para a elaboração da Escritura de Compra e Venda/.test(intro) && /como comprador\(a\)/.test(intro), intro);
+  assert.ok(!/cartorio-api/i.test(await pg.content()), 'a página nunca cita cartorio-api');
+  assert.ok(/og:title/.test(await pg.content()));
+  assert.ok(await pg.locator('text=Certidão de estado civil').count() > 0, 'o espaço da certidão aparece antes de escolher o estado civil');
+  assert.equal(await pg.locator('input[capture]').count(), 0, 'no computador não há capture');
+  assert.ok(await pg.locator('[data-camera]').count() > 0, 'no computador, Tirar foto abre a webcam');
+  await pg.locator('[data-camera]').first().click(); await pg.waitForSelector('#camera video');
+  await pg.waitForFunction(() => document.querySelector('#camera video').videoWidth > 0);
+  await pg.click('[data-cam="foto"]'); await pg.waitForSelector('.arq');
+  assert.equal(await pg.locator('#camera').count(), 0);
 });
 
 let tela;
 await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os dados vão por último', async () => {
   const {pg, chamadas} = await abrir(compra); tela = pg; await pg.waitForSelector('[data-b="partes"]');
   await pg.fill('[data-f="nome"]', 'Maria da Silva'); await pg.selectOption('[data-f="ec"]', 'Solteiro(a)'); await pg.fill('[data-f="prof"]', 'Professora');
-  await pg.fill('[data-f="cep"]', '01452000'); await pg.waitForFunction(() => document.querySelector('[data-f="rua"]').value); await pg.fill('[data-f="num"]', '210');
+  await pg.fill('[data-f="cep"]', '01452000'); await pg.waitForSelector('[data-editend]'); await pg.fill('[data-f="num"]', '210');
   await pg.locator('input[type=file][multiple]').nth(0).setInputFiles(RG);
   await pg.locator('input[type=file][multiple]').nth(1).setInputFiles(PDF);
   await pg.fill('[data-cb="pagamento"][data-f="valor"]', '450.000,00');

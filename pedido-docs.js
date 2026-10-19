@@ -320,13 +320,22 @@
     return blocos;
   }
 
+  // O que a página do cliente diz no topo: para qual ato é, e em que papel a pessoa recebe.
+  function cabecalho(estado) {
+    var modelo = modeloDoTipo(estado.tipo), pub = estado.publico || 'cliente';
+    var papel = papelDe(estado, modelo), quem = '';
+    if (pub === 'construtora') quem = 'Comprador(a)';
+    else if (PAPEIS[modelo] && papel !== 'ambos') quem = PAPEIS[modelo].filter(function (p) { return p[0] === papel; })[0][1] + '(a)';
+    return { ato: estado.tipo || '', atoFrase: estado.tipo ? doDa(estado.tipo) : '', quem: quem };
+  }
+
   function assunto(estado) {
     return 'Documentos para ' + (estado.tipo || NOMES_DOS_MODELOS[modeloDoTipo(estado.tipo)]);
   }
 
   var PEDIDO = {
     PUBLICOS: PUBLICOS, BENS: BENS, CLAUSULAS: CLAUSULAS, REGIMES_COM_PACTO: REGIMES_COM_PACTO,
-    modeloDoTipo: modeloDoTipo, montar: montar, comporTexto: comporTexto, formulario: formulario, assunto: assunto, ehMarcado: ehMarcado,
+    modeloDoTipo: modeloDoTipo, montar: montar, comporTexto: comporTexto, formulario: formulario, cabecalho: cabecalho, doDa: doDa, assunto: assunto, ehMarcado: ehMarcado,
     NOMES_DOS_MODELOS: NOMES_DOS_MODELOS, MODELO_DO_TIPO: MODELO_DO_TIPO, PAPEIS: PAPEIS, papelDe: papelDe
   };
 
@@ -437,7 +446,9 @@
         '<div class="ped-bloco"><div class="ped-chips">' +
         Object.keys(PUBLICOS).map(function (k) { return '<button class="ped-chip' + (est.publico === k ? ' on' : '') + '" data-acao="pub:' + k + '">' + esc(PUBLICOS[k].rotulo) + '</button>'; }).join('') +
         '</div><select data-acao="tipo" style="margin-top:10px">' +
-        tipos.map(function (t) { return '<option' + (t === est.tipo ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select>' + quem +
+        (tipos.indexOf(est.tipo) < 0 ? '<option value="" selected>' + (est.tipo ? esc(est.tipo) + ' (texto antigo do card)' : 'Escolha o ato…') + '</option>' : '') +
+        tipos.map(function (t) { return '<option' + (t === est.tipo ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select>' +
+        (est.tipo ? '' : '<div class="ped-nota" style="color:var(--cc-atencao,#8A5A0B)"><b>Este card ainda não tem o tipo de ato.</b> Escolha o ato acima para a lista certa.</div>') + quem +
         (envolve ? '<div style="margin-top:6px">' + envolve + '</div>' : '') + '</div>' +
         '<div class="ped-bloco"><div class="ped-tit">O que pedir</div>' + lista + '</div>' + mais +
         '</div><div class="ped-dir"><div class="ped-bloco"><div class="ped-tit">A mensagem<small>pode editar antes de enviar</small></div>' +
@@ -483,7 +494,7 @@
     }
     function aoMudar(e) {
       var a = e.target.getAttribute('data-acao'); if (!a) return;
-      if (a === 'tipo') { est.tipo = e.target.value; est.papel = 'ambos'; est.msgEditada = false; est.marc = {}; desenhar(); return; }
+      if (a === 'tipo') { if (!e.target.value) return; est.tipo = e.target.value; est.papel = 'ambos'; est.msgEditada = false; est.marc = {}; desenhar(); return; }
       var ligado = e.target.checked, p = a.split(':');
       if (p[0] === 'item') est.marc[p[1]] = ligado;
       else if (p[0] === 'bem') est.bens[p[1]] = ligado;

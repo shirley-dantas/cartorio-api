@@ -951,6 +951,13 @@ Regras que **não devem ser mexidas sem perguntar**:
   porque o banco é aberto e um registro forjado poderia apontar para outro arquivo
   (a minuta, por exemplo). Sem selo (envio antigo ou forjado), o item sai do card e o
   arquivo fica no Drive, e o painel avisa. Só se exclui o que veio pelo link.
+- **A página se apresenta pelo ato, e nunca pelo nome do projeto.** O pedido guarda `atoFrase` e
+  `quem` (`PEDIDO.cabecalho()`): "Para a elaboração da Escritura de Compra e Venda, preencha os seus
+  dados como comprador(a)…". A prévia do WhatsApp mostra o **endereço do link** — para ele não dizer
+  `cartorio-api`, basta preencher `ENVIO_BASE_URL` (`index.html`) com um domínio neutro do cartório.
+- **A certidão de estado civil aparece desde o início** (genérica até ela escolher o estado civil) e o
+  endereço se recolhe depois do CEP (rua/bairro/cidade/UF viram uma linha com *Editar*).
+- **"Tirar foto" no computador abre a webcam** (`abrirCamera()`); no celular continua o `capture` nativo.
 - A faixa Documentos também tem **Abrir pasta no Drive** (`pedidoPastaHtml()`).
 - **Mudar a lista depois de gerar o link** avisa que o link está velho e pede
   *Atualizar a lista* — o código continua o mesmo.
