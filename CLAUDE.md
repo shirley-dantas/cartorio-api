@@ -902,7 +902,8 @@ Regras dela que **não devem ser mexidas sem perguntar**:
 - **Pacto antenupcial:** num ato em que o casal declara regime que exige pacto, pede-se
   o pacto e o registro dele no RI do primeiro domicílio. Na escritura *de* pacto
   não se fala em registro, só nas certidões do casal.
-- **União estável não é estado civil da lista**: é documento que ela marca (RCPN, Livro E).
+- **União estável não é estado civil da lista**: quem não é casado marca "Vivo em união estável" no link e o
+  espaço da escritura (RCPN, Livro E) abre nos documentos dele. A janela não pede mais para marcar união nem pacto.
 - **Comprador de construtora** só informa os próprios dados — a construtora e o
   vendedor ela identifica pela matrícula. Testamento ela não faz; as certidões que
   ela busca na internet nascem desmarcadas.
@@ -993,6 +994,9 @@ Regras que **não devem ser mexidas sem perguntar**:
   exige); viúvo/divorciado/separado → casamento com averbação; certidão de óbito e RG/CPF sempre.
 - **Preenchimento do celular**: os campos levam o `autocomplete` certo (nome, CEP, rua, cidade…), e o que
   responde depois (o CEP) troca **só o bloco do endereço**, sem mexer no campo em que a pessoa está.
+- **O advogado só sobe a carteira da OAB**: nenhum campo de nome, número ou endereço. **Pacto e união estável
+  são decididos pelo cliente**: o pacto abre na pílula de quem é casado em regime com pacto; a escritura de união
+  estável, na de quem marcou que vive nela (quem já é convivente, noivo ou divorciando não é perguntado).
 - A página usa letra grande e tinta cheia (17 px, títulos de documento 18 px em negrito); a marca PRIME no topo.
 - **A certidão de estado civil aparece desde o início** (genérica até ela escolher o estado civil) e o
   endereço se recolhe depois do CEP (rua/bairro/cidade/UF viram uma linha com *Editar*).

@@ -125,6 +125,7 @@
     var o = opcoes || {};
     var i = item(id, (quem ? quem + ': ' : '') + BASICO + (o.conjuge === false ? '' : CONJUGE));
     i.f = { k: 'pessoa', papeis: o.papeis || [quem], conjuge: o.conjuge !== false };
+    if (o.semUniao) i.f.semUniao = true; // quem já é convivente, noivo ou divorciando não é perguntado se vive em união estável
     if (o.obito) i.f.obito = true; // só a lista de inventário pede a certidão de óbito do cônjuge de quem é viúvo
     return i;
   }
@@ -191,25 +192,25 @@
         item('falecido', 'Falecido(a): RG, CPF, certidão de óbito, estado civil na data do óbito (e regime de bens e dados do cônjuge, se casado(a))'),
         item('falecido.testamento', 'Certidão de inexistência de testamento (você costuma buscar)', false),
         pessoa('herdeiros', 'Herdeiros', { papeis: ['Herdeiro(a)'], obito: true }),
-        adv(item('advogado', 'Advogado(a): OAB, estado civil e endereço'))
+        adv(item('advogado', 'Advogado(a): carteira da OAB'))
       ]));
       S.push(secao('bens', 'Bens', bens(estado, 'bem.'), { vazio: 'Marque acima o que será inventariado.' }));
     } else if (modelo === 'divorcio') {
       S.push(secao('lista', '', [
-        pessoa('divorciandos', rotuloDe(estado, modelo, papelDe(estado, modelo), 'Divorciandos'), { conjuge: false, papeis: dosPares(estado, modelo, ['Divorciando(a) 1', 'Divorciando(a) 2']) }),
-        adv(item('advogado', 'Advogado(a): OAB, estado civil e endereço')),
+        pessoa('divorciandos', rotuloDe(estado, modelo, papelDe(estado, modelo), 'Divorciandos'), { conjuge: false, semUniao: true, papeis: dosPares(estado, modelo, ['Divorciando(a) 1', 'Divorciando(a) 2']) }),
+        adv(item('advogado', 'Advogado(a): carteira da OAB')),
         item('familia.filhos', 'Se tiverem filhos: RG, CPF, estado civil, endereço e profissão de cada um, e a pensão estipulada (valor)'),
         item('familia.nome', 'Algum dos dois voltará a usar o nome de solteiro(a)? Qual?')
       ]));
       if (estado.partilha) S.push(secao('bens', 'Bens a partilhar', bens(estado, 'bem.'), { vazio: 'Marque acima o que será partilhado.' }));
     } else if (modelo === 'uniao') {
       S.push(secao('lista', '', [
-        pessoa('conviventes', rotuloDe(estado, modelo, papelDe(estado, modelo), 'Conviventes'), { conjuge: false, papeis: dosPares(estado, modelo, ['Convivente 1', 'Convivente 2']) }),
+        pessoa('conviventes', rotuloDe(estado, modelo, papelDe(estado, modelo), 'Conviventes'), { conjuge: false, semUniao: true, papeis: dosPares(estado, modelo, ['Convivente 1', 'Convivente 2']) }),
         item('convivente.dados', 'Data de início da união, primeiro endereço do casal e regime de bens')
       ]));
     } else if (modelo === 'pacto') {
       S.push(secao('lista', '', [
-        pessoa('noivos', rotuloDe(estado, modelo, papelDe(estado, modelo), 'Futuros cônjuges'), { conjuge: false, papeis: dosPares(estado, modelo, ['Noivo(a) 1', 'Noivo(a) 2']) }),
+        pessoa('noivos', rotuloDe(estado, modelo, papelDe(estado, modelo), 'Futuros cônjuges'), { conjuge: false, semUniao: true, papeis: dosPares(estado, modelo, ['Noivo(a) 1', 'Noivo(a) 2']) }),
         item('noivo.dados', 'Primeiro endereço do casal, regime de bens e se mudarão de nome (qual)')
       ]));
     } else if (modelo === 'procuracao') {
@@ -468,8 +469,7 @@
 
       var mais = est.publico === 'construtora' ? '' :
         '<details class="ped-mais"' + ((est.pacto || est.uniaoEstavel || est.extras.length) ? ' open' : '') + '><summary>Mais opções</summary>' +
-        (modelo !== 'pacto' ? check('Casal com pacto antenupcial (regime: ' + REGIMES_COM_PACTO + ')', est.pacto, 'pacto') : '') +
-        check('Escritura pública de união estável (RCPN, Livro E)', est.uniaoEstavel, 'uniao') +
+        '<div class="ped-nota" style="margin:0 0 8px">União estável e pacto antenupcial não precisam ser marcados aqui: no link, quem vive em união estável ou tem regime com pacto responde, e o espaço do documento abre só para essa pessoa.</div>' +
         '<div class="ped-sub" style="margin-top:10px">Pedir mais alguma coisa</div>' +
         '<div class="ped-linha-add"><input type="text" id="ped-extra" placeholder="Ex.: comprovante de residência, número do IPTU"></div>' +
         '<div class="ped-chips" style="margin-top:8px"><select id="ped-extra-tipo"><option value="arquivo">Pessoa sobe um arquivo</option><option value="info">Pessoa só escreve a informação</option></select>' +

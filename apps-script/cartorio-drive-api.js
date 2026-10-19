@@ -1549,6 +1549,7 @@ function montarFichaCliente(d, dataTxt, rotulos) {
     if (p.profissao) L.push("  Profissão: " + textoCliente(p.profissao, 80));
     if (p.endereco) L.push("  Endereço: " + textoCliente(p.endereco, 300));
     if (p.regime) L.push("  Regime de bens: " + textoCliente(p.regime, 80));
+    if (p.uniaoEstavel) L.push("  Vive em união estável: sim (a escritura foi pedida)");
     if (p.conjuge && p.conjuge.nome) {
       L.push("  Cônjuge: " + textoCliente(p.conjuge.nome, 120) + (p.conjuge.profissao ? ", " + textoCliente(p.conjuge.profissao, 80) : "") + (p.conjuge.endereco ? ", " + textoCliente(p.conjuge.endereco, 300) : ""));
     }

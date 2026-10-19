@@ -237,6 +237,34 @@ await passo('inventário: o falecido pergunta o estado civil na data do óbito e
   assert(/Certidão de óbito/.test(t), 'a certidão de óbito vale para qualquer estado civil');
 });
 
+await passo('advogado: só sobe a carteira da OAB, sem número, nome nem endereço para digitar', async () => {
+  const {pg} = await abrir({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true}}, {viewport: {width: 1100, height: 900}, mobile: false});
+  await pg.waitForSelector('[data-fal]'); assert.equal(await pg.locator('[data-adv]').count(), 0, 'nenhum campo de advogado');
+  assert(/Carteira da OAB/.test(await pg.textContent('.intro-docs >> xpath=..')), 'a carteira está nos documentos');
+  assert(!/Número da OAB/.test(await pg.textContent('#formulario')));
+});
+await passo('união estável: quem não é casado marca "Vivo em união estável" e o espaço da escritura abre só nos documentos dele', async () => {
+  const {pg} = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'advogado'}, {viewport: {width: 1100, height: 900}, mobile: false});
+  await pg.waitForSelector('[data-b="partes"]'); assert(!/união estável/i.test(await pg.textContent('#formulario')), 'sem escolher, nada de união estável');
+  const ec = (i, v) => pg.locator(`select[data-b="partes"][data-i="${i}"][data-f="ec"]`).selectOption(v);
+  await ec(0, 'Solteiro(a)'); await ec(1, 'Casado(a)');
+  assert.equal(await pg.locator('[data-uniao]').count(), 1, 'a pergunta só aparece para quem não é casado');
+  await pg.check('[data-uniao]', {force: true});
+  const grupos = await pg.evaluate(() => [...document.querySelectorAll('.intro-docs ~ *')].map((x) => x.className.includes('grupo-docs') ? '#' + x.textContent : x.className.includes('slot') ? x.querySelector('b').textContent : '').filter(Boolean));
+  const iU = grupos.findIndex((x) => /união estável/.test(x)), iG1 = grupos.findIndex((x) => x.startsWith('#') && /Vendedor/.test(x)), iG2 = grupos.findIndex((x) => x.startsWith('#') && /Comprador/.test(x));
+  assert(iU > iG1 && iU < iG2, 'a escritura abre na pílula de quem marcou (o vendedor): ' + grupos.join(' | '));
+  await pg.click('#enviar'); assert(/escritura de união estável/.test(await pg.innerText('.folha')), 'e passa a faltar até anexar');
+});
+await passo('pacto: abre só para quem é casado em regime que exige pacto, na pílula dele', async () => {
+  const {pg} = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'advogado'}, {viewport: {width: 1100, height: 900}, mobile: false});
+  await pg.waitForSelector('[data-b="partes"]'); assert(!/pacto/i.test(await pg.textContent('#formulario')));
+  await pg.locator('select[data-b="partes"][data-i="1"][data-f="ec"]').selectOption('Casado(a)');
+  await pg.check('input[data-i="1"][data-f="regime"][value="Comunhão parcial de bens"]', {force: true}); assert(!/pacto/i.test(await pg.textContent('#formulario')));
+  await pg.check('input[data-i="1"][data-f="regime"][value="Comunhão universal de bens"]', {force: true});
+  const t = await pg.textContent('#formulario'); assert(/Escritura do pacto/.test(t) && /registro do pacto/.test(t));
+  assert((t.match(/Escritura do pacto antenupcial/g) || []).length === 1, 'só uma vez, na pessoa que escolheu');
+});
+
 let tela;
 await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os dados vão por último', async () => {
   const {pg, chamadas} = await abrir(compra); tela = pg; await pg.waitForSelector('[data-b="partes"]');
@@ -271,7 +299,7 @@ await passo('o advogado manda vários herdeiros: acrescentar e remover pessoa', 
   await pg.waitForSelector('[data-b="herdeiros"]');
   await pg.click('[data-mais="herdeiros"]'); assert.equal(await pg.locator('[data-b="herdeiros"][data-f="nome"]').count(), 2);
   await pg.click('[data-remover]'); assert.equal(await pg.locator('[data-b="herdeiros"][data-f="nome"]').count(), 1);
-  const t = await pg.textContent('#formulario'); assert(/Falecido/.test(t) && /Número da OAB/.test(t) && /Matrícula do imóvel urbano/.test(t));
+  const t = await pg.textContent('#formulario'); assert(/Falecido/.test(t) && /Carteira da OAB/.test(t) && !/Número da OAB/.test(t) && /Matrícula do imóvel urbano/.test(t));
   await pg.screenshot({path: SAIDA('env-desk-inventario.png'), fullPage: true});
 });
 

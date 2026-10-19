@@ -302,6 +302,8 @@ function htmlPessoa(b,i,n){
   let h=`<div class="bloco" data-bloco="${b.id}"><h2><span class="num${p.nome?' ok':''}">${n}</span>${esc(p.papel)}</h2>`;
   h+=input('Nome completo',p.nome,`${A} data-f="nome" autocomplete="name"`,true);
   if(!simples) h+=select('Estado civil',p.ec,ESTADOS_CIVIS,`${A} data-f="ec"`,true);
+  // Quem não é casado e vive em união estável marca aqui, e o espaço da escritura abre nos documentos dele.
+  if(!simples&&!b.semUniao&&p.ec&&p.ec!=='Casado(a)') h+=`<label class="marca"><input type="checkbox" ${A} data-uniao="1"${p.uniao?' checked':''}> Vivo em união estável</label>`;
   h+=input('Profissão',p.prof,`${A} data-f="prof" autocomplete="organization-title"`,true);
   h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div><div class="dica" id="cepmsg-${k}" hidden style="color:var(--critico);margin:-6px 0 10px"></div>`;
   h+=`<div id="end-${k}">${htmlEndereco(b,i)}</div>`;
@@ -319,6 +321,7 @@ function htmlPessoa(b,i,n){
   slot(k+'.rg','RG ou CNH (frente e verso)',false,DICA_CPF);
   if(!simples){
     certidoes(p,k,b);
+    if(p.uniao&&p.ec!=='Casado(a)') slot(k+'.uniao','Escritura pública de união estável (registrada no RCPN, Livro E)');
     if(p.ec==='Casado(a)'&&REGIMES_COM_PACTO.includes(p.regime)){ slot(k+'.pacto','Escritura do pacto antenupcial'); slot(k+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis'); }
     if(p.ec==='Casado(a)'&&b.conjuge) slot(k+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF);
   }
@@ -350,6 +353,7 @@ function htmlFalecido(b,n){
 }
 function htmlBloco(b,n){
   if(b.k==='falecido') return htmlFalecido(b,n.v++);
+  if(b.k==='advogado'){ GRUPO='Advogado(a)'; slot(b.id+'.oab','Carteira da OAB'); return ''; }
   if(b.k==='pessoa'){
     let h=E.pessoas[b.id].map((_,i)=>htmlPessoa(b,i,n.v++)).join('');
     const opt=(b.papeis||['Parte']);
@@ -372,11 +376,7 @@ function htmlBloco(b,n){
     h+=input('Banco',v.banco||'',`${A} data-f="banco"`,true)+`<div class="duas">${input('Agência',v.agencia||'',`${A} data-f="agencia"`,true)}${input('Conta',v.conta||'',`${A} data-f="conta"`,true)}</div>`+input('Titular da conta',v.titular||'',`${A} data-f="titular"`,true)+input('Chave PIX (opcional)',v.pix||'',`${A} data-f="pix"`);
   }
   else if(b.k==='pagamento') h+=htmlPagamento(b);
-  else if(b.k==='advogado'){
-    const v=E.adv, A='data-adv="1"';
-    h+=input('Nome completo',v.nome||'',`${A} data-f="nome"`,true)+input('Número da OAB',v.oab||'',`${A} data-f="oab"`,true)+select('Estado civil',v.ec||'',ESTADOS_CIVIS,`${A} data-f="ec"`)+input('Endereço completo',v.end||'',`${A} data-f="end"`);
-    GRUPO='Advogado(a)'; slot(b.id+'.oab','Carteira da OAB');
-  }
+  else if(b.k==='advogado'){ /* o advogado só sobe o documento: nada para digitar */ }
   else if(b.k==='filhos'){
     h+=`<p class="opcional-nota" style="margin-bottom:8px">Se não houver filhos, deixe em branco.</p>`;
     E.filhos.forEach((f,i)=>{
@@ -476,6 +476,7 @@ raiz.addEventListener('input',e=>{
   if(t.dataset.fal!==undefined){ const f=E.falecidos[t.dataset.fal]; if(t.dataset.fc) f.conj[t.dataset.fc]=t.value; else if(t.dataset.f!=='ec'&&t.dataset.f!=='regime') f[t.dataset.f]=t.value; resumo(); return; }
   if(t.dataset.b!==undefined){
     const p=E.pessoas[t.dataset.b][+t.dataset.i];
+    if(t.dataset.uniao!==undefined) return;
     if(t.dataset.c) { p.conj[t.dataset.c]=t.type==='checkbox'?t.checked:t.value; return; }
     if(f!=='ec'&&f!=='regime'&&f!=='uf') p[f]=t.value;
     if(f==='cep') cep(t,p);
@@ -493,6 +494,7 @@ raiz.addEventListener('change',e=>{
   if(t.dataset.clausula){ E.clausulas[t.dataset.clausula]=t.checked; return; }
   if(t.dataset.b!==undefined){
     const p=E.pessoas[t.dataset.b][+t.dataset.i], f=t.dataset.f;
+    if(t.dataset.uniao!==undefined){ p.uniao=t.checked; desenharTudo(); return; }
     if(t.dataset.c){ p.conj[t.dataset.c]=t.type==='checkbox'?t.checked:t.value; desenharTudo(); return; }
     if(f==='ec'||f==='regime'){ p[f]=t.value; desenharTudo(); return; }
     if(f==='uf') p.uf=t.value;
@@ -551,6 +553,7 @@ function faltas(){
       if(!(p.rua&&p.num)) f.push(`${q}: endereço`);
       if(!b.simples&&p.ec==='Casado(a)'&&!p.regime) f.push(`${q}: regime de bens`);
       if(!tem(k+'.rg')) f.push(`${q}: RG ou CNH`);
+      if(p.uniao&&p.ec!=='Casado(a)'&&!tem(k+'.uniao')) f.push(`${q}: escritura de união estável`);
       if(!b.simples&&p.ec&&!tem(k+'.cert')) f.push(`${q}: certidão de estado civil`);
       if(p.ec==='Casado(a)'&&b.conjuge&&!p.conj.nome) f.push(`${q}: dados do cônjuge`);
     });
@@ -563,7 +566,7 @@ function faltas(){
       if(lado!=='comprador'&&!ok(E.banco[b.id+'.recebedor'])) f.push('Conta que receberá o pagamento');
     }
     else if(b.k==='banco'){ const v=E.banco[b.id]||{}; if(!(v.banco&&v.agencia&&v.conta&&v.titular)) f.push('Dados bancários'); }
-    else if(b.k==='advogado'){ if(!(E.adv.nome&&E.adv.oab)) f.push('Advogado(a): nome e OAB'); }
+    else if(b.k==='advogado'){ if(!tem(b.id+'.oab')) f.push('Advogado(a): carteira da OAB'); }
   });
   return f;
 }
@@ -601,7 +604,7 @@ async function chamar(corpo){
   return j;
 }
 function rotuloDoSlot(chave){
-  const nomes={rg:'RG_CNH',cpf:'CPF',cert:'CERTIDAO_ESTADO_CIVIL',obito:'CERTIDAO_OBITO_CONJUGE',pacto:'PACTO_ANTENUPCIAL',pactoreg:'REGISTRO_DO_PACTO',rgconj:'RG_CNH_CONJUGE'};
+  const nomes={uniao:'ESCRITURA_UNIAO_ESTAVEL',rg:'RG_CNH',cpf:'CPF',cert:'CERTIDAO_ESTADO_CIVIL',obito:'CERTIDAO_OBITO_CONJUGE',pacto:'PACTO_ANTENUPCIAL',pactoreg:'REGISTRO_DO_PACTO',rgconj:'RG_CNH_CONJUGE'};
   for(const b of pedido.blocos) if(b.k==='falecido'&&chave.startsWith(b.id+'.')){
     const suf=chave.slice(b.id.length+1), fal={rg:'RG_CNH_FALECIDO',obito:'CERTIDAO_OBITO_FALECIDO',cert:'CERTIDAO_ESTADO_CIVIL_FALECIDO',pacto:'PACTO_ANTENUPCIAL_FALECIDO',pactoreg:'REGISTRO_DO_PACTO_FALECIDO',rgconj:'RG_CNH_CONJUGE_DO_FALECIDO'};
     if(fal[suf]) return {pessoa:E.falecidos[b.id].nome||'Falecido',papel:'Falecido(a)',tipo:fal[suf]};
@@ -619,7 +622,7 @@ function rotuloDoSlot(chave){
 function montarDados(){
   const end=p=>[[p.rua,p.num,p.compl].filter(Boolean).join(', '),p.bairro,[p.cidade,p.uf].filter(Boolean).join('/'),p.cep].filter(Boolean).join(' — ');
   return { ato:pedido.ato, enviadoEm:new Date().toISOString(),
-    pessoas:Object.entries(E.pessoas).flatMap(([bloco,l])=>l.map(p=>({bloco,papel:p.papel,nome:p.nome,estadoCivil:p.ec,profissao:p.prof,endereco:end(p),regime:p.regime||'',
+    pessoas:Object.entries(E.pessoas).flatMap(([bloco,l])=>l.map(p=>({bloco,papel:p.papel,nome:p.nome,estadoCivil:p.ec,profissao:p.prof,endereco:end(p),regime:p.regime||'',uniaoEstavel:!!(p.uniao&&p.ec!=='Casado(a)'),
       conjuge:p.ec==='Casado(a)'&&(p.conj.nome)?{nome:p.conj.nome,profissao:p.conj.prof,endereco:p.conj.mesmo?end(p):p.conj.end}:null}))),
     falecidos:Object.entries(E.falecidos).map(([bloco,d])=>({bloco,nome:d.nome,estadoCivil:d.ec,regime:d.ec==='Casado(a)'?d.regime:'',conjuge:d.ec==='Casado(a)'&&d.conj.nome?{nome:d.conj.nome,profissao:d.conj.prof}:null})),
     campos:E.campos, banco:E.banco, advogado:E.adv, filhos:E.filhos, clausulas:Object.keys(E.clausulas).filter(k=>E.clausulas[k]), observacoes:E.obs };
