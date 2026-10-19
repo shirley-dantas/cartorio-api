@@ -158,3 +158,9 @@ A linha do tempo tem **barra de rolagem própria** (`.tl-scroll`, abre no primei
 Faz **só sobrancelhas e cílios** em Itaquera (design, design + henna, alongamento, manutenção e remoção de cílios: `SERV_ANA`), **todos os dias** como Rafael e Mariana (ela fecha os que não atende), cor **verde sálvia** (`--p-ana`/`--t-ana`), comissão **50% do valor cheio** como os dois. Vaga `5` na chave da reserva (`VAGA_PRO.ana`).
 
 Esses cinco serviços têm **dois donos** (`donosDoServico()`: Tháriga e Ana): na página `/p` a cliente escolhe **"Com quem você prefere?"** (`#q`, `ANA` e `donosDe()` no `pedido.html`) e os dias/horários mostrados são os da escolhida; nos Horários livres aparecem as duas; a reserva diz quem é pela vaga (`proDaReserva()`), e `proLivre()` respeita a escolha. O login dela aceita `pro` = `ana` ou `ana luiza` (`entrou()` normaliza).
+
+## Página da cliente em catálogo (19/10/2026, rascunho, ainda não publicado)
+
+Pedido da Tháriga (a partir de um print de outro estúdio): a `/p` virou um **catálogo**. Topo claro (champanhe e rosé, logo redonda, nome, frase) com a escolha da unidade em pílulas (*Itaquera* | *Estúdio Florença · Itaim*); abaixo, os serviços em caixas por grupo (Sobrancelhas, Cílios, Micropigmentação, Rosto, Unhas, Laser e bem-estar: `GRUPOS`), cada um com ilustração, nome, tempo e **+ Agendar**; botão flutuante **AGENDAR HORÁRIO**. Tocar em *+ Agendar* escolhe o serviço (`escolheServico()`) e abre o formulário de sempre (`#fluxo`: dados, "Com quem?", dias, período, horários).
+- **As "fotos" são ilustrações desenhadas em SVG** (`ICO`, `ilustra()`), não fotos: foto de resultado de procedimento não se inventa. Troca por foto real (upload em *Serviços e preços*) fica para depois e exigiria publicar regras do banco.
+- **Preço não aparece** (a página nunca mostrou valor). Se a Tháriga quiser, precisa espelhar os preços em `/publico/agenda/{u}/` (regras novas do banco).

@@ -69,10 +69,28 @@ canvas.sig{width:100%;height:150px;border:1px dashed var(--muted);border-radius:
 .dia{font-weight:600;margin:14px 0 2px}
 .resumo{background:var(--berry-soft);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:15px}
 </style>
+<style>
+.hero{background:linear-gradient(170deg,#F6E3DF,#F1E9D4);border-radius:0 0 26px 26px;margin:-20px -16px 6px;padding:22px 16px 18px;text-align:center}
+.hero .logo{width:112px;height:112px;border-radius:50%;border:3px solid #fff;box-shadow:0 4px 14px #B2706A33;margin:0 auto}
+.hero h1{margin:10px 0 4px;font-size:32px}
+.hero p{margin:0;font-size:14px;color:#7a6a5c}
+.un{display:flex;gap:8px;justify-content:center;margin:14px 0 0}
+.un label{display:block;padding:9px 16px;border-radius:999px;border:1.5px solid #B2706A66;background:transparent;text-align:center}
+.un label.on{background:#B2706A;border-color:#B2706A;color:#fff}
+.un b{font-size:15px;font-weight:600}.un span{font-size:12px;opacity:.85;margin:0}
+.cat{background:var(--panel);border:1px solid var(--line);border-radius:18px;margin:14px 0 0;overflow:hidden;box-shadow:0 2px 10px #0000000d}
+.cat h2{margin:0;padding:12px 16px;font:600 13px var(--sans);letter-spacing:.09em;text-transform:uppercase;background:#F6E3DF;color:#7a4540}
+.it{display:flex;align-items:center;gap:12px;padding:13px 16px;border-top:1px solid var(--line)}
+.it .ph{flex:none;width:62px;height:78px;border-radius:12px;overflow:hidden;background:linear-gradient(155deg,#F6E3DF,#F1E9D4)}
+.it .ph svg{width:100%;height:100%;display:block}
+.it .t{flex:1;min-width:0}.it .t b{display:block;font:600 19px/1.15 var(--serif)}.it .t i{font-style:normal;font-size:14px;color:var(--muted)}
+.it button{flex:none;background:#B2706A;color:#fff;border:0;border-radius:999px;padding:11px 16px;font:600 15px var(--sans);white-space:nowrap}
+.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--berry);color:#fff;border:0;border-radius:999px;padding:14px 24px;font:600 15px var(--sans);letter-spacing:.05em;box-shadow:0 6px 18px #0004;white-space:nowrap;z-index:5}
+.escolhido{background:var(--berry-soft);border-radius:12px;padding:10px 14px;margin:14px 0 4px;font-size:15px}
+</style>
 </head>
 <body>
 <div class="wrap">
-  <img class="logo" src="/logo.png" alt="Tháriga Beauty &amp; Co">
   <div id="tela"></div>
 </div>
 
@@ -123,12 +141,13 @@ async function entrar(){
   const app=initializeApp(firebaseConfig);await signInAnonymously(getAuth(app));db=getDatabase(app);return db}
 
 function formulario(){
-  tela.innerHTML=`<h1>Agende o seu horário</h1><div class="sub">Escolha o dia e o horário livre: já fica marcado, sem conversa.</div>
-  <div class="box">
-   <div class="sec" style="margin-top:0">Onde você quer ser atendida?</div>
-   <div class="un" id="uns">${Object.entries(UN).map(([k,u])=>`<label><input type="radio" name="un" value="${k}"><b>${u.n}</b><span>${u.s} · ${u.diasTxt}</span></label>`).join('')}</div>
+  tela.innerHTML=`<div class="hero"><img class="logo" src="/logo.png" alt="Tháriga Beauty &amp; Co"><h1>Tháriga Beauty &amp; Co</h1><p>✨ Sobrancelhas • Cílios • Micropigmentação • Unhas<br>Escolha o serviço e marque o seu horário</p>
+   <div class="un" id="uns">${Object.entries(UN).map(([k,u])=>`<label><input type="radio" name="un" value="${k}"><b>${k==='flo'?'Estúdio Florença · Itaim':'Itaquera'}</b></label>`).join('')}</div></div>
+  <div class="box" style="margin-top:14px;background:transparent;border:0;padding:0">
    <div id="aviso"></div>
    <div id="resto" hidden>
+    <div id="catalogo"></div>
+    <div id="fluxo" hidden>
     <div class="sec">Seus dados</div>
     <label class="f">Nome<input id="n" autocomplete="name" maxlength="80"></label>
     <label class="f">WhatsApp com DDD<input id="t" type="tel" autocomplete="tel" placeholder="(11) 9...." maxlength="30"></label>
@@ -149,21 +168,56 @@ function formulario(){
      <div class="erro" id="erro"></div>
      <button class="btn p" id="enviar">Confirmar agendamento</button>
     </div>
+    </div>
    </div>
-  </div>`;
+  </div>
+  <button class="fab" id="fab" type="button" hidden>📅 AGENDAR HORÁRIO</button>`;
   const marca=box=>box.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));
   const uns=document.getElementById('uns');
   uns.addEventListener('change',e=>{un=e.target.value;marca(uns);escolheUnidade()});
   document.getElementById('per').addEventListener('change',()=>{marca(document.getElementById('per'));desenhaSlots()});
   document.getElementById('s').onchange=()=>{montaQuem();montaDias();desenhaSlots()};
   document.getElementById('q').onchange=()=>{montaDias();desenhaSlots()};
-  document.getElementById('enviar').onclick=enviar}
+  document.getElementById('enviar').onclick=enviar;
+  document.getElementById('fab').onclick=()=>{const f=document.getElementById('fluxo');(f.hidden?document.getElementById('catalogo'):f).scrollIntoView({behavior:'smooth',block:'start'})}}
 
 // Os dias oferecidos dependem de quem faz o serviço escolhido.
 function montaQuem(){const sv0=UN[un].serv[+document.getElementById('s').value],l=donosDe(un,sv0[0]),w=document.getElementById('qw'),q=document.getElementById('q'),cur=q.value;
   w.hidden=l.length<2;q.innerHTML=l.map(p=>`<option value="${p}">${NOME_PRO[p]}</option>`).join('');if(l.includes(cur))q.value=cur}
 function montaDias(){const d=document.getElementById('dias'),u=UN[un],sv0=u.serv[+document.getElementById('s').value],marcados=new Set([...d.querySelectorAll('input:checked')].map(i=>+i.value));
   d.innerHTML=(DIAS_PRO[un][proEscolhida()]||[]).map(n=>`<label class="${marcados.has(n)?'on':''}"><input type="checkbox" value="${n}" ${marcados.has(n)?'checked':''}>${NOMES[n]}</label>`).join('')}
+// Ilustrações dos serviços (desenhadas aqui, no lugar de fotos), nas cores do painel.
+const OURO='#9C7A2E',ROSE='#B2706A';
+const arco=(d,w,c)=>`<path d="${d}" fill="none" stroke="${c||OURO}" stroke-width="${w||3}" stroke-linecap="round"/>`;
+const olho=(c)=>arco('M12 44 Q32 26 52 44 Q32 56 12 44Z',2.2,c)+`<circle cx="32" cy="43" r="5.5" fill="${ROSE}"/>`;
+const cilios=(up)=>[...Array(7)].map((_,i)=>{const x=14+i*6,y=up?40-Math.abs(i-3)*-1.5:41+Math.abs(i-3)*1.2;return arco(`M${x} ${y} L${x+(i-3)*1.6} ${y-(up?14:11)}`,1.8,OURO)}).join('');
+const ICO={
+ sobr:arco('M10 46 Q30 22 54 36',4.5)+arco('M12 54 Q32 36 52 46',2,ROSE),
+ henna:arco('M10 40 Q30 16 54 32',4.5)+`<path d="M32 50 q-7 9 0 13 q7 -4 0 -13z" fill="${ROSE}"/>`,
+ lamin:arco('M10 46 Q30 22 54 36',4)+[...Array(6)].map((_,i)=>arco(`M${16+i*7} ${42-i*1.6} l3 -9`,1.6,ROSE)).join(''),
+ cil:olho()+cilios(false),
+ cilrem:olho()+cilios(false)+arco('M46 20 l8 8 M54 20 l-8 8',2.4,ROSE),
+ lift:olho()+cilios(true),
+ micro:arco('M10 44 Q30 20 54 34',4.5)+`<path d="M44 66 L52 48 L56 50 Z" fill="${ROSE}"/>`+arco('M44 66 l-1 5',1.6,ROSE),
+ rosto:`<ellipse cx="32" cy="42" rx="15" ry="19" fill="none" stroke="${OURO}" stroke-width="2.4"/>`+arco('M24 40 h4 M36 40 h4',2.4,ROSE)+arco('M27 52 Q32 56 37 52',2,ROSE)+`<path d="M52 18 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="${ROSE}"/>`,
+ unha:`<path d="M24 62 V34 a8 8 0 0 1 16 0 V62 Z" fill="${ROSE}" opacity=".85"/><path d="M28 36 v10" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>`+arco('M20 66 h24',2.4),
+ laser:`<circle cx="32" cy="40" r="8" fill="${ROSE}"/>`+[0,45,90,135,180,225,270,315].map(a=>`<path d="M32 40 l${Math.cos(a*Math.PI/180)*22} ${Math.sin(a*Math.PI/180)*22}" stroke="${OURO}" stroke-width="2" stroke-linecap="round" opacity=".7"/>`).join('')+`<circle cx="32" cy="40" r="8" fill="${ROSE}"/>`,
+ ozonio:`<circle cx="26" cy="48" r="11" fill="none" stroke="${OURO}" stroke-width="2.4"/><circle cx="42" cy="32" r="7" fill="none" stroke="${ROSE}" stroke-width="2.4"/><circle cx="40" cy="54" r="4" fill="${ROSE}"/><circle cx="22" cy="28" r="3" fill="${OURO}"/>`,
+ pierc:`<circle cx="32" cy="42" r="14" fill="none" stroke="${OURO}" stroke-width="3.4"/><circle cx="32" cy="28" r="4.5" fill="${ROSE}"/>`
+};
+const ilustra=n=>{const k=/henna/i.test(n)?'henna':/lamination/i.test(n)?'lamin':/Remoção de cílios/i.test(n)?'cilrem':/Lash lifting/i.test(n)?'lift':/cílios/i.test(n)?'cil':/Micropig/i.test(n)?'micro':/Buço|Depilação facial/i.test(n)?'rosto':/Ozonio/i.test(n)?'ozonio':/piercing/i.test(n)?'pierc':/laser/i.test(n)?'laser':/sobrancelhas/i.test(n)?'sobr':/unha|Mão|Pé/i.test(n)?'unha':'rosto';
+  return `<svg viewBox="0 0 64 80" aria-hidden="true">${ICO[k]}</svg>`};
+const GRUPOS=[['Sobrancelhas',/sobrancelhas|henna|Brow/i],['Cílios',/cílios|Lash/i],['Micropigmentação',/Micropig/i],['Rosto',/Buço|Depilação facial/i],['Unhas',/unha|Mão|Pé/i],['Laser e bem-estar',/laser|Ozonio|piercing/i]];
+const durTxt=m=>m>=60?(Math.floor(m/60)+'h'+(m%60?String(m%60).padStart(2,'0'):'')):m+' min';
+function desenhaCatalogo(){
+  const u=UN[un],box=document.getElementById('catalogo'),usados=new Set();
+  box.innerHTML=GRUPOS.map(([g,re])=>{const its=u.serv.map((s,i)=>[s,i]).filter(([s,i])=>!usados.has(i)&&re.test(s[0]));its.forEach(([s,i])=>usados.add(i));
+    return its.length?`<div class="cat"><h2>${g}</h2>${its.map(([s,i])=>`<div class="it"><div class="ph">${ilustra(s[0])}</div><div class="t"><b>${esc(s[0])}</b><i>⏱ ${durTxt(s[1])}</i></div><button type="button" data-i="${i}">+ Agendar</button></div>`).join('')}</div>`:''}).join('');
+  box.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>escolheServico(+b.dataset.i));
+  document.getElementById('fluxo').hidden=true;document.getElementById('fab').hidden=false}
+function escolheServico(i){
+  const f=document.getElementById('fluxo'),s=document.getElementById('s');s.value=String(i);f.hidden=false;
+  montaQuem();montaDias();desenhaSlots();f.scrollIntoView({behavior:'smooth',block:'start'})}
 async function escolheUnidade(){
   const u=UN[un],aviso=document.getElementById('aviso'),resto=document.getElementById('resto');
   escolha=null;resto.hidden=true;aviso.innerHTML='<p class="small">Carregando os horários…</p>';
@@ -174,7 +228,7 @@ async function escolheUnidade(){
   document.getElementById('s').innerHTML=u.serv.map((x,i)=>`<option value="${i}">${esc(x[0])} · ${x[1]} min</option>`).join('');
   montaQuem();const d=document.getElementById('dias');montaDias();
   d.onchange=()=>{d.querySelectorAll('label').forEach(l=>l.classList.toggle('on',!!l.querySelector('input:checked')));desenhaSlots()};
-  desenhaSlots()}
+  desenhaSlots();desenhaCatalogo()}
 
 // Horários livres: dentro da abertura, no período, com vaga (menos atendimentos sobrepostos que o limite) e longe o bastante de agora.
 function livres(data,dur,periodo,pro){
