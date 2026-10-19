@@ -152,11 +152,15 @@
       S.push(secao('voce', '', [pessoa('voce', 'Seus dados', { papeis: ['Comprador(a)'] })]));
     } else if (modelo === 'compra-venda') {
       var pp = papelDe(estado, modelo), ambos = pp === 'ambos';
-      var propriosDados = pp === 'comprador' ? 'comprador' : pp === 'vendedor' ? 'vendedor' : null;
       var linhasCV = [pessoa('partes', rotuloDe(estado, modelo, pp, 'Vendedor e comprador'), { papeis: ambos ? ['Vendedor(a)', 'Comprador(a)'] : [pp === 'vendedor' ? 'Vendedor(a)' : 'Comprador(a)'] })];
+      // Valor, sinal, forma de pagamento e as contas, num bloco só: o dado bancário
+      // só faz sentido preso à explicação de como o pagamento foi feito.
       if (pub !== 'corretor') {
-        linhasCV.push(item('partes.banco', ambos ? 'Dados bancários de ambos' : (pub === 'cliente' ? 'Seus dados bancários' : 'Dados bancários do ' + propriosDados)));
-        if (pp !== 'vendedor') linhasCV.push(item('comprador.valor', ambos ? 'Valor da transação (comprador)' : 'Valor da transação'));
+        var pag = item('pagamento', pp === 'comprador' ? 'Pagamento: valor da transação, sinal (se houve), forma (TED ou PIX) e conta de onde sairá o pagamento'
+          : pp === 'vendedor' ? 'Dados bancários para receber o pagamento'
+          : 'Pagamento: valor da transação, sinal (se houve), forma (TED ou PIX) e dados bancários de comprador e vendedor');
+        pag.f = { k: 'pagamento', lado: pp };
+        linhasCV.push(pag);
       }
       // O comprador raramente tem a matrícula: nasce desmarcada para ele.
       linhasCV.push(item('imovel.mat', 'Matrícula do imóvel', pp !== 'comprador'));
@@ -266,9 +270,15 @@
   var DOC = function (rotulo, opcional) { return { k: 'doc', rotulo: rotulo, opcional: !!opcional }; };
   var CAMPO_ENDERECO = { id: 'endereco', rotulo: 'Primeiro endereço do casal', tipo: 'texto' };
   var CAMPO_REGIME = { id: 'regime', rotulo: 'Regime de bens', tipo: 'regime' };
+  var CAMPOS_PAGAMENTO = [
+    { id: 'valor', rotulo: 'Valor da transação (R$)', tipo: 'moeda' },
+    { id: 'sinal', rotulo: 'Houve sinal (entrada já paga)?', tipo: 'texto' },
+    { id: 'sinalValor', rotulo: 'Valor do sinal (R$)', tipo: 'moeda' },
+    { id: 'restante', rotulo: 'Valor a pagar no ato da escritura (R$)', tipo: 'moeda' },
+    { id: 'forma', rotulo: 'Forma de pagamento no ato', tipo: 'texto' },
+    { id: 'outra', rotulo: 'Outra forma de pagamento (descrição)', tipo: 'texto' }
+  ];
   var FORMS = {
-    'partes.banco': { k: 'banco', titulo: 'Dados bancários' },
-    'comprador.valor': { k: 'campos', titulo: 'Valor', campos: [{ id: 'valor', rotulo: 'Valor da transação (R$)', tipo: 'moeda' }] },
     'imovel.mat': DOC('Matrícula do imóvel'),
     'imovel.contrato': DOC('Contrato', true),
     'bem.mat': DOC('Matrícula do imóvel'),
@@ -298,7 +308,7 @@
       sec.itens.forEach(function (it) {
         if (!ehMarcado(estado, it)) return;
         var b;
-        if (it.f) b = JSON.parse(JSON.stringify(it.f));
+        if (it.f) { b = JSON.parse(JSON.stringify(it.f)); if (b.k === 'pagamento') { b.campos = CAMPOS_PAGAMENTO; b.titulo = 'Pagamento'; } }
         else if (FORMS[it.id]) b = JSON.parse(JSON.stringify(FORMS[it.id]));
         else b = DOC(it.texto); // bens, poderes e itens avulsos: um documento com o nome do item
         b.id = it.id;

@@ -66,7 +66,7 @@ const B64 = Buffer.from('conteudo-do-rg').toString('base64');
 function semear(m, {driveUrl, expira = Date.now() + 864e5} = {}) {
   m.db.casos = {'-Caso1': {nome: 'Maria da Silva', driveUrl: driveUrl || '', documentos: {}}, '-Caso2': {nome: 'Outro Cliente', documentos: {}}};
   m.db.pedidos = {[TOKEN]: {casoId: '-Caso1', ato: 'Escritura de Compra e Venda', expiraEm: expira,
-    blocos: [{k: 'campos', id: 'comprador.valor', titulo: 'Valor', campos: [{id: 'valor', rotulo: 'Valor da transação (R$)', tipo: 'moeda'}]}]}};
+    blocos: [{k: 'pagamento', id: 'pagamento', titulo: 'Pagamento', lado: 'ambos', campos: [{id: 'valor', rotulo: 'Valor da transação (R$)'}, {id: 'sinal', rotulo: 'Houve sinal (entrada já paga)?'}, {id: 'restante', rotulo: 'Valor a pagar no ato da escritura (R$)'}, {id: 'forma', rotulo: 'Forma de pagamento no ato'}]}]}};
 }
 const arq = (extra = {}) => ({acao: 'cliente-arquivo', t: TOKEN, papel: 'Comprador(a)', pessoa: 'Maria da Silva', tipo: 'RG_CNH', mimetype: 'image/jpeg', base64: B64, ...extra});
 
@@ -118,11 +118,11 @@ await passo('os dados digitados viram um documento do caso, com os rótulos do p
   const m = mundo(); semear(m);
   const r = m.chamar({acao: 'cliente-dados', t: TOKEN, dados: {ato: 'Escritura de Compra e Venda',
     pessoas: [{papel: 'Comprador(a)', nome: 'Maria da Silva', estadoCivil: 'Casado(a)', profissao: 'Professora', endereco: 'Rua das Palmeiras, 210 — Jardins', regime: 'Comunhão parcial de bens', conjuge: {nome: 'João Souza', profissao: 'Engenheiro', endereco: 'Rua das Palmeiras, 210'}}],
-    campos: {'comprador.valor': {valor: '450.000,00'}}, banco: {'partes.banco': {banco: 'BB', agencia: '1', conta: '2', titular: 'Maria'}}, observacoes: 'Constar nome de solteira'}});
+    campos: {pagamento: {valor: '450.000,00', sinal: 'Sim', restante: '405.000,00', forma: 'PIX'}}, banco: {'pagamento.pagador': {banco: 'BB', agencia: '1', conta: '2', titular: 'Maria'}, 'pagamento.recebedor': {banco: 'Itaú', agencia: '9', conta: '8', titular: 'João', pix: 'joao@x.com'}}, observacoes: 'Constar nome de solteira'}});
   assert.equal(r.ok, true);
   const f = m.db.casos['-Caso1'].documentos['ficha_' + TOKEN.slice(0, 10)];
   assert.equal(f.tipo, 'informacoes'); assert.equal(f.origem, 'link do cliente');
-  for (const t of ['COMPRADOR(A) — Maria da Silva', 'Estado civil: Casado(a)', 'Cônjuge: João Souza', 'Valor da transação (R$): 450.000,00', 'Banco: BB', 'OBSERVAÇÕES DO CLIENTE (para a equipe conferir antes de usar na minuta): Constar nome de solteira', 'ainda não conferidos']) assert(f.texto.includes(t), 'faltou: ' + t);
+  for (const t of ['COMPRADOR(A) — Maria da Silva', 'Estado civil: Casado(a)', 'Cônjuge: João Souza', 'Valor da transação (R$): 450.000,00', 'Houve sinal (entrada já paga)?: Sim', 'Valor a pagar no ato da escritura (R$): 405.000,00', 'Forma de pagamento no ato: PIX', 'CONTA DE ONDE SAIRÁ O PAGAMENTO', 'Banco: BB', 'CONTA QUE RECEBERÁ O PAGAMENTO', 'PIX: joao@x.com', 'OBSERVAÇÕES DO CLIENTE (para a equipe conferir antes de usar na minuta): Constar nome de solteira', 'ainda não conferidos']) assert(f.texto.includes(t), 'faltou: ' + t);
   assert(m.db.pedidos[TOKEN].concluidoEm > 0); assert(m.externos.length >= 1, 'a equipe é avisada pelo WhatsApp');
 });
 await passo('texto de cliente com quebra de linha e instrução escondida vira uma linha só e é cortado', () => {

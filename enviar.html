@@ -59,6 +59,7 @@ textarea{min-height:90px;resize:vertical}
 .barra i{display:block;height:100%;background:var(--champagne);width:0;transition:width .2s}
 .tirar{flex:none;width:44px;height:44px;border:0;background:none;color:var(--tinta-2);font-size:22px;cursor:pointer}
 .opcional-nota{color:var(--tinta-2);font-weight:400}
+.dica{font-size:13px;color:var(--tinta-2);margin:-2px 0 8px}
 .repete{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
 .remover{border:0;background:none;color:var(--critico);font:500 14px 'Inter',sans-serif;cursor:pointer;padding:8px}
 
@@ -106,6 +107,7 @@ body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.inva
 const FIREBASE='https://painel-cartorio-default-rtdb.firebaseio.com';
 const GAS_URL='https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec';
 const MAX_LADO=1800, QUALIDADE=.82, MAX_BYTES=8*1024*1024, PARALELO=3;
+const DICA_CPF='Se o seu RG não trouxer o CPF, anexe o CPF junto, na mesma foto ou em outra.';
 const ESTADOS_CIVIS=['Solteiro(a)','Casado(a)','Divorciado(a)','Viúvo(a)','Separado(a)'];
 const REGIMES=['Comunhão parcial de bens','Comunhão universal de bens','Separação convencional de bens','Separação obrigatória de bens','Participação final nos aquestos'];
 // Estes regimes só existem com pacto antenupcial: aí a página pede o pacto e o registro dele.
@@ -177,8 +179,8 @@ function linhasArq(chave){
   }).join('');
 }
 function desenharSlot(chave){ const l=document.querySelector(`[data-lista="${CSS.escape(chave)}"]`); if(l) l.innerHTML=linhasArq(chave); }
-function slot(chave,rotulo,opcional,cam){
-  return `<div class="slot"><b>${esc(rotulo)}${opcional?' <small>(opcional)</small>':''}</b>
+function slot(chave,rotulo,opcional,dica){
+  return `<div class="slot"><b>${esc(rotulo)}${opcional?' <small>(opcional)</small>':''}</b>${dica?`<div class="dica">${esc(dica)}</div>`:''}
     <div class="acoes"><label class="btn">📷 Tirar foto<input type="file" accept="image/*" capture="environment" data-slot="${esc(chave)}"></label>
     <label class="btn">📁 Escolher<input type="file" accept="image/*,application/pdf" multiple data-slot="${esc(chave)}"></label></div>
     <ul class="lista" data-lista="${esc(chave)}">${linhasArq(chave)}</ul></div>`;
@@ -208,9 +210,9 @@ function htmlPessoa(b,i,n){
   h+=input('Rua',p.rua,`${A} data-f="rua" id="rua-${k}" autocomplete="street-address"`,true);
   h+=`<div class="duas">${input('Complemento',p.compl,`${A} data-f="compl"`)}${input('Bairro',p.bairro,`${A} data-f="bairro" id="bairro-${k}"`)}</div>`;
   h+=`<div class="tres">${input('Cidade',p.cidade,`${A} data-f="cidade" id="cidade-${k}"`)}<div class="campo"><label>UF</label><select ${A} data-f="uf" id="uf-${k}"><option value=""></option>${UFS.map(u=>`<option${u===p.uf?' selected':''}>${u}</option>`).join('')}</select></div></div>`;
-  h+=`<h3>Documentos</h3>`+slot(k+'.rg',simples?'RG ou CNH e CPF':'RG ou CNH (frente e verso)');
+  h+=`<h3>Documentos</h3>`+slot(k+'.rg','RG ou CNH (frente e verso)',false,DICA_CPF);
   if(!simples){
-    h+=slot(k+'.cpf','CPF',true)+certidoes(p,k);
+    h+=certidoes(p,k);
     if(p.ec==='Casado(a)'&&b.conjuge){
       h+=select('Regime de bens do casamento',p.regime,REGIMES,`${A} data-f="regime"`);
       if(REGIMES_COM_PACTO.includes(p.regime)) h+=slot(k+'.pacto','Escritura do pacto antenupcial')+slot(k+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis');
@@ -218,7 +220,7 @@ function htmlPessoa(b,i,n){
         input('Nome completo do cônjuge',p.conj.nome,`${A} data-c="nome"`,true)+input('Profissão do cônjuge',p.conj.prof,`${A} data-c="prof"`,true)+
         `<label class="marca"><input type="checkbox" ${A} data-c="mesmo"${p.conj.mesmo?' checked':''}> Mora no mesmo endereço</label>`+
         (p.conj.mesmo?'':input('Endereço do cônjuge',p.conj.end,`${A} data-c="end"`,true))+
-        slot(k+'.rgconj','RG ou CNH e CPF do cônjuge')+`</div>`;
+        slot(k+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF)+`</div>`;
     }
   }
   if(lista.length>1&&i>=(b.papeis||[]).length) h+=`<div class="repete"><span></span><button class="remover" data-remover="${b.id}|${i}">Remover esta pessoa</button></div>`;
@@ -243,6 +245,7 @@ function htmlBloco(b,n){
     const v=E.banco[b.id]||{}, A=`data-banco="${b.id}"`;
     h+=input('Banco',v.banco||'',`${A} data-f="banco"`,true)+`<div class="duas">${input('Agência',v.agencia||'',`${A} data-f="agencia"`,true)}${input('Conta',v.conta||'',`${A} data-f="conta"`,true)}</div>`+input('Titular da conta',v.titular||'',`${A} data-f="titular"`,true)+input('Chave PIX (opcional)',v.pix||'',`${A} data-f="pix"`);
   }
+  else if(b.k==='pagamento') h+=htmlPagamento(b);
   else if(b.k==='advogado'){
     const v=E.adv, A='data-adv="1"';
     h+=input('Nome completo',v.nome||'',`${A} data-f="nome"`,true)+input('Número da OAB',v.oab||'',`${A} data-f="oab"`,true)+select('Estado civil',v.ec||'',ESTADOS_CIVIS,`${A} data-f="ec"`)+input('Endereço completo',v.end||'',`${A} data-f="end"`)+slot(b.id+'.oab','Carteira da OAB');
@@ -251,7 +254,7 @@ function htmlBloco(b,n){
     h+=`<p class="opcional-nota" style="margin-bottom:8px">Se não houver filhos, deixe em branco.</p>`;
     E.filhos.forEach((f,i)=>{
       const A=`data-filho="${i}"`;
-      h+=`<div class="sec-conj"><h3 style="margin-top:0">Filho(a) ${i+1}</h3>`+input('Nome completo',f.nome||'',`${A} data-f="nome"`,true)+select('Estado civil',f.ec||'',ESTADOS_CIVIS,`${A} data-f="ec"`)+input('Profissão',f.prof||'',`${A} data-f="prof"`)+input('Endereço completo',f.end||'',`${A} data-f="end"`)+slot(`${b.id}.${i}.rg`,'RG ou CNH e CPF')+`<div class="repete"><span></span><button class="remover" data-rmfilho="${i}">Remover</button></div></div>`;
+      h+=`<div class="sec-conj"><h3 style="margin-top:0">Filho(a) ${i+1}</h3>`+input('Nome completo',f.nome||'',`${A} data-f="nome"`,true)+select('Estado civil',f.ec||'',ESTADOS_CIVIS,`${A} data-f="ec"`)+input('Profissão',f.prof||'',`${A} data-f="prof"`)+input('Endereço completo',f.end||'',`${A} data-f="end"`)+slot(`${b.id}.${i}.rg`,'RG ou CNH',false,DICA_CPF)+`<div class="repete"><span></span><button class="remover" data-rmfilho="${i}">Remover</button></div></div>`;
     });
     h+=`<button class="btn suave so" data-maisfilho="1" style="width:100%;margin-top:10px">+ Acrescentar filho(a)</button>`;
     h+=input('Pensão estipulada para os filhos (R$), se houver',(E.campos[b.id]||{}).pensao||'',`data-cb="${b.id}" data-f="pensao" inputmode="decimal"`);
@@ -260,6 +263,30 @@ function htmlBloco(b,n){
     h+=`<p class="opcional-nota" style="margin-bottom:8px">Marque o que deseja constar na doação.</p>`+(b.opcoes||[]).map(o=>`<label class="marca"><input type="checkbox" data-clausula="${esc(o)}"${E.clausulas[o]?' checked':''}> ${esc(o)}</label>`).join('');
   }
   return h+'</div>';
+}
+function htmlBanco(chave,comPix){
+  const v=E.banco[chave]||{}, A=`data-banco="${chave}"`;
+  return input('Banco',v.banco||'',`${A} data-f="banco"`,true)+`<div class="duas">${input('Agência',v.agencia||'',`${A} data-f="agencia"`,true)}${input('Conta',v.conta||'',`${A} data-f="conta"`,true)}</div>`+input('Titular da conta',v.titular||'',`${A} data-f="titular"`,true)+(comPix?input('Chave PIX (opcional)',v.pix||'',`${A} data-f="pix"`):'');
+}
+// Valor, sinal, forma e contas juntos: o dado bancário só faz sentido preso à explicação.
+function htmlPagamento(b){
+  const lado=b.lado||'ambos', C=E.campos[b.id]=E.campos[b.id]||{}, A=`data-cb="${b.id}"`;
+  const paga=lado!=='vendedor', recebe=lado!=='comprador';
+  const porque=paga
+    ? 'a escritura precisa descrever como o pagamento foi feito — o valor, o sinal (se houve), a forma de pagamento e as contas envolvidas. Com isso a minuta já sai com essas informações corretas.'
+    : 'a escritura precisa dizer como o pagamento foi feito, inclusive em qual conta ele será recebido. Com isso a minuta já sai com essa informação correta.';
+  let h=`<div class="aviso" style="margin:0 0 12px"><b>Por que pedimos isto:</b> ${porque}</div>`;
+  if(paga){
+    h+=input('Valor da transação (R$)',C.valor||'',`${A} data-f="valor" inputmode="decimal" placeholder="0,00"`,true);
+    h+=select('Já foi pago algum valor de sinal (entrada)?',C.sinal||'',['Não','Sim'],`${A} data-f="sinal"`);
+    if(C.sinal==='Sim') h+=input('Valor do sinal (R$)',C.sinalValor||'',`${A} data-f="sinalValor" inputmode="decimal" placeholder="0,00"`);
+    h+=input('Valor a pagar no ato da escritura (R$)',C.restante||'',`${A} data-f="restante" inputmode="decimal" placeholder="0,00"`,true);
+    h+=select('Como será pago esse valor?',C.forma||'',['TED','PIX'],`${A} data-f="forma"`,true);
+    if(C.forma) h+='<h3>Conta de onde sairá o pagamento</h3>'+htmlBanco(b.id+'.pagador',false);
+    h+=input('Foi diferente disso? Conte como (opcional)',C.outra||'',`${A} data-f="outra" placeholder="Ex.: financiamento, cheque, permuta…"`);
+  }
+  if(recebe) h+='<h3>Conta que receberá o pagamento</h3>'+htmlBanco(b.id+'.recebedor',true);
+  return h;
 }
 function htmlCampo(bid,c){
   const v=(E.campos[bid]||{})[c.id]||'', A=`data-cb="${bid}" data-f="${c.id}"`;
@@ -302,6 +329,7 @@ raiz.addEventListener('change',e=>{
     if(f==='uf') p.uf=t.value;
   }
   if(t.tagName==='SELECT'&&t.dataset.cb) (E.campos[t.dataset.cb]=E.campos[t.dataset.cb]||{})[t.dataset.f]=t.value;
+  if(t.tagName==='SELECT'&&t.dataset.cb&&(t.dataset.f==='sinal'||t.dataset.f==='forma')){ desenharTudo(); return; }
   if(t.tagName==='SELECT'&&t.dataset.adv) E.adv[t.dataset.f]=t.value;
   if(t.tagName==='SELECT'&&t.dataset.filho!==undefined) E.filhos[+t.dataset.filho][t.dataset.f]=t.value;
   resumo();
@@ -341,6 +369,11 @@ function faltas(){
     else if(b.k==='doc'&&!b.opcional&&!tem(b.id)) f.push(b.rotulo);
     else if(b.k==='docs'){ (b.docs||[]).forEach(d=>{ if(!d.opcional&&!tem(`${b.id}.${d.id}`)) f.push(d.rotulo); }); (b.campos||[]).forEach(c=>{ if(!c.opcional&&!((E.campos[b.id]||{})[c.id])) f.push(c.rotulo); }); }
     else if(b.k==='campos') (b.campos||[]).forEach(c=>{ if(!c.opcional&&!((E.campos[b.id]||{})[c.id])) f.push(c.rotulo); });
+    else if(b.k==='pagamento'){
+      const C=E.campos[b.id]||{}, lado=b.lado||'ambos', ok=v=>v&&v.banco&&v.agencia&&v.conta&&v.titular;
+      if(lado!=='vendedor'){ if(!C.valor) f.push('Valor da transação'); if(!C.restante) f.push('Valor a pagar no ato da escritura'); if(!C.forma) f.push('Forma de pagamento (TED ou PIX)'); else if(!ok(E.banco[b.id+'.pagador'])) f.push('Conta de onde sairá o pagamento'); }
+      if(lado!=='comprador'&&!ok(E.banco[b.id+'.recebedor'])) f.push('Conta que receberá o pagamento');
+    }
     else if(b.k==='banco'){ const v=E.banco[b.id]||{}; if(!(v.banco&&v.agencia&&v.conta&&v.titular)) f.push('Dados bancários'); }
     else if(b.k==='advogado'){ if(!(E.adv.nome&&E.adv.oab)) f.push('Advogado(a): nome e OAB'); }
   });

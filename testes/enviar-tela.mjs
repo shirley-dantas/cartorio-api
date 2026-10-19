@@ -56,8 +56,24 @@ await passo('sem código, ou com código vencido, a página diz que o link não 
 await passo('a página pede o que foi marcado: comprador → seus dados, banco e valor; nada do vendedor', async () => {
   const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
   const t = await pg.textContent('#formulario');
-  assert(/Comprador\(a\)/.test(t) && /Dados bancários/.test(t) && /Valor da transação/.test(t));
+  assert(/Comprador\(a\)/.test(t) && /Pagamento/.test(t) && /Valor da transação/.test(t) && /Por que pedimos isto/.test(t));
   assert(!/Vendedor/.test(t) && !/Matrícula/.test(t));
+});
+
+await passo('não existe campo de CPF: o RG ou a CNH já traz, com um aviso para quando não trouxer', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  const t = await pg.textContent('#formulario'); assert(!/^CPF$/m.test(t) && !/\bCPF \(opcional\)/.test(t));
+  assert(/Se o seu RG não trouxer o CPF, anexe o CPF junto/.test(t));
+});
+
+await passo('pagamento: o sinal e a forma abrem os campos certos; o vendedor só vê a conta que recebe', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-cb="pagamento"]');
+  assert.equal(await pg.locator('[data-f="sinalValor"]').count(), 0); assert.equal(await pg.locator('[data-banco]').count(), 0, 'conta só depois de escolher TED ou PIX');
+  await pg.selectOption('[data-f="sinal"]', 'Sim'); assert.equal(await pg.locator('[data-f="sinalValor"]').count(), 1);
+  await pg.selectOption('[data-f="forma"]', 'TED'); assert.equal(await pg.locator('[data-banco="pagamento.pagador"][data-f="banco"]').count(), 1);
+  assert(/Conta de onde sairá o pagamento/.test(await pg.textContent('#formulario')) && !/Conta que receberá/.test(await pg.textContent('#formulario')));
+  const v = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'vendedor'}); await v.pg.waitForSelector('[data-banco]');
+  const tv = await v.pg.textContent('#formulario'); assert(/Conta que receberá o pagamento/.test(tv) && /Por que pedimos isto/.test(tv)); assert.equal(await v.pg.locator('[data-f="valor"], [data-f="sinal"], [data-f="restante"]').count(), 0, 'o vendedor não preenche valor nem sinal');
 });
 
 await passo('o estado civil decide a certidão: solteiro → nascimento; casado → casamento + cônjuge; divorciado → casamento averbado', async () => {
@@ -90,9 +106,12 @@ await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os d
   await pg.fill('[data-f="nome"]', 'Maria da Silva'); await pg.selectOption('[data-f="ec"]', 'Solteiro(a)'); await pg.fill('[data-f="prof"]', 'Professora');
   await pg.fill('[data-f="cep"]', '01452000'); await pg.waitForFunction(() => document.querySelector('[data-f="rua"]').value); await pg.fill('[data-f="num"]', '210');
   await pg.locator('input[type=file][multiple]').nth(0).setInputFiles(RG);
-  await pg.locator('input[type=file][multiple]').nth(2).setInputFiles(PDF);
-  await pg.fill('[data-banco] >> nth=0', 'Banco do Brasil'); await pg.fill('[data-f="agencia"]', '1234'); await pg.fill('[data-f="conta"]', '56789-0'); await pg.fill('[data-f="titular"]', 'Maria da Silva');
-  await pg.fill('[data-cb="comprador.valor"]', '450.000,00');
+  await pg.locator('input[type=file][multiple]').nth(1).setInputFiles(PDF);
+  await pg.fill('[data-cb="pagamento"][data-f="valor"]', '450.000,00');
+  await pg.selectOption('[data-f="sinal"]', 'Sim'); await pg.fill('[data-f="sinalValor"]', '45.000,00');
+  await pg.fill('[data-f="restante"]', '405.000,00'); await pg.selectOption('[data-f="forma"]', 'PIX');
+  await pg.fill('[data-banco="pagamento.pagador"][data-f="banco"]', 'Banco do Brasil'); await pg.fill('[data-banco="pagamento.pagador"][data-f="agencia"]', '1234');
+  await pg.fill('[data-banco="pagamento.pagador"][data-f="conta"]', '56789-0'); await pg.fill('[data-banco="pagamento.pagador"][data-f="titular"]', 'Maria da Silva');
   await pg.fill('#obs', 'Quero constar o nome de solteira.');
   await pg.waitForFunction(() => /anexados/.test(document.querySelector('#resumo').textContent));
   await pg.screenshot({path: SAIDA('env-cel-cheio.png'), fullPage: true});
@@ -103,7 +122,8 @@ await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os d
   assert(rg.mimetype === 'image/jpeg' && Buffer.from(rg.base64, 'base64').length < 600000, 'a foto foi reduzida antes de sair');
   assert.equal(dados.dados.pessoas[0].nome, 'Maria da Silva'); assert.equal(dados.dados.pessoas[0].estadoCivil, 'Solteiro(a)');
   assert(/Rua das Palmeiras, 210/.test(dados.dados.pessoas[0].endereco));
-  assert.equal(dados.dados.campos['comprador.valor'].valor, '450.000,00'); assert.equal(dados.dados.banco['partes.banco'].banco, 'Banco do Brasil');
+  const pag = dados.dados.campos.pagamento; assert.equal(pag.valor, '450.000,00'); assert.equal(pag.sinal, 'Sim'); assert.equal(pag.sinalValor, '45.000,00'); assert.equal(pag.restante, '405.000,00'); assert.equal(pag.forma, 'PIX');
+  assert.equal(dados.dados.banco['pagamento.pagador'].banco, 'Banco do Brasil'); assert(!dados.dados.banco['pagamento.recebedor'], 'o comprador não informa a conta que recebe');
   assert.equal(dados.dados.observacoes, 'Quero constar o nome de solteira.');
   await pg.screenshot({path: SAIDA('env-cel-final.png')});
 });

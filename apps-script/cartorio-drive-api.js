@@ -1508,7 +1508,8 @@ function montarFichaCliente(d, dataTxt, rotulos) {
   var bancos = d.banco && typeof d.banco === "object" ? d.banco : {};
   Object.keys(bancos).slice(0, 5).forEach(function (b) {
     var v = bancos[b] || {};
-    L.push("", "DADOS BANCÁRIOS", "  Banco: " + textoCliente(v.banco, 60) + " · Agência: " + textoCliente(v.agencia, 20) + " · Conta: " + textoCliente(v.conta, 30) + " · Titular: " + textoCliente(v.titular, 120) + (v.pix ? " · PIX: " + textoCliente(v.pix, 80) : ""));
+    var titulo = /\.pagador$/.test(b) ? "CONTA DE ONDE SAIRÁ O PAGAMENTO" : /\.recebedor$/.test(b) ? "CONTA QUE RECEBERÁ O PAGAMENTO" : "DADOS BANCÁRIOS";
+    L.push("", titulo, "  Banco: " + textoCliente(v.banco, 60) + " · Agência: " + textoCliente(v.agencia, 20) + " · Conta: " + textoCliente(v.conta, 30) + " · Titular: " + textoCliente(v.titular, 120) + (v.pix ? " · PIX: " + textoCliente(v.pix, 80) : ""));
   });
   if (d.advogado && (d.advogado.nome || d.advogado.oab)) {
     L.push("", "ADVOGADO(A) — " + textoCliente(d.advogado.nome, 120) + " · OAB " + textoCliente(d.advogado.oab, 30) + (d.advogado.ec ? " · " + textoCliente(d.advogado.ec, 40) : "") + (d.advogado.end ? " · " + textoCliente(d.advogado.end, 300) : ""));

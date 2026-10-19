@@ -906,6 +906,13 @@ Regras dela que **não devem ser mexidas sem perguntar**:
 - **Comprador de construtora** só informa os próprios dados — a construtora e o
   vendedor ela identifica pela matrícula. Testamento ela não faz; as certidões que
   ela busca na internet nascem desmarcadas.
+- **Valor e dados bancários são um pedido só — "Pagamento"** — e nunca pedimos conta
+  sem dizer por quê: a escritura descreve como o pagamento foi feito. O comprador
+  informa o valor da transação, se houve sinal (e quanto), quanto fica para o ato,
+  se foi TED ou PIX e a conta de onde sai; o vendedor, só a conta que recebe. Um
+  campo livre cobre a transação que foi diferente (financiamento, cheque, permuta).
+- **Não existe campo de CPF avulso**: o RG ou a CNH já traz. Quando o RG não trouxer,
+  a página avisa para anexar o CPF junto.
 - **Mandar para um lado só** (comprador, donatário…) tira do pedido o que é do
   outro: o valor da transação é só do comprador, a matrícula nasce desmarcada para ele.
 

@@ -55,9 +55,9 @@ passo('união estável é documento marcável, não estado civil', () => {
 });
 passo('compra e venda: valor só do comprador, banco das duas partes; corretor só dados e matrícula', () => {
   const t = txt({tipo: 'Escritura de Compra e Venda'});
-  assert(/Valor da transação \(comprador\)/.test(t) && /Dados bancários de ambos/.test(t));
+  assert(/Pagamento: valor da transação, sinal \(se houve\), forma \(TED ou PIX\) e dados bancários de comprador e vendedor/.test(t));
   const c = txt({tipo: 'Escritura de Compra e Venda', publico: 'corretor'});
-  assert(/Matrícula/.test(c) && !/bancários|Valor da transação/.test(c));
+  assert(/Matrícula/.test(c) && !/bancários|Valor da transação|Pagamento/.test(c));
   assert(!c.includes('Contrato, se houver'), 'o contrato nasce desmarcado');
   assert(P.comporTexto({publico: 'corretor', tipo: 'Escritura de Compra e Venda', marc: {'imovel.contrato': true}}).includes('Contrato, se houver'));
 });
@@ -96,15 +96,14 @@ passo('a abertura usa o artigo certo', () => {
 passo('todo ato de todo público monta sem erro e com ao menos uma linha', () => {
   for (const tipo of TODOS) for (const publico of Object.keys(P.PUBLICOS)) assert(linhas({tipo, publico}).length >= 1, tipo + '/' + publico);
 });
-passo('mandando só para o comprador: nada do vendedor, valor da transação sim, matrícula desmarcada', () => {
-  const l = linhas({tipo: 'Escritura de Compra e Venda', papel: 'comprador'});
-  const t = l.join('\n');
-  assert(/Seus dados: RG, CPF/.test(t) && /Seus dados bancários/.test(t) && /Valor da transação$/m.test(t));
+passo('mandando só para o comprador: nada do vendedor, pagamento sim, matrícula desmarcada', () => {
+  const t = linhas({tipo: 'Escritura de Compra e Venda', papel: 'comprador'}).join('\n');
+  assert(/Seus dados: RG, CPF/.test(t) && /Pagamento: valor da transação/.test(t) && /conta de onde sairá/.test(t));
   assert(!/vendedor|Matrícula/i.test(t), t);
 });
 passo('mandando só para o vendedor: matrícula e banco sim, valor da transação não', () => {
   const t = linhas({tipo: 'Escritura de Compra e Venda', papel: 'vendedor'}).join('\n');
-  assert(/Seus dados/.test(t) && /Matrícula do imóvel/.test(t) && /bancários/.test(t) && !/Valor da transação|comprador/i.test(t), t);
+  assert(/Seus dados/.test(t) && /Matrícula do imóvel/.test(t) && /bancários/.test(t) && !/valor da transação|comprador/i.test(t), t);
 });
 passo('o advogado mandando para um lado só fala "Dados do comprador", não "Seus dados"', () => {
   const t = linhas({tipo: 'Escritura de Compra e Venda', papel: 'comprador', publico: 'advogado'}).join('\n');
@@ -121,6 +120,25 @@ passo('procuração: o procurador só informa o que é dele', () => {
 passo('papel que não existe no ato volta para "os dois"', () => {
   assert.equal(P.papelDe({papel: 'comprador'}, 'inventario'), 'ambos');
   assert.equal(P.papelDe({papel: 'xyz'}, 'compra-venda'), 'ambos');
+});
+passo('valor e dados bancários são UM pedido só, com o valor antes da conta', () => {
+  const l = linhas({tipo: 'Escritura de Compra e Venda'});
+  assert.equal(l.filter((x) => /bancários|Pagamento/.test(x)).length, 1, 'um item só de pagamento');
+  const pag = l.find((x) => /Pagamento/.test(x));
+  assert(pag.indexOf('valor da transação') < pag.indexOf('dados bancários'), pag);
+  assert(l.indexOf(pag) > 0 && /RG, CPF/.test(l[0]), 'vem depois dos dados da pessoa');
+});
+passo('comprador paga (valor, sinal, forma, conta pagadora); vendedor só informa a conta que recebe', () => {
+  const c = linhas({tipo: 'Escritura de Compra e Venda', papel: 'comprador'}).join('\n');
+  assert(/valor da transação, sinal \(se houve\), forma \(TED ou PIX\) e conta de onde sairá o pagamento/.test(c));
+  const v = linhas({tipo: 'Escritura de Compra e Venda', papel: 'vendedor'}).join('\n');
+  assert(/Dados bancários para receber o pagamento/.test(v) && !/valor da transação|sinal/.test(v));
+});
+passo('o formulário do pagamento nasce do pedido: lado e campos com rótulo (é o que a ficha lê)', () => {
+  const b = P.formulario({tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'vendedor'}).find((x) => x.k === 'pagamento');
+  assert.equal(b.lado, 'vendedor'); assert.equal(b.titulo, 'Pagamento');
+  assert(b.campos.some((c) => c.id === 'sinalValor' && /sinal/.test(c.rotulo)));
+  assert(!P.formulario({tipo: 'Escritura de Compra e Venda', publico: 'corretor'}).some((x) => x.k === 'pagamento'), 'corretor não pede pagamento');
 });
 console.log(erros ? '\n' + erros + ' falha(s)' : '\ntudo certo');
 process.exit(erros ? 1 : 0);
