@@ -192,6 +192,15 @@ await passo('envio rápido: o arquivo sobe sem esperar a IA (lerDepois) e a leit
   assert.deepEqual(leituras.map((c) => c.docKey).sort(), ['cli_aB3dE6_1', 'cli_aB3dE6_2'], 'uma leitura por arquivo guardado'); assert(leituras.every((c) => c.t === TOKEN));
 });
 
+await passo('viúvo: a certidão de casamento com a averbação do óbito basta; a de óbito só na lista de inventário', async () => {
+  const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  await pg.selectOption('[data-f="ec"]', 'Viúvo(a)'); let t = await pg.textContent('#formulario');
+  assert(/averbação do óbito/.test(t) && !/Certidão de óbito/.test(t), 'compra e venda não pede óbito');
+  const inv = await abrir({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true}}, {viewport: {width: 1100, height: 900}, mobile: false});
+  await inv.pg.waitForSelector('[data-b="herdeiros"]'); await inv.pg.selectOption('[data-b="herdeiros"][data-f="ec"]', 'Viúvo(a)');
+  t = await inv.pg.textContent('#formulario'); assert(/averbação do óbito/.test(t) && /Certidão de óbito do cônjuge/.test(t), 'inventário pede as duas');
+});
+
 let tela;
 await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os dados vão por último', async () => {
   const {pg, chamadas} = await abrir(compra); tela = pg; await pg.waitForSelector('[data-b="partes"]');

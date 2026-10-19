@@ -125,6 +125,7 @@
     var o = opcoes || {};
     var i = item(id, (quem ? quem + ': ' : '') + BASICO + (o.conjuge === false ? '' : CONJUGE));
     i.f = { k: 'pessoa', papeis: o.papeis || [quem], conjuge: o.conjuge !== false };
+    if (o.obito) i.f.obito = true; // só a lista de inventário pede a certidão de óbito do cônjuge de quem é viúvo
     return i;
   }
   function pessoaSimples(id, quem, papeis) { // o que ela pede do procurador e do requerente
@@ -189,7 +190,7 @@
       S.push(secao('lista', '', [
         item('falecido', 'Falecido(a) e cônjuge: RG, CPF, certidão de óbito e de casamento; pacto antenupcial, se houver'),
         item('falecido.testamento', 'Certidão de inexistência de testamento (você costuma buscar)', false),
-        pessoa('herdeiros', 'Herdeiros', { papeis: ['Herdeiro(a)'] }),
+        pessoa('herdeiros', 'Herdeiros', { papeis: ['Herdeiro(a)'], obito: true }),
         adv(item('advogado', 'Advogado(a): OAB, estado civil e endereço'))
       ]));
       S.push(secao('bens', 'Bens', bens(estado, 'bem.'), { vazio: 'Marque acima o que será inventariado.' }));

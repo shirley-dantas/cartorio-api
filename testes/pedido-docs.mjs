@@ -168,5 +168,9 @@ passo('divórcio, união e pacto: cada parte recebe só o seu bloco; "os dois" t
   assert.deepEqual(papeis('Pacto Antenupcial', 'noivo2'), ['Noivo(a) 2']);
   assert.deepEqual(P.formulario({tipo: 'Procuração', papel: 'outorgante'}).filter((b) => b.k === 'pessoa').map((b) => b.papeis[0]), ['Outorgante']);
 });
+passo('só a lista de inventário marca a pessoa para pedir o óbito do cônjuge', () => {
+  const marca = (tipo) => P.formulario({tipo, publico: 'advogado'}).filter((b) => b.k === 'pessoa').some((b) => b.obito);
+  assert(marca('Inventário') && !marca('Escritura de Compra e Venda') && !marca('Doação') && !marca('Divórcio'));
+});
 console.log(erros ? '\n' + erros + ' falha(s)' : '\ntudo certo');
 process.exit(erros ? 1 : 0);

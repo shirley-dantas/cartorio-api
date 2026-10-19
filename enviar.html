@@ -264,12 +264,16 @@ function opcoesRadio(rot,val,opcoes,att,obrig,nome){
 function input(rot,val,att,obrig,tipo){ return `<div class="campo"><label>${esc(rot)}${obrig?' <i>*</i>':''}</label><input type="${tipo||'text'}" value="${esc(val)}" ${att}></div>`; }
 function select(rot,val,opcoes,att,obrig){ return `<div class="campo"><label>${esc(rot)}${obrig?' <i>*</i>':''}</label><select ${att}><option value="">Escolha…</option>${opcoes.map(o=>`<option${o===val?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`; }
 
-function certidoes(p,chave){
+function certidoes(p,chave,b){
   const ec=p.ec;
   if(ec==='Solteiro(a)') slot(chave+'.cert','Certidão de nascimento');
   else if(ec==='Casado(a)') slot(chave+'.cert','Certidão de casamento');
   else if(ec==='Divorciado(a)') slot(chave+'.cert','Certidão de casamento, com a averbação do divórcio');
-  else if(ec==='Viúvo(a)'){ slot(chave+'.cert','Certidão de casamento'); slot(chave+'.obito','Certidão de óbito do cônjuge'); }
+  else if(ec==='Viúvo(a)'){
+    // A certidão de casamento com a averbação do óbito já serve; a de óbito só no inventário.
+    slot(chave+'.cert','Certidão de casamento, com a averbação do óbito do cônjuge');
+    if(b&&b.obito) slot(chave+'.obito','Certidão de óbito do cônjuge');
+  }
   else if(ec==='Separado(a)') slot(chave+'.cert','Certidão de casamento, com a averbação da separação');
   else slot(chave+'.cert','Certidão de estado civil',false,'Nascimento (solteiro) ou casamento (casado, divorciado, separado ou viúvo). Escolha o estado civil acima e o nome certo aparece.');
 }
@@ -300,7 +304,7 @@ function htmlPessoa(b,i,n){
   // Os documentos desta pessoa vão para o fim da página (FIM), agrupados sob o nome dela.
   slot(k+'.rg','RG ou CNH (frente e verso)',false,DICA_CPF);
   if(!simples){
-    certidoes(p,k);
+    certidoes(p,k,b);
     if(p.ec==='Casado(a)'&&b.conjuge){
       if(REGIMES_COM_PACTO.includes(p.regime)){ slot(k+'.pacto','Escritura do pacto antenupcial'); slot(k+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis'); }
       slot(k+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF);
