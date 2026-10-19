@@ -943,6 +943,15 @@ Regras que **não devem ser mexidas sem perguntar**:
 - **O que o cliente digita é "ainda não conferido".** Quebras de linha e texto
   longo são cortados antes de entrar na minuta, para um recado não forjar um
   documento novo no meio do pedido da IA.
+- **Dá para excluir o que o cliente mandou errado**, em cada item da lista recebida
+  (`excluirDocCliente()` → ação `cliente-excluir` do Apps Script): o arquivo vai para a
+  **lixeira do Drive** (volta em até 30 dias) e o registro sai do card, então a minuta
+  deixa de usá-lo. **O Drive só é tocado quando o selo confere** — um HMAC com segredo
+  que só existe no Apps Script (`CLIENTE_SEGREDO`), gravado em cada arquivo recebido —,
+  porque o banco é aberto e um registro forjado poderia apontar para outro arquivo
+  (a minuta, por exemplo). Sem selo (envio antigo ou forjado), o item sai do card e o
+  arquivo fica no Drive, e o painel avisa. Só se exclui o que veio pelo link.
+- A faixa Documentos também tem **Abrir pasta no Drive** (`pedidoPastaHtml()`).
 - **Mudar a lista depois de gerar o link** avisa que o link está velho e pede
   *Atualizar a lista* — o código continua o mesmo.
 

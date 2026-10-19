@@ -1149,6 +1149,7 @@ function doPost(e) {
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
     if (acao === "cliente-arquivo") return clienteArquivo(dados);
     if (acao === "cliente-dados") return clienteDados(dados);
+    if (acao === "cliente-excluir") return clienteExcluir(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
     if (acao === "extrair-texto-arquivo") return extrairTextoArquivoJob(dados);
@@ -1434,6 +1435,25 @@ function pastaDoCaso(caso, casoId) {
   return pasta;
 }
 
+// Selo de cada arquivo que o cliente enviou: HMAC do (registro + id do arquivo) com um segredo
+// que só existe aqui. O banco é aberto, então qualquer um poderia forjar um registro "do cliente"
+// apontando para outro arquivo do Drive; sem o selo, excluir o registro nunca toca no Drive.
+function segredoCliente() {
+  var props = PropertiesService.getScriptProperties();
+  var s = props.getProperty("CLIENTE_SEGREDO");
+  if (!s) { s = Utilities.getUuid() + Utilities.getUuid(); props.setProperty("CLIENTE_SEGREDO", s); }
+  return s;
+}
+function seloDoArquivo(docKey, idArquivo) {
+  var bytes = Utilities.computeHmacSha256Signature(docKey + "|" + idArquivo, segredoCliente());
+  return bytes.map(function (b) { return ("0" + (b & 0xff).toString(16)).slice(-2); }).join("");
+}
+function extrairIdArquivo(url) {
+  var s = String(url || "");
+  var m = s.match(/\/d\/([a-zA-Z0-9_-]{10,})/) || s.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  return m ? m[1] : "";
+}
+
 function clienteArquivo(dados) {
   var ctx = pedidoDoCliente(dados.t);
   if (!ctx) return resp({ ok: false, erro: "Link inválido ou vencido." });
@@ -1463,7 +1483,8 @@ function clienteArquivo(dados) {
     docKey = "cli_" + ctx.token.slice(0, 6) + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 8);
     var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/" + docKey, {
       nome: nome, tipo: "documento", tipoDocumento: textoCliente(dados.tipo, 60), papel: textoCliente(dados.papel, 40),
-      pessoa: textoCliente(dados.pessoa, 80), origem: "link do cliente", link: arquivo.getUrl(), salvoEm: new Date().toISOString()
+      pessoa: textoCliente(dados.pessoa, 80), origem: "link do cliente", link: arquivo.getUrl(), salvoEm: new Date().toISOString(),
+      selo: seloDoArquivo(docKey, arquivo.getId())
     });
     if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." });
   } finally { lock.releaseLock(); }
@@ -1530,14 +1551,40 @@ function clienteDados(dados) {
   (ctx.pedido.blocos || []).forEach(function (b) { (b.campos || []).forEach(function (c) { rotulos[b.id + "." + c.id] = c.rotulo; }); });
   var agora = new Date();
   var ficha = montarFichaCliente(dados.dados, Utilities.formatDate(agora, "America/Sao_Paulo", "dd/MM/yyyy"), rotulos);
-  try { pastaDoCaso(ctx.caso, ctx.casoId).createFile("DADOS_INFORMADOS_PELO_CLIENTE_" + Utilities.formatDate(agora, "America/Sao_Paulo", "yyyy-MM-dd") + ".txt", ficha, MimeType.PLAIN_TEXT); } catch (e) { /* o registro no card é o que importa */ }
-  var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/ficha_" + ctx.token.slice(0, 10), {
-    nome: "DADOS_INFORMADOS_PELO_CLIENTE", tipo: "informacoes", origem: "link do cliente", texto: ficha, salvoEm: agora.toISOString()
-  });
+  var fichaKey = "ficha_" + ctx.token.slice(0, 10);
+  var registroFicha = { nome: "DADOS_INFORMADOS_PELO_CLIENTE", tipo: "informacoes", origem: "link do cliente", texto: ficha, salvoEm: agora.toISOString() };
+  try {
+    var txt = pastaDoCaso(ctx.caso, ctx.casoId).createFile("DADOS_INFORMADOS_PELO_CLIENTE_" + Utilities.formatDate(agora, "America/Sao_Paulo", "yyyy-MM-dd") + ".txt", ficha, MimeType.PLAIN_TEXT);
+    registroFicha.link = txt.getUrl(); registroFicha.selo = seloDoArquivo(fichaKey, txt.getId());
+  } catch (e) { /* o registro no card é o que importa */ }
+  var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/" + fichaKey, registroFicha);
   if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou os dados (" + gravou.getResponseCode() + ")." });
   try { firebaseGravar("patch", "/pedidos/" + ctx.token, { concluidoEm: Date.now() }); } catch (e) { /* só um carimbo */ }
   try { enviarWhatsApp("📥 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou os documentos pelo link. Já estão no card."); } catch (e) { /* aviso é cortesia */ }
   return resp({ ok: true });
+}
+
+// Exclui um documento que o cliente enviou: o arquivo vai para a LIXEIRA do Drive (volta por até 30
+// dias, como a exclusão de pasta) e o registro sai do card — então a minuta deixa de usá-lo.
+// Só mexe no que veio pelo link (origem) e só toca no Drive quando o selo confere.
+function clienteExcluir(dados) {
+  var casoId = String(dados.casoId || ""), docKey = String(dados.docKey || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !/^[A-Za-z0-9_-]{1,120}$/.test(docKey)) return resp({ ok: false, erro: "Documento inválido." });
+  var caminho = "/casos/" + casoId + "/documentos/" + docKey;
+  var doc = firebaseLer(caminho);
+  if (!doc || doc.origem !== "link do cliente") return resp({ ok: false, erro: "Só dá para excluir por aqui o que o cliente enviou pelo link." });
+  var arquivo = "sem arquivo";
+  var idArquivo = extrairIdArquivo(doc.link);
+  if (idArquivo) {
+    if (doc.selo && doc.selo === seloDoArquivo(docKey, idArquivo)) {
+      try { DriveApp.getFileById(idArquivo).setTrashed(true); arquivo = "lixeira"; } catch (e) { arquivo = "não encontrado"; }
+    } else {
+      arquivo = "sem selo"; // registro antigo ou forjado: sai do card, mas o Drive não é tocado
+    }
+  }
+  var r = UrlFetchApp.fetch(FIREBASE_URL + caminho + ".json", { method: "delete", muteHttpExceptions: true });
+  if (r.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a exclusão (" + r.getResponseCode() + ")." });
+  return resp({ ok: true, arquivo: arquivo });
 }
 
 // ── Criar minuta doc (via Vercel proxy — retorna resp()) ───────────────────

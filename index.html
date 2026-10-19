@@ -1722,6 +1722,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-ped-rec li span{flex:none;color:var(--cc-tinta-3);font-size:11.5px}
 .cx-ped-rec li span b{color:var(--cc-atencao)}
 .cx-ped-rec a{color:var(--cc-info);text-decoration:none}
+.cx-ped-rec li{align-items:center}
+.cx-ped-nome{flex:1;min-width:0}
+.cx-ped-x{flex:none;border:0;background:none;color:var(--cc-tinta-3);cursor:pointer;padding:6px 8px;border-radius:8px;font-size:15px;line-height:1}
+.cx-ped-x:hover{background:#F6E6E4;color:var(--cc-critico)}
+.cx-ped-x:disabled{opacity:.5;cursor:default}
 .cx-orc-rot{font-size:11.5px;color:var(--cc-tinta-3);display:inline-flex;align-items:center;gap:6px}
 .orc-pill{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;
   padding:3px 9px;border-radius:999px;border:1px solid var(--cc-linha);
@@ -11836,6 +11841,37 @@ async function criarLinkEnvio(id,{estado,blocos,token}){
   return {token:cod,url:location.origin+'/enviar.html?t='+cod};
 }
 
+// Excluir o que o cliente mandou errado: o arquivo vai para a lixeira do Drive e o registro sai do card
+// (a minuta deixa de usá-lo). Se o Apps Script recusar, o item continua na lista e o erro aparece escrito.
+window.excluirDocCliente=async function(casoId,docKey,btn){
+  const d=(((casos[casoId]||{}).documentos)||{})[docKey];
+  if(!d) return;
+  const dados=d.tipo==='informacoes';
+  if(!confirm(`Excluir "${d.nome}"?\n\n`+(dados
+    ? 'Os dados digitados pelo cliente saem do card e a minuta deixa de usá-los.'
+    : 'O arquivo vai para a lixeira do Drive (dá para restaurar por lá em até 30 dias), sai do card e a minuta deixa de usá-lo.'))) return;
+  const antes=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i>';}
+  try{
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'cliente-excluir',casoId,docKey})});
+    const j=await r.json();
+    if(j&&j.ok){
+      // A lista se refaz sozinha quando o banco avisa que o registro saiu.
+      if(j.arquivo==='sem selo'||j.arquivo==='não encontrado')
+        alert('Saiu do card, mas o arquivo continua no Drive ('+(j.arquivo==='sem selo'?'foi enviado antes desta função existir':'não achei o arquivo')+'). Se quiser apagá-lo, faça por lá.');
+    }else{
+      const erro=(j&&j.erro)||'motivo desconhecido';
+      alert(/a[çc][ãa]o desconhecida/i.test(erro)
+        ? 'O Apps Script publicado ainda não conhece a exclusão de documentos do cliente.\n\nAtualize o código lá em script.google.com com o arquivo apps-script/cartorio-drive-api.js e implante uma nova versão.'
+        : 'Não consegui excluir: '+erro);
+      if(btn){btn.disabled=false;btn.innerHTML=antes;}
+    }
+  }catch(e){
+    alert('Erro de conexão com o Drive: '+e.message);
+    if(btn){btn.disabled=false;btn.innerHTML=antes;}
+  }
+};
+
 // O acesso à pasta do caso no Drive, na própria faixa Documentos: é lá que os arquivos do
 // cliente caem. Só aparece quando o card tem a pasta ligada.
 function pedidoPastaHtml(c){
@@ -11847,14 +11883,16 @@ function pedidoPastaHtml(c){
 // O que o cliente já mandou pelo link, na faixa Documentos do card: arquivos com link para o Drive
 // e se a IA conseguiu ler (é o que a minuta usa).
 function pedidoRecebidosHtml(c){
-  const docs=Object.values((c&&c.documentos)||{}).filter(d=>d&&d.origem==='link do cliente');
-  if(!docs.length) return '';
-  const arquivos=docs.filter(d=>d.tipo!=='informacoes'), ficha=docs.some(d=>d.tipo==='informacoes');
-  const lidos=arquivos.filter(d=>d.texto).length;
-  const linhas=docs.sort((a,b)=>String(a.salvoEm).localeCompare(String(b.salvoEm))).map(d=>{
+  const todos=Object.entries((c&&c.documentos)||{}).filter(([,d])=>d&&d.origem==='link do cliente');
+  if(!todos.length) return '';
+  const docs=todos.map(([k,d])=>({k,d}));
+  const arquivos=docs.filter(x=>x.d.tipo!=='informacoes'), ficha=docs.some(x=>x.d.tipo==='informacoes');
+  const lidos=arquivos.filter(x=>x.d.texto).length;
+  const linhas=docs.sort((a,b)=>String(a.d.salvoEm).localeCompare(String(b.d.salvoEm))).map(({k,d})=>{
     const nome=d.link?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.nome)}</a>`:escTxt(d.nome);
     const sit=d.tipo==='informacoes'?'dados digitados':(d.texto?'lido':'<b>sem leitura</b>');
-    return `<li>${nome} <span>${sit}</span></li>`;
+    const del=c&&c.id?`<button type="button" class="cx-ped-x" title="Excluir — enviado errado" aria-label="Excluir ${esc(d.nome)}" onclick="excluirDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-trash"></i></button>`:'';
+    return `<li><span class="cx-ped-nome">${nome}</span> <span>${sit}</span>${del}</li>`;
   }).join('');
   return `<details class="cx-ped-rec"><summary><i class="ti ti-inbox"></i> Recebidos do cliente: ${arquivos.length} ${arquivos.length===1?'arquivo':'arquivos'}${arquivos.length?` (${lidos} lidos)`:''}${ficha?' + dados digitados':''}</summary><ul>${linhas}</ul></details>`;
 }
