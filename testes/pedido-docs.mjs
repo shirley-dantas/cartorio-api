@@ -96,5 +96,31 @@ passo('a abertura usa o artigo certo', () => {
 passo('todo ato de todo público monta sem erro e com ao menos uma linha', () => {
   for (const tipo of TODOS) for (const publico of Object.keys(P.PUBLICOS)) assert(linhas({tipo, publico}).length >= 1, tipo + '/' + publico);
 });
+passo('mandando só para o comprador: nada do vendedor, valor da transação sim, matrícula desmarcada', () => {
+  const l = linhas({tipo: 'Escritura de Compra e Venda', papel: 'comprador'});
+  const t = l.join('\n');
+  assert(/Seus dados: RG, CPF/.test(t) && /Seus dados bancários/.test(t) && /Valor da transação$/m.test(t));
+  assert(!/vendedor|Matrícula/i.test(t), t);
+});
+passo('mandando só para o vendedor: matrícula e banco sim, valor da transação não', () => {
+  const t = linhas({tipo: 'Escritura de Compra e Venda', papel: 'vendedor'}).join('\n');
+  assert(/Seus dados/.test(t) && /Matrícula do imóvel/.test(t) && /bancários/.test(t) && !/Valor da transação|comprador/i.test(t), t);
+});
+passo('o advogado mandando para um lado só fala "Dados do comprador", não "Seus dados"', () => {
+  const t = linhas({tipo: 'Escritura de Compra e Venda', papel: 'comprador', publico: 'advogado'}).join('\n');
+  assert(/Dados do\(a\) comprador/.test(t) && !/Seus dados/.test(t), t);
+});
+passo('doação: o donatário não recebe matrícula nem cláusulas', () => {
+  const t = txt({tipo: 'Doação', papel: 'donatario', clausulasModo: 'cliente'});
+  assert(!/Matrícula|cláusulas|Informe se deseja/.test(t) && /Seus dados/.test(t), t);
+});
+passo('procuração: o procurador só informa o que é dele', () => {
+  const t = linhas({tipo: 'Procuração', papel: 'procurador', poderes: {imovel: true}}).join('\n');
+  assert(!/Matrícula|certidão/i.test(t) && /RG, CPF, endereço e profissão/.test(t), t);
+});
+passo('papel que não existe no ato volta para "os dois"', () => {
+  assert.equal(P.papelDe({papel: 'comprador'}, 'inventario'), 'ambos');
+  assert.equal(P.papelDe({papel: 'xyz'}, 'compra-venda'), 'ambos');
+});
 console.log(erros ? '\n' + erros + ' falha(s)' : '\ntudo certo');
 process.exit(erros ? 1 : 0);
