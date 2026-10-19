@@ -1085,9 +1085,14 @@ function extrairArquivoComContinuacao(montarConteudo) {
   return { texto: texto || null, truncou: truncou };
 }
 
-// Leitura de um documento pela IA (PDF ou imagem em base64). Devolve
-// {texto, truncou}. Usada pelo anexo do painel e pelo envio do cliente.
-function lerDocumentoComIA(base64, mimetype, preservarIntegral) {
+function extrairTextoArquivoJob(dados) {
+  var jobId = dados.jobId;
+  try {
+    var base64 = dados.base64 || "";
+    var mimetype = dados.mimetype || "application/pdf";
+    var preservarIntegral = !!dados.preservarIntegral;
+    if (!base64) throw new Error("Arquivo vazio");
+
     var blocoArquivo = mimetype === "application/pdf"
       ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
       : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
@@ -1101,18 +1106,6 @@ function lerDocumentoComIA(base64, mimetype, preservarIntegral) {
         { type: "text", text: pass === 0 ? instrucaoInicial : instrucaoContinuarExtracaoArquivo(textoAteAqui.slice(-1500)) }
       ];
     });
-  return resultado;
-}
-
-function extrairTextoArquivoJob(dados) {
-  var jobId = dados.jobId;
-  try {
-    var base64 = dados.base64 || "";
-    var mimetype = dados.mimetype || "application/pdf";
-    var preservarIntegral = !!dados.preservarIntegral;
-    if (!base64) throw new Error("Arquivo vazio");
-
-    var resultado = lerDocumentoComIA(base64, mimetype, preservarIntegral);
 
     if (jobId) {
       salvarJobFirebase(jobId, { status: "done", ok: true, texto: resultado.texto || "", truncou: resultado.truncou });
@@ -1147,7 +1140,6 @@ function doPost(e) {
     if (acao === "criar-pasta") return criarPasta(dados);
     if (acao === "excluir-pasta") return excluirPasta(dados);
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
-    if (acao === "receber-documento-cliente") return receberDocumentoCliente(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
     if (acao === "extrair-texto-arquivo") return extrairTextoArquivoJob(dados);
@@ -1372,55 +1364,6 @@ function salvarArquivo(dados) {
   var arquivo = pastaCliente.createFile(blob);
 
   return resp({ ok: true, url: arquivo.getUrl(), nome: nomeArquivo });
-}
-
-// ── Documento enviado pelo cliente (link do Tally → api/tally-webhook.js) ──
-// Salva na pasta do card (pelo driveUrl; sem ele, pela pasta do nome), lê o
-// conteúdo com a IA — é o texto que faz o MINUTAR enxergar o documento — e
-// grava o registro em casos/{cardId}/documentos/{docKey}. A chave é fixa por
-// envio, então o Tally reenviando o aviso sobrescreve em vez de duplicar.
-// Leitura que falha não perde o arquivo: ele fica no Drive e no card, sem
-// texto, e o MINUTAR avisa que não conseguiu ler.
-var MIMES_LEITURA_IA = ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"];
-
-function receberDocumentoCliente(dados) {
-  var cardId = String(dados.cardId || "");
-  var docKey = String(dados.docKey || "");
-  if (!/^[A-Za-z0-9_-]{6,40}$/.test(cardId) || !/^[A-Za-z0-9_-]{1,120}$/.test(docKey)) {
-    return resp({ ok: false, erro: "cardId ou docKey inválido" });
-  }
-  var mimetype = dados.mimetype || "application/octet-stream";
-  var nomeArquivo = dados.nomeArquivo || "documento";
-
-  var pasta = null;
-  var idPasta = extrairIdPasta(dados.folderUrl || "");
-  if (idPasta) { try { pasta = DriveApp.getFolderById(idPasta); } catch (e) { pasta = null; } }
-  if (!pasta) pasta = getPastaCliente(String(dados.nome || "Sem nome").toUpperCase());
-
-  var arquivo = pasta.createFile(Utilities.newBlob(Utilities.base64Decode(dados.base64 || ""), mimetype, nomeArquivo));
-
-  var texto = "", truncou = false;
-  if (MIMES_LEITURA_IA.indexOf(mimetype) !== -1) {
-    try {
-      var r = lerDocumentoComIA(dados.base64, mimetype, false);
-      texto = r.texto || ""; truncou = !!r.truncou;
-    } catch (err) { texto = ""; }
-  }
-
-  var registro = {
-    nome: nomeArquivo,
-    tipo: "documento",
-    tipoDocumento: dados.tipoDocumento || "OUTROS",
-    origem: "link do cliente",
-    link: arquivo.getUrl(),
-    salvoEm: new Date().toISOString()
-  };
-  if (texto) { registro.texto = texto; registro.truncado = truncou; }
-  var gravou = UrlFetchApp.fetch(FIREBASE_URL + "/casos/" + cardId + "/documentos/" + docKey + ".json", {
-    method: "put", contentType: "application/json", payload: JSON.stringify(registro), muteHttpExceptions: true
-  });
-  if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "Firebase recusou a gravação (" + gravou.getResponseCode() + ")" });
-  return resp({ ok: true, url: arquivo.getUrl(), nome: nomeArquivo, leu: !!texto });
 }
 
 // ── Criar minuta doc (via Vercel proxy — retorna resp()) ───────────────────
