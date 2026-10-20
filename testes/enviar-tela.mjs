@@ -206,7 +206,7 @@ await passo('viúvo: a certidão de casamento com a averbação do óbito basta;
 await passo('topo: sem o nome PRIME; título, 20º Tabelião de Notas e, por último, a escrevente com o WhatsApp', async () => {
   const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
   const t = await pg.innerText('body'); assert(!/PRIME/.test(t) && !(await pg.content()).includes('>PRIME<'), 'sem PRIME');
-  const topo = await pg.innerText('.titulo'); const tl = topo.toLowerCase(); assert(tl.indexOf('envio de documentos') < tl.indexOf('20º tabelião de notas') && tl.indexOf('20º tabelião de notas') < tl.indexOf('escrevente shirley dantas'), topo);
+  const topo = await pg.innerText('header.topo'); const tl = topo.toLowerCase(); assert(tl.indexOf('envio de documentos') < tl.indexOf('20º tabelião de notas') && tl.indexOf('20º tabelião de notas') < tl.indexOf('escrevente shirley dantas'), topo);
   assert.equal(await pg.getAttribute('.escrevente a', 'href'), 'https://wa.me/5511954929643'); assert(/\(11\) 95492-9643/.test(topo));
 });
 await passo('casado, em qualquer ato, abre o regime de bens (divórcio e união também)', async () => {
@@ -272,7 +272,7 @@ await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os d
   const {pg, chamadas} = await abrir(compra); tela = pg; await pg.waitForSelector('[data-b="partes"]');
   await preencher(pg);
   await pg.fill('#obs', 'Quero constar o nome de solteira.');
-  await pg.waitForFunction(() => /anexado/.test(document.querySelector('#resumo').textContent));
+  await pg.waitForFunction(() => /Tudo preenchido|anexado/.test(document.querySelector('#resumo').textContent));
   await pg.screenshot({path: SAIDA('env-cel-cheio.png'), fullPage: true});
   await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
   const arqs = chamadas.filter((c) => c.acao === 'cliente-arquivo'), dados = chamadas.find((c) => c.acao === 'cliente-dados');
