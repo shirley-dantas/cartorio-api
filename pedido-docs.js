@@ -125,6 +125,7 @@
     var o = opcoes || {};
     var i = item(id, (quem ? quem + ': ' : '') + BASICO + (o.conjuge === false ? '' : CONJUGE));
     i.f = { k: 'pessoa', papeis: o.papeis || [quem], conjuge: o.conjuge !== false };
+    if (o.semCertidao) i.f.semCertidao = true; // procuração: só RG/CPF, sem certidão de estado civil
     if (o.semUniao) i.f.semUniao = true; // quem já é convivente, noivo ou divorciando não é perguntado se vive em união estável
     if (o.obito) i.f.obito = true; // só a lista de inventário pede a certidão de óbito do cônjuge de quem é viúvo
     return i;
@@ -194,7 +195,7 @@
         pessoa('herdeiros', 'Herdeiros', { papeis: ['Herdeiro(a)'], obito: true }),
         adv(item('advogado', 'Advogado(a): carteira da OAB'))
       ]));
-      S.push(secao('bens', 'Bens', bens(estado, 'bem.'), { vazio: 'Marque acima o que será inventariado.' }));
+      S.push(secao('bens', 'Bens a inventariar', bens(estado, 'bem.'), { vazio: 'Marque acima o que será inventariado.' }));
     } else if (modelo === 'divorcio') {
       S.push(secao('lista', '', [
         pessoa('divorciandos', rotuloDe(estado, modelo, papelDe(estado, modelo), 'Divorciandos'), { conjuge: false, semUniao: true, papeis: dosPares(estado, modelo, ['Divorciando(a) 1', 'Divorciando(a) 2']) }),
@@ -215,10 +216,12 @@
       ]));
     } else if (modelo === 'procuracao') {
       var pr = papelDe(estado, modelo), l = [];
-      if (pr !== 'procurador') l.push(pessoa('outorgante', rotuloDe(estado, modelo, pr, 'Outorgante'), { papeis: ['Outorgante'] }));
+      if (pr !== 'procurador') l.push(pessoa('outorgante', rotuloDe(estado, modelo, pr, 'Outorgante'), { papeis: ['Outorgante'], conjuge: false, semCertidao: true, semUniao: true }));
       if (pr !== 'outorgante') l.push(pessoaSimples('procurador', pr === 'procurador' ? rotuloDe(estado, modelo, pr, '') : 'Procurador', ['Procurador(a)']));
       if (pr !== 'procurador' && estado.poderes && estado.poderes.imovel) l.push(item('poder.imovel', 'Matrícula do imóvel'));
       if (pr !== 'procurador' && estado.poderes && estado.poderes.veiculo) l.push(item('poder.veiculo', 'Documento do veículo'));
+      // Procuração geral não precisa de arquivo, mas fica a porta aberta para quem tiver algum.
+      if (pr !== 'procurador') l.push(item('poder.outros', 'Outro documento relacionado à procuração, se houver'));
       S.push(secao('lista', '', l));
     } else if (modelo === 'ata') {
       S.push(secao('lista', '', [pessoaSimples('requerente', 'Requerente', ['Requerente']), item('material.arquivos', 'Material a registrar (fotos, prints, links)')]));
@@ -327,7 +330,9 @@
     // (nascimento, casamento com averbação) ou, se casado, o regime, o pacto e os dados do cônjuge.
     'falecido': { k: 'falecido', titulo: 'Falecido(a)' },
     'falecido.testamento': DOC('Certidão de inexistência de testamento'),
-    'advogado': { k: 'advogado', titulo: 'Advogado(a)' },
+    // O advogado informa estado civil, profissão e endereço, e sobe a carteira da OAB (sem número a digitar).
+    'advogado': { k: 'pessoa', papeis: ['Advogado(a)'], conjuge: false, semUniao: true, semCertidao: true, adv: true },
+    'poder.outros': { k: 'doc', rotulo: 'Outro documento relacionado à procuração', opcional: true },
     'familia.filhos': { k: 'filhos', titulo: 'Filhos' },
     'familia.nome': { k: 'campos', titulo: 'Nome', campos: [{ id: 'nome', rotulo: 'Algum dos dois voltará a usar o nome de solteiro(a)? Qual?', tipo: 'texto', opcional: true }] },
     'convivente.dados': { k: 'campos', titulo: 'Sobre a união', campos: [{ id: 'inicio', rotulo: 'Data de início da união', tipo: 'data' }, CAMPO_ENDERECO, CAMPO_REGIME] },
@@ -352,6 +357,7 @@
         else if (FORMS[it.id]) b = JSON.parse(JSON.stringify(FORMS[it.id]));
         else b = DOC(it.texto); // bens, poderes e itens avulsos: um documento com o nome do item
         b.id = it.id;
+        if (sec.id === 'bens') b.grupo = sec.titulo; else if (/^imovel\./.test(it.id)) b.grupo = 'Imóvel'; else if (it.id === 'falecido.testamento') b.grupo = 'Falecido(a)'; else if (/^poder\./.test(it.id)) b.grupo = 'Procuração';
         if (b.k === 'pessoa') b.titulo = it.texto;
         else if (b.k === 'doc' && !b.rotulo) b.rotulo = it.texto;
         blocos.push(b);

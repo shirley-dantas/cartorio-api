@@ -40,7 +40,7 @@ passo('inventário: só pede os documentos dos bens marcados', () => {
 passo('inventário: o advogado só entra no pedido para o advogado', () => {
   assert(!txt({tipo: 'Inventário', publico: 'cliente'}).includes('OAB'));
   assert(txt({tipo: 'Inventário', publico: 'advogado'}).includes('carteira da OAB'));
-  assert(P.formulario({tipo: 'Inventário', publico: 'advogado'}).some((b) => b.k === 'advogado'), 'o bloco do advogado continua (só o documento)');
+  const adv = P.formulario({tipo: 'Inventário', publico: 'advogado'}).find((b) => b.adv); assert(adv && adv.k === 'pessoa' && adv.papeis[0] === 'Advogado(a)' && adv.semCertidao, 'o advogado informa seus dados (estado civil, profissão, endereço) e sobe a OAB');
 });
 passo('pacto marcado em outro ato: pede o pacto E o registro no RI do primeiro domicílio', () => {
   const t = txt({tipo: 'Escritura de Compra e Venda', pacto: true});
@@ -179,6 +179,17 @@ passo('a janela não pede mais para marcar união estável nem pacto: quem respo
   assert(P.formulario({tipo: 'União Estável', publico: 'cliente', papel: 'conv1'}).find((b) => b.k === 'pessoa').semUniao === true, 'convivente não é perguntado se vive em união estável');
   for (const t of ['Divórcio', 'Pacto Antenupcial']) assert(P.formulario({tipo: t, publico: 'advogado'}).find((b) => b.k === 'pessoa').semUniao);
   assert(!P.formulario({tipo: 'Escritura de Compra e Venda', publico: 'cliente'}).find((b) => b.k === 'pessoa').semUniao);
+});
+passo('procuração: sem certidão de estado civil de ninguém; geral deixa a porta aberta para um arquivo opcional', () => {
+  const f = P.formulario({tipo: 'Procuração', publico: 'cliente'});
+  const pes = f.filter((b) => b.k === 'pessoa'); assert(pes.length === 2 && pes.every((b) => b.semCertidao || b.simples), 'outorgante e procurador sem certidão');
+  const outros = f.find((b) => b.id === 'poder.outros'); assert(outros && outros.opcional === true, 'arquivo opcional');
+  const comImovel = P.formulario({tipo: 'Procuração', publico: 'cliente', poderes: {imovel: true, veiculo: true}});
+  assert(comImovel.some((b) => b.id === 'poder.imovel') && comImovel.some((b) => b.id === 'poder.veiculo'), 'com imóvel/veículo, pede o documento do bem');
+});
+passo('inventário: os documentos dos bens ficam sob "Bens a inventariar"', () => {
+  const f = P.formulario({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true, veiculo: true}});
+  const bens = f.filter((b) => /^bem\./.test(b.id)); assert(bens.length === 2 && bens.every((b) => b.grupo === 'Bens a inventariar'), JSON.stringify(bens.map((b) => b.grupo)));
 });
 console.log(erros ? '\n' + erros + ' falha(s)' : '\ntudo certo');
 process.exit(erros ? 1 : 0);

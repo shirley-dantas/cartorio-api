@@ -1422,8 +1422,11 @@ function pedidoDoCliente(token, aceitaConcluido) {
   if (!pedido || !pedido.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(pedido.casoId))) return null;
   if (pedido.expiraEm && Date.now() > pedido.expiraEm) return null;
   if (pedido.concluidoEm && !aceitaConcluido) return null; // já enviado: o link fecha, para não confundir o card com um segundo preenchimento
-  var caso = firebaseLer("/casos/" + pedido.casoId);
-  if (!caso || typeof caso !== "object") return null;
+  // Só o que o envio usa (nome e pasta): ler o caso inteiro trazia todos os documentos com o texto lido pela
+  // IA a cada arquivo enviado — era a maior fatia da demora.
+  var nome = firebaseLer("/casos/" + pedido.casoId + "/nome");
+  if (nome === undefined || nome === null) return null;
+  var caso = { nome: nome, driveUrl: firebaseLer("/casos/" + pedido.casoId + "/driveUrl") || "" };
   return { pedido: pedido, caso: caso, casoId: pedido.casoId, token: token };
 }
 
@@ -1466,12 +1469,13 @@ function clienteArquivo(dados) {
   try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
   if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais." });
 
-  // Nome, arquivo e registro dentro de uma trava: sem ela, dois arquivos do
-  // mesmo tipo chegando juntos ganhariam o mesmo número, e duas primeiras
-  // gravações criariam duas pastas. A leitura pela IA (demorada) fica de fora.
+  // A trava cobre só o que não pode correr em paralelo: o número do nome (dois arquivos do mesmo tipo
+  // chegando juntos ganhariam o mesmo) e a pasta (duas primeiras gravações criariam duas pastas). Criar o
+  // arquivo no Drive e gravar o registro — o que demora — ficam FORA dela, para os envios andarem juntos
+  // em vez de em fila. A leitura pela IA também fica de fora.
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
-  var docKey, nome, arquivo;
+  var docKey, nome, arquivo, pasta;
   try {
     // A numeração e o limite vêm de um contador pequeno do próprio pedido: ler todos os documentos do
     // caso (cada um com o texto lido pela IA) a cada arquivo era o que mais pesava no envio.
@@ -1485,7 +1489,10 @@ function clienteArquivo(dados) {
     var novaCont = { _total: total + 1 }; novaCont[chaveCont] = n;
     firebaseGravar("patch", "/pedidos/" + ctx.token + "/contagem", novaCont);
     nome = prefixo + n + "." + ext;
-    arquivo = pastaDoCaso(ctx.caso, ctx.casoId).createFile(Utilities.newBlob(bytes, mime, nome));
+    pasta = pastaDoCaso(ctx.caso, ctx.casoId);
+  } finally { lock.releaseLock(); }
+  {
+    arquivo = pasta.createFile(Utilities.newBlob(bytes, mime, nome));
     docKey = "cli_" + ctx.token.slice(0, 6) + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 8);
     var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/" + docKey, {
       nome: nome, tipo: "documento", tipoDocumento: textoCliente(dados.tipo, 60), papel: textoCliente(dados.papel, 40),
@@ -1494,7 +1501,7 @@ function clienteArquivo(dados) {
       lendo: dados.lerDepois && MIMES_LEITURA_IA.indexOf(mime) !== -1 ? Date.now() : null
     });
     if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." });
-  } finally { lock.releaseLock(); }
+  }
 
   var leu = false;
   // Página nova: devolve já, e a leitura pela IA vem numa chamada à parte (cliente-ler), que corre

@@ -119,6 +119,8 @@ await passo('cabeçalho personalizado, certidão visível desde o início e câm
   assert.equal(await pg.locator('#camera').count(), 0);
 });
 
+// Com o teclado aberto o rodapé some (de propósito): quem toca no botão já tirou o foco do campo.
+const clicarEnviar = async (pg) => { await pg.evaluate(() => document.activeElement && document.activeElement.blur()); await pg.waitForSelector('.rodape', {state: 'visible'}); await clicarEnviar(pg); };
 async function preencher(pg) {
   await pg.fill('[data-f="nome"]', 'Maria da Silva'); await pg.selectOption('[data-f="ec"]', 'Solteiro(a)'); await pg.fill('[data-f="prof"]', 'Professora');
   await pg.fill('[data-f="cep"]', '01452000'); await pg.waitForSelector('[data-editend]'); await pg.fill('[data-f="num"]', '210');
@@ -133,13 +135,13 @@ async function preencher(pg) {
 
 await passo('trava: faltando algo o envio não sai; completo, pede confirmação e só envia no "Enviar agora"', async () => {
   const {pg, chamadas} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
-  assert(/Faltam \d+ itens/.test(await pg.innerText('#enviar')));
-  await pg.click('#enviar'); assert(/Ainda falta preencher/.test(await pg.innerText('.folha')), 'mostra o que falta');
+  assert(/faltam \d+ itens/i.test(await pg.innerText('#enviar')));
+  await clicarEnviar(pg); assert(/Ainda falta preencher/.test(await pg.innerText('.folha')), 'mostra o que falta');
   await pg.click('[data-fecha]'); assert.equal(chamadas.length, 0, 'nada saiu');
-  await preencher(pg); await pg.waitForFunction(() => /Revisar e enviar/.test(document.querySelector('#enviar').textContent));
-  await pg.click('#enviar'); assert(/este link fecha/.test(await pg.innerText('.folha')));
+  await preencher(pg); await pg.waitForFunction(() => /conferir e enviar/i.test(document.querySelector('#enviar').textContent));
+  await clicarEnviar(pg); assert(/este link fecha/.test(await pg.innerText('.folha')));
   await pg.click('[data-fecha]'); assert.equal(chamadas.length, 0, 'voltar e revisar não envia');
-  await pg.click('#enviar'); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
+  await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
   assert(chamadas.some((c) => c.acao === 'cliente-dados' && c.nArquivos === 2));
 });
 await passo('link já usado (concluidoEm) mostra "já foi usado" e nenhum formulário', async () => {
@@ -157,7 +159,7 @@ await passo('data de início da união: campo de texto com máscara dd/mm/aaaa, 
   const {pg} = await abrir({tipo: 'União Estável', publico: 'cliente', papel: 'conv1'}); await pg.waitForSelector('[data-b="conviventes"]');
   const c = pg.locator('[data-cb="convivente.dados"][data-f="inicio"]'); assert.equal(await c.getAttribute('type'), 'text');
   await c.pressSequentially('15032019'); assert.equal(await c.inputValue(), '15/03/2019');
-  await c.fill(''); await c.pressSequentially('31132019'); await pg.click('#enviar');
+  await c.fill(''); await c.pressSequentially('31132019'); await clicarEnviar(pg);
   assert(/Data de início da união \(dd\/mm\/aaaa\)/.test(await pg.innerText('.folha')), 'mês 13 não vale');
 });
 await passo('convivente 1 acrescenta o outro: a pessoa nova é "Convivente 2", no formulário e na ficha', async () => {
@@ -185,7 +187,7 @@ await passo('envio rápido: o arquivo sobe sem esperar a IA (lerDepois) e a leit
   let n = 0;
   const {pg, chamadas} = await abrir(compra, {gas: (c) => c.acao === 'cliente-arquivo' ? {ok: true, docKey: 'cli_aB3dE6_' + (++n)} : {ok: true}});
   await pg.waitForSelector('[data-b="partes"]'); await preencher(pg);
-  await pg.click('#enviar'); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
+  await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
   await pg.waitForFunction(() => true); await new Promise((r) => setTimeout(r, 400));
   const subidas = chamadas.filter((c) => c.acao === 'cliente-arquivo'), leituras = chamadas.filter((c) => c.acao === 'cliente-ler');
   assert(subidas.length === 2 && subidas.every((c) => c.lerDepois === true), 'sobe sem esperar a leitura');
@@ -253,7 +255,7 @@ await passo('união estável: quem não é casado marca "Vivo em união estável
   const grupos = await pg.evaluate(() => [...document.querySelectorAll('.intro-docs ~ *')].map((x) => x.className.includes('grupo-docs') ? '#' + x.textContent : x.className.includes('slot') ? x.querySelector('b').textContent : '').filter(Boolean));
   const iU = grupos.findIndex((x) => /união estável/.test(x)), iG1 = grupos.findIndex((x) => x.startsWith('#') && /Vendedor/.test(x)), iG2 = grupos.findIndex((x) => x.startsWith('#') && /Comprador/.test(x));
   assert(iU > iG1 && iU < iG2, 'a escritura abre na pílula de quem marcou (o vendedor): ' + grupos.join(' | '));
-  await pg.click('#enviar'); assert(/escritura de união estável/.test(await pg.innerText('.folha')), 'e passa a faltar até anexar');
+  await clicarEnviar(pg); assert(/escritura de união estável/.test(await pg.innerText('.folha')), 'e passa a faltar até anexar');
 });
 await passo('pacto: abre só para quem é casado em regime que exige pacto, na pílula dele', async () => {
   const {pg} = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'advogado'}, {viewport: {width: 1100, height: 900}, mobile: false});
@@ -272,7 +274,7 @@ await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os d
   await pg.fill('#obs', 'Quero constar o nome de solteira.');
   await pg.waitForFunction(() => /anexados/.test(document.querySelector('#resumo').textContent));
   await pg.screenshot({path: SAIDA('env-cel-cheio.png'), fullPage: true});
-  await pg.click('#enviar'); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
+  await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
   const arqs = chamadas.filter((c) => c.acao === 'cliente-arquivo'), dados = chamadas.find((c) => c.acao === 'cliente-dados');
   assert.equal(arqs.length, 2); assert(chamadas.indexOf(dados) === chamadas.length - 1, 'os dados vão depois dos arquivos');
   const rg = arqs.find((a) => a.tipo === 'RG_CNH'); assert(rg && rg.papel === 'Comprador(a)' && rg.pessoa === 'Maria da Silva' && rg.t === TOKEN);
@@ -289,7 +291,7 @@ await passo('se o cartório recusa um arquivo, ele fica marcado e os dados NÃO 
   const {pg, chamadas} = await abrir(compra, {gas: (c) => c.acao === 'cliente-arquivo' ? {ok: false, erro: 'não deu'} : {ok: true}});
   await pg.waitForSelector('[data-b="partes"]'); await preencher(pg);
   await pg.waitForFunction(() => [...document.querySelectorAll('.arq small')].every((x) => x.textContent.includes('KB')));
-  await pg.click('#enviar'); await pg.click('[data-ok]'); await pg.waitForFunction(() => document.querySelector('.arq small.erro'));
+  await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForFunction(() => document.querySelector('.arq small.erro'));
   assert(!chamadas.some((c) => c.acao === 'cliente-dados'), 'dados não podem ir se um arquivo falhou');
   assert(await pg.isHidden('#final'));
 });
