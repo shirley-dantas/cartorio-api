@@ -180,11 +180,21 @@ await passo('documentos na pílula de cada pessoa: dados, regime e cônjuge, e l
     const ordem = (re) => t.search(re); return {dentro: b.querySelectorAll('.slot').length, cab: ordem(/ANEXE OS DOCUMENTOS/i), conj: ordem(/DADOS DO CÔNJUGE/i), rg: ordem(/RG ou CNH/), t}; });
   assert(caixa.dentro >= 3, 'os slots estão dentro do cartão da pessoa: ' + caixa.dentro);
   assert(caixa.conj >= 0 && caixa.cab > caixa.conj && caixa.rg > caixa.cab, 'dados do cônjuge antes, documentos depois: ' + JSON.stringify([caixa.conj, caixa.cab, caixa.rg]));
+  const seq = await pg.evaluate(() => { const t = document.querySelector('[data-bloco="partes"]').innerText.toUpperCase(); const i = (re) => t.search(re);
+    return [i(/NOME COMPLETO/), i(/PROFISSÃO/), i(/ESTADO CIVIL/), i(/REGIME DE BENS/), i(/DADOS DO CÔNJUGE/), i(/CEP/), i(/ANEXE OS DOCUMENTOS/)]; });
+  assert(seq.every((x, k) => x >= 0 && (k === 0 || x > seq[k - 1])), 'ordem: nome, profissão, estado civil, regime, cônjuge, endereço, documentos: ' + JSON.stringify(seq));
   assert(/RG ou CNH de José da Silva/.test(caixa.t), 'o RG diz de quem é');
   assert(/Certidão de casamento de José da Silva e Maria Cristina/.test(caixa.t), 'a certidão diz "de José e Maria"');
   assert(/RG ou CNH de Maria Cristina/.test(caixa.t), 'o RG do cônjuge diz o nome dela');
   await pg.fill('[data-f="nome"]', 'José Souza'); await pg.waitForFunction(() => /RG ou CNH de José Souza/.test(document.querySelector('[data-bloco="partes"]').innerText), null, {timeout: 3000}); // o nome na frase acompanha o que se digita
   assert.equal(await pg.locator('.chip:has-text("Falta anexar")').count() > 1, true, 'cada documento mostra se falta ou se já foi anexado');
+});
+await passo('vendedor e comprador: "Acrescentar vendedor(a)" fica depois das pílulas dos vendedores e "Acrescentar comprador(a)" depois das dos compradores', async () => {
+  const {pg} = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'ambos'}); await pg.waitForSelector('[data-b="partes"]');
+  const seq = () => pg.evaluate(() => [...document.querySelectorAll('[data-bloco="partes"], [data-papel]')].map((e) => e.hasAttribute('data-papel') ? '+' + e.dataset.papel : e.querySelector('h2').innerText.trim().replace(/^\d+\s*/, '')));
+  assert.deepEqual(await seq(), ['Vendedor(a)', '+Vendedor(a)', 'Comprador(a)', '+Comprador(a)']);
+  await pg.click('[data-papel="Vendedor(a)"]'); await pg.click('[data-papel="Comprador(a)"]'); await pg.click('[data-papel="Vendedor(a)"]');
+  assert.deepEqual(await seq(), ['Vendedor(a)', 'Vendedor(a)', 'Vendedor(a)', '+Vendedor(a)', 'Comprador(a)', 'Comprador(a)', '+Comprador(a)']);
 });
 await passo('vários compradores: cada um com os seus dados e, logo abaixo, os documentos dele, na ordem', async () => {
   const {pg} = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'comprador'}); await pg.waitForSelector('[data-b="partes"]');

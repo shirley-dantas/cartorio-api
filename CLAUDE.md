@@ -978,8 +978,8 @@ Regras que **não devem ser mexidas sem perguntar**:
   Divorciando(a) 2, Noivo(a) 2) — o papel vai para a ficha e para o nome do arquivo.
 - **A IA copia números de documento dígito por dígito** (`lerDocumentoComIA`) e marca `?` no que não
   estiver nítido; as fotos saem com até 2400 px, qualidade .85, para o 6 não virar 8.
-- **Os documentos de cada pessoa ficam no cartão dela**, logo depois dos dados (e, se é casada, depois do regime
-  e dos dados do cônjuge), com o nome na frase ("Certidão de casamento de José e Maria"), que se atualiza ao
+- **A ordem do cartão da pessoa é fixa:** nome, profissão, estado civil; se é casada, o regime de bens e os dados do
+  cônjuge **logo em seguida**; só então CEP e endereço, e por último os documentos. **Os documentos de cada pessoa ficam no cartão dela**, depois disso, com o nome na frase ("Certidão de casamento de José e Maria"), que se atualiza ao
   digitar; cada um mostra "Falta anexar" / "✓ Anexado". O cartão final **"Mais documentos"** guarda só o que não
   é de uma pessoa (matrícula, bens a inventariar). **Regime de bens: só três** — comunhão parcial,
   comunhão universal e separação total (universal e separação total pedem o pacto e o registro dele).
@@ -1013,7 +1013,7 @@ Regras que **não devem ser mexidas sem perguntar**:
   blocos recuados `#F4F1EA`, linhas em faixa em vez de filete, tinta cheia, cantos quase retos; o rodapé é a
   tarja de baixo e a tela final é um recibo. Sem frase explicativa no topo. Letra de 17 px; alvos de toque ≥ 48 px.
 - **"Acrescentar" diz quem entra**: *herdeiro(a)* no inventário, *vendedor(a)*/*comprador(a)* na compra e venda
-  (um botão por papel quando o link vai para os dois). No inventário, os documentos dos bens ficam sob **"Bens a
+  (um botão por papel quando o link vai para os dois, **cada um logo depois da última pílula do seu papel**: vendedores juntos, compradores juntos). No inventário, os documentos dos bens ficam sob **"Bens a
   inventariar"** (no divórcio, "Bens a partilhar").
 - **O link só fecha quando o envio é concluído**: sair da página e voltar continua valendo, e o que foi digitado
   fica guardado **neste aparelho** (rascunho de 3 dias, `localStorage`), com aviso e "Começar de novo"; os

@@ -272,9 +272,9 @@ function proximoPapel(bl){
 }
 // "Acrescentar herdeiro(a)", "Acrescentar vendedor(a)"…: o botão diz quem entra, conforme quem recebe o link.
 // Nos atos de duas pontas numeradas (convivente 1/2…) entra a outra ponta.
-function botoesMais(b){
+function botoesMais(b,so){
   const base=b.papeis||['Parte'], prox=proximoPapel(b), par=/\s[12]$/.test(prox)&&prox!==base[0];
-  const papeis=par?[prox]:[...new Set(base)];
+  const papeis=so?[so]:par?[prox]:[...new Set(base)];
   const txt=r=>r==='Parte'?'Acrescentar outra pessoa':'Acrescentar '+(par?r:r.charAt(0).toLowerCase()+r.slice(1));
   return `<div class="bloco bloco-mais">`+papeis.map(r=>`<button class="btn suave so" data-mais="${b.id}" data-papel="${esc(r)}" style="width:100%">+ ${esc(txt(r))}</button>`).join('')+`</div>`;
 }
@@ -414,14 +414,13 @@ function htmlPessoa(b,i,n){
   const simples=!!b.simples, adv=!!b.adv, semCert=!!b.semCertidao;
   grupo(p.papel+(p.nome?' — '+p.nome:''),k);
   let h=`<div class="bloco" data-bloco="${b.id}"><h2><span class="num${p.nome?' ok':''}">${n}</span>${esc(p.papel)}</h2>`;
+  // Ordem do preenchimento: nome, profissão, estado civil; se é casada, o regime e o cônjuge logo em seguida;
+  // só então o endereço, e por último os documentos.
   h+=input('Nome completo',p.nome,`${A} data-f="nome" autocomplete="name"`,true);
+  h+=input('Profissão',p.prof,`${A} data-f="prof" autocomplete="organization-title"`,true);
   if(!simples) h+=select('Estado civil',p.ec,ESTADOS_CIVIS,`${A} data-f="ec"`,true);
   // Quem não é casado e vive em união estável marca aqui, e o espaço da escritura abre nos documentos dele.
   if(!simples&&!b.semUniao&&p.ec&&p.ec!=='Casado(a)') h+=`<label class="marca"><input type="checkbox" ${A} data-uniao="1"${p.uniao?' checked':''}> Vivo em união estável</label>`;
-  h+=input('Profissão',p.prof,`${A} data-f="prof" autocomplete="organization-title"`,true);
-  h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div><div class="dica" id="cepmsg-${k}" hidden style="color:var(--critico);margin:-6px 0 10px"></div>`;
-  h+=`<div id="end-${k}">${htmlEndereco(b,i)}</div>`;
-  // O que vem depois dos dados da pessoa: se é casada, o regime e o cônjuge logo em seguida.
   if(!simples&&!semCert&&p.ec==='Casado(a)'){
     h+=opcoesRadio('Regime de bens do casamento',p.regime,REGIMES,`${A} data-f="regime"`,true,`regime-${k}`);
   }
@@ -431,6 +430,8 @@ function htmlPessoa(b,i,n){
       `<label class="marca"><input type="checkbox" ${A} data-c="mesmo"${p.conj.mesmo?' checked':''}> Mora no mesmo endereço</label>`+
       (p.conj.mesmo?'':input('Endereço do cônjuge',p.conj.end,`${A} data-c="end"`,true))+`</div>`;
   }
+  h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div><div class="dica" id="cepmsg-${k}" hidden style="color:var(--critico);margin:-6px 0 10px"></div>`;
+  h+=`<div id="end-${k}">${htmlEndereco(b,i)}</div>`;
   // Os documentos desta pessoa ficam aqui mesmo, no cartão dela, logo depois dos dados.
   INLINE=true;
   let docs='';
@@ -476,7 +477,13 @@ function htmlFalecido(b,n){
 function htmlBloco(b,n){
   if(b.k==='falecido') return htmlFalecido(b,n.v++);
   if(b.k==='pessoa'){
-    let h=E.pessoas[b.id].map((_,i)=>htmlPessoa(b,i,n.v++)).join('');
+    const lista=E.pessoas[b.id], base=[...new Set(b.papeis||['Parte'])];
+    // Vendedor e comprador (ou doador e donatário…): cada papel tem as suas pílulas juntas, e o botão
+    // "Acrescentar" de cada um fica logo depois da última pílula dele.
+    if(!b.adv&&base.length>1&&!base.some(r=>/\s[12]$/.test(r))&&lista.every(x=>base.includes(x.papel))){
+      return base.map(r=>lista.map((x,i)=>x.papel===r?htmlPessoa(b,i,n.v++):'').join('')+botoesMais(b,r)).join('');
+    }
+    let h=lista.map((_,i)=>htmlPessoa(b,i,n.v++)).join('');
     if(!b.adv) h+=botoesMais(b);
     return h;
   }
