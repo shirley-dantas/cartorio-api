@@ -170,18 +170,30 @@ await passo('convivente 1 acrescenta o outro: a pessoa nova é "Convivente 2", n
   assert.equal(await pg.locator('[data-remover]').count(), 1);
 });
 
-await passo('documentos por último: casado → regime (só 3) e cônjuge logo depois dos dados; os arquivos só no cartão final', async () => {
+await passo('documentos na pílula de cada pessoa: dados, regime e cônjuge, e logo em seguida os arquivos dela, com o nome na frase', async () => {
   const {pg} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
-  await pg.selectOption('[data-f="ec"]', 'Casado(a)');
+  await pg.fill('[data-f="nome"]', 'José da Silva'); await pg.selectOption('[data-f="ec"]', 'Casado(a)');
   const regimes = await pg.locator('input[data-f="regime"]').evaluateAll((l) => l.map((x) => x.value));
   assert.deepEqual(regimes, ['Comunhão parcial de bens', 'Comunhão universal de bens', 'Separação total de bens'], 'só os três regimes');
-  const ordem = await pg.evaluate(() => { const f = document.getElementById('formulario'); const blocos = [...f.querySelectorAll('.bloco')];
-    const i = (re) => blocos.findIndex((b) => re.test(b.textContent)); const slots = [...f.querySelectorAll('.slot')];
-    return {conj: i(/Dados do cônjuge/), docs: blocos.findIndex((b) => b.querySelector('.intro-docs')), pag: i(/Pagamento|Valor da transação/), slotsForaDoFim: slots.filter((x) => !x.closest('.bloco').querySelector('.intro-docs')).length, ultimo: blocos.length - 1}; });
-  assert(ordem.conj >= 0 && ordem.docs > ordem.conj && ordem.docs > ordem.pag, JSON.stringify(ordem));
-  assert.equal(ordem.slotsForaDoFim, 0, 'nenhum envio de arquivo antes do cartão Documentos');
-  assert(/RG ou CNH do cônjuge/.test(await pg.innerText('.intro-docs >> xpath=..')), 'o RG do cônjuge está nos documentos');
+  await pg.fill('[data-c="nome"]', 'Maria Cristina');
+  const caixa = await pg.evaluate(() => { const b = document.querySelector('[data-bloco="partes"]'); const t = b.innerText;
+    const ordem = (re) => t.search(re); return {dentro: b.querySelectorAll('.slot').length, cab: ordem(/ANEXE OS DOCUMENTOS/i), conj: ordem(/DADOS DO CÔNJUGE/i), rg: ordem(/RG ou CNH/), t}; });
+  assert(caixa.dentro >= 3, 'os slots estão dentro do cartão da pessoa: ' + caixa.dentro);
+  assert(caixa.conj >= 0 && caixa.cab > caixa.conj && caixa.rg > caixa.cab, 'dados do cônjuge antes, documentos depois: ' + JSON.stringify([caixa.conj, caixa.cab, caixa.rg]));
+  assert(/RG ou CNH de José da Silva/.test(caixa.t), 'o RG diz de quem é');
+  assert(/Certidão de casamento de José da Silva e Maria Cristina/.test(caixa.t), 'a certidão diz "de José e Maria"');
+  assert(/RG ou CNH de Maria Cristina/.test(caixa.t), 'o RG do cônjuge diz o nome dela');
+  await pg.fill('[data-f="nome"]', 'José Souza'); await pg.waitForFunction(() => /RG ou CNH de José Souza/.test(document.querySelector('[data-bloco="partes"]').innerText), null, {timeout: 3000}); // o nome na frase acompanha o que se digita
   assert.equal(await pg.locator('.chip:has-text("Falta anexar")').count() > 1, true, 'cada documento mostra se falta ou se já foi anexado');
+});
+await passo('vários compradores: cada um com os seus dados e, logo abaixo, os documentos dele, na ordem', async () => {
+  const {pg} = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'comprador'}); await pg.waitForSelector('[data-b="partes"]');
+  await pg.fill('[data-b="partes"][data-i="0"][data-f="nome"]', 'João');
+  await pg.click('[data-mais]'); await pg.fill('[data-b="partes"][data-i="1"][data-f="nome"]', 'José');
+  await pg.click('[data-mais]'); await pg.fill('[data-b="partes"][data-i="2"][data-f="nome"]', 'Maria');
+  const ordem = await pg.evaluate(() => [...document.querySelectorAll('[data-bloco="partes"]')].map((b) => ({ slots: b.querySelectorAll('.slot').length, txt: b.querySelector('.slot b').textContent })));
+  assert.equal(ordem.length, 3); assert.deepEqual(ordem.map((o) => o.txt), ['RG ou CNH de João', 'RG ou CNH de José', 'RG ou CNH de Maria']);
+  assert(ordem.every((o) => o.slots >= 2), 'cada cartão tem os arquivos dele');
 });
 await passo('envio rápido: o arquivo sobe sem esperar a IA (lerDepois) e a leitura sai numa chamada à parte, para cada arquivo', async () => {
   let n = 0;
@@ -242,7 +254,7 @@ await passo('inventário: o falecido pergunta o estado civil na data do óbito e
 await passo('advogado: só sobe a carteira da OAB, sem número, nome nem endereço para digitar', async () => {
   const {pg} = await abrir({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true}}, {viewport: {width: 1100, height: 900}, mobile: false});
   await pg.waitForSelector('[data-fal]'); assert.equal(await pg.locator('[data-adv]').count(), 0, 'nenhum campo de advogado');
-  assert(/Carteira da OAB/.test(await pg.textContent('.intro-docs >> xpath=..')), 'a carteira está nos documentos');
+  assert(/Carteira da OAB/.test(await pg.textContent('[data-bloco="advogado"]')), 'a carteira está no cartão do advogado');
   assert(!/Número da OAB/.test(await pg.textContent('#formulario')));
 });
 await passo('união estável: quem não é casado marca "Vivo em união estável" e o espaço da escritura abre só nos documentos dele', async () => {
@@ -252,9 +264,8 @@ await passo('união estável: quem não é casado marca "Vivo em união estável
   await ec(0, 'Solteiro(a)'); await ec(1, 'Casado(a)');
   assert.equal(await pg.locator('[data-uniao]').count(), 1, 'a pergunta só aparece para quem não é casado');
   await pg.check('[data-uniao]', {force: true});
-  const grupos = await pg.evaluate(() => [...document.querySelectorAll('.intro-docs ~ *')].map((x) => x.className.includes('grupo-docs') ? '#' + x.textContent : x.className.includes('slot') ? x.querySelector('b').textContent : '').filter(Boolean));
-  const iU = grupos.findIndex((x) => /união estável/.test(x)), iG1 = grupos.findIndex((x) => x.startsWith('#') && /Vendedor/.test(x)), iG2 = grupos.findIndex((x) => x.startsWith('#') && /Comprador/.test(x));
-  assert(iU > iG1 && iU < iG2, 'a escritura abre na pílula de quem marcou (o vendedor): ' + grupos.join(' | '));
+  const onde = await pg.evaluate(() => [...document.querySelectorAll('[data-bloco="partes"]')].map((b) => /união estável/i.test([...b.querySelectorAll('.slot b')].map((x) => x.textContent).join('|'))));
+  assert.deepEqual(onde, [true, false], 'a escritura abre no cartão de quem marcou (o vendedor) e não no do comprador');
   await clicarEnviar(pg); assert(/escritura de união estável/.test(await pg.innerText('.folha')), 'e passa a faltar até anexar');
 });
 await passo('pacto: abre só para quem é casado em regime que exige pacto, na pílula dele', async () => {
