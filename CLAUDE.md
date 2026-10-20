@@ -967,27 +967,27 @@ Regras que **não devem ser mexidas sem perguntar**:
   arquivo** ou **só escreve a informação**, e, quando o link vai para os dois lados, se é para todos ou
   para um só. Informação cai na ficha `DADOS_INFORMADOS_PELO_CLIENTE` com o rótulo escrito por ela.
 - **O envio é definitivo, e tem trava.** O botão da página mostra "Faltam N itens" e, tocado, lista o
-  que falta; só com tudo preenchido vira "Revisar e enviar", que abre uma conferência ("este link fecha")
+  que falta; só com tudo preenchido vira "Conferir e enviar", que abre uma conferência ("este link fecha")
   com *Voltar e revisar* / *Enviar agora*. Ao enviar, o Apps Script grava `concluidoEm` no pedido: **o link
   expira** (a página diz "já foi usado" e as ações `cliente-arquivo`/`cliente-dados` recusam), para um
   segundo preenchimento não confundir o card. Gerar/atualizar a lista com o mesmo código reabre o link.
 - **O aviso chega no topo do painel**, junto do Jornal (`renderEnvios()`): o Apps Script grava
   `/casos/{id}/envioCliente` (`em`, `arquivos`, `visto:false`); *Abrir o card* leva ao card e marca visto.
 - **Data em texto, não calendário** (`dd/mm/aaaa` com máscara; data impossível trava o envio). **CEP manda
-  no endereço** (a cada CEP novo a rua/bairro/cidade/UF vêm dele; o autopreenchimento do navegador está
-  desligado nesses campos). **"Acrescentar" em ato de duas pontas** cria a outra ponta (Convivente 2,
+  no endereço** (a cada CEP novo a rua/bairro/cidade/UF vêm dele). **"Acrescentar" em ato de duas pontas** cria a outra ponta (Convivente 2,
   Divorciando(a) 2, Noivo(a) 2) — o papel vai para a ficha e para o nome do arquivo.
 - **A IA copia números de documento dígito por dígito** (`lerDocumentoComIA`) e marca `?` no que não
-  estiver nítido; as fotos saem com até 2600 px (antes 1800) para o 6 não virar 8.
-- **Os documentos vão por último.** A página pede primeiro os dados (e, se a pessoa é casada, o regime e os
-  dados do cônjuge logo em seguida) e só no fim abre o cartão **Documentos**, com um espaço por documento de
-  cada parte (cada um mostra "Falta anexar" / "✓ Anexado"). **Regime de bens: só três** — comunhão parcial,
+  estiver nítido; as fotos saem com até 2400 px, qualidade .85, para o 6 não virar 8.
+- **Os documentos de cada pessoa ficam no cartão dela**, logo depois dos dados (e, se é casada, depois do regime
+  e dos dados do cônjuge), com o nome na frase ("Certidão de casamento de José e Maria"), que se atualiza ao
+  digitar; cada um mostra "Falta anexar" / "✓ Anexado". O cartão final **"Mais documentos"** guarda só o que não
+  é de uma pessoa (matrícula, bens a inventariar). **Regime de bens: só três** — comunhão parcial,
   comunhão universal e separação total (universal e separação total pedem o pacto e o registro dele).
 - **A IA só lê depois do envio concluído** (`cliente-ler`, disparado pela página logo após a ficha e
   mantido pelo navegador mesmo se a página fechar): nada dela corre durante o envio.
 - **O envio é rápido porque a IA não segura a fila e o servidor não lê o caso inteiro.** O Apps Script lê só o
   nome e a pasta do caso (antes trazia todos os documentos com o texto da IA a cada arquivo) e a trava cobre só
-  o número do nome e a pasta — criar o arquivo no Drive e gravar o registro correm em paralelo. O arquivo sobe com `lerDepois` e é guardado na hora; a
+  o número do nome e a pasta — criar o arquivo no Drive e gravar o registro correm em paralelo. A
   leitura pela IA sai numa chamada à parte (`cliente-ler`, também depois de o link fechar) e o card mostra
   "lendo…" até terminar. A numeração dos nomes vem de um contador pequeno em `/pedidos/{código}/contagem`.
 - **A prévia do WhatsApp tem imagem** (`og-envio.png`, 1200×630, com a marca PRIME) e o link é curto
