@@ -1003,7 +1003,7 @@ Regras que **não devem ser mexidas sem perguntar**:
 - **Preenchimento do celular**: os campos levam o `autocomplete` certo (nome, CEP, rua, cidade…), e o que
   responde depois (o CEP) troca **só o bloco do endereço**, sem mexer no campo em que a pessoa está.
 - **O advogado informa estado civil, profissão e endereço** (e o nome), **sem número da OAB**, e sobe a carteira
-  da OAB (`adv:true` no catálogo; não pede RG nem certidão). **Procuração: sem certidão de estado civil de
+  da OAB (`adv:true` no catálogo; não pede RG nem certidão) — **e nunca regime de bens nem dados do cônjuge**: ele não é parte (há teste cobrindo inventário, divórcio e as três pontas da procuração, onde ninguém pede regime nem cônjuge). **Procuração: sem certidão de estado civil de
   ninguém** (outorgante e procurador só RG/CPF; o estado civil continua como dado); os documentos do bem
   (imóvel/veículo) são pedidos quando ela marca, e há sempre um espaço **opcional** para outro arquivo (a
   procuração geral não exige nenhum). **Pacto e união estável

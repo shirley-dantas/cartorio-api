@@ -44,6 +44,7 @@ async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = tru
 }
 const compra = {tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'comprador'};
 
+async function pg_espera(pg, id){ await pg.waitForSelector(`[data-bloco="${id}"]`); }
 await passo('sem código, ou com código vencido, a página diz que o link não serve e não mostra formulário', async () => {
   const pg = await b.newPage({viewport: {width: 390, height: 844}});
   await pg.route('**/*', (r) => r.request().url().startsWith('http://127.0.0.1') ? r.continue() : r.abort());
@@ -292,6 +293,26 @@ await passo('advogado: só sobe a carteira da OAB, sem número, nome nem endere�
   await pg.waitForSelector('[data-fal]'); assert.equal(await pg.locator('[data-adv]').count(), 0, 'nenhum campo de advogado');
   assert(/Carteira da OAB/.test(await pg.textContent('[data-bloco="advogado"]')), 'a carteira está no cartão do advogado');
   assert(!/Número da OAB/.test(await pg.textContent('#formulario')));
+});
+await passo('advogado (inventário e divórcio) e procuração: casado(a) NÃO abre regime de bens nem dados do cônjuge; as partes do ato continuam abrindo', async () => {
+  const semConj = (pg, bloco) => pg.evaluate((id) => { const b = document.querySelector(`[data-bloco="${id}"]`); return {regime: b.querySelectorAll('input[data-f="regime"]').length, conj: b.querySelectorAll('[data-c="nome"]').length}; }, bloco);
+  const grande = {viewport: {width: 1100, height: 900}, mobile: false};
+  for (const [est, adv] of [[{tipo: 'Inventário', publico: 'advogado', bens: {urbano: true}}, 'advogado'], [{tipo: 'Divórcio', publico: 'advogado'}, 'advogado']]) {
+    const {pg} = await abrir(est, grande); await pg.waitForSelector(`[data-bloco="${adv}"]`);
+    await pg.selectOption(`[data-bloco="${adv}"] [data-f="ec"]`, 'Casado(a)');
+    assert.deepEqual(await semConj(pg, adv), {regime: 0, conj: 0}, est.tipo + ': o advogado casado não pede regime nem cônjuge');
+  }
+  const inv = await abrir({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true}}, grande); await pg_espera(inv.pg, 'herdeiros');
+  await inv.pg.selectOption('[data-bloco="herdeiros"] [data-f="ec"]', 'Casado(a)');
+  const h = await semConj(inv.pg, 'herdeiros'); assert(h.regime === 3 && h.conj === 1, 'o herdeiro (parte) continua pedindo regime e cônjuge: ' + JSON.stringify(h));
+  for (const papel of ['outorgante', 'procurador', 'ambos']) {
+    const {pg} = await abrir({tipo: 'Procuração', publico: 'cliente', papel}, grande); await pg.waitForSelector('[data-bloco]');
+    for (const id of await pg.evaluate(() => [...document.querySelectorAll('[data-bloco]')].map((b) => b.dataset.bloco))) {
+      const ec = pg.locator(`[data-bloco="${id}"] [data-f="ec"]`);
+      if (await ec.count()) await ec.selectOption('Casado(a)');
+      assert.deepEqual(await semConj(pg, id), {regime: 0, conj: 0}, 'procuração (' + papel + '/' + id + '): sem regime nem cônjuge');
+    }
+  }
 });
 await passo('união estável: quem não é casado marca "Vivo em união estável" e o espaço da escritura abre só nos documentos dele', async () => {
   const {pg} = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'advogado'}, {viewport: {width: 1100, height: 900}, mobile: false});
