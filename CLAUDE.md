@@ -939,8 +939,12 @@ Regras que **não devem ser mexidas sem perguntar**:
   participação final) pede o pacto e o registro dele no RI.
 - **O caso é o do código do link**, nunca um id mandado pela página. Link vence
   em 15 dias; só PDF e imagem, até 10 MB.
-- **Os dados só vão depois dos arquivos.** Arquivo que falha fica marcado em
-  vermelho e os dados digitados não são enviados como se estivesse tudo certo.
+- **Cada arquivo sobe assim que é anexado**, enquanto a pessoa preenche o resto; os dados (a ficha) só vão
+  no fim, depois de todos os arquivos. Arquivo que falha fica marcado em vermelho, com *Tentar de novo*, e a
+  ficha não é enviada como se estivesse tudo certo. **Tirar um arquivo já enviado também o tira do Drive**
+  (`cliente-remover`, só enquanto o link está aberto e só com o selo certo). Enquanto o cliente não conclui,
+  os arquivos ficam **provisórios** (`provisorio: true`) e o card diz "aguardando o cliente concluir o envio":
+  é por ali que se limpa o que sobrar de um link abandonado (o botão de excluir da lista).
 - **O que o cliente digita é "ainda não conferido".** Quebras de linha e texto
   longo são cortados antes de entrar na minuta, para um recado não forjar um
   documento novo no meio do pedido da IA.
@@ -979,6 +983,8 @@ Regras que **não devem ser mexidas sem perguntar**:
   dados do cônjuge logo em seguida) e só no fim abre o cartão **Documentos**, com um espaço por documento de
   cada parte (cada um mostra "Falta anexar" / "✓ Anexado"). **Regime de bens: só três** — comunhão parcial,
   comunhão universal e separação total (universal e separação total pedem o pacto e o registro dele).
+- **A IA só lê depois do envio concluído** (`cliente-ler`, disparado pela página logo após a ficha e
+  mantido pelo navegador mesmo se a página fechar): nada dela corre durante o envio.
 - **O envio é rápido porque a IA não segura a fila e o servidor não lê o caso inteiro.** O Apps Script lê só o
   nome e a pasta do caso (antes trazia todos os documentos com o texto da IA a cada arquivo) e a trava cobre só
   o número do nome e a pasta — criar o arquivo no Drive e gravar o registro correm em paralelo. O arquivo sobe com `lerDepois` e é guardado na hora; a
@@ -1011,7 +1017,7 @@ Regras que **não devem ser mexidas sem perguntar**:
   inventariar"** (no divórcio, "Bens a partilhar").
 - **O link só fecha quando o envio é concluído**: sair da página e voltar continua valendo, e o que foi digitado
   fica guardado **neste aparelho** (rascunho de 3 dias, `localStorage`), com aviso e "Começar de novo"; os
-  arquivos precisam ser anexados de novo. **No celular o rodapé some enquanto o teclado está aberto**, o campo
+  arquivos que já tinham subido voltam como "✓ Enviado" (estão no Drive). **No celular o rodapé some enquanto o teclado está aberto**, o campo
   vem para o meio da tela e Enter passa ao próximo campo.
 - **A certidão de estado civil aparece desde o início** (genérica até ela escolher o estado civil) e o
   endereço se recolhe depois do CEP (rua/bairro/cidade/UF viram uma linha com *Editar*).

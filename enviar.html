@@ -96,6 +96,7 @@ textarea{min-height:100px;resize:vertical}
 .info small.ok{color:var(--ok);font-weight:700} .info small.erro{color:var(--critico);font-weight:700}
 .barra{height:5px;background:var(--recuo);margin-top:6px;overflow:hidden}
 .barra i{display:block;height:100%;background:var(--champ);width:0;transition:width .2s}
+.tentar{display:inline-block;margin-top:6px;border:1.5px solid var(--graf);background:#fff;border-radius:2px;padding:8px 12px;font:700 15px -apple-system,'Inter',sans-serif;color:var(--graf);cursor:pointer;min-height:44px}
 .tirar{flex:none;width:48px;height:48px;border:0;background:none;color:var(--graf);font-size:26px;cursor:pointer}
 .opcional-nota{color:var(--graf-2);font-weight:400;font-size:16px}
 .dica{font-size:15.5px;color:var(--graf-2);margin:6px 0 0}
@@ -209,7 +210,11 @@ function salvarRascunho(){
 }
 function gravarRascunho(){
   if(!pedido||document.body.classList.contains('concluido')) return;
-  try{ localStorage.setItem(CHAVE_RASCUNHO,JSON.stringify({em:Date.now(),pessoas:E.pessoas,falecidos:E.falecidos,campos:E.campos,banco:E.banco,filhos:E.filhos,clausulas:E.clausulas,obs:E.obs})); }catch(_){}
+  try{ localStorage.setItem(CHAVE_RASCUNHO,JSON.stringify({em:Date.now(),pessoas:E.pessoas,falecidos:E.falecidos,campos:E.campos,banco:E.banco,filhos:E.filhos,clausulas:E.clausulas,obs:E.obs,arq:arquivosEnviados()})); }catch(_){}
+}
+function arquivosEnviados(){
+  const o={}; Object.entries(E.arquivos).forEach(([c,l])=>{ const e=l.filter(x=>x.estado==='enviado'&&x.docKey).map(x=>({nome:x.original.name,size:x.file.size,type:x.file.type,docKey:x.docKey})); if(e.length) o[c]=e; });
+  return o;
 }
 function apagarRascunho(){ clearTimeout(tRascunho); try{ localStorage.removeItem(CHAVE_RASCUNHO); }catch(_){} }
 function restaurarRascunho(){
@@ -223,6 +228,8 @@ function restaurarRascunho(){
     if(Array.isArray(d.filhos)) E.filhos=d.filhos;
     if(d.clausulas&&typeof d.clausulas==='object') E.clausulas=d.clausulas;
     if(typeof d.obs==='string') E.obs=d.obs;
+    // Os arquivos que já tinham sido enviados continuam guardados no cartório: voltam como "✓ Enviado".
+    if(d.arq&&typeof d.arq==='object') Object.entries(d.arq).forEach(([c,l])=>{ if(Array.isArray(l)&&l.length){ E.arquivos[c]=l.filter(a=>a&&a.docKey).map(a=>({id:++seq,original:{name:String(a.nome||'arquivo')},file:{name:String(a.nome||'arquivo'),size:+a.size||0,type:String(a.type||'')},estado:'enviado',pct:100,docKey:String(a.docKey)})); achou=true; } });
     restaurou=achou||!!(d.obs);
   }catch(_){}
 }
@@ -249,7 +256,7 @@ async function carregar(){
   restaurarRascunho();
   desenharTudo();
   if(restaurou){
-    const av=document.createElement('div'); av.className='recuperado'; av.innerHTML='Guardamos o que você já tinha preenchido. Pode continuar de onde parou. <b>Os documentos precisam ser anexados de novo.</b><button type="button" id="recomecar">Começar de novo</button>';
+    const av=document.createElement('div'); av.className='recuperado'; av.innerHTML='Guardamos o que você já tinha preenchido. Pode continuar de onde parou. <b>Os documentos que você já enviou continuam guardados.</b><button type="button" id="recomecar">Começar de novo</button>';
     $('#formulario').before(av);
     av.querySelector('#recomecar').addEventListener('click',()=>{ if(confirm('Apagar o que foi preenchido neste aparelho e começar de novo?')){ apagarRascunho(); location.reload(); } });
   }
@@ -294,18 +301,37 @@ async function adicionar(chave,files){
     (E.arquivos[chave]=E.arquivos[chave]||[]).push(it); desenharSlot(chave);
     it.file=await reduzir(f);
     if(it.file.size>MAX_BYTES){ it.estado='erro'; it.erro='Arquivo grande demais (máx. 8 MB). Tire uma foto em vez do arquivo.'; }
-    else it.estado='pronto';
+    else{ it.estado='pronto'; agendarEnvio(chave,it); }
     desenharSlot(chave);
   }
   resumo();
 }
-function tirar(chave,id){ E.arquivos[chave]=(E.arquivos[chave]||[]).filter(x=>x.id!==id); desenharSlot(chave); resumo(); }
+// O arquivo sobe assim que é anexado, enquanto a pessoa preenche o resto: no fim só falta a ficha.
+const filaEnvio=[]; let emVoo=0;
+function agendarEnvio(chave,it){ filaEnvio.push([chave,it]); rodarFila(); }
+function rodarFila(){
+  while(emVoo<PARALELO&&filaEnvio.length){ const [c,x]=filaEnvio.shift(); emVoo++; enviarArquivo(c,x).finally(()=>{ emVoo--; rodarFila(); resumo(); }); }
+}
+const esperaUploads=async()=>{ while(emVoo>0||filaEnvio.length) await new Promise(r=>setTimeout(r,120)); };
+// Tirar um arquivo já enviado também o tira do Drive (o servidor confere que ele nasceu deste link).
+async function tirar(chave,id){
+  const x=(E.arquivos[chave]||[]).find(y=>y.id===id); if(!x) return;
+  const fi=filaEnvio.findIndex(([,y])=>y===x); if(fi>=0) filaEnvio.splice(fi,1);
+  if(x.estado==='enviado'&&x.docKey){
+    x.estado='removendo'; desenharSlot(chave);
+    try{ await chamar({acao:'cliente-remover',t:token,docKey:x.docKey}); }
+    catch(e){ x.estado='enviado'; desenharSlot(chave); alert('Não consegui tirar este arquivo agora. Tente de novo em instantes.'); return; }
+  }
+  E.arquivos[chave]=(E.arquivos[chave]||[]).filter(y=>y.id!==id); desenharSlot(chave); resumo();
+}
 function linhasArq(chave){
   return (E.arquivos[chave]||[]).map(x=>{
-    const img=x.file.type.startsWith('image/');
-    const mini=img?`<div class="mini" style="background-image:url('${x.url=x.url||URL.createObjectURL(x.file)}')"></div>`:'<div class="mini">PDF</div>';
-    const sit=x.estado==='lendo'?'<small>Preparando…</small>':x.estado==='enviado'?'<small class="ok">✓ Enviado</small>':x.estado==='erro'?`<small class="erro">${esc(x.erro||'Não enviou')}</small>`:x.estado==='enviando'?'<small>Enviando…</small>':`<small>${kb(x.file.size)}</small>`;
-    return `<li class="arq">${mini}<div class="info"><b>${esc(x.original.name)}</b>${sit}<div class="barra"><i style="width:${x.estado==='enviado'?100:x.pct||0}%"></i></div></div>${x.estado==='enviado'||enviando?'':`<button class="tirar" aria-label="Tirar" data-tirar="${esc(chave)}|${x.id}">×</button>`}</li>`;
+    const real=typeof Blob!=='undefined'&&x.file instanceof Blob, img=real&&x.file.type.startsWith('image/');
+    const mini=img?`<div class="mini" style="background-image:url('${x.url=x.url||URL.createObjectURL(x.file)}')"></div>`:`<div class="mini">${real||/pdf/i.test(x.file.type||'')?'PDF':'✓'}</div>`;
+    const sit=x.estado==='lendo'?'<small>Preparando…</small>':x.estado==='enviado'?'<small class="ok">✓ Enviado</small>':x.estado==='erro'?`<small class="erro">${esc(x.erro||'Não enviou')}</small>`:x.estado==='enviando'?'<small>Enviando…</small>':x.estado==='removendo'?'<small>Tirando…</small>':`<small>${kb(x.file.size)} · na fila</small>`;
+    const tentar=x.estado==='erro'&&real&&x.file.size<=MAX_BYTES?`<button type="button" class="tentar" data-retry="${esc(chave)}|${x.id}">Tentar de novo</button>`:'';
+    const tira=['enviando','removendo'].includes(x.estado)||enviando?'':`<button class="tirar" aria-label="Tirar" data-tirar="${esc(chave)}|${x.id}">×</button>`;
+    return `<li class="arq">${mini}<div class="info"><b>${esc(x.original.name)}</b>${sit}${tentar}<div class="barra"><i style="width:${x.estado==='enviado'?100:x.pct||0}%"></i></div></div>${tira}</li>`;
   }).join('');
 }
 function chipDe(chave,opcional){
@@ -604,6 +630,7 @@ raiz.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.camera){ abrirCamera(b.dataset.camera); }
   else if(b.dataset.tirar){ const [c,id]=b.dataset.tirar.split('|'); tirar(c,+id); }
+  else if(b.dataset.retry){ const [c,id]=b.dataset.retry.split('|'), x=(E.arquivos[c]||[]).find(y=>y.id===+id); if(x){ x.estado='pronto'; x.pct=0; desenharSlot(c); agendarEnvio(c,x); } }
   else if(b.dataset.mais){ const bl=pedido.blocos.find(x=>x.id===b.dataset.mais); E.pessoas[bl.id].push(novaPessoa(b.dataset.papel||proximoPapel(bl))); desenharTudo(); }
   else if(b.dataset.remover){ const [id,i]=b.dataset.remover.split('|'); E.pessoas[id].splice(+i,1); desenharTudo(); }
   else if(b.dataset.editend){ const [id,i]=b.dataset.editend.split('|'); E.pessoas[id][+i].editEnd=true; refazEndereco(id,+i); }
@@ -669,7 +696,8 @@ function faltas(){
 function resumo(){
   if(!pedido) return;
   const n=Object.values(E.arquivos).flat().filter(x=>x.estado!=='erro').length, f=faltas().length;
-  $('#resumo').textContent=f?`${n?n+(n===1?' documento anexado. ':' documentos anexados. '):''}Toque no botão para ver o que falta.`:'Tudo preenchido. Confira e envie.';
+  const subindo=Object.values(E.arquivos).flat().filter(x=>['lendo','pronto','enviando'].includes(x.estado)).length;
+  $('#resumo').textContent=subindo?`Enviando ${subindo} ${subindo===1?'documento':'documentos'}… pode continuar preenchendo.`:f?`${n?n+(n===1?' documento anexado. ':' documentos anexados. '):''}Toque no botão para ver o que falta.`:'Tudo preenchido. Confira e envie.';
   const b=$('#enviar'); b.disabled=enviando; b.classList.toggle('falta',!!f);
   if(!enviando) b.textContent=f?(f===1?'Falta 1 item':'Faltam '+f+' itens'):'Conferir e enviar';
   salvarRascunho();
@@ -730,23 +758,27 @@ async function enviarArquivo(chave,it){
   try{
     const base64=await b64(it.file); it.pct=40; desenharSlot(chave);
     const r=await chamar({acao:'cliente-arquivo',t:token,chave,papel:meta.papel,pessoa:meta.pessoa,tipo:meta.tipo,nomeArquivo:it.file.name,mimetype:it.file.type||'application/octet-stream',lerDepois:true,base64});
-    // A leitura pela IA corre à parte (não segura o envio) e segue mesmo se a página for fechada.
-    if(r.docKey) try{ fetch(GAS_URL,{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({acao:'cliente-ler',t:token,docKey:r.docKey})}).catch(()=>{}); }catch(_){ }
-    it.estado='enviado'; it.pct=100;
-  }catch(e){ it.estado='erro'; it.erro='Não enviou. Toque em Enviar para tentar de novo.'; }
+    it.docKey=r.docKey; it.estado='enviado'; it.pct=100; gravarRascunho();
+  }catch(e){ it.estado='erro'; it.erro='Não enviou. Toque em "Tentar de novo".'; }
   desenharSlot(chave);
 }
 async function enviar(){
   if(enviando||!pedido) return;
   if(faltas().length) return revisar();
   enviando=true; const btn=$('#enviar'); btn.disabled=true; btn.textContent='Enviando…';
-  const fila=Object.entries(E.arquivos).flatMap(([c,l])=>l.filter(x=>x.estado==='pronto'||x.estado==='erro'&&x.file.size<=MAX_BYTES).map(x=>[c,x]));
-  let i=0; await Promise.all(Array.from({length:Math.min(PARALELO,fila.length)},async()=>{ while(i<fila.length){ const [c,x]=fila[i++]; await enviarArquivo(c,x); } }));
-  const falhou=Object.values(E.arquivos).flat().some(x=>x.estado==='erro');
+  // Quase tudo já subiu quando foi anexado: aqui só entra o que ainda estava na fila ou falhou.
+  Object.entries(E.arquivos).forEach(([c,l])=>l.forEach(x=>{ if(x.estado==='pronto'||(x.estado==='erro'&&x.file&&x.file.size<=MAX_BYTES)) agendarEnvio(c,x); }));
+  await esperaUploads();
+  const todos=Object.values(E.arquivos).flat(), falhou=todos.some(x=>x.estado==='erro');
   if(!falhou){
-    try{ await chamar({acao:'cliente-dados',t:token,nArquivos:Object.values(E.arquivos).flat().filter(x=>x.estado==='enviado').length,dados:montarDados()}); apagarRascunho(); document.body.classList.add('concluido'); window.scrollTo(0,0); }
-    catch(e){ alert('Os documentos chegaram, mas não consegui enviar os dados preenchidos. Toque em Enviar de novo.'); }
-  }else alert('Alguns arquivos não foram enviados. Eles estão marcados em vermelho: toque em Enviar para tentar de novo.');
+    const docKeys=todos.filter(x=>x.estado==='enviado'&&x.docKey).map(x=>x.docKey);
+    try{
+      await chamar({acao:'cliente-dados',t:token,nArquivos:docKeys.length,docKeys,dados:montarDados()});
+      apagarRascunho(); document.body.classList.add('concluido'); window.scrollTo(0,0);
+      // Só agora a IA lê os documentos, à parte e mesmo que a página seja fechada: o envio não espera por isso.
+      docKeys.forEach(k=>{ try{ fetch(GAS_URL,{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({acao:'cliente-ler',t:token,docKey:k})}).catch(()=>{}); }catch(_){ } });
+    }catch(e){ alert('Os documentos chegaram, mas não consegui enviar os dados preenchidos. Toque em Enviar de novo.'); }
+  }else alert('Algum arquivo não foi enviado. Ele está marcado em vermelho: toque em "Tentar de novo" e depois em Enviar.');
   enviando=false; btn.disabled=false; resumo();
 }
 $('#enviar').addEventListener('click',revisar);

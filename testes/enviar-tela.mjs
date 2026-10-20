@@ -195,15 +195,41 @@ await passo('vários compradores: cada um com os seus dados e, logo abaixo, os d
   assert.equal(ordem.length, 3); assert.deepEqual(ordem.map((o) => o.txt), ['RG ou CNH de João', 'RG ou CNH de José', 'RG ou CNH de Maria']);
   assert(ordem.every((o) => o.slots >= 2), 'cada cartão tem os arquivos dele');
 });
-await passo('envio rápido: o arquivo sobe sem esperar a IA (lerDepois) e a leitura sai numa chamada à parte, para cada arquivo', async () => {
+await passo('envio ao anexar: o arquivo sobe na hora; no fim só vai a ficha, e a IA só lê DEPOIS do envio concluído', async () => {
   let n = 0;
   const {pg, chamadas} = await abrir(compra, {gas: (c) => c.acao === 'cliente-arquivo' ? {ok: true, docKey: 'cli_aB3dE6_' + (++n)} : {ok: true}});
   await pg.waitForSelector('[data-b="partes"]'); await preencher(pg);
+  await pg.waitForFunction(() => document.querySelectorAll('.arq small.ok').length === 2);
+  assert.equal(chamadas.filter((c) => c.acao === 'cliente-arquivo').length, 2, 'os dois arquivos já subiram antes do botão');
+  assert(!chamadas.some((c) => c.acao === 'cliente-dados' || c.acao === 'cliente-ler'), 'sem ficha e sem leitura enquanto o cliente ainda preenche');
   await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
-  await pg.waitForFunction(() => true); await new Promise((r) => setTimeout(r, 400));
-  const subidas = chamadas.filter((c) => c.acao === 'cliente-arquivo'), leituras = chamadas.filter((c) => c.acao === 'cliente-ler');
-  assert(subidas.length === 2 && subidas.every((c) => c.lerDepois === true), 'sobe sem esperar a leitura');
-  assert.deepEqual(leituras.map((c) => c.docKey).sort(), ['cli_aB3dE6_1', 'cli_aB3dE6_2'], 'uma leitura por arquivo guardado'); assert(leituras.every((c) => c.t === TOKEN));
+  await new Promise((r) => setTimeout(r, 400));
+  const ac = chamadas.map((c) => c.acao), iDados = ac.indexOf('cliente-dados');
+  assert.equal(ac.filter((x) => x === 'cliente-arquivo').length, 2, 'nada foi reenviado no fim');
+  const dados = chamadas[iDados]; assert.deepEqual([...dados.docKeys].sort(), ['cli_aB3dE6_1', 'cli_aB3dE6_2'], 'a ficha leva as chaves dos arquivos');
+  const leituras = chamadas.filter((c) => c.acao === 'cliente-ler');
+  assert.deepEqual(leituras.map((c) => c.docKey).sort(), ['cli_aB3dE6_1', 'cli_aB3dE6_2']); assert(leituras.every((c) => c.t === TOKEN));
+  assert(ac.indexOf('cliente-ler') > iDados, 'a leitura só começa depois da ficha');
+});
+await passo('tirar um arquivo já enviado também o tira do servidor; e o que falhou tem "Tentar de novo"', async () => {
+  let n = 0, falha = true;
+  const {pg, chamadas} = await abrir(compra, {gas: (c) => c.acao === 'cliente-arquivo' ? (falha ? {ok: false, erro: 'não deu'} : {ok: true, docKey: 'cli_aB3dE6_' + (++n)}) : {ok: true}});
+  await pg.waitForSelector('[data-b="partes"]');
+  await pg.locator('input[type=file][multiple]').nth(0).setInputFiles(RG);
+  await pg.waitForSelector('.arq small.erro'); assert(await pg.locator('[data-retry]').count() === 1, 'oferece tentar de novo');
+  falha = false; await pg.click('[data-retry]'); await pg.waitForSelector('.arq small.ok');
+  await pg.click('[data-tirar]'); await pg.waitForFunction(() => !document.querySelector('.arq'));
+  const rem = chamadas.find((c) => c.acao === 'cliente-remover'); assert(rem && rem.docKey === 'cli_aB3dE6_1' && rem.t === TOKEN, 'o servidor foi avisado');
+});
+await passo('rascunho: o que já tinha sido enviado volta como "✓ Enviado" depois de recarregar a página', async () => {
+  let n = 0;
+  const {pg} = await abrir(compra, {gas: (c) => c.acao === 'cliente-arquivo' ? {ok: true, docKey: 'cli_aB3dE6_' + (++n)} : {ok: true}});
+  await pg.waitForSelector('[data-b="partes"]'); await pg.fill('[data-f="nome"]', 'Maria da Silva');
+  await pg.locator('input[type=file][multiple]').nth(0).setInputFiles(RG); await pg.waitForSelector('.arq small.ok');
+  await pg.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await pg.reload(); await pg.waitForSelector('.recuperado');
+  assert.equal(await pg.inputValue('[data-f="nome"]'), 'Maria da Silva'); assert(/Enviado/.test(await pg.innerText('.arq')), 'o arquivo continua como enviado');
+  assert(/rg\.png/.test(await pg.innerText('.arq')), 'com o nome dele'); assert(/Anexado/.test(await pg.innerText('.chip.ok')));
 });
 
 await passo('viúvo: a certidão de casamento com a averbação do óbito basta; a de óbito só na lista de inventário', async () => {
@@ -301,8 +327,8 @@ await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os d
 await passo('se o cartório recusa um arquivo, ele fica marcado e os dados NÃO são enviados como se estivesse tudo certo', async () => {
   const {pg, chamadas} = await abrir(compra, {gas: (c) => c.acao === 'cliente-arquivo' ? {ok: false, erro: 'não deu'} : {ok: true}});
   await pg.waitForSelector('[data-b="partes"]'); await preencher(pg);
-  await pg.waitForFunction(() => [...document.querySelectorAll('.arq small')].every((x) => x.textContent.includes('KB')));
-  await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForFunction(() => document.querySelector('.arq small.erro'));
+  await pg.waitForFunction(() => document.querySelectorAll('.arq small.erro').length === 2);
+  await clicarEnviar(pg); assert(/Ainda falta/.test(await pg.innerText('.folha')), 'o botão não deixa enviar com arquivo que falhou');
   assert(!chamadas.some((c) => c.acao === 'cliente-dados'), 'dados não podem ir se um arquivo falhou');
   assert(await pg.isHidden('#final'));
 });

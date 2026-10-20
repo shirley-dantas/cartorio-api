@@ -11902,15 +11902,15 @@ function pedidoRecebidosHtml(c){
   if(!todos.length) return '';
   const docs=todos.map(([k,d])=>({k,d}));
   const arquivos=docs.filter(x=>x.d.tipo!=='informacoes'), ficha=docs.some(x=>x.d.tipo==='informacoes');
-  const lidos=arquivos.filter(x=>x.d.texto).length;
+  const lidos=arquivos.filter(x=>x.d.texto).length, aguardando=arquivos.filter(x=>x.d.provisorio).length;
   const linhas=docs.sort((a,b)=>String(a.d.salvoEm).localeCompare(String(b.d.salvoEm))).map(({k,d})=>{
     const nome=d.link?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.nome)}</a>`:escTxt(d.nome);
     const lendoAgora=d.lendo&&Date.now()-Number(d.lendo)<10*60*1000;
-    const sit=d.tipo==='informacoes'?'dados digitados':(d.texto?'lido':(lendoAgora?'lendo…':'<b>sem leitura</b>'));
+    const sit=d.tipo==='informacoes'?'dados digitados':(d.provisorio?'<b>aguardando o cliente concluir o envio</b>':(d.texto?'lido':(lendoAgora?'lendo…':'<b>sem leitura</b>')));
     const del=c&&c.id?`<button type="button" class="cx-ped-x" title="Excluir — enviado errado" aria-label="Excluir ${esc(d.nome)}" onclick="excluirDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-trash"></i></button>`:'';
     return `<li><span class="cx-ped-nome">${nome}</span> <span>${sit}</span>${del}</li>`;
   }).join('');
-  return `<details class="cx-ped-rec"><summary><i class="ti ti-inbox"></i> Recebidos do cliente: ${arquivos.length} ${arquivos.length===1?'arquivo':'arquivos'}${arquivos.length?` (${lidos} lidos)`:''}${ficha?' + dados digitados':''}</summary><ul>${linhas}</ul></details>`;
+  return `<details class="cx-ped-rec"><summary><i class="ti ti-inbox"></i> Recebidos do cliente: ${arquivos.length} ${arquivos.length===1?'arquivo':'arquivos'}${arquivos.length?` (${lidos} lidos${aguardando?`, ${aguardando} aguardando o cliente concluir`:''})`:''}${ficha?' + dados digitados':''}</summary><ul>${linhas}</ul></details>`;
 }
 
 // Pedir documentos: a lista do que pedir (cliente, advogado, corretor…) para o ato do card.
