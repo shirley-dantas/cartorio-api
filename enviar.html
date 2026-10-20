@@ -13,128 +13,161 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#1F3B4D">
+<meta name="theme-color" content="#1F2A33">
 <meta name="description" content="Envio de documentos — 20º Tabelião de Notas">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Jost:wght@300;400&display=swap">
 <style>
 :root{
-  --fundo:#F4F1EB; --sup:#FFFFFF; --sup-2:#F8F5EF; --linha:#DDD6C8; --linha-forte:#B9B0A0;
-  --tinta:#16283A; --tinta-2:#3E4C58; --petroleo:#1F3B4D; --champagne:#A9895A; --ok:#1F7A47; --critico:#B3261E; --atencao:#8A5A0B;
+  --graf:#1F2A33; --graf-2:#5B6B78; --champ:#A9895A; --champ-claro:#D2B88C; --champ-texto:#6E5428;
+  --papel:#FFFFFF; --recuo:#F4F1EA; --faixa:#F7F4EE; --borda:#8A7B63; --ok:#1F6B40; --critico:#A8231C;
+  /* aliases para o JS/HTML que ainda usam os nomes antigos */
+  --fundo:#FFFFFF; --sup:#FFFFFF; --sup-2:#F7F4EE; --linha:#E6DFD0; --linha-forte:#8A7B63;
+  --tinta:#1F2A33; --tinta-2:#5B6B78; --petroleo:#1F2A33; --champagne:#A9895A; --atencao:#6E5428;
 }
 *{box-sizing:border-box;margin:0}
 [hidden]{display:none!important}
-html{-webkit-text-size-adjust:100%;scroll-padding-bottom:170px;scroll-padding-top:20px}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--fundo);color:var(--tinta);
-  font-size:17px;line-height:1.5;padding:0 16px calc(150px + env(safe-area-inset-bottom))}
+html{overflow-x:hidden;-webkit-text-size-adjust:100%;scroll-padding-bottom:140px;scroll-padding-top:20px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:var(--papel);color:var(--graf);
+  font-size:17px;line-height:1.5;padding:0 16px calc(120px + env(safe-area-inset-bottom))}
 .miolo{max-width:600px;margin:0 auto}
-.topo{margin:0 -16px;padding:calc(24px + env(safe-area-inset-top)) 16px 20px;background:var(--petroleo);text-align:center}
-.topo svg{display:block;height:46px;width:auto;margin:0 auto}
-.orgao{font-family:'Jost',sans-serif;font-weight:400;font-size:15px;letter-spacing:.26em;text-indent:.26em;text-transform:uppercase;color:var(--champagne);margin-top:8px}
-.escrevente{margin-top:16px;font-size:15.5px;color:var(--tinta-2);line-height:1.5}
-.escrevente b{color:var(--tinta);font-weight:600}
-.escrevente a{color:var(--petroleo);font-weight:600;text-decoration:none;border-bottom:1.5px solid var(--champagne)}
-.titulo{text-align:center;padding:22px 0 6px}
-h1{font-family:'Jost',sans-serif;font-weight:400;font-size:32px;line-height:1.15;color:var(--tinta)}
-.sub{color:var(--tinta-2);font-size:16.5px;margin-top:8px}
-.ato{display:inline-block;margin-top:12px;padding:7px 16px;border:1.5px solid var(--linha-forte);border-radius:99px;background:var(--sup);font-size:15px;font-weight:500}
-
-.bloco{background:var(--sup);border:1.5px solid var(--linha);border-radius:18px;padding:18px 16px;margin-top:14px}
-.bloco h2{font-size:20px;font-weight:600;display:flex;align-items:center;gap:12px;margin-bottom:14px;line-height:1.25}
-.bloco h3{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);margin:20px 0 10px}
-.num{flex:none;width:32px;height:32px;border-radius:50%;background:var(--petroleo);color:#fff;font-size:16px;font-weight:600;display:grid;place-items:center}
-.num.ok{background:var(--ok)}
+/* faixa do topo = tarja do orçamento */
+.topo{margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);padding:calc(26px + env(safe-area-inset-top)) 20px 26px;background:var(--graf);text-align:center;border-bottom:5px solid var(--champ)}
+.orgao{font-family:'Jost',sans-serif;font-weight:400;font-size:14px;letter-spacing:.28em;text-indent:.28em;text-transform:uppercase;color:var(--champ-claro);margin-top:8px}
+.topo .arco{display:block;height:34px;width:auto;margin:0 auto 6px}
+.topo h1{font-family:'Jost',sans-serif;font-weight:300;font-size:34px;line-height:1.15;color:#fff;margin-top:10px}
+.escrevente{margin-top:16px;padding-top:14px;border-top:1px solid rgba(210,184,140,.45);font-size:15.5px;line-height:1.5;color:#E9EDF0}
+.escrevente b{color:#fff;font-weight:600}
+.escrevente a{display:inline-block;margin-top:4px;color:var(--champ-claro);font-weight:600;text-decoration:none;border-bottom:1.5px solid var(--champ-claro)}
+.titulo{text-align:center;padding:2px 4px 0}
+.sub{color:var(--graf);font-size:17px;margin-top:0}
+.ato{display:inline-block;margin-top:14px;padding:8px 16px;background:var(--recuo);border-left:5px solid var(--champ);font-size:15px;font-weight:600;letter-spacing:.02em;border-radius:2px}
+/* cartões = blocos recuados */
+.bloco{background:var(--recuo);border-radius:4px;padding:0 0 12px;margin-top:18px;overflow:hidden}
+.bloco>*:not(h2){margin-left:16px;margin-right:16px}
+.bloco h2{font-size:20px;font-weight:600;display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:14px 16px;line-height:1.25;background:var(--graf);color:#fff;border-bottom:3px solid var(--champ)}
+.bloco h3{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--graf-2);margin-top:20px;margin-bottom:10px}
+.num{flex:none;width:32px;height:32px;border-radius:2px;background:var(--champ-claro);color:var(--graf);font-size:17px;font-weight:700;display:grid;place-items:center}
+.num.ok{background:#fff;color:var(--ok)}
 .campo{margin-bottom:14px}
-.campo label{display:block;font-size:16px;font-weight:500;color:var(--tinta);margin-bottom:6px}
+.campo label{display:block;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--graf-2);margin-bottom:6px}
 .campo label i{color:var(--critico);font-style:normal}
-input[type=text],input[type=tel],input[type=date],select,textarea{width:100%;font:inherit;font-size:18px;min-height:54px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--linha-forte);background:#fff;color:var(--tinta)}
-input:focus,select:focus,textarea:focus{outline:3px solid rgba(169,137,90,.35);border-color:var(--champagne)}
+input[type=text],input[type=tel],input[type=date],select,textarea{width:100%;font:inherit;font-size:18px;min-height:54px;padding:12px 14px;border-radius:2px;border:1.5px solid var(--borda);background:#fff;color:var(--graf)}
+input:focus,select:focus,textarea:focus{outline:3px solid rgba(169,137,90,.45);border-color:var(--graf)}
 textarea{min-height:100px;resize:vertical}
 .duas{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .tres{display:grid;grid-template-columns:2fr 1fr;gap:12px}
-.marca{display:flex;gap:12px;align-items:center;font-size:16.5px;margin:6px 0 14px}
-.marca input{width:24px;height:24px;accent-color:var(--petroleo)}
-.sec-conj{margin-top:16px;padding:14px;border-radius:14px;background:var(--sup-2);border:1.5px solid var(--linha)}
-.opcoes{display:grid;gap:10px}
+.marca{display:flex;gap:12px;align-items:center;font-size:17px;margin-top:6px;margin-bottom:14px;min-height:48px}
+.marca input{width:24px;height:24px;accent-color:var(--graf)}
+.sec-conj{margin-top:16px;padding:14px;border-radius:2px;background:#fff;border-left:5px solid var(--champ)}
+.campo label.opcao{text-transform:none;letter-spacing:0;font-size:17px;font-weight:500;margin:0;color:var(--graf)}
+.opcoes{display:grid;gap:0;border:1.5px solid var(--borda);border-radius:2px;background:#fff}
 .opcao{display:block;cursor:pointer}
+.opcao:nth-child(even) span{background:var(--faixa)}
 .opcao input{position:absolute;opacity:0;width:1px;height:1px}
-.opcao span{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 14px;border:1.5px solid var(--linha-forte);border-radius:14px;background:#fff;font-size:17px;font-weight:500;line-height:1.3}
-.opcao span::before{content:"";flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--linha-forte);background:#fff}
-.opcao input:checked+span{border-color:var(--petroleo);background:#EAF0F3;box-shadow:inset 0 0 0 1px var(--petroleo)}
-.opcao input:checked+span::before{border-color:var(--petroleo);background:radial-gradient(circle,var(--petroleo) 0 45%,#fff 50%)}
-.opcao input:focus-visible+span{outline:3px solid rgba(169,137,90,.5)}
-
-.slot{margin:0 0 14px;padding:14px;border:1.5px solid var(--linha);border-radius:16px;background:var(--sup-2)}
-.slot.ok{border-color:#A8D2B8;background:#F1F9F4}
+.opcao span{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 14px;background:#fff;font-size:17px;font-weight:500;line-height:1.3;color:var(--graf)}
+.opcao span::before{content:"";flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--borda);background:#fff}
+.opcao input:checked+span{background:var(--graf);color:#fff;font-weight:600}
+.opcao input:checked+span::before{border-color:var(--champ-claro);background:radial-gradient(circle,var(--champ-claro) 0 45%,var(--graf) 50%)}
+.opcao input:focus-visible+span{outline:3px solid var(--champ);outline-offset:-3px}
+/* documentos: linhas em faixa, barra lateral diz o estado */
+.slot{margin:0 0 10px;padding:14px;border-radius:2px;background:#fff;border-left:6px solid var(--champ)}
+.bloco .slot{margin-left:16px;margin-right:16px}
+.slot.ok{border-left-color:var(--ok);background:var(--faixa)}
 .slot-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.slot-topo b{font-size:18px;font-weight:600;line-height:1.3;color:var(--tinta)}
-.chip{flex:none;font-size:13px;font-weight:700;padding:4px 10px;border-radius:99px;white-space:nowrap;background:#FBEFD2;color:var(--atencao)}
-.chip.ok{background:#D5EEDD;color:var(--ok)}
-.chip.opc{background:#E8E5DE;color:var(--tinta-2)}
+.slot-topo b{font-size:18px;font-weight:600;line-height:1.3;color:var(--graf)}
+.chip{flex:none;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 10px;border-radius:2px;white-space:nowrap;background:#fff;color:var(--champ-texto);border:1.5px solid var(--champ)}
+.chip.ok{background:var(--graf);color:#fff;border-color:var(--graf)}
+.chip.opc{background:var(--recuo);color:var(--graf-2);border-color:#B9B0A0}
 .acoes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--petroleo);background:#fff;color:var(--petroleo);font:600 17px 'Inter',sans-serif;cursor:pointer;text-align:center}
-.btn:active{background:#EAF0F3}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;padding:10px 12px;border-radius:2px;border:1.5px solid var(--graf);background:#fff;color:var(--graf);font:600 17px -apple-system,'Inter',sans-serif;cursor:pointer;text-align:center}
+.btn:active{background:var(--recuo)}
 .btn input{display:none}
 .btn.so{grid-column:1/-1}
-.btn.suave{min-height:50px;font-size:16.5px}
-.lista{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:10px}
+.btn.suave{min-height:52px;font-size:16.5px;border-style:dashed}
+.lista{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:0}
 .lista:empty{display:none}
-.arq{display:flex;align-items:center;gap:12px;padding:10px;border:1.5px solid var(--linha);border-radius:14px;background:#fff}
-.mini{flex:none;width:52px;height:52px;border-radius:10px;background:var(--linha) center/cover;display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--tinta-2)}
+.arq{display:flex;align-items:center;gap:12px;padding:10px;background:#fff}
+.arq:nth-child(even){background:var(--faixa)}
+.mini{flex:none;width:52px;height:52px;border-radius:2px;background:var(--recuo) center/cover;display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--graf-2)}
 .info{flex:1;min-width:0}
 .info b{display:block;font-weight:600;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.info small{color:var(--tinta-2);font-size:14.5px}
-.info small.ok{color:var(--ok);font-weight:600} .info small.erro{color:var(--critico);font-weight:600}
-.barra{height:5px;background:var(--linha);border-radius:5px;margin-top:6px;overflow:hidden}
-.barra i{display:block;height:100%;background:var(--champagne);width:0;transition:width .2s}
-.tirar{flex:none;width:48px;height:48px;border:0;background:none;color:var(--tinta-2);font-size:26px;cursor:pointer}
-.opcional-nota{color:var(--tinta-2);font-weight:400;font-size:16px}
-.dica{font-size:15.5px;color:var(--tinta-2);margin:6px 0 0}
-.intro-docs{font-size:16.5px;color:var(--tinta-2);margin:-4px 0 16px}
-.grupo-docs{font-size:15px;font-weight:700;color:var(--petroleo);margin:18px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--linha)}
+.info small{color:var(--graf-2);font-size:14.5px}
+.info small.ok{color:var(--ok);font-weight:700} .info small.erro{color:var(--critico);font-weight:700}
+.barra{height:5px;background:var(--recuo);margin-top:6px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--champ);width:0;transition:width .2s}
+.tentar{display:inline-block;margin-top:6px;border:1.5px solid var(--graf);background:#fff;border-radius:2px;padding:8px 12px;font:700 15px -apple-system,'Inter',sans-serif;color:var(--graf);cursor:pointer;min-height:44px}
+.tirar{flex:none;width:48px;height:48px;border:0;background:none;color:var(--graf);font-size:26px;cursor:pointer}
+.opcional-nota{color:var(--graf-2);font-weight:400;font-size:16px}
+.dica{font-size:15.5px;color:var(--graf-2);margin:6px 0 0}
+.intro-docs{font-size:17px;color:var(--graf);margin-top:-4px;margin-bottom:16px}
+.grupo-docs{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--graf);margin-top:18px;margin-bottom:10px;padding-bottom:6px;border-bottom:3px solid var(--champ)}
 .grupo-docs:first-of-type{margin-top:0}
 .repete{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
-.remover{border:0;background:none;color:var(--critico);font:600 16px 'Inter',sans-serif;cursor:pointer;padding:10px}
-
-.lgpd{margin-top:18px;padding:14px;font-size:14.5px;color:var(--tinta-2);text-align:center}
-.rodape{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(244,241,235,.96);backdrop-filter:blur(8px);border-top:1.5px solid var(--linha)}
-.rodape .miolo{display:grid;gap:8px}
-.enviar{width:100%;min-height:58px;border:0;border-radius:16px;background:var(--petroleo);color:#fff;font:600 19px 'Inter',sans-serif;cursor:pointer}
-.enviar:disabled{background:var(--linha-forte);color:var(--tinta-2);cursor:default}
-.resumo{text-align:center;font-size:15.5px;font-weight:500;color:var(--tinta-2)}
-.tela{display:none;text-align:center;padding:56px 8px}
-.tela .visto{width:76px;height:76px;margin:0 auto 16px;border-radius:50%;background:var(--ok);color:#fff;font-size:40px;display:grid;place-items:center}
-.tela.erro .visto{background:var(--critico)}
-.tela h2{font-family:'Jost',sans-serif;font-weight:400;font-size:30px;margin-bottom:8px}
+.remover{border:0;background:none;color:var(--critico);font:700 16px -apple-system,'Inter',sans-serif;cursor:pointer;padding:12px}
+.lgpd{margin-top:20px;padding:14px;font-size:15px;color:var(--graf-2);text-align:center}
+/* rodapé = tarja de baixo */
+.rodape{position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--graf);border-top:5px solid var(--champ)}
+.rodape .miolo{display:flex;gap:12px;align-items:center}
+.resumo{flex:1;min-width:0;text-align:left;font-size:14.5px;line-height:1.3;font-weight:600;color:#fff}
+.enviar{flex:0 0 auto;width:auto;min-width:44%;max-width:56%;white-space:nowrap;padding:0 16px;min-height:56px;border:0;border-radius:2px;background:var(--champ-claro);color:var(--graf);font:700 19px -apple-system,'Inter',sans-serif;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+.enviar:disabled{background:#3A4651;color:#D5DADF;cursor:default}
+.enviar.falta{background:var(--recuo);color:var(--graf)}
+/* tela final = recibo no padrão da folha */
+.tela{display:none;margin-top:22px;background:var(--recuo);border-radius:4px;overflow:hidden;text-align:left}
+.tela .visto{width:100%;height:auto;margin:0;padding:22px 16px 6px;background:var(--graf);color:var(--champ-claro);font-size:34px;line-height:1;text-align:center;display:block}
+.tela h2{font-family:'Jost',sans-serif;font-weight:300;font-size:30px;line-height:1.2;margin:0;padding:0 16px 20px;background:var(--graf);color:#fff;text-align:center;border-bottom:5px solid var(--champ)}
+.tela>p{padding:18px 18px 4px;font-size:17px}
+.tela .sub{margin:0}
+.tela .passos{list-style:none;padding:8px 0 0;margin:0}
+.tela .passos li{display:flex;gap:12px;align-items:flex-start;padding:14px 18px;font-size:17px;font-weight:500}
+.tela .passos li:nth-child(odd){background:var(--faixa)}
+.tela .passos li:nth-child(even){background:var(--recuo)}
+.tela .passos b{flex:none;width:28px;height:28px;border-radius:2px;background:var(--graf);color:#fff;display:grid;place-items:center;font-size:15px}
+.tela .total{margin-top:8px;padding:16px 18px;background:var(--graf);color:#fff;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.tela .total span{color:var(--champ-claro);font-size:17px;letter-spacing:.02em;text-transform:none}
+.tela.erro .visto{color:#F2B8B3}
+.tela.erro h2{border-bottom-color:var(--critico)}
 body.concluido #final,body.invalido #invalido{display:block}
-body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.invalido .formulario,body.invalido .rodape,body.invalido .lgpd,body.invalido .titulo .sub{display:none}
-.veu{position:fixed;inset:0;z-index:40;background:rgba(20,26,31,.6);display:grid;place-items:end center;padding:16px}
-.folha{background:#fff;border-radius:22px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:22px}
-.folha h2{font-family:'Jost',sans-serif;font-weight:400;font-size:25px;margin-bottom:10px}
+body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.invalido .formulario,body.invalido .rodape,body.invalido .lgpd,body.invalido .titulo .sub,body.concluido .titulo{display:none}
+.veu{position:fixed;inset:0;z-index:40;background:rgba(31,42,51,.72);display:grid;place-items:end center;padding:16px}
+.folha{background:#fff;border-radius:4px;border-top:6px solid var(--champ);max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:22px}
+.folha h2{font-family:'Jost',sans-serif;font-weight:400;font-size:25px;margin-bottom:10px;color:var(--graf)}
 .folha ul{margin:12px 0 16px 22px;font-size:17px}
+.folha ul li:nth-child(odd){background:var(--faixa)}
 .folha .duas{margin-top:14px}
-.enviar.falta{background:#D9D2C3;color:var(--tinta)}
-.aviso{margin-top:14px;padding:14px 16px;border-radius:14px;background:#FBF3E3;border:1.5px solid #E8D6AE;font-size:16px;color:#5E4616}
+.aviso{margin-top:14px;padding:14px 16px;border-radius:2px;background:var(--faixa);border-left:5px solid var(--champ);font-size:16px;color:var(--graf)}
+/* teclado aberto: o rodapé some e o campo ganha a tela */
+body.digitando .rodape{display:none}
+.docs-cab{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--graf);margin-top:22px;margin-bottom:12px;padding-bottom:6px;border-bottom:3px solid var(--champ)}
+.docs-cab span{text-transform:none;letter-spacing:0;font-size:15px}
+.slot,.campo{scroll-margin-bottom:200px}
+.recuperado{margin-top:16px;padding:12px 14px;border-radius:2px;background:var(--faixa);border-left:5px solid var(--ok);font-size:16px;color:var(--graf);text-align:left}
+.recuperado button{border:0;background:none;color:var(--graf);font:700 15.5px -apple-system,'Inter',sans-serif;text-decoration:underline;padding:8px 0 0;cursor:pointer;display:block}
+.bloco-mais{background:transparent;margin-top:14px;padding:0}
+.bloco-mais>*{margin-left:0!important;margin-right:0!important}
+
 </style>
 </head>
 <body>
 <div class="miolo">
   <header class="topo">
-    <svg viewBox="0 0 600 90" role="img" aria-label="20º Tabelião de Notas"><defs><linearGradient id="arco" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#BE9E6C"/><stop offset="40%" stop-color="#E8D3A4"/><stop offset="58%" stop-color="#F8EDD3"/><stop offset="78%" stop-color="#E8D3A4"/><stop offset="100%" stop-color="#BE9E6C"/></linearGradient></defs><path d="M64,72 C184,0 388,-6 536,42 C388,6 184,12 64,72 Z" fill="url(#arco)"/></svg>
-  </header>
-  <div class="titulo">
+    <svg class="arco" viewBox="0 0 600 90" role="img" aria-label="20º Tabelião de Notas"><defs><linearGradient id="arco" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#BE9E6C"/><stop offset="40%" stop-color="#E8D3A4"/><stop offset="58%" stop-color="#F8EDD3"/><stop offset="78%" stop-color="#E8D3A4"/><stop offset="100%" stop-color="#BE9E6C"/></linearGradient></defs><path d="M64,72 C184,0 388,-6 536,42 C388,6 184,12 64,72 Z" fill="url(#arco)"/></svg>
     <h1>Envio de documentos</h1>
     <div class="orgao">20º Tabelião de Notas</div>
-    <p class="sub" id="intro">Preencha os seus dados e, no fim, anexe os documentos. Não precisa de cadastro nem senha.</p>
-    <span class="ato" id="ato" hidden></span>
     <p class="escrevente">Escrevente <b>Shirley Dantas</b><br><a href="https://wa.me/5511954929643" rel="noopener">WhatsApp (11) 95492-9643</a></p>
+  </header>
+  <div class="titulo">
+    <span class="ato" id="ato" hidden></span>
   </div>
 
   <div class="formulario" id="formulario"></div>
   <p class="lgpd">🔒 Seus documentos serão usados exclusivamente para a elaboração do ato notarial e tratados conforme a LGPD.</p>
 
   <div class="tela" id="final"><div class="visto">✓</div><h2>Documentos recebidos</h2>
-    <p class="sub">Obrigado! O cartório já recebeu tudo e entrará em contato se faltar alguma coisa.</p></div>
+    <p class="sub">Obrigado! O cartório já recebeu tudo.</p>
+    <ol class="passos"><li><b>1</b>A equipe confere os seus dados e documentos.</li><li><b>2</b>Se faltar algo, a Shirley fala com você pelo WhatsApp.</li><li><b>3</b>Você não precisa enviar mais nada agora. Pode fechar esta página.</li></ol>
+    <div class="total">Situação <span>Recebido pelo cartório</span></div></div>
   <div class="tela erro" id="invalido"><div class="visto">!</div><h2>Link indisponível</h2>
     <p class="sub" id="motivo">Este link não é válido ou já venceu. Peça um novo ao cartório.</p></div>
 </div>
@@ -167,6 +200,42 @@ let pedido=null;
 const E={ pessoas:{}, falecidos:{}, campos:{}, banco:{}, filhos:[], adv:{}, clausulas:{}, obs:'', arquivos:{} }; // arquivos: chave -> [{id,file,estado,erro,pct}]
 let seq=0, enviando=false;
 
+// ── Rascunho: sair para procurar um documento e voltar não pode apagar o que a pessoa digitou ──
+// (no iPhone a aba pode ser recarregada quando se abre a câmera ou a galeria). Fica só neste aparelho,
+// por 3 dias, e some quando o envio é concluído. Os arquivos não cabem aqui: precisam ser anexados de novo.
+const CHAVE_RASCUNHO='envio:'+token;
+let tRascunho=null, restaurou=false;
+function salvarRascunho(){
+  clearTimeout(tRascunho); tRascunho=setTimeout(gravarRascunho,400);
+}
+function gravarRascunho(){
+  if(!pedido||document.body.classList.contains('concluido')) return;
+  try{ localStorage.setItem(CHAVE_RASCUNHO,JSON.stringify({em:Date.now(),pessoas:E.pessoas,falecidos:E.falecidos,campos:E.campos,banco:E.banco,filhos:E.filhos,clausulas:E.clausulas,obs:E.obs,arq:arquivosEnviados()})); }catch(_){}
+}
+function arquivosEnviados(){
+  const o={}; Object.entries(E.arquivos).forEach(([c,l])=>{ const e=l.filter(x=>x.estado==='enviado'&&x.docKey).map(x=>({nome:x.original.name,size:x.file.size,type:x.file.type,docKey:x.docKey})); if(e.length) o[c]=e; });
+  return o;
+}
+function apagarRascunho(){ clearTimeout(tRascunho); try{ localStorage.removeItem(CHAVE_RASCUNHO); }catch(_){} }
+function restaurarRascunho(){
+  try{
+    const d=JSON.parse(localStorage.getItem(CHAVE_RASCUNHO)||'null'); if(!d||!d.em||Date.now()-d.em>3*864e5) return;
+    let achou=false;
+    Object.keys(E.pessoas).forEach(id=>{ const l=d.pessoas&&d.pessoas[id]; if(Array.isArray(l)&&l.length){ E.pessoas[id]=l.map(p=>Object.assign(novaPessoa(p.papel||''),p,{conj:Object.assign({nome:'',prof:'',mesmo:true,end:''},p.conj||{})})); achou=true; } });
+    Object.keys(E.falecidos).forEach(id=>{ const f=d.falecidos&&d.falecidos[id]; if(f){ E.falecidos[id]=Object.assign(E.falecidos[id],f,{conj:Object.assign({nome:'',prof:''},f.conj||{})}); achou=true; } });
+    if(d.campos&&typeof d.campos==='object') Object.assign(E.campos,d.campos);
+    if(d.banco&&typeof d.banco==='object') Object.assign(E.banco,d.banco);
+    if(Array.isArray(d.filhos)) E.filhos=d.filhos;
+    if(d.clausulas&&typeof d.clausulas==='object') E.clausulas=d.clausulas;
+    if(typeof d.obs==='string') E.obs=d.obs;
+    // Os arquivos que já tinham sido enviados continuam guardados no cartório: voltam como "✓ Enviado".
+    if(d.arq&&typeof d.arq==='object') Object.entries(d.arq).forEach(([c,l])=>{ if(Array.isArray(l)&&l.length){ E.arquivos[c]=l.filter(a=>a&&a.docKey).map(a=>({id:++seq,original:{name:String(a.nome||'arquivo')},file:{name:String(a.nome||'arquivo'),size:+a.size||0,type:String(a.type||'')},estado:'enviado',pct:100,docKey:String(a.docKey)})); achou=true; } });
+    restaurou=achou||!!(d.obs);
+  }catch(_){}
+}
+addEventListener('pagehide',gravarRascunho);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) gravarRascunho(); });
+
 // ── Carregar o pedido ─────────────────────────────────────────────────
 async function carregar(){
   if(!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return invalido();
@@ -184,7 +253,13 @@ async function carregar(){
     if(b.k==='filhos') E.filhos=[];
     if(b.k==='falecido') E.falecidos[b.id]={nome:'',ec:'',regime:'',conj:{nome:'',prof:''}};
   });
+  restaurarRascunho();
   desenharTudo();
+  if(restaurou){
+    const av=document.createElement('div'); av.className='recuperado'; av.innerHTML='Guardamos o que você já tinha preenchido. Pode continuar de onde parou. <b>Os documentos que você já enviou continuam guardados.</b><button type="button" id="recomecar">Começar de novo</button>';
+    $('#formulario').before(av);
+    av.querySelector('#recomecar').addEventListener('click',()=>{ if(confirm('Apagar o que foi preenchido neste aparelho e começar de novo?')){ apagarRascunho(); location.reload(); } });
+  }
 }
 function invalido(m){ if(m) $('#motivo').textContent=m; document.body.classList.add('invalido'); }
 // "Acrescentar outra pessoa": em ato de duas pontas (convivente 1/2, divorciando 1/2, noivo 1/2) a
@@ -194,6 +269,14 @@ function proximoPapel(bl){
   const m=String(base[0]).match(/^(.*?)\s*([12])$/);
   if(m){ const outro=m[1]+' '+(m[2]==='1'?'2':'1'); if(!usados.includes(outro)) return outro; }
   return base[0];
+}
+// "Acrescentar herdeiro(a)", "Acrescentar vendedor(a)"…: o botão diz quem entra, conforme quem recebe o link.
+// Nos atos de duas pontas numeradas (convivente 1/2…) entra a outra ponta.
+function botoesMais(b){
+  const base=b.papeis||['Parte'], prox=proximoPapel(b), par=/\s[12]$/.test(prox)&&prox!==base[0];
+  const papeis=par?[prox]:[...new Set(base)];
+  const txt=r=>r==='Parte'?'Acrescentar outra pessoa':'Acrescentar '+(par?r:r.charAt(0).toLowerCase()+r.slice(1));
+  return `<div class="bloco bloco-mais">`+papeis.map(r=>`<button class="btn suave so" data-mais="${b.id}" data-papel="${esc(r)}" style="width:100%">+ ${esc(txt(r))}</button>`).join('')+`</div>`;
 }
 function novaPessoa(papel){ return {papel,nome:'',ec:'',prof:'',cep:'',rua:'',num:'',compl:'',bairro:'',cidade:'',uf:'',regime:'',conj:{nome:'',prof:'',mesmo:true,end:''}}; }
 
@@ -218,18 +301,37 @@ async function adicionar(chave,files){
     (E.arquivos[chave]=E.arquivos[chave]||[]).push(it); desenharSlot(chave);
     it.file=await reduzir(f);
     if(it.file.size>MAX_BYTES){ it.estado='erro'; it.erro='Arquivo grande demais (máx. 8 MB). Tire uma foto em vez do arquivo.'; }
-    else it.estado='pronto';
+    else{ it.estado='pronto'; agendarEnvio(chave,it); }
     desenharSlot(chave);
   }
   resumo();
 }
-function tirar(chave,id){ E.arquivos[chave]=(E.arquivos[chave]||[]).filter(x=>x.id!==id); desenharSlot(chave); resumo(); }
+// O arquivo sobe assim que é anexado, enquanto a pessoa preenche o resto: no fim só falta a ficha.
+const filaEnvio=[]; let emVoo=0;
+function agendarEnvio(chave,it){ filaEnvio.push([chave,it]); rodarFila(); }
+function rodarFila(){
+  while(emVoo<PARALELO&&filaEnvio.length){ const [c,x]=filaEnvio.shift(); emVoo++; enviarArquivo(c,x).finally(()=>{ emVoo--; rodarFila(); resumo(); }); }
+}
+const esperaUploads=async()=>{ while(emVoo>0||filaEnvio.length) await new Promise(r=>setTimeout(r,120)); };
+// Tirar um arquivo já enviado também o tira do Drive (o servidor confere que ele nasceu deste link).
+async function tirar(chave,id){
+  const x=(E.arquivos[chave]||[]).find(y=>y.id===id); if(!x) return;
+  const fi=filaEnvio.findIndex(([,y])=>y===x); if(fi>=0) filaEnvio.splice(fi,1);
+  if(x.estado==='enviado'&&x.docKey){
+    x.estado='removendo'; desenharSlot(chave);
+    try{ await chamar({acao:'cliente-remover',t:token,docKey:x.docKey}); }
+    catch(e){ x.estado='enviado'; desenharSlot(chave); alert('Não consegui tirar este arquivo agora. Tente de novo em instantes.'); return; }
+  }
+  E.arquivos[chave]=(E.arquivos[chave]||[]).filter(y=>y.id!==id); desenharSlot(chave); resumo();
+}
 function linhasArq(chave){
   return (E.arquivos[chave]||[]).map(x=>{
-    const img=x.file.type.startsWith('image/');
-    const mini=img?`<div class="mini" style="background-image:url('${x.url=x.url||URL.createObjectURL(x.file)}')"></div>`:'<div class="mini">PDF</div>';
-    const sit=x.estado==='lendo'?'<small>Preparando…</small>':x.estado==='enviado'?'<small class="ok">✓ Enviado</small>':x.estado==='erro'?`<small class="erro">${esc(x.erro||'Não enviou')}</small>`:x.estado==='enviando'?'<small>Enviando…</small>':`<small>${kb(x.file.size)}</small>`;
-    return `<li class="arq">${mini}<div class="info"><b>${esc(x.original.name)}</b>${sit}<div class="barra"><i style="width:${x.estado==='enviado'?100:x.pct||0}%"></i></div></div>${x.estado==='enviado'||enviando?'':`<button class="tirar" aria-label="Tirar" data-tirar="${esc(chave)}|${x.id}">×</button>`}</li>`;
+    const real=typeof Blob!=='undefined'&&x.file instanceof Blob, img=real&&x.file.type.startsWith('image/');
+    const mini=img?`<div class="mini" style="background-image:url('${x.url=x.url||URL.createObjectURL(x.file)}')"></div>`:`<div class="mini">${real||/pdf/i.test(x.file.type||'')?'PDF':'✓'}</div>`;
+    const sit=x.estado==='lendo'?'<small>Preparando…</small>':x.estado==='enviado'?'<small class="ok">✓ Enviado</small>':x.estado==='erro'?`<small class="erro">${esc(x.erro||'Não enviou')}</small>`:x.estado==='enviando'?'<small>Enviando…</small>':x.estado==='removendo'?'<small>Tirando…</small>':`<small>${kb(x.file.size)} · na fila</small>`;
+    const tentar=x.estado==='erro'&&real&&x.file.size<=MAX_BYTES?`<button type="button" class="tentar" data-retry="${esc(chave)}|${x.id}">Tentar de novo</button>`:'';
+    const tira=['enviando','removendo'].includes(x.estado)||enviando?'':`<button class="tirar" aria-label="Tirar" data-tirar="${esc(chave)}|${x.id}">×</button>`;
+    return `<li class="arq">${mini}<div class="info"><b>${esc(x.original.name)}</b>${sit}${tentar}<div class="barra"><i style="width:${x.estado==='enviado'?100:x.pct||0}%"></i></div></div>${tira}</li>`;
   }).join('');
 }
 function chipDe(chave,opcional){
@@ -243,21 +345,34 @@ function desenharSlot(chave){
   const caixa=document.querySelector(`[data-slotbox="${CSS.escape(chave)}"]`); if(caixa) caixa.classList.toggle('ok',(E.arquivos[chave]||[]).some(x=>x.estado!=='erro'));
 }
 // Os documentos ficam todos no fim: durante o desenho os slots vão para FIM, agrupados por pessoa.
-let FIM=null, GRUPO='';
+let FIM=null, GRUPO='', GCHAVE='', INLINE=false;
+// O nome na frase do documento ("RG ou CNH de José da Silva", "Certidão de casamento de José e Maria"):
+// vem do que a pessoa digitou e se atualiza enquanto ela digita. Chave: 'bloco.i' (pessoa) ou 'fal:bloco'.
+function nomeParaRot(chave,tipo){
+  let nome='', conj='';
+  if(chave.startsWith('fal:')){ const d=E.falecidos[chave.slice(4)]; if(d){ nome=d.nome; conj=d.conj&&d.conj.nome; } }
+  else{ const m=chave.match(/^(.+)\.(\d+)$/), p=m&&E.pessoas[m[1]]&&E.pessoas[m[1]][+m[2]]; if(p){ nome=p.nome; conj=p.conj&&p.conj.nome; } }
+  const t=tipo==='casal'?[nome,conj].filter(Boolean).join(' e '):tipo==='conj'?conj:nome;
+  if(t) return ' de '+t;
+  return tipo==='conj'?' do cônjuge':'';
+}
+function quemSpan(chave,tipo){ return `<span data-quem="${esc(chave)}" data-t="${tipo}">${esc(nomeParaRot(chave,tipo))}</span>`; }
+function atualizaQuem(){ document.querySelectorAll('[data-quem]').forEach(el=>{ el.textContent=nomeParaRot(el.dataset.quem,el.dataset.t); }); }
+function grupo(titulo,chave){ GRUPO=titulo; GCHAVE=chave||titulo; }
 function slot(chave,rotulo,opcional,dica){
   opcionais[chave]=!!opcional;
   const ok=(E.arquivos[chave]||[]).some(x=>x.estado!=='erro');
-  const h=`<div class="slot${ok?' ok':''}" data-slotbox="${esc(chave)}"><div class="slot-topo"><b>${esc(rotulo)}</b>${chipDe(chave,opcional)}</div>${dica?`<div class="dica">${esc(dica)}</div>`:''}
+  const h=`<div class="slot${ok?' ok':''}" data-slotbox="${esc(chave)}"><div class="slot-topo"><b>${typeof rotulo==='object'?esc(rotulo.t)+quemSpan(rotulo.k,rotulo.tipo):esc(rotulo)}</b>${chipDe(chave,opcional)}</div>${dica?`<div class="dica">${esc(dica)}</div>`:''}
     <div class="acoes">${CELULAR?`<label class="btn">📷 Tirar foto<input type="file" accept="image/*" capture="environment" data-slot="${esc(chave)}"></label>`:`<button type="button" class="btn" data-camera="${esc(chave)}">📷 Tirar foto</button>`}
     <label class="btn">📁 Escolher<input type="file" accept="image/*,application/pdf" multiple data-slot="${esc(chave)}"></label></div>
     <ul class="lista" data-lista="${esc(chave)}">${linhasArq(chave)}</ul></div>`;
-  if(FIM){ let g=FIM.find(x=>x.titulo===GRUPO); if(!g) FIM.push(g={titulo:GRUPO,itens:[]}); g.itens.push(h); return ''; }
+  if(FIM&&!INLINE){ const ch=GCHAVE||GRUPO; let g=FIM.find(x=>x.chave===ch); if(!g) FIM.push(g={chave:ch,titulo:GRUPO,itens:[]}); g.itens.push(h); return ''; }
   return h;
 }
 function htmlDocumentos(n){
   const g=(FIM||[]).filter(x=>x.itens.length); if(!g.length) return '';
-  return `<div class="bloco"><h2><span class="num">${n}</span>Documentos</h2><p class="intro-docs">Por último, anexe os documentos. Toque em <b>Tirar foto</b> ou em <b>Escolher</b> (foto ou PDF do aparelho).</p>`+
-    g.map(x=>(g.length>1&&x.titulo?`<div class="grupo-docs">${esc(x.titulo)}</div>`:'')+x.itens.join('')).join('')+'</div>';
+  return `<div class="bloco"><h2><span class="num">${n}</span>Mais documentos</h2><p class="intro-docs">Anexe também os documentos abaixo. Toque em <b>Tirar foto</b> ou em <b>Escolher</b> (foto ou PDF do aparelho).</p>`+
+    g.map(x=>(g.length>1&&x.titulo?`<div class="grupo-docs">${esc(x.titulo)}</div>`+(/^Bens a (inventariar|partilhar)$/.test(x.titulo)?`<p class="dica" style="margin:-4px 0 12px">Daqui em diante são os documentos dos bens.</p>`:''):'')+x.itens.join('')).join('')+'</div>';
 }
 
 // ── Campos ────────────────────────────────────────────────────────────
@@ -266,21 +381,20 @@ function htmlDocumentos(n){
 function opcoesRadio(rot,val,opcoes,att,obrig,nome){
   return `<div class="campo"><label>${esc(rot)}${obrig?' <i>*</i>':''}</label><div class="opcoes">${opcoes.map(o=>`<label class="opcao"><input type="radio" name="${esc(nome)}" value="${esc(o)}" ${att}${o===val?' checked':''}><span>${esc(o)}</span></label>`).join('')}</div></div>`;
 }
-function input(rot,val,att,obrig,tipo){ return `<div class="campo"><label>${esc(rot)}${obrig?' <i>*</i>':''}</label><input type="${tipo||'text'}" value="${esc(val)}" ${att}></div>`; }
+function input(rot,val,att,obrig,tipo){ return `<div class="campo"><label>${esc(rot)}${obrig?' <i>*</i>':''}</label><input type="${tipo||'text'}" enterkeyhint="next" value="${esc(val)}" ${att}></div>`; }
 function select(rot,val,opcoes,att,obrig){ return `<div class="campo"><label>${esc(rot)}${obrig?' <i>*</i>':''}</label><select ${att}><option value="">Escolha…</option>${opcoes.map(o=>`<option${o===val?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`; }
 
 function certidoes(p,chave,b){
-  const ec=p.ec;
-  if(ec==='Solteiro(a)') slot(chave+'.cert','Certidão de nascimento');
-  else if(ec==='Casado(a)') slot(chave+'.cert','Certidão de casamento');
-  else if(ec==='Divorciado(a)') slot(chave+'.cert','Certidão de casamento, com a averbação do divórcio');
-  else if(ec==='Viúvo(a)'){
+  const ec=p.ec, k=chave, R=(t,tipo)=>({t,k,tipo:tipo||'nome'});
+  if(ec==='Solteiro(a)') return slot(chave+'.cert',R('Certidão de nascimento'));
+  if(ec==='Casado(a)') return slot(chave+'.cert',R('Certidão de casamento','casal'));
+  if(ec==='Divorciado(a)') return slot(chave+'.cert',R('Certidão de casamento, com a averbação do divórcio,'));
+  if(ec==='Viúvo(a)'){
     // A certidão de casamento com a averbação do óbito já serve; a de óbito só no inventário.
-    slot(chave+'.cert','Certidão de casamento, com a averbação do óbito do cônjuge');
-    if(b&&b.obito) slot(chave+'.obito','Certidão de óbito do cônjuge');
+    return slot(chave+'.cert',R('Certidão de casamento, com a averbação do óbito do cônjuge,'))+(b&&b.obito?slot(chave+'.obito','Certidão de óbito do cônjuge'):'');
   }
-  else if(ec==='Separado(a)') slot(chave+'.cert','Certidão de casamento, com a averbação da separação');
-  else slot(chave+'.cert','Certidão de estado civil',false,'Nascimento (solteiro) ou casamento (casado, divorciado, separado ou viúvo). Escolha o estado civil acima e o nome certo aparece.');
+  if(ec==='Separado(a)') return slot(chave+'.cert',R('Certidão de casamento, com a averbação da separação,'));
+  return slot(chave+'.cert',R('Certidão de estado civil'),false,'Nascimento (solteiro) ou casamento (casado, divorciado, separado ou viúvo). Escolha o estado civil acima e o nome certo aparece.');
 }
 // O endereço mora num bloco próprio, e é só ele que se refaz quando o CEP responde: o resto da
 // página (e o que a pessoa está digitando) não se mexe.
@@ -297,8 +411,8 @@ function refazEndereco(blocoId,i){
 }
 function htmlPessoa(b,i,n){
   const lista=E.pessoas[b.id], p=lista[i], k=`${b.id}.${i}`, A=`data-b="${b.id}" data-i="${i}"`;
-  const simples=!!b.simples;
-  GRUPO=p.papel+(p.nome?' — '+p.nome:'');
+  const simples=!!b.simples, adv=!!b.adv, semCert=!!b.semCertidao;
+  grupo(p.papel+(p.nome?' — '+p.nome:''),k);
   let h=`<div class="bloco" data-bloco="${b.id}"><h2><span class="num${p.nome?' ok':''}">${n}</span>${esc(p.papel)}</h2>`;
   h+=input('Nome completo',p.nome,`${A} data-f="nome" autocomplete="name"`,true);
   if(!simples) h+=select('Estado civil',p.ec,ESTADOS_CIVIS,`${A} data-f="ec"`,true);
@@ -308,30 +422,36 @@ function htmlPessoa(b,i,n){
   h+=`<div class="duas"><div>${input('CEP',p.cep,`${A} data-f="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9"`,true)}</div><div>${input('Número',p.num,`${A} data-f="num" autocomplete="off"`,true)}</div></div><div class="dica" id="cepmsg-${k}" hidden style="color:var(--critico);margin:-6px 0 10px"></div>`;
   h+=`<div id="end-${k}">${htmlEndereco(b,i)}</div>`;
   // O que vem depois dos dados da pessoa: se é casada, o regime e o cônjuge logo em seguida.
-  if(!simples&&p.ec==='Casado(a)'){
+  if(!simples&&!semCert&&p.ec==='Casado(a)'){
     h+=opcoesRadio('Regime de bens do casamento',p.regime,REGIMES,`${A} data-f="regime"`,true,`regime-${k}`);
   }
-  if(!simples&&p.ec==='Casado(a)'&&b.conjuge){
+  if(!simples&&!semCert&&p.ec==='Casado(a)'&&b.conjuge){
     h+=`<div class="sec-conj"><h3 style="margin-top:0">Dados do cônjuge</h3>`+
       input('Nome completo do cônjuge',p.conj.nome,`${A} data-c="nome"`,true)+input('Profissão do cônjuge',p.conj.prof,`${A} data-c="prof"`,true)+
       `<label class="marca"><input type="checkbox" ${A} data-c="mesmo"${p.conj.mesmo?' checked':''}> Mora no mesmo endereço</label>`+
       (p.conj.mesmo?'':input('Endereço do cônjuge',p.conj.end,`${A} data-c="end"`,true))+`</div>`;
   }
-  // Os documentos desta pessoa vão para o fim da página (FIM), agrupados sob o nome dela.
-  slot(k+'.rg','RG ou CNH (frente e verso)',false,DICA_CPF);
-  if(!simples){
-    certidoes(p,k,b);
-    if(p.uniao&&p.ec!=='Casado(a)') slot(k+'.uniao','Escritura pública de união estável (registrada no RCPN, Livro E)');
-    if(p.ec==='Casado(a)'&&REGIMES_COM_PACTO.includes(p.regime)){ slot(k+'.pacto','Escritura do pacto antenupcial'); slot(k+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis'); }
-    if(p.ec==='Casado(a)'&&b.conjuge) slot(k+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF);
+  // Os documentos desta pessoa ficam aqui mesmo, no cartão dela, logo depois dos dados.
+  INLINE=true;
+  let docs='';
+  const R=(t,tipo)=>({t,k,tipo:tipo||'nome'});
+  if(adv) docs+=slot(k+'.oab',R('Carteira da OAB'));
+  else docs+=slot(k+'.rg',R('RG ou CNH'),false,DICA_CPF);
+  if(!simples&&!semCert){
+    docs+=certidoes(p,k,b);
+    if(p.uniao&&p.ec!=='Casado(a)') docs+=slot(k+'.uniao',R('Escritura pública de união estável (RCPN, Livro E)'));
+    if(p.ec==='Casado(a)'&&REGIMES_COM_PACTO.includes(p.regime)){ docs+=slot(k+'.pacto',R('Escritura do pacto antenupcial','casal'))+slot(k+'.pactoreg',R('Certidão do registro do pacto no Registro de Imóveis','casal')); }
+    if(p.ec==='Casado(a)'&&b.conjuge) docs+=slot(k+'.rgconj',R('RG ou CNH','conj'),false,DICA_CPF);
   }
-  if(lista.length>1&&i>=(b.papeis||[]).length) h+=`<div class="repete"><span></span><button class="remover" data-remover="${b.id}|${i}">Remover esta pessoa</button></div>`;
+  INLINE=false;
+  h+=`<div class="docs-cab">Anexe os documentos${quemSpan(k,'nome')}</div>`+docs;
+  if(!adv&&lista.length>1&&i>=(b.papeis||[]).length) h+=`<div class="repete"><span></span><button class="remover" data-remover="${b.id}|${i}">Remover esta pessoa</button></div>`;
   return h+'</div>';
 }
 // O falecido: o estado civil que ele tinha na data do óbito decide a certidão, o regime e o cônjuge.
 function htmlFalecido(b,n){
   const f=E.falecidos[b.id], A=`data-fal="${b.id}"`;
-  GRUPO='Falecido(a)'+(f.nome?' — '+f.nome:'');
+  grupo('Falecido(a)');
   let h=`<div class="bloco"><h2><span class="num${f.nome?' ok':''}">${n}</span>Falecido(a)</h2>`;
   h+=input('Nome completo do falecido(a)',f.nome,`${A} data-f="nome"`,true);
   h+=select('Estado civil na data do óbito',f.ec,ESTADOS_CIVIS,`${A} data-f="ec"`,true);
@@ -339,36 +459,35 @@ function htmlFalecido(b,n){
     h+=opcoesRadio('Regime de bens do casamento',f.regime,REGIMES,`${A} data-f="regime"`,true,`regime-${b.id}`);
     h+=`<div class="sec-conj"><h3 style="margin-top:0">Dados do cônjuge</h3>`+input('Nome completo do cônjuge',f.conj.nome,`${A} data-fc="nome"`,true)+input('Profissão do cônjuge',f.conj.prof,`${A} data-fc="prof"`)+`</div>`;
   }
-  slot(b.id+'.rg','RG ou CNH do falecido(a) (com o CPF)',false,DICA_CPF);
-  slot(b.id+'.obito','Certidão de óbito');
-  if(f.ec==='Solteiro(a)') slot(b.id+'.cert','Certidão de nascimento');
+  INLINE=true; const k='fal:'+b.id, R=(t,tipo)=>({t,k,tipo:tipo||'nome'});
+  let docs=slot(b.id+'.rg',R('RG ou CNH do falecido(a), com o CPF,'),false,DICA_CPF)+slot(b.id+'.obito',R('Certidão de óbito'));
+  if(f.ec==='Solteiro(a)') docs+=slot(b.id+'.cert',R('Certidão de nascimento'));
   else if(f.ec==='Casado(a)'){
-    slot(b.id+'.cert','Certidão de casamento');
-    if(REGIMES_COM_PACTO.includes(f.regime)){ slot(b.id+'.pacto','Escritura do pacto antenupcial'); slot(b.id+'.pactoreg','Certidão do registro do pacto no Registro de Imóveis'); }
-    slot(b.id+'.rgconj','RG ou CNH do cônjuge',false,DICA_CPF);
+    docs+=slot(b.id+'.cert',R('Certidão de casamento','casal'));
+    if(REGIMES_COM_PACTO.includes(f.regime)) docs+=slot(b.id+'.pacto',R('Escritura do pacto antenupcial','casal'))+slot(b.id+'.pactoreg',R('Certidão do registro do pacto no Registro de Imóveis','casal'));
+    docs+=slot(b.id+'.rgconj',R('RG ou CNH','conj'),false,DICA_CPF);
   }
-  else if(f.ec) slot(b.id+'.cert',f.ec==='Viúvo(a)'?'Certidão de casamento, com a averbação do óbito do cônjuge':f.ec==='Divorciado(a)'?'Certidão de casamento, com a averbação do divórcio':'Certidão de casamento, com a averbação da separação');
-  else slot(b.id+'.cert','Certidão de estado civil',false,'Escolha acima o estado civil na data do óbito e o nome certo aparece.');
+  else if(f.ec) docs+=slot(b.id+'.cert',R(f.ec==='Viúvo(a)'?'Certidão de casamento, com a averbação do óbito do cônjuge,':f.ec==='Divorciado(a)'?'Certidão de casamento, com a averbação do divórcio,':'Certidão de casamento, com a averbação da separação,'));
+  else docs+=slot(b.id+'.cert',R('Certidão de estado civil'),false,'Escolha acima o estado civil na data do óbito e o nome certo aparece.');
+  INLINE=false;
+  h+=`<div class="docs-cab">Anexe os documentos${quemSpan(k,'nome')}</div>`+docs;
   return h+'</div>';
 }
 function htmlBloco(b,n){
   if(b.k==='falecido') return htmlFalecido(b,n.v++);
-  if(b.k==='advogado'){ GRUPO='Advogado(a)'; slot(b.id+'.oab','Carteira da OAB'); return ''; }
   if(b.k==='pessoa'){
     let h=E.pessoas[b.id].map((_,i)=>htmlPessoa(b,i,n.v++)).join('');
-    const opt=(b.papeis||['Parte']);
-    const prox=proximoPapel(b), par=/\s[12]$/.test(prox)&&prox!==opt[0];
-    h+=`<div class="bloco" style="text-align:center"><button class="btn suave so" data-mais="${b.id}" style="width:100%">+ ${par?'Acrescentar '+esc(prox):'Acrescentar outra pessoa'}</button></div>`;
+    if(!b.adv) h+=botoesMais(b);
     return h;
   }
   // Blocos que só pedem arquivo não ganham cartão: os arquivos vão para o cartão "Documentos", no fim.
-  if(b.k==='doc'){ GRUPO='Do imóvel e do ato'; slot(b.id,b.rotulo,b.opcional); return ''; }
-  if(b.k==='docs'&&!(b.campos||[]).length){ GRUPO=b.titulo||'Outros documentos'; (b.docs||[]).forEach(d=>slot(`${b.id}.${d.id}`,d.rotulo,d.opcional)); return ''; }
+  if(b.k==='doc'){ grupo(b.grupo||'Outros documentos'); slot(b.id,b.rotulo,b.opcional); return ''; }
+  if(b.k==='docs'&&!(b.campos||[]).length){ grupo(b.titulo||'Outros documentos'); (b.docs||[]).forEach(d=>slot(`${b.id}.${d.id}`,d.rotulo,d.opcional)); return ''; }
   const num=n.v++;
   let h=`<div class="bloco"><h2><span class="num">${num}</span>${esc(b.titulo||b.rotulo||'')}</h2>`;
   if(b.k==='docs'){
     (b.campos||[]).forEach(c=>h+=htmlCampo(b.id,c));
-    GRUPO=b.titulo||'Outros documentos'; (b.docs||[]).forEach(d=>slot(`${b.id}.${d.id}`,d.rotulo,d.opcional));
+    grupo(b.titulo||'Outros documentos'); (b.docs||[]).forEach(d=>slot(`${b.id}.${d.id}`,d.rotulo,d.opcional));
   }
   else if(b.k==='campos') (b.campos||[]).forEach(c=>h+=htmlCampo(b.id,c));
   else if(b.k==='banco'){
@@ -381,8 +500,8 @@ function htmlBloco(b,n){
     h+=`<p class="opcional-nota" style="margin-bottom:8px">Se não houver filhos, deixe em branco.</p>`;
     E.filhos.forEach((f,i)=>{
       const A=`data-filho="${i}"`;
-      GRUPO=`Filho(a) ${i+1}`+(f.nome?' — '+f.nome:''); slot(`${b.id}.${i}.rg`,'RG ou CNH',false,DICA_CPF);
-      h+=`<div class="sec-conj"><h3 style="margin-top:0">Filho(a) ${i+1}</h3>`+input('Nome completo',f.nome||'',`${A} data-f="nome"`,true)+select('Estado civil',f.ec||'',ESTADOS_CIVIS,`${A} data-f="ec"`)+input('Profissão',f.prof||'',`${A} data-f="prof"`)+input('Endereço completo',f.end||'',`${A} data-f="end"`)+`<div class="repete"><span></span><button class="remover" data-rmfilho="${i}">Remover</button></div></div>`;
+      INLINE=true; const docF=slot(`${b.id}.${i}.rg`,`RG ou CNH do(a) filho(a) ${i+1}`,false,DICA_CPF); INLINE=false;
+      h+=`<div class="sec-conj"><h3 style="margin-top:0">Filho(a) ${i+1}</h3>`+input('Nome completo',f.nome||'',`${A} data-f="nome"`,true)+select('Estado civil',f.ec||'',ESTADOS_CIVIS,`${A} data-f="ec"`)+input('Profissão',f.prof||'',`${A} data-f="prof"`)+input('Endereço completo',f.end||'',`${A} data-f="end"`)+docF+`<div class="repete"><span></span><button class="remover" data-rmfilho="${i}">Remover</button></div></div>`;
     });
     h+=`<button class="btn suave so" data-maisfilho="1" style="width:100%;margin-top:10px">+ Acrescentar filho(a)</button>`;
     h+=input('Pensão estipulada para os filhos (R$), se houver',(E.campos[b.id]||{}).pensao||'',`data-cb="${b.id}" data-f="pensao" inputmode="decimal"`);
@@ -434,7 +553,7 @@ function voltaFoco(m){
 function desenharTudo(){
   const foco=marcaFoco(), rolagem=window.scrollY;
   const n={v:1};
-  FIM=[]; GRUPO='';
+  FIM=[]; GRUPO=''; GCHAVE='';
   const corpo=pedido.blocos.map(b=>htmlBloco(b,n)).join('');
   const docs=htmlDocumentos(n.v); if(docs) n.v++;
   FIM=null;
@@ -472,6 +591,7 @@ const mascaraData=v=>{ const d=v.replace(/\D/g,'').slice(0,8); return d.length>4
 const dataOk=v=>{ const m=String(v||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(!m) return false; const d=+m[1],mo=+m[2],a=+m[3]; return mo>=1&&mo<=12&&d>=1&&d<=31&&a>=1900&&a<=2100; };
 raiz.addEventListener('input',e=>{
   const t=e.target, f=t.dataset.f; if(t.id==='obs'){E.obs=t.value;return;}
+  setTimeout(atualizaQuem,0);
   if(t.dataset.mascara==='data'){ const v=mascaraData(t.value); if(v!==t.value) t.value=v; }
   if(t.dataset.fal!==undefined){ const f=E.falecidos[t.dataset.fal]; if(t.dataset.fc) f.conj[t.dataset.fc]=t.value; else if(t.dataset.f!=='ec'&&t.dataset.f!=='regime') f[t.dataset.f]=t.value; resumo(); return; }
   if(t.dataset.b!==undefined){
@@ -495,7 +615,8 @@ raiz.addEventListener('change',e=>{
   if(t.dataset.b!==undefined){
     const p=E.pessoas[t.dataset.b][+t.dataset.i], f=t.dataset.f;
     if(t.dataset.uniao!==undefined){ p.uniao=t.checked; desenharTudo(); return; }
-    if(t.dataset.c){ p.conj[t.dataset.c]=t.type==='checkbox'?t.checked:t.value; desenharTudo(); return; }
+    // Só o "mora no mesmo endereço" muda o desenho; texto do cônjuge não refaz a página (refazer ao sair do campo roubava o toque no campo seguinte).
+    if(t.dataset.c){ p.conj[t.dataset.c]=t.type==='checkbox'?t.checked:t.value; if(t.type==='checkbox') desenharTudo(); else resumo(); return; }
     if(f==='ec'||f==='regime'){ p[f]=t.value; desenharTudo(); return; }
     if(f==='uf') p.uf=t.value;
   }
@@ -509,7 +630,8 @@ raiz.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.camera){ abrirCamera(b.dataset.camera); }
   else if(b.dataset.tirar){ const [c,id]=b.dataset.tirar.split('|'); tirar(c,+id); }
-  else if(b.dataset.mais){ const bl=pedido.blocos.find(x=>x.id===b.dataset.mais); E.pessoas[bl.id].push(novaPessoa(proximoPapel(bl))); desenharTudo(); }
+  else if(b.dataset.retry){ const [c,id]=b.dataset.retry.split('|'), x=(E.arquivos[c]||[]).find(y=>y.id===+id); if(x){ x.estado='pronto'; x.pct=0; desenharSlot(c); agendarEnvio(c,x); } }
+  else if(b.dataset.mais){ const bl=pedido.blocos.find(x=>x.id===b.dataset.mais); E.pessoas[bl.id].push(novaPessoa(b.dataset.papel||proximoPapel(bl))); desenharTudo(); }
   else if(b.dataset.remover){ const [id,i]=b.dataset.remover.split('|'); E.pessoas[id].splice(+i,1); desenharTudo(); }
   else if(b.dataset.editend){ const [id,i]=b.dataset.editend.split('|'); E.pessoas[id][+i].editEnd=true; refazEndereco(id,+i); }
   else if(b.dataset.maisfilho){ E.filhos.push({}); desenharTudo(); }
@@ -551,10 +673,11 @@ function faltas(){
       const k=`${b.id}.${i}`, q=p.papel;
       if(!p.nome) f.push(`${q}: nome`); if(!b.simples&&!p.ec) f.push(`${q}: estado civil`); if(!p.prof) f.push(`${q}: profissão`);
       if(!(p.rua&&p.num)) f.push(`${q}: endereço`);
-      if(!b.simples&&p.ec==='Casado(a)'&&!p.regime) f.push(`${q}: regime de bens`);
+      if(!b.simples&&!b.semCertidao&&p.ec==='Casado(a)'&&!p.regime) f.push(`${q}: regime de bens`);
+      if(b.adv){ if(!tem(k+'.oab')) f.push(`${q}: carteira da OAB`); return; }
       if(!tem(k+'.rg')) f.push(`${q}: RG ou CNH`);
       if(p.uniao&&p.ec!=='Casado(a)'&&!tem(k+'.uniao')) f.push(`${q}: escritura de união estável`);
-      if(!b.simples&&p.ec&&!tem(k+'.cert')) f.push(`${q}: certidão de estado civil`);
+      if(!b.simples&&!b.semCertidao&&p.ec&&!tem(k+'.cert')) f.push(`${q}: certidão de estado civil`);
       if(p.ec==='Casado(a)'&&b.conjuge&&!p.conj.nome) f.push(`${q}: dados do cônjuge`);
     });
     else if(b.k==='doc'&&!b.opcional&&!tem(b.id)) f.push(b.rotulo);
@@ -573,9 +696,11 @@ function faltas(){
 function resumo(){
   if(!pedido) return;
   const n=Object.values(E.arquivos).flat().filter(x=>x.estado!=='erro').length, f=faltas().length;
-  $('#resumo').textContent=n?`${n} ${n===1?'documento anexado':'documentos anexados'}${f?` · faltam ${f} ${f===1?'item':'itens'}`:' · tudo preenchido'}`:'Preencha e anexe os documentos';
+  const subindo=Object.values(E.arquivos).flat().filter(x=>['lendo','pronto','enviando'].includes(x.estado)).length;
+  $('#resumo').textContent=subindo?`Enviando ${subindo} ${subindo===1?'documento':'documentos'}… pode continuar preenchendo.`:f?`${n?n+(n===1?' documento anexado. ':' documentos anexados. '):''}Toque no botão para ver o que falta.`:'Tudo preenchido. Confira e envie.';
   const b=$('#enviar'); b.disabled=enviando; b.classList.toggle('falta',!!f);
-  if(!enviando) b.textContent=f?`Faltam ${f} ${f===1?'item':'itens'}`:'Revisar e enviar';
+  if(!enviando) b.textContent=f?(f===1?'Falta 1 item':'Faltam '+f+' itens'):'Conferir e enviar';
+  salvarRascunho();
 }
 // Trava de segurança: o envio é definitivo (o link fecha), então só sai com tudo preenchido e depois
 // de um "confirmo". Faltando algo, o botão mostra o que falta em vez de enviar.
@@ -633,26 +758,46 @@ async function enviarArquivo(chave,it){
   try{
     const base64=await b64(it.file); it.pct=40; desenharSlot(chave);
     const r=await chamar({acao:'cliente-arquivo',t:token,chave,papel:meta.papel,pessoa:meta.pessoa,tipo:meta.tipo,nomeArquivo:it.file.name,mimetype:it.file.type||'application/octet-stream',lerDepois:true,base64});
-    // A leitura pela IA corre à parte (não segura o envio) e segue mesmo se a página for fechada.
-    if(r.docKey) try{ fetch(GAS_URL,{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({acao:'cliente-ler',t:token,docKey:r.docKey})}).catch(()=>{}); }catch(_){ }
-    it.estado='enviado'; it.pct=100;
-  }catch(e){ it.estado='erro'; it.erro='Não enviou. Toque em Enviar para tentar de novo.'; }
+    it.docKey=r.docKey; it.estado='enviado'; it.pct=100; gravarRascunho();
+  }catch(e){ it.estado='erro'; it.erro='Não enviou. Toque em "Tentar de novo".'; }
   desenharSlot(chave);
 }
 async function enviar(){
   if(enviando||!pedido) return;
   if(faltas().length) return revisar();
   enviando=true; const btn=$('#enviar'); btn.disabled=true; btn.textContent='Enviando…';
-  const fila=Object.entries(E.arquivos).flatMap(([c,l])=>l.filter(x=>x.estado==='pronto'||x.estado==='erro'&&x.file.size<=MAX_BYTES).map(x=>[c,x]));
-  let i=0; await Promise.all(Array.from({length:Math.min(PARALELO,fila.length)},async()=>{ while(i<fila.length){ const [c,x]=fila[i++]; await enviarArquivo(c,x); } }));
-  const falhou=Object.values(E.arquivos).flat().some(x=>x.estado==='erro');
+  // Quase tudo já subiu quando foi anexado: aqui só entra o que ainda estava na fila ou falhou.
+  Object.entries(E.arquivos).forEach(([c,l])=>l.forEach(x=>{ if(x.estado==='pronto'||(x.estado==='erro'&&x.file&&x.file.size<=MAX_BYTES)) agendarEnvio(c,x); }));
+  await esperaUploads();
+  const todos=Object.values(E.arquivos).flat(), falhou=todos.some(x=>x.estado==='erro');
   if(!falhou){
-    try{ await chamar({acao:'cliente-dados',t:token,nArquivos:Object.values(E.arquivos).flat().filter(x=>x.estado==='enviado').length,dados:montarDados()}); document.body.classList.add('concluido'); window.scrollTo(0,0); }
-    catch(e){ alert('Os documentos chegaram, mas não consegui enviar os dados preenchidos. Toque em Enviar de novo.'); }
-  }else alert('Alguns arquivos não foram enviados. Eles estão marcados em vermelho: toque em Enviar para tentar de novo.');
+    const docKeys=todos.filter(x=>x.estado==='enviado'&&x.docKey).map(x=>x.docKey);
+    try{
+      await chamar({acao:'cliente-dados',t:token,nArquivos:docKeys.length,docKeys,dados:montarDados()});
+      apagarRascunho(); document.body.classList.add('concluido'); window.scrollTo(0,0);
+      // Só agora a IA lê os documentos, à parte e mesmo que a página seja fechada: o envio não espera por isso.
+      docKeys.forEach(k=>{ try{ fetch(GAS_URL,{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({acao:'cliente-ler',t:token,docKey:k})}).catch(()=>{}); }catch(_){ } });
+    }catch(e){ alert('Os documentos chegaram, mas não consegui enviar os dados preenchidos. Toque em Enviar de novo.'); }
+  }else alert('Algum arquivo não foi enviado. Ele está marcado em vermelho: toque em "Tentar de novo" e depois em Enviar.');
   enviando=false; btn.disabled=false; resumo();
 }
 $('#enviar').addEventListener('click',revisar);
+
+// ── Teclado no celular: o rodapé some enquanto se digita e o campo vem para o meio da tela ──
+const ehCampo=el=>el&&/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)&&!['file','radio','checkbox','button'].includes(el.type);
+document.addEventListener('focusin',e=>{
+  if(!ehCampo(e.target)) return;
+  document.body.classList.add('digitando');
+  setTimeout(()=>{ try{ e.target.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){} },350);
+});
+document.addEventListener('focusout',()=>{ setTimeout(()=>{ if(!ehCampo(document.activeElement)) document.body.classList.remove('digitando'); },200); });
+// Enter passa para o próximo campo em vez de fechar o teclado a cada resposta.
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||!e.target.matches||!e.target.matches('input:not([type=file]):not([type=radio]):not([type=checkbox])')) return;
+  e.preventDefault();
+  const c=[...document.querySelectorAll('#formulario input:not([type=file]):not([type=radio]):not([type=checkbox]):not([type=hidden]),#formulario select,#formulario textarea')];
+  const i=c.indexOf(e.target); if(c[i+1]) c[i+1].focus(); else e.target.blur();
+});
 carregar();
 </script>
 </body>

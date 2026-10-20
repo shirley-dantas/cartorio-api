@@ -146,8 +146,9 @@ await passo('envio rápido: com lerDepois o arquivo é guardado sem chamar a IA,
   const m = mundo(); semear(m); let chamadasIA = 0;
   m.caixa.lerDocumentoComIA = () => { chamadasIA++; return {texto: 'TIPO_DOCUMENTO: CNH\nRG: 123456', truncou: false}; };
   const r = m.chamar({...arq(), lerDepois: true}); assert.equal(r.ok, true); assert(r.docKey, 'devolve a chave do documento'); assert.equal(chamadasIA, 0, 'não esperou a IA');
-  const doc = m.db.casos['-Caso1'].documentos[r.docKey]; assert(!doc.texto && doc.lendo > 0, 'fica marcado como lendo');
-  m.chamar({acao: 'cliente-dados', t: TOKEN, dados: {}}); assert(m.db.pedidos[TOKEN].concluidoEm > 0, 'o link fechou antes de a leitura terminar');
+  const doc = m.db.casos['-Caso1'].documentos[r.docKey]; assert(!doc.texto && doc.provisorio === true, 'fica provisório até o cliente concluir');
+  m.chamar({acao: 'cliente-dados', t: TOKEN, docKeys: [r.docKey], dados: {}}); assert(m.db.pedidos[TOKEN].concluidoEm > 0, 'o link fechou antes de a leitura terminar');
+  assert(!m.db.casos['-Caso1'].documentos[r.docKey].provisorio, 'concluir tira o "provisório" dos arquivos enviados');
   const l = m.chamar({acao: 'cliente-ler', t: TOKEN, docKey: r.docKey}); assert.equal(l.ok, true); assert.equal(l.leu, true); assert.equal(chamadasIA, 1);
   const d2 = m.db.casos['-Caso1'].documentos[r.docKey]; assert(/RG: 123456/.test(d2.texto) && !d2.lendo, 'o texto entra e o "lendo" some');
   assert.equal(m.chamar({acao: 'cliente-ler', t: TOKEN, docKey: r.docKey}).leu, true); assert.equal(chamadasIA, 1, 'ler de novo não refaz');
@@ -172,6 +173,17 @@ await passo('a ficha traz o falecido: estado civil na data do óbito, regime e c
   m.chamar({acao: 'cliente-dados', t: TOKEN, dados: {falecidos: [{bloco: 'falecido', nome: 'José Souza', estadoCivil: 'Casado(a)', regime: 'Comunhão universal de bens', conjuge: {nome: 'Maria Souza', profissao: 'Professora'}}]}});
   const f = m.db.casos['-Caso1'].documentos['ficha_' + TOKEN.slice(0, 10)].texto;
   for (const t of ['FALECIDO(A) — José Souza', 'Estado civil na data do óbito: Casado(a)', 'Regime de bens: Comunhão universal de bens', 'Cônjuge: Maria Souza, Professora']) assert(f.includes(t), t);
+});
+await passo('cliente-remover: o cliente tira o que anexou enquanto o link está aberto — arquivo vai para a lixeira, registro sai; forjado ou de outro link é recusado', () => {
+  const m = mundo(); semear(m);
+  const r = m.chamar({...arq(), lerDepois: true}); const doc = m.db.casos['-Caso1'].documentos[r.docKey]; const idArq = doc.link.match(/\/d\/([^/]+)/)[1];
+  assert.equal(m.db.pedidos[TOKEN].contagem._total, 1);
+  assert.equal(m.chamar({acao: 'cliente-remover', t: TOKEN, docKey: 'cli_ZZZZZZ_1'}).ok, false, 'chave de outro link');
+  m.db.casos['-Caso1'].documentos.cli_aB3dE6_forjado = {nome: 'minuta', origem: 'link do cliente', link: 'https://drive.google.com/file/d/' + idArq + '/view', selo: 'x'.repeat(64)};
+  assert.equal(m.chamar({acao: 'cliente-remover', t: TOKEN, docKey: 'cli_aB3dE6_forjado'}).ok, true); assert.equal(ARQUIVOS[idArq].lixeira, false, 'selo errado: o Drive não é tocado');
+  const x = m.chamar({acao: 'cliente-remover', t: TOKEN, docKey: r.docKey}); assert.equal(x.ok, true);
+  assert.equal(ARQUIVOS[idArq].lixeira, true, 'arquivo na lixeira'); assert(!m.db.casos['-Caso1'].documentos[r.docKey], 'registro saiu'); assert.equal(m.db.pedidos[TOKEN].contagem._total, 0, 'o limite do link volta');
+  m.chamar({acao: 'cliente-dados', t: TOKEN, dados: {}}); assert.equal(m.chamar({acao: 'cliente-remover', t: TOKEN, docKey: r.docKey}).ok, false, 'depois de concluído, não mexe mais');
 });
 await passo('texto de cliente com quebra de linha e instrução escondida vira uma linha só e é cortado', () => {
   const m = mundo(); semear(m);

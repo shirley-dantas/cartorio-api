@@ -1150,6 +1150,7 @@ function doPost(e) {
     if (acao === "cliente-arquivo") return clienteArquivo(dados);
     if (acao === "cliente-dados") return clienteDados(dados);
     if (acao === "cliente-ler") return clienteLer(dados);
+    if (acao === "cliente-remover") return clienteRemover(dados);
     if (acao === "cliente-excluir") return clienteExcluir(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
@@ -1422,8 +1423,11 @@ function pedidoDoCliente(token, aceitaConcluido) {
   if (!pedido || !pedido.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(pedido.casoId))) return null;
   if (pedido.expiraEm && Date.now() > pedido.expiraEm) return null;
   if (pedido.concluidoEm && !aceitaConcluido) return null; // já enviado: o link fecha, para não confundir o card com um segundo preenchimento
-  var caso = firebaseLer("/casos/" + pedido.casoId);
-  if (!caso || typeof caso !== "object") return null;
+  // Só o que o envio usa (nome e pasta): ler o caso inteiro trazia todos os documentos com o texto lido pela
+  // IA a cada arquivo enviado — era a maior fatia da demora.
+  var nome = firebaseLer("/casos/" + pedido.casoId + "/nome");
+  if (nome === undefined || nome === null) return null;
+  var caso = { nome: nome, driveUrl: firebaseLer("/casos/" + pedido.casoId + "/driveUrl") || "" };
   return { pedido: pedido, caso: caso, casoId: pedido.casoId, token: token };
 }
 
@@ -1466,12 +1470,13 @@ function clienteArquivo(dados) {
   try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
   if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais." });
 
-  // Nome, arquivo e registro dentro de uma trava: sem ela, dois arquivos do
-  // mesmo tipo chegando juntos ganhariam o mesmo número, e duas primeiras
-  // gravações criariam duas pastas. A leitura pela IA (demorada) fica de fora.
+  // A trava cobre só o que não pode correr em paralelo: o número do nome (dois arquivos do mesmo tipo
+  // chegando juntos ganhariam o mesmo) e a pasta (duas primeiras gravações criariam duas pastas). Criar o
+  // arquivo no Drive e gravar o registro — o que demora — ficam FORA dela, para os envios andarem juntos
+  // em vez de em fila. A leitura pela IA também fica de fora.
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
-  var docKey, nome, arquivo;
+  var docKey, nome, arquivo, pasta;
   try {
     // A numeração e o limite vêm de um contador pequeno do próprio pedido: ler todos os documentos do
     // caso (cada um com o texto lido pela IA) a cada arquivo era o que mais pesava no envio.
@@ -1485,16 +1490,19 @@ function clienteArquivo(dados) {
     var novaCont = { _total: total + 1 }; novaCont[chaveCont] = n;
     firebaseGravar("patch", "/pedidos/" + ctx.token + "/contagem", novaCont);
     nome = prefixo + n + "." + ext;
-    arquivo = pastaDoCaso(ctx.caso, ctx.casoId).createFile(Utilities.newBlob(bytes, mime, nome));
+    pasta = pastaDoCaso(ctx.caso, ctx.casoId);
+  } finally { lock.releaseLock(); }
+  {
+    arquivo = pasta.createFile(Utilities.newBlob(bytes, mime, nome));
     docKey = "cli_" + ctx.token.slice(0, 6) + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 8);
     var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/" + docKey, {
       nome: nome, tipo: "documento", tipoDocumento: textoCliente(dados.tipo, 60), papel: textoCliente(dados.papel, 40),
       pessoa: textoCliente(dados.pessoa, 80), origem: "link do cliente", link: arquivo.getUrl(), salvoEm: new Date().toISOString(),
       selo: seloDoArquivo(docKey, arquivo.getId()),
-      lendo: dados.lerDepois && MIMES_LEITURA_IA.indexOf(mime) !== -1 ? Date.now() : null
+      provisorio: true // o cliente ainda pode trocar ou tirar; deixa de ser provisório quando ele conclui o envio
     });
     if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." });
-  } finally { lock.releaseLock(); }
+  }
 
   var leu = false;
   // Página nova: devolve já, e a leitura pela IA vem numa chamada à parte (cliente-ler), que corre
@@ -1512,6 +1520,24 @@ function clienteArquivo(dados) {
   return resp({ ok: true, nome: nome, leu: leu, docKey: docKey });
 }
 
+// O cliente tirou ou trocou um arquivo que já tinha anexado (o envio acontece ao anexar). Só enquanto o link
+// está aberto, só o que nasceu deste link e só toca no Drive com o selo certo: vai para a lixeira.
+function clienteRemover(dados) {
+  var ctx = pedidoDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
+  var docKey = String(dados.docKey || "");
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(docKey) || docKey.indexOf("cli_" + ctx.token.slice(0, 6) + "_") !== 0) return resp({ ok: false, erro: "Documento inválido." });
+  var caminho = "/casos/" + ctx.casoId + "/documentos/" + docKey;
+  var doc = firebaseLer(caminho);
+  if (!doc || doc.origem !== "link do cliente") return resp({ ok: false, erro: "Documento não encontrado." });
+  var id = extrairIdArquivo(doc.link);
+  if (id && doc.selo && doc.selo === seloDoArquivo(docKey, id)) { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) { /* já não estava lá */ } }
+  var r = UrlFetchApp.fetch(FIREBASE_URL + caminho + ".json", { method: "delete", muteHttpExceptions: true });
+  if (r.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a remoção (" + r.getResponseCode() + ")." });
+  try { var cont = firebaseLer("/pedidos/" + ctx.token + "/contagem/_total"); if (Number(cont) > 0) firebaseGravar("patch", "/pedidos/" + ctx.token + "/contagem", { _total: Number(cont) - 1 }); } catch (e) { /* só um contador */ }
+  return resp({ ok: true });
+}
+
 // A leitura pela IA de um arquivo já guardado. Vale também depois de o link ser concluído (a leitura
 // termina depois do envio). O arquivo é lido do Drive, pelo registro do card; o código do link só
 // autoriza documentos nascidos dele (a chave leva o começo do código).
@@ -1524,6 +1550,7 @@ function clienteLer(dados) {
   var doc = firebaseLer(caminho);
   if (!doc || doc.origem !== "link do cliente") return resp({ ok: false, erro: "Documento não encontrado." });
   if (doc.texto) return resp({ ok: true, leu: true });
+  firebaseGravar("patch", caminho, { lendo: Date.now() });
   var id = extrairIdArquivo(doc.link), leu = false;
   try {
     if (!id || !doc.selo || doc.selo !== seloDoArquivo(docKey, id)) throw new Error("sem selo");
@@ -1602,9 +1629,14 @@ function clienteDados(dados) {
   } catch (e) { /* o registro no card é o que importa */ }
   var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/" + fichaKey, registroFicha);
   if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou os dados (" + gravou.getResponseCode() + ")." });
+  // Os arquivos enviados ao anexar deixam de ser provisórios: o cliente concluiu.
+  var chavesOk = (Array.isArray(dados.docKeys) ? dados.docKeys : []).slice(0, CLIENTE_MAX_ARQUIVOS).filter(function (k) {
+    return /^[A-Za-z0-9_-]{1,120}$/.test(String(k)) && String(k).indexOf("cli_" + ctx.token.slice(0, 6) + "_") === 0;
+  });
+  chavesOk.forEach(function (k) { try { firebaseGravar("patch", "/casos/" + ctx.casoId + "/documentos/" + k, { provisorio: null }); } catch (e) { /* o card mostra "aguardando" */ } });
   // O link fecha (concluidoEm) e o card ganha o aviso que o Jornal mostra no topo do painel.
   try { firebaseGravar("patch", "/pedidos/" + ctx.token, { concluidoEm: Date.now() }); } catch (e) { /* só um carimbo */ }
-  try { firebaseGravar("put", "/casos/" + ctx.casoId + "/envioCliente", { em: Date.now(), pedido: ctx.token, arquivos: Math.max(0, Math.min(999, Number(dados.nArquivos) || 0)), ato: textoCliente(ctx.pedido.ato, 80), visto: false }); } catch (e) { /* o aviso é cortesia */ }
+  try { firebaseGravar("put", "/casos/" + ctx.casoId + "/envioCliente", { em: Date.now(), pedido: ctx.token, arquivos: chavesOk.length || Math.max(0, Math.min(999, Number(dados.nArquivos) || 0)), ato: textoCliente(ctx.pedido.ato, 80), visto: false }); } catch (e) { /* o aviso é cortesia */ }
   try { enviarWhatsApp("📥 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou os documentos pelo link. Já estão no card."); } catch (e) { /* aviso é cortesia */ }
   return resp({ ok: true });
 }
