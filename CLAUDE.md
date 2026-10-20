@@ -433,6 +433,18 @@ procuração, ata e escritura declaratória.
   mais do que ela cobra. Contando de agosto/2026 a dezembro/2029 são **41
   meses** — os dois extremos entram —, e o salário mínimo (R$ 1.621,00, o mesmo
   que a conta dela devolve) é configurável em Ajustes, como a UFESP.
+- **O usufruto da doação paga 1/4 da tabela, não os 40% do ato secundário
+  comum.** Era tratado como qualquer outro ato secundário (garantia, novação)
+  até ela trazer a regra certa em 20/10/2026, contra outro sistema de
+  cálculo: a nua-propriedade (2/3) sai pelo **valor cheio** da escritura, e o
+  usufruto (1/3) por **1/4 da tabela — 75% de desconto**, não os 40%. O
+  **registro não leva desconto nenhum** nos dois lados — sempre foi assim, e
+  continua. O caso dela fecha linha por linha: imóvel de R$ 369.576,00, nua-
+  propriedade de R$ 246.384,00 pelo valor cheio, usufruto de R$ 123.192,00
+  pelo 1/4 (`ORC_DESCONTO_USUFRUTO = 75`, `ORC_AVISO_DESCONTO_USUFRUTO`). A
+  base de cálculo também virou **lista** (`imoveisDoacao`) — ela pode lançar
+  vários imóveis doados juntos, e a soma deles vira a base que se divide em
+  2/3 e 1/3, do mesmo jeito que as outras listas de imóveis do painel.
 - **Onde há um total digitado, a lista de imóveis pode virar ele.** No divórcio
   com partilha e no inventário, a escritura sai de um total à parte enquanto os
   imóveis alimentam os registros. Somar três imóveis à mão para redigitar o
@@ -452,9 +464,11 @@ procuração, ata e escritura declaratória.
   tributo. A regra especial (ZEIS, FGTS) substitui a escritura inteira mas
   **não engole** o ato lavrado junto: ele é outro ato, com item próprio.
 - **Ato secundário na mesma escritura leva 40%** — garantia, novação,
-  confissão, usufruto, cláusula resolutiva. É regra dela: a nota explicativa da
+  confissão, cláusula resolutiva. É regra dela: a nota explicativa da
   tabela que a fundamentaria veio só com o título no PDF, e por isso cada linha
-  reduzida nasce marcada como 🔵 operacional, não como fonte oficial.
+  reduzida nasce marcada como 🔵 operacional, não como fonte oficial. O
+  usufruto da doação **saiu desta lista em 20/10/2026** — tem desconto
+  próprio, de 75% (ver a regra logo abaixo), não os 40% genéricos.
 - **A linha debaixo do título é dela.** O que sai embaixo de ESTIMATIVA DE
   CUSTOS costuma ser a rua do imóvel, ou o nome do de cujus no inventário —
   coisas que o nome do card não carrega. É um campo (`identificacao`), guardado
