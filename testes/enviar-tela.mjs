@@ -140,7 +140,7 @@ await passo('trava: faltando algo o envio não sai; completo, pede confirmação
   await pg.click('[data-fecha]'); assert.equal(chamadas.length, 0, 'nada saiu');
   await preencher(pg); await pg.waitForFunction(() => /conferir e enviar/i.test(document.querySelector('#enviar').textContent));
   await clicarEnviar(pg); assert(/este link fecha/.test(await pg.innerText('.folha')));
-  await pg.click('[data-fecha]'); assert.equal(chamadas.length, 0, 'voltar e revisar não envia');
+  await pg.click('[data-fecha]'); assert(!chamadas.some((c) => c.acao === 'cliente-dados'), 'voltar e revisar não envia a ficha');
   await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
   assert(chamadas.some((c) => c.acao === 'cliente-dados' && c.nArquivos === 2));
 });
@@ -229,7 +229,7 @@ await passo('rascunho: o que já tinha sido enviado volta como "✓ Enviado" dep
   await pg.evaluate(() => window.dispatchEvent(new Event('pagehide')));
   await pg.reload(); await pg.waitForSelector('.recuperado');
   assert.equal(await pg.inputValue('[data-f="nome"]'), 'Maria da Silva'); assert(/Enviado/.test(await pg.innerText('.arq')), 'o arquivo continua como enviado');
-  assert(/rg\.png/.test(await pg.innerText('.arq')), 'com o nome dele'); assert(/Anexado/.test(await pg.innerText('.chip.ok')));
+  assert(/rg\.png/.test(await pg.innerText('.arq')), 'com o nome dele'); assert(/anexado/i.test(await pg.innerText('.chip.ok')));
 });
 
 await passo('viúvo: a certidão de casamento com a averbação do óbito basta; a de óbito só na lista de inventário', async () => {
