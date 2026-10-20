@@ -324,15 +324,16 @@ function linkHorario(a,s){const [y,mo,d]=a.date.split('-').map(Number),[hh,mi]=a
   if(enderecoDe(a.unit)&&enderecoDe(a.unit)!==ENDERECO_PADRAO[a.unit])q.push('e='+encodeURIComponent(enderecoDe(a.unit)));
   return origemPublica()+'/h/'+[a.unit==='flo'?'f':'m',t.toString(36),(s.d||60).toString(36),a.pro||'x',a.serv].join('-')+(q.length?'?'+q.join('&'):'')}
 // ── Confirmação do horário para a cliente (WhatsApp ou e-mail, sem precisar de script) ──
-function msgConfirmacao(a,remarcado){
+function msgConfirmacao(a,remarcado,extras){
   const c=cli(a.cli),s=sv(a.serv,a.unit),u=U[a.unit],p=PEOPLE[a.pro]?.n;
   const dia=new Date(a.date+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
   // Página própria (horario.html, atalho /h): na prévia do WhatsApp aparece a logo da Tháriga Beauty & Co, e ela traz os botões de salvar na agenda.
   const link=linkHorario(a,s);
   const nome=(c.n||'').split(' ')[0];
-  const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, ${u.em} ${u.n}.\n${linhaEndereco(a.unit)}\n\nVeja os detalhes e salve na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
+  const mais=extras&&extras.length,itens=mais?[a,...extras].map(x=>`• ${sv(x.serv,x.unit).n}${PEOPLE[x.pro]?.n?' com '+PEOPLE[x.pro].n:''}, às ${x.hora}`).join('\n'):'';
+  const texto=`Oi, ${nome}! ${remarcado?'Seu horário foi remarcado':'Seu horário está confirmado'}: ${mais?`${dia}, ${u.em} ${u.n}:\n${itens}`:`${s.n}${p?' com '+p:''}, ${dia}, às ${a.hora}, ${u.em} ${u.n}`}.\n${linhaEndereco(a.unit)}\n\nVeja os detalhes e salve na sua agenda: ${link}\n\nQualquer imprevisto, é só avisar por aqui. Até lá! 🤍`;
   return {texto,assunto:(remarcado?'Horário remarcado: ':'Horário confirmado: ')+s.n+' · '+dia+' às '+a.hora}}
-function confirmarAg(a,remarcado){const c=cli(a.cli),m=msgConfirmacao(a,remarcado);
+function confirmarAg(a,remarcado,extras){const c=cli(a.cli),m=msgConfirmacao(a,remarcado,extras);
   openDlg(remarcado?'Avisar a cliente do novo horário':'Avisar a cliente do horário',`<p class="small muted"><b>${esc(c.n)}</b> · ${esc(fd(a.date,{weekday:'short',day:'2-digit',month:'2-digit'}))} às ${esc(a.hora)}. O horário já está salvo; aqui você só avisa a cliente.</p>
   <label class="f">Mensagem pronta (edite à vontade)<textarea rows="7" id="cf-m">${esc(m.texto)}</textarea></label>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="cf-w" ${c.tel?'':'disabled'}>Enviar pelo WhatsApp</button><button class="btn" id="cf-e" ${emailOk(c.email)?'':'disabled'}>Enviar por e-mail (Gmail)</button><button class="btn" id="cf-c">Copiar mensagem</button><button class="btn" id="cf-f">Agora não</button></div>
@@ -1171,13 +1172,16 @@ function novoAg(pre){
     novoCliente({voltar:id=>novoAg({...pre,cli:id})});return;
   }
   const pros=['tha','rafael','mariana','ana'];
-  openDlg('Novo agendamento',`<label class="f">Cliente<select id="nc">${visiveis.map(c=>`<option value="${c.id}" ${c.id===pre.cli?'selected':''}>${esc(c.n)}</option>`).join('')}</select></label>
+  openDlg('Novo agendamento',`<label class="f">Cliente<input id="nq" type="search" placeholder="🔍 Digite o nome ou o telefone" autocomplete="off" style="margin-bottom:6px"><select id="nc">${visiveis.map(c=>`<option value="${c.id}" ${c.id===pre.cli?'selected':''}>${esc(c.n)}</option>`).join('')}</select></label>
   <p style="margin:-6px 0 12px"><a href="#" id="nnc">+ Cadastrar uma cliente nova agora</a></p>
   <label class="f">Profissional<select id="np">${pros.map(p=>`<option value="${p}" ${p===(pre.pro||meuPro())?'selected':''}>${PEOPLE[p].n}</option>`).join('')}</select></label>
   <div style="display:flex;gap:10px"><label class="f" style="flex:1">Data<input type="date" id="nd" value="${pre.data||S.agData||iso(TODAY)}"></label><label class="f" style="flex:1">Hora<input type="time" id="nh" value="${pre.hora||'10:00'}"></label></div>
   <label class="f">Serviço<select id="ns"></select></label>
+  <div id="nextras"></div>
+  <p style="margin:-4px 0 12px"><a href="#" id="nmais">+ Adicionar outro procedimento para esta cliente</a></p>
   <div id="navisos"></div><button class="btn p" id="nsave">Agendar</button>`);
-  const nc=document.getElementById('nc'),ns=document.getElementById('ns'),np=document.getElementById('np'),nd=document.getElementById('nd'),nh=document.getElementById('nh'),navisos=document.getElementById('navisos'),nsave=document.getElementById('nsave');
+  const nc=document.getElementById('nc'),ns=document.getElementById('ns'),np=document.getElementById('np'),nd=document.getElementById('nd'),nh=document.getElementById('nh'),navisos=document.getElementById('navisos'),nsave=document.getElementById('nsave'),nq=document.getElementById('nq');
+  const semAcento=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const check=()=>{const p=np.value,d=nd.value,c=cli(nc.value);let ok=!!d;const msgs=[];
     let u;
     if(p==='tha'){u=unitFor(d||iso(TODAY));if(!isAdmin()&&u==='flo'){ok=false;msgs.push('Neste dia a Tháriga atende no Florença: só ela agenda por lá.')}}
@@ -1200,21 +1204,44 @@ function novoAg(pre){
       enviarLinkAnamnese(c.id,()=>novoAg(est))};
     nsave.disabled=!ok;return u};
   [nc,np,nd,nh].forEach(e=>e.onchange=check);check();
+  // Busca: filtra a lista pelo nome (sem acento) ou pelo telefone, em vez de rolar todos os nomes.
+  const vazio='<option value="">Nenhuma cliente com esse nome</option>';
+  nq.oninput=()=>{const q=semAcento(nq.value).trim(),dg=q.replace(/\D/g,'');
+    const l=!q?visiveis:visiveis.filter(c=>semAcento(c.n).includes(q)||(dg.length>=3&&soDigitos(c.tel).includes(dg)));
+    const cur=nc.value;nc.innerHTML=l.length?l.map(c=>`<option value="${c.id}">${esc(c.n)}</option>`).join(''):vazio;
+    if(l.some(c=>c.id===cur))nc.value=cur;nc.size=q&&l.length>1?Math.min(5,l.length):1;
+    if(!l.length){nsave.disabled=true;navisos.innerHTML='<div class="small muted">Nenhuma cliente com esse nome. Use "Cadastrar uma cliente nova agora".</div>';return}
+    check()};
+  // Mais de um procedimento para a mesma cliente: cada um vira um horário seguido (editável), na mesma data.
+  const extras=[],uDe=()=>np.value==='tha'?unitFor(nd.value||iso(TODAY)):'mai';
+  const hh=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+  document.getElementById('nmais').onclick=e=>{e.preventDefault();
+    const u=uDe(),ult=extras.length?extras[extras.length-1]:{h:nh,s:ns},ini=minDe(ult.h.value||'10:00')+(sv(ult.s.value,u).d||30);
+    const row=document.createElement('div');row.className='box';row.style.cssText='padding:10px;margin-bottom:10px';
+    const lp=u==='flo'?['tha']:pros;
+    row.innerHTML=`<label class="f">Outro procedimento<select class="xs">${ns.innerHTML}</select></label><div style="display:flex;gap:10px"><label class="f" style="flex:1">Profissional<select class="xp">${lp.map(x=>`<option value="${x}">${esc(PEOPLE[x].n)}</option>`).join('')}</select></label><label class="f" style="flex:1">Hora<input type="time" class="xh" value="${hh(ini)}"></label></div><a href="#" class="xr">Remover este procedimento</a>`;
+    document.getElementById('nextras').appendChild(row);
+    const o={row,s:row.querySelector('.xs'),p:row.querySelector('.xp'),h:row.querySelector('.xh')};extras.push(o);
+    const dono=()=>{const dn=donosDoServico(o.s.value,uDe());if(dn.length&&!dn.includes(o.p.value)&&[...o.p.options].some(x=>x.value===dn[0]))o.p.value=dn[0]};
+    o.p.value=np.value&&[...o.p.options].some(x=>x.value===np.value)?np.value:lp[0];dono();o.s.onchange=dono;
+    row.querySelector('.xr').onclick=ev=>{ev.preventDefault();extras.splice(extras.indexOf(o),1);row.remove()}};
   // Escolheu o serviço: o profissional vem sozinho (quem faz aquele serviço). Dá para trocar depois.
   const donoDoServico=()=>{const d=nd.value,u=np.value==='tha'?unitFor(d||iso(TODAY)):'mai',dn=donosDoServico(ns.value,u);if(dn.length&&!dn.includes(np.value)){const dono=dn[0];if([...np.options].some(o=>o.value===dono))np.value=dono}};
   ns.onchange=()=>{donoDoServico();check()};
   if(pre.serv&&[...ns.options].some(o=>o.value===pre.serv)){ns.value=pre.serv;if(!pre.pro)donoDoServico();check()}
   document.getElementById('nnc').onclick=e=>{e.preventDefault();const est={pro:np.value,data:nd.value,hora:nh.value,serv:ns.value};novoCliente({voltar:id=>novoAg({...est,cli:id})})};
   nsave.onclick=async()=>{const u=check();if(nsave.disabled)return;nsave.disabled=true;
-    const base=u==='flo'?'florenca':'maison',novo={date:nd.value,ts:tsDe(nd.value),hora:nh.value,cli:nc.value,serv:ns.value,pro:np.value,unit:u,st:'Agendado'};let nid;
-    const ok=await grava(async()=>{nid=await DB.push(base+'/agenda',novo)},'Agendado');
+    if(!nc.value){nsave.disabled=false;return}
+    const base=u==='flo'?'florenca':'maison',mk=(serv,pro,hora)=>({date:nd.value,ts:tsDe(nd.value),hora,cli:nc.value,serv,pro,unit:u,st:'Agendado'});
+    const lista=[mk(ns.value,np.value,nh.value),...extras.map(x=>mk(x.s.value,x.p.value,x.h.value||nh.value))],nids=[];
+    const ok=await grava(async()=>{for(const a of lista)nids.push(await DB.push(base+'/agenda',a))},lista.length>1?lista.length+' procedimentos agendados':'Agendado');
     if(!ok){nsave.disabled=false;return}
     closeDlg();
-    const em=cli(novo.cli).email;
-    if(AGENDA_URL&&emailOk(em)){toast('Enviando o convite…');
-      const sent=await convidar(nid,base,novo);
+    const em=cli(lista[0].cli).email;
+    if(AGENDA_URL&&emailOk(em)){toast('Enviando o convite…');let sent=true;
+      for(let i=0;i<lista.length;i++)sent=(await convidar(nids[i],base,lista[i]))&&sent;
       toast(sent?'Convite enviado para '+em:'Agendado, mas o convite não saiu. Use "Reenviar convite" na agenda.')}
-    confirmarAg(novo,false)}
+    confirmarAg(lista[0],false,lista.slice(1))}
 }
 
 function vClientes(){
