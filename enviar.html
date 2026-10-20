@@ -27,19 +27,19 @@
 }
 *{box-sizing:border-box;margin:0}
 [hidden]{display:none!important}
-html{-webkit-text-size-adjust:100%;scroll-padding-bottom:140px;scroll-padding-top:20px}
+html{overflow-x:hidden;-webkit-text-size-adjust:100%;scroll-padding-bottom:140px;scroll-padding-top:20px}
 body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:var(--papel);color:var(--graf);
   font-size:17px;line-height:1.5;padding:0 16px calc(120px + env(safe-area-inset-bottom))}
 .miolo{max-width:600px;margin:0 auto}
 /* faixa do topo = tarja do orçamento */
-.topo{margin:0 -16px;padding:calc(26px + env(safe-area-inset-top)) 20px 26px;background:var(--graf);text-align:center;border-bottom:5px solid var(--champ)}
+.topo{margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);padding:calc(26px + env(safe-area-inset-top)) 20px 26px;background:var(--graf);text-align:center;border-bottom:5px solid var(--champ)}
 .orgao{font-family:'Jost',sans-serif;font-weight:400;font-size:14px;letter-spacing:.28em;text-indent:.28em;text-transform:uppercase;color:var(--champ-claro);margin-top:8px}
 .topo .arco{display:block;height:34px;width:auto;margin:0 auto 6px}
 .topo h1{font-family:'Jost',sans-serif;font-weight:300;font-size:34px;line-height:1.15;color:#fff;margin-top:10px}
 .escrevente{margin-top:16px;padding-top:14px;border-top:1px solid rgba(210,184,140,.45);font-size:15.5px;line-height:1.5;color:#E9EDF0}
 .escrevente b{color:#fff;font-weight:600}
 .escrevente a{display:inline-block;margin-top:4px;color:var(--champ-claro);font-weight:600;text-decoration:none;border-bottom:1.5px solid var(--champ-claro)}
-.titulo{text-align:center;padding:22px 4px 8px}
+.titulo{text-align:center;padding:2px 4px 0}
 .sub{color:var(--graf);font-size:17px;margin-top:0}
 .ato{display:inline-block;margin-top:14px;padding:8px 16px;background:var(--recuo);border-left:5px solid var(--champ);font-size:15px;font-weight:600;letter-spacing:.02em;border-radius:2px}
 /* cartões = blocos recuados */
@@ -107,8 +107,8 @@ textarea{min-height:100px;resize:vertical}
 /* rodapé = tarja de baixo */
 .rodape{position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--graf);border-top:5px solid var(--champ)}
 .rodape .miolo{display:flex;gap:12px;align-items:center}
-.resumo{flex:1;text-align:left;font-size:14.5px;line-height:1.3;font-weight:600;color:#fff}
-.enviar{flex:0 0 auto;width:auto;min-width:48%;padding:0 16px;min-height:56px;border:0;border-radius:2px;background:var(--champ-claro);color:var(--graf);font:700 19px -apple-system,'Inter',sans-serif;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+.resumo{flex:1;min-width:0;text-align:left;font-size:14.5px;line-height:1.3;font-weight:600;color:#fff}
+.enviar{flex:0 0 auto;width:auto;min-width:44%;max-width:56%;white-space:nowrap;padding:0 16px;min-height:56px;border:0;border-radius:2px;background:var(--champ-claro);color:var(--graf);font:700 19px -apple-system,'Inter',sans-serif;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
 .enviar:disabled{background:#3A4651;color:#D5DADF;cursor:default}
 .enviar.falta{background:var(--recuo);color:var(--graf)}
 /* tela final = recibo no padrão da folha */
@@ -154,12 +154,7 @@ body.digitando .rodape{display:none}
     <p class="escrevente">Escrevente <b>Shirley Dantas</b><br><a href="https://wa.me/5511954929643" rel="noopener">WhatsApp (11) 95492-9643</a></p>
   </header>
   <div class="titulo">
-    <p class="sub" id="intro">Preencha os seus dados e, no fim, anexe os documentos. Não precisa de cadastro nem senha.</p>
     <span class="ato" id="ato" hidden></span>
-  </div>
-    <p class="sub" id="intro">Preencha os seus dados e, no fim, anexe os documentos. Não precisa de cadastro nem senha.</p>
-    <span class="ato" id="ato" hidden></span>
-    <p class="escrevente">Escrevente <b>Shirley Dantas</b><br><a href="https://wa.me/5511954929643" rel="noopener">WhatsApp (11) 95492-9643</a></p>
   </div>
 
   <div class="formulario" id="formulario"></div>
@@ -652,9 +647,9 @@ function faltas(){
 function resumo(){
   if(!pedido) return;
   const n=Object.values(E.arquivos).flat().filter(x=>x.estado!=='erro').length, f=faltas().length;
-  $('#resumo').textContent=n?`${n} ${n===1?'documento anexado':'documentos anexados'}${f?` · faltam ${f} ${f===1?'item':'itens'}`:' · tudo preenchido'}`:'Preencha e anexe os documentos';
+  $('#resumo').textContent=f?`${n?n+(n===1?' documento anexado. ':' documentos anexados. '):''}Toque no botão para ver o que falta.`:'Tudo preenchido. Confira e envie.';
   const b=$('#enviar'); b.disabled=enviando; b.classList.toggle('falta',!!f);
-  if(!enviando) b.textContent=f?`${f===1?'Falta 1 item':'Faltam '+f+' itens'} · toque para ver`:'Tudo certo · conferir e enviar';
+  if(!enviando) b.textContent=f?(f===1?'Falta 1 item':'Faltam '+f+' itens'):'Conferir e enviar';
   salvarRascunho();
 }
 // Trava de segurança: o envio é definitivo (o link fecha), então só sai com tudo preenchido e depois

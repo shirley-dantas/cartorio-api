@@ -979,14 +979,16 @@ Regras que **não devem ser mexidas sem perguntar**:
   dados do cônjuge logo em seguida) e só no fim abre o cartão **Documentos**, com um espaço por documento de
   cada parte (cada um mostra "Falta anexar" / "✓ Anexado"). **Regime de bens: só três** — comunhão parcial,
   comunhão universal e separação total (universal e separação total pedem o pacto e o registro dele).
-- **O envio é rápido porque a IA não segura a fila.** O arquivo sobe com `lerDepois` e é guardado na hora; a
+- **O envio é rápido porque a IA não segura a fila e o servidor não lê o caso inteiro.** O Apps Script lê só o
+  nome e a pasta do caso (antes trazia todos os documentos com o texto da IA a cada arquivo) e a trava cobre só
+  o número do nome e a pasta — criar o arquivo no Drive e gravar o registro correm em paralelo. O arquivo sobe com `lerDepois` e é guardado na hora; a
   leitura pela IA sai numa chamada à parte (`cliente-ler`, também depois de o link fechar) e o card mostra
   "lendo…" até terminar. A numeração dos nomes vem de um contador pequeno em `/pedidos/{código}/contagem`.
 - **A prévia do WhatsApp tem imagem** (`og-envio.png`, 1200×630, com a marca PRIME) e o link é curto
-  (`/e/{código}`, reescrita no `vercel.json`). Com o link, **a mensagem é curta** (recado + link): a lista já
+  (`/e/{código}`, reescrita no `vercel.json`; a imagem usa o mesmo grafite e a faixa champagne). Com o link, **a mensagem é curta** (recado + link): a lista já
   está na página. O endereço do link ainda é o do projeto até haver um domínio neutro (`ENVIO_BASE_URL`).
-- **O topo não leva o nome PRIME**: só o arco champagne na faixa petróleo; abaixo, *Envio de documentos*,
-  *20º Tabelião de Notas* e, por último, a escrevente (Shirley Dantas, WhatsApp (11) 95492-9643, com link).
+- **O topo não leva o nome PRIME**: o arco champagne, *Envio de documentos*, *20º Tabelião de Notas* e, por
+  último, a escrevente (Shirley Dantas, WhatsApp (11) 95492-9643, com link), tudo na tarja grafite.
 - **Casado, em qualquer ato, abre o regime de bens** (3 opções, obrigatório); os dados do cônjuge vêm junto
   onde o ato os pede. **Viúvo**: certidão de casamento com averbação do óbito; a de óbito do cônjuge só na
   lista de inventário. **O falecido do inventário** (`k:'falecido'`) pergunta o estado civil **na data do
@@ -994,10 +996,23 @@ Regras que **não devem ser mexidas sem perguntar**:
   exige); viúvo/divorciado/separado → casamento com averbação; certidão de óbito e RG/CPF sempre.
 - **Preenchimento do celular**: os campos levam o `autocomplete` certo (nome, CEP, rua, cidade…), e o que
   responde depois (o CEP) troca **só o bloco do endereço**, sem mexer no campo em que a pessoa está.
-- **O advogado só sobe a carteira da OAB**: nenhum campo de nome, número ou endereço. **Pacto e união estável
+- **O advogado informa estado civil, profissão e endereço** (e o nome), **sem número da OAB**, e sobe a carteira
+  da OAB (`adv:true` no catálogo; não pede RG nem certidão). **Procuração: sem certidão de estado civil de
+  ninguém** (outorgante e procurador só RG/CPF; o estado civil continua como dado); os documentos do bem
+  (imóvel/veículo) são pedidos quando ela marca, e há sempre um espaço **opcional** para outro arquivo (a
+  procuração geral não exige nenhum). **Pacto e união estável
   são decididos pelo cliente**: o pacto abre na pílula de quem é casado em regime com pacto; a escritura de união
   estável, na de quem marcou que vive nela (quem já é convivente, noivo ou divorciando não é perguntado).
-- A página usa letra grande e tinta cheia (17 px, títulos de documento 18 px em negrito); a marca PRIME no topo.
+- **O visual segue a folha do orçamento**: papel branco, tarja grafite `#1F2A33` com faixa champagne de 5 px,
+  blocos recuados `#F4F1EA`, linhas em faixa em vez de filete, tinta cheia, cantos quase retos; o rodapé é a
+  tarja de baixo e a tela final é um recibo. Sem frase explicativa no topo. Letra de 17 px; alvos de toque ≥ 48 px.
+- **"Acrescentar" diz quem entra**: *herdeiro(a)* no inventário, *vendedor(a)*/*comprador(a)* na compra e venda
+  (um botão por papel quando o link vai para os dois). No inventário, os documentos dos bens ficam sob **"Bens a
+  inventariar"** (no divórcio, "Bens a partilhar").
+- **O link só fecha quando o envio é concluído**: sair da página e voltar continua valendo, e o que foi digitado
+  fica guardado **neste aparelho** (rascunho de 3 dias, `localStorage`), com aviso e "Começar de novo"; os
+  arquivos precisam ser anexados de novo. **No celular o rodapé some enquanto o teclado está aberto**, o campo
+  vem para o meio da tela e Enter passa ao próximo campo.
 - **A certidão de estado civil aparece desde o início** (genérica até ela escolher o estado civil) e o
   endereço se recolhe depois do CEP (rua/bairro/cidade/UF viram uma linha com *Editar*).
 - **"Tirar foto" no computador abre a webcam** (`abrirCamera()`); no celular continua o `capture` nativo.

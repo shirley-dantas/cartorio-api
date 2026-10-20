@@ -107,7 +107,7 @@ await passo('o CEP preenche a rua, o bairro e a cidade', async () => {
 await passo('cabeçalho personalizado, certidão visível desde o início e câmera do computador', async () => {
   const {pg} = await abrir({...compra, tipo:'Escritura de Compra e Venda', publico:'cliente', papel:'comprador'}, {mobile: false, viewport: {width: 1100, height: 800}});
   await pg.waitForSelector('[data-b="partes"]');
-  assert.ok(!/Para a elaboração/.test(await pg.innerText('#intro')), 'o cabeçalho não explica o ato: o link já vem personalizado');
+  assert.equal(await pg.locator('#intro').count(), 0, 'sem frase explicativa no topo: o link já vem personalizado');
   assert.ok(!/cartorio-api/i.test(await pg.innerText('body')) && !/cartorio-api/i.test(await pg.title()), 'a página nunca mostra cartorio-api (só a imagem de prévia mora lá)');
   assert.ok(/og:title/.test(await pg.content()));
   assert.ok(await pg.locator('text=Certidão de estado civil').count() > 0, 'o espaço da certidão aparece antes de escolher o estado civil');
@@ -120,7 +120,7 @@ await passo('cabeçalho personalizado, certidão visível desde o início e câm
 });
 
 // Com o teclado aberto o rodapé some (de propósito): quem toca no botão já tirou o foco do campo.
-const clicarEnviar = async (pg) => { await pg.evaluate(() => document.activeElement && document.activeElement.blur()); await pg.waitForSelector('.rodape', {state: 'visible'}); await clicarEnviar(pg); };
+const clicarEnviar = async (pg) => { await pg.evaluate(() => document.activeElement && document.activeElement.blur()); await pg.waitForSelector('.rodape', {state: 'visible'}); await pg.click('#enviar'); };
 async function preencher(pg) {
   await pg.fill('[data-f="nome"]', 'Maria da Silva'); await pg.selectOption('[data-f="ec"]', 'Solteiro(a)'); await pg.fill('[data-f="prof"]', 'Professora');
   await pg.fill('[data-f="cep"]', '01452000'); await pg.waitForSelector('[data-editend]'); await pg.fill('[data-f="num"]', '210');
@@ -272,7 +272,7 @@ await passo('preencher e enviar: cada arquivo chega com o papel e o tipo, e os d
   const {pg, chamadas} = await abrir(compra); tela = pg; await pg.waitForSelector('[data-b="partes"]');
   await preencher(pg);
   await pg.fill('#obs', 'Quero constar o nome de solteira.');
-  await pg.waitForFunction(() => /anexados/.test(document.querySelector('#resumo').textContent));
+  await pg.waitForFunction(() => /anexado/.test(document.querySelector('#resumo').textContent));
   await pg.screenshot({path: SAIDA('env-cel-cheio.png'), fullPage: true});
   await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
   const arqs = chamadas.filter((c) => c.acao === 'cliente-arquivo'), dados = chamadas.find((c) => c.acao === 'cliente-dados');
