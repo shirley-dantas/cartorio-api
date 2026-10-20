@@ -6723,6 +6723,11 @@ function comprimirArquivoGrande(file,onStatus){
 // perda de qualidade (a imagem fica mais "achatada"), e quem confere depois
 // precisa saber que aquele documento passou por isso.
 async function extrairArquivo(file,preservarIntegral,onStatus){
+  // A IA lê PDF, imagem e Word novo (.docx). O Word antigo (.doc) e outros formatos iam para a leitura de imagem
+  // e voltavam com um erro de "media_type" que ninguém entendia: agora a recusa vem antes, dizendo o que fazer.
+  if(!ehDocx(file)&&!/^(application\/pdf|image\/(jpeg|png|gif|webp))$/i.test(file.type||'')&&!(!file.type&&/\.(pdf|jpe?g|png|gif|webp)$/i.test(file.name||''))){
+    throw new Error(`"${file.name}" não é um formato que a IA lê (PDF, foto ou Word .docx). Abra o arquivo no Word e use Salvar como… → .docx (ou PDF), e anexe de novo.`);
+  }
   if(ehDocx(file)){
     let textoBruto;
     try{ textoBruto=await extrairDocxNoNavegador(file); }
@@ -11898,6 +11903,26 @@ async function criarLinkEnvio(id,{estado,blocos,token}){
 
 // Excluir o que o cliente mandou errado: o arquivo vai para a lixeira do Drive e o registro sai do card
 // (a minuta deixa de usá-lo). Se o Apps Script recusar, o item continua na lista e o erro aparece escrito.
+// "Ler de novo": o arquivo do cliente ficou sem leitura (a IA falhou ou ainda não tinha terminado). O Apps Script
+// lê o arquivo do Drive outra vez; se não conseguir, o motivo aparece escrito, e não só "sem leitura".
+window.relerDocCliente=async function(casoId,docKey,btn){
+  const d=(((casos[casoId]||{}).documentos)||{})[docKey];
+  if(!d) return;
+  const antes=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Lendo…';}
+  try{
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'cliente-reler',casoId,docKey})});
+    const j=await r.json();
+    if(j&&j.ok){ /* a lista se refaz sozinha: o item passa a "lido" */ }
+    else{
+      const erro=(j&&j.erro)||'motivo desconhecido';
+      alert(/a[çc][ãa]o desconhecida/i.test(erro)
+        ? 'O Apps Script publicado ainda não conhece a leitura de novo.\n\nAtualize o código lá em script.google.com com o arquivo apps-script/cartorio-drive-api.js e implante uma nova versão.'
+        : 'A IA não conseguiu ler "'+d.nome+'":\n\n'+erro);
+    }
+  }catch(e){ alert('Erro de conexão com o Drive: '+e.message); }
+  if(btn){btn.disabled=false;btn.innerHTML=antes;}
+};
 window.excluirDocCliente=async function(casoId,docKey,btn){
   const d=(((casos[casoId]||{}).documentos)||{})[docKey];
   if(!d) return;
@@ -11948,7 +11973,8 @@ function pedidoRecebidosHtml(c){
     const lendoAgora=d.lendo&&Date.now()-Number(d.lendo)<10*60*1000;
     const sit=d.tipo==='informacoes'?'dados digitados':(d.provisorio?'<b>aguardando o cliente concluir o envio</b>':(d.texto?'lido':(lendoAgora?'lendo…':'<b>sem leitura</b>')));
     const del=c&&c.id?`<button type="button" class="cx-ped-x" title="Excluir — enviado errado" aria-label="Excluir ${esc(d.nome)}" onclick="excluirDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-trash"></i></button>`:'';
-    return `<li><span class="cx-ped-nome">${nome}</span> <span>${sit}</span>${del}</li>`;
+    const ler=(c&&c.id&&d.tipo!=='informacoes'&&!d.provisorio&&!d.texto)?`<button type="button" class="cx-ped-x" title="Pedir para a IA ler de novo" aria-label="Ler de novo ${esc(d.nome)}" onclick="relerDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-refresh"></i> Ler de novo</button>`:'';
+    return `<li><span class="cx-ped-nome">${nome}</span> <span>${sit}</span>${ler}${del}</li>`;
   }).join('');
   return `<details class="cx-ped-rec"><summary><i class="ti ti-inbox"></i> Recebidos do cliente: ${arquivos.length} ${arquivos.length===1?'arquivo':'arquivos'}${arquivos.length?` (${lidos} lidos${aguardando?`, ${aguardando} aguardando o cliente concluir`:''})`:''}${ficha?' + dados digitados':''}</summary><ul>${linhas}</ul></details>`;
 }

@@ -162,6 +162,20 @@ await passo('cliente-ler só lê o que nasceu do link: chave de outro link, sem 
   const l = m.chamar({acao: 'cliente-ler', t: TOKEN, docKey: r.docKey}); assert.equal(l.ok, true); assert.equal(l.leu, false);
   assert(!m.db.casos['-Caso1'].documentos[r.docKey].lendo, 'IA fora: deixa de dizer "lendo" e o card mostra "sem leitura"');
 });
+await passo('cliente-reler (pedido do painel): lê de novo o que ficou sem leitura, diz o motivo quando falha e só toca no que tem selo', () => {
+  const m = mundo(); semear(m); let ia = 0, falha = true;
+  m.caixa.lerDocumentoComIA = () => { ia++; if (falha) throw new Error('IA fora do ar'); return {texto: 'TIPO_DOCUMENTO: RG\nRG: 99', truncou: false}; };
+  const r = m.chamar({...arq(), lerDepois: true});
+  const f1 = m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: r.docKey});
+  assert.equal(f1.ok, false); assert(/IA fora do ar/.test(f1.erro), 'o motivo vem escrito: ' + f1.erro); assert(!m.db.casos['-Caso1'].documentos[r.docKey].lendo);
+  falha = false;
+  const f2 = m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: r.docKey}); assert.equal(f2.ok, true);
+  assert(/RG: 99/.test(m.db.casos['-Caso1'].documentos[r.docKey].texto), 'o texto entrou');
+  assert.equal(m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: 'nao_existe'}).ok, false);
+  m.db.casos['-Caso1'].documentos.cli_aB3dE6_falso = {nome: 'x', origem: 'link do cliente', link: 'https://drive.google.com/file/d/' + Object.keys(ARQUIVOS)[0] + '/view'};
+  const sem = ia; assert.equal(m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: 'cli_aB3dE6_falso'}).ok, false); assert.equal(ia, sem, 'sem selo a IA nem é chamada');
+  m.db.casos['-Caso1'].documentos.outro = {nome: 'y', origem: 'foto do bot'}; assert.equal(m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: 'outro'}).ok, false, 'só o que veio pelo link');
+});
 await passo('a numeração e o limite vêm de um contador pequeno do pedido (sem ler todos os documentos do caso)', () => {
   const m = mundo(); semear(m);
   m.chamar({...arq(), lerDepois: true}); m.chamar({...arq(), lerDepois: true});

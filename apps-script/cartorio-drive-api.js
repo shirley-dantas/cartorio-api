@@ -1150,6 +1150,7 @@ function doPost(e) {
     if (acao === "cliente-arquivo") return clienteArquivo(dados);
     if (acao === "cliente-dados") return clienteDados(dados);
     if (acao === "cliente-ler") return clienteLer(dados);
+    if (acao === "cliente-reler") return clienteReler(dados);
     if (acao === "cliente-remover") return clienteRemover(dados);
     if (acao === "cliente-excluir") return clienteExcluir(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
@@ -1550,18 +1551,37 @@ function clienteLer(dados) {
   var doc = firebaseLer(caminho);
   if (!doc || doc.origem !== "link do cliente") return resp({ ok: false, erro: "Documento não encontrado." });
   if (doc.texto) return resp({ ok: true, leu: true });
+  var r = lerArquivoDoCliente(caminho, docKey, doc);
+  return resp({ ok: true, leu: r.leu });
+}
+
+// Lê do Drive o arquivo de um registro do card e grava o texto. Devolve {leu, erro}: o erro vai escrito
+// para quem pediu a leitura de novo, em vez de o arquivo ficar "sem leitura" sem ninguém saber por quê.
+function lerArquivoDoCliente(caminho, docKey, doc) {
   firebaseGravar("patch", caminho, { lendo: Date.now() });
-  var id = extrairIdArquivo(doc.link), leu = false;
+  var id = extrairIdArquivo(doc.link), leu = false, erro = "";
   try {
-    if (!id || !doc.selo || doc.selo !== seloDoArquivo(docKey, id)) throw new Error("sem selo");
+    if (!id || !doc.selo || doc.selo !== seloDoArquivo(docKey, id)) throw new Error("O registro não tem o selo do envio pelo link.");
     var blob = DriveApp.getFileById(id).getBlob(), mime = String(blob.getContentType() || "").toLowerCase();
-    if (MIMES_LEITURA_IA.indexOf(mime) !== -1) {
-      var r = lerDocumentoComIA(Utilities.base64Encode(blob.getBytes()), mime, false);
-      if (r && r.texto) { firebaseGravar("patch", caminho, { texto: r.texto, truncado: !!r.truncou, lendo: null }); leu = true; }
-    }
-  } catch (e) { /* fica salvo; o card mostra que não leu */ }
+    if (MIMES_LEITURA_IA.indexOf(mime) === -1) throw new Error("A IA só lê PDF e imagem (JPG, PNG, WEBP, GIF); este arquivo é " + (mime || "de tipo desconhecido") + ".");
+    var r = lerDocumentoComIA(Utilities.base64Encode(blob.getBytes()), mime, false);
+    if (r && r.texto) { firebaseGravar("patch", caminho, { texto: r.texto, truncado: !!r.truncou, lendo: null }); leu = true; }
+    else erro = "A IA não devolveu texto para este arquivo.";
+  } catch (e) { erro = String(e && e.message || e).slice(0, 300); }
   if (!leu) firebaseGravar("patch", caminho, { lendo: null });
-  return resp({ ok: true, leu: leu });
+  return { leu: leu, erro: erro };
+}
+
+// Pedido do painel: "ler de novo" um arquivo que o cliente mandou e ficou sem leitura. O Drive só é
+// tocado quando o selo confere (mesma regra de cliente-excluir): o banco é aberto.
+function clienteReler(dados) {
+  var casoId = String(dados.casoId || ""), docKey = String(dados.docKey || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !/^[A-Za-z0-9_-]{1,120}$/.test(docKey)) return resp({ ok: false, erro: "Documento inválido." });
+  var caminho = "/casos/" + casoId + "/documentos/" + docKey;
+  var doc = firebaseLer(caminho);
+  if (!doc || doc.origem !== "link do cliente") return resp({ ok: false, erro: "Só dá para reler por aqui o que o cliente enviou pelo link." });
+  var r = lerArquivoDoCliente(caminho, docKey, doc);
+  return resp(r.leu ? { ok: true, leu: true } : { ok: false, erro: r.erro || "Não consegui ler." });
 }
 
 // Os dados que o cliente digitou, em texto corrido: é assim que a minuta os lê.

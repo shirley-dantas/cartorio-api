@@ -74,6 +74,7 @@ await passo('o card lista o que o cliente mandou: arquivos com link, lidos e sem
     c: {nome: 'DADOS_INFORMADOS_PELO_CLIENTE', tipo: 'informacoes', origem: 'link do cliente', texto: 't', salvoEm: '2026-10-19T10:02:00Z'}}});
   assert(/2 arquivos \(1 lidos\) \+ dados digitados/.test(h), h);
   assert.equal((h.match(/excluirDocCliente\('-Caso1'/g) || []).length, 3, 'um botão de excluir por item, inclusive os dados digitados');
+  assert.equal((h.match(/relerDocCliente\('-Caso1'/g) || []).length, 1, 'só o arquivo sem leitura ganha "Ler de novo"'); assert(/relerDocCliente\('-Caso1','b'/.test(h));
   assert(/excluirDocCliente\('-Caso1','a'/.test(h) && /excluirDocCliente\('-Caso1','c'/.test(h)); assert(/href="https:\/\/drive\/x"/.test(h) && /sem leitura/.test(h) && /dados digitados<\/span>/.test(h));
 });
 await passo('a faixa Documentos tem o botão da pasta do Drive, só quando o card tem a pasta e o link é https', () => {

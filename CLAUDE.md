@@ -967,6 +967,11 @@ Regras que **não devem ser mexidas sem perguntar**:
   (`cliente-remover`, só enquanto o link está aberto e só com o selo certo). Enquanto o cliente não conclui,
   os arquivos ficam **provisórios** (`provisorio: true`) e o card diz "aguardando o cliente concluir o envio":
   é por ali que se limpa o que sobrar de um link abandonado (o botão de excluir da lista).
+- **Arquivo "sem leitura" tem botão "Ler de novo"** no card (`relerDocCliente()` → ação `cliente-reler` do Apps Script,
+  que lê o arquivo do Drive outra vez, só com o selo certo). Se a IA falha, **o motivo aparece escrito** — antes o item
+  ficava "sem leitura" sem ninguém saber por quê. Word antigo (`.doc`) e outros formatos que a IA não lê são recusados
+  **antes** do envio, com a instrução de salvar como `.docx` ou PDF (iam para a leitura de imagem e voltavam com o erro
+  de `media_type`).
 - **O que o cliente digita é "ainda não conferido".** Quebras de linha e texto
   longo são cortados antes de entrar na minuta, para um recado não forjar um
   documento novo no meio do pedido da IA.
