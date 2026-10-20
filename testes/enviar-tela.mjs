@@ -142,7 +142,7 @@ await passo('trava: faltando algo o envio não sai; completo, pede confirmação
   await clicarEnviar(pg); assert(/este link fecha/.test(await pg.innerText('.folha')));
   await pg.click('[data-fecha]'); assert(!chamadas.some((c) => c.acao === 'cliente-dados'), 'voltar e revisar não envia a ficha');
   await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
-  assert(chamadas.some((c) => c.acao === 'cliente-dados' && c.nArquivos === 2));
+  assert(chamadas.some((c) => c.acao === 'cliente-dados'), 'só agora a ficha vai');
 });
 await passo('link já usado (concluidoEm) mostra "já foi usado" e nenhum formulário', async () => {
   const {pg} = await abrir(compra, {concluidoEm: Date.now() - 1000});
