@@ -294,6 +294,37 @@ await passo('o ato de imóveis distintos soma cada escritura na SUA faixa, não 
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
 
+// O caso que ela trouxe em 20/10/2026, de outro sistema de cálculo: um
+// imóvel de R$ 369.576,00 (aqui, cinco imóveis que somam o mesmo valor).
+// Nua-propriedade de R$ 246.384,00 (2/3) pelo valor cheio, usufruto de
+// R$ 123.192,00 (1/3) pelo 1/4 da tabela — 75% de desconto, não os 40% do
+// ato secundário comum.
+await passo('a doação com usufruto soma os imóveis doados, e o usufruto paga 1/4 da tabela', async () => {
+  await pg.evaluate(() => orcTrocarAto('doacao-usufruto'));
+  await pg.waitForSelector('#modal-orcamento-caso.open');
+  await pg.evaluate(() => {
+    orcMudarItem('imoveisDoacao', 0, 'rotulo', 'Imóvel 1');
+    orcMudarItem('imoveisDoacao', 0, 'valor', '73.915,20');
+    for(let i = 1; i < 5; i++){
+      orcMaisItem('imoveisDoacao');
+      orcMudarItem('imoveisDoacao', i, 'rotulo', 'Imóvel ' + (i + 1));
+      orcMudarItem('imoveisDoacao', i, 'valor', '73.915,20');
+    }
+  });
+  await pg.waitForFunction(() => /369\.576,00/.test(
+    document.getElementById('orc-soma-imoveisDoacao').textContent));
+  await abrirMemoria(pg);
+  const mem = await pg.textContent('.orc-memoria');
+  if(!/246\.384,00/.test(mem)) throw new Error('a nua-propriedade não bateu com os 2/3 do caso dela: ' + mem.slice(0, 500));
+  if(!/123\.192,00/.test(mem)) throw new Error('o usufruto não bateu com o 1/3 do caso dela: ' + mem.slice(0, 500));
+  if(!/75%/.test(mem)) throw new Error('não mostrou os 75% de desconto do usufruto (1/4 da tabela): ' + mem.slice(0, 500));
+  // Volta a lista a um item só — senão o próximo teste que reusa este campo
+  // (BASE CONSIDERADA, mais abaixo) herda os quatro extras e soma errado.
+  await pg.evaluate(() => { for(let i = 4; i >= 1; i--) orcTirarItem('imoveisDoacao', i); });
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
 await passo('o inventário também soma os imóveis dele', async () => {
   await pg.evaluate(() => orcTrocarAto('inventario'));
   await pg.evaluate(() => {
@@ -541,7 +572,9 @@ await passo('a BASE CONSIDERADA é o valor que ela digitou, não a base da tabel
   // O caso dela: doação com reserva de usufruto de R$ 500.000,00. A tabela
   // cobra 2/3 e 1/3, e a folha mostrava R$ 333.333,33.
   await pg.evaluate(() => orcVoltarDoCliente());
-  await pg.evaluate(() => { orcTrocarAto('doacao-usufruto'); orcMudarValor('doacao', '500.000,00'); });
+  await pg.evaluate(() => { orcTrocarAto('doacao-usufruto');
+    orcMudarItem('imoveisDoacao', 0, 'rotulo', 'Imóvel');
+    orcMudarItem('imoveisDoacao', 0, 'valor', '500.000,00'); });
   await pg.evaluate(() => orcAlternarCliente());
   await pg.waitForSelector('.orc-cli-base');
   const base = await pg.textContent('.orc-cli-base');

@@ -167,14 +167,47 @@ ok('a parte do tabelião também leva os 40%',
    af.escrituras[1].tabeliao === Math.round(faixaAf.tabeliao * 0.6));
 
 console.log('\n— Doação com reserva de usufruto: 2/3 e 1/3 —');
-const du = orcCalcular({atoId: 'doacao-usufruto', valores: {doacao: 100000001},
+const du = orcCalcular({atoId: 'doacao-usufruto',
+  valores: {imoveisDoacao: [{rotulo: 'Imóvel', valor: 100000001}]},
   flags: {}, despesas: {taxaAdicional: false}});
 ok('as duas partes somam exatamente o valor doado',
    du.escrituras[0].base + du.escrituras[1].base === 100000001,
    [du.escrituras[0].base, du.escrituras[1].base]);
-ok('o 1/3 leva os 40%', du.escrituras[1].reducao === 40);
+// O usufruto paga 1/4 da tabela (75% de desconto) — não os 40% do ato
+// secundário comum. Confirmado por ela em 20/10/2026 contra outro sistema.
+ok('o 1/3 (usufruto) leva 75% de desconto — paga 1/4 da tabela, não os 40% do ato secundário comum',
+   du.escrituras[1].reducao === 75);
+ok('a nua-propriedade (2/3) sai pelo valor cheio, sem desconto', !du.escrituras[0].reducao);
+ok('o registro NÃO leva o desconto do usufruto — as duas partes pelo valor cheio',
+   !du.registros[0].reducao && !du.registros[1].reducao);
 ok('o ITCMD é sobre o valor global, não sobre os 2/3', du.tributos[0].base === 100000001);
 ok('ITCMD de 4%', du.tributos[0].aliquota === 4);
+
+// O caso que ela trouxe em 20/10/2026, de outro sistema de cálculo: um
+// imóvel de R$ 369.576,00, nua-propriedade de R$ 246.384,00 (2/3) pelo valor
+// cheio e usufruto de R$ 123.192,00 (1/3) pelo 1/4 da tabela.
+const casoUsufruto = orcCalcular({atoId: 'doacao-usufruto',
+  valores: {imoveisDoacao: [{rotulo: 'Imóvel', valor: 36957600}]},
+  flags: {}, despesas: {taxaAdicional: false}});
+ok('a nua-propriedade bate com os R$ 246.384,00 do caso dela',
+   casoUsufruto.escrituras[0].base === 24638400, casoUsufruto.escrituras[0].base);
+ok('o usufruto bate com os R$ 123.192,00 do caso dela',
+   casoUsufruto.escrituras[1].base === 12319200, casoUsufruto.escrituras[1].base);
+ok('o registro do usufruto é pelo valor cheio da faixa (com matrícula), sem o desconto da escritura',
+   casoUsufruto.registros[1].valor === orcFaixa(ORC_TABELA_REGISTRO.faixas, 12319200).comMatricula,
+   casoUsufruto.registros[1].valor);
+
+console.log('\n— Doação com vários imóveis, soma vira a base (regra 20/10/2026) —');
+const doacaoLista = orcCalcular({atoId: 'doacao-usufruto',
+  valores: {imoveisDoacao: [
+    {rotulo: 'Lote 1', valor: 20000000}, {rotulo: 'Lote 2', valor: 15000000},
+    {rotulo: 'Lote 3', valor: 10000000}, {rotulo: 'Lote 4', valor: 3000000},
+    {rotulo: 'Lote 5', valor: 2000000}]},
+  flags: {}, despesas: {taxaAdicional: false}});
+ok('os cinco imóveis somam R$ 500.000,00, que é a base da doação',
+   orcBasePrincipal(doacaoLista) === 50000000, orcBasePrincipal(doacaoLista));
+ok('e a base ainda se divide em 2/3 e 1/3 sobre a soma',
+   doacaoLista.escrituras[0].base + doacaoLista.escrituras[1].base === 50000000);
 
 console.log('\n— Vagas individualizadas: cada uma na sua faixa —');
 const vg = orcCalcular({atoId: 'compra-venda-vagas',
@@ -593,14 +626,16 @@ console.log('\n— A BASE CONSIDERADA é o valor do negócio, não a base da tab
 // "BASE CONSIDERADA R$ 333.333,33". A cliente doou meio milhão.
 const usu = orcCalcular({atoId: 'doacao-usufruto', data: '2026-08-28',
   praticadoEm: 'São Paulo', imovelMunicipio: 'São Paulo', imovelUf: 'SP',
-  valores: {doacao: 50000000}, flags: {}, despesas: {taxaAdicional: false}});
+  valores: {imoveisDoacao: [{rotulo: 'Imóvel', valor: 50000000}]},
+  flags: {}, despesas: {taxaAdicional: false}});
 ok('a folha mostra os R$ 500.000,00 que ela digitou',
    R(orcBasePrincipal(usu)) === '500000.00', R(orcBasePrincipal(usu)));
 ok('e não os dois terços da primeira linha da tabela',
    usu.escrituras[0].base === 33333333, usu.escrituras[0].base);
-// A conta em si não mudou: é só o que a folha mostra.
-ok('a escritura continua saindo sobre 2/3 e 1/3', R(usu.totais.escritura) === '6713.94',
-   R(usu.totais.escritura));
+// A conta em si não mudou (ela foi corrigida em 20/10/2026, mas continua uma
+// conta só): é só o que a folha mostra.
+ok('a escritura continua saindo sobre 2/3 e 1/3',
+   usu.escrituras[0].base + usu.escrituras[1].base === 50000000);
 ok('e o ITCMD sobre o valor global', R(usu.tributos[0].valor) === '20000.00');
 
 // Em nenhum dos vinte atos a base mostrada pode ser um número que ela não
@@ -609,7 +644,9 @@ const V = {transacao: 50000000, garantia: 30000000, saldoDevedor: 20000000,
   novacao: 15000000, confissao: 12000000, doacao: 45000000, monte: 60000000,
   meacao: 35000000, excedente: 10000000, totalPartilha: 55000000,
   unidades: [{rotulo: 'Apto', valor: 40000000}, {rotulo: 'Vaga', valor: 10000000}],
-  imoveis: [{rotulo: 'Casa', valor: 60000000}]};
+  imoveis: [{rotulo: 'Casa', valor: 60000000}],
+  imoveisDistintos: [{rotulo: 'Lote 1', valor: 20000000}, {rotulo: 'Lote 2', valor: 15000000}],
+  imoveisDoacao: [{rotulo: 'Imóvel', valor: 45000000}]};
 const desencontrados = ORC_ATOS.map(a => {
   const r = orcCalcular({atoId: a.id, data: '2026-08-28', praticadoEm: 'São Paulo',
     imovelMunicipio: 'São Paulo', imovelUf: 'SP', valores: V, flags: {}, despesas: {taxaAdicional: false}});
@@ -780,7 +817,9 @@ const amostra = {transacao: 30186716, garantia: 20000000, saldoDevedor: 15000000
   novacao: 8000000, confissao: 6000000, doacao: 100000001, monte: 77777777,
   meacao: 38888888, excedente: 9999999, totalPartilha: 55555555,
   unidades: [{rotulo: 'Apto', valor: 30186716}, {rotulo: 'Vaga', valor: 4999999}],
-  imoveis: [{rotulo: 'Casa', valor: 33333333}, {rotulo: 'Sítio', valor: 11111111}]};
+  imoveis: [{rotulo: 'Casa', valor: 33333333}, {rotulo: 'Sítio', valor: 11111111}],
+  imoveisDistintos: [{rotulo: 'Lote 1', valor: 20000000}, {rotulo: 'Lote 2', valor: 15000000}],
+  imoveisDoacao: [{rotulo: 'Imóvel', valor: 100000001}]};
 const quebrados = [];
 ORC_ATOS.forEach(a => {
   const r = orcCalcular({atoId: a.id, valores: amostra,

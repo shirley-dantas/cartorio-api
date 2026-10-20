@@ -10213,6 +10213,20 @@ const ORC_AVISO_DESCONTO = {
        + 'A nota explicativa da tabela que a fundamenta não veio no arquivo entregue — conferir antes de usar numa cobrança formal.'
 };
 
+// O usufruto da doação com reserva não leva os 40% do ato secundário comum —
+// paga só 1/4 da tabela (75% de desconto). Ela trouxe a regra de outro
+// sistema de cálculo em 20/10/2026, com um caso conferido (nua-propriedade de
+// R$ 246.384,00 pelo valor cheio, usufruto de R$ 123.192,00 pelo 1/4). A nota
+// explicativa 13 da tabela de Notas de São Paulo que fundamentaria isso não
+// foi lida — por isso 🔵 operacional, não 🟢 confirmada.
+const ORC_DESCONTO_USUFRUTO = 75;
+const ORC_AVISO_DESCONTO_USUFRUTO = {
+  confianca: 'operacional',
+  texto: 'O usufruto paga 1/4 da tabela (75% de desconto) — regra conferida pela Shirley em 20/10/2026 contra outro '
+       + 'sistema de cálculo, não os 40% do ato secundário comum. A nota explicativa da tabela de Notas que a '
+       + 'fundamentaria não veio no arquivo entregue — conferir antes de usar numa cobrança formal.'
+};
+
 const ORC_ATOS = [
   {
     id: 'compra-venda',
@@ -10376,12 +10390,21 @@ const ORC_ATOS = [
     id: 'doacao-usufruto',
     nome: 'Doação com reserva de usufruto',
     grupo: 'Doação',
-    campos: ['doacao'],
+    campos: ['imoveisDoacao'],
     // Dois terços e um terço: a nua-propriedade doada e o usufruto reservado.
     // O ITCMD, esse, é sobre o valor global — não sobre os dois terços.
-    comoElaEscreveu: '1 ato sobre dois terços do valor da doação, 1 ato sobre um terço com 40% de desconto, 1 registro sobre os dois terços, 1 registro sobre o um terço, 1 ITCMD do valor global de 4%.',
+    //
+    // O usufruto NÃO leva os 40% do ato secundário comum — paga 1/4 da
+    // tabela (75% de desconto). Confirmado por ela em 20/10/2026, com um
+    // caso conferido contra outro sistema de cálculo: nua-propriedade de
+    // R$ 246.384,00 pelo valor cheio, usufruto de R$ 123.192,00 pelo 1/4. O
+    // registro, dos dois lados, é sempre pelo valor cheio — sem desconto.
+    comoElaEscreveu: '1 ato sobre dois terços do valor da doação (pelo valor cheio), 1 ato sobre um terço (1/4 da '
+                    + 'tabela — 75% de desconto), 1 registro sobre os dois terços e 1 sobre o um terço, os dois '
+                    + 'pelo valor cheio, 1 ITCMD do valor global de 4%.',
     montar(e){
-      const v = Math.round(e.doacao);
+      const lista = (e.imoveisDoacao || []).filter(u => u && u.valor > 0);
+      const v = lista.reduce((s, u) => s + u.valor, 0);
       // Dois terços arredondado, e o um terço é o resto: assim as duas partes
       // somam exatamente o valor doado, sem um centavo aparecendo do nada.
       const doisTercos = Math.round(v * 2 / 3);
@@ -10389,11 +10412,11 @@ const ORC_ATOS = [
       return {
         escrituras: [
           orcLinhaEscritura(doisTercos, {rot: 'Doação da nua-propriedade — 2/3 do valor'}),
-          orcLinhaEscritura(umTerco, {rot: 'Reserva de usufruto — 1/3 do valor',
-            reducao: ORC_DESCONTO_ATO_SECUNDARIO, avisos: [ORC_AVISO_DESCONTO]})
+          orcLinhaEscritura(umTerco, {rot: 'Reserva de usufruto — 1/3 do valor (1/4 da tabela)',
+            reducao: ORC_DESCONTO_USUFRUTO, avisos: [ORC_AVISO_DESCONTO_USUFRUTO]})
         ],
         registros: [
-          orcLinhaRegistro(doisTercos, {rot: 'Registro da doação — 2/3'}),
+          orcLinhaRegistro(doisTercos, {rot: 'Registro da nua-propriedade — 2/3'}),
           orcLinhaRegistro(umTerco,    {rot: 'Registro do usufruto — 1/3'})
         ],
         tributos: [orcLinhaTributo('itcmd', v, {rot: 'ITCMD sobre o valor global'})]
@@ -10740,6 +10763,8 @@ const ORC_CAMPOS = {
   novacao:       {rot: 'Valor da novação',            pergunta: 'Qual o valor da novação?'},
   confissao:     {rot: 'Valor da confissão de dívida',pergunta: 'Qual o valor da confissão de dívida?'},
   doacao:        {rot: 'Valor da doação',             pergunta: 'Qual o valor da doação?'},
+  imoveisDoacao: {rot: 'Imóveis doados',               lista: true,
+                  pergunta: 'Quais os valores de cada imóvel doado? A soma vira a base da doação, dividida em 2/3 e 1/3.'},
   monte:         {rot: 'Valor do monte',              pergunta: 'Qual o valor do monte?'},
   meacao:        {rot: 'Valor da meação',             pergunta: 'Qual o valor da meação?'},
   excedente:     {rot: 'Quinhão excedente',           pergunta: 'Qual o valor do quinhão excedente?'},
