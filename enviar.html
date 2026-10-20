@@ -589,7 +589,8 @@ raiz.addEventListener('change',e=>{
   if(t.dataset.b!==undefined){
     const p=E.pessoas[t.dataset.b][+t.dataset.i], f=t.dataset.f;
     if(t.dataset.uniao!==undefined){ p.uniao=t.checked; desenharTudo(); return; }
-    if(t.dataset.c){ p.conj[t.dataset.c]=t.type==='checkbox'?t.checked:t.value; desenharTudo(); return; }
+    // Só o "mora no mesmo endereço" muda o desenho; texto do cônjuge não refaz a página (refazer ao sair do campo roubava o toque no campo seguinte).
+    if(t.dataset.c){ p.conj[t.dataset.c]=t.type==='checkbox'?t.checked:t.value; if(t.type==='checkbox') desenharTudo(); else resumo(); return; }
     if(f==='ec'||f==='regime'){ p[f]=t.value; desenharTudo(); return; }
     if(f==='uf') p.uf=t.value;
   }
