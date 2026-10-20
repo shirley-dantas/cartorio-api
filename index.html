@@ -10391,17 +10391,24 @@ const ORC_ATOS = [
     nome: 'Doação com reserva de usufruto',
     grupo: 'Doação',
     campos: ['imoveisDoacao'],
-    // Dois terços e um terço: a nua-propriedade doada e o usufruto reservado.
-    // O ITCMD, esse, é sobre o valor global — não sobre os dois terços.
+    // A ESCRITURA é uma só, sobre a soma de todos os imóveis doados: dois
+    // terços e um terço, a nua-propriedade e o usufruto reservado. O ITCMD,
+    // esse, é sobre o valor global — não sobre os dois terços.
     //
     // O usufruto NÃO leva os 40% do ato secundário comum — paga 1/4 da
     // tabela (75% de desconto). Confirmado por ela em 20/10/2026, com um
     // caso conferido contra outro sistema de cálculo: nua-propriedade de
-    // R$ 246.384,00 pelo valor cheio, usufruto de R$ 123.192,00 pelo 1/4. O
-    // registro, dos dois lados, é sempre pelo valor cheio — sem desconto.
-    comoElaEscreveu: '1 ato sobre dois terços do valor da doação (pelo valor cheio), 1 ato sobre um terço (1/4 da '
-                    + 'tabela — 75% de desconto), 1 registro sobre os dois terços e 1 sobre o um terço, os dois '
-                    + 'pelo valor cheio, 1 ITCMD do valor global de 4%.',
+    // R$ 246.384,00 pelo valor cheio, usufruto de R$ 123.192,00 pelo 1/4.
+    //
+    // O REGISTRO é outra conta — cada imóvel é a sua própria matrícula
+    // (regra 29/09/2026: "cada matrícula é um imóvel, e imóvel se conta"),
+    // então ganha o SEU par de registros, sobre os 2/3 e o 1/3 DAQUELE
+    // imóvel, cada um na sua faixa — nunca sobre a soma. Confirmado por ela
+    // em 20/10/2026. O registro, dos dois lados, é sempre pelo valor cheio —
+    // sem o desconto do usufruto, que só vale para a escritura.
+    comoElaEscreveu: '1 ato sobre dois terços da soma de todos os imóveis (pelo valor cheio), 1 ato sobre um terço '
+                    + '(1/4 da tabela — 75% de desconto), 1 ITCMD do valor global de 4%. No registro, cada imóvel '
+                    + 'tem o seu par — 1 registro sobre os 2/3 dele e 1 sobre o 1/3, os dois pelo valor cheio.',
     montar(e){
       const lista = (e.imoveisDoacao || []).filter(u => u && u.valor > 0);
       const v = lista.reduce((s, u) => s + u.valor, 0);
@@ -10409,16 +10416,24 @@ const ORC_ATOS = [
       // somam exatamente o valor doado, sem um centavo aparecendo do nada.
       const doisTercos = Math.round(v * 2 / 3);
       const umTerco = v - doisTercos;
+      // O registro repete a mesma divisão 2/3 + 1/3, mas IMÓVEL POR IMÓVEL —
+      // cada matrícula é registrada à parte, nunca a soma de todas.
+      const registros = lista.flatMap(u => {
+        const seuDoisTercos = Math.round(u.valor * 2 / 3);
+        const seuUmTerco = u.valor - seuDoisTercos;
+        const nome = u.rotulo || 'imóvel';
+        return [
+          orcLinhaRegistro(seuDoisTercos, {rot: `Registro da nua-propriedade — ${nome} (2/3)`}),
+          orcLinhaRegistro(seuUmTerco,    {rot: `Registro do usufruto — ${nome} (1/3)`})
+        ];
+      });
       return {
         escrituras: [
           orcLinhaEscritura(doisTercos, {rot: 'Doação da nua-propriedade — 2/3 do valor'}),
           orcLinhaEscritura(umTerco, {rot: 'Reserva de usufruto — 1/3 do valor (1/4 da tabela)',
             reducao: ORC_DESCONTO_USUFRUTO, avisos: [ORC_AVISO_DESCONTO_USUFRUTO]})
         ],
-        registros: [
-          orcLinhaRegistro(doisTercos, {rot: 'Registro da nua-propriedade — 2/3'}),
-          orcLinhaRegistro(umTerco,    {rot: 'Registro do usufruto — 1/3'})
-        ],
+        registros,
         tributos: [orcLinhaTributo('itcmd', v, {rot: 'ITCMD sobre o valor global'})]
       };
     }

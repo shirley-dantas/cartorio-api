@@ -443,8 +443,16 @@ procuração, ata e escritura declaratória.
   propriedade de R$ 246.384,00 pelo valor cheio, usufruto de R$ 123.192,00
   pelo 1/4 (`ORC_DESCONTO_USUFRUTO = 75`, `ORC_AVISO_DESCONTO_USUFRUTO`). A
   base de cálculo também virou **lista** (`imoveisDoacao`) — ela pode lançar
-  vários imóveis doados juntos, e a soma deles vira a base que se divide em
-  2/3 e 1/3, do mesmo jeito que as outras listas de imóveis do painel.
+  vários imóveis doados juntos.
+  **A ESCRITURA e o REGISTRO não somam do mesmo jeito.** A escritura é uma
+  só, sobre a SOMA de todos os imóveis doados (2/3 e 1/3 da soma) — é um
+  negócio jurídico, como no ato das vagas. O registro, não: cada imóvel é a
+  sua própria matrícula (a mesma regra 29/09/2026, "cada matrícula é um
+  imóvel"), então ganha o SEU par de registros — 1 sobre os 2/3 DAQUELE
+  imóvel, 1 sobre o 1/3 DAQUELE imóvel, cada um na sua faixa. Cinco imóveis
+  dão dez linhas de registro, nunca duas sobre a soma. Confirmado por ela em
+  20/10/2026, depois do susto dos imóveis distintos: a tabela é regressiva,
+  então registrar pela soma daria um número diferente do certo.
 - **Onde há um total digitado, a lista de imóveis pode virar ele.** No divórcio
   com partilha e no inventário, a escritura sai de um total à parte enquanto os
   imóveis alimentam os registros. Somar três imóveis à mão para redigitar o

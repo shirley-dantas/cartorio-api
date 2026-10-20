@@ -318,6 +318,13 @@ await passo('a doação com usufruto soma os imóveis doados, e o usufruto paga 
   if(!/246\.384,00/.test(mem)) throw new Error('a nua-propriedade não bateu com os 2/3 do caso dela: ' + mem.slice(0, 500));
   if(!/123\.192,00/.test(mem)) throw new Error('o usufruto não bateu com o 1/3 do caso dela: ' + mem.slice(0, 500));
   if(!/75%/.test(mem)) throw new Error('não mostrou os 75% de desconto do usufruto (1/4 da tabela): ' + mem.slice(0, 500));
+  // O registro é outra conta — cada imóvel é a sua própria matrícula, e
+  // ganha o seu par (nua-propriedade + usufruto). Cinco imóveis, dez linhas.
+  const nuaNoRegistro = (mem.match(/Registro da nua-propriedade/g) || []).length;
+  const usufrutoNoRegistro = (mem.match(/Registro do usufruto/g) || []).length;
+  if(nuaNoRegistro !== 5 || usufrutoNoRegistro !== 5)
+    throw new Error(`esperava 5 registros de nua-propriedade e 5 de usufruto (um par por imóvel), `
+      + `veio ${nuaNoRegistro} e ${usufrutoNoRegistro}`);
   // Volta a lista a um item só — senão o próximo teste que reusa este campo
   // (BASE CONSIDERADA, mais abaixo) herda os quatro extras e soma errado.
   await pg.evaluate(() => { for(let i = 4; i >= 1; i--) orcTirarItem('imoveisDoacao', i); });

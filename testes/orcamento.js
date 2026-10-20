@@ -206,8 +206,16 @@ const doacaoLista = orcCalcular({atoId: 'doacao-usufruto',
   flags: {}, despesas: {taxaAdicional: false}});
 ok('os cinco imóveis somam R$ 500.000,00, que é a base da doação',
    orcBasePrincipal(doacaoLista) === 50000000, orcBasePrincipal(doacaoLista));
-ok('e a base ainda se divide em 2/3 e 1/3 sobre a soma',
+ok('e a ESCRITURA se divide em 2/3 e 1/3 sobre a soma — ela é uma só',
    doacaoLista.escrituras[0].base + doacaoLista.escrituras[1].base === 50000000);
+// O REGISTRO é outra conta — cada imóvel é a sua própria matrícula (regra
+// 29/09/2026), então ganha o SEU par de registros (2/3 + 1/3), nunca a soma
+// de todos. Confirmado por ela em 20/10/2026.
+ok('cinco imóveis dão dez registros — um par (nua-propriedade + usufruto) por imóvel',
+   doacaoLista.registros.length === 10, doacaoLista.registros.length);
+ok('o par de cada imóvel soma o valor DAQUELE imóvel, não a soma dos cinco',
+   [20000000, 15000000, 10000000, 3000000, 2000000].every((valor, i) =>
+     doacaoLista.registros[2 * i].base + doacaoLista.registros[2 * i + 1].base === valor));
 
 console.log('\n— Vagas individualizadas: cada uma na sua faixa —');
 const vg = orcCalcular({atoId: 'compra-venda-vagas',
