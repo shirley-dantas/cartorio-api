@@ -162,3 +162,7 @@ Esses cinco serviços têm **dois donos** (`donosDoServico()`: Tháriga e Ana): 
 ## Agenda: buscar cliente e vários procedimentos (20/10/2026, rascunho, ainda não publicado)
 
 Pedido da Tháriga (vindo de uma cliente que usava o Amore): no *Novo agendamento* há **busca da cliente** (campo "Digite o nome ou o telefone", sem diferença de acento ou maiúscula, em vez de rolar a lista inteira) e **"+ Adicionar outro procedimento para esta cliente"**: cada um vira um horário seguido do anterior (hora editável, profissional que faz aquele serviço), na mesma data e unidade. A mensagem de confirmação lista todos os procedimentos. A foto do atendimento pela equipe já existia (*Foto inicial* / *Foto de acompanhamento* na ficha da cliente e no registro do atendimento), mas só para quem **autorizou fotos na anamnese**: essa trava é regra da ficha e não foi afrouxada.
+
+## Horários livres: imagem por dia (21/10/2026, rascunho, ainda não publicado)
+
+Cada dia da aba *Horários livres* que tem horário vago ganhou o botão **Imagem deste dia** (`data-lvdia`): abre a mensagem e **já desenha a imagem só daquele dia** (`livresGrupos(dia)`, `livresTexto(grupos,dia)`, `livresImagem(grupos,dia)`), com os horários de todas as profissionais que atendem nele (respeitando o filtro de profissional e o serviço escolhido). O botão de cima continua mandando vários dias de uma vez.
