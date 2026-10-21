@@ -1314,7 +1314,7 @@ function ficha(id){const c=cli(id),an=anamDe(id);
   ${an&&an.assinatura?`<img alt="Assinatura" src="${esc(an.assinatura)}" style="max-width:220px;border:1px solid var(--line);border-radius:8px;background:#fff">`:''}
   <div style="margin-top:8px"><button class="btn" id="anb">${an?'Atualizar anamnese':'Preencher anamnese'}</button> <button class="btn" id="anl">Enviar anamnese por link</button></div>
   <h3 style="margin-top:20px">Fotos</h3><div id="fotos-box" class="small muted">Carregando…</div><div id="fotos-box-v"></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" id="fadd-i">Foto inicial</button><button class="btn sm" id="fadd-a">Foto de acompanhamento</button></div>
+  ${fotoBarraHtml('fadd')}
   <h3 style="margin-top:20px">Últimos atendimentos</h3>
   ${h.map(x=>`<div class="row small" style="flex-wrap:wrap;${x.cancelado?'opacity:.55':''}"><span>${fd(x.date)}</span><div class="grow" style="min-width:190px">${esc(sv(x.serv,x.unit).n)}<span class="muted"> com ${esc(PEOPLE[x.pro]?.n)}</span>${isAdmin()&&x.valor!=null?`<div class="muted">${brl(x.valor)} · ${esc(x.pag||'')}</div>`:''}</div>${x.cancelado?'<span class="tag warn">Cancelado</span>':regDe(x.id,x._p)?'<span class="tag ok">Registro</span>':'<span class="tag warn">Sem registro</span>'}${isAdmin()?uTag(x.unit):''}${x.cancelado?'':`<button class="btn sm" data-reg="${x.id}" data-p="${x._p}">${regDe(x.id,x._p)?'Ver registro':'Preencher registro'}</button>`}${isAdmin()&&!x.cancelado?`<button class="btn sm" data-corr="${x.id}" data-p="${x._p}">Corrigir</button><button class="btn sm" data-canc="${x.id}" data-p="${x._p}">Cancelar</button>`:''}</div>`).join('')||'<p class="muted small">Sem atendimentos registrados.</p>'}`);
   document.getElementById('anb').onclick=()=>anamnese(id);
@@ -1322,17 +1322,22 @@ function ficha(id){const c=cli(id),an=anamDe(id);
   document.getElementById('fed').onclick=()=>editarCliente(id);
   const fx=document.getElementById('fex');if(fx)fx.onclick=()=>excluirCliente(id);
   carregarFotos(id,'fotos-box',null);
-  document.getElementById('fadd-i').onclick=()=>escolherFoto(id,'inicial',null,()=>carregarFotos(id,'fotos-box',null));
-  document.getElementById('fadd-a').onclick=()=>escolherFoto(id,'acompanhamento',null,()=>carregarFotos(id,'fotos-box',null));
+  ligarFotoBarra('fadd',id,null,()=>carregarFotos(id,'fotos-box',null));
   dlg.querySelectorAll('[data-reg]').forEach(b=>b.onclick=()=>abrirRegistro(b.dataset.reg,b.dataset.p,()=>ficha(id)));
   dlg.querySelectorAll('[data-corr]').forEach(b=>b.onclick=()=>corrigirAtend(b.dataset.corr,b.dataset.p,id));
   dlg.querySelectorAll('[data-canc]').forEach(b=>b.onclick=()=>cancelarAtend(b.dataset.canc,b.dataset.p,id))}
 // ── Fotos: reduzidas no aparelho e guardadas no próprio banco ──
 // Ficam em /{unidade}/fotos/{cliente}/{foto}. Só se envia foto de quem autorizou na anamnese.
-function podeFoto(cid){const an=anamDe(cid);
-  if(!an)return 'Preencha a anamnese antes de tirar fotos.';
-  if(an.fotoOk!==true)return 'Esta cliente não autorizou fotos na anamnese.';
-  return null}
+// A equipe pode fotografar a cliente (na hora ou do aparelho) mesmo sem a autorização da ficha: é registro interno. Divulgação continua exigindo autorização.
+function podeFoto(cid){return null}
+const fotoBarraHtml=pf=>`<div class="box" style="padding:12px;margin-top:8px"><b>Foto da cliente</b>
+  <p class="small muted" style="margin:4px 0 10px">A equipe pode tirar a foto agora ou subir uma do aparelho, mesmo que a cliente não tenha autorizado fotos na ficha. Fica só no registro interno, nunca para divulgar.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="${pf}-t" style="padding:8px;border-radius:10px;border:1px solid var(--line)"><option value="inicial">Foto inicial</option><option value="acompanhamento">Foto de acompanhamento</option></select>
+  <button class="btn sm p" id="${pf}-c" type="button">📷 Tirar foto agora</button><button class="btn sm" id="${pf}-g" type="button">🖼 Escolher do aparelho</button></div></div>`;
+function ligarFotoBarra(pf,cid,atendId,depois){
+  const tipo=()=>document.getElementById(pf+'-t').value;
+  document.getElementById(pf+'-c').onclick=()=>escolherFoto(cid,tipo(),atendId,depois,'camera');
+  document.getElementById(pf+'-g').onclick=()=>escolherFoto(cid,tipo(),atendId,depois,'galeria')}
 function reduzirFoto(file){return new Promise((res,rej)=>{
   const url=URL.createObjectURL(file),im=new Image();
   im.onload=()=>{URL.revokeObjectURL(url);const r=Math.min(1,1280/Math.max(im.width,im.height));
@@ -1340,8 +1345,8 @@ function reduzirFoto(file){return new Promise((res,rej)=>{
     cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
     for(const q of [.72,.6,.5,.4]){const d=cv.toDataURL('image/jpeg',q);if(d.length<=600000||q===.4)return res(d)}};
   im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('Não foi possível ler essa imagem.'))};im.src=url})}
-function escolherFoto(cid,tipo,atendId,depois){const msg=podeFoto(cid);if(msg){toast(msg);return}
-  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+function escolherFoto(cid,tipo,atendId,depois,fonte){const msg=podeFoto(cid);if(msg){toast(msg);return}
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';if(fonte==='camera')inp.setAttribute('capture','environment');
   inp.onchange=async()=>{const f=inp.files[0];if(!f)return;toast('Enviando a foto…');
     try{const img=await reduzirFoto(f),c=cli(cid),base=c._p==='florenca'?'florenca':'maison';
       const reg={tipo,data:iso(TODAY),img,por:S.user.nome};if(atendId)reg.atend=atendId;
@@ -1392,8 +1397,8 @@ function abrirRegistro(aid,p,voltar){const h=histAll(true).find(x=>x.id===aid&&x
   </div>
   <div class="sec">Fotos do atendimento</div>
   <div id="rg-fotos" class="small muted">Carregando…</div><div id="rg-fotos-v"></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" id="rg-fi">Foto inicial</button><button class="btn sm" id="rg-fa">Foto de acompanhamento</button></div>
-  <p class="small muted">${an.fotoOk===true?'A cliente autorizou fotos para registro. Isso não autoriza divulgação em redes sociais ou publicidade.':an.fotoOk===false?'A cliente NÃO autorizou fotos.':'Anamnese ainda não preenchida: sem autorização de foto registrada.'}</p>
+  ${fotoBarraHtml('rg-f')}
+  <p class="small muted">${an.fotoOk===true?'A cliente autorizou fotos para registro. Isso não autoriza divulgação em redes sociais ou publicidade.':'A cliente não autorizou fotos na ficha: a foto fica só no registro interno e nunca serve para divulgação.'}</p>
   <div class="sec">Observações finais do profissional</div>
   <label class="f"><textarea rows="3" id="rg-ob">${esc(old.obsFinais||'')}</textarea></label>
   <p class="small muted">${old.por?`Registro de ${esc(old.por)} em ${fd(old.em,{day:'2-digit',month:'2-digit',year:'numeric'})}${old.atualizadoPor&&old.atualizadoPor!==old.por?`, atualizado por ${esc(old.atualizadoPor)}`:''}.`:`Será registrado em nome de ${esc(S.user.nome)}, hoje.`}</p>
@@ -1401,8 +1406,7 @@ function abrirRegistro(aid,p,voltar){const h=histAll(true).find(x=>x.id===aid&&x
   const fb=document.getElementById('rg-fbox');
   document.getElementById('rg-f').onchange=e=>{fb.hidden=!e.target.checked};
   carregarFotos(h.cli,'rg-fotos',aid);
-  document.getElementById('rg-fi').onclick=()=>escolherFoto(h.cli,'inicial',aid,()=>carregarFotos(h.cli,'rg-fotos',aid));
-  document.getElementById('rg-fa').onclick=()=>escolherFoto(h.cli,'acompanhamento',aid,()=>carregarFotos(h.cli,'rg-fotos',aid));
+  ligarFotoBarra('rg-f',h.cli,aid,()=>carregarFotos(h.cli,'rg-fotos',aid));
   document.getElementById('rg-v').onclick=()=>voltar?voltar():closeDlg();
   document.getElementById('rg-save').onclick=async()=>{
     const v=i=>document.getElementById(i).value.trim();
