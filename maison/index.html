@@ -909,7 +909,8 @@ function vLivres(){
     if(!x.vis)return `<div class="box lv-dia">${cab}<p class="small muted" style="margin:8px 0 0">Sem atendimento na sua unidade neste dia.</p></div>`;
     if(x.naoOferece)return `<div class="box lv-dia">${cab}<p class="small muted" style="margin:8px 0 0">Este serviço não é feito nesta unidade.</p></div>`;
     const linhas=x.pros.filter(p=>p.t.length).map(p=>`<div class="lv-pro"><i style="background:${COR_PRO[p.p]}"></i><div><b>${esc(PEOPLE[p.p].n)}</b><div class="lv-ch">${p.t.map(t=>{const k=`${x.d}|${hhmmDe(t)}|${p.p}`,on=sel.has(k);return `<button type="button" class="${on?'on':''}" style="--c:${COR_PRO[p.p]}" data-lv="${k}">${hhmmDe(t)}</button>`}).join('')}</div></div></div>`).join('');
-    return `<div class="box lv-dia">${cab}${linhas||'<p class="small muted" style="margin:8px 0 0">Sem horários livres neste dia.</p>'}</div>`}).join('');
+    const temT=x.pros.some(p=>p.t.length);
+    return `<div class="box lv-dia">${temT?`<button type="button" class="btn sm" data-lvdia="${x.d}" style="float:right;margin-left:8px">Imagem deste dia</button>`:''}${cab}${linhas||'<p class="small muted" style="margin:8px 0 0">Sem horários livres neste dia.</p>'}</div>`}).join('');
   const um=sel.size===1;
   return `<div class="top"><div><h1>Horários livres</h1><div class="sub">Mostra o que está vazio na agenda, na hora. Marcou ou fechou, o horário some daqui.</div></div></div>
   <div class="chips-pro">${[['todas','Todas'],...pros.map(p=>[p,PEOPLE[p].n])].map(([k,l])=>`<button type="button" class="${pSel===k?'on':''}" data-lvpro="${k}" style="${pSel===k&&k!=='todas'?'background:'+COR_PRO[k]+';border-color:'+COR_PRO[k]:''}">${esc(l)}</button>`).join('')}</div>
@@ -920,18 +921,18 @@ function vLivres(){
   ${sel.size?`<div class="lv-bar"><div class="t"><b>${sel.size+(sel.size===1?' horário escolhido':' horários escolhidos')}</b></div>
    <button class="btn" id="lv-limpar">Limpar</button><button class="btn" id="lv-comp">Compartilhar</button><button class="btn p" id="lv-ag" ${um?'':'disabled'}>Agendar</button></div>`:''}`}
 // Texto e imagem com o que foi escolhido (ou, sem escolha, tudo o que está na tela).
-function livresGrupos(){
-  const dias=livresDados(),sel=S.lvSel||new Set(),usar=sel.size?(d,h,p)=>sel.has(`${d}|${h}|${p}`):()=>true,g=new Map();
+function livresGrupos(dia){
+  const dias=livresDados().filter(x=>!dia||x.d===dia),sel=dia?new Set():(S.lvSel||new Set()),usar=sel.size?(d,h,p)=>sel.has(`${d}|${h}|${p}`):()=>true,g=new Map();
   dias.forEach(x=>x.pros.forEach(p=>{const t=p.t.map(hhmmDe).filter(h=>usar(x.d,h,p.p));if(!t.length)return;const k=p.p+'|'+x.u;if(!g.has(k))g.set(k,{p:p.p,u:x.u,dias:[]});g.get(k).dias.push({d:x.d,t})}));
   return [...g.values()].sort((a,b)=>['tha','rafael','mariana','ana'].indexOf(a.p)-['tha','rafael','mariana','ana'].indexOf(b.p)||(a.u<b.u?-1:1))}
-function livresTexto(grupos){
+function livresTexto(grupos,dia){
   const sv0=S.lvServ&&livresServicos().find(x=>x.id===S.lvServ),us=[...new Set(grupos.map(g=>g.u))];
-  let t='Horários livres · '+U.mai.n+'\n'+(sv0?'Serviço: '+sv0.n+'\n':'')+'\n';
+  let t='Horários livres · '+(dia?diaCurto(dia).toLowerCase()+' · ':'')+U.mai.n+'\n'+(sv0?'Serviço: '+sv0.n+'\n':'')+'\n';
   grupos.forEach(g=>{t+=`*${PEOPLE[g.p].n}* · ${U[g.u].n}\n`+g.dias.map(x=>`${diaCurto(x.d)}: ${x.t.join(', ')}`).join('\n')+'\n\n'});
   t+='Para marcar, escolha o horário por aqui: '+origemPublica()+'/p\n';
   us.forEach(u=>{t+=linhaEndereco(u)+'\n'});
   return t.trim()}
-async function livresImagem(grupos){
+async function livresImagem(grupos,dia){
   const W=1080,P=56,IN=40,logo=await new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src='logo.png'});
   const SERIF='Georgia,"Times New Roman",serif',SANS='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
   const sv0=S.lvServ&&livresServicos().find(x=>x.id===S.lvServ);
@@ -939,7 +940,7 @@ async function livresImagem(grupos){
     const f=(fn)=>{if(!seco)fn()};let y=0;
     f(()=>{const g=c.createLinearGradient(0,0,W,300);g.addColorStop(0,'#9C7A2E');g.addColorStop(1,'#C9A94E');c.fillStyle=g;c.fillRect(0,0,W,300);
       if(logo){c.save();c.beginPath();c.arc(215,150,95,0,7);c.clip();c.drawImage(logo,120,55,190,190);c.restore()}
-      c.fillStyle='#fff';c.textBaseline='alphabetic';c.font='600 72px '+SERIF;c.fillText('Horários livres',345,150);c.font='500 28px '+SANS;c.fillText(U.mai.n+(sv0?' · '+sv0.n:''),347,198)});
+      c.fillStyle='#fff';c.textBaseline='alphabetic';c.font='600 72px '+SERIF;c.fillText('Horários livres',345,150);c.font='500 28px '+SANS;c.fillText((dia?prim1(new Date(dia+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}))+' · ':'')+U.mai.n+(sv0?' · '+sv0.n:''),347,198)});
     y=344;
     grupos.forEach(g=>{
       const ini=y;y+=34+46;f(()=>{c.fillStyle='#262220';c.font='600 46px '+SERIF;c.fillText(PEOPLE[g.p].n,P+IN,ini+34+38)});
@@ -961,9 +962,10 @@ async function livresImagem(grupos){
   c.fillStyle='#FAF7F1';c.fillRect(0,0,W,cv.height);desenhar(c,false);
   return cv}
 const COR_HEX={tha:'#B2706A',rafael:'#A39279',mariana:'#B9A44B',lais:'#7C8A6A',ana:'#8FA68A'};
-function compartilharLivres(){
-  const grupos=livresGrupos();if(!grupos.length){toast('Nenhum horário livre para compartilhar com esse filtro.');return}
-  const txt=livresTexto(grupos),esc1=(S.lvSel&&S.lvSel.size)?'Só os horários escolhidos vão na mensagem.':'Nada escolhido: vão todos os horários que estão na tela.';
+function compartilharLivres(dia){
+  dia=typeof dia==='string'?dia:null;
+  const grupos=livresGrupos(dia);if(!grupos.length){toast('Nenhum horário livre para compartilhar com esse filtro.');return}
+  const txt=livresTexto(grupos,dia),esc1=dia?'Só os horários livres deste dia vão na mensagem e na imagem.':(S.lvSel&&S.lvSel.size)?'Só os horários escolhidos vão na mensagem.':'Nada escolhido: vão todos os horários que estão na tela.';
   openDlg('Mandar horários livres',`<p class="small muted" style="margin-top:0">${esc1}</p>
    <label class="f">Mensagem (edite à vontade)<textarea rows="9" id="lv-m">${esc(txt)}</textarea></label>
    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="lv-w">Enviar pelo WhatsApp</button><button class="btn" id="lv-c">Copiar mensagem</button><button class="btn" id="lv-i">Gerar imagem</button></div>
@@ -972,14 +974,15 @@ function compartilharLivres(){
   document.getElementById('lv-w').onclick=()=>window.open(zapLink('',t()),'_blank','noopener');
   document.getElementById('lv-c').onclick=async()=>{try{await navigator.clipboard.writeText(t());toast('Mensagem copiada')}catch(e){toast('Não foi possível copiar')}};
   document.getElementById('lv-i').onclick=async()=>{const b=document.getElementById('lv-i');b.disabled=true;
-    const cv=await livresImagem(grupos),url=cv.toDataURL('image/png'),box=document.getElementById('lv-img');
+    const cv=await livresImagem(grupos,dia),url=cv.toDataURL('image/png'),box=document.getElementById('lv-img');
     box.innerHTML=`<img src="${url}" alt="Horários livres" style="width:100%;border-radius:12px;border:1px solid var(--line)"><p class="small muted" style="margin:6px 0">No computador: clique com o botão direito e "Copiar imagem". No celular: toque e segure.</p>
      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="lvi-c">Copiar imagem</button><button class="btn" id="lvi-b">Baixar</button>${navigator.canShare?'<button class="btn" id="lvi-s">Compartilhar</button>':''}</div>`;
     const blob=()=>new Promise(r=>cv.toBlob(r,'image/png'));
-    document.getElementById('lvi-b').onclick=async()=>{const a=document.createElement('a');a.href=URL.createObjectURL(await blob());a.download='horarios-livres.png';document.body.appendChild(a);a.click();a.remove()};
+    document.getElementById('lvi-b').onclick=async()=>{const a=document.createElement('a');a.href=URL.createObjectURL(await blob());a.download=dia?'horarios-'+dia+'.png':'horarios-livres.png';document.body.appendChild(a);a.click();a.remove()};
     document.getElementById('lvi-c').onclick=async()=>{try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob()})]);toast('Imagem copiada')}catch(e){toast('Este aparelho não copia imagem: use Baixar ou segure a imagem.')}};
-    const sh=document.getElementById('lvi-s');if(sh)sh.onclick=async()=>{try{const f=new File([await blob()],'horarios-livres.png',{type:'image/png'});if(navigator.canShare({files:[f]}))await navigator.share({files:[f]});else toast('Este aparelho não compartilha imagem: use Baixar.')}catch(e){}};
-    b.disabled=false}}
+    const sh=document.getElementById('lvi-s');if(sh)sh.onclick=async()=>{try{const f=new File([await blob()],dia?'horarios-'+dia+'.png':'horarios-livres.png',{type:'image/png'});if(navigator.canShare({files:[f]}))await navigator.share({files:[f]});else toast('Este aparelho não compartilha imagem: use Baixar.')}catch(e){}};
+    b.disabled=false};
+  if(dia)document.getElementById('lv-i').click()}
 
 // ── Brinde de aniversário como voucher ──
 // O desconto só existe se a Tháriga liberou antes: um código por cliente, uso único, com prazo.
@@ -2086,7 +2089,8 @@ function render(){
   main.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{const k=b.dataset.lv;if(S.lvSel.has(k))S.lvSel.delete(k);else S.lvSel.add(k);render()});
   const lvm=document.getElementById('lv-mais');if(lvm)lvm.onclick=()=>{S.lvDias=Math.min(28,(S.lvDias||7)+7);render()};
   const lvl=document.getElementById('lv-limpar');if(lvl)lvl.onclick=()=>{S.lvSel=new Set();render()};
-  const lvc=document.getElementById('lv-comp');if(lvc)lvc.onclick=compartilharLivres;const lvc0=document.getElementById('lv-comp0');if(lvc0)lvc0.onclick=compartilharLivres;
+  const lvc=document.getElementById('lv-comp');if(lvc)lvc.onclick=()=>compartilharLivres();const lvc0=document.getElementById('lv-comp0');if(lvc0)lvc0.onclick=()=>compartilharLivres();
+  main.querySelectorAll('[data-lvdia]').forEach(b=>b.onclick=()=>compartilharLivres(b.dataset.lvdia));
   const lva=document.getElementById('lv-ag');if(lva)lva.onclick=()=>{const [d,h,p]=[...S.lvSel][0].split('|');S.agData=d;S.agMes=d.slice(0,7);novoAg({data:d,hora:h,pro:p,serv:S.lvServ||undefined})};
   main.querySelectorAll('[data-troc]').forEach(b=>b.onclick=()=>trocarCliente(b.dataset.troc,b.dataset.p));
   main.querySelectorAll('[data-agpro]').forEach(b=>b.onclick=()=>{S.agPro=b.dataset.agpro;S.agSel=null;render()});
