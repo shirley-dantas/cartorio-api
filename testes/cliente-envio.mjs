@@ -130,6 +130,16 @@ await passo('os dados digitados viram um documento do caso, com os rótulos do p
   for (const t of ['COMPRADOR(A) — Maria da Silva', 'Estado civil: Casado(a)', 'Cônjuge: João Souza', 'Valor da transação (R$): 450.000,00', 'Houve sinal (entrada já paga)?: Sim', 'Valor a pagar no ato da escritura (R$): 405.000,00', 'Forma de pagamento no ato: PIX', 'CONTA DE ONDE SAIRÁ O PAGAMENTO', 'Banco: BB', 'CONTA QUE RECEBERÁ O PAGAMENTO', 'PIX: joao@x.com', 'OBSERVAÇÕES DO CLIENTE (para a equipe conferir antes de usar na minuta): Constar nome de solteira', 'ainda não conferidos']) assert(f.texto.includes(t), 'faltou: ' + t);
   assert(m.db.pedidos[TOKEN].concluidoEm > 0); assert(m.externos.length >= 1, 'a equipe é avisada pelo WhatsApp');
 });
+await passo('envio sem algum documento: a ficha diz o que faltou (a equipe pede depois) e o aviso do painel conta quantos', () => {
+  const m = mundo(); semear(m);
+  const r = m.chamar({acao: 'cliente-dados', t: TOKEN, dados: {ato: 'Inventário', pessoas: [], documentosFaltando: ['Herdeiro(a): RG ou CNH', 'Extrato bancário na data do óbito']}});
+  assert.equal(r.ok, true);
+  const f = m.db.casos['-Caso1'].documentos['ficha_' + TOKEN.slice(0, 10)];
+  assert(/NÃO TINHA NA HORA DO ENVIO/.test(f.texto) && /Herdeiro\(a\): RG ou CNH; Extrato bancário na data do óbito/.test(f.texto), f.texto);
+  assert.equal(m.db.casos['-Caso1'].envioCliente.faltando, 2);
+  const sem = mundo(); semear(sem); sem.chamar({acao: 'cliente-dados', t: TOKEN, dados: {pessoas: []}});
+  assert.equal(sem.db.casos['-Caso1'].envioCliente.faltando, 0); assert(!/NÃO TINHA NA HORA/.test(sem.db.casos['-Caso1'].documentos['ficha_' + TOKEN.slice(0, 10)].texto));
+});
 await passo('enviou, fechou: o link expira, o card ganha o aviso (não visto) e um segundo preenchimento é recusado', () => {
   const m = mundo(); semear(m);
   const r = m.chamar({acao: 'cliente-dados', t: TOKEN, nArquivos: 3, dados: {pessoas: [{papel: 'Convivente 2', nome: 'Ana'}]}});
@@ -161,6 +171,20 @@ await passo('cliente-ler só lê o que nasceu do link: chave de outro link, sem 
   const f = m.chamar({acao: 'cliente-ler', t: TOKEN, docKey: 'cli_aB3dE6_falso'}); assert.equal(f.leu, false, 'sem selo não lê o arquivo');
   const l = m.chamar({acao: 'cliente-ler', t: TOKEN, docKey: r.docKey}); assert.equal(l.ok, true); assert.equal(l.leu, false);
   assert(!m.db.casos['-Caso1'].documentos[r.docKey].lendo, 'IA fora: deixa de dizer "lendo" e o card mostra "sem leitura"');
+});
+await passo('cliente-reler (pedido do painel): lê de novo o que ficou sem leitura, diz o motivo quando falha e só toca no que tem selo', () => {
+  const m = mundo(); semear(m); let ia = 0, falha = true;
+  m.caixa.lerDocumentoComIA = () => { ia++; if (falha) throw new Error('IA fora do ar'); return {texto: 'TIPO_DOCUMENTO: RG\nRG: 99', truncou: false}; };
+  const r = m.chamar({...arq(), lerDepois: true});
+  const f1 = m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: r.docKey});
+  assert.equal(f1.ok, false); assert(/IA fora do ar/.test(f1.erro), 'o motivo vem escrito: ' + f1.erro); assert(!m.db.casos['-Caso1'].documentos[r.docKey].lendo);
+  falha = false;
+  const f2 = m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: r.docKey}); assert.equal(f2.ok, true);
+  assert(/RG: 99/.test(m.db.casos['-Caso1'].documentos[r.docKey].texto), 'o texto entrou');
+  assert.equal(m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: 'nao_existe'}).ok, false);
+  m.db.casos['-Caso1'].documentos.cli_aB3dE6_falso = {nome: 'x', origem: 'link do cliente', link: 'https://drive.google.com/file/d/' + Object.keys(ARQUIVOS)[0] + '/view'};
+  const sem = ia; assert.equal(m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: 'cli_aB3dE6_falso'}).ok, false); assert.equal(ia, sem, 'sem selo a IA nem é chamada');
+  m.db.casos['-Caso1'].documentos.outro = {nome: 'y', origem: 'foto do bot'}; assert.equal(m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: 'outro'}).ok, false, 'só o que veio pelo link');
 });
 await passo('a numeração e o limite vêm de um contador pequeno do pedido (sem ler todos os documentos do caso)', () => {
   const m = mundo(); semear(m);

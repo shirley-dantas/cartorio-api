@@ -16,6 +16,13 @@ const url = (q) => 'http://127.0.0.1:8199/harness-pedido.html?' + q;
 const abrir = async (q) => { const pg = await b.newPage({viewport: {width: 1100, height: 900}}); pg.on('pageerror', (e) => erros.push('pageerror: ' + e.message)); await pg.goto(url(q)); await pg.waitForFunction(() => window.__pronto); return pg; };
 const msg = (pg) => pg.inputValue('#ped-msg');
 
+await passo('"Só a lista de documentos": troca a mensagem (mesmo com o link gerado) pela lista, para mandar separada', async () => {
+  const pg = await abrir('tipo=Escritura%20de%20Compra%20e%20Venda&link=1');
+  await pg.click('[data-acao="papel:comprador"]'); await pg.click('[data-acao="link"]'); await pg.waitForSelector('[data-acao="copiar-link"]');
+  assert(!/•/.test(await msg(pg)), 'com link a mensagem é curta');
+  await pg.click('[data-acao="so-lista"]');
+  const m = await msg(pg); assert(/separe estes documentos antes de começar/.test(m) && /SEUS DOCUMENTOS/.test(m) && /• RG ou CNH/.test(m) && !/enviar\.html/.test(m), m);
+});
 await passo('sem criarLink (o painel não sabe gerar), o botão nem aparece', async () => {
   const pg = await abrir('tipo=Doa%C3%A7%C3%A3o'); assert.equal(await pg.locator('[data-acao="link"]').count(), 0);
 });
@@ -74,6 +81,7 @@ await passo('o card lista o que o cliente mandou: arquivos com link, lidos e sem
     c: {nome: 'DADOS_INFORMADOS_PELO_CLIENTE', tipo: 'informacoes', origem: 'link do cliente', texto: 't', salvoEm: '2026-10-19T10:02:00Z'}}});
   assert(/2 arquivos \(1 lidos\) \+ dados digitados/.test(h), h);
   assert.equal((h.match(/excluirDocCliente\('-Caso1'/g) || []).length, 3, 'um botão de excluir por item, inclusive os dados digitados');
+  assert.equal((h.match(/relerDocCliente\('-Caso1'/g) || []).length, 1, 'só o arquivo sem leitura ganha "Ler de novo"'); assert(/relerDocCliente\('-Caso1','b'/.test(h));
   assert(/excluirDocCliente\('-Caso1','a'/.test(h) && /excluirDocCliente\('-Caso1','c'/.test(h)); assert(/href="https:\/\/drive\/x"/.test(h) && /sem leitura/.test(h) && /dados digitados<\/span>/.test(h));
 });
 await passo('a faixa Documentos tem o botão da pasta do Drive, só quando o card tem a pasta e o link é https', () => {
