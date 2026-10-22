@@ -1,4 +1,10 @@
-<!doctype html><html><head><meta charset="utf-8"><style>.modal-overlay{display:none}.modal-overlay.open{display:block}.pag-bloco{margin-top:14px;padding:12px 14px;background:var(--cc-sup-2,#F5F5F7);border-radius:12px}
+<!doctype html><html><head><meta charset="utf-8"><style>.modal-overlay{display:none}.modal-overlay.open{display:block}.pag-cola{display:flex;gap:12px;align-items:center;border:2px dashed #8E8E93;border-radius:12px;padding:14px;background:#fff;cursor:pointer;outline:none;min-height:64px}
+.pag-cola:focus,.pag-cola.ativo{border-color:#2A6099;background:#F1F6FC}
+.pag-cola.ok{border-style:solid;border-color:#2E7D4F}
+.pag-cola div{font-size:13.5px;color:#3A3A3C}.pag-cola b{display:block;font-size:14px;color:#1C1C1E}.pag-cola span{display:block;font-size:12px;color:#636366;margin-top:2px}
+.pag-cola img{width:74px;height:54px;object-fit:cover;border-radius:6px;border:1px solid #E5E5EA;flex:none}
+.pag-ou{display:inline-block;margin-top:6px;font-size:12.5px;color:#636366;cursor:pointer}
+.pag-bloco{margin-top:14px;padding:12px 14px;background:var(--cc-sup-2,#F5F5F7);border-radius:12px}
 .pag-tit{font-weight:700;font-size:14px;margin-bottom:8px}
 .pag-op{display:inline-flex;align-items:center;gap:6px;margin:0 14px 4px 0;font-size:14px;cursor:pointer}
 .pag-campo{margin-bottom:10px}.pag-campo .fin-input{width:100%;display:block;margin-top:3px}
@@ -166,7 +172,14 @@ function pagDesenhar(){
   const esc1=e.itens!=='registro', reg1=e.itens!=='escritura';
   const opt=(v,r)=>`<label class="pag-op"><input type="radio" name="pag-itens" value="${v}"${e.itens===v?' checked':''}> ${r}</label>`;
   const campo=(r,id,val,ph,extra='')=>`<div class="pag-campo"><label class="fin-rot" for="${id}">${r}</label><input class="fin-input" id="${id}" value="${esc(val)}" placeholder="${esc(ph||'')}" ${extra}></div>`;
-  const arq=(r,id,f,obrig)=>`<div class="pag-campo"><label class="fin-rot">${r}${obrig?' <b style="color:#C0392B">*</b>':''}</label><label class="cx-btn" style="cursor:pointer"><i class="ti ti-paperclip"></i> ${f?'Trocar arquivo':'Escolher arquivo'}<input type="file" id="${id}" accept="image/*,application/pdf" hidden></label> <span class="pag-nome">${f?'✓ '+esc(f.name):'nenhum arquivo'}</span></div>`;
+  const arq=(r,id,f,obrig)=>{
+    const alvo=id==='pag-recibo'?'recibo':'boleto', url=f?pagUrlDe(f):'';
+    return `<div class="pag-campo"><label class="fin-rot">${r}${obrig?' <b style="color:#C0392B">*</b>':''}</label>
+      <div class="pag-cola${f?' ok':''}${e.alvoPaste===alvo?' ativo':''}" tabindex="0" data-alvo="${alvo}">${f
+        ?(f.type&&f.type.startsWith('image/')?`<img src="${esc(url)}" alt="">`:'')+`<div><b>✓ ${esc(f.name)}</b><span>Para trocar, clique aqui e cole outro print (Ctrl+V)</span></div>`
+        :`<div><b>Clique aqui e aperte Ctrl+V para colar o print</b><span>Ou arraste o arquivo para cá</span></div>`}</div>
+      <label class="pag-ou">ou <u>escolher um arquivo</u> (foto ou PDF)<input type="file" id="${id}" accept="image/*,application/pdf" hidden></label></div>`;
+  };
   document.getElementById('pag-conteudo').innerHTML=`
     <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">O que vai neste link</div>${opt('ambos','Escritura e registro')} ${opt('escritura','Só a escritura')} ${opt('registro','Só o registro')}</div>
     ${esc1?`<div class="pag-bloco"><div class="pag-tit">1 · Escritura — 20º Tabelião de Notas</div>${campo('Valor a pagar (R$)','pag-valE',e.valE,'3.039,89','inputmode="decimal"')}${arq('Recibo do cartório (PDF ou foto)','pag-recibo',e.recibo,true)}</div>`:''}
@@ -178,6 +191,36 @@ function pagDesenhar(){
       <div class="fin-rot" style="margin-top:10px">A mensagem <small>(pode editar antes de enviar)</small></div><textarea id="pag-msg" class="fin-input" style="width:100%;min-height:110px">${escTxt(e.msg)}</textarea>
       <div class="pag-acoes"><button type="button" class="cx-btn destaque" data-pag="copiar">Copiar texto</button><button type="button" class="cx-btn" data-pag="zap">WhatsApp</button></div></div>`:''}`;
 }
+// Colar o print (Ctrl+V) ou arrastar o arquivo, no lugar de procurá-lo no computador.
+const pagUrls=new WeakMap();
+function pagUrlDe(f){ let u=pagUrls.get(f); if(!u){ u=URL.createObjectURL(f); pagUrls.set(f,u); } return u; }
+function pagProximoAlvo(){
+  const e=pagEst; if(!e) return null;
+  if(e.alvoPaste&&((e.alvoPaste==='recibo'&&e.itens!=='registro')||(e.alvoPaste==='boleto'&&e.itens!=='escritura'))) return e.alvoPaste;
+  if(e.itens!=='registro'&&!e.recibo) return 'recibo';
+  if(e.itens!=='escritura'&&!e.boleto) return 'boleto';
+  return e.itens==='registro'?'boleto':'recibo';
+}
+// Depois de guardar, o "onde colar" volta ao automático: o próximo print vai para o que ainda falta, e não por cima do que acabou de entrar.
+function pagGuardarArquivo(alvo,f){ if(!pagEst||!f) return; pagEst[alvo]=f; pagEst.alvoPaste=null; pagEst.erro=''; pagDesenhar(); }
+document.addEventListener('paste',ev=>{
+  if(!pagEst) return;
+  const it=[...(ev.clipboardData&&ev.clipboardData.items||[])].find(x=>x.kind==='file'&&/^image\//.test(x.type));
+  if(!it) return;
+  const blob=it.getAsFile(); if(!blob) return;
+  const alvo=pagProximoAlvo(); if(!alvo) return;
+  ev.preventDefault();
+  const ext=(blob.type.split('/')[1]||'png').replace('jpeg','jpg');
+  pagGuardarArquivo(alvo,new File([blob],'print-'+alvo+'-'+new Date().toISOString().slice(0,10)+'.'+ext,{type:blob.type}));
+});
+document.addEventListener('dragover',ev=>{ if(pagEst&&ev.target.closest&&ev.target.closest('.pag-cola')) ev.preventDefault(); });
+document.addEventListener('drop',ev=>{
+  const z=pagEst&&ev.target.closest&&ev.target.closest('.pag-cola'); if(!z) return;
+  ev.preventDefault(); const f=ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0];
+  if(f&&(/^image\//.test(f.type)||f.type==='application/pdf')) pagGuardarArquivo(z.dataset.alvo,f);
+});
+document.addEventListener('focusin',ev=>{ const z=pagEst&&ev.target.closest&&ev.target.closest('.pag-cola'); if(z) pagEst.alvoPaste=z.dataset.alvo; });
+document.addEventListener('click',ev=>{ const z=pagEst&&ev.target.closest&&ev.target.closest('.pag-cola'); if(z){ pagEst.alvoPaste=z.dataset.alvo; document.querySelectorAll('.pag-cola').forEach(x=>x.classList.toggle('ativo',x===z)); z.focus(); } });
 document.addEventListener('input',ev=>{
   if(!pagEst) return; const t=ev.target, m={ 'pag-valE':'valE','pag-valR':'valR','pag-venc':'venc','pag-codigo':'codigo','pag-benef':'benef','pag-cnpj':'cnpj' }[t.id];
   if(m){ pagEst[m]=t.value; return; }
@@ -186,7 +229,7 @@ document.addEventListener('input',ev=>{
 document.addEventListener('change',ev=>{
   if(!pagEst) return; const t=ev.target;
   if(t.name==='pag-itens'){ pagEst.itens=t.value; pagEst.erro=''; pagDesenhar(); return; }
-  if(t.id==='pag-recibo'||t.id==='pag-boleto'){ const f=t.files&&t.files[0]; if(f){ pagEst[t.id==='pag-recibo'?'recibo':'boleto']=f; pagDesenhar(); } }
+  if(t.id==='pag-recibo'||t.id==='pag-boleto'){ const f=t.files&&t.files[0]; if(f){ pagGuardarArquivo(t.id==='pag-recibo'?'recibo':'boleto',f); } }
 });
 document.addEventListener('click',async ev=>{
   const b=ev.target.closest('button'); if(!b||!pagEst) return;

@@ -1081,7 +1081,9 @@ Regras dela que **não devem ser mexidas sem perguntar**:
 - **Uma página só, um passo por vez**: *Conferir* os dois valores (com o botão de rever o orçamento que ela aprovou, só se o
   card tiver uma versão "Aprovado pelo cliente"), depois o pagamento da escritura, depois o do registro. Tocar em
   *Escritura* abre o **recibo do cartório** (sempre existe antes); tocar em *Registro* abre o **boleto**. Ela anexa os dois ao
-  gerar o link (viram imagem leve no banco; o boleto em PDF também guarda o PDF, se couber).
+  gerar o link (viram imagem leve no banco; o boleto em PDF também guarda o PDF, se couber). **Dá para colar o print (Ctrl+V) ou
+  arrastar o arquivo** na caixa de cada um, no lugar de procurá-lo no computador (o colar vai para onde ela clicou; sem clique,
+  para o primeiro que falta).
 - **Dois pagamentos, nunca somados.** O aviso de segurança fica sempre à vista ("Confira o beneficiário e o valor antes de
   pagar…"), inclusive no link de uma cobrança só.
 - **O comprovante é obrigatório para avançar.** O botão fica apagado até anexar; o último passo vira *Concluir*, e o link

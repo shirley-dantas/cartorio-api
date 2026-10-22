@@ -13,7 +13,7 @@ const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } ca
 const html = readFileSync(join(AQUI, '..', 'index.html'), 'utf8');
 const ini = html.indexOf('const PAG_BENEFICIARIO'), fim = html.indexOf('// Pedir documentos: a lista do que pedir');
 assert(ini > 0 && fim > ini, 'o trecho do pagamento não está no index.html');
-const css = html.slice(html.indexOf('.pag-bloco{'), html.indexOf('.cx-ped-rec{flex-basis:100%'));
+const css = html.slice(html.indexOf('.pag-cola{'), html.indexOf('.cx-ped-rec{flex-basis:100%'));
 writeFileSync(join(AQUI, 'harness-pagamento.html'), `<!doctype html><html><head><meta charset="utf-8"><style>.modal-overlay{display:none}.modal-overlay.open{display:block}${css}</style></head><body>
 <div class="modal-overlay" id="modal-pagamento"><div id="pag-sub"></div><div id="pag-conteudo"></div></div><div id="cc-pagamentos"></div>
 <script>
@@ -59,6 +59,40 @@ await passo('faltando dado ou arquivo, o aviso diz o que falta e NADA é gravado
   assert.equal((await pg.evaluate(() => window.__grav)).length, 0);
   await pg.fill('#pag-valE', '3.039,89'); await pg.fill('#pag-valR', '3.868,07'); await pg.fill('#pag-venc', '31/02/2026'); await pg.fill('#pag-codigo', '26091.90299 37227');
   await pg.click('#pag-gerar'); assert(/vencimento/.test(await pg.innerText('.pag-erro')) && /recibo/.test(await pg.innerText('.pag-erro')));
+});
+
+const colar = (pg, tipo = 'image/png') => pg.evaluate(async (t) => {
+  const c = document.createElement('canvas'); c.width = 600; c.height = 400; c.getContext('2d').fillRect(0, 0, 600, 400);
+  const blob = await new Promise((ok) => c.toBlob(ok, t)); const dt = new DataTransfer(); dt.items.add(new File([blob], 'image.png', {type: t}));
+  const ev = new ClipboardEvent('paste', {clipboardData: dt, bubbles: true, cancelable: true}); document.dispatchEvent(ev); return ev.defaultPrevented;
+}, tipo);
+
+await passo('colar o print (Ctrl+V) no lugar de escolher arquivo: o recibo entra, aparece a miniatura e o link é gerado com ele', async () => {
+  const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="escritura"]');
+  assert(/Clique aqui e aperte Ctrl\+V para colar o print/.test(await pg.innerText('#pag-conteudo')));
+  assert.equal(await colar(pg), true, 'o colar foi tratado');
+  const t = await pg.innerText('#pag-conteudo'); assert(/✓ print-recibo-\d{4}-\d{2}-\d{2}\.png/.test(t) && /cole outro print/.test(t));
+  assert.equal(await pg.locator('.pag-cola img').count(), 1, 'miniatura do print');
+  await pg.fill('#pag-valE', '3.039,89'); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
+  const v = (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2];
+  assert(/^data:image\/jpeg;base64,/.test(v.imagens.recibo), 'o print vira a imagem do recibo');
+});
+
+await passo('com escritura e registro, o colar vai para onde ela clicou; sem clique, para o primeiro que falta', async () => {
+  const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1'));
+  await colar(pg); let t = await pg.innerText('#pag-conteudo'); assert(/print-recibo/.test(t) && !/print-boleto/.test(t), 'sem clique: o recibo, que é o primeiro');
+  await colar(pg); t = await pg.innerText('#pag-conteudo'); assert(/print-boleto/.test(t), 'o próximo que falta é o boleto');
+  const pg2 = await abrir(); await pg2.evaluate(() => abrirPagamento('-Caso1'));
+  await pg2.click('.pag-cola[data-alvo="boleto"]'); await colar(pg2);
+  t = await pg2.innerText('#pag-conteudo'); assert(/print-boleto/.test(t) && !/print-recibo/.test(t), 'clicou no boleto: o print vai para o boleto');
+});
+
+await passo('colar texto (não imagem) não faz nada, e arrastar um arquivo para a caixa também funciona', async () => {
+  const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="escritura"]');
+  const tratou = await pg.evaluate(() => { const dt = new DataTransfer(); dt.setData('text/plain', 'R$ 10,00'); const ev = new ClipboardEvent('paste', {clipboardData: dt, bubbles: true, cancelable: true}); document.dispatchEvent(ev); return ev.defaultPrevented; });
+  assert.equal(tratou, false, 'texto colado num campo segue o caminho normal');
+  await pg.evaluate(() => { const dt = new DataTransfer(); dt.items.add(new File(['x'], 'recibo.pdf', {type: 'application/pdf'})); const z = document.querySelector('.pag-cola'); z.dispatchEvent(new DragEvent('drop', {dataTransfer: dt, bubbles: true, cancelable: true})); });
+  assert(/✓ recibo\.pdf/.test(await pg.innerText('#pag-conteudo')));
 });
 
 await passo('gerar: grava a cobrança (valores em centavos, recibo e boleto como imagem), o resumo no card, e devolve o link e a mensagem', async () => {
