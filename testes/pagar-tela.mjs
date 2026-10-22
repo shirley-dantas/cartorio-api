@@ -74,7 +74,7 @@ await passo('o fluxo inteiro: sem os dois comprovantes o botão fica apagado e d
   const subidas = chamadas.filter((c) => c.acao === 'pagamento-arquivo'); await pg.waitForFunction(() => document.querySelectorAll('.chip-arq.ok').length === 2);
   assert.equal(subidas.length, 2); assert(subidas.every((c) => /^c[a-z0-9]{4,16}$/.test(c.qual) && c.t === TOKEN && c.mimetype === 'image/jpeg' && c.base64.length > 100)); assert.notEqual(subidas[0].qual, subidas[1].qual, 'cada arquivo com o seu código');
   await btn.click(); await noMeio(pg, /Pagamentos recebidos/);
-  const f = await pg.innerText('#tela'); assert(/Escritura: R\$ 3\.039,89/.test(f) && /Registro de imóveis: R\$ 3\.868,07/.test(f) && /Comprovantes recebidos com sucesso/.test(f));
+  const f = await pg.innerText('#tela'); assert(/Escritura: R\$ 3\.039,89/.test(f) && /Registro de imóveis: R\$ 3\.868,07/.test(f) && /Comprovantes recebidos com sucesso/.test(f) && /Agradecemos a parceria e a confiança\. Conte sempre conosco\./.test(f));
   assert(chamadas.some((c) => c.acao === 'pagamento-concluir' && c.t === TOKEN));
   await pg.screenshot({path: SAIDA('pag-celular-fim.png'), fullPage: true});
 });
@@ -163,6 +163,20 @@ await passo('vários recibos: ver o recibo mostra todos, legendados "Recibo 1 de
     assert.equal(await pg.locator('#vis img').count(), n); assert.equal(await pg.locator('#vis .cap').count() > 0, esperaCap);
     if (esperaCap) assert(/Recibo 1 de 2/.test(await pg.innerText('#vis')) && /Recibo 2 de 2/.test(await pg.innerText('#vis')));
   }
+});
+
+await passo('dá para baixar o recibo e o boleto: um botão com o nome certo, e um por arquivo quando são vários', async () => {
+  const {pg} = await abrir({});
+  await pg.click('[data-vis="recibo"]'); const r = pg.locator('#vis .tt a[download]');
+  assert.equal(await r.count(), 1); assert(/Baixar recibo/.test(await r.innerText())); assert.equal(await r.getAttribute('download'), 'recibo.jpg'); assert(/^data:image\//.test(await r.getAttribute('href')));
+  await pg.click('#vis [data-fechar]'); await pg.click('[data-vis="boleto"]');
+  assert(/Baixar PDF/.test(await pg.innerText('#vis .tt')) && (await pg.locator('#vis .tt a[download]').getAttribute('download')) === 'boleto.pdf', 'o boleto com PDF continua baixando o PDF');
+  const sem = await abrir({boletoPdf: false}); await sem.pg.click('[data-vis="boleto"]');
+  assert(/Baixar boleto/.test(await sem.pg.innerText('#vis .tt')) && (await sem.pg.locator('#vis .tt a[download]').getAttribute('download')) === 'boleto.jpg', 'sem PDF, baixa a imagem');
+  const v = await abrir({}); await v.pg.route('https://painel-cartorio-default-rtdb.firebaseio.com/cobrancas/**', (rota) => { const c = cobranca({}); c.imagens.recibos = [IMG, IMG]; rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(c)}); });
+  await v.pg.reload(); await v.pg.waitForSelector('#tela .cartao'); await v.pg.click('[data-vis="recibo"]');
+  assert.equal(await v.pg.locator('#vis .cap a[download]').count(), 2); assert.equal(await v.pg.locator('#vis .tt a[download]').count(), 0, 'com vários, o botão fica em cada um');
+  assert.deepEqual(await v.pg.locator('#vis .cap a[download]').evaluateAll((l) => l.map((a) => a.getAttribute('download'))), ['recibo-1.jpg', 'recibo-2.jpg']);
 });
 
 await passo('copiar: a chave Pix e o código de barras vão para a área de transferência e o botão confirma', async () => {

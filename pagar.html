@@ -264,10 +264,11 @@ body{padding-bottom:40px}
 .vis .tt .bs{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .vis .tt button,.vis .tt a{border:0;background:var(--champ-claro);color:var(--graf);font:700 16px -apple-system,sans-serif;padding:10px 14px;border-radius:3px;text-decoration:none}
 .vis .tt .sec{background:#fff}
+.vis .cap a{background:var(--champ-claro);color:var(--graf);padding:8px 14px;border-radius:999px;text-decoration:none;font:700 14px -apple-system,sans-serif}
 .vis .ap{color:#E9EDF0;font-size:16px;padding:0 4px 10px}
 .vis .im{flex:1;overflow:auto;background:#fff;border-radius:3px}
 .vis img{display:block;width:100%}
-.vis .cap{padding:10px 12px;font:700 15px -apple-system,sans-serif;background:var(--recuo);color:var(--graf);border-top:1px solid var(--linha)}
+.vis .cap{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;font:700 15px -apple-system,sans-serif;background:var(--recuo);color:var(--graf);border-top:1px solid var(--linha)}
 .vis.zoom img{width:auto;min-width:1000px}
 .chip.ok{background:#E3F1E8;color:var(--ok)}
 .chip.err{background:#FBE3E1;color:var(--critico)}
@@ -352,7 +353,7 @@ C1:'Recibo da escritura',C2:'É o recibo que o cartório emitiu para você. Conf
 D1:'',D1b:'',D2:'',D3:'Para o cartório de notas',D4:'20º Tabelião de Notas',D5:'Valor a pagar',D7:'',D8:'Pague por Pix',D9:'Chave Pix (CNPJ)',D11:'',D13:'Prefere pagar por TED? Toque para ver as contas',D16:'Copiar',D17:'Copiado!',D18:'',D19:'Comprovante do pagamento da escritura',D20:'',D21:'✓ Anexado',D22a:'',D22b:'📁 Escolher',D23:'Continuar para o pagamento do registro',D24:'Anexe o comprovante para continuar',D24b:'Tudo certo, pode seguir',D25:'',
 E1:'',E1b:'',E2:'',E3:'Para o registro de imóveis',E4:'Registro de Imóveis',E5:'Valor a pagar',E7:'',E8:'',E9:'Pague pelo código de barras',E10:'Código de barras',E11:'',E12:'',E13:'',E14:'Comprovante do pagamento do registro',E15:'Concluir',E16:'Anexe o comprovante para concluir',E16b:'Tudo certo, pode concluir',
 G1:'Anexe os comprovantes',G5:'',G6:'+ Adicionar comprovante',G6b:'+ Adicionar outro',G3:'Enviar comprovantes',G4a:'Falta 1 comprovante',G4b:'Faltam {n} comprovantes',G4c:'Tudo certo, pode enviar',
-F1:'Pagamentos recebidos',F2:'Escritura: {escritura}, comprovante recebido',F3:'Registro de imóveis: {registro}, comprovante recebido',F4:'Comprovantes recebidos com sucesso! Agradecemos a parceria e a confiança.',
+F1:'Pagamentos recebidos',F2:'Escritura: {escritura}, comprovante recebido',F3:'Registro de imóveis: {registro}, comprovante recebido',F4:'Comprovantes recebidos com sucesso! Agradecemos a parceria e a confiança. Conte sempre conosco.',
 F5:'Este link já foi usado: o cartório já recebeu os seus comprovantes. Se precisar de algo, fale com o cartório.',F6:'Este link venceu. Peça um novo ao cartório.'
 };
 const $=s=>document.querySelector(s);
@@ -404,8 +405,11 @@ function overlay(){
   const tit=orc?'Orçamento':t(rec?'C1':'C5'), ap=orc?'':`<div class="ap">${t(rec?'C2':'C6')}</div>`;
   const srcs=(orc?[im.orcamento]:rec?(im.recibos&&im.recibos.length?im.recibos:[im.recibo]):(im.boletos&&im.boletos.length?im.boletos:[im.boleto])).filter(Boolean);
   const rotulo=rec?'Recibo':'Boleto';
-  const pdf=(!rec&&!orc&&im.boletoPdf)?`<a class="sec" href="${esc(im.boletoPdf)}" download="boleto.pdf">Baixar PDF</a>`:'';
-  v.innerHTML=`<div class="tt"><span>${tit}</span><span class="bs">${pdf}<button type="button" class="sec" data-zoom>${zoom?'Ajustar':t(rec?'C3':'C7')}</button><button type="button" data-fechar>${t('C4')}</button></span></div>${ap}<div class="im">${srcs.length?srcs.map((u,i)=>(srcs.length>1&&!orc?`<div class="cap">${rotulo} ${i+1} de ${srcs.length}</div>`:'')+`<img src="${esc(u)}" alt="">`).join(''):'<p style="padding:20px;font-size:17px">Não há imagem para mostrar.</p>'}</div>`;
+  const nomeArq=rec?'recibo':'boleto', semPdf=!rec&&!orc&&!im.boletoPdf;
+  const baixa=(u,i)=>`<a class="sec" href="${esc(u)}" download="${nomeArq}${srcs.length>1?'-'+(i+1):''}.jpg">Baixar</a>`;
+  const umSo=srcs.length===1&&(rec||semPdf)?`<a class="sec" href="${esc(srcs[0])}" download="${nomeArq}.jpg">Baixar ${nomeArq}</a>`:'';
+  const pdf=umSo||((!rec&&!orc&&im.boletoPdf)?`<a class="sec" href="${esc(im.boletoPdf)}" download="boleto.pdf">Baixar PDF</a>`:'');
+  v.innerHTML=`<div class="tt"><span>${tit}</span><span class="bs">${pdf}<button type="button" class="sec" data-zoom>${zoom?'Ajustar':t(rec?'C3':'C7')}</button><button type="button" data-fechar>${t('C4')}</button></span></div>${ap}<div class="im">${srcs.length?srcs.map((u,i)=>(srcs.length>1&&!orc?`<div class="cap"><span>${rotulo} ${i+1} de ${srcs.length}</span>${baixa(u,i)}</div>`:'')+`<img src="${esc(u)}" alt="">`).join(''):'<p style="padding:20px;font-size:17px">Não há imagem para mostrar.</p>'}</div>`;
 }
 function reduzir(file){
   if(!file.type.startsWith('image/')||file.type==='image/gif') return Promise.resolve(file);
