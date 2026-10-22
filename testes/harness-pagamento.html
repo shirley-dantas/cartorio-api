@@ -438,6 +438,8 @@ async function pagGerarLink(){
   if(comE){ if(!valE) falta.push('o valor da escritura'); if(!e.recibos.length&&!(c.pagamento&&c.pagamento.itens&&c.pagamento.itens.escritura&&e.link)) falta.push('o recibo do cartório'); }
   if(comR){ if(!valR) falta.push('o valor do boleto'); if(!pagVencOk(e.venc)) falta.push('o vencimento (dd/mm/aaaa)'); if(!String(e.codigo).replace(/\D/g,'')) falta.push('o código de barras'); if(!e.boletos.length&&!e.link) falta.push('o boleto'); }
   if(falta.length){ e.erro='Falta '+falta.join(', ')+'.'; pagDesenhar(); return; }
+  // O código de barras carrega o valor: se o banco mostrar um número diferente do que a página diz, o cliente desconfia ou paga errado.
+  if(comR){ const ln=pagLerLinhaDigitavel(e.codigo); if(ln&&ln.centavos&&ln.centavos!==valR){ e.erro='O código de barras diz '+pagMoeda(ln.centavos)+', mas o valor do boleto está '+pagMoeda(valR)+'. Confira qual está certo.'; pagDesenhar(); return; } }
   e.erro=''; e.gerando=true; pagDesenhar();
   try{
     const imagens={};

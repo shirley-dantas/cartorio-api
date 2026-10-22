@@ -185,6 +185,16 @@ await passo('mais de um boleto: todos vão, o campo de sempre leva o primeiro, e
   assert.equal(im.boletos.length, 2); assert.equal(im.boleto, im.boletos[0]);
 });
 
+await passo('o valor do boleto tem de bater com o que o código de barras carrega: se divergir, o aviso diz os dois e nada é gravado', async () => {
+  const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="registro"]');
+  await pg.fill('#pag-valR', '3.000,00'); await pg.fill('#pag-venc', '23/10/2026'); await pg.fill('#pag-codigo', '26091.90299 37227.373505 99600.000006 2 16080000386807');
+  await pg.locator('#pag-boleto').setInputFiles(IMG); await pg.route('https://script.google.com/**', (r) => r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify({ok: false, erro: 'x'})}));
+  await pg.click('#pag-gerar'); await pg.waitForSelector('.pag-erro');
+  const e = await pg.innerText('.pag-erro'); assert(/código de barras diz R\$\s*3\.868,07/.test(e) && /R\$\s*3\.000,00/.test(e), e);
+  assert.equal((await pg.evaluate(() => window.__grav)).length, 0);
+  await pg.fill('#pag-valR', '3.868,07'); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
+});
+
 await passo('só o registro: a mensagem fala do registro e a escritura não entra', async () => {
   const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="registro"]');
   await pg.fill('#pag-valR', '100,00'); await pg.fill('#pag-venc', '23/10/2026'); await pg.fill('#pag-codigo', '123'); await pg.locator('#pag-boleto').setInputFiles(IMG); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');

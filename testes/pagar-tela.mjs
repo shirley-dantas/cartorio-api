@@ -179,10 +179,26 @@ await passo('dá para baixar o recibo e o boleto: um botão com o nome certo, e 
   assert.deepEqual(await v.pg.locator('#vis .cap a[download]').evaluateAll((l) => l.map((a) => a.getAttribute('download'))), ['recibo-1.jpg', 'recibo-2.jpg']);
 });
 
-await passo('copiar: a chave Pix e o código de barras vão para a área de transferência e o botão confirma', async () => {
-  const {pg} = await abrir(); const btn = pg.locator('[data-copy]').first(); assert.equal(await btn.getAttribute('data-copy'), '45.566.502/0001-12');
+await passo('Pix copia e cola, sem nada a mais na tela: o Copiar da chave leva a chave E o valor (CRC conferido)', async () => {
+  const {pg} = await abrir();
+  assert.equal(await pg.locator('.c-pix, .c-dica').count(), 0, 'nenhum botão ou aviso a mais');
+  const btn = pg.locator('.c-bloco [data-copy]').first(); const rot = await pg.locator('.c-bloco').first().innerText(); assert(/45\.566\.502\/0001-12/.test(rot) && /Pix Copia e Cola/.test(rot) && !/Chave Pix/.test(rot), 'o rótulo diz Pix Copia e Cola (o que ela esqueceu uma vez) e a chave continua visível');
+  const code = await btn.getAttribute('data-copy');
+  const tlv = (str) => { const o = {}; let i = 0; while (i < str.length) { const id = str.slice(i, i + 2), n = +str.slice(i + 2, i + 4); o[id] = str.slice(i + 4, i + 4 + n); i += 4 + n; } return o; };
+  const crc = (str) => { let c = 0xFFFF; for (const ch of str) { c ^= ch.charCodeAt(0) << 8; for (let k = 0; k < 8; k++) c = (c & 0x8000) ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF; } return c.toString(16).toUpperCase().padStart(4, '0'); };
+  assert.equal(crc('123456789'), '29B1'); assert.equal(code.slice(-4), crc(code.slice(0, -4)), 'o CRC fecha');
+  const t = tlv(code); const conta = tlv(t['26']);
+  assert.equal(t['00'], '01'); assert.equal(t['01'], '11'); assert.equal(conta['00'], 'br.gov.bcb.pix'); assert.equal(conta['01'], '45566502000112', 'a chave do 20º Tabelião');
+  assert.equal(t['54'], '3039.89', 'o valor da escritura'); assert.equal(t['53'], '986'); assert.equal(t['58'], 'BR'); assert.equal(t['59'], '20 TABELIAO DE NOTAS'); assert.equal(t['60'], 'SAO PAULO');
+  assert(!/[^\x20-\x7E]/.test(code), 'só ASCII');
   await btn.click(); assert(/Copiado!/.test(await btn.textContent()));
-  assert.equal(await pg.locator('[data-copy]').nth(1).getAttribute('data-copy'), '26091.90299 37227.373505 99600.000006 2 16080000386807');
+});
+
+await passo('copiar: a chave Pix e o código de barras vão para a área de transferência e o botão confirma', async () => {
+  const {pg} = await abrir(); const btn = pg.locator('.c-bloco [data-copy]').first(); assert(/^000201010211/.test(await btn.getAttribute('data-copy')), 'o Copiar do Pix leva o copia e cola');
+  await btn.click(); assert(/Copiado!/.test(await btn.textContent()));
+  assert.equal(await pg.locator('.c-bloco [data-copy]').nth(1).getAttribute('data-copy'), '26091902993722737350599600000006216080000386807', 'o código vai só com os 47 dígitos, que todo banco aceita');
+  assert(/26091\.90299 37227\.373505/.test(await pg.locator('.c-bloco').nth(1).innerText()), 'na tela continua legível, com pontos e espaços');
 });
 
 await passo('no celular nada rola de lado, e no computador também cabe', async () => {
