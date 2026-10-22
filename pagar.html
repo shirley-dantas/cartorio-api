@@ -390,7 +390,7 @@ async function carregar(){
     if(!r.ok) return invalido('Não consegui abrir este link agora. Tente de novo em instantes.');
     cob=await r.json();
   }catch(e){ return invalido('Sem conexão. Confira a internet e tente de novo.'); }
-  if(!cob||!cob.meta||!cob.dados) return invalido();
+  if(!cob||!cob.meta||!cob.dados||cob.meta.tipo==='orcamento') return invalido();
   if(cob.meta.concluidoEm) return invalido(txt('F5'));
   if(cob.meta.expiraEm&&Date.now()>cob.meta.expiraEm) return invalido(txt('F6'));
   const it=cob.meta.itens||{};

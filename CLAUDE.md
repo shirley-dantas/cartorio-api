@@ -1102,6 +1102,14 @@ Regras dela que **não devem ser mexidas sem perguntar**:
   usa o que as contas confirmam (`pagConferirRecibo`: os dois totais iguais e a soma das linhas igual ao total; `pagLerLinhaDigitavel`:
   três dígitos verificadores, e dela saem o valor e o vencimento — não da IA). Só preenche campo em branco (o que ela digitou vale),
   cada campo lido leva "lido do documento — confira", e a falha da leitura nunca trava: aparece escrita e ela digita à mão.
+- **O cliente aprova o orçamento por um link, com um botão só.** Na linha de cada versão do orçamento, *Link para aprovar*
+  (`orcLinkAprovacao`) grava `/cobrancas/{código}` com `meta.tipo:'orcamento'` (a folha do cliente como imagem) e devolve
+  `/o/{código}` (`orcamento.html`, reescrita no `vercel.json`). A página mostra a folha e **só "Aprovo este orçamento"** — ela
+  decidiu em 22/10/2026 que não há "tenho uma dúvida". Tocar chama o Apps Script `orcamento-aprovar`, que grava
+  `/casos/{id}/orcAprovacao` (`orcId`, `versao`, `em`, `visto:false`): é um campo **próprio**, que não mexe no status do orçamento
+  (ela usa os status para outras coisas). O card mostra "✅ Cliente aprovou", o topo do painel avisa, e a janela do link de
+  pagamento já nasce com a versão aprovada. A aprovação vale só para a versão que o cliente viu: versão nova, link novo.
+  Link de orçamento nunca serve de link de pagamento (e o contrário): `meta.tipo` é conferido nos dois Apps Script/páginas.
 - **"2.000" é dois mil** (`pagCentavos`): o mesmo erro do financeiro, que já aconteceu uma vez.
 - Passo manual: regras do banco com `/cobrancas` e Apps Script novo (`FIREBASE.md`, seção 12). Testes:
   `testes/pagar-tela.mjs` (a página), `testes/pagamento-envio.mjs` (o Apps Script) e `testes/pagamento-painel.mjs` (a janela,
@@ -1189,7 +1197,7 @@ node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
 node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs
-node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
+node testes/orcamento-link-tela.mjs && node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
 ```
 
 O `montar.mjs` também gera o `preview-quadro.html`, que é o desenho da seção

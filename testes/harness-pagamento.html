@@ -43,8 +43,18 @@ function pagMensagem(itens,link){
   return `Olá! Para ${itens==='ambos'?'conferir e fazer ':'fazer '}${alvo}, abra este link pelo celular:\n${link}\n\n20º Tabelião de Notas`;
 }
 // A faixa do card: gerar o link, esperar, e quando chega, conferir e imprimir.
+// A aprovação do orçamento pelo cliente (link /o/): registrada no card, serve de ponto de partida do link de pagamento.
+function orcAprovacaoHtml(c){
+  const a=c&&c.orcAprovacao, l=c&&c.orcLink;
+  if(a&&a.em) return `<span class="cx-ped-rec" style="flex-basis:100%"><b>✅ Cliente aprovou o orçamento</b>${a.versao?' (versão '+esc(a.versao)+')':''} · ${esc(pagQuando(a.em))}</span>`;
+  if(l&&l.token) return `<span class="cx-ped-rec" style="flex-basis:100%">Link do orçamento enviado${l.criadoEm?' em '+esc(pagQuando(l.criadoEm)):''}${l.versao?' (versão '+esc(l.versao)+')':''} · aguardando a aprovação do cliente</span>`;
+  return '';
+}
 function pagFaixaHtml(c){
   if(!c||!c.id) return '';
+  return orcAprovacaoHtml(c)+pagFaixaPagamentoHtml(c);
+}
+function pagFaixaPagamentoHtml(c){
   const p=c.pagamento, it=(p&&p.itens)||{};
   const gerar=`<button type="button" class="cx-btn destaque" onclick="abrirPagamento('${esc(c.id)}')"><i class="ti ti-credit-card"></i> ${p?'Gerar outro link de pagamento':'Gerar link de pagamento'}</button>`;
   if(!p||!p.token) return gerar;
@@ -56,7 +66,22 @@ function pagFaixaHtml(c){
   return `<span class="cx-ped-rec" style="flex-basis:auto">Link gerado${p.criadoEm?' em '+esc(pagQuando(p.criadoEm)):''} · aguardando o cliente · ${esc(quais)}</span><button type="button" class="cx-btn" onclick="copiarLinkPagamento('${esc(c.id)}',this)"><i class="ti ti-copy"></i> Copiar link</button>${gerar}`;
 }
 // O aviso no topo do painel, junto do de envio de documentos.
+function orcAprovacaoAvisosHtml(casosLista){
+  return Object.values(casosLista||{}).filter(c=>c&&c.orcAprovacao&&c.orcAprovacao.em&&!c.orcAprovacao.visto)
+    .sort((a,b)=>(b.orcAprovacao.em||0)-(a.orcAprovacao.em||0)).map(c=>{ const a=c.orcAprovacao;
+    return `<div class="cc-envio"><span class="cc-envio-ico"><i class="ti ti-circle-check"></i></span>
+      <span class="cc-envio-txt"><b>Cliente aprovou o orçamento</b> — ${escTxt(c.nome)}<small>${esc(pagQuando(a.em))}${a.versao?' · versão '+esc(a.versao):''} · já dá para gerar o link de pagamento</small></span>
+      <button type="button" class="cc-envio-btn forte" onclick="abrirAprovacao('${esc(c.id)}')">Abrir o card</button>
+      <button type="button" class="cc-envio-btn" onclick="vistoAprovacao('${esc(c.id)}')">Já vi</button></div>`; }).join('');
+}
+window.vistoAprovacao=function(id){
+  return update(ref(db,'casos/'+id+'/orcAprovacao'),{visto:true,vistoEm:Date.now()}).catch(e=>alert('Não consegui marcar como visto: '+(e&&e.message||e)));
+};
+window.abrirAprovacao=function(id){ window.vistoAprovacao(id); window.irParaCasoPorId(id); };
 function pagAvisosHtml(casosLista){
+  return orcAprovacaoAvisosHtml(casosLista)+pagAvisosPagamentoHtml(casosLista);
+}
+function pagAvisosPagamentoHtml(casosLista){
   const lista=Object.values(casosLista||{}).filter(c=>c&&c.pagamento&&c.pagamento.status==='recebido'&&!c.pagamento.visto)
     .sort((a,b)=>(b.pagamento.recebidoEm||0)-(a.pagamento.recebidoEm||0));
   return lista.map(c=>{ const p=c.pagamento, it=p.itens||{};
@@ -147,7 +172,11 @@ const pagLerComoUrl=file=>new Promise((ok,no)=>{ const r=new FileReader(); r.onl
 // Os orçamentos do card que dá para mandar o cliente rever. O status "Aprovado pelo cliente" não é exigido (ela usa os status
 // para outras coisas): ela escolhe a versão na janela; o que nasce marcado é o último com esse status, ou o mais recente.
 function pagOrcamentosDoCaso(casoId){ return (typeof orcDoCaso==='function'?orcDoCaso(casoId):[]).filter(o=>o&&o.resultado); }
-function pagOrcamentoPadrao(casoId){ const l=pagOrcamentosDoCaso(casoId), a=l.filter(o=>o.status==='aceito'); return (a.length?a:l).slice(-1)[0]||null; }
+function pagOrcamentoPadrao(casoId){
+  const l=pagOrcamentosDoCaso(casoId), ap=(casos[casoId]||{}).orcAprovacao;
+  const doLink=ap&&ap.orcId?l.find(o=>String(o.id)===String(ap.orcId)):null; if(doLink) return doLink;
+  const a=l.filter(o=>o.status==='aceito'); return (a.length?a:l).slice(-1)[0]||null;
+}
 function pagOrcamentoEscolhido(casoId,id){ return id?pagOrcamentosDoCaso(casoId).find(o=>String(o.id)===String(id))||null:null; }
 function pagImagemOrcamento(o){
   try{
@@ -259,6 +288,26 @@ async function pagLerArquivo(alvo,f){
   e.lendo[alvo]=false; e.nota[alvo]=nota; pagDesenhar();
 }
 
+// ── O link do orçamento: o cliente vê a folha e toca em "Aprovo" ──
+const orcLinkDe=tok=>(ENVIO_BASE_URL||location.origin).replace(/\/+$/,'')+'/o/'+tok;
+window.orcLinkAprovacao=async function(casoId,orcId){
+  const c=casos[casoId]||{}, o=pagOrcamentoEscolhido(casoId,orcId);
+  if(!o){ alert('Não achei este orçamento.'); return; }
+  const imagem=pagImagemOrcamento(o);
+  if(!imagem){ alert('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.'); return; }
+  const token=codigoDeEnvio(), agora=Date.now(), link=orcLinkDe(token);
+  try{
+    await set(ref(db,'cobrancas/'+token),orcSemUndefined({meta:{tipo:'orcamento',casoId,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,expiraEm:agora+15*864e5},dados:{nome:c.nome||'',ato:c.tipo||''},imagens:{orcamento:imagem}}));
+    await set(ref(db,'casos/'+casoId+'/orcLink'),orcSemUndefined({token,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora}));
+  }catch(err){
+    const negado=/permission|PERMISSION/.test(String(err&&err.message||err));
+    alert(negado?'O banco recusou a gravação. As regras do Firebase com o caminho /cobrancas precisam estar publicadas (FIREBASE.md).':'Não consegui gerar o link: '+((err&&err.message)||err)); return;
+  }
+  const msg=`Olá! Para conferir e aprovar o seu orçamento, abra este link pelo celular:\n${link}\n\n20º Tabelião de Notas`;
+  window.__ultimoLinkOrc={link,msg};
+  try{ await navigator.clipboard.writeText(msg); finToast('Link do orçamento copiado. É só colar no WhatsApp.'); }catch(_){ prompt('Copie o texto e envie ao cliente:',msg); }
+};
+
 // ── A janela de gerar o link ──
 let pagEst=null;
 function pagLerMemoria(){ try{ return JSON.parse(localStorage.getItem('painel_pag_benef')||'null')||{}; }catch(_){ return {}; } }
@@ -288,7 +337,7 @@ function pagDesenhar(){
     <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">O que vai neste link</div>${opt('ambos','Escritura e registro')} ${opt('escritura','Só a escritura')} ${opt('registro','Só o registro')}</div>
     ${esc1?`<div class="pag-bloco"><div class="pag-tit">1 · Escritura — 20º Tabelião de Notas</div>${campo('Valor a pagar (R$)','pag-valE',e.valE,'3.039,89','inputmode="decimal"')}${arq('Recibo do cartório (PDF ou foto)','pag-recibo',e.recibo,true)}</div>`:''}
     ${reg1?`<div class="pag-bloco"><div class="pag-tit">${esc1?'2':'1'} · Registro de imóveis — boleto</div>${campo('Valor do boleto (R$)','pag-valR',e.valR,'3.868,07','inputmode="decimal"')}${campo('Vencimento (dd/mm/aaaa)','pag-venc',e.venc,'23/10/2026','inputmode="numeric" maxlength="10"')}${campo('Código de barras (linha digitável)','pag-codigo',e.codigo,'26091.90299 37227.373505 …')}${campo('Beneficiário, como aparece no boleto','pag-benef',e.benef,'')}${campo('CNPJ do beneficiário','pag-cnpj',e.cnpj,'')}${arq('Boleto (PDF ou foto)','pag-boleto',e.boleto,true)}</div>`:''}
-    <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">Orçamento para o cliente rever</div>${(()=>{ const l=pagOrcamentosDoCaso(e.id); if(!l.length) return '<div style="font-size:13px">Este card ainda não tem orçamento salvo: o botão de rever o orçamento não aparece na página.</div>'; return `<select class="fin-input" id="pag-orc" style="width:100%"><option value="">Nenhum (sem o botão de rever o orçamento)</option>${l.map(o=>`<option value="${esc(o.id)}"${String(o.id)===String(e.orcId)?' selected':''}>Versão ${esc(o.versao)} — ${esc((typeof orcStatus==='function'?orcStatus(o.status).rot:o.status)||'')}</option>`).join('')}</select>`; })()}</div>
+    <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">Orçamento para o cliente rever</div>${(()=>{ const l=pagOrcamentosDoCaso(e.id); if(!l.length) return '<div style="font-size:13px">Este card ainda não tem orçamento salvo: o botão de rever o orçamento não aparece na página.</div>'; return `<select class="fin-input" id="pag-orc" style="width:100%"><option value="">Nenhum (sem o botão de rever o orçamento)</option>${l.map(o=>`<option value="${esc(o.id)}"${String(o.id)===String(e.orcId)?' selected':''}>Versão ${esc(o.versao)} — ${esc((typeof orcStatus==='function'?orcStatus(o.status).rot:o.status)||'')}${((casos[e.id]||{}).orcAprovacao||{}).orcId===String(o.id)?' — ✅ aprovada pelo cliente no link':''}</option>`).join('')}</select>`; })()}</div>
     ${e.erro?`<div class="pag-erro">${esc(e.erro)}</div>`:''}
     <div class="pag-acoes"><button type="button" class="cx-btn destaque" id="pag-gerar"${e.gerando?' disabled':''}>${e.gerando?'Gerando…':(e.link?'Atualizar o link':'Gerar link')}</button></div>
     ${e.link?`<div class="pag-bloco"><div class="fin-rot">Link de pagamento (vale por 15 dias)</div><input class="fin-input" readonly value="${esc(e.link)}" onclick="this.select()" style="width:100%">

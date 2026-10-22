@@ -151,5 +151,21 @@ await passo('ler o recibo/boleto pela IA: devolve o JSON, recusa tipo/arquivo es
   saida = 'não consegui ler'; assert(/formato legível/.test(m.chamar({acao: 'pagamento-ler', tipo: 'recibo', mimetype: 'image/png', base64: B64}).erro));
   saida = new Error('IA fora'); assert(/IA fora/.test(m.chamar({acao: 'pagamento-ler', tipo: 'recibo', mimetype: 'image/png', base64: B64}).erro));
 });
+
+await passo('aprovar o orçamento: registra no card (versão, data, não visto), fecha para repetir, e só vale para link de orçamento', () => {
+  const m = mundo(); semear(m);
+  m.db.cobrancas.ORCtoken1234567890abcdef = {meta: {tipo: 'orcamento', casoId: '-Caso1', orcId: 'o2', versao: '2', criadoEm: Date.now(), expiraEm: Date.now() + 864e5}, dados: {nome: 'Maria'}, imagens: {}};
+  const T = 'ORCtoken1234567890abcdef';
+  assert.equal(m.chamar({acao: 'orcamento-aprovar', t: TOKEN}).ok, false, 'link de pagamento não aprova orçamento');
+  assert.equal(m.chamar({acao: 'orcamento-aprovar', t: 'curto'}).ok, false);
+  const r = m.chamar({acao: 'orcamento-aprovar', t: T}); assert.equal(r.ok, true);
+  const a = m.db.casos['-Caso1'].orcAprovacao; assert.equal(a.orcId, 'o2'); assert.equal(a.versao, '2'); assert.equal(a.visto, false); assert.equal(a.em, r.em);
+  assert.equal(m.db.cobrancas[T].meta.aprovadoEm, r.em);
+  const de = m.chamar({acao: 'orcamento-aprovar', t: T}); assert.equal(de.ok, true); assert.equal(de.em, r.em, 'aprovar de novo não muda a data');
+  assert.equal(m.db.casos['-Caso1'].pagamento.status, 'aguardando', 'não mexe no pagamento');
+  m.db.cobrancas.ORCvencido1234567890abcd = {meta: {tipo: 'orcamento', casoId: '-Caso1', orcId: 'o1', versao: '1', expiraEm: Date.now() - 1000}};
+  assert(/venceu/.test(m.chamar({acao: 'orcamento-aprovar', t: 'ORCvencido1234567890abcd'}).erro));
+  assert.equal(m.chamar(arq('escritura', {t: T})).ok, false, 'o link do orçamento não recebe comprovante de pagamento');
+});
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo');
 process.exit(erros.length ? 1 : 0);

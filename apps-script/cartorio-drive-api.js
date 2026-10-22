@@ -1155,6 +1155,7 @@ function doPost(e) {
     if (acao === "pagamento-concluir") return pagamentoConcluir(dados);
     if (acao === "pagamento-ver") return pagamentoVer(dados);
     if (acao === "pagamento-ler") return pagamentoLer(dados);
+    if (acao === "orcamento-aprovar") return orcamentoAprovar(dados);
     if (acao === "cliente-remover") return clienteRemover(dados);
     if (acao === "cliente-excluir") return clienteExcluir(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
@@ -1701,6 +1702,7 @@ function cobrancaDoCliente(token, aceitaConcluido) {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
   var meta = firebaseLer("/cobrancas/" + token + "/meta");
   if (!meta || !meta.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(meta.casoId))) return null;
+  if (meta.tipo === "orcamento") return null; // o link do orçamento não serve de link de pagamento
   if (meta.expiraEm && Date.now() > meta.expiraEm) return null;
   if (meta.concluidoEm && !aceitaConcluido) return null; // já enviado: o link fecha
   var nome = firebaseLer("/casos/" + meta.casoId + "/nome");
@@ -1755,6 +1757,26 @@ function pagamentoConcluir(dados) {
   try { firebaseGravar("patch", "/casos/" + ctx.casoId + "/pagamento", { status: "recebido", recebidoEm: agora, visto: false }); } catch (e) { /* o aviso é cortesia */ }
   try { enviarWhatsApp("💳 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou o comprovante de pagamento (" + itens.map(function (k) { return PAGAMENTO_ROTULO[k]; }).join(" e ") + "). Está no card."); } catch (e) { /* aviso é cortesia */ }
   return resp({ ok: true });
+}
+
+// O cliente toca em "Aprovo este orçamento": fica registrado no card (versão, data e hora) para o link de pagamento
+// e para a equipe. Só vale para um link de orçamento (meta.tipo) ainda aberto, e aprovar de novo não muda a data.
+function orcamentoAprovar(dados) {
+  var token = String(dados.t || "");
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return resp({ ok: false, erro: "Link inválido." });
+  var meta = firebaseLer("/cobrancas/" + token + "/meta");
+  if (!meta || meta.tipo !== "orcamento" || !meta.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(meta.casoId))) return resp({ ok: false, erro: "Link inválido." });
+  if (meta.aprovadoEm) return resp({ ok: true, em: meta.aprovadoEm, ja: true });
+  if (meta.expiraEm && Date.now() > meta.expiraEm) return resp({ ok: false, erro: "Este link venceu. Peça um novo ao cartório." });
+  var nome = firebaseLer("/casos/" + meta.casoId + "/nome");
+  if (nome === undefined || nome === null) return resp({ ok: false, erro: "Link inválido." });
+  var agora = Date.now();
+  var a = firebaseGravar("patch", "/cobrancas/" + token + "/meta", { aprovadoEm: agora });
+  if (a.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro (" + a.getResponseCode() + ")." });
+  var b = firebaseGravar("put", "/casos/" + meta.casoId + "/orcAprovacao", { orcId: String(meta.orcId || "").slice(0, 60), versao: String(meta.versao || "").slice(0, 20), em: agora, token: token, visto: false });
+  if (b.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro no card (" + b.getResponseCode() + ")." });
+  try { enviarWhatsApp("✅ O cliente do caso \"" + textoCliente(nome, 80) + "\" aprovou o orçamento (versão " + String(meta.versao || "") + "). Está no card."); } catch (e) { /* aviso é cortesia */ }
+  return resp({ ok: true, em: agora });
 }
 
 // O painel pede para a IA ler o recibo ou o boleto que acabou de anexar, e preencher os campos da janela de pagamento.
