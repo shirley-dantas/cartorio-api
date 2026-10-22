@@ -300,9 +300,7 @@ body{background:#F6F3EC}
 .c-tit{flex:1;min-width:0}.c-tit b{display:block;font-size:18px;line-height:1.25}.c-tit small{display:block;color:var(--graf-2);font-size:15px;margin-top:2px}
 .c-val{font-size:23px;font-weight:700;white-space:nowrap}
 .c-ver{display:inline-block;margin:12px 0 0 46px;border:0;background:#F1EDE3;color:var(--champ-texto);border-radius:999px;padding:8px 16px;font:600 15px -apple-system,Inter,sans-serif;cursor:pointer}
-.c-pix{display:block;width:100%;margin-top:16px;border:0;border-radius:999px;background:var(--graf);color:#fff;padding:16px;font:700 18px -apple-system,Inter,sans-serif;cursor:pointer}
-.c-dica{margin:8px 4px 0;text-align:center;font-size:14px;color:var(--graf-2)}
-.c-bloco{margin-top:12px;background:#F7F4EE;border-radius:18px;padding:14px 16px}
+.c-bloco{margin-top:16px;background:#F7F4EE;border-radius:18px;padding:14px 16px}
 .c-bloco small{display:block;color:var(--graf-2);font-size:14px;margin-bottom:4px}
 .c-linha{display:flex;align-items:center;gap:12px}.c-linha b{flex:1;font-size:18px;line-height:1.35;word-break:break-word}
 .c-bloco:not(:has(.c-linha b:only-child)) .c-linha b{font-size:18px}
@@ -352,7 +350,7 @@ A1:'Pagamento',A2:'20º Tabelião de Notas',A3:'Escrevente Shirley Dantas',A4:'W
 B1:'',B2:'',B3:'',B4:'20º Tabelião de Notas',B5:'Pagamento por TED ou PIX',B6:'Ver o recibo ›',B7:'Registro de Imóveis',B8:'Pagamento por meio de boleto bancário',B9:'Ver o boleto ›',B10:'',B21:'Pagar ›',B11:'Para sua conferência, reveja seu orçamento aqui!',B12:'',B13:'',B13b:'',B14:'',
 B15:'Confira o valor',B16:'Você fará 1 pagamento. Toque nele para ver os detalhes.',B17:'Fazer o pagamento da escritura',B18:'Confira o valor',B19:'Você fará 1 pagamento. Toque nele para ver os detalhes.',B20:'Fazer o pagamento do registro',
 C1:'Recibo da escritura',C2:'É o recibo que o cartório emitiu para você. Confira os dados.',C3:'Ampliar',C4:'Voltar para os valores',C5:'Boleto do registro',C6:'É o boleto do registro de imóveis. Confira os dados.',C7:'Ampliar',
-D1:'',D1b:'',D2:'',D3:'Para o cartório de notas',D4:'20º Tabelião de Notas',D5:'Valor a pagar',D7:'',D8:'Pague por Pix',D9:'Chave Pix (CNPJ)',D11:'',D13:'Prefere pagar por TED? Toque para ver as contas',P1:'Copiar Pix com o valor',P2:'No app do banco: Pix → Pix Copia e Cola',D16:'Copiar',D17:'Copiado!',D18:'',D19:'Comprovante do pagamento da escritura',D20:'',D21:'✓ Anexado',D22a:'',D22b:'📁 Escolher',D23:'Continuar para o pagamento do registro',D24:'Anexe o comprovante para continuar',D24b:'Tudo certo, pode seguir',D25:'',
+D1:'',D1b:'',D2:'',D3:'Para o cartório de notas',D4:'20º Tabelião de Notas',D5:'Valor a pagar',D7:'',D8:'Pague por Pix',D9:'Chave Pix (CNPJ)',D11:'',D13:'Prefere pagar por TED? Toque para ver as contas',D16:'Copiar',D17:'Copiado!',D18:'',D19:'Comprovante do pagamento da escritura',D20:'',D21:'✓ Anexado',D22a:'',D22b:'📁 Escolher',D23:'Continuar para o pagamento do registro',D24:'Anexe o comprovante para continuar',D24b:'Tudo certo, pode seguir',D25:'',
 E1:'',E1b:'',E2:'',E3:'Para o registro de imóveis',E4:'Registro de Imóveis',E5:'Valor a pagar',E7:'',E8:'',E9:'Pague pelo código de barras',E10:'Código de barras',E11:'',E12:'',E13:'',E14:'Comprovante do pagamento do registro',E15:'Concluir',E16:'Anexe o comprovante para concluir',E16b:'Tudo certo, pode concluir',
 G1:'Anexe os comprovantes',G5:'',G6:'+ Adicionar comprovante',G6b:'+ Adicionar outro',G3:'Enviar comprovantes',G4a:'Falta 1 comprovante',G4b:'Faltam {n} comprovantes',G4c:'Tudo certo, pode enviar',
 F1:'Pagamentos recebidos',F2:'Escritura: {escritura}, comprovante recebido',F3:'Registro de imóveis: {registro}, comprovante recebido',F4:'Comprovantes recebidos com sucesso! Agradecemos a parceria e a confiança. Conte sempre conosco.',
@@ -398,9 +396,10 @@ function tela(){
     const bloco=(rot,valor,copia,sem)=>`<div class="c-bloco"><small>${rot}</small><div class="c-linha"><b${sem?' style="white-space:nowrap;font-size:17px"':''}>${valor}</b><button type="button" class="c-copiar" data-copy="${esc(copia)}">${t('D16')}</button></div></div>`;
     const reg=(cob.dados||{}).registro||{};
     const vE=Number(((cob.dados||{}).escritura||{}).valorCent)||0;
-    const pixBotao=()=>vE>0?`<button type="button" class="c-pix" data-copy="${esc(pixCopiaECola(PIX_CHAVE,vE,PIX_NOME,PIX_CIDADE))}">${t('P1')}</button>${txt('P2')?`<p class="c-dica">${t('P2')}</p>`:''}`:'';
+    // O Copiar da chave leva o Pix "copia e cola" com o valor: o cliente cola no banco e o valor já vem preenchido, sem nada a mais na tela.
+    const pixCola=()=>vE>0?pixCopiaECola(PIX_CHAVE,vE,PIX_NOME,PIX_CIDADE):'45.566.502/0001-12';
     const l=[];
-    if(modo!=='registro')l.push(`<section class="cartao">${topo(1,'B4','B5','B6',V().escritura,'recibo')}${pixBotao()}${bloco(t('D9'),'45.566.502/0001-12','45.566.502/0001-12',true)}<details class="c-ted"><summary>${t('D13')}</summary>${bancos}</details></section>`);
+    if(modo!=='registro')l.push(`<section class="cartao">${topo(1,'B4','B5','B6',V().escritura,'recibo')}${bloco(t('D9'),'45.566.502/0001-12',pixCola(),true)}<details class="c-ted"><summary>${t('D13')}</summary>${bancos}</details></section>`);
     if(modo!=='escritura')l.push(`<section class="cartao">${topo(modo==='registro'?1:2,'B7','B8','B9',V().registro,'boleto')}${reg.codigo?bloco(t('E10'),esc(reg.codigo),reg.codigo):''}</section>`);
     h=l.join('')+(im.orcamento?`<button type="button" class="p-sec2" data-vis="orc">${t('B11')}</button>`:'')+anexosHtml();
   }
