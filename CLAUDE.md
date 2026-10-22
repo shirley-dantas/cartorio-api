@@ -993,6 +993,17 @@ Regras que **não devem ser mexidas sem perguntar**:
 - **"Pedir mais alguma coisa"** (Mais opções): ela escreve o item e escolhe se a pessoa **sobe um
   arquivo** ou **só escreve a informação**, e, quando o link vai para os dois lados, se é para todos ou
   para um só. Informação cai na ficha `DADOS_INFORMADOS_PELO_CLIENTE` com o rótulo escrito por ela.
+- **O link abre numa primeira página: a lista do que separar** (`#intro`, `PEDIDO.introDocs()`), no mesmo visual do
+  formulário, com ícone e uma frase por documento, agrupada por pessoa (os seus, os do cônjuge, os do falecido, os bens…),
+  o aviso da **data do óbito** no inventário e o botão *Clique aqui para começarmos*. **A lista sai dos mesmos blocos
+  do formulário**, então só traz os bens que ela marcou na janela do card (o extrato bancário é o único "na data do
+  óbito") e nunca diverge do que a página pede depois. Bens do mesmo tipo vão **num arquivo só** ("se forem vários,
+  pode juntar tudo"). Quem já começou (rascunho) ou já viu a página não passa por ela de novo. **A mesma lista sai em
+  texto** para mandar à parte, antes do link: botão *Só a lista de documentos* na janela do card (`PEDIDO.listaEmTexto()`).
+- **Documento que falta não trava o envio; dado que falta, sim.** Faltando só documento, o botão continua *Conferir e
+  enviar* e a conferência pergunta *"Enviar sem estes documentos?"* — só o *Sim, enviar sem eles* envia. A ficha leva
+  `documentosFaltando` (o Apps Script escreve "DOCUMENTOS QUE O CLIENTE NÃO TINHA NA HORA DO ENVIO") e o aviso do topo
+  do painel diz "Enviou sem N documentos". Nome, estado civil, endereço, regime, pagamento etc. continuam travando.
 - **O envio é definitivo, e tem trava.** O botão da página mostra "Faltam N itens" e, tocado, lista o
   que falta; só com tudo preenchido vira "Conferir e enviar", que abre uma conferência ("este link fecha")
   com *Voltar e revisar* / *Enviar agora*. Ao enviar, o Apps Script grava `concluidoEm` no pedido: **o link

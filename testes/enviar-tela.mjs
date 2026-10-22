@@ -25,7 +25,7 @@ await pgTmp.close();
 const RG = SAIDA('rg.png'); writeFileSync(RG, Buffer.from(png, 'base64'));
 const PDF = SAIDA('cert.pdf'); writeFileSync(PDF, '%PDF-1.4\n%%EOF');
 
-async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = true, expira, gas, concluidoEm} = {}) {
+async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = true, expira, gas, concluidoEm, intro = false} = {}) {
   const pg = await b.newPage({viewport, deviceScaleFactor: mobile ? 2 : 1.4, isMobile: mobile, hasTouch: mobile});
   const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), ...(concluidoEm ? {concluidoEm} : {}), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
   const chamadas = [];
@@ -40,6 +40,11 @@ async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = tru
   pg.on('pageerror', (e) => erros.push('pageerror: ' + e.message));
   pg.on('dialog', (d) => d.accept());
   await pg.goto(`http://127.0.0.1:8199/enviar.html?t=${TOKEN}`);
+  // A primeira página (a lista do que separar) abre antes do formulário; os testes do formulário passam por ela.
+  if (!intro) {
+    await pg.waitForFunction(() => document.body.classList.contains('introducao') || document.querySelector('#formulario [data-bloco]') || document.body.classList.contains('invalido'), null, {timeout: 6000}).catch(() => {});
+    if (await pg.evaluate(() => document.body.classList.contains('introducao'))) await pg.click('#comecar');
+  }
   return {pg, chamadas};
 }
 const compra = {tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'comprador'};
@@ -108,7 +113,7 @@ await passo('o CEP preenche a rua, o bairro e a cidade', async () => {
 await passo('cabeçalho personalizado, certidão visível desde o início e câmera do computador', async () => {
   const {pg} = await abrir({...compra, tipo:'Escritura de Compra e Venda', publico:'cliente', papel:'comprador'}, {mobile: false, viewport: {width: 1100, height: 800}});
   await pg.waitForSelector('[data-b="partes"]');
-  assert.equal(await pg.locator('#intro').count(), 0, 'sem frase explicativa no topo: o link já vem personalizado');
+  assert(await pg.locator('#intro').isHidden() && !/Preencha os seus dados/.test(await pg.innerText('body')), 'sem frase explicativa no topo: o link já vem personalizado');
   assert.ok(!/cartorio-api/i.test(await pg.innerText('body')) && !/cartorio-api/i.test(await pg.title()), 'a página nunca mostra cartorio-api (só a imagem de prévia mora lá)');
   assert.ok(/og:title/.test(await pg.content()));
   assert.ok(await pg.locator('text=Certidão de estado civil').count() > 0, 'o espaço da certidão aparece antes de escolher o estado civil');
@@ -323,7 +328,7 @@ await passo('união estável: quem não é casado marca "Vivo em união estável
   await pg.check('[data-uniao]', {force: true});
   const onde = await pg.evaluate(() => [...document.querySelectorAll('[data-bloco="partes"]')].map((b) => /união estável/i.test([...b.querySelectorAll('.slot b')].map((x) => x.textContent).join('|'))));
   assert.deepEqual(onde, [true, false], 'a escritura abre no cartão de quem marcou (o vendedor) e não no do comprador');
-  await clicarEnviar(pg); assert(/escritura de união estável/.test(await pg.innerText('.folha')), 'e passa a faltar até anexar');
+  assert(/escritura de união estável/.test(await pg.evaluate(() => levantar().docs.join('|'))), 'e passa a faltar até anexar');
 });
 await passo('pacto: abre só para quem é casado em regime que exige pacto, na pílula dele', async () => {
   const {pg} = await abrir({tipo: 'Escritura de Compra e Venda', publico: 'advogado'}, {viewport: {width: 1100, height: 900}, mobile: false});
@@ -359,11 +364,46 @@ await passo('se o cartório recusa um arquivo, ele fica marcado e os dados NÃO 
   const {pg, chamadas} = await abrir(compra, {gas: (c) => c.acao === 'cliente-arquivo' ? {ok: false, erro: 'não deu'} : {ok: true}});
   await pg.waitForSelector('[data-b="partes"]'); await preencher(pg);
   await pg.waitForFunction(() => document.querySelectorAll('.arq small.erro').length === 2);
-  await clicarEnviar(pg); assert(/Ainda falta/.test(await pg.innerText('.folha')), 'o botão não deixa enviar com arquivo que falhou');
-  assert(!chamadas.some((c) => c.acao === 'cliente-dados'), 'dados não podem ir se um arquivo falhou');
+  await clicarEnviar(pg); assert(/Enviar sem/.test(await pg.innerText('.folha')), 'arquivo que falhou conta como documento não anexado e pede confirmação');
+  await pg.click('[data-ok]'); await pg.waitForTimeout(1200);
+  assert(!chamadas.some((c) => c.acao === 'cliente-dados'), 'dados não podem ir se um arquivo falhou, nem com o "sim"');
   assert(await pg.isHidden('#final'));
 });
 
+await passo('primeira página: lista do que separar, só dos bens marcados, com o aviso da data do óbito e o botão para começar', async () => {
+  const inv = {tipo: 'Inventário', publico: 'advogado', bens: {urbano: true, conta: true}};
+  const {pg} = await abrir(inv, {intro: true, viewport: {width: 390, height: 844}});
+  await pg.waitForSelector('#comecar'); const t = await pg.innerText('#intro');
+  assert(/Separe estes documentos/.test(t) && /Guarde a data do falecimento/.test(t) && /Do falecido\(a\)/i.test(t) && /De cada herdeiro/i.test(t) && /Do\(a\) advogado\(a\)/i.test(t));
+  assert(/Matrícula do imóvel urbano/.test(t) && /Extrato bancário na data do óbito/.test(t) && !/Documento do veículo/.test(t), 'só os bens marcados');
+  assert(/pode juntar tudo em um arquivo só/.test(t), 'vários bens do mesmo tipo vão num arquivo só');
+  assert(await pg.isHidden('#formulario') && await pg.isHidden('.rodape'), 'o formulário só abre depois do botão');
+  assert((await pg.evaluate(() => document.documentElement.scrollWidth)) <= 391, 'a página não rola de lado no celular');
+  await pg.click('#comecar'); await pg.waitForSelector('[data-bloco]'); assert(await pg.isHidden('#intro'));
+  const outro = await abrir({...inv, bens: {veiculo: true}}, {intro: true}); await outro.pg.waitForSelector('#comecar');
+  const t2 = await outro.pg.innerText('#intro'); assert(/Documento do veículo/.test(t2) && !/Matrícula do imóvel urbano/.test(t2) && !/Extrato bancário/.test(t2), 'a lista muda com os bens');
+});
+await passo('primeira página: quem já começou (rascunho) ou já viu não passa por ela de novo', async () => {
+  const {pg} = await abrir(compra, {intro: true}); await pg.waitForSelector('#comecar'); await pg.click('#comecar');
+  await pg.reload(); await pg.waitForSelector('[data-b="partes"]'); assert(!(await pg.evaluate(() => document.body.classList.contains('introducao'))), 'segunda visita vai direto ao formulário');
+});
+await passo('documento que falta não trava: o aviso pergunta "enviar sem eles?", só o "sim" envia, e a equipe é avisada do que faltou', async () => {
+  const {pg, chamadas} = await abrir(compra); await pg.waitForSelector('[data-b="partes"]');
+  await pg.fill('[data-f="nome"]', 'Maria da Silva'); await pg.selectOption('[data-f="ec"]', 'Solteiro(a)'); await pg.fill('[data-f="prof"]', 'Professora');
+  await pg.fill('[data-f="cep"]', '01452000'); await pg.waitForSelector('[data-editend]'); await pg.fill('[data-f="num"]', '210');
+  await pg.fill('[data-campo="valor"], [data-b="pagamento"][data-f="valor"]', '300000').catch(() => {});
+  const dados = await pg.evaluate(() => levantar().dados);
+  for (const f of dados) { /* completa o que não é documento */ }
+  await pg.evaluate(() => { const C = E.campos.pagamento || (E.campos.pagamento = {}); C.valor = '300.000,00'; C.restante = '300.000,00'; C.forma = 'TED'; E.banco['pagamento.pagador'] = {banco: 'X', agencia: '1', conta: '2', titular: 'M'}; desenharTudo(); });
+  assert.equal(await pg.evaluate(() => levantar().dados.length), 0, 'dados completos: ' + JSON.stringify(await pg.evaluate(() => levantar().dados)));
+  assert(await pg.evaluate(() => levantar().docs.length) >= 2, 'faltam documentos');
+  assert(/conferir e enviar/i.test(await pg.innerText('#enviar')) && /sem anexar/.test(await pg.innerText('#resumo')), 'o botão não fica travado por documento');
+  await clicarEnviar(pg); const f = await pg.innerText('.folha');
+  assert(/Enviar sem estes documentos\?/.test(f) && /RG ou CNH/.test(f) && /Sim, enviar sem eles/.test(f) && /Voltar e anexar/.test(f), f);
+  await pg.click('[data-fecha]'); assert.equal(chamadas.filter((c) => c.acao === 'cliente-dados').length, 0, 'sem o "sim" nada sai');
+  await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
+  const d = chamadas.find((c) => c.acao === 'cliente-dados'); assert(d && d.dados.documentosFaltando.some((x) => /RG ou CNH/.test(x)), 'a ficha leva o que faltou');
+});
 await passo('o advogado manda vários herdeiros: acrescentar e remover pessoa', async () => {
   const {pg} = await abrir({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true}}, {viewport: {width: 1100, height: 900}, mobile: false});
   await pg.waitForSelector('[data-b="herdeiros"]');

@@ -1589,6 +1589,7 @@ function montarFichaCliente(d, dataTxt, rotulos) {
   d = d || {}; rotulos = rotulos || {};
   var L = ["DADOS INFORMADOS PELO CLIENTE (preenchidos por ele no link de envio, em " + dataTxt + "; ainda não conferidos pela equipe)"];
   if (d.ato) L.push("Ato: " + textoCliente(d.ato, 120));
+  if (Array.isArray(d.documentosFaltando) && d.documentosFaltando.length) L.push("", "DOCUMENTOS QUE O CLIENTE NÃO TINHA NA HORA DO ENVIO (ele confirmou o envio mesmo assim; a equipe deve pedir): " + d.documentosFaltando.slice(0, 40).map(function (x) { return textoCliente(x, 100); }).join("; "));
   (Array.isArray(d.pessoas) ? d.pessoas : []).slice(0, 30).forEach(function (p) {
     p = p || {};
     L.push("", textoCliente(p.papel, 40).toUpperCase() + " — " + textoCliente(p.nome, 120));
@@ -1656,7 +1657,7 @@ function clienteDados(dados) {
   chavesOk.forEach(function (k) { try { firebaseGravar("patch", "/casos/" + ctx.casoId + "/documentos/" + k, { provisorio: null }); } catch (e) { /* o card mostra "aguardando" */ } });
   // O link fecha (concluidoEm) e o card ganha o aviso que o Jornal mostra no topo do painel.
   try { firebaseGravar("patch", "/pedidos/" + ctx.token, { concluidoEm: Date.now() }); } catch (e) { /* só um carimbo */ }
-  try { firebaseGravar("put", "/casos/" + ctx.casoId + "/envioCliente", { em: Date.now(), pedido: ctx.token, arquivos: chavesOk.length || Math.max(0, Math.min(999, Number(dados.nArquivos) || 0)), ato: textoCliente(ctx.pedido.ato, 80), visto: false }); } catch (e) { /* o aviso é cortesia */ }
+  try { firebaseGravar("put", "/casos/" + ctx.casoId + "/envioCliente", { em: Date.now(), pedido: ctx.token, arquivos: chavesOk.length || Math.max(0, Math.min(999, Number(dados.nArquivos) || 0)), ato: textoCliente(ctx.pedido.ato, 80), faltando: Array.isArray(dados.dados && dados.dados.documentosFaltando) ? Math.min(99, dados.dados.documentosFaltando.length) : 0, visto: false }); } catch (e) { /* o aviso é cortesia */ }
   try { enviarWhatsApp("📥 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou os documentos pelo link. Já estão no card."); } catch (e) { /* aviso é cortesia */ }
   return resp({ ok: true });
 }

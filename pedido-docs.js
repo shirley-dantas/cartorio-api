@@ -370,9 +370,109 @@
     return 'Documentos para ' + (estado.tipo || NOMES_DOS_MODELOS[modeloDoTipo(estado.tipo)]);
   }
 
+
+  // ── A lista de documentos antes de começar ──────────────────────────────
+  // A primeira página do link e o texto "só a lista" saem do MESMO lugar: os blocos do formulário. Assim o que o
+  // cliente vê antes de começar nunca diverge do que a página pede depois. Aqui o estado civil ainda não é
+  // conhecido, então a certidão aparece com as quatro situações explicadas.
+  var DET_CERT = 'Solteiro(a): certidão de nascimento.\nCasado(a): certidão de casamento.\nDivorciado(a): casamento com a anotação do divórcio.\nViúvo(a): casamento com a anotação do óbito.';
+  var DET_RG = 'A frente e o verso. Se o CPF não estiver nele, separe o CPF também.';
+  var DET_JUNTAR = 'Se forem vários, pode juntar tudo em um arquivo só.';
+  function iconeDoDoc(t) {
+    if (/OAB/.test(t)) return 'oab';
+    if (/RG|CNH/.test(t)) return 'id';
+    if (/Matr[ií]cula|im[óo]vel/i.test(t)) return 'casa';
+    if (/ve[ií]culo/i.test(t)) return 'carro';
+    if (/Extrato|banc[aá]ri/i.test(t)) return 'banco';
+    if (/pagamento|valor|informa/i.test(t)) return 'pen';
+    return 'cert';
+  }
+  function introDocs(blocos) {
+    var G = [], idx = {}, maos = null;
+    function grupo(t, nota) { if (!idx[t]) { idx[t] = { titulo: t, nota: nota || '', itens: [] }; G.push(idx[t]); } return idx[t]; }
+    function add(g, t, d) {
+      if (g.itens.some(function (i) { return i.titulo === t; })) return;
+      g.itens.push({ icone: iconeDoDoc(t), titulo: t, detalhe: d || '' });
+    }
+    function mao() { if (!maos) maos = { titulo: 'Para ter à mão', nota: '', itens: [] }; return maos; }
+    function sem(papel) { return String(papel).replace(/\s*[12]$/, ''); }
+    (blocos || []).forEach(function (b) {
+      if (b.k === 'falecido') {
+        var f = grupo('Do falecido(a)');
+        add(f, 'RG ou CNH, com o CPF', 'Frente e verso.');
+        add(f, 'Certidão de óbito', 'Guarde a data do falecimento: ela está aqui.');
+        add(f, 'Certidão de estado civil na data do óbito', DET_CERT);
+        add(f, 'RG ou CNH do cônjuge', 'Só se era casado(a).');
+      } else if (b.k === 'pessoa' || b.k === 'advogado') {
+        var papeis = b.papeis || ['Parte'], unicos = [];
+        papeis.forEach(function (p) { if (unicos.indexOf(sem(p)) < 0) unicos.push(sem(p)); });
+        var tit = b.adv || b.k === 'advogado' ? 'Do(a) advogado(a)'
+          : /^Seus dados/.test(b.titulo || '') ? 'Seus documentos'
+          : b.id === 'herdeiros' ? 'De cada herdeiro(a)'
+          : unicos.length > 1 ? 'De cada um: ' + unicos.join(' e ').toLowerCase()
+          : 'Do(a) ' + unicos[0].toLowerCase();
+        var g = grupo(tit);
+        if (b.adv || b.k === 'advogado') { add(g, 'Carteira da OAB', 'Foto da frente e do verso.'); return; }
+        add(g, 'RG ou CNH', DET_RG);
+        if (!b.simples && !b.semCertidao) {
+          add(g, 'Certidão de estado civil', DET_CERT);
+          if (!b.semUniao) add(g, 'Escritura de união estável', 'Só se vive em união estável.');
+          var c = grupo(b.id === 'herdeiros' ? 'Do cônjuge de cada herdeiro(a)' : 'Do cônjuge', 'Só se for casado(a)');
+          if (b.conjuge) add(c, 'RG ou CNH do cônjuge', DET_RG);
+          add(c, 'Escritura do pacto antenupcial e certidão do seu registro', 'Só se o regime for comunhão universal ou separação total de bens.');
+        }
+      } else if (b.k === 'doc') {
+        var gt = { 'Falecido(a)': 'Do falecido(a)', 'Imóvel': 'Do imóvel' }[b.grupo] || b.grupo || 'Outros documentos';
+        var gd = grupo(gt), bem = /^Bens a /.test(gt);
+        var extrato = /Extrato banc/i.test(b.rotulo || '');
+        if (bem) gd.dica = DET_JUNTAR;
+        add(gd, extrato ? 'Extrato bancário na data do óbito' : (b.rotulo || '') + (b.opcional ? ' (se houver)' : ''),
+          extrato ? 'O extrato com o saldo do dia em que a pessoa faleceu. Peça ao banco, se não tiver.' : '');
+      } else if (b.k === 'docs') {
+        var gs = grupo(b.titulo || 'Outros documentos');
+        (b.docs || []).forEach(function (d) { add(gs, d.rotulo + (d.opcional ? ' (se houver)' : ''), ''); });
+        if ((b.campos || []).length) add(mao(), 'Informações que serão pedidas', b.campos.map(function (c) { return c.rotulo; }).join('; ') + '.');
+      } else if (b.k === 'campos') {
+        if ((b.campos || []).length) add(mao(), 'Informações que serão pedidas', b.campos.map(function (c) { return c.rotulo; }).join('; ') + '.');
+      } else if (b.k === 'pagamento') {
+        var lado = b.lado || 'ambos';
+        add(mao(), 'Sobre o pagamento',
+          lado === 'vendedor' ? 'Os dados da conta bancária que vai receber o pagamento.'
+          : 'O valor combinado da compra, se houve sinal (e quanto) e como será paga a parte restante (TED ou PIX), com a conta de onde sai o dinheiro.' + (lado === 'ambos' ? ' O vendedor informa a conta que recebe.' : ''));
+      } else if (b.k === 'banco') {
+        add(mao(), 'Dados bancários', 'Banco, agência, conta e titular.');
+      } else if (b.k === 'filhos') {
+        add(grupo('Dos filhos'), 'RG ou CNH de cada filho(a)', 'Só se houver filhos.');
+      }
+    });
+    if (maos) G.push(maos);
+    return G.filter(function (g) { return g.itens.length; });
+  }
+
+  // A lista sozinha, em texto, para mandar à parte (WhatsApp ou e-mail) antes de a pessoa abrir o link.
+  function listaEmTexto(estado) {
+    var pub = estado.publico || 'cliente';
+    var ato = estado.tipo || NOMES_DOS_MODELOS[modeloDoTipo(estado.tipo)];
+    var abertura = {
+      cliente: 'Olá! Para ' + aDo(ato) + ', separe estes documentos antes de começar:',
+      advogado: 'Prezado(a) Dr(a)., para ' + aDo(ato) + ', seguem os documentos a separar antes de começar:',
+      corretor: 'Olá! Para ' + aDo(ato) + ', seguem os documentos a separar antes de começar:',
+      construtora: 'Olá! Para regularizar a sua compra, separe estes documentos antes de começar:'
+    }[pub];
+    var L = [abertura, ''];
+    introDocs(formulario(estado)).forEach(function (g) {
+      L.push(g.titulo.toUpperCase() + (g.nota ? ' (' + g.nota.charAt(0).toLowerCase() + g.nota.slice(1) + ')' : ''));
+      g.itens.forEach(function (i) { L.push('• ' + i.titulo + (i.detalhe ? ' — ' + i.detalhe.replace(/\n/g, ' ') : '')); });
+      if (g.dica) L.push(g.dica);
+      L.push('');
+    });
+    L.push('Na hora de enviar, é só tirar foto ou escolher da galeria do celular. Quem não tiver algum documento na hora pode enviar assim mesmo, e o cartório pede depois.', '', '20º Tabelião de Notas');
+    return L.join('\n');
+  }
+
   var PEDIDO = {
     PUBLICOS: PUBLICOS, BENS: BENS, CLAUSULAS: CLAUSULAS, REGIMES_COM_PACTO: REGIMES_COM_PACTO,
-    modeloDoTipo: modeloDoTipo, montar: montar, comporTexto: comporTexto, formulario: formulario, doDa: doDa, assunto: assunto, ehMarcado: ehMarcado,
+    modeloDoTipo: modeloDoTipo, montar: montar, comporTexto: comporTexto, formulario: formulario, doDa: doDa, assunto: assunto, ehMarcado: ehMarcado, introDocs: introDocs, listaEmTexto: listaEmTexto,
     NOMES_DOS_MODELOS: NOMES_DOS_MODELOS, MODELO_DO_TIPO: MODELO_DO_TIPO, PAPEIS: PAPEIS, papelDe: papelDe
   };
 
@@ -496,6 +596,7 @@
         (est.msgEditada ? '<div class="ped-nota">Você editou o texto, então ele não muda mais sozinho. <button class="ped-btn" data-acao="refazer" style="min-height:32px;padding:4px 10px">Refazer pela lista</button></div>' : '') +
         '<input type="email" id="ped-para" value="' + esc(est.para) + '" placeholder="E-mail da pessoa (opcional)" style="margin-top:10px">' + blocoLink() +
         '<div class="ped-acoes"><button class="ped-btn forte" data-acao="copiar">Copiar texto</button><button class="ped-btn" data-acao="email">Abrir no e-mail</button><button class="ped-btn" data-acao="zap">WhatsApp</button></div>' +
+        '<div class="ped-acoes" style="margin-top:6px"><button class="ped-btn" data-acao="so-lista" title="Troca a mensagem pela lista de documentos, para mandar separada do link">Só a lista de documentos</button></div>' +
         '<div class="ped-nota' + (est.aviso ? ' ped-ok' : '') + '" id="ped-aviso">' + esc(est.aviso || 'Nada sai daqui sem você enviar.') + '</div></div></div></div></div>';
       ajustaAltura();
     }
@@ -555,6 +656,7 @@
         var tp = alvo.querySelector('#ped-extra-tipo'), pa = alvo.querySelector('#ped-extra-para');
         if (t) { est.extras.push({ texto: t, tipo: tp ? tp.value : 'arquivo', para: pa ? pa.value : 'todos' }); est.msgEditada = false; desenhar(); }
       } else if (a === 'refazer') { est.msgEditada = false; desenhar(); }
+      else if (a === 'so-lista') { est.msg = listaEmTexto(est); est.msgEditada = true; desenhar(); aviso('A mensagem agora é só a lista de documentos. Copie ou envie.'); }
       else if (a === 'copiar-link') copiar(est.link).then(function () { aviso('Link copiado.'); }, function () { aviso('Não consegui copiar — selecione o link e copie.'); });
       else if (a === 'link') gerarLink();
       else if (a === 'copiar') copiar(est.msg).then(function () { aviso('Texto copiado. É só colar.'); }, function () { aviso('Não consegui copiar — selecione o texto e copie.'); });

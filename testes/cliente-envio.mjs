@@ -130,6 +130,16 @@ await passo('os dados digitados viram um documento do caso, com os rótulos do p
   for (const t of ['COMPRADOR(A) — Maria da Silva', 'Estado civil: Casado(a)', 'Cônjuge: João Souza', 'Valor da transação (R$): 450.000,00', 'Houve sinal (entrada já paga)?: Sim', 'Valor a pagar no ato da escritura (R$): 405.000,00', 'Forma de pagamento no ato: PIX', 'CONTA DE ONDE SAIRÁ O PAGAMENTO', 'Banco: BB', 'CONTA QUE RECEBERÁ O PAGAMENTO', 'PIX: joao@x.com', 'OBSERVAÇÕES DO CLIENTE (para a equipe conferir antes de usar na minuta): Constar nome de solteira', 'ainda não conferidos']) assert(f.texto.includes(t), 'faltou: ' + t);
   assert(m.db.pedidos[TOKEN].concluidoEm > 0); assert(m.externos.length >= 1, 'a equipe é avisada pelo WhatsApp');
 });
+await passo('envio sem algum documento: a ficha diz o que faltou (a equipe pede depois) e o aviso do painel conta quantos', () => {
+  const m = mundo(); semear(m);
+  const r = m.chamar({acao: 'cliente-dados', t: TOKEN, dados: {ato: 'Inventário', pessoas: [], documentosFaltando: ['Herdeiro(a): RG ou CNH', 'Extrato bancário na data do óbito']}});
+  assert.equal(r.ok, true);
+  const f = m.db.casos['-Caso1'].documentos['ficha_' + TOKEN.slice(0, 10)];
+  assert(/NÃO TINHA NA HORA DO ENVIO/.test(f.texto) && /Herdeiro\(a\): RG ou CNH; Extrato bancário na data do óbito/.test(f.texto), f.texto);
+  assert.equal(m.db.casos['-Caso1'].envioCliente.faltando, 2);
+  const sem = mundo(); semear(sem); sem.chamar({acao: 'cliente-dados', t: TOKEN, dados: {pessoas: []}});
+  assert.equal(sem.db.casos['-Caso1'].envioCliente.faltando, 0); assert(!/NÃO TINHA NA HORA/.test(sem.db.casos['-Caso1'].documentos['ficha_' + TOKEN.slice(0, 10)].texto));
+});
 await passo('enviou, fechou: o link expira, o card ganha o aviso (não visto) e um segundo preenchimento é recusado', () => {
   const m = mundo(); semear(m);
   const r = m.chamar({acao: 'cliente-dados', t: TOKEN, nArquivos: 3, dados: {pessoas: [{papel: 'Convivente 2', nome: 'Ana'}]}});

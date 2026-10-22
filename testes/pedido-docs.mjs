@@ -191,5 +191,18 @@ passo('inventário: os documentos dos bens ficam sob "Bens a inventariar"', () =
   const f = P.formulario({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true, veiculo: true}});
   const bens = f.filter((b) => /^bem\./.test(b.id)); assert(bens.length === 2 && bens.every((b) => b.grupo === 'Bens a inventariar'), JSON.stringify(bens.map((b) => b.grupo)));
 });
+passo('a lista do que separar sai dos mesmos blocos do formulário, só com os bens marcados e a data do óbito no extrato', () => {
+  const g = P.introDocs(P.formulario({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true, conta: true}}));
+  const titulos = g.map((x) => x.titulo); assert(titulos.includes('Do falecido(a)') && titulos.includes('De cada herdeiro(a)') && titulos.includes('Do(a) advogado(a)') && titulos.includes('Bens a inventariar'), titulos.join('|'));
+  const bens = g.find((x) => x.titulo === 'Bens a inventariar'); assert.deepEqual(bens.itens.map((i) => i.titulo), ['Matrícula do imóvel urbano', 'Extrato bancário na data do óbito']);
+  assert(/juntar tudo em um arquivo só/.test(bens.dica));
+  const t = P.listaEmTexto({tipo: 'Inventário', publico: 'advogado', bens: {urbano: true, conta: true}});
+  assert(/Prezado\(a\) Dr\(a\)\./.test(t) && /BENS A INVENTARIAR/.test(t) && !/Documento do veículo/.test(t) && /enviar assim mesmo/.test(t) && /20º Tabelião de Notas/.test(t));
+  assert(!/atualizada/i.test(t), 'nunca "atualizada"');
+  const c = P.introDocs(P.formulario({tipo: 'Escritura de Compra e Venda', publico: 'cliente', papel: 'comprador'}));
+  assert(c[0].titulo === 'Seus documentos' && c.some((x) => x.titulo === 'Do cônjuge') && c.some((x) => x.titulo === 'Para ter à mão'));
+  const proc = P.introDocs(P.formulario({tipo: 'Procuração', publico: 'cliente', papel: 'outorgante'}));
+  assert(!JSON.stringify(proc).includes('Certidão de estado civil'), 'procuração não pede certidão de estado civil');
+});
 console.log(erros ? '\n' + erros + ' falha(s)' : '\ntudo certo');
 process.exit(erros ? 1 : 0);

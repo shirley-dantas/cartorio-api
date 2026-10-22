@@ -13677,7 +13677,7 @@ function renderEnvios(){
   el.style.display='grid';
   el.innerHTML=lista.map(c=>{ const e=c.envioCliente, n=e.arquivos||0;
     return `<div class="cc-envio"><span class="cc-envio-ico"><i class="ti ti-inbox"></i></span>
-      <span class="cc-envio-txt"><b>Cliente enviou os documentos</b> — ${escTxt(c.nome)}<small>${quando(e.em)}${n?` · ${n} ${n===1?'arquivo':'arquivos'}`:''}${e.ato?` · ${escTxt(e.ato)}`:''} · o link já foi fechado</small></span>
+      <span class="cc-envio-txt"><b>Cliente enviou os documentos</b> — ${escTxt(c.nome)}<small>${quando(e.em)}${n?` · ${n} ${n===1?'arquivo':'arquivos'}`:''}${e.ato?` · ${escTxt(e.ato)}`:''} · o link já foi fechado</small>${e.faltando?`<small style="color:var(--cc-atencao,#8A5A0B);font-weight:600">⚠ Enviou sem ${e.faltando} ${e.faltando===1?'documento':'documentos'} — confira a lista no card e peça o que faltou</small>`:''}</span>
       <button type="button" class="cc-envio-btn forte" onclick="abrirEnvioCliente('${esc(c.id)}')">Abrir o card</button>
       <button type="button" class="cc-envio-btn" onclick="vistoEnvioCliente('${esc(c.id)}')">Já vi</button></div>`; }).join('');
 }
