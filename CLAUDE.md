@@ -1110,6 +1110,10 @@ Regras dela que **não devem ser mexidas sem perguntar**:
   (ela usa os status para outras coisas). O card mostra "✅ Cliente aprovou", o topo do painel avisa, e a janela do link de
   pagamento já nasce com a versão aprovada. A aprovação vale só para a versão que o cliente viu: versão nova, link novo.
   Link de orçamento nunca serve de link de pagamento (e o contrário): `meta.tipo` é conferido nos dois Apps Script/páginas.
+- **O comprovante parece instantâneo, mas o link só fecha com tudo enviado.** Na página do cliente, "✓ Anexado" aparece assim que a foto
+  está reduzida (1600 px, qualidade .8) e o envio ao Drive segue em segundo plano (`fila` em `pagar.html`); o *Concluir* espera a fila e,
+  se algum envio falhou, volta ao passo dele com o motivo escrito — nunca fecha o link sem o comprovante no Drive. O Apps Script
+  lê as duas coisas do caso numa viagem só (`firebaseLerVarios`) e não usa a trava quando a pasta do caso já é conhecida.
 - **"2.000" é dois mil** (`pagCentavos`): o mesmo erro do financeiro, que já aconteceu uma vez.
 - Passo manual: regras do banco com `/cobrancas` e Apps Script novo (`FIREBASE.md`, seção 12). Testes:
   `testes/pagar-tela.mjs` (a página), `testes/pagamento-envio.mjs` (o Apps Script) e `testes/pagamento-painel.mjs` (a janela,

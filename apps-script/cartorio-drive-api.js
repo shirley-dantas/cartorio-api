@@ -1404,6 +1404,11 @@ function firebaseLer(caminho) {
   if (r.getResponseCode() !== 200) return undefined;
   return JSON.parse(r.getContentText());
 }
+// Várias leituras numa viagem só (uma por vez, cada uma somava quase um segundo).
+function firebaseLerVarios(caminhos) {
+  var reqs = caminhos.map(function (c) { return { url: FIREBASE_URL + c + ".json", muteHttpExceptions: true }; });
+  return UrlFetchApp.fetchAll(reqs).map(function (r) { return r.getResponseCode() === 200 ? JSON.parse(r.getContentText()) : undefined; });
+}
 function firebaseGravar(metodo, caminho, obj) {
   return UrlFetchApp.fetch(FIREBASE_URL + caminho + ".json", {
     method: metodo, contentType: "application/json", payload: JSON.stringify(obj), muteHttpExceptions: true
@@ -1705,9 +1710,9 @@ function cobrancaDoCliente(token, aceitaConcluido) {
   if (meta.tipo === "orcamento") return null; // o link do orçamento não serve de link de pagamento
   if (meta.expiraEm && Date.now() > meta.expiraEm) return null;
   if (meta.concluidoEm && !aceitaConcluido) return null; // já enviado: o link fecha
-  var nome = firebaseLer("/casos/" + meta.casoId + "/nome");
-  if (nome === undefined || nome === null) return null;
-  var caso = { nome: nome, driveUrl: firebaseLer("/casos/" + meta.casoId + "/driveUrl") || "" };
+  var lido = firebaseLerVarios(["/casos/" + meta.casoId + "/nome", "/casos/" + meta.casoId + "/driveUrl"]);
+  if (lido[0] === undefined || lido[0] === null) return null;
+  var caso = { nome: lido[0], driveUrl: lido[1] || "" };
   return { meta: meta, caso: caso, casoId: meta.casoId, token: token };
 }
 
@@ -1723,10 +1728,14 @@ function pagamentoArquivo(dados) {
   try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
   if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais." });
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-  var pasta;
-  try { pasta = pastaDoCaso(ctx.caso, ctx.casoId); } finally { lock.releaseLock(); }
+  // A trava só existe para duas primeiras gravações não criarem duas pastas: com a pasta do caso já conhecida, não há o que travar.
+  var pasta = null, idPasta = extrairIdPasta(ctx.caso.driveUrl || "");
+  if (idPasta) { try { pasta = DriveApp.getFolderById(idPasta); } catch (e) { pasta = null; } }
+  if (!pasta) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try { pasta = pastaDoCaso(ctx.caso, ctx.casoId); } finally { lock.releaseLock(); }
+  }
 
   var agora = new Date();
   var nome = "Comprovante_" + (qual === "escritura" ? "Escritura" : "Registro") + "_" + nomeSeguroCliente(ctx.caso.nome, 30) + "_" +

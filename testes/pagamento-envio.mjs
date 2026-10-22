@@ -41,7 +41,7 @@ function mundo({recusaBanco = false, iaFalha = false} = {}) {
       const v = JSON.parse(o.payload);
       if (m === 'put') pôr(p, v); else if (m === 'patch') pôr(p, Object.assign({}, pegar(p) || {}, v));
       return resposta(200, v);
-    }},
+    }, fetchAll(reqs) { return reqs.map((r) => caixa.UrlFetchApp.fetch(r.url, r)); }},
     DriveApp: {getFolderById(id) { if (!todas[id]) throw new Error('sem pasta ' + id); return todas[id]; }, getFileById(id) { if (!ARQUIVOS[id]) throw new Error('sem arquivo ' + id); return ARQUIVOS[id]; }},
     Utilities: {
       computeHmacSha256Signature: (texto, chave) => Array.from(createHmac('sha256', chave).update(texto).digest()).map((b) => (b > 127 ? b - 256 : b)),

@@ -283,7 +283,7 @@ body.concluido .miolo>.titulo{display:none}
 <script>
 const FIREBASE='https://painel-cartorio-default-rtdb.firebaseio.com';
 const GAS_URL='https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec';
-const MAX_LADO=2400, QUALIDADE=.85, MAX_BYTES=8*1024*1024;
+const MAX_LADO=1600, QUALIDADE=.8, MAX_BYTES=8*1024*1024;
 const token=(location.pathname.match(/\/p\/([A-Za-z0-9_-]+)/)||[])[1]||new URLSearchParams(location.search).get('t')||'';
 // Os textos da página, do jeito dela. {nome}, {escritura}, {registro} e {venc} são trocados pelos dados da cobrança.
 const D={
@@ -377,18 +377,32 @@ async function chamar(corpo){
   if(!j||!j.ok){ const x=new Error((j&&j.erro)||'O cartório não conseguiu receber.'); x.servidor=true; throw x; }
   return j;
 }
+// O comprovante aparece como anexado assim que a foto está pronta; o envio ao cartório segue em segundo plano. Quem espera é o
+// "Concluir": ele só fecha o link depois que todos os envios terminaram, e volta ao passo que falhou, com o motivo escrito.
+const fila={};
 async function anexar(qual,file){
   erroArq[qual]=''; estado[qual]='enviando'; tela();
+  let f, base64;
   try{
-    const f=await reduzir(file);
+    f=await reduzir(file);
     if(f.size>MAX_BYTES) throw new Error('Arquivo grande demais (máx. 8 MB). Tire uma foto em vez do arquivo.');
-    await chamar({acao:'pagamento-arquivo',t:token,qual,nomeArquivo:file.name,mimetype:f.type||'application/octet-stream',base64:await b64(f)});
-    comp[qual]=true; nomes[qual]=file.name;
-  }catch(e){ comp[qual]=false; erroArq[qual]=e.rede?'Não enviou: '+e.message+' Confira a internet e tente de novo.':'Não enviou: '+e.message+' Tente de novo.'; }
-  estado[qual]=''; tela();
+    base64=await b64(f);
+  }catch(e){ comp[qual]=false; erroArq[qual]='Não enviou: '+e.message+' Tente de novo.'; estado[qual]=''; tela(); return; }
+  comp[qual]=true; nomes[qual]=file.name; estado[qual]=''; tela();
+  const meu=(fila[qual]=(async()=>{
+    try{ await chamar({acao:'pagamento-arquivo',t:token,qual,nomeArquivo:file.name,mimetype:f.type||'application/octet-stream',base64}); }
+    catch(e){
+      if(fila[qual]!==meu) return;
+      comp[qual]=false; erroArq[qual]=e.rede?'Não enviou: '+e.message+' Confira a internet e tente de novo.':'Não enviou: '+e.message+' Tente de novo.';
+      const k=passosDe().indexOf(qual); if(k>=0&&passo!==k&&passosDe()[passo]!=='fim'&&!concluindo){ passo=k; } tela();
+    }
+  })());
 }
 async function concluir(){
   if(concluindo) return; concluindo=true; tela();
+  await Promise.all(Object.values(fila));
+  const falhou=['escritura','registro'].find(q=>passosDe().includes(q)&&!comp[q]);
+  if(falhou){ concluindo=false; passo=passosDe().indexOf(falhou); tela(); window.scrollTo(0,0); return; }
   try{ await chamar({acao:'pagamento-concluir',t:token}); passo=passosDe().length-1; concluindo=false; tela(); window.scrollTo(0,0); }
   catch(e){ concluindo=false; tela(); alert('Não consegui concluir agora: '+e.message+'\nTente de novo.'); }
 }
