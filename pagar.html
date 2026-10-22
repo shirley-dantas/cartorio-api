@@ -312,7 +312,7 @@ body{background:#F6F3EC}
 .c-banco{background:#F7F4EE;border-radius:16px;padding:12px 16px;margin-top:10px}
 .c-banco b{display:block;font-size:18px}.c-banco span{display:block;color:var(--graf-2);font-size:16px;margin-top:2px}
 .p-sec2{border-radius:999px;border:1.5px solid #D9D2C2;background:#fff;margin-top:16px;padding:16px;font-size:17px;font-weight:600}
-.anexos h3{margin:0 0 4px;font-size:21px;line-height:1.3}
+.anexos h3{margin:0 0 12px;font-size:20px;line-height:1.3}
 .anexos .ajuda{margin:0 0 12px;color:var(--graf-2);font-size:15px}
 .chip-arq{display:flex;align-items:center;gap:10px;background:#EEF6F0;border-radius:16px;padding:10px 12px;margin-bottom:8px}
 .chip-arq .ico{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:14px}
@@ -321,6 +321,7 @@ body{background:#F6F3EC}
 .chip-arq small{display:block;font-size:14px;font-weight:400;color:var(--graf-2)}.chip-arq.erro small{color:var(--critico);font-weight:600}
 .chip-arq .rm{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:#fff;color:var(--graf);font-size:22px;line-height:1;cursor:pointer}
 .anexos .acoes{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.anexos .acoes.um{grid-template-columns:1fr}
 .anexos .btn{border-radius:999px;border:2px dashed #CFC6B1;background:#FBF9F4;min-height:54px;font-size:16px}
 .p-big{border-radius:999px;border-bottom:0;margin-top:16px;padding:18px 16px;font-size:20px}
 .p-big.off{background:#D5D8DB}
@@ -348,9 +349,9 @@ A1:'Pagamento',A2:'20º Tabelião de Notas',A3:'Escrevente Shirley Dantas',A4:'W
 B1:'',B2:'',B3:'',B4:'20º Tabelião de Notas',B5:'Pagamento por TED ou PIX',B6:'Ver o recibo ›',B7:'Registro de Imóveis',B8:'Pagamento por meio de boleto bancário',B9:'Ver o boleto ›',B10:'',B21:'Pagar ›',B11:'Para sua conferência, reveja seu orçamento aqui!',B12:'',B13:'',B13b:'',B14:'',
 B15:'Confira o valor',B16:'Você fará 1 pagamento. Toque nele para ver os detalhes.',B17:'Fazer o pagamento da escritura',B18:'Confira o valor',B19:'Você fará 1 pagamento. Toque nele para ver os detalhes.',B20:'Fazer o pagamento do registro',
 C1:'Recibo da escritura',C2:'É o recibo que o cartório emitiu para você. Confira os dados.',C3:'Ampliar',C4:'Voltar para os valores',C5:'Boleto do registro',C6:'É o boleto do registro de imóveis. Confira os dados.',C7:'Ampliar',
-D1:'',D1b:'',D2:'',D3:'Para o cartório de notas',D4:'20º Tabelião de Notas',D5:'Valor a pagar',D7:'',D8:'Pague por Pix',D9:'Chave Pix (CNPJ)',D11:'',D13:'Prefere pagar por TED? Toque para ver as contas',D16:'Copiar',D17:'Copiado!',D18:'',D19:'Comprovante do pagamento da escritura',D20:'',D21:'✓ Anexado',D22a:'📷 Tirar foto',D22b:'📁 Escolher',D23:'Continuar para o pagamento do registro',D24:'Anexe o comprovante para continuar',D24b:'Tudo certo, pode seguir',D25:'',
+D1:'',D1b:'',D2:'',D3:'Para o cartório de notas',D4:'20º Tabelião de Notas',D5:'Valor a pagar',D7:'',D8:'Pague por Pix',D9:'Chave Pix (CNPJ)',D11:'',D13:'Prefere pagar por TED? Toque para ver as contas',D16:'Copiar',D17:'Copiado!',D18:'',D19:'Comprovante do pagamento da escritura',D20:'',D21:'✓ Anexado',D22a:'',D22b:'📁 Escolher',D23:'Continuar para o pagamento do registro',D24:'Anexe o comprovante para continuar',D24b:'Tudo certo, pode seguir',D25:'',
 E1:'',E1b:'',E2:'',E3:'Para o registro de imóveis',E4:'Registro de Imóveis',E5:'Valor a pagar',E7:'',E8:'',E9:'Pague pelo código de barras',E10:'Código de barras',E11:'',E12:'',E13:'',E14:'Comprovante do pagamento do registro',E15:'Concluir',E16:'Anexe o comprovante para concluir',E16b:'Tudo certo, pode concluir',
-G1:'Já pagou? Anexe aqui os comprovantes',G5:'Pagou em mais de uma vez ou para mais de uma pessoa? Adicione todos os comprovantes.',G6:'+ Adicionar comprovante',G6b:'+ Adicionar outro comprovante',G3:'Enviar comprovantes',G4a:'Falta 1 comprovante',G4b:'Faltam {n} comprovantes',G4c:'Tudo certo, pode enviar',
+G1:'Anexe os comprovantes',G5:'',G6:'+ Adicionar comprovante',G6b:'+ Adicionar outro',G3:'Enviar comprovantes',G4a:'Falta 1 comprovante',G4b:'Faltam {n} comprovantes',G4c:'Tudo certo, pode enviar',
 F1:'Pagamentos recebidos',F2:'Escritura: {escritura}, comprovante recebido',F3:'Registro de imóveis: {registro}, comprovante recebido',F4:'Comprovantes recebidos com sucesso! Agradecemos a parceria e a confiança.',
 F5:'Este link já foi usado: o cartório já recebeu os seus comprovantes. Se precisar de algo, fale com o cartório.',F6:'Este link venceu. Peça um novo ao cartório.'
 };
@@ -372,7 +373,7 @@ function anexosHtml(){
   const falta=Math.max(0,precisa()-contam().length), pend=lista.some(a=>a.estado==='preparando');
   const sub=concluindo?'Enviando…':falta>0?(falta===1?txt('G4a'):txt('G4b').replace('{n}',falta)):txt('G4c');
   const pronto=falta===0&&!pend&&!concluindo;
-  return `<section class="cartao anexos"><h3>${t('G1')}</h3>${txt('G5')?`<p class="ajuda">${t('G5')}</p>`:''}${itens}<div class="acoes"><label class="btn">${t('D22a')}<input type="file" accept="image/*" capture="environment" data-anexo hidden></label><label class="btn">${lista.length?t('G6b'):t('G6')}<input type="file" accept="image/*,application/pdf" multiple data-anexo hidden></label></div></section>`+
+  return `<section class="cartao anexos"><h3>${t('G1')}</h3>${txt('G5')?`<p class="ajuda">${t('G5')}</p>`:''}${itens}<div class="acoes${txt('D22a')?'':' um'}">${txt('D22a')?`<label class="btn">${t('D22a')}<input type="file" accept="image/*" capture="environment" data-anexo hidden></label>`:''}<label class="btn">${lista.length?t('G6b'):t('G6')}<input type="file" accept="image/*,application/pdf" multiple data-anexo hidden></label></div></section>`+
     `<button type="button" class="p-big${pronto?'':' off'}" data-enviar${pronto?'':' disabled'}>${t('G3')}<small>${esc(sub)}</small></button>`;
 }
 function voltar(){return passo>0?`<button type="button" class="p-voltar" data-voltar>‹ Voltar</button>`:'';}
