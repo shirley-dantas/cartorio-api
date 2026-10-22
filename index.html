@@ -1734,6 +1734,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .pag-op{display:inline-flex;align-items:center;gap:6px;margin:0 14px 4px 0;font-size:14px;cursor:pointer}
 .pag-campo{margin-bottom:10px}.pag-campo .fin-input{width:100%;display:block;margin-top:3px}
 .pag-nome{font-size:13px;color:#636366;margin-left:6px;word-break:break-all}
+.pag-arq{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:8px;border:1px solid #E6DFD0;border-radius:8px;background:#fff}
+.pag-mini{flex:none;width:54px;height:54px;border-radius:6px;overflow:hidden;background:#F4F1EA;display:grid;place-items:center;font-size:12px;font-weight:700}
+.pag-mini img{width:100%;height:100%;object-fit:cover}
+.pag-arq-nome{flex:1;min-width:0}.pag-arq-nome b{display:block}.pag-arq-nome small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#555}
 .pag-nota{margin-top:6px;font-size:13px;color:#1F2A33;background:#F4F1EA;border-radius:8px;padding:8px 10px}
 .pag-lido{color:#8A6D1F;font-weight:600;text-transform:none}
 .pag-erro{margin-top:12px;padding:10px 12px;border-radius:10px;background:#FBE3E1;color:#9A1E16;font-size:14px;font-weight:600}
@@ -12236,22 +12240,41 @@ function pagPreencher(campo,valor){
   if(String(e[campo]||'').trim()) return false;
   e[campo]=valor; (e.lido=e.lido||{})[campo]=true; return true;
 }
+// Com mais de um recibo, o valor a pagar é a SOMA dos recibos — mas só quando todos foram lidos e cada um fechou as próprias contas.
+const pagLeituras=new Map();
+function pagSomaDosRecibos(){
+  const e=pagEst, l=(e&&e.recibos)||[]; if(!l.length) return {ok:false,motivo:'Sem recibo.'};
+  const r=l.map(f=>pagLeituras.get(f));
+  if(r.some(x=>x==null)) return {ok:false,motivo:'Ainda lendo.'};
+  const ruim=r.map((x,i)=>x.erro?`recibo ${i+1}: ${x.erro}`:'').filter(Boolean);
+  if(ruim.length) return {ok:false,motivo:ruim.join(' ')};
+  return {ok:true,centavos:r.reduce((a,x)=>a+x.centavos,0),n:l.length};
+}
+function pagAplicarRecibos(){
+  const e=pagEst; if(!e) return '';
+  const so=pagSomaDosRecibos(); if(!so.ok) return 'Li o recibo, mas não preenchi o valor: '+so.motivo+' Digite o valor.';
+  if(e.valEManual) return 'Li '+(so.n>1?'os recibos':'o recibo')+' ('+pagMoeda(so.centavos)+'), mas o valor já estava digitado — não mexi.';
+  e.valE=pagMoeda(so.centavos).replace(/^R\$\s*/,''); (e.lido=e.lido||{}).valE=true;
+  return so.n>1?'Valor lido dos '+so.n+' recibos, conferido recibo a recibo (as linhas de cada um somam o total dele) e somado: '+pagMoeda(so.centavos)+'. Confira.':'Valor lido do recibo e conferido (as linhas somam o total). Confira.';
+}
 async function pagLerArquivo(alvo,f){
   const e=pagEst; if(!e) return;
-  (e.lendo=e.lendo||{})[alvo]=true; (e.nota=e.nota||{})[alvo]=''; e.lido=e.lido||{}; if(alvo==='boleto'){ delete e.lido.benef; delete e.lido.cnpj; }
+  e.lendoN=e.lendoN||{}; e.lendoN[alvo]=(e.lendoN[alvo]||0)+1;
+  (e.lendo=e.lendo||{})[alvo]=true; (e.nota=e.nota||{})[alvo]=''; e.lido=e.lido||{}; if(alvo==='boleto'&&e.boletos[0]===f){ delete e.lido.benef; delete e.lido.cnpj; }
   pagDesenhar();
   let nota='';
+  const aindaAqui=()=>pagEst===e&&e[alvo+'s'].includes(f);
   try{
     if(alvo==='recibo'){
       const ia=await pagPerguntarIA('recibo',f), c=pagConferirRecibo(ia);
-      if(pagEst!==e||e.recibo!==f) return;
-      if(c.ok){ nota=pagPreencher('valE',pagMoeda(c.centavos).replace(/^R\$\s*/,''))?'Valor lido do recibo e conferido (as linhas somam o total). Confira.':'Li o recibo, mas o valor já estava preenchido — não mexi.'; }
-      else nota='Li o recibo, mas não preenchi o valor: '+c.motivo+' Digite o valor.';
+      if(!aindaAqui()) return;
+      pagLeituras.set(f,c.ok?{centavos:c.centavos}:{erro:c.motivo});
+      nota=null;
     }else{
       const txtPdf=await pagTextoDoPdf(f);
       let linha=pagLerLinhaDigitavel(pagAcharLinhaNoTexto(txtPdf)), ia=null, aviso='';
       try{ ia=await pagPerguntarIA('boleto',f); }catch(err){ aviso=(err&&err.message)||''; }
-      if(pagEst!==e||e.boleto!==f) return;
+      if(!aindaAqui()) return;
       if(!linha&&ia) linha=pagLerLinhaDigitavel(ia.linha_digitavel);
       const feitos=[];
       if(linha){
@@ -12274,12 +12297,15 @@ async function pagLerArquivo(alvo,f){
       if(!linha&&ia) nota+=' O código de barras não passou na conferência dos dígitos: digite-o ou cole de novo um print mais nítido.';
     }
   }catch(err){
-    if(pagEst!==e||e[alvo]!==f) return;
-    nota='Não consegui ler automaticamente ('+((err&&err.message)||err)+'). Preencha à mão.';
+    if(!aindaAqui()) return;
+    if(alvo==='recibo') pagLeituras.set(f,{erro:'não consegui ler ('+((err&&err.message)||err)+')'});
+    else nota='Não consegui ler automaticamente ('+((err&&err.message)||err)+'). Preencha à mão.';
   }
-  e.lendo[alvo]=false; e.nota[alvo]=nota; pagDesenhar();
+  e.lendoN[alvo]--; e.lendo[alvo]=e.lendoN[alvo]>0;
+  if(alvo==='recibo'){ if(!e.lendo.recibo) e.nota.recibo=pagAplicarRecibos(); }
+  else{ e.nota.boleto=nota+(e.boletos.length>1?' Há mais de um boleto: o código de barras, o valor e o vencimento são os do primeiro. Se o cliente paga cada boleto à parte, gere um link para cada um.':''); }
+  pagDesenhar();
 }
-
 // ── O link do orçamento: o cliente vê a folha e toca em "Aprovo" ──
 const orcLinkDe=tok=>(ENVIO_BASE_URL||location.origin).replace(/\/+$/,'')+'/o/'+tok;
 window.orcLinkAprovacao=async function(casoId,orcId){
@@ -12307,7 +12333,7 @@ window.abrirPagamento=function(id){ try{ pagAbrir(id); }catch(err){ console.erro
 function pagAbrir(id){
   const c=casos[id]||{}, orc=pagOrcamentoPadrao(id);
   const mem=pagLerMemoria();
-  pagEst={id,itens:'ambos',valE:'',valR:'',venc:'',codigo:'',benef:mem.nome||PAG_BENEFICIARIO.nome,cnpj:mem.cnpj||PAG_BENEFICIARIO.cnpj,recibo:null,boleto:null,orcId:orc?String(orc.id):'',erro:'',gerando:false,link:'',msg:''};
+  pagEst={id,itens:'ambos',valE:'',valR:'',venc:'',codigo:'',benef:mem.nome||PAG_BENEFICIARIO.nome,cnpj:mem.cnpj||PAG_BENEFICIARIO.cnpj,recibos:[],boletos:[],orcId:orc?String(orc.id):'',erro:'',gerando:false,link:'',msg:''};
   document.getElementById('pag-sub').textContent=(c.nome||'Sem nome')+(c.tipo?' — '+c.tipo:'');
   pagDesenhar();
   document.getElementById('modal-pagamento').classList.add('open');
@@ -12318,18 +12344,17 @@ function pagDesenhar(){
   const esc1=e.itens!=='registro', reg1=e.itens!=='escritura';
   const opt=(v,r)=>`<label class="pag-op"><input type="radio" name="pag-itens" value="${v}"${e.itens===v?' checked':''}> ${r}</label>`;
   const campo=(r,id,val,ph,extra='')=>`<div class="pag-campo"><label class="fin-rot" for="${id}">${r}${e.lido&&e.lido[{'pag-valE':'valE','pag-valR':'valR','pag-venc':'venc','pag-codigo':'codigo','pag-benef':'benef','pag-cnpj':'cnpj'}[id]]?' <small class="pag-lido">· lido do documento — confira</small>':''}</label><input class="fin-input" id="${id}" value="${esc(val)}" placeholder="${esc(ph||'')}" ${extra}></div>`;
-  const arq=(r,id,f,obrig)=>{
-    const alvo=id==='pag-recibo'?'recibo':'boleto', url=f?pagUrlDe(f):'';
-    return `<div class="pag-campo"><label class="fin-rot">${r}${obrig?' <b style="color:#C0392B">*</b>':''}</label>
-      <div class="pag-cola${f?' ok':''}${e.alvoPaste===alvo?' ativo':''}" tabindex="0" data-alvo="${alvo}">${f
-        ?(f.type&&f.type.startsWith('image/')?`<img src="${esc(url)}" alt="">`:'')+`<div><b>✓ ${esc(f.name)}</b><span>Para trocar, clique aqui e cole outro print (Ctrl+V)</span></div>`
-        :`<div><b>Clique aqui e aperte Ctrl+V para colar o print</b><span>Ou arraste o arquivo para cá</span></div>`}</div>
-      <label class="pag-ou">ou <u>escolher um arquivo</u> (foto ou PDF)<input type="file" id="${id}" accept="image/*,application/pdf" hidden></label>${e.lendo&&e.lendo[alvo]?'<div class="pag-nota">⏳ Lendo o documento para preencher os campos…</div>':(e.nota&&e.nota[alvo]?`<div class="pag-nota">${esc(e.nota[alvo])}</div>`:'')}</div>`;
+  const arq=(r,id,lista,obrig)=>{
+    const alvo=id==='pag-recibo'?'recibo':'boleto', tem=lista.length>0;
+    const itens=lista.map((f,i)=>`<div class="pag-arq"><span class="pag-mini">${f.type&&f.type.startsWith('image/')?`<img src="${esc(pagUrlDe(f))}" alt="">`:'PDF'}</span><span class="pag-arq-nome"><b>✓ ${esc(alvo==='recibo'?'Recibo':'Boleto')} ${i+1}</b><small>${esc(f.name)}</small></span><button type="button" class="cx-btn" data-pag-rem="${alvo}:${i}" title="Tirar este arquivo">× Tirar</button></div>`).join('');
+    return `<div class="pag-campo"><label class="fin-rot">${r}${obrig?' <b style="color:#C0392B">*</b>':''}</label>${itens}
+      <div class="pag-cola${tem?' ok':''}${e.alvoPaste===alvo?' ativo':''}" tabindex="0" data-alvo="${alvo}"><div><b>${tem?'Clique aqui e cole mais um print para juntar (Ctrl+V)':'Clique aqui e aperte Ctrl+V para colar o print'}</b><span>Ou arraste o arquivo para cá — pode juntar quantos precisar</span></div></div>
+      <label class="pag-ou">ou <u>escolher ${tem?'mais arquivos':'um arquivo'}</u> (foto ou PDF)<input type="file" id="${id}" accept="image/*,application/pdf" multiple hidden></label>${e.lendo&&e.lendo[alvo]?'<div class="pag-nota">⏳ Lendo o documento para preencher os campos…</div>':(e.nota&&e.nota[alvo]?`<div class="pag-nota">${esc(e.nota[alvo])}</div>`:'')}</div>`;
   };
   document.getElementById('pag-conteudo').innerHTML=`
     <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">O que vai neste link</div>${opt('ambos','Escritura e registro')} ${opt('escritura','Só a escritura')} ${opt('registro','Só o registro')}</div>
-    ${esc1?`<div class="pag-bloco"><div class="pag-tit">1 · Escritura — 20º Tabelião de Notas</div>${campo('Valor a pagar (R$)','pag-valE',e.valE,'3.039,89','inputmode="decimal"')}${arq('Recibo do cartório (PDF ou foto)','pag-recibo',e.recibo,true)}</div>`:''}
-    ${reg1?`<div class="pag-bloco"><div class="pag-tit">${esc1?'2':'1'} · Registro de imóveis — boleto</div>${campo('Valor do boleto (R$)','pag-valR',e.valR,'3.868,07','inputmode="decimal"')}${campo('Vencimento (dd/mm/aaaa)','pag-venc',e.venc,'23/10/2026','inputmode="numeric" maxlength="10"')}${campo('Código de barras (linha digitável)','pag-codigo',e.codigo,'26091.90299 37227.373505 …')}${campo('Beneficiário, como aparece no boleto','pag-benef',e.benef,'')}${campo('CNPJ do beneficiário','pag-cnpj',e.cnpj,'')}${arq('Boleto (PDF ou foto)','pag-boleto',e.boleto,true)}</div>`:''}
+    ${esc1?`<div class="pag-bloco"><div class="pag-tit">1 · Escritura — 20º Tabelião de Notas</div>${campo('Valor a pagar (R$)','pag-valE',e.valE,'3.039,89','inputmode="decimal"')}${arq('Recibos do cartório (PDF ou foto)','pag-recibo',e.recibos,true)}</div>`:''}
+    ${reg1?`<div class="pag-bloco"><div class="pag-tit">${esc1?'2':'1'} · Registro de imóveis — boleto</div>${campo('Valor do boleto (R$)','pag-valR',e.valR,'3.868,07','inputmode="decimal"')}${campo('Vencimento (dd/mm/aaaa)','pag-venc',e.venc,'23/10/2026','inputmode="numeric" maxlength="10"')}${campo('Código de barras (linha digitável)','pag-codigo',e.codigo,'26091.90299 37227.373505 …')}${campo('Beneficiário, como aparece no boleto','pag-benef',e.benef,'')}${campo('CNPJ do beneficiário','pag-cnpj',e.cnpj,'')}${arq('Boleto (PDF ou foto)','pag-boleto',e.boletos,true)}</div>`:''}
     <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">Orçamento para o cliente rever</div>${(()=>{ const l=pagOrcamentosDoCaso(e.id); if(!l.length) return '<div style="font-size:13px">Este card ainda não tem orçamento salvo: o botão de rever o orçamento não aparece na página.</div>'; return `<select class="fin-input" id="pag-orc" style="width:100%"><option value="">Nenhum (sem o botão de rever o orçamento)</option>${l.map(o=>`<option value="${esc(String(o.id))}"${String(o.id)===String(e.orcId)?' selected':''}>Versão ${esc(String(o.versao))} — ${esc((typeof orcStatus==='function'?orcStatus(o.status).rot:o.status)||'')}${((casos[e.id]||{}).orcAprovacao||{}).orcId===String(o.id)?' — ✅ aprovada pelo cliente no link':''}</option>`).join('')}</select>`; })()}</div>
     ${e.erro?`<div class="pag-erro">${esc(e.erro)}</div>`:''}
     <div class="pag-acoes"><button type="button" class="cx-btn destaque" id="pag-gerar"${e.gerando?' disabled':''}>${e.gerando?(e.lendo&&(e.lendo.recibo||e.lendo.boleto)?'Lendo os documentos…':'Gerando…'):(e.link?'Atualizar o link':'Gerar link')}</button></div>
@@ -12343,12 +12368,12 @@ function pagUrlDe(f){ let u=pagUrls.get(f); if(!u){ u=URL.createObjectURL(f); pa
 function pagProximoAlvo(){
   const e=pagEst; if(!e) return null;
   if(e.alvoPaste&&((e.alvoPaste==='recibo'&&e.itens!=='registro')||(e.alvoPaste==='boleto'&&e.itens!=='escritura'))) return e.alvoPaste;
-  if(e.itens!=='registro'&&!e.recibo) return 'recibo';
-  if(e.itens!=='escritura'&&!e.boleto) return 'boleto';
+  if(e.itens!=='registro'&&!e.recibos.length) return 'recibo';
+  if(e.itens!=='escritura'&&!e.boletos.length) return 'boleto';
   return e.itens==='registro'?'boleto':'recibo';
 }
 // Depois de guardar, o "onde colar" volta ao automático: o próximo print vai para o que ainda falta, e não por cima do que acabou de entrar.
-function pagGuardarArquivo(alvo,f){ if(!pagEst||!f) return; pagEst[alvo]=f; pagEst.alvoPaste=null; pagEst.erro=''; pagDesenhar(); pagLerArquivo(alvo,f); }
+function pagGuardarArquivo(alvo,f){ if(!pagEst||!f) return; pagEst[alvo+'s'].push(f); pagEst.alvoPaste=null; pagEst.erro=''; pagDesenhar(); pagLerArquivo(alvo,f); }
 document.addEventListener('paste',ev=>{
   if(!pagEst) return;
   const it=[...(ev.clipboardData&&ev.clipboardData.items||[])].find(x=>x.kind==='file'&&/^image\//.test(x.type));
@@ -12362,25 +12387,25 @@ document.addEventListener('paste',ev=>{
 document.addEventListener('dragover',ev=>{ if(pagEst&&ev.target.closest&&ev.target.closest('.pag-cola')) ev.preventDefault(); });
 document.addEventListener('drop',ev=>{
   const z=pagEst&&ev.target.closest&&ev.target.closest('.pag-cola'); if(!z) return;
-  ev.preventDefault(); const f=ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0];
-  if(f&&(/^image\//.test(f.type)||f.type==='application/pdf')) pagGuardarArquivo(z.dataset.alvo,f);
+  ev.preventDefault(); [...((ev.dataTransfer&&ev.dataTransfer.files)||[])].forEach(f=>{ if(/^image\//.test(f.type)||f.type==='application/pdf') pagGuardarArquivo(z.dataset.alvo,f); });
 });
 document.addEventListener('focusin',ev=>{ const z=pagEst&&ev.target.closest&&ev.target.closest('.pag-cola'); if(z) pagEst.alvoPaste=z.dataset.alvo; });
 document.addEventListener('click',ev=>{ const z=pagEst&&ev.target.closest&&ev.target.closest('.pag-cola'); if(z){ pagEst.alvoPaste=z.dataset.alvo; document.querySelectorAll('.pag-cola').forEach(x=>x.classList.toggle('ativo',x===z)); z.focus(); } });
 document.addEventListener('input',ev=>{
   if(!pagEst) return; const t=ev.target, m={ 'pag-valE':'valE','pag-valR':'valR','pag-venc':'venc','pag-codigo':'codigo','pag-benef':'benef','pag-cnpj':'cnpj' }[t.id];
-  if(m){ pagEst[m]=t.value; return; }
+  if(m){ pagEst[m]=t.value; if(m==='valE') pagEst.valEManual=!!t.value.trim(); return; }
   if(t.id==='pag-msg') pagEst.msg=t.value;
 });
 document.addEventListener('change',ev=>{
   if(!pagEst) return; const t=ev.target;
   if(t.id==='pag-orc'){ pagEst.orcId=t.value; return; }
   if(t.name==='pag-itens'){ pagEst.itens=t.value; pagEst.erro=''; pagDesenhar(); return; }
-  if(t.id==='pag-recibo'||t.id==='pag-boleto'){ const f=t.files&&t.files[0]; if(f){ pagGuardarArquivo(t.id==='pag-recibo'?'recibo':'boleto',f); } }
+  if(t.id==='pag-recibo'||t.id==='pag-boleto'){ [...(t.files||[])].forEach(f=>pagGuardarArquivo(t.id==='pag-recibo'?'recibo':'boleto',f)); t.value=''; }
 });
 document.addEventListener('click',async ev=>{
   const b=ev.target.closest('button'); if(!b||!pagEst) return;
   if(b.id==='pag-gerar') return pagGerarLink();
+  if(b.dataset.pagRem){ const [alvo,i]=b.dataset.pagRem.split(':'); const l=pagEst[alvo+'s']; const [tirado]=l.splice(+i,1); if(tirado) pagLeituras.delete(tirado); pagEst.erro=''; if(alvo==='recibo'&&!pagEst.valEManual&&l.length){ const n=pagAplicarRecibos(); pagEst.nota=pagEst.nota||{}; pagEst.nota.recibo=n; } pagDesenhar(); return; }
   if(b.dataset.pag==='copiar'){ const m=pagEst.msg; try{ await navigator.clipboard.writeText(m); finToast('Texto copiado. É só colar.'); }catch(_){ prompt('Copie o texto:',m); } }
   if(b.dataset.pag==='zap') window.open('https://wa.me/?text='+encodeURIComponent(pagEst.msg),'_blank','noopener');
 });
@@ -12391,20 +12416,21 @@ async function pagGerarLink(){
   e.erro=''; e.gerando=true; pagDesenhar();
   for(let i=0;i<300&&pagEst===e&&e.lendo&&(e.lendo.recibo||e.lendo.boleto);i++) await new Promise(r=>setTimeout(r,200));
   if(pagEst!==e) return;
-  if(comE&&e.recibo&&!pagCentavos(e.valE)) await pagLerArquivo('recibo',e.recibo);
-  if(comR&&e.boleto&&(!pagCentavos(e.valR)||!pagVencOk(e.venc)||!String(e.codigo).replace(/\D/g,''))) await pagLerArquivo('boleto',e.boleto);
+  if(comE&&e.recibos.length&&!pagCentavos(e.valE)) for(const f of [...e.recibos]) if(!pagLeituras.has(f)) await pagLerArquivo('recibo',f);
+  if(comR&&e.boletos.length&&(!pagCentavos(e.valR)||!pagVencOk(e.venc)||!String(e.codigo).replace(/\D/g,''))) await pagLerArquivo('boleto',e.boletos[0]);
   if(pagEst!==e) return;
   e.gerando=false;
   const valE=comE?pagCentavos(e.valE):0, valR=comR?pagCentavos(e.valR):0;
   const falta=[];
-  if(comE){ if(!valE) falta.push('o valor da escritura'); if(!e.recibo&&!(c.pagamento&&c.pagamento.itens&&c.pagamento.itens.escritura&&e.link)) falta.push('o recibo do cartório'); }
-  if(comR){ if(!valR) falta.push('o valor do boleto'); if(!pagVencOk(e.venc)) falta.push('o vencimento (dd/mm/aaaa)'); if(!String(e.codigo).replace(/\D/g,'')) falta.push('o código de barras'); if(!e.boleto&&!e.link) falta.push('o boleto'); }
+  if(comE){ if(!valE) falta.push('o valor da escritura'); if(!e.recibos.length&&!(c.pagamento&&c.pagamento.itens&&c.pagamento.itens.escritura&&e.link)) falta.push('o recibo do cartório'); }
+  if(comR){ if(!valR) falta.push('o valor do boleto'); if(!pagVencOk(e.venc)) falta.push('o vencimento (dd/mm/aaaa)'); if(!String(e.codigo).replace(/\D/g,'')) falta.push('o código de barras'); if(!e.boletos.length&&!e.link) falta.push('o boleto'); }
   if(falta.length){ e.erro='Falta '+falta.join(', ')+'.'; pagDesenhar(); return; }
   e.erro=''; e.gerando=true; pagDesenhar();
   try{
     const imagens={};
-    if(e.recibo) imagens.recibo=await pagImagemDe(e.recibo);
-    if(e.boleto){ imagens.boleto=await pagImagemDe(e.boleto); if(e.boleto.size<=700*1024&&(e.boleto.type==='application/pdf'||/\.pdf$/i.test(e.boleto.name))) imagens.boletoPdf=await pagLerComoUrl(e.boleto); }
+    // A primeira de cada lista também vai nos campos de sempre (recibo/boleto), que a página e as cobranças antigas já leem.
+    if(e.recibos.length){ imagens.recibos=await Promise.all(e.recibos.map(f=>pagImagemDe(f))); imagens.recibo=imagens.recibos[0]; }
+    if(e.boletos.length){ imagens.boletos=await Promise.all(e.boletos.map(f=>pagImagemDe(f))); imagens.boleto=imagens.boletos[0]; const b1=e.boletos[0]; if(b1.size<=700*1024&&(b1.type==='application/pdf'||/\.pdf$/i.test(b1.name))) imagens.boletoPdf=await pagLerComoUrl(b1); }
     const orc=pagOrcamentoEscolhido(e.id,e.orcId); if(orc){ const im=pagImagemOrcamento(orc); if(im) imagens.orcamento=im; }
     const agora=Date.now(), anterior=c.pagamento, reaproveita=!!(anterior&&anterior.token&&anterior.status!=='recebido'&&e.link);
     const token=reaproveita?anterior.token:codigoDeEnvio();

@@ -267,6 +267,7 @@ body{padding-bottom:40px}
 .vis .ap{color:#E9EDF0;font-size:16px;padding:0 4px 10px}
 .vis .im{flex:1;overflow:auto;background:#fff;border-radius:3px}
 .vis img{display:block;width:100%}
+.vis .cap{padding:10px 12px;font:700 15px -apple-system,sans-serif;background:var(--recuo);color:var(--graf);border-top:1px solid var(--linha)}
 .vis.zoom img{width:auto;min-width:1000px}
 .chip.ok{background:#E3F1E8;color:var(--ok)}
 .chip.err{background:#FBE3E1;color:var(--critico)}
@@ -346,9 +347,10 @@ function overlay(){
   v.hidden=false; v.classList.toggle('zoom',zoom);
   const im=cob.imagens||{}, rec=vis==='recibo', orc=vis==='orc';
   const tit=orc?'Orçamento':t(rec?'C1':'C5'), ap=orc?'':`<div class="ap">${t(rec?'C2':'C6')}</div>`;
-  const src=im[orc?'orcamento':rec?'recibo':'boleto']||'';
+  const srcs=(orc?[im.orcamento]:rec?(im.recibos&&im.recibos.length?im.recibos:[im.recibo]):(im.boletos&&im.boletos.length?im.boletos:[im.boleto])).filter(Boolean);
+  const rotulo=rec?'Recibo':'Boleto';
   const pdf=(!rec&&!orc&&im.boletoPdf)?`<a class="sec" href="${esc(im.boletoPdf)}" download="boleto.pdf">Baixar PDF</a>`:'';
-  v.innerHTML=`<div class="tt"><span>${tit}</span><span class="bs">${pdf}<button type="button" class="sec" data-zoom>${zoom?'Ajustar':t(rec?'C3':'C7')}</button><button type="button" data-fechar>${t('C4')}</button></span></div>${ap}<div class="im">${src?`<img src="${esc(src)}" alt="">`:'<p style="padding:20px;font-size:17px">Não há imagem para mostrar.</p>'}</div>`;
+  v.innerHTML=`<div class="tt"><span>${tit}</span><span class="bs">${pdf}<button type="button" class="sec" data-zoom>${zoom?'Ajustar':t(rec?'C3':'C7')}</button><button type="button" data-fechar>${t('C4')}</button></span></div>${ap}<div class="im">${srcs.length?srcs.map((u,i)=>(srcs.length>1&&!orc?`<div class="cap">${rotulo} ${i+1} de ${srcs.length}</div>`:'')+`<img src="${esc(u)}" alt="">`).join(''):'<p style="padding:20px;font-size:17px">Não há imagem para mostrar.</p>'}</div>`;
 }
 function reduzir(file){
   if(!file.type.startsWith('image/')||file.type==='image/gif') return Promise.resolve(file);

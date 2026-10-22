@@ -1110,6 +1110,12 @@ Regras dela que **não devem ser mexidas sem perguntar**:
   (ela usa os status para outras coisas). O card mostra "✅ Cliente aprovou", o topo do painel avisa, e a janela do link de
   pagamento já nasce com a versão aprovada. A aprovação vale só para a versão que o cliente viu: versão nova, link novo.
   Link de orçamento nunca serve de link de pagamento (e o contrário): `meta.tipo` é conferido nos dois Apps Script/páginas.
+- **Dá para juntar mais de um recibo e mais de um boleto.** Na janela do card, a caixa de colar aceita quantos arquivos ela precisar (cada um com
+  miniatura e *× Tirar*). **Com mais de um recibo, o valor da escritura é a SOMA**, mas só quando cada recibo fechou as próprias contas
+  (`pagConferirRecibo`); um que não fecha impede a soma e o motivo diz qual. O valor digitado à mão nunca é trocado (`valEManual`). Com mais
+  de um boleto, o código de barras, o valor e o vencimento são **os do primeiro** — o aviso diz isso, e se o cliente paga cada um à parte, o
+  jeito certo é um link para cada. O banco guarda `imagens.recibos`/`imagens.boletos` (listas) e, por compatibilidade, o primeiro em
+  `imagens.recibo`/`imagens.boleto`; a página do cliente mostra todos, legendados "Recibo 1 de N".
 - **O comprovante parece instantâneo, mas o link só fecha com tudo enviado.** Na página do cliente, "✓ Anexado" aparece assim que a foto
   está reduzida (1600 px, qualidade .8) e o envio ao Drive segue em segundo plano (`fila` em `pagar.html`); o *Concluir* espera a fila e,
   se algum envio falhou, volta ao passo dele com o motivo escrito — nunca fecha o link sem o comprovante no Drive. O Apps Script
