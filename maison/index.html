@@ -463,7 +463,14 @@ function quinzena(ref){const y=ref.getFullYear(),m=ref.getMonth(),day=ref.getDat
   if(day<=15) return {ini:new Date(y,m,1),fim:new Date(y,m,15),pago:new Date(y,m,20)};
   const fimMes=new Date(y,m+1,0).getDate();
   return {ini:new Date(y,m,16),fim:new Date(y,m,fimMes),pago:new Date(y,m+1,5)};}
-const QZ=quinzena(TODAY);
+// Período da comissão: por padrão mensal, paga no dia 1 do mês seguinte (combinado com a equipe); a Tháriga pode mudar em Comissões.
+function periodoCom(ref,cfg){cfg=cfg||{};if(cfg.comCiclo==='quinzenal')return quinzena(ref);
+  const dia=Math.min(28,Math.max(1,+cfg.comDia||1)),y=ref.getFullYear(),m=ref.getMonth();
+  return {ini:new Date(y,m,1),fim:new Date(y,m+1,0),pago:new Date(y,m+1,dia)}}
+const qzAtual=()=>periodoCom(TODAY,C.config);
+// Percentual da comissão: o do atendimento (modelo, cortesia…) vale por cima do da profissional; sem nenhum, 50%.
+const comPct=h=>{const o=(C.config.comAtend||{})[h.id];if(o!=null&&o!=='')return +o;const v=(C.config.comPct||{})[h.pro];return v!=null&&v!==''?+v:50};
+const comVal=h=>Math.round((h.valor||0)*comPct(h))/100;
 const laisDay=d=>new Date((typeof d==='string'?d:iso(d))+'T12:00').getDay()===1;
 const vcStr=s=>String(s??'');
 
@@ -547,7 +554,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{},pubMai:{},pubFlo:{},mRes:{},fRes:{},mBlq:{},fBlq:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},adiantamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{},pubMai:{},pubFlo:{},mRes:{},fRes:{},mBlq:{},fBlq:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -567,9 +574,9 @@ const anamVencida=c=>{const a=anamDe(c.id);return !a||(TODAY-new Date(a.data+'T0
 const toast=m=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200)};
 const visUnit=u=>isAdmin()?(S.unit==='todas'||S.unit===u):u==='mai';
 const monthRecs=()=>histAll().filter(h=>h.date.slice(0,7)===iso(TODAY).slice(0,7));
-const periodRecs=()=>histAll().filter(h=>h.date>=iso(QZ.ini)&&h.date<=iso(QZ.fim));
+const periodRecs=()=>{const q=qzAtual();return histAll().filter(h=>h.date>=iso(q.ini)&&h.date<=iso(q.fim))};
 const repasse=()=>C.config.repasse??40;
-const qzChave=p=>`${iso(QZ.ini)}_${p}`;
+const qzChave=p=>`${iso(qzAtual().ini)}_${p}`;
 
 // ═══ Entrada (login) ═══════════════════════════════════════════════════
 const subs=[];
@@ -583,7 +590,7 @@ function comecarLeituras(){
   if(isAdmin()){
     ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/reservas','fRes');ouvir('florenca/bloqueios','fBlq');ouvir('publico/agenda/flo','pubFlo');ouvir('florenca/pendentes','fPend');
     ouvir('financeiro/valores','valores');
-    ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');ouvir('admin/instagram','instagram');
+    ouvir('admin/fornecedores','fornecedores');ouvir('admin/contas','contas');ouvir('admin/cursos','cursos');ouvir('admin/aulas','aulas');ouvir('admin/config','config');ouvir('admin/pagamentos','pagamentos');ouvir('admin/adiantamentos','adiantamentos');ouvir('admin/instagram','instagram');
     // A carga inicial dos roteiros é idempotente: chaves fixas, só cria o que falta.
     DB.get('admin/aulas').then(v=>{if(!v)AULAS_INICIAIS.forEach((a,i)=>DB.set('admin/aulas/a'+(i+1),{...a,ordem:i+1}).catch(()=>{}))}).catch(()=>{});
   }
@@ -1633,7 +1640,7 @@ function vFinanceiro(){
   const m=monthRecs();const mes=TODAY.toLocaleDateString('pt-BR',{month:'long'});
   const mai=m.filter(h=>h.unit==='mai'),flo=m.filter(h=>h.unit==='flo');
   const sum=a=>a.reduce((s,h)=>s+(h.valor||0),0);
-  const fatM=sum(mai),com=sum(mai.filter(h=>h.pro==='rafael'||h.pro==='mariana'||h.pro==='ana'))*.5,desp=arr(C.contas).filter(c=>c.unit==='mai'&&c.pago&&!c.cancelada).reduce((s,c)=>s+c.v,0);
+  const fatM=sum(mai),com=mai.filter(h=>h.pro!=='tha'&&h.pro!=='lais').reduce((s,h)=>s+comVal(h),0),desp=arr(C.contas).filter(c=>c.unit==='mai'&&c.pago&&!c.cancelada).reduce((s,c)=>s+c.v,0);
   const fatF=sum(flo),rep=fatF*repasse()/100;
   const porPag=PAG.map(p=>[p,sum(m.filter(h=>h.pag===p&&visUnit(h.unit)))]);
   const showM=visUnit('mai'),showF=visUnit('flo');
@@ -1665,29 +1672,57 @@ function extrato(){const flo=monthRecs().filter(h=>h.unit==='flo');const tot=flo
   document.getElementById('cp').onclick=async()=>{try{await navigator.clipboard.writeText(txt);toast('Resumo copiado')}catch(e){toast('Não foi possível copiar')}}}
 
 function vComissoes(){
-  const m=periodRecs().filter(h=>h.pro!=='tha');
-  const periodo=`${fd(iso(QZ.ini))} a ${fd(iso(QZ.fim))}`;
-  const pagoData=fd(iso(QZ.pago),{day:'2-digit',month:'2-digit',year:'numeric'});
-  return `<div class="top"><div><h1>Comissões</h1><div class="sub">Fechamento quinzenal (1–15 pago dia 20; 16–31 pago dia 5 do mês seguinte), sem desconto de taxa de cartão. Quinzena atual: ${periodo}, pagamento em ${pagoData}.</div></div></div>
+  const q=qzAtual(),m=periodRecs().filter(h=>h.pro!=='tha'),cfg=C.config||{},mensal=cfg.comCiclo!=='quinzenal';
+  const periodo=`${fd(iso(q.ini))} a ${fd(iso(q.fim))}`;
+  const pagoData=fd(iso(q.pago),{day:'2-digit',month:'2-digit',year:'numeric'});
+  const pcts=cfg.comPct||{},chave=iso(q.ini);
+  const quem=STAFF.filter(x=>x!=='lais');
+  return `<div class="top"><div><h1>Comissões</h1><div class="sub">${mensal?`Fechamento mensal, pago no dia ${Math.min(28,Math.max(1,+cfg.comDia||1))} do mês seguinte`:'Fechamento quinzenal (1–15 pago dia 20; 16–31 pago dia 5 do mês seguinte)'}, sem desconto de taxa de cartão. Período atual: ${periodo}, pagamento em ${pagoData}.</div></div></div>
   <div class="grid g3">${STAFF.map(p=>{
     if(p==='lais'){const r=m.filter(h=>h.pro==='lais'),tot=r.reduce((s,h)=>s+(h.valor||0),0),pagoRent=C.pagamentos[qzChave('lais_aluguel')];
       return `<div class="box"><h2>Laís</h2><div class="lbl">Aluga a sala às segundas-feiras</div>
        <div class="stat" style="margin:10px 0">${brl(500)}<span class="small muted" style="font-weight:400"> /mês</span></div>
-       <p class="small muted" style="margin-bottom:10px">Inclui insumos e limpeza. Ela fica com 100% do que cobra das clientes — ${r.length} atendimento(s) nesta quinzena, ${brl(tot)} faturados por ela.</p>
+       <p class="small muted" style="margin-bottom:10px">Inclui insumos e limpeza. Ela fica com 100% do que cobra das clientes — ${r.length} atendimento(s) neste período, ${brl(tot)} faturados por ela.</p>
        ${pagoRent?'<span class="tag ok">Aluguel pago</span>':'<button class="btn p" data-payrent="lais">Marcar aluguel como pago</button>'}
        <button class="btn" data-det="lais" style="margin-left:6px">Ver atendimentos</button></div>`;
     }
-    const r=m.filter(h=>h.pro===p),tot=r.reduce((s,h)=>s+(h.valor||0),0),pago=C.pagamentos[qzChave(p)];
-    return `<div class="box"><h2>${PEOPLE[p].n}</h2><div class="lbl">${r.length} atendimentos · ${brl(tot)} faturados</div>
-     <div class="stat" style="margin:10px 0">${brl(tot/2)}</div>
+    const r=m.filter(h=>h.pro===p),tot=r.reduce((s,h)=>s+(h.valor||0),0),com=r.reduce((s,h)=>s+comVal(h),0),pago=C.pagamentos[qzChave(p)];
+    const adv=arr(C.adiantamentos).filter(a=>a.pro===p&&a.periodo===chave&&!a.cancelado).sort((a,b)=>(a.data||'').localeCompare(b.data||'')),advTot=adv.reduce((s,a)=>s+(+a.valor||0),0);
+    const falta=Math.round((com-advTot)*100)/100,pct=+(pcts[p]??50);
+    return `<div class="box"><h2>${PEOPLE[p].n}</h2><div class="lbl">${r.length} atendimentos · ${brl(tot)} faturados · comissão de ${pct}%</div>
+     <div class="small muted" style="margin-top:8px">Comissão do período: <b>${brl(com)}</b></div>
+     ${adv.length?`<div class="small" style="margin-top:6px"><b>Adiantamentos já pagos: −${brl(advTot)}</b>${adv.map(a=>`<div class="muted">${fd(a.data)} · ${brl(a.valor)}${a.obs?' · '+esc(a.obs):''} <a href="#" data-advx="${a.id}" style="color:var(--warn)">cancelar</a></div>`).join('')}</div>`:''}
+     <div class="lbl" style="margin-top:10px">${pago?'Pago':'Falta pagar em '+pagoData}</div>
+     <div class="stat" style="margin:2px 0 10px">${brl(Math.max(falta,0))}</div>
+     ${falta<0?`<div class="alert">Os adiantamentos passaram a comissão em ${brl(-falta)}.</div>`:''}
      ${pago?'<span class="tag ok">Pago</span>':`<button class="btn p" data-pay="${p}">Marcar como pago</button>`}
-     <button class="btn" data-det="${p}" style="margin-left:6px">Ver detalhes</button></div>`;
+     <button class="btn" data-adv="${p}" style="margin-left:6px">Registrar adiantamento</button>
+     <button class="btn" data-det="${p}" style="margin-top:8px">Ver detalhes</button></div>`;
   }).join('')}</div>
-  <p class="small muted" style="margin-top:14px">Rafael, Mariana e Ana Luiza recebem 50% sobre o valor cheio de cada serviço. A Laís não entra nessa conta — ela paga aluguel fixo da sala.</p>`;
+  <div class="box" style="margin-top:16px"><h2>Como a comissão é calculada</h2>
+   <p class="small muted" style="margin-top:-4px">Cada profissional recebe um percentual do valor cheio de cada serviço. Para um atendimento fora do padrão (modelo, cortesia), mude só o percentual daquele atendimento em <b>Ver detalhes</b>: por exemplo 100%, sem taxa para o salão.</p>
+   <div class="grid g3">${quem.map(x=>`<label class="f">${esc(PEOPLE[x].n)} (%)<input type="number" min="0" max="100" step="1" data-compct="${x}" value="${+(pcts[x]??50)}"></label>`).join('')}</div>
+   <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end"><label class="f" style="min-width:180px">Fechamento<select id="com-ciclo"><option value="mensal" ${mensal?'selected':''}>Mensal</option><option value="quinzenal" ${mensal?'':'selected'}>Quinzenal</option></select></label>
+   ${mensal?`<label class="f" style="width:150px">Pagar no dia<input type="number" id="com-dia" min="1" max="28" value="${Math.min(28,Math.max(1,+cfg.comDia||1))}"></label>`:''}</div>
+   <p class="small muted" style="margin-bottom:0">Mudar o percentual vale para os atendimentos do período em aberto, inclusive os já feitos.</p></div>`;
 }
 function detCom(p){const r=periodRecs().filter(h=>h.pro===p);
-  openDlg('Atendimentos de '+PEOPLE[p].n,`<div class="scroll"><table><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th class="n">Valor</th>${p==='lais'?'':'<th class="n">Comissão</th>'}</tr>
-  ${r.map(h=>`<tr><td>${fd(h.date)}</td><td>${esc(cli(h.cli).n)}</td><td>${esc(sv(h.serv,h.unit).n)}</td><td class="n">${brl(h.valor)}</td>${p==='lais'?'':`<td class="n">${brl((h.valor||0)/2)}</td>`}</tr>`).join('')||`<tr><td colspan="${p==='lais'?4:5}" class="muted">Nenhum atendimento nesta quinzena.</td></tr>`}</table></div>`)}
+  openDlg('Atendimentos de '+PEOPLE[p].n,`<div class="scroll"><table><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th class="n">Valor</th>${p==='lais'?'':'<th class="n">%</th><th class="n">Comissão</th>'}</tr>
+  ${r.map(h=>`<tr><td>${fd(h.date)}</td><td>${esc(cli(h.cli).n)}</td><td>${esc(sv(h.serv,h.unit).n)}</td><td class="n">${brl(h.valor)}</td>${p==='lais'?'':`<td class="n"><input type="number" min="0" max="100" step="1" data-comat="${esc(h.id)}" value="${comPct(h)}" style="width:64px;padding:6px;border:1px solid var(--line);border-radius:8px;text-align:right"></td><td class="n">${brl(comVal(h))}</td>`}</tr>`).join('')||`<tr><td colspan="${p==='lais'?4:6}" class="muted">Nenhum atendimento neste período.</td></tr>`}</table></div>
+  ${p==='lais'?'':'<p class="small muted">O percentual de cada linha vale só para aquele atendimento. Deixe em branco para voltar ao percentual da profissional.</p>'}`);
+  dlg.querySelectorAll('[data-comat]').forEach(i=>i.onchange=async()=>{const id=i.dataset.comat,v=i.value.trim();
+    const ok=await grava(()=>v===''?DB.del('admin/config/comAtend/'+id):DB.set('admin/config/comAtend/'+id,Math.min(100,Math.max(0,+v||0))),'Percentual do atendimento salvo');
+    if(ok)detCom(p)})}
+function dlgAdiant(p){
+  openDlg('Adiantamento para '+PEOPLE[p].n,`<p class="small muted">Registre o que já foi pago antes do fechamento. Ele é descontado da comissão do período e fica separado, para não dar confusão no dia do pagamento.</p>
+  <label class="f">Valor pago (R$)<input type="number" id="ad-v" min="0" step="0.01" inputmode="decimal"></label>
+  <label class="f">Data em que pagou<input type="date" id="ad-d" value="${iso(TODAY)}"></label>
+  <label class="f">Observação (opcional)<input id="ad-o" maxlength="120" placeholder="Ex.: vale, Pix"></label>
+  <button class="btn p" id="ad-s">Registrar adiantamento</button>`);
+  document.getElementById('ad-s').onclick=async()=>{const v=+document.getElementById('ad-v').value,d=document.getElementById('ad-d').value;
+    if(!(v>0)){toast('Informe o valor pago');return}if(!d){toast('Informe a data');return}
+    const reg={pro:p,valor:Math.round(v*100)/100,data:d,periodo:iso(qzAtual().ini),por:S.user.nome};const o=document.getElementById('ad-o').value.trim();if(o)reg.obs=o;
+    if(await grava(()=>DB.push('admin/adiantamentos',reg),'Adiantamento registrado'))closeDlg()}}
 
 function abrirSuporte(){if(!S.user)return;
   openDlg('Preciso de ajuda',`<p class="small muted">A mensagem vai para quem cuida do painel, junto com a tela em que você estava e o último erro, se houve. Não precisa explicar o lado técnico.</p>
@@ -2106,6 +2141,11 @@ function render(){
   main.querySelectorAll('[data-msg]').forEach(b=>b.onclick=()=>msgDlg(b.dataset.msg,b.dataset.c));
   main.querySelectorAll('[data-cli]').forEach(b=>b.onclick=()=>ficha(b.dataset.cli));
   main.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/pagamentos/'+qzChave(b.dataset.pay),true),'Comissão marcada como paga'));
+  main.querySelectorAll('[data-adv]').forEach(b=>b.onclick=()=>dlgAdiant(b.dataset.adv));
+  main.querySelectorAll('[data-advx]').forEach(a=>a.onclick=e=>{e.preventDefault();if(confirm('Cancelar este adiantamento? Ele deixa de ser descontado, mas continua guardado.'))grava(()=>DB.upd('admin/adiantamentos/'+a.dataset.advx,{cancelado:true,canceladoPor:S.user.nome}),'Adiantamento cancelado')});
+  main.querySelectorAll('[data-compct]').forEach(i=>i.onchange=()=>grava(()=>DB.set('admin/config/comPct/'+i.dataset.compct,Math.min(100,Math.max(0,+i.value||0))),'Percentual salvo'));
+  const cc=document.getElementById('com-ciclo');if(cc)cc.onchange=()=>grava(()=>DB.set('admin/config/comCiclo',cc.value),'Fechamento alterado');
+  const cd=document.getElementById('com-dia');if(cd)cd.onchange=()=>grava(()=>DB.set('admin/config/comDia',Math.min(28,Math.max(1,+cd.value||1))),'Dia de pagamento salvo');
   main.querySelectorAll('[data-payrent]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/pagamentos/'+qzChave('lais_aluguel'),true),'Aluguel marcado como pago'));
   main.querySelectorAll('[data-det]').forEach(b=>b.onclick=()=>detCom(b.dataset.det));
   main.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/contas/'+b.dataset.pc+'/pago',true),'Conta marcada como paga'));

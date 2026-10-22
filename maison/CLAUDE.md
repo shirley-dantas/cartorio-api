@@ -21,10 +21,10 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
   (`histAll()` esconde cancelados por padrão). Só a Tháriga corrige valor ou
   cancela atendimento; as regras do banco impedem a funcionária de apagar
   cliente ou mexer em atendimento já registrado.
-- **Comissão:** Rafael e Mariana 50% do valor cheio (sem desconto de cartão ou
-  material). Laís não tem comissão: paga R$ 500/mês de aluguel da sala, só
+- **Comissão:** Rafael, Mariana e Ana Luiza 50% do valor cheio por padrão (sem desconto de cartão ou
+  material); o percentual é da Tháriga e muda em *Comissões* (por profissional e, em *Ver detalhes*, por atendimento: modelo/cortesia pode ser 100%). Laís não tem comissão: paga R$ 500/mês de aluguel da sala, só
   às segundas, e fica com 100% do que cobra.
-- **Fechamento quinzenal:** 1–15 pago dia 20; 16–31 pago dia 5 do mês seguinte.
+- **Fechamento da comissão:** mensal, pago no dia 1 do mês seguinte (combinado com a equipe; o dia e o modo quinzenal — 1–15 pago dia 20, 16–31 pago dia 5 — se mudam em *Comissões*).
 - **Florença:** o percentual do acerto com a dona do estúdio **não está
   confirmado** (40% é provisório) — fica configurável, nunca travado no código.
 - **A anamnese segue a ficha oficial da Maison Beauty** (PDF da Tháriga, página 1): identificação, serviço solicitado, 12 perguntas de saúde com Sim/Não **todas obrigatórias**, detalhes, autorização de foto e assinatura. A página 2 (registro do atendimento) é por atendimento, preenchida por todas, com o nome e a data de quem preencheu (sem nova assinatura da cliente). **A equipe pode fotografar a cliente mesmo sem a autorização da ficha** (registro interno, na hora ou do aparelho; divulgação continua exigindo autorização), reduzidas no aparelho e guardadas no próprio banco.
@@ -166,3 +166,7 @@ Pedido da Tháriga (vindo de uma cliente que usava o Amore): no *Novo agendament
 ## Horários livres: imagem por dia (21/10/2026, rascunho, ainda não publicado)
 
 Cada dia da aba *Horários livres* que tem horário vago ganhou o botão **Imagem deste dia** (`data-lvdia`): abre a mensagem e **já desenha a imagem só daquele dia** (`livresGrupos(dia)`, `livresTexto(grupos,dia)`, `livresImagem(grupos,dia)`), com os horários de todas as profissionais que atendem nele (respeitando o filtro de profissional e o serviço escolhido). O botão de cima continua mandando vários dias de uma vez.
+
+## Comissões: adiantamento, percentual e dia de pagamento (22/10/2026, rascunho, ainda não publicado)
+
+Pedido da Tháriga: (1) **registrar adiantamento** pago a uma profissional — fica separado (`/admin/adiantamentos`, com `periodo`; cancelar só marca `cancelado`, nada é apagado), é descontado da comissão do período e o cartão mostra *comissão do período*, *adiantamentos já pagos* e *falta pagar*; (2) **mudar o percentual**: por profissional (`/admin/config/comPct/{pro}`) e por atendimento (`/admin/config/comAtend/{atendimento}`, em *Ver detalhes*; vale por cima), para modelo/cortesia a 100%; (3) **dia do pagamento**: fechamento mensal pago no dia escolhido (`comCiclo`, `comDia`, padrão mensal dia 1), com a opção de voltar ao quinzenal. `comPct()`/`comVal()` são a conta única, usada também no resumo do Financeiro. Tudo sob `/admin`, que já é só da Tháriga: sem regras novas no banco. Marcações de "pago" feitas no quinzenal têm outra chave (início do período) e não valem no mensal.
