@@ -144,10 +144,11 @@ async function pagImagemDe(file,maxLado=1500,q=.85){
 }
 const pagLerComoUrl=file=>new Promise((ok,no)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result)); r.onerror=no; r.readAsDataURL(file); });
 // A imagem do orçamento que o cliente aprovou (a mesma "via do cliente"), se o card tiver um marcado assim.
-function pagOrcamentoAprovado(casoId){
-  const l=(typeof orcDoCaso==='function'?orcDoCaso(casoId):[]).filter(o=>o&&o.status==='aceito'&&o.resultado);
-  return l.length?l[l.length-1]:null;
-}
+// Os orçamentos do card que dá para mandar o cliente rever. O status "Aprovado pelo cliente" não é exigido (ela usa os status
+// para outras coisas): ela escolhe a versão na janela; o que nasce marcado é o último com esse status, ou o mais recente.
+function pagOrcamentosDoCaso(casoId){ return (typeof orcDoCaso==='function'?orcDoCaso(casoId):[]).filter(o=>o&&o.resultado); }
+function pagOrcamentoPadrao(casoId){ const l=pagOrcamentosDoCaso(casoId), a=l.filter(o=>o.status==='aceito'); return (a.length?a:l).slice(-1)[0]||null; }
+function pagOrcamentoEscolhido(casoId,id){ return id?pagOrcamentosDoCaso(casoId).find(o=>String(o.id)===String(id))||null:null; }
 function pagImagemOrcamento(o){
   try{
     const cv=orcDesenharFolha(o,o.resultado), k=Math.min(1,1100/cv.width);
@@ -262,9 +263,9 @@ async function pagLerArquivo(alvo,f){
 let pagEst=null;
 function pagLerMemoria(){ try{ return JSON.parse(localStorage.getItem('painel_pag_benef')||'null')||{}; }catch(_){ return {}; } }
 window.abrirPagamento=function(id){
-  const c=casos[id]||{}, orc=pagOrcamentoAprovado(id);
+  const c=casos[id]||{}, orc=pagOrcamentoPadrao(id);
   const mem=pagLerMemoria();
-  pagEst={id,itens:'ambos',valE:'',valR:'',venc:'',codigo:'',benef:mem.nome||PAG_BENEFICIARIO.nome,cnpj:mem.cnpj||PAG_BENEFICIARIO.cnpj,recibo:null,boleto:null,orcVersao:orc?orc.versao:null,erro:'',gerando:false,link:'',msg:''};
+  pagEst={id,itens:'ambos',valE:'',valR:'',venc:'',codigo:'',benef:mem.nome||PAG_BENEFICIARIO.nome,cnpj:mem.cnpj||PAG_BENEFICIARIO.cnpj,recibo:null,boleto:null,orcId:orc?String(orc.id):'',erro:'',gerando:false,link:'',msg:''};
   document.getElementById('pag-sub').textContent=(c.nome||'Sem nome')+(c.tipo?' — '+c.tipo:'');
   pagDesenhar();
   document.getElementById('modal-pagamento').classList.add('open');
@@ -287,7 +288,7 @@ function pagDesenhar(){
     <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">O que vai neste link</div>${opt('ambos','Escritura e registro')} ${opt('escritura','Só a escritura')} ${opt('registro','Só o registro')}</div>
     ${esc1?`<div class="pag-bloco"><div class="pag-tit">1 · Escritura — 20º Tabelião de Notas</div>${campo('Valor a pagar (R$)','pag-valE',e.valE,'3.039,89','inputmode="decimal"')}${arq('Recibo do cartório (PDF ou foto)','pag-recibo',e.recibo,true)}</div>`:''}
     ${reg1?`<div class="pag-bloco"><div class="pag-tit">${esc1?'2':'1'} · Registro de imóveis — boleto</div>${campo('Valor do boleto (R$)','pag-valR',e.valR,'3.868,07','inputmode="decimal"')}${campo('Vencimento (dd/mm/aaaa)','pag-venc',e.venc,'23/10/2026','inputmode="numeric" maxlength="10"')}${campo('Código de barras (linha digitável)','pag-codigo',e.codigo,'26091.90299 37227.373505 …')}${campo('Beneficiário, como aparece no boleto','pag-benef',e.benef,'')}${campo('CNPJ do beneficiário','pag-cnpj',e.cnpj,'')}${arq('Boleto (PDF ou foto)','pag-boleto',e.boleto,true)}</div>`:''}
-    <div class="pag-bloco" style="font-size:13px">${e.orcVersao?`✓ O orçamento aprovado pelo cliente (versão ${esc(e.orcVersao)}) vai junto, para ele rever.`:'Este card não tem orçamento marcado como "Aprovado pelo cliente": o botão de rever o orçamento não aparece na página.'}</div>
+    <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">Orçamento para o cliente rever</div>${(()=>{ const l=pagOrcamentosDoCaso(e.id); if(!l.length) return '<div style="font-size:13px">Este card ainda não tem orçamento salvo: o botão de rever o orçamento não aparece na página.</div>'; return `<select class="fin-input" id="pag-orc" style="width:100%"><option value="">Nenhum (sem o botão de rever o orçamento)</option>${l.map(o=>`<option value="${esc(o.id)}"${String(o.id)===String(e.orcId)?' selected':''}>Versão ${esc(o.versao)} — ${esc((typeof orcStatus==='function'?orcStatus(o.status).rot:o.status)||'')}</option>`).join('')}</select>`; })()}</div>
     ${e.erro?`<div class="pag-erro">${esc(e.erro)}</div>`:''}
     <div class="pag-acoes"><button type="button" class="cx-btn destaque" id="pag-gerar"${e.gerando?' disabled':''}>${e.gerando?'Gerando…':(e.link?'Atualizar o link':'Gerar link')}</button></div>
     ${e.link?`<div class="pag-bloco"><div class="fin-rot">Link de pagamento (vale por 15 dias)</div><input class="fin-input" readonly value="${esc(e.link)}" onclick="this.select()" style="width:100%">
@@ -331,6 +332,7 @@ document.addEventListener('input',ev=>{
 });
 document.addEventListener('change',ev=>{
   if(!pagEst) return; const t=ev.target;
+  if(t.id==='pag-orc'){ pagEst.orcId=t.value; return; }
   if(t.name==='pag-itens'){ pagEst.itens=t.value; pagEst.erro=''; pagDesenhar(); return; }
   if(t.id==='pag-recibo'||t.id==='pag-boleto'){ const f=t.files&&t.files[0]; if(f){ pagGuardarArquivo(t.id==='pag-recibo'?'recibo':'boleto',f); } }
 });
@@ -359,7 +361,7 @@ async function pagGerarLink(){
     const imagens={};
     if(e.recibo) imagens.recibo=await pagImagemDe(e.recibo);
     if(e.boleto){ imagens.boleto=await pagImagemDe(e.boleto); if(e.boleto.size<=700*1024&&(e.boleto.type==='application/pdf'||/\.pdf$/i.test(e.boleto.name))) imagens.boletoPdf=await pagLerComoUrl(e.boleto); }
-    const orc=pagOrcamentoAprovado(e.id); if(orc){ const im=pagImagemOrcamento(orc); if(im) imagens.orcamento=im; }
+    const orc=pagOrcamentoEscolhido(e.id,e.orcId); if(orc){ const im=pagImagemOrcamento(orc); if(im) imagens.orcamento=im; }
     const agora=Date.now(), anterior=c.pagamento, reaproveita=!!(anterior&&anterior.token&&anterior.status!=='recebido'&&e.link);
     const token=reaproveita?anterior.token:codigoDeEnvio();
     const itens={escritura:comE,registro:comR};

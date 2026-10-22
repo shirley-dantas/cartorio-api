@@ -96,10 +96,10 @@ await passo('colar texto (não imagem) não faz nada, e arrastar um arquivo para
 });
 
 await passo('gerar: grava a cobrança (valores em centavos, recibo e boleto como imagem), o resumo no card, e devolve o link e a mensagem', async () => {
-  const pg = await abrir(); await pg.evaluate(() => { window.__orc = [{status: 'aceito', versao: 2, resultado: {}}]; abrirPagamento('-Caso1'); });
+  const pg = await abrir(); await pg.evaluate(() => { window.__orc = [{id: 'o1', status: 'enviado', versao: 1, resultado: {}}, {id: 'o2', status: 'aceito', versao: 2, resultado: {}}]; abrirPagamento('-Caso1'); });
   await pg.fill('#pag-valE', '3.039,89'); await pg.locator('#pag-recibo').setInputFiles(IMG);
   await pg.fill('#pag-valR', '3.868,07'); await pg.fill('#pag-venc', '23/10/2026'); await pg.fill('#pag-codigo', '26091.90299 37227.373505 99600.000006 2 16080000386807'); await pg.locator('#pag-boleto').setInputFiles(IMG);
-  assert(/versão 2/.test(await pg.innerText('#pag-conteudo')), 'avisa que o orçamento aprovado vai junto');
+  assert.equal(await pg.inputValue('#pag-orc'), 'o2', 'nasce marcado o aprovado pelo cliente');
   await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
   const g = await pg.evaluate(() => window.__grav);
   const cob = g.find((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234'); assert(cob && cob[0] === 'set', JSON.stringify(g.map((x) => x[1])));
@@ -117,11 +117,23 @@ await passo('gerar: grava a cobrança (valores em centavos, recibo e boleto como
 
 await passo('sem orçamento aprovado a imagem do orçamento não vai, e o aviso diz isso', async () => {
   const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="escritura"]');
-  assert(/não tem orçamento marcado como "Aprovado pelo cliente"/.test(await pg.innerText('#pag-conteudo')));
+  assert(/ainda não tem orçamento salvo/.test(await pg.innerText('#pag-conteudo')));
   await pg.fill('#pag-valE', '3039,89'); await pg.locator('#pag-recibo').setInputFiles(IMG); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
   const v = (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2];
   assert(!('orcamento' in v.imagens) && v.dados.registro == null && v.dados.escritura.valorCent === 303989 && v.meta.itens.registro === false, JSON.stringify(v.dados));
   assert(/fazer o pagamento da sua escritura/.test(await pg.inputValue('#pag-msg')) && !/conferir e fazer/.test(await pg.inputValue('#pag-msg')), 'a mensagem muda com o que vai no link');
+});
+
+await passo('o orçamento a rever não depende do status "Aprovado pelo cliente": ela escolhe a versão, ou nenhuma', async () => {
+  const pg = await abrir();
+  await pg.evaluate(() => { window.__orc = [{id: 'o1', status: 'enviado', versao: 1, resultado: {}}, {id: 'o3', status: 'conferencia', versao: 3, resultado: {}}]; abrirPagamento('-Caso1'); });
+  assert.equal(await pg.inputValue('#pag-orc'), 'o3', 'sem aprovado, nasce a versão mais recente');
+  await pg.selectOption('#pag-orc', ''); await pg.check('input[value="escritura"]'); await pg.fill('#pag-valE', '100,00'); await pg.locator('#pag-recibo').setInputFiles(IMG); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
+  assert(!('orcamento' in (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2].imagens), 'escolheu nenhum: a imagem não vai');
+  const p2 = await abrir();
+  await p2.evaluate(() => { window.__orc = [{id: 'o1', status: 'enviado', versao: 1, resultado: {}}, {id: 'o3', status: 'conferencia', versao: 3, resultado: {}}]; abrirPagamento('-Caso1'); });
+  await p2.selectOption('#pag-orc', 'o1'); await p2.check('input[value="escritura"]'); await p2.fill('#pag-valE', '100,00'); await p2.locator('#pag-recibo').setInputFiles(IMG); await p2.click('#pag-gerar'); await p2.waitForSelector('#pag-msg');
+  assert(/^data:image\/jpeg/.test((await p2.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2].imagens.orcamento), 'escolheu a versão 1: a imagem vai');
 });
 
 await passo('só o registro: a mensagem fala do registro e a escritura não entra', async () => {
