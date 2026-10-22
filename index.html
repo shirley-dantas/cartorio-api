@@ -12325,6 +12325,12 @@ document.addEventListener('click',async ev=>{
 async function pagGerarLink(){
   const e=pagEst; if(!e||e.gerando) return;
   const c=casos[e.id]||{}, comE=e.itens!=='registro', comR=e.itens!=='escritura';
+  // Se a leitura ainda corre, espera; se ela anexou e os campos continuam vazios, tenta ler de novo antes de reclamar.
+  for(let i=0;i<300&&pagEst===e&&e.lendo&&(e.lendo.recibo||e.lendo.boleto);i++) await new Promise(r=>setTimeout(r,200));
+  if(pagEst!==e) return;
+  if(comE&&e.recibo&&!pagCentavos(e.valE)) await pagLerArquivo('recibo',e.recibo);
+  if(comR&&e.boleto&&(!pagCentavos(e.valR)||!pagVencOk(e.venc)||!String(e.codigo).replace(/\D/g,''))) await pagLerArquivo('boleto',e.boleto);
+  if(pagEst!==e) return;
   const valE=comE?pagCentavos(e.valE):0, valR=comR?pagCentavos(e.valR):0;
   const falta=[];
   if(comE){ if(!valE) falta.push('o valor da escritura'); if(!e.recibo&&!(c.pagamento&&c.pagamento.itens&&c.pagamento.itens.escritura&&e.link)) falta.push('o recibo do cartório'); }
