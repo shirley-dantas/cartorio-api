@@ -267,6 +267,13 @@ await passo('código de barras com dígito errado não é preenchido, e o aviso 
   assert.equal(await pg.inputValue('#pag-codigo'), ''); assert.equal(await pg.inputValue('#pag-valR'), '');
 });
 
+await passo('boleto lido sem beneficiário: o aviso diz que o nome é o de sempre e manda corrigir', async () => {
+  const pg = await abrir();
+  await responder(pg, {ok: true, dados: {linha_digitavel: LINHA, beneficiario: null, cnpj: null}});
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await anexar(pg, 'boleto');
+  await pg.waitForFunction(() => /NÃO foi lido do boleto/.test(document.querySelector('#pag-conteudo').innerText));
+});
+
 await passo('a leitura falha (Apps Script antigo ou IA fora): não trava nada, ela digita à mão', async () => {
   const pg = await abrir();
   await responder(pg, {ok: false, erro: 'Ação desconhecida'});

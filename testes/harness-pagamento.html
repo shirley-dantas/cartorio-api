@@ -216,7 +216,7 @@ function pagPreencher(campo,valor){
 }
 async function pagLerArquivo(alvo,f){
   const e=pagEst; if(!e) return;
-  (e.lendo=e.lendo||{})[alvo]=true; (e.nota=e.nota||{})[alvo]=''; e.lido=e.lido||{};
+  (e.lendo=e.lendo||{})[alvo]=true; (e.nota=e.nota||{})[alvo]=''; e.lido=e.lido||{}; if(alvo==='boleto'){ delete e.lido.benef; delete e.lido.cnpj; }
   pagDesenhar();
   let nota='';
   try{
@@ -226,7 +226,8 @@ async function pagLerArquivo(alvo,f){
       if(c.ok){ nota=pagPreencher('valE',pagMoeda(c.centavos).replace(/^R\$\s*/,''))?'Valor lido do recibo e conferido (as linhas somam o total). Confira.':'Li o recibo, mas o valor já estava preenchido — não mexi.'; }
       else nota='Li o recibo, mas não preenchi o valor: '+c.motivo+' Digite o valor.';
     }else{
-      let linha=pagLerLinhaDigitavel(pagAcharLinhaNoTexto(await pagTextoDoPdf(f))), ia=null, aviso='';
+      const txtPdf=await pagTextoDoPdf(f);
+      let linha=pagLerLinhaDigitavel(pagAcharLinhaNoTexto(txtPdf)), ia=null, aviso='';
       try{ ia=await pagPerguntarIA('boleto',f); }catch(err){ aviso=(err&&err.message)||''; }
       if(pagEst!==e||e.boleto!==f) return;
       if(!linha&&ia) linha=pagLerLinhaDigitavel(ia.linha_digitavel);
@@ -236,6 +237,10 @@ async function pagLerArquivo(alvo,f){
         if(linha.centavos&&pagPreencher('valR',pagMoeda(linha.centavos).replace(/^R\$\s*/,''))) feitos.push('valor');
         if(linha.venc&&pagPreencher('venc',linha.venc)) feitos.push('vencimento');
       }
+      if(!ia||!String(ia.beneficiario||'').trim()){
+        const mb=txtPdf.match(/Benefici[aá]rio\s*:?\s*(.{3,80}?)\s*(?:CPF\/CNPJ|CNPJ|CPF|Ag[eê]ncia|Data|Nosso)/i), mc=txtPdf.match(/(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/);
+        if(mb||mc) ia=Object.assign({},ia||{},{beneficiario:(ia&&ia.beneficiario)||(mb&&mb[1])||'',cnpj:(ia&&ia.cnpj)||(mc&&mc[1])||''});
+      }
       if(ia){
         const padrao=v=>!String(v||'').trim()||v===PAG_BENEFICIARIO.nome||v===PAG_BENEFICIARIO.cnpj||v===(pagLerMemoria().nome)||v===(pagLerMemoria().cnpj);
         const nb=String(ia.beneficiario||'').trim(), nc=String(ia.cnpj||'').trim();
@@ -243,6 +248,7 @@ async function pagLerArquivo(alvo,f){
         if(nc&&padrao(e.cnpj)&&nc!==e.cnpj){ e.cnpj=nc; e.lido.cnpj=true; feitos.push('CNPJ'); }
       }
       nota=feitos.length?'Lido do boleto: '+feitos.join(', ')+'. Confira.':(linha||ia?'Li o boleto, mas não havia nada em branco para preencher.':'Não consegui ler o boleto'+(aviso?' ('+aviso+')':'')+'. Preencha à mão.');
+      if(!e.lido.benef) nota+=' ⚠️ O beneficiário NÃO foi lido do boleto'+(aviso?' ('+aviso+')':'')+': o nome e o CNPJ abaixo são os de sempre. Corrija se este boleto for de outro beneficiário.';
       if(!linha&&ia) nota+=' O código de barras não passou na conferência dos dígitos: digite-o ou cole de novo um print mais nítido.';
     }
   }catch(err){
