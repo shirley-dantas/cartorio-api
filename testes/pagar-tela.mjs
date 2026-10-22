@@ -104,8 +104,17 @@ await passo('comprovante que não subiu: o aviso aparece escrito, o botão conti
   const {pg, chamadas} = await abrir({}, {gas: (c) => (c.acao === 'pagamento-arquivo' && falha ? {ok: false, erro: 'não deu'} : {ok: true})});
   await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
   await anexar(pg, 'escritura'); await noMeio(pg, /Não enviou/);
+  const av = await pg.innerText('#tela'); assert(/não deu/.test(av) && !/internet/i.test(av), 'erro do cartório é dito com as palavras dele, não como problema de internet');
   assert(await pg.locator('[data-next]').isDisabled() && /Falta anexar/i.test(await pg.innerText('#tela')));
   falha = false; await anexar(pg, 'escritura'); await noMeio(pg, /✓ Anexado/); assert(!(await pg.locator('[data-next]').isDisabled()));
+});
+
+await passo('sem rede de verdade: tenta de novo sozinho uma vez e só então fala em internet', async () => {
+  const {pg} = await abrir({});
+  await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
+  let n = 0; await pg.route('https://script.google.com/**', (r) => { n++; r.abort('failed'); });
+  await anexar(pg, 'escritura'); await noMeio(pg, /Não enviou/);
+  assert(/internet/i.test(await pg.innerText('#tela')), 'falha de rede fala em internet'); assert.equal(n, 2, 'uma tentativa a mais antes de desistir');
 });
 
 await passo('concluir que o cartório recusa: o erro aparece e o link não fecha', async () => {

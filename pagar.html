@@ -365,9 +365,16 @@ function reduzir(file){
   });
 }
 const b64=file=>new Promise((ok,no)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(',')[1]); r.onerror=no; r.readAsDataURL(file); });
+// Erro que o cartório respondeu (link vencido, banco recusou…) é dito com as palavras dele; só falha de rede fala em internet.
 async function chamar(corpo){
-  const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(corpo)});
-  const j=await r.json(); if(!j||!j.ok) throw new Error((j&&j.erro)||'O cartório não conseguiu receber');
+  let r;
+  for(let tentativa=0;;tentativa++){
+    const ctl=new AbortController(), cortar=setTimeout(()=>ctl.abort(),90000);
+    try{ r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(corpo),signal:ctl.signal}); clearTimeout(cortar); break; }
+    catch(e){ clearTimeout(cortar); if(tentativa>=1){ const x=new Error(e&&e.name==='AbortError'?'A conexão está lenta e o envio demorou demais.':'Sem conexão com o cartório.'); x.rede=true; throw x; } }
+  }
+  let j; try{ j=await r.json(); }catch(e){ const x=new Error('O cartório respondeu algo inesperado ('+r.status+').'); x.servidor=true; throw x; }
+  if(!j||!j.ok){ const x=new Error((j&&j.erro)||'O cartório não conseguiu receber.'); x.servidor=true; throw x; }
   return j;
 }
 async function anexar(qual,file){
@@ -377,7 +384,7 @@ async function anexar(qual,file){
     if(f.size>MAX_BYTES) throw new Error('Arquivo grande demais (máx. 8 MB). Tire uma foto em vez do arquivo.');
     await chamar({acao:'pagamento-arquivo',t:token,qual,nomeArquivo:file.name,mimetype:f.type||'application/octet-stream',base64:await b64(f)});
     comp[qual]=true; nomes[qual]=file.name;
-  }catch(e){ comp[qual]=false; erroArq[qual]=/grande demais/.test(e.message)?e.message:'Não enviou. Confira a internet e tente de novo.'; }
+  }catch(e){ comp[qual]=false; erroArq[qual]=e.rede?'Não enviou: '+e.message+' Confira a internet e tente de novo.':'Não enviou: '+e.message+' Tente de novo.'; }
   estado[qual]=''; tela();
 }
 async function concluir(){
