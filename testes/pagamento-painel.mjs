@@ -17,7 +17,7 @@ const css = html.slice(html.indexOf('.pag-cola{'), html.indexOf('.cx-ped-rec{fle
 writeFileSync(join(AQUI, 'harness-pagamento.html'), `<!doctype html><html><head><meta charset="utf-8"><style>.modal-overlay{display:none}.modal-overlay.open{display:block}${css}</style></head><body>
 <div class="modal-overlay" id="modal-pagamento"><div id="pag-sub"></div><div id="pag-conteudo"></div></div><div id="cc-pagamentos"></div>
 <script>
-const esc=x=>String(x==null?'':x).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'), escTxt=x=>String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const esc=s=>(s||'').replace(/"/g,'&quot;'), escTxt=x=>String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 const ENVIO_BASE_URL='https://painel.exemplo', GAS_URL='https://script.google.com/x', db={};
 let casos={'-Caso1':{id:'-Caso1',nome:'Maria da Silva',tipo:'Escritura de Compra e Venda',controle:'43804'}};
 window.__grav=[]; window.__orc=[];
@@ -134,6 +134,18 @@ await passo('o orçamento a rever não depende do status "Aprovado pelo cliente"
   await p2.evaluate(() => { window.__orc = [{id: 'o1', status: 'enviado', versao: 1, resultado: {}}, {id: 'o3', status: 'conferencia', versao: 3, resultado: {}}]; abrirPagamento('-Caso1'); });
   await p2.selectOption('#pag-orc', 'o1'); await p2.check('input[value="escritura"]'); await p2.fill('#pag-valE', '100,00'); await p2.locator('#pag-recibo').setInputFiles(IMG); await p2.click('#pag-gerar'); await p2.waitForSelector('#pag-msg');
   assert(/^data:image\/jpeg/.test((await p2.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2].imagens.orcamento), 'escolheu a versão 1: a imagem vai');
+});
+
+await passo('Gerar com a leitura ainda correndo: o botão avisa "Lendo os documentos…" (nunca parece morto) e depois gera', async () => {
+  const pg = await abrir();
+  let solta; const espera = new Promise((r) => { solta = r; });
+  await pg.route('https://script.google.com/**', async (r) => { await espera; r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify({ok: true, dados: {total_das_custas: '100,00', total_recebido: '100,00', parcelas: ['100,00']}})}); });
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="escritura"]'); await pg.locator('#pag-recibo').setInputFiles(IMG);
+  await pg.click('#pag-gerar');
+  await pg.waitForFunction(() => /Lendo os documentos/.test(document.querySelector('#pag-gerar').innerText));
+  assert.equal(await pg.locator('#pag-gerar').isDisabled(), true);
+  solta(); await pg.waitForSelector('#pag-msg');
+  assert.equal((await pg.evaluate(() => window.__grav)).some((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234'), true);
 });
 
 await passo('só o registro: a mensagem fala do registro e a escritura não entra', async () => {
