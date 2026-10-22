@@ -1,6 +1,8 @@
 {
   "rewrites": [
-    { "source": "/e/:t", "destination": "/enviar.html" }
+    { "source": "/e/:t", "destination": "/enviar.html" },
+    { "source": "/p/:t", "destination": "/pagar.html" },
+    { "source": "/o/:t", "destination": "/orcamento.html" }
   ],
   "headers": [
     {

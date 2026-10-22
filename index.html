@@ -1723,6 +1723,21 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    ser lida por quem não conhece a tabela.                              */
 .cx-orc{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--cc-sup-2);
   border:0.5px solid var(--cc-linha);border-radius:12px;padding:9px 12px;margin-bottom:11px}
+.pag-cola{display:flex;gap:12px;align-items:center;border:2px dashed #8E8E93;border-radius:12px;padding:14px;background:#fff;cursor:pointer;outline:none;min-height:64px}
+.pag-cola:focus,.pag-cola.ativo{border-color:#2A6099;background:#F1F6FC}
+.pag-cola.ok{border-style:solid;border-color:#2E7D4F}
+.pag-cola div{font-size:13.5px;color:#3A3A3C}.pag-cola b{display:block;font-size:14px;color:#1C1C1E}.pag-cola span{display:block;font-size:12px;color:#636366;margin-top:2px}
+.pag-cola img{width:74px;height:54px;object-fit:cover;border-radius:6px;border:1px solid #E5E5EA;flex:none}
+.pag-ou{display:inline-block;margin-top:6px;font-size:12.5px;color:#636366;cursor:pointer}
+.pag-bloco{margin-top:14px;padding:12px 14px;background:var(--cc-sup-2,#F5F5F7);border-radius:12px}
+.pag-tit{font-weight:700;font-size:14px;margin-bottom:8px}
+.pag-op{display:inline-flex;align-items:center;gap:6px;margin:0 14px 4px 0;font-size:14px;cursor:pointer}
+.pag-campo{margin-bottom:10px}.pag-campo .fin-input{width:100%;display:block;margin-top:3px}
+.pag-nome{font-size:13px;color:#636366;margin-left:6px;word-break:break-all}
+.pag-nota{margin-top:6px;font-size:13px;color:#1F2A33;background:#F4F1EA;border-radius:8px;padding:8px 10px}
+.pag-lido{color:#8A6D1F;font-weight:600;text-transform:none}
+.pag-erro{margin-top:12px;padding:10px 12px;border-radius:10px;background:#FBE3E1;color:#9A1E16;font-size:14px;font-weight:600}
+.pag-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .cx-ped-rec{flex-basis:100%;font-size:12.5px;color:var(--cc-tinta-2)}
 .cx-ped-rec summary{cursor:pointer;font-weight:600;color:var(--cc-tinta)}
 .cx-ped-rec ul{list-style:none;padding:6px 0 0;margin:0;display:grid;gap:4px}
@@ -2412,6 +2427,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   <!-- Chegou do cliente: o link de envio foi concluído. Mora junto do Jornal, no topo, e some quando ela
        vê (o card guarda envioCliente.visto). -->
   <div class="cc-envios" id="cc-envios" style="display:none"></div>
+  <div class="cc-envios" id="cc-pagamentos" style="display:none"></div>
   <button type="button" class="cc-jornal" id="cc-jornal" style="display:none" onclick="abrirRadar()">
     <span class="cc-jornal-selo"><i class="ti ti-scale"></i></span>
     <span class="cc-jornal-corpo">
@@ -3036,6 +3052,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
 </div>
 
+<!-- Pagamento: o link com o valor da escritura e do registro -->
+<div class="modal-overlay" id="modal-pagamento">
+  <div class="modal-box" style="max-width:640px">
+    <button class="modal-close" onclick="fecharPagamento()">&times;</button>
+    <div class="modal-title"><i class="ti ti-credit-card" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Link de pagamento</div>
+    <div class="modal-sub" id="pag-sub">—</div>
+    <div id="pag-conteudo"></div>
+  </div>
+</div>
+
 <script src="pedido-docs.js"></script>
 <script src="design-system/mascots/joaninha/joaninha.js"></script>
 <!-- Google Identity Services (login/token pra abrir o Drive dela) + gapi
@@ -3363,6 +3389,7 @@ onValue(casosRef,(snap)=>{
     renderCasos();
     renderCentralComando();
     renderEnvios();
+    renderPagamentos();
     montarSaudacao();
   }
   setSyncStatus(true);
@@ -5198,6 +5225,11 @@ function renderCasos(){
         <button class="cx-btn destaque" onclick="abrirPedidoDocs('${c.id}')"><i class="ti ti-list-check"></i> Pedir documentos</button>
         ${pedidoPastaHtml(c)}
         ${pedidoRecebidosHtml(c)}
+      </div>
+
+      <div class="cx-orc cx-ped">
+        <span class="cx-orc-rot"><i class="ti ti-credit-card"></i> Pagamento</span>
+        ${pagFaixaHtml(c)}
       </div>
 
       <div class="cx-drive">
@@ -11979,6 +12011,412 @@ function pedidoRecebidosHtml(c){
   return `<details class="cx-ped-rec"><summary><i class="ti ti-inbox"></i> Recebidos do cliente: ${arquivos.length} ${arquivos.length===1?'arquivo':'arquivos'}${arquivos.length?` (${lidos} lidos${aguardando?`, ${aguardando} aguardando o cliente concluir`:''})`:''}${ficha?' + dados digitados':''}</summary><ul>${linhas}</ul></details>`;
 }
 
+// ── Pagamento: o link com o valor da escritura e do registro, e o comprovante de volta ──
+// O cliente abre o link (pagar.html), confere o recibo e o boleto, paga e anexa o comprovante de cada cobrança.
+// Chega ao card como "comprovantes recebidos"; a baixa continua sendo da equipe. O comprovante da escritura
+// se imprime aqui mesmo, para levar ao financeiro do cartório.
+const PAG_BENEFICIARIO = {nome:'Prime Assessoria Jurídica e Imobiliária', cnpj:'47.141.731/0001-10'};
+function pagCentavos(txt){
+  const s=String(txt==null?'':txt).replace(/[^\d,.-]/g,'').trim(); if(!s) return 0;
+  // "2.000" é dois mil, não dois reais (o erro que já aconteceu no financeiro): ponto sozinho, em grupos de três, é milhar.
+  const n=s.includes(',')?parseFloat(s.replace(/\./g,'').replace(',','.')):/^\d{1,3}(\.\d{3})+$/.test(s)?parseFloat(s.replace(/\./g,'')):parseFloat(s);
+  return isFinite(n)&&n>0?Math.round(n*100):0;
+}
+const pagMoeda=c=>'R$ '+(Number(c||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pagVencOk=v=>{ const m=String(v||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(!m) return false; const d=new Date(+m[3],+m[2]-1,+m[1]); return d.getFullYear()===+m[3]&&d.getMonth()===+m[2]-1&&d.getDate()===+m[1]; };
+const pagLinkDe=tok=>(ENVIO_BASE_URL||location.origin).replace(/\/+$/,'')+'/p/'+tok;
+const pagQuando=ms=>{ if(!ms) return ''; const d=new Date(ms); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+function pagMensagem(itens,link){
+  const alvo=itens==='escritura'?'o pagamento da sua escritura':itens==='registro'?'o pagamento do registro de imóveis':'os pagamentos da sua escritura';
+  return `Olá! Para ${itens==='ambos'?'conferir e fazer ':'fazer '}${alvo}, abra este link pelo celular:\n${link}\n\n20º Tabelião de Notas`;
+}
+// A faixa do card: gerar o link, esperar, e quando chega, conferir e imprimir.
+// A aprovação do orçamento pelo cliente (link /o/): registrada no card, serve de ponto de partida do link de pagamento.
+function orcAprovacaoHtml(c){
+  const a=c&&c.orcAprovacao, l=c&&c.orcLink;
+  if(a&&a.em) return `<span class="cx-ped-rec" style="flex-basis:100%"><b>✅ Cliente aprovou o orçamento</b>${a.versao?' (versão '+esc(a.versao)+')':''} · ${esc(pagQuando(a.em))}</span>`;
+  if(l&&l.token) return `<span class="cx-ped-rec" style="flex-basis:100%">Link do orçamento enviado${l.criadoEm?' em '+esc(pagQuando(l.criadoEm)):''}${l.versao?' (versão '+esc(l.versao)+')':''} · aguardando a aprovação do cliente</span>`;
+  return '';
+}
+function pagFaixaHtml(c){
+  if(!c||!c.id) return '';
+  return orcAprovacaoHtml(c)+pagFaixaPagamentoHtml(c);
+}
+function pagFaixaPagamentoHtml(c){
+  const p=c.pagamento, it=(p&&p.itens)||{};
+  const gerar=`<button type="button" class="cx-btn destaque" onclick="abrirPagamento('${esc(c.id)}')"><i class="ti ti-credit-card"></i> ${p?'Gerar outro link de pagamento':'Gerar link de pagamento'}</button>`;
+  if(!p||!p.token) return gerar;
+  const quais=[it.escritura?`escritura ${pagMoeda(p.escrituraCent)}`:'',it.registro?`registro ${pagMoeda(p.registroCent)}`:''].filter(Boolean).join(' · ');
+  if(p.status==='recebido'){
+    const imp=q=>`<button type="button" class="cx-btn${q==='escritura'?' destaque':''}" onclick="imprimirComprovante('${esc(c.id)}','${q}')"><i class="ti ti-printer"></i> Imprimir comprovante ${q==='escritura'?'da escritura':'do registro'}</button>`;
+    return `<span class="cx-ped-rec" style="flex-basis:auto"><b>✓ Comprovantes recebidos</b> · ${esc(pagQuando(p.recebidoEm))} · ${esc(quais)} — confira e dê baixa</span>${it.escritura?imp('escritura'):''}${it.registro?imp('registro'):''}${gerar}`;
+  }
+  return `<span class="cx-ped-rec" style="flex-basis:auto">Link gerado${p.criadoEm?' em '+esc(pagQuando(p.criadoEm)):''} · aguardando o cliente · ${esc(quais)}</span><button type="button" class="cx-btn" onclick="copiarLinkPagamento('${esc(c.id)}',this)"><i class="ti ti-copy"></i> Copiar link</button>${gerar}`;
+}
+// O aviso no topo do painel, junto do de envio de documentos.
+function orcAprovacaoAvisosHtml(casosLista){
+  return Object.values(casosLista||{}).filter(c=>c&&c.orcAprovacao&&c.orcAprovacao.em&&!c.orcAprovacao.visto)
+    .sort((a,b)=>(b.orcAprovacao.em||0)-(a.orcAprovacao.em||0)).map(c=>{ const a=c.orcAprovacao;
+    return `<div class="cc-envio"><span class="cc-envio-ico"><i class="ti ti-circle-check"></i></span>
+      <span class="cc-envio-txt"><b>Cliente aprovou o orçamento</b> — ${escTxt(c.nome)}<small>${esc(pagQuando(a.em))}${a.versao?' · versão '+esc(a.versao):''} · já dá para gerar o link de pagamento</small></span>
+      <button type="button" class="cc-envio-btn forte" onclick="abrirAprovacao('${esc(c.id)}')">Abrir o card</button>
+      <button type="button" class="cc-envio-btn" onclick="vistoAprovacao('${esc(c.id)}')">Já vi</button></div>`; }).join('');
+}
+window.vistoAprovacao=function(id){
+  return update(ref(db,'casos/'+id+'/orcAprovacao'),{visto:true,vistoEm:Date.now()}).catch(e=>alert('Não consegui marcar como visto: '+(e&&e.message||e)));
+};
+window.abrirAprovacao=function(id){ window.vistoAprovacao(id); window.irParaCasoPorId(id); };
+function pagAvisosHtml(casosLista){
+  return orcAprovacaoAvisosHtml(casosLista)+pagAvisosPagamentoHtml(casosLista);
+}
+function pagAvisosPagamentoHtml(casosLista){
+  const lista=Object.values(casosLista||{}).filter(c=>c&&c.pagamento&&c.pagamento.status==='recebido'&&!c.pagamento.visto)
+    .sort((a,b)=>(b.pagamento.recebidoEm||0)-(a.pagamento.recebidoEm||0));
+  return lista.map(c=>{ const p=c.pagamento, it=p.itens||{};
+    const quais=[it.escritura?'escritura':'',it.registro?'registro':''].filter(Boolean).join(' e ');
+    return `<div class="cc-envio"><span class="cc-envio-ico"><i class="ti ti-credit-card"></i></span>
+      <span class="cc-envio-txt"><b>Cliente enviou os comprovantes de pagamento</b> — ${escTxt(c.nome)}<small>${esc(pagQuando(p.recebidoEm))} · ${esc(quais)} · o link já foi fechado · confira e dê baixa</small></span>
+      <button type="button" class="cc-envio-btn forte" onclick="abrirPagamentoRecebido('${esc(c.id)}')">Abrir o card</button>
+      <button type="button" class="cc-envio-btn" onclick="vistoPagamento('${esc(c.id)}')">Já vi</button></div>`; }).join('');
+}
+function renderPagamentos(){
+  const el=document.getElementById('cc-pagamentos'); if(!el) return;
+  const h=pagAvisosHtml(casos);
+  el.style.display=h?'grid':'none'; el.innerHTML=h;
+}
+window.vistoPagamento=function(id){
+  return update(ref(db,'casos/'+id+'/pagamento'),{visto:true,vistoEm:Date.now()}).catch(e=>alert('Não consegui marcar como visto: '+(e&&e.message||e)));
+};
+window.abrirPagamentoRecebido=function(id){ window.vistoPagamento(id); window.irParaCasoPorId(id); };
+window.copiarLinkPagamento=function(id,btn){
+  const p=((casos[id]||{}).pagamento)||{}; if(!p.token) return;
+  const url=pagLinkDe(p.token), o=btn?btn.innerHTML:'';
+  const ok=()=>{ if(btn){ btn.innerHTML='<i class="ti ti-check"></i> Copiado'; setTimeout(()=>btn.innerHTML=o,1500); } };
+  try{ navigator.clipboard.writeText(url).then(ok,()=>prompt('Copie o link:',url)); }catch(_){ prompt('Copie o link:',url); }
+};
+
+// A folha que sai na impressora: o comprovante com o que o financeiro do cartório precisa para dar baixa.
+function pagFolhaImpressao(d){
+  const lin=(r,v)=>v?`<tr><td class="r">${escTxt(r)}</td><td>${escTxt(v)}</td></tr>`:'';
+  const corpo=d.pdf?'':`<img src="${esc(d.src)}" alt="Comprovante">`;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Comprovante de pagamento — ${escTxt(d.cliente)}</title>
+<style>@page{margin:14mm}body{font:15px -apple-system,'Segoe UI',sans-serif;color:#1F2A33;margin:0}
+h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#6E5428;margin:0 0 10px}
+.cab{border-bottom:3px solid #A9895A;padding-bottom:10px;margin-bottom:12px}table{border-collapse:collapse;margin-bottom:14px}
+td{padding:3px 14px 3px 0;vertical-align:top}td.r{font-weight:700;color:#5B6B78;white-space:nowrap}
+img{display:block;max-width:100%;max-height:200mm;margin:0 auto;border:1px solid #ccc}
+.rod{margin-top:12px;font-size:12px;color:#5B6B78}</style></head><body>
+<div class="cab"><h2>20º Tabelião de Notas</h2><h1>Comprovante de pagamento — ${escTxt(d.cobranca)}</h1></div>
+<table>${lin('Cliente',d.cliente)}${lin('Ato',d.ato)}${lin('Controle',d.controle)}${lin('Valor combinado',d.valor)}${lin('Recebido pelo painel em',d.recebido)}${lin('Arquivo',d.arquivo)}</table>
+${corpo}<div class="rod">Impresso em ${escTxt(d.impresso)} · baixa a ser feita no financeiro do cartório.</div></body></html>`;
+}
+window.imprimirComprovante=async function(casoId,qual){
+  const c=casos[casoId]||{}, p=c.pagamento||{};
+  const w=window.open('','_blank');
+  if(!w){ alert('O navegador bloqueou a janela de impressão. Libere os pop-ups deste site e tente de novo.'); return; }
+  w.document.write('<p style="font:16px sans-serif;padding:20px">Carregando o comprovante…</p>');
+  try{
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'pagamento-ver',casoId,qual})});
+    const j=await r.json();
+    if(!j||!j.ok) throw new Error((j&&j.erro)||'motivo desconhecido');
+    const mime=String(j.mime||'');
+    if(/pdf/i.test(mime)){
+      // PDF: o próprio leitor do navegador imprime melhor (Ctrl+P)
+      const bin=atob(j.base64), a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i);
+      w.location.href=URL.createObjectURL(new Blob([a],{type:'application/pdf'}));
+      return;
+    }
+    const html=pagFolhaImpressao({src:'data:'+mime+';base64,'+j.base64,cliente:c.nome||'',ato:c.tipo||'',controle:c.controle||'',
+      cobranca:qual==='escritura'?'escritura':'registro de imóveis',valor:pagMoeda(qual==='escritura'?p.escrituraCent:p.registroCent),
+      recebido:pagQuando(p.recebidoEm),arquivo:j.nome||'',impresso:new Date().toLocaleString('pt-BR')});
+    w.document.open(); w.document.write(html); w.document.close();
+    const img=w.document.querySelector('img');
+    const imprimir=()=>{ try{ w.focus(); w.print(); }catch(_){} };
+    if(img&&!img.complete) img.onload=imprimir; else setTimeout(imprimir,300);
+  }catch(e){ try{ w.close(); }catch(_){} alert('Não consegui abrir o comprovante: '+(e&&e.message||e)); }
+};
+
+// ── Os arquivos viram imagem leve para a página do cliente ──
+async function pagImagemDe(file,maxLado=1500,q=.85){
+  if(file.type==='application/pdf'||/\.pdf$/i.test(file.name||'')){
+    if(!window.pdfjsLib) throw new Error('O leitor de PDF não carregou. Recarregue o painel ou anexe uma foto do documento.');
+    const doc=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+    const pg=await doc.getPage(1), v0=pg.getViewport({scale:1}), vp=pg.getViewport({scale:Math.min(3,maxLado/v0.width)});
+    const cv=document.createElement('canvas'); cv.width=Math.round(vp.width); cv.height=Math.round(vp.height);
+    const x=cv.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,cv.width,cv.height);
+    await pg.render({canvasContext:x,viewport:vp}).promise;
+    return cv.toDataURL('image/jpeg',q);
+  }
+  return await new Promise((ok,no)=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{ const k=Math.min(1,maxLado/Math.max(img.width,img.height)); const cv=document.createElement('canvas'); cv.width=Math.round(img.width*k); cv.height=Math.round(img.height*k);
+      const x=cv.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,cv.width,cv.height); x.drawImage(img,0,0,cv.width,cv.height); URL.revokeObjectURL(url); ok(cv.toDataURL('image/jpeg',q)); };
+    img.onerror=()=>{ URL.revokeObjectURL(url); no(new Error('Não consegui abrir a imagem '+(file.name||''))); };
+    img.src=url;
+  });
+}
+const pagLerComoUrl=file=>new Promise((ok,no)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result)); r.onerror=no; r.readAsDataURL(file); });
+// A imagem do orçamento que o cliente aprovou (a mesma "via do cliente"), se o card tiver um marcado assim.
+// Os orçamentos do card que dá para mandar o cliente rever. O status "Aprovado pelo cliente" não é exigido (ela usa os status
+// para outras coisas): ela escolhe a versão na janela; o que nasce marcado é o último com esse status, ou o mais recente.
+function pagOrcamentosDoCaso(casoId){ return (typeof orcDoCaso==='function'?orcDoCaso(casoId):[]).filter(o=>o&&o.resultado); }
+function pagOrcamentoPadrao(casoId){
+  const l=pagOrcamentosDoCaso(casoId), ap=(casos[casoId]||{}).orcAprovacao;
+  const doLink=ap&&ap.orcId?l.find(o=>String(o.id)===String(ap.orcId)):null; if(doLink) return doLink;
+  const a=l.filter(o=>o.status==='aceito'); return (a.length?a:l).slice(-1)[0]||null;
+}
+function pagOrcamentoEscolhido(casoId,id){ return id?pagOrcamentosDoCaso(casoId).find(o=>String(o.id)===String(id))||null:null; }
+function pagImagemOrcamento(o){
+  try{
+    const cv=orcDesenharFolha(o,o.resultado), k=Math.min(1,1100/cv.width);
+    const out=document.createElement('canvas'); out.width=Math.round(cv.width*k); out.height=Math.round(cv.height*k);
+    const x=out.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,out.width,out.height); x.drawImage(cv,0,0,out.width,out.height);
+    return out.toDataURL('image/jpeg',.85);
+  }catch(_){ return null; }
+}
+
+// ── Ler o recibo e o boleto para preencher a janela ──
+// Tudo o que a IA devolve é hipótese: só preenche o que as contas confirmam (o total do recibo contra a soma das
+// parcelas; o valor e o vencimento do boleto saem da própria linha digitável, que tem dígitos verificadores).
+const pagMod10=n=>{ let soma=0, peso=2; for(let i=n.length-1;i>=0;i--){ let p=(+n[i])*peso; if(p>9) p=Math.floor(p/10)+p%10; soma+=p; peso=peso===2?1:2; } return (10-soma%10)%10; };
+function pagVencDeFator(fator,hoje=new Date()){
+  const d=(base,n)=>new Date(base+n*864e5), antigo=d(Date.UTC(1997,9,7),fator), novo=d(Date.UTC(2025,1,22),fator-1000);
+  const cand=fator>=1000?[antigo,novo]:[antigo];
+  return cand.sort((a,b)=>Math.abs(a-hoje)-Math.abs(b-hoje))[0];
+}
+// A linha digitável de 47 dígitos: confere os três dígitos verificadores e devolve o valor e o vencimento que ela carrega.
+function pagLerLinhaDigitavel(txt,hoje=new Date()){
+  const n=String(txt||'').replace(/\D/g,''); if(n.length!==47) return null;
+  const campos=[n.slice(0,10),n.slice(10,21),n.slice(21,32)];
+  for(const c of campos){ if(pagMod10(c.slice(0,-1))!==+c.slice(-1)) return null; }
+  const fator=+n.slice(33,37), centavos=+n.slice(37);
+  const f=v=>v.replace(/^(\d{5})(\d{5})$/,'$1.$2');
+  const formatada=f(n.slice(0,10))+' '+n.slice(10,15)+'.'+n.slice(15,21)+' '+n.slice(21,26)+'.'+n.slice(26,32)+' '+n[32]+' '+n.slice(33);
+  let venc=''; if(fator>0){ const d=pagVencDeFator(fator,hoje); venc=String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0')+'/'+d.getUTCFullYear(); }
+  return {linha:formatada,centavos,venc};
+}
+function pagAcharLinhaNoTexto(txt){
+  const m=String(txt||'').match(/\d{5}[.\s]?\d{5}\s+\d{5}[.\s]?\d{6}\s+\d{5}[.\s]?\d{6}\s+\d\s+\d{14}/);
+  return m?m[0]:'';
+}
+const pagCentDeTexto=v=>{ if(v==null||v==='') return null; const c=pagCentavos(String(v)); return c>0?c:null; };
+// O recibo só vale se as contas fecham: os dois totais iguais e a soma das parcelas igual ao total.
+function pagConferirRecibo(d){
+  if(!d) return {ok:false,motivo:'A leitura não devolveu nada.'};
+  const t1=pagCentDeTexto(d.total_das_custas), t2=pagCentDeTexto(d.total_recebido);
+  const parc=Array.isArray(d.parcelas)?d.parcelas.map(pagCentDeTexto):[];
+  if(!t1&&!t2) return {ok:false,motivo:'Não achei o total no recibo.'};
+  if(t1&&t2&&t1!==t2) return {ok:false,motivo:'O "total das custas" e o "total recebido" saíram diferentes na leitura.'};
+  const total=t1||t2;
+  if(!parc.length||parc.some(x=>x==null)) return {ok:false,motivo:'Não consegui ler todas as linhas do recibo para conferir a soma.'};
+  const soma=parc.reduce((a,b)=>a+b,0);
+  if(soma!==total) return {ok:false,motivo:'A soma das linhas do recibo não bateu com o total.'};
+  return {ok:true,centavos:total};
+}
+async function pagTextoDoPdf(file){
+  try{
+    if(!window.pdfjsLib||!(file.type==='application/pdf'||/\.pdf$/i.test(file.name||''))) return '';
+    const doc=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise, pg=await doc.getPage(1), tc=await pg.getTextContent();
+    return tc.items.map(i=>i.str).join(' ');
+  }catch(_){ return ''; }
+}
+async function pagPerguntarIA(tipo,file){
+  const url=file.type==='application/pdf'||/\.pdf$/i.test(file.name||'')?(file.size<=5*1024*1024?await pagLerComoUrl(file):await pagImagemDe(file,1800,.9)):await pagImagemDe(file,1800,.9);
+  const m=url.match(/^data:([^;]+);base64,(.*)$/); if(!m) throw new Error('Não consegui preparar o arquivo.');
+  const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'pagamento-ler',tipo,mimetype:m[1],base64:m[2]})});
+  const j=await r.json(); if(!j.ok) throw new Error(j.erro||'A leitura falhou.'); return j.dados;
+}
+// Preenche só o que está em branco (o que ela digitou vale mais) e marca o que veio da leitura para ela conferir.
+function pagPreencher(campo,valor){
+  const e=pagEst; if(!e||!valor) return false;
+  if(String(e[campo]||'').trim()) return false;
+  e[campo]=valor; (e.lido=e.lido||{})[campo]=true; return true;
+}
+async function pagLerArquivo(alvo,f){
+  const e=pagEst; if(!e) return;
+  (e.lendo=e.lendo||{})[alvo]=true; (e.nota=e.nota||{})[alvo]=''; e.lido=e.lido||{}; if(alvo==='boleto'){ delete e.lido.benef; delete e.lido.cnpj; }
+  pagDesenhar();
+  let nota='';
+  try{
+    if(alvo==='recibo'){
+      const ia=await pagPerguntarIA('recibo',f), c=pagConferirRecibo(ia);
+      if(pagEst!==e||e.recibo!==f) return;
+      if(c.ok){ nota=pagPreencher('valE',pagMoeda(c.centavos).replace(/^R\$\s*/,''))?'Valor lido do recibo e conferido (as linhas somam o total). Confira.':'Li o recibo, mas o valor já estava preenchido — não mexi.'; }
+      else nota='Li o recibo, mas não preenchi o valor: '+c.motivo+' Digite o valor.';
+    }else{
+      const txtPdf=await pagTextoDoPdf(f);
+      let linha=pagLerLinhaDigitavel(pagAcharLinhaNoTexto(txtPdf)), ia=null, aviso='';
+      try{ ia=await pagPerguntarIA('boleto',f); }catch(err){ aviso=(err&&err.message)||''; }
+      if(pagEst!==e||e.boleto!==f) return;
+      if(!linha&&ia) linha=pagLerLinhaDigitavel(ia.linha_digitavel);
+      const feitos=[];
+      if(linha){
+        if(pagPreencher('codigo',linha.linha)) feitos.push('código de barras');
+        if(linha.centavos&&pagPreencher('valR',pagMoeda(linha.centavos).replace(/^R\$\s*/,''))) feitos.push('valor');
+        if(linha.venc&&pagPreencher('venc',linha.venc)) feitos.push('vencimento');
+      }
+      if(!ia||!String(ia.beneficiario||'').trim()){
+        const mb=txtPdf.match(/Benefici[aá]rio\s*:?\s*(.{3,80}?)\s*(?:CPF\/CNPJ|CNPJ|CPF|Ag[eê]ncia|Data|Nosso)/i), mc=txtPdf.match(/(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/);
+        if(mb||mc) ia=Object.assign({},ia||{},{beneficiario:(ia&&ia.beneficiario)||(mb&&mb[1])||'',cnpj:(ia&&ia.cnpj)||(mc&&mc[1])||''});
+      }
+      if(ia){
+        const padrao=v=>!String(v||'').trim()||v===PAG_BENEFICIARIO.nome||v===PAG_BENEFICIARIO.cnpj||v===(pagLerMemoria().nome)||v===(pagLerMemoria().cnpj);
+        const nb=String(ia.beneficiario||'').trim(), nc=String(ia.cnpj||'').trim();
+        if(nb&&padrao(e.benef)&&nb!==e.benef){ e.benef=nb; e.lido.benef=true; feitos.push('beneficiário'); }
+        if(nc&&padrao(e.cnpj)&&nc!==e.cnpj){ e.cnpj=nc; e.lido.cnpj=true; feitos.push('CNPJ'); }
+      }
+      nota=feitos.length?'Lido do boleto: '+feitos.join(', ')+'. Confira.':(linha||ia?'Li o boleto, mas não havia nada em branco para preencher.':'Não consegui ler o boleto'+(aviso?' ('+aviso+')':'')+'. Preencha à mão.');
+      if(!e.lido.benef) nota+=' ⚠️ O beneficiário NÃO foi lido do boleto'+(aviso?' ('+aviso+')':'')+': o nome e o CNPJ abaixo são os de sempre. Corrija se este boleto for de outro beneficiário.';
+      if(!linha&&ia) nota+=' O código de barras não passou na conferência dos dígitos: digite-o ou cole de novo um print mais nítido.';
+    }
+  }catch(err){
+    if(pagEst!==e||e[alvo]!==f) return;
+    nota='Não consegui ler automaticamente ('+((err&&err.message)||err)+'). Preencha à mão.';
+  }
+  e.lendo[alvo]=false; e.nota[alvo]=nota; pagDesenhar();
+}
+
+// ── O link do orçamento: o cliente vê a folha e toca em "Aprovo" ──
+const orcLinkDe=tok=>(ENVIO_BASE_URL||location.origin).replace(/\/+$/,'')+'/o/'+tok;
+window.orcLinkAprovacao=async function(casoId,orcId){
+  const c=casos[casoId]||{}, o=pagOrcamentoEscolhido(casoId,orcId);
+  if(!o){ alert('Não achei este orçamento.'); return; }
+  const imagem=pagImagemOrcamento(o);
+  if(!imagem){ alert('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.'); return; }
+  const token=codigoDeEnvio(), agora=Date.now(), link=orcLinkDe(token);
+  try{
+    await set(ref(db,'cobrancas/'+token),orcSemUndefined({meta:{tipo:'orcamento',casoId,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,expiraEm:agora+15*864e5},dados:{nome:c.nome||'',ato:c.tipo||''},imagens:{orcamento:imagem}}));
+    await set(ref(db,'casos/'+casoId+'/orcLink'),orcSemUndefined({token,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora}));
+  }catch(err){
+    const negado=/permission|PERMISSION/.test(String(err&&err.message||err));
+    alert(negado?'O banco recusou a gravação. As regras do Firebase com o caminho /cobrancas precisam estar publicadas (FIREBASE.md).':'Não consegui gerar o link: '+((err&&err.message)||err)); return;
+  }
+  const msg=`Olá! Para conferir e aprovar o seu orçamento, abra este link pelo celular:\n${link}\n\n20º Tabelião de Notas`;
+  window.__ultimoLinkOrc={link,msg};
+  try{ await navigator.clipboard.writeText(msg); finToast('Link do orçamento copiado. É só colar no WhatsApp.'); }catch(_){ prompt('Copie o texto e envie ao cliente:',msg); }
+};
+
+// ── A janela de gerar o link ──
+let pagEst=null;
+function pagLerMemoria(){ try{ return JSON.parse(localStorage.getItem('painel_pag_benef')||'null')||{}; }catch(_){ return {}; } }
+window.abrirPagamento=function(id){
+  const c=casos[id]||{}, orc=pagOrcamentoPadrao(id);
+  const mem=pagLerMemoria();
+  pagEst={id,itens:'ambos',valE:'',valR:'',venc:'',codigo:'',benef:mem.nome||PAG_BENEFICIARIO.nome,cnpj:mem.cnpj||PAG_BENEFICIARIO.cnpj,recibo:null,boleto:null,orcId:orc?String(orc.id):'',erro:'',gerando:false,link:'',msg:''};
+  document.getElementById('pag-sub').textContent=(c.nome||'Sem nome')+(c.tipo?' — '+c.tipo:'');
+  pagDesenhar();
+  document.getElementById('modal-pagamento').classList.add('open');
+};
+window.fecharPagamento=function(){ document.getElementById('modal-pagamento').classList.remove('open'); pagEst=null; };
+function pagDesenhar(){
+  const e=pagEst; if(!e) return;
+  const esc1=e.itens!=='registro', reg1=e.itens!=='escritura';
+  const opt=(v,r)=>`<label class="pag-op"><input type="radio" name="pag-itens" value="${v}"${e.itens===v?' checked':''}> ${r}</label>`;
+  const campo=(r,id,val,ph,extra='')=>`<div class="pag-campo"><label class="fin-rot" for="${id}">${r}${e.lido&&e.lido[{'pag-valE':'valE','pag-valR':'valR','pag-venc':'venc','pag-codigo':'codigo','pag-benef':'benef','pag-cnpj':'cnpj'}[id]]?' <small class="pag-lido">· lido do documento — confira</small>':''}</label><input class="fin-input" id="${id}" value="${esc(val)}" placeholder="${esc(ph||'')}" ${extra}></div>`;
+  const arq=(r,id,f,obrig)=>{
+    const alvo=id==='pag-recibo'?'recibo':'boleto', url=f?pagUrlDe(f):'';
+    return `<div class="pag-campo"><label class="fin-rot">${r}${obrig?' <b style="color:#C0392B">*</b>':''}</label>
+      <div class="pag-cola${f?' ok':''}${e.alvoPaste===alvo?' ativo':''}" tabindex="0" data-alvo="${alvo}">${f
+        ?(f.type&&f.type.startsWith('image/')?`<img src="${esc(url)}" alt="">`:'')+`<div><b>✓ ${esc(f.name)}</b><span>Para trocar, clique aqui e cole outro print (Ctrl+V)</span></div>`
+        :`<div><b>Clique aqui e aperte Ctrl+V para colar o print</b><span>Ou arraste o arquivo para cá</span></div>`}</div>
+      <label class="pag-ou">ou <u>escolher um arquivo</u> (foto ou PDF)<input type="file" id="${id}" accept="image/*,application/pdf" hidden></label>${e.lendo&&e.lendo[alvo]?'<div class="pag-nota">⏳ Lendo o documento para preencher os campos…</div>':(e.nota&&e.nota[alvo]?`<div class="pag-nota">${esc(e.nota[alvo])}</div>`:'')}</div>`;
+  };
+  document.getElementById('pag-conteudo').innerHTML=`
+    <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">O que vai neste link</div>${opt('ambos','Escritura e registro')} ${opt('escritura','Só a escritura')} ${opt('registro','Só o registro')}</div>
+    ${esc1?`<div class="pag-bloco"><div class="pag-tit">1 · Escritura — 20º Tabelião de Notas</div>${campo('Valor a pagar (R$)','pag-valE',e.valE,'3.039,89','inputmode="decimal"')}${arq('Recibo do cartório (PDF ou foto)','pag-recibo',e.recibo,true)}</div>`:''}
+    ${reg1?`<div class="pag-bloco"><div class="pag-tit">${esc1?'2':'1'} · Registro de imóveis — boleto</div>${campo('Valor do boleto (R$)','pag-valR',e.valR,'3.868,07','inputmode="decimal"')}${campo('Vencimento (dd/mm/aaaa)','pag-venc',e.venc,'23/10/2026','inputmode="numeric" maxlength="10"')}${campo('Código de barras (linha digitável)','pag-codigo',e.codigo,'26091.90299 37227.373505 …')}${campo('Beneficiário, como aparece no boleto','pag-benef',e.benef,'')}${campo('CNPJ do beneficiário','pag-cnpj',e.cnpj,'')}${arq('Boleto (PDF ou foto)','pag-boleto',e.boleto,true)}</div>`:''}
+    <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">Orçamento para o cliente rever</div>${(()=>{ const l=pagOrcamentosDoCaso(e.id); if(!l.length) return '<div style="font-size:13px">Este card ainda não tem orçamento salvo: o botão de rever o orçamento não aparece na página.</div>'; return `<select class="fin-input" id="pag-orc" style="width:100%"><option value="">Nenhum (sem o botão de rever o orçamento)</option>${l.map(o=>`<option value="${esc(o.id)}"${String(o.id)===String(e.orcId)?' selected':''}>Versão ${esc(o.versao)} — ${esc((typeof orcStatus==='function'?orcStatus(o.status).rot:o.status)||'')}${((casos[e.id]||{}).orcAprovacao||{}).orcId===String(o.id)?' — ✅ aprovada pelo cliente no link':''}</option>`).join('')}</select>`; })()}</div>
+    ${e.erro?`<div class="pag-erro">${esc(e.erro)}</div>`:''}
+    <div class="pag-acoes"><button type="button" class="cx-btn destaque" id="pag-gerar"${e.gerando?' disabled':''}>${e.gerando?'Gerando…':(e.link?'Atualizar o link':'Gerar link')}</button></div>
+    ${e.link?`<div class="pag-bloco"><div class="fin-rot">Link de pagamento (vale por 15 dias)</div><input class="fin-input" readonly value="${esc(e.link)}" onclick="this.select()" style="width:100%">
+      <div class="fin-rot" style="margin-top:10px">A mensagem <small>(pode editar antes de enviar)</small></div><textarea id="pag-msg" class="fin-input" style="width:100%;min-height:110px">${escTxt(e.msg)}</textarea>
+      <div class="pag-acoes"><button type="button" class="cx-btn destaque" data-pag="copiar">Copiar texto</button><button type="button" class="cx-btn" data-pag="zap">WhatsApp</button></div></div>`:''}`;
+}
+// Colar o print (Ctrl+V) ou arrastar o arquivo, no lugar de procurá-lo no computador.
+const pagUrls=new WeakMap();
+function pagUrlDe(f){ let u=pagUrls.get(f); if(!u){ u=URL.createObjectURL(f); pagUrls.set(f,u); } return u; }
+function pagProximoAlvo(){
+  const e=pagEst; if(!e) return null;
+  if(e.alvoPaste&&((e.alvoPaste==='recibo'&&e.itens!=='registro')||(e.alvoPaste==='boleto'&&e.itens!=='escritura'))) return e.alvoPaste;
+  if(e.itens!=='registro'&&!e.recibo) return 'recibo';
+  if(e.itens!=='escritura'&&!e.boleto) return 'boleto';
+  return e.itens==='registro'?'boleto':'recibo';
+}
+// Depois de guardar, o "onde colar" volta ao automático: o próximo print vai para o que ainda falta, e não por cima do que acabou de entrar.
+function pagGuardarArquivo(alvo,f){ if(!pagEst||!f) return; pagEst[alvo]=f; pagEst.alvoPaste=null; pagEst.erro=''; pagDesenhar(); pagLerArquivo(alvo,f); }
+document.addEventListener('paste',ev=>{
+  if(!pagEst) return;
+  const it=[...(ev.clipboardData&&ev.clipboardData.items||[])].find(x=>x.kind==='file'&&/^image\//.test(x.type));
+  if(!it) return;
+  const blob=it.getAsFile(); if(!blob) return;
+  const alvo=pagProximoAlvo(); if(!alvo) return;
+  ev.preventDefault();
+  const ext=(blob.type.split('/')[1]||'png').replace('jpeg','jpg');
+  pagGuardarArquivo(alvo,new File([blob],'print-'+alvo+'-'+new Date().toISOString().slice(0,10)+'.'+ext,{type:blob.type}));
+});
+document.addEventListener('dragover',ev=>{ if(pagEst&&ev.target.closest&&ev.target.closest('.pag-cola')) ev.preventDefault(); });
+document.addEventListener('drop',ev=>{
+  const z=pagEst&&ev.target.closest&&ev.target.closest('.pag-cola'); if(!z) return;
+  ev.preventDefault(); const f=ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0];
+  if(f&&(/^image\//.test(f.type)||f.type==='application/pdf')) pagGuardarArquivo(z.dataset.alvo,f);
+});
+document.addEventListener('focusin',ev=>{ const z=pagEst&&ev.target.closest&&ev.target.closest('.pag-cola'); if(z) pagEst.alvoPaste=z.dataset.alvo; });
+document.addEventListener('click',ev=>{ const z=pagEst&&ev.target.closest&&ev.target.closest('.pag-cola'); if(z){ pagEst.alvoPaste=z.dataset.alvo; document.querySelectorAll('.pag-cola').forEach(x=>x.classList.toggle('ativo',x===z)); z.focus(); } });
+document.addEventListener('input',ev=>{
+  if(!pagEst) return; const t=ev.target, m={ 'pag-valE':'valE','pag-valR':'valR','pag-venc':'venc','pag-codigo':'codigo','pag-benef':'benef','pag-cnpj':'cnpj' }[t.id];
+  if(m){ pagEst[m]=t.value; return; }
+  if(t.id==='pag-msg') pagEst.msg=t.value;
+});
+document.addEventListener('change',ev=>{
+  if(!pagEst) return; const t=ev.target;
+  if(t.id==='pag-orc'){ pagEst.orcId=t.value; return; }
+  if(t.name==='pag-itens'){ pagEst.itens=t.value; pagEst.erro=''; pagDesenhar(); return; }
+  if(t.id==='pag-recibo'||t.id==='pag-boleto'){ const f=t.files&&t.files[0]; if(f){ pagGuardarArquivo(t.id==='pag-recibo'?'recibo':'boleto',f); } }
+});
+document.addEventListener('click',async ev=>{
+  const b=ev.target.closest('button'); if(!b||!pagEst) return;
+  if(b.id==='pag-gerar') return pagGerarLink();
+  if(b.dataset.pag==='copiar'){ const m=pagEst.msg; try{ await navigator.clipboard.writeText(m); finToast('Texto copiado. É só colar.'); }catch(_){ prompt('Copie o texto:',m); } }
+  if(b.dataset.pag==='zap') window.open('https://wa.me/?text='+encodeURIComponent(pagEst.msg),'_blank','noopener');
+});
+async function pagGerarLink(){
+  const e=pagEst; if(!e||e.gerando) return;
+  const c=casos[e.id]||{}, comE=e.itens!=='registro', comR=e.itens!=='escritura';
+  // Se a leitura ainda corre, espera; se ela anexou e os campos continuam vazios, tenta ler de novo antes de reclamar.
+  for(let i=0;i<300&&pagEst===e&&e.lendo&&(e.lendo.recibo||e.lendo.boleto);i++) await new Promise(r=>setTimeout(r,200));
+  if(pagEst!==e) return;
+  if(comE&&e.recibo&&!pagCentavos(e.valE)) await pagLerArquivo('recibo',e.recibo);
+  if(comR&&e.boleto&&(!pagCentavos(e.valR)||!pagVencOk(e.venc)||!String(e.codigo).replace(/\D/g,''))) await pagLerArquivo('boleto',e.boleto);
+  if(pagEst!==e) return;
+  const valE=comE?pagCentavos(e.valE):0, valR=comR?pagCentavos(e.valR):0;
+  const falta=[];
+  if(comE){ if(!valE) falta.push('o valor da escritura'); if(!e.recibo&&!(c.pagamento&&c.pagamento.itens&&c.pagamento.itens.escritura&&e.link)) falta.push('o recibo do cartório'); }
+  if(comR){ if(!valR) falta.push('o valor do boleto'); if(!pagVencOk(e.venc)) falta.push('o vencimento (dd/mm/aaaa)'); if(!String(e.codigo).replace(/\D/g,'')) falta.push('o código de barras'); if(!e.boleto&&!e.link) falta.push('o boleto'); }
+  if(falta.length){ e.erro='Falta '+falta.join(', ')+'.'; pagDesenhar(); return; }
+  e.erro=''; e.gerando=true; pagDesenhar();
+  try{
+    const imagens={};
+    if(e.recibo) imagens.recibo=await pagImagemDe(e.recibo);
+    if(e.boleto){ imagens.boleto=await pagImagemDe(e.boleto); if(e.boleto.size<=700*1024&&(e.boleto.type==='application/pdf'||/\.pdf$/i.test(e.boleto.name))) imagens.boletoPdf=await pagLerComoUrl(e.boleto); }
+    const orc=pagOrcamentoEscolhido(e.id,e.orcId); if(orc){ const im=pagImagemOrcamento(orc); if(im) imagens.orcamento=im; }
+    const agora=Date.now(), anterior=c.pagamento, reaproveita=!!(anterior&&anterior.token&&anterior.status!=='recebido'&&e.link);
+    const token=reaproveita?anterior.token:codigoDeEnvio();
+    const itens={escritura:comE,registro:comR};
+    const dados=orcSemUndefined({nome:c.nome||'',ato:c.tipo||'',escritura:comE?{valorCent:valE}:null,registro:comR?{valorCent:valR,venc:e.venc,codigo:String(e.codigo).trim(),beneficiario:String(e.benef).trim(),cnpj:String(e.cnpj).trim()}:null});
+    try{
+      if(reaproveita) await update(ref(db,'cobrancas/'+token),{'meta/itens':itens,'meta/expiraEm':agora+15*864e5,'dados':dados,...Object.fromEntries(Object.entries(imagens).map(([k,v])=>['imagens/'+k,v]))});
+      else await set(ref(db,'cobrancas/'+token),{meta:{casoId:e.id,criadoEm:agora,expiraEm:agora+15*864e5,itens},dados,imagens});
+      await set(ref(db,'casos/'+e.id+'/pagamento'),orcSemUndefined({token,criadoEm:reaproveita&&anterior.criadoEm||agora,itens,escrituraCent:valE||null,registroCent:valR||null,venc:comR?e.venc:null,status:'aguardando'}));
+    }catch(err){
+      const negado=/permission|PERMISSION/.test(String(err&&err.message||err));
+      throw new Error(negado?'O banco recusou a gravação. As regras novas do Firebase (com o caminho /cobrancas) ainda não foram publicadas: o passo está no FIREBASE.md.':'Não consegui gravar a cobrança: '+((err&&err.message)||err));
+    }
+    if(comR){ try{ localStorage.setItem('painel_pag_benef',JSON.stringify({nome:e.benef,cnpj:e.cnpj})); }catch(_){} }
+    e.link=pagLinkDe(token); e.msg=pagMensagem(e.itens,e.link);
+  }catch(err){ e.erro=(err&&err.message)||String(err); }
+  e.gerando=false; pagDesenhar();
+}
+
 // Pedir documentos: a lista do que pedir (cliente, advogado, corretor…) para o ato do card.
 window.abrirPedidoDocs = function(id){
   const c = (typeof casos!=='undefined' && casos[id]) || {};
@@ -13382,6 +13820,7 @@ function orcHtmlListaOrcamentos(){
             <button type="button" class="cx-btn" onclick="orcAbrirDoCaso('${o.casoId}','${o.id}')">Ver</button>
             <button type="button" class="cx-btn" onclick="orcAbrirMemoria('${o.casoId}','${o.id}')">Memória</button>
             <button type="button" class="cx-btn" onclick="orcAbrirCliente('${o.casoId}','${o.id}')">Cliente</button>
+            <button type="button" class="cx-btn" onclick="orcLinkAprovacao('${o.casoId}','${o.id}')"><i class="ti ti-link"></i> Link para aprovar</button>
             <button type="button" class="cx-btn" onclick="orcDuplicar('${o.id}')">Duplicar</button>
             ${o.status === 'aceito' ? `<button type="button" class="cx-btn destaque" onclick="orcParaFinanceiro('${o.id}')"><i class="ti ti-currency-real"></i> Escritura assinada</button>` : ''}
             <button type="button" class="cx-btn perigo" onclick="orcExcluir('${o.id}')">Excluir</button>
