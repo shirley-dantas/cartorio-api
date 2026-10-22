@@ -400,7 +400,7 @@ function tela(){
     const pixCola=()=>vE>0?pixCopiaECola(PIX_CHAVE,vE,PIX_NOME,PIX_CIDADE):'45.566.502/0001-12';
     const l=[];
     if(modo!=='registro')l.push(`<section class="cartao">${topo(1,'B4','B5','B6',V().escritura,'recibo')}${bloco(t('D9'),'45.566.502/0001-12',pixCola(),true)}<details class="c-ted"><summary>${t('D13')}</summary>${bancos}</details></section>`);
-    if(modo!=='escritura')l.push(`<section class="cartao">${topo(modo==='registro'?1:2,'B7','B8','B9',V().registro,'boleto')}${reg.codigo?bloco(t('E10'),esc(reg.codigo),reg.codigo):''}</section>`);
+    if(modo!=='escritura')l.push(`<section class="cartao">${topo(modo==='registro'?1:2,'B7','B8','B9',V().registro,'boleto')}${reg.codigo?bloco(t('E10'),esc(reg.codigo),String(reg.codigo).replace(/\D/g,'')||reg.codigo):''}</section>`);
     h=l.join('')+(im.orcamento?`<button type="button" class="p-sec2" data-vis="orc">${t('B11')}</button>`:'')+anexosHtml();
   }
   if(k==='fim'){

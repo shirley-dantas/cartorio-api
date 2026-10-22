@@ -197,7 +197,8 @@ await passo('Pix copia e cola, sem nada a mais na tela: o Copiar da chave leva a
 await passo('copiar: a chave Pix e o código de barras vão para a área de transferência e o botão confirma', async () => {
   const {pg} = await abrir(); const btn = pg.locator('.c-bloco [data-copy]').first(); assert(/^000201010211/.test(await btn.getAttribute('data-copy')), 'o Copiar do Pix leva o copia e cola');
   await btn.click(); assert(/Copiado!/.test(await btn.textContent()));
-  assert.equal(await pg.locator('.c-bloco [data-copy]').nth(1).getAttribute('data-copy'), '26091.90299 37227.373505 99600.000006 2 16080000386807');
+  assert.equal(await pg.locator('.c-bloco [data-copy]').nth(1).getAttribute('data-copy'), '26091902993722737350599600000006216080000386807', 'o código vai só com os 47 dígitos, que todo banco aceita');
+  assert(/26091\.90299 37227\.373505/.test(await pg.locator('.c-bloco').nth(1).innerText()), 'na tela continua legível, com pontos e espaços');
 });
 
 await passo('no celular nada rola de lado, e no computador também cabe', async () => {
