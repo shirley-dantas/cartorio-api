@@ -1078,17 +1078,13 @@ Prime Assessoria). O que mora aqui está no `index.html` (`pagFaixaHtml`, `abrir
 
 Regras dela que **não devem ser mexidas sem perguntar**:
 
-- **Uma página só, um passo por vez**: *Conferir* os dois valores (com o botão de rever o orçamento, só se ela escolher uma versão na janela —
-  **o status "Aprovado pelo cliente" não é exigido**, ela usa os status para outras coisas; nasce marcada a última com esse status, ou a mais recente), depois o pagamento da escritura, depois o do registro. Tocar em
-  *Escritura* abre o **recibo do cartório** (sempre existe antes); tocar em *Registro* abre o **boleto**. Ela anexa os dois ao
-  gerar o link (viram imagem leve no banco; o boleto em PDF também guarda o PDF, se couber). **Dá para colar o print (Ctrl+V) ou
-  arrastar o arquivo** na caixa de cada um, no lugar de procurá-lo no computador (o colar vai para onde ela clicou; sem clique,
-  para o primeiro que falta).
-- **Dois pagamentos, nunca somados.** O aviso de segurança fica sempre à vista ("Confira o beneficiário e o valor antes de
-  pagar…"), inclusive no link de uma cobrança só.
-- **O comprovante é obrigatório para avançar.** O botão fica apagado até anexar; o último passo vira *Concluir*, e o link
-  **só fecha com o comprovante de todas as cobranças que ele tem** (o Apps Script confere, não só a página).
-- **Link só da escritura ou só do registro**: o passo que não foi escolhido some do indicador, da lista e do fluxo.
+- **Uma tela só** (ver a regra da tela única, mais abaixo): os dois valores, o Pix e o código de barras, o botão de rever o orçamento — só se ela
+  escolher uma versão na janela; **o status "Aprovado pelo cliente" não é exigido**, ela usa os status para outras coisas — e os
+  comprovantes. O recibo abre em *Ver o recibo*, o boleto em *Ver o boleto*. Ela anexa os dois ao gerar o link (viram imagem leve no
+  banco; o boleto em PDF também guarda o PDF, se couber). **Dá para colar o print (Ctrl+V) ou arrastar o arquivo** na caixa de cada um.
+- **Dois pagamentos, nunca somados**: cada um no seu cartão. O aviso de segurança que ela pediu no começo **saiu da tela por decisão dela** (22/10/2026).
+- **O comprovante é obrigatório para enviar.** O botão *Enviar comprovantes* fica apagado até chegar **um para cada pagamento, no mínimo**, e o link **só fecha assim** (o Apps Script confere, não só a página).
+- **Link só da escritura ou só do registro**: o cartão que não foi escolhido some, e um comprovante basta.
 - **Os textos são dela**: o objeto `D` no começo do script de `pagar.html` (códigos A…F, na lista que ela editou em
   22/10/2026). Linha em branco no `D` some da tela — foi assim que ela tirou o vencimento ("Vence em") e a frase "este pagamento
   é por boleto"; o vencimento continua gravado na cobrança.
@@ -1096,7 +1092,7 @@ Regras dela que **não devem ser mexidas sem perguntar**:
   trava a geração; por isso ele mora em `/cobrancas/{código}/meta/comprovantes`, com selo, e o card tem só o resumo em
   `/casos/{id}/pagamento` (`status`: aguardando → recebido).
 - **A baixa é da equipe.** O painel avisa no topo ("Cliente enviou os comprovantes de pagamento") e o card mostra
-  *Imprimir comprovante da escritura* (e do registro): ela imprime e leva ao financeiro do cartório, que dá baixa no sistema
+  *Imprimir comprovantes* (um botão só, todos os arquivos juntos): ela imprime e leva ao financeiro do cartório, que dá baixa no sistema
   dele. Nada marca "pago" sozinho.
 - **Anexar o recibo e o boleto preenche a janela, mas o que a IA leu é hipótese.** Apps Script `pagamento-ler` devolve JSON; o painel só
   usa o que as contas confirmam (`pagConferirRecibo`: os dois totais iguais e a soma das linhas igual ao total; `pagLerLinhaDigitavel`:
@@ -1116,10 +1112,20 @@ Regras dela que **não devem ser mexidas sem perguntar**:
   de um boleto, o código de barras, o valor e o vencimento são **os do primeiro** — o aviso diz isso, e se o cliente paga cada um à parte, o
   jeito certo é um link para cada. O banco guarda `imagens.recibos`/`imagens.boletos` (listas) e, por compatibilidade, o primeiro em
   `imagens.recibo`/`imagens.boleto`; a página do cliente mostra todos, legendados "Recibo 1 de N".
-- **O comprovante parece instantâneo, mas o link só fecha com tudo enviado.** Na página do cliente, "✓ Anexado" aparece assim que a foto
-  está reduzida (1600 px, qualidade .8) e o envio ao Drive segue em segundo plano (`fila` em `pagar.html`); o *Concluir* espera a fila e,
-  se algum envio falhou, volta ao passo dele com o motivo escrito — nunca fecha o link sem o comprovante no Drive. O Apps Script
-  lê as duas coisas do caso numa viagem só (`firebaseLerVarios`) e não usa a trava quando a pasta do caso já é conhecida.
+- **O comprovante parece instantâneo, mas o link só fecha com tudo enviado.** Na página do cliente, o arquivo aparece como anexado assim que a foto
+  está reduzida (1600 px, qualidade .8) e o envio ao Drive segue em segundo plano (`fila` em `pagar.html`); o *Enviar comprovantes* espera a fila e,
+  se algum envio falhou, não fecha o link e mostra o motivo escrito. O Apps Script lê as duas coisas do caso numa viagem só
+  (`firebaseLerVarios`) e não usa a trava quando a pasta do caso já é conhecida.
+- **A página do cliente é uma tela só (redesenhada em 22/10/2026), leve e arredondada.** Os dois pagamentos ficam em cartões
+  brancos de cantos redondos — o Pix com **Copiar**, o TED **recolhido** num botão, o código de barras com **Copiar** —, depois o botão do
+  orçamento e **"Anexe os comprovantes"**: um botão só, "+ Adicionar comprovante", sem texto explicativo. **Os comprovantes ficam num
+  lugar só**: o cliente anexa quantos precisar (cada um numa linha com **×** para tirar o que anexou errado), e o botão *Enviar
+  comprovantes* só liga com **no mínimo um para cada pagamento** (o Apps Script confere também). Cada arquivo vai com um código novo
+  (`c…`) para `/cobrancas/{código}/meta/comprovantes`; `pagamento-remover` tira da lista e põe o arquivo na lixeira do Drive **só com o
+  selo certo**, e só enquanto o link está aberto. No card, **um botão só imprime todos** (`pagamento-ver` com `qual:'todos'`), porque o
+  link não sabe qual arquivo é de qual pagamento. Foi ela quem decidiu tirar da tela: o rótulo do ato, os três passos, a saudação, o
+  aviso de segurança, o "Começar", o favorecido, a dúvida com o WhatsApp, o beneficiário do registro e o botão de baixar o boleto
+  (o boleto continua em "Ver o boleto"). Links antigos, com comprovante por `escritura`/`registro`, continuam valendo.
 - **"2.000" é dois mil** (`pagCentavos`): o mesmo erro do financeiro, que já aconteceu uma vez.
 - Passo manual: regras do banco com `/cobrancas` e Apps Script novo (`FIREBASE.md`, seção 12). Testes:
   `testes/pagar-tela.mjs` (a página), `testes/pagamento-envio.mjs` (o Apps Script) e `testes/pagamento-painel.mjs` (a janela,

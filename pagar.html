@@ -274,6 +274,63 @@ body{padding-bottom:40px}
 .tentar-msg{margin:0 16px 12px;font-size:16px;color:var(--critico);font-weight:600}
 body.concluido .miolo>.titulo{display:none}
 .tela-pag{padding-bottom:40px}
+.p-pil{border:2px solid var(--champ);border-radius:4px;background:#fff;margin-top:22px;overflow:hidden}
+.p-pil .p-lin{border-bottom:2px solid var(--linha)}
+.p-anexe{margin:30px 0 10px;font-size:21px;font-weight:700;line-height:1.3;text-align:center;color:var(--graf)}
+.anexo{display:flex;gap:10px;align-items:flex-start;padding:8px 2px;font-size:17px;font-weight:600}
+.anexo .ico{flex:none;width:26px;height:26px;border-radius:2px;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:15px}
+.anexo.erro .ico{background:var(--critico)}
+.anexo small{display:block;font-size:14px;font-weight:400;color:var(--graf-2)}
+.anexo.erro small{color:var(--critico);font-weight:600}
+.p-lin .v{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.p-lin .pagar{font-style:normal;background:var(--graf);color:#fff;font:700 15px -apple-system,Inter,sans-serif;padding:8px 14px;border-radius:2px;border-bottom:3px solid var(--champ)}
+.p-lin .ver{cursor:pointer}
+
+/* ── Tela única, mais leve e arredondada ── */
+body{background:#F6F3EC}
+.topo{margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);border-radius:0 0 30px 30px;border-bottom:0;padding:calc(20px + env(safe-area-inset-top)) 20px 24px}
+.topo .arco{height:22px;margin-bottom:2px}
+.topo h1{font-size:28px;margin-top:4px}
+.topo .orgao{font-size:13px}
+.tela-pag{padding:0 2px 40px}
+.cartao{background:#fff;border-radius:24px;padding:18px;margin-top:16px;box-shadow:0 8px 28px rgba(31,42,51,.08)}
+.c-topo{display:flex;align-items:center;gap:12px}
+.c-num{flex:none;width:34px;height:34px;border-radius:50%;background:var(--graf);color:#fff;font-weight:700;font-size:17px;display:grid;place-items:center}
+.c-tit{flex:1;min-width:0}.c-tit b{display:block;font-size:18px;line-height:1.25}.c-tit small{display:block;color:var(--graf-2);font-size:15px;margin-top:2px}
+.c-val{font-size:23px;font-weight:700;white-space:nowrap}
+.c-ver{display:inline-block;margin:12px 0 0 46px;border:0;background:#F1EDE3;color:var(--champ-texto);border-radius:999px;padding:8px 16px;font:600 15px -apple-system,Inter,sans-serif;cursor:pointer}
+.c-bloco{margin-top:16px;background:#F7F4EE;border-radius:18px;padding:14px 16px}
+.c-bloco small{display:block;color:var(--graf-2);font-size:14px;margin-bottom:4px}
+.c-linha{display:flex;align-items:center;gap:12px}.c-linha b{flex:1;font-size:18px;line-height:1.35;word-break:break-word}
+.c-bloco:not(:has(.c-linha b:only-child)) .c-linha b{font-size:18px}
+.c-linha b{font-variant-numeric:tabular-nums}
+.c-copiar{flex:none;border:0;border-radius:999px;background:var(--graf);color:#fff;padding:11px 20px;font:600 16px -apple-system,Inter,sans-serif;cursor:pointer}
+.c-ted{margin-top:12px}
+.c-ted summary{list-style:none;cursor:pointer;text-align:center;border-radius:999px;border:1.5px solid #E2DCCD;padding:13px 14px;font-weight:600;font-size:16px;color:var(--graf)}
+.c-ted summary::-webkit-details-marker{display:none}
+.c-ted summary::after{content:' ▾'}.c-ted[open] summary::after{content:' ▴'}
+.c-banco{background:#F7F4EE;border-radius:16px;padding:12px 16px;margin-top:10px}
+.c-banco b{display:block;font-size:18px}.c-banco span{display:block;color:var(--graf-2);font-size:16px;margin-top:2px}
+.p-sec2{border-radius:999px;border:1.5px solid #D9D2C2;background:#fff;margin-top:16px;padding:16px;font-size:17px;font-weight:600}
+.anexos h3{margin:0 0 12px;font-size:20px;line-height:1.3}
+.anexos .ajuda{margin:0 0 12px;color:var(--graf-2);font-size:15px}
+.chip-arq{display:flex;align-items:center;gap:10px;background:#EEF6F0;border-radius:16px;padding:10px 12px;margin-bottom:8px}
+.chip-arq .ico{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:14px}
+.chip-arq.erro{background:#FBE9E7}.chip-arq.erro .ico{background:var(--critico)}
+.chip-arq .nm{flex:1;min-width:0;font-size:16px;font-weight:600;word-break:break-word}
+.chip-arq small{display:block;font-size:14px;font-weight:400;color:var(--graf-2)}.chip-arq.erro small{color:var(--critico);font-weight:600}
+.chip-arq .rm{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:#fff;color:var(--graf);font-size:22px;line-height:1;cursor:pointer}
+.anexos .acoes{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.anexos .acoes.um{grid-template-columns:1fr}
+.anexos .btn{border-radius:999px;border:2px dashed #CFC6B1;background:#FBF9F4;min-height:54px;font-size:16px}
+.p-big{border-radius:999px;border-bottom:0;margin-top:16px;padding:18px 16px;font-size:20px}
+.p-big.off{background:#D5D8DB}
+.p-feito{background:#fff!important;border-radius:24px;overflow:hidden;box-shadow:0 8px 28px rgba(31,42,51,.08);padding:28px 20px 22px;text-align:center}
+.p-feito .vv{width:64px;height:64px;border-radius:50%;background:var(--ok)!important;color:#fff!important;font-size:34px;display:grid;place-items:center;margin:0 auto 12px;padding:0!important}
+.p-feito h2{background:none!important;color:var(--graf)!important;border:0!important;padding:0 0 10px!important;font-size:26px}
+.p-feito ul{list-style:none}.p-feito li{display:flex;gap:10px;align-items:flex-start;text-align:left;background:#F7F4EE!important;border-radius:14px;padding:12px 14px;margin-bottom:8px;font-size:17px}
+.p-feito li b{flex:none;width:24px;height:24px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:13px}
+.p-feito p{color:var(--graf-2)}
 </style></head><body><div class="miolo">
 <header class="topo"><svg class="arco" viewBox="0 0 600 90" role="img" aria-label="20º Tabelião de Notas"><defs><linearGradient id="arco" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#BE9E6C"/><stop offset="50%" stop-color="#E8D3A4"/><stop offset="100%" stop-color="#BE9E6C"/></linearGradient></defs><path d="M20 80 Q300 -10 580 80" fill="none" stroke="url(#arco)" stroke-width="5" stroke-linecap="round"/></svg><h1 id="h1"></h1><div class="orgao" id="orgao"></div><p class="escrevente"><b id="esc"></b><br><a href="https://wa.me/5511954929643" rel="noopener" id="wpp"></a></p></header>
 <div class="titulo"><span class="ato" id="ato" hidden></span></div>
@@ -288,52 +345,50 @@ const MAX_LADO=1600, QUALIDADE=.8, MAX_BYTES=8*1024*1024;
 const token=(location.pathname.match(/\/p\/([A-Za-z0-9_-]+)/)||[])[1]||new URLSearchParams(location.search).get('t')||'';
 // Os textos da página, do jeito dela. {nome}, {escritura}, {registro} e {venc} são trocados pelos dados da cobrança.
 const D={
-A1:'Pagamento',A2:'20º Tabelião de Notas',A3:'Escrevente Shirley Dantas',A4:'WhatsApp (11) 95492-9643',A5a:'CONFERÊNCIA',A5b:'PAGAMENTO DA ESCRITURA',A5c:'PAGAMENTO DO REGISTRO',
-B1:'Olá, {nome}',B2:'Confira os valores',B3:'Você fará 2 pagamentos, um de cada vez. Toque em cada um para ver os detalhes.',B4:'20º Tabelião de Notas',B5:'Pagamento por TED ou PIX',B6:'Ver o recibo ›',B7:'Registro de Imóveis',B8:'Pagamento por meio de boleto bancário',B9:'Ver o boleto ›',B10:'⚠️ Aviso de segurança: Confira o beneficiário e o valor antes de pagar. Em caso de divergência, consulte nossa equipe.',B11:'Para sua conferência, reveja seu orçamento aqui!',B12:'Começar pelo pagamento da escritura',B13:'Passo 1 de 2',B13b:'Passo 1 de 1',B14:'',
+A1:'Pagamento',A2:'20º Tabelião de Notas',A3:'Escrevente Shirley Dantas',A4:'WhatsApp (11) 95492-9643',A5a:'',A5b:'',A5c:'',
+B1:'',B2:'',B3:'',B4:'20º Tabelião de Notas',B5:'Pagamento por TED ou PIX',B6:'Ver o recibo ›',B7:'Registro de Imóveis',B8:'Pagamento por meio de boleto bancário',B9:'Ver o boleto ›',B10:'',B21:'Pagar ›',B11:'Para sua conferência, reveja seu orçamento aqui!',B12:'',B13:'',B13b:'',B14:'',
 B15:'Confira o valor',B16:'Você fará 1 pagamento. Toque nele para ver os detalhes.',B17:'Fazer o pagamento da escritura',B18:'Confira o valor',B19:'Você fará 1 pagamento. Toque nele para ver os detalhes.',B20:'Fazer o pagamento do registro',
 C1:'Recibo da escritura',C2:'É o recibo que o cartório emitiu para você. Confira os dados.',C3:'Ampliar',C4:'Voltar para os valores',C5:'Boleto do registro',C6:'É o boleto do registro de imóveis. Confira os dados.',C7:'Ampliar',
-D1:'Passo 1 de 2',D1b:'Passo 1 de 1',D2:'Pagamento da escritura',D3:'Para o cartório de notas',D4:'20º Tabelião de Notas',D5:'Valor a pagar',D7:'Ver o recibo',D8:'Pague por Pix',D9:'Chave Pix (CNPJ)',D11:'Favorecido',D13:'Ou por TED - ESCOLHENDO O BANCO DE SUA PREFERÊNCIA ABAIXO:',D16:'Copiar',D17:'Copiado!',D18:'ANEXE AQUI O SEU COMPROVANTE DE PAGAMENTO',D19:'Comprovante do pagamento da escritura',D20:'Falta anexar',D21:'✓ Anexado',D22a:'📷 Tirar foto',D22b:'📁 Escolher',D23:'Continuar para o pagamento do registro',D24:'Anexe o comprovante para continuar',D24b:'Tudo certo, pode seguir',D25:'Em caso de dúvida, fale com a escrevente Shirley Dantas.',
-E1:'Passo 2 de 2',E1b:'Passo 1 de 1',E2:'Pagamento do registro',E3:'Para o registro de imóveis',E4:'Registro de Imóveis',E5:'Valor a pagar',E7:'',E8:'',E9:'Pague pelo código de barras',E10:'Código de barras',E11:'Beneficiário',E12:'Ver / baixar o boleto (PDF)',E13:'ANEXE AQUI O SEU COMPROVANTE DE PAGAMENTO',E14:'Comprovante do pagamento do registro',E15:'Concluir',E16:'Anexe o comprovante para concluir',E16b:'Tudo certo, pode concluir',
-F1:'Pagamentos recebidos',F2:'Escritura: {escritura}, comprovante recebido',F3:'Registro de imóveis: {registro}, comprovante recebido',F4:'Nossa equipe já recebeu seus comprovantes. Se faltar algo, nossa equipe entrará em contato. Você não precisa fazer mais nada. Pode fechar esta página.',
+D1:'',D1b:'',D2:'',D3:'Para o cartório de notas',D4:'20º Tabelião de Notas',D5:'Valor a pagar',D7:'',D8:'Pague por Pix',D9:'Chave Pix (CNPJ)',D11:'',D13:'Prefere pagar por TED? Toque para ver as contas',D16:'Copiar',D17:'Copiado!',D18:'',D19:'Comprovante do pagamento da escritura',D20:'',D21:'✓ Anexado',D22a:'',D22b:'📁 Escolher',D23:'Continuar para o pagamento do registro',D24:'Anexe o comprovante para continuar',D24b:'Tudo certo, pode seguir',D25:'',
+E1:'',E1b:'',E2:'',E3:'Para o registro de imóveis',E4:'Registro de Imóveis',E5:'Valor a pagar',E7:'',E8:'',E9:'Pague pelo código de barras',E10:'Código de barras',E11:'',E12:'',E13:'',E14:'Comprovante do pagamento do registro',E15:'Concluir',E16:'Anexe o comprovante para concluir',E16b:'Tudo certo, pode concluir',
+G1:'Anexe os comprovantes',G5:'',G6:'+ Adicionar comprovante',G6b:'+ Adicionar outro',G3:'Enviar comprovantes',G4a:'Falta 1 comprovante',G4b:'Faltam {n} comprovantes',G4c:'Tudo certo, pode enviar',
+F1:'Pagamentos recebidos',F2:'Escritura: {escritura}, comprovante recebido',F3:'Registro de imóveis: {registro}, comprovante recebido',F4:'Comprovantes recebidos com sucesso! Agradecemos a parceria e a confiança.',
 F5:'Este link já foi usado: o cartório já recebeu os seus comprovantes. Se precisar de algo, fale com o cartório.',F6:'Este link venceu. Peça um novo ao cartório.'
 };
 const $=s=>document.querySelector(s);
 const esc=x=>String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-let cob=null, modo='ambos', passo=0, vis=null, zoom=false, comp={}, nomes={}, estado={}, erroArq={}, concluindo=false;
+let cob=null, modo='ambos', passo=0, vis=null, zoom=false, lista=[], concluindo=false;
 const moeda=c=>'R$ '+(Number(c||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const V=()=>({nome:String(((cob.dados||{}).nome||'')).split(/\s+/)[0],escritura:moeda(((cob.dados||{}).escritura||{}).valorCent),registro:moeda(((cob.dados||{}).registro||{}).valorCent),venc:((cob.dados||{}).registro||{}).venc||''});
 const txt=c=>String(D[c]==null?'':D[c]).replace(/\{(\w+)\}/g,(m,k)=>{const v=V();return v[k]!==undefined?v[k]:m;});
 const t=c=>esc(txt(c));
-const passosDe=()=>['conferir',...(modo!=='registro'?['escritura']:[]),...(modo!=='escritura'?['registro']:[]),'fim'];
-function stepper(){const p=passosDe(),v=p.slice(0,-1),c={conferir:'A5a',escritura:'A5b',registro:'A5c'};return '<div class="p-passos">'+v.map((k,i)=>`<span data-n="${i+1}" class="${i<passo?'ok':i===passo?'on':''}">${t(c[k])}</span>`).join('')+'</div>';}
+const passosDe=()=>['conferir','fim'];
+function stepper(){if(!txt('A5a')&&!txt('A5b')&&!txt('A5c')) return '';const p=passosDe(),v=p.slice(0,-1),c={conferir:'A5a',escritura:'A5b',registro:'A5c'};return '<div class="p-passos">'+v.map((k,i)=>`<span data-n="${i+1}" class="${i<passo?'ok':i===passo?'on':''}">${t(c[k])}</span>`).join('')+'</div>';}
 function dado(rot,v,cp){return `<div class="p-dado"><div class="t"><small>${rot}</small><b>${v}</b></div>${cp?`<button type="button" class="p-cp" data-copy="${esc(cp===true?v:cp)}">${t('D16')}</button>`:''}</div>`;}
-function slot(k,tit){
-  const ok=!!comp[k], env=estado[k]==='enviando';
-  const chip=env?'Enviando…':ok?t('D21'):t('D20');
-  return `<div class="slot${ok?' ok':''}" style="margin:16px"><div class="slot-topo"><b>${t(tit)}</b><span class="chip${ok?' ok':erroArq[k]?' err':''}">${chip}</span></div>${ok?`<div class="dica">${esc(nomes[k]||'')}</div>`:''}`+
-   `<div class="acoes"><label class="btn">${t('D22a')}<input type="file" accept="image/*" capture="environment" data-comp="${k}" hidden></label><label class="btn">${t('D22b')}<input type="file" accept="image/*,application/pdf" data-comp="${k}" hidden></label></div></div>`+
-   (erroArq[k]?`<p class="tentar-msg">${esc(erroArq[k])}</p>`:'');
+// Os comprovantes ficam num lugar só: ele anexa quantos precisar, e o link confere se chegou um para cada pagamento.
+const precisa=()=>modo==='ambos'?2:1;
+const contam=()=>lista.filter(a=>a.estado!=='erro'&&a.estado!=='preparando');
+function anexosHtml(){
+  const itens=lista.map(a=>`<div class="chip-arq ${a.estado}"><span class="ico">${a.estado==='erro'?'!':'✓'}</span><span class="nm">${esc(a.nome)}<small>${a.estado==='enviando'||a.estado==='preparando'?'Enviando…':a.estado==='erro'?esc(a.erro):''}</small></span><button type="button" class="rm" data-rm="${esc(a.id)}" aria-label="Tirar este comprovante" title="Tirar este comprovante">×</button></div>`).join('');
+  const falta=Math.max(0,precisa()-contam().length), pend=lista.some(a=>a.estado==='preparando');
+  const sub=concluindo?'Enviando…':falta>0?(falta===1?txt('G4a'):txt('G4b').replace('{n}',falta)):txt('G4c');
+  const pronto=falta===0&&!pend&&!concluindo;
+  return `<section class="cartao anexos"><h3>${t('G1')}</h3>${txt('G5')?`<p class="ajuda">${t('G5')}</p>`:''}${itens}<div class="acoes${txt('D22a')?'':' um'}">${txt('D22a')?`<label class="btn">${t('D22a')}<input type="file" accept="image/*" capture="environment" data-anexo hidden></label>`:''}<label class="btn">${lista.length?t('G6b'):t('G6')}<input type="file" accept="image/*,application/pdf" multiple data-anexo hidden></label></div></section>`+
+    `<button type="button" class="p-big${pronto?'':' off'}" data-enviar${pronto?'':' disabled'}>${t('G3')}<small>${esc(sub)}</small></button>`;
 }
 function voltar(){return passo>0?`<button type="button" class="p-voltar" data-voltar>‹ Voltar</button>`:'';}
 function tela(){
   const k=passosDe()[passo], un=modo!=='ambos', dd=cob.dados||{}, reg=dd.registro||{}, im=cob.imagens||{};
   let h='';
   if(k==='conferir'){
+    const bancos=`<div class="c-banco"><b>Bradesco</b><span>Agência 0133 · Conta corrente 422032-3</span></div><div class="c-banco"><b>Itaú</b><span>Agência 0350 · Conta corrente 72195-7</span></div>`;
+    const topo=(n,nome,desc,ver,valor,visual)=>`<div class="c-topo"><span class="c-num">${n}</span><div class="c-tit"><b>${t(nome)}</b><small>${t(desc)}</small></div><div class="c-val">${esc(valor)}</div></div><button type="button" class="c-ver" data-vis="${visual}">${t(ver)}</button>`;
+    const bloco=(rot,valor,copia,sem)=>`<div class="c-bloco"><small>${rot}</small><div class="c-linha"><b${sem?' style="white-space:nowrap;font-size:17px"':''}>${valor}</b><button type="button" class="c-copiar" data-copy="${esc(copia)}">${t('D16')}</button></div></div>`;
+    const reg=(cob.dados||{}).registro||{};
     const l=[];
-    if(modo!=='registro')l.push(`<button type="button" class="p-lin" data-vis="recibo"><span class="p-n">1</span><span class="m"><b>${t('B4')}</b><small>${t('B5')}</small><span class="ver">${t('B6')}</span></span><span class="v">${esc(V().escritura)}</span></button>`);
-    if(modo!=='escritura')l.push(`<button type="button" class="p-lin" data-vis="boleto"><span class="p-n">${modo==='registro'?1:2}</span><span class="m"><b>${t('B7')}</b><small>${t('B8')}</small><span class="ver">${t('B9')}</span></span><span class="v">${esc(V().registro)}</span></button>`);
-    const C=modo==='registro'?['B18','B19','B20']:modo==='escritura'?['B15','B16','B17']:['B2','B3','B12'];
-    h=stepper()+`<div class="p-tit"><small>${t('B1')}</small><h2>${t(C[0])}</h2><p>${t(C[1])}</p></div><div class="p-box">${l.join('')}</div><div class="p-aviso">${t('B10')}</div>`+
-      (im.orcamento?`<button type="button" class="p-sec2" data-vis="orc">${t('B11')}</button>`:'')+
-      `<button type="button" class="p-big" data-next>${t(C[2])}<small>${t(un?'B13b':'B13')}</small></button>`+(txt('B14')?`<p class="p-guard">${t('B14')}</p>`:'');
-  }
-  if(k==='escritura'){
-    const ult=passo===passosDe().length-2;
-    h=stepper()+voltar()+`<div class="p-tit"><small>${t(un?'D1b':'D1')}</small><h2>${t('D2')}</h2></div><div class="p-card" style="margin-top:14px"><div class="p-cab"><span class="p-n">1</span><div><small>${t('D3')}</small><b>${t('D4')}</b></div></div><div class="p-val"><small>${t('D5')}</small><strong>${esc(V().escritura)}</strong><button type="button" class="p-cp" data-vis="recibo" style="margin-top:8px;border-style:dashed">${t('D7')}</button></div><div class="p-sec">${t('D8')}</div>${dado(t('D9'),'45.566.502/0001-12',true)}${dado(t('D11'),'20º Tabelião de Notas',false)}<div class="p-sec">${t('D13')}</div><div class="p-banco"><h4>Bradesco</h4><div class="dd"><span>Agência</span><b>0133</b></div><div class="dd"><span>Conta corrente</span><b>422032-3</b></div></div><div class="p-banco"><h4>Itaú</h4><div class="dd"><span>Agência</span><b>0350</b></div><div class="dd"><span>Conta corrente</span><b>72195-7</b></div></div><div class="p-aviso" style="margin:14px 16px 0">${t('D25')}</div><div class="p-passo-t" style="margin-top:20px">${t('D18')}</div>${slot('escritura','D19')}</div><button type="button" class="p-big${comp.escritura?'':' off'}" data-next${comp.escritura?'':' disabled'}${concluindo?' disabled':''}>${t(ult?'E15':'D23')}<small>${comp.escritura?t('D24b'):t(ult?'E16':'D24')}</small></button>`;
-  }
-  if(k==='registro'){
-    const benef=esc(reg.beneficiario||'Prime Assessoria Jurídica e Imobiliária')+(reg.cnpj?'<br>CNPJ '+esc(reg.cnpj):'');
-    h=stepper()+voltar()+`<div class="p-tit"><small>${t(un?'E1b':'E1')}</small><h2>${t('E2')}</h2></div><div class="p-card" style="margin-top:14px"><div class="p-cab"><span class="p-n">${un?1:2}</span><div><small>${t('E3')}</small><b>${t('E4')}</b></div></div><div class="p-val"><small>${t('E5')}</small><strong>${esc(V().registro)}</strong>${txt('E7')?`<em>${t('E7')}</em>`:''}</div>${txt('E8')?`<div class="p-ref"><b>${t('E8')}</b></div>`:''}<div class="p-sec">${t('E9')}</div>${reg.codigo?dado(t('E10'),esc(reg.codigo),reg.codigo):''}${dado(t('E11'),benef,false)}<button type="button" class="p-acao claro" data-vis="boleto">${t('E12')}</button><div class="p-passo-t" style="margin-top:20px">${t('E13')}</div>${slot('registro','E14')}</div><button type="button" class="p-big${comp.registro?'':' off'}" data-next${comp.registro?'':' disabled'}${concluindo?' disabled':''}>${t('E15')}<small>${comp.registro?t('E16b'):t('E16')}</small></button>`;
+    if(modo!=='registro')l.push(`<section class="cartao">${topo(1,'B4','B5','B6',V().escritura,'recibo')}${bloco(t('D9'),'45.566.502/0001-12','45.566.502/0001-12',true)}<details class="c-ted"><summary>${t('D13')}</summary>${bancos}</details></section>`);
+    if(modo!=='escritura')l.push(`<section class="cartao">${topo(modo==='registro'?1:2,'B7','B8','B9',V().registro,'boleto')}${reg.codigo?bloco(t('E10'),esc(reg.codigo),reg.codigo):''}</section>`);
+    h=l.join('')+(im.orcamento?`<button type="button" class="p-sec2" data-vis="orc">${t('B11')}</button>`:'')+anexosHtml();
   }
   if(k==='fim'){
     const li=[];if(modo!=='registro')li.push(`<li><b>✓</b>${t('F2')}</li>`);if(modo!=='escritura')li.push(`<li><b>✓</b>${t('F3')}</li>`);
@@ -382,29 +437,35 @@ async function chamar(corpo){
 // O comprovante aparece como anexado assim que a foto está pronta; o envio ao cartório segue em segundo plano. Quem espera é o
 // "Concluir": ele só fecha o link depois que todos os envios terminaram, e volta ao passo que falhou, com o motivo escrito.
 const fila={};
-async function anexar(qual,file){
-  erroArq[qual]=''; estado[qual]='enviando'; tela();
+async function anexar(file){
+  const a={id:'c'+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-3),nome:file.name,estado:'preparando',erro:''}; lista.push(a); tela();
   let f, base64;
   try{
     f=await reduzir(file);
     if(f.size>MAX_BYTES) throw new Error('Arquivo grande demais (máx. 8 MB). Tire uma foto em vez do arquivo.');
     base64=await b64(f);
-  }catch(e){ comp[qual]=false; erroArq[qual]='Não enviou: '+e.message+' Tente de novo.'; estado[qual]=''; tela(); return; }
-  comp[qual]=true; nomes[qual]=file.name; estado[qual]=''; tela();
-  const meu=(fila[qual]=(async()=>{
-    try{ await chamar({acao:'pagamento-arquivo',t:token,qual,nomeArquivo:file.name,mimetype:f.type||'application/octet-stream',base64}); }
-    catch(e){
-      if(fila[qual]!==meu) return;
-      comp[qual]=false; erroArq[qual]=e.rede?'Não enviou: '+e.message+' Confira a internet e tente de novo.':'Não enviou: '+e.message+' Tente de novo.';
-      const k=passosDe().indexOf(qual); if(k>=0&&passo!==k&&passosDe()[passo]!=='fim'&&!concluindo){ passo=k; } tela();
-    }
-  })());
+  }catch(e){ a.estado='erro'; a.erro='Não enviou: '+e.message+' Anexe de novo.'; tela(); return; }
+  a.estado='enviando'; tela();
+  fila[a.id]=(async()=>{
+    try{ await chamar({acao:'pagamento-arquivo',t:token,qual:a.id,nomeArquivo:file.name,mimetype:f.type||'application/octet-stream',base64}); a.estado='ok'; }
+    catch(e){ a.estado='erro'; a.erro=e.rede?'Não enviou: '+e.message+' Confira a internet e anexe de novo.':'Não enviou: '+e.message+' Anexe de novo.'; }
+    tela();
+  })();
+}
+async function tirar(id){
+  const a=lista.find(x=>x.id===id); if(!a||concluindo) return;
+  if(fila[id]) await fila[id];
+  if(a.estado==='ok'){
+    a.estado='preparando'; tela();
+    try{ await chamar({acao:'pagamento-remover',t:token,qual:id}); }
+    catch(e){ a.estado='erro'; a.erro='Não consegui tirar agora: '+e.message+' Tente de novo.'; tela(); return; }
+  }
+  lista=lista.filter(x=>x.id!==id); delete fila[id]; tela();
 }
 async function concluir(){
   if(concluindo) return; concluindo=true; tela();
   await Promise.all(Object.values(fila));
-  const falhou=['escritura','registro'].find(q=>passosDe().includes(q)&&!comp[q]);
-  if(falhou){ concluindo=false; passo=passosDe().indexOf(falhou); tela(); window.scrollTo(0,0); return; }
+  if(contam().length<precisa()||lista.some(a=>a.estado==='erro')&&contam().length<precisa()){ concluindo=false; tela(); return; }
   try{ await chamar({acao:'pagamento-concluir',t:token}); passo=passosDe().length-1; concluindo=false; tela(); window.scrollTo(0,0); }
   catch(e){ concluindo=false; tela(); alert('Não consegui concluir agora: '+e.message+'\nTente de novo.'); }
 }
@@ -422,25 +483,24 @@ async function carregar(){
   const it=cob.meta.itens||{};
   modo=it.escritura&&it.registro?'ambos':it.escritura?'escritura':it.registro?'registro':'';
   if(!modo) return invalido();
-  Object.entries(cob.meta.comprovantes||{}).forEach(([q,c])=>{ if(c&&c.docKey){ comp[q]=true; nomes[q]=c.nome||''; } });
-  if(cob.dados.ato){ const a=$('#ato'); a.textContent=cob.dados.ato; a.hidden=false; }
+  Object.entries(cob.meta.comprovantes||{}).forEach(([q,c])=>{ if(c&&c.docKey) lista.push({id:q,nome:c.nome||'Comprovante',estado:'ok',erro:''}); });
   cab(); tela();
 }
 document.addEventListener('click',e=>{
+  const sv=e.target.closest('span[data-vis]'); if(sv){ vis=sv.dataset.vis; zoom=false; overlay(); return; }
   const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.go){ passo=Math.max(0,passosDe().indexOf(b.dataset.go)); tela(); window.scrollTo(0,0); return; }
   if(b.dataset.vis){ vis=b.dataset.vis; zoom=false; overlay(); return; }
   if(b.hasAttribute('data-fechar')){ vis=null; zoom=false; overlay(); return; }
   if(b.hasAttribute('data-zoom')){ zoom=!zoom; overlay(); return; }
   if(b.hasAttribute('data-voltar')){ passo=Math.max(0,passo-1); tela(); window.scrollTo(0,0); return; }
-  if(b.hasAttribute('data-next')&&!b.disabled){
-    if(passosDe()[passo+1]==='fim') return concluir();
-    passo++; tela(); window.scrollTo(0,0); return;
-  }
+  if(b.dataset.rm) return tirar(b.dataset.rm);
+  if(b.hasAttribute('data-enviar')&&!b.disabled) return concluir();
   if(b.dataset.copy){
     const f=b, o=f.textContent; try{ navigator.clipboard.writeText(b.dataset.copy).catch(()=>{}); }catch(_){}
     f.textContent=txt('D17'); setTimeout(()=>f.textContent=o,1500);
   }
 });
-document.addEventListener('change',e=>{ const i=e.target; if(i.dataset&&i.dataset.comp&&i.files&&i.files[0]){ anexar(i.dataset.comp,i.files[0]); i.value=''; } });
+document.addEventListener('change',e=>{ const i=e.target; if(i.dataset&&i.dataset.anexo!==undefined&&i.files&&i.files.length){ [...i.files].forEach(f=>anexar(f)); i.value=''; } });
 carregar();
 </script></body></html>

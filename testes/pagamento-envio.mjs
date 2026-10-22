@@ -90,8 +90,8 @@ await passo('entrada ruim é recusada em voz alta: link vencido, tipo estranho, 
   const m = mundo(); semear(m, {itens: {escritura: true}});
   assert(/não aceito/.test(m.chamar(arq('escritura', {mimetype: 'application/zip'})).erro));
   assert(/vazio/.test(m.chamar(arq('escritura', {base64: ''})).erro));
-  assert(/Cobrança inválida/.test(m.chamar(arq('registro')).erro), 'o link só da escritura não aceita comprovante do registro');
-  assert(/Cobrança inválida/.test(m.chamar(arq('qualquer')).erro));
+  assert(/Comprovante inválido/.test(m.chamar(arq('registro!')).erro) && /Comprovante inválido/.test(m.chamar(arq('XX')).erro), 'código de comprovante fora do formato');
+  assert(/Comprovante inválido/.test(m.chamar(arq('qualquer')).erro));
   assert.equal(m.chamar(arq('escritura', {t: 'curto'})).ok, false);
   assert.equal(Object.keys(m.db.cobrancas[TOKEN].meta).includes('comprovantes'), false, 'nada foi gravado');
 });
@@ -112,7 +112,7 @@ await passo('trocar o comprovante: o novo entra e o antigo vai para a lixeira (s
 await passo('concluir só com todos os comprovantes; fecha o link, avisa o card (não visto) e a equipe', () => {
   const m = mundo(); semear(m);
   m.chamar(arq('escritura'));
-  const antes = m.chamar({acao: 'pagamento-concluir', t: TOKEN}); assert.equal(antes.ok, false); assert(/registro de imóveis/.test(antes.erro), antes.erro);
+  const antes = m.chamar({acao: 'pagamento-concluir', t: TOKEN}); assert.equal(antes.ok, false); assert(/Faltam comprovantes/.test(antes.erro), antes.erro);
   assert(!m.db.cobrancas[TOKEN].meta.concluidoEm);
   m.chamar(arq('registro'));
   const r = m.chamar({acao: 'pagamento-concluir', t: TOKEN}); assert.equal(r.ok, true);
@@ -135,6 +135,40 @@ await passo('o painel pede o comprovante de volta (para imprimir): só com o sel
   assert.equal(m.chamar({acao: 'pagamento-ver', casoId: '-Caso1', qual: 'outra'}).ok, false);
   m.db.cobrancas[TOKEN].meta.comprovantes.escritura.selo = 'forjado';
   const f = m.chamar({acao: 'pagamento-ver', casoId: '-Caso1', qual: 'escritura'}); assert.equal(f.ok, false); assert(/não confere/.test(f.erro), 'selo errado: o Drive não é lido');
+});
+
+
+await passo('comprovantes num lugar só: cada arquivo com o seu código, um para cada pagamento no mínimo, vários permitidos, e tirar o errado', () => {
+  const m = mundo(); semear(m);
+  const a = m.chamar(arq('cab12x')); assert.equal(a.ok, true); assert(/^Comprovante_Maria_da_Silva_\d{4}-\d{2}-\d{2}_\w{4}\.jpg$/.test(a.nome), a.nome);
+  assert(/Faltam comprovantes/.test(m.chamar({acao: 'pagamento-concluir', t: TOKEN}).erro), 'um comprovante não basta para dois pagamentos');
+  m.chamar(arq('cde34y')); m.chamar(arq('cfg56z'));
+  assert.equal(Object.keys(m.db.cobrancas[TOKEN].meta.comprovantes).length, 3, 'três arquivos, sem trocar um pelo outro');
+  const tirar = m.chamar({acao: 'pagamento-remover', t: TOKEN, qual: 'cde34y'}); assert.equal(tirar.ok, true);
+  assert(!m.db.cobrancas[TOKEN].meta.comprovantes.cde34y && m.db.cobrancas[TOKEN].meta.comprovantes.cab12x, 'só o escolhido sai');
+  assert(Object.values(m.todas).some((p) => p.arquivos.some((f) => f.lixeira)), 'o arquivo foi para a lixeira do Drive');
+  assert.equal(m.chamar({acao: 'pagamento-remover', t: TOKEN, qual: 'cde34y'}).ok, true, 'tirar o que já saiu não dá erro');
+  assert.equal(m.chamar({acao: 'pagamento-remover', t: TOKEN, qual: 'zz'}).ok, false);
+  const r = m.chamar({acao: 'pagamento-concluir', t: TOKEN}); assert.equal(r.ok, true, 'dois comprovantes para dois pagamentos');
+  assert.equal(m.db.casos['-Caso1'].pagamento.comprovantes, 2);
+  assert.equal(m.chamar({acao: 'pagamento-remover', t: TOKEN, qual: 'cab12x'}).ok, false, 'depois de enviado, ninguém tira mais nada');
+});
+
+await passo('tirar com selo forjado não toca no Drive; o registro sai, o arquivo fica', () => {
+  const m = mundo(); semear(m); m.chamar(arq('cab12x'));
+  m.db.cobrancas[TOKEN].meta.comprovantes.cab12x.selo = 'forjado';
+  assert.equal(m.chamar({acao: 'pagamento-remover', t: TOKEN, qual: 'cab12x'}).ok, true);
+  assert(!Object.values(m.todas).some((p) => p.arquivos.some((f) => f.lixeira)), 'selo errado: o Drive não é tocado');
+});
+
+await passo('o painel pede todos os comprovantes de uma vez (para imprimir), só os de selo certo', () => {
+  const m = mundo(); semear(m);
+  m.chamar(arq('cab12x')); m.chamar(arq('cde34y'));
+  const r = m.chamar({acao: 'pagamento-ver', casoId: '-Caso1', qual: 'todos'});
+  assert.equal(r.ok, true); assert.equal(r.itens.length, 2); assert(r.itens.every((x) => x.mime === 'image/jpeg' && Buffer.from(x.base64, 'base64').toString() === 'comprovante-pix'));
+  assert.equal(r.base64, r.itens[0].base64, 'o primeiro também nos campos de sempre');
+  m.db.cobrancas[TOKEN].meta.comprovantes.cde34y.selo = 'forjado';
+  const f = m.chamar({acao: 'pagamento-ver', casoId: '-Caso1', qual: 'todos'}); assert.equal(f.itens.length, 1); assert.equal(f.recusados, 1);
 });
 
 await passo('ler o recibo/boleto pela IA: devolve o JSON, recusa tipo/arquivo estranho e mostra o erro da IA escrito', () => {
