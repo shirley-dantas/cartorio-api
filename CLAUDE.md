@@ -1120,6 +1120,16 @@ Regras dela que **não devem ser mexidas sem perguntar**:
   está reduzida (1600 px, qualidade .8) e o envio ao Drive segue em segundo plano (`fila` em `pagar.html`); o *Concluir* espera a fila e,
   se algum envio falhou, volta ao passo dele com o motivo escrito — nunca fecha o link sem o comprovante no Drive. O Apps Script
   lê as duas coisas do caso numa viagem só (`firebaseLerVarios`) e não usa a trava quando a pasta do caso já é conhecida.
+- **A página do cliente é uma tela só (redesenhada em 22/10/2026), leve e arredondada.** Os dois pagamentos ficam em cartões
+  brancos de cantos redondos — o Pix com **Copiar**, o TED **recolhido** num botão, o código de barras com **Copiar** —, depois o botão do
+  orçamento e **"Anexe os comprovantes"**: um botão só, "+ Adicionar comprovante", sem texto explicativo. **Os comprovantes ficam num
+  lugar só**: o cliente anexa quantos precisar (cada um numa linha com **×** para tirar o que anexou errado), e o botão *Enviar
+  comprovantes* só liga com **no mínimo um para cada pagamento** (o Apps Script confere também). Cada arquivo vai com um código novo
+  (`c…`) para `/cobrancas/{código}/meta/comprovantes`; `pagamento-remover` tira da lista e põe o arquivo na lixeira do Drive **só com o
+  selo certo**, e só enquanto o link está aberto. No card, **um botão só imprime todos** (`pagamento-ver` com `qual:'todos'`), porque o
+  link não sabe qual arquivo é de qual pagamento. Foi ela quem decidiu tirar da tela: o rótulo do ato, os três passos, a saudação, o
+  aviso de segurança, o "Começar", o favorecido, a dúvida com o WhatsApp, o beneficiário do registro e o botão de baixar o boleto
+  (o boleto continua em "Ver o boleto"). Links antigos, com comprovante por `escritura`/`registro`, continuam valendo.
 - **"2.000" é dois mil** (`pagCentavos`): o mesmo erro do financeiro, que já aconteceu uma vez.
 - Passo manual: regras do banco com `/cobrancas` e Apps Script novo (`FIREBASE.md`, seção 12). Testes:
   `testes/pagar-tela.mjs` (a página), `testes/pagamento-envio.mjs` (o Apps Script) e `testes/pagamento-painel.mjs` (a janela,

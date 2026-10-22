@@ -211,8 +211,8 @@ await passo('a faixa do card: sem link, aguardando e recebido (com imprimir)', a
     pagFaixaHtml({...c, pagamento: {token: 'T'.repeat(20), status: 'recebido', recebidoEm: 1760000000000, itens: {escritura: true}, escrituraCent: 303989}})]; });
   assert(/Gerar link de pagamento/.test(f[0]) && !/imprimir/i.test(f[0]));
   assert(/aguardando o cliente/.test(f[1]) && /Copiar link/.test(f[1]) && /R\$ 3\.039,89/.test(f[1]) && !/imprimirComprovante/.test(f[1]));
-  assert(/Comprovantes recebidos/.test(f[2]) && /imprimirComprovante\('-Caso1','escritura'\)/.test(f[2]) && /imprimirComprovante\('-Caso1','registro'\)/.test(f[2]) && /Imprimir comprovante da escritura/.test(f[2]));
-  assert(!/'registro'\)/.test(f[3]), 'link só da escritura: só o botão da escritura');
+  assert(/Comprovantes recebidos/.test(f[2]) && (f[2].match(/imprimirComprovante\('-Caso1'\)/g) || []).length === 1 && /Imprimir comprovantes/.test(f[2]), 'um botão só, que imprime todos');
+  assert((f[3].match(/imprimirComprovante/g) || []).length === 1, 'link só da escritura: o mesmo botão único');
 });
 
 await passo('o aviso do topo: só o que chegou e ainda não foi visto; "Já vi" e "Abrir o card" marcam como visto', async () => {
@@ -229,14 +229,14 @@ await passo('imprimir: busca o comprovante no Drive (pelo Apps Script) e abre a 
   const pg = await abrir();
   await pg.evaluate(() => {
     window.__setCasos({'-Caso1': {id: '-Caso1', nome: 'Maria da Silva', tipo: 'Escritura de Compra e Venda', controle: '43804', pagamento: {token: 'T'.repeat(20), status: 'recebido', recebidoEm: 1760000000000, itens: {escritura: true}, escrituraCent: 303989}}});
-    window.__pedidos = []; window.fetch = async (u, o) => { window.__pedidos.push(JSON.parse(o.body)); return {json: async () => ({ok: true, mime: 'image/jpeg', nome: 'pix.jpg', base64: 'AAAA'})}; };
+    window.__pedidos = []; window.fetch = async (u, o) => { window.__pedidos.push(JSON.parse(o.body)); return {json: async () => ({ok: true, itens: [{mime: 'image/jpeg', nome: 'pix.jpg', base64: 'AAAA'}, {mime: 'image/jpeg', nome: 'ted.jpg', base64: 'BBBB'}], mime: 'image/jpeg', nome: 'pix.jpg', base64: 'AAAA'})}; };
     const w = {_h: '', document: {write(x) { w._h += x; }, open() { w._h = ''; }, close() {}, querySelector: () => ({complete: true})}, focus() {}, print() { window.__imprimiu = true; }, close() {}};
     window.__w = w; window.open = () => w;
   });
-  await pg.evaluate(() => imprimirComprovante('-Caso1', 'escritura')); await pg.waitForFunction(() => window.__imprimiu, null, {timeout: 3000});
-  assert.deepEqual(await pg.evaluate(() => window.__pedidos[0]), {acao: 'pagamento-ver', casoId: '-Caso1', qual: 'escritura'});
+  await pg.evaluate(() => imprimirComprovante('-Caso1')); await pg.waitForFunction(() => window.__imprimiu, null, {timeout: 3000});
+  assert.deepEqual(await pg.evaluate(() => window.__pedidos[0]), {acao: 'pagamento-ver', casoId: '-Caso1', qual: 'todos'});
   const h = await pg.evaluate(() => window.__w._h);
-  assert(/Comprovante de pagamento — escritura/.test(h) && /Maria da Silva/.test(h) && /43804/.test(h) && /R\$ 3\.039,89/.test(h) && /data:image\/jpeg;base64,AAAA/.test(h) && /financeiro do cartório/.test(h), h.slice(0, 400));
+  assert(/Comprovante de pagamento — escritura/.test(h) && /Maria da Silva/.test(h) && /43804/.test(h) && /R\$ 3\.039,89/.test(h) && /data:image\/jpeg;base64,AAAA/.test(h) && /data:image\/jpeg;base64,BBBB/.test(h) && /financeiro do cartório/.test(h), h.slice(0, 400));
 });
 
 await passo('imprimir com erro (Apps Script antigo ou sem comprovante): o motivo aparece escrito e a janela fecha', async () => {
@@ -247,13 +247,13 @@ await passo('imprimir com erro (Apps Script antigo ou sem comprovante): o motivo
     window.fetch = async () => ({json: async () => ({ok: false, erro: 'Ainda não há comprovante desta cobrança.'})});
     window.__fechou = false; window.open = () => ({document: {write() {}}, close() { window.__fechou = true; }});
   });
-  await pg.evaluate(() => imprimirComprovante('-Caso1', 'escritura')); await pg.waitForFunction(() => window.__fechou, null, {timeout: 3000});
+  await pg.evaluate(() => imprimirComprovante('-Caso1')); await pg.waitForFunction(() => window.__fechou, null, {timeout: 3000});
   assert(/Ainda não há comprovante/.test(aviso), aviso);
 });
 
 await passo('janela de impressão bloqueada pelo navegador: o aviso explica', async () => {
   const pg = await abrir(); let aviso = ''; pg.removeAllListeners('dialog'); pg.on('dialog', (d) => { aviso = d.message(); d.accept(); });
-  await pg.evaluate(() => { window.open = () => null; }); await pg.evaluate(() => imprimirComprovante('-Caso1', 'escritura')); await pg.waitForTimeout(200);
+  await pg.evaluate(() => { window.open = () => null; }); await pg.evaluate(() => imprimirComprovante('-Caso1')); await pg.waitForTimeout(200);
   assert(/bloqueou a janela/.test(aviso));
 });
 
