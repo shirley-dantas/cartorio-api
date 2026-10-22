@@ -298,6 +298,33 @@ Como se protege, para você saber o que esperar:
 - O que o cliente digita entra na minuta como **"informado pelo cliente, ainda
   não conferido"**: a equipe confere antes de usar.
 
+## 12. O link de pagamento do cliente
+
+O botão **Pagamento → Gerar link de pagamento** (no card) cria um endereço
+(`/p/…`) em que o cliente confere o valor da escritura e do registro, vê o
+recibo e o boleto, paga e anexa o comprovante de cada cobrança. Os comprovantes
+caem na pasta do caso no Drive (fora dos documentos que a minuta lê) e o card
+mostra "comprovantes recebidos", com o botão de imprimir o da escritura. São
+**dois passos seus**, uma vez só:
+
+1. **Publicar as regras do banco** (passo 4 acima), porque entrou o caminho
+   `/cobrancas`. Sem isso o botão mostra, escrito: *"O banco recusou a
+   gravação…"*, e o link não aparece.
+2. **Atualizar o Apps Script**: colar o `apps-script/cartorio-drive-api.js`
+   inteiro, salvar e **Implantar → Gerenciar implantações → editar → Nova
+   versão**. Ele ganhou três ações: `pagamento-arquivo` (guarda o comprovante no
+   Drive), `pagamento-concluir` (fecha o link e avisa o card) e `pagamento-ver`
+   (devolve o comprovante ao painel para imprimir).
+
+Como se protege:
+
+- O **código do link** é aleatório e é a única chave; vale **15 dias** e fecha
+  quando o cliente conclui.
+- O link só conclui com o comprovante de **todas** as cobranças que ele tem.
+- O Drive só é lido ou apagado quando o **selo** do registro confere (o mesmo do
+  envio de documentos).
+- A **baixa continua sendo da equipe**: o painel nunca marca como "pago" sozinho.
+
 ## O que ainda fica aberto, e por quê
 
 `/casos`, `/jobs`, `/modelos`, os caminhos do bot e os do Radar continuam sem

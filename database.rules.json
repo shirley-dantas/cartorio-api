@@ -93,6 +93,14 @@
     "pedidos": {
       "$codigo": { ".read": true, ".write": true }
     },
+
+    // ── Os links de pagamento (pagar.html) ──
+    // /cobrancas/{código}: o painel grava a cobrança (valores, recibo, boleto, orçamento) e a página do
+    // cliente lê; o Apps Script grava os comprovantes por REST. Mesma regra de /pedidos: o código é
+    // aleatório e é a única chave, então não há leitura em /cobrancas inteiro — só do filho.
+    "cobrancas": {
+      "$codigo": { ".read": true, ".write": true }
+    },
     "focos":                 { ".read": true, ".write": true },
     "resolucoesCentral":     { ".read": true, ".write": true },
     "lembretes":             { ".read": true, ".write": true },

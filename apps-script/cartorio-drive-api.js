@@ -1151,6 +1151,9 @@ function doPost(e) {
     if (acao === "cliente-dados") return clienteDados(dados);
     if (acao === "cliente-ler") return clienteLer(dados);
     if (acao === "cliente-reler") return clienteReler(dados);
+    if (acao === "pagamento-arquivo") return pagamentoArquivo(dados);
+    if (acao === "pagamento-concluir") return pagamentoConcluir(dados);
+    if (acao === "pagamento-ver") return pagamentoVer(dados);
     if (acao === "cliente-remover") return clienteRemover(dados);
     if (acao === "cliente-excluir") return clienteExcluir(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
@@ -1683,6 +1686,90 @@ function clienteExcluir(dados) {
   var r = UrlFetchApp.fetch(FIREBASE_URL + caminho + ".json", { method: "delete", muteHttpExceptions: true });
   if (r.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a exclusão (" + r.getResponseCode() + ")." });
   return resp({ ok: true, arquivo: arquivo });
+}
+
+// ── Pagamento: o cliente paga e anexa o comprovante (pagar.html) ───────────
+// O painel grava a cobrança em /cobrancas/{código}: "meta" (pequeno: o caso, a validade, quais cobranças e os
+// comprovantes), "dados" (valores e textos) e "imagens" (recibo, boleto e orçamento, pesados). Aqui só se lê o
+// "meta", para não trazer as imagens a cada arquivo. O comprovante vai para a pasta do caso e NÃO entra em
+// /casos/{id}/documentos: lá a minuta lê tudo, e um comprovante sem texto lido travaria a geração.
+var PAGAMENTO_ROTULO = { escritura: "escritura", registro: "registro de imóveis" };
+
+function cobrancaDoCliente(token, aceitaConcluido) {
+  token = String(token || "");
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
+  var meta = firebaseLer("/cobrancas/" + token + "/meta");
+  if (!meta || !meta.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(meta.casoId))) return null;
+  if (meta.expiraEm && Date.now() > meta.expiraEm) return null;
+  if (meta.concluidoEm && !aceitaConcluido) return null; // já enviado: o link fecha
+  var nome = firebaseLer("/casos/" + meta.casoId + "/nome");
+  if (nome === undefined || nome === null) return null;
+  var caso = { nome: nome, driveUrl: firebaseLer("/casos/" + meta.casoId + "/driveUrl") || "" };
+  return { meta: meta, caso: caso, casoId: meta.casoId, token: token };
+}
+
+function pagamentoArquivo(dados) {
+  var ctx = cobrancaDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
+  var qual = String(dados.qual || "");
+  if (!PAGAMENTO_ROTULO[qual] || !(ctx.meta.itens && ctx.meta.itens[qual])) return resp({ ok: false, erro: "Cobrança inválida." });
+  var mime = String(dados.mimetype || "").toLowerCase();
+  var ext = MIMES_CLIENTE[mime];
+  if (!ext) return resp({ ok: false, erro: "Tipo de arquivo não aceito." });
+  var bytes;
+  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
+  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais." });
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  var pasta;
+  try { pasta = pastaDoCaso(ctx.caso, ctx.casoId); } finally { lock.releaseLock(); }
+
+  var agora = new Date();
+  var nome = "Comprovante_" + (qual === "escritura" ? "Escritura" : "Registro") + "_" + nomeSeguroCliente(ctx.caso.nome, 30) + "_" +
+    Utilities.formatDate(agora, "America/Sao_Paulo", "yyyy-MM-dd") + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 4) + "." + ext;
+  var arquivo = pasta.createFile(Utilities.newBlob(bytes, mime, nome));
+  var docKey = "pag_" + ctx.token.slice(0, 6) + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 8);
+  var reg = { docKey: docKey, nome: textoCliente(dados.nomeArquivo, 120) || nome, arquivo: nome, link: arquivo.getUrl(), selo: seloDoArquivo(docKey, arquivo.getId()), em: Date.now(), mime: mime };
+  var anterior = (ctx.meta.comprovantes || {})[qual];
+  var gravou = firebaseGravar("put", "/cobrancas/" + ctx.token + "/meta/comprovantes/" + qual, reg);
+  if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." });
+  // Trocou o comprovante: o anterior vai para a lixeira, só se o selo conferir.
+  if (anterior && anterior.docKey) {
+    var idAnt = extrairIdArquivo(anterior.link);
+    if (idAnt && anterior.selo && anterior.selo === seloDoArquivo(anterior.docKey, idAnt)) { try { DriveApp.getFileById(idAnt).setTrashed(true); } catch (e) { /* já não estava lá */ } }
+  }
+  return resp({ ok: true, nome: nome, docKey: docKey });
+}
+
+function pagamentoConcluir(dados) {
+  var ctx = cobrancaDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
+  var itens = Object.keys(ctx.meta.itens || {}).filter(function (k) { return ctx.meta.itens[k]; });
+  var falta = itens.filter(function (k) { return !((ctx.meta.comprovantes || {})[k] || {}).docKey; });
+  if (!itens.length || falta.length) return resp({ ok: false, erro: "Falta o comprovante de: " + falta.map(function (k) { return PAGAMENTO_ROTULO[k]; }).join(" e ") + "." });
+  var agora = Date.now();
+  var a = firebaseGravar("patch", "/cobrancas/" + ctx.token + "/meta", { concluidoEm: agora });
+  if (a.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a conclusão (" + a.getResponseCode() + ")." });
+  try { firebaseGravar("patch", "/casos/" + ctx.casoId + "/pagamento", { status: "recebido", recebidoEm: agora, visto: false }); } catch (e) { /* o aviso é cortesia */ }
+  try { enviarWhatsApp("💳 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou o comprovante de pagamento (" + itens.map(function (k) { return PAGAMENTO_ROTULO[k]; }).join(" e ") + "). Está no card."); } catch (e) { /* aviso é cortesia */ }
+  return resp({ ok: true });
+}
+
+// O painel pede o comprovante de volta para imprimir (a equipe leva ao financeiro do cartório). O banco é aberto,
+// então o Drive só é lido quando o selo do registro confere.
+function pagamentoVer(dados) {
+  var casoId = String(dados.casoId || ""), qual = String(dados.qual || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !PAGAMENTO_ROTULO[qual]) return resp({ ok: false, erro: "Pedido inválido." });
+  var token = firebaseLer("/casos/" + casoId + "/pagamento/token");
+  if (!token || !/^[A-Za-z0-9_-]{16,64}$/.test(String(token))) return resp({ ok: false, erro: "Este caso não tem cobrança." });
+  var reg = firebaseLer("/cobrancas/" + token + "/meta/comprovantes/" + qual);
+  if (!reg || !reg.docKey) return resp({ ok: false, erro: "Ainda não há comprovante desta cobrança." });
+  var id = extrairIdArquivo(reg.link);
+  if (!id || !reg.selo || reg.selo !== seloDoArquivo(reg.docKey, id)) return resp({ ok: false, erro: "O registro do comprovante não confere." });
+  var blob;
+  try { blob = DriveApp.getFileById(id).getBlob(); } catch (e) { return resp({ ok: false, erro: "Não achei o arquivo no Drive." }); }
+  return resp({ ok: true, mime: String(blob.getContentType() || reg.mime || ""), nome: reg.nome || reg.arquivo || "comprovante", base64: Utilities.base64Encode(blob.getBytes()) });
 }
 
 // ── Criar minuta doc (via Vercel proxy — retorna resp()) ───────────────────

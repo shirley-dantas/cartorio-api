@@ -1,0 +1,166 @@
+// O lado do painel do pagamento: a janela de gerar o link (o que ela grava no banco), a faixa e o aviso do card,
+// e a folha de impressão do comprovante. O trecho vem do index.html publicado, com o banco e o Drive fingidos.
+//   node testes/pagamento-painel.mjs
+import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {servir} from './servidor.mjs';
+import {readFileSync, writeFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {dirname, join} from 'node:path';
+import assert from 'node:assert/strict';
+const AQUI = dirname(fileURLToPath(import.meta.url));
+const erros = [];
+const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } catch (e) { erros.push(n); console.log('FALHA ' + n + ' → ' + e.message); } };
+const html = readFileSync(join(AQUI, '..', 'index.html'), 'utf8');
+const ini = html.indexOf('const PAG_BENEFICIARIO'), fim = html.indexOf('// Pedir documentos: a lista do que pedir');
+assert(ini > 0 && fim > ini, 'o trecho do pagamento não está no index.html');
+const css = html.slice(html.indexOf('.pag-bloco{'), html.indexOf('.cx-ped-rec{flex-basis:100%'));
+writeFileSync(join(AQUI, 'harness-pagamento.html'), `<!doctype html><html><head><meta charset="utf-8"><style>.modal-overlay{display:none}.modal-overlay.open{display:block}${css}</style></head><body>
+<div class="modal-overlay" id="modal-pagamento"><div id="pag-sub"></div><div id="pag-conteudo"></div></div><div id="cc-pagamentos"></div>
+<script>
+const esc=x=>String(x==null?'':x).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'), escTxt=x=>String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const ENVIO_BASE_URL='https://painel.exemplo', GAS_URL='https://script.google.com/x', db={};
+let casos={'-Caso1':{id:'-Caso1',nome:'Maria da Silva',tipo:'Escritura de Compra e Venda',controle:'43804'}};
+window.__grav=[]; window.__orc=[];
+const ref=(_,c)=>c;
+const set=async(c,v)=>{ if(window.__recusar) throw new Error('PERMISSION_DENIED'); window.__grav.push(['set',c,JSON.parse(JSON.stringify(v))]); };
+const update=async(c,v)=>{ if(window.__recusar) throw new Error('PERMISSION_DENIED'); window.__grav.push(['update',c,JSON.parse(JSON.stringify(v))]); return Promise.resolve(); };
+const codigoDeEnvio=()=>'TOKENFIXOabcdefghij1234', finToast=m=>{window.__toast=m;};
+const orcDoCaso=()=>window.__orc; const orcDesenharFolha=()=>{const c=document.createElement('canvas');c.width=800;c.height=1200;return c;};
+function orcSemUndefined(v){return JSON.parse(JSON.stringify(v,(k,x)=>x===undefined?null:x));}
+window.irParaCasoPorId=id=>{window.__foi=id;};
+${html.slice(ini, fim)}
+window.__casos=()=>casos; window.__setCasos=c=>{casos=c;};
+</script></body></html>`);
+const servidor = await servir(8199);
+const b = await chromium.launch({executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const abrir = async () => { const pg = await b.newPage({viewport: {width: 900, height: 900}}); pg.on('pageerror', (e) => erros.push('pageerror: ' + e.message)); pg.on('dialog', (d) => d.accept()); await pg.goto('http://127.0.0.1:8199/harness-pagamento.html'); return pg; };
+const IMG = join(AQUI, 'saida', 'comprovante.png');
+{ const t = await b.newPage(); const base = await t.evaluate(() => { const c = document.createElement('canvas'); c.width = 2000; c.height = 1400; c.getContext('2d').fillRect(0, 0, 2000, 1400); return c.toDataURL('image/png').split(',')[1]; }); await t.close(); writeFileSync(IMG, Buffer.from(base, 'base64')); }
+const PDF = join(AQUI, 'saida', 'comprovante.pdf');
+
+await passo('"2.000" é dois mil, nunca dois reais: o dinheiro que ela digita vira centavos certos', async () => {
+  const pg = await abrir();
+  const r = await pg.evaluate(() => ['2.000', '2000', '3.039,89', '3039.89', 'R$ 3.868,07', '1.234.567,80', '', 'abc', '0'].map(pagCentavos));
+  assert.deepEqual(r, [200000, 200000, 303989, 303989, 386807, 123456780, 0, 0, 0]);
+  assert.deepEqual(await pg.evaluate(() => ['23/10/2026', '31/02/2026', '2026-10-23', '', '5/1/2026'].map(pagVencOk)), [true, false, false, false, false]);
+});
+
+await passo('a janela abre com os três jeitos de enviar, e só pede o que o jeito escolhido precisa', async () => {
+  const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1'));
+  assert(/Maria da Silva/.test(await pg.textContent('#pag-sub')));
+  let t = await pg.innerText('#pag-conteudo'); assert(/Escritura e registro/.test(t) && /Só a escritura/.test(t) && /Só o registro/.test(t) && /Valor a pagar/.test(t) && /Valor do boleto/.test(t));
+  await pg.check('input[value="escritura"]'); t = await pg.innerText('#pag-conteudo'); assert(/Valor a pagar/.test(t) && !/Valor do boleto/.test(t));
+  await pg.check('input[value="registro"]'); t = await pg.innerText('#pag-conteudo'); assert(!/Valor a pagar/.test(t) && /Valor do boleto/.test(t) && /1 · Registro/.test(t));
+});
+
+await passo('faltando dado ou arquivo, o aviso diz o que falta e NADA é gravado', async () => {
+  const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.click('#pag-gerar');
+  const e = await pg.innerText('.pag-erro'); assert(/valor da escritura/.test(e) && /recibo do cartório/.test(e) && /valor do boleto/.test(e) && /vencimento/.test(e) && /código de barras/.test(e) && /boleto/.test(e), e);
+  assert.equal((await pg.evaluate(() => window.__grav)).length, 0);
+  await pg.fill('#pag-valE', '3.039,89'); await pg.fill('#pag-valR', '3.868,07'); await pg.fill('#pag-venc', '31/02/2026'); await pg.fill('#pag-codigo', '26091.90299 37227');
+  await pg.click('#pag-gerar'); assert(/vencimento/.test(await pg.innerText('.pag-erro')) && /recibo/.test(await pg.innerText('.pag-erro')));
+});
+
+await passo('gerar: grava a cobrança (valores em centavos, recibo e boleto como imagem), o resumo no card, e devolve o link e a mensagem', async () => {
+  const pg = await abrir(); await pg.evaluate(() => { window.__orc = [{status: 'aceito', versao: 2, resultado: {}}]; abrirPagamento('-Caso1'); });
+  await pg.fill('#pag-valE', '3.039,89'); await pg.locator('#pag-recibo').setInputFiles(IMG);
+  await pg.fill('#pag-valR', '3.868,07'); await pg.fill('#pag-venc', '23/10/2026'); await pg.fill('#pag-codigo', '26091.90299 37227.373505 99600.000006 2 16080000386807'); await pg.locator('#pag-boleto').setInputFiles(IMG);
+  assert(/versão 2/.test(await pg.innerText('#pag-conteudo')), 'avisa que o orçamento aprovado vai junto');
+  await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
+  const g = await pg.evaluate(() => window.__grav);
+  const cob = g.find((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234'); assert(cob && cob[0] === 'set', JSON.stringify(g.map((x) => x[1])));
+  const v = cob[2]; assert.equal(v.meta.casoId, '-Caso1'); assert.deepEqual(v.meta.itens, {escritura: true, registro: true}); assert(v.meta.expiraEm > Date.now() + 14 * 864e5);
+  assert.equal(v.dados.escritura.valorCent, 303989); assert.equal(v.dados.registro.valorCent, 386807); assert.equal(v.dados.registro.venc, '23/10/2026');
+  assert.equal(v.dados.registro.beneficiario, 'Prime Assessoria Jurídica e Imobiliária'); assert.equal(v.dados.nome, 'Maria da Silva'); assert.equal(v.dados.ato, 'Escritura de Compra e Venda');
+  assert(/^data:image\/jpeg;base64,/.test(v.imagens.recibo) && /^data:image\/jpeg;base64,/.test(v.imagens.boleto) && /^data:image\/jpeg;base64,/.test(v.imagens.orcamento), 'recibo, boleto e orçamento viram imagem');
+  assert(!('boletoPdf' in v.imagens), 'boleto em foto não tem PDF para baixar');
+  const idx = g.find((x) => x[1] === 'casos/-Caso1/pagamento'); assert(idx && idx[2].token === 'TOKENFIXOabcdefghij1234' && idx[2].status === 'aguardando' && idx[2].escrituraCent === 303989 && idx[2].registroCent === 386807 && idx[2].itens.registro === true);
+  assert(!JSON.stringify(idx[2]).includes('data:image'), 'o resumo do card é leve: sem imagens');
+  const link = await pg.inputValue('input[readonly]'); assert.equal(link, 'https://painel.exemplo/p/TOKENFIXOabcdefghij1234');
+  const msg = await pg.inputValue('#pag-msg'); assert(/conferir e fazer os pagamentos da sua escritura/.test(msg) && msg.includes(link) && /20º Tabelião de Notas/.test(msg));
+  assert(/Atualizar o link/.test(await pg.innerText('#pag-gerar')));
+});
+
+await passo('sem orçamento aprovado a imagem do orçamento não vai, e o aviso diz isso', async () => {
+  const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="escritura"]');
+  assert(/não tem orçamento marcado como "Aprovado pelo cliente"/.test(await pg.innerText('#pag-conteudo')));
+  await pg.fill('#pag-valE', '3039,89'); await pg.locator('#pag-recibo').setInputFiles(IMG); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
+  const v = (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2];
+  assert(!('orcamento' in v.imagens) && v.dados.registro == null && v.dados.escritura.valorCent === 303989 && v.meta.itens.registro === false, JSON.stringify(v.dados));
+  assert(/fazer o pagamento da sua escritura/.test(await pg.inputValue('#pag-msg')) && !/conferir e fazer/.test(await pg.inputValue('#pag-msg')), 'a mensagem muda com o que vai no link');
+});
+
+await passo('só o registro: a mensagem fala do registro e a escritura não entra', async () => {
+  const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="registro"]');
+  await pg.fill('#pag-valR', '100,00'); await pg.fill('#pag-venc', '23/10/2026'); await pg.fill('#pag-codigo', '123'); await pg.locator('#pag-boleto').setInputFiles(IMG); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
+  assert(/pagamento do registro de imóveis/.test(await pg.inputValue('#pag-msg')));
+  const v = (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2]; assert.deepEqual(v.meta.itens, {escritura: false, registro: true}); assert(v.dados.escritura == null && !('recibo' in v.imagens));
+});
+
+await passo('PDF sem o leitor carregado: o aviso é escrito (nunca "gerou" sem a imagem)', async () => {
+  const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="escritura"]');
+  await pg.fill('#pag-valE', '10,00'); await pg.locator('#pag-recibo').setInputFiles(PDF); await pg.click('#pag-gerar'); await pg.waitForSelector('.pag-erro');
+  assert(/leitor de PDF/.test(await pg.innerText('.pag-erro')) && (await pg.evaluate(() => window.__grav)).length === 0 && await pg.locator('#pag-msg').count() === 0);
+});
+
+await passo('o banco recusa: o aviso manda publicar as regras (FIREBASE.md) e não aparece link', async () => {
+  const pg = await abrir(); await pg.evaluate(() => { window.__recusar = true; abrirPagamento('-Caso1'); }); await pg.check('input[value="escritura"]');
+  await pg.fill('#pag-valE', '10,00'); await pg.locator('#pag-recibo').setInputFiles(IMG); await pg.click('#pag-gerar'); await pg.waitForSelector('.pag-erro');
+  assert(/FIREBASE\.md/.test(await pg.innerText('.pag-erro')) && await pg.locator('#pag-msg').count() === 0);
+});
+
+await passo('a faixa do card: sem link, aguardando e recebido (com imprimir)', async () => {
+  const pg = await abrir();
+  const f = await pg.evaluate(() => { const c = {id: '-Caso1'}; return [pagFaixaHtml(c), pagFaixaHtml({...c, pagamento: {token: 'T'.repeat(20), criadoEm: 1760000000000, status: 'aguardando', itens: {escritura: true, registro: true}, escrituraCent: 303989, registroCent: 386807}}),
+    pagFaixaHtml({...c, pagamento: {token: 'T'.repeat(20), status: 'recebido', recebidoEm: 1760000000000, itens: {escritura: true, registro: true}, escrituraCent: 303989, registroCent: 386807}}),
+    pagFaixaHtml({...c, pagamento: {token: 'T'.repeat(20), status: 'recebido', recebidoEm: 1760000000000, itens: {escritura: true}, escrituraCent: 303989}})]; });
+  assert(/Gerar link de pagamento/.test(f[0]) && !/imprimir/i.test(f[0]));
+  assert(/aguardando o cliente/.test(f[1]) && /Copiar link/.test(f[1]) && /R\$ 3\.039,89/.test(f[1]) && !/imprimirComprovante/.test(f[1]));
+  assert(/Comprovantes recebidos/.test(f[2]) && /imprimirComprovante\('-Caso1','escritura'\)/.test(f[2]) && /imprimirComprovante\('-Caso1','registro'\)/.test(f[2]) && /Imprimir comprovante da escritura/.test(f[2]));
+  assert(!/'registro'\)/.test(f[3]), 'link só da escritura: só o botão da escritura');
+});
+
+await passo('o aviso do topo: só o que chegou e ainda não foi visto; "Já vi" e "Abrir o card" marcam como visto', async () => {
+  const pg = await abrir();
+  const h = await pg.evaluate(() => pagAvisosHtml({a: {id: 'a', nome: 'Maria', pagamento: {status: 'recebido', recebidoEm: 1760000000000, itens: {escritura: true, registro: true}}}, b: {id: 'b', nome: 'Visto', pagamento: {status: 'recebido', visto: true}}, c: {id: 'c', nome: 'Aguardando', pagamento: {status: 'aguardando'}}, d: {id: 'd', nome: 'Sem'}}));
+  assert(/Cliente enviou os comprovantes de pagamento/.test(h) && /Maria/.test(h) && /escritura e registro/.test(h) && !/Visto|Aguardando|Sem/.test(h));
+  await pg.evaluate(() => { window.__setCasos({a: {id: 'a', nome: 'Maria', pagamento: {status: 'recebido', itens: {escritura: true}}}}); renderPagamentos(); });
+  assert(await pg.locator('#cc-pagamentos .cc-envio').count() === 1);
+  await pg.evaluate(() => abrirPagamentoRecebido('a')); await pg.waitForTimeout(100);
+  assert.equal(await pg.evaluate(() => window.__foi), 'a'); assert((await pg.evaluate(() => window.__grav)).some((x) => x[1] === 'casos/a/pagamento' && x[2].visto === true));
+});
+
+await passo('imprimir: busca o comprovante no Drive (pelo Apps Script) e abre a folha com o que o financeiro precisa', async () => {
+  const pg = await abrir();
+  await pg.evaluate(() => {
+    window.__setCasos({'-Caso1': {id: '-Caso1', nome: 'Maria da Silva', tipo: 'Escritura de Compra e Venda', controle: '43804', pagamento: {token: 'T'.repeat(20), status: 'recebido', recebidoEm: 1760000000000, itens: {escritura: true}, escrituraCent: 303989}}});
+    window.__pedidos = []; window.fetch = async (u, o) => { window.__pedidos.push(JSON.parse(o.body)); return {json: async () => ({ok: true, mime: 'image/jpeg', nome: 'pix.jpg', base64: 'AAAA'})}; };
+    const w = {_h: '', document: {write(x) { w._h += x; }, open() { w._h = ''; }, close() {}, querySelector: () => ({complete: true})}, focus() {}, print() { window.__imprimiu = true; }, close() {}};
+    window.__w = w; window.open = () => w;
+  });
+  await pg.evaluate(() => imprimirComprovante('-Caso1', 'escritura')); await pg.waitForFunction(() => window.__imprimiu, null, {timeout: 3000});
+  assert.deepEqual(await pg.evaluate(() => window.__pedidos[0]), {acao: 'pagamento-ver', casoId: '-Caso1', qual: 'escritura'});
+  const h = await pg.evaluate(() => window.__w._h);
+  assert(/Comprovante de pagamento — escritura/.test(h) && /Maria da Silva/.test(h) && /43804/.test(h) && /R\$ 3\.039,89/.test(h) && /data:image\/jpeg;base64,AAAA/.test(h) && /financeiro do cartório/.test(h), h.slice(0, 400));
+});
+
+await passo('imprimir com erro (Apps Script antigo ou sem comprovante): o motivo aparece escrito e a janela fecha', async () => {
+  const pg = await abrir(); let aviso = '';
+  pg.removeAllListeners('dialog'); pg.on('dialog', (d) => { aviso = d.message(); d.accept(); });
+  await pg.evaluate(() => {
+    window.__setCasos({'-Caso1': {id: '-Caso1', nome: 'M', pagamento: {status: 'recebido'}}});
+    window.fetch = async () => ({json: async () => ({ok: false, erro: 'Ainda não há comprovante desta cobrança.'})});
+    window.__fechou = false; window.open = () => ({document: {write() {}}, close() { window.__fechou = true; }});
+  });
+  await pg.evaluate(() => imprimirComprovante('-Caso1', 'escritura')); await pg.waitForFunction(() => window.__fechou, null, {timeout: 3000});
+  assert(/Ainda não há comprovante/.test(aviso), aviso);
+});
+
+await passo('janela de impressão bloqueada pelo navegador: o aviso explica', async () => {
+  const pg = await abrir(); let aviso = ''; pg.removeAllListeners('dialog'); pg.on('dialog', (d) => { aviso = d.message(); d.accept(); });
+  await pg.evaluate(() => { window.open = () => null; }); await pg.evaluate(() => imprimirComprovante('-Caso1', 'escritura')); await pg.waitForTimeout(200);
+  assert(/bloqueou a janela/.test(aviso));
+});
+
+await b.close(); servidor.close();
+console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);

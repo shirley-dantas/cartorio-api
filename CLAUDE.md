@@ -1068,6 +1068,39 @@ Passos manuais (regras do banco com `/pedidos` e Apps Script novo): `FIREBASE.md
 seção 11. Testes: `testes/enviar-tela.mjs` (a página), `testes/cliente-envio.mjs`
 (o Apps Script com o Google fingido), `testes/pedido-tela.mjs` (o botão e o card).
 
+### O link de pagamento: o cliente confere, paga e anexa o comprovante
+
+Pelo card, **Pagamento → Gerar link de pagamento** cria `/p/{código}` (`pagar.html`, reescrita no `vercel.json`).
+Pela **primeira vez** o cartório cobra em duas partes que o cliente precisa enxergar como duas: a **escritura** (paga ao
+20º Tabelião, por Pix ou transferência) e o **registro de imóveis** (paga por **boleto**, de outro beneficiário — hoje a
+Prime Assessoria). O que mora aqui está no `index.html` (`pagFaixaHtml`, `abrirPagamento`, `pagGerarLink`,
+`imprimirComprovante`), em `pagar.html` e no Apps Script (`pagamento-arquivo`, `pagamento-concluir`, `pagamento-ver`).
+
+Regras dela que **não devem ser mexidas sem perguntar**:
+
+- **Uma página só, um passo por vez**: *Conferir* os dois valores (com o botão de rever o orçamento que ela aprovou, só se o
+  card tiver uma versão "Aprovado pelo cliente"), depois o pagamento da escritura, depois o do registro. Tocar em
+  *Escritura* abre o **recibo do cartório** (sempre existe antes); tocar em *Registro* abre o **boleto**. Ela anexa os dois ao
+  gerar o link (viram imagem leve no banco; o boleto em PDF também guarda o PDF, se couber).
+- **Dois pagamentos, nunca somados.** O aviso de segurança fica sempre à vista ("Confira o beneficiário e o valor antes de
+  pagar…"), inclusive no link de uma cobrança só.
+- **O comprovante é obrigatório para avançar.** O botão fica apagado até anexar; o último passo vira *Concluir*, e o link
+  **só fecha com o comprovante de todas as cobranças que ele tem** (o Apps Script confere, não só a página).
+- **Link só da escritura ou só do registro**: o passo que não foi escolhido some do indicador, da lista e do fluxo.
+- **Os textos são dela**: o objeto `D` no começo do script de `pagar.html` (códigos A…F, na lista que ela editou em
+  22/10/2026). Linha em branco no `D` some da tela — foi assim que ela tirou o vencimento ("Vence em") e a frase "este pagamento
+  é por boleto"; o vencimento continua gravado na cobrança.
+- **O comprovante não vira documento do card.** A minuta lê tudo em `/casos/{id}/documentos`, e um arquivo sem texto lido
+  trava a geração; por isso ele mora em `/cobrancas/{código}/meta/comprovantes`, com selo, e o card tem só o resumo em
+  `/casos/{id}/pagamento` (`status`: aguardando → recebido).
+- **A baixa é da equipe.** O painel avisa no topo ("Cliente enviou os comprovantes de pagamento") e o card mostra
+  *Imprimir comprovante da escritura* (e do registro): ela imprime e leva ao financeiro do cartório, que dá baixa no sistema
+  dele. Nada marca "pago" sozinho.
+- **"2.000" é dois mil** (`pagCentavos`): o mesmo erro do financeiro, que já aconteceu uma vez.
+- Passo manual: regras do banco com `/cobrancas` e Apps Script novo (`FIREBASE.md`, seção 12). Testes:
+  `testes/pagar-tela.mjs` (a página), `testes/pagamento-envio.mjs` (o Apps Script) e `testes/pagamento-painel.mjs` (a janela,
+  a faixa, o aviso e a impressão).
+
 ## O Caderno da Rafaela (projeto à parte)
 
 Mora em `rafaela/`, num projeto próprio da Vercel (*Root Directory*
@@ -1121,6 +1154,7 @@ o `testes/montar.mjs` recorta.
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | Pedir documentos (lista por ato e público) | `pedido-docs.js` → `PEDIDO.montar()`, `comporTexto()`, `formulario()`, `abrirJanela()` |
 | O link de envio e o que chegou no card | `criarLinkEnvio()`, `pedidoRecebidosHtml()` (index.html) · `enviar.html` · `clienteArquivo()`, `clienteDados()` (Apps Script) |
+| O link de pagamento (janela, faixa do card, aviso, impressão) | `abrirPagamento()`, `pagGerarLink()`, `pagFaixaHtml()`, `pagAvisosHtml()`, `imprimirComprovante()` (index.html) · `pagar.html` · `pagamentoArquivo()`, `pagamentoConcluir()`, `pagamentoVer()` (Apps Script) |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |
 | A mensagem sugerida | `redeMensagemSugerida()`, `redeAtoNaFrase()` |
@@ -1149,6 +1183,7 @@ node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
 node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs
+node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
 ```
 
 O `montar.mjs` também gera o `preview-quadro.html`, que é o desenho da seção
