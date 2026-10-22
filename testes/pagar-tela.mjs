@@ -182,7 +182,7 @@ await passo('dá para baixar o recibo e o boleto: um botão com o nome certo, e 
 await passo('Pix copia e cola, sem nada a mais na tela: o Copiar da chave leva a chave E o valor (CRC conferido)', async () => {
   const {pg} = await abrir();
   assert.equal(await pg.locator('.c-pix, .c-dica').count(), 0, 'nenhum botão ou aviso a mais');
-  const btn = pg.locator('.c-bloco [data-copy]').first(); assert(/45\.566\.502\/0001-12/.test(await pg.locator('.c-bloco').first().innerText()), 'continua mostrando a chave');
+  const btn = pg.locator('.c-bloco [data-copy]').first(); const rot = await pg.locator('.c-bloco').first().innerText(); assert(/45\.566\.502\/0001-12/.test(rot) && /Pix Copia e Cola/.test(rot) && !/Chave Pix/.test(rot), 'o rótulo diz Pix Copia e Cola (o que ela esqueceu uma vez) e a chave continua visível');
   const code = await btn.getAttribute('data-copy');
   const tlv = (str) => { const o = {}; let i = 0; while (i < str.length) { const id = str.slice(i, i + 2), n = +str.slice(i + 2, i + 4); o[id] = str.slice(i + 4, i + 4 + n); i += 4 + n; } return o; };
   const crc = (str) => { let c = 0xFFFF; for (const ch of str) { c ^= ch.charCodeAt(0) << 8; for (let k = 0; k < 8; k++) c = (c & 0x8000) ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF; } return c.toString(16).toUpperCase().padStart(4, '0'); };
