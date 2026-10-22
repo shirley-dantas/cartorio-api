@@ -1155,6 +1155,7 @@ function doPost(e) {
     if (acao === "pagamento-concluir") return pagamentoConcluir(dados);
     if (acao === "pagamento-ver") return pagamentoVer(dados);
     if (acao === "pagamento-ler") return pagamentoLer(dados);
+    if (acao === "pagamento-remover") return pagamentoRemover(dados);
     if (acao === "orcamento-aprovar") return orcamentoAprovar(dados);
     if (acao === "cliente-remover") return clienteRemover(dados);
     if (acao === "cliente-excluir") return clienteExcluir(dados);
@@ -1755,6 +1756,22 @@ function pagamentoArquivo(dados) {
     if (idAnt && anterior.selo && anterior.selo === seloDoArquivo(anterior.docKey, idAnt)) { try { DriveApp.getFileById(idAnt).setTrashed(true); } catch (e) { /* já não estava lá */ } }
   }
   return resp({ ok: true, nome: nome, docKey: docKey });
+}
+
+// O cliente anexou o comprovante errado e quer tirá-lo, enquanto o link está aberto. O arquivo só vai para a lixeira do Drive
+// se o selo conferir (o banco é aberto: um registro forjado poderia apontar para outro arquivo).
+function pagamentoRemover(dados) {
+  var ctx = cobrancaDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
+  var qual = String(dados.qual || "");
+  if (!/^c[a-z0-9]{4,16}$/.test(qual) && !PAGAMENTO_ROTULO[qual]) return resp({ ok: false, erro: "Comprovante inválido." });
+  var reg = (ctx.meta.comprovantes || {})[qual];
+  if (!reg || !reg.docKey) return resp({ ok: true }); // já não estava lá
+  var id = extrairIdArquivo(reg.link);
+  if (id && reg.selo && reg.selo === seloDoArquivo(reg.docKey, id)) { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) { /* já não estava lá */ } }
+  var r = firebaseGravar("delete", "/cobrancas/" + ctx.token + "/meta/comprovantes/" + qual, null);
+  if (r.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a remoção (" + r.getResponseCode() + ")." });
+  return resp({ ok: true });
 }
 
 function pagamentoConcluir(dados) {

@@ -285,6 +285,51 @@ body.concluido .miolo>.titulo{display:none}
 .p-lin .v{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .p-lin .pagar{font-style:normal;background:var(--graf);color:#fff;font:700 15px -apple-system,Inter,sans-serif;padding:8px 14px;border-radius:2px;border-bottom:3px solid var(--champ)}
 .p-lin .ver{cursor:pointer}
+
+/* ── Tela única, mais leve e arredondada ── */
+body{background:#F6F3EC}
+.topo{margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);border-radius:0 0 30px 30px;border-bottom:0;padding:calc(20px + env(safe-area-inset-top)) 20px 24px}
+.topo .arco{height:22px;margin-bottom:2px}
+.topo h1{font-size:28px;margin-top:4px}
+.topo .orgao{font-size:13px}
+.tela-pag{padding:0 2px 40px}
+.cartao{background:#fff;border-radius:24px;padding:18px;margin-top:16px;box-shadow:0 8px 28px rgba(31,42,51,.08)}
+.c-topo{display:flex;align-items:center;gap:12px}
+.c-num{flex:none;width:34px;height:34px;border-radius:50%;background:var(--graf);color:#fff;font-weight:700;font-size:17px;display:grid;place-items:center}
+.c-tit{flex:1;min-width:0}.c-tit b{display:block;font-size:18px;line-height:1.25}.c-tit small{display:block;color:var(--graf-2);font-size:15px;margin-top:2px}
+.c-val{font-size:23px;font-weight:700;white-space:nowrap}
+.c-ver{display:inline-block;margin:12px 0 0 46px;border:0;background:#F1EDE3;color:var(--champ-texto);border-radius:999px;padding:8px 16px;font:600 15px -apple-system,Inter,sans-serif;cursor:pointer}
+.c-bloco{margin-top:16px;background:#F7F4EE;border-radius:18px;padding:14px 16px}
+.c-bloco small{display:block;color:var(--graf-2);font-size:14px;margin-bottom:4px}
+.c-linha{display:flex;align-items:center;gap:12px}.c-linha b{flex:1;font-size:18px;line-height:1.35;word-break:break-word}
+.c-bloco:not(:has(.c-linha b:only-child)) .c-linha b{font-size:18px}
+.c-linha b{font-variant-numeric:tabular-nums}
+.c-copiar{flex:none;border:0;border-radius:999px;background:var(--graf);color:#fff;padding:11px 20px;font:600 16px -apple-system,Inter,sans-serif;cursor:pointer}
+.c-ted{margin-top:12px}
+.c-ted summary{list-style:none;cursor:pointer;text-align:center;border-radius:999px;border:1.5px solid #E2DCCD;padding:13px 14px;font-weight:600;font-size:16px;color:var(--graf)}
+.c-ted summary::-webkit-details-marker{display:none}
+.c-ted summary::after{content:' ▾'}.c-ted[open] summary::after{content:' ▴'}
+.c-banco{background:#F7F4EE;border-radius:16px;padding:12px 16px;margin-top:10px}
+.c-banco b{display:block;font-size:18px}.c-banco span{display:block;color:var(--graf-2);font-size:16px;margin-top:2px}
+.p-sec2{border-radius:999px;border:1.5px solid #D9D2C2;background:#fff;margin-top:16px;padding:16px;font-size:17px;font-weight:600}
+.anexos h3{margin:0 0 4px;font-size:21px;line-height:1.3}
+.anexos .ajuda{margin:0 0 12px;color:var(--graf-2);font-size:15px}
+.chip-arq{display:flex;align-items:center;gap:10px;background:#EEF6F0;border-radius:16px;padding:10px 12px;margin-bottom:8px}
+.chip-arq .ico{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:14px}
+.chip-arq.erro{background:#FBE9E7}.chip-arq.erro .ico{background:var(--critico)}
+.chip-arq .nm{flex:1;min-width:0;font-size:16px;font-weight:600;word-break:break-word}
+.chip-arq small{display:block;font-size:14px;font-weight:400;color:var(--graf-2)}.chip-arq.erro small{color:var(--critico);font-weight:600}
+.chip-arq .rm{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:#fff;color:var(--graf);font-size:22px;line-height:1;cursor:pointer}
+.anexos .acoes{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.anexos .btn{border-radius:999px;border:2px dashed #CFC6B1;background:#FBF9F4;min-height:54px;font-size:16px}
+.p-big{border-radius:999px;border-bottom:0;margin-top:16px;padding:18px 16px;font-size:20px}
+.p-big.off{background:#D5D8DB}
+.p-feito{background:#fff!important;border-radius:24px;overflow:hidden;box-shadow:0 8px 28px rgba(31,42,51,.08);padding:28px 20px 22px;text-align:center}
+.p-feito .vv{width:64px;height:64px;border-radius:50%;background:var(--ok)!important;color:#fff!important;font-size:34px;display:grid;place-items:center;margin:0 auto 12px;padding:0!important}
+.p-feito h2{background:none!important;color:var(--graf)!important;border:0!important;padding:0 0 10px!important;font-size:26px}
+.p-feito ul{list-style:none}.p-feito li{display:flex;gap:10px;align-items:flex-start;text-align:left;background:#F7F4EE!important;border-radius:14px;padding:12px 14px;margin-bottom:8px;font-size:17px}
+.p-feito li b{flex:none;width:24px;height:24px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:13px}
+.p-feito p{color:var(--graf-2)}
 </style></head><body><div class="miolo">
 <header class="topo"><svg class="arco" viewBox="0 0 600 90" role="img" aria-label="20º Tabelião de Notas"><defs><linearGradient id="arco" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#BE9E6C"/><stop offset="50%" stop-color="#E8D3A4"/><stop offset="100%" stop-color="#BE9E6C"/></linearGradient></defs><path d="M20 80 Q300 -10 580 80" fill="none" stroke="url(#arco)" stroke-width="5" stroke-linecap="round"/></svg><h1 id="h1"></h1><div class="orgao" id="orgao"></div><p class="escrevente"><b id="esc"></b><br><a href="https://wa.me/5511954929643" rel="noopener" id="wpp"></a></p></header>
 <div class="titulo"><span class="ato" id="ato" hidden></span></div>
@@ -303,9 +348,9 @@ A1:'Pagamento',A2:'20º Tabelião de Notas',A3:'Escrevente Shirley Dantas',A4:'W
 B1:'',B2:'',B3:'',B4:'20º Tabelião de Notas',B5:'Pagamento por TED ou PIX',B6:'Ver o recibo ›',B7:'Registro de Imóveis',B8:'Pagamento por meio de boleto bancário',B9:'Ver o boleto ›',B10:'',B21:'Pagar ›',B11:'Para sua conferência, reveja seu orçamento aqui!',B12:'',B13:'',B13b:'',B14:'',
 B15:'Confira o valor',B16:'Você fará 1 pagamento. Toque nele para ver os detalhes.',B17:'Fazer o pagamento da escritura',B18:'Confira o valor',B19:'Você fará 1 pagamento. Toque nele para ver os detalhes.',B20:'Fazer o pagamento do registro',
 C1:'Recibo da escritura',C2:'É o recibo que o cartório emitiu para você. Confira os dados.',C3:'Ampliar',C4:'Voltar para os valores',C5:'Boleto do registro',C6:'É o boleto do registro de imóveis. Confira os dados.',C7:'Ampliar',
-D1:'',D1b:'',D2:'',D3:'Para o cartório de notas',D4:'20º Tabelião de Notas',D5:'Valor a pagar',D7:'',D8:'Pague por Pix',D9:'Chave Pix (CNPJ)',D11:'',D13:'Ou por TED - ESCOLHENDO O BANCO DE SUA PREFERÊNCIA ABAIXO:',D16:'Copiar',D17:'Copiado!',D18:'',D19:'Comprovante do pagamento da escritura',D20:'',D21:'✓ Anexado',D22a:'📷 Tirar foto',D22b:'📁 Escolher',D23:'Continuar para o pagamento do registro',D24:'Anexe o comprovante para continuar',D24b:'Tudo certo, pode seguir',D25:'',
+D1:'',D1b:'',D2:'',D3:'Para o cartório de notas',D4:'20º Tabelião de Notas',D5:'Valor a pagar',D7:'',D8:'Pague por Pix',D9:'Chave Pix (CNPJ)',D11:'',D13:'Prefere pagar por TED? Toque para ver as contas',D16:'Copiar',D17:'Copiado!',D18:'',D19:'Comprovante do pagamento da escritura',D20:'',D21:'✓ Anexado',D22a:'📷 Tirar foto',D22b:'📁 Escolher',D23:'Continuar para o pagamento do registro',D24:'Anexe o comprovante para continuar',D24b:'Tudo certo, pode seguir',D25:'',
 E1:'',E1b:'',E2:'',E3:'Para o registro de imóveis',E4:'Registro de Imóveis',E5:'Valor a pagar',E7:'',E8:'',E9:'Pague pelo código de barras',E10:'Código de barras',E11:'',E12:'',E13:'',E14:'Comprovante do pagamento do registro',E15:'Concluir',E16:'Anexe o comprovante para concluir',E16b:'Tudo certo, pode concluir',
-G1:'Anexe aqui os comprovantes dos seus pagamentos',G3:'Enviar comprovantes',G4a:'Falta 1 comprovante',G4b:'Faltam {n} comprovantes',G4c:'Tudo certo, pode enviar',
+G1:'Já pagou? Anexe aqui os comprovantes',G5:'Pagou em mais de uma vez ou para mais de uma pessoa? Adicione todos os comprovantes.',G6:'+ Adicionar comprovante',G6b:'+ Adicionar outro comprovante',G3:'Enviar comprovantes',G4a:'Falta 1 comprovante',G4b:'Faltam {n} comprovantes',G4c:'Tudo certo, pode enviar',
 F1:'Pagamentos recebidos',F2:'Escritura: {escritura}, comprovante recebido',F3:'Registro de imóveis: {registro}, comprovante recebido',F4:'Comprovantes recebidos com sucesso! Agradecemos a parceria e a confiança.',
 F5:'Este link já foi usado: o cartório já recebeu os seus comprovantes. Se precisar de algo, fale com o cartório.',F6:'Este link venceu. Peça um novo ao cartório.'
 };
@@ -323,11 +368,11 @@ function dado(rot,v,cp){return `<div class="p-dado"><div class="t"><small>${rot}
 const precisa=()=>modo==='ambos'?2:1;
 const contam=()=>lista.filter(a=>a.estado!=='erro'&&a.estado!=='preparando');
 function anexosHtml(){
-  const itens=lista.map(a=>`<div class="anexo ${a.estado}"><span class="ico">${a.estado==='erro'?'!':'✓'}</span><span class="nm">${esc(a.nome)}<small>${a.estado==='enviando'||a.estado==='preparando'?'Enviando…':a.estado==='erro'?esc(a.erro):''}</small></span></div>`).join('');
+  const itens=lista.map(a=>`<div class="chip-arq ${a.estado}"><span class="ico">${a.estado==='erro'?'!':'✓'}</span><span class="nm">${esc(a.nome)}<small>${a.estado==='enviando'||a.estado==='preparando'?'Enviando…':a.estado==='erro'?esc(a.erro):''}</small></span><button type="button" class="rm" data-rm="${esc(a.id)}" aria-label="Tirar este comprovante" title="Tirar este comprovante">×</button></div>`).join('');
   const falta=Math.max(0,precisa()-contam().length), pend=lista.some(a=>a.estado==='preparando');
   const sub=concluindo?'Enviando…':falta>0?(falta===1?txt('G4a'):txt('G4b').replace('{n}',falta)):txt('G4c');
   const pronto=falta===0&&!pend&&!concluindo;
-  return `<div class="p-anexe">${t('G1')}</div><div class="slot${contam().length?' ok':''}" style="margin:0 0 10px">${itens}<div class="acoes"><label class="btn">${t('D22a')}<input type="file" accept="image/*" capture="environment" data-anexo hidden></label><label class="btn">${t('D22b')}<input type="file" accept="image/*,application/pdf" multiple data-anexo hidden></label></div></div>`+
+  return `<section class="cartao anexos"><h3>${t('G1')}</h3>${txt('G5')?`<p class="ajuda">${t('G5')}</p>`:''}${itens}<div class="acoes"><label class="btn">${t('D22a')}<input type="file" accept="image/*" capture="environment" data-anexo hidden></label><label class="btn">${lista.length?t('G6b'):t('G6')}<input type="file" accept="image/*,application/pdf" multiple data-anexo hidden></label></div></section>`+
     `<button type="button" class="p-big${pronto?'':' off'}" data-enviar${pronto?'':' disabled'}>${t('G3')}<small>${esc(sub)}</small></button>`;
 }
 function voltar(){return passo>0?`<button type="button" class="p-voltar" data-voltar>‹ Voltar</button>`:'';}
@@ -335,12 +380,13 @@ function tela(){
   const k=passosDe()[passo], un=modo!=='ambos', dd=cob.dados||{}, reg=dd.registro||{}, im=cob.imagens||{};
   let h='';
   if(k==='conferir'){
-    const bancos=`<div class="p-banco"><h4>Bradesco</h4><div class="dd"><span>Agência</span><b>0133</b></div><div class="dd"><span>Conta corrente</span><b>422032-3</b></div></div><div class="p-banco"><h4>Itaú</h4><div class="dd"><span>Agência</span><b>0350</b></div><div class="dd"><span>Conta corrente</span><b>72195-7</b></div></div>`;
-    const topo=(n,nome,desc,ver,valor,visual)=>`<div class="p-lin"><span class="p-n">${n}</span><span class="m"><b>${t(nome)}</b><small>${t(desc)}</small><span class="ver" role="button" data-vis="${visual}">${t(ver)}</span></span><span class="v">${esc(valor)}</span></div>`;
+    const bancos=`<div class="c-banco"><b>Bradesco</b><span>Agência 0133 · Conta corrente 422032-3</span></div><div class="c-banco"><b>Itaú</b><span>Agência 0350 · Conta corrente 72195-7</span></div>`;
+    const topo=(n,nome,desc,ver,valor,visual)=>`<div class="c-topo"><span class="c-num">${n}</span><div class="c-tit"><b>${t(nome)}</b><small>${t(desc)}</small></div><div class="c-val">${esc(valor)}</div></div><button type="button" class="c-ver" data-vis="${visual}">${t(ver)}</button>`;
+    const bloco=(rot,valor,copia,sem)=>`<div class="c-bloco"><small>${rot}</small><div class="c-linha"><b${sem?' style="white-space:nowrap;font-size:17px"':''}>${valor}</b><button type="button" class="c-copiar" data-copy="${esc(copia)}">${t('D16')}</button></div></div>`;
     const reg=(cob.dados||{}).registro||{};
     const l=[];
-    if(modo!=='registro')l.push(`<div class="p-pil">${topo(1,'B4','B5','B6',V().escritura,'recibo')}<div class="p-sec">${t('D8')}</div>${dado(t('D9'),'45.566.502/0001-12',true)}<div class="p-sec">${t('D13')}</div>${bancos}</div>`);
-    if(modo!=='escritura')l.push(`<div class="p-pil">${topo(modo==='registro'?1:2,'B7','B8','B9',V().registro,'boleto')}${reg.codigo?`<div class="p-sec">${t('E9')}</div>${dado(t('E10'),esc(reg.codigo),reg.codigo)}`:''}</div>`);
+    if(modo!=='registro')l.push(`<section class="cartao">${topo(1,'B4','B5','B6',V().escritura,'recibo')}${bloco(t('D9'),'45.566.502/0001-12','45.566.502/0001-12',true)}<details class="c-ted"><summary>${t('D13')}</summary>${bancos}</details></section>`);
+    if(modo!=='escritura')l.push(`<section class="cartao">${topo(modo==='registro'?1:2,'B7','B8','B9',V().registro,'boleto')}${reg.codigo?bloco(t('E10'),esc(reg.codigo),reg.codigo):''}</section>`);
     h=l.join('')+(im.orcamento?`<button type="button" class="p-sec2" data-vis="orc">${t('B11')}</button>`:'')+anexosHtml();
   }
   if(k==='fim'){
@@ -405,6 +451,16 @@ async function anexar(file){
     tela();
   })();
 }
+async function tirar(id){
+  const a=lista.find(x=>x.id===id); if(!a||concluindo) return;
+  if(fila[id]) await fila[id];
+  if(a.estado==='ok'){
+    a.estado='preparando'; tela();
+    try{ await chamar({acao:'pagamento-remover',t:token,qual:id}); }
+    catch(e){ a.estado='erro'; a.erro='Não consegui tirar agora: '+e.message+' Tente de novo.'; tela(); return; }
+  }
+  lista=lista.filter(x=>x.id!==id); delete fila[id]; tela();
+}
 async function concluir(){
   if(concluindo) return; concluindo=true; tela();
   await Promise.all(Object.values(fila));
@@ -437,6 +493,7 @@ document.addEventListener('click',e=>{
   if(b.hasAttribute('data-fechar')){ vis=null; zoom=false; overlay(); return; }
   if(b.hasAttribute('data-zoom')){ zoom=!zoom; overlay(); return; }
   if(b.hasAttribute('data-voltar')){ passo=Math.max(0,passo-1); tela(); window.scrollTo(0,0); return; }
+  if(b.dataset.rm) return tirar(b.dataset.rm);
   if(b.hasAttribute('data-enviar')&&!b.disabled) return concluir();
   if(b.dataset.copy){
     const f=b, o=f.textContent; try{ navigator.clipboard.writeText(b.dataset.copy).catch(()=>{}); }catch(_){}
