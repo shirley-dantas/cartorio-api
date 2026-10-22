@@ -130,6 +130,17 @@ await passo('o envio em segundo plano falha: o Concluir não fecha o link e volt
   assert(!chamadas.some((c) => c.acao === 'pagamento-concluir')); assert(await pg.locator('[data-next]').isDisabled());
 });
 
+await passo('vários recibos: ver o recibo mostra todos, legendados "Recibo 1 de 2"; com um só, sem legenda', async () => {
+  for (const [lista, esperaCap, n] of [[true, true, 2], [false, false, 1]]) {
+    const {pg} = await abrir({});
+    await pg.route('https://painel-cartorio-default-rtdb.firebaseio.com/cobrancas/**', (r) => { const c = cobranca({}); if (lista) c.imagens.recibos = [IMG, IMG]; r.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(c)}); });
+    await pg.reload(); await pg.waitForSelector('#tela .p-tit');
+    await pg.click('[data-vis="recibo"]'); await pg.waitForSelector('#vis:not([hidden]) img');
+    assert.equal(await pg.locator('#vis img').count(), n); assert.equal(await pg.locator('#vis .cap').count() > 0, esperaCap);
+    if (esperaCap) assert(/Recibo 1 de 2/.test(await pg.innerText('#vis')) && /Recibo 2 de 2/.test(await pg.innerText('#vis')));
+  }
+});
+
 await passo('sem rede de verdade: tenta de novo sozinho uma vez e só então fala em internet', async () => {
   const {pg} = await abrir({});
   await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);

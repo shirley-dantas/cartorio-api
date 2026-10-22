@@ -34,6 +34,7 @@ window.__casos=()=>casos; window.__setCasos=c=>{casos=c;};
 const servidor = await servir(8199);
 const b = await chromium.launch({executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 const abrir = async () => { const pg = await b.newPage({viewport: {width: 900, height: 900}}); pg.on('pageerror', (e) => erros.push('pageerror: ' + e.message)); pg.on('dialog', (d) => d.accept()); await pg.goto('http://127.0.0.1:8199/harness-pagamento.html'); return pg; };
+const LINHA = '26091.90299 37227.373505 99600.000006 2 16080000386807';
 const IMG = join(AQUI, 'saida', 'comprovante.png');
 { const t = await b.newPage(); const base = await t.evaluate(() => { const c = document.createElement('canvas'); c.width = 2000; c.height = 1400; c.getContext('2d').fillRect(0, 0, 2000, 1400); return c.toDataURL('image/png').split(',')[1]; }); await t.close(); writeFileSync(IMG, Buffer.from(base, 'base64')); }
 const PDF = join(AQUI, 'saida', 'comprovante.pdf');
@@ -71,8 +72,8 @@ await passo('colar o print (Ctrl+V) no lugar de escolher arquivo: o recibo entra
   const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="escritura"]');
   assert(/Clique aqui e aperte Ctrl\+V para colar o print/.test(await pg.innerText('#pag-conteudo')));
   assert.equal(await colar(pg), true, 'o colar foi tratado');
-  const t = await pg.innerText('#pag-conteudo'); assert(/✓ print-recibo-\d{4}-\d{2}-\d{2}\.png/.test(t) && /cole outro print/.test(t));
-  assert.equal(await pg.locator('.pag-cola img').count(), 1, 'miniatura do print');
+  const t = await pg.innerText('#pag-conteudo'); assert(/✓ Recibo 1/.test(t) && /print-recibo-\d{4}-\d{2}-\d{2}\.png/.test(t) && /cole mais um print/.test(t));
+  assert.equal(await pg.locator('.pag-mini img').count(), 1, 'miniatura do print');
   await pg.fill('#pag-valE', '3.039,89'); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
   const v = (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2];
   assert(/^data:image\/jpeg;base64,/.test(v.imagens.recibo), 'o print vira a imagem do recibo');
@@ -92,7 +93,7 @@ await passo('colar texto (não imagem) não faz nada, e arrastar um arquivo para
   const tratou = await pg.evaluate(() => { const dt = new DataTransfer(); dt.setData('text/plain', 'R$ 10,00'); const ev = new ClipboardEvent('paste', {clipboardData: dt, bubbles: true, cancelable: true}); document.dispatchEvent(ev); return ev.defaultPrevented; });
   assert.equal(tratou, false, 'texto colado num campo segue o caminho normal');
   await pg.evaluate(() => { const dt = new DataTransfer(); dt.items.add(new File(['x'], 'recibo.pdf', {type: 'application/pdf'})); const z = document.querySelector('.pag-cola'); z.dispatchEvent(new DragEvent('drop', {dataTransfer: dt, bubbles: true, cancelable: true})); });
-  assert(/✓ recibo\.pdf/.test(await pg.innerText('#pag-conteudo')));
+  assert(/✓ Recibo 1/.test(await pg.innerText('#pag-conteudo')) && /recibo\.pdf/.test(await pg.innerText('#pag-conteudo')));
 });
 
 await passo('gerar: grava a cobrança (valores em centavos, recibo e boleto como imagem), o resumo no card, e devolve o link e a mensagem', async () => {
@@ -146,6 +147,42 @@ await passo('Gerar com a leitura ainda correndo: o botão avisa "Lendo os docume
   assert.equal(await pg.locator('#pag-gerar').isDisabled(), true);
   solta(); await pg.waitForSelector('#pag-msg');
   assert.equal((await pg.evaluate(() => window.__grav)).some((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234'), true);
+});
+
+await passo('mais de um recibo: cada um fecha as próprias contas, o valor é a soma, e tirar um refaz a soma', async () => {
+  const pg = await abrir(); const totais = ['1.000,00', '2.039,89'];
+  let n = 0; await pg.route('https://script.google.com/**', (r) => { const t = totais[n++ % 2]; r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify({ok: true, dados: {total_das_custas: t, total_recebido: t, parcelas: [t]}})}); });
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="escritura"]');
+  await pg.locator('#pag-recibo').setInputFiles([IMG, IMG]);
+  await pg.waitForFunction(() => document.querySelector('#pag-valE').value === '3.039,89');
+  const t = await pg.innerText('#pag-conteudo'); assert(/Recibo 1/.test(t) && /Recibo 2/.test(t) && /somado/.test(t) && /cole mais um print/.test(t));
+  await pg.locator('[data-pag-rem="recibo:0"]').click();
+  assert.equal(await pg.inputValue('#pag-valE'), '2.039,89'); assert(!/Recibo 2/.test(await pg.innerText('#pag-conteudo')));
+  await pg.locator('#pag-recibo').setInputFiles(IMG); await pg.waitForFunction(() => document.querySelector('#pag-valE').value === '3.039,89');
+  await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
+  const im = (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2].imagens;
+  assert.equal(im.recibos.length, 2); assert.equal(im.recibo, im.recibos[0], 'o primeiro também vai no campo de sempre');
+});
+
+await passo('com um recibo que não fecha entre vários, o valor NÃO é somado e o motivo diz qual', async () => {
+  const pg = await abrir(); let n = 0;
+  await pg.route('https://script.google.com/**', (r) => { const ok = n++ === 0; r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify({ok: true, dados: ok ? {total_das_custas: '100,00', total_recebido: '100,00', parcelas: ['100,00']} : {total_das_custas: '50,00', total_recebido: '50,00', parcelas: ['10,00']}})}); });
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="escritura"]');
+  await pg.locator('#pag-recibo').setInputFiles([IMG, IMG]);
+  await pg.waitForFunction(() => /recibo 2/.test(document.querySelector('#pag-conteudo').innerText));
+  assert.equal(await pg.inputValue('#pag-valE'), '');
+});
+
+await passo('mais de um boleto: todos vão, o campo de sempre leva o primeiro, e o aviso diz que o código é do primeiro', async () => {
+  const pg = await abrir();
+  await pg.route('https://script.google.com/**', (r) => r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify({ok: true, dados: {linha_digitavel: LINHA, beneficiario: 'X LTDA', cnpj: '11.222.333/0001-81'}})}));
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="registro"]');
+  await pg.locator('#pag-boleto').setInputFiles([IMG, IMG]);
+  await pg.waitForFunction(() => /mais de um boleto/.test(document.querySelector('#pag-conteudo').innerText));
+  assert(/Boleto 2/.test(await pg.innerText('#pag-conteudo')));
+  await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
+  const im = (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2].imagens;
+  assert.equal(im.boletos.length, 2); assert.equal(im.boleto, im.boletos[0]);
 });
 
 await passo('só o registro: a mensagem fala do registro e a escritura não entra', async () => {
@@ -222,7 +259,6 @@ await passo('janela de impressão bloqueada pelo navegador: o aviso explica', as
 
 
 // ── A leitura do recibo e do boleto ──
-const LINHA = '26091.90299 37227.373505 99600.000006 2 16080000386807';
 const responder = async (pg, resposta) => { await pg.route('https://script.google.com/**', (r) => { const c = JSON.parse(r.request().postData()); (globalThis.__pedidos ||= []).push(c); r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify(typeof resposta === 'function' ? resposta(c) : resposta)}); }); };
 const anexar = async (pg, alvo) => { await pg.setInputFiles('#pag-' + alvo, IMG); };
 
@@ -302,9 +338,9 @@ await passo('a leitura falha (Apps Script antigo ou IA fora): não trava nada, e
   const pg = await abrir();
   await responder(pg, {ok: false, erro: 'Ação desconhecida'});
   await pg.evaluate(() => abrirPagamento('-Caso1')); await anexar(pg, 'recibo');
-  await pg.waitForFunction(() => /Preencha à mão/.test(document.querySelector('#pag-conteudo').innerText));
+  await pg.waitForFunction(() => /Digite o valor/.test(document.querySelector('#pag-conteudo').innerText));
   await pg.fill('#pag-valE', '3.039,89'); assert.equal(await pg.inputValue('#pag-valE'), '3.039,89');
-  assert.equal(await pg.evaluate(() => !!pagEst.recibo), true);
+  assert.equal(await pg.evaluate(() => pagEst.recibos.length), 1);
 });
 
 
