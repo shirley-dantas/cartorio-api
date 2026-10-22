@@ -104,8 +104,38 @@ await passo('comprovante que não subiu: o aviso aparece escrito, o botão conti
   const {pg, chamadas} = await abrir({}, {gas: (c) => (c.acao === 'pagamento-arquivo' && falha ? {ok: false, erro: 'não deu'} : {ok: true})});
   await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
   await anexar(pg, 'escritura'); await noMeio(pg, /Não enviou/);
+  const av = await pg.innerText('#tela'); assert(/não deu/.test(av) && !/internet/i.test(av), 'erro do cartório é dito com as palavras dele, não como problema de internet');
   assert(await pg.locator('[data-next]').isDisabled() && /Falta anexar/i.test(await pg.innerText('#tela')));
   falha = false; await anexar(pg, 'escritura'); await noMeio(pg, /✓ Anexado/); assert(!(await pg.locator('[data-next]').isDisabled()));
+});
+
+await passo('o comprovante aparece anexado na hora (o envio segue em segundo plano) e o Concluir espera o envio terminar', async () => {
+  const {pg, chamadas} = await abrir({itens: {escritura: true}});
+  let solta; const espera = new Promise((r) => { solta = r; });
+  await pg.route('https://script.google.com/**', async (rota) => { const c = JSON.parse(rota.request().postData()); chamadas.push(c); if (c.acao === 'pagamento-arquivo') await espera; rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({ok: true})}); });
+  await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
+  await anexar(pg, 'escritura'); await noMeio(pg, /✓ Anexado/);
+  assert(!(await pg.locator('[data-next]').isDisabled()), 'liberado sem esperar o Drive');
+  await pg.click('[data-next]'); await pg.waitForTimeout(400);
+  assert(!chamadas.some((c) => c.acao === 'pagamento-concluir'), 'não conclui com o envio ainda correndo');
+  solta(); await pg.waitForFunction(() => /Pagamentos recebidos/i.test(document.body.innerText), null, {timeout: 6000});
+  assert(chamadas.some((c) => c.acao === 'pagamento-concluir'));
+});
+
+await passo('o envio em segundo plano falha: o Concluir não fecha o link e volta ao passo, com o motivo', async () => {
+  const {pg, chamadas} = await abrir({itens: {escritura: true}});
+  await pg.route('https://script.google.com/**', async (rota) => { const c = JSON.parse(rota.request().postData()); chamadas.push(c); rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(c.acao === 'pagamento-arquivo' ? {ok: false, erro: 'O banco recusou o registro (401).'} : {ok: true})}); });
+  await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
+  await anexar(pg, 'escritura'); await noMeio(pg, /banco recusou/);
+  assert(!chamadas.some((c) => c.acao === 'pagamento-concluir')); assert(await pg.locator('[data-next]').isDisabled());
+});
+
+await passo('sem rede de verdade: tenta de novo sozinho uma vez e só então fala em internet', async () => {
+  const {pg} = await abrir({});
+  await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
+  let n = 0; await pg.route('https://script.google.com/**', (r) => { n++; r.abort('failed'); });
+  await anexar(pg, 'escritura'); await noMeio(pg, /Não enviou/);
+  assert(/internet/i.test(await pg.innerText('#tela')), 'falha de rede fala em internet'); assert.equal(n, 2, 'uma tentativa a mais antes de desistir');
 });
 
 await passo('concluir que o cartório recusa: o erro aparece e o link não fecha', async () => {
