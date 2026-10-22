@@ -17,7 +17,7 @@ const css = html.slice(html.indexOf('.pag-cola{'), html.indexOf('.cx-ped-rec{fle
 writeFileSync(join(AQUI, 'harness-pagamento.html'), `<!doctype html><html><head><meta charset="utf-8"><style>.modal-overlay{display:none}.modal-overlay.open{display:block}${css}</style></head><body>
 <div class="modal-overlay" id="modal-pagamento"><div id="pag-sub"></div><div id="pag-conteudo"></div></div><div id="cc-pagamentos"></div>
 <script>
-const esc=x=>String(x==null?'':x).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'), escTxt=x=>String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const esc=s=>(s||'').replace(/"/g,'&quot;'), escTxt=x=>String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 const ENVIO_BASE_URL='https://painel.exemplo', GAS_URL='https://script.google.com/x', db={};
 let casos={'-Caso1':{id:'-Caso1',nome:'Maria da Silva',tipo:'Escritura de Compra e Venda',controle:'43804'}};
 window.__grav=[]; window.__orc=[];
