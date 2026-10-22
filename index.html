@@ -12223,8 +12223,12 @@ async function pagTextoDoPdf(file){
 async function pagPerguntarIA(tipo,file){
   const url=file.type==='application/pdf'||/\.pdf$/i.test(file.name||'')?(file.size<=5*1024*1024?await pagLerComoUrl(file):await pagImagemDe(file,1800,.9)):await pagImagemDe(file,1800,.9);
   const m=url.match(/^data:([^;]+);base64,(.*)$/); if(!m) throw new Error('Não consegui preparar o arquivo.');
-  const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'pagamento-ler',tipo,mimetype:m[1],base64:m[2]})});
-  const j=await r.json(); if(!j.ok) throw new Error(j.erro||'A leitura falhou.'); return j.dados;
+  const ctl=new AbortController(), cortar=setTimeout(()=>ctl.abort(),45000);
+  let j; try{
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'pagamento-ler',tipo,mimetype:m[1],base64:m[2]}),signal:ctl.signal});
+    j=await r.json();
+  }catch(err){ throw new Error(err&&err.name==='AbortError'?'a leitura demorou demais':((err&&err.message)||err)); }
+  finally{ clearTimeout(cortar); } if(!j.ok) throw new Error(j.erro||'A leitura falhou.'); return j.dados;
 }
 // Preenche só o que está em branco (o que ela digitou vale mais) e marca o que veio da leitura para ela conferir.
 function pagPreencher(campo,valor){
@@ -12299,14 +12303,15 @@ window.orcLinkAprovacao=async function(casoId,orcId){
 // ── A janela de gerar o link ──
 let pagEst=null;
 function pagLerMemoria(){ try{ return JSON.parse(localStorage.getItem('painel_pag_benef')||'null')||{}; }catch(_){ return {}; } }
-window.abrirPagamento=function(id){
+window.abrirPagamento=function(id){ try{ pagAbrir(id); }catch(err){ console.error(err); alert('Não consegui abrir a janela de pagamento: '+((err&&err.message)||err)); } };
+function pagAbrir(id){
   const c=casos[id]||{}, orc=pagOrcamentoPadrao(id);
   const mem=pagLerMemoria();
   pagEst={id,itens:'ambos',valE:'',valR:'',venc:'',codigo:'',benef:mem.nome||PAG_BENEFICIARIO.nome,cnpj:mem.cnpj||PAG_BENEFICIARIO.cnpj,recibo:null,boleto:null,orcId:orc?String(orc.id):'',erro:'',gerando:false,link:'',msg:''};
   document.getElementById('pag-sub').textContent=(c.nome||'Sem nome')+(c.tipo?' — '+c.tipo:'');
   pagDesenhar();
   document.getElementById('modal-pagamento').classList.add('open');
-};
+}
 window.fecharPagamento=function(){ document.getElementById('modal-pagamento').classList.remove('open'); pagEst=null; };
 function pagDesenhar(){
   const e=pagEst; if(!e) return;
@@ -12327,7 +12332,7 @@ function pagDesenhar(){
     ${reg1?`<div class="pag-bloco"><div class="pag-tit">${esc1?'2':'1'} · Registro de imóveis — boleto</div>${campo('Valor do boleto (R$)','pag-valR',e.valR,'3.868,07','inputmode="decimal"')}${campo('Vencimento (dd/mm/aaaa)','pag-venc',e.venc,'23/10/2026','inputmode="numeric" maxlength="10"')}${campo('Código de barras (linha digitável)','pag-codigo',e.codigo,'26091.90299 37227.373505 …')}${campo('Beneficiário, como aparece no boleto','pag-benef',e.benef,'')}${campo('CNPJ do beneficiário','pag-cnpj',e.cnpj,'')}${arq('Boleto (PDF ou foto)','pag-boleto',e.boleto,true)}</div>`:''}
     <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">Orçamento para o cliente rever</div>${(()=>{ const l=pagOrcamentosDoCaso(e.id); if(!l.length) return '<div style="font-size:13px">Este card ainda não tem orçamento salvo: o botão de rever o orçamento não aparece na página.</div>'; return `<select class="fin-input" id="pag-orc" style="width:100%"><option value="">Nenhum (sem o botão de rever o orçamento)</option>${l.map(o=>`<option value="${esc(o.id)}"${String(o.id)===String(e.orcId)?' selected':''}>Versão ${esc(o.versao)} — ${esc((typeof orcStatus==='function'?orcStatus(o.status).rot:o.status)||'')}${((casos[e.id]||{}).orcAprovacao||{}).orcId===String(o.id)?' — ✅ aprovada pelo cliente no link':''}</option>`).join('')}</select>`; })()}</div>
     ${e.erro?`<div class="pag-erro">${esc(e.erro)}</div>`:''}
-    <div class="pag-acoes"><button type="button" class="cx-btn destaque" id="pag-gerar"${e.gerando?' disabled':''}>${e.gerando?'Gerando…':(e.link?'Atualizar o link':'Gerar link')}</button></div>
+    <div class="pag-acoes"><button type="button" class="cx-btn destaque" id="pag-gerar"${e.gerando?' disabled':''}>${e.gerando?(e.lendo&&(e.lendo.recibo||e.lendo.boleto)?'Lendo os documentos…':'Gerando…'):(e.link?'Atualizar o link':'Gerar link')}</button></div>
     ${e.link?`<div class="pag-bloco"><div class="fin-rot">Link de pagamento (vale por 15 dias)</div><input class="fin-input" readonly value="${esc(e.link)}" onclick="this.select()" style="width:100%">
       <div class="fin-rot" style="margin-top:10px">A mensagem <small>(pode editar antes de enviar)</small></div><textarea id="pag-msg" class="fin-input" style="width:100%;min-height:110px">${escTxt(e.msg)}</textarea>
       <div class="pag-acoes"><button type="button" class="cx-btn destaque" data-pag="copiar">Copiar texto</button><button type="button" class="cx-btn" data-pag="zap">WhatsApp</button></div></div>`:''}`;
@@ -12383,11 +12388,13 @@ async function pagGerarLink(){
   const e=pagEst; if(!e||e.gerando) return;
   const c=casos[e.id]||{}, comE=e.itens!=='registro', comR=e.itens!=='escritura';
   // Se a leitura ainda corre, espera; se ela anexou e os campos continuam vazios, tenta ler de novo antes de reclamar.
+  e.erro=''; e.gerando=true; pagDesenhar();
   for(let i=0;i<300&&pagEst===e&&e.lendo&&(e.lendo.recibo||e.lendo.boleto);i++) await new Promise(r=>setTimeout(r,200));
   if(pagEst!==e) return;
   if(comE&&e.recibo&&!pagCentavos(e.valE)) await pagLerArquivo('recibo',e.recibo);
   if(comR&&e.boleto&&(!pagCentavos(e.valR)||!pagVencOk(e.venc)||!String(e.codigo).replace(/\D/g,''))) await pagLerArquivo('boleto',e.boleto);
   if(pagEst!==e) return;
+  e.gerando=false;
   const valE=comE?pagCentavos(e.valE):0, valR=comR?pagCentavos(e.valR):0;
   const falta=[];
   if(comE){ if(!valE) falta.push('o valor da escritura'); if(!e.recibo&&!(c.pagamento&&c.pagamento.itens&&c.pagamento.itens.escritura&&e.link)) falta.push('o recibo do cartório'); }

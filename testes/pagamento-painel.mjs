@@ -136,6 +136,18 @@ await passo('o orçamento a rever não depende do status "Aprovado pelo cliente"
   assert(/^data:image\/jpeg/.test((await p2.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2].imagens.orcamento), 'escolheu a versão 1: a imagem vai');
 });
 
+await passo('Gerar com a leitura ainda correndo: o botão avisa "Lendo os documentos…" (nunca parece morto) e depois gera', async () => {
+  const pg = await abrir();
+  let solta; const espera = new Promise((r) => { solta = r; });
+  await pg.route('https://script.google.com/**', async (r) => { await espera; r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify({ok: true, dados: {total_das_custas: '100,00', total_recebido: '100,00', parcelas: ['100,00']}})}); });
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="escritura"]'); await pg.locator('#pag-recibo').setInputFiles(IMG);
+  await pg.click('#pag-gerar');
+  await pg.waitForFunction(() => /Lendo os documentos/.test(document.querySelector('#pag-gerar').innerText));
+  assert.equal(await pg.locator('#pag-gerar').isDisabled(), true);
+  solta(); await pg.waitForSelector('#pag-msg');
+  assert.equal((await pg.evaluate(() => window.__grav)).some((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234'), true);
+});
+
 await passo('só o registro: a mensagem fala do registro e a escritura não entra', async () => {
   const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="registro"]');
   await pg.fill('#pag-valR', '100,00'); await pg.fill('#pag-venc', '23/10/2026'); await pg.fill('#pag-codigo', '123'); await pg.locator('#pag-boleto').setInputFiles(IMG); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
