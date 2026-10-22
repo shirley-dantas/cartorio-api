@@ -52,8 +52,9 @@ await passo('sem código, link vencido ou já usado: a página diz que o link n�
 
 await passo('primeira tela: os dois valores, o aviso de segurança, o recibo e o boleto reais, e o orçamento só se existir', async () => {
   const {pg} = await abrir(); const t = await pg.innerText('#tela');
-  assert(/Olá, Larissa/i.test(t) && /Confira os valores/.test(t) && /R\$ 3\.039,89/.test(t) && /R\$ 3\.868,07/.test(t) && /Aviso de segurança/.test(t), t);
-  assert(/CONFERÊNCIA/.test(t) && /PAGAMENTO DA ESCRITURA/.test(t) && /PAGAMENTO DO REGISTRO/.test(t), 'as etapas, do jeito dela');
+  assert(/R\$ 3\.039,89/.test(t) && /R\$ 3\.868,07/.test(t) && (t.match(/Pagar ›/g) || []).length === 2, t);
+  assert(!/Olá, Larissa/i.test(t) && !/Confira os valores/.test(t) && !/Aviso de segurança/.test(t) && !/CONFERÊNCIA/.test(t) && !/Começar pelo/.test(t) && !/Compra e Venda/.test(t), 'tudo o que ela tirou da primeira tela');
+  assert(await pg.locator('[data-next]').count() === 0, 'sem botão Começar: cada linha leva ao seu pagamento');
   assert(/reveja seu orçamento aqui/.test(t), 'o botão do orçamento');
   assert(!/Pode fechar e voltar depois/.test(t), 'o rodapé em branco saiu');
   await pg.click('[data-vis="recibo"]'); assert(/Recibo da escritura/.test(await pg.innerText('#vis')) && await pg.locator('#vis img').count() === 1);
@@ -66,14 +67,14 @@ await passo('primeira tela: os dois valores, o aviso de segurança, o recibo e o
 
 await passo('o fluxo inteiro: a escritura, depois o registro, e só com o comprovante o botão liga; ao concluir o link fecha', async () => {
   const {pg, chamadas} = await abrir();
-  await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
+  await pg.click('[data-go=\"escritura\"]'); await noMeio(pg, /Para o cartório de notas/);
   let t = await pg.innerText('#tela'); assert(/45\.566\.502\/0001-12/.test(t) && /422032-3/.test(t) && /72195-7/.test(t) && /Ou por TED/i.test(t) && /ANEXE AQUI O SEU COMPROVANTE/i.test(t));
   assert(await pg.locator('[data-next]').isDisabled(), 'apagado sem comprovante');
   await pg.screenshot({path: SAIDA('pag-2-escritura.png'), fullPage: true});
   await anexar(pg, 'escritura'); await noMeio(pg, /✓ Anexado/);
   const up = chamadas.find((c) => c.acao === 'pagamento-arquivo'); assert(up && up.t === TOKEN && up.qual === 'escritura' && up.mimetype === 'image/jpeg' && up.base64.length > 100 && up.nomeArquivo === 'comprovante.png', JSON.stringify({...up, base64: '…'}));
   assert(!chamadas.some((c) => c.acao === 'pagamento-concluir'));
-  await pg.click('[data-next]'); await noMeio(pg, /Pagamento do registro/);
+  await pg.click('[data-next]'); await noMeio(pg, /Para o registro de imóveis/);
   t = await pg.innerText('#tela'); assert(/26091\.90299 37227\.373505/.test(t) && /Prime Assessoria/.test(t) && /47\.141\.731\/0001-10/.test(t) && !/Vence em/.test(t) && !/não vai para o cartório de notas/.test(t), 'os dados do boleto; vencimento e explicação em branco ficam de fora');
   assert(await pg.locator('[data-next]').isDisabled());
   await pg.screenshot({path: SAIDA('pag-3-registro.png'), fullPage: true});
@@ -88,11 +89,11 @@ await passo('o fluxo inteiro: a escritura, depois o registro, e só com o compro
 await passo('link só da escritura ou só do registro: o fluxo some com o que não foi escolhido', async () => {
   const e = await abrir({itens: {escritura: true}}); let t = await e.pg.innerText('#tela');
   assert(/Confira o valor/.test(t) && /R\$ 3\.039,89/.test(t) && !/R\$ 3\.868,07/.test(t) && !/PAGAMENTO DO REGISTRO/.test(t) && /Fazer o pagamento da escritura/.test(t));
-  await e.pg.click('[data-next]'); await noMeio(e.pg, /Pagamento da escritura/); await anexar(e.pg, 'escritura'); await noMeio(e.pg, /Tudo certo/);
+  await e.pg.click('[data-go=\"escritura\"]'); await noMeio(e.pg, /Para o cartório de notas/); await anexar(e.pg, 'escritura'); await noMeio(e.pg, /Tudo certo/);
   assert(/Concluir/.test(await e.pg.innerText('[data-next]')), 'sendo o último passo, o botão é "Concluir"');
   await e.pg.click('[data-next]'); await noMeio(e.pg, /Pagamentos recebidos/); const f = await e.pg.innerText('#tela'); assert(/Escritura:/.test(f) && !/Registro de imóveis:/.test(f));
   const r = await abrir({itens: {registro: true}}); t = await r.pg.innerText('#tela'); assert(/Fazer o pagamento do registro/.test(t) && !/PAGAMENTO DA ESCRITURA/.test(t) && !/R\$ 3\.039,89/.test(t));
-  await r.pg.click('[data-next]'); await noMeio(r.pg, /Pagamento do registro/); assert(!/PASSO 1 DE 2/i.test(await r.pg.innerText('#tela')), 'sendo uma cobrança só, não diz "de 2"');
+  await r.pg.click('[data-go="registro"]'); await noMeio(r.pg, /Para o registro de imóveis/); assert(!/PASSO 1 DE 2/i.test(await r.pg.innerText('#tela')), 'sendo uma cobrança só, não diz "de 2"');
 });
 
 await passo('o aviso de segurança aparece também quando o link tem uma cobrança só', async () => {
@@ -102,10 +103,10 @@ await passo('o aviso de segurança aparece também quando o link tem uma cobran�
 await passo('comprovante que não subiu: o aviso aparece escrito, o botão continua apagado e dá para tentar de novo', async () => {
   let falha = true;
   const {pg, chamadas} = await abrir({}, {gas: (c) => (c.acao === 'pagamento-arquivo' && falha ? {ok: false, erro: 'não deu'} : {ok: true})});
-  await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
+  await pg.click('[data-go=\"escritura\"]'); await noMeio(pg, /Para o cartório de notas/);
   await anexar(pg, 'escritura'); await noMeio(pg, /Não enviou/);
   const av = await pg.innerText('#tela'); assert(/não deu/.test(av) && !/internet/i.test(av), 'erro do cartório é dito com as palavras dele, não como problema de internet');
-  assert(await pg.locator('[data-next]').isDisabled() && /Falta anexar/i.test(await pg.innerText('#tela')));
+  assert(await pg.locator('[data-next]').isDisabled());
   falha = false; await anexar(pg, 'escritura'); await noMeio(pg, /✓ Anexado/); assert(!(await pg.locator('[data-next]').isDisabled()));
 });
 
@@ -113,7 +114,7 @@ await passo('o comprovante aparece anexado na hora (o envio segue em segundo pla
   const {pg, chamadas} = await abrir({itens: {escritura: true}});
   let solta; const espera = new Promise((r) => { solta = r; });
   await pg.route('https://script.google.com/**', async (rota) => { const c = JSON.parse(rota.request().postData()); chamadas.push(c); if (c.acao === 'pagamento-arquivo') await espera; rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({ok: true})}); });
-  await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
+  await pg.click('[data-go=\"escritura\"]'); await noMeio(pg, /Para o cartório de notas/);
   await anexar(pg, 'escritura'); await noMeio(pg, /✓ Anexado/);
   assert(!(await pg.locator('[data-next]').isDisabled()), 'liberado sem esperar o Drive');
   await pg.click('[data-next]'); await pg.waitForTimeout(400);
@@ -125,7 +126,7 @@ await passo('o comprovante aparece anexado na hora (o envio segue em segundo pla
 await passo('o envio em segundo plano falha: o Concluir não fecha o link e volta ao passo, com o motivo', async () => {
   const {pg, chamadas} = await abrir({itens: {escritura: true}});
   await pg.route('https://script.google.com/**', async (rota) => { const c = JSON.parse(rota.request().postData()); chamadas.push(c); rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(c.acao === 'pagamento-arquivo' ? {ok: false, erro: 'O banco recusou o registro (401).'} : {ok: true})}); });
-  await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
+  await pg.click('[data-go=\"escritura\"]'); await noMeio(pg, /Para o cartório de notas/);
   await anexar(pg, 'escritura'); await noMeio(pg, /banco recusou/);
   assert(!chamadas.some((c) => c.acao === 'pagamento-concluir')); assert(await pg.locator('[data-next]').isDisabled());
 });
@@ -143,7 +144,7 @@ await passo('vários recibos: ver o recibo mostra todos, legendados "Recibo 1 de
 
 await passo('sem rede de verdade: tenta de novo sozinho uma vez e só então fala em internet', async () => {
   const {pg} = await abrir({});
-  await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
+  await pg.click('[data-go=\"escritura\"]'); await noMeio(pg, /Para o cartório de notas/);
   let n = 0; await pg.route('https://script.google.com/**', (r) => { n++; r.abort('failed'); });
   await anexar(pg, 'escritura'); await noMeio(pg, /Não enviou/);
   assert(/internet/i.test(await pg.innerText('#tela')), 'falha de rede fala em internet'); assert.equal(n, 2, 'uma tentativa a mais antes de desistir');
@@ -152,7 +153,7 @@ await passo('sem rede de verdade: tenta de novo sozinho uma vez e só então fal
 await passo('concluir que o cartório recusa: o erro aparece e o link não fecha', async () => {
   const {pg} = await abrir({itens: {escritura: true}}, {gas: (c) => (c.acao === 'pagamento-concluir' ? {ok: false, erro: 'Falta o comprovante'} : {ok: true})});
   let aviso = ''; pg.removeAllListeners('dialog'); pg.on('dialog', (d) => { aviso = d.message(); d.accept(); });
-  await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/); await anexar(pg, 'escritura'); await noMeio(pg, /Tudo certo/);
+  await pg.click('[data-go=\"escritura\"]'); await noMeio(pg, /Para o cartório de notas/); await anexar(pg, 'escritura'); await noMeio(pg, /Tudo certo/);
   await pg.click('[data-next]'); await pg.waitForTimeout(600);
   assert(/Falta o comprovante/.test(aviso) && !/Pagamentos recebidos/.test(await pg.innerText('#tela')), aviso);
 });
@@ -160,11 +161,11 @@ await passo('concluir que o cartório recusa: o erro aparece e o link não fecha
 await passo('voltar e abrir de novo: o comprovante que já subiu continua "✓ Anexado", e o botão de voltar leva ao passo anterior', async () => {
   const {pg} = await abrir({comprovantes: {escritura: {docKey: 'pag_x', nome: 'meu-pix.jpg'}}});
   await pg.click('[data-next]'); await noMeio(pg, /✓ Anexado/); assert(/meu-pix\.jpg/.test(await pg.innerText('#tela')) && !(await pg.locator('[data-next]').isDisabled()));
-  await pg.click('[data-next]'); await noMeio(pg, /Pagamento do registro/); await pg.click('[data-voltar]'); await noMeio(pg, /Pagamento da escritura/);
+  await pg.click('[data-next]'); await noMeio(pg, /Para o registro de imóveis/); await pg.click('[data-voltar]'); await noMeio(pg, /Para o cartório de notas/);
 });
 
 await passo('copiar: a chave Pix e o código de barras vão para a área de transferência e o botão confirma', async () => {
-  const {pg} = await abrir(); await pg.click('[data-next]'); await noMeio(pg, /Pagamento da escritura/);
+  const {pg} = await abrir(); await pg.click('[data-go=\"escritura\"]'); await noMeio(pg, /Para o cartório de notas/);
   const btn = pg.locator('[data-copy]').first(); assert.equal(await btn.getAttribute('data-copy'), '45.566.502/0001-12');
   await btn.click(); assert(/Copiado!/.test(await btn.textContent()));
 });

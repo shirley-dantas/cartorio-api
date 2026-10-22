@@ -12052,8 +12052,7 @@ function pagFaixaPagamentoHtml(c){
   if(!p||!p.token) return gerar;
   const quais=[it.escritura?`escritura ${pagMoeda(p.escrituraCent)}`:'',it.registro?`registro ${pagMoeda(p.registroCent)}`:''].filter(Boolean).join(' · ');
   if(p.status==='recebido'){
-    const imp=q=>`<button type="button" class="cx-btn${q==='escritura'?' destaque':''}" onclick="imprimirComprovante('${esc(c.id)}','${q}')"><i class="ti ti-printer"></i> Imprimir comprovante ${q==='escritura'?'da escritura':'do registro'}</button>`;
-    return `<span class="cx-ped-rec" style="flex-basis:auto"><b>✓ Comprovantes recebidos</b> · ${esc(pagQuando(p.recebidoEm))} · ${esc(quais)} — confira e dê baixa</span>${it.escritura?imp('escritura'):''}${it.registro?imp('registro'):''}${gerar}`;
+    return `<span class="cx-ped-rec" style="flex-basis:auto"><b>✓ Comprovantes recebidos</b> · ${esc(pagQuando(p.recebidoEm))} · ${esc(quais)} — confira e dê baixa</span><button type="button" class="cx-btn destaque" onclick="imprimirComprovante('${esc(c.id)}')"><i class="ti ti-printer"></i> Imprimir comprovantes</button>${gerar}`;
   }
   return `<span class="cx-ped-rec" style="flex-basis:auto">Link gerado${p.criadoEm?' em '+esc(pagQuando(p.criadoEm)):''} · aguardando o cliente · ${esc(quais)}</span><button type="button" class="cx-btn" onclick="copiarLinkPagamento('${esc(c.id)}',this)"><i class="ti ti-copy"></i> Copiar link</button>${gerar}`;
 }
@@ -12102,42 +12101,44 @@ window.copiarLinkPagamento=function(id,btn){
 // A folha que sai na impressora: o comprovante com o que o financeiro do cartório precisa para dar baixa.
 function pagFolhaImpressao(d){
   const lin=(r,v)=>v?`<tr><td class="r">${escTxt(r)}</td><td>${escTxt(v)}</td></tr>`:'';
-  const corpo=d.pdf?'':`<img src="${esc(d.src)}" alt="Comprovante">`;
+  const srcs=d.srcs||(d.src?[d.src]:[]);
+  const corpo=d.pdf?'':srcs.map((u,i)=>`<img src="${esc(u)}" alt="Comprovante ${i+1}">`).join('');
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Comprovante de pagamento — ${escTxt(d.cliente)}</title>
 <style>@page{margin:14mm}body{font:15px -apple-system,'Segoe UI',sans-serif;color:#1F2A33;margin:0}
 h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#6E5428;margin:0 0 10px}
 .cab{border-bottom:3px solid #A9895A;padding-bottom:10px;margin-bottom:12px}table{border-collapse:collapse;margin-bottom:14px}
 td{padding:3px 14px 3px 0;vertical-align:top}td.r{font-weight:700;color:#5B6B78;white-space:nowrap}
-img{display:block;max-width:100%;max-height:200mm;margin:0 auto;border:1px solid #ccc}
+img{display:block;max-width:100%;max-height:200mm;margin:0 auto 14px;border:1px solid #ccc}img+img{page-break-before:always}
 .rod{margin-top:12px;font-size:12px;color:#5B6B78}</style></head><body>
 <div class="cab"><h2>20º Tabelião de Notas</h2><h1>Comprovante de pagamento — ${escTxt(d.cobranca)}</h1></div>
 <table>${lin('Cliente',d.cliente)}${lin('Ato',d.ato)}${lin('Controle',d.controle)}${lin('Valor combinado',d.valor)}${lin('Recebido pelo painel em',d.recebido)}${lin('Arquivo',d.arquivo)}</table>
 ${corpo}<div class="rod">Impresso em ${escTxt(d.impresso)} · baixa a ser feita no financeiro do cartório.</div></body></html>`;
 }
-window.imprimirComprovante=async function(casoId,qual){
+window.imprimirComprovante=async function(casoId){
   const c=casos[casoId]||{}, p=c.pagamento||{};
   const w=window.open('','_blank');
   if(!w){ alert('O navegador bloqueou a janela de impressão. Libere os pop-ups deste site e tente de novo.'); return; }
-  w.document.write('<p style="font:16px sans-serif;padding:20px">Carregando o comprovante…</p>');
+  w.document.write('<p style="font:16px sans-serif;padding:20px">Carregando os comprovantes…</p>');
   try{
-    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'pagamento-ver',casoId,qual})});
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'pagamento-ver',casoId,qual:'todos'})});
     const j=await r.json();
     if(!j||!j.ok) throw new Error((j&&j.erro)||'motivo desconhecido');
-    const mime=String(j.mime||'');
-    if(/pdf/i.test(mime)){
-      // PDF: o próprio leitor do navegador imprime melhor (Ctrl+P)
-      const bin=atob(j.base64), a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i);
-      w.location.href=URL.createObjectURL(new Blob([a],{type:'application/pdf'}));
-      return;
+    const itens=j.itens||[{mime:j.mime,nome:j.nome,base64:j.base64}];
+    const imgs=itens.filter(x=>!/pdf/i.test(String(x.mime||''))), pdfs=itens.filter(x=>/pdf/i.test(String(x.mime||'')));
+    const aberto=x=>{ const bin=atob(x.base64), a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return URL.createObjectURL(new Blob([a],{type:'application/pdf'})); };
+    if(!imgs.length){
+      // Só PDF: o próprio leitor do navegador imprime melhor (Ctrl+P); os outros PDFs abrem em abas novas
+      w.location.href=aberto(pdfs[0]); pdfs.slice(1).forEach(x=>{ try{ window.open(aberto(x),'_blank'); }catch(_){} }); return;
     }
-    const html=pagFolhaImpressao({src:'data:'+mime+';base64,'+j.base64,cliente:c.nome||'',ato:c.tipo||'',controle:c.controle||'',
-      cobranca:qual==='escritura'?'escritura':'registro de imóveis',valor:pagMoeda(qual==='escritura'?p.escrituraCent:p.registroCent),
-      recebido:pagQuando(p.recebidoEm),arquivo:j.nome||'',impresso:new Date().toLocaleString('pt-BR')});
+    const it=p.itens||{}, quais=[it.escritura?'escritura '+pagMoeda(p.escrituraCent):'',it.registro?'registro de imóveis '+pagMoeda(p.registroCent):''].filter(Boolean).join(' e ');
+    const html=pagFolhaImpressao({srcs:imgs.map(x=>'data:'+x.mime+';base64,'+x.base64),cliente:c.nome||'',ato:c.tipo||'',controle:c.controle||'',
+      cobranca:quais||'pagamentos',valor:quais,recebido:pagQuando(p.recebidoEm),arquivo:imgs.map(x=>x.nome).join(' · '),impresso:new Date().toLocaleString('pt-BR')});
     w.document.open(); w.document.write(html); w.document.close();
+    if(pdfs.length) setTimeout(()=>{ try{ pdfs.forEach(x=>window.open(aberto(x),'_blank')); }catch(_){} alert('Há também '+pdfs.length+' comprovante(s) em PDF: abri em outra aba para imprimir.'); },600);
     const img=w.document.querySelector('img');
     const imprimir=()=>{ try{ w.focus(); w.print(); }catch(_){} };
-    if(img&&!img.complete) img.onload=imprimir; else setTimeout(imprimir,300);
-  }catch(e){ try{ w.close(); }catch(_){} alert('Não consegui abrir o comprovante: '+(e&&e.message||e)); }
+    if(img&&!img.complete) img.onload=imprimir; else setTimeout(imprimir,400);
+  }catch(e){ try{ w.close(); }catch(_){} alert('Não consegui abrir os comprovantes: '+(e&&e.message||e)); }
 };
 
 // ── Os arquivos viram imagem leve para a página do cliente ──

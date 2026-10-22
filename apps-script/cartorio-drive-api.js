@@ -1701,6 +1701,7 @@ function clienteExcluir(dados) {
 // "meta", para não trazer as imagens a cada arquivo. O comprovante vai para a pasta do caso e NÃO entra em
 // /casos/{id}/documentos: lá a minuta lê tudo, e um comprovante sem texto lido travaria a geração.
 var PAGAMENTO_ROTULO = { escritura: "escritura", registro: "registro de imóveis" };
+var PAGAMENTO_MAX_COMPROVANTES = 10;
 
 function cobrancaDoCliente(token, aceitaConcluido) {
   token = String(token || "");
@@ -1720,7 +1721,9 @@ function pagamentoArquivo(dados) {
   var ctx = cobrancaDoCliente(dados.t);
   if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
   var qual = String(dados.qual || "");
-  if (!PAGAMENTO_ROTULO[qual] || !(ctx.meta.itens && ctx.meta.itens[qual])) return resp({ ok: false, erro: "Cobrança inválida." });
+  // Os comprovantes ficam num lugar só: a página manda um código novo a cada arquivo ("c…"); "escritura"/"registro" são dos links antigos.
+  if (!PAGAMENTO_ROTULO[qual] && !/^c[a-z0-9]{4,16}$/.test(qual)) return resp({ ok: false, erro: "Comprovante inválido." });
+  if (Object.keys(ctx.meta.comprovantes || {}).length >= PAGAMENTO_MAX_COMPROVANTES && !(ctx.meta.comprovantes || {})[qual]) return resp({ ok: false, erro: "Limite de comprovantes deste link atingido." });
   var mime = String(dados.mimetype || "").toLowerCase();
   var ext = MIMES_CLIENTE[mime];
   if (!ext) return resp({ ok: false, erro: "Tipo de arquivo não aceito." });
@@ -1738,7 +1741,7 @@ function pagamentoArquivo(dados) {
   }
 
   var agora = new Date();
-  var nome = "Comprovante_" + (qual === "escritura" ? "Escritura" : "Registro") + "_" + nomeSeguroCliente(ctx.caso.nome, 30) + "_" +
+  var nome = "Comprovante_" + (qual === "escritura" ? "Escritura_" : qual === "registro" ? "Registro_" : "") + nomeSeguroCliente(ctx.caso.nome, 30) + "_" +
     Utilities.formatDate(agora, "America/Sao_Paulo", "yyyy-MM-dd") + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 4) + "." + ext;
   var arquivo = pasta.createFile(Utilities.newBlob(bytes, mime, nome));
   var docKey = "pag_" + ctx.token.slice(0, 6) + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 8);
@@ -1758,13 +1761,15 @@ function pagamentoConcluir(dados) {
   var ctx = cobrancaDoCliente(dados.t);
   if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
   var itens = Object.keys(ctx.meta.itens || {}).filter(function (k) { return ctx.meta.itens[k]; });
-  var falta = itens.filter(function (k) { return !((ctx.meta.comprovantes || {})[k] || {}).docKey; });
-  if (!itens.length || falta.length) return resp({ ok: false, erro: "Falta o comprovante de: " + falta.map(function (k) { return PAGAMENTO_ROTULO[k]; }).join(" e ") + "." });
+  var comps = ctx.meta.comprovantes || {};
+  var chegaram = Object.keys(comps).filter(function (k) { return (comps[k] || {}).docKey; }).length;
+  // Um comprovante para cada pagamento, no mínimo: os dois podem vir juntos, na ordem que o cliente anexar.
+  if (!itens.length || chegaram < itens.length) return resp({ ok: false, erro: "Faltam comprovantes: anexe um para cada pagamento (" + itens.map(function (k) { return PAGAMENTO_ROTULO[k]; }).join(" e ") + ")." });
   var agora = Date.now();
   var a = firebaseGravar("patch", "/cobrancas/" + ctx.token + "/meta", { concluidoEm: agora });
   if (a.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a conclusão (" + a.getResponseCode() + ")." });
-  try { firebaseGravar("patch", "/casos/" + ctx.casoId + "/pagamento", { status: "recebido", recebidoEm: agora, visto: false }); } catch (e) { /* o aviso é cortesia */ }
-  try { enviarWhatsApp("💳 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou o comprovante de pagamento (" + itens.map(function (k) { return PAGAMENTO_ROTULO[k]; }).join(" e ") + "). Está no card."); } catch (e) { /* aviso é cortesia */ }
+  try { firebaseGravar("patch", "/casos/" + ctx.casoId + "/pagamento", { status: "recebido", recebidoEm: agora, visto: false, comprovantes: chegaram }); } catch (e) { /* o aviso é cortesia */ }
+  try { enviarWhatsApp("💳 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou os comprovantes de pagamento (" + chegaram + " arquivo" + (chegaram > 1 ? "s" : "") + "). Estão no card."); } catch (e) { /* aviso é cortesia */ }
   return resp({ ok: true });
 }
 
@@ -1827,17 +1832,24 @@ function pagamentoLer(dados) {
 // O painel pede o comprovante de volta para imprimir (a equipe leva ao financeiro do cartório). O banco é aberto,
 // então o Drive só é lido quando o selo do registro confere.
 function pagamentoVer(dados) {
-  var casoId = String(dados.casoId || ""), qual = String(dados.qual || "");
-  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !PAGAMENTO_ROTULO[qual]) return resp({ ok: false, erro: "Pedido inválido." });
+  var casoId = String(dados.casoId || ""), qual = String(dados.qual || "todos");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || (qual !== "todos" && !PAGAMENTO_ROTULO[qual] && !/^c[a-z0-9]{4,16}$/.test(qual))) return resp({ ok: false, erro: "Pedido inválido." });
   var token = firebaseLer("/casos/" + casoId + "/pagamento/token");
   if (!token || !/^[A-Za-z0-9_-]{16,64}$/.test(String(token))) return resp({ ok: false, erro: "Este caso não tem cobrança." });
-  var reg = firebaseLer("/cobrancas/" + token + "/meta/comprovantes/" + qual);
-  if (!reg || !reg.docKey) return resp({ ok: false, erro: "Ainda não há comprovante desta cobrança." });
-  var id = extrairIdArquivo(reg.link);
-  if (!id || !reg.selo || reg.selo !== seloDoArquivo(reg.docKey, id)) return resp({ ok: false, erro: "O registro do comprovante não confere." });
-  var blob;
-  try { blob = DriveApp.getFileById(id).getBlob(); } catch (e) { return resp({ ok: false, erro: "Não achei o arquivo no Drive." }); }
-  return resp({ ok: true, mime: String(blob.getContentType() || reg.mime || ""), nome: reg.nome || reg.arquivo || "comprovante", base64: Utilities.base64Encode(blob.getBytes()) });
+  var comps = firebaseLer("/cobrancas/" + token + "/meta/comprovantes") || {};
+  var chaves = Object.keys(comps).filter(function (k) { return (qual === "todos" || k === qual) && (comps[k] || {}).docKey; }).sort(function (a, b) { return (comps[a].em || 0) - (comps[b].em || 0); });
+  if (!chaves.length) return resp({ ok: false, erro: "Ainda não há comprovante desta cobrança." });
+  var itens = [], recusados = 0;
+  chaves.forEach(function (k) {
+    var reg = comps[k], id = extrairIdArquivo(reg.link);
+    // O Drive só é lido quando o selo confere: o banco é aberto e um registro forjado poderia apontar para outro arquivo.
+    if (!id || !reg.selo || reg.selo !== seloDoArquivo(reg.docKey, id)) { recusados++; return; }
+    try { var blob = DriveApp.getFileById(id).getBlob(); itens.push({ mime: String(blob.getContentType() || reg.mime || ""), nome: reg.nome || reg.arquivo || "comprovante", base64: Utilities.base64Encode(blob.getBytes()) }); }
+    catch (e) { recusados++; }
+  });
+  if (!itens.length) return resp({ ok: false, erro: recusados ? "O registro do comprovante não confere, ou o arquivo não está mais no Drive." : "Ainda não há comprovante desta cobrança." });
+  // O primeiro vai também nos campos de sempre, para o painel antigo continuar funcionando.
+  return resp({ ok: true, itens: itens, recusados: recusados, mime: itens[0].mime, nome: itens[0].nome, base64: itens[0].base64 });
 }
 
 // ── Criar minuta doc (via Vercel proxy — retorna resp()) ───────────────────
