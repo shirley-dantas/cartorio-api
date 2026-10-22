@@ -1098,6 +1098,10 @@ Regras dela que **não devem ser mexidas sem perguntar**:
 - **A baixa é da equipe.** O painel avisa no topo ("Cliente enviou os comprovantes de pagamento") e o card mostra
   *Imprimir comprovante da escritura* (e do registro): ela imprime e leva ao financeiro do cartório, que dá baixa no sistema
   dele. Nada marca "pago" sozinho.
+- **Anexar o recibo e o boleto preenche a janela, mas o que a IA leu é hipótese.** Apps Script `pagamento-ler` devolve JSON; o painel só
+  usa o que as contas confirmam (`pagConferirRecibo`: os dois totais iguais e a soma das linhas igual ao total; `pagLerLinhaDigitavel`:
+  três dígitos verificadores, e dela saem o valor e o vencimento — não da IA). Só preenche campo em branco (o que ela digitou vale),
+  cada campo lido leva "lido do documento — confira", e a falha da leitura nunca trava: aparece escrita e ela digita à mão.
 - **"2.000" é dois mil** (`pagCentavos`): o mesmo erro do financeiro, que já aconteceu uma vez.
 - Passo manual: regras do banco com `/cobrancas` e Apps Script novo (`FIREBASE.md`, seção 12). Testes:
   `testes/pagar-tela.mjs` (a página), `testes/pagamento-envio.mjs` (o Apps Script) e `testes/pagamento-painel.mjs` (a janela,

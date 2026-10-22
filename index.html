@@ -1734,6 +1734,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .pag-op{display:inline-flex;align-items:center;gap:6px;margin:0 14px 4px 0;font-size:14px;cursor:pointer}
 .pag-campo{margin-bottom:10px}.pag-campo .fin-input{width:100%;display:block;margin-top:3px}
 .pag-nome{font-size:13px;color:#636366;margin-left:6px;word-break:break-all}
+.pag-nota{margin-top:6px;font-size:13px;color:#1F2A33;background:#F4F1EA;border-radius:8px;padding:8px 10px}
+.pag-lido{color:#8A6D1F;font-weight:600;text-transform:none}
 .pag-erro{margin-top:12px;padding:10px 12px;border-radius:10px;background:#FBE3E1;color:#9A1E16;font-size:14px;font-weight:600}
 .pag-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .cx-ped-rec{flex-basis:100%;font-size:12.5px;color:var(--cc-tinta-2)}
@@ -12143,6 +12145,101 @@ function pagImagemOrcamento(o){
   }catch(_){ return null; }
 }
 
+// ── Ler o recibo e o boleto para preencher a janela ──
+// Tudo o que a IA devolve é hipótese: só preenche o que as contas confirmam (o total do recibo contra a soma das
+// parcelas; o valor e o vencimento do boleto saem da própria linha digitável, que tem dígitos verificadores).
+const pagMod10=n=>{ let soma=0, peso=2; for(let i=n.length-1;i>=0;i--){ let p=(+n[i])*peso; if(p>9) p=Math.floor(p/10)+p%10; soma+=p; peso=peso===2?1:2; } return (10-soma%10)%10; };
+function pagVencDeFator(fator,hoje=new Date()){
+  const d=(base,n)=>new Date(base+n*864e5), antigo=d(Date.UTC(1997,9,7),fator), novo=d(Date.UTC(2025,1,22),fator-1000);
+  const cand=fator>=1000?[antigo,novo]:[antigo];
+  return cand.sort((a,b)=>Math.abs(a-hoje)-Math.abs(b-hoje))[0];
+}
+// A linha digitável de 47 dígitos: confere os três dígitos verificadores e devolve o valor e o vencimento que ela carrega.
+function pagLerLinhaDigitavel(txt,hoje=new Date()){
+  const n=String(txt||'').replace(/\D/g,''); if(n.length!==47) return null;
+  const campos=[n.slice(0,10),n.slice(10,21),n.slice(21,32)];
+  for(const c of campos){ if(pagMod10(c.slice(0,-1))!==+c.slice(-1)) return null; }
+  const fator=+n.slice(33,37), centavos=+n.slice(37);
+  const f=v=>v.replace(/^(\d{5})(\d{5})$/,'$1.$2');
+  const formatada=f(n.slice(0,10))+' '+n.slice(10,15)+'.'+n.slice(15,21)+' '+n.slice(21,26)+'.'+n.slice(26,32)+' '+n[32]+' '+n.slice(33);
+  let venc=''; if(fator>0){ const d=pagVencDeFator(fator,hoje); venc=String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0')+'/'+d.getUTCFullYear(); }
+  return {linha:formatada,centavos,venc};
+}
+function pagAcharLinhaNoTexto(txt){
+  const m=String(txt||'').match(/\d{5}[.\s]?\d{5}\s+\d{5}[.\s]?\d{6}\s+\d{5}[.\s]?\d{6}\s+\d\s+\d{14}/);
+  return m?m[0]:'';
+}
+const pagCentDeTexto=v=>{ if(v==null||v==='') return null; const c=pagCentavos(String(v)); return c>0?c:null; };
+// O recibo só vale se as contas fecham: os dois totais iguais e a soma das parcelas igual ao total.
+function pagConferirRecibo(d){
+  if(!d) return {ok:false,motivo:'A leitura não devolveu nada.'};
+  const t1=pagCentDeTexto(d.total_das_custas), t2=pagCentDeTexto(d.total_recebido);
+  const parc=Array.isArray(d.parcelas)?d.parcelas.map(pagCentDeTexto):[];
+  if(!t1&&!t2) return {ok:false,motivo:'Não achei o total no recibo.'};
+  if(t1&&t2&&t1!==t2) return {ok:false,motivo:'O "total das custas" e o "total recebido" saíram diferentes na leitura.'};
+  const total=t1||t2;
+  if(!parc.length||parc.some(x=>x==null)) return {ok:false,motivo:'Não consegui ler todas as linhas do recibo para conferir a soma.'};
+  const soma=parc.reduce((a,b)=>a+b,0);
+  if(soma!==total) return {ok:false,motivo:'A soma das linhas do recibo não bateu com o total.'};
+  return {ok:true,centavos:total};
+}
+async function pagTextoDoPdf(file){
+  try{
+    if(!window.pdfjsLib||!(file.type==='application/pdf'||/\.pdf$/i.test(file.name||''))) return '';
+    const doc=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise, pg=await doc.getPage(1), tc=await pg.getTextContent();
+    return tc.items.map(i=>i.str).join(' ');
+  }catch(_){ return ''; }
+}
+async function pagPerguntarIA(tipo,file){
+  const url=file.type==='application/pdf'||/\.pdf$/i.test(file.name||'')?(file.size<=5*1024*1024?await pagLerComoUrl(file):await pagImagemDe(file,1800,.9)):await pagImagemDe(file,1800,.9);
+  const m=url.match(/^data:([^;]+);base64,(.*)$/); if(!m) throw new Error('Não consegui preparar o arquivo.');
+  const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'pagamento-ler',tipo,mimetype:m[1],base64:m[2]})});
+  const j=await r.json(); if(!j.ok) throw new Error(j.erro||'A leitura falhou.'); return j.dados;
+}
+// Preenche só o que está em branco (o que ela digitou vale mais) e marca o que veio da leitura para ela conferir.
+function pagPreencher(campo,valor){
+  const e=pagEst; if(!e||!valor) return false;
+  if(String(e[campo]||'').trim()) return false;
+  e[campo]=valor; (e.lido=e.lido||{})[campo]=true; return true;
+}
+async function pagLerArquivo(alvo,f){
+  const e=pagEst; if(!e) return;
+  (e.lendo=e.lendo||{})[alvo]=true; (e.nota=e.nota||{})[alvo]=''; e.lido=e.lido||{};
+  pagDesenhar();
+  let nota='';
+  try{
+    if(alvo==='recibo'){
+      const ia=await pagPerguntarIA('recibo',f), c=pagConferirRecibo(ia);
+      if(pagEst!==e||e.recibo!==f) return;
+      if(c.ok){ nota=pagPreencher('valE',pagMoeda(c.centavos).replace(/^R\$\s*/,''))?'Valor lido do recibo e conferido (as linhas somam o total). Confira.':'Li o recibo, mas o valor já estava preenchido — não mexi.'; }
+      else nota='Li o recibo, mas não preenchi o valor: '+c.motivo+' Digite o valor.';
+    }else{
+      let linha=pagLerLinhaDigitavel(pagAcharLinhaNoTexto(await pagTextoDoPdf(f))), ia=null, aviso='';
+      try{ ia=await pagPerguntarIA('boleto',f); }catch(err){ aviso=(err&&err.message)||''; }
+      if(pagEst!==e||e.boleto!==f) return;
+      if(!linha&&ia) linha=pagLerLinhaDigitavel(ia.linha_digitavel);
+      const feitos=[];
+      if(linha){
+        if(pagPreencher('codigo',linha.linha)) feitos.push('código de barras');
+        if(linha.centavos&&pagPreencher('valR',pagMoeda(linha.centavos).replace(/^R\$\s*/,''))) feitos.push('valor');
+        if(linha.venc&&pagPreencher('venc',linha.venc)) feitos.push('vencimento');
+      }
+      if(ia){
+        const padrao=v=>!String(v||'').trim()||v===PAG_BENEFICIARIO.nome||v===PAG_BENEFICIARIO.cnpj||v===(pagLerMemoria().nome)||v===(pagLerMemoria().cnpj);
+        const nb=String(ia.beneficiario||'').trim(), nc=String(ia.cnpj||'').trim();
+        if(nb&&padrao(e.benef)&&nb!==e.benef){ e.benef=nb; e.lido.benef=true; feitos.push('beneficiário'); }
+        if(nc&&padrao(e.cnpj)&&nc!==e.cnpj){ e.cnpj=nc; e.lido.cnpj=true; feitos.push('CNPJ'); }
+      }
+      nota=feitos.length?'Lido do boleto: '+feitos.join(', ')+'. Confira.':(linha||ia?'Li o boleto, mas não havia nada em branco para preencher.':'Não consegui ler o boleto'+(aviso?' ('+aviso+')':'')+'. Preencha à mão.');
+      if(!linha&&ia) nota+=' O código de barras não passou na conferência dos dígitos: digite-o ou cole de novo um print mais nítido.';
+    }
+  }catch(err){
+    if(pagEst!==e||e[alvo]!==f) return;
+    nota='Não consegui ler automaticamente ('+((err&&err.message)||err)+'). Preencha à mão.';
+  }
+  e.lendo[alvo]=false; e.nota[alvo]=nota; pagDesenhar();
+}
+
 // ── A janela de gerar o link ──
 let pagEst=null;
 function pagLerMemoria(){ try{ return JSON.parse(localStorage.getItem('painel_pag_benef')||'null')||{}; }catch(_){ return {}; } }
@@ -12159,14 +12256,14 @@ function pagDesenhar(){
   const e=pagEst; if(!e) return;
   const esc1=e.itens!=='registro', reg1=e.itens!=='escritura';
   const opt=(v,r)=>`<label class="pag-op"><input type="radio" name="pag-itens" value="${v}"${e.itens===v?' checked':''}> ${r}</label>`;
-  const campo=(r,id,val,ph,extra='')=>`<div class="pag-campo"><label class="fin-rot" for="${id}">${r}</label><input class="fin-input" id="${id}" value="${esc(val)}" placeholder="${esc(ph||'')}" ${extra}></div>`;
+  const campo=(r,id,val,ph,extra='')=>`<div class="pag-campo"><label class="fin-rot" for="${id}">${r}${e.lido&&e.lido[{'pag-valE':'valE','pag-valR':'valR','pag-venc':'venc','pag-codigo':'codigo','pag-benef':'benef','pag-cnpj':'cnpj'}[id]]?' <small class="pag-lido">· lido do documento — confira</small>':''}</label><input class="fin-input" id="${id}" value="${esc(val)}" placeholder="${esc(ph||'')}" ${extra}></div>`;
   const arq=(r,id,f,obrig)=>{
     const alvo=id==='pag-recibo'?'recibo':'boleto', url=f?pagUrlDe(f):'';
     return `<div class="pag-campo"><label class="fin-rot">${r}${obrig?' <b style="color:#C0392B">*</b>':''}</label>
       <div class="pag-cola${f?' ok':''}${e.alvoPaste===alvo?' ativo':''}" tabindex="0" data-alvo="${alvo}">${f
         ?(f.type&&f.type.startsWith('image/')?`<img src="${esc(url)}" alt="">`:'')+`<div><b>✓ ${esc(f.name)}</b><span>Para trocar, clique aqui e cole outro print (Ctrl+V)</span></div>`
         :`<div><b>Clique aqui e aperte Ctrl+V para colar o print</b><span>Ou arraste o arquivo para cá</span></div>`}</div>
-      <label class="pag-ou">ou <u>escolher um arquivo</u> (foto ou PDF)<input type="file" id="${id}" accept="image/*,application/pdf" hidden></label></div>`;
+      <label class="pag-ou">ou <u>escolher um arquivo</u> (foto ou PDF)<input type="file" id="${id}" accept="image/*,application/pdf" hidden></label>${e.lendo&&e.lendo[alvo]?'<div class="pag-nota">⏳ Lendo o documento para preencher os campos…</div>':(e.nota&&e.nota[alvo]?`<div class="pag-nota">${esc(e.nota[alvo])}</div>`:'')}</div>`;
   };
   document.getElementById('pag-conteudo').innerHTML=`
     <div class="pag-bloco"><div class="fin-rot" style="margin-bottom:6px">O que vai neste link</div>${opt('ambos','Escritura e registro')} ${opt('escritura','Só a escritura')} ${opt('registro','Só o registro')}</div>
@@ -12190,7 +12287,7 @@ function pagProximoAlvo(){
   return e.itens==='registro'?'boleto':'recibo';
 }
 // Depois de guardar, o "onde colar" volta ao automático: o próximo print vai para o que ainda falta, e não por cima do que acabou de entrar.
-function pagGuardarArquivo(alvo,f){ if(!pagEst||!f) return; pagEst[alvo]=f; pagEst.alvoPaste=null; pagEst.erro=''; pagDesenhar(); }
+function pagGuardarArquivo(alvo,f){ if(!pagEst||!f) return; pagEst[alvo]=f; pagEst.alvoPaste=null; pagEst.erro=''; pagDesenhar(); pagLerArquivo(alvo,f); }
 document.addEventListener('paste',ev=>{
   if(!pagEst) return;
   const it=[...(ev.clipboardData&&ev.clipboardData.items||[])].find(x=>x.kind==='file'&&/^image\//.test(x.type));

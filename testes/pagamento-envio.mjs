@@ -136,5 +136,20 @@ await passo('o painel pede o comprovante de volta (para imprimir): só com o sel
   m.db.cobrancas[TOKEN].meta.comprovantes.escritura.selo = 'forjado';
   const f = m.chamar({acao: 'pagamento-ver', casoId: '-Caso1', qual: 'escritura'}); assert.equal(f.ok, false); assert(/não confere/.test(f.erro), 'selo errado: o Drive não é lido');
 });
+
+await passo('ler o recibo/boleto pela IA: devolve o JSON, recusa tipo/arquivo estranho e mostra o erro da IA escrito', () => {
+  const m = mundo(); let pedido = null, saida = '{"total_das_custas":"3.039,89","total_recebido":"3.039,89","parcelas":["1.810,12","1.229,77"]}';
+  m.caixa.chamarClaudeArquivoRaw = (c) => { pedido = c; if (saida instanceof Error) throw saida; return {texto: 'Aqui está:\n' + saida, truncou: false}; };
+  const ok = m.chamar({acao: 'pagamento-ler', tipo: 'recibo', mimetype: 'image/jpeg', base64: B64});
+  assert.equal(ok.ok, true); assert.equal(ok.dados.total_recebido, '3.039,89'); assert.deepEqual(ok.dados.parcelas, ['1.810,12', '1.229,77']);
+  assert.equal(pedido[0].type, 'image'); assert(/TOTAL DAS CUSTAS/.test(pedido[1].text));
+  m.chamar({acao: 'pagamento-ler', tipo: 'boleto', mimetype: 'application/pdf', base64: B64});
+  assert.equal(pedido[0].type, 'document'); assert(/linha_digitavel/.test(pedido[1].text));
+  assert.equal(m.chamar({acao: 'pagamento-ler', tipo: 'outro', mimetype: 'image/jpeg', base64: B64}).ok, false);
+  assert.equal(m.chamar({acao: 'pagamento-ler', tipo: 'recibo', mimetype: 'application/msword', base64: B64}).ok, false);
+  assert.equal(m.chamar({acao: 'pagamento-ler', tipo: 'recibo', mimetype: 'image/jpeg', base64: ''}).ok, false);
+  saida = 'não consegui ler'; assert(/formato legível/.test(m.chamar({acao: 'pagamento-ler', tipo: 'recibo', mimetype: 'image/png', base64: B64}).erro));
+  saida = new Error('IA fora'); assert(/IA fora/.test(m.chamar({acao: 'pagamento-ler', tipo: 'recibo', mimetype: 'image/png', base64: B64}).erro));
+});
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo');
 process.exit(erros.length ? 1 : 0);

@@ -196,5 +196,85 @@ await passo('janela de impressão bloqueada pelo navegador: o aviso explica', as
   assert(/bloqueou a janela/.test(aviso));
 });
 
+
+// ── A leitura do recibo e do boleto ──
+const LINHA = '26091.90299 37227.373505 99600.000006 2 16080000386807';
+const responder = async (pg, resposta) => { await pg.route('https://script.google.com/**', (r) => { const c = JSON.parse(r.request().postData()); (globalThis.__pedidos ||= []).push(c); r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify(typeof resposta === 'function' ? resposta(c) : resposta)}); }); };
+const anexar = async (pg, alvo) => { await pg.setInputFiles('#pag-' + alvo, IMG); };
+
+await passo('a linha digitável do boleto real entrega o valor e o vencimento, conferindo os dígitos', async () => {
+  const pg = await abrir();
+  const r = await pg.evaluate((l) => pagLerLinhaDigitavel(l, new Date(Date.UTC(2026, 9, 20))), LINHA);
+  assert.equal(r.centavos, 386807); assert.equal(r.venc, '23/10/2026'); assert.equal(r.linha, LINHA);
+  assert.equal(await pg.evaluate((l) => pagLerLinhaDigitavel(l.replace('37227.373505', '37227.373506')), LINHA), null, 'um dígito trocado deve reprovar');
+  assert.equal(await pg.evaluate(() => pagLerLinhaDigitavel('123')), null);
+  assert.equal(await pg.evaluate((l) => pagAcharLinhaNoTexto('Boleto ' + l + ' Pague'), LINHA), LINHA);
+});
+
+await passo('o recibo só preenche o valor quando as contas fecham', async () => {
+  const pg = await abrir();
+  const c = (d) => pg.evaluate((x) => pagConferirRecibo(x), d);
+  assert.deepEqual(await c({total_das_custas: '3.039,89', total_recebido: '3.039,89', parcelas: ['1.810,12', '1.229,77']}), {ok: true, centavos: 303989});
+  assert.equal((await c({total_das_custas: '3.039,89', total_recebido: '3.039,88', parcelas: ['3.039,89']})).ok, false, 'totais diferentes');
+  assert.equal((await c({total_das_custas: '3.039,89', total_recebido: '3.039,89', parcelas: ['1.810,12', '1.229,78']})).ok, false, 'soma não bate');
+  assert.equal((await c({total_das_custas: '3.039,89', total_recebido: null, parcelas: ['3.039,89', null]})).ok, false, 'linha ilegível');
+  assert.equal((await c({parcelas: []})).ok, false);
+});
+
+await passo('anexar o recibo preenche o valor da escritura e avisa para conferir', async () => {
+  const pg = await abrir(); globalThis.__pedidos = [];
+  await responder(pg, {ok: true, dados: {total_das_custas: '3.039,89', total_recebido: '3.039,89', parcelas: ['1.810,12', '1.229,77']}});
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await anexar(pg, 'recibo');
+  await pg.waitForFunction(() => document.querySelector('#pag-valE').value !== '');
+  assert.equal(await pg.inputValue('#pag-valE'), '3.039,89');
+  const t = await pg.innerText('#pag-conteudo'); assert(/lido do documento/i.test(t) && /conferido/i.test(t), t);
+  assert.equal(globalThis.__pedidos[0].acao, 'pagamento-ler'); assert.equal(globalThis.__pedidos[0].tipo, 'recibo');
+});
+
+await passo('o que ela já digitou nunca é trocado pela leitura', async () => {
+  const pg = await abrir();
+  await responder(pg, {ok: true, dados: {total_das_custas: '3.039,89', total_recebido: '3.039,89', parcelas: ['3.039,89']}});
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.fill('#pag-valE', '100,00'); await anexar(pg, 'recibo');
+  await pg.waitForFunction(() => /não mexi/.test(document.querySelector('#pag-conteudo').innerText));
+  assert.equal(await pg.inputValue('#pag-valE'), '100,00');
+});
+
+await passo('recibo que não fecha: o valor fica em branco e o motivo aparece escrito', async () => {
+  const pg = await abrir();
+  await responder(pg, {ok: true, dados: {total_das_custas: '3.039,89', total_recebido: '3.039,89', parcelas: ['1.000,00']}});
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await anexar(pg, 'recibo');
+  await pg.waitForFunction(() => /não preenchi/.test(document.querySelector('#pag-conteudo').innerText));
+  assert.equal(await pg.inputValue('#pag-valE'), '');
+});
+
+await passo('anexar o boleto preenche valor, vencimento, código, beneficiário e CNPJ', async () => {
+  const pg = await abrir();
+  await pg.addInitScript(() => { const D = Date; globalThis.Date = class extends D { constructor(...a) { a.length ? super(...a) : super(D.UTC(2026, 9, 20)); } static now() { return D.UTC(2026, 9, 20); } }; });
+  await responder(pg, {ok: true, dados: {linha_digitavel: LINHA, beneficiario: 'OUTRA ASSESSORIA LTDA', cnpj: '11.222.333/0001-81'}});
+  await pg.goto('http://127.0.0.1:8199/harness-pagamento.html');
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await anexar(pg, 'boleto');
+  await pg.waitForFunction(() => document.querySelector('#pag-codigo').value !== '');
+  assert.equal(await pg.inputValue('#pag-valR'), '3.868,07'); assert.equal(await pg.inputValue('#pag-venc'), '23/10/2026');
+  assert.equal(await pg.inputValue('#pag-codigo'), LINHA);
+  assert.equal(await pg.inputValue('#pag-benef'), 'OUTRA ASSESSORIA LTDA'); assert.equal(await pg.inputValue('#pag-cnpj'), '11.222.333/0001-81');
+});
+
+await passo('código de barras com dígito errado não é preenchido, e o aviso diz isso', async () => {
+  const pg = await abrir();
+  await responder(pg, {ok: true, dados: {linha_digitavel: LINHA.replace('99600.000006', '99600.000007'), beneficiario: null, cnpj: null}});
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await anexar(pg, 'boleto');
+  await pg.waitForFunction(() => /não passou na conferência/.test(document.querySelector('#pag-conteudo').innerText));
+  assert.equal(await pg.inputValue('#pag-codigo'), ''); assert.equal(await pg.inputValue('#pag-valR'), '');
+});
+
+await passo('a leitura falha (Apps Script antigo ou IA fora): não trava nada, ela digita à mão', async () => {
+  const pg = await abrir();
+  await responder(pg, {ok: false, erro: 'Ação desconhecida'});
+  await pg.evaluate(() => abrirPagamento('-Caso1')); await anexar(pg, 'recibo');
+  await pg.waitForFunction(() => /Preencha à mão/.test(document.querySelector('#pag-conteudo').innerText));
+  await pg.fill('#pag-valE', '3.039,89'); assert.equal(await pg.inputValue('#pag-valE'), '3.039,89');
+  assert.equal(await pg.evaluate(() => !!pagEst.recibo), true);
+});
+
 await b.close(); servidor.close();
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);

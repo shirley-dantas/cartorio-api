@@ -1154,6 +1154,7 @@ function doPost(e) {
     if (acao === "pagamento-arquivo") return pagamentoArquivo(dados);
     if (acao === "pagamento-concluir") return pagamentoConcluir(dados);
     if (acao === "pagamento-ver") return pagamentoVer(dados);
+    if (acao === "pagamento-ler") return pagamentoLer(dados);
     if (acao === "cliente-remover") return clienteRemover(dados);
     if (acao === "cliente-excluir") return clienteExcluir(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
@@ -1754,6 +1755,42 @@ function pagamentoConcluir(dados) {
   try { firebaseGravar("patch", "/casos/" + ctx.casoId + "/pagamento", { status: "recebido", recebidoEm: agora, visto: false }); } catch (e) { /* o aviso é cortesia */ }
   try { enviarWhatsApp("💳 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou o comprovante de pagamento (" + itens.map(function (k) { return PAGAMENTO_ROTULO[k]; }).join(" e ") + "). Está no card."); } catch (e) { /* aviso é cortesia */ }
   return resp({ ok: true });
+}
+
+// O painel pede para a IA ler o recibo ou o boleto que acabou de anexar, e preencher os campos da janela de pagamento.
+// O que volta é HIPÓTESE: o painel confere as contas (o total do recibo contra a soma das parcelas; o valor e o
+// vencimento do boleto contra a linha digitável) antes de preencher qualquer coisa, e ela ainda confere à vista.
+var PAGAMENTO_LER_MAX_BASE64 = 7 * 1024 * 1024;
+function instrucaoLerPagamento(tipo) {
+  if (tipo === "recibo") {
+    return "Este é o recibo de pagamento de um cartório de notas. Responda SOMENTE com um JSON, sem explicação e sem formatação, neste formato exato: " +
+      '{"total_das_custas":"3.039,89","total_recebido":"3.039,89","parcelas":["1.810,12","514,46"]}. ' +
+      "total_das_custas é o valor da linha 'TOTAL DAS CUSTAS'; total_recebido é o da linha 'Total Recebido'; parcelas são os valores de cada linha de despesa listada (emolumentos, estado, secretaria da fazenda, ISS, ministério público, registro civil, tribunal de justiça, santa casa etc.), na ordem em que aparecem, sem o total. " +
+      "Copie os números dígito por dígito, exatamente como estão impressos, no formato brasileiro (ponto de milhar, vírgula nos centavos). Dígitos parecidos (0/6/8, 1/7, 3/8, 5/6) devem ser conferidos duas vezes. Se algum valor não estiver nítido, use null no lugar dele em vez de adivinhar.";
+  }
+  return "Este é um boleto bancário. Responda SOMENTE com um JSON, sem explicação e sem formatação, neste formato exato: " +
+    '{"linha_digitavel":"26091.90299 37227.373505 99600.000006 2 16080000386807","beneficiario":"NOME DO BENEFICIÁRIO","cnpj":"47.141.731/0001-10"}. ' +
+    "linha_digitavel é a sequência de 47 dígitos impressa acima do código de barras (a 'ficha de compensação'), com a pontuação e os espaços do jeito que aparecem; beneficiario é o nome de quem recebe (o 'Beneficiário'); cnpj é o CNPJ ou CPF do beneficiário. " +
+    "Copie os números dígito por dígito, exatamente como estão impressos. Dígitos parecidos (0/6/8, 1/7, 3/8, 5/6) devem ser conferidos duas vezes. Se algum campo não estiver nítido, use null no lugar dele em vez de adivinhar.";
+}
+function pagamentoLer(dados) {
+  var tipo = String(dados.tipo || ""), mime = String(dados.mimetype || "").toLowerCase(), b64 = String(dados.base64 || "");
+  if (tipo !== "recibo" && tipo !== "boleto") return resp({ ok: false, erro: "Pedido inválido." });
+  if (MIMES_LEITURA_IA.indexOf(mime) === -1) return resp({ ok: false, erro: "A IA só lê PDF e imagem." });
+  if (!b64 || b64.length > PAGAMENTO_LER_MAX_BASE64) return resp({ ok: false, erro: "Arquivo vazio ou grande demais para ler." });
+  var bloco = mime === "application/pdf"
+    ? { type: "document", source: { type: "base64", media_type: mime, data: b64 } }
+    : { type: "image", source: { type: "base64", media_type: mime, data: b64 } };
+  var r;
+  try { r = chamarClaudeArquivoRaw([bloco, { type: "text", text: instrucaoLerPagamento(tipo) }]); }
+  catch (e) { return resp({ ok: false, erro: String(e && e.message || e).slice(0, 200) }); }
+  var texto = String((r && r.texto) || "");
+  var m = texto.match(/\{[\s\S]*\}/);
+  if (!m) return resp({ ok: false, erro: "A IA não devolveu os dados em formato legível." });
+  var obj;
+  try { obj = JSON.parse(m[0]); } catch (e) { return resp({ ok: false, erro: "A IA devolveu os dados em formato ilegível." }); }
+  if (!obj || typeof obj !== "object") return resp({ ok: false, erro: "A IA não devolveu os dados." });
+  return resp({ ok: true, dados: obj });
 }
 
 // O painel pede o comprovante de volta para imprimir (a equipe leva ao financeiro do cartório). O banco é aberto,
