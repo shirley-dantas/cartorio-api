@@ -1284,6 +1284,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   position:sticky;top:36px;z-index:2}
 .fin-planilha .fin-total td:first-child{font-family:'Jost',sans-serif;font-size:10px;letter-spacing:.12em;
   text-transform:uppercase;font-weight:500;color:#C0392B}
+/* O DSR vem antes do total porque é parcela dele: a linha de cima soma a
+   escritura, esta soma o mês, e o vermelho fecha as duas. */
+.fin-planilha .fin-dsr td{padding:8px 10px;background:#FAF8F4;border-bottom:0.5px solid #EFE9DD;
+  font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12.5px;color:#6B6B70;
+  position:sticky;top:36px;z-index:2}
+.fin-planilha .fin-dsr td:first-child{font-family:'Jost',sans-serif;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:#8E8EA0;display:flex;align-items:center;gap:8px}
+.fin-dsr-campo{width:110px;padding:4px 8px;font-size:12px;text-align:right;text-transform:none;letter-spacing:0;
+  font-family:'Inter',sans-serif}
+.fin-planilha .fin-total td{top:70px}
+.fin-pilula-dsr{font-size:11px;color:#2E7D32;margin-top:2px}
 .fin-linha-detalhe td{background:#FAF8F4;padding:0 10px 12px}
 /* Segmentado bruto/líquido: dois estados, sem menu. */
 .fin-seg{display:inline-flex;border:0.5px solid #D1D1D6;border-radius:9px;overflow:hidden;background:#F5F5F7}
@@ -7989,19 +8000,21 @@ window.finLiberarConta=async function(){
 // O dinheiro não se reparte num bolo só: ele desce uma escada, e cada degrau
 // tem dono. Do que a cliente paga pela escritura, uma parte fica com o
 // cartório/tributos e outra é a parte do tabelião. Sobre a PARTE DO TABELIÃO
-// (nunca sobre o valor cheio) ele repassa 25% + DSR à Shirley — e o DSR não
-// entra em conta nenhuma aqui, a pedido dela.
+// (nunca sobre o valor cheio) ele repassa 25% + DSR. Desde outubro/2026 o
+// DSR entra na conta: ele é um valor do mês, somado ao repasse das
+// escrituras antes da divisão (ver finPartesDsr).
 //
 //   Escritura da Tania      R$ 5.755,61   ← a cliente pagou
 //   Parte do tabelião       R$ 3.427,23   ← só sobre isto incide comissão
 //   Repasse de 25%          R$   856,80   ← é o que vem para a mesa
-//     Shirley, metade       R$   428,40   ← passa inteira: o IR dela é dela
-//     Grazi,   metade       R$   428,40   − IR 27,5% → R$ 310,59 na mão
+//     Shirley, metade       R$   428,40
+//     Grazi,   metade       R$   428,40   ← as duas recebem igual
 //
-// O IR não sai do bolo antes da divisão: ele é retido no que é REPASSADO a
-// outra pessoa. Por isso ele é um atributo de quem recebe, e não do
-// lançamento — a parte da Shirley passa bruta, a da Grazi e a dos parceiros
-// saem já descontadas.
+// O IR é retido no que é REPASSADO a outra pessoa, e por isso é atributo de
+// quem recebe, não do lançamento. Desde outubro/2026 a equipe não tem mais
+// IR retido aqui — o tabelião já recolhe antes de pagar, e descontar de novo
+// tiraria 27,5% de um valor já tributado. Os parceiros continuam com os
+// 27,5%, porque o repasse a eles sai depois.
 //
 // A divisão do que sobra é por QUOTAS iguais, e quem entra depende do
 // parceiro que trouxe o caso — não é percentual fixo por pessoa:
@@ -8024,6 +8037,7 @@ window.finLiberarConta=async function(){
 const finLancRef=ref(db,'financeiro/lancamentos');
 const finCfgRef=ref(db,'financeiro/config');
 const finPessoalRef=ref(db,'financeiro/pessoal');
+const finDsrRef=ref(db,'financeiro/dsr');
 
 // Já nasce com os arranjos reais da Shirley — cadastrar tudo do zero seria
 // pedir pra ela redigitar o que já me contou.
@@ -8032,7 +8046,7 @@ const FIN_CFG_PADRAO={
   percentualIR:27.5,
   pessoas:[
     {id:'shirley', nome:'Shirley', tipo:'equipe',   descontaIR:false, souEu:true},
-    {id:'grazi',   nome:'Grazi',   tipo:'equipe',   descontaIR:true},
+    {id:'grazi',   nome:'Grazi',   tipo:'equipe',   descontaIR:false},
     {id:'renato',  nome:'Renato',  tipo:'parceiro', descontaIR:true},
     {id:'basiotti',nome:'Basiotti',tipo:'parceiro', descontaIR:true},
     {id:'vinicius',nome:'Vinicius',tipo:'parceiro', descontaIR:true}
@@ -8047,6 +8061,10 @@ const FIN_CFG_PADRAO={
 };
 
 let finLanc={};
+// O DSR não é de uma escritura: é um valor do mês que o tabelião paga junto
+// com o repasse, e que entra no bolo a dividir. Por isso mora por ciclo de
+// fechamento, e não dentro do lançamento.
+let finDsr={};
 let finCfg=JSON.parse(JSON.stringify(FIN_CFG_PADRAO));
 let finAba='lancamentos';
 let finCiclo=null;            // chave 'AAAA-MM' do fechamento, ou '' pra todos
@@ -8196,13 +8214,19 @@ function finConta(l){
       const p=finPessoa(pid);
       const ajustado=ajustes[pid]!==undefined&&ajustes[pid]!==''&&ajustes[pid]!==null;
       const bCent=ajustado?Math.round(finNum(ajustes[pid])*100):(partes[gi]||0);
-      const irCent=p.descontaIR===false?0:Math.round(bCent*pctIR/100);
+      // Só parceiro tem IR retido aqui. A equipe é paga pelo próprio tabelião,
+      // que já recolhe antes de repassar — reter de novo tiraria 27,5% de um
+      // valor já tributado. A regra mora no código, e não numa caixinha de
+      // Ajustes, porque esquecer de desmarcá-la faria o fechamento sair 27,5%
+      // menor para a Grazi sem ninguém perceber.
+      const retemIR=(p.tipo==='parceiro')&&p.descontaIR!==false;
+      const irCent=retemIR?Math.round(bCent*pctIR/100):0;
       const rep=(l.repasses||{})[pid]||{};
       linhas.push({
         id:pid,nome:p.nome||pid,tipo:p.tipo||'equipe',
         quotaRot:quotas.length?`1/${quotas.length}${grupo.length>1?` ÷ ${grupo.length}`:''}`:'—',
         bruto:bCent/100, ir:irCent/100, liquido:(bCent-irCent)/100,
-        descontaIR:p.descontaIR!==false, ajustado,
+        descontaIR:retemIR, ajustado,
         repassado:rep.repassado===true, repassadoEm:rep.repassadoEm||''
       });
     });
@@ -8227,6 +8251,22 @@ function finConta(l){
     }
   };
 }
+function finDsrDoCiclo(ciclo){
+  if(ciclo)return finCent(finNum(finDsr[ciclo]));
+  // "todos os fechamentos" soma o DSR de todos eles
+  return finCent(Object.keys(finDsr).reduce((s,k)=>s+finNum(finDsr[k]),0));
+}
+// O DSR se divide só entre a equipe: ele vem do cartório pelo mês trabalhado,
+// não de um caso que um parceiro trouxe.
+function finPartesDsr(ciclo){
+  const equipe=finPessoas().filter(p=>p.tipo!=='parceiro'&&p.ativo!==false);
+  const partes=finDividirCentavos(Math.round(finDsrDoCiclo(ciclo)*100),equipe.length);
+  return equipe.map((p,i)=>({id:p.id,nome:p.nome,valor:(partes[i]||0)/100}));
+}
+function finDsrDe(pessoaId,ciclo){
+  const p=finPartesDsr(ciclo).find(x=>x.id===pessoaId);
+  return p?p.valor:0;
+}
 function finDataOrd(l){return (l.status==='pago'?(l.dataPagamento||l.vencimento):(l.vencimento||l.dataPagamento))||l.criadoEm||'';}
 function finCicloDoLanc(l){return finCicloDaData(finDataOrd(l));}
 let finLinhaAberta=null;
@@ -8244,6 +8284,10 @@ function finLigarEscuta(){
     finRedesenharCards();
     finRedesenharQuadro();
   },erro=>finErroPermissao(erro));
+  onValue(finDsrRef,snap=>{
+    finDsr=snap.val()||{};
+    if(finAberto)renderFinanceiro();
+  },()=>{});
   onValue(finCfgRef,snap=>{
     const v=snap.val();
     if(v&&Array.isArray(v.pessoas)&&v.pessoas.length){
@@ -8398,10 +8442,20 @@ function finHtmlLancamentos(){
           <th class="num">Registro</th>
           <th></th>
         </tr>
+        <tr class="fin-dsr">
+          <td>${finCiclo
+            ?`DSR do fechamento <input class="fin-input fin-dsr-campo" inputmode="decimal" placeholder="0,00" value="${finDsrDoCiclo(finCiclo)?finBr(finDsrDoCiclo(finCiclo)):''}" onchange="finSalvarDsr(this.value)" title="O valor que o tabelião paga pelo mês, somado ao repasse antes da divisão">`
+            :'DSR (todos os fechamentos)'}</td>
+          <td class="num">—</td>
+          ${equipe.map(p=>`<td class="num">${finDsrDe(p.id,finCiclo)?finMoeda(finDsrDe(p.id,finCiclo)):'—'}</td>`).join('')}
+          <td class="fin-col-parceiro">—</td>
+          <td class="num">—</td>
+          <td></td>
+        </tr>
         <tr class="fin-total">
-          <td>Total pago no fechamento</td>
+          <td>Total do fechamento</td>
           <td class="num">${finMoeda(tot.tabeliao)}</td>
-          ${equipe.map(p=>`<td class="num">${finMoeda(tot.pessoas[p.id])}</td>`).join('')}
+          ${equipe.map(p=>`<td class="num">${finMoeda(finCent(tot.pessoas[p.id]+finDsrDe(p.id,finCiclo)))}</td>`).join('')}
           <td class="fin-col-parceiro">${tot.parceiro?finMoeda(tot.parceiro):'—'}</td>
           <td class="num">${tot.registro?finMoeda(tot.registro):'—'}</td>
           <td></td>
@@ -8429,6 +8483,16 @@ function finHtmlEscada(c,l){
 window.finAbrirLinha=function(id){finLinhaAberta=finLinhaAberta===id?null:id;renderFinanceiro();};
 window.finVerValores=function(b){finVerBruto=b;renderFinanceiro();};
 window.finMudarCiclo=function(v){finCiclo=v;renderFinanceiro();};
+// O DSR é digitado uma vez por fechamento, no topo da própria planilha: é
+// onde ele é conferido, e onde dá para ver na hora em quanto ele muda a
+// parte de cada uma.
+window.finSalvarDsr=function(valor){
+  if(!finCiclo)return;
+  const v=finCent(finNum(valor));
+  if(v)set(ref(db,'financeiro/dsr/'+finCiclo),v);
+  else remove(ref(db,'financeiro/dsr/'+finCiclo));
+  finToast(v?'DSR do fechamento guardado.':'DSR do fechamento apagado.');
+};
 window.finMudarStatus=function(v){finFiltroStatus=v;renderFinanceiro();};
 
 // ── Formulário ──
@@ -8497,7 +8561,7 @@ function finHtmlForm(){
       </div>
       <div class="fin-campo" style="margin-bottom:11px">
         <label class="fin-rot">Observação (opcional)</label>
-        <input class="fin-input" id="fin-f-obs" placeholder="Ex: DSR de R$ 42,15 recebido junto — fora da conta" value="${esc(l.obs||'')}">
+        <input class="fin-input" id="fin-f-obs" placeholder="Ex: cliente pediu boleto para o dia 10" value="${esc(l.obs||'')}">
       </div>
       <label class="fin-rot">Como a conta desce</label>
       <div class="fin-preview" id="fin-preview"></div>
@@ -8557,7 +8621,7 @@ function finPrevia(){
   box.innerHTML=`
     <div class="fin-preview-linha"><span>Parte do tabelião</span><b>${finMoeda(c.tabeliao)}</b></div>
     <div class="fin-preview-linha"><span>Fica com o tabelião</span><b>${finMoeda(c.ficaTabeliao)}</b></div>
-    <div class="fin-preview-linha sobra"><span>Repasse de ${c.pctRepasse}% a dividir — ${escTxt(c.arranjo.nome)} <span class="fin-mini">(DSR fora da conta)</span></span><b>${finMoeda(c.bruto)}</b></div>
+    <div class="fin-preview-linha sobra"><span>Repasse de ${c.pctRepasse}% a dividir — ${escTxt(c.arranjo.nome)} <span class="fin-mini">o DSR do mês entra no fechamento</span></span><b>${finMoeda(c.bruto)}</b></div>
     ${c.linhas.map(d=>`
       <div class="fin-preview-linha" style="align-items:center">
         <span>${escTxt(d.nome)} <span class="fin-div-pct">${d.quotaRot}${d.descontaIR?` · − IR ${finPct(c.pctIR)}% (${finMoeda(d.ir)}) · repassa ${finMoeda(d.liquido)}`:' · sem IR, passa inteiro'}</span></span>
@@ -8661,7 +8725,10 @@ function finApuracao(){
       m.itens.push({l,d,pago});
     });
   });
-  return {pessoas:Object.keys(mapa).map(k=>mapa[k]).filter(m=>m.itens.length),tabeliao,tabeliaoPrev};
+  return {
+    pessoas:Object.keys(mapa).map(k=>mapa[k])
+      .filter(m=>m.itens.length||(m.pessoa.tipo!=='parceiro'&&finDsrDe(m.pessoa.id,finCiclo))),
+    tabeliao,tabeliaoPrev};
 }
 function finHtmlPessoas(){
   const ap=finApuracao();
@@ -8682,14 +8749,18 @@ function finHtmlPessoas(){
     if(nomes.length<=3)return nomes.join(' · ');
     return nomes.slice(0,2).join(' · ')+' + '+(nomes.length-2)+' outros';
   };
-  const pilula=(m)=>`
+  const pilula=(m)=>{
+    const dsr=m.pessoa.tipo!=='parceiro'?finDsrDe(m.pessoa.id,finCiclo):0;
+    return `
     <div class="fin-pilula${m.ir?' com-ir':''}">
       <span class="fin-pilula-nome">${escTxt(m.pessoa.nome)}</span>
-      <span class="fin-pilula-valor">${finMoeda(m.liquido)}</span>
+      <span class="fin-pilula-valor">${finMoeda(finCent(m.liquido+dsr))}</span>
+      ${dsr?`<span class="fin-pilula-dsr">inclui ${finMoeda(dsr)} de DSR do fechamento</span>`:''}
       ${m.pessoa.tipo==='parceiro'?`<span class="fin-pilula-casos">${escTxt(casosDe(m))}</span>`:''}
       ${m.previsto?`<span class="fin-pilula-extra">+ ${finMoeda(m.previsto)} nas que ainda não foram pagas</span>`:''}
       ${m.ir?`<span class="fin-pilula-nota">Líquido — os ${finPct(finCfg.percentualIR)}% de IR já saíram no repasse (${finMoeda(m.ir)} sobre ${finMoeda(m.bruto)})</span>`:''}
     </div>`;
+  };
   return `
     <div class="fin-filtros">${finSeletorCiclo()}</div>
     <div class="fin-mini" style="margin:-4px 0 12px">Quanto fica para cada um neste fechamento.</div>
@@ -8766,10 +8837,10 @@ function finHtmlAjustes(){
   return `
     <div class="fin-aviso">
       <b>É daqui que sai toda a conta.</b> O repasse incide sobre a parte do tabelião — nunca sobre o valor
-      cheio da escritura. O DSR fica fora, como você pediu. O <b>IR é retido no repasse</b>, não no bolo:
-      a sua parte passa bruta, a de quem recebe de você sai descontada. Nos arranjos, <b>quem tem o mesmo
-      número divide a mesma parte</b> — é assim que Shirley e Grazi entram juntas como uma sócia só nos
-      casos do Basiotti.
+      cheio da escritura. O <b>IR só é retido no repasse a parceiro</b>: a equipe é paga pelo tabelião, que
+      já recolhe antes. Nos arranjos, <b>quem tem o mesmo número divide a mesma parte</b> — é assim que
+      Shirley e Grazi entram juntas como uma sócia só nos casos do Basiotti. O <b>DSR do mês</b> é digitado
+      no topo da planilha e se divide entre a equipe.
     </div>
     <div class="fin-grade" style="max-width:460px">
       <div class="fin-campo">
@@ -8805,7 +8876,9 @@ function finHtmlCfgPessoa(p){
       <option value="equipe"${p.tipo!=='parceiro'?' selected':''}>Equipe</option>
       <option value="parceiro"${p.tipo==='parceiro'?' selected':''}>Parceiro</option>
     </select>
-    <label class="fin-check" title="Reter os 27,5% ao repassar para esta pessoa. Deixe desmarcado na sua própria linha: a sua parte passa bruta."><input type="checkbox" class="cfg-ir" ${p.descontaIR!==false?'checked':''}>retém</label>
+    ${p.tipo==='parceiro'
+      ? `<label class="fin-check" title="Reter os 27,5% ao repassar para este parceiro."><input type="checkbox" class="cfg-ir" ${p.descontaIR!==false?'checked':''}>retém</label>`
+      : `<span class="fin-mini">o tabelião já recolhe</span><input type="checkbox" class="cfg-ir" style="display:none">`}
     <label class="fin-check"><input type="checkbox" class="cfg-eu" ${p.souEu?'checked':''}>sou eu</label>
     <button type="button" class="btn-sm btn-excluir" onclick="finRemoverPessoa(this)" title="Remover"><i class="ti ti-x" style="font-size:12px"></i></button>
   </div>`;
@@ -9198,6 +9271,10 @@ function finMeuSalario(ciclo){
     });
   });
   itens.sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+  // O DSR é parte do que o cartório paga pelo mês: entra no salário junto
+  // com as comissões, senão o número aqui seria menor que o que ela recebe.
+  const dsr=finDsrDe(eu.id,ciclo);
+  if(dsr)itens.push({descricao:'DSR do fechamento',data:'',valor:dsr,bruto:dsr,ir:0,repassado:false,ehDsr:true});
   return {total:finCent(itens.reduce((s,x)=>s+x.valor,0)),itens,semDono:false};
 }
 let finCicloPessoal=null;

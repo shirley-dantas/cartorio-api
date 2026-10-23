@@ -39,6 +39,12 @@
         ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
         ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
       },
+      // O DSR do mês: um valor por fechamento, somado ao repasse antes da
+      // divisão entre a equipe.
+      "dsr": {
+        ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+        ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+      },
       // O cofre pessoal já vai cifrado, mas nem o embrulho precisa circular:
       // só a conta marcada como dona chega até ele.
       "pessoal": {

@@ -2,19 +2,24 @@
 //
 // Roda com: node testes/celular.mjs
 // (o montar.mjs recorta o financeiro do index.html antes de cada execução)
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import {servir} from './servidor.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 // As imagens saem sempre em testes/saida, mesmo rodando de outra pasta.
 const SAIDA=(n)=>join(dirname(fileURLToPath(import.meta.url)),'saida',n);
 const servidor=await servir();
+const BASE=servidor.url;
 const erros=[];
-const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+// Tudo lançado com a data de hoje, nunca com uma data fixa: o painel abre
+// sempre no fechamento corrente, e uma data de agosto fazia a suíte inteira
+// falhar em outubro — por um motivo que não era do painel.
+const HOJE=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+const b=await abrirChromium();
 // iPhone 13 em pé
 const pg=await b.newPage({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});
 pg.on('pageerror',e=>erros.push('pageerror: '+e.message));
-await pg.goto('http://127.0.0.1:8199/harness.html');
+await pg.goto(BASE+'/harness.html');
 await pg.waitForFunction(()=>window.__pronto===true);
 const limpo=s=>s.replace(/ /g,' ').replace(/\s+/g,' ');
 const passo=async(n,f)=>{try{await f();console.log('  ok  '+n);}catch(e){erros.push(n+' → '+e.message);console.log('FALHA '+n+' → '+e.message);}};
@@ -63,7 +68,7 @@ await passo('dá para lançar uma escritura pelo celular',async()=>{
   await pg.fill('#fin-f-descricao','Tania — compra e venda');
   await pg.fill('#fin-f-tabeliao','3.427,23');
   await pg.selectOption('#fin-f-status','pago');
-  await pg.fill('#fin-f-data','2026-08-10');
+  await pg.fill('#fin-f-data',HOJE);
   await pg.waitForTimeout(200);
   const p=limpo(await pg.textContent('#fin-preview'));
   if(!p.includes('R$ 856,80'))throw new Error('a prévia não fechou → '+p.slice(0,200));
