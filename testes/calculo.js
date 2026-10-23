@@ -23,10 +23,20 @@ ok('duas pessoas na divisão',c.linhas.length===2,c.linhas.map(x=>x.nome));
 ok('Shirley: metade de 856,80 = 428,40',perto(c.linhas[0].bruto,428.40),c.linhas[0].bruto);
 ok('Shirley: sem IR retido — a parte dela passa inteira',c.linhas[0].ir===0&&perto(c.linhas[0].liquido,428.40),c.linhas[0]);
 ok('Grazi: metade de 856,80 = 428,40',perto(c.linhas[1].bruto,428.40));
-ok('Grazi: IR de 117,81 retido no repasse',perto(c.linhas[1].ir,117.81),c.linhas[1].ir);
-ok('Grazi: 310,59 na mão',perto(c.linhas[1].liquido,310.59),c.linhas[1].liquido);
-ok('IR total do lançamento é só o da Grazi',perto(c.irTotal,117.81),c.irTotal);
+// Desde outubro/2026 o tabelião já recolhe o IR das duas antes de pagar:
+// descontar de novo aqui tiraria 27,5% de um valor que já foi tributado.
+ok('Grazi: sem IR retido — recebe igual à Shirley',c.linhas[1].ir===0&&perto(c.linhas[1].liquido,428.40),c.linhas[1]);
+ok('o lançamento direto não retém IR de ninguém',c.irTotal===0,c.irTotal);
 ok('o repasse continua inteiro: 428,40 + 428,40 = 856,80',perto(c.linhas.reduce((s,x)=>s+x.bruto,0),856.80));
+
+// A configuração salva no Firebase em agosto ainda tem a Grazi com IR. Se a
+// caixinha mandasse, o fechamento de outubro sairia 27,5% menor para ela.
+const cfgAntiga=JSON.parse(JSON.stringify(finCfg));
+finCfg.pessoas=finCfg.pessoas.map(p=>p.tipo==='parceiro'?p:{...p,descontaIR:true});
+const comCfgVelha=finConta(tania);
+ok('config antiga com IR ligado não retém nada da equipe',
+   comCfgVelha.linhas.every(l=>l.ir===0),comCfgVelha.linhas.map(l=>l.nome+':'+l.ir));
+finCfg=cfgAntiga;
 
 console.log('\n— Os arranjos dos parceiros —');
 const comRenato=finConta({...tania,arranjoId:'renato'});
@@ -34,8 +44,8 @@ ok('Renato: três partes iguais',comRenato.linhas.length===3&&perto(comRenato.li
 ok('Renato: soma bruta continua 856,80',perto(comRenato.linhas.reduce((s,x)=>s+x.bruto,0),856.80));
 const comVinicius=finConta({...tania,arranjoId:'vinicius'});
 ok('Vinicius: Shirley, Grazi e Vinicius',comVinicius.linhas.map(x=>x.id).join(',')==='shirley,grazi,vinicius',comVinicius.linhas.map(x=>x.id));
-ok('Renato: só a Shirley escapa do IR (285,60 × 207,06)',
-   perto(comRenato.linhas[0].liquido,285.60)&&perto(comRenato.linhas[1].liquido,207.06)&&perto(comRenato.linhas[2].liquido,207.06),
+ok('Renato: a equipe passa inteira, o parceiro sai com IR (285,60 · 285,60 · 207,06)',
+   perto(comRenato.linhas[0].liquido,285.60)&&perto(comRenato.linhas[1].liquido,285.60)&&perto(comRenato.linhas[2].liquido,207.06),
    comRenato.linhas.map(x=>x.nome+':'+x.liquido));
 const comBasiotti=finConta({...tania,arranjoId:'basiotti'});
 ok('Basiotti: quatro nomes em três partes',comBasiotti.linhas.length===4);
@@ -46,8 +56,8 @@ ok('Basiotti: Basiotti e Renato com 1/3 cada (285,60)',
    perto(comBasiotti.linhas[2].bruto,285.60)&&perto(comBasiotti.linhas[3].bruto,285.60),
    comBasiotti.linhas.map(x=>x.nome+':'+x.bruto));
 ok('Basiotti: nada se perde no arredondamento',perto(comBasiotti.linhas.reduce((s,x)=>s+x.bruto,0),856.80));
-ok('Basiotti: na mão ficam 142,80 · 103,53 · 207,06 · 207,06',
-   [142.80,103.53,207.06,207.06].every((v,i)=>perto(comBasiotti.linhas[i].liquido,v)),
+ok('Basiotti: na mão ficam 142,80 · 142,80 · 207,06 · 207,06',
+   [142.80,142.80,207.06,207.06].every((v,i)=>perto(comBasiotti.linhas[i].liquido,v)),
    comBasiotti.linhas.map(x=>x.nome+':'+x.liquido));
 
 console.log('\n— O centavo ímpar, como na planilha —');
@@ -115,17 +125,32 @@ ok('Shirley: já repassado 428,40',perto(eu.repassado,428.40),eu.repassado);
 ok('Shirley: a repassar 142,80',perto(eu.liquido-eu.repassado,142.80));
 ok('Shirley: previsto 125,00 da escritura pendente',perto(eu.previsto,125),eu.previsto);
 const gr=ap.pessoas.find(m=>m.pessoa.id==='grazi');
-ok('Grazi: 310,59 + 103,53 = 414,12 na mão',perto(gr.liquido,414.12),gr.liquido);
-ok('Grazi: 157,08 de IR retido no ciclo',perto(gr.ir,157.08),gr.ir);
+ok('Grazi: 428,40 + 142,80 = 571,20, igual à Shirley',perto(gr.liquido,571.20),gr.liquido);
+ok('Grazi: nenhum IR retido no ciclo',gr.ir===0,gr.ir);
 ok('Renato entra só pelo caso do Basiotti',perto(ap.pessoas.find(m=>m.pessoa.id==='renato').liquido,207.06),
    ap.pessoas.find(m=>m.pessoa.id==='renato').liquido);
 ok('Vinicius não aparece — não participou de nada',!ap.pessoas.find(m=>m.pessoa.id==='vinicius'));
 ok('tabelião fica com 2.570,43 × 2',perto(ap.tabeliao,5140.86),ap.tabeliao);
 
+console.log('\n— O DSR do fechamento —');
+finDsr={'2026-08':1000};
+ok('o DSR do ciclo é lido inteiro',perto(finDsrDoCiclo('2026-08'),1000),finDsrDoCiclo('2026-08'));
+const partes=finPartesDsr('2026-08');
+ok('divide só entre a equipe',partes.map(p=>p.id).join(',')==='shirley,grazi',partes.map(p=>p.id));
+ok('metade para cada uma',perto(partes[0].valor,500)&&perto(partes[1].valor,500),partes);
+ok('parceiro não entra no DSR',finDsrDe('renato','2026-08')===0);
+ok('outro fechamento não herda o DSR',finDsrDoCiclo('2026-09')===0);
+finDsr={'2026-08':1000.01};
+ok('centavo ímpar é arredondado por parte, como no repasse',
+   perto(finDsrDe('shirley','2026-08'),500.01)&&perto(finDsrDe('grazi','2026-08'),500.01),
+   finPartesDsr('2026-08'));
+finDsr={'2026-08':1000};
+
 console.log('\n— Salário: a soma das comissões do fechamento —');
 const sal=finMeuSalario('2026-08');
-ok('soma as duas escrituras pagas do ciclo',perto(sal.total,571.20),sal.total);
-ok('a pendente fica de fora',sal.itens.length===2,sal.itens.map(x=>x.descricao));
+ok('soma as escrituras pagas e o DSR do ciclo',perto(sal.total,1071.20),sal.total);
+ok('o DSR aparece como uma linha própria',!!sal.itens.find(x=>x.ehDsr&&perto(x.valor,500)),sal.itens.map(x=>x.descricao));
+ok('a pendente fica de fora',sal.itens.filter(x=>!x.ehDsr).length===2,sal.itens.map(x=>x.descricao));
 ok('cada linha traz de onde veio',sal.itens.every(x=>x.descricao&&x.valor>0));
 ok('outro fechamento vem zerado',finMeuSalario('2026-09').total===0);
 const semDono=JSON.parse(JSON.stringify(finCfg));

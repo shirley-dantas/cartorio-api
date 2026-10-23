@@ -22,8 +22,9 @@ O dinheiro não se reparte num bolo só: desce degraus, e cada degrau tem dono.
 ```
 Parte do tabelião              R$ 3.427,23   ← só sobre isto incide comissão
   Repasse de 25%               R$   856,80   ← o que vem para a mesa
-    Shirley, metade            R$   428,40   ← passa inteira
-    Grazi, metade              R$   428,40   − IR 27,5% → R$ 310,59 na mão
+  + DSR do fechamento          (valor do mês, não da escritura)
+    Shirley, metade                          ← as duas recebem igual
+    Grazi,   metade
   Fica com o tabelião          R$ 2.570,43
 ```
 
@@ -36,10 +37,19 @@ Regras que custaram conversa e **não devem ser mexidas sem perguntar**:
 - **O repasse é truncado, não arredondado.** 25% de 3.427,23 dá 856,8075 e o
   que chega é R$ 856,80. Arredondar inventaria um centavo que o tabelião não
   pagou.
-- **O DSR fica fora da conta**, a pedido dela.
-- **O IR é retido no repasse, não no bolo.** É atributo de quem recebe
-  (`descontaIR`): a parte da Shirley passa bruta — o imposto dela é recolhido
-  por fora —, a da Grazi e a dos parceiros saem descontadas.
+- **O DSR entra na conta desde outubro/2026** (antes ficava fora). É um valor
+  **do mês, não da escritura**: fica em `financeiro/dsr/{ciclo}`, digitado no
+  topo da planilha, e se divide em partes iguais **só entre a equipe** —
+  parceiro não entra, porque o DSR vem do cartório pelo mês trabalhado e não
+  de um caso que alguém trouxe.
+- **O IR só é retido no repasse a parceiro.** Desde outubro/2026 a equipe não
+  tem IR retido aqui: o tabelião já recolhe antes de pagar, e descontar de
+  novo tiraria 27,5% de um valor já tributado. Isso **mora no código**
+  (`finDivisao`: `retemIR = tipo==='parceiro' && descontaIR!==false`), não na
+  caixinha de Ajustes — a config salva em agosto ainda traz a Grazi com IR, e
+  depender de alguém lembrar de desmarcá-la faria o fechamento sair 27,5%
+  menor para ela sem ninguém perceber. A caixinha só aparece em linha de
+  parceiro.
 - **Cada parte é arredondada por si**, como na planilha que ela conferia à
   mão: metade de R$ 621,69 vira R$ 310,85 para as duas. Isso faz as partes
   somarem até um centavo além do repasse; a diferença aparece declarada
@@ -49,6 +59,8 @@ Regras que custaram conversa e **não devem ser mexidas sem perguntar**:
 
 A divisão é por **quotas iguais**, e quem entra depende do parceiro que
 trouxe o caso. Quem tem o mesmo número divide a mesma quota:
+
+Shirley e Grazi recebem **igual** desde outubro/2026.
 
 | Arranjo | Divisão | Sobre R$ 856,80 |
 |---|---|---|
@@ -83,9 +95,10 @@ lançamento.
 
 A aba Financeiro é onde se **lê o fechamento**:
 
-- **Lançamentos** — planilha, uma linha por escritura, com o total em
-  vermelho no topo (acima dos nomes) e o botão LÍQUIDO/BRUTO. Em bruto as
-  colunas das pessoas batem com a planilha antiga dela.
+- **Lançamentos** — planilha, uma linha por escritura. No topo, acima dos
+  nomes, duas linhas: o **DSR do fechamento** (digitável ali mesmo, dividido
+  entre a equipe) e o **total**, em vermelho, já com o DSR somado. Mais o
+  botão LÍQUIDO/BRUTO.
 - **Quem recebe** — uma pílula por pessoa com o valor final. Só quem tem IR
   retido ganha a nota explicando que aquilo é líquido, e só o parceiro lista
   de que casos veio a participação dele (a equipe está em todos).
@@ -130,8 +143,8 @@ não um cadastro que não existe.
 
 ### Meu financeiro (só da Shirley)
 
-O salário **não se digita**: é a soma das comissões do fechamento, calculada
-na hora a partir das escrituras já pagas. Corrigir um lançamento no painel
+O salário **não se digita**: é a soma das comissões do fechamento mais a
+parte dela no DSR, calculada na hora a partir das escrituras já pagas. Corrigir um lançamento no painel
 corrige o salário junto — não há cópia para envelhecer. À mão ficam serviços
 extras de fora do cartório, despesas e um ajuste eventual.
 
@@ -1149,6 +1162,7 @@ o `testes/montar.mjs` recorta.
 | O quê | Onde procurar |
 |---|---|
 | A conta inteira | `finConta()` |
+| O DSR do mês | `finDsrDoCiclo()`, `finPartesDsr()`, `finSalvarDsr()` |
 | Quotas dos arranjos | `finQuotas()`, `finDividirCentavos()` |
 | Calendário do fechamento | `finCicloPorChave()`, `finDataFechamento()`, `finFeriados()` |
 | A planilha | `finHtmlLancamentos()` |

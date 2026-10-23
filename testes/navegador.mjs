@@ -2,20 +2,25 @@
 //
 // Roda com: node testes/navegador.mjs
 // (o montar.mjs recorta o financeiro do index.html antes de cada execução)
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import {servir} from './servidor.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 // As imagens saem sempre em testes/saida, mesmo rodando de outra pasta.
 const SAIDA=(n)=>join(dirname(fileURLToPath(import.meta.url)),'saida',n);
 const servidor=await servir();
+const BASE=servidor.url;
 const erros=[];
+// Tudo lançado com a data de hoje, nunca com uma data fixa: o painel abre
+// sempre no fechamento corrente, e uma data de agosto fazia a suíte inteira
+// falhar em outubro — por um motivo que não era do painel.
+const HOJE=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
 const finNumEsperado=s=>parseFloat(String(s).replace('R$','').trim().replace(/\./g,'').replace(',','.'));
-const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b=await abrirChromium();
 const pg=await b.newPage({viewport:{width:1180,height:1100}});
 pg.on('pageerror',e=>erros.push('pageerror: '+e.message));
 pg.on('console',m=>{const t=m.text();if(m.type()==='error'&&!t.includes('favicon')&&!t.includes('404'))erros.push('console: '+t);});
-await pg.goto('http://127.0.0.1:8199/harness.html');
+await pg.goto(BASE+'/harness.html');
 await pg.waitForFunction(()=>window.__pronto===true);
 const limpo=s=>s.replace(/ /g,' ').replace(/\s+/g,' ');
 const passo=async(nome,fn)=>{try{await fn();console.log('  ok  '+nome);}catch(e){erros.push(nome+' → '+e.message);console.log('FALHA '+nome+' → '+e.message);}};
@@ -87,12 +92,13 @@ await passo('digitar o controle no card abre a janela dos valores',async()=>{
   if(!sub.includes('TANIA')||!sub.includes('2026-4471'))throw new Error('a janela não sabe de que caso é: '+sub);
   await pg.fill('#cf-tabeliao','3.427,23');
   await pg.selectOption('#cf-status','pago');
-  await pg.fill('#cf-data','2026-08-10');
+  await pg.fill('#cf-data',HOJE);
   await pg.fill('#cf-registro','1.200');
   await pg.waitForTimeout(200);
   const previa=limpo(await pg.textContent('#cf-previa'));
-  for(const v of ['R$ 856,80','R$ 428,40','R$ 310,59','R$ 1.200,00'])
+  for(const v of ['R$ 856,80','R$ 428,40'])
     if(!previa.includes(v))throw new Error('prévia sem "'+v+'" → '+previa.slice(0,240));
+  if(previa.includes('R$ 310,59'))throw new Error('a Grazi não tem mais IR retido: '+previa.slice(0,240));
   await pg.click('#modal-caso-financeiro .btn-save');
   await pg.waitForTimeout(300);
   const l=await pg.evaluate(()=>Object.values(window.__raiz.financeiro.lancamentos)[0]);
@@ -103,7 +109,7 @@ await passo('digitar o controle no card abre a janela dos valores',async()=>{
 await passo('o card passa a mostrar os valores e o botão de editar',async()=>{
   await pg.waitForTimeout(400);
   const faixa=limpo(await pg.textContent('#cartao-teste'));
-  for(const v of ['R$ 3.427,23','R$ 428,40','R$ 310,59','PAGO','Editar'])
+  for(const v of ['R$ 3.427,23','R$ 428,40','PAGO','Editar'])
     if(!faixa.includes(v))throw new Error('faixa do card sem "'+v+'" → '+faixa);
 });
 await passo('editar pelo card altera o mesmo lançamento',async()=>{
@@ -136,17 +142,18 @@ await passo('o formulário antigo da aba continua servindo para o que não tem c
   await pg.fill('#fin-f-descricao','Tania — compra e venda');
   await pg.fill('#fin-f-tabeliao','3.427,23');
   await pg.selectOption('#fin-f-status','pago');
-  await pg.fill('#fin-f-data','2026-08-09');
+  await pg.fill('#fin-f-data',HOJE);
   await pg.waitForTimeout(150);
   const p=limpo(await pg.textContent('#fin-preview'));
   for(const v of ['R$ 3.427,23','R$ 856,80','R$ 2.570,43'])
     if(!p.includes(v))throw new Error('falta "'+v+'" na escada → '+p.slice(0,340));
   if(!p.includes('sem IR, passa inteiro'))throw new Error('a parte da Shirley devia passar bruta → '+p.slice(0,340));
-  if(!p.includes('repassa R$ 310,59'))throw new Error('a Grazi devia receber 310,59 → '+p.slice(0,340));
+  const semIr=(p.match(/sem IR, passa inteiro/g)||[]).length;
+  if(semIr<2)throw new Error('as duas deviam passar sem IR → '+p.slice(0,340));
   if(p.includes('R$ 621,18'))throw new Error('o IR ainda está saindo do bolo inteiro');
   const vals=await pg.$$eval('#fin-preview input',e=>e.map(i=>i.value));
   if(vals.join('|')!=='428,40|428,40')throw new Error('divisão: '+vals.join('|'));
-  if(!p.includes('Fechamento de agosto'))throw new Error('ciclo errado: '+p.slice(-140));
+  if(!/Fechamento de \w+/.test(p))throw new Error('não disse em que fechamento entra: '+p.slice(-140));
   await pg.screenshot({path:SAIDA('n-form.png')});
   await pg.evaluate(()=>finSalvarLancamento());
   await pg.waitForSelector('.fin-planilha tbody tr');
@@ -161,7 +168,7 @@ await passo('a planilha tem as colunas certas, sem a da escritura',async()=>{
 });
 await passo('a linha mostra a parte de cada uma, e a escada fica escondida',async()=>{
   const linha=limpo(await pg.textContent('.fin-planilha tbody tr'));
-  for(const v of ['R$ 3.427,23','R$ 428,40','R$ 310,59'])
+  for(const v of ['R$ 3.427,23','R$ 428,40'])
     if(!linha.includes(v))throw new Error('falta "'+v+'" na linha → '+linha);
   if(linha.includes('Repasse'))throw new Error('a escada está aberta sem ninguém pedir → '+linha);
   // clicar abre o detalhe
@@ -189,13 +196,35 @@ await passo('o total fica no topo, acima dos nomes, e em vermelho',async()=>{
   if(!(fr>fb+15&&fr>fg+10))throw new Error('o fundo do total não está avermelhado: '+cor.fundo);
   const ordem=await pg.$$eval('.fin-planilha tr',e=>e.map(x=>x.className||'linha'));
   if(ordem.indexOf('fin-total')===-1)throw new Error('a linha de total sumiu');
-  if(ordem.indexOf('fin-total')>1)throw new Error('o total não está no topo: '+ordem.slice(0,4).join(' | '));
+  const primeiraEscritura=ordem.findIndex(c=>c==='pago'||c==='pendente');
+  if(ordem.indexOf('fin-total')>primeiraEscritura)throw new Error('o total não está acima dos nomes: '+ordem.slice(0,5).join(' | '));
   if(await pg.$('.fin-planilha tfoot'))throw new Error('ainda existe rodapé');
   const pe=await pg.$$eval('.fin-planilha .fin-total td',e=>e.map(x=>x.textContent.replace(/\u00a0/g,' ').trim()));
   const linhas=await pg.$$eval('.fin-planilha tbody tr td:nth-child(2)',e=>e.map(x=>x.textContent.replace(/\u00a0/g,' ').trim()));
   const somaLinhas=linhas.reduce((s,v)=>s+(finNumEsperado(v.replace('R$ ',''))||0),0);
   const totalRodape=finNumEsperado(pe[1].replace('R$ ',''));
   if(Math.abs(somaLinhas-totalRodape)>0.005)throw new Error('rodapé não é a soma das linhas: '+totalRodape+' vs '+somaLinhas);
+});
+await passo('o DSR do fechamento se divide entre as duas',async()=>{
+  const antes=await pg.$$eval('.fin-planilha .fin-total td.num',e=>e.map(x=>x.textContent.replace(/\u00a0/g,' ').trim()));
+  await pg.fill('.fin-dsr-campo','1.000');
+  await pg.evaluate(()=>document.querySelector('.fin-dsr-campo').dispatchEvent(new Event('change')));
+  await pg.waitForTimeout(400);
+  const dsr=await pg.$$eval('.fin-planilha .fin-dsr td.num',e=>e.map(x=>x.textContent.replace(/\u00a0/g,' ').trim()));
+  if(dsr[1]!=='R$ 500,00'||dsr[2]!=='R$ 500,00')throw new Error('o DSR não saiu meio a meio: '+dsr.join(' | '));
+  if(dsr[0]!=='—')throw new Error('o DSR não é do tabelião: '+dsr.join(' | '));
+  const depois=await pg.$$eval('.fin-planilha .fin-total td.num',e=>e.map(x=>x.textContent.replace(/\u00a0/g,' ').trim()));
+  if(depois[0]!==antes[0])throw new Error('o DSR mexeu na coluna do tabelião');
+  const subiu=(i)=>finNumEsperado(depois[i])-finNumEsperado(antes[i]);
+  if(Math.abs(subiu(1)-500)>0.005||Math.abs(subiu(2)-500)>0.005)
+    throw new Error('o total não somou o DSR: '+antes.join(' | ')+' → '+depois.join(' | '));
+  // e a pílula de Quem recebe tem que contar a mesma história
+  await pg.evaluate(()=>finIrPara('pessoas'));
+  await pg.waitForSelector('.fin-pilula');
+  const t=limpo(await pg.textContent('#fin-conteudo'));
+  if(!t.includes('inclui R$ 500,00 de DSR do fechamento'))throw new Error('a pílula não citou o DSR → '+t.slice(0,300));
+  await pg.evaluate(()=>finIrPara('lancamentos'));
+  await pg.waitForSelector('.fin-planilha');
 });
 await passo('o botão bruto/líquido troca as colunas das pessoas',async()=>{
   await pg.click('.fin-seg button:not(.on)');
@@ -214,7 +243,7 @@ await passo('lança um caso do Basiotti (Shirley e Grazi como uma sócia)',async
   await pg.fill('#fin-f-tabeliao','3.427,23');
   await pg.selectOption('#fin-f-arranjo','basiotti');
   await pg.selectOption('#fin-f-status','pago');
-  await pg.fill('#fin-f-data','2026-08-11');
+  await pg.fill('#fin-f-data',HOJE);
   await pg.waitForTimeout(150);
   const vals=await pg.$$eval('#fin-preview input',e=>e.map(i=>i.value));
   if(vals.join('|')!=='142,80|142,80|285,60|285,60')throw new Error('quotas do Basiotti: '+vals.join('|'));
@@ -250,8 +279,10 @@ await passo('Quem recebe: uma pílula por pessoa, sem repetir os casos',async()=
   for(const n of ['Shirley','Grazi'])
     if(casos.find(p=>p.nome===n).casos.trim())throw new Error('a pílula da '+n+' não devia listar casos');
   const gr=pilulas.find(p=>p.nome==='Grazi'), sh=pilulas.find(p=>p.nome==='Shirley');
-  if(!/l[íi]quido/i.test(gr.nota)||!gr.nota.includes('27,5'))throw new Error('a pílula da Grazi não explica o IR: '+gr.nota);
-  if(sh.nota.trim())throw new Error('a pílula da Shirley não devia ter nota de IR: '+sh.nota);
+  const re=pilulas.find(p=>p.nome==='Renato');
+  if(!/l[íi]quido/i.test(re.nota)||!re.nota.includes('27,5'))throw new Error('a pílula do parceiro não explica o IR: '+re.nota);
+  for(const p of [sh,gr])
+    if(p.nota.trim())throw new Error('a equipe não tem mais IR retido, a nota não devia existir: '+p.nome+' → '+p.nota);
 });
 await passo('a carteira do registro fica fora da comissão',async()=>{
   await pg.evaluate(()=>finIrPara('carteira'));
@@ -281,7 +312,7 @@ await passo('cofre pessoal: cria, tranca e reabre',async()=>{
   await pg.waitForSelector('#fin-p-valor');
   await pg.fill('#fin-p-valor','1.200');
   await pg.fill('#fin-p-descricao','Parecer para o Dr. Vitor');
-  await pg.fill('#fin-p-data','2026-08-05');
+  await pg.fill('#fin-p-data',HOJE);
   await pg.evaluate(()=>finSalvarPessoal());
   await pg.waitForTimeout(300);
   const cru=await pg.evaluate(()=>JSON.stringify(window.__raiz.financeiro.pessoal));
@@ -299,10 +330,12 @@ await passo('cofre pessoal: cria, tranca e reabre',async()=>{
 });
 await passo('o salário aparece sozinho, somando as comissões',async()=>{
   const t=limpo(await pg.textContent('#meu-fin-conteudo'));
-  if(!t.includes('R$ 999,60'))throw new Error('salário não somou 999,60 → '+t.slice(0,400));
+  // 999,60 das escrituras + 500,00 da metade do DSR lançado antes
+  if(!t.includes('R$ 1.499,60'))throw new Error('salário não somou as comissões mais o DSR → '+t.slice(0,400));
   if(!t.includes('De onde vem o salário'))throw new Error('sem a lista de origem');
   if(!t.includes('R$ 428,40')||!t.includes('R$ 142,80'))throw new Error('não detalhou as escrituras');
-  if(!t.includes('R$ 2.199,60'))throw new Error('total do fechamento errado (999,60 + 1.200)');
+  if(!t.includes('DSR do fechamento'))throw new Error('o DSR não aparece na origem do salário');
+  if(!t.includes('R$ 2.699,60'))throw new Error('total do fechamento errado (1.499,60 + 1.200)');
   await pg.screenshot({path:SAIDA('n-pessoal.png')});
 });
 await passo('corrigir a escritura no painel corrige o salário',async()=>{
@@ -317,7 +350,8 @@ await passo('corrigir a escritura no painel corrige o salário',async()=>{
   await pg.waitForSelector('#meu-fin-conteudo .fin-resumo');
   const t=limpo(await pg.textContent('#meu-fin-conteudo'));
   // 25% de 4.000 = 1.000 → metade dela = 500, no lugar dos 428,40 de antes
-  if(!t.includes('R$ 1.071,20'))throw new Error('salário não acompanhou a correção → '+t.slice(0,400));
+  // (mais os 500 do DSR, que não se mexem)
+  if(!t.includes('R$ 1.571,20'))throw new Error('salário não acompanhou a correção → '+t.slice(0,400));
 });
 await passo('outra conta não vira dona do financeiro particular',async()=>{
   await pg.evaluate(()=>{fecharMeuFinanceiro();fecharFinanceiro();});

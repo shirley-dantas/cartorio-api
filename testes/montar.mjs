@@ -88,9 +88,9 @@ const casca = '<div class="app-shell"><aside class="sidebar"></aside><div class=
 
 writeFileSync(join(AQUI, 'harness.html'), pagina({corpo: casca}));
 
-// O preview usa o fechamento real de agosto de 2026 — as dezessete escrituras
-// que a Shirley conferiu à mão. É com ele que se olha o desenho da tela.
-const semente = readFileSync(join(AQUI, 'fechamento-de-agosto.js'), 'utf8');
+// O preview usa as dezessete escrituras que a Shirley conferiu à mão, com
+// data de hoje. É com ele que se olha o desenho da tela.
+const semente = readFileSync(join(AQUI, 'fechamento-de-exemplo.js'), 'utf8');
 writeFileSync(join(AQUI, 'preview.html'), pagina({fontes: FONTES, semente}));
 
 // O quadro do dinheiro, com dois fechamentos no banco — sem um mês anterior

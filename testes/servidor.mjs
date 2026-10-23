@@ -14,7 +14,9 @@ const TIPOS = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 // não estiver em testes/ o servidor procura um andar acima.
 const RAIZ = join(AQUI, '..');
 
-export function servir(porta = 8199) {
+// Porta zero = o sistema escolhe uma livre. Porta fixa fazia a suíte falhar
+// com EADDRINUSE quando uma execução anterior tinha ficado presa.
+export function servir(porta = 0) {
   const s = createServer((req, res) => {
     const nome = (req.url || '/').split('?')[0].replace(/^\//, '') || 'harness.html';
     const tipo = TIPOS[nome.slice(nome.lastIndexOf('.'))] || 'text/plain';
@@ -29,5 +31,8 @@ export function servir(porta = 8199) {
       res.writeHead(404).end('não achei');
     }
   });
-  return new Promise(ok => s.listen(porta, '127.0.0.1', () => ok(s)));
+  return new Promise(ok => s.listen(porta, '127.0.0.1', () => {
+    s.url = 'http://127.0.0.1:' + s.address().port;
+    ok(s);
+  }));
 }
