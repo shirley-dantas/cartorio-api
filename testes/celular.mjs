@@ -11,16 +11,17 @@ const SAIDA=(n)=>join(dirname(fileURLToPath(import.meta.url)),'saida',n);
 const servidor=await servir();
 const BASE=servidor.url;
 const erros=[];
-// Tudo lançado com a data de hoje, nunca com uma data fixa: o painel abre
-// sempre no fechamento corrente, e uma data de agosto fazia a suíte inteira
-// falhar em outubro — por um motivo que não era do painel.
-const HOJE=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
 const b=await abrirChromium();
 // iPhone 13 em pé
 const pg=await b.newPage({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});
 pg.on('pageerror',e=>erros.push('pageerror: '+e.message));
 await pg.goto(BASE+'/harness.html');
 await pg.waitForFunction(()=>window.__pronto===true);
+// O dia que o teste digita nos formulários é o dia em que a página pensa que
+// está (congelado no faz-de-conta-navegador.js), nunca o dia de verdade:
+// datas em fechamentos diferentes abriam a planilha vazia e derrubavam a
+// suíte sem nada ter sido quebrado.
+const HOJE=await pg.evaluate(()=>window.__hoje);
 const limpo=s=>s.replace(/ /g,' ').replace(/\s+/g,' ');
 const passo=async(n,f)=>{try{await f();console.log('  ok  '+n);}catch(e){erros.push(n+' → '+e.message);console.log('FALHA '+n+' → '+e.message);}};
 

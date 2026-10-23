@@ -267,6 +267,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    BERT…" numa barra que não abre nada deixaria a pessoa sem saber de quem
    ela é. Estas linhas não têm botão na ponta, então sobra espaço pro rótulo. */
 @media(max-width:520px){.dash-linha.estatica .dash-rotulo{flex:0 0 128px}}
+/* Nos cartões do dinheiro o valor ao lado da barra é "R$ 3.427,23", não "12":
+   a reserva de 58px, medida para contagens, deixava o valor passar da borda
+   do cartão no celular. */
+.dash-linha.valor-largo .dash-trilho{--dash-reserva:88px}
+@media(max-width:520px){.dash-linha.valor-largo .dash-rotulo{flex:0 0 96px}}
 .dash-fechado{background:#FBFBFD;border:0.5px solid #ECECF2;border-radius:14px;padding:14px 15px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
 .dash-fechado-txt{flex:1;min-width:180px;font-size:11.5px;color:#5B6B78;line-height:1.45}
 .dash-fechado button{font-size:11.5px;padding:6px 13px;border-radius:20px;border:0.5px solid #16283A;background:#16283A;color:#fff;cursor:pointer;font-family:inherit;white-space:nowrap}
@@ -8486,12 +8491,20 @@ window.finMudarCiclo=function(v){finCiclo=v;renderFinanceiro();};
 // O DSR é digitado uma vez por fechamento, no topo da própria planilha: é
 // onde ele é conferido, e onde dá para ver na hora em quanto ele muda a
 // parte de cada uma.
-window.finSalvarDsr=function(valor){
+window.finSalvarDsr=async function(valor){
   if(!finCiclo)return;
   const v=finCent(finNum(valor));
-  if(v)set(ref(db,'financeiro/dsr/'+finCiclo),v);
-  else remove(ref(db,'financeiro/dsr/'+finCiclo));
-  finToast(v?'DSR do fechamento guardado.':'DSR do fechamento apagado.');
+  try{
+    // Esperar a gravação antes de avisar: com as regras do banco publicadas
+    // sem o caminho /financeiro/dsr, o set é negado — e dizer "guardado" sem
+    // ter guardado é pior do que não dizer nada, ainda mais no dia do
+    // fechamento.
+    if(v)await set(ref(db,'financeiro/dsr/'+finCiclo),v);
+    else await remove(ref(db,'financeiro/dsr/'+finCiclo));
+    finToast(v?'DSR do fechamento guardado.':'DSR do fechamento apagado.');
+  }catch(e){
+    finToast('Não consegui guardar o DSR: o banco negou a gravação. Republique as regras do Firebase.');
+  }
 };
 window.finMudarStatus=function(v){finFiltroStatus=v;renderFinanceiro();};
 
@@ -9882,7 +9895,7 @@ function finQuadroClientes(cmp){
   const fatia=a.movimento?Math.round((repetiu?primeiro.movimento:lista[0].movimento)/a.movimento*100):0;
   const corpo=`<div class="dash-linhas">${lista.map((r,i)=>{
     const tip=`<b>${escTxt(r.nome)}</b><br>${r.n} ${dashPlural(r.n,'escritura')} neste fechamento<br>${finMoeda(r.movimento)} de parte do tabelião`;
-    return `<span class="dash-linha estatica" data-tip="${esc(tip)}">
+    return `<span class="dash-linha estatica valor-largo" data-tip="${esc(tip)}">
       <span class="dash-rotulo" title="${esc(r.nome)}">${escTxt(r.nome)}</span>
       <span class="dash-trilho">
         <span class="dash-barra" style="flex-basis:calc((100% - var(--dash-reserva)) * ${(valor(r)/max).toFixed(3)});background:${i===0?FIN_DASH.destaque:FIN_DASH.apagado}"></span>
@@ -9910,7 +9923,7 @@ function finQuadroArranjos(cmp){
   const corpo=`<div class="dash-linhas">${lista.map(x=>{
     const pct=a.repasse?Math.round(x.repasse/a.repasse*100):0;
     const tip=`<b>${escTxt(x.nome)}</b><br>${finMoeda(x.repasse)} · ${pct}% do repasse do mês<br>${x.n} ${dashPlural(x.n,'escritura')} no fechamento`;
-    return `<span class="dash-linha estatica" data-tip="${esc(tip)}">
+    return `<span class="dash-linha estatica valor-largo" data-tip="${esc(tip)}">
       <span class="dash-rotulo" title="${esc(x.nome)}">${escTxt(x.nome)}</span>
       <span class="dash-trilho">
         <span class="dash-barra" style="flex-basis:calc((100% - var(--dash-reserva)) * ${(x.repasse/max).toFixed(3)});background:${FIN_DASH.destaque}"></span>

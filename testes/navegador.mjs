@@ -11,10 +11,6 @@ const SAIDA=(n)=>join(dirname(fileURLToPath(import.meta.url)),'saida',n);
 const servidor=await servir();
 const BASE=servidor.url;
 const erros=[];
-// Tudo lançado com a data de hoje, nunca com uma data fixa: o painel abre
-// sempre no fechamento corrente, e uma data de agosto fazia a suíte inteira
-// falhar em outubro — por um motivo que não era do painel.
-const HOJE=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
 const finNumEsperado=s=>parseFloat(String(s).replace('R$','').trim().replace(/\./g,'').replace(',','.'));
 const b=await abrirChromium();
 const pg=await b.newPage({viewport:{width:1180,height:1100}});
@@ -22,6 +18,11 @@ pg.on('pageerror',e=>erros.push('pageerror: '+e.message));
 pg.on('console',m=>{const t=m.text();if(m.type()==='error'&&!t.includes('favicon')&&!t.includes('404'))erros.push('console: '+t);});
 await pg.goto(BASE+'/harness.html');
 await pg.waitForFunction(()=>window.__pronto===true);
+// O dia que o teste digita nos formulários é o dia em que a página pensa que
+// está (congelado no faz-de-conta-navegador.js), nunca o dia de verdade:
+// datas em fechamentos diferentes abriam a planilha vazia e derrubavam a
+// suíte sem nada ter sido quebrado.
+const HOJE=await pg.evaluate(()=>window.__hoje);
 const limpo=s=>s.replace(/ /g,' ').replace(/\s+/g,' ');
 const passo=async(nome,fn)=>{try{await fn();console.log('  ok  '+nome);}catch(e){erros.push(nome+' → '+e.message);console.log('FALHA '+nome+' → '+e.message);}};
 
