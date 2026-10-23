@@ -1,6 +1,6 @@
 // A página em que o cliente aprova o orçamento (orcamento.html), com o banco e o Apps Script fingidos.
 //   node testes/orcamento-link-tela.mjs
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import assert from 'node:assert/strict';
 const erros = [];
@@ -8,7 +8,7 @@ const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } ca
 const TOKEN = 'pG3dE6gH9jK2mN5pQ8sT1vX4';
 const IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 const servidor = await servir(8199);
-const b = await chromium.launch({executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b = await abrirChromium();
 const cob = (meta = {}, extra = {}) => ({meta: {tipo: 'orcamento', casoId: '-Caso1', orcId: 'o1', versao: '2', criadoEm: Date.now(), expiraEm: Date.now() + 864e5, ...meta}, dados: {nome: 'Maria da Silva', ato: 'Escritura de Compra e Venda'}, imagens: {orcamento: IMG}, ...extra});
 async function abrir(registro, {gas} = {}) {
   const pg = await b.newPage({viewport: {width: 390, height: 844}, deviceScaleFactor: 2, isMobile: true, hasTouch: true});

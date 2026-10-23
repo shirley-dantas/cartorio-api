@@ -1,6 +1,6 @@
 // "Pedir documentos" na tela: o botão de gerar link, e a lista do que chegou no card.
 //   node testes/pedido-tela.mjs
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -11,7 +11,7 @@ const AQUI = dirname(fileURLToPath(import.meta.url));
 const erros = [];
 const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } catch (e) { erros.push(n); console.log('FALHA ' + n + ' → ' + e.message); } };
 const servidor = await servir(8199);
-const b = await chromium.launch({executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b = await abrirChromium();
 const url = (q) => 'http://127.0.0.1:8199/harness-pedido.html?' + q;
 const abrir = async (q) => { const pg = await b.newPage({viewport: {width: 1100, height: 900}}); pg.on('pageerror', (e) => erros.push('pageerror: ' + e.message)); await pg.goto(url(q)); await pg.waitForFunction(() => window.__pronto); return pg; };
 const msg = (pg) => pg.inputValue('#ped-msg');

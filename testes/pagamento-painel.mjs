@@ -1,7 +1,7 @@
 // O lado do painel do pagamento: a janela de gerar o link (o que ela grava no banco), a faixa e o aviso do card,
 // e a folha de impressão do comprovante. O trecho vem do index.html publicado, com o banco e o Drive fingidos.
 //   node testes/pagamento-painel.mjs
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -32,7 +32,7 @@ ${html.slice(ini, fim)}
 window.__casos=()=>casos; window.__setCasos=c=>{casos=c;};
 </script></body></html>`);
 const servidor = await servir(8199);
-const b = await chromium.launch({executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b = await abrirChromium();
 const abrir = async () => { const pg = await b.newPage({viewport: {width: 900, height: 900}}); pg.on('pageerror', (e) => erros.push('pageerror: ' + e.message)); pg.on('dialog', (d) => d.accept()); await pg.goto('http://127.0.0.1:8199/harness-pagamento.html'); return pg; };
 const LINHA = '26091.90299 37227.373505 99600.000006 2 16080000386807';
 const IMG = join(AQUI, 'saida', 'comprovante.png');

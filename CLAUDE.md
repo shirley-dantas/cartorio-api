@@ -575,6 +575,18 @@ procuração, ata e escritura declaratória.
   achar é resposta legítima e aparece escrita: alíquota chutada seria o erro
   mais caro deste orçamento, e o mais silencioso — o total pareceria certo.
   Cada município é procurado uma vez e fica guardado.
+  **A busca não pode redesenhar a janela inteira enquanto ela digita** — foi
+  o defeito que ela relatou em 23/10/2026 (um imóvel em Sorocaba: "NÃO ESTÁ
+  CALCULANDO"). `orcBuscarAliquota`, `orcAliquotaNaMao` e `orcConfirmarAliquota`
+  chamavam `renderOrcamentoDoCaso()` — o redesenho cheio — ao terminar a busca
+  ou gravar a alíquota; se isso acontecesse no MEIO da digitação do valor do
+  negócio, o campo era refeito do zero e as teclas seguintes se perdiam, sem
+  erro nenhum na tela. É o mesmo defeito que a soma dos imóveis já teve (ver
+  `orcRedesenharAcessorios`, logo abaixo), só que ninguém tinha notado aqui
+  porque o `api/aliquota-municipal.js` de teste sempre respondia na hora — a
+  Vercel de verdade demora o suficiente para a digitação alcançá-la no meio.
+  As três funções agora chamam `orcRedesenharResultado()`, o redesenho
+  estreito, e há teste simulando a demora de verdade (`testes/orcamento-tela.mjs`).
 - **A tabela é do lugar do ato, não do lugar do imóvel.** Se o ato sai em São
   Paulo, valem as tabelas de São Paulo — **sem exceção**, e o painel nunca vai
   procurar tabela de emolumentos de outro município. Só o imposto acompanha o
@@ -1234,6 +1246,24 @@ O `montar.mjs` também gera o `preview-quadro.html`, que é o desenho da seção
 do dinheiro com dois fechamentos no banco.
 
 Rodam por cima do `index.html` publicado. Ver `testes/README.md`.
+
+**O Chromium muda de lugar entre sessões.** O caminho do executável
+(`chromium-1194` virou `chromium-1243`, e muda de novo) já quebrou nove
+suítes de uma vez em 23/10/2026, por um motivo que não é do painel.
+`testes/navegador-de-teste.mjs` → `abrirChromium()` procura o Chromium em
+vez de supor o caminho, e toda suíte de tela usa ele hoje — nova suíte que
+nascer com `chromium.launch({executablePath: '/opt/pw-browsers/...'})`
+direto no código vai quebrar na próxima sessão.
+A porta do servidor de teste tem o mesmo risco pela metade: `servidor.mjs`
+→ `servir()` sem argumento deixa o sistema escolher uma porta livre
+(`servidor.url` tem o endereço certo), e é assim que `montar.mjs`,
+`navegador.mjs`, `celular.mjs`, `orcamento-tela.mjs`, `radar.mjs` e
+`rede.mjs` fazem — mas `enviar-tela.mjs`, `orcamento-link-tela.mjs`,
+`pagamento-painel.mjs`, `pagar-tela.mjs` e `pedido-tela.mjs` ainda pedem a
+porta fixa `8199` (`servir(8199)`) e escrevem `http://127.0.0.1:8199/...`
+no código — funciona enquanto a porta estiver livre, mas é o mesmo
+`EADDRINUSE` que fez a porta virar aleatória nas outras. Vale trazer essas
+cinco para `servidor.url` também, quando mexer nelas de novo.
 
 A Rede tem harness próprio (`harness-rede.html`), montado pelo mesmo
 `montar.mjs`: ela mora depois do registro do service worker no `index.html`,
