@@ -13003,13 +13003,23 @@ function orcDominio(u){
 }
 let orcBuscandoAliquota = {};
 let orcBuscaFalhou = {};
+// As quatro ações daqui já chamaram `renderOrcamentoDoCaso()` — o redesenho
+// cheio da janela inteira. É assíncrono (espera a busca ou a gravação), e
+// nesse intervalo ela pode estar digitando o valor do negócio: o redesenho
+// cheio reconstrói aquele campo do zero, o cursor salta fora, e as teclas
+// que vierem depois se perdem — foi o que aconteceu com ela em 23/10/2026,
+// num caso em Sorocaba: o valor sumiu no meio da digitação e o orçamento
+// saiu com a base errada. `orcRedesenharResultado()` é o mesmo redesenho
+// estreito que a soma dos imóveis já usa (ver `orcRedesenharAcessorios`):
+// atualiza o bloco da alíquota e o resultado, e nunca o campo que está
+// debaixo do dedo dela.
 window.orcBuscarAliquota = async function(chave, forcar){
   const partes = chave.split('-');
   const imposto = partes[0];
   const uf = partes[partes.length - 1].toUpperCase();
   const municipio = imposto === 'itbi' ? orcEmEdicao.imovelMunicipio : null;
   orcBuscandoAliquota[chave] = true; orcBuscaFalhou[chave] = null;
-  renderOrcamentoDoCaso();
+  orcRedesenharResultado();
   try{
     const resp = await fetch('/api/aliquota-municipal', {method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -13028,7 +13038,7 @@ window.orcBuscarAliquota = async function(chave, forcar){
     orcBuscaFalhou[chave] = 'Não consegui procurar agora: ' + ((err && err.message) || err);
   }
   orcBuscandoAliquota[chave] = false;
-  renderOrcamentoDoCaso();
+  orcRedesenharResultado();
 };
 // Digitada à mão vale como conferida: quem digitou foi ela.
 window.orcAliquotaNaMao = async function(chave, txt){
@@ -13048,7 +13058,7 @@ async function orcGravarAliquota(chave, dados){
     confirmadaPor: localStorage.getItem('cc_nome') || 'ela',
     confirmadaEm: isoHoje()}));
   ORC_TRIBUTOS.aliquotasDeFora = Object.assign({}, ORC_TRIBUTOS.aliquotasDeFora, {[chave]: reg});
-  renderOrcamentoDoCaso();
+  orcRedesenharResultado();
   // Esperar e falar: o painel já aprendeu que dizer "guardado" sem ter
   // guardado é pior que não guardar.
   try{ await set(ref(db, 'orcamento-aliquotas/' + chave), reg); }

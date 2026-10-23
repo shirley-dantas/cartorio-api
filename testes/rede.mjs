@@ -6,7 +6,7 @@
 // A semente abaixo é o que saiu da primeira leitura real do Drive — duas
 // minutas do 20º Tabelião. Ela fica aqui de propósito: além de exercitar as
 // telas, é a documentação viva do formato que a varredura precisa gravar.
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import {writeSync} from 'node:fs';
 
@@ -17,10 +17,10 @@ const diga = t => writeSync(1, t + '\n');
 
 const servidor = await servir();
 const erros = [];
-const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b = await abrirChromium();
 const pg = await b.newPage({viewport:{width:1280, height:900}});
 pg.on('pageerror', e => erros.push('pageerror: ' + e.message));
-await pg.goto('http://127.0.0.1:8199/harness-rede.html');
+await pg.goto(servidor.url + '/harness-rede.html');
 await pg.waitForFunction(() => window.__pronto === true);
 
 const limpo = s => s.replace(/ /g,' ').replace(/\s+/g,' ');
@@ -478,7 +478,7 @@ diga('\n— No celular —');
 // Ela testa pelo celular. Uma tela que só cabe no computador não serve.
 const cel = await b.newPage({viewport:{width:390, height:844}, deviceScaleFactor:3, isMobile:true, hasTouch:true});
 cel.on('pageerror', e => erros.push('celular pageerror: ' + e.message));
-await cel.goto('http://127.0.0.1:8199/harness-rede.html');
+await cel.goto(servidor.url + '/harness-rede.html');
 await cel.waitForFunction(() => window.__pronto === true);
 await cel.evaluate(s => {
   localStorage.setItem('painel_usuario','shirley');

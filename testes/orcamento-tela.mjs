@@ -14,18 +14,18 @@
 //   - "escritura assinada" nasce um lançamento com a PARTE DO TABELIÃO, não
 //     com o total que a cliente paga;
 //   - e tudo isso cabe num iPhone 13.
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import {writeSync} from 'node:fs';
 
 const diga = t => writeSync(1, t + '\n');
 const servidor = await servir();
 const erros = [];
-const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b = await abrirChromium();
 const pg = await b.newPage({viewport:{width:1280, height:900}});
 pg.on('pageerror', e => erros.push('pageerror: ' + e.message));
 
-await pg.goto('http://127.0.0.1:8199/harness-orcamento.html');
+await pg.goto(servidor.url + '/harness-orcamento.html');
 await pg.waitForFunction(() => window.__pronto === true);
 
 const PRAZO = 15000;
@@ -859,7 +859,7 @@ await passo('o aviso da isenção do ITBI pula na tela quando é identificado', 
 // ── E no celular, que é onde ela confere ──
 const cel = await b.newPage({viewport:{width:390, height:844}, deviceScaleFactor:3, isMobile:true, hasTouch:true});
 cel.on('pageerror', e => erros.push('pageerror (celular): ' + e.message));
-await cel.goto('http://127.0.0.1:8199/harness-orcamento.html');
+await cel.goto(servidor.url + '/harness-orcamento.html');
 await cel.waitForFunction(() => window.__pronto === true);
 await cel.evaluate(() => {
   window.casos = {c1: {id:'c1', nome:'TANIA — apartamento 1301', tipo:'Escritura de venda e compra'}};
@@ -934,6 +934,49 @@ await passo('conferida por ela, aí sim o orçamento fecha', async () => {
   // e a volta, para os testes seguintes continuarem na Capital
   await pg.evaluate(() => { orcMudarCampoTexto('imovelMunicipio', 'São Paulo');
     orcMudarCampoTexto('imovelUf', 'SP'); });
+  await pg.unroute('**/api/aliquota-municipal');
+});
+
+// O caso que ela trouxe em 23/10/2026: um imóvel em Sorocaba, onde ela
+// buscou a alíquota do ITBI e, enquanto a busca ainda estava no ar, digitou
+// o valor do negócio. A busca terminava no MEIO da digitação e disparava um
+// redesenho da janela inteira — o mesmo defeito que a soma dos imóveis já
+// tinha (ver `orcRedesenharAcessorios`), só que ninguém tinha notado aqui
+// porque o mock dos outros testes responde na hora. Com uma resposta que
+// demora de verdade, o campo perdia o resto do que ela ainda ia digitar, e
+// o orçamento saía calculado com um valor bem menor do que o dela.
+await passo('digitar o valor enquanto a busca da alíquota está no ar não perde o que ela digita', async () => {
+  await pg.route('**/api/aliquota-municipal', async route => {
+    await new Promise(r => setTimeout(r, 1200)); // uma função da Vercel de verdade demora
+    await route.fulfill({status: 200, contentType: 'application/json',
+      body: JSON.stringify({encontrado: true, aliquota: 2.5, confianca: 'incerta',
+        chave: 'itbi-sorocaba-sp', fundamento: 'Lei Municipal 3.185/1989',
+        ressalva: 'Alíquota reduzida escalonada.',
+        fontes: ['https://itbi.sorocaba.sp.gov.br']})});
+  });
+  await pg.evaluate(() => orcNovoDoCaso('c1'));
+  await pg.waitForSelector('#modal-orcamento-caso.open');
+  await pg.evaluate(() => { orcTrocarAto('compra-venda');
+    orcMudarCampoTexto('imovelMunicipio', 'Sorocaba');
+    orcMudarCampoTexto('imovelUf', 'SP'); });
+  await pg.click('button:has-text("Buscar a alíquota")');
+  // Digita devagar, de propósito: a busca (1,2s) tem de terminar NO MEIO.
+  const campo = 'input[oninput*="orcMudarValor(\'transacao\'"]';
+  await pg.fill(campo, '');
+  await pg.click(campo);
+  await pg.type(campo, '308.315,22', {delay: 250});
+  await pg.waitForFunction(() => /encontrada pelo painel, ainda não conferida/.test(
+    (document.getElementById('orc-aliquotas') || {}).textContent || ''));
+  const v = await pg.inputValue(campo);
+  if(v !== '308.315,22') throw new Error('o campo perdeu dígitos durante a busca: ' + v);
+  await abrirMemoria(pg);
+  const mem = await pg.textContent('.orc-memoria');
+  // 2,5% (a alíquota de Sorocaba) de R$ 308.315,22 é R$ 7.707,88 — se a
+  // digitação tivesse sido cortada no meio, o ITBI sairia de um valor menor.
+  if(!/7\.707,88/.test(mem)) throw new Error('o ITBI não saiu de R$ 308.315,22: ' + mem.slice(0, 400));
+  await pg.evaluate(() => { orcMudarCampoTexto('imovelMunicipio', 'São Paulo');
+    orcMudarCampoTexto('imovelUf', 'SP');
+    orcMudarValor('transacao', '301.867,16'); });
   await pg.unroute('**/api/aliquota-municipal');
 });
 

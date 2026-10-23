@@ -1,7 +1,7 @@
 // A página de envio do cliente (enviar.html), com o banco e o Apps Script
 // fingidos: o caminho do dedo até o que chega ao cartório.
 //   node testes/enviar-tela.mjs        (imagens em testes/saida)
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import {createRequire} from 'node:module';
 import {writeFileSync, mkdirSync} from 'node:fs';
@@ -16,7 +16,7 @@ const erros = [];
 const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } catch (e) { erros.push(n); console.log('FALHA ' + n + ' → ' + e.message); } };
 const TOKEN = 'aB3dE6gH9jK2mN5pQ8sT1vX4';
 const servidor = await servir(8199);
-const b = await chromium.launch({executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']});
+const b = await abrirChromium({args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']});
 
 // Um RG de mentira, grande, para a redução ter o que reduzir.
 const pgTmp = await b.newPage();

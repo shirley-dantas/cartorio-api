@@ -1,7 +1,7 @@
 // A página de pagamento do cliente (pagar.html), com o banco e o Apps Script fingidos: o caminho do dedo
 // (conferir os valores, ver o recibo e o boleto, pagar, anexar o comprovante) até o que chega ao cartório.
 //   node testes/pagar-tela.mjs        (imagens em testes/saida)
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import {writeFileSync, mkdirSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -14,7 +14,7 @@ const erros = [];
 const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } catch (e) { erros.push(n); console.log('FALHA ' + n + ' → ' + e.message); } };
 const TOKEN = 'pG3dE6gH9jK2mN5pQ8sT1vX4';
 const servidor = await servir(8199);
-const b = await chromium.launch({executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b = await abrirChromium();
 const PNG = SAIDA('comprovante.png'); const PDF = SAIDA('comprovante.pdf');
 { const t = await b.newPage(); const base = await t.evaluate(() => { const c = document.createElement('canvas'); c.width = 3000; c.height = 2000; const x = c.getContext('2d'); x.fillStyle = '#eee'; x.fillRect(0, 0, 3000, 2000); x.fillStyle = '#222'; x.font = '90px sans-serif'; x.fillText('COMPROVANTE PIX', 200, 400); return c.toDataURL('image/png').split(',')[1]; }); await t.close(); writeFileSync(PNG, Buffer.from(base, 'base64')); writeFileSync(PDF, '%PDF-1.4\n%%EOF'); }
 const IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
