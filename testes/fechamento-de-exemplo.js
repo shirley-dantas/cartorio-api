@@ -2,10 +2,12 @@
 // com a parte do tabelião de cada uma. Serve para olhar a tela com dados de
 // verdade.
 //
-// As datas são sempre de hoje, nunca de agosto de 2026: o painel abre no
-// fechamento corrente, e datas fixas faziam o preview nascer vazio assim que
-// o mês virava.
-const HOJE=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+// As datas saem do dia em que a página pensa que está — o mesmo isoHoje()
+// que o painel consulta para saber em que fechamento abrir. Datas fixas
+// faziam o preview nascer vazio assim que o mês virava; o dia de verdade,
+// numa página com o calendário congelado, fazia o mesmo.
+const HOJE=typeof isoHoje==='function'?isoHoje()
+  :new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
 const REAIS=[['ELISABETH BOTSARIS',2486.77],['PEDRO WAGNER',2025.08],['VIVIANE PIRES',2735.91],
  ['MATHEUS BAGAROLLO',2486.77],['CARLOS ALBERTO',366.39],['EMERSON DURAN',4174.71],
  ['RAIANA ROSENDO',2271.77],['NICOLAS FERREIRA',2486.77],['JULIANA MOREIRA',366.39],
