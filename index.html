@@ -13472,6 +13472,7 @@ function orcHtmlCliente(e, r){
       <button type="button" class="btn-save" onclick="orcVerImagem()"><i class="ti ti-photo"></i> Imagem para enviar</button>
       <button type="button" class="cx-btn" onclick="orcCopiarCliente()"><i class="ti ti-copy"></i> Copiar texto</button>
       <button type="button" class="cx-btn" onclick="window.print()"><i class="ti ti-printer"></i> Gerar PDF</button>
+      ${e.id && orcCasoAberto ? `<button type="button" class="cx-btn" onclick="orcLinkAprovacao('${orcCasoAberto}','${e.id}')"><i class="ti ti-link"></i> Link para aprovar</button>` : ''}
     </div>`;
 }
 // ── A via do cliente como imagem ────────────────────────────────────────
