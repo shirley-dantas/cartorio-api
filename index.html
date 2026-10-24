@@ -1984,43 +1984,51 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
    tarja escura no título e no total. O cinza fica só para as maiúsculas
    pequenas e a ressalva. Aqui não há compressão de WhatsApp para culpar:
    estava apagado na origem. */
-.orc-cliente{background:#fff;border:1px solid var(--cc-linha-forte);border-radius:14px;
-  margin-top:6px;overflow:hidden}
+.orc-cliente{background:#ECE7DD;border:0;border-radius:30px;padding:16px;margin-top:6px}
+.orc-cli-cartao{background:#fff;border-radius:28px;overflow:hidden;box-shadow:0 6px 20px rgba(31,42,51,.13);padding-bottom:6px}
 .orc-cli-titulo{font-family:'Jost',sans-serif;font-weight:500;font-size:16px;letter-spacing:.26em;
   text-transform:uppercase;color:#fff;background:var(--cc-tinta);text-align:center;
-  padding:15px 20px;border-bottom:4px solid var(--cc-champagne);margin:0}
-.orc-cli-caso{font-size:19px;font-weight:600;color:var(--cc-tinta);text-align:center;
-  padding:20px 26px 0;line-height:1.3}
-.orc-cli-ato{font-size:14px;font-weight:500;color:var(--cc-tinta-2);text-align:center;margin-top:4px;padding:0 26px}
+  padding:26px 20px 24px;border-radius:0 0 28px 28px;margin:0;position:relative}
+.orc-cli-titulo:after{content:"";position:absolute;left:50%;bottom:-3px;width:70px;height:6px;
+  border-radius:3px;background:var(--cc-champagne);transform:translateX(-50%)}
+.orc-cli-caso{font-size:22px;font-weight:600;color:var(--cc-tinta);text-align:center;
+  padding:28px 26px 0;line-height:1.3}
+.orc-cli-ato{font-size:15px;font-weight:500;color:var(--cc-tinta-2);text-align:center;margin-top:4px;padding:0 26px}
 .orc-cli-base{display:flex;justify-content:space-between;align-items:center;gap:12px;
-  margin:18px 26px;padding:14px 18px;background:var(--cc-sup-2);border-radius:11px;
+  margin:20px 20px 14px;padding:14px 18px;background:#F4F1EA;border-radius:20px;
   font-size:12.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--cc-tinta-2)}
-.orc-cli-base span{font-family:'Jost',sans-serif;font-size:24px;font-weight:500;letter-spacing:0;
+.orc-cli-base span{font-family:'Jost',sans-serif;font-size:25px;font-weight:500;letter-spacing:0;
   text-transform:none;font-variant-numeric:tabular-nums;color:var(--cc-tinta)}
-.orc-cli-tabela{width:100%;border-collapse:collapse;margin:0}
-.orc-cli-tabela th{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--cc-tinta-2);text-align:left;padding:0 26px 9px;border-bottom:2px solid var(--cc-tinta)}
-.orc-cli-tabela th:last-child,.orc-cli-tabela td:last-child{text-align:right}
-/* Faixa alternada no lugar do filete: o filete some, e sem ele o olho perde o
-   caminho do nome do custo até o valor, do outro lado da linha. */
+/* A tabela vira lista de faixas redondas (flex): uma linha cheia, outra vazada
+   com contorno — e o total numa barra escura. O filete sumia na compressão do
+   WhatsApp; a faixa e o contorno grosso não somem. */
+.orc-cli-tabela,.orc-cli-tabela tbody,.orc-cli-tabela tfoot{display:block;width:100%;margin:0}
+.orc-cli-tabela thead{display:none}
+.orc-cli-tabela tr{display:flex;justify-content:space-between;align-items:center;overflow:hidden}
+.orc-cli-tabela tbody{padding:0 20px}
+.orc-cli-tabela tbody tr{border-radius:16px;margin-bottom:8px}
 .orc-cli-tabela tbody tr:nth-child(odd){background:#F7F4EE}
-.orc-cli-tabela td{font-size:16px;color:var(--cc-tinta);padding:15px 26px;
-  border-bottom:0;font-variant-numeric:tabular-nums}
-.orc-cli-tabela tbody td:last-child{font-weight:600;font-size:17px}
-.orc-cli-tabela tfoot td{font-size:17px;font-weight:600;color:#fff;background:var(--cc-tinta);
-  border-bottom:0;border-top:0;padding:20px 26px}
-.orc-cli-tabela tfoot td:last-child{font-size:23px}
-.orc-cli-nota{margin:0;padding:16px 26px 20px;font-size:12.5px;line-height:1.6;
+.orc-cli-tabela tbody tr:nth-child(even){background:#fff;box-shadow:inset 0 0 0 1.5px #ECE7DD}
+.orc-cli-tabela td{font-size:17px;color:var(--cc-tinta);padding:15px 18px;border:0;font-variant-numeric:tabular-nums}
+.orc-cli-tabela td:last-child{text-align:right}
+.orc-cli-tabela tbody td:last-child{font-weight:600;font-size:18px}
+.orc-cli-tabela tfoot{padding:6px 20px 0}
+.orc-cli-tabela tfoot tr{background:var(--cc-tinta);border-radius:22px}
+.orc-cli-tabela tfoot td{font-size:16px;font-weight:600;letter-spacing:.1em;color:#fff;background:var(--cc-tinta);padding:20px 22px}
+.orc-cli-tabela tfoot td:last-child{font-size:25px;letter-spacing:0}
+.orc-cli-nota{margin:0;padding:16px 30px 20px;font-size:12.5px;line-height:1.6;
   color:var(--cc-tinta-2);text-align:center}
 @media(max-width:640px){
-  .orc-cli-caso{font-size:17px;padding:16px 16px 0}
-  .orc-cli-base{margin:14px 16px;padding:12px 14px;font-size:11.5px}
-  .orc-cli-base span{font-size:20px}
-  .orc-cli-tabela th{padding:0 16px 8px}
-  .orc-cli-tabela td{font-size:15px;padding:13px 16px}
-  .orc-cli-tabela tfoot td{font-size:15px;padding:16px}
-  .orc-cli-tabela tfoot td:last-child{font-size:19px}
-  .orc-cli-nota{padding:14px 16px 18px}
+  .orc-cliente{padding:10px}
+  .orc-cli-caso{font-size:19px;padding:22px 16px 0}
+  .orc-cli-base{margin:16px 14px 12px;padding:12px 14px;font-size:11.5px}
+  .orc-cli-base span{font-size:21px}
+  .orc-cli-tabela tbody,.orc-cli-tabela tfoot{padding-left:14px;padding-right:14px}
+  .orc-cli-tabela td{font-size:15px;padding:13px 14px}
+  .orc-cli-tabela tfoot td{font-size:14px;padding:17px 16px}
+  .orc-cli-tabela tfoot td:last-child{font-size:20px}
+  .orc-cli-nota{padding:14px 18px 18px}
+}
 }
 
 /* ── a lista do ambiente ── */
@@ -2081,7 +2089,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   .orc-check-linha{grid-template-columns:18px 1fr;row-gap:0}
   .orc-check-nota{grid-column:2}
   .orc-versao-acoes{margin-left:0;width:100%}
-  .orc-cliente{padding:20px 16px}
+  .orc-cliente{padding:10px}
   .orc-total-num{font-size:26px}
 }
 /* Imprimir manda só a folha do cliente para o papel: o resto da tela — a
@@ -2092,7 +2100,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   #modal-orcamento-caso{display:block!important;position:static!important;background:none!important}
   #modal-orcamento-caso .modal-close,#modal-orcamento-caso .modal-btn-row{display:none!important}
   #modal-orcamento-caso .modal-box{box-shadow:none!important;max-width:none!important;padding:0!important}
-  .orc-cliente{border:0!important;padding:0!important}
+  .orc-cliente{border:0!important;padding:0!important;background:#fff!important}
+  .orc-cli-cartao{box-shadow:none!important}
 }
 
 /* ── CENTRAL DE COMANDO v2 ──────────────────────────────────────────
@@ -3069,6 +3078,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="modal-title"><i class="ti ti-file-search" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Pedir documentos</div>
     <div class="modal-sub" id="ped-sub">—</div>
     <div id="ped-conteudo"></div>
+  </div>
+</div>
+
+<!-- Link para aprovar o orçamento: quem aprova e os documentos que a cliente vê depois de aprovar -->
+<div class="modal-overlay" id="modal-aprovar-link">
+  <div class="modal-box" style="max-width:1000px">
+    <button class="modal-close" onclick="fecharAprovarLink()">&times;</button>
+    <div class="modal-title"><i class="ti ti-link" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Link para aprovar</div>
+    <div class="modal-sub" id="apr-sub">—</div>
+    <div id="apr-conteudo"></div>
   </div>
 </div>
 
@@ -12023,10 +12042,10 @@ function codigoDeEnvio(){
 // Endereço que vai no link. Vazio = o próprio painel. Quando houver um endereço neutro (um domínio
 // só do cartório), é só escrevê-lo aqui: o WhatsApp mostra o endereço do link na prévia.
 const ENVIO_BASE_URL = '';
-async function criarLinkEnvio(id,{estado,blocos,token}){
+async function criarLinkEnvio(id,{estado,blocos,token,guiado}){
   const cod=token||codigoDeEnvio(), agora=Date.now();
   try{
-    await set(ref(db,'pedidos/'+cod),{casoId:id,ato:estado.tipo||'',publico:estado.publico||'cliente',papel:estado.papel||'ambos',blocos,criadoEm:agora,expiraEm:agora+15*864e5});
+    await set(ref(db,'pedidos/'+cod),orcSemUndefined({casoId:id,ato:estado.tipo||'',publico:estado.publico||'cliente',papel:estado.papel||'ambos',blocos,criadoEm:agora,expiraEm:agora+15*864e5,guiado:guiado?true:undefined}));
   }catch(e){
     const negado=/permission|PERMISSION/.test(String(e&&e.message||e));
     throw new Error(negado
@@ -12408,22 +12427,43 @@ async function pagLerArquivo(alvo,f){
 }
 // ── O link do orçamento: o cliente vê a folha e toca em "Aprovo" ──
 const orcLinkDe=tok=>(ENVIO_BASE_URL||location.origin).replace(/\/+$/,'')+'/o/'+tok;
-window.orcLinkAprovacao=async function(casoId,orcId){
+// "Link para aprovar": antes de gerar, ela escolhe quem vai aprovar e confere os documentos que a cliente
+// verá depois do "Aprovo" (a mesma lista do Pedir documentos). A janela é o montador de sempre, em modo aprovação.
+window.orcLinkAprovacao=function(casoId,orcId){
   const c=casos[casoId]||{}, o=pagOrcamentoEscolhido(casoId,orcId);
   if(!o){ alert('Não achei este orçamento.'); return; }
+  if(!pagImagemOrcamento(o)){ alert('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.'); return; }
+  document.getElementById('apr-sub').textContent=(c.nome||'Sem nome')+' — orçamento versão '+(o.versao||'');
+  PEDIDO.abrirJanela(document.getElementById('apr-conteudo'),{casoNome:c.nome,tipo:c.tipo,tipos:TIPOS_PRINCIPAIS,
+    aprovacao:{gerar:(est,sem)=>orcGerarLinkAprovacao(casoId,orcId,est,sem)}});
+  document.getElementById('modal-aprovar-link').classList.add('open');
+};
+window.fecharAprovarLink=function(){ document.getElementById('modal-aprovar-link').classList.remove('open'); };
+window.orcGerarLinkAprovacao=async function(casoId,orcId,est,semDocs){
+  const c=casos[casoId]||{}, o=pagOrcamentoEscolhido(casoId,orcId);
+  if(!o) throw new Error('Não achei este orçamento.');
   const imagem=pagImagemOrcamento(o);
-  if(!imagem){ alert('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.'); return; }
-  const token=codigoDeEnvio(), agora=Date.now(), link=orcLinkDe(token);
+  if(!imagem) throw new Error('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.');
+  const tok=(est&&est.aprTok)||{};
+  const token=tok.aprov||codigoDeEnvio(), agora=Date.now(), link=orcLinkDe(token);
+  let docsToken='';
+  if(!semDocs){
+    // Os documentos são pedidos pelo mesmo caminho do Pedir documentos: /pedidos/{código}.
+    docsToken=(await criarLinkEnvio(casoId,{estado:est,blocos:PEDIDO.formulario(est),token:tok.docs||'',guiado:true})).token;
+    // O pedido sabe de qual aprovação veio: quando o envio termina, a tela final mostra o orçamento aprovado.
+    try{ await update(ref(db,'pedidos/'+docsToken),{orcToken:token}); }
+    catch(err){ throw new Error('Não consegui ligar os documentos ao orçamento: '+((err&&err.message)||err)); }
+  }
   try{
-    await set(ref(db,'cobrancas/'+token),orcSemUndefined({meta:{tipo:'orcamento',casoId,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,expiraEm:agora+15*864e5},dados:{nome:c.nome||'',ato:c.tipo||''},imagens:{orcamento:imagem}}));
-    await set(ref(db,'casos/'+casoId+'/orcLink'),orcSemUndefined({token,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora}));
+    await set(ref(db,'cobrancas/'+token),orcSemUndefined({meta:{tipo:'orcamento',casoId,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,expiraEm:agora+15*864e5,docsToken},dados:{nome:c.nome||'',ato:c.tipo||''},imagens:{orcamento:imagem}}));
+    await set(ref(db,'casos/'+casoId+'/orcLink'),orcSemUndefined({token,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,docsToken}));
   }catch(err){
     const negado=/permission|PERMISSION/.test(String(err&&err.message||err));
-    alert(negado?'O banco recusou a gravação. As regras do Firebase com o caminho /cobrancas precisam estar publicadas (FIREBASE.md).':'Não consegui gerar o link: '+((err&&err.message)||err)); return;
+    throw new Error(negado?'O banco recusou a gravação. As regras do Firebase com o caminho /cobrancas precisam estar publicadas (FIREBASE.md).':'Não consegui gerar o link: '+((err&&err.message)||err));
   }
   const msg=`Olá! Para conferir e aprovar o seu orçamento, abra este link pelo celular:\n${link}\n\n20º Tabelião de Notas`;
-  window.__ultimoLinkOrc={link,msg};
-  try{ await navigator.clipboard.writeText(msg); finToast('Link do orçamento copiado. É só colar no WhatsApp.'); }catch(_){ prompt('Copie o texto e envie ao cliente:',msg); }
+  window.__ultimoLinkOrc={link,msg,docsToken};
+  return {url:link,msg,tokens:{aprov:token,docs:docsToken}};
 };
 
 window.orcMarcarAprovado = async function(casoId, orcId){
@@ -12441,6 +12481,7 @@ window.orcDesmarcarAprovado = async function(casoId){
   try{ await set(ref(db, 'casos/' + casoId + '/orcAprovacao'), null); finToast('Aprovação desmarcada.'); }
   catch(err){ alert('Não consegui desmarcar: ' + ((err && err.message) || err)); }
 };
+
 // ── A janela de gerar o link ──
 let pagEst=null;
 function pagLerMemoria(){ try{ return JSON.parse(localStorage.getItem('painel_pag_benef')||'null')||{}; }catch(_){ return {}; } }
@@ -13477,7 +13518,7 @@ function orcHtmlCliente(e, r){
   const linhas = orcLinhasCliente(r);
   const base = orcBasePrincipal(r);
   return `
-    <div class="orc-cliente" id="orc-cliente-folha">
+    <div class="orc-cliente" id="orc-cliente-folha"><div class="orc-cli-cartao">
       <div class="orc-cli-titulo">ESTIMATIVA DE CUSTOS</div>
       <div class="orc-cli-caso">${escTxt(orcIdentificacao(e))}</div>
       <div class="orc-cli-ato">${escTxt(r.ato.nome)}</div>
@@ -13489,7 +13530,7 @@ function orcHtmlCliente(e, r){
       </table>
       <div class="orc-cli-nota">Valores estimados, sujeitos a atualização conforme tabela vigente,
         documentos apresentados e eventuais particularidades do ato.</div>
-    </div>
+    </div></div>
     <div id="orc-folha-imagem" class="orc-folha-imagem" hidden></div>
     <div class="modal-btn-row" id="orc-cliente-botoes">
       <button type="button" class="btn-cancel" onclick="orcVoltarDoCliente()">Voltar ao orçamento</button>
@@ -13519,9 +13560,15 @@ const ORC_FOLHA = {
   // telefone, onde cinza médio em corpo fino desaparece.
   tinta: '#1F2A33', tinta2: '#5B6B78',
   claro: '#FFFFFF', champagne: '#A9895A',
-  fundo: '#FFFFFF', recuo: '#F4F1EA', faixa: '#F7F4EE'
+  fundo: '#ECE7DD', cartao: '#FFFFFF', recuo: '#F4F1EA', faixa: '#F7F4EE', filete: '#ECE7DD',
+  margem: 40, raioCartao: 56
 };
-function orcDesenharFolha(e, r){
+// A aprovação do cliente para ESTE orçamento (a mesma versão que ele viu), ou null.
+function orcAprovadoDe(e){
+  const a = (casos[orcCasoAberto] || {}).orcAprovacao;
+  return (a && a.em && e && e.id && String(a.orcId) === String(e.id)) ? a : null;
+}
+function orcDesenharFolha(e, r, aprovado){
   const F = ORC_FOLHA;
   const linhas = orcLinhasCliente(r);
   const base = orcBasePrincipal(r);
@@ -13530,20 +13577,20 @@ function orcDesenharFolha(e, r){
   // sobrava rodapé em branco e sobraria mais a cada linha nova — medir com o
   // mesmo código que desenha não erra nunca.
   const medir = document.createElement('canvas').getContext('2d');
-  const alt = orcLayoutFolha(medir, e, r, linhas, base, false);
+  const alt = orcLayoutFolha(medir, e, r, linhas, base, false, 0, aprovado);
   const c = document.createElement('canvas');
   c.width = F.larg * F.escala; c.height = Math.round(alt) * F.escala;
   const x = c.getContext('2d');
   x.scale(F.escala, F.escala);
-  orcLayoutFolha(x, e, r, linhas, base, true);
+  orcLayoutFolha(x, e, r, linhas, base, true, alt, aprovado);
   return c;
 }
 
 // O layout inteiro num lugar só. Com `desenhar` falso ele só percorre e devolve
 // a altura; com verdadeiro, pinta. As contas de posição são as mesmas nos dois.
-function orcLayoutFolha(x, e, r, linhas, base, desenhar){
+function orcLayoutFolha(x, e, r, linhas, base, desenhar, altFolha, aprovado){
   const F = ORC_FOLHA;
-  const L = F.larg, esq = F.pad, dir = L - F.pad;
+  const L = F.larg, esq = F.margem + 44, dir = L - F.margem - 44;
   const esqT = esq + 18, dirT = dir - 18;   // o texto, recuado dentro das faixas
   x.textBaseline = 'alphabetic';
   const fonte = (t, p) => `${p || ''} ${t}px -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`.trim();
@@ -13573,23 +13620,32 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar){
   };
   const tinta = c => { if(desenhar) x.fillStyle = c; };
 
-  if(desenhar){ x.fillStyle = F.fundo; x.fillRect(0, 0, L, 1e4); }
-
-  // ── A tarja do topo ──
-  // Ela não é enfeite. No WhatsApp a folha chega reduzida à largura do
-  // telefone, e uma página que é toda branca vira um retângulo claro sem
-  // nada que se agarre ao olho. A tarja escura dá à imagem uma âncora que
-  // sobrevive à redução — e diz o que é aquilo antes de a cliente abrir.
-  const tarja = 96;
+  // ── O cartão ──
+  // Fundo creme, e a folha como um cartão branco de cantos bem redondos. A
+  // tarja escura continua sendo a âncora que sobrevive à redução do WhatsApp:
+  // só mudou de forma — a base dela é arredondada, com um selo champagne.
+  const m = F.margem, cartaoAlt = (altFolha || 0) - 2 * m;
+  const tarja = 124;
   if(desenhar){
-    x.fillStyle = F.tinta; x.fillRect(0, 0, L, tarja);
-    x.fillStyle = F.champagne; x.fillRect(0, tarja - 5, L, 5);
+    x.fillStyle = F.fundo; x.fillRect(0, 0, L, altFolha);
+    x.save();
+    x.shadowColor = 'rgba(31,42,51,.16)'; x.shadowBlur = 28; x.shadowOffsetY = 8;
+    x.fillStyle = F.cartao;
+    orcCantoRedondo(x, m, m, L - 2 * m, cartaoAlt, F.raioCartao); x.fill();
+    x.restore();
+    x.save();
+    orcCantoRedondo(x, m, m, L - 2 * m, cartaoAlt, F.raioCartao); x.clip();
+    x.fillStyle = F.tinta;
+    orcCantoRedondo(x, m, m - F.raioCartao, L - 2 * m, tarja + F.raioCartao, F.raioCartao); x.fill();
+    x.restore();
+    x.fillStyle = F.champagne;
+    orcCantoRedondo(x, L / 2 - 70, m + tarja - 6, 140, 12, 6); x.fill();
   }
   tinta(F.claro);
   x.font = fonte(22, '600');
   const tit = 'ESTIMATIVA DE CUSTOS';
-  espacado(tit, (L - larguraEspacada(tit, 7)) / 2, 58, 7);
-  let y = tarja + 60;
+  espacado(tit, (L - larguraEspacada(tit, 7)) / 2, m + 72, 7);
+  let y = m + tarja + 62;
 
   // ── Quem é este orçamento ──
   const ident = orcIdentificacao(e);
@@ -13602,67 +13658,77 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar){
   pinta(r.ato.nome, L / 2, y, 'center');
   y += 42;
 
+  // ── O selo de aprovado ──
+  // Só na imagem que fica na conversa depois que o cliente aprovou: a data e a
+  // versão ficam escritas na própria folha, onde ele a encontra de novo.
+  if(aprovado){
+    const dt = new Date(aprovado.em).toLocaleDateString('pt-BR');
+    const txt = '✓  APROVADO PELO CLIENTE · ' + dt;
+    x.font = fonte(17, '700');
+    const larg = larguraEspacada(txt, 1.5) + 56;
+    if(desenhar){
+      x.fillStyle = '#1F6B40';
+      orcCantoRedondo(x, (L - larg) / 2, y - 20, larg, 46, 23); x.fill();
+      x.fillStyle = F.claro;
+      espacado(txt, (L - larg) / 2 + 28, y + 9, 1.5);
+    }
+    y += 46;
+  }
+
   // ── A base ──
   if(base){
-    const alt = 78;
+    const alt = 84;
     if(desenhar){
       x.fillStyle = F.recuo;
-      orcCantoRedondo(x, esq, y, dir - esq, alt, 14); x.fill();
+      orcCantoRedondo(x, esq, y, dir - esq, alt, 30); x.fill();
     }
     tinta(F.tinta2);
     x.font = fonte(14, '600');
-    espacado('BASE CONSIDERADA', esqT, y + 48, 2);
+    espacado('BASE CONSIDERADA', esq + 26, y + 51, 2);
     tinta(F.tinta);
-    x.font = fonte(29, '600');
-    pinta(orcMoeda(base), dirT, y + 51, 'right');
-    y += alt + 34;
+    x.font = fonte(30, '600');
+    pinta(orcMoeda(base), dir - 26, y + 54, 'right');
+    y += alt + 26;
   }else y += 8;
 
-  // ── A tabela ──
-  tinta(F.tinta2);
-  x.font = fonte(13, '600');
-  espacado('CUSTO', esqT, y, 2.2);
-  espacado('VALOR', dirT - larguraEspacada('VALOR', 2.2), y, 2.2);
-  y += 16;
-  if(desenhar){
-    x.strokeStyle = F.tinta; x.lineWidth = 2;
-    x.beginPath(); x.moveTo(esq, y); x.lineTo(dir, y); x.stroke();
-  }
-  y += 6;
-
-  // Faixas alternadas no lugar dos filetes. O filete de 0,8px era invisível
-  // depois da compressão do WhatsApp, e sem ele o olho perdia o caminho do
-  // nome do custo até o valor, do outro lado de meio palmo de branco.
-  const altLinha = 60;
+  // ── As linhas ──
+  // Faixas arredondadas, alternando cheia e vazada com contorno: o filete de
+  // 0,8px era invisível depois da compressão do WhatsApp, e sem um guia o olho
+  // perdia o caminho do nome do custo até o valor. O contorno do vazado é
+  // grosso de propósito (3px) para sobreviver à redução.
+  const altLinha = 66, vao = 12;
   linhas.forEach(([rot, val], i) => {
-    if(desenhar && i % 2 === 0){ x.fillStyle = F.faixa; x.fillRect(esq, y, dir - esq, altLinha); }
+    if(desenhar){
+      if(i % 2 === 0){ x.fillStyle = F.faixa; orcCantoRedondo(x, esq, y, dir - esq, altLinha, 26); x.fill(); }
+      else { x.strokeStyle = F.filete; x.lineWidth = 3; orcCantoRedondo(x, esq + 1.5, y + 1.5, dir - esq - 3, altLinha - 3, 25); x.stroke(); }
+    }
     const vTxt = orcMoeda(val);
-    x.font = fonte(23, '600');
+    x.font = fonte(24, '600');
     const largValor = x.measureText(vTxt).width;
-    const tamRot = cabeNo(rot, 21, '500', dirT - esqT - largValor - 34);
+    const tamRot = cabeNo(rot, 22, '500', dir - esq - 56 - largValor - 34);
     tinta(F.tinta);
-    pinta(rot, esqT, y + altLinha / 2 + tamRot * 0.35);
-    x.font = fonte(23, '600');
+    pinta(rot, esq + 28, y + altLinha / 2 + tamRot * 0.35);
+    x.font = fonte(24, '600');
     tinta(F.tinta);
-    pinta(vTxt, dirT, y + altLinha / 2 + 8, 'right');
-    y += altLinha;
+    pinta(vTxt, dir - 28, y + altLinha / 2 + 8, 'right');
+    y += altLinha + vao;
   });
 
   // ── O total ──
-  // Em tarja cheia: é o número que a cliente procura primeiro, e ele tem de
-  // ser achado sem leitura, de relance, na miniatura da conversa.
-  y += 18;
-  const altTotal = 92;
+  // Em barra cheia e redonda: é o número que a cliente procura primeiro, e ele
+  // tem de ser achado sem leitura, de relance, na miniatura da conversa.
+  y += 8;
+  const altTotal = 100;
   if(desenhar){
     x.fillStyle = F.tinta;
-    orcCantoRedondo(x, esq, y, dir - esq, altTotal, 14); x.fill();
+    orcCantoRedondo(x, esq, y, dir - esq, altTotal, 38); x.fill();
   }
   tinta(F.claro);
   x.font = fonte(20, '600');
-  espacado('TOTAL ESTIMADO', esqT, y + altTotal / 2 + 7, 2);
-  x.font = fonte(32, '700');
-  pinta(orcMoeda(r.totais.total), dirT, y + altTotal / 2 + 11, 'right');
-  y += altTotal + 40;
+  espacado('TOTAL ESTIMADO', esq + 30, y + altTotal / 2 + 7, 2);
+  x.font = fonte(34, '700');
+  pinta(orcMoeda(r.totais.total), dir - 30, y + altTotal / 2 + 12, 'right');
+  y += altTotal + 36;
 
   // ── A ressalva ──
   tinta(F.tinta2);
@@ -13670,9 +13736,9 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar){
   ['Valores estimados, sujeitos a atualização conforme tabela vigente,',
    'documentos apresentados e eventuais particularidades do ato.']
     .forEach((t, i) => pinta(t, L / 2, y + i * 23, 'center'));
-  y += 23;
+  y += 23 + 40;           // fim do cartão
 
-  return y + F.pad;
+  return y + m;
 }
 function orcCantoRedondo(x, px, py, l, a, raio){
   x.beginPath();
@@ -13714,7 +13780,7 @@ window.orcVerImagem = async function(){
   if(!e || !r) return;
   let blob;
   try{
-    const c = orcDesenharFolha(e, r);
+    const c = orcDesenharFolha(e, r, orcAprovadoDe(e));
     blob = await new Promise(ok => c.toBlob(ok, 'image/png'));
   }catch(err){ finToast('Não consegui desenhar a imagem aqui.'); return; }
   if(!blob){ finToast('Não consegui desenhar a imagem aqui.'); return; }
@@ -13784,9 +13850,9 @@ window.orcCompartilharImagem = async function(){
 // Leitura do rascunho, para o teste conferir o que a tela guardou sem poder
 // mexer no que ela está usando.
 window.orcEmEdicao_leitura = () => JSON.parse(JSON.stringify(orcEmEdicao || {}));
-window.orcFolhaDoRascunho = function(){
+window.orcFolhaDoRascunho = function(aprovado){
   const r = orcCalcularRascunho();
-  return r ? orcDesenharFolha(orcEmEdicao, r) : null;
+  return r ? orcDesenharFolha(orcEmEdicao, r, aprovado === undefined ? orcAprovadoDe(orcEmEdicao) : aprovado) : null;
 };
 
 window.orcCopiarCliente = function(){

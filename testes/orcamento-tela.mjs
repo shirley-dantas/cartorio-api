@@ -496,6 +496,11 @@ await passo('a via do cliente sai como imagem, para colar no WhatsApp', async ()
   if(!/^data:image\/png/.test(img.url)) throw new Error('não saiu PNG');
 });
 
+await passo('depois de aprovada, a imagem ganha o selo "aprovado pelo cliente"', async () => {
+  const r = await pg.evaluate(() => ({sem: orcFolhaDoRascunho(null).height, com: orcFolhaDoRascunho({em: 1760000000000}).height}));
+  if(r.com <= r.sem) throw new Error('o selo não ocupou lugar na folha: ' + JSON.stringify(r));
+});
+
 // Ela precisava orçar uma escritura com uma procuração junto e não tinha onde
 // dizer isso. O bloco fica na etapa 1, colado no ato principal, porque é ali
 // que ela decide o que vai na escritura.

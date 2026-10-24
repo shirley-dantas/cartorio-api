@@ -26,6 +26,10 @@ const ctx={casoNome:'Maria da Silva',tipo,tipos:Object.keys(PEDIDO.MODELO_DO_TIP
 if(q.get('link')) ctx.criarLink=(p)=>{ window.__links.push(JSON.parse(JSON.stringify({token:p.token,blocos:p.blocos})));
   if(q.get('negar')) return Promise.reject(new Error('O banco recusou a gravação.'));
   return Promise.resolve({token:p.token||'TOKENFIXO0123456789abcd',url:'https://painel.exemplo/enviar.html?t='+(p.token||'TOKENFIXO0123456789abcd')}); };
+window.__aprov=[];
+if(q.get('aprovar')) ctx.aprovacao={gerar:(est,sem)=>{ window.__aprov.push({sem,tok:est.aprTok||null,blocos:PEDIDO.formulario(est)});
+  if(q.get('negar')) return Promise.reject(new Error('O banco recusou a gravação.'));
+  return Promise.resolve({url:'https://painel.exemplo/o/APROV123',msg:'Olá! Para conferir e aprovar o seu orçamento, abra este link pelo celular:\nhttps://painel.exemplo/o/APROV123\n\n20º Tabelião de Notas',tokens:{aprov:'APROV123',docs:sem?'':'DOCS123'}}); }};
 window.__j=PEDIDO.abrirJanela(document.getElementById('alvo'),ctx);
 window.__pronto=true;
 </script></body></html>
