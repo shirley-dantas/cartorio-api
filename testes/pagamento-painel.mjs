@@ -386,5 +386,17 @@ await passo('a aprovação do cliente: aparece na faixa e no topo, e a janela de
   assert(!/aprovou/.test(sem), 'depois de visto, o aviso some');
 });
 
+await passo('"Cliente aprovou": um clique grava a aprovação (manual, já vista), e dá para desmarcar', async () => {
+  const pg = await abrir();
+  await pg.evaluate(() => { window.__orc = [{id: 'o2', casoId: '-Caso1', status: 'conferencia', versao: 2, resultado: {}}]; window.__setCasos({'-Caso1': {id: '-Caso1', nome: 'Maria da Silva'}}); });
+  await pg.evaluate(() => orcMarcarAprovado('-Caso1', 'o2'));
+  const g = await pg.evaluate(() => window.__grav.filter((x) => x[1] === 'casos/-Caso1/orcAprovacao').pop());
+  assert.equal(g[2].orcId, 'o2'); assert.equal(g[2].versao, '2'); assert.equal(g[2].manual, true); assert.equal(g[2].visto, true); assert(g[2].em > 0);
+  const r = await pg.evaluate(() => { const c = {id: '-Caso1', nome: 'M', orcAprovacao: {orcId: 'o2', versao: '2', em: 1760000000000, visto: true, manual: true}}; window.__setCasos({'-Caso1': c}); return {faixa: pagFaixaHtml(c), topo: pagAvisosHtml({'-Caso1': c})}; });
+  assert(/marcado pela equipe/.test(r.faixa)); assert(!/aprovou/.test(r.topo), 'marcado à mão não gera aviso no topo');
+  await pg.evaluate(() => orcDesmarcarAprovado('-Caso1'));
+  const d = await pg.evaluate(() => window.__grav.filter((x) => x[1] === 'casos/-Caso1/orcAprovacao').pop()); assert.equal(d[2], null);
+});
+
 await b.close(); servidor.close();
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
