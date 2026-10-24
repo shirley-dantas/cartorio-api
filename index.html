@@ -12042,10 +12042,10 @@ function codigoDeEnvio(){
 // Endereço que vai no link. Vazio = o próprio painel. Quando houver um endereço neutro (um domínio
 // só do cartório), é só escrevê-lo aqui: o WhatsApp mostra o endereço do link na prévia.
 const ENVIO_BASE_URL = '';
-async function criarLinkEnvio(id,{estado,blocos,token}){
+async function criarLinkEnvio(id,{estado,blocos,token,guiado}){
   const cod=token||codigoDeEnvio(), agora=Date.now();
   try{
-    await set(ref(db,'pedidos/'+cod),{casoId:id,ato:estado.tipo||'',publico:estado.publico||'cliente',papel:estado.papel||'ambos',blocos,criadoEm:agora,expiraEm:agora+15*864e5});
+    await set(ref(db,'pedidos/'+cod),orcSemUndefined({casoId:id,ato:estado.tipo||'',publico:estado.publico||'cliente',papel:estado.papel||'ambos',blocos,criadoEm:agora,expiraEm:agora+15*864e5,guiado:guiado?true:undefined}));
   }catch(e){
     const negado=/permission|PERMISSION/.test(String(e&&e.message||e));
     throw new Error(negado
@@ -12449,7 +12449,7 @@ window.orcGerarLinkAprovacao=async function(casoId,orcId,est,semDocs){
   let docsToken='';
   if(!semDocs){
     // Os documentos são pedidos pelo mesmo caminho do Pedir documentos: /pedidos/{código}.
-    docsToken=(await criarLinkEnvio(casoId,{estado:est,blocos:PEDIDO.formulario(est),token:tok.docs||''})).token;
+    docsToken=(await criarLinkEnvio(casoId,{estado:est,blocos:PEDIDO.formulario(est),token:tok.docs||'',guiado:true})).token;
     // O pedido sabe de qual aprovação veio: quando o envio termina, a tela final mostra o orçamento aprovado.
     try{ await update(ref(db,'pedidos/'+docsToken),{orcToken:token}); }
     catch(err){ throw new Error('Não consegui ligar os documentos ao orçamento: '+((err&&err.message)||err)); }
