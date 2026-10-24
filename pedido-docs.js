@@ -541,6 +541,30 @@
       return '<div class="ped-acoes"><button class="ped-btn forte" data-acao="link" style="width:100%"' + (est.gerando ? ' disabled' : '') + '>' + (est.gerando ? 'Gerando…' : 'Gerar link para a pessoa enviar os documentos') + '</button></div><div class="ped-nota">Ela preenche os dados e sobe os documentos pelo celular, e tudo cai na pasta do caso no Drive.</div>';
     }
 
+    // Modo "link para aprovar": a lista marcada aqui é a que a cliente vê depois de aprovar o
+    // orçamento. Em vez da mensagem de pedido, a coluna da direita só gera e entrega o link.
+    function blocoAprovacao() {
+      if (est.aprErro) var erro = '<div class="ped-bloco" style="background:#fff;border-color:#E6B8B3"><div class="ped-tit" style="color:var(--cc-critico,#B3261E)">Não consegui gerar o link</div><div class="ped-nota">' + esc(est.aprErro) + '</div></div>';
+      if (est.aprLink) {
+        var velha = est.aprComDocs && est.aprAssin !== JSON.stringify(formulario(est));
+        return (velha ? '<div class="ped-bloco" style="background:#fff;border-color:#E8D6AE"><div class="ped-nota" style="color:#8A5A0B;margin:0 0 8px"><b>A lista mudou depois que o link foi gerado.</b> Toque em Atualizar a lista: o link continua o mesmo.</div><div class="ped-acoes"><button class="ped-btn forte" data-acao="apr-gerar">Atualizar a lista</button></div></div>' : '') +
+          '<div class="ped-bloco"><div class="ped-tit">Link para aprovar<small>vale por 15 dias</small></div><input type="text" readonly value="' + esc(est.aprLink) + '" onclick="this.select()">' +
+          '<div class="ped-tit" style="margin-top:12px">A mensagem<small>pode editar antes de enviar</small></div><textarea id="ped-apr-msg">' + esc(est.aprMsg) + '</textarea>' +
+          '<div class="ped-acoes"><button class="ped-btn forte" data-acao="apr-copiar">Copiar texto</button><button class="ped-btn" data-acao="apr-zap">WhatsApp</button></div>' +
+          '<div class="ped-nota' + (est.aviso ? ' ped-ok' : '') + '" id="ped-aviso">' + esc(est.aviso || (est.aprComDocs ? 'Depois que a pessoa aprovar, ela vê esta lista de documentos.' : 'Este link não pede documentos.')) + '</div></div>';
+      }
+      return (erro || '') + '<div class="ped-bloco"><div class="ped-tit">Depois da aprovação</div>' +
+        '<div class="ped-nota" style="margin:0 0 10px">A cliente vê a lista marcada ao lado e escolhe entre enviar pelo site ou mandar pelo WhatsApp. Escolha quem vai aprovar e confira a lista.</div>' +
+        '<div class="ped-acoes"><button class="ped-btn forte" data-acao="apr-gerar" style="width:100%"' + (est.aprGerando ? ' disabled' : '') + '>' + (est.aprGerando ? 'Gerando…' : 'Gerar link para aprovar') + '</button></div>' +
+        '<div class="ped-acoes" style="margin-top:6px"><button class="ped-btn" data-acao="apr-sem" style="width:100%"' + (est.aprGerando ? ' disabled' : '') + '>Gerar sem pedir documentos</button></div></div>';
+    }
+    function gerarAprovacao(semDocs) {
+      est.aprGerando = true; est.aprErro = ''; desenhar();
+      Promise.resolve(ctx.aprovacao.gerar(est, !!semDocs)).then(function (r) {
+        est.aprGerando = false; est.aprLink = r.url; est.aprMsg = est.aprMsg && est.aprMsgEditada ? est.aprMsg : r.msg; est.aprTok = r.tokens || est.aprTok; est.aprComDocs = !semDocs; est.aprAssin = JSON.stringify(formulario(est)); est.aviso = ''; desenhar();
+      }, function (e) { est.aprGerando = false; est.aprErro = (e && e.message) || 'Erro desconhecido.'; desenhar(); });
+    }
+
     function check(rotulo, ligado, acao) {
       return '<label class="ped-lin' + (ligado ? '' : ' off') + '"><input type="checkbox"' + (ligado ? ' checked' : '') + ' data-acao="' + acao + '"><span>' + esc(rotulo) + '</span></label>';
     }
@@ -551,7 +575,7 @@
       var ehInv = modelo === 'inventario', ehDiv = modelo === 'divorcio';
       var envolve = '';
       var papeis = PAPEIS[modelo] && est.publico !== 'construtora' ? PAPEIS[modelo] : null;
-      var quem = papeis ? '<div class="ped-sub" style="margin-top:12px">Quem vai receber</div><div class="ped-chips">' +
+      var quem = papeis ? '<div class="ped-sub" style="margin-top:12px">' + (ctx.aprovacao ? 'Quem vai aprovar' : 'Quem vai receber') + '</div><div class="ped-chips">' +
         papeis.map(function (p) { return '<button class="ped-chip' + (papelDe(est, modelo) === p[0] ? ' on' : '') + '" data-acao="papel:' + p[0] + '">' + esc(p[1]) + '</button>'; }).join('') + '</div>' : '';
       if (est.publico !== 'construtora') {
         if (ehDiv) envolve += check('Com partilha de bens', est.partilha, 'partilha');
@@ -591,13 +615,13 @@
         (est.tipo ? '' : '<div class="ped-nota" style="color:var(--cc-atencao,#8A5A0B)"><b>Este card ainda não tem o tipo de ato.</b> Escolha o ato acima para a lista certa.</div>') + quem +
         (envolve ? '<div style="margin-top:6px">' + envolve + '</div>' : '') + '</div>' +
         '<div class="ped-bloco"><div class="ped-tit">O que pedir</div>' + lista + '</div>' + mais +
-        '</div><div class="ped-dir"><div class="ped-bloco"><div class="ped-tit">A mensagem<small>pode editar antes de enviar</small></div>' +
+        '</div><div class="ped-dir">' + (ctx.aprovacao ? blocoAprovacao() : '<div class="ped-bloco"><div class="ped-tit">A mensagem<small>pode editar antes de enviar</small></div>' +
         '<textarea id="ped-msg">' + esc(est.msg) + '</textarea>' +
         (est.msgEditada ? '<div class="ped-nota">Você editou o texto, então ele não muda mais sozinho. <button class="ped-btn" data-acao="refazer" style="min-height:32px;padding:4px 10px">Refazer pela lista</button></div>' : '') +
         '<input type="email" id="ped-para" value="' + esc(est.para) + '" placeholder="E-mail da pessoa (opcional)" style="margin-top:10px">' + blocoLink() +
         '<div class="ped-acoes"><button class="ped-btn forte" data-acao="copiar">Copiar texto</button><button class="ped-btn" data-acao="email">Abrir no e-mail</button><button class="ped-btn" data-acao="zap">WhatsApp</button></div>' +
         '<div class="ped-acoes" style="margin-top:6px"><button class="ped-btn" data-acao="so-lista" title="Troca a mensagem pela lista de documentos, para mandar separada do link">Só a lista de documentos</button></div>' +
-        '<div class="ped-nota' + (est.aviso ? ' ped-ok' : '') + '" id="ped-aviso">' + esc(est.aviso || 'Nada sai daqui sem você enviar.') + '</div></div></div></div></div>';
+        '<div class="ped-nota' + (est.aviso ? ' ped-ok' : '') + '" id="ped-aviso">' + esc(est.aviso || 'Nada sai daqui sem você enviar.') + '</div></div>') + '</div></div></div>';
       ajustaAltura();
     }
 
@@ -632,6 +656,7 @@
     function aoDigitar(e) {
       if (e.target.id === 'ped-msg') { est.msg = e.target.value; est.msgEditada = true; ajustaAltura(); }
       if (e.target.id === 'ped-para') est.para = e.target.value;
+      if (e.target.id === 'ped-apr-msg') { est.aprMsg = e.target.value; est.aprMsgEditada = true; }
     }
     function aoMudar(e) {
       var a = e.target.getAttribute('data-acao'); if (!a) return;
@@ -659,6 +684,10 @@
       else if (a === 'so-lista') { est.msg = listaEmTexto(est); est.msgEditada = true; desenhar(); aviso('A mensagem agora é só a lista de documentos. Copie ou envie.'); }
       else if (a === 'copiar-link') copiar(est.link).then(function () { aviso('Link copiado.'); }, function () { aviso('Não consegui copiar — selecione o link e copie.'); });
       else if (a === 'link') gerarLink();
+      else if (a === 'apr-gerar') gerarAprovacao(false);
+      else if (a === 'apr-sem') gerarAprovacao(true);
+      else if (a === 'apr-copiar') copiar(est.aprMsg).then(function () { aviso('Texto copiado. É só colar no WhatsApp.'); }, function () { aviso('Não consegui copiar — selecione o texto e copie.'); });
+      else if (a === 'apr-zap') window.open('https://wa.me/?text=' + encodeURIComponent(est.aprMsg), '_blank', 'noopener');
       else if (a === 'copiar') copiar(est.msg).then(function () { aviso('Texto copiado. É só colar.'); }, function () { aviso('Não consegui copiar — selecione o texto e copie.'); });
       else if (a === 'zap') window.open('https://wa.me/?text=' + encodeURIComponent(est.msg), '_blank', 'noopener');
       else if (a === 'email') {

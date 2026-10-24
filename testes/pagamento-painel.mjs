@@ -357,13 +357,36 @@ await passo('a leitura falha (Apps Script antigo ou IA fora): não trava nada, e
 await passo('link do orçamento: grava o registro de tipo orçamento com a folha e o resumo no card, e copia a mensagem', async () => {
   const pg = await abrir();
   await pg.evaluate(() => { window.__orc = [{id: 'o1', casoId: '-Caso1', status: 'enviado', versao: 1, resultado: {}}, {id: 'o2', casoId: '-Caso1', status: 'enviado', versao: 2, resultado: {}}]; });
-  await pg.evaluate(() => orcLinkAprovacao('-Caso1', 'o2'));
+  await pg.evaluate(() => orcGerarLinkAprovacao('-Caso1', 'o2', {}, true));
   const g = await pg.evaluate(() => window.__grav);
   const cob = g.find((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234'); assert(cob, JSON.stringify(g.map((x) => x[1])));
   assert.equal(cob[2].meta.tipo, 'orcamento'); assert.equal(cob[2].meta.orcId, 'o2'); assert.equal(cob[2].meta.versao, '2'); assert.equal(cob[2].meta.casoId, '-Caso1'); assert(cob[2].meta.expiraEm > Date.now() + 14 * 864e5);
   assert(/^data:image\/jpeg;base64,/.test(cob[2].imagens.orcamento)); assert.equal(cob[2].dados.nome, 'Maria da Silva');
   const l = g.find((x) => x[1] === 'casos/-Caso1/orcLink'); assert(l && l[2].token === 'TOKENFIXOabcdefghij1234' && l[2].versao === '2');
   const m = await pg.evaluate(() => window.__ultimoLinkOrc); assert.equal(m.link, 'https://painel.exemplo/o/TOKENFIXOabcdefghij1234'); assert(/aprovar o seu orçamento/.test(m.msg) && m.msg.includes(m.link));
+});
+
+await passo('link do orçamento com documentos: pede a lista pelo caminho de /pedidos e guarda o código junto', async () => {
+  const pg = await abrir();
+  await pg.evaluate(() => {
+    window.__orc = [{id: 'o2', casoId: '-Caso1', status: 'enviado', versao: 2, resultado: {}}];
+    window.PEDIDO = {formulario: (est) => [{id: 'pessoa', titulo: 'RG e CPF'}]};
+    window.__pedidoChamado = null;
+    window.criarLinkEnvio = async (id, p) => { window.__pedidoChamado = {id, blocos: p.blocos, token: p.token}; return {token: 'DOCS1234567890abcdef', url: 'x'}; };
+  });
+  const r = await pg.evaluate(() => orcGerarLinkAprovacao('-Caso1', 'o2', {tipo: 'Compra e venda', papel: 'comprador'}, false));
+  assert.equal(r.tokens.docs, 'DOCS1234567890abcdef'); assert.equal(await pg.evaluate(() => window.__pedidoChamado.id), '-Caso1');
+  const g = await pg.evaluate(() => window.__grav);
+  assert.equal(g.find((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234')[2].meta.docsToken, 'DOCS1234567890abcdef');
+  assert.equal(g.find((x) => x[1] === 'casos/-Caso1/orcLink')[2].docsToken, 'DOCS1234567890abcdef');
+  // Atualizar a lista reaproveita os dois códigos: o link que já foi enviado continua valendo.
+  await pg.evaluate(() => orcGerarLinkAprovacao('-Caso1', 'o2', {aprTok: {aprov: 'APROV1234567890abcdef', docs: 'DOCS1234567890abcdef'}}, false));
+  assert.equal(await pg.evaluate(() => window.__pedidoChamado.token), 'DOCS1234567890abcdef');
+  assert(await pg.evaluate(() => window.__grav.some((x) => x[1] === 'cobrancas/APROV1234567890abcdef')));
+  // Banco recusando: o erro sobe escrito (a janela mostra), nada de "link pronto" sem estar gravado.
+  await pg.evaluate(() => { window.__recusar = true; });
+  const erro = await pg.evaluate(async () => { try { await orcGerarLinkAprovacao('-Caso1', 'o2', {}, true); return ''; } catch (e) { return e.message; } });
+  assert(/banco recusou/.test(erro), erro);
 });
 
 await passo('a aprovação do cliente: aparece na faixa e no topo, e a janela de pagamento já nasce com a versão aprovada', async () => {

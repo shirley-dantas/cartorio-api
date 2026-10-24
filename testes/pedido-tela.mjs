@@ -23,6 +23,26 @@ await passo('"Só a lista de documentos": troca a mensagem (mesmo com o link ger
   await pg.click('[data-acao="so-lista"]');
   const m = await msg(pg); assert(/separe estes documentos antes de começar/.test(m) && /SEUS DOCUMENTOS/.test(m) && /• RG ou CNH/.test(m) && !/enviar\.html/.test(m), m);
 });
+await passo('modo aprovação: a coluna da direita só gera o link, e a lista marcada vai junto', async () => {
+  const pg = await abrir('tipo=Escritura%20de%20Compra%20e%20Venda&aprovar=1');
+  assert.equal(await pg.locator('#ped-msg').count(), 0, 'sem a mensagem de pedido');
+  assert.equal(await pg.locator('[data-acao="email"]').count(), 0);
+  await pg.click('[data-acao="papel:comprador"]'); await pg.click('[data-acao="apr-gerar"]'); await pg.waitForSelector('#ped-apr-msg');
+  const j = await pg.evaluate(() => window.__aprov); assert.equal(j.length, 1); assert.equal(j[0].sem, false); assert(j[0].blocos.length > 0);
+  assert(/aprovar o seu orçamento/.test(await pg.inputValue('#ped-apr-msg')));
+  // mudar a lista depois de gerar: avisa que o link está velho, e atualizar reaproveita os códigos
+  await pg.click('.ped-lin input >> nth=0');
+  assert(/A lista mudou/.test(await pg.innerText('.ped')), 'avisa lista velha');
+  await pg.click('[data-acao="apr-gerar"]'); await pg.waitForFunction(() => !/A lista mudou/.test(document.querySelector('.ped').innerText));
+  const j2 = await pg.evaluate(() => window.__aprov); assert.equal(j2[1].tok.aprov, 'APROV123'); assert.equal(j2[1].tok.docs, 'DOCS123');
+});
+await passo('modo aprovação: "gerar sem pedir documentos" e banco recusando', async () => {
+  const pg = await abrir('aprovar=1'); await pg.click('[data-acao="apr-sem"]'); await pg.waitForSelector('#ped-apr-msg');
+  assert.equal((await pg.evaluate(() => window.__aprov))[0].sem, true);
+  assert(/não pede documentos/.test(await pg.innerText('#ped-aviso')));
+  const n = await abrir('aprovar=1&negar=1'); await n.click('[data-acao="apr-gerar"]'); await n.waitForSelector('text=Não consegui gerar o link');
+  assert(/banco recusou/.test(await n.innerText('.ped'))); assert.equal(await n.locator('#ped-apr-msg').count(), 0);
+});
 await passo('sem criarLink (o painel não sabe gerar), o botão nem aparece', async () => {
   const pg = await abrir('tipo=Doa%C3%A7%C3%A3o'); assert.equal(await pg.locator('[data-acao="link"]').count(), 0);
 });

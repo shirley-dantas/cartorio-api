@@ -290,12 +290,22 @@ body.aprovado #aprovo,body.aprovado #nota,body.aprovado #apoio,body.aprovado #ol
 .o-bts{display:flex;gap:10px;margin-top:12px}
 .o-bt{flex:1;min-height:56px;border:2px solid var(--graf);background:#fff;color:var(--graf);border-radius:999px;font:700 18px -apple-system,'Inter',sans-serif;cursor:pointer}
 .o-bt:first-child{background:var(--graf);color:#fff}
+.o-docs{margin-top:16px;background:var(--recuo);border-radius:24px;padding:20px 16px}
+.o-docs h3{font-size:22px;font-weight:700;text-align:center;margin-bottom:4px}
+.o-docs .o-sub{text-align:center;color:var(--graf-2);font-size:16px;margin-bottom:14px}
+.o-docs .g{font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--graf-2);margin:14px 4px 8px}
+.o-docs .d{background:#fff;border-radius:16px;padding:12px 14px;margin-bottom:6px;font-size:17px;font-weight:600;line-height:1.3}
+.o-docs .d small{display:block;font-weight:400;font-size:15px;color:var(--graf-2);margin-top:2px}
+.o-docs .o-bts{flex-direction:column}
+.o-docs a.o-bt{display:flex;align-items:center;justify-content:center;text-decoration:none}
+.o-docs a.o-bt.cheio{background:var(--graf);color:#fff}
 </style></head><body><div class="miolo">
 <header class="topo"><svg class="arco" viewBox="0 0 600 90" role="img" aria-label="20º Tabelião de Notas"><defs><linearGradient id="arco" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#BE9E6C"/><stop offset="50%" stop-color="#E8D3A4"/><stop offset="100%" stop-color="#BE9E6C"/></linearGradient></defs><path d="M20 80 Q300 -10 580 80" fill="none" stroke="url(#arco)" stroke-width="5" stroke-linecap="round"/></svg><h1 id="h1"></h1><div class="orgao" id="orgao"></div><p class="escrevente"><b id="esc"></b><br><a href="https://wa.me/5511954929643" rel="noopener" id="wpp"></a></p></header>
 <div class="titulo"><span class="ato" id="ato" hidden></span></div>
-<div class="tela-pag" id="pede" style="padding:0 16px 40px"><h2 style="font-family:'Jost',sans-serif;font-weight:300;font-size:26px;margin:18px 0 4px" id="ola"></h2><p class="sub" id="apoio"></p><div class="o-ok" id="okfaixa" hidden><b>✓ Orçamento aprovado</b><span id="quando"></span></div><img class="o-folha" id="folha" alt="Orçamento"><div class="o-nota" id="nota"></div><button type="button" class="o-aprovar" id="aprovo">Aprovo este orçamento</button><div class="o-erro" id="erro" hidden></div><div class="o-depois" id="depois" hidden><p>Guarde esta imagem: ela é o seu orçamento aprovado.</p><div class="o-bts"><button type="button" class="o-bt" id="salvar">Salvar imagem</button><button type="button" class="o-bt" id="compartilhar" hidden>Compartilhar</button></div><small>Ou toque e segure a imagem para salvar.</small></div></div>
+<div class="tela-pag" id="pede" style="padding:0 16px 40px"><h2 style="font-family:'Jost',sans-serif;font-weight:300;font-size:26px;margin:18px 0 4px" id="ola"></h2><p class="sub" id="apoio"></p><div class="o-ok" id="okfaixa" hidden><b>✓ Orçamento aprovado</b><span id="quando"></span></div><div class="o-docs" id="docs" hidden></div><img class="o-folha" id="folha" alt="Orçamento"><div class="o-nota" id="nota"></div><button type="button" class="o-aprovar" id="aprovo">Aprovo este orçamento</button><div class="o-erro" id="erro" hidden></div><div class="o-depois" id="depois" hidden><p>Guarde esta imagem: ela é o seu orçamento aprovado.</p><div class="o-bts"><button type="button" class="o-bt" id="salvar">Salvar imagem</button><button type="button" class="o-bt" id="compartilhar" hidden>Compartilhar</button></div><small>Ou toque e segure a imagem para salvar.</small></div></div>
 <div class="tela erro" id="invalido"><div class="visto">!</div><h2>Link indisponível</h2><p class="sub" id="motivo">Este link não é válido ou já venceu. Peça um novo ao cartório.</p></div>
 </div>
+<script src="/pedido-docs.js"></script>
 <script>
 const FIREBASE='https://painel-cartorio-default-rtdb.firebaseio.com';
 const GAS_URL='https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec';
@@ -305,11 +315,27 @@ const quando=ms=>{const d=new Date(ms);return d.toLocaleDateString('pt-BR')+' à
 let cob=null;
 $('#orgao').textContent='20º Tabelião de Notas'; $('#h1').textContent='Seu orçamento'; $('#esc').textContent='Escrevente Shirley Dantas'; $('#wpp').textContent='WhatsApp (11) 95492-9643';
 function invalido(m){ if(m) $('#motivo').textContent=m; document.body.classList.add('invalido'); }
+// Depois de aprovar: a lista de documentos que ela marcou ao gerar o link (a mesma do formulário de envio),
+// com dois caminhos — o formulário no site ou a conversa de WhatsApp com a escrevente.
+const WHATS='5511954929643';
+async function mostrarDocs(){
+  const tok=cob&&cob.meta&&cob.meta.docsToken; if(!tok||!window.PEDIDO) return;
+  let ped=null;
+  try{ const r=await fetch(`${FIREBASE}/pedidos/${tok}.json`); if(r.ok) ped=await r.json(); }catch(e){ return; }
+  if(!ped||!ped.blocos||ped.concluidoEm||(ped.expiraEm&&Date.now()>ped.expiraEm)) return;
+  const G=PEDIDO.introDocs(ped.blocos); if(!G.length) return;
+  const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const zap='Olá! Aprovei o orçamento. Vou enviar os documentos por aqui.';
+  $('#docs').innerHTML='<h3>Agora, o que precisamos de você</h3><div class="o-sub">Separe estes documentos e informações:</div>'+
+    G.map(g=>'<div class="g">'+esc(g.titulo)+'</div>'+g.itens.map(i=>'<div class="d">'+esc(i.titulo)+(i.detalhe?'<small>'+esc(i.detalhe)+'</small>':'')+'</div>').join('')).join('')+
+    '<div class="o-bts" style="margin-top:16px"><a class="o-bt cheio" id="siteDocs" href="/e/'+encodeURIComponent(tok)+'">Enviar pelo site</a><a class="o-bt" id="zapDocs" href="https://wa.me/'+WHATS+'?text='+encodeURIComponent(zap)+'">Mandar pelo WhatsApp</a></div>';
+  $('#docs').hidden=false;
+}
 function feito(ms){
   $('#quando').textContent='Recebemos a sua aprovação em '+quando(ms)+'. Nossa equipe já foi avisada.';
   $('#okfaixa').hidden=false; $('#depois').hidden=false; $('#ola').textContent='Seu orçamento';
   if(cob&&cob.imagens&&cob.imagens.orcamento) $('#folha').src=cob.imagens.orcamento;
-  document.body.classList.add('aprovado');
+  document.body.classList.add('aprovado'); mostrarDocs();
   const img=cob&&cob.imagens&&cob.imagens.orcamento;
   if(img){
     fetch(img).then(r=>r.blob()).then(bl=>{

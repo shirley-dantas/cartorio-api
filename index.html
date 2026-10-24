@@ -3081,6 +3081,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   </div>
 </div>
 
+<!-- Link para aprovar o orçamento: quem aprova e os documentos que a cliente vê depois de aprovar -->
+<div class="modal-overlay" id="modal-aprovar-link">
+  <div class="modal-box" style="max-width:1000px">
+    <button class="modal-close" onclick="fecharAprovarLink()">&times;</button>
+    <div class="modal-title"><i class="ti ti-link" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Link para aprovar</div>
+    <div class="modal-sub" id="apr-sub">—</div>
+    <div id="apr-conteudo"></div>
+  </div>
+</div>
+
 <!-- Pagamento: o link com o valor da escritura e do registro -->
 <div class="modal-overlay" id="modal-pagamento">
   <div class="modal-box" style="max-width:640px">
@@ -12417,22 +12427,40 @@ async function pagLerArquivo(alvo,f){
 }
 // ── O link do orçamento: o cliente vê a folha e toca em "Aprovo" ──
 const orcLinkDe=tok=>(ENVIO_BASE_URL||location.origin).replace(/\/+$/,'')+'/o/'+tok;
-window.orcLinkAprovacao=async function(casoId,orcId){
+// "Link para aprovar": antes de gerar, ela escolhe quem vai aprovar e confere os documentos que a cliente
+// verá depois do "Aprovo" (a mesma lista do Pedir documentos). A janela é o montador de sempre, em modo aprovação.
+window.orcLinkAprovacao=function(casoId,orcId){
   const c=casos[casoId]||{}, o=pagOrcamentoEscolhido(casoId,orcId);
   if(!o){ alert('Não achei este orçamento.'); return; }
+  if(!pagImagemOrcamento(o)){ alert('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.'); return; }
+  document.getElementById('apr-sub').textContent=(c.nome||'Sem nome')+' — orçamento versão '+(o.versao||'');
+  PEDIDO.abrirJanela(document.getElementById('apr-conteudo'),{casoNome:c.nome,tipo:c.tipo,tipos:TIPOS_PRINCIPAIS,
+    aprovacao:{gerar:(est,sem)=>orcGerarLinkAprovacao(casoId,orcId,est,sem)}});
+  document.getElementById('modal-aprovar-link').classList.add('open');
+};
+window.fecharAprovarLink=function(){ document.getElementById('modal-aprovar-link').classList.remove('open'); };
+window.orcGerarLinkAprovacao=async function(casoId,orcId,est,semDocs){
+  const c=casos[casoId]||{}, o=pagOrcamentoEscolhido(casoId,orcId);
+  if(!o) throw new Error('Não achei este orçamento.');
   const imagem=pagImagemOrcamento(o);
-  if(!imagem){ alert('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.'); return; }
-  const token=codigoDeEnvio(), agora=Date.now(), link=orcLinkDe(token);
+  if(!imagem) throw new Error('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.');
+  const tok=(est&&est.aprTok)||{};
+  const token=tok.aprov||codigoDeEnvio(), agora=Date.now(), link=orcLinkDe(token);
+  let docsToken='';
+  if(!semDocs){
+    // Os documentos são pedidos pelo mesmo caminho do Pedir documentos: /pedidos/{código}.
+    docsToken=(await criarLinkEnvio(casoId,{estado:est,blocos:PEDIDO.formulario(est),token:tok.docs||''})).token;
+  }
   try{
-    await set(ref(db,'cobrancas/'+token),orcSemUndefined({meta:{tipo:'orcamento',casoId,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,expiraEm:agora+15*864e5},dados:{nome:c.nome||'',ato:c.tipo||''},imagens:{orcamento:imagem}}));
-    await set(ref(db,'casos/'+casoId+'/orcLink'),orcSemUndefined({token,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora}));
+    await set(ref(db,'cobrancas/'+token),orcSemUndefined({meta:{tipo:'orcamento',casoId,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,expiraEm:agora+15*864e5,docsToken},dados:{nome:c.nome||'',ato:c.tipo||''},imagens:{orcamento:imagem}}));
+    await set(ref(db,'casos/'+casoId+'/orcLink'),orcSemUndefined({token,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,docsToken}));
   }catch(err){
     const negado=/permission|PERMISSION/.test(String(err&&err.message||err));
-    alert(negado?'O banco recusou a gravação. As regras do Firebase com o caminho /cobrancas precisam estar publicadas (FIREBASE.md).':'Não consegui gerar o link: '+((err&&err.message)||err)); return;
+    throw new Error(negado?'O banco recusou a gravação. As regras do Firebase com o caminho /cobrancas precisam estar publicadas (FIREBASE.md).':'Não consegui gerar o link: '+((err&&err.message)||err));
   }
   const msg=`Olá! Para conferir e aprovar o seu orçamento, abra este link pelo celular:\n${link}\n\n20º Tabelião de Notas`;
-  window.__ultimoLinkOrc={link,msg};
-  try{ await navigator.clipboard.writeText(msg); finToast('Link do orçamento copiado. É só colar no WhatsApp.'); }catch(_){ prompt('Copie o texto e envie ao cliente:',msg); }
+  window.__ultimoLinkOrc={link,msg,docsToken};
+  return {url:link,msg,tokens:{aprov:token,docs:docsToken}};
 };
 
 window.orcMarcarAprovado = async function(casoId, orcId){
@@ -12450,6 +12478,7 @@ window.orcDesmarcarAprovado = async function(casoId){
   try{ await set(ref(db, 'casos/' + casoId + '/orcAprovacao'), null); finToast('Aprovação desmarcada.'); }
   catch(err){ alert('Não consegui desmarcar: ' + ((err && err.message) || err)); }
 };
+
 // ── A janela de gerar o link ──
 let pagEst=null;
 function pagLerMemoria(){ try{ return JSON.parse(localStorage.getItem('painel_pag_benef')||'null')||{}; }catch(_){ return {}; } }

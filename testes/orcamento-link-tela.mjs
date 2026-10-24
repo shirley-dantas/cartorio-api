@@ -3,6 +3,8 @@
 import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+const P = createRequire(import.meta.url)('../pedido-docs.js');
 const erros = [];
 const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } catch (e) { erros.push(n); console.log('FALHA ' + n + ' → ' + e.message); } };
 const TOKEN = 'pG3dE6gH9jK2mN5pQ8sT1vX4';
@@ -10,11 +12,13 @@ const IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
 const servidor = await servir(8199);
 const b = await abrirChromium();
 const cob = (meta = {}, extra = {}) => ({meta: {tipo: 'orcamento', casoId: '-Caso1', orcId: 'o1', versao: '2', criadoEm: Date.now(), expiraEm: Date.now() + 864e5, ...meta}, dados: {nome: 'Maria da Silva', ato: 'Escritura de Compra e Venda'}, imagens: {orcamento: IMG}, ...extra});
+let PEDIDO_FIXO = null;
 async function abrir(registro, {gas} = {}) {
   const pg = await b.newPage({viewport: {width: 390, height: 844}, deviceScaleFactor: 2, isMobile: true, hasTouch: true});
   const chamadas = [];
   await pg.route('**/*', async (rota) => {
     const u = rota.request().url();
+    if (u.includes('firebaseio.com/pedidos/')) return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(PEDIDO_FIXO)});
     if (u.includes('firebaseio.com/cobrancas/')) return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(registro)});
     if (u.includes('script.google.com')) { const c = JSON.parse(rota.request().postData()); chamadas.push(c); return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(gas ? gas(c) : {ok: true, em: Date.now()})}); }
     if (u.startsWith('http://127.0.0.1')) return rota.continue();
@@ -43,6 +47,23 @@ await passo('tocar em Aprovo chama o Apps Script com o código e mostra a tela d
   assert(!(await visivel(pg, '#aprovo')));
   assert(await visivel(pg, '#folha'), 'a folha do orçamento continua na tela');
   assert(await visivel(pg, '#salvar'), 'tem o botão de salvar a imagem'); assert(!/fechar esta página/.test(await pg.innerText('body')));
+});
+
+await passo('com documentos pedidos junto: depois de aprovar, a página mostra a lista e os dois caminhos (site e WhatsApp)', async () => {
+  const estado = {tipo: 'Compra e Venda', publico: 'cliente', papel: 'comprador', bens: {}, poderes: {}, partilha: false, pacto: false, uniaoEstavel: false, clausulasModo: 'marcar', extras: [], marc: {}};
+  PEDIDO_FIXO = {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), expiraEm: Date.now() + 864e5, blocos: P.formulario(estado)};
+  const {pg} = await abrir(cob({docsToken: 'DOCS1234567890abcdef12'}));
+  assert.equal(await visivel(pg, '#docs'), false, 'antes de aprovar, a lista não aparece');
+  await pg.click('#aprovo'); await pg.waitForSelector('#docs:not([hidden])');
+  const t = await pg.innerText('#docs'); assert(/o que precisamos de você/i.test(t) && /RG|CNH/.test(t), t);
+  assert.equal(await pg.getAttribute('#siteDocs', 'href'), '/e/DOCS1234567890abcdef12');
+  assert(/^https:\/\/wa\.me\/5511954929643\?text=/.test(await pg.getAttribute('#zapDocs', 'href')));
+  assert.equal(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'não rola de lado');
+  // Pedido que já foi concluído (ou sem lista): a página não oferece o que já foi enviado.
+  PEDIDO_FIXO = {...PEDIDO_FIXO, concluidoEm: Date.now()};
+  const outro = await abrir(cob({docsToken: 'DOCS1234567890abcdef12', aprovadoEm: 1760000000000}));
+  assert.equal(await visivel(outro.pg, '#docs'), false);
+  const sem = await abrir(cob({aprovadoEm: 1760000000000})); assert.equal(await visivel(sem.pg, '#docs'), false);
 });
 
 await passo('se o registro falha, o motivo aparece escrito e o botão volta (nunca "aprovado" sem ter registrado)', async () => {
