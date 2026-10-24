@@ -55,6 +55,7 @@ await passo('com documentos pedidos junto: depois de aprovar, a página mostra a
   const {pg} = await abrir(cob({docsToken: 'DOCS1234567890abcdef12'}));
   assert.equal(await visivel(pg, '#docs'), false, 'antes de aprovar, a lista não aparece');
   await pg.click('#aprovo'); await pg.waitForSelector('#docs:not([hidden])');
+  assert.equal(await visivel(pg, '#folha'), false, 'faltando os documentos, o orçamento some'); assert.equal(await visivel(pg, '#salvar'), false);
   const t = await pg.innerText('#docs'); assert(/Falta pouco/.test(t) && /Enviar aqui/.test(t), t); assert(!/RG|CNH|certidão/i.test(t), 'sem a lista longa: o formulário já explica');
   assert.equal(await pg.getAttribute('#enviarDocs', 'href'), '/e/DOCS1234567890abcdef12'); assert.equal(await pg.locator('#docs a').count(), 1, 'um botão só');
   assert(!/site|whats/i.test(await pg.innerText('#docs')), 'sem falar em site nem em WhatsApp');
@@ -63,6 +64,7 @@ await passo('com documentos pedidos junto: depois de aprovar, a página mostra a
   PEDIDO_FIXO = {...PEDIDO_FIXO, concluidoEm: Date.now()};
   const outro = await abrir(cob({docsToken: 'DOCS1234567890abcdef12', aprovadoEm: 1760000000000}));
   assert.equal(await visivel(outro.pg, '#docs'), false);
+  assert(await visivel(outro.pg, '#folha') && await visivel(outro.pg, '#salvar'), 'documentos enviados: o orçamento aparece, fixo, para salvar');
   const sem = await abrir(cob({aprovadoEm: 1760000000000})); assert.equal(await visivel(sem.pg, '#docs'), false);
 });
 

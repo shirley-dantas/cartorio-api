@@ -379,6 +379,7 @@ await passo('link do orçamento com documentos: pede a lista pelo caminho de /pe
   const g = await pg.evaluate(() => window.__grav);
   assert.equal(g.find((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234')[2].meta.docsToken, 'DOCS1234567890abcdef');
   assert.equal(g.find((x) => x[1] === 'casos/-Caso1/orcLink')[2].docsToken, 'DOCS1234567890abcdef');
+  const lig = g.find((x) => x[0] === 'update' && x[1] === 'pedidos/DOCS1234567890abcdef'); assert(lig && lig[2].orcToken === 'TOKENFIXOabcdefghij1234', 'o pedido guarda de qual aprovação veio');
   // Atualizar a lista reaproveita os dois códigos: o link que já foi enviado continua valendo.
   await pg.evaluate(() => orcGerarLinkAprovacao('-Caso1', 'o2', {aprTok: {aprov: 'APROV1234567890abcdef', docs: 'DOCS1234567890abcdef'}}, false));
   assert.equal(await pg.evaluate(() => window.__pedidoChamado.token), 'DOCS1234567890abcdef');

@@ -318,20 +318,25 @@ function invalido(m){ if(m) $('#motivo').textContent=m; document.body.classList.
 // Depois de aprovar: a lista de documentos que ela marcou ao gerar o link (a mesma do formulário de envio),
 // com um botão só, "Enviar aqui": a pessoa escolhe os arquivos do aparelho ou tira a foto no formulário de envio.
 async function mostrarDocs(){
-  const tok=cob&&cob.meta&&cob.meta.docsToken; if(!tok||!window.PEDIDO) return;
+  const tok=cob&&cob.meta&&cob.meta.docsToken; if(!tok||!window.PEDIDO) return false;
   let ped=null;
-  try{ const r=await fetch(`${FIREBASE}/pedidos/${tok}.json`); if(r.ok) ped=await r.json(); }catch(e){ return; }
-  if(!ped||!ped.blocos||ped.concluidoEm||(ped.expiraEm&&Date.now()>ped.expiraEm)) return;
-  if(!PEDIDO.introDocs(ped.blocos).length) return;
+  try{ const r=await fetch(`${FIREBASE}/pedidos/${tok}.json`); if(r.ok) ped=await r.json(); }catch(e){ return false; }
+  if(!ped||!ped.blocos||ped.concluidoEm||(ped.expiraEm&&Date.now()>ped.expiraEm)) return false;
+  if(!PEDIDO.introDocs(ped.blocos).length) return false;
   $('#docs').innerHTML='<h3>Falta pouco!</h3><div class="o-sub">Agora é só enviar os seus documentos.</div>'+
     '<div class="o-bts"><a class="o-bt cheio" id="enviarDocs" href="/e/'+encodeURIComponent(tok)+'">Enviar aqui</a></div>';
-  $('#docs').hidden=false;
+  $('#docs').hidden=false; return true;
 }
 function feito(ms){
   $('#quando').textContent='Recebemos a sua aprovação em '+quando(ms)+'.';
-  $('#okfaixa').hidden=false; $('#depois').hidden=false; $('#ola').textContent='Seu orçamento';
+  $('#okfaixa').hidden=false; $('#ola').textContent='Seu orçamento';
+  // Enquanto faltam os documentos, a tela é só "Falta pouco" — o orçamento aparece (e fica para salvar) quando o
+  // envio termina. Sem documentos pedidos, ou se não deu para saber, ele aparece já.
+  const comDocs=!!(cob&&cob.meta&&cob.meta.docsToken);
+  $('#folha').hidden=comDocs; $('#depois').hidden=comDocs;
+  mostrarDocs().then(pendente=>{ if(!pendente){ $('#folha').hidden=false; $('#depois').hidden=false; } },()=>{ $('#folha').hidden=false; $('#depois').hidden=false; });
   if(cob&&cob.imagens&&cob.imagens.orcamento) $('#folha').src=cob.imagens.orcamento;
-  document.body.classList.add('aprovado'); mostrarDocs();
+  document.body.classList.add('aprovado');
   const img=cob&&cob.imagens&&cob.imagens.orcamento;
   if(img){
     fetch(img).then(r=>r.blob()).then(bl=>{

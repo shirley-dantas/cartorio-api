@@ -25,13 +25,14 @@ await pgTmp.close();
 const RG = SAIDA('rg.png'); writeFileSync(RG, Buffer.from(png, 'base64'));
 const PDF = SAIDA('cert.pdf'); writeFileSync(PDF, '%PDF-1.4\n%%EOF');
 
-async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = true, expira, gas, concluidoEm, intro = false} = {}) {
+async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = true, expira, gas, concluidoEm, intro = false, orcToken} = {}) {
   const pg = await b.newPage({viewport, deviceScaleFactor: mobile ? 2 : 1.4, isMobile: mobile, hasTouch: mobile});
-  const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), ...(concluidoEm ? {concluidoEm} : {}), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
+  const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), ...(concluidoEm ? {concluidoEm} : {}), ...(orcToken ? {orcToken} : {}), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
   const chamadas = [];
   await pg.route('**/*', async (rota) => {
     const u = rota.request().url();
     if (u.includes('firebaseio.com/pedidos/')) { const t = u.split('/pedidos/')[1].replace('.json', ''); return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(pedidos[t] || null)}); }
+    if (u.includes('firebaseio.com/cobrancas/')) return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({meta: {tipo: 'orcamento'}, imagens: {orcamento: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='}})});
     if (u.includes('script.google.com')) { const corpo = JSON.parse(rota.request().postData()); chamadas.push(corpo); const r = gas ? gas(corpo) : {ok: true}; return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(r)}); }
     if (u.includes('viacep.com.br')) return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({logradouro: 'Rua das Palmeiras', bairro: 'Jardins', localidade: 'São Paulo', uf: 'SP'})});
     if (u.startsWith('http://127.0.0.1')) return rota.continue();
@@ -149,6 +150,17 @@ await passo('trava: faltando algo o envio não sai; completo, pede confirmação
   await pg.click('[data-fecha]'); assert(!chamadas.some((c) => c.acao === 'cliente-dados'), 'voltar e revisar não envia a ficha');
   await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
   assert(chamadas.some((c) => c.acao === 'cliente-dados'), 'só agora a ficha vai');
+});
+await passo('terminado o envio, o orçamento aprovado aparece fixo na tela final (só se o pedido veio de uma aprovação)', async () => {
+  const {pg} = await abrir(compra, {orcToken: 'APROV1234567890abcdef12'}); await pg.waitForSelector('[data-b="partes"]');
+  assert.equal(await pg.locator('#orcFixo').isVisible(), false, 'durante o preenchimento, nada de orçamento');
+  await preencher(pg); await pg.waitForFunction(() => /conferir e enviar/i.test(document.querySelector('#enviar').textContent));
+  await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
+  await pg.waitForSelector('#orcFixo:not([hidden])'); assert(/orçamento aprovado/i.test(await pg.innerText('#orcFixo'))); assert(await pg.locator('#orcSalvar').isVisible());
+  const sem = await abrir(compra); await sem.pg.waitForSelector('[data-b="partes"]'); await preencher(sem.pg);
+  await sem.pg.waitForFunction(() => /conferir e enviar/i.test(document.querySelector('#enviar').textContent));
+  await clicarEnviar(sem.pg); await sem.pg.click('[data-ok]'); await sem.pg.waitForSelector('body.concluido');
+  assert.equal(await sem.pg.locator('#orcFixo').isVisible(), false, 'sem aprovação ligada, a tela final é a de sempre');
 });
 await passo('link já usado (concluidoEm) mostra "já foi usado" e nenhum formulário', async () => {
   const {pg} = await abrir(compra, {concluidoEm: Date.now() - 1000});

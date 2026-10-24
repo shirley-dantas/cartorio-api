@@ -129,6 +129,10 @@ textarea{min-height:100px;resize:vertical}
 .tela.erro .visto{color:#F2B8B3}
 .tela.erro h2{border-bottom-color:var(--critico)}
 body.concluido #final,body.invalido #invalido{display:block}
+.orc-fixo{padding:6px 16px 22px}
+.orc-fixo .rot{font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--graf-2);margin:14px 4px 10px;text-align:center}
+.orc-fixo img{display:block;width:100%;height:auto;border-radius:22px}
+.orc-fixo button{display:block;width:100%;margin-top:14px;min-height:56px;border:0;border-radius:999px;background:var(--graf);color:#fff;font:700 18px -apple-system,'Inter',sans-serif;cursor:pointer}
 body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.invalido .formulario,body.invalido .rodape,body.invalido .lgpd,body.invalido .titulo .sub,body.concluido .titulo{display:none}
 .veu{position:fixed;inset:0;z-index:40;background:rgba(31,42,51,.72);display:grid;place-items:end center;padding:16px}
 .folha{background:#fff;border-radius:4px;border-top:6px solid var(--champ);max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:22px}
@@ -203,7 +207,8 @@ body.introducao{padding-bottom:40px}
   <div class="tela" id="final"><div class="visto">✓</div><h2>Documentos recebidos</h2>
     <p class="sub">Obrigado! O cartório já recebeu tudo.</p>
     <ol class="passos"><li><b>1</b>A equipe confere os seus dados e documentos.</li><li><b>2</b>Se faltar algo, a Shirley fala com você pelo WhatsApp.</li><li><b>3</b>Você não precisa enviar mais nada agora. Pode fechar esta página.</li></ol>
-    <div class="total">Situação <span>Recebido pelo cartório</span></div></div>
+    <div class="total">Situação <span>Recebido pelo cartório</span></div>
+    <div class="orc-fixo" id="orcFixo" hidden><div class="rot">SEU ORÇAMENTO APROVADO</div><img id="orcImg" alt="Orçamento aprovado"><button type="button" id="orcSalvar">Salvar imagem</button></div></div>
   <div class="tela erro" id="invalido"><div class="visto">!</div><h2>Link indisponível</h2>
     <p class="sub" id="motivo">Este link não é válido ou já venceu. Peça um novo ao cartório.</p></div>
 </div>
@@ -310,6 +315,17 @@ function mostrarIntro(){
   $('#comecar').addEventListener('click',comecar);
 }
 
+// Terminado o envio, o orçamento que ela aprovou aparece aqui, fixo, para guardar. O pedido guarda de qual
+// aprovação veio (orcToken); sem isso, ou se não der para ler, a tela final fica como sempre foi.
+async function mostrarOrcamento(){
+  const t=pedido&&pedido.orcToken; if(!t||!/^[A-Za-z0-9_-]{16,64}$/.test(t)) return;
+  try{
+    const r=await fetch(`${FIREBASE}/cobrancas/${t}.json`); if(!r.ok) return;
+    const c=await r.json(), img=c&&c.meta&&c.meta.tipo==='orcamento'&&c.imagens&&c.imagens.orcamento; if(!img) return;
+    $('#orcImg').src=img; $('#orcFixo').hidden=false;
+    $('#orcSalvar').onclick=()=>{ const a=document.createElement('a'); a.href=img; a.download='orcamento-aprovado.jpg'; document.body.appendChild(a); a.click(); a.remove(); };
+  }catch(e){ /* a tela final fica sem o orçamento */ }
+}
 async function carregar(){
   if(!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return invalido();
   try{
@@ -858,7 +874,7 @@ async function enviar(){
     const docKeys=todos.filter(x=>x.estado==='enviado'&&x.docKey).map(x=>x.docKey);
     try{
       await chamar({acao:'cliente-dados',t:token,nArquivos:docKeys.length,docKeys,dados:montarDados()});
-      apagarRascunho(); document.body.classList.add('concluido'); window.scrollTo(0,0);
+      apagarRascunho(); document.body.classList.add('concluido'); window.scrollTo(0,0); mostrarOrcamento();
       // Só agora a IA lê os documentos, à parte e mesmo que a página seja fechada: o envio não espera por isso.
       docKeys.forEach(k=>{ try{ fetch(GAS_URL,{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({acao:'cliente-ler',t:token,docKey:k})}).catch(()=>{}); }catch(_){ } });
     }catch(e){ alert('Os documentos chegaram, mas não consegui enviar os dados preenchidos. Toque em Enviar de novo.'); }

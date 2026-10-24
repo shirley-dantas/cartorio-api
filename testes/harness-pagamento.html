@@ -344,6 +344,9 @@ window.orcGerarLinkAprovacao=async function(casoId,orcId,est,semDocs){
   if(!semDocs){
     // Os documentos são pedidos pelo mesmo caminho do Pedir documentos: /pedidos/{código}.
     docsToken=(await criarLinkEnvio(casoId,{estado:est,blocos:PEDIDO.formulario(est),token:tok.docs||''})).token;
+    // O pedido sabe de qual aprovação veio: quando o envio termina, a tela final mostra o orçamento aprovado.
+    try{ await update(ref(db,'pedidos/'+docsToken),{orcToken:token}); }
+    catch(err){ throw new Error('Não consegui ligar os documentos ao orçamento: '+((err&&err.message)||err)); }
   }
   try{
     await set(ref(db,'cobrancas/'+token),orcSemUndefined({meta:{tipo:'orcamento',casoId,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,expiraEm:agora+15*864e5,docsToken},dados:{nome:c.nome||'',ato:c.tipo||''},imagens:{orcamento:imagem}}));
