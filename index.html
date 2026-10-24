@@ -11906,6 +11906,14 @@ async function orcSemearConhecimento(){
 }
 
 // ── A faixa dentro do card ───────────────────────────────────────────────
+// Marcar à mão que a cliente aprovou (ela respondeu "ok" no WhatsApp). Grava no mesmo campo do link,
+// com manual:true, e já nasce visto — quem clicou foi a equipe, não precisa de aviso no topo.
+function orcBotaoAprovouHtml(casoId, orcId){
+  const a = (casos[casoId] || {}).orcAprovacao;
+  if(a && a.em && String(a.orcId) === String(orcId))
+    return `<button type="button" class="cx-btn" onclick="orcDesmarcarAprovado('${casoId}')" title="Tirar a marca de aprovado"><i class="ti ti-arrow-back-up"></i> Desmarcar aprovação</button>`;
+  return `<button type="button" class="cx-btn destaque" onclick="orcMarcarAprovado('${casoId}','${orcId}')"><i class="ti ti-circle-check"></i> Cliente aprovou</button>`;
+}
 window.orcFaixaDoCaso = function(casoId){
   if(!finAuth) return `<button type="button" class="cx-btn" onclick="abrirFinanceiro()"><i class="ti ti-calculator"></i> Entrar para orçar</button>
     <span class="cx-fin-vazio">Entre no Financeiro para fazer e ver orçamentos.</span>`;
@@ -11926,6 +11934,7 @@ window.orcFaixaDoCaso = function(casoId){
     <button type="button" class="cx-btn" onclick="orcAbrirDoCaso('${casoId}','${o.id}')"><i class="ti ti-eye"></i> Ver orçamento</button>
     <button type="button" class="cx-btn" onclick="orcAbrirMemoria('${casoId}','${o.id}')"><i class="ti ti-search"></i> Ver memória</button>
     <button type="button" class="cx-btn" onclick="orcAbrirCliente('${casoId}','${o.id}')"><i class="ti ti-file-text"></i> Modo cliente</button>
+    ${orcBotaoAprovouHtml(casoId, o.id)}
     <button type="button" class="cx-btn" onclick="orcDuplicar('${o.id}')"><i class="ti ti-copy"></i> Duplicar</button>
     <button type="button" class="cx-btn destaque" onclick="orcNovoDoCaso('${casoId}')"><i class="ti ti-plus"></i> Novo</button>`;
 };
@@ -12128,7 +12137,7 @@ function pagMensagem(itens,link){
 // A aprovação do orçamento pelo cliente (link /o/): registrada no card, serve de ponto de partida do link de pagamento.
 function orcAprovacaoHtml(c){
   const a=c&&c.orcAprovacao, l=c&&c.orcLink;
-  if(a&&a.em) return `<span class="cx-ped-rec" style="flex-basis:100%"><b>✅ Cliente aprovou o orçamento</b>${a.versao?' (versão '+esc(a.versao)+')':''} · ${esc(pagQuando(a.em))}</span>`;
+  if(a&&a.em) return `<span class="cx-ped-rec" style="flex-basis:100%"><b>✅ Cliente aprovou o orçamento</b>${a.versao?' (versão '+esc(a.versao)+')':''} · ${esc(pagQuando(a.em))}${a.manual?' · marcado pela equipe':''}</span>`;
   if(l&&l.token) return `<span class="cx-ped-rec" style="flex-basis:100%">Link do orçamento enviado${l.criadoEm?' em '+esc(pagQuando(l.criadoEm)):''}${l.versao?' (versão '+esc(l.versao)+')':''} · aguardando a aprovação do cliente</span>`;
   return '';
 }
@@ -12417,6 +12426,21 @@ window.orcLinkAprovacao=async function(casoId,orcId){
   try{ await navigator.clipboard.writeText(msg); finToast('Link do orçamento copiado. É só colar no WhatsApp.'); }catch(_){ prompt('Copie o texto e envie ao cliente:',msg); }
 };
 
+window.orcMarcarAprovado = async function(casoId, orcId){
+  const o = pagOrcamentoEscolhido(casoId, orcId);
+  if(!o){ alert('Não achei este orçamento.'); return; }
+  try{
+    await set(ref(db, 'casos/' + casoId + '/orcAprovacao'), orcSemUndefined({
+      orcId: String(o.id), versao: String(o.versao || ''), em: Date.now(), visto: true, manual: true,
+      por: (localStorage.getItem('painel_usuario') || '').trim()
+    }));
+    finToast('Marcado: cliente aprovou o orçamento.');
+  }catch(err){ alert('Não consegui marcar a aprovação: ' + ((err && err.message) || err)); }
+};
+window.orcDesmarcarAprovado = async function(casoId){
+  try{ await set(ref(db, 'casos/' + casoId + '/orcAprovacao'), null); finToast('Aprovação desmarcada.'); }
+  catch(err){ alert('Não consegui desmarcar: ' + ((err && err.message) || err)); }
+};
 // ── A janela de gerar o link ──
 let pagEst=null;
 function pagLerMemoria(){ try{ return JSON.parse(localStorage.getItem('painel_pag_benef')||'null')||{}; }catch(_){ return {}; } }
@@ -13472,7 +13496,7 @@ function orcHtmlCliente(e, r){
       <button type="button" class="btn-save" onclick="orcVerImagem()"><i class="ti ti-photo"></i> Imagem para enviar</button>
       <button type="button" class="cx-btn" onclick="orcCopiarCliente()"><i class="ti ti-copy"></i> Copiar texto</button>
       <button type="button" class="cx-btn" onclick="window.print()"><i class="ti ti-printer"></i> Gerar PDF</button>
-      ${e.id && orcCasoAberto ? `<button type="button" class="cx-btn" onclick="orcLinkAprovacao('${orcCasoAberto}','${e.id}')"><i class="ti ti-link"></i> Link para aprovar</button>` : ''}
+      ${e.id && orcCasoAberto ? `<button type="button" class="cx-btn" onclick="orcLinkAprovacao('${orcCasoAberto}','${e.id}')"><i class="ti ti-link"></i> Link para aprovar</button>${orcBotaoAprovouHtml(orcCasoAberto, e.id)}` : ''}
     </div>`;
 }
 // ── A via do cliente como imagem ────────────────────────────────────────

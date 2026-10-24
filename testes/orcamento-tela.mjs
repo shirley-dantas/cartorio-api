@@ -706,6 +706,7 @@ await passo('salvo, o card mostra a versão 1 e o orçamento vira leitura', asyn
   const txt = await pg.textContent('#cartao-orc');
   if(!/versão 1/.test(txt)) throw new Error('o card não mostrou a versão: ' + txt);
   if(!/16\.522,21/.test(txt)) throw new Error('o card não mostrou o total: ' + txt);
+  if(!/Cliente aprovou/.test(txt)) throw new Error('faltou o botão Cliente aprovou na faixa: ' + txt);
 });
 
 await passo('o que foi para o banco não tem nenhum undefined', async () => {

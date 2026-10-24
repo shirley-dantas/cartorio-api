@@ -50,7 +50,7 @@ function pagMensagem(itens,link){
 // A aprovação do orçamento pelo cliente (link /o/): registrada no card, serve de ponto de partida do link de pagamento.
 function orcAprovacaoHtml(c){
   const a=c&&c.orcAprovacao, l=c&&c.orcLink;
-  if(a&&a.em) return `<span class="cx-ped-rec" style="flex-basis:100%"><b>✅ Cliente aprovou o orçamento</b>${a.versao?' (versão '+esc(a.versao)+')':''} · ${esc(pagQuando(a.em))}</span>`;
+  if(a&&a.em) return `<span class="cx-ped-rec" style="flex-basis:100%"><b>✅ Cliente aprovou o orçamento</b>${a.versao?' (versão '+esc(a.versao)+')':''} · ${esc(pagQuando(a.em))}${a.manual?' · marcado pela equipe':''}</span>`;
   if(l&&l.token) return `<span class="cx-ped-rec" style="flex-basis:100%">Link do orçamento enviado${l.criadoEm?' em '+esc(pagQuando(l.criadoEm)):''}${l.versao?' (versão '+esc(l.versao)+')':''} · aguardando a aprovação do cliente</span>`;
   return '';
 }
@@ -339,6 +339,21 @@ window.orcLinkAprovacao=async function(casoId,orcId){
   try{ await navigator.clipboard.writeText(msg); finToast('Link do orçamento copiado. É só colar no WhatsApp.'); }catch(_){ prompt('Copie o texto e envie ao cliente:',msg); }
 };
 
+window.orcMarcarAprovado = async function(casoId, orcId){
+  const o = pagOrcamentoEscolhido(casoId, orcId);
+  if(!o){ alert('Não achei este orçamento.'); return; }
+  try{
+    await set(ref(db, 'casos/' + casoId + '/orcAprovacao'), orcSemUndefined({
+      orcId: String(o.id), versao: String(o.versao || ''), em: Date.now(), visto: true, manual: true,
+      por: (localStorage.getItem('painel_usuario') || '').trim()
+    }));
+    finToast('Marcado: cliente aprovou o orçamento.');
+  }catch(err){ alert('Não consegui marcar a aprovação: ' + ((err && err.message) || err)); }
+};
+window.orcDesmarcarAprovado = async function(casoId){
+  try{ await set(ref(db, 'casos/' + casoId + '/orcAprovacao'), null); finToast('Aprovação desmarcada.'); }
+  catch(err){ alert('Não consegui desmarcar: ' + ((err && err.message) || err)); }
+};
 // ── A janela de gerar o link ──
 let pagEst=null;
 function pagLerMemoria(){ try{ return JSON.parse(localStorage.getItem('painel_pag_benef')||'null')||{}; }catch(_){ return {}; } }
