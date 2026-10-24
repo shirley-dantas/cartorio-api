@@ -30,7 +30,7 @@ const visivel = (pg, s) => pg.locator(s).isVisible();
 await passo('o cliente vê a folha e UM botão "Aprovo este orçamento" — nada de dúvida', async () => {
   const {pg} = await abrir(cob());
   assert(await visivel(pg, '#folha') && await visivel(pg, '#aprovo'));
-  assert.equal(await pg.locator('button').count(), 1, 'só o botão de aprovar');
+  assert.equal(await pg.locator('button:visible').count(), 1, 'só o botão de aprovar');
   const t = await pg.innerText('body'); assert(/Olá, Maria/.test(t) && /Aprovo este orçamento/i.test(t) && !/dúvida/i.test(t));
   assert.equal(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'não rola de lado');
 });
@@ -39,8 +39,10 @@ await passo('tocar em Aprovo chama o Apps Script com o código e mostra a tela d
   const {pg, chamadas} = await abrir(cob());
   await pg.click('#aprovo'); await pg.waitForFunction(() => document.body.classList.contains('aprovado'));
   assert.equal(chamadas.length, 1); assert.equal(chamadas[0].acao, 'orcamento-aprovar'); assert.equal(chamadas[0].t, TOKEN);
-  assert(/Orçamento aprovado/.test(await pg.innerText('#final')) && /Recebemos a sua aprovação em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(await pg.innerText('#quando')));
+  assert(/Orçamento aprovado/.test(await pg.innerText('#okfaixa')) && /Recebemos a sua aprovação em \d\d\/\d\d\/\d{4} às \d\d:\d\d/.test(await pg.innerText('#quando')));
   assert(!(await visivel(pg, '#aprovo')));
+  assert(await visivel(pg, '#folha'), 'a folha do orçamento continua na tela');
+  assert(await visivel(pg, '#salvar'), 'tem o botão de salvar a imagem'); assert(!/fechar esta página/.test(await pg.innerText('body')));
 });
 
 await passo('se o registro falha, o motivo aparece escrito e o botão volta (nunca "aprovado" sem ter registrado)', async () => {
@@ -52,7 +54,7 @@ await passo('se o registro falha, o motivo aparece escrito e o botão volta (nun
 
 await passo('link já aprovado abre direto na tela de aprovado, sem botão', async () => {
   const {pg} = await abrir(cob({aprovadoEm: 1760000000000}));
-  assert(/Orçamento aprovado/.test(await pg.innerText('#final'))); assert(!(await visivel(pg, '#aprovo')));
+  assert(/Orçamento aprovado/.test(await pg.innerText('#okfaixa'))); assert(!(await visivel(pg, '#aprovo'))); assert(await visivel(pg, '#folha'), 'reabrir o link mostra o orçamento'); assert(await visivel(pg, '#salvar'));
 });
 
 await passo('link vencido, inexistente ou que não é de orçamento (é de pagamento): indisponível', async () => {

@@ -128,7 +128,7 @@ textarea{min-height:100px;resize:vertical}
 .tela .total span{color:var(--champ-claro);font-size:17px;letter-spacing:.02em;text-transform:none}
 .tela.erro .visto{color:#F2B8B3}
 .tela.erro h2{border-bottom-color:var(--critico)}
-body.concluido #final,body.invalido #invalido{display:block}
+body.invalido #invalido{display:block}
 body.concluido .formulario,body.concluido .rodape,body.concluido .lgpd,body.invalido .formulario,body.invalido .rodape,body.invalido .lgpd,body.invalido .titulo .sub,body.concluido .titulo{display:none}
 .veu{position:fixed;inset:0;z-index:40;background:rgba(31,42,51,.72);display:grid;place-items:end center;padding:16px}
 .folha{background:#fff;border-radius:4px;border-top:6px solid var(--champ);max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:22px}
@@ -274,17 +274,26 @@ body{padding-bottom:40px}
 body.concluido .miolo>.titulo{display:none}
 .tela-pag{padding-bottom:40px}
 
-.o-folha{display:block;width:100%;height:auto;border:1px solid var(--graf);margin-top:14px;background:#fff}
+.o-folha{display:block;width:100%;height:auto;border:0;border-radius:22px;margin-top:14px;background:#fff}
 .o-aprovar{display:flex;align-items:center;justify-content:center;width:100%;min-height:60px;margin-top:18px;border:0;border-bottom:5px solid var(--champ);background:var(--graf);color:#fff;font:700 19px -apple-system,'Inter',sans-serif;border-radius:2px;cursor:pointer}
 .o-aprovar:disabled{opacity:.55}
 .o-nota{font-size:14px;color:#555;margin-top:10px}
 .o-erro{margin-top:12px;color:var(--critico);font-weight:600;font-size:16px}
-body.aprovado #pede,body.invalido #pede{display:none}
+body.invalido #pede{display:none}
+body.aprovado #aprovo,body.aprovado #nota,body.aprovado #apoio,body.aprovado #ola{display:none}
+.o-ok{margin-top:16px;padding:16px 18px;background:#1F6B40;color:#fff;border-radius:18px;text-align:center}
+.o-ok b{display:block;font-size:22px;font-weight:700}
+.o-ok span{display:block;font-size:16px;margin-top:2px;opacity:.95}
+.o-depois{margin-top:16px;text-align:center}
+.o-depois p{font-size:17px;font-weight:600}
+.o-depois small{display:block;margin-top:10px;color:var(--graf-2);font-size:14.5px}
+.o-bts{display:flex;gap:10px;margin-top:12px}
+.o-bt{flex:1;min-height:56px;border:2px solid var(--graf);background:#fff;color:var(--graf);border-radius:999px;font:700 18px -apple-system,'Inter',sans-serif;cursor:pointer}
+.o-bt:first-child{background:var(--graf);color:#fff}
 </style></head><body><div class="miolo">
 <header class="topo"><svg class="arco" viewBox="0 0 600 90" role="img" aria-label="20º Tabelião de Notas"><defs><linearGradient id="arco" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#BE9E6C"/><stop offset="50%" stop-color="#E8D3A4"/><stop offset="100%" stop-color="#BE9E6C"/></linearGradient></defs><path d="M20 80 Q300 -10 580 80" fill="none" stroke="url(#arco)" stroke-width="5" stroke-linecap="round"/></svg><h1 id="h1"></h1><div class="orgao" id="orgao"></div><p class="escrevente"><b id="esc"></b><br><a href="https://wa.me/5511954929643" rel="noopener" id="wpp"></a></p></header>
 <div class="titulo"><span class="ato" id="ato" hidden></span></div>
-<div class="tela-pag" id="pede" style="padding:0 16px 40px"><h2 style="font-family:'Jost',sans-serif;font-weight:300;font-size:26px;margin:18px 0 4px" id="ola"></h2><p class="sub" id="apoio"></p><img class="o-folha" id="folha" alt="Orçamento"><div class="o-nota" id="nota"></div><button type="button" class="o-aprovar" id="aprovo">Aprovo este orçamento</button><div class="o-erro" id="erro" hidden></div></div>
-<div class="tela" id="final"><div class="visto">✓</div><h2>Orçamento aprovado</h2><p class="sub" id="quando"></p><p style="padding:6px 18px 18px;font-size:17px">Nossa equipe já foi avisada. Você pode fechar esta página.</p></div>
+<div class="tela-pag" id="pede" style="padding:0 16px 40px"><h2 style="font-family:'Jost',sans-serif;font-weight:300;font-size:26px;margin:18px 0 4px" id="ola"></h2><p class="sub" id="apoio"></p><div class="o-ok" id="okfaixa" hidden><b>✓ Orçamento aprovado</b><span id="quando"></span></div><img class="o-folha" id="folha" alt="Orçamento"><div class="o-nota" id="nota"></div><button type="button" class="o-aprovar" id="aprovo">Aprovo este orçamento</button><div class="o-erro" id="erro" hidden></div><div class="o-depois" id="depois" hidden><p>Guarde esta imagem: ela é o seu orçamento aprovado.</p><div class="o-bts"><button type="button" class="o-bt" id="salvar">Salvar imagem</button><button type="button" class="o-bt" id="compartilhar" hidden>Compartilhar</button></div><small>Ou toque e segure a imagem para salvar.</small></div></div>
 <div class="tela erro" id="invalido"><div class="visto">!</div><h2>Link indisponível</h2><p class="sub" id="motivo">Este link não é válido ou já venceu. Peça um novo ao cartório.</p></div>
 </div>
 <script>
@@ -296,7 +305,20 @@ const quando=ms=>{const d=new Date(ms);return d.toLocaleDateString('pt-BR')+' à
 let cob=null;
 $('#orgao').textContent='20º Tabelião de Notas'; $('#h1').textContent='Seu orçamento'; $('#esc').textContent='Escrevente Shirley Dantas'; $('#wpp').textContent='WhatsApp (11) 95492-9643';
 function invalido(m){ if(m) $('#motivo').textContent=m; document.body.classList.add('invalido'); }
-function feito(ms){ $('#quando').textContent='Recebemos a sua aprovação em '+quando(ms)+'.'; document.body.classList.add('concluido','aprovado'); }
+function feito(ms){
+  $('#quando').textContent='Recebemos a sua aprovação em '+quando(ms)+'. Nossa equipe já foi avisada.';
+  $('#okfaixa').hidden=false; $('#depois').hidden=false; $('#ola').textContent='Seu orçamento';
+  if(cob&&cob.imagens&&cob.imagens.orcamento) $('#folha').src=cob.imagens.orcamento;
+  document.body.classList.add('aprovado');
+  const img=cob&&cob.imagens&&cob.imagens.orcamento;
+  if(img){
+    fetch(img).then(r=>r.blob()).then(bl=>{
+      const f=new File([bl],'orcamento-aprovado.jpg',{type:bl.type||'image/jpeg'});
+      $('#salvar').onclick=()=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download='orcamento-aprovado.jpg'; document.body.appendChild(a); a.click(); a.remove(); };
+      if(navigator.canShare&&navigator.canShare({files:[f]})){ const c=$('#compartilhar'); c.hidden=false; c.onclick=()=>navigator.share({files:[f],title:'Meu orçamento aprovado'}).catch(()=>{}); }
+    }).catch(()=>{ $('#salvar').hidden=true; });
+  }else $('#salvar').hidden=true;
+}
 async function carregar(){
   if(!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return invalido();
   try{

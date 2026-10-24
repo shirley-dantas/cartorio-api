@@ -13531,7 +13531,12 @@ const ORC_FOLHA = {
   fundo: '#ECE7DD', cartao: '#FFFFFF', recuo: '#F4F1EA', faixa: '#F7F4EE', filete: '#ECE7DD',
   margem: 40, raioCartao: 56
 };
-function orcDesenharFolha(e, r){
+// A aprovação do cliente para ESTE orçamento (a mesma versão que ele viu), ou null.
+function orcAprovadoDe(e){
+  const a = (casos[orcCasoAberto] || {}).orcAprovacao;
+  return (a && a.em && e && e.id && String(a.orcId) === String(e.id)) ? a : null;
+}
+function orcDesenharFolha(e, r, aprovado){
   const F = ORC_FOLHA;
   const linhas = orcLinhasCliente(r);
   const base = orcBasePrincipal(r);
@@ -13540,18 +13545,18 @@ function orcDesenharFolha(e, r){
   // sobrava rodapé em branco e sobraria mais a cada linha nova — medir com o
   // mesmo código que desenha não erra nunca.
   const medir = document.createElement('canvas').getContext('2d');
-  const alt = orcLayoutFolha(medir, e, r, linhas, base, false);
+  const alt = orcLayoutFolha(medir, e, r, linhas, base, false, 0, aprovado);
   const c = document.createElement('canvas');
   c.width = F.larg * F.escala; c.height = Math.round(alt) * F.escala;
   const x = c.getContext('2d');
   x.scale(F.escala, F.escala);
-  orcLayoutFolha(x, e, r, linhas, base, true, alt);
+  orcLayoutFolha(x, e, r, linhas, base, true, alt, aprovado);
   return c;
 }
 
 // O layout inteiro num lugar só. Com `desenhar` falso ele só percorre e devolve
 // a altura; com verdadeiro, pinta. As contas de posição são as mesmas nos dois.
-function orcLayoutFolha(x, e, r, linhas, base, desenhar, altFolha){
+function orcLayoutFolha(x, e, r, linhas, base, desenhar, altFolha, aprovado){
   const F = ORC_FOLHA;
   const L = F.larg, esq = F.margem + 44, dir = L - F.margem - 44;
   const esqT = esq + 18, dirT = dir - 18;   // o texto, recuado dentro das faixas
@@ -13620,6 +13625,23 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar, altFolha){
   x.font = fonte(18, '500');
   pinta(r.ato.nome, L / 2, y, 'center');
   y += 42;
+
+  // ── O selo de aprovado ──
+  // Só na imagem que fica na conversa depois que o cliente aprovou: a data e a
+  // versão ficam escritas na própria folha, onde ele a encontra de novo.
+  if(aprovado){
+    const dt = new Date(aprovado.em).toLocaleDateString('pt-BR');
+    const txt = '✓  APROVADO PELO CLIENTE · ' + dt;
+    x.font = fonte(17, '700');
+    const larg = larguraEspacada(txt, 1.5) + 56;
+    if(desenhar){
+      x.fillStyle = '#1F6B40';
+      orcCantoRedondo(x, (L - larg) / 2, y - 20, larg, 46, 23); x.fill();
+      x.fillStyle = F.claro;
+      espacado(txt, (L - larg) / 2 + 28, y + 9, 1.5);
+    }
+    y += 46;
+  }
 
   // ── A base ──
   if(base){
@@ -13726,7 +13748,7 @@ window.orcVerImagem = async function(){
   if(!e || !r) return;
   let blob;
   try{
-    const c = orcDesenharFolha(e, r);
+    const c = orcDesenharFolha(e, r, orcAprovadoDe(e));
     blob = await new Promise(ok => c.toBlob(ok, 'image/png'));
   }catch(err){ finToast('Não consegui desenhar a imagem aqui.'); return; }
   if(!blob){ finToast('Não consegui desenhar a imagem aqui.'); return; }
@@ -13796,9 +13818,9 @@ window.orcCompartilharImagem = async function(){
 // Leitura do rascunho, para o teste conferir o que a tela guardou sem poder
 // mexer no que ela está usando.
 window.orcEmEdicao_leitura = () => JSON.parse(JSON.stringify(orcEmEdicao || {}));
-window.orcFolhaDoRascunho = function(){
+window.orcFolhaDoRascunho = function(aprovado){
   const r = orcCalcularRascunho();
-  return r ? orcDesenharFolha(orcEmEdicao, r) : null;
+  return r ? orcDesenharFolha(orcEmEdicao, r, aprovado === undefined ? orcAprovadoDe(orcEmEdicao) : aprovado) : null;
 };
 
 window.orcCopiarCliente = function(){
