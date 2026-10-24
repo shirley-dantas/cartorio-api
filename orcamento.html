@@ -322,13 +322,11 @@ async function mostrarDocs(){
   let ped=null;
   try{ const r=await fetch(`${FIREBASE}/pedidos/${tok}.json`); if(r.ok) ped=await r.json(); }catch(e){ return false; }
   if(!ped||!ped.blocos||ped.concluidoEm||(ped.expiraEm&&Date.now()>ped.expiraEm)) return false;
-  const G=PEDIDO.introDocs(ped.blocos); if(!G.length) return false;
-  const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  // Só o nome de cada documento, curto. A explicação comprida fica para o formulário; fica escrito apenas o
-  // "só se..." — sem ele, "união estável" ou "pacto" pareceria exigência para todo mundo.
-  const itens=g=>g.itens.map(i=>'<div class="d">'+esc(i.titulo)+(/^só se/i.test(i.detalhe||'')?'<small>'+esc(i.detalhe)+'</small>':'')+'</div>').join('');
-  $('#docs').innerHTML='<h3>Falta pouco!</h3><div class="o-sub">Separe estes documentos e envie aqui:</div>'+
-    G.map(g=>(G.length>1?'<div class="g">'+esc(g.titulo)+'</div>':'')+itens(g)).join('')+
+  // Nesta tela, só o essencial de quem vai assinar: o resto (bens, matrícula, pagamento…) o formulário pede
+  // na hora, com a explicação de cada um.
+  const itens=(ped.blocos||[]).some(b=>b.k==='pessoa')?['RG e CPF','Certidão de estado civil','Profissão e endereço']:[];
+  $('#docs').innerHTML='<h3>Falta pouco!</h3><div class="o-sub">'+(itens.length?'Separe estes documentos e informações:':'Agora é só enviar os seus documentos.')+'</div>'+
+    itens.map(t=>'<div class="d">'+t+'</div>').join('')+
     '<div class="o-bts"><a class="o-bt cheio" id="enviarDocs" href="/e/'+encodeURIComponent(tok)+'">Enviar aqui</a></div>';
   $('#docs').hidden=false; return true;
 }

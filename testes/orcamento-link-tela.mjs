@@ -56,7 +56,7 @@ await passo('com documentos pedidos junto: depois de aprovar, a página mostra a
   assert.equal(await visivel(pg, '#docs'), false, 'antes de aprovar, a lista não aparece');
   await pg.click('#aprovo'); await pg.waitForSelector('#docs:not([hidden])');
   assert.equal(await visivel(pg, '#folha'), false, 'faltando os documentos, o orçamento some'); assert.equal(await visivel(pg, '#salvar'), false);
-  const t = await pg.innerText('#docs'); assert(/Falta pouco/.test(t) && /Enviar aqui/.test(t), t); assert(/RG ou CNH/.test(t) && /Certidão de estado civil/.test(t), 'a cliente vê o que enviar'); assert(!/frente e o verso|Solteiro\(a\)/.test(t), 'sem a explicação comprida: o formulário explica'); assert(/Só se/.test(t), 'o que é condicional diz "só se"');
+  const t = await pg.innerText('#docs'); assert(/Falta pouco/.test(t) && /Enviar aqui/.test(t), t); for (const q of ['RG e CPF', 'Certidão de estado civil', 'Profissão e endereço']) assert(t.includes(q), 'falta: ' + q); assert.equal(await pg.locator('#docs .d').count(), 3, 'só o essencial'); assert(!/união|pacto|pagamento|matrícula/i.test(t), 'o resto o formulário pede');
   assert.equal(await pg.getAttribute('#enviarDocs', 'href'), '/e/DOCS1234567890abcdef12'); assert.equal(await pg.locator('#docs a').count(), 1, 'um botão só');
   assert(!/site|whats/i.test(await pg.innerText('#docs')), 'sem falar em site nem em WhatsApp');
   assert.equal(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'não rola de lado');
