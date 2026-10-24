@@ -55,7 +55,7 @@ await passo('com documentos pedidos junto: depois de aprovar, a página mostra a
   const {pg} = await abrir(cob({docsToken: 'DOCS1234567890abcdef12'}));
   assert.equal(await visivel(pg, '#docs'), false, 'antes de aprovar, a lista não aparece');
   await pg.click('#aprovo'); await pg.waitForSelector('#docs:not([hidden])');
-  const t = await pg.innerText('#docs'); assert(/o que precisamos de você/i.test(t) && /RG|CNH/.test(t), t);
+  const t = await pg.innerText('#docs'); assert(/Falta pouco/.test(t) && /Enviar aqui/.test(t), t); assert(!/RG|CNH|certidão/i.test(t), 'sem a lista longa: o formulário já explica');
   assert.equal(await pg.getAttribute('#enviarDocs', 'href'), '/e/DOCS1234567890abcdef12'); assert.equal(await pg.locator('#docs a').count(), 1, 'um botão só');
   assert(!/site|whats/i.test(await pg.innerText('#docs')), 'sem falar em site nem em WhatsApp');
   assert.equal(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'não rola de lado');
