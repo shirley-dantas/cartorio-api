@@ -294,7 +294,7 @@ body.aprovado #aprovo,body.aprovado #nota,body.aprovado #apoio,body.aprovado #ol
 .o-docs h3{font-size:22px;font-weight:700;text-align:center;margin-bottom:4px}
 .o-docs .o-sub{text-align:center;color:var(--graf-2);font-size:16px;margin-bottom:14px}
 .o-docs .g{font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--graf-2);margin:14px 4px 8px}
-.o-docs .d{background:#fff;border-radius:16px;padding:12px 14px;margin-bottom:6px;font-size:17px;font-weight:600;line-height:1.3}
+.o-docs .d{background:#fff;border-radius:14px;padding:10px 14px;margin-bottom:5px;font-size:16.5px;font-weight:600;line-height:1.3}
 .o-docs .d small{display:block;font-weight:400;font-size:15px;color:var(--graf-2);margin-top:2px}
 .o-docs .o-bts{flex-direction:column;margin-top:16px}
 .o-docs a.o-bt{display:flex;align-items:center;justify-content:center;text-decoration:none}
@@ -322,8 +322,13 @@ async function mostrarDocs(){
   let ped=null;
   try{ const r=await fetch(`${FIREBASE}/pedidos/${tok}.json`); if(r.ok) ped=await r.json(); }catch(e){ return false; }
   if(!ped||!ped.blocos||ped.concluidoEm||(ped.expiraEm&&Date.now()>ped.expiraEm)) return false;
-  if(!PEDIDO.introDocs(ped.blocos).length) return false;
-  $('#docs').innerHTML='<h3>Falta pouco!</h3><div class="o-sub">Agora é só enviar os seus documentos.</div>'+
+  const G=PEDIDO.introDocs(ped.blocos); if(!G.length) return false;
+  const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  // Só o nome de cada documento, curto. A explicação comprida fica para o formulário; fica escrito apenas o
+  // "só se..." — sem ele, "união estável" ou "pacto" pareceria exigência para todo mundo.
+  const itens=g=>g.itens.map(i=>'<div class="d">'+esc(i.titulo)+(/^só se/i.test(i.detalhe||'')?'<small>'+esc(i.detalhe)+'</small>':'')+'</div>').join('');
+  $('#docs').innerHTML='<h3>Falta pouco!</h3><div class="o-sub">Separe estes documentos e envie aqui:</div>'+
+    G.map(g=>(G.length>1?'<div class="g">'+esc(g.titulo)+'</div>':'')+itens(g)).join('')+
     '<div class="o-bts"><a class="o-bt cheio" id="enviarDocs" href="/e/'+encodeURIComponent(tok)+'">Enviar aqui</a></div>';
   $('#docs').hidden=false; return true;
 }
