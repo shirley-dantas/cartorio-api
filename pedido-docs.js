@@ -554,7 +554,7 @@
           '<div class="ped-nota' + (est.aviso ? ' ped-ok' : '') + '" id="ped-aviso">' + esc(est.aviso || (est.aprComDocs ? 'Depois que a pessoa aprovar, ela vê esta lista de documentos.' : 'Este link não pede documentos.')) + '</div></div>';
       }
       return (erro || '') + '<div class="ped-bloco"><div class="ped-tit">Depois da aprovação</div>' +
-        '<div class="ped-nota" style="margin:0 0 10px">A cliente vê a lista marcada ao lado e escolhe entre enviar pelo site ou mandar pelo WhatsApp. Escolha quem vai aprovar e confira a lista.</div>' +
+        '<div class="ped-nota" style="margin:0 0 10px">Depois de aprovar, a cliente vê a lista marcada ao lado e um botão "Enviar aqui" para mandar os arquivos do aparelho ou tirar a foto. Escolha quem vai aprovar e confira a lista.</div>' +
         '<div class="ped-acoes"><button class="ped-btn forte" data-acao="apr-gerar" style="width:100%"' + (est.aprGerando ? ' disabled' : '') + '>' + (est.aprGerando ? 'Gerando…' : 'Gerar link para aprovar') + '</button></div>' +
         '<div class="ped-acoes" style="margin-top:6px"><button class="ped-btn" data-acao="apr-sem" style="width:100%"' + (est.aprGerando ? ' disabled' : '') + '>Gerar sem pedir documentos</button></div></div>';
     }

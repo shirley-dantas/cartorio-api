@@ -49,15 +49,15 @@ await passo('tocar em Aprovo chama o Apps Script com o código e mostra a tela d
   assert(await visivel(pg, '#salvar'), 'tem o botão de salvar a imagem'); assert(!/fechar esta página/.test(await pg.innerText('body')));
 });
 
-await passo('com documentos pedidos junto: depois de aprovar, a página mostra a lista e os dois caminhos (site e WhatsApp)', async () => {
+await passo('com documentos pedidos junto: depois de aprovar, a página mostra a lista e um botão só, "Enviar aqui"', async () => {
   const estado = {tipo: 'Compra e Venda', publico: 'cliente', papel: 'comprador', bens: {}, poderes: {}, partilha: false, pacto: false, uniaoEstavel: false, clausulasModo: 'marcar', extras: [], marc: {}};
   PEDIDO_FIXO = {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), expiraEm: Date.now() + 864e5, blocos: P.formulario(estado)};
   const {pg} = await abrir(cob({docsToken: 'DOCS1234567890abcdef12'}));
   assert.equal(await visivel(pg, '#docs'), false, 'antes de aprovar, a lista não aparece');
   await pg.click('#aprovo'); await pg.waitForSelector('#docs:not([hidden])');
   const t = await pg.innerText('#docs'); assert(/o que precisamos de você/i.test(t) && /RG|CNH/.test(t), t);
-  assert.equal(await pg.getAttribute('#siteDocs', 'href'), '/e/DOCS1234567890abcdef12');
-  assert(/^https:\/\/wa\.me\/5511954929643\?text=/.test(await pg.getAttribute('#zapDocs', 'href')));
+  assert.equal(await pg.getAttribute('#enviarDocs', 'href'), '/e/DOCS1234567890abcdef12'); assert.equal(await pg.locator('#docs a').count(), 1, 'um botão só');
+  assert(!/site|whats/i.test(await pg.innerText('#docs')), 'sem falar em site nem em WhatsApp');
   assert.equal(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'não rola de lado');
   // Pedido que já foi concluído (ou sem lista): a página não oferece o que já foi enviado.
   PEDIDO_FIXO = {...PEDIDO_FIXO, concluidoEm: Date.now()};

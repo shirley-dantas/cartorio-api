@@ -316,8 +316,7 @@ let cob=null;
 $('#orgao').textContent='20º Tabelião de Notas'; $('#h1').textContent='Seu orçamento'; $('#esc').textContent='Escrevente Shirley Dantas'; $('#wpp').textContent='WhatsApp (11) 95492-9643';
 function invalido(m){ if(m) $('#motivo').textContent=m; document.body.classList.add('invalido'); }
 // Depois de aprovar: a lista de documentos que ela marcou ao gerar o link (a mesma do formulário de envio),
-// com dois caminhos — o formulário no site ou a conversa de WhatsApp com a escrevente.
-const WHATS='5511954929643';
+// com um botão só, "Enviar aqui": a pessoa escolhe os arquivos do aparelho ou tira a foto no formulário de envio.
 async function mostrarDocs(){
   const tok=cob&&cob.meta&&cob.meta.docsToken; if(!tok||!window.PEDIDO) return;
   let ped=null;
@@ -325,10 +324,9 @@ async function mostrarDocs(){
   if(!ped||!ped.blocos||ped.concluidoEm||(ped.expiraEm&&Date.now()>ped.expiraEm)) return;
   const G=PEDIDO.introDocs(ped.blocos); if(!G.length) return;
   const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const zap='Olá! Aprovei o orçamento. Vou enviar os documentos por aqui.';
   $('#docs').innerHTML='<h3>Agora, o que precisamos de você</h3><div class="o-sub">Separe estes documentos e informações:</div>'+
     G.map(g=>'<div class="g">'+esc(g.titulo)+'</div>'+g.itens.map(i=>'<div class="d">'+esc(i.titulo)+(i.detalhe?'<small>'+esc(i.detalhe)+'</small>':'')+'</div>').join('')).join('')+
-    '<div class="o-bts" style="margin-top:16px"><a class="o-bt cheio" id="siteDocs" href="/e/'+encodeURIComponent(tok)+'">Enviar pelo site</a><a class="o-bt" id="zapDocs" href="https://wa.me/'+WHATS+'?text='+encodeURIComponent(zap)+'">Mandar pelo WhatsApp</a></div>';
+    '<div class="o-bts" style="margin-top:16px"><a class="o-bt cheio" id="enviarDocs" href="/e/'+encodeURIComponent(tok)+'">Enviar aqui</a></div>';
   $('#docs').hidden=false;
 }
 function feito(ms){
