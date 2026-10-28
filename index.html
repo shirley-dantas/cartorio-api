@@ -1761,7 +1761,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-solte{flex-basis:100%;border:1.5px dashed var(--cc-linha-forte);border-radius:16px;padding:12px 14px;background:var(--cc-sup-2);transition:background .15s,border-color .15s}
 .cx-solte.sobre{background:#E8F0E9;border-color:var(--cc-ok,#2F7A4F)}
 .cx-solte-topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:600;color:var(--cc-tinta)}
-.cx-solte-topo i{font-size:18px;color:var(--cc-tinta-2)}.cx-solte-topo span{flex:1;min-width:180px}
+.cx-solte-topo i{font-size:18px;color:var(--cc-tinta-2)}.cx-solte-topo span{flex:1;min-width:180px}.cx-solte-topo small{display:block;font-weight:400;color:var(--cc-tinta-3);font-size:11.5px;margin-top:2px}
+.cx-solte:focus{outline:2px solid var(--cc-champagne,#A9895A);outline-offset:2px}
 .cx-solte-prog{list-style:none;margin:0;padding:0;display:grid;gap:4px}.cx-solte-prog:not(:empty){margin-top:10px}
 .cx-solte-prog li{display:flex;gap:8px;align-items:baseline;font-size:12.5px;overflow-wrap:anywhere}
 .cx-solte-prog .solte-ico{flex:none;width:16px;text-align:center;font-weight:700}
@@ -12103,7 +12104,7 @@ function solteProgHtml(casoId){
 }
 function solteHtml(c){
   if(!c||!c.id) return '';
-  return `<div class="cx-solte" data-solte="${esc(c.id)}"><div class="cx-solte-topo"><i class="ti ti-upload"></i><span>Solte aqui os arquivos recebidos do cliente</span>
+  return `<div class="cx-solte" data-solte="${esc(c.id)}" tabindex="0"><div class="cx-solte-topo"><i class="ti ti-upload"></i><span>Solte aqui os arquivos recebidos do cliente <small>ou clique aqui e cole (Ctrl+V)</small></span>
     <label class="cx-btn">Escolher arquivos<input type="file" multiple accept="image/*,application/pdf" data-solte-input="${esc(c.id)}" hidden></label></div>
     <ul class="cx-solte-prog" id="solte-prog-${esc(c.id)}">${solteProgHtml(c.id)}</ul></div>`;
 }
@@ -12149,6 +12150,18 @@ document.addEventListener('drop',ev=>{
   const z=ev.target.closest&&ev.target.closest('.cx-solte'); if(!z) return;
   ev.preventDefault(); z.classList.remove('sobre');
   if(ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files.length) window.solteReceber(z.dataset.solte,ev.dataTransfer.files);
+});
+// Copiar e colar: copiou a foto no WhatsApp Web (ou o arquivo na pasta), clica na caixa do card e aperta Ctrl+V.
+// A caixa "ativa" é a última em que ela clicou, para o card poder se redesenhar sem perder o lugar.
+let solteAtivo='';
+document.addEventListener('click',ev=>{ const z=ev.target.closest&&ev.target.closest('.cx-solte'); if(z) solteAtivo=z.dataset.solte; });
+document.addEventListener('focusin',ev=>{ const z=ev.target.closest&&ev.target.closest('.cx-solte'); if(z) solteAtivo=z.dataset.solte; });
+document.addEventListener('paste',ev=>{
+  const files=[...((ev.clipboardData&&ev.clipboardData.files)||[])]; if(!files.length) return;   // texto colado segue o caminho de sempre
+  const z=ev.target.closest&&ev.target.closest('.cx-solte'), alvo=z?z.dataset.solte:solteAtivo;
+  const digitando=ev.target.matches&&ev.target.matches('input,textarea,select,[contenteditable="true"]');
+  if(!alvo||(!z&&digitando)) return;
+  ev.preventDefault(); window.solteReceber(alvo,files);
 });
 document.addEventListener('change',ev=>{
   const t=ev.target; if(!t||!t.matches||!t.matches('[data-solte-input]')) return;

@@ -43,7 +43,7 @@ function mundo({respostas} = {}) {
 
 await passo('a caixa aparece no card, com o botão de escolher para quem não arrasta', () => {
   const m = mundo(); const h = m.f.solteHtml({id: 'C1'});
-  assert(/data-solte="C1"/.test(h) && /Solte aqui os arquivos recebidos do cliente/.test(h) && /data-solte-input="C1"/.test(h) && /id="solte-prog-C1"/.test(h));
+  assert(/ou clique aqui e cole \(Ctrl\+V\)/.test(h) && /tabindex="0"/.test(h) && /data-solte="C1"/.test(h) && /Solte aqui os arquivos recebidos do cliente/.test(h) && /data-solte-input="C1"/.test(h) && /id="solte-prog-C1"/.test(h));
   assert.equal(m.f.solteHtml(null), '');
 });
 await passo('soltar na caixa: cada arquivo vai para o Apps Script com o caso certo e o conteúdo em base64', async () => {
@@ -58,6 +58,22 @@ await passo('soltar na caixa: cada arquivo vai para o Apps Script com o caso cer
   const solto = m.ouvintes.drop[0]; assert(solto);
   // soltar fora da caixa não faz nada
   const antes = m.enviados.length; drop({target: {closest: () => null}, preventDefault() {}, dataTransfer: {files: [m.arquivo('x.jpg', 'image/jpeg')]}}); await m.esperar(); assert.equal(m.enviados.length, antes);
+});
+await passo('copiar e colar: Ctrl+V com a foto copiada manda para a caixa onde ela clicou; texto colado segue como sempre', async () => {
+  const m = mundo(); const zona = {dataset: {solte: 'C1'}};
+  const evento = (alvo, arquivos, ehCampo) => ({target: Object.assign({closest: (s) => (s === '.cx-solte' ? alvo : null), matches: () => !!ehCampo}), clipboardData: {files: arquivos}, preventDefault() { this.feito = true; }});
+  // colou com o foco dentro da caixa
+  const e1 = evento(zona, [m.arquivo('image.png', 'image/png', 'print')]); m.ouvintes.paste[0](e1); await m.esperar();
+  assert.equal(e1.feito, true); assert.equal(m.enviados.length, 1); assert.equal(m.enviados[0].casoId, 'C1'); assert.equal(m.enviados[0].mimetype, 'image/png');
+  // sem foco na caixa, mas a última em que clicou foi a do C1 (o card pode ter se redesenhado)
+  m.ouvintes.click[0]({target: {closest: (s) => (s === '.cx-solte' ? zona : null)}});
+  const e2 = evento(null, [m.arquivo('IMG.jpg', 'image/jpeg')]); m.ouvintes.paste[0](e2); await m.esperar(); assert.equal(e2.feito, true); assert.equal(m.enviados.length, 2);
+  // com o cursor num campo de texto de outro lugar, ela não é atrapalhada
+  const e3 = evento(null, [m.arquivo('IMG.jpg', 'image/jpeg')], true); m.ouvintes.paste[0](e3); await m.esperar(); assert.notEqual(e3.feito, true); assert.equal(m.enviados.length, 2);
+  // texto (sem arquivo) nunca é interceptado
+  const e4 = evento(zona, []); m.ouvintes.paste[0](e4); assert.notEqual(e4.feito, true);
+  // nenhuma caixa escolhida ainda: não adivinha o card
+  const v = mundo(); const e5 = evento(null, [v.arquivo('a.jpg', 'image/jpeg')]); v.ouvintes.paste[0](e5); await v.esperar(); assert.notEqual(e5.feito, true); assert.equal(v.enviados.length, 0);
 });
 await passo('recusa antes de sair: áudio, Word, arquivo vazio e arquivo maior que 10 MB — com o motivo escrito', async () => {
   const m = mundo();

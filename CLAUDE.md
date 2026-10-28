@@ -1111,6 +1111,9 @@ Regras dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   **A IA nunca chuta nome**: sem nome, o arquivo fica como `Recebido_…` até alguém dizer.
 - **O Drive só é tocado pelo selo** (como nos arquivos do link). *Ler de novo* e *Excluir* valem também para o que foi
   arrastado (`ORIGENS_ARQUIVO`).
+- **Copiar e colar também vale**: copiou a foto no WhatsApp Web (ou o arquivo na pasta), clica na caixa do card e aperta
+  Ctrl+V. A caixa ativa é a última em que ela clicou (o card se redesenha sem perder o lugar); texto colado e Ctrl+V dentro de
+  um campo de outro lugar nunca são interceptados, e sem caixa escolhida o painel não adivinha o card.
 - Só PDF e imagem, até 10 MB; áudio, vídeo e Word são recusados **antes** de sair, com o motivo escrito. No máximo dois
   arquivos sobem por vez. Arrastar só existe no computador; no celular fica o *Escolher arquivos*.
 - Passo manual: o Apps Script precisa do código novo (`painel-arquivo`, `painel-renomear`). Se não tiver, o motivo aparece
