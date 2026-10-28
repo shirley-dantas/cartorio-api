@@ -1758,6 +1758,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .pag-lido{color:#8A6D1F;font-weight:600;text-transform:none}
 .pag-erro{margin-top:12px;padding:10px 12px;border-radius:10px;background:#FBE3E1;color:#9A1E16;font-size:14px;font-weight:600}
 .pag-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.cx-solte{flex-basis:100%;border:1.5px dashed var(--cc-linha-forte);border-radius:16px;padding:12px 14px;background:var(--cc-sup-2);transition:background .15s,border-color .15s}
+.cx-solte.sobre{background:#E8F0E9;border-color:var(--cc-ok,#2F7A4F)}
+.cx-solte-topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:600;color:var(--cc-tinta)}
+.cx-solte-topo i{font-size:18px;color:var(--cc-tinta-2)}.cx-solte-topo span{flex:1;min-width:180px}.cx-solte-topo small{display:block;font-weight:400;color:var(--cc-tinta-3);font-size:11.5px;margin-top:2px}
+.cx-solte:focus{outline:2px solid var(--cc-champagne,#A9895A);outline-offset:2px}
+.cx-solte-prog{list-style:none;margin:0;padding:0;display:grid;gap:4px}.cx-solte-prog:not(:empty){margin-top:10px}
+.cx-solte-prog li{display:flex;gap:8px;align-items:baseline;font-size:12.5px;overflow-wrap:anywhere}
+.cx-solte-prog .solte-ico{flex:none;width:16px;text-align:center;font-weight:700}
+.cx-solte-prog .solte-nome{flex:none;max-width:45%;font-weight:600}.cx-solte-prog .solte-msg{flex:1;color:var(--cc-tinta-3)}
+.cx-solte-prog .solte-ok .solte-ico{color:var(--cc-ok,#2F7A4F)}.cx-solte-prog .solte-erro .solte-ico,.cx-solte-prog .solte-erro .solte-msg{color:var(--cc-critico,#B3261E)}
+.cx-solte-prog .solte-confirmar .solte-ico,.cx-solte-prog .solte-confirmar .solte-msg{color:#8A5A0B}
 .cx-ped-rec{flex-basis:100%;font-size:12.5px;color:var(--cc-tinta-2)}
 .cx-ped-rec summary{cursor:pointer;font-weight:600;color:var(--cc-tinta)}
 .cx-ped-rec ul{list-style:none;padding:6px 0 0;margin:0;display:grid;gap:4px}
@@ -3068,6 +3079,19 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="modal-title"><i class="ti ti-calculator" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Orçamento</div>
     <div class="modal-sub" id="orc-caso-sub">—</div>
     <div id="orc-caso-conteudo"></div>
+  </div>
+</div>
+
+<!-- Corrigir o tipo e o nome de um arquivo arrastado para o card -->
+<div class="modal-overlay" id="modal-doc-nome">
+  <div class="modal-box" style="max-width:460px">
+    <button class="modal-close" onclick="fecharDocNome()">&times;</button>
+    <div class="modal-title"><i class="ti ti-pencil" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Corrigir o nome</div>
+    <div class="modal-sub" id="dn-sub">—</div>
+    <label class="cx-campo"><span class="cx-campo-rot">Que documento é</span><select id="dn-tipo"></select></label>
+    <label class="cx-campo" style="margin-top:10px"><span class="cx-campo-rot">De quem é (nome completo)</span><input type="text" id="dn-pessoa" placeholder="Em branco, se não for de uma pessoa (matrícula, IPTU)"></label>
+    <div class="pag-erro" id="dn-erro" style="margin-top:8px"></div>
+    <div class="modal-btn-row"><button type="button" class="btn-cancel" onclick="fecharDocNome()">Cancelar</button><button type="button" class="btn-save" id="dn-salvar">Salvar</button></div>
   </div>
 </div>
 
@@ -5263,6 +5287,7 @@ function renderCasos(){
         <span class="cx-orc-rot"><i class="ti ti-file-search"></i> Documentos</span>
         <button class="cx-btn destaque" onclick="abrirPedidoDocs('${c.id}')"><i class="ti ti-list-check"></i> Pedir documentos</button>
         ${pedidoPastaHtml(c)}
+        ${solteHtml(c)}
         ${pedidoRecebidosHtml(c)}
       </div>
 
@@ -12059,6 +12084,112 @@ async function criarLinkEnvio(id,{estado,blocos,token,guiado}){
 // (a minuta deixa de usá-lo). Se o Apps Script recusar, o item continua na lista e o erro aparece escrito.
 // "Ler de novo": o arquivo do cliente ficou sem leitura (a IA falhou ou ainda não tinha terminado). O Apps Script
 // lê o arquivo do Drive outra vez; se não conseguir, o motivo aparece escrito, e não só "sem leitura".
+// ── Arrastar arquivos para o card ─────────────────────────────────────────────
+// O que o cliente mandou pelo WhatsApp: ela solta os arquivos na caixa do card. Cada um vai para o Apps Script
+// (`painel-arquivo`), que cria a pasta do caso se faltar, guarda o arquivo, a IA lê e identifica o tipo e de
+// quem é, e o arquivo ganha o nome padrão. Salva direto; o que a IA não tem certeza fica "confirmar" no card.
+const SOLTE_TIPOS=[['RG_CNH','RG ou CNH'],['CPF','CPF'],['CERTIDAO_NASCIMENTO','Certidão de nascimento'],['CERTIDAO_CASAMENTO','Certidão de casamento'],['CERTIDAO_OBITO','Certidão de óbito'],['PACTO_ANTENUPCIAL','Pacto antenupcial'],['MATRICULA_IMOVEL','Matrícula do imóvel'],['COMPROVANTE_ENDERECO','Comprovante de endereço'],['IPTU','IPTU'],['CND','CND'],['ESCRITURA','Escritura'],['PROCURACAO','Procuração'],['CONTRATO','Contrato'],['COMPROVANTE_PAGAMENTO','Comprovante de pagamento'],['OUTRO','Outro']];
+const SOLTE_MIMES={'application/pdf':1,'image/jpeg':1,'image/png':1,'image/webp':1,'image/gif':1,'image/heic':1,'image/heif':1};
+const SOLTE_MAX=10*1024*1024, SOLTE_PARALELO=2;
+const SOLTE={}; // casoId -> [{id,nome,estado:'fila'|'enviando'|'ok'|'confirmar'|'erro',msg}]
+let soltePorId=0;
+function solteLinhaHtml(it,casoId){
+  const ico=it.estado==='ok'?'✓':it.estado==='confirmar'?'⚠':it.estado==='erro'?'✕':'…';
+  const txt=it.estado==='fila'?'na fila':it.estado==='enviando'?'enviando e lendo…':it.msg||'';
+  const x=(it.estado==='erro'||it.estado==='confirmar')?`<button type="button" class="cx-ped-x" aria-label="Tirar da lista" onclick="solteTirar('${esc(casoId)}',${it.id})">×</button>`:'';
+  return `<li class="solte-${it.estado}"><span class="solte-ico">${ico}</span><span class="solte-nome">${escTxt(it.nome)}</span><span class="solte-msg">${escTxt(txt)}</span>${x}</li>`;
+}
+function solteProgHtml(casoId){
+  const l=SOLTE[casoId]||[]; return l.length?l.map(it=>solteLinhaHtml(it,casoId)).join(''):'';
+}
+function solteHtml(c){
+  if(!c||!c.id) return '';
+  return `<div class="cx-solte" data-solte="${esc(c.id)}" tabindex="0"><div class="cx-solte-topo"><i class="ti ti-upload"></i><span>Solte aqui os arquivos recebidos do cliente <small>ou clique aqui e cole (Ctrl+V)</small></span>
+    <label class="cx-btn">Escolher arquivos<input type="file" multiple accept="image/*,application/pdf" data-solte-input="${esc(c.id)}" hidden></label></div>
+    <ul class="cx-solte-prog" id="solte-prog-${esc(c.id)}">${solteProgHtml(c.id)}</ul></div>`;
+}
+function solteAtualizar(casoId){
+  const ul=document.getElementById('solte-prog-'+casoId); if(ul) ul.innerHTML=solteProgHtml(casoId);
+}
+window.solteTirar=function(casoId,id){ SOLTE[casoId]=(SOLTE[casoId]||[]).filter(x=>x.id!==id); solteAtualizar(casoId); };
+async function soltePara64(file){
+  const b=new Uint8Array(await file.arrayBuffer()); let s=''; for(let i=0;i<b.length;i+=0x8000) s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));
+  return btoa(s);
+}
+async function solteUm(casoId,it,file){
+  it.estado='enviando'; solteAtualizar(casoId);
+  try{
+    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'painel-arquivo',casoId,nomeArquivo:file.name,mimetype:String(file.type||'').toLowerCase(),base64:await soltePara64(file)})});
+    const j=await r.json();
+    if(!j||!j.ok){
+      const erro=(j&&j.erro)||'motivo desconhecido';
+      it.estado='erro'; it.msg=/a[çc][ãa]o desconhecida/i.test(erro)?'O Apps Script publicado ainda não recebe arquivos do painel. Atualize o código lá (apps-script/cartorio-drive-api.js) e implante uma nova versão.':erro;
+    }else if(j.confirmar){ it.estado='confirmar'; it.msg=(j.aviso?j.aviso+' ':'')+'Salvo como '+j.nome+' — confira o nome no lápis.'; }
+    else{ it.estado='ok'; it.msg=j.nome; setTimeout(()=>window.solteTirar(casoId,it.id),8000); }
+  }catch(e){ it.estado='erro'; it.msg='Erro de conexão com o Drive: '+((e&&e.message)||e); }
+  solteAtualizar(casoId);
+}
+window.solteReceber=function(casoId,files){
+  const lista=SOLTE[casoId]=SOLTE[casoId]||[], fila=[];
+  [...files].forEach(f=>{
+    const it={id:++soltePorId,nome:f.name||'arquivo',estado:'fila',msg:''};
+    const mime=String(f.type||'').toLowerCase();
+    if(!SOLTE_MIMES[mime]){ it.estado='erro'; it.msg='Só PDF e imagem (foto). Áudio, vídeo e Word não entram aqui.'; }
+    else if(f.size>SOLTE_MAX){ it.estado='erro'; it.msg='Maior que 10 MB. Mande uma foto em vez do arquivo.'; }
+    else if(!f.size){ it.estado='erro'; it.msg='O arquivo está vazio.'; }
+    lista.push(it); if(it.estado==='fila') fila.push([it,f]);
+  });
+  solteAtualizar(casoId);
+  let ativos=0;
+  const proximo=()=>{ while(ativos<SOLTE_PARALELO&&fila.length){ const [it,f]=fila.shift(); ativos++; solteUm(casoId,it,f).finally(()=>{ ativos--; proximo(); }); } };
+  proximo();
+};
+document.addEventListener('dragover',ev=>{ const z=ev.target.closest&&ev.target.closest('.cx-solte'); if(z){ ev.preventDefault(); z.classList.add('sobre'); } });
+document.addEventListener('dragleave',ev=>{ const z=ev.target.closest&&ev.target.closest('.cx-solte'); if(z&&!z.contains(ev.relatedTarget)) z.classList.remove('sobre'); });
+document.addEventListener('drop',ev=>{
+  const z=ev.target.closest&&ev.target.closest('.cx-solte'); if(!z) return;
+  ev.preventDefault(); z.classList.remove('sobre');
+  if(ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files.length) window.solteReceber(z.dataset.solte,ev.dataTransfer.files);
+});
+// Copiar e colar: copiou a foto no WhatsApp Web (ou o arquivo na pasta), clica na caixa do card e aperta Ctrl+V.
+// A caixa "ativa" é a última em que ela clicou, para o card poder se redesenhar sem perder o lugar.
+let solteAtivo='';
+document.addEventListener('click',ev=>{ const z=ev.target.closest&&ev.target.closest('.cx-solte'); if(z) solteAtivo=z.dataset.solte; });
+document.addEventListener('focusin',ev=>{ const z=ev.target.closest&&ev.target.closest('.cx-solte'); if(z) solteAtivo=z.dataset.solte; });
+document.addEventListener('paste',ev=>{
+  const files=[...((ev.clipboardData&&ev.clipboardData.files)||[])]; if(!files.length) return;   // texto colado segue o caminho de sempre
+  const z=ev.target.closest&&ev.target.closest('.cx-solte'), alvo=z?z.dataset.solte:solteAtivo;
+  const digitando=ev.target.matches&&ev.target.matches('input,textarea,select,[contenteditable="true"]');
+  if(!alvo||(!z&&digitando)) return;
+  ev.preventDefault(); window.solteReceber(alvo,files);
+});
+document.addEventListener('change',ev=>{
+  const t=ev.target; if(!t||!t.matches||!t.matches('[data-solte-input]')) return;
+  window.solteReceber(t.dataset.solteInput,t.files); t.value='';
+});
+// Corrigir depois: o tipo e o nome da pessoa; o arquivo é renomeado no Drive e o card acompanha.
+window.renomearDocCard=function(casoId,docKey){
+  const d=(((casos[casoId]||{}).documentos)||{})[docKey]; if(!d) return;
+  const m=document.getElementById('modal-doc-nome');
+  document.getElementById('dn-sub').textContent=d.nome;
+  document.getElementById('dn-tipo').innerHTML=SOLTE_TIPOS.map(([v,r])=>`<option value="${v}"${v===d.tipoDocumento?' selected':''}>${esc(r)}</option>`).join('');
+  document.getElementById('dn-pessoa').value=d.pessoa||'';
+  document.getElementById('dn-erro').textContent='';
+  const b=document.getElementById('dn-salvar'); b.disabled=false; b.textContent='Salvar';
+  b.onclick=async()=>{
+    b.disabled=true; b.textContent='Salvando…';
+    try{
+      const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'painel-renomear',casoId,docKey,tipo:document.getElementById('dn-tipo').value,pessoa:document.getElementById('dn-pessoa').value})});
+      const j=await r.json();
+      if(j&&j.ok){ m.classList.remove('open'); finToast('Renomeado: '+j.nome); }
+      else{ const e=(j&&j.erro)||'motivo desconhecido'; document.getElementById('dn-erro').textContent=/a[çc][ãa]o desconhecida/i.test(e)?'O Apps Script publicado ainda não conhece esta função. Atualize o código lá.':e; b.disabled=false; b.textContent='Salvar'; }
+    }catch(e){ document.getElementById('dn-erro').textContent='Erro de conexão com o Drive: '+((e&&e.message)||e); b.disabled=false; b.textContent='Salvar'; }
+  };
+  m.classList.add('open');
+};
+window.fecharDocNome=function(){ document.getElementById('modal-doc-nome').classList.remove('open'); };
+// ── fim: arrastar arquivos para o card ──
+
 window.relerDocCliente=async function(casoId,docKey,btn){
   const d=(((casos[casoId]||{}).documentos)||{})[docKey];
   if(!d) return;
@@ -12117,7 +12248,7 @@ function pedidoPastaHtml(c){
 // O que o cliente já mandou pelo link, na faixa Documentos do card: arquivos com link para o Drive
 // e se a IA conseguiu ler (é o que a minuta usa).
 function pedidoRecebidosHtml(c){
-  const todos=Object.entries((c&&c.documentos)||{}).filter(([,d])=>d&&d.origem==='link do cliente');
+  const todos=Object.entries((c&&c.documentos)||{}).filter(([,d])=>d&&(d.origem==='link do cliente'||d.origem==='arrastado no card'));
   if(!todos.length) return '';
   const docs=todos.map(([k,d])=>({k,d}));
   const arquivos=docs.filter(x=>x.d.tipo!=='informacoes'), ficha=docs.some(x=>x.d.tipo==='informacoes');
@@ -12125,10 +12256,11 @@ function pedidoRecebidosHtml(c){
   const linhas=docs.sort((a,b)=>String(a.d.salvoEm).localeCompare(String(b.d.salvoEm))).map(({k,d})=>{
     const nome=d.link?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.nome)}</a>`:escTxt(d.nome);
     const lendoAgora=d.lendo&&Date.now()-Number(d.lendo)<10*60*1000;
-    const sit=d.tipo==='informacoes'?'dados digitados':(d.provisorio?'<b>aguardando o cliente concluir o envio</b>':(d.texto?'lido':(lendoAgora?'lendo…':'<b>sem leitura</b>')));
+    const sit=d.tipo==='informacoes'?'dados digitados':(d.provisorio?'<b>aguardando o cliente concluir o envio</b>':(d.confirmar?'<b>confirmar o nome</b>':(d.texto?'lido':(lendoAgora?'lendo…':'<b>sem leitura</b>'))));
+    const lapis=(c&&c.id&&d.origem==='arrastado no card')?`<button type="button" class="cx-ped-x" title="Corrigir o tipo e o nome" aria-label="Corrigir ${esc(d.nome)}" onclick="renomearDocCard('${esc(c.id)}','${esc(k)}')"><i class="ti ti-pencil"></i></button>`:'';
     const del=c&&c.id?`<button type="button" class="cx-ped-x" title="Excluir — enviado errado" aria-label="Excluir ${esc(d.nome)}" onclick="excluirDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-trash"></i></button>`:'';
     const ler=(c&&c.id&&d.tipo!=='informacoes'&&!d.provisorio&&!d.texto)?`<button type="button" class="cx-ped-x" title="Pedir para a IA ler de novo" aria-label="Ler de novo ${esc(d.nome)}" onclick="relerDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-refresh"></i> Ler de novo</button>`:'';
-    return `<li><span class="cx-ped-nome">${nome}</span> <span>${sit}</span>${ler}${del}</li>`;
+    return `<li><span class="cx-ped-nome">${nome}</span> <span>${sit}</span>${lapis}${ler}${del}</li>`;
   }).join('');
   return `<details class="cx-ped-rec"><summary><i class="ti ti-inbox"></i> Recebidos do cliente: ${arquivos.length} ${arquivos.length===1?'arquivo':'arquivos'}${arquivos.length?` (${lidos} lidos${aguardando?`, ${aguardando} aguardando o cliente concluir`:''})`:''}${ficha?' + dados digitados':''}</summary><ul>${linhas}</ul></details>`;
 }

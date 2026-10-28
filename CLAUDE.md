@@ -1093,6 +1093,32 @@ Passos manuais (regras do banco com `/pedidos` e Apps Script novo): `FIREBASE.md
 seção 11. Testes: `testes/enviar-tela.mjs` (a página), `testes/cliente-envio.mjs`
 (o Apps Script com o Google fingido), `testes/pedido-tela.mjs` (o botão e o card).
 
+### Arrastar o que veio pelo WhatsApp para o card
+
+Nem todo cliente preenche link (a clientela dela não é tecnológica): muita gente manda foto e PDF pelo WhatsApp. A faixa
+**Documentos** do card tem uma caixa, *"Solte aqui os arquivos recebidos do cliente"* (`solteHtml()`, `solteReceber()`), com
+o botão *Escolher arquivos* para quem não arrasta. Cada arquivo vai ao Apps Script (`painel-arquivo`), que **cria a pasta do
+caso se ainda não existe**, guarda o arquivo, a IA lê e identifica o **tipo e de quem é**, e o arquivo ganha o nome padrão
+`Pessoa_Tipo_AAAA-MM-DD_n.ext`. O registro nasce em `/casos/{id}/documentos` com `origem: "arrastado no card"` (chave `pnl_…`,
+selo, texto lido) — a minuta lê como lê os do link.
+
+Regras dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
+
+- **Pasta plana**: todos os arquivos na pasta do caso, sem subpasta por pessoa (a minuta continua lendo igual).
+- **Salva direto e corrige depois.** Não há tela de revisão antes. O que a IA não tem certeza — tipo `OUTRO`, confiança que
+  não é alta, documento de pessoa sem nome, formato que ela não lê (HEIC) — fica salvo e **marcado "confirmar o nome"** no card,
+  com o lápis (`renomearDocCard()` → `painel-renomear`) para escolher o tipo e escrever o nome; o Drive é renomeado junto.
+  **A IA nunca chuta nome**: sem nome, o arquivo fica como `Recebido_…` até alguém dizer.
+- **O Drive só é tocado pelo selo** (como nos arquivos do link). *Ler de novo* e *Excluir* valem também para o que foi
+  arrastado (`ORIGENS_ARQUIVO`).
+- **Copiar e colar também vale**: copiou a foto no WhatsApp Web (ou o arquivo na pasta), clica na caixa do card e aperta
+  Ctrl+V. A caixa ativa é a última em que ela clicou (o card se redesenha sem perder o lugar); texto colado e Ctrl+V dentro de
+  um campo de outro lugar nunca são interceptados, e sem caixa escolhida o painel não adivinha o card.
+- Só PDF e imagem, até 10 MB; áudio, vídeo e Word são recusados **antes** de sair, com o motivo escrito. No máximo dois
+  arquivos sobem por vez. Arrastar só existe no computador; no celular fica o *Escolher arquivos*.
+- Passo manual: o Apps Script precisa do código novo (`painel-arquivo`, `painel-renomear`). Se não tiver, o motivo aparece
+  escrito na caixa. Testes: `testes/solte-card.mjs` (o painel) e `testes/cliente-envio.mjs` (o Apps Script).
+
 ### O link de pagamento: o cliente confere, paga e anexa o comprovante
 
 Pelo card, **Pagamento → Gerar link de pagamento** cria `/p/{código}` (`pagar.html`, reescrita no `vercel.json`).
@@ -1238,7 +1264,7 @@ node testes/radar.mjs && node testes/radar-triagem.mjs
 node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
 node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
-node testes/enviar-tela.mjs && node testes/cliente-envio.mjs
+node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs
 node testes/orcamento-link-tela.mjs && node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
 ```
 
