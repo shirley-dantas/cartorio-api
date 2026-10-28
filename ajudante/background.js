@@ -34,7 +34,7 @@ function falar(job, estado, texto, fim) {
   try { Promise.resolve(chrome.tabs.sendMessage(job.painelTabId, { tipo: 'progresso', id: job.id, estado, texto, fim: !!fim })).catch(() => {}); } catch (_) { /* a aba do painel pode ter fechado */ }
 }
 async function terminar(id, estado, texto) {
-  const job = await mudar(id, (j, todos) => { j.fim = true; j.estado = estado; j.texto = texto; ev(j, { fim: estado, texto: String(texto || '').slice(0, 90) }); if (!Object.values(todos).some((x) => !x.fim)) popupsDaJucesp(false); });
+  const job = await mudar(id, (j, todos) => { j.fim = true; j.estado = estado; j.texto = texto; ev(j, { fim: estado, texto: String(texto || '').slice(0, 90) }); if (!Object.values(todos).some((x) => !x.fim)) { popupsDaJucesp(false); bloquearTicket(false); } });
   if (job) {
     falar(job, estado, texto, true);
     try { Promise.resolve(chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'fim', estado, texto })).catch(() => {}); } catch (_) { /* a aba pode já ter fechado */ }
@@ -62,6 +62,20 @@ async function popupsDaJucesp(liberar) {
     return 'ok';
   } catch (e) { return 'erro: ' + String((e && e.message) || e).slice(0, 120); }   // a reserva da faixa (um clique dela) cobre
 }
+// O endereço do PDF (VisualizaTicket.aspx?sc=…) vale UMA vez: quando o Chrome o abre, o Ajudante já não consegue baixá-lo (foi o que o teste real mostrou:
+// o PDF abria para ela e o card dizia "O que veio não é um PDF"). Então, enquanto há pedido andando, a NAVEGAÇÃO a esse endereço é bloqueada (regra do
+// declarativeNetRequest, só para janelas e quadros — a busca do Ajudante é outro tipo e passa) e o Ajudante o baixa ele mesmo, uma vez só.
+const REGRA_TICKET = 7001;
+async function bloquearTicket(ligar) {
+  try {
+    const d = chrome.declarativeNetRequest; if (!d || !d.updateDynamicRules) return 'sem a API';
+    await d.updateDynamicRules({ removeRuleIds: [REGRA_TICKET], addRules: ligar ? [{ id: REGRA_TICKET, priority: 1, action: { type: 'block' }, condition: { urlFilter: '||www.jucesponline.sp.gov.br/VisualizaTicket.aspx', resourceTypes: ['main_frame', 'sub_frame'] } }] : [] });
+    return 'ok';
+  } catch (e) { return 'erro: ' + String((e && e.message) || e).slice(0, 120); }
+}
+// Uma regra esquecida (a extensão fechou no meio) bloquearia os PDFs dela para sempre: ao acordar, sem pedido andando, a regra sai.
+(async () => { try { const todos = await jobs(); if (!Object.values(todos).some((x) => !x.fim)) await bloquearTicket(false); } catch (_) { /* sem armazenamento ainda */ } })();
+
 // O que o fundo viu, para o relatório: se os pop-ups foram liberados, que abas a página abriu, o que foi baixado e como acabou.
 const ev = (job, o) => { (job.eventos = job.eventos || []).push(Object.assign({ t: Math.round((Date.now() - (job.iniciado || Date.now())) / 100) / 10 }, o)); if (job.eventos.length > 20) job.eventos.shift(); };
 const semQuery = (u) => { try { const x = new URL(u); return x.pathname; } catch (_) { return String(u || '').split('?')[0]; } };
@@ -76,6 +90,7 @@ async function criarPedido(pedido, sender) {
   const conhecido = await nireConhecido(job.cnpj);
   if (conhecido) { job.nire = conhecido; job.direto = true; }
   job.popups = await popupsDaJucesp(true);
+  job.bloqueio = await bloquearTicket(true);
   const aba = await chrome.tabs.create({ url: conhecido ? JUCESP + '/Pre_Visualiza.aspx?nire=' + conhecido + '&idproduto=' : JUCESP + '/Default.aspx' });
   job.jucespTabId = aba.id;
   await mexer(async () => { const todos = await jobs(); todos[job.id] = job; await guardar(todos); });
@@ -167,7 +182,7 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
       if (m.empresa && x && /^\d{11}$/.test(x.nire || '')) await lembrarNire(x.cnpj, x.nire);   // só o que veio do resultado da busca por esse CNPJ
       return responder({ ok: true });
     }
-    if (m.tipo === 'diagnostico-fundo') return responder({ popups: job.popups || '', eventos: job.eventos || [] });
+    if (m.tipo === 'diagnostico-fundo') return responder({ popups: job.popups || '', bloqueio: job.bloqueio || '', eventos: job.eventos || [] });
     // A aba do pedido pediu o PDF pelo formulário e o trouxe de volta (sem abrir aba nenhuma): é o caminho normal.
     if (m.tipo === 'pdf-bytes') { responder({ ok: true }); await guardarPdf(job, String(m.base64 || '')); return; }
     if (m.tipo === 'manual') { await mudar(job.id, (x) => { x.manual = true; }); return responder({ ok: true }); }
@@ -177,21 +192,31 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
 });
 
 // O PDF abre na própria aba; é aí que ele é pego. Vale tanto para o caminho automático quanto para quando ela assumiu à mão.
-chrome.tabs.onUpdated.addListener((tabId, info, aba) => {
-  const url = (aba && aba.url) || info.url || '';
-  if (!/\/VisualizaTicket\.aspx/i.test(url) || new URL(url).origin !== JUCESP) return;
-  // O PDF pode abrir na própria aba do pedido ou numa aba nova aberta por ela (a JUCESP faz as duas coisas, conforme o botão).
-  const opener = aba && aba.openerTabId;
+// O PDF abre na própria aba do pedido ou numa aba nova aberta por ela (a JUCESP faz as duas coisas, conforme o botão).
+function avisarTicket(tabId, url, opener) {
   mexer(async () => {
-    const todos = await jobs(), job = Object.values(todos).find((j) => !j.fim && (j.jucespTabId === tabId || (opener != null && j.jucespTabId === opener)));
+    const todos = await jobs(), job = Object.values(todos).find((j) => !j.fim && (j.jucespTabId === tabId || (j.filhas || []).includes(tabId) || (opener != null && j.jucespTabId === opener)));
     if (!job || job.pdfUrl === url) return null;
     job.pdfUrl = url; job.abaDoPdf = tabId; ev(job, { pdfEm: semQuery(url), aba: tabId === job.jucespTabId ? 'a do pedido' : 'nova' }); await guardar(todos); return job;
   }).then((job) => { if (job) return capturar(job, url); }).catch(() => {});
+}
+chrome.tabs.onUpdated.addListener((tabId, info, aba) => {
+  const url = (aba && aba.url) || info.url || '';
+  if (!/\/VisualizaTicket\.aspx/i.test(url) || new URL(url).origin !== JUCESP) return;
+  avisarTicket(tabId, url, aba && aba.openerTabId);
 });
 
 chrome.tabs.onCreated && chrome.tabs.onCreated.addListener((aba) => {
   if (!aba || aba.openerTabId == null) return;
-  mudar_se_job_da_aba(aba.openerTabId, (j) => ev(j, { abaCriada: semQuery(aba.pendingUrl || aba.url || '') || '(sem endereço)' }));
+  mudar_se_job_da_aba(aba.openerTabId, (j) => { ev(j, { abaCriada: semQuery(aba.pendingUrl || aba.url || '') || '(sem endereço)' }); (j.filhas = j.filhas || []).push(aba.id); });
+});
+
+// O Chrome avisa que vai navegar ao endereço do PDF ANTES de pedi-lo (e a regra acima impede o pedido): é a hora de baixá-lo, uma vez só.
+chrome.webNavigation && chrome.webNavigation.onBeforeNavigate.addListener((d) => {
+  if (!d || !/\/VisualizaTicket\.aspx/i.test(d.url || '')) return;
+  let origem; try { origem = new URL(d.url).origin; } catch (_) { return; }
+  if (origem !== JUCESP) return;
+  avisarTicket(d.tabId, d.url);
 });
 async function mudar_se_job_da_aba(tabId, f) {
   const todos = await jobs(), job = Object.values(todos).find((j) => !j.fim && j.jucespTabId === tabId);
