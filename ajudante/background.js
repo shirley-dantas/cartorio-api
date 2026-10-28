@@ -35,7 +35,10 @@ function falar(job, estado, texto, fim) {
 }
 async function terminar(id, estado, texto) {
   const job = await mudar(id, (j) => { j.fim = true; j.estado = estado; j.texto = texto; });
-  if (job) falar(job, estado, texto, true);
+  if (job) {
+    falar(job, estado, texto, true);
+    try { Promise.resolve(chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'fim', estado, texto })).catch(() => {}); } catch (_) { /* a aba pode já ter fechado */ }
+  }
 }
 
 function paraBase64(buffer) {
@@ -82,6 +85,7 @@ async function capturar(job, url) {
   const qual = job.fila[0], d = DOCS[qual];
   if (!d) return;
   falar(job, 'andando', 'Baixando: ' + d.nome + '…');
+  try { Promise.resolve(chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'pdf' })).catch(() => {}); } catch (_) { /* a aba pode estar mudando de página */ }
   try {
     const r = await fetch(url, { credentials: 'include' });
     if (!r.ok) throw new Error('A JUCESP respondeu ' + r.status + ' ao baixar o PDF.');
@@ -90,7 +94,8 @@ async function capturar(job, url) {
     if (!/pdf/.test(tipo) && String.fromCharCode.apply(null, new Uint8Array(bytes.slice(0, 4))) !== '%PDF') throw new Error('O que abriu não é um PDF.');
     if (!bytes.byteLength || bytes.byteLength > MAX_BYTES) throw new Error('PDF vazio ou maior que 10 MB.');
     const j = await enviarAoApps(job, qual, bytes);
-    const atual = await mudar(job.id, (x) => { x.feitos.push(qual); x.fila.shift(); x.pdfUrl = null; x.manual = false; });
+    if (job.abaDoPdf != null && job.abaDoPdf !== job.jucespTabId) { try { Promise.resolve(chrome.tabs.remove(job.abaDoPdf)).catch(() => {}); } catch (_) { /* já fechou */ } }   // a aba extra só existia para mostrar o PDF
+    const atual = await mudar(job.id, (x) => { x.feitos.push(qual); x.fila.shift(); x.pdfUrl = null; x.abaDoPdf = null; x.manual = false; });
     const msg = d.nome + ': guardado no card como ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.';
     if (atual.fila.length) { falar(atual, 'andando', msg + ' Agora: ' + DOCS[atual.fila[0]].nome + '…'); await irParaEmpresa(atual); }
     else await terminar(job.id, 'ok', 'Pronto! ' + msg);
@@ -134,10 +139,12 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
 chrome.tabs.onUpdated.addListener((tabId, info, aba) => {
   const url = (aba && aba.url) || info.url || '';
   if (!/\/VisualizaTicket\.aspx/i.test(url) || new URL(url).origin !== JUCESP) return;
+  // O PDF pode abrir na própria aba do pedido ou numa aba nova aberta por ela (a JUCESP faz as duas coisas, conforme o botão).
+  const opener = aba && aba.openerTabId;
   mexer(async () => {
-    const todos = await jobs(), job = Object.values(todos).find((j) => j.jucespTabId === tabId && !j.fim);
+    const todos = await jobs(), job = Object.values(todos).find((j) => !j.fim && (j.jucespTabId === tabId || (opener != null && j.jucespTabId === opener)));
     if (!job || job.pdfUrl === url) return null;
-    job.pdfUrl = url; await guardar(todos); return job;
+    job.pdfUrl = url; job.abaDoPdf = tabId; await guardar(todos); return job;
   }).then((job) => { if (job) return capturar(job, url); }).catch(() => {});
 });
 
