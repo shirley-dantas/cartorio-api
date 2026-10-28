@@ -1114,6 +1114,13 @@ Regras dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
 - **Copiar e colar também vale**: copiou a foto no WhatsApp Web (ou o arquivo na pasta), clica na caixa do card e aperta
   Ctrl+V. A caixa ativa é a última em que ela clicou (o card se redesenha sem perder o lugar); texto colado e Ctrl+V dentro de
   um campo de outro lugar nunca são interceptados, e sem caixa escolhida o painel não adivinha o card.
+- **Compartilhar do WhatsApp (celular/tablet Android, com o painel instalado):** ela seleciona as mensagens (várias de uma
+  vez), toca em *Compartilhar* e escolhe *Equipe Prime*. O `manifest.json` declara o `share_target` (POST em `/compartilhar`),
+  o `service-worker.js` guarda os arquivos no aparelho (cache `painel-compartilhado`, nada vai para a rede ainda) e abre o painel
+  em `/?compartilhado=N`; ali a janela **"Para qual caso?"** (`compartilhadoAbrir()`, busca por nome) manda tudo pelo mesmo
+  caminho de `solteReceber()`. Só existe onde o navegador oferece o *share target* (Android; **não** iPhone, **não** WhatsApp Web
+  no computador, que não tem botão Compartilhar). O painel precisa estar **instalado** (não só um atalho) e reinstalado uma vez
+  depois desta versão, para o Android aprender que ele recebe arquivos. Teste: `testes/solte-card.mjs`.
 - Só PDF e imagem, até 10 MB; áudio, vídeo e Word são recusados **antes** de sair, com o motivo escrito. No máximo dois
   arquivos sobem por vez. Arrastar só existe no computador; no celular fica o *Escolher arquivos*.
 - Passo manual: o Apps Script precisa do código novo (`painel-arquivo`, `painel-renomear`). Se não tiver, o motivo aparece

@@ -17,7 +17,7 @@ assert(ini > 0 && fim > ini, 'não achei o bloco no index.html');
 const bloco = html.slice(ini, fim);
 const i2 = html.indexOf('function pedidoRecebidosHtml(c){'); const recebidos = html.slice(i2, html.indexOf('\n}\n', i2) + 3);
 
-function mundo({respostas} = {}) {
+function mundo({respostas, ...opcoes} = {}) {
   const ouvintes = {}, enviados = [], elementos = {}, toasts = [];
   const el = (id) => (elementos[id] = elementos[id] || {id, innerHTML: '', textContent: '', value: '', disabled: false, classList: {add() {}, remove() {}}});
   let emVoo = 0, picoVoo = 0, n = 0;
@@ -26,7 +26,7 @@ function mundo({respostas} = {}) {
     escTxt: (t) => String(t == null ? '' : t).replace(/[&<>]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])),
     GAS_URL: 'https://gas.exemplo/exec', casos: {C1: {documentos: {pnl_a: {nome: 'Maria_RG.jpg', origem: 'arrastado no card', tipoDocumento: 'RG_CNH', pessoa: 'Maria', confirmar: true, texto: 'x'}}}},
     finToast: (t) => toasts.push(t), btoa, atob, Uint8Array, String, Promise, console,
-    setTimeout: () => 0,
+    setTimeout: () => 0, location: {search: ''}, history: {replaceState() {}}, caches: opcoes.caches || {open: async () => ({keys: async () => [], match: async () => null, delete: async () => true})}, File, Blob,
     document: {addEventListener: (t, f) => { (ouvintes[t] = ouvintes[t] || []).push(f); }, getElementById: el},
     fetch: async (url, o) => {
       const c = JSON.parse(o.body); enviados.push(c); emVoo++; picoVoo = Math.max(picoVoo, emVoo);
@@ -119,5 +119,56 @@ await passo('corrigir: abre a janela com o tipo e a pessoa de agora, e manda a c
   assert(m.toasts.some((t) => /Renomeado/.test(t)));
   const e = mundo({respostas: () => ({ok: false, erro: 'Ação desconhecida: painel-renomear'})}); e.f.renomearDocCard('C1', 'pnl_a'); await e.el('dn-salvar').onclick();
   assert(/ainda não conhece/.test(e.el('dn-erro').textContent)); assert.equal(e.el('dn-salvar').disabled, false, 'o botão volta, para tentar de novo');
+});
+// ── Compartilhar do WhatsApp para o painel ──
+function cacheFalso() {
+  const mapa = new Map();
+  return {mapa, open: async () => ({
+    keys: async () => [...mapa.keys()].map((u) => ({url: u})), delete: async (k) => mapa.delete(k.url || k),
+    put: async (req, resp) => { mapa.set(req.url || req, resp); }, match: async (k) => mapa.get(k.url || k) || null
+  })};
+}
+await passo('service worker: o POST de /compartilhar guarda os arquivos no aparelho e volta ao painel com a contagem', async () => {
+  const fonteSW = readFileSync(join(AQUI, '..', 'service-worker.js'), 'utf8');
+  const cache = cacheFalso(); const ouvintes = {};
+  class Req { constructor(u, o = {}) { this.url = new URL(u, 'https://painel.exemplo').href; this.method = o.method || 'GET'; this._form = o.form; } async formData() { return this._form; } }
+  class Resp { constructor(corpo, o = {}) { this.corpo = corpo; this.headers = new Map(Object.entries(o.headers || {})); this.status = 200; } static redirect(u, s) { const r = new Resp(null); r.status = s; r.destino = u; return r; } }
+  const caixa = {self: {addEventListener: (t, f) => { ouvintes[t] = f; }, skipWaiting() {}, clients: {claim() {}}}, caches: {open: (n) => { assert.equal(n, 'painel-compartilhado'); return cache.open(); }}, Request: Req, Response: Resp, URL, fetch: async () => 'rede'};
+  vm.createContext(caixa); vm.runInContext(fonteSW, caixa);
+  const f1 = new File(['rg'], 'IMG 1.jpeg', {type: 'image/jpeg'}), f2 = new File(['pdf'], 'Contrato Social.pdf', {type: 'application/pdf'}), vazio = new File([], 'vazio.jpg', {type: 'image/jpeg'});
+  const form = {getAll: (n) => (n === 'arquivos' ? [f1, f2, vazio, 'texto'] : [])};
+  let resposta; ouvintes.fetch({request: new Req('/compartilhar', {method: 'POST', form}), respondWith: (p) => { resposta = p; }}); const r = await resposta;
+  assert.equal(r.status, 303); assert.equal(r.destino, '/?compartilhado=2'); assert.equal(cache.mapa.size, 2, 'só os arquivos de verdade ficam');
+  assert.equal(decodeURIComponent([...cache.mapa.values()][1].headers.get('X-Nome')), 'Contrato Social.pdf');
+  // um compartilhamento novo troca o anterior; qualquer outra requisição segue para a rede como sempre
+  ouvintes.fetch({request: new Req('/compartilhar', {method: 'POST', form: {getAll: () => [f1]}}), respondWith: (p) => { resposta = p; }}); await resposta; assert.equal(cache.mapa.size, 1);
+  let outra; ouvintes.fetch({request: new Req('/index.html'), respondWith: (p) => { outra = p; }}); assert.equal(await outra, 'rede');
+  let get; ouvintes.fetch({request: new Req('/compartilhar'), respondWith: (p) => { get = p; }}); assert.equal(await get, 'rede', 'GET em /compartilhar não é compartilhamento');
+});
+await passo('manifest: o painel se oferece como destino de arquivos (PDF e imagem) no Compartilhar', () => {
+  const m = JSON.parse(readFileSync(join(AQUI, '..', 'manifest.json'), 'utf8')); const st = m.share_target;
+  assert.equal(st.action, '/compartilhar'); assert.equal(st.method, 'POST'); assert.equal(st.enctype, 'multipart/form-data');
+  assert.equal(st.params.files[0].name, 'arquivos'); assert(st.params.files[0].accept.includes('application/pdf') && st.params.files[0].accept.includes('image/*'));
+});
+await passo('painel: abre perguntando "para qual caso?", filtra por nome, e o caso escolhido recebe os arquivos', async () => {
+  const cache = cacheFalso(); const cp = cacheFalso();
+  const guardados = [new File(['a'], 'RG.jpg', {type: 'image/jpeg'}), new File(['b'], 'Contrato Social.pdf', {type: 'application/pdf'})];
+  const c = await cp.open(); let i = 0; for (const f of guardados) await c.put({url: '/__compartilhado/' + (++i)}, {headers: {get: (h) => ({'X-Nome': encodeURIComponent(f.name), 'Content-Type': f.type})[h]}, blob: async () => f});
+  const m = mundo({caches: {open: () => cp.open()}});
+  m.caixa.casos.C2 = {id: 'C2', nome: 'JRL Holding', tipo: 'Contrato social'}; m.caixa.casos.C3 = {id: 'C3', nome: 'Ana Antiga', concluido: true};
+  const url = []; m.caixa.history.replaceState = (a, b, u) => url.push(u);
+  m.caixa.window.irParaCasoPorId = (id) => url.push('abriu:' + id);
+  m.caixa.document.getElementById('modal-compartilhado').classList.add = function () { m.caixa.__aberto = true; }; m.caixa.document.getElementById('modal-compartilhado').classList.remove = function () { m.caixa.__aberto = false; };
+  await m.caixa.window.compartilhadoAbrir();
+  assert.equal(m.caixa.__aberto, true); assert(/2 arquivos recebidos do WhatsApp/.test(m.el('cp-sub').textContent));
+  const lista = m.el('cp-lista').innerHTML; assert(/JRL Holding/.test(lista) && /data-cp-caso="C1"|data-cp-caso="C2"/.test(lista)); assert(!/Ana Antiga/.test(lista), 'caso concluído não aparece');
+  m.caixa.window.compartilhadoFiltrar('jrl'); assert(/JRL Holding/.test(m.el('cp-lista').innerHTML) && !/data-cp-caso="C1"/.test(m.el('cp-lista').innerHTML), 'filtra pelo nome, sem ligar para caixa ou acento');
+  m.caixa.window.compartilhadoFiltrar('zzz'); assert(/Nenhum caso/.test(m.el('cp-lista').innerHTML));
+  m.caixa.window.compartilhadoEscolher('C2'); await m.esperar();
+  assert.equal(m.enviados.length, 2); assert(m.enviados.every((e) => e.casoId === 'C2' && e.acao === 'painel-arquivo')); assert.deepEqual(m.enviados.map((e) => e.nomeArquivo).sort(), ['Contrato Social.pdf', 'RG.jpg']);
+  assert(url.includes('abriu:C2') && url.includes('/'), 'abre o card e limpa o endereço'); assert.equal(cp.mapa.size, 0, 'o que foi enviado sai do aparelho'); assert(m.toasts.some((t) => /2 arquivos enviados para JRL Holding/.test(t)));
+  // fechar sem escolher descarta, e abrir sem nada guardado não mostra janela
+  const vazio = mundo({caches: {open: async () => ({keys: async () => [], match: async () => null, delete: async () => true})}}); vazio.caixa.__aberto = false;
+  vazio.caixa.document.getElementById('modal-compartilhado').classList.add = () => { vazio.caixa.__aberto = true; }; await vazio.caixa.window.compartilhadoAbrir(); assert.equal(vazio.caixa.__aberto, false);
 });
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
