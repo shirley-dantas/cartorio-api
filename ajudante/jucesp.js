@@ -147,9 +147,10 @@
 
   // Um resumo da tela para a Shirley copiar e me mandar quando algo não bate: só a forma (textos dos botões, campos), sem cookies
   // nem o endereço completo (o "sc" do PDF é um ticket da sessão dela).
-  function relatorio(doc, caminho, job) {
+  function relatorio(doc, caminho, job, extra) {
     const lista = (sel, f) => Array.from(doc.querySelectorAll(sel)).filter(visivel).slice(0, 40).map(f);
     return JSON.stringify({
+      versao: (extra && extra.versao) || '', aviso: (extra && extra.aviso) || '',   // o que a faixa dizia e qual versão da extensão está rodando
       caminho, titulo: doc.title, pagina: tipoDePagina(doc, caminho), logada: logada(doc), passo: job && job.fila && job.fila[0],
       botoes: lista('a,button,input[type=submit],input[type=button]', (e) => (textoDe(e) || '').slice(0, 60)),
       campos: lista('input:not([type=hidden]),select,textarea', (e) => [e.type, e.name, e.id].join('|')),
@@ -199,7 +200,7 @@
 
   // `fatal`: não há o que fazer à mão (a empresa não existe na JUCESP): o pedido termina e a fila do painel segue.
   function parar(job, texto, estado, fatal) {
-    const copiar = ['Copiar relatório', () => { navigator.clipboard.writeText(relatorio(document, location.pathname, job)).then(() => mostrar(texto + ' (relatório copiado — cole na conversa)', '#B3261E'), () => {}); }];
+    const copiar = ['Copiar relatório', () => { navigator.clipboard.writeText(relatorio(document, location.pathname, job, { versao: (chrome.runtime.getManifest && chrome.runtime.getManifest().version) || '', aviso: texto })).then(() => mostrar(texto + ' (relatório copiado — cole na conversa)', '#B3261E'), () => {}); }];
     mostrar(texto, '#B3261E', fatal ? [copiar] : [copiar, ['Fazer à mão', () => { chrome.runtime.sendMessage({ tipo: 'manual' }); mostrar('Certo — faça você. Quando o PDF abrir, eu o pego e guardo no card.', '#A9895A'); }]]);
     dizer(estado || 'erro', texto, fatal);
   }

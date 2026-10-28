@@ -20,6 +20,7 @@ const CNPJ = '52247521000141';
 await passo('manifesto: só a JUCESP, o painel e o Apps Script; sem poder amplo e com todos os arquivos no lugar', () => {
   const m = JSON.parse(ler('ajudante/manifest.json'));
   assert.equal(m.manifest_version, 3);
+  assert.match(ler('ajudante/painel.js'), new RegExp("VERSAO = '" + m.version.replace(/\./g, '\\.') + "'"), 'a versão do manifesto e a da ponte andam juntas');
   assert.deepEqual(m.permissions.sort(), ['storage', 'tabs']);
   assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
   const todos = JSON.stringify(m);
@@ -233,8 +234,8 @@ await passo('tela: não reconhece o que mudou? para e diz o que faltou, e o rela
   const sem = await plano(TOPO() + '<p>Página nova</p>', '/Default.aspx', job()); assert.equal(sem.acao, 'erro'); assert.match(sem.texto, /Pesquisar empresas/);
   const semOk = await plano(TOPO() + '<input type="radio"> Ficha Cadastral Completa', '/Pre_Visualiza.aspx', job()); assert.equal(semOk.acao, 'erro'); assert.match(semOk.texto, /botão OK/);
   await pagina.setContent('<!doctype html><body>' + PAG.copia([L1, L2]) + '</body>'); await pagina.addScriptTag({content: ler('ajudante/jucesp.js')});
-  const rel = await pagina.evaluate(() => window.AJ_JUCESP.relatorio(document, '/Restricted/Solicitacoes/Fotocopia/EscolheDocumentos.aspx', {fila: ['contrato']}));
-  const o = JSON.parse(rel); assert.equal(o.pagina, 'copia'); assert.equal(o.logada, true); assert.equal(o.linhas.length, 2); assert(!/sc=/.test(rel)); assert(o.botoes.includes('continuar'));
+  const rel = await pagina.evaluate(() => window.AJ_JUCESP.relatorio(document, '/Restricted/Solicitacoes/Fotocopia/EscolheDocumentos.aspx', {fila: ['contrato']}, {versao: '0.1.1', aviso: 'A frase da faixa'}));
+  const o = JSON.parse(rel); assert.equal(o.versao, '0.1.1'); assert.equal(o.aviso, 'A frase da faixa'); assert.equal(o.pagina, 'copia'); assert.equal(o.logada, true); assert.equal(o.linhas.length, 2); assert(!/sc=/.test(rel)); assert(o.botoes.includes('continuar'));
 });
 
 // ── A parte que mexe na página: digita, clica, avisa — numa JUCESP simulada, com a extensão fingida ──

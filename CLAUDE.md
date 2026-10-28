@@ -1242,6 +1242,8 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
 - **O Chrome não deixa a extensão clicar em link `javascript:`.** Os links da tabela de resultados da JUCESP (o NIRE) são `javascript:__doPostBack('alvo','')`;
   clicar neles dá "violates Content Security Policy" e nada acontece (achado no relatório de erros da extensão, 28/10/2026). `clicarSemScript()` preenche
   `__EVENTTARGET` e `__EVENTARGUMENT` e envia o formulário, que é tudo o que o link faria. Outro `javascript:` que não seja postback: erro escrito, nunca tentativa.
+- **A versão da extensão sobe a cada mudança** (`manifest.json` e `VERSAO` do `painel.js`, que o teste obriga a andar juntas): ela instala a extensão trocando
+  arquivos numa pasta, e sem número novo ninguém sabe se o Chrome leu os arquivos novos. O *Copiar relatório* leva a versão e a frase da faixa.
 - Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
