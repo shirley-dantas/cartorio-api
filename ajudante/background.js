@@ -28,13 +28,14 @@ async function mudar(id, f) {
 }
 async function jobDaAba(tabId) { const todos = await jobs(); return Object.values(todos).find((j) => j.jucespTabId === tabId && !j.fim) || null; }
 
-function falar(job, estado, texto) {
+// `fim` marca o último aviso do pedido: é por ele que o painel sabe que pode começar o próximo da fila.
+function falar(job, estado, texto, fim) {
   if (job.painelTabId == null) return;
-  try { Promise.resolve(chrome.tabs.sendMessage(job.painelTabId, { tipo: 'progresso', id: job.id, estado, texto })).catch(() => {}); } catch (_) { /* a aba do painel pode ter fechado */ }
+  try { Promise.resolve(chrome.tabs.sendMessage(job.painelTabId, { tipo: 'progresso', id: job.id, estado, texto, fim: !!fim })).catch(() => {}); } catch (_) { /* a aba do painel pode ter fechado */ }
 }
 async function terminar(id, estado, texto) {
   const job = await mudar(id, (j) => { j.fim = true; j.estado = estado; j.texto = texto; });
-  if (job) falar(job, estado, texto);
+  if (job) falar(job, estado, texto, true);
 }
 
 function paraBase64(buffer) {
@@ -43,6 +44,11 @@ function paraBase64(buffer) {
   return btoa(s);
 }
 
+// O NIRE de cada CNPJ, aprendido na primeira busca: da segunda vez em diante o Ajudante vai direto à empresa e pula a pesquisa
+// (e o captcha que ela traz). Se a JUCESP não deixar entrar direto, a página cai na pesquisa e o caminho de sempre continua.
+async function nireConhecido(cnpj) { return ((await chrome.storage.local.get('nires')).nires || {})[cnpj] || null; }
+async function lembrarNire(cnpj, nire) { await mexer(async () => { const n = (await chrome.storage.local.get('nires')).nires || {}; n[cnpj] = nire; await chrome.storage.local.set({ nires: n }); }); }
+
 async function criarPedido(pedido, sender) {
   const quero = Array.isArray(pedido && pedido.quero) ? pedido.quero.filter((q, i, a) => DOCS[q] && a.indexOf(q) === i) : [];
   if (!quero.length) return { ok: false, texto: 'Não entendi o que buscar.' };
@@ -50,7 +56,9 @@ async function criarPedido(pedido, sender) {
   if (!/^[A-Za-z0-9_-]{4,40}$/.test(String((pedido && pedido.id) || ''))) return { ok: false, texto: 'Pedido inválido.' };
   if (!cnpjValido(pedido.cnpj)) return { ok: false, texto: 'Esse CNPJ não confere (confira os dígitos).' };
   const job = { id: pedido.id, casoId: pedido.casoId, cnpj: String(pedido.cnpj).replace(/\D/g, ''), fila: quero.slice(), feitos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
-  const aba = await chrome.tabs.create({ url: JUCESP + '/Default.aspx' });
+  const conhecido = await nireConhecido(job.cnpj);
+  if (conhecido) { job.nire = conhecido; job.direto = true; }
+  const aba = await chrome.tabs.create({ url: conhecido ? JUCESP + '/Pre_Visualiza.aspx?nire=' + conhecido + '&idproduto=' : JUCESP + '/Default.aspx' });
   job.jucespTabId = aba.id;
   await mexer(async () => { const todos = await jobs(); todos[job.id] = job; await guardar(todos); });
   falar(job, 'andando', 'Abrindo a JUCESP…');
@@ -110,8 +118,12 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
     }
     if (!job) return responder(null);
     // Um erro da página não encerra o pedido: ela pode escolher "Fazer à mão" e o PDF ainda será pego.
-    if (m.tipo === 'status') { falar(job, m.estado, m.texto); return responder({ ok: true }); }
-    if (m.tipo === 'nire') { await mudar(job.id, (x) => { x.nire = String(m.nire || '').replace(/\D/g, '') || x.nire; if (m.empresa) x.empresa = String(m.empresa).slice(0, 120); }); return responder({ ok: true }); }
+    if (m.tipo === 'status') { if (m.fatal) await terminar(job.id, 'erro', String(m.texto || '')); else falar(job, m.estado, m.texto); return responder({ ok: true }); }
+    if (m.tipo === 'nire') {
+      const x = await mudar(job.id, (j) => { j.nire = String(m.nire || '').replace(/\D/g, '') || j.nire; if (m.empresa) j.empresa = String(m.empresa).slice(0, 120); });
+      if (m.empresa && x && /^\d{11}$/.test(x.nire || '')) await lembrarNire(x.cnpj, x.nire);   // só o que veio do resultado da busca por esse CNPJ
+      return responder({ ok: true });
+    }
     if (m.tipo === 'manual') { await mudar(job.id, (x) => { x.manual = true; }); return responder({ ok: true }); }
     responder(null);
   })().catch(() => responder(null));

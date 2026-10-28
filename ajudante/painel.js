@@ -13,14 +13,14 @@
     if (d.tipo === 'ajudante-pedido') {
       const id = d.pedido && d.pedido.id;
       Promise.resolve(chrome.runtime.sendMessage({ tipo: 'pedido', pedido: d.pedido }))
-        .then((r) => { if (!r || !r.ok) avisar({ tipo: 'ajudante-progresso', id, estado: 'erro', texto: (r && r.texto) || 'O Ajudante recusou o pedido.' }); })
-        .catch(() => avisar({ tipo: 'ajudante-progresso', id, estado: 'erro', texto: 'O Ajudante não respondeu. Recarregue a página do painel (F5) e tente de novo.' }));
+        .then((r) => { if (!r || !r.ok) avisar({ tipo: 'ajudante-progresso', id, estado: 'erro', fim: true, texto: (r && r.texto) || 'O Ajudante recusou o pedido.' }); })
+        .catch(() => avisar({ tipo: 'ajudante-progresso', id, estado: 'erro', fim: true, texto: 'O Ajudante não respondeu. Recarregue a página do painel (F5) e tente de novo.' }));
     }
     if (d.tipo === 'ajudante-cancelar') { try { chrome.runtime.sendMessage({ tipo: 'cancelar', id: d.id }); } catch (_) { /* o painel já mostra o resto */ } }
   });
 
   chrome.runtime.onMessage.addListener((m) => {
-    if (m && m.tipo === 'progresso') avisar({ tipo: 'ajudante-progresso', id: m.id, estado: m.estado, texto: m.texto });
+    if (m && m.tipo === 'progresso') avisar({ tipo: 'ajudante-progresso', id: m.id, estado: m.estado, texto: m.texto, fim: !!m.fim });
   });
   avisar({ tipo: 'ajudante-pronto', versao: VERSAO });
 })();
