@@ -467,7 +467,7 @@ const FORM = (acao, extra = '') => `<form method="post" action="${acao}" id="asp
     .map((t, i) => `<span><input type="radio" id="ctl00_cphContent_frmPreVisualiza_rblTipoDocumento_${i}" name="ctl00$cphContent$frmPreVisualiza$rblTipoDocumento" value="${i}"><label for="ctl00_cphContent_frmPreVisualiza_rblTipoDocumento_${i}">${t}</label></span>`).join('')}
   <input type="submit" name="ctl00$cphContent$frmPreVisualiza$btnEmitir" value="OK" id="ctl00_cphContent_frmPreVisualiza_btnEmitir" onclick="sessionStorage.setItem('clicouOk', String(Number(sessionStorage.getItem('clicouOk')||0)+1))"></form>`;
 const PDF_BYTES = '%PDF-1.4 ficha de verdade';
-async function ficha(respostaPost, formExtra = '', esperaMs) {
+async function ficha(respostaPost, formExtra = '', esperaMs, jobDado = job()) {
   const posts = [], gets = [];
   await pagina.route(ORIGEM + '/**', (r) => {
     const req = r.request(), url = new URL(req.url());
@@ -503,7 +503,7 @@ await passo('formulário: resposta que não é PDF nem aponta para um: clica em 
 });
 await passo('reserva: se o OK clicado sozinho não faz a página mudar, a faixa pede UM clique dela (que o Chrome sempre aceita) em vez de acusar erro', async () => {
   const r = await ficha((rt) => rt.fulfill({contentType: 'text/html', body: '<html>outra tela</html>'}), 'onsubmit="return false"', 600);
-  assert.equal(r.cliques, 1, 'primeiro tentou sozinho'); assert.match(r.faixa, /não abriu o PDF com o meu clique/); assert.match(r.faixa, /Gerar o PDF \(clique aqui\)/); assert(!r.msgs.some((m) => m.estado === 'erro'), 'não é erro'); assert(r.msgs.some((m) => m.estado === 'manual'));
+  assert.equal(r.cliques, 1, 'primeiro tentou sozinho'); assert.match(r.faixa, /não respondeu ao meu clique/); assert.match(r.faixa, /Gerar o PDF \(clique aqui\)/); assert(!r.msgs.some((m) => m.estado === 'erro'), 'não é erro'); assert(r.msgs.some((m) => m.estado === 'manual'));
   await pagina.getByText('Gerar o PDF (clique aqui)').click(); await pagina.waitForTimeout(150);
   assert.equal(await pagina.evaluate(() => Number(sessionStorage.getItem('clicouOk') || 0)), 2, 'o clique dela dispara o OK de novo, dentro do gesto dela');
 });
@@ -512,7 +512,22 @@ await passo('reserva: a faixa também tem "Copiar relatório", e ele leva a vers
   await ficha((rt) => rt.fulfill({contentType: 'text/html', body: '<html><script>window.open("/x.aspx")</script></html>'}), 'onsubmit="return false"', 600);
   await pagina.getByText('Copiar relatório').click(); await pagina.waitForTimeout(200);
   const o = JSON.parse(await pagina.evaluate(() => window.__copiado));
-  assert.equal(o.versao, '9.9.9'); assert.match(o.aviso, /não abriu o PDF/); assert.equal(o.fundo.popups, 'ok'); assert.equal(o.fundo.eventos[0].abaCriada, '/VisualizaTicket.aspx'); assert.equal(o.diagnostico.status, 200); assert(o.diagnostico.trechos.some((x) => /window\.open/.test(x)));
+  assert.equal(o.versao, '9.9.9'); assert.match(o.aviso, /não respondeu ao meu clique/); assert.equal(o.fundo.popups, 'ok'); assert.equal(o.fundo.eventos[0].abaCriada, '/VisualizaTicket.aspx'); assert.equal(o.diagnostico.status, 200); assert(o.diagnostico.trechos.some((x) => /window\.open/.test(x)));
+});
+
+await passo('reserva: no passo do CONTRATO (escolher a Cópia Digitalizada) o OK ignorado também vira o botão de um clique dela, e a faixa o diz', async () => {
+  const r = await ficha((rt) => rt.fulfill({contentType: 'text/html', body: '<html>outra tela</html>'}), 'onsubmit="return false"', 600, job({fila: ['contrato']}));
+  assert.match(r.faixa, /não respondeu ao meu clique/); assert.match(r.faixa, /Gerar o PDF \(clique aqui\)/); assert(!r.msgs.some((m) => m.estado === 'erro'), 'não é erro');
+  assert.equal(r.cliques, 1, 'tentou sozinho primeiro');
+});
+await passo('relatório: mostra o botão OK por dentro (onclick, formulário, alvo) e os trechos dos scripts da página que falam dele — sem números longos', async () => {
+  const pg = '<!doctype html><body>' + TOPO() + '<form method="post" action="Pre_Visualiza.aspx?nire=35262229284" target="_blank" onsubmit="return validar(this)"><input type="radio" id="r1"><label for="r1">Ficha Cadastral Completa</label><input type="submit" id="btnEmitir" name="btnEmitir" value="OK" onclick="setarTipo(1); return true;"></form><script>function validar(f){ if(!document.hasFocus()) return false; window.open("Imprime.aspx?ticket=" + t + "&cpf=34550022850", "_blank"); }</script></body>';
+  await pagina.route(ORIGEM + '/**', (r) => r.fulfill({contentType: 'text/html; charset=utf-8', body: pg}));
+  await pagina.goto(ORIGEM + '/Pre_Visualiza.aspx?nire=35262229284');
+  await pagina.addScriptTag({content: ler('ajudante/jucesp.js')});
+  const rel = JSON.parse(await pagina.evaluate(() => window.AJ_JUCESP.relatorio(document, '/Pre_Visualiza.aspx', {fila: ['ficha']}, {})));
+  const b = rel.botaoPorDentro; assert.equal(b.botao.tipo, 'submit'); assert.match(b.botao.onclick, /setarTipo\(1\)/); assert.equal(b.botao.formTarget, '_blank'); assert.match(b.botao.formOnsubmit, /validar\(this\)/); assert.equal(b.botao.formAcao, '/Pre_Visualiza.aspx'); assert.equal(b.botao.desabilitado, false);
+  assert(b.scripts.some((x) => /window\.open/.test(x)), JSON.stringify(b.scripts)); assert(!/34550022850/.test(JSON.stringify(rel)), 'CPF não vai');
 });
 
 await passo('formulário: erro do servidor aparece escrito, com o "fazer à mão"', async () => {
