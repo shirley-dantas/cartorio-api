@@ -1202,7 +1202,7 @@ Regras dela que **não devem ser mexidas sem perguntar**:
 
 Mora em `ajudante/` (não é uma função da Vercel: não conta nas 12). Entra nos sites com o **navegador e o certificado digital que a Shirley já usa**
 e traz o PDF para o card; o painel só desenha o bloco *Buscar na JUCESP* (dentro da caixa de soltar arquivos, `ajudanteHtml()`) quando a extensão
-responde ao "tem Ajudante?" — botão que o navegador não sabe cumprir não é desenhado. Instalação e uso: `ajudante/LEIA-ME.md`.
+responde ao "tem Ajudante?" — botão que o navegador não sabe cumprir não é desenhado. Instalação e uso: `ajudante/LEIA-ME.md`. O zip que ela baixa (`/ajudante-do-painel.zip`, na raiz, servido pela Vercel) é refeito com `zip -X -r ajudante-do-painel.zip ajudante` — o `testes/ajudante.mjs` acusa se ficar para trás.
 
 Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
 

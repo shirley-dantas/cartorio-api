@@ -5,7 +5,8 @@ completa e contrato social consolidado). Quem identifica ela é o **certificado 
 
 ## Instalar (uma vez só)
 
-1. Guarde esta pasta (`ajudante`) num lugar fixo, por exemplo `Documentos\Ajudante do painel`. **Não apague nem mude de lugar depois.**
+0. Baixe pelo próprio painel: abra `https://cartorio-api.vercel.app/ajudante-do-painel.zip` no Chrome. Clique com o botão direito no arquivo baixado → **Extrair tudo**.
+1. Guarde a pasta `ajudante` que saiu do zip num lugar fixo, por exemplo `Documentos\Ajudante do painel`. **Não apague nem mude de lugar depois.**
 2. No Chrome, digite na barra de endereço: `chrome://extensions` e aperte Enter.
 3. Ligue **Modo do desenvolvedor** (canto de cima, à direita).
 4. Clique em **Carregar sem compactação** e escolha a pasta do passo 1.

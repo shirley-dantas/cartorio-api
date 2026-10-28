@@ -332,4 +332,13 @@ await passo('Apps Script: o tipo vindo do Ajudante vale (sem adivinhar), com a p
   assert(/\['FICHA_CADASTRAL_JUCESP','Ficha cadastral \(JUCESP\)'\],\['CONTRATO_SOCIAL','Contrato social'\]/.test(html));
 });
 
+// ── O zip que ela baixa pelo próprio painel ──
+await passo('zip: o ajudante-do-painel.zip na raiz bate arquivo por arquivo com a pasta ajudante/ (se mexer na extensão, refazer o zip)', async () => {
+  const {execFileSync} = await import('node:child_process'); const {readdirSync} = await import('node:fs');
+  const zip = join(RAIZ, 'ajudante-do-painel.zip'); assert(existsSync(zip), 'falta ajudante-do-painel.zip na raiz (zip -X -r ajudante-do-painel.zip ajudante)');
+  const dentro = execFileSync('unzip', ['-Z1', zip], {encoding: 'utf8'}).split('\n').filter((n) => n && !n.endsWith('/')).sort();
+  const fora = readdirSync(EXT).map((n) => 'ajudante/' + n).sort(); assert.deepEqual(dentro, fora);
+  for (const n of fora) assert.equal(execFileSync('unzip', ['-p', zip, n], {encoding: 'utf8', maxBuffer: 1 << 24}), readFileSync(join(RAIZ, n), 'utf8'), n + ' está diferente do que vai no zip');
+});
+
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
