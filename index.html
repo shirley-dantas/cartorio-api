@@ -2472,6 +2472,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
        vê (o card guarda envioCliente.visto). -->
   <div class="cc-envios" id="cc-envios" style="display:none"></div>
   <div class="cc-envios" id="cc-pagamentos" style="display:none"></div>
+  <div class="cc-envios" id="cc-entrada" style="display:none"></div>
   <button type="button" class="cc-jornal" id="cc-jornal" style="display:none" onclick="abrirRadar()">
     <span class="cc-jornal-selo"><i class="ti ti-scale"></i></span>
     <span class="cc-jornal-corpo">
@@ -12135,14 +12136,17 @@ async function solteUm(casoId,it,file){
   it.estado='enviando'; solteAtualizar(casoId);
   try{
     const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'painel-arquivo',casoId,nomeArquivo:file.name,mimetype:String(file.type||'').toLowerCase(),base64:await soltePara64(file)})});
-    const j=await r.json();
-    if(!j||!j.ok){
-      const erro=(j&&j.erro)||'motivo desconhecido';
-      it.estado='erro'; it.msg=/a[çc][ãa]o desconhecida/i.test(erro)?'O Apps Script publicado ainda não recebe arquivos do painel. Atualize o código lá (apps-script/cartorio-drive-api.js) e implante uma nova versão.':erro;
-    }else if(j.confirmar){ it.estado='confirmar'; it.msg=(j.aviso?j.aviso+' ':'')+'Salvo como '+j.nome+' — confira o nome no lápis.'; }
-    else{ it.estado='ok'; it.msg=j.nome; setTimeout(()=>window.solteTirar(casoId,it.id),8000); }
+    soltePreencher(casoId,it,await r.json());
   }catch(e){ it.estado='erro'; it.msg='Erro de conexão com o Drive: '+((e&&e.message)||e); }
   solteAtualizar(casoId);
+}
+// O resultado do Apps Script (arrastado, colado, compartilhado ou vindo da entrada do WhatsApp) vira a linha da lista.
+function soltePreencher(casoId,it,j){
+  if(!j||!j.ok){
+    const erro=(j&&j.erro)||'motivo desconhecido';
+    it.estado='erro'; it.msg=/a[çc][ãa]o desconhecida/i.test(erro)?'O Apps Script publicado ainda não recebe arquivos do painel. Atualize o código lá (apps-script/cartorio-drive-api.js) e implante uma nova versão.':erro;
+  }else if(j.confirmar){ it.estado='confirmar'; it.msg=(j.aviso?j.aviso+' ':'')+'Salvo como '+j.nome+' — confira o nome no lápis.'; }
+  else{ it.estado='ok'; it.msg=j.nome; setTimeout(()=>window.solteTirar(casoId,it.id),8000); }
 }
 window.solteReceber=function(casoId,files){
   const lista=SOLTE[casoId]=SOLTE[casoId]||[], fila=[];
@@ -12235,6 +12239,15 @@ window.compartilhadoAbrir=async function(){
 };
 window.compartilhadoFiltrar=function(v){ document.getElementById('cp-lista').innerHTML=compartilhadoListaHtml(v); };
 window.compartilhadoEscolher=function(casoId){
+  if(compartilhadoEntrada.length){
+    const chaves=compartilhadoEntrada; compartilhadoEntrada=[];
+    if(!casos[casoId]) return;
+    entradaAtribuir(casoId,chaves);
+    document.getElementById('modal-compartilhado').classList.remove('open');
+    finToast(chaves.length+(chaves.length===1?' arquivo enviado':' arquivos enviados')+' para '+(casos[casoId].nome||'o caso'));
+    if(typeof window.irParaCasoPorId==='function') window.irParaCasoPorId(casoId);
+    return;
+  }
   const arquivos=compartilhadoArquivos; compartilhadoArquivos=[];
   if(!arquivos.length||!casos[casoId]) return;
   window.solteReceber(casoId,arquivos);
@@ -12245,12 +12258,68 @@ window.compartilhadoEscolher=function(casoId){
   if(typeof window.irParaCasoPorId==='function') window.irParaCasoPorId(casoId);
 };
 window.fecharCompartilhado=function(){
+  if(compartilhadoEntrada.length){ compartilhadoEntrada=[]; document.getElementById('modal-compartilhado').classList.remove('open'); return; }   // da entrada: os arquivos continuam esperando
   compartilhadoArquivos=[]; compartilhadosLimpar();
   document.getElementById('modal-compartilhado').classList.remove('open');
   try{ history.replaceState(null,'','/'); }catch(_){ }
 };
 document.addEventListener('click',ev=>{ const b=ev.target.closest&&ev.target.closest('[data-cp-caso]'); if(b) window.compartilhadoEscolher(b.dataset.cpCaso); });
 if(/[?&]compartilhado=/.test(location.search)) setTimeout(()=>window.compartilhadoAbrir(),0);
+// A caixa de entrada do WhatsApp: o que chegou no número do cartório (API oficial da Meta) fica numa pasta de espera, e o
+// painel avisa no topo. Ela escolhe o caso (a mesma janela do Compartilhar) e cada arquivo segue o caminho de sempre.
+let entradaWA={};
+let compartilhadoEntrada=[];   // quando a janela "Para qual caso?" é da entrada: as chaves dos arquivos
+function entradaGrupos(){
+  const g={}; Object.entries(entradaWA||{}).forEach(([k,d])=>{ if(!d) return; const r=d.remetente||'?'; (g[r]=g[r]||{remetente:r,nome:d.nomeRemetente||'',itens:[],em:0}).itens.push({k,d}); g[r].em=Math.max(g[r].em,d.em||0); if(d.nomeRemetente) g[r].nome=d.nomeRemetente; });
+  return Object.values(g).sort((a,b)=>b.em-a.em);
+}
+function entradaFone(r){ const n=String(r||'').replace(/\D/g,''); const m=n.match(/^55(\d{2})(\d{4,5})(\d{4})$/); return m?`(${m[1]}) ${m[2]}-${m[3]}`:(r||''); }
+window.entradaDefinir=function(v){ entradaWA=v||{}; window.renderEntradaWA(); };
+window.renderEntradaWA=function(){
+  const el=document.getElementById('cc-entrada'); if(!el) return;
+  const grupos=entradaGrupos();
+  if(!grupos.length){ el.style.display='none'; el.innerHTML=''; return; }
+  const quando=ms=>{ if(!ms) return ''; const d=new Date(ms); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+  el.style.display='grid';
+  el.innerHTML=grupos.map(g=>{ const n=g.itens.length, quem=g.nome?`${g.nome} · ${entradaFone(g.remetente)}`:entradaFone(g.remetente);
+    const nomes=g.itens.slice(0,3).map(x=>x.d.nome).join(', ')+(n>3?` e mais ${n-3}`:'');
+    return `<div class="cc-envio"><span class="cc-envio-ico"><i class="ti ti-brand-whatsapp"></i></span>
+      <span class="cc-envio-txt"><b>Chegaram ${n} ${n===1?'arquivo':'arquivos'} pelo WhatsApp</b> — ${escTxt(quem)}<small>${escTxt(quando(g.em))} · ${escTxt(nomes)}</small></span>
+      <button type="button" class="cc-envio-btn forte" onclick="entradaEscolherCaso('${esc(g.remetente)}')">Escolher o caso</button>
+      <button type="button" class="cc-envio-btn" onclick="entradaDescartar('${esc(g.remetente)}')">Descartar</button></div>`; }).join('');
+};
+window.entradaEscolherCaso=async function(remetente){
+  const g=entradaGrupos().find(x=>x.remetente===remetente); if(!g) return;
+  compartilhadoEntrada=g.itens.map(x=>x.k); compartilhadoArquivos=[];
+  document.getElementById('cp-sub').textContent=g.itens.length+(g.itens.length===1?' arquivo':' arquivos')+' de '+(g.nome||entradaFone(g.remetente))+' (WhatsApp)';
+  document.getElementById('cp-busca').value='';
+  document.getElementById('cp-lista').innerHTML=compartilhadoListaHtml('');
+  document.getElementById('modal-compartilhado').classList.add('open');
+};
+function entradaAtribuir(casoId,chaves){
+  const lista=SOLTE[casoId]=SOLTE[casoId]||[], fila=[];
+  chaves.forEach(k=>{ const d=entradaWA[k]; if(!d) return; const it={id:++soltePorId,nome:d.nome||'arquivo',estado:'fila',msg:''}; lista.push(it); fila.push([it,k]); });
+  solteAtualizar(casoId);
+  let ativos=0;
+  const um=async([it,k])=>{
+    it.estado='enviando'; solteAtualizar(casoId);
+    try{ const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'entrada-atribuir',entradaId:k,casoId})}); soltePreencher(casoId,it,await r.json()); }
+    catch(e){ it.estado='erro'; it.msg='Erro de conexão com o Drive: '+((e&&e.message)||e); }
+    solteAtualizar(casoId);
+  };
+  const proximo=()=>{ while(ativos<SOLTE_PARALELO&&fila.length){ const x=fila.shift(); ativos++; um(x).finally(()=>{ ativos--; proximo(); }); } };
+  proximo();
+}
+window.entradaDescartar=async function(remetente){
+  const g=entradaGrupos().find(x=>x.remetente===remetente); if(!g) return;
+  if(!confirm(`Descartar ${g.itens.length} ${g.itens.length===1?'arquivo':'arquivos'} de ${g.nome||entradaFone(g.remetente)}?\n\nEles vão para a lixeira do Drive (dá para restaurar por lá em até 30 dias).`)) return;
+  const falhas=[];
+  for(const x of g.itens){
+    try{ const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'entrada-descartar',entradaId:x.k})}); const j=await r.json(); if(!j||!j.ok) falhas.push((j&&j.erro)||'motivo desconhecido'); }
+    catch(e){ falhas.push('Erro de conexão com o Drive: '+((e&&e.message)||e)); }
+  }
+  if(falhas.length) alert('Não consegui descartar tudo:\n'+[...new Set(falhas)].join('\n'));
+};
 // ── fim: arrastar arquivos para o card ──
 
 window.relerDocCliente=async function(casoId,docKey,btn){
@@ -14933,6 +15002,9 @@ onValue(ref(db, 'base-regras'), snap => {
   const m = document.getElementById('modal-radar');
   if(m && m.classList.contains('open') && radarAba === 'base') renderRadar();
 }, () => {});
+
+// A caixa de entrada do WhatsApp: sem login, como /casos — quem escreve nela é o Apps Script, por REST.
+onValue(ref(db, 'entrada'), snap => window.entradaDefinir(snap.val()), () => {});
 
 // Exposto porque os manipuladores em linha do modal chamam por nome, e é por
 // ele que o teste redesenha depois de mexer no banco de mentira.

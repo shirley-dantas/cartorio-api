@@ -65,7 +65,7 @@ function mundo({recusaBanco = false, iaFalha = false} = {}) {
   // O Drive fingido: a raiz tem que ser achável pelo id real que o script usa.
   todas[vm.runInContext('PASTA_RAIZ_ID', caixa)] = raiz;
   const chamar = (corpo) => JSON.parse(caixa.doPost({postData: {contents: JSON.stringify(corpo)}}).s);
-  return {db, caixa, chamar, externos, raiz, todas, reg};
+  return {db, caixa, chamar, externos, raiz, todas, reg, props};
 }
 const TOKEN = 'aB3dE6gH9jK2mN5pQ8sT1vX4';
 const B64 = Buffer.from('conteudo-do-rg').toString('base64');
@@ -306,5 +306,50 @@ await passo('o que foi arrastado também se exclui e se lê de novo pelas açõe
   const rl = m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: k}); assert.equal(rl.ok, true, JSON.stringify(rl));
   const ex = m.chamar({acao: 'cliente-excluir', casoId: '-Caso1', docKey: k}); assert.equal(ex.ok, true); assert.equal(ex.arquivo, 'lixeira');
   assert(!m.db.casos['-Caso1'].documentos[k]);
+});
+// ── A caixa de entrada do WhatsApp ──
+const SEGREDO = 'segredo-combinado-entre-a-vercel-e-o-apps-script';
+const ent = (extra = {}) => ({acao: 'entrada-receber', segredo: SEGREDO, msgId: 'wamid.HBgMNTUxMTk5OTk5OTk5FQIAERgSQUJD', remetente: '5511999999999', nomeRemetente: 'Reinaldo', nomeArquivo: 'JRL Holding - Contrato Social.pdf', mimetype: 'application/pdf', base64: B64, ...extra});
+const mundoEntrada = () => { const m = mundo(); semear(m); m.props.ENTRADA_SEGREDO = SEGREDO; m.caixa.chamarClaudeArquivoRaw = () => ({texto: JSON.stringify({tipo: 'CONTRATO', pessoa: '', confianca: 'alta'}), truncou: false}); return m; };
+await passo('entrada: sem segredo configurado, com segredo errado ou sem segredo, nada entra', () => {
+  const m = mundo(); semear(m);
+  assert.equal(m.chamar(ent()).ok, false); assert(/ENTRADA_SEGREDO/.test(m.chamar(ent()).erro), 'sem segredo no Apps Script, recusa em voz alta');
+  m.props.ENTRADA_SEGREDO = SEGREDO; assert.equal(m.chamar(ent({segredo: 'errado'})).ok, false); assert.equal(m.chamar(ent({segredo: ''})).ok, false);
+  assert.equal(m.db.entrada, undefined, 'nada foi gravado');
+});
+await passo('entrada: o arquivo vai para a pasta de espera e vira um aviso, sem tocar em nenhum caso', () => {
+  const m = mundoEntrada(); const r = m.chamar(ent()); assert.equal(r.ok, true, JSON.stringify(r));
+  const [k] = Object.keys(m.db.entrada), d = m.db.entrada[k];
+  assert(/^w_/.test(k)); assert.equal(d.nome, 'JRL Holding - Contrato Social.pdf'); assert.equal(d.remetente, '5511999999999'); assert.equal(d.nomeRemetente, 'Reinaldo'); assert(d.selo && d.link && d.em);
+  const pasta = Object.values(m.todas).find((p) => p.nome === 'ENTRADA WHATSAPP'); assert(pasta, 'a pasta de espera foi criada'); assert.equal(pasta.arquivos.length, 1);
+  assert.deepEqual(Object.keys(m.db.casos['-Caso1'].documentos), [], 'nenhum caso recebeu nada ainda');
+});
+await passo('entrada: a Meta reentrega a mesma mensagem, e ela só entra uma vez; recusa tipo estranho, arquivo vazio e banco que recusa', () => {
+  const m = mundoEntrada(); m.chamar(ent()); const r2 = m.chamar(ent()); assert.equal(r2.ok, true); assert.equal(r2.repetida, true); assert.equal(Object.keys(m.db.entrada).length, 1);
+  assert.equal(Object.values(m.todas).find((p) => p.nome === 'ENTRADA WHATSAPP').arquivos.length, 1, 'um arquivo só na pasta');
+  assert.equal(m.chamar(ent({msgId: 'outra', mimetype: 'audio/ogg'})).ok, false); assert.equal(m.chamar(ent({msgId: 'outra2', base64: ''})).ok, false); assert.equal(m.chamar(ent({msgId: ''})).ok, false);
+  const rec = mundo({recusaBanco: true}); semear(rec); rec.props.ENTRADA_SEGREDO = SEGREDO; const rr = rec.chamar(ent()); assert.equal(rr.ok, false); assert(/banco recusou/.test(rr.erro));
+});
+await passo('entrada → caso: ao escolher o caso o arquivo segue o caminho de sempre e sai da espera', () => {
+  const m = mundoEntrada(); m.chamar(ent()); const [k] = Object.keys(m.db.entrada), idArq = m.db.entrada[k].link.match(/\/d\/([^/]+)/)[1];
+  const r = m.chamar({acao: 'entrada-atribuir', entradaId: k, casoId: '-Caso1'}); assert.equal(r.ok, true, JSON.stringify(r));
+  const docs = m.db.casos['-Caso1'].documentos, [dk] = Object.keys(docs); assert(dk.startsWith('pnl_')); assert.equal(docs[dk].origem, 'arrastado no card'); assert.equal(docs[dk].tipoDocumento, 'CONTRATO');
+  assert.equal(m.db.entrada[k], undefined, 'o aviso sai da entrada'); assert.equal(ARQUIVOS[idArq].lixeira, true, 'a cópia de espera vai para a lixeira');
+  assert(/drive\.google\.com\/drive\/folders\//.test(m.db.casos['-Caso1'].driveUrl), 'a pasta do caso foi criada');
+  // de novo: já foi tratado
+  assert.equal(m.chamar({acao: 'entrada-atribuir', entradaId: k, casoId: '-Caso1'}).ok, false);
+});
+await passo('entrada → caso: caso inexistente, id inválido ou selo forjado não mexem em nada; falha da IA deixa na espera', () => {
+  const m = mundoEntrada(); m.chamar(ent()); const [k] = Object.keys(m.db.entrada);
+  assert.equal(m.chamar({acao: 'entrada-atribuir', entradaId: k, casoId: 'naoexiste1'}).ok, false); assert(m.db.entrada[k], 'continua na espera');
+  assert.equal(m.chamar({acao: 'entrada-atribuir', entradaId: '../x', casoId: '-Caso1'}).ok, false);
+  const forjado = m.db.entrada[k].selo; m.db.entrada[k].selo = 'forjado'; assert.equal(m.chamar({acao: 'entrada-atribuir', entradaId: k, casoId: '-Caso1'}).ok, false); assert.equal(m.chamar({acao: 'entrada-descartar', entradaId: k}).ok, false); m.db.entrada[k].selo = forjado;
+  const rec = mundoEntrada(); rec.chamar(ent()); const [k2] = Object.keys(rec.db.entrada); const antes = rec.db.entrada[k2];
+  rec.db.casos['-Caso1'].nome = 'Maria'; const ok = rec.chamar({acao: 'entrada-atribuir', entradaId: k2, casoId: '-Caso1'}); assert.equal(ok.ok, true);
+});
+await passo('entrada: descartar manda para a lixeira e limpa o aviso', () => {
+  const m = mundoEntrada(); m.chamar(ent()); const [k] = Object.keys(m.db.entrada), idArq = m.db.entrada[k].link.match(/\/d\/([^/]+)/)[1];
+  const r = m.chamar({acao: 'entrada-descartar', entradaId: k}); assert.equal(r.ok, true); assert.equal(m.db.entrada[k], undefined); assert.equal(ARQUIVOS[idArq].lixeira, true);
+  assert.equal(m.chamar({acao: 'entrada-descartar', entradaId: k}).ok, false, 'não descarta duas vezes');
 });
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);

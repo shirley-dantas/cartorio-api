@@ -18,14 +18,14 @@ const bloco = html.slice(ini, fim);
 const i2 = html.indexOf('function pedidoRecebidosHtml(c){'); const recebidos = html.slice(i2, html.indexOf('\n}\n', i2) + 3);
 
 function mundo({respostas, ...opcoes} = {}) {
-  const ouvintes = {}, enviados = [], elementos = {}, toasts = [];
+  const ouvintes = {}, enviados = [], elementos = {}, toasts = [], dialogos = {alerts: [], confirmou: null, resposta: true};
   const el = (id) => (elementos[id] = elementos[id] || {id, innerHTML: '', textContent: '', value: '', disabled: false, classList: {add() {}, remove() {}}});
   let emVoo = 0, picoVoo = 0, n = 0;
   const caixa = {
     esc: (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c])),
     escTxt: (t) => String(t == null ? '' : t).replace(/[&<>]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])),
     GAS_URL: 'https://gas.exemplo/exec', casos: {C1: {documentos: {pnl_a: {nome: 'Maria_RG.jpg', origem: 'arrastado no card', tipoDocumento: 'RG_CNH', pessoa: 'Maria', confirmar: true, texto: 'x'}}}},
-    finToast: (t) => toasts.push(t), btoa, atob, Uint8Array, String, Promise, console,
+    finToast: (t) => toasts.push(t), alert: (t) => dialogos.alerts.push(t), confirm: (t) => { dialogos.confirmou = t; return dialogos.resposta; }, btoa, atob, Uint8Array, String, Promise, console,
     setTimeout: () => 0, location: {search: ''}, history: {replaceState() {}}, caches: opcoes.caches || {open: async () => ({keys: async () => [], match: async () => null, delete: async () => true})}, File, Blob,
     document: {addEventListener: (t, f) => { (ouvintes[t] = ouvintes[t] || []).push(f); }, getElementById: el},
     fetch: async (url, o) => {
@@ -35,10 +35,10 @@ function mundo({respostas, ...opcoes} = {}) {
       return {json: async () => r};
     }
   };
-  vm.createContext(caixa); vm.runInContext(bloco + '\n' + recebidos + '\nthis.__f={solteReceber:window.solteReceber,solteTirar:window.solteTirar,renomearDocCard:window.renomearDocCard,SOLTE,solteHtml,pedidoRecebidosHtml};', Object.assign(caixa, {window: caixa}));
+  vm.createContext(caixa); vm.runInContext(bloco + '\n' + recebidos + '\nthis.__f={entradaDefinir:window.entradaDefinir,entradaEscolherCaso:window.entradaEscolherCaso,entradaDescartar:window.entradaDescartar,solteReceber:window.solteReceber,solteTirar:window.solteTirar,renomearDocCard:window.renomearDocCard,SOLTE,solteHtml,pedidoRecebidosHtml};', Object.assign(caixa, {window: caixa}));
   const arquivo = (nome, tipo, bytes = 'abc') => ({name: nome, type: tipo, size: bytes.length, arrayBuffer: async () => new TextEncoder().encode(bytes).buffer});
   const esperar = async () => { for (let i = 0; i < 40; i++) await new Promise((r) => setImmediate(r)); };
-  return {caixa, f: caixa.__f, ouvintes, enviados, el, toasts, arquivo, esperar, pico: () => picoVoo};
+  return {caixa, f: caixa.__f, ouvintes, enviados, el, toasts, dialogos, arquivo, esperar, pico: () => picoVoo};
 }
 
 await passo('a caixa aparece no card, com o botão de escolher para quem não arrasta', () => {
@@ -170,5 +170,40 @@ await passo('painel: abre perguntando "para qual caso?", filtra por nome, e o ca
   // fechar sem escolher descarta, e abrir sem nada guardado não mostra janela
   const vazio = mundo({caches: {open: async () => ({keys: async () => [], match: async () => null, delete: async () => true})}}); vazio.caixa.__aberto = false;
   vazio.caixa.document.getElementById('modal-compartilhado').classList.add = () => { vazio.caixa.__aberto = true; }; await vazio.caixa.window.compartilhadoAbrir(); assert.equal(vazio.caixa.__aberto, false);
+});
+// ── A caixa de entrada do WhatsApp (o aviso no topo e a escolha do caso) ──
+const REG = (nome, extra = {}) => ({nome, remetente: '5511988887777', nomeRemetente: 'Reinaldo', mime: 'application/pdf', em: 1761660000000, ...extra});
+const montarEntrada = (opcoes = {}) => { const m = mundo(opcoes); m.caixa.document.getElementById('cc-entrada').style = {}; m.caixa.casos.C2 = {id: 'C2', nome: 'JRL Holding', tipo: 'Contrato social'}; return m; };
+await passo('entrada: o aviso no topo agrupa por quem mandou, com telefone legível e o nome dos arquivos; vazio, some', () => {
+  const m = montarEntrada(); const cc = m.caixa.document.getElementById('cc-entrada');
+  m.f.entradaDefinir({w_a: REG('JRL Holding - Contrato Social.pdf'), w_b: REG('JRL HOLDING LTDA - CNPJ.pdf'), w_c: REG('Foto.jpg', {remetente: '5511911112222', nomeRemetente: ''})});
+  assert.equal(cc.style.display, 'grid'); const h = cc.innerHTML;
+  assert(/Chegaram 2 arquivos pelo WhatsApp/.test(h) && /Reinaldo · \(11\) 98888-7777/.test(h) && /JRL Holding - Contrato Social\.pdf, JRL HOLDING LTDA - CNPJ\.pdf/.test(h));
+  assert(/Chegaram 1 arquivo pelo WhatsApp/.test(h) && /\(11\) 91111-2222/.test(h)); assert(/Escolher o caso/.test(h) && /Descartar/.test(h));
+  m.f.entradaDefinir(null); assert.equal(cc.style.display, 'none'); assert.equal(cc.innerHTML, '');
+});
+await passo('entrada: escolher o caso manda cada arquivo ao Apps Script (dois por vez), mostra o andamento no card e abre o card', async () => {
+  const m = montarEntrada({respostas: (c) => ({ok: true, nome: 'Contrato_' + c.entradaId + '.pdf', confirmar: c.entradaId === 'w_b'})});
+  m.f.entradaDefinir({w_a: REG('A.pdf'), w_b: REG('B.pdf'), w_c: REG('C.pdf'), w_d: REG('D.pdf')});
+  const abriu = []; m.caixa.window.irParaCasoPorId = (id) => abriu.push(id);
+  m.caixa.document.getElementById('modal-compartilhado').classList.add = () => { m.caixa.__aberto = true; }; m.caixa.document.getElementById('modal-compartilhado').classList.remove = () => { m.caixa.__aberto = false; };
+  m.f.entradaEscolherCaso('5511988887777'); assert.equal(m.caixa.__aberto, true); assert(/4 arquivos de Reinaldo \(WhatsApp\)/.test(m.el('cp-sub').textContent)); assert(/JRL Holding/.test(m.el('cp-lista').innerHTML));
+  m.caixa.window.compartilhadoEscolher('C2'); await m.esperar();
+  const envios = m.enviados.filter((e) => e.acao === 'entrada-atribuir'); assert.equal(envios.length, 4); assert(envios.every((e) => e.casoId === 'C2')); assert.deepEqual(envios.map((e) => e.entradaId).sort(), ['w_a', 'w_b', 'w_c', 'w_d']); assert(m.pico() <= 2, 'pico de ' + m.pico());
+  const l = m.f.SOLTE.C2; assert.equal(l.length, 4); assert.equal(l.filter((x) => x.estado === 'ok').length, 3); assert.equal(l.filter((x) => x.estado === 'confirmar').length, 1);
+  assert.deepEqual(abriu, ['C2']); assert.equal(m.caixa.__aberto, false); assert(m.toasts.some((t) => /4 arquivos enviados para JRL Holding/.test(t)));
+});
+await passo('entrada: fechar a janela sem escolher não perde nada, e arquivo já tratado ou erro do Apps Script aparece escrito', async () => {
+  const m = montarEntrada(); m.f.entradaDefinir({w_a: REG('A.pdf')}); m.caixa.document.getElementById('modal-compartilhado').classList.remove = () => {};
+  m.f.entradaEscolherCaso('5511988887777'); m.caixa.window.fecharCompartilhado(); await m.esperar(); assert.equal(m.enviados.length, 0, 'nada saiu'); m.f.entradaDefinir({w_a: REG('A.pdf')}); assert(/Chegaram 1 arquivo/.test(m.el('cc-entrada').innerHTML), 'continua esperando');
+  const e = montarEntrada({respostas: () => ({ok: false, erro: 'Esse arquivo já foi tratado ou não existe mais.'})}); e.f.entradaDefinir({w_a: REG('A.pdf')}); e.f.entradaEscolherCaso('5511988887777'); e.caixa.window.compartilhadoEscolher('C2'); await e.esperar();
+  assert.equal(e.f.SOLTE.C2[0].estado, 'erro'); assert(/já foi tratado/.test(e.f.SOLTE.C2[0].msg));
+  const v = montarEntrada({respostas: () => ({ok: false, erro: 'Ação desconhecida: entrada-atribuir'})}); v.f.entradaDefinir({w_a: REG('A.pdf')}); v.f.entradaEscolherCaso('5511988887777'); v.caixa.window.compartilhadoEscolher('C2'); await v.esperar(); assert(/Apps Script publicado ainda não recebe/.test(v.f.SOLTE.C2[0].msg));
+});
+await passo('entrada: descartar pergunta antes, manda para a lixeira cada arquivo do remetente e conta o que falhou', async () => {
+  const m = montarEntrada(); m.f.entradaDefinir({w_a: REG('A.pdf'), w_b: REG('B.pdf'), w_x: REG('X.pdf', {remetente: '5511900000000'})});
+  m.dialogos.resposta = false; await m.f.entradaDescartar('5511988887777'); assert(/Descartar 2 arquivos de Reinaldo/.test(m.dialogos.confirmou)); assert.equal(m.enviados.length, 0, 'disse que não: nada saiu');
+  m.dialogos.resposta = true; await m.f.entradaDescartar('5511988887777'); assert.deepEqual(m.enviados.map((e) => [e.acao, e.entradaId]).sort(), [['entrada-descartar', 'w_a'], ['entrada-descartar', 'w_b']]);
+  const f = montarEntrada({respostas: () => ({ok: false, erro: 'O banco recusou a remoção (401).'})}); f.f.entradaDefinir({w_a: REG('A.pdf')}); await f.f.entradaDescartar('5511988887777'); assert(/banco recusou/.test(f.dialogos.alerts.join(' ')));
 });
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
