@@ -211,19 +211,31 @@
   const ehPdf = (buf) => buf.byteLength > 4 && String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 4))) === '%PDF';
   // A resposta da JUCESP é o PDF em si, ou uma página que manda abrir o PDF (VisualizaTicket.aspx?sc=…): nos dois casos o PDF é pego aqui,
   // uma vez só, sem abrir aba (o Chrome bloqueia a aba que um clique de programa abre).
-  async function pdfDaResposta(r, fundura) {
+  const mascarar = (t) => String(t).replace(/[A-Za-z0-9+\/=_%-]{40,}/g, '…').replace(/\d{8,}/g, '#').replace(/\s+/g, ' ');   // viewstate, tickets e números longos nunca vão para o relatório
+  // Os trechos da resposta onde a JUCESP costuma avisar que o documento está pronto (abrir janela, ticket, redirecionar…): para o relatório.
+  function trechosDe(texto) {
+    const chave = /(window\.open|VisualizaTicket|ticket|\.ashx|\.pdf|location\.href|top\.location|Response\.Redirect|ScriptManager|pageLoaded|alert\()/gi, vistos = new Set(), saida = [];
+    for (const m of texto.matchAll(chave)) {
+      const t = mascarar(texto.slice(Math.max(0, m.index - 110), m.index + 190));
+      if (!vistos.has(t) && saida.length < 12) { vistos.add(t); saida.push(t); }
+    }
+    return saida;
+  }
+  // A resposta da JUCESP é o PDF em si, ou uma página que manda abrir o PDF (VisualizaTicket.aspx?sc=…): nos dois casos o PDF é pego aqui,
+  // uma vez só, sem abrir aba (o Chrome bloqueia a aba que um clique de programa abre).
+  async function pdfDaResposta(r, fundura, enviados) {
     const buf = await r.arrayBuffer();
     if (ehPdf(buf)) return buf;
     const texto0 = new TextDecoder().decode(buf);
-    // O que a JUCESP respondeu, para o relatório: status, tipo, tamanho e o começo do texto — sem números longos (CPF, protocolo) nem os campos escondidos.
+    // O que a JUCESP respondeu, para o relatório: status, tipo, tamanho, os trechos que importam e o fim — sem números longos (CPF, protocolo) nem os campos escondidos.
     const diag = { status: r.status, tipo: r.headers && r.headers.get ? r.headers.get('content-type') : '', tamanho: buf.byteLength, endereco: (() => { try { return new URL(r.url).pathname; } catch (_) { return ''; } })(),
-      trecho: texto0.replace(/value="[^"]{40,}"/g, 'value="…"').replace(/\d{8,}/g, '#').replace(/\s+/g, ' ').slice(0, 700) };
+      enviados: enviados || [], trechos: trechosDe(texto0), fim: mascarar(texto0.slice(-300)) };
     const naoPdf = (msg) => Object.assign(new Error(msg), { naoPdf: true, diag });
     if ((fundura || 0) >= 2) throw naoPdf('A JUCESP não devolveu o PDF.');
-    const texto = texto0.replace(/\\u0026|&amp;/g, '&').replace(/\\\//g, '/');
-    const m = /[\w./-]*VisualizaTicket\.aspx\?[^'"\s)<>\\]+/i.exec(texto);
+    const texto = texto0.replace(/\\u0026|&amp;|&#38;/g, '&').replace(/\\\//g, '/').replace(/&#x2F;/gi, '/');
+    const m = /[\w./-]*VisualizaTicket\.aspx\?[^'"\s)<>\\]+/i.exec(texto) || /[\w./-]+\.aspx\?(?:[^'"\s)<>\\]*&)?sc=[^'"\s)<>\\]+/i.exec(texto);
     if (!m) throw naoPdf('A JUCESP respondeu, mas sem o PDF (' + (r.status || '?') + ').');
-    return pdfDaResposta(await fetch(new URL(m[0], r.url || location.href).href, { credentials: 'same-origin' }), (fundura || 0) + 1);
+    return pdfDaResposta(await fetch(new URL(m[0], r.url || location.href).href, { credentials: 'same-origin' }), (fundura || 0) + 1, enviados);
   }
   async function baixarPorFormulario(radio, botao) {
     const form = botao.form || botao.closest('form');
@@ -235,7 +247,7 @@
     const alvo = form.getAttribute('action') ? new URL(form.getAttribute('action'), location.href).href : location.href;
     const r = await fetch(alvo, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: corpo.toString() });
     if (!r.ok) throw new Error('A JUCESP respondeu ' + r.status + '.');
-    return pdfDaResposta(r, 0);
+    return pdfDaResposta(r, 0, Array.from(corpo.keys()));
   }
 
   // Link "javascript:__doPostBack('alvo','')" (os links da tabela de resultados): o Chrome não deixa a extensão executar URL de script. O link

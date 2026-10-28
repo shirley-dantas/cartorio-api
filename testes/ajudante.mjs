@@ -500,15 +500,20 @@ await passo('formulário: erro do servidor aparece escrito, com o "fazer à mão
   const r = await ficha((rt) => rt.fulfill({status: 500, contentType: 'text/html', body: 'erro'}));
   assert.match(r.faixa, /Não consegui pedir o PDF: A JUCESP respondeu 500/); assert.match(r.faixa, /Fazer à mão/); assert(r.msgs.some((m) => m.estado === 'erro'));
 });
-await passo('formulário: quando a resposta não é PDF, o que a JUCESP respondeu fica registrado para o relatório — sem números longos nem campos escondidos', async () => {
-  const resposta = '<html><body>Olá, SHIRLEY DANTAS 34550022850 <input type="hidden" name="__VIEWSTATE" value="' + 'A'.repeat(200) + '"> Protocolo 123456789012 sua solicitação está em análise</body></html>';
+await passo('formulário: quando a resposta não é PDF, o que a JUCESP respondeu fica registrado (trechos que importam, campos enviados, o fim) — sem números longos nem campos escondidos', async () => {
+  const resposta = '<html><body>Olá, SHIRLEY DANTAS 34550022850 <input type="hidden" name="__VIEWSTATE" value="' + 'A'.repeat(200) + '"> Protocolo 123456789012 <script>setTimeout(function(){ window.open("Documento" + "/ver.aspx?x=" + t, "_blank"); }, 10);</script> <p>fim da página</p></body></html>';
   const r = await ficha((rt) => rt.fulfill({contentType: 'text/html; charset=utf-8', body: resposta}), 'onsubmit="return false"');
   const d = await pagina.evaluate(() => window.AJ_JUCESP.diagnostico());
   assert(d, 'registrou'); assert.equal(d.status, 200); assert.match(d.tipo, /text\/html/); assert.equal(d.tamanho, Buffer.byteLength(resposta)); assert.equal(d.endereco, '/Pre_Visualiza.aspx');
-  assert.match(d.trecho, /sua solicitação está em análise/); assert(!/34550022850|123456789012/.test(d.trecho), 'CPF e protocolo não vão'); assert(!/AAAAAAAAAA/.test(d.trecho), 'campos escondidos não vão'); assert(d.trecho.length <= 700);
+  assert(d.enviados.includes('__VIEWSTATE') && d.enviados.includes('ctl00$cphContent$frmPreVisualiza$btnEmitir') && d.enviados.includes('ctl00$cphContent$frmPreVisualiza$rblTipoDocumento'), JSON.stringify(d.enviados));
+  assert(d.trechos.some((x) => /window\.open\("Documento"/.test(x)), JSON.stringify(d.trechos)); assert.match(d.fim, /fim da página/);
+  const tudo = JSON.stringify(d); assert(!/34550022850|123456789012/.test(tudo), 'CPF e protocolo não vão'); assert(!/AAAAAAAAAA/.test(tudo), 'campos escondidos não vão'); assert(d.fim.length <= 300 && d.trechos.length <= 12);
   assert.equal(r.cliques, 1, 'e caiu no clique de sempre');
 });
-
+await passo('formulário: o endereço do PDF é achado mesmo com outro nome de página, desde que leve o ticket (sc=…)', async () => {
+  const r = await ficha((rt) => rt.fulfill({contentType: 'text/html', body: "<html><script>top.location.href='/Imprimir.aspx?id=7&amp;sc=ab%2Bcd';</script></html>"}));
+  assert(r.gets.some((g) => g === '/Imprimir.aspx?id=7&sc=ab%2Bcd'), JSON.stringify(r.gets));
+});
 await passo('fundo: o PDF trazido pela aba do pedido (pdf-bytes) é conferido, guardado e a fila anda — e o que não é PDF vira erro escrito', async () => {
   const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedido({quero: ['ficha', 'contrato']})}, PAINEL); await m.msg({tipo: 'nire', nire: '35262229284', empresa: 'JRL HOLDING LTDA'}, 71);
   const b64 = Buffer.from('%PDF-1.4 x').toString('base64');
