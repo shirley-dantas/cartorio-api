@@ -122,6 +122,10 @@ await passo('Evolution: sem o segredo do endereço ou com outro, nada acontece',
   const c = redeEvo(); assert.equal((await postEvo(evoDoc(), '')).codigo, 401); assert.equal((await postEvo(evoDoc(), 'outra')).codigo, 401); assert.equal(c.length, 0);
   const guardado = process.env.ENTRADA_REMETENTES; delete process.env.ENTRADA_REMETENTES; assert.equal((await postEvo(evoDoc())).codigo, 500, 'sem a lista de remetentes, não aceita ninguém'); process.env.ENTRADA_REMETENTES = guardado;
   assert.equal((await postEvo(evoDoc(), 'frase-do-webhook', 'GET')).codigo, 405);
+  const seg = process.env.EVOLUTION_WEBHOOK_SEGREDO; delete process.env.EVOLUTION_WEBHOOK_SEGREDO; redeEvo();
+  assert.equal((await postEvo(evoDoc(), undefined)).codigo, 200, 'sem segredo no endereço, a lista de remetentes é a guarda');
+  assert.equal((await postEvo(evo({key: {remoteJid: '5511999990000@s.whatsapp.net', fromMe: false, id: 'Z9'}, message: {imageMessage: {mimetype: 'image/jpeg'}}}), undefined)).corpo.ignorado, 'remetente fora da lista');
+  process.env.EVOLUTION_WEBHOOK_SEGREDO = seg;
 });
 await passo('Evolution: foto de outra pessoa, grupo, status, texto e áudio são ignorados — o número pessoal recebe de todo mundo', async () => {
   const c = redeEvo(); const base = {fromMe: false, id: 'X1'};
