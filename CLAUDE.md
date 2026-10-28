@@ -1121,6 +1121,15 @@ Regras dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   caminho de `solteReceber()`. Só existe onde o navegador oferece o *share target* (Android; **não** iPhone, **não** WhatsApp Web
   no computador, que não tem botão Compartilhar). O painel precisa estar **instalado** (não só um atalho) e reinstalado uma vez
   depois desta versão, para o Android aprender que ele recebe arquivos. Teste: `testes/solte-card.mjs`.
+- **A caixa de entrada do WhatsApp (número só de documentos, API oficial da Meta).** O cliente — ou ela, encaminhando — manda PDF
+  e foto para o número do cartório; a Vercel (`lib/whatsapp-entrada.js`, pela porta da Joaninha, `/whatsapp`) confere a assinatura da
+  Meta, baixa o arquivo e o entrega ao Apps Script (`entrada-receber`), que o guarda na pasta de espera **ENTRADA WHATSAPP**. O topo do
+  painel avisa (*"Chegaram N arquivos pelo WhatsApp"*, `#cc-entrada`); ela escolhe o caso (a janela "Para qual caso?") e cada arquivo
+  segue o caminho de sempre (`entrada-atribuir`). **Nada vira caso sozinho**, e quem descarta manda para a lixeira do Drive. A mensagem
+  repetida (a Meta reentrega) entra uma vez, pelo id dela. **Nunca por WhatsApp Web automatizado (Evolution/Baileys): é o que bane
+  número** — o bot antigo, no número pessoal 11 94785-1816, foi desligado por ela em 28/10/2026 e o código dele (`api/salvar-caso.js`)
+  fica parado. A `/entrada` é aberta nas regras, como `/casos` (quem escreve é o Apps Script, por REST). Passo a passo na Meta, na
+  Vercel e no Apps Script: `FIREBASE.md`, seção 13. Testes: `testes/whatsapp-entrada.mjs`, `testes/cliente-envio.mjs`, `testes/solte-card.mjs`.
 - Só PDF e imagem, até 10 MB; áudio, vídeo e Word são recusados **antes** de sair, com o motivo escrito. No máximo dois
   arquivos sobem por vez. Arrastar só existe no computador; no celular fica o *Escolher arquivos*.
 - Passo manual: o Apps Script precisa do código novo (`painel-arquivo`, `painel-renomear`). Se não tiver, o motivo aparece
@@ -1271,7 +1280,7 @@ node testes/radar.mjs && node testes/radar-triagem.mjs
 node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
 node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
-node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs
+node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
 node testes/orcamento-link-tela.mjs && node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
 ```
 

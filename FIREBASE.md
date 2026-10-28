@@ -325,6 +325,45 @@ Como se protege:
   envio de documentos).
 - A **baixa continua sendo da equipe**: o painel nunca marca como "pago" sozinho.
 
+## 13. A caixa de entrada do WhatsApp (número do cartório)
+
+O cliente (ou ela, encaminhando) manda PDF e foto para um **número só de documentos**; o arquivo aparece no topo do painel
+(*"Chegaram N arquivos pelo WhatsApp"*), ela escolhe o caso, e ele segue o caminho de sempre (pasta, leitura pela IA, nome
+padrão). Usa a **API oficial da Meta** (WhatsApp Business Platform / Cloud API) — nunca o WhatsApp Web por robô, que é o que
+costuma banir número. O bot antigo (Evolution, no número pessoal) fica desligado.
+
+O que mora no código: `lib/whatsapp-entrada.js` (a Vercel recebe a chamada da Meta, confere a assinatura, baixa o arquivo e o
+entrega ao Apps Script), servido pela porta da Joaninha (`/whatsapp` → `api/perguntar-joaninha.js?acao=whatsapp`); no Apps Script,
+`entrada-receber` / `entrada-atribuir` / `entrada-descartar` (pasta de espera **ENTRADA WHATSAPP** dentro da pasta raiz); no
+painel, a faixa `#cc-entrada` e a janela "Para qual caso?". Nada vira caso sozinho.
+
+Passo a passo (nesta ordem; os dois primeiros levam dias, os outros uma tarde):
+
+1. **Um número só para isso**, que nunca tenha tido WhatsApp (ou cujo WhatsApp tenha sido apagado) e que receba SMS ou ligação.
+2. **Meta Business**: em business.facebook.com, criar o portfólio empresarial do cartório. A Meta pode pedir a *verificação da
+   empresa* (CNPJ, documentos); sem ela o número funciona, com limites menores de envio — para só **receber** documentos não pesa.
+3. **O aplicativo**: em developers.facebook.com → *Meus aplicativos* → *Criar aplicativo* → tipo **Empresa** → adicionar o produto
+   **WhatsApp**. Em *Configuração da API*, **adicionar o número** e confirmar o código que chega por SMS/ligação. A Meta revisa o
+   nome de exibição (ex.: *20º Cartório — Documentos*). Se pedir um PIN de 6 dígitos, é a verificação em duas etapas do número: anote.
+4. **O token que não vence**: Configurações do negócio → *Usuários* → *Usuários do sistema* → criar um (Administrador) → *Adicionar
+   ativos* (o aplicativo e a conta do WhatsApp, controle total) → *Gerar token*, marcando `whatsapp_business_messaging` e
+   `whatsapp_business_management`, sem validade. **Guardar num lugar seguro: não vai em conversa nem em e-mail.**
+5. **O segredo do aplicativo**: developers.facebook.com → o aplicativo → *Configurações* → *Básico* → *Chave secreta do aplicativo*.
+6. **Vercel** (projeto do painel → *Settings* → *Environment Variables*): `WHATSAPP_TOKEN` (o do passo 4), `WHATSAPP_APP_SECRET` (o do
+   passo 5), `WHATSAPP_VERIFY_TOKEN` (uma frase qualquer, inventada por ela) e `ENTRADA_SEGREDO` (outra frase longa, inventada por
+   ela). Depois, *Redeploy*.
+7. **Apps Script** (*Configurações do projeto* → *Propriedades do script*): `ENTRADA_SEGREDO` com **a mesma frase** do passo 6. Colar o
+   código novo do arquivo `apps-script/cartorio-drive-api.js` e implantar uma **nova versão** (não "Nova implantação").
+8. **Regras do Firebase**: publicar o `database.rules.json` novo (entrou o caminho `/entrada`). Sem isso o aviso não aparece e o
+   Apps Script diz que o banco recusou.
+9. **O webhook**: no aplicativo → *WhatsApp* → *Configuração* → *Webhook* → *Editar*: URL `https://cartorio-api.vercel.app/whatsapp` e o
+   token de verificação do passo 6 → *Verificar e salvar*; depois assinar o campo **messages**. Se a Meta recusar a verificação,
+   quase sempre é o `WHATSAPP_VERIFY_TOKEN` diferente do digitado, ou o *Redeploy* que faltou.
+10. **O teste**: do celular dela, mandar um PDF para o número novo. Em poucos segundos aparece o aviso no topo do painel.
+
+Se algo falhar, o que a Meta recebe de volta aparece em *Webhooks* no painel da Meta, e o motivo escrito sai na resposta da Vercel.
+Mensagem que não é PDF nem imagem (texto, áudio, figurinha) é ignorada. Arquivo repetido (a Meta reentrega quando demora) entra uma vez.
+
 ## O que ainda fica aberto, e por quê
 
 `/casos`, `/jobs`, `/modelos`, os caminhos do bot e os do Radar continuam sem

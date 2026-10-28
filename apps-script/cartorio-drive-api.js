@@ -1158,6 +1158,9 @@ function doPost(e) {
     if (acao === "pagamento-remover") return pagamentoRemover(dados);
     if (acao === "orcamento-aprovar") return orcamentoAprovar(dados);
     if (acao === "painel-arquivo") return painelArquivo(dados);
+    if (acao === "entrada-receber") return entradaReceber(dados);
+    if (acao === "entrada-atribuir") return entradaAtribuir(dados);
+    if (acao === "entrada-descartar") return entradaDescartar(dados);
     if (acao === "painel-renomear") return painelRenomear(dados);
     if (acao === "cliente-remover") return clienteRemover(dados);
     if (acao === "cliente-excluir") return clienteExcluir(dados);
@@ -1508,16 +1511,18 @@ function nomeDoArquivoDoCard(pasta, pessoa, tipo, ext, idDoProprio) {
   return prefixo + (n + 1) + "." + ext;
 }
 
-function painelArquivo(dados) {
+function painelArquivo(dados) { return resp(painelArquivoInterno(dados)); }
+
+function painelArquivoInterno(dados) {
   var casoId = String(dados.casoId || "");
-  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId)) return resp({ ok: false, erro: "Caso inválido." });
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId)) return { ok: false, erro: "Caso inválido." };
   var caso = firebaseLer("/casos/" + casoId);
-  if (!caso) return resp({ ok: false, erro: "Caso não encontrado." });
+  if (!caso) return { ok: false, erro: "Caso não encontrado." };
   var mime = String(dados.mimetype || "").toLowerCase(), ext = MIMES_CLIENTE[mime];
-  if (!ext) return resp({ ok: false, erro: "Tipo de arquivo não aceito (só PDF e imagem)." });
+  if (!ext) return { ok: false, erro: "Tipo de arquivo não aceito (só PDF e imagem)." };
   var bytes;
-  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
-  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais (máx. 10 MB)." });
+  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return { ok: false, erro: "Arquivo ilegível." }; }
+  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return { ok: false, erro: "Arquivo vazio ou grande demais (máx. 10 MB)." };
 
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -1533,7 +1538,7 @@ function painelArquivo(dados) {
     nome: arquivo.getName(), tipo: "documento", origem: "arrastado no card", nomeOriginal: textoCliente(dados.nomeArquivo, 120),
     link: arquivo.getUrl(), salvoEm: new Date().toISOString(), selo: seloDoArquivo(docKey, arquivo.getId()), lendo: Date.now()
   });
-  if (gravou.getResponseCode() >= 300) { try { arquivo.setTrashed(true); } catch (e) { /* ficou solto na pasta */ } return resp({ ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." }); }
+  if (gravou.getResponseCode() >= 300) { try { arquivo.setTrashed(true); } catch (e) { /* ficou solto na pasta */ } return { ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." }; }
 
   var texto = "", id = { tipo: "OUTRO", pessoa: "", confianca: "baixa" }, aviso = "";
   if (MIMES_LEITURA_IA.indexOf(mime) === -1) aviso = "A IA não lê este formato (" + ext.toUpperCase() + "): o arquivo ficou salvo, mas sem leitura.";
@@ -1553,7 +1558,84 @@ function painelArquivo(dados) {
     if (nome !== arquivo.getName()) arquivo.setName(nome);
   } finally { lock.releaseLock(); }
   firebaseGravar("patch", caminho, { nome: nome, tipoDocumento: id.tipo, pessoa: id.pessoa, texto: texto || null, truncado: false, lendo: null, confirmar: confirmar, avisoLeitura: aviso || null });
-  return resp({ ok: true, docKey: docKey, nome: nome, tipo: id.tipo, pessoa: id.pessoa, confirmar: confirmar, leu: !!texto, aviso: aviso });
+  return { ok: true, docKey: docKey, nome: nome, tipo: id.tipo, pessoa: id.pessoa, confirmar: confirmar, leu: !!texto, aviso: aviso };
+}
+
+// ── A caixa de entrada do WhatsApp ───────────────────────────────────────────────────────────
+// O que chega no número do cartório (API oficial da Meta) é recebido pela Vercel (lib/whatsapp-entrada.js), que baixa
+// o arquivo e o entrega aqui (entrada-receber, com o segredo combinado). Ele fica numa pasta de espera, ENTRADA
+// WHATSAPP, e vira um aviso no painel ("Chegaram N arquivos"). Só quando ela escolhe o caso (entrada-atribuir) o arquivo
+// segue o caminho de sempre: pasta do caso, leitura pela IA, nome padrão, "confirmar o nome". O que não é dela, descarta.
+var NOME_PASTA_ENTRADA = "ENTRADA WHATSAPP";
+function pastaDeEntrada() {
+  var raiz = DriveApp.getFolderById(PASTA_RAIZ_ID), busca = raiz.getFoldersByName(NOME_PASTA_ENTRADA);
+  return busca.hasNext() ? busca.next() : raiz.createFolder(NOME_PASTA_ENTRADA);
+}
+function segredoIgual(a, b) {
+  a = String(a || ""); b = String(b || "");
+  if (!a || !b || a.length !== b.length) return false;
+  var r = 0; for (var i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+function chaveDaEntrada(msgId) { return "w_" + String(msgId || "").replace(/[^A-Za-z0-9]/g, "").slice(-60); }
+
+function entradaReceber(dados) {
+  var esperado = PropertiesService.getScriptProperties().getProperty("ENTRADA_SEGREDO");
+  if (!esperado) return resp({ ok: false, erro: "ENTRADA_SEGREDO não configurado no Apps Script." });
+  if (!segredoIgual(dados.segredo, esperado)) return resp({ ok: false, erro: "Não autorizado." });
+  var mime = String(dados.mimetype || "").toLowerCase(), ext = MIMES_CLIENTE[mime];
+  if (!ext) return resp({ ok: false, erro: "Tipo de arquivo não aceito (só PDF e imagem)." });
+  var msgId = String(dados.msgId || ""); if (!msgId) return resp({ ok: false, erro: "Mensagem sem identificação." });
+  var chave = chaveDaEntrada(msgId), caminho = "/entrada/" + chave;
+  var bytes;
+  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
+  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais (máx. 10 MB)." });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  var arquivo;
+  try {
+    if (firebaseLer(caminho)) return resp({ ok: true, repetida: true });   // a Meta reentrega quando demora: a mensagem só entra uma vez
+    var data = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
+    var nome = textoCliente(dados.nomeArquivo, 120) || ("WhatsApp_" + chave + "." + ext);
+    arquivo = pastaDeEntrada().createFile(Utilities.newBlob(bytes, mime, data + "_" + nomeSeguroCliente(dados.remetente, 20) + "_" + nome));
+    var g = firebaseGravar("put", caminho, {
+      nome: nome, remetente: textoCliente(dados.remetente, 30), nomeRemetente: textoCliente(dados.nomeRemetente, 80), mime: mime,
+      tamanho: bytes.length, link: arquivo.getUrl(), selo: seloDoArquivo(chave, arquivo.getId()), em: Date.now()
+    });
+    if (g.getResponseCode() >= 300) { try { arquivo.setTrashed(true); } catch (e) { /* ficou solto na pasta de entrada */ } return resp({ ok: false, erro: "O banco recusou o registro (" + g.getResponseCode() + ")." }); }
+  } finally { lock.releaseLock(); }
+  return resp({ ok: true, chave: chave });
+}
+
+function entradaDoPainel(dados) {
+  var chave = String(dados.entradaId || "");
+  if (!/^w_[A-Za-z0-9]{1,60}$/.test(chave)) return { erro: "Arquivo da entrada inválido." };
+  var reg = firebaseLer("/entrada/" + chave);
+  if (!reg) return { erro: "Esse arquivo já foi tratado ou não existe mais." };
+  var id = extrairIdArquivo(reg.link);
+  if (!id || !reg.selo || reg.selo !== seloDoArquivo(chave, id)) return { erro: "O registro não tem o selo do arquivo." };
+  return { chave: chave, reg: reg, id: id };
+}
+
+function entradaAtribuir(dados) {
+  var e = entradaDoPainel(dados); if (e.erro) return resp({ ok: false, erro: e.erro });
+  var casoId = String(dados.casoId || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !firebaseLer("/casos/" + casoId + "/nome")) return resp({ ok: false, erro: "Caso não encontrado." });
+  var arquivo;
+  try { arquivo = DriveApp.getFileById(e.id); } catch (x) { return resp({ ok: false, erro: "O arquivo não está mais na pasta de entrada." }); }
+  var r = painelArquivoInterno({ casoId: casoId, nomeArquivo: e.reg.nome, mimetype: e.reg.mime, base64: Utilities.base64Encode(arquivo.getBlob().getBytes()) });
+  if (!r.ok) return resp(r);   // se falhou, o arquivo continua na entrada para tentar de novo
+  try { arquivo.setTrashed(true); } catch (x) { /* a cópia na pasta do caso já existe */ }
+  UrlFetchApp.fetch(FIREBASE_URL + "/entrada/" + e.chave + ".json", { method: "delete", muteHttpExceptions: true });
+  return resp(r);
+}
+
+function entradaDescartar(dados) {
+  var e = entradaDoPainel(dados); if (e.erro) return resp({ ok: false, erro: e.erro });
+  try { DriveApp.getFileById(e.id).setTrashed(true); } catch (x) { /* já não estava lá */ }
+  var r = UrlFetchApp.fetch(FIREBASE_URL + "/entrada/" + e.chave + ".json", { method: "delete", muteHttpExceptions: true });
+  if (r.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a remoção (" + r.getResponseCode() + ")." });
+  return resp({ ok: true });
 }
 
 // Corrigir depois: ela escolhe o tipo e escreve o nome da pessoa; o arquivo é renomeado no Drive e o registro acompanha.
