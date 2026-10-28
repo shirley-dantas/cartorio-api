@@ -210,12 +210,12 @@ await passo('tela: o resultado com uma empresa abre o NIRE dela; com várias ou 
   const zero = await plano(PAG.resultados(0), '/Pesquisa.aspx', job()); assert.equal(zero.acao, 'erro'); assert.match(zero.texto, /Não achei empresa/);
 });
 await passo('tela: na escolha do documento, marca a ficha completa — ou a cópia digitalizada, para o contrato — e clica em OK', async () => {
-  const f = await plano(PAG.escolha(), '/Pre_Visualiza.aspx', job()); assert.equal(f.acao, 'escolher'); assert.match(f.radio, /^Ficha Cadastral Completa/); assert.equal(f.botao, 'OK');
-  const c = await plano(PAG.escolha(), '/Pre_Visualiza.aspx', job({fila: ['contrato']})); assert.match(c.radio, /^Cópia Digitalizada/); assert.notEqual(c.acao, 'erro');
+  const f = await plano(PAG.escolha(), '/Pre_Visualiza.aspx', job()); assert.equal(f.acao, 'baixar', 'a ficha volta como PDF: pede-se pelo formulário'); assert.match(f.radio, /^Ficha Cadastral Completa/); assert.equal(f.botao, 'OK');
+  const c = await plano(PAG.escolha(), '/Pre_Visualiza.aspx', job({fila: ['contrato']})); assert.match(c.radio, /^Cópia Digitalizada/); assert.equal(c.acao, 'escolher', 'a cópia só leva à lista: é um clique normal');
 });
 await passo('tela: na lista de cópias, pega a CONSOLIDAÇÃO mais recente (os detalhes ficam escondidos na linha)', async () => {
   const p = await plano(PAG.copia([L1, L2]), '/Restricted/Solicitacoes/Fotocopia/EscolheDocumentos.aspx', job({fila: ['contrato']}));
-  assert.equal(p.acao, 'copia'); assert.match(p.radio, /02\/04\/2026/); assert.equal(p.botao, 'CONTINUAR'); assert.match(p.texto, /02\/04\/2026/); assert.match(p.texto, /1\.180\.995\/26-0/);
+  assert.equal(p.acao, 'baixar'); assert.match(p.radio, /02\/04\/2026/); assert.equal(p.botao, 'CONTINUAR'); assert.match(p.texto, /02\/04\/2026/); assert.match(p.texto, /1\.180\.995\/26-0/);
   const tres = await plano(PAG.copia([L0, L1, L2]), '/Restricted/Solicitacoes/Fotocopia/EscolheDocumentos.aspx', job({fila: ['contrato']}));
   assert.match(tres.radio, /02\/04\/2026/); assert.match(tres.texto, /havia 2, peguei a última/);
   const ordemTroca = await plano(PAG.copia([L2, L0, L1]), '/Restricted/Solicitacoes/Fotocopia/EscolheDocumentos.aspx', job({fila: ['contrato']})); assert.match(ordemTroca.radio, /02\/04\/2026/, 'não depende da ordem da lista');
@@ -243,15 +243,16 @@ const flag = (html) => html.replace(/<input type="submit" value="Buscar">/g, '<i
   .replace(/<input type="button" value="OK">/g, '<input type="button" value="OK" onclick="window.__clicou=(window.__clicou||[]).concat(\'OK\')">')
   .replace(/<a href="\/Pre_Visualiza\.aspx\?nire=(\d+)">/g, '<a href="#" onclick="window.__clicou=(window.__clicou||[]).concat(\'nire $1\'); return false">')
   .replace(/<a href="\/Pesquisa\.aspx">/g, '<a href="#" onclick="window.__clicou=(window.__clicou||[]).concat(\'menu\'); return false">');
-async function rodarNaPagina(caminho, html, jobDado = job()) {
+async function rodarNaPagina(caminho, html, jobDado = job(), espera = 450, limpar = true) {
   await pagina.route(ORIGEM + '/**', (r) => r.fulfill({contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body>' + flag(html) + '</body></html>'}));
   await pagina.goto(ORIGEM + caminho);
+  if (limpar) await pagina.evaluate(() => sessionStorage.clear());
   await pagina.evaluate((j) => {
     window.__msgs = []; window.__texto = '';
     window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? j : {ok: true}; }}};
   }, jobDado);
   await pagina.addScriptTag({content: ler('ajudante/jucesp.js')});
-  await pagina.waitForTimeout(450);
+  await pagina.waitForTimeout(espera);
   return pagina.evaluate(() => ({msgs: window.__msgs, clicou: window.__clicou || [], faixa: (document.getElementById('aj-faixa') || {}).innerText || '', valor: (document.querySelector('input[type=text]') || {}).value, cor: document.getElementById('aj-faixa') ? getComputedStyle(document.getElementById('aj-faixa')).borderTopColor : ''}));
 }
 await passo('página: na pesquisa, digita o CNPJ, clica em Buscar e conta o andamento na faixa', async () => {
@@ -263,8 +264,8 @@ await passo('página: na pesquisa, digita o CNPJ, clica em Buscar e conta o anda
 await passo('página: no resultado, avisa a empresa ao fundo e clica no NIRE; na escolha, marca a opção e clica em OK', async () => {
   const a = await rodarNaPagina('/Pesquisa.aspx?q=1', PAG.resultados(1));
   assert.deepEqual(a.clicou, ['nire 35262229284']); const n = a.msgs.find((m) => m.tipo === 'nire'); assert.equal(n.nire, '35262229284'); assert.equal(n.empresa, 'JRL HOLDING LTDA');
-  const b = await rodarNaPagina('/Pre_Visualiza.aspx?nire=35262229284&idproduto=', PAG.escolha());
-  assert.deepEqual(b.clicou, ['OK']); assert(b.msgs.some((m) => m.tipo === 'nire' && m.nire === '35262229284'), 'guarda o NIRE da própria tela');
+  const b = await rodarNaPagina('/Pre_Visualiza.aspx?nire=35262229284&idproduto=', PAG.escolha(), job(), 1100);
+  assert.deepEqual(b.clicou, ['OK'], 'a resposta do formulário não foi PDF, então caiu no clique de sempre'); assert(b.msgs.some((m) => m.tipo === 'nire' && m.nire === '35262229284'), 'guarda o NIRE da própria tela');
   const marcado = await pagina.evaluate(() => { const r = document.querySelector('input[type=radio]:checked'); return r && r.parentElement.textContent; }); assert.match(marcado, /^Ficha Cadastral Completa/);
 });
 await passo('página: sem login só espera (nada de clique) e, assim que entrar, continua sozinha', async () => {
@@ -280,7 +281,7 @@ await passo('página: tela que não reconhece vira faixa vermelha com "Copiar re
 });
 await passo('página: o que se repete na mesma tela é parado na quarta vez, em vez de rodar para sempre', async () => {
   await pagina.goto(ORIGEM + '/Pesquisa.aspx?repete=1'); await pagina.evaluate(() => sessionStorage.clear());
-  let ultimo; for (let i = 0; i < 4; i++) ultimo = await rodarNaPagina('/Pesquisa.aspx?repete=1', PAG.busca());
+  let ultimo; for (let i = 0; i < 4; i++) ultimo = await rodarNaPagina('/Pesquisa.aspx?repete=1', PAG.busca(), job(), 450, false);
   assert.match(ultimo.faixa, /tentei 3 vezes/); assert(ultimo.msgs.some((m) => m.estado === 'erro' && /tentei 3 vezes/.test(m.texto)));
 });
 await passo('página: quando a lista de cópias não tem consolidação, avisa o fundo que ficou à mão (para ele ainda pegar o PDF)', async () => {
@@ -446,13 +447,67 @@ await passo('página: escolher a opção é um clique de verdade (a JUCESP guard
   await pagina.goto(ORIGEM + '/Pre_Visualiza.aspx?nire=35262229284&idproduto=');
   await pagina.evaluate((j) => { window.__msgs = []; window.__radio = 0; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? j : {ok: true}; }, onMessage: {addListener: (f) => { window.__ouvinte = f; }}}}; }, job());
   await pagina.addScriptTag({content: ler('ajudante/jucesp.js')});
-  await pagina.waitForTimeout(900);
-  const antes = await pagina.evaluate(() => ({radio: window.__radio, clicou: window.__clicou || []})); assert.equal(antes.radio, 1, 'o radio recebeu o clique'); assert.deepEqual(antes.clicou, ['OK']);
+  await pagina.waitForTimeout(1300);
+  const antes = await pagina.evaluate(() => ({radio: window.__radio, clicou: window.__clicou || []})); assert(antes.radio >= 1, 'o radio recebeu o clique'); assert.deepEqual(antes.clicou, ['OK']);
   await pagina.evaluate(() => window.__ouvinte({tipo: 'pdf'})); await pagina.waitForTimeout(100);
   assert.match(await pagina.evaluate(() => document.getElementById('aj-faixa').innerText), /Recebi o PDF/);
   await pagina.evaluate(() => window.__ouvinte({tipo: 'fim', estado: 'ok', texto: 'Pronto! Ficha cadastral completa: guardado no card.'}));
   assert.match(await pagina.evaluate(() => document.getElementById('aj-faixa').innerText), /Pronto!/); assert.equal(await pagina.evaluate(() => getComputedStyle(document.getElementById('aj-faixa')).borderTopColor), 'rgb(47, 122, 79)');
   await pagina.waitForTimeout(1800); assert(!(await pagina.evaluate(() => window.__msgs)).some((m) => m.estado === 'erro'));
+});
+
+// ── A JUCESP de verdade (os nomes dos campos vêm do relatório que ela copiou): o PDF é pedido pelo formulário ──
+const FORM = (acao) => `<form method="post" action="${acao}" id="aspnetForm"><input type="hidden" name="__VIEWSTATE" value="vs123"><input type="hidden" name="__EVENTVALIDATION" value="ev456">
+  ${['FBR - Ficha de Breve Relato Digitalizada (dados anteriores a 1992)', 'Ficha Cadastral Completa (dados a partir de 1992)', 'Ficha Cadastral Simplificada (dados atuais da empresa)', 'Cópia Digitalizada de Documentos Arquivados (cópia simples - não tem valor jurídico de certidão)']
+    .map((t, i) => `<span><input type="radio" id="ctl00_cphContent_frmPreVisualiza_rblTipoDocumento_${i}" name="ctl00$cphContent$frmPreVisualiza$rblTipoDocumento" value="${i}"><label for="ctl00_cphContent_frmPreVisualiza_rblTipoDocumento_${i}">${t}</label></span>`).join('')}
+  <input type="submit" name="ctl00$cphContent$frmPreVisualiza$btnEmitir" value="OK" id="ctl00_cphContent_frmPreVisualiza_btnEmitir" onclick="sessionStorage.setItem('clicouOk', String(Number(sessionStorage.getItem('clicouOk')||0)+1))"></form>`;
+const PDF_BYTES = '%PDF-1.4 ficha de verdade';
+async function ficha(respostaPost) {
+  const posts = [], gets = [];
+  await pagina.route(ORIGEM + '/**', (r) => {
+    const req = r.request(), url = new URL(req.url());
+    if (req.method() === 'POST') { posts.push({url: url.pathname + url.search, corpo: req.postData()}); return respostaPost(r); }
+    gets.push(url.pathname + url.search);
+    if (/VisualizaTicket/.test(url.pathname)) return r.fulfill({contentType: 'application/pdf', body: PDF_BYTES});
+    return r.fulfill({contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body>' + TOPO() + MENU + FORM('Pre_Visualiza.aspx?nire=35262229284&idproduto=') + '</body></html>'});
+  });
+  await pagina.goto(ORIGEM + '/Pre_Visualiza.aspx?nire=35262229284&idproduto=');
+  await pagina.evaluate(() => sessionStorage.clear());
+  await pagina.evaluate((j) => { window.__msgs = []; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? j : {ok: true}; }, onMessage: {addListener() {}}}}; }, job());
+  await pagina.addScriptTag({content: ler('ajudante/jucesp.js')});
+  await pagina.waitForTimeout(1500);
+  return {posts, gets, msgs: await pagina.evaluate(() => window.__msgs || []), cliques: await pagina.evaluate(() => Number(sessionStorage.getItem('clicouOk') || 0)), faixa: await pagina.evaluate(() => (document.getElementById('aj-faixa') || {}).innerText || '')};
+}
+await passo('formulário: a ficha é pedida por POST com os campos da página (viewstate, a opção marcada e o botão OK) e o PDF da resposta vai ao fundo — sem clicar em OK nem abrir aba', async () => {
+  const r = await ficha((rt) => rt.fulfill({contentType: 'application/pdf', body: PDF_BYTES}));
+  assert.equal(r.posts.length, 1); const c = new URLSearchParams(r.posts[0].corpo);
+  assert.equal(c.get('__VIEWSTATE'), 'vs123'); assert.equal(c.get('__EVENTVALIDATION'), 'ev456'); assert.equal(c.get('ctl00$cphContent$frmPreVisualiza$rblTipoDocumento'), '1', 'a opção "Ficha Cadastral Completa"'); assert.equal(c.get('ctl00$cphContent$frmPreVisualiza$btnEmitir'), 'OK');
+  assert.equal(r.posts[0].url, '/Pre_Visualiza.aspx?nire=35262229284&idproduto=');
+  const b = r.msgs.find((m) => m.tipo === 'pdf-bytes'); assert(b, JSON.stringify(r.msgs.map((m) => m.tipo))); assert.equal(Buffer.from(b.base64, 'base64').toString(), PDF_BYTES); assert(b.base64.startsWith('JVBERi'));
+  assert.equal(r.cliques, 0, 'não clicou em OK'); assert.match(r.faixa, /Recebi o PDF/);
+});
+await passo('formulário: se a resposta é uma página que manda abrir o PDF (VisualizaTicket.aspx?sc=…), o endereço é seguido uma vez e o PDF vai ao fundo', async () => {
+  const r = await ficha((rt) => rt.fulfill({contentType: 'text/html', body: "<html><script>window.open('/VisualizaTicket.aspx?sc=ab%2Bcd&amp;x=1','_blank');</script></html>"}));
+  assert.equal(r.gets.filter((g) => /VisualizaTicket/.test(g)).length, 1); assert(r.gets.some((g) => g === '/VisualizaTicket.aspx?sc=ab%2Bcd&x=1'), JSON.stringify(r.gets));
+  assert.equal(Buffer.from(r.msgs.find((m) => m.tipo === 'pdf-bytes').base64, 'base64').toString(), PDF_BYTES); assert.equal(r.cliques, 0);
+});
+await passo('formulário: resposta que não é PDF nem aponta para um? cai no clique de sempre em OK, em vez de desistir', async () => {
+  const r = await ficha((rt) => rt.fulfill({contentType: 'text/html', body: '<html>outra tela</html>'}));
+  assert(!r.msgs.some((m) => m.tipo === 'pdf-bytes')); assert.equal(r.cliques, 1, 'clicou em OK (o formulário foi enviado de verdade)');
+});
+await passo('formulário: erro do servidor aparece escrito, com o "fazer à mão"', async () => {
+  const r = await ficha((rt) => rt.fulfill({status: 500, contentType: 'text/html', body: 'erro'}));
+  assert.match(r.faixa, /Não consegui pedir o PDF: A JUCESP respondeu 500/); assert.match(r.faixa, /Fazer à mão/); assert(r.msgs.some((m) => m.estado === 'erro'));
+});
+await passo('fundo: o PDF trazido pela aba do pedido (pdf-bytes) é conferido, guardado e a fila anda — e o que não é PDF vira erro escrito', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedido({quero: ['ficha', 'contrato']})}, PAINEL); await m.msg({tipo: 'nire', nire: '35262229284', empresa: 'JRL HOLDING LTDA'}, 71);
+  const b64 = Buffer.from('%PDF-1.4 x').toString('base64');
+  const r = await m.msg({tipo: 'pdf-bytes', base64: b64}, 71); assert.equal(r.ok, true); await esperar();
+  const [g] = m.gasEnviado(); assert.equal(g.base64, b64); assert.equal(g.tipoSugerido, 'FICHA_CADASTRAL_JUCESP'); assert.equal(m.atualizadas.at(-1).url, 'https://www.jucesponline.sp.gov.br/Pre_Visualiza.aspx?nire=35262229284&idproduto=');
+  const n = mundoFundo(); await n.msg({tipo: 'pedido', pedido: pedido()}, PAINEL);
+  await n.msg({tipo: 'pdf-bytes', base64: Buffer.from('<html>erro</html>').toString('base64')}, 71); await esperar();
+  assert(n.enviadas.some((e) => e.estado === 'erro' && /não é um PDF/.test(e.texto) && e.fim === true)); assert.equal(n.gasEnviado().length, 0);
+  assert.equal(await n.msg({tipo: 'pdf-bytes', base64: b64}, 999), null, 'de outra aba não vale');
 });
 
 await navegador.close();

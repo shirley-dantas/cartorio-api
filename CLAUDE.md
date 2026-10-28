@@ -1233,6 +1233,12 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   abre o PDF numa aba nova. O fundo agora pega o `VisualizaTicket.aspx` tanto na aba do pedido quanto numa aba aberta por ela (`openerTabId`), fecha a
   aba extra depois de guardar e avisa a aba do pedido (`pdf`, `fim`) para a faixa parar de vigiar. A escolha da opção passou a ser um **clique de verdade**
   (`radio.click()`), porque a JUCESP guarda a escolha no clique. Ainda sem confirmação real de qual dos dois acontece.
+- **A ficha e a cópia são pedidas pelo formulário, não por clique.** No segundo teste real o relatório que ela copiou mostrou a tela certa, a opção marcada
+  e o botão `btnEmitir` (submit de um formulário ASP.NET), mas nada abria: o Chrome **bloqueia o pop-up** que o clique de um programa faz abrir.
+  Agora a aba do pedido monta o POST a partir do próprio formulário (viewstate, a opção marcada, o botão), lê a resposta e, se for o PDF — ou uma
+  página que aponta para `VisualizaTicket.aspx?sc=…` —, entrega os bytes ao fundo (`pdf-bytes`). O endereço do PDF é buscado **uma vez só**,
+  o que também elimina a dúvida do ticket de uso único. Se a resposta não for PDF, volta ao clique de sempre. O contador de "tentei 3 vezes" é
+  **por pedido** (a mesma aba atende várias empresas).
 - Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).

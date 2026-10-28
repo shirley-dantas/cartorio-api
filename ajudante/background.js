@@ -68,11 +68,11 @@ async function criarPedido(pedido, sender) {
   return { ok: true };
 }
 
-async function enviarAoApps(job, qual, bytes) {
+async function enviarAoApps(job, qual, base64) {
   const d = DOCS[qual];
   const corpo = {
     acao: 'painel-arquivo', casoId: job.casoId, nomeArquivo: 'JUCESP_' + d.arquivo + '_' + job.cnpj + '.pdf', mimetype: 'application/pdf',
-    base64: paraBase64(bytes), tipoSugerido: d.tipo, pessoaSugerida: job.empresa || '', origemAjudante: 'jucesp'
+    base64, tipoSugerido: d.tipo, pessoaSugerida: job.empresa || '', origemAjudante: 'jucesp'
   };
   const r = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(corpo) });
   const txt = await r.text();
@@ -81,24 +81,38 @@ async function enviarAoApps(job, qual, bytes) {
   return j;
 }
 
-async function capturar(job, url) {
+// O PDF já em mãos (base64): confere, entrega ao Apps Script e anda a fila. Quem o trouxe — a aba do pedido, que o baixou pelo formulário,
+// ou o endereço que abriu — não importa daqui para frente.
+async function guardarPdf(job, base64) {
   const qual = job.fila[0], d = DOCS[qual];
+  if (!d) return;
+  try {
+    if (!String(base64 || '').startsWith('JVBERi')) throw new Error('O que veio não é um PDF.');
+    if (base64.length * 0.75 > MAX_BYTES) throw new Error('PDF maior que 10 MB.');
+    const j = await enviarAoApps(job, qual, base64);
+    if (job.abaDoPdf != null && job.abaDoPdf !== job.jucespTabId) { try { Promise.resolve(chrome.tabs.remove(job.abaDoPdf)).catch(() => {}); } catch (_) { /* já fechou */ } }   // a aba extra só existia para mostrar o PDF
+    const atual = await mudar(job.id, (x) => { x.feitos.push(qual); x.fila.shift(); x.pdfUrl = null; x.abaDoPdf = null; x.manual = false; });
+    const msg = d.nome + ': guardado no card como ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.';
+    if (atual.fila.length) { falar(atual, 'andando', msg + ' Agora: ' + DOCS[atual.fila[0]].nome + '…'); await irParaEmpresa(atual); }
+    else await terminar(job.id, 'ok', 'Pronto! ' + msg);
+  } catch (e) {
+    await mudar(job.id, (x) => { x.pdfUrl = null; });
+    await terminar(job.id, 'erro', 'Não consegui guardar ' + d.nome + ': ' + ((e && e.message) || e) + ' Salve o PDF (Ctrl+S) e arraste para a caixa do card.');
+  }
+}
+
+// O PDF abriu numa aba (a do pedido ou uma nova): baixa pelo endereço, com a sessão dela.
+async function capturar(job, url) {
+  const d = DOCS[job.fila[0]];
   if (!d) return;
   falar(job, 'andando', 'Baixando: ' + d.nome + '…');
   try { Promise.resolve(chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'pdf' })).catch(() => {}); } catch (_) { /* a aba pode estar mudando de página */ }
   try {
     const r = await fetch(url, { credentials: 'include' });
     if (!r.ok) throw new Error('A JUCESP respondeu ' + r.status + ' ao baixar o PDF.');
-    const tipo = String(r.headers.get('content-type') || '').toLowerCase();
     const bytes = await r.arrayBuffer();
-    if (!/pdf/.test(tipo) && String.fromCharCode.apply(null, new Uint8Array(bytes.slice(0, 4))) !== '%PDF') throw new Error('O que abriu não é um PDF.');
-    if (!bytes.byteLength || bytes.byteLength > MAX_BYTES) throw new Error('PDF vazio ou maior que 10 MB.');
-    const j = await enviarAoApps(job, qual, bytes);
-    if (job.abaDoPdf != null && job.abaDoPdf !== job.jucespTabId) { try { Promise.resolve(chrome.tabs.remove(job.abaDoPdf)).catch(() => {}); } catch (_) { /* já fechou */ } }   // a aba extra só existia para mostrar o PDF
-    const atual = await mudar(job.id, (x) => { x.feitos.push(qual); x.fila.shift(); x.pdfUrl = null; x.abaDoPdf = null; x.manual = false; });
-    const msg = d.nome + ': guardado no card como ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.';
-    if (atual.fila.length) { falar(atual, 'andando', msg + ' Agora: ' + DOCS[atual.fila[0]].nome + '…'); await irParaEmpresa(atual); }
-    else await terminar(job.id, 'ok', 'Pronto! ' + msg);
+    if (!bytes.byteLength) throw new Error('PDF vazio.');
+    await guardarPdf(job, paraBase64(bytes));
   } catch (e) {
     await mudar(job.id, (x) => { x.pdfUrl = null; });
     await terminar(job.id, 'erro', 'Não consegui guardar ' + d.nome + ': ' + ((e && e.message) || e) + ' Salve o PDF (Ctrl+S) e arraste para a caixa do card.');
@@ -129,6 +143,8 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
       if (m.empresa && x && /^\d{11}$/.test(x.nire || '')) await lembrarNire(x.cnpj, x.nire);   // só o que veio do resultado da busca por esse CNPJ
       return responder({ ok: true });
     }
+    // A aba do pedido pediu o PDF pelo formulário e o trouxe de volta (sem abrir aba nenhuma): é o caminho normal.
+    if (m.tipo === 'pdf-bytes') { responder({ ok: true }); await guardarPdf(job, String(m.base64 || '')); return; }
     if (m.tipo === 'manual') { await mudar(job.id, (x) => { x.manual = true; }); return responder({ ok: true }); }
     responder(null);
   })().catch(() => responder(null));

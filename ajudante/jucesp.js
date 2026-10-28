@@ -116,7 +116,8 @@
       const radio = acharRadio(doc, d.radio), ok = achar(doc, 'ok', true);
       if (!radio) return { acao: 'erro', texto: 'Não achei a opção "' + d.nome + '" nesta tela.' };
       if (!ok) return { acao: 'erro', texto: 'Não achei o botão OK nesta tela.' };
-      return { acao: 'escolher', radio, botao: ok, texto: 'Pedindo: ' + d.nome + '…' };
+      // A ficha volta como PDF: pede-se pelo formulário (sem clique que abre aba, que o Chrome bloqueia). A cópia digitalizada só leva à lista.
+      return { acao: qual === 'ficha' ? 'baixar' : 'escolher', radio, botao: ok, texto: 'Pedindo: ' + d.nome + '…' };
     }
     if (tipo === 'copia') {
       const linhas = linhasDaCopia(doc);
@@ -126,7 +127,7 @@
       if (!escolhida) return { acao: 'manual', texto: 'Não achei nenhum ato de consolidação na lista (' + ROTULO_LISTA(linhas) + '). Escolha a linha certa e clique em CONTINUAR — eu pego o PDF.' };
       if (!escolhida.disponivel) return { acao: 'manual', texto: 'A cópia da consolidação de ' + escolhida.data.split('-').reverse().join('/') + ' não está disponível de graça (digitalização com tarifa). Eu não pago nada: se quiser pedir, faça você.' };
       if (!continuar) return { acao: 'erro', texto: 'Não achei o botão CONTINUAR.' };
-      return { acao: 'copia', radio: escolhida.radio, botao: continuar, linha: escolhida, texto: 'Consolidação mais recente: ' + escolhida.data.split('-').reverse().join('/') + (escolhida.registro ? ' (registro ' + escolhida.registro + ')' : '') + (candidatas.length > 1 ? ' — havia ' + candidatas.length + ', peguei a última' : '') + '.' };
+      return { acao: 'baixar', radio: escolhida.radio, botao: continuar, linha: escolhida, texto: 'Consolidação mais recente: ' + escolhida.data.split('-').reverse().join('/') + (escolhida.registro ? ' (registro ' + escolhida.registro + ')' : '') + (candidatas.length > 1 ? ' — havia ' + candidatas.length + ', peguei a última' : '') + '.' };
     }
     if (tipo === 'resultados') {
       const rs = resultados(doc);
@@ -184,9 +185,10 @@
   }
   const dizer = (estado, texto, fatal) => { try { chrome.runtime.sendMessage({ tipo: 'status', estado, texto, fatal: !!fatal }); } catch (_) { /* o painel mostra o que já chegou */ } };
 
-  // Contador de tentativas por tela e ação, na própria aba: se uma ação se repete, algo não está respondendo.
-  function tentativas(chave) {
-    try { const n = Number(sessionStorage.getItem('aj_' + chave) || 0) + 1; sessionStorage.setItem('aj_' + chave, String(n)); return n; } catch (_) { return 1; }
+  // Contador de tentativas por pedido, tela e ação, na própria aba: se uma ação se repete, algo não está respondendo.
+  // É por PEDIDO: a mesma aba atende várias empresas, e o que foi certo na primeira não pode contar contra a quarta.
+  function tentativas(pedido, chave) {
+    try { const k = 'aj_' + pedido + '_' + chave, n = Number(sessionStorage.getItem(k) || 0) + 1; sessionStorage.setItem(k, String(n)); return n; } catch (_) { return 1; }
   }
 
   function preencher(campo, valor) {
@@ -200,6 +202,33 @@
     const copiar = ['Copiar relatório', () => { navigator.clipboard.writeText(relatorio(document, location.pathname, job)).then(() => mostrar(texto + ' (relatório copiado — cole na conversa)', '#B3261E'), () => {}); }];
     mostrar(texto, '#B3261E', fatal ? [copiar] : [copiar, ['Fazer à mão', () => { chrome.runtime.sendMessage({ tipo: 'manual' }); mostrar('Certo — faça você. Quando o PDF abrir, eu o pego e guardo no card.', '#A9895A'); }]]);
     dizer(estado || 'erro', texto, fatal);
+  }
+
+  const paraBase64 = (buf) => { const b = new Uint8Array(buf); let t = ''; for (let i = 0; i < b.length; i += 0x8000) t += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(t); };
+  const ehPdf = (buf) => buf.byteLength > 4 && String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 4))) === '%PDF';
+  // A resposta da JUCESP é o PDF em si, ou uma página que manda abrir o PDF (VisualizaTicket.aspx?sc=…): nos dois casos o PDF é pego aqui,
+  // uma vez só, sem abrir aba (o Chrome bloqueia a aba que um clique de programa abre).
+  async function pdfDaResposta(r, fundura) {
+    const buf = await r.arrayBuffer();
+    if (ehPdf(buf)) return buf;
+    const naoPdf = (msg) => Object.assign(new Error(msg), { naoPdf: true });
+    if ((fundura || 0) >= 2) throw naoPdf('A JUCESP não devolveu o PDF.');
+    const texto = new TextDecoder().decode(buf).replace(/\\u0026|&amp;/g, '&').replace(/\\\//g, '/');
+    const m = /[\w./-]*VisualizaTicket\.aspx\?[^'"\s)<>\\]+/i.exec(texto);
+    if (!m) throw naoPdf('A JUCESP respondeu, mas sem o PDF (' + (r.status || '?') + ').');
+    return pdfDaResposta(await fetch(new URL(m[0], r.url || location.href).href, { credentials: 'same-origin' }), (fundura || 0) + 1);
+  }
+  async function baixarPorFormulario(radio, botao) {
+    const form = botao.form || botao.closest('form');
+    if (!form) throw Object.assign(new Error('Não achei o formulário da página.'), { naoPdf: true });
+    radio.click(); if (!radio.checked) radio.checked = true;
+    const corpo = new URLSearchParams();
+    for (const [k, v] of new FormData(form, /^(submit|image)$/i.test(botao.type) ? botao : undefined).entries()) if (typeof v === 'string') corpo.append(k, v);
+    if (botao.name && !corpo.has(botao.name)) corpo.append(botao.name, botao.value || '');
+    const alvo = form.getAttribute('action') ? new URL(form.getAttribute('action'), location.href).href : location.href;
+    const r = await fetch(alvo, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: corpo.toString() });
+    if (!r.ok) throw new Error('A JUCESP respondeu ' + r.status + '.');
+    return pdfDaResposta(r, 0);
   }
 
   async function iniciar() {
@@ -218,17 +247,20 @@
       }
     });
     let ultimo = '';
-    const rodar = () => {
-      const plano = planejar(document, location.pathname, job);
-      if (plano.acao === 'esperar') { if (plano.texto !== ultimo) { ultimo = plano.texto; mostrar(plano.texto); dizer('espera', plano.texto); } return false; }
-      ultimo = '';
-      if (job.manual) { mostrar('Faça você — eu pego o PDF quando abrir.'); return true; }
-      if (plano.acao === 'fim') { mostrar(plano.texto); return true; }
-      if (plano.acao === 'erro') { parar(job, plano.texto, 'erro', plano.fatal); return true; }
-      if (plano.acao === 'manual') { chrome.runtime.sendMessage({ tipo: 'manual' }); mostrar(plano.texto, '#A9895A'); dizer('manual', plano.texto); return true; }
-      if (tentativas(location.pathname + '|' + plano.acao + '|' + (job.fila || [])[0]) > 3) { parar(job, 'A página não respondeu ao que eu fiz (tentei 3 vezes).'); return true; }
-      mostrar(plano.texto); dizer('andando', plano.texto);
+    const baixar = async (plano) => {
+      try {
+        const buf = await baixarPorFormulario(plano.radio, plano.botao);
+        mostrar('Recebi o PDF — guardando no card…'); dizer('andando', 'Recebi o PDF — guardando no card…');
+        await chrome.runtime.sendMessage({ tipo: 'pdf-bytes', base64: paraBase64(buf) });
+      } catch (e) {
+        if (e && e.naoPdf) return executar(Object.assign({}, plano, { acao: 'escolher', planejado: 'baixar' }));   // a resposta não era PDF: o caminho do clique de sempre
+        parar(job, 'Não consegui pedir o PDF: ' + ((e && e.message) || e));
+      }
+    };
+    // Faz o que o plano manda e, se o clique não leva a lugar nenhum, vigia a página até ela mudar (ou acusa).
+    const executar = (plano) => {
       if (plano.nire) chrome.runtime.sendMessage({ tipo: 'nire', nire: plano.nire, empresa: plano.empresa });
+      if (plano.acao === 'baixar') { baixar(plano); return; }
       if (plano.acao === 'preencher') { preencher(plano.campo, plano.valor); setTimeout(() => plano.botao.click(), 150); }
       else if (plano.acao === 'escolher' || plano.acao === 'copia') { plano.radio.click(); if (!plano.radio.checked) plano.radio.checked = true; plano.radio.dispatchEvent(new Event('change', { bubbles: true })); setTimeout(() => plano.botao.click(), 400); }
       else if (plano.acao === 'clicar') plano.el.click();
@@ -239,10 +271,22 @@
         montarFaixa();
         const p = planejar(document, location.pathname, job);
         if (p.acao === 'esperar') { desde = Date.now(); if (p.texto !== ultimo) { ultimo = p.texto; mostrar(p.texto); dizer('espera', p.texto); } return; }
-        if (p.texto !== plano.texto || p.acao !== plano.acao) { clearInterval(vigia); ultimo = ''; if (!rodar()) { const r2 = setInterval(() => { if (rodar()) clearInterval(r2); }, 1500); setTimeout(() => clearInterval(r2), 10 * 60 * 1000); } return; }
+        if (p.texto !== plano.texto || p.acao !== (plano.planejado || plano.acao)) { clearInterval(vigia); ultimo = ''; if (!rodar()) { const r2 = setInterval(() => { if (rodar()) clearInterval(r2); }, 1500); setTimeout(() => clearInterval(r2), 10 * 60 * 1000); } return; }
         if (Date.now() - desde > 15000) { clearInterval(vigia); parar(job, 'A página não mudou depois do meu clique.'); }
       }, 1000);
       setTimeout(() => clearInterval(vigia), 10 * 60 * 1000);
+    };
+    const rodar = () => {
+      const plano = planejar(document, location.pathname, job);
+      if (plano.acao === 'esperar') { if (plano.texto !== ultimo) { ultimo = plano.texto; mostrar(plano.texto); dizer('espera', plano.texto); } return false; }
+      ultimo = '';
+      if (job.manual) { mostrar('Faça você — eu pego o PDF quando abrir.'); return true; }
+      if (plano.acao === 'fim') { mostrar(plano.texto); return true; }
+      if (plano.acao === 'erro') { parar(job, plano.texto, 'erro', plano.fatal); return true; }
+      if (plano.acao === 'manual') { chrome.runtime.sendMessage({ tipo: 'manual' }); mostrar(plano.texto, '#A9895A'); dizer('manual', plano.texto); return true; }
+      if (tentativas(job.id, location.pathname + '|' + plano.acao + '|' + (job.fila || [])[0]) > 3) { parar(job, 'A página não respondeu ao que eu fiz (tentei 3 vezes).'); return true; }
+      mostrar(plano.texto); dizer('andando', plano.texto);
+      executar(plano);
       return true;
     };
     if (/\/Pre_Visualiza\.aspx/i.test(location.pathname)) { const n = /[?&]nire=(\d+)/i.exec(location.search); if (n) chrome.runtime.sendMessage({ tipo: 'nire', nire: n[1] }); }
