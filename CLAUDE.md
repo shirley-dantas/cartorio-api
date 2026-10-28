@@ -1243,7 +1243,7 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   clicar neles dá "violates Content Security Policy" e nada acontece (achado no relatório de erros da extensão, 28/10/2026). `clicarSemScript()` preenche
   `__EVENTTARGET` e `__EVENTARGUMENT` e envia o formulário, que é tudo o que o link faria. Outro `javascript:` que não seja postback: erro escrito, nunca tentativa.
 - **A versão da extensão sobe a cada mudança** (`manifest.json` e `VERSAO` do `painel.js`, que o teste obriga a andar juntas): ela instala a extensão trocando
-  arquivos numa pasta, e sem número novo ninguém sabe se o Chrome leu os arquivos novos. O *Copiar relatório* leva a versão e a frase da faixa.
+  arquivos numa pasta, e sem número novo ninguém sabe se o Chrome leu os arquivos novos. O *Copiar relatório* leva a versão, a frase da faixa e — quando o pedido do PDF pelo formulário recebe uma resposta que não é PDF — o que a JUCESP respondeu (`diagnostico`: status, tipo, tamanho e o começo do texto, sem números longos nem campos escondidos). No terceiro teste real o pedido pelo formulário caiu no clique (0.1.1) por um motivo ainda desconhecido; o diagnóstico existe para descobri-lo.
 - Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
