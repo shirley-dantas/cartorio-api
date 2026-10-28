@@ -231,6 +231,18 @@
     return pdfDaResposta(r, 0);
   }
 
+  // Link "javascript:__doPostBack('alvo','')" (os links da tabela de resultados): o Chrome não deixa a extensão executar URL de script. O link
+  // só preenche dois campos escondidos e envia o formulário; é o que se faz aqui, sem script nenhum.
+  function clicarSemScript(el) {
+    const href = (el.getAttribute && el.getAttribute('href')) || '';
+    if (!/^\s*javascript:/i.test(href)) return el.click();
+    const m = /__doPostBack\(\s*['"]([^'"]*)['"]\s*,\s*['"]([^'"]*)['"]\s*\)/.exec(href), form = el.closest('form') || document.forms[0];
+    if (!m || !form) throw new Error('Esse link da página roda um script que o Chrome não deixa a extensão executar.');
+    const campo = (nome) => form.elements[nome] || Object.assign(form.appendChild(document.createElement('input')), { type: 'hidden', name: nome });
+    campo('__EVENTTARGET').value = m[1]; campo('__EVENTARGUMENT').value = m[2];
+    HTMLFormElement.prototype.submit.call(form);
+  }
+
   async function iniciar() {
     let job;
     try { job = await chrome.runtime.sendMessage({ tipo: 'quem' }); } catch (_) { return; }
@@ -263,7 +275,7 @@
       if (plano.acao === 'baixar') { baixar(plano); return; }
       if (plano.acao === 'preencher') { preencher(plano.campo, plano.valor); setTimeout(() => plano.botao.click(), 150); }
       else if (plano.acao === 'escolher' || plano.acao === 'copia') { plano.radio.click(); if (!plano.radio.checked) plano.radio.checked = true; plano.radio.dispatchEvent(new Event('change', { bubbles: true })); setTimeout(() => plano.botao.click(), 400); }
-      else if (plano.acao === 'clicar') plano.el.click();
+      else if (plano.acao === 'clicar') { try { clicarSemScript(plano.el); } catch (e) { parar(job, (e && e.message) || String(e)); return; } }
       else if (plano.acao === 'ir') location.href = new URL(plano.url, location.origin).href;
       // A página pode mudar sem recarregar (o captcha aparece no mesmo lugar): vigia o que vem depois do clique.
       let desde = Date.now();
