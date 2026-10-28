@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Ajudante do painel — 20º Tabelião",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Busca documentos nos sites que você já usa (JUCESP) e guarda no card do painel. Nada é pago sem o seu clique.",
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage", "tabs", "contentSettings"],
   "host_permissions": [
     "https://www.jucesponline.sp.gov.br/*",
     "https://script.google.com/*",

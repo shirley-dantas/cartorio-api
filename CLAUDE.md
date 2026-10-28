@@ -1243,7 +1243,15 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   clicar neles dá "violates Content Security Policy" e nada acontece (achado no relatório de erros da extensão, 28/10/2026). `clicarSemScript()` preenche
   `__EVENTTARGET` e `__EVENTARGUMENT` e envia o formulário, que é tudo o que o link faria. Outro `javascript:` que não seja postback: erro escrito, nunca tentativa.
 - **A versão da extensão sobe a cada mudança** (`manifest.json` e `VERSAO` do `painel.js`, que o teste obriga a andar juntas): ela instala a extensão trocando
-  arquivos numa pasta, e sem número novo ninguém sabe se o Chrome leu os arquivos novos. O *Copiar relatório* leva a versão, a frase da faixa e — quando o pedido do PDF pelo formulário recebe uma resposta que não é PDF — o que a JUCESP respondeu (`diagnostico`: status, tipo, tamanho e o começo do texto, sem números longos nem campos escondidos). No terceiro teste real o pedido pelo formulário caiu no clique (0.1.1) por um motivo ainda desconhecido; o diagnóstico existe para descobri-lo.
+  arquivos numa pasta, e sem número novo ninguém sabe se o Chrome leu os arquivos novos. O *Copiar relatório* leva a versão, a frase da faixa e — quando o pedido do PDF pelo formulário recebe uma resposta que não é PDF — o que a JUCESP respondeu (`diagnostico`: status, tipo, tamanho, os nomes dos campos enviados, os trechos da resposta que mencionam abrir janela/ticket/redirecionar e o fim do texto — sem números longos, sem tokens de 40+ caracteres e sem campos escondidos). No terceiro teste real (0.1.2) a resposta ao pedido pelo formulário foi **a mesma página** (HTML, 200, `/Pre_Visualiza.aspx`, 52 KB), sem PDF e sem endereço de ticket que a busca achasse; o diagnóstico da 0.1.3 existe para ver onde a JUCESP avisa que o documento está pronto.
+- **Depois do captcha tudo é dele (0.1.4): clicar em OK, esperar o PDF e guardar** — pedido dela, 29/10/2026 (ela não quer clique extra). O que parava a faixa no OK
+  ("a página não mudou") é, com toda a probabilidade, o **bloqueio de pop-up do Chrome**: a JUCESP abre o PDF com uma janela nova, e o Chrome a bloqueia quando o clique é de
+  programa. O fundo libera, enquanto há pedido andando, **os pop-ups só do site da JUCESP** (`chrome.contentSettings.popups`, padrão `https://www.jucesponline.sp.gov.br/*`,
+  desfeito ao terminar o último pedido; permissão `contentSettings`). Reserva: se, mesmo assim, a página não muda em 15 s, a faixa mostra **"Gerar o PDF (clique aqui)"** — um
+  clique dela, que o Chrome sempre aceita — em vez de acusar erro. O PDF aberto é pedido **primeiro à aba da JUCESP** (`buscar-pdf`: sessão e cookies da própria aba, só
+  endereço `VisualizaTicket.aspx` da mesma origem) e só depois pelo fundo. Em aberto: se o endereço do PDF vale uma vez só (o primeiro "O que veio não é um PDF" no card
+  sugere que sim); se valer, a saída seguinte é forçar o download (`declarativeNetRequest` + `downloads`, com "Permitir acesso a URLs de arquivo" ligado uma vez) em vez de
+  buscar de novo.
 - Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).

@@ -159,7 +159,7 @@
     }, null, 1);
   }
 
-  const api = { norm, logada, achar, campoBusca, resultados, acharRadio, linhasDaCopia, escolherConsolidacao, tipoDePagina, planejar, relatorio, DOCUMENTOS };
+  const api = { config: { esperaMs: 15000 }, norm, logada, achar, campoBusca, resultados, acharRadio, linhasDaCopia, escolherConsolidacao, tipoDePagina, planejar, relatorio, DOCUMENTOS };
   raiz.AJ_JUCESP = api;
 
   // ── Daqui para baixo é a parte que mexe na página (só no navegador, com a extensão) ─────────────────────────
@@ -211,19 +211,31 @@
   const ehPdf = (buf) => buf.byteLength > 4 && String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 4))) === '%PDF';
   // A resposta da JUCESP é o PDF em si, ou uma página que manda abrir o PDF (VisualizaTicket.aspx?sc=…): nos dois casos o PDF é pego aqui,
   // uma vez só, sem abrir aba (o Chrome bloqueia a aba que um clique de programa abre).
-  async function pdfDaResposta(r, fundura) {
+  const mascarar = (t) => String(t).replace(/[A-Za-z0-9+\/=_%-]{40,}/g, '…').replace(/\d{8,}/g, '#').replace(/\s+/g, ' ');   // viewstate, tickets e números longos nunca vão para o relatório
+  // Os trechos da resposta onde a JUCESP costuma avisar que o documento está pronto (abrir janela, ticket, redirecionar…): para o relatório.
+  function trechosDe(texto) {
+    const chave = /(window\.open|VisualizaTicket|ticket|\.ashx|\.pdf|location\.href|top\.location|Response\.Redirect|ScriptManager|pageLoaded|alert\()/gi, vistos = new Set(), saida = [];
+    for (const m of texto.matchAll(chave)) {
+      const t = mascarar(texto.slice(Math.max(0, m.index - 110), m.index + 190));
+      if (!vistos.has(t) && saida.length < 12) { vistos.add(t); saida.push(t); }
+    }
+    return saida;
+  }
+  // A resposta da JUCESP é o PDF em si, ou uma página que manda abrir o PDF (VisualizaTicket.aspx?sc=…): nos dois casos o PDF é pego aqui,
+  // uma vez só, sem abrir aba (o Chrome bloqueia a aba que um clique de programa abre).
+  async function pdfDaResposta(r, fundura, enviados) {
     const buf = await r.arrayBuffer();
     if (ehPdf(buf)) return buf;
     const texto0 = new TextDecoder().decode(buf);
-    // O que a JUCESP respondeu, para o relatório: status, tipo, tamanho e o começo do texto — sem números longos (CPF, protocolo) nem os campos escondidos.
+    // O que a JUCESP respondeu, para o relatório: status, tipo, tamanho, os trechos que importam e o fim — sem números longos (CPF, protocolo) nem os campos escondidos.
     const diag = { status: r.status, tipo: r.headers && r.headers.get ? r.headers.get('content-type') : '', tamanho: buf.byteLength, endereco: (() => { try { return new URL(r.url).pathname; } catch (_) { return ''; } })(),
-      trecho: texto0.replace(/value="[^"]{40,}"/g, 'value="…"').replace(/\d{8,}/g, '#').replace(/\s+/g, ' ').slice(0, 700) };
+      enviados: enviados || [], trechos: trechosDe(texto0), fim: mascarar(texto0.slice(-300)) };
     const naoPdf = (msg) => Object.assign(new Error(msg), { naoPdf: true, diag });
     if ((fundura || 0) >= 2) throw naoPdf('A JUCESP não devolveu o PDF.');
-    const texto = texto0.replace(/\\u0026|&amp;/g, '&').replace(/\\\//g, '/');
-    const m = /[\w./-]*VisualizaTicket\.aspx\?[^'"\s)<>\\]+/i.exec(texto);
+    const texto = texto0.replace(/\\u0026|&amp;|&#38;/g, '&').replace(/\\\//g, '/').replace(/&#x2F;/gi, '/');
+    const m = /[\w./-]*VisualizaTicket\.aspx\?[^'"\s)<>\\]+/i.exec(texto) || /[\w./-]+\.aspx\?(?:[^'"\s)<>\\]*&)?sc=[^'"\s)<>\\]+/i.exec(texto);
     if (!m) throw naoPdf('A JUCESP respondeu, mas sem o PDF (' + (r.status || '?') + ').');
-    return pdfDaResposta(await fetch(new URL(m[0], r.url || location.href).href, { credentials: 'same-origin' }), (fundura || 0) + 1);
+    return pdfDaResposta(await fetch(new URL(m[0], r.url || location.href).href, { credentials: 'same-origin' }), (fundura || 0) + 1, enviados);
   }
   async function baixarPorFormulario(radio, botao) {
     const form = botao.form || botao.closest('form');
@@ -235,7 +247,7 @@
     const alvo = form.getAttribute('action') ? new URL(form.getAttribute('action'), location.href).href : location.href;
     const r = await fetch(alvo, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: corpo.toString() });
     if (!r.ok) throw new Error('A JUCESP respondeu ' + r.status + '.');
-    return pdfDaResposta(r, 0);
+    return pdfDaResposta(r, 0, Array.from(corpo.keys()));
   }
 
   // Link "javascript:__doPostBack('alvo','')" (os links da tabela de resultados): o Chrome não deixa a extensão executar URL de script. O link
@@ -257,8 +269,20 @@
     mostrar('Ajudante do painel ligado…');
     let vigiaAtual = null;
     // O fundo avisa quando o PDF chegou (mesmo que tenha aberto noutra aba) e quando o pedido terminou.
-    if (chrome.runtime.onMessage && chrome.runtime.onMessage.addListener) chrome.runtime.onMessage.addListener((m) => {
+    if (chrome.runtime.onMessage && chrome.runtime.onMessage.addListener) chrome.runtime.onMessage.addListener((m, remetente, responder) => {
       if (!m) return;
+      // O fundo pede o PDF por aqui: a requisição sai da própria aba da JUCESP, com a sessão e os cookies dela (o fundo da extensão não tem garantia disso).
+      if (m.tipo === 'buscar-pdf') {
+        (async () => {
+          try {
+            const alvo = new URL(m.url, location.href);
+            if (alvo.origin !== location.origin || !/\/VisualizaTicket\.aspx/i.test(alvo.pathname)) return responder({ ok: false, erro: 'Endereço que não é do PDF da JUCESP.' });
+            const r = await fetch(alvo.href, { credentials: 'same-origin' }), buf = await r.arrayBuffer();
+            responder(ehPdf(buf) ? { ok: true, base64: paraBase64(buf) } : { ok: false, status: r.status, tipo: r.headers.get('content-type') || '' });
+          } catch (e) { responder({ ok: false, erro: String((e && e.message) || e) }); }
+        })();
+        return true;
+      }
       if (m.tipo === 'pdf') { clearInterval(vigiaAtual); mostrar('Recebi o PDF — guardando no card…'); }
       if (m.tipo === 'fim') {   // o erro já está na faixa, com os botões dele; só o sucesso e o cancelamento a trocam
         clearInterval(vigiaAtual);
@@ -266,13 +290,25 @@
       }
     });
     let ultimo = '';
+    // Reserva: se, mesmo com o OK clicado e os pop-ups liberados, a página não muda, a faixa pede UM clique dela (o do usuário o Chrome sempre aceita);
+    // o resto — pegar o PDF e guardar no card — continua sendo do Ajudante.
+    const pedirClique = (plano) => {
+      const aviso = 'A JUCESP não abriu o PDF com o meu clique. Clique no botão abaixo — o resto é comigo.';
+      mostrar(aviso, '#A9895A', [['Gerar o PDF (clique aqui)', () => {
+        plano.radio.click(); if (!plano.radio.checked) plano.radio.checked = true;
+        mostrar('Pedindo o PDF…'); dizer('andando', 'Pedindo o PDF…');
+        plano.botao.click();   // dentro do clique dela: o Chrome aceita a janela do PDF
+        vigiar(Object.assign({}, plano, { acao: 'escolher', planejado: 'baixar' }));
+      }]]);
+      dizer('manual', aviso);
+    };
     const baixar = async (plano) => {
       try {
         const buf = await baixarPorFormulario(plano.radio, plano.botao);
         mostrar('Recebi o PDF — guardando no card…'); dizer('andando', 'Recebi o PDF — guardando no card…');
         await chrome.runtime.sendMessage({ tipo: 'pdf-bytes', base64: paraBase64(buf) });
       } catch (e) {
-        if (e && e.naoPdf) { ultimoDiagnostico = e.diag || null; return executar(Object.assign({}, plano, { acao: 'escolher', planejado: 'baixar' })); }   // a resposta não era PDF: o caminho do clique de sempre
+        if (e && e.naoPdf) { ultimoDiagnostico = e.diag || null; return executar(Object.assign({}, plano, { acao: 'escolher', planejado: 'baixar' })); }   // a resposta não era PDF: clica em OK (o fundo liberou os pop-ups desse site, então a janela do PDF abre)
         parar(job, 'Não consegui pedir o PDF: ' + ((e && e.message) || e));
       }
     };
@@ -284,14 +320,17 @@
       else if (plano.acao === 'escolher' || plano.acao === 'copia') { plano.radio.click(); if (!plano.radio.checked) plano.radio.checked = true; plano.radio.dispatchEvent(new Event('change', { bubbles: true })); setTimeout(() => plano.botao.click(), 400); }
       else if (plano.acao === 'clicar') { try { clicarSemScript(plano.el); } catch (e) { parar(job, (e && e.message) || String(e)); return; } }
       else if (plano.acao === 'ir') location.href = new URL(plano.url, location.origin).href;
-      // A página pode mudar sem recarregar (o captcha aparece no mesmo lugar): vigia o que vem depois do clique.
+      vigiar(plano);
+    };
+    // A página pode mudar sem recarregar (o captcha aparece no mesmo lugar): vigia o que vem depois do clique.
+    const vigiar = (plano) => {
       let desde = Date.now();
       const vigia = vigiaAtual = setInterval(() => {
         montarFaixa();
         const p = planejar(document, location.pathname, job);
         if (p.acao === 'esperar') { desde = Date.now(); if (p.texto !== ultimo) { ultimo = p.texto; mostrar(p.texto); dizer('espera', p.texto); } return; }
         if (p.texto !== plano.texto || p.acao !== (plano.planejado || plano.acao)) { clearInterval(vigia); ultimo = ''; if (!rodar()) { const r2 = setInterval(() => { if (rodar()) clearInterval(r2); }, 1500); setTimeout(() => clearInterval(r2), 10 * 60 * 1000); } return; }
-        if (Date.now() - desde > 15000) { clearInterval(vigia); parar(job, 'A página não mudou depois do meu clique.'); }
+        if (Date.now() - desde > api.config.esperaMs) { clearInterval(vigia); if (plano.planejado === 'baixar') return pedirClique(plano); parar(job, 'A página não mudou depois do meu clique.'); }
       }, 1000);
       setTimeout(() => clearInterval(vigia), 10 * 60 * 1000);
     };
