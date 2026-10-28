@@ -60,14 +60,14 @@ await passo('ponte: o andamento vindo do fundo chega ao painel; se o fundo não 
 });
 
 // ── O fundo ──
-function mundoFundo({buscarPdf, pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas = {ok: true, nome: 'JRL_HOLDING_LTDA_FICHA_CADASTRAL_JUCESP_2026-10-28_1.pdf', confirmar: false}, gasTexto, statusPdf = 200} = {}) {
+function mundoFundo({popupsFalha, buscarPdf, pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas = {ok: true, nome: 'JRL_HOLDING_LTDA_FICHA_CADASTRAL_JUCESP_2026-10-28_1.pdf', confirmar: false}, gasTexto, statusPdf = 200} = {}) {
   const store = {}, enviadas = [], criadas = [], atualizadas = [], removidas = [], popups = [], busca = [], ouv = {msg: null, upd: null, rem: null};
   const chrome = {
     storage: {local: {get: async (k) => (k in store ? {[k]: JSON.parse(JSON.stringify(store[k]))} : {}), set: async (o) => { for (const [k, v] of Object.entries(o)) store[k] = JSON.parse(JSON.stringify(v)); }}},
     tabs: {create: async (o) => { criadas.push(o); return {id: 70 + criadas.length}; }, update: async (id, o) => { atualizadas.push({id, ...o}); }, remove: async (id) => { removidas.push(id); }, sendMessage: async (id, m) => { enviadas.push({tabId: id, ...m}); if (m.tipo === 'buscar-pdf') { if (buscarPdf === 'erro') throw new Error('sem receptor'); return buscarPdf; } },
-      onUpdated: {addListener: (f) => { ouv.upd = f; }}, onRemoved: {addListener: (f) => { ouv.rem = f; }}},
+      onUpdated: {addListener: (f) => { ouv.upd = f; }}, onRemoved: {addListener: (f) => { ouv.rem = f; }}, onCreated: {addListener: (f) => { ouv.cri = f; }}},
     runtime: {onMessage: {addListener: (f) => { ouv.msg = f; }}},
-    contentSettings: {popups: {set: async (o) => { popups.push({acao: 'set', ...o}); }, clear: async (o) => { popups.push({acao: 'clear', ...o}); }}}
+    contentSettings: {popups: {set: async (o) => { if (popupsFalha) throw new Error(popupsFalha); popups.push({acao: 'set', ...o}); }, clear: async (o) => { popups.push({acao: 'clear', ...o}); }}}
   };
   const fetch = async (url, o = {}) => {
     busca.push({url: String(url), o});
@@ -475,7 +475,7 @@ async function ficha(respostaPost, formExtra = '', esperaMs) {
   });
   await pagina.goto(ORIGEM + '/Pre_Visualiza.aspx?nire=35262229284&idproduto=');
   await pagina.evaluate(() => sessionStorage.clear());
-  await pagina.evaluate((j) => { window.__msgs = []; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? j : {ok: true}; }, onMessage: {addListener() {}}}}; }, job());
+  await pagina.evaluate((j) => { window.__msgs = []; window.chrome = {runtime: {getManifest: () => ({version: '9.9.9'}), sendMessage: async (m) => { window.__msgs.push(m); if (m.tipo === 'diagnostico-fundo') return {popups: 'ok', eventos: [{abaCriada: '/VisualizaTicket.aspx'}]}; return m.tipo === 'quem' ? j : {ok: true}; }, onMessage: {addListener() {}}}}; Object.defineProperty(navigator, 'clipboard', {value: {writeText: async (txt) => { window.__copiado = txt; }}, configurable: true}); }, job());
   await pagina.addScriptTag({content: ler('ajudante/jucesp.js')});
   if (esperaMs) await pagina.evaluate((ms) => { window.AJ_JUCESP.config.esperaMs = ms; }, esperaMs);
   await pagina.waitForTimeout(esperaMs ? 3200 : 1500);
@@ -503,6 +503,13 @@ await passo('reserva: se o OK clicado sozinho não faz a página mudar, a faixa 
   assert.equal(r.cliques, 1, 'primeiro tentou sozinho'); assert.match(r.faixa, /não abriu o PDF com o meu clique/); assert.match(r.faixa, /Gerar o PDF \(clique aqui\)/); assert(!r.msgs.some((m) => m.estado === 'erro'), 'não é erro'); assert(r.msgs.some((m) => m.estado === 'manual'));
   await pagina.getByText('Gerar o PDF (clique aqui)').click(); await pagina.waitForTimeout(150);
   assert.equal(await pagina.evaluate(() => Number(sessionStorage.getItem('clicouOk') || 0)), 2, 'o clique dela dispara o OK de novo, dentro do gesto dela');
+});
+
+await passo('reserva: a faixa também tem "Copiar relatório", e ele leva a versão, o diagnóstico da resposta e o que o fundo viu', async () => {
+  await ficha((rt) => rt.fulfill({contentType: 'text/html', body: '<html><script>window.open("/x.aspx")</script></html>'}), 'onsubmit="return false"', 600);
+  await pagina.getByText('Copiar relatório').click(); await pagina.waitForTimeout(200);
+  const o = JSON.parse(await pagina.evaluate(() => window.__copiado));
+  assert.equal(o.versao, '9.9.9'); assert.match(o.aviso, /não abriu o PDF/); assert.equal(o.fundo.popups, 'ok'); assert.equal(o.fundo.eventos[0].abaCriada, '/VisualizaTicket.aspx'); assert.equal(o.diagnostico.status, 200); assert(o.diagnostico.trechos.some((x) => /window\.open/.test(x)));
 });
 
 await passo('formulário: erro do servidor aparece escrito, com o "fazer à mão"', async () => {
@@ -544,6 +551,21 @@ await passo('fundo: enquanto há pedido andando, os pop-ups SÓ do site da JUCES
   await dois.msg({tipo: 'cancelar', id: 'ajteste1'}, PAINEL); assert(!dois.popups.some((p) => p.acao === 'clear'), 'ainda há um pedido andando: não desfaz');
   await dois.msg({tipo: 'cancelar', id: 'ajteste2'}, PAINEL); assert.equal(dois.popups.at(-1).acao, 'clear');
   const semApi = mundoFundo(); delete semApi.criadas; // o mundo sem a API não pode derrubar o pedido (a faixa tem o botão de reserva)
+});
+
+await passo('fundo: guarda o que viu — pop-ups liberados?, abas abertas pela página, como o PDF foi buscado — e entrega ao relatório (sem a parte secreta do endereço)', async () => {
+  const b64 = Buffer.from('%PDF-1.4 x').toString('base64');
+  const m = mundoFundo({buscarPdf: {ok: true, base64: b64}}); await m.msg({tipo: 'pedido', pedido: pedido({quero: ['ficha', 'contrato']})}, PAINEL);
+  m.ouv.cri({id: 90, openerTabId: 71, pendingUrl: 'https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=SEGREDO'}); await esperar();
+  m.ouv.cri({id: 91, openerTabId: 555, pendingUrl: 'https://outra.com/x'}); await esperar();   // de outra aba: não conta
+  await m.abrir('https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=SEGREDO', 90, 71);
+  const d = await m.msg({tipo: 'diagnostico-fundo'}, 71);
+  assert.equal(d.popups, 'ok'); assert(d.eventos.some((e) => e.abaCriada === '/VisualizaTicket.aspx')); assert(d.eventos.some((e) => e.pdfEm === '/VisualizaTicket.aspx' && e.aba === 'nova')); assert(d.eventos.some((e) => e.buscaPelaAba === 'ok'));
+  assert(!JSON.stringify(d).includes('SEGREDO'), 'o ticket não vai para o relatório'); assert(!JSON.stringify(d).includes('outra.com'));
+  const f = mundoFundo({popupsFalha: 'Pattern not valid'}); const r = await f.msg({tipo: 'pedido', pedido: pedido()}, PAINEL); assert.equal(r.ok, true, 'falha nos pop-ups não derruba o pedido');
+  assert.match((await f.msg({tipo: 'diagnostico-fundo'}, 71)).popups, /erro: Pattern not valid/);
+  const s = mundoFundo({buscarPdf: {ok: false, status: 200, tipo: 'text/html'}}); await s.msg({tipo: 'pedido', pedido: pedido()}, PAINEL); await s.abrir('https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=1', 90, 71);
+  const e = (await s.msg({tipo: 'diagnostico-fundo'}, 71)); assert.equal(e, null, 'depois de terminar a aba deixa de ser acompanhada');
 });
 
 await passo('fundo: o PDF trazido pela aba do pedido (pdf-bytes) é conferido, guardado e a fila anda — e o que não é PDF vira erro escrito', async () => {
