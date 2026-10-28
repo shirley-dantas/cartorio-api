@@ -1239,6 +1239,9 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   página que aponta para `VisualizaTicket.aspx?sc=…` —, entrega os bytes ao fundo (`pdf-bytes`). O endereço do PDF é buscado **uma vez só**,
   o que também elimina a dúvida do ticket de uso único. Se a resposta não for PDF, volta ao clique de sempre. O contador de "tentei 3 vezes" é
   **por pedido** (a mesma aba atende várias empresas).
+- **O Chrome não deixa a extensão clicar em link `javascript:`.** Os links da tabela de resultados da JUCESP (o NIRE) são `javascript:__doPostBack('alvo','')`;
+  clicar neles dá "violates Content Security Policy" e nada acontece (achado no relatório de erros da extensão, 28/10/2026). `clicarSemScript()` preenche
+  `__EVENTTARGET` e `__EVENTARGUMENT` e envia o formulário, que é tudo o que o link faria. Outro `javascript:` que não seja postback: erro escrito, nunca tentativa.
 - Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).

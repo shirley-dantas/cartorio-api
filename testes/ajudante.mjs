@@ -510,5 +510,27 @@ await passo('fundo: o PDF trazido pela aba do pedido (pdf-bytes) é conferido, g
   assert.equal(await n.msg({tipo: 'pdf-bytes', base64: b64}, 999), null, 'de outra aba não vale');
 });
 
+await passo('link com script (__doPostBack): o Chrome não deixa executar, então o Ajudante preenche os campos escondidos e envia o formulário — sem script', async () => {
+  const posts = [];
+  const html = TOPO() + `<form method="post" action="/ResultadoBusca.aspx" id="aspnetForm"><input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value=""><input type="hidden" name="__EVENTARGUMENT" value=""><input type="hidden" name="__VIEWSTATE" value="vs9">
+    <p>Resultados 1 - 1 de 1 para o termo '52247521000141'</p><table><tr><th>NIRE</th><th>Empresa</th><th>Município</th></tr><tr><td><a href="javascript:__doPostBack('ctl00$cphContent$gdvResultadoBusca$ctl02$lnkNire','')">35262229284</a></td><td>JRL HOLDING LTDA</td><td>OSASCO</td></tr></table></form>`;
+  await pagina.route(ORIGEM + '/**', (r) => { const q = r.request(); if (q.method() === 'POST') { posts.push(q.postData()); return r.fulfill({contentType: 'text/html', body: '<html><body>seguinte</body></html>'}); } return r.fulfill({contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body>' + html + '</body></html>'}); });
+  await pagina.goto(ORIGEM + '/ResultadoBusca.aspx'); await pagina.evaluate(() => sessionStorage.clear());
+  await pagina.evaluate((j) => { window.__msgs = []; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? j : {ok: true}; }}}; }, job());
+  const erros = []; pagina.on('console', (m) => { if (/Content Security Policy/.test(m.text())) erros.push(m.text()); });
+  await pagina.addScriptTag({content: ler('ajudante/jucesp.js')});
+  await pagina.waitForTimeout(900);
+  assert.equal(posts.length, 1, 'o formulário foi enviado'); const c = new URLSearchParams(posts[0]);
+  assert.equal(c.get('__EVENTTARGET'), 'ctl00$cphContent$gdvResultadoBusca$ctl02$lnkNire'); assert.equal(c.get('__EVENTARGUMENT'), ''); assert.equal(c.get('__VIEWSTATE'), 'vs9'); assert.equal(erros.length, 0);
+});
+await passo('link com script que não é postback: avisa escrito, sem tentar executar', async () => {
+  const html = TOPO() + "<form><p>Resultados 1 - 1 de 1 para o termo 'x'</p><table><tr><td><a href=\"javascript:abrirOutraCoisa(1)\">35262229284</a></td><td>EMPRESA X LTDA</td></tr></table></form>";
+  await pagina.route(ORIGEM + '/**', (r) => r.fulfill({contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body>' + html + '</body></html>'}));
+  await pagina.goto(ORIGEM + '/ResultadoBusca.aspx?outro=1'); await pagina.evaluate(() => sessionStorage.clear());
+  await pagina.evaluate((j) => { window.__msgs = []; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? j : {ok: true}; }}}; }, job());
+  await pagina.addScriptTag({content: ler('ajudante/jucesp.js')}); await pagina.waitForTimeout(700);
+  assert.match(await pagina.evaluate(() => document.getElementById('aj-faixa').innerText), /script que o Chrome não deixa/); assert(((await pagina.evaluate(() => window.__msgs))).some((m) => m.estado === 'erro'));
+});
+
 await navegador.close();
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
