@@ -21,7 +21,7 @@ await passo('manifesto: só a JUCESP, o painel e o Apps Script; sem poder amplo 
   const m = JSON.parse(ler('ajudante/manifest.json'));
   assert.equal(m.manifest_version, 3);
   assert.match(ler('ajudante/painel.js'), new RegExp("VERSAO = '" + m.version.replace(/\./g, '\\.') + "'"), 'a versão do manifesto e a da ponte andam juntas');
-  assert.deepEqual(m.permissions.sort(), ['contentSettings', 'storage', 'tabs']);
+  assert.deepEqual(m.permissions.sort(), ['contentSettings', 'declarativeNetRequest', 'storage', 'tabs', 'webNavigation']);
   assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
   const todos = JSON.stringify(m);
   assert(!/<all_urls>|\*:\/\/\*\/|"http:\/\//.test(todos), 'nada de all_urls nem de http');
@@ -61,12 +61,14 @@ await passo('ponte: o andamento vindo do fundo chega ao painel; se o fundo não 
 
 // ── O fundo ──
 function mundoFundo({popupsFalha, buscarPdf, pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas = {ok: true, nome: 'JRL_HOLDING_LTDA_FICHA_CADASTRAL_JUCESP_2026-10-28_1.pdf', confirmar: false}, gasTexto, statusPdf = 200} = {}) {
-  const store = {}, enviadas = [], criadas = [], atualizadas = [], removidas = [], popups = [], busca = [], ouv = {msg: null, upd: null, rem: null};
+  const store = {}, enviadas = [], criadas = [], atualizadas = [], removidas = [], popups = [], regras = [], busca = [], ouv = {msg: null, upd: null, rem: null};
   const chrome = {
     storage: {local: {get: async (k) => (k in store ? {[k]: JSON.parse(JSON.stringify(store[k]))} : {}), set: async (o) => { for (const [k, v] of Object.entries(o)) store[k] = JSON.parse(JSON.stringify(v)); }}},
     tabs: {create: async (o) => { criadas.push(o); return {id: 70 + criadas.length}; }, update: async (id, o) => { atualizadas.push({id, ...o}); }, remove: async (id) => { removidas.push(id); }, sendMessage: async (id, m) => { enviadas.push({tabId: id, ...m}); if (m.tipo === 'buscar-pdf') { if (buscarPdf === 'erro') throw new Error('sem receptor'); return buscarPdf; } },
       onUpdated: {addListener: (f) => { ouv.upd = f; }}, onRemoved: {addListener: (f) => { ouv.rem = f; }}, onCreated: {addListener: (f) => { ouv.cri = f; }}},
     runtime: {onMessage: {addListener: (f) => { ouv.msg = f; }}},
+    declarativeNetRequest: {updateDynamicRules: async (o) => { regras.push(JSON.parse(JSON.stringify(o))); }},
+    webNavigation: {onBeforeNavigate: {addListener: (f) => { ouv.nav = f; }}},
     contentSettings: {popups: {set: async (o) => { if (popupsFalha) throw new Error(popupsFalha); popups.push({acao: 'set', ...o}); }, clear: async (o) => { popups.push({acao: 'clear', ...o}); }}}
   };
   const fetch = async (url, o = {}) => {
@@ -79,7 +81,7 @@ function mundoFundo({popupsFalha, buscarPdf, pdf = '%PDF-1.4 conteudo', tipoPdf 
   vm.createContext(ctx); vm.runInContext(ler('ajudante/background.js'), ctx);
   const msg = (m, aba) => new Promise((res) => ouv.msg(m, aba ? {tab: {id: aba}} : {}, res));
   const abrir = (url, aba, opener) => { ouv.upd(aba, {url}, {url, openerTabId: opener}); return esperar(); };
-  return {store, enviadas, criadas, atualizadas, removidas, popups, busca, msg, abrir, ouv, gasEnviado: () => busca.filter((b) => b.url.startsWith('https://script.google.com/')).map((b) => JSON.parse(b.o.body))};
+  return {store, enviadas, criadas, atualizadas, removidas, popups, regras, busca, msg, abrir, ouv, gasEnviado: () => busca.filter((b) => b.url.startsWith('https://script.google.com/')).map((b) => JSON.parse(b.o.body))};
 }
 const pedido = (o = {}) => ({id: 'ajteste1', casoId: 'C12345', cnpj: CNPJ, quero: ['ficha'], ...o});
 const PAINEL = 5;
@@ -566,6 +568,34 @@ await passo('fundo: guarda o que viu — pop-ups liberados?, abas abertas pela p
   assert.match((await f.msg({tipo: 'diagnostico-fundo'}, 71)).popups, /erro: Pattern not valid/);
   const s = mundoFundo({buscarPdf: {ok: false, status: 200, tipo: 'text/html'}}); await s.msg({tipo: 'pedido', pedido: pedido()}, PAINEL); await s.abrir('https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=1', 90, 71);
   const e = (await s.msg({tipo: 'diagnostico-fundo'}, 71)); assert.equal(e, null, 'depois de terminar a aba deixa de ser acompanhada');
+});
+
+await passo('fundo: o endereço do PDF vale UMA vez — enquanto há pedido, a navegação a ele é bloqueada (só janelas e quadros) e o Ajudante o baixa ele mesmo; ao terminar, o bloqueio sai', async () => {
+  const b64 = Buffer.from('%PDF-1.4 uma vez so').toString('base64');
+  const m = mundoFundo({buscarPdf: {ok: true, base64: b64}}); await m.msg({tipo: 'pedido', pedido: pedido()}, PAINEL);
+  const lig = m.regras.at(-1); assert.deepEqual(lig.removeRuleIds, [7001]); assert.equal(lig.addRules.length, 1);
+  const r = lig.addRules[0]; assert.equal(r.action.type, 'block'); assert.equal(r.condition.urlFilter, '||www.jucesponline.sp.gov.br/VisualizaTicket.aspx'); assert.deepEqual(r.condition.resourceTypes, ['main_frame', 'sub_frame'], 'a busca do Ajudante (outro tipo) passa');
+  // a página abriu uma aba para o PDF; o Chrome avisa que vai navegar (antes de pedir) e a aba é a filha do pedido
+  m.ouv.cri({id: 90, openerTabId: 71, pendingUrl: 'https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=SEGREDO'}); await esperar();
+  m.ouv.nav({tabId: 90, frameId: 0, url: 'https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=SEGREDO'}); await esperar();
+  assert.equal(m.gasEnviado().length, 1); assert.equal(m.gasEnviado()[0].base64, b64); assert.equal(m.busca.filter((x) => x.url.includes('VisualizaTicket')).length, 0, 'o fundo não pediu o endereço de novo');
+  assert.deepEqual(m.removidas, [90], 'a aba bloqueada é fechada'); assert.deepEqual(m.regras.at(-1), {removeRuleIds: [7001], addRules: []}, 'terminou: o bloqueio sai');
+  // o aviso da navegação e o da atualização da aba, juntos, baixam uma vez só
+  const d = mundoFundo({buscarPdf: {ok: true, base64: b64}}); await d.msg({tipo: 'pedido', pedido: pedido({quero: ['ficha', 'contrato']})}, PAINEL);
+  d.ouv.nav({tabId: 71, frameId: 0, url: 'https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=1'}); d.ouv.upd(71, {url: 'x'}, {url: 'https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=1'}); await esperar();
+  assert.equal(d.gasEnviado().length, 1, 'uma notificação por endereço');
+  // aba que não é do pedido, endereço de outro site e outra página da JUCESP: nada
+  const o = mundoFundo(); await o.msg({tipo: 'pedido', pedido: pedido()}, PAINEL);
+  o.ouv.nav({tabId: 999, frameId: 0, url: 'https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=1'}); o.ouv.nav({tabId: 71, frameId: 0, url: 'https://site-malvado.com/VisualizaTicket.aspx?sc=1'}); o.ouv.nav({tabId: 71, frameId: 0, url: 'https://www.jucesponline.sp.gov.br/Default.aspx'}); await esperar();
+  assert.equal(o.gasEnviado().length, 0);
+});
+await passo('fundo: uma regra esquecida de um pedido antigo sai quando a extensão acorda sem pedido andando — senão bloquearia os PDFs dela para sempre', async () => {
+  const m = mundoFundo(); await esperar();
+  assert.deepEqual(m.regras.at(-1), {removeRuleIds: [7001], addRules: []}, 'ao acordar, sem pedido, a regra sai');
+});
+await passo('fundo: sem a API de bloqueio ou com ela recusando, o pedido segue e o relatório diz', async () => {
+  const m = mundoFundo(); const r = await m.msg({tipo: 'pedido', pedido: pedido()}, PAINEL); assert.equal(r.ok, true);
+  assert.equal((await m.msg({tipo: 'diagnostico-fundo'}, 71)).popups, 'ok');
 });
 
 await passo('fundo: o PDF trazido pela aba do pedido (pdf-bytes) é conferido, guardado e a fila anda — e o que não é PDF vira erro escrito', async () => {

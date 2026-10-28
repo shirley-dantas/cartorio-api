@@ -1256,6 +1256,13 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   **não** explica tudo. A 0.1.5 faz o *Copiar relatório* (agora também na faixa da reserva) levar o que o **fundo** viu: se `contentSettings` foi aceito (`popups`), as abas que
   a página abriu (`abaCriada`, só o caminho, sem o ticket), o PDF visto (`pdfEm`) e como foi buscado (`buscaPelaAba`/`buscaPeloFundo`). É esse relatório que diz se o OK nem
   dispara, se abre aba, ou se o PDF abre e o que falha é baixá-lo.
+- **O endereço do PDF vale UMA vez (confirmado no teste real, 29/10/2026):** ela clicou, o PDF abriu para ela e o card disse "O que veio não é um PDF" — o Chrome já tinha
+  gasto o endereço. E **não havia pop-up bloqueado**: a liberação de pop-ups da 0.1.4 não era a causa (fica, é inofensiva). A 0.1.6 faz o Ajudante chegar antes do Chrome: enquanto
+  há pedido andando, a **navegação** a `VisualizaTicket.aspx` é bloqueada (`declarativeNetRequest`, regra 7001, só `main_frame`/`sub_frame`; a busca do Ajudante é outro tipo e passa),
+  o `webNavigation.onBeforeNavigate` avisa o endereço **antes** do pedido, e o PDF é baixado **uma vez só** pela aba da JUCESP (`buscar-pdf`, mesma origem, cookies dela); a aba
+  bloqueada é fechada. A regra sai ao terminar o último pedido e ao acordar sem pedido andando (uma regra esquecida bloquearia os PDFs dela). Permissões novas: `declarativeNetRequest`
+  e `webNavigation`. Em aberto: se a **navegação na mesma aba** (sem aba nova) deixa o Ajudante sem aba para buscar — então o fundo tenta por conta própria (cookies `SameSite` podem
+  impedir); e por que o OK clicado **sem gesto dela** não gera o PDF (o relatório da 0.1.5 traz `fundo.eventos` para ver).
 - Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
