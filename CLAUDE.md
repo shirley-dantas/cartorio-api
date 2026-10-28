@@ -1198,6 +1198,31 @@ Regras dela que **não devem ser mexidas sem perguntar**:
   `testes/pagar-tela.mjs` (a página), `testes/pagamento-envio.mjs` (o Apps Script) e `testes/pagamento-painel.mjs` (a janela,
   a faixa, o aviso e a impressão).
 
+## O Ajudante do painel (extensão do Chrome)
+
+Mora em `ajudante/` (não é uma função da Vercel: não conta nas 12). Entra nos sites com o **navegador e o certificado digital que a Shirley já usa**
+e traz o PDF para o card; o painel só desenha o bloco *Buscar na JUCESP* (dentro da caixa de soltar arquivos, `ajudanteHtml()`) quando a extensão
+responde ao "tem Ajudante?" — botão que o navegador não sabe cumprir não é desenhado. Instalação e uso: `ajudante/LEIA-ME.md`.
+
+Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
+
+- **Nenhuma senha é guardada**, em lugar nenhum: quem identifica é o certificado instalado no computador (e o PIN, se houver, é ela que digita).
+- **Nada é pago sozinho.** Hoje só existe leitura e escolha. Quando entrarem serviços pagos (ONR), o robô **para antes do pagamento** com um aviso
+  "vou pagar R$ X, confirmar?" — só o clique dela paga. Cópia digitalizada com tarifa na JUCESP: o Ajudante para e deixa com ela.
+- **O contrato social é o ato de CONSOLIDAÇÃO mais recente.** Lê-se nos DETALHES de cada linha da *Cópia Digitalizada* (`escolherConsolidacao`);
+  sem consolidação, ele não escolhe: avisa e deixa para ela (e ainda pega o PDF que ela abrir).
+- **O que não reconhece, não adivinha.** Tela diferente, botão que sumiu, três tentativas iguais: faixa vermelha com *Fazer à mão* e
+  *Copiar relatório* (só a forma da tela, sem o ticket `sc` do endereço). O erro da página não encerra o pedido.
+- **O endereço do Apps Script mora no `background.js`**, não vem do pedido, e a ponte (`painel.js`) só atende a própria página do painel
+  (mesma origem e janela). O tipo (`FICHA_CADASTRAL_JUCESP`, `CONTRATO_SOCIAL`) vem do pedido — a IA não adivinha — e o arquivo segue o caminho de
+  sempre (`painel-arquivo`: pasta do caso, leitura, nome `Pessoa_Tipo_AAAA-MM-DD_n`).
+- O fluxo da JUCESP foi montado a partir de **fotos das telas**, sem acesso ao site: a primeira rodada de verdade é com ela olhando, e é provável
+  que peça ajuste (os testes usam páginas simuladas). Em aberto: se o endereço do PDF (`VisualizaTicket.aspx?sc=…`) pode ser baixado uma segunda
+  vez pela extensão; se não puder, o erro diz isso e a saída é salvar o PDF e arrastar para a caixa.
+- Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
+
+Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
+
 ## O Caderno da Rafaela (projeto à parte)
 
 Mora em `rafaela/`, num projeto próprio da Vercel (*Root Directory*
@@ -1253,6 +1278,7 @@ o `testes/montar.mjs` recorta.
 | Pedir documentos (lista por ato e público) | `pedido-docs.js` → `PEDIDO.montar()`, `comporTexto()`, `formulario()`, `abrirJanela()` |
 | O link de envio e o que chegou no card | `criarLinkEnvio()`, `pedidoRecebidosHtml()` (index.html) · `enviar.html` · `clienteArquivo()`, `clienteDados()` (Apps Script) |
 | O link de pagamento (janela, faixa do card, aviso, impressão) | `abrirPagamento()`, `pagGerarLink()`, `pagFaixaHtml()`, `pagAvisosHtml()`, `imprimirComprovante()` (index.html) · `pagar.html` · `pagamentoArquivo()`, `pagamentoConcluir()`, `pagamentoVer()` (Apps Script) |
+| O Ajudante (JUCESP) — a extensão | `ajudante/` → `jucesp.js` (`planejar()`, `escolherConsolidacao()`), `background.js` (`capturar()`), `painel.js` · no painel `ajudanteHtml()`, `ajudantePedir()` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |
 | A mensagem sugerida | `redeMensagemSugerida()`, `redeAtoNaFrase()` |
@@ -1281,6 +1307,7 @@ node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
 node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
+node testes/ajudante.mjs
 node testes/orcamento-link-tela.mjs && node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
 ```
 

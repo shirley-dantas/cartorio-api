@@ -1483,7 +1483,9 @@ function extrairIdArquivo(url) {
 // e corrige depois: o que a IA não tem certeza fica marcado "confirmar" no card, com o lápis para corrigir.
 // O Drive só é tocado pelo selo, como nos arquivos do link: o banco é aberto.
 var ORIGENS_ARQUIVO = ["link do cliente", "arrastado no card"];
-var TIPOS_DOC_CARD = ["RG_CNH", "CPF", "CERTIDAO_NASCIMENTO", "CERTIDAO_CASAMENTO", "CERTIDAO_OBITO", "PACTO_ANTENUPCIAL", "MATRICULA_IMOVEL", "COMPROVANTE_ENDERECO", "IPTU", "CND", "ESCRITURA", "PROCURACAO", "CONTRATO", "COMPROVANTE_PAGAMENTO", "OUTRO"];
+var TIPOS_DOC_CARD = ["RG_CNH", "CPF", "CERTIDAO_NASCIMENTO", "CERTIDAO_CASAMENTO", "CERTIDAO_OBITO", "PACTO_ANTENUPCIAL", "MATRICULA_IMOVEL", "COMPROVANTE_ENDERECO", "IPTU", "CND", "ESCRITURA", "PROCURACAO", "CONTRATO", "COMPROVANTE_PAGAMENTO", "FICHA_CADASTRAL_JUCESP", "CONTRATO_SOCIAL", "OUTRO"];
+// O que o Ajudante do painel (extensão do Chrome) sabe de antemão: veio de um pedido dela na JUCESP, então o tipo não se adivinha.
+var TIPOS_DO_AJUDANTE = ["FICHA_CADASTRAL_JUCESP", "CONTRATO_SOCIAL"];
 var TIPOS_QUE_PEDEM_PESSOA = ["RG_CNH", "CPF", "CERTIDAO_NASCIMENTO", "CERTIDAO_CASAMENTO", "CERTIDAO_OBITO", "COMPROVANTE_ENDERECO"];
 
 function instrucaoIdentificarDocumento(texto) {
@@ -1549,6 +1551,9 @@ function painelArquivoInterno(dados) {
       if (!texto) aviso = "A IA não devolveu texto para este arquivo.";
       else id = identificarDocumento(texto);
     } catch (e) { aviso = String(e && e.message || e).slice(0, 200); }
+  }
+  if (dados.origemAjudante === "jucesp" && TIPOS_DO_AJUDANTE.indexOf(String(dados.tipoSugerido || "")) !== -1) {
+    id = { tipo: String(dados.tipoSugerido), pessoa: textoCliente(dados.pessoaSugerida, 80), confianca: "alta" };
   }
   var confirmar = !!aviso || id.tipo === "OUTRO" || id.confianca !== "alta" || (TIPOS_QUE_PEDEM_PESSOA.indexOf(id.tipo) !== -1 && !id.pessoa);
   var nome;
