@@ -1766,6 +1766,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-aj{margin-top:10px;padding-top:10px;border-top:1px solid var(--cc-linha-forte)}
 .cx-aj-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}.cx-aj-topo i{font-size:18px;color:var(--cc-tinta-2)}
 .cx-aj-cnpj{flex:1;min-width:160px;max-width:240px;border:1px solid var(--cc-linha-forte);border-radius:10px;padding:7px 10px;font:inherit;background:#fff}
+.cx-aj-topo small{color:var(--cc-tinta-3);font-size:11.5px}
+.cx-aj-emp{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-top:8px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid var(--cc-linha-forte)}
+.cx-aj-nome{display:grid;min-width:160px;flex:1;font-size:13px}.cx-aj-nome small{color:var(--cc-tinta-3);font-size:11.5px;overflow-wrap:anywhere}
+.cx-aj-emp .cx-aj-bt{margin:0}.cx-aj-vazio{font-size:12.5px;color:var(--cc-tinta-3);margin-top:8px}
+.cx-aj-outro{margin-top:8px;font-size:12.5px}.cx-aj-outro summary{cursor:pointer;color:var(--cc-tinta-2)}.cx-aj-outro .cx-aj-topo{margin-top:6px}
 .cx-aj-bt{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .cx-aj-msg{font-size:12.5px;margin-top:6px;overflow-wrap:anywhere}.cx-aj-msg:empty{display:none}
 .cx-aj-ok{color:var(--cc-ok,#2F7A4F)}.cx-aj-erro{color:var(--cc-critico,#B3261E)}.cx-aj-manual{color:#8A5A0B}
@@ -12328,36 +12333,86 @@ window.entradaDescartar=async function(remetente){
 };
 // O Ajudante do painel: extensão do Chrome que entra na JUCESP (com o certificado dela, já instalado) e traz a ficha cadastral e o
 // contrato consolidado para o card. O painel só desenha o bloco se a extensão responder — botão que o navegador não sabe cumprir não se desenha.
-const AJUDANTE={pronto:false,versao:'',msg:{}};
+const AJUDANTE={pronto:false,versao:'',msg:{},fila:{},atual:{},log:{}};
+const AJ_CNPJS_DO_CARTORIO=['45566502000112','47141731000110'];   // o do 20º Tabelião e o da Prime: aparecem nos papéis, mas não são parte do caso
 function ajCnpjValido(c){
   c=String(c||'').replace(/\D/g,''); if(c.length!==14||/^(\d)\1+$/.test(c)) return false;
   const dv=n=>{ let s=0,p=n-7; for(let i=0;i<n;i++){ s+=Number(c[i])*p--; if(p<2) p=9; } const r=s%11; return r<2?0:11-r; };
   return dv(12)===Number(c[12])&&dv(13)===Number(c[13]);
 }
+function ajFormatarCnpj(c){ return String(c||'').replace(/\D/g,'').replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'); }
+// O nome da empresa escrito logo antes do CNPJ ("JRL HOLDING LTDA, inscrita no CNPJ sob nº…"): só para ela reconhecer na lista.
+function ajNomeAntesDe(antes){
+  const A="A-ZÁÀÂÃÉÊÍÓÔÕÚÇ", maius="["+A+"0-9&.'\\-\\/]+", cap="["+A+"][\\wÀ-ÿ&.'\\-]*";
+  const reMaius=new RegExp('((?:'+maius+'\\s){0,8}'+maius+'\\s(?:LTDA|LIMITADA|S\\.?A\\.?|S\\/A|EIRELI|EPP|SPE|ME))\\.?(?![A-Za-z])','g');
+  const reMisto=new RegExp('((?:'+cap+'\\s){0,6}'+cap+'\\s(?:Ltda|Limitada|Eireli|S\\.A\\.|S\\/A))\\.?(?![A-Za-z])','g');
+  const ultimo=re=>{ let u=''; for(const m of String(antes).matchAll(re)) u=m[1]; return u; };
+  return (ultimo(reMaius)||ultimo(reMisto)).trim();
+}
+// Os CNPJs que o caso já traz nos documentos lidos (contrato social, cartão CNPJ, procuração, minuta…): só os de dígito verificador
+// certo, sem os do próprio cartório, juntando o mesmo CNPJ que aparece em vários papéis. Nada disso é a IA chutando número: é o que está escrito.
+function ajEmpresasDoCaso(c){
+  const achados={}, re=/(?<!\d)(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})(?!\d)/g;
+  const fontes=Object.values((c&&c.documentos)||{}).filter(d=>d&&d.texto&&d.tipo!=='modelo').map(d=>({t:String(d.texto),de:String(d.nome||'')}));
+  fontes.forEach(f=>{
+    for(const m of f.t.matchAll(re)){
+      const n=m[1].replace(/\D/g,''); if(!ajCnpjValido(n)||AJ_CNPJS_DO_CARTORIO.includes(n)) continue;
+      const nome=ajNomeAntesDe(f.t.slice(Math.max(0,m.index-220),m.index)), e=achados[n]=achados[n]||{cnpj:n,nome:'',de:[]};
+      if(!e.nome&&nome) e.nome=nome; if(f.de&&!e.de.includes(f.de)) e.de.push(f.de);
+    }
+  });
+  return Object.values(achados);
+}
 function ajLerCnpj(casoId){ try{ return localStorage.getItem('aj_cnpj_'+casoId)||''; }catch(e){ return ''; } }
 window.ajSalvarCnpj=function(casoId,v){ try{ localStorage.setItem('aj_cnpj_'+casoId,v); }catch(e){} };
 function ajMsgHtml(casoId){
-  const m=AJUDANTE.msg[casoId]; if(!m||!m.texto) return '';
-  const ico={ok:'✅',erro:'⚠️',manual:'👉',espera:'⏳',andando:'⏳'}[m.estado]||'⏳';
-  return `<span class="cx-aj-${esc(m.estado||'andando')}">${ico} ${escTxt(m.texto)}</span>`;
+  const ico={ok:'✅',erro:'⚠️',manual:'👉',espera:'⏳',andando:'⏳'};
+  const linha=m=>`<span class="cx-aj-${esc(m.estado||'andando')}">${ico[m.estado]||'⏳'} ${escTxt(m.texto)}</span>`;
+  const m=AJUDANTE.msg[casoId], log=AJUDANTE.log[casoId]||[], fila=(AJUDANTE.fila[casoId]||[]).length;
+  return log.map(linha).join('<br>')+(log.length&&m&&m.texto?'<br>':'')+(m&&m.texto?linha(m):'')
+    +(fila?`<br><small>Faltam ${fila} ${fila===1?'empresa':'empresas'} na fila.</small>`:'')
+    +((m&&m.id&&!m.fim)||fila?` <button type="button" class="cx-btn" onclick="ajudanteCancelar('${esc(casoId)}')">Parar</button>`:'');
+}
+function ajBotoes(casoId,cnpj){
+  const id=esc(casoId), c=cnpj?`,'${esc(cnpj)}'`:'';
+  return `<button type="button" class="cx-btn" onclick="ajudantePedir('${id}',['ficha']${c})">Ficha cadastral</button>
+    <button type="button" class="cx-btn" onclick="ajudantePedir('${id}',['contrato']${c})">Contrato consolidado</button>
+    <button type="button" class="cx-btn forte" onclick="ajudantePedir('${id}',['ficha','contrato']${c})">Os dois</button>`;
 }
 function ajudanteHtml(c){
   if(!AJUDANTE.pronto||!c||!c.id) return '';
-  const id=esc(c.id);
-  return `<div class="cx-aj"><div class="cx-aj-topo"><i class="ti ti-building-bank"></i><b>Buscar na JUCESP</b>
-    <input class="cx-aj-cnpj" id="aj-cnpj-${id}" inputmode="numeric" placeholder="CNPJ da empresa" value="${esc(ajLerCnpj(c.id))}" oninput="ajSalvarCnpj('${id}',this.value)"></div>
-    <div class="cx-aj-bt"><button type="button" class="cx-btn" onclick="ajudantePedir('${id}',['ficha'])">Ficha cadastral</button>
-    <button type="button" class="cx-btn" onclick="ajudantePedir('${id}',['contrato'])">Contrato consolidado</button>
-    <button type="button" class="cx-btn forte" onclick="ajudantePedir('${id}',['ficha','contrato'])">Os dois</button></div>
+  const id=esc(c.id), emp=ajEmpresasDoCaso(casos[c.id]||c);
+  const linhas=emp.map(e=>`<div class="cx-aj-emp"><span class="cx-aj-nome"><b>${escTxt(e.nome||'Empresa')}</b><small>${esc(ajFormatarCnpj(e.cnpj))}${e.de.length?' · '+escTxt(e.de[0]):''}</small></span><span class="cx-aj-bt">${ajBotoes(c.id,e.cnpj)}</span></div>`).join('');
+  const todas=emp.length>1?`<div class="cx-aj-bt"><button type="button" class="cx-btn forte" onclick="ajudantePedirTodas('${id}')">Buscar os dois documentos das ${emp.length} empresas</button></div>`:'';
+  const sem=emp.length?'':`<div class="cx-aj-vazio">Não achei CNPJ nos documentos deste caso. Solte o contrato social ou o cartão CNPJ da empresa na caixa acima — ou digite o número abaixo.</div>`;
+  return `<div class="cx-aj"><div class="cx-aj-topo"><i class="ti ti-building-bank"></i><b>Buscar na JUCESP</b>${emp.length?`<small>${emp.length} ${emp.length===1?'empresa achada':'empresas achadas'} nos documentos</small>`:''}</div>
+    ${linhas}${todas}${sem}
+    <details class="cx-aj-outro"${emp.length?'':' open'}><summary>Outro CNPJ</summary><div class="cx-aj-topo"><input class="cx-aj-cnpj" id="aj-cnpj-${id}" inputmode="numeric" placeholder="CNPJ da empresa" value="${esc(ajLerCnpj(c.id))}" oninput="ajSalvarCnpj('${id}',this.value)"></div><div class="cx-aj-bt">${ajBotoes(c.id,'')}</div></details>
     <div class="cx-aj-msg" id="aj-msg-${id}">${ajMsgHtml(c.id)}</div></div>`;
 }
 function ajudanteAtualizar(casoId){ const el=document.getElementById('aj-msg-'+casoId); if(el) el.innerHTML=ajMsgHtml(casoId); }
-window.ajudantePedir=function(casoId,quero){
-  const campo=document.getElementById('aj-cnpj-'+casoId), cnpj=String((campo&&campo.value)||ajLerCnpj(casoId)).replace(/\D/g,'');
-  if(!ajCnpjValido(cnpj)){ AJUDANTE.msg[casoId]={id:'',estado:'erro',texto:'Esse CNPJ não confere — confira os 14 dígitos.'}; return ajudanteAtualizar(casoId); }
-  const id='aj'+Date.now().toString(36);
-  AJUDANTE.msg[casoId]={id,estado:'andando',texto:'Abrindo a JUCESP numa aba nova…'}; ajudanteAtualizar(casoId);
+function ajudanteEnviar(casoId,cnpj,nome,quero){
+  const id='aj'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  AJUDANTE.atual[casoId]={cnpj,nome}; AJUDANTE.msg[casoId]={id,estado:'andando',texto:(nome?nome+': ':'')+'abrindo a JUCESP numa aba nova…',fim:false}; ajudanteAtualizar(casoId);
   window.postMessage({fonte:'painel-cartorio',tipo:'ajudante-pedido',pedido:{id,casoId,cnpj,quero}},location.origin);
+}
+window.ajudantePedir=function(casoId,quero,cnpjDado){
+  const campo=document.getElementById('aj-cnpj-'+casoId), cnpj=String(cnpjDado||(campo&&campo.value)||ajLerCnpj(casoId)).replace(/\D/g,'');
+  if(!ajCnpjValido(cnpj)){ AJUDANTE.msg[casoId]={id:'',estado:'erro',texto:'Esse CNPJ não confere — confira os 14 dígitos.',fim:true}; return ajudanteAtualizar(casoId); }
+  AJUDANTE.fila[casoId]=[]; AJUDANTE.log[casoId]=[];
+  const e=ajEmpresasDoCaso(casos[casoId]).find(x=>x.cnpj===cnpj);
+  ajudanteEnviar(casoId,cnpj,e&&e.nome||'',quero);
+};
+// Várias empresas no mesmo caso (as duas partes): uma de cada vez, a próxima só começa quando a anterior termina de vez.
+window.ajudantePedirTodas=function(casoId){
+  const emp=ajEmpresasDoCaso(casos[casoId]); if(!emp.length) return;
+  AJUDANTE.log[casoId]=[]; AJUDANTE.fila[casoId]=emp.slice(1).map(e=>({cnpj:e.cnpj,nome:e.nome,quero:['ficha','contrato']}));
+  ajudanteEnviar(casoId,emp[0].cnpj,emp[0].nome,['ficha','contrato']);
+};
+window.ajudanteCancelar=function(casoId){
+  const m=AJUDANTE.msg[casoId]; AJUDANTE.fila[casoId]=[];
+  if(m&&m.id&&!m.fim) window.postMessage({fonte:'painel-cartorio',tipo:'ajudante-cancelar',id:m.id},location.origin);
+  else ajudanteAtualizar(casoId);
 };
 function ajudanteOuvir(e){
   const d=e&&e.data; if(!d||d.fonte!=='ajudante'||(e.source&&e.source!==window)) return;
@@ -12367,7 +12422,16 @@ function ajudanteOuvir(e){
   }
   if(d.tipo==='ajudante-progresso'){
     const casoId=Object.keys(AJUDANTE.msg).find(k=>AJUDANTE.msg[k].id===d.id); if(!casoId) return;
-    AJUDANTE.msg[casoId]={id:d.id,estado:String(d.estado||'andando'),texto:String(d.texto||'').slice(0,300)}; ajudanteAtualizar(casoId);
+    const nome=(AJUDANTE.atual[casoId]||{}).nome||ajFormatarCnpj((AJUDANTE.atual[casoId]||{}).cnpj||'');
+    const texto=(nome&&AJUDANTE.fila[casoId]!==undefined&&(AJUDANTE.log[casoId]||[]).length+(AJUDANTE.fila[casoId]||[]).length>0?nome+': ':'')+String(d.texto||'').slice(0,300);
+    const m=AJUDANTE.msg[casoId]={id:d.id,estado:String(d.estado||'andando'),texto,fim:!!d.fim};
+    if(m.fim){
+      const fila=AJUDANTE.fila[casoId]||[];
+      if(fila.length||(AJUDANTE.log[casoId]||[]).length){ (AJUDANTE.log[casoId]=AJUDANTE.log[casoId]||[]).push({estado:m.estado,texto:m.texto}); AJUDANTE.msg[casoId]={id:'',estado:'',texto:'',fim:true}; }
+      const prox=fila.shift();
+      if(prox) setTimeout(()=>ajudanteEnviar(casoId,prox.cnpj,prox.nome,prox.quero),800);
+    }
+    ajudanteAtualizar(casoId);
   }
 }
 if(typeof window.addEventListener==='function'){ window.addEventListener('message',ajudanteOuvir); window.postMessage({fonte:'painel-cartorio',tipo:'ajudante-ping'},location.origin); setTimeout(()=>window.postMessage({fonte:'painel-cartorio',tipo:'ajudante-ping'},location.origin),1500); }

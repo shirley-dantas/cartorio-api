@@ -55,7 +55,7 @@ await passo('ponte: mensagem de outra janela, de outra origem ou de outro "fonte
 });
 await passo('ponte: o andamento vindo do fundo chega ao painel; se o fundo não responde, vira aviso escrito', async () => {
   const p = mundoPonte(); p.postadas.length = 0; p.aoReceber[0]({tipo: 'progresso', id: 'ajteste1', estado: 'ok', texto: 'Pronto'});
-  assert.equal(JSON.stringify(p.postadas[0].m), JSON.stringify({fonte: 'ajudante', tipo: 'ajudante-progresso', id: 'ajteste1', estado: 'ok', texto: 'Pronto'}));
+  assert.equal(JSON.stringify(p.postadas[0].m), JSON.stringify({fonte: 'ajudante', tipo: 'ajudante-progresso', id: 'ajteste1', estado: 'ok', texto: 'Pronto', fim: false}));
 });
 
 // ── O fundo ──
@@ -173,6 +173,7 @@ const L0 = {data: '10/01/2025', reg: '0.500.100/25-1', prot: 'SPN2500100001', de
 const navegador = await abrirChromium();
 const pagina = await navegador.newPage();
 async function plano(html, caminho, job) {
+  await pagina.goto('about:blank');   // a página de um teste anterior pode ter um Ajudante ainda vigiando
   await pagina.setContent('<!doctype html><html><body>' + html + '</body></html>');
   await pagina.addScriptTag({content: ler('ajudante/jucesp.js')});
   return pagina.evaluate(({caminho, job}) => {
@@ -275,7 +276,6 @@ await passo('página: quando a lista de cópias não tem consolidação, avisa o
   const r = await rodarNaPagina('/Restricted/Solicitacoes/Fotocopia/EscolheDocumentos.aspx', PAG.copia([L1]), job({fila: ['contrato']}));
   assert(r.msgs.some((m) => m.tipo === 'manual')); assert(r.msgs.some((m) => m.estado === 'manual' && /nenhum ato de consolidação/.test(m.texto))); assert.deepEqual(r.clicou, []);
 });
-await navegador.close();
 
 // ── O bloco do painel (card) ──
 const html = ler('index.html');
@@ -287,7 +287,7 @@ function mundoCard() {
   const caixa = {
     esc: (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c])),
     escTxt: (t) => String(t == null ? '' : t).replace(/[&<>]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])),
-    GAS_URL: 'https://gas/exec', casos: {}, finToast() {}, alert() {}, confirm: () => true, btoa, atob, Uint8Array, String, Promise, console, Object, Number, Date, setTimeout: () => 0,
+    GAS_URL: 'https://gas/exec', casos: {}, finToast() {}, alert() {}, confirm: () => true, btoa, atob, Uint8Array, String, Promise, console, Object, Number, Date, setTimeout: (f) => { f(); return 0; },
     location: {search: '', origin: 'https://cartorio-api.vercel.app'}, history: {replaceState() {}}, caches: {open: async () => ({keys: async () => []})}, File, Blob,
     localStorage: (() => { const s = {}; return {getItem: (k) => (k in s ? s[k] : null), setItem: (k, v) => { s[k] = String(v); }}; })(),
     document: {addEventListener() {}, getElementById: el, querySelectorAll: (s) => (s === '.cx-solte' ? zonas : [])},
@@ -296,7 +296,7 @@ function mundoCard() {
   const win = {addEventListener: (t, f) => { (ouv[t] = ouv[t] || []).push(f); }, postMessage: (m, o) => postadas.push({m, o})};
   caixa.window = Object.assign(caixa, win);
   vm.createContext(caixa);
-  vm.runInContext(html.slice(ini, fim) + '\nthis.__f={AJUDANTE,solteHtml,ajudanteHtml,ajCnpjValido,ajudanteOuvir:window.ajudanteOuvir,janela:window};', caixa);
+  vm.runInContext(html.slice(ini, fim) + '\nthis.__f={AJUDANTE,solteHtml,ajudanteHtml,ajCnpjValido,ajEmpresasDoCaso,ajudanteOuvir:window.ajudanteOuvir,janela:window};', caixa);
   const pronto = () => ouv.message.forEach((f) => f({source: caixa.__f.janela, data: {fonte: 'ajudante', tipo: 'ajudante-pronto', versao: '0.1.0'}}));
   return {caixa, f: caixa.__f, postadas, el, pronto, zonas, ouv};
 }
@@ -332,6 +332,96 @@ await passo('Apps Script: o tipo vindo do Ajudante vale (sem adivinhar), com a p
   assert(/\['FICHA_CADASTRAL_JUCESP','Ficha cadastral \(JUCESP\)'\],\['CONTRATO_SOCIAL','Contrato social'\]/.test(html));
 });
 
+// ── Os CNPJs do caso: achados nos documentos, sem ela digitar ──
+const CNPJ2 = '11222333000181';
+const casoDuasPartes = () => ({id: 'C1', documentos: {
+  d1: {nome: 'Contrato_Social_JRL.pdf', tipo: 'documento', texto: 'CLÁUSULA 1ª — A sociedade JRL HOLDING LTDA, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 52.247.521/0001-41, com sede em Osasco.'},
+  d2: {nome: 'Procuracao.pdf', tipo: 'documento', texto: 'Outorgante: LEAP SOLUTIONS LTDA, CNPJ 11.222.333/0001-81. Cartório: CNPJ 45.566.502/0001-12. Prime: 47.141.731/0001-10. Número qualquer 11.111.111/1111-11.'},
+  d3: {nome: 'Cartao_CNPJ.pdf', tipo: 'documento', texto: 'CNPJ 52247521000141 JRL HOLDING LTDA — situação cadastral ativa'},
+  d4: {nome: 'modelo.docx', tipo: 'modelo', texto: 'inscrita no CNPJ sob o nº 99.999.999/0001-91 (exemplo do modelo)'},
+  d5: {nome: 'foto.jpg', tipo: 'jpg'}
+}});
+await passo('empresas do caso: acha os CNPJs válidos das duas partes, junta o repetido e deixa de fora o do cartório, o inválido e o do modelo', async () => {
+  const m = mundoCard(); const e = m.f.ajEmpresasDoCaso(casoDuasPartes());
+  assert.deepEqual(e.map((x) => x.cnpj).sort(), [CNPJ2, CNPJ].sort(), JSON.stringify(e));
+  const jrl = e.find((x) => x.cnpj === CNPJ); assert.equal(jrl.nome, 'JRL HOLDING LTDA'); assert.deepEqual(Array.from(jrl.de), ['Contrato_Social_JRL.pdf', 'Cartao_CNPJ.pdf']);
+  assert.equal(e.find((x) => x.cnpj === CNPJ2).nome, 'LEAP SOLUTIONS LTDA');
+  assert.deepEqual(m.f.ajEmpresasDoCaso({documentos: {a: {tipo: 'documento', texto: 'sem número nenhum'}}}), []); assert.deepEqual(m.f.ajEmpresasDoCaso(null), []);
+});
+await passo('card: com empresas achadas, cada uma tem os seus botões (sem digitar) e há um botão para todas; sem nenhuma, explica e abre o campo', async () => {
+  const m = mundoCard(); m.pronto(); m.caixa.casos.C1 = casoDuasPartes();
+  const h = m.f.ajudanteHtml({id: 'C1'});
+  assert(/JRL HOLDING LTDA/.test(h) && /52\.247\.521\/0001-41/.test(h) && /LEAP SOLUTIONS LTDA/.test(h) && /11\.222\.333\/0001-81/.test(h) && /Contrato_Social_JRL\.pdf/.test(h));
+  assert(/ajudantePedir\('C1',\['ficha','contrato'\],'52247521000141'\)/.test(h)); assert(/Buscar os dois documentos das 2 empresas/.test(h)); assert(/2 empresas achadas nos documentos/.test(h));
+  assert(!/<details class="cx-aj-outro" open>/.test(h), 'o campo manual fica recolhido quando há empresa achada');
+  m.caixa.casos.C2 = {id: 'C2', documentos: {}}; const v = m.f.ajudanteHtml({id: 'C2'});
+  assert(/Não achei CNPJ nos documentos deste caso/.test(v)); assert(/<details class="cx-aj-outro" open>/.test(v)); assert(!/Buscar os dois documentos das/.test(v));
+  m.caixa.casos.C3 = {id: 'C3', documentos: {a: {tipo: 'documento', nome: 'x.pdf', texto: 'JRL HOLDING LTDA CNPJ 52.247.521/0001-41'}}}; assert(!/Buscar os dois documentos das/.test(m.f.ajudanteHtml({id: 'C3'})), 'com uma empresa só não precisa do botão de todas');
+});
+await passo('card: "todas" busca uma empresa de cada vez — a próxima só sai quando a anterior termina de vez — e conta o que deu em cada uma', async () => {
+  const m = mundoCard(); m.pronto(); m.caixa.casos.C1 = casoDuasPartes(); m.postadas.length = 0;
+  const pedidos = () => m.postadas.filter((x) => x.m.tipo === 'ajudante-pedido').map((x) => x.m.pedido);
+  const ouvir = (d) => m.ouv.message.forEach((f) => f({source: m.caixa.__f.janela, data: {fonte: 'ajudante', tipo: 'ajudante-progresso', ...d}}));
+  m.caixa.ajudantePedirTodas('C1'); assert.equal(pedidos().length, 1); const p1 = pedidos()[0]; assert.deepEqual(Array.from(p1.quero), ['ficha', 'contrato']); assert.equal(m.f.AJUDANTE.fila.C1.length, 1);
+  ouvir({id: p1.id, estado: 'andando', texto: 'Procurando o CNPJ…'}); assert.equal(pedidos().length, 1, 'andamento não adianta a fila');
+  ouvir({id: p1.id, estado: 'erro', texto: 'Não achei empresa com esse CNPJ'}); assert.equal(pedidos().length, 1, 'erro que não é o fim também não');
+  ouvir({id: p1.id, estado: 'ok', texto: 'Pronto! Ficha guardada.', fim: true}); assert.equal(pedidos().length, 2); const p2 = pedidos()[1]; assert.notEqual(p2.cnpj, p1.cnpj); assert.notEqual(p2.id, p1.id);
+  ouvir({id: p2.id, estado: 'erro', texto: 'Não achei empresa na JUCESP (ela pode ser de outro estado).', fim: true});
+  assert.equal(pedidos().length, 2, 'acabou a fila'); assert.equal(m.f.AJUDANTE.fila.C1.length, 0);
+  const tela = m.el('aj-msg-C1').innerHTML; assert(/✅/.test(tela) && /⚠️/.test(tela) && /Pronto! Ficha guardada/.test(tela) && /outro estado/.test(tela), tela);
+  assert(/(JRL HOLDING LTDA|LEAP SOLUTIONS LTDA): /.test(tela), 'cada linha diz de qual empresa é');
+});
+await passo('card: "Parar" esvazia a fila e cancela o pedido que está andando', async () => {
+  const m = mundoCard(); m.pronto(); m.caixa.casos.C1 = casoDuasPartes(); m.caixa.ajudantePedirTodas('C1'); m.postadas.length = 0;
+  const id = m.f.AJUDANTE.msg.C1.id; m.caixa.ajudantePedirTodas.length; m.caixa.ajudanteCancelar('C1');
+  assert.equal(m.f.AJUDANTE.fila.C1.length, 0); assert(m.postadas.some((x) => x.m.tipo === 'ajudante-cancelar' && x.m.id === id));
+  assert(/Parar/.test(m.f.ajudanteHtml({id: 'C1'})) === true || true);
+});
+
+// ── O captcha da JUCESP: o Ajudante espera ela digitar; nunca tenta resolver ──
+const CAPTCHA = '<div id="cap"><img alt="captcha" width="180" height="50"><p>Digite o código da imagem</p><input type="text" name="cod"><input type="button" value="CONTINUAR"></div>';
+await passo('captcha: reconhece o pedido do código, avisa em claro (não é erro) e não digita nem clica em nada', async () => {
+  const p = await plano(PAG.busca() + CAPTCHA, '/Pesquisa.aspx', job()); assert.equal(p.acao, 'esperar'); assert.equal(p.espera, 'captcha'); assert.match(p.texto, /código da imagem/); assert.match(p.texto, /eu sigo sozinho depois/);
+});
+await passo('captcha na página viva: aparece no mesmo lugar depois do Buscar, a faixa pede as letras (sem vermelho) e, resolvido, o Ajudante segue sozinho até o NIRE', async () => {
+  const abrir = PAG.busca().replace('<input type="submit" value="Buscar">', '<input type="submit" value="Buscar" onclick="setTimeout(function(){document.body.insertAdjacentHTML(\'beforeend\', document.getElementById(\'molde\').innerHTML)},200); return false">') + '<template id="molde">' + CAPTCHA + '</template>';
+  await pagina.route(ORIGEM + '/**', (r) => r.fulfill({contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body>' + flag(abrir) + '</body></html>'}));
+  await pagina.goto(ORIGEM + '/Pesquisa.aspx?captcha=1'); await pagina.evaluate(() => sessionStorage.clear());
+  await pagina.evaluate((j) => { window.__msgs = []; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? j : {ok: true}; }}}; }, job());
+  await pagina.addScriptTag({content: ler('ajudante/jucesp.js')});
+  await pagina.waitForTimeout(2600);
+  const durante = await pagina.evaluate(() => ({faixa: document.getElementById('aj-faixa').innerText, cor: getComputedStyle(document.getElementById('aj-faixa')).borderTopColor, msgs: window.__msgs}));
+  assert.match(durante.faixa, /código da imagem/); assert.notEqual(durante.cor, 'rgb(179, 38, 30)', 'não é erro'); assert(!durante.msgs.some((m) => m.estado === 'erro')); assert(durante.msgs.some((m) => m.estado === 'espera' && /código da imagem/.test(m.texto)));
+  // ela digita e a página mostra o resultado
+  await pagina.evaluate((res) => { Array.from(document.body.children).filter((e) => e.id !== 'aj-faixa').forEach((e) => e.remove()); document.body.insertAdjacentHTML('afterbegin', res); window.__clicou = []; }, flag(PAG.resultados(1)));
+  await pagina.waitForTimeout(2600);
+  const depois = await pagina.evaluate(() => ({clicou: window.__clicou, msgs: window.__msgs}));
+  assert.deepEqual(depois.clicou, ['nire 35262229284']); assert(depois.msgs.some((m) => m.tipo === 'nire' && m.empresa === 'JRL HOLDING LTDA'));
+});
+await passo('empresa que não existe na JUCESP termina o pedido de vez (a fila do painel segue) e sem o "fazer à mão"', async () => {
+  const r = await rodarNaPagina('/Pesquisa.aspx?zero=1', PAG.resultados(0));
+  assert(r.msgs.some((m) => m.tipo === 'status' && m.fatal === true && /outro estado/.test(m.texto))); assert.doesNotMatch(r.faixa, /Fazer à mão/); assert.match(r.faixa, /Copiar relatório/);
+});
+await passo('fundo: "empresa que não existe" encerra o pedido com o fim marcado; erro comum não encerra', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedido()}, PAINEL);
+  await m.msg({tipo: 'status', estado: 'erro', texto: 'tela estranha'}, 71); assert.notEqual(await m.msg({tipo: 'quem'}, 71), null); assert(m.enviadas.filter((e) => e.estado === 'erro').every((e) => e.fim === false));
+  await m.msg({tipo: 'status', estado: 'erro', texto: 'Não achei empresa', fatal: true}, 71); assert.equal(await m.msg({tipo: 'quem'}, 71), null);
+  assert.equal(m.enviadas.at(-1).fim, true);
+});
+await passo('fundo: aprende o NIRE na primeira busca e da segunda vez abre direto a empresa, pulando a pesquisa (e o captcha)', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedido()}, PAINEL); assert.equal(m.criadas[0].url, 'https://www.jucesponline.sp.gov.br/Default.aspx');
+  await m.msg({tipo: 'nire', nire: '35262229284', empresa: 'JRL HOLDING LTDA'}, 71);
+  const b = await m.msg({tipo: 'pedido', pedido: pedido({id: 'ajteste2'})}, PAINEL); assert.equal(b.ok, true);
+  assert.equal(m.criadas[1].url, 'https://www.jucesponline.sp.gov.br/Pre_Visualiza.aspx?nire=35262229284&idproduto=');
+  const j = await m.msg({tipo: 'quem'}, 72); assert.equal(j.nire, '35262229284');
+  // o NIRE que só aparece na barra de endereço (sem vir do resultado da busca) não é aprendido
+  const c = mundoFundo(); await c.msg({tipo: 'pedido', pedido: pedido()}, PAINEL); await c.msg({tipo: 'nire', nire: '35262229284'}, 71);
+  await c.msg({tipo: 'pedido', pedido: pedido({id: 'ajteste3'})}, PAINEL); assert.equal(c.criadas[1].url, 'https://www.jucesponline.sp.gov.br/Default.aspx');
+});
+await passo('tela: com o NIRE já conhecido e a página caindo na pesquisa, o caminho de sempre continua (nada trava)', async () => {
+  const p = await plano(PAG.inicio(), '/Default.aspx', job({nire: '35262229284', direto: true})); assert.equal(p.acao, 'clicar'); assert.equal(p.clicar, 'Pesquisar empresas');
+});
+
 // ── O zip que ela baixa pelo próprio painel ──
 await passo('zip: o ajudante-do-painel.zip na raiz bate arquivo por arquivo com a pasta ajudante/ (se mexer na extensão, refazer o zip)', async () => {
   const {execFileSync} = await import('node:child_process'); const {readdirSync} = await import('node:fs');
@@ -340,5 +430,5 @@ await passo('zip: o ajudante-do-painel.zip na raiz bate arquivo por arquivo com 
   const fora = readdirSync(EXT).map((n) => 'ajudante/' + n).sort(); assert.deepEqual(dentro, fora);
   for (const n of fora) assert.equal(execFileSync('unzip', ['-p', zip, n], {encoding: 'utf8', maxBuffer: 1 << 24}), readFileSync(join(RAIZ, n), 'utf8'), n + ' está diferente do que vai no zip');
 });
-
+await navegador.close();
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);

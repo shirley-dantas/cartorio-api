@@ -109,6 +109,8 @@
     if (!d) return { acao: 'fim', texto: 'Nada mais a buscar.' };
     if (tipo === 'pdf') return { acao: 'esperar', texto: 'Recebendo o PDF…' };
     if (!logada(doc)) return { acao: 'esperar', espera: 'login', texto: 'Entre no site com o seu certificado — eu continuo sozinho em seguida.' };
+    // O captcha é a proteção do site contra robô: o Ajudante não o resolve nem o contorna, só espera ela digitar as letras.
+    if (/digite o codigo da imagem/.test(textoDaPagina(doc))) return { acao: 'esperar', espera: 'captcha', texto: 'A JUCESP pediu o código da imagem. Digite as letras e clique em CONTINUAR — eu sigo sozinho depois.' };
 
     if (tipo === 'escolha') {
       const radio = acharRadio(doc, d.radio), ok = achar(doc, 'ok', true);
@@ -128,7 +130,7 @@
     }
     if (tipo === 'resultados') {
       const rs = resultados(doc);
-      if (!rs.length) return { acao: 'erro', texto: 'Não achei empresa com esse CNPJ na JUCESP.' };
+      if (!rs.length) return { acao: 'erro', fatal: true, texto: 'Não achei empresa com esse CNPJ na JUCESP (ela pode ser de outro estado).' };
       if (rs.length > 1) return { acao: 'manual', texto: 'Há ' + rs.length + ' empresas nesse resultado. Clique na certa — eu continuo dali.' };
       return { acao: 'clicar', el: rs[0].el, nire: rs[0].nire, empresa: rs[0].empresa, texto: 'Empresa: ' + (rs[0].empresa || rs[0].nire) + '…' };
     }
@@ -163,7 +165,7 @@
 
   const faixa = { el: null, txt: null, botoes: null };
   function montarFaixa() {
-    if (faixa.el) return;
+    if (faixa.el) { if (!faixa.el.isConnected && document.body) document.body.appendChild(faixa.el); return; }   // a página pode refazer o corpo
     const el = document.createElement('div');
     el.id = 'aj-faixa';
     el.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483647;width:340px;max-width:calc(100vw - 32px);background:#1F2A33;color:#fff;border-radius:14px;padding:12px 14px;font:14px/1.4 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35);border-top:4px solid #A9895A';
@@ -180,7 +182,7 @@
     montarFaixa(); faixa.txt.textContent = texto; faixa.el.style.borderTopColor = cor || '#A9895A'; faixa.botoes.innerHTML = '';
     (extras || []).forEach(([r, f]) => botaoDaFaixa(r, f));
   }
-  const dizer = (estado, texto) => { try { chrome.runtime.sendMessage({ tipo: 'status', estado, texto }); } catch (_) { /* o painel mostra o que já chegou */ } };
+  const dizer = (estado, texto, fatal) => { try { chrome.runtime.sendMessage({ tipo: 'status', estado, texto, fatal: !!fatal }); } catch (_) { /* o painel mostra o que já chegou */ } };
 
   // Contador de tentativas por tela e ação, na própria aba: se uma ação se repete, algo não está respondendo.
   function tentativas(chave) {
@@ -193,12 +195,11 @@
     campo.dispatchEvent(new Event('input', { bubbles: true })); campo.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  function parar(job, texto, estado) {
-    mostrar(texto, '#B3261E', [
-      ['Copiar relatório', () => { navigator.clipboard.writeText(relatorio(document, location.pathname, job)).then(() => mostrar(texto + ' (relatório copiado — cole na conversa)', '#B3261E'), () => {}); }],
-      ['Fazer à mão', () => { chrome.runtime.sendMessage({ tipo: 'manual' }); mostrar('Certo — faça você. Quando o PDF abrir, eu o pego e guardo no card.', '#A9895A'); }]
-    ]);
-    dizer(estado || 'erro', texto);
+  // `fatal`: não há o que fazer à mão (a empresa não existe na JUCESP): o pedido termina e a fila do painel segue.
+  function parar(job, texto, estado, fatal) {
+    const copiar = ['Copiar relatório', () => { navigator.clipboard.writeText(relatorio(document, location.pathname, job)).then(() => mostrar(texto + ' (relatório copiado — cole na conversa)', '#B3261E'), () => {}); }];
+    mostrar(texto, '#B3261E', fatal ? [copiar] : [copiar, ['Fazer à mão', () => { chrome.runtime.sendMessage({ tipo: 'manual' }); mostrar('Certo — faça você. Quando o PDF abrir, eu o pego e guardo no card.', '#A9895A'); }]]);
+    dizer(estado || 'erro', texto, fatal);
   }
 
   async function iniciar() {
@@ -213,7 +214,7 @@
       ultimo = '';
       if (job.manual) { mostrar('Faça você — eu pego o PDF quando abrir.'); return true; }
       if (plano.acao === 'fim') { mostrar(plano.texto); return true; }
-      if (plano.acao === 'erro') { parar(job, plano.texto); return true; }
+      if (plano.acao === 'erro') { parar(job, plano.texto, 'erro', plano.fatal); return true; }
       if (plano.acao === 'manual') { chrome.runtime.sendMessage({ tipo: 'manual' }); mostrar(plano.texto, '#A9895A'); dizer('manual', plano.texto); return true; }
       if (tentativas(location.pathname + '|' + plano.acao + '|' + (job.fila || [])[0]) > 3) { parar(job, 'A página não respondeu ao que eu fiz (tentei 3 vezes).'); return true; }
       mostrar(plano.texto); dizer('andando', plano.texto);
@@ -222,7 +223,16 @@
       else if (plano.acao === 'escolher' || plano.acao === 'copia') { plano.radio.checked = true; plano.radio.dispatchEvent(new Event('click', { bubbles: true })); plano.radio.dispatchEvent(new Event('change', { bubbles: true })); setTimeout(() => plano.botao.click(), 150); }
       else if (plano.acao === 'clicar') plano.el.click();
       else if (plano.acao === 'ir') location.href = new URL(plano.url, location.origin).href;
-      setTimeout(() => { if (document.visibilityState !== 'hidden' && faixa.el && faixa.el.isConnected) parar(job, 'A página não mudou depois do meu clique.'); }, 15000);
+      // A página pode mudar sem recarregar (o captcha aparece no mesmo lugar): vigia o que vem depois do clique.
+      let desde = Date.now();
+      const vigia = setInterval(() => {
+        montarFaixa();
+        const p = planejar(document, location.pathname, job);
+        if (p.acao === 'esperar') { desde = Date.now(); if (p.texto !== ultimo) { ultimo = p.texto; mostrar(p.texto); dizer('espera', p.texto); } return; }
+        if (p.texto !== plano.texto || p.acao !== plano.acao) { clearInterval(vigia); ultimo = ''; if (!rodar()) { const r2 = setInterval(() => { if (rodar()) clearInterval(r2); }, 1500); setTimeout(() => clearInterval(r2), 10 * 60 * 1000); } return; }
+        if (Date.now() - desde > 15000) { clearInterval(vigia); parar(job, 'A página não mudou depois do meu clique.'); }
+      }, 1000);
+      setTimeout(() => clearInterval(vigia), 10 * 60 * 1000);
       return true;
     };
     if (/\/Pre_Visualiza\.aspx/i.test(location.pathname)) { const n = /[?&]nire=(\d+)/i.exec(location.search); if (n) chrome.runtime.sendMessage({ tipo: 'nire', nire: n[1] }); }

@@ -1219,6 +1219,16 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
 - O fluxo da JUCESP foi montado a partir de **fotos das telas**, sem acesso ao site: a primeira rodada de verdade é com ela olhando, e é provável
   que peça ajuste (os testes usam páginas simuladas). Em aberto: se o endereço do PDF (`VisualizaTicket.aspx?sc=…`) pode ser baixado uma segunda
   vez pela extensão; se não puder, o erro diz isso e a saída é salvar o PDF e arrastar para a caixa.
+- **Os CNPJs vêm do próprio caso, ela não digita** (29/10/2026: "cada caso pode vir com um CNPJ ou mais, de ambas as partes"). O painel lê o texto dos
+  documentos já lidos do card (`ajEmpresasDoCaso`) e lista cada empresa com os seus botões; só CNPJ de dígito verificador certo, sem os do
+  cartório e da Prime, sem os de documento-modelo, o mesmo CNPJ de vários papéis junto. *Buscar os dois documentos das N empresas* roda **uma de
+  cada vez** (a próxima só sai quando a anterior termina de vez — o aviso `fim` do fundo); empresa que a JUCESP não tem (outro estado) termina o
+  pedido sozinha e a fila segue. O campo *Outro CNPJ* continua, recolhido. **É o painel lendo o que está escrito, não a IA chutando número.**
+- **O captcha da JUCESP ninguém resolve por ela.** Depois do Buscar a JUCESP pede o código da imagem; o Ajudante reconhece, avisa ("digite as
+  letras e clique em CONTINUAR") e **espera** — não é erro e não tem prazo curto. Resolver captcha por robô burla a proteção do site e os termos
+  de uso: decisão fechada. Para ela digitar o mínimo, o Ajudante **aprende o NIRE de cada CNPJ** na primeira busca (`nires` no armazenamento da
+  extensão, só do que veio do resultado da busca) e da segunda vez abre direto a empresa, pulando pesquisa e captcha; se a JUCESP não deixar,
+  cai na pesquisa de sempre. Ainda não se sabe, sem teste real, se a JUCESP deixa entrar direto.
 - Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
