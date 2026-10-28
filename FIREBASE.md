@@ -400,7 +400,7 @@ Mesma caixa de entrada, outra porta. Serve enquanto a API oficial não é usada.
 1. Confira que o servidor da Railway está no ar (abrir o endereço dele mostra "Welcome to the Evolution API").
 2. Religue a instância no número pessoal (QR code, em Conectar).
 3. Vercel → Environment Variables (e Redeploy): `EVOLUTION_HOST` (só o endereço, sem https://), `EVOLUTION_INSTANCE`,
-   `EVOLUTION_API_KEY`, `EVOLUTION_WEBHOOK_SEGREDO` (uma frase inventada), `ENTRADA_SEGREDO` (a mesma do Apps Script) e
+   `EVOLUTION_API_KEY`, `EVOLUTION_WEBHOOK_SEGREDO` (opcional: sem ela o endereço do webhook não leva `&s=` e a guarda é a lista de remetentes), `ENTRADA_SEGREDO` (a mesma do Apps Script) e
    `ENTRADA_REMETENTES` — o número do **Business** de onde ela encaminha, só dígitos (vários, separados por vírgula).
    Sem essa lista nada entra: o pessoal recebe foto de todo mundo.
 4. Na Evolution, webhook da instância: URL `https://cartorio-api.vercel.app/whatsapp?via=evolution&s=<a frase do passo 3>`,
