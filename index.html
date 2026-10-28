@@ -1763,6 +1763,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-solte-topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:600;color:var(--cc-tinta)}
 .cx-solte-topo i{font-size:18px;color:var(--cc-tinta-2)}.cx-solte-topo span{flex:1;min-width:180px}.cx-solte-topo small{display:block;font-weight:400;color:var(--cc-tinta-3);font-size:11.5px;margin-top:2px}
 .cx-solte:focus{outline:2px solid var(--cc-champagne,#A9895A);outline-offset:2px}
+.cx-aj{margin-top:10px;padding-top:10px;border-top:1px solid var(--cc-linha-forte)}
+.cx-aj-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}.cx-aj-topo i{font-size:18px;color:var(--cc-tinta-2)}
+.cx-aj-cnpj{flex:1;min-width:160px;max-width:240px;border:1px solid var(--cc-linha-forte);border-radius:10px;padding:7px 10px;font:inherit;background:#fff}
+.cx-aj-bt{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.cx-aj-msg{font-size:12.5px;margin-top:6px;overflow-wrap:anywhere}.cx-aj-msg:empty{display:none}
+.cx-aj-ok{color:var(--cc-ok,#2F7A4F)}.cx-aj-erro{color:var(--cc-critico,#B3261E)}.cx-aj-manual{color:#8A5A0B}
 .cx-solte-prog{list-style:none;margin:0;padding:0;display:grid;gap:4px}.cx-solte-prog:not(:empty){margin-top:10px}
 .cx-solte-prog li{display:flex;gap:8px;align-items:baseline;font-size:12.5px;overflow-wrap:anywhere}
 .cx-solte-prog .solte-ico{flex:none;width:16px;text-align:center;font-weight:700}
@@ -12104,7 +12110,7 @@ async function criarLinkEnvio(id,{estado,blocos,token,guiado}){
 // O que o cliente mandou pelo WhatsApp: ela solta os arquivos na caixa do card. Cada um vai para o Apps Script
 // (`painel-arquivo`), que cria a pasta do caso se faltar, guarda o arquivo, a IA lê e identifica o tipo e de
 // quem é, e o arquivo ganha o nome padrão. Salva direto; o que a IA não tem certeza fica "confirmar" no card.
-const SOLTE_TIPOS=[['RG_CNH','RG ou CNH'],['CPF','CPF'],['CERTIDAO_NASCIMENTO','Certidão de nascimento'],['CERTIDAO_CASAMENTO','Certidão de casamento'],['CERTIDAO_OBITO','Certidão de óbito'],['PACTO_ANTENUPCIAL','Pacto antenupcial'],['MATRICULA_IMOVEL','Matrícula do imóvel'],['COMPROVANTE_ENDERECO','Comprovante de endereço'],['IPTU','IPTU'],['CND','CND'],['ESCRITURA','Escritura'],['PROCURACAO','Procuração'],['CONTRATO','Contrato'],['COMPROVANTE_PAGAMENTO','Comprovante de pagamento'],['OUTRO','Outro']];
+const SOLTE_TIPOS=[['RG_CNH','RG ou CNH'],['CPF','CPF'],['CERTIDAO_NASCIMENTO','Certidão de nascimento'],['CERTIDAO_CASAMENTO','Certidão de casamento'],['CERTIDAO_OBITO','Certidão de óbito'],['PACTO_ANTENUPCIAL','Pacto antenupcial'],['MATRICULA_IMOVEL','Matrícula do imóvel'],['COMPROVANTE_ENDERECO','Comprovante de endereço'],['IPTU','IPTU'],['CND','CND'],['ESCRITURA','Escritura'],['PROCURACAO','Procuração'],['CONTRATO','Contrato'],['COMPROVANTE_PAGAMENTO','Comprovante de pagamento'],['FICHA_CADASTRAL_JUCESP','Ficha cadastral (JUCESP)'],['CONTRATO_SOCIAL','Contrato social'],['OUTRO','Outro']];
 const SOLTE_MIMES={'application/pdf':1,'image/jpeg':1,'image/png':1,'image/webp':1,'image/gif':1,'image/heic':1,'image/heif':1};
 const SOLTE_MAX=10*1024*1024, SOLTE_PARALELO=2;
 const SOLTE={}; // casoId -> [{id,nome,estado:'fila'|'enviando'|'ok'|'confirmar'|'erro',msg}]
@@ -12122,7 +12128,7 @@ function solteHtml(c){
   if(!c||!c.id) return '';
   return `<div class="cx-solte" data-solte="${esc(c.id)}" tabindex="0"><div class="cx-solte-topo"><i class="ti ti-upload"></i><span>Solte aqui os arquivos recebidos do cliente <small>ou clique aqui e cole (Ctrl+V)</small></span>
     <label class="cx-btn">Escolher arquivos<input type="file" multiple accept="image/*,application/pdf" data-solte-input="${esc(c.id)}" hidden></label></div>
-    <ul class="cx-solte-prog" id="solte-prog-${esc(c.id)}">${solteProgHtml(c.id)}</ul></div>`;
+    <ul class="cx-solte-prog" id="solte-prog-${esc(c.id)}">${solteProgHtml(c.id)}</ul>${ajudanteHtml(c)}</div>`;
 }
 function solteAtualizar(casoId){
   const ul=document.getElementById('solte-prog-'+casoId); if(ul) ul.innerHTML=solteProgHtml(casoId);
@@ -12320,6 +12326,52 @@ window.entradaDescartar=async function(remetente){
   }
   if(falhas.length) alert('Não consegui descartar tudo:\n'+[...new Set(falhas)].join('\n'));
 };
+// O Ajudante do painel: extensão do Chrome que entra na JUCESP (com o certificado dela, já instalado) e traz a ficha cadastral e o
+// contrato consolidado para o card. O painel só desenha o bloco se a extensão responder — botão que o navegador não sabe cumprir não se desenha.
+const AJUDANTE={pronto:false,versao:'',msg:{}};
+function ajCnpjValido(c){
+  c=String(c||'').replace(/\D/g,''); if(c.length!==14||/^(\d)\1+$/.test(c)) return false;
+  const dv=n=>{ let s=0,p=n-7; for(let i=0;i<n;i++){ s+=Number(c[i])*p--; if(p<2) p=9; } const r=s%11; return r<2?0:11-r; };
+  return dv(12)===Number(c[12])&&dv(13)===Number(c[13]);
+}
+function ajLerCnpj(casoId){ try{ return localStorage.getItem('aj_cnpj_'+casoId)||''; }catch(e){ return ''; } }
+window.ajSalvarCnpj=function(casoId,v){ try{ localStorage.setItem('aj_cnpj_'+casoId,v); }catch(e){} };
+function ajMsgHtml(casoId){
+  const m=AJUDANTE.msg[casoId]; if(!m||!m.texto) return '';
+  const ico={ok:'✅',erro:'⚠️',manual:'👉',espera:'⏳',andando:'⏳'}[m.estado]||'⏳';
+  return `<span class="cx-aj-${esc(m.estado||'andando')}">${ico} ${escTxt(m.texto)}</span>`;
+}
+function ajudanteHtml(c){
+  if(!AJUDANTE.pronto||!c||!c.id) return '';
+  const id=esc(c.id);
+  return `<div class="cx-aj"><div class="cx-aj-topo"><i class="ti ti-building-bank"></i><b>Buscar na JUCESP</b>
+    <input class="cx-aj-cnpj" id="aj-cnpj-${id}" inputmode="numeric" placeholder="CNPJ da empresa" value="${esc(ajLerCnpj(c.id))}" oninput="ajSalvarCnpj('${id}',this.value)"></div>
+    <div class="cx-aj-bt"><button type="button" class="cx-btn" onclick="ajudantePedir('${id}',['ficha'])">Ficha cadastral</button>
+    <button type="button" class="cx-btn" onclick="ajudantePedir('${id}',['contrato'])">Contrato consolidado</button>
+    <button type="button" class="cx-btn forte" onclick="ajudantePedir('${id}',['ficha','contrato'])">Os dois</button></div>
+    <div class="cx-aj-msg" id="aj-msg-${id}">${ajMsgHtml(c.id)}</div></div>`;
+}
+function ajudanteAtualizar(casoId){ const el=document.getElementById('aj-msg-'+casoId); if(el) el.innerHTML=ajMsgHtml(casoId); }
+window.ajudantePedir=function(casoId,quero){
+  const campo=document.getElementById('aj-cnpj-'+casoId), cnpj=String((campo&&campo.value)||ajLerCnpj(casoId)).replace(/\D/g,'');
+  if(!ajCnpjValido(cnpj)){ AJUDANTE.msg[casoId]={id:'',estado:'erro',texto:'Esse CNPJ não confere — confira os 14 dígitos.'}; return ajudanteAtualizar(casoId); }
+  const id='aj'+Date.now().toString(36);
+  AJUDANTE.msg[casoId]={id,estado:'andando',texto:'Abrindo a JUCESP numa aba nova…'}; ajudanteAtualizar(casoId);
+  window.postMessage({fonte:'painel-cartorio',tipo:'ajudante-pedido',pedido:{id,casoId,cnpj,quero}},location.origin);
+};
+function ajudanteOuvir(e){
+  const d=e&&e.data; if(!d||d.fonte!=='ajudante'||(e.source&&e.source!==window)) return;
+  if(d.tipo==='ajudante-pronto'){
+    AJUDANTE.pronto=true; AJUDANTE.versao=String(d.versao||'');
+    document.querySelectorAll&&document.querySelectorAll('.cx-solte').forEach(z=>{ if(!z.querySelector('.cx-aj')) z.insertAdjacentHTML('beforeend',ajudanteHtml({id:z.dataset.solte})); });
+  }
+  if(d.tipo==='ajudante-progresso'){
+    const casoId=Object.keys(AJUDANTE.msg).find(k=>AJUDANTE.msg[k].id===d.id); if(!casoId) return;
+    AJUDANTE.msg[casoId]={id:d.id,estado:String(d.estado||'andando'),texto:String(d.texto||'').slice(0,300)}; ajudanteAtualizar(casoId);
+  }
+}
+if(typeof window.addEventListener==='function'){ window.addEventListener('message',ajudanteOuvir); window.postMessage({fonte:'painel-cartorio',tipo:'ajudante-ping'},location.origin); setTimeout(()=>window.postMessage({fonte:'painel-cartorio',tipo:'ajudante-ping'},location.origin),1500); }
+window.ajudanteOuvir=ajudanteOuvir;
 // ── fim: arrastar arquivos para o card ──
 
 window.relerDocCliente=async function(casoId,docKey,btn){
