@@ -60,10 +60,10 @@ await passo('ponte: o andamento vindo do fundo chega ao painel; se o fundo não 
 
 // ── O fundo ──
 function mundoFundo({pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas = {ok: true, nome: 'JRL_HOLDING_LTDA_FICHA_CADASTRAL_JUCESP_2026-10-28_1.pdf', confirmar: false}, gasTexto, statusPdf = 200} = {}) {
-  const store = {}, enviadas = [], criadas = [], atualizadas = [], busca = [], ouv = {msg: null, upd: null, rem: null};
+  const store = {}, enviadas = [], criadas = [], atualizadas = [], removidas = [], busca = [], ouv = {msg: null, upd: null, rem: null};
   const chrome = {
     storage: {local: {get: async (k) => (k in store ? {[k]: JSON.parse(JSON.stringify(store[k]))} : {}), set: async (o) => { for (const [k, v] of Object.entries(o)) store[k] = JSON.parse(JSON.stringify(v)); }}},
-    tabs: {create: async (o) => { criadas.push(o); return {id: 70 + criadas.length}; }, update: async (id, o) => { atualizadas.push({id, ...o}); }, sendMessage: async (id, m) => { enviadas.push({tabId: id, ...m}); },
+    tabs: {create: async (o) => { criadas.push(o); return {id: 70 + criadas.length}; }, update: async (id, o) => { atualizadas.push({id, ...o}); }, remove: async (id) => { removidas.push(id); }, sendMessage: async (id, m) => { enviadas.push({tabId: id, ...m}); },
       onUpdated: {addListener: (f) => { ouv.upd = f; }}, onRemoved: {addListener: (f) => { ouv.rem = f; }}},
     runtime: {onMessage: {addListener: (f) => { ouv.msg = f; }}}
   };
@@ -76,8 +76,8 @@ function mundoFundo({pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas
   const ctx = {chrome, fetch, btoa, Uint8Array, ArrayBuffer, TextEncoder, String, URL, Promise, JSON, console, Object, Array, Number, Date, Error, module: undefined};
   vm.createContext(ctx); vm.runInContext(ler('ajudante/background.js'), ctx);
   const msg = (m, aba) => new Promise((res) => ouv.msg(m, aba ? {tab: {id: aba}} : {}, res));
-  const abrir = (url, aba) => { ouv.upd(aba, {url}, {url}); return esperar(); };
-  return {store, enviadas, criadas, atualizadas, busca, msg, abrir, ouv, gasEnviado: () => busca.filter((b) => b.url.startsWith('https://script.google.com/')).map((b) => JSON.parse(b.o.body))};
+  const abrir = (url, aba, opener) => { ouv.upd(aba, {url}, {url, openerTabId: opener}); return esperar(); };
+  return {store, enviadas, criadas, atualizadas, removidas, busca, msg, abrir, ouv, gasEnviado: () => busca.filter((b) => b.url.startsWith('https://script.google.com/')).map((b) => JSON.parse(b.o.body))};
 }
 const pedido = (o = {}) => ({id: 'ajteste1', casoId: 'C12345', cnpj: CNPJ, quero: ['ficha'], ...o});
 const PAINEL = 5;
@@ -104,7 +104,7 @@ await passo('fundo: o PDF que abre na JUCESP é baixado com a sessão dela e ent
   const [g] = m.gasEnviado(); assert.equal(g.acao, 'painel-arquivo'); assert.equal(g.casoId, 'C12345'); assert.equal(g.mimetype, 'application/pdf');
   assert.equal(g.tipoSugerido, 'FICHA_CADASTRAL_JUCESP'); assert.equal(g.pessoaSugerida, 'JRL HOLDING LTDA'); assert.equal(g.origemAjudante, 'jucesp');
   assert.equal(g.nomeArquivo, 'JUCESP_FICHA_CADASTRAL_COMPLETA_' + CNPJ + '.pdf'); assert.equal(Buffer.from(g.base64, 'base64').toString(), '%PDF-1.4 conteudo');
-  const fim = m.enviadas.filter((e) => e.estado === 'ok').pop(); assert(fim && /Pronto!/.test(fim.texto) && /Ficha cadastral completa/.test(fim.texto), JSON.stringify(m.enviadas.at(-1)));
+  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.estado === 'ok').pop(); assert(fim && /Pronto!/.test(fim.texto) && /Ficha cadastral completa/.test(fim.texto), JSON.stringify(m.enviadas.at(-1)));
   assert.equal(await m.msg({tipo: 'quem'}, 71), null, 'terminou: a aba deixa de ser acompanhada');
 });
 await passo('fundo: pedindo os dois, depois da ficha volta à empresa para o contrato e termina só no segundo PDF', async () => {
@@ -149,6 +149,17 @@ await passo('fundo: erro da página não encerra — ela pode "fazer à mão" e 
   await m.msg({tipo: 'status', estado: 'erro', texto: 'Não achei o botão OK'}, 71); await m.msg({tipo: 'manual'}, 71);
   assert(m.enviadas.some((e) => e.texto === 'Não achei o botão OK' && e.estado === 'erro'));
   await m.abrir('https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=9', 71); assert.equal(m.gasEnviado().length, 1);
+});
+
+await passo('fundo: o PDF que abre numa ABA NOVA (aberta pela aba do pedido) também é pego; a aba extra fecha e a do pedido é avisada', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedido()}, PAINEL);
+  await m.abrir('https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=nova', 90, 71);
+  assert.equal(m.gasEnviado().length, 1, 'o PDF da aba nova foi guardado');
+  assert.deepEqual(m.removidas, [90], 'a aba extra, que só mostrava o PDF, é fechada');
+  assert(m.enviadas.some((e) => e.tabId === 71 && e.tipo === 'pdf'), 'a aba do pedido sabe que o PDF chegou');
+  assert(m.enviadas.some((e) => e.tabId === 71 && e.tipo === 'fim' && e.estado === 'ok'));
+  // aba nova de quem não é do pedido não vale
+  const n = mundoFundo(); await n.msg({tipo: 'pedido', pedido: pedido()}, PAINEL); await n.abrir('https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=x', 91, 999); assert.equal(n.gasEnviado().length, 0);
 });
 
 // ── As telas da JUCESP, como ela mostrou ──
@@ -404,9 +415,9 @@ await passo('empresa que não existe na JUCESP termina o pedido de vez (a fila d
 });
 await passo('fundo: "empresa que não existe" encerra o pedido com o fim marcado; erro comum não encerra', async () => {
   const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedido()}, PAINEL);
-  await m.msg({tipo: 'status', estado: 'erro', texto: 'tela estranha'}, 71); assert.notEqual(await m.msg({tipo: 'quem'}, 71), null); assert(m.enviadas.filter((e) => e.estado === 'erro').every((e) => e.fim === false));
+  await m.msg({tipo: 'status', estado: 'erro', texto: 'tela estranha'}, 71); assert.notEqual(await m.msg({tipo: 'quem'}, 71), null); assert(m.enviadas.filter((e) => e.tipo === 'progresso' && e.estado === 'erro').every((e) => e.fim === false));
   await m.msg({tipo: 'status', estado: 'erro', texto: 'Não achei empresa', fatal: true}, 71); assert.equal(await m.msg({tipo: 'quem'}, 71), null);
-  assert.equal(m.enviadas.at(-1).fim, true);
+  assert.equal(m.enviadas.filter((e) => e.tipo === 'progresso').at(-1).fim, true);
 });
 await passo('fundo: aprende o NIRE na primeira busca e da segunda vez abre direto a empresa, pulando a pesquisa (e o captcha)', async () => {
   const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedido()}, PAINEL); assert.equal(m.criadas[0].url, 'https://www.jucesponline.sp.gov.br/Default.aspx');
@@ -430,5 +441,19 @@ await passo('zip: o ajudante-do-painel.zip na raiz bate arquivo por arquivo com 
   const fora = readdirSync(EXT).map((n) => 'ajudante/' + n).sort(); assert.deepEqual(dentro, fora);
   for (const n of fora) assert.equal(execFileSync('unzip', ['-p', zip, n], {encoding: 'utf8', maxBuffer: 1 << 24}), readFileSync(join(RAIZ, n), 'utf8'), n + ' está diferente do que vai no zip');
 });
+await passo('página: escolher a opção é um clique de verdade (a JUCESP guarda a escolha no clique) e, quando o fundo avisa que o PDF chegou, a faixa deixa de vigiar e de acusar erro', async () => {
+  await pagina.route(ORIGEM + '/**', (r) => r.fulfill({contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body>' + flag(PAG.escolha()).replace(/<input type="radio"/g, '<input type="radio" onclick="window.__radio=(window.__radio||0)+1"') + '</body></html>'}));
+  await pagina.goto(ORIGEM + '/Pre_Visualiza.aspx?nire=35262229284&idproduto=');
+  await pagina.evaluate((j) => { window.__msgs = []; window.__radio = 0; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? j : {ok: true}; }, onMessage: {addListener: (f) => { window.__ouvinte = f; }}}}; }, job());
+  await pagina.addScriptTag({content: ler('ajudante/jucesp.js')});
+  await pagina.waitForTimeout(900);
+  const antes = await pagina.evaluate(() => ({radio: window.__radio, clicou: window.__clicou || []})); assert.equal(antes.radio, 1, 'o radio recebeu o clique'); assert.deepEqual(antes.clicou, ['OK']);
+  await pagina.evaluate(() => window.__ouvinte({tipo: 'pdf'})); await pagina.waitForTimeout(100);
+  assert.match(await pagina.evaluate(() => document.getElementById('aj-faixa').innerText), /Recebi o PDF/);
+  await pagina.evaluate(() => window.__ouvinte({tipo: 'fim', estado: 'ok', texto: 'Pronto! Ficha cadastral completa: guardado no card.'}));
+  assert.match(await pagina.evaluate(() => document.getElementById('aj-faixa').innerText), /Pronto!/); assert.equal(await pagina.evaluate(() => getComputedStyle(document.getElementById('aj-faixa')).borderTopColor), 'rgb(47, 122, 79)');
+  await pagina.waitForTimeout(1800); assert(!(await pagina.evaluate(() => window.__msgs)).some((m) => m.estado === 'erro'));
+});
+
 await navegador.close();
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);

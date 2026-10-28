@@ -207,6 +207,16 @@
     try { job = await chrome.runtime.sendMessage({ tipo: 'quem' }); } catch (_) { return; }
     if (!job || !job.id || job.fim) return;
     mostrar('Ajudante do painel ligado…');
+    let vigiaAtual = null;
+    // O fundo avisa quando o PDF chegou (mesmo que tenha aberto noutra aba) e quando o pedido terminou.
+    if (chrome.runtime.onMessage && chrome.runtime.onMessage.addListener) chrome.runtime.onMessage.addListener((m) => {
+      if (!m) return;
+      if (m.tipo === 'pdf') { clearInterval(vigiaAtual); mostrar('Recebi o PDF — guardando no card…'); }
+      if (m.tipo === 'fim') {   // o erro já está na faixa, com os botões dele; só o sucesso e o cancelamento a trocam
+        clearInterval(vigiaAtual);
+        if (m.estado === 'ok') mostrar(m.texto, '#2F7A4F'); else if (/^Cancelado/.test(m.texto)) mostrar(m.texto, '#B3261E');
+      }
+    });
     let ultimo = '';
     const rodar = () => {
       const plano = planejar(document, location.pathname, job);
@@ -220,12 +230,12 @@
       mostrar(plano.texto); dizer('andando', plano.texto);
       if (plano.nire) chrome.runtime.sendMessage({ tipo: 'nire', nire: plano.nire, empresa: plano.empresa });
       if (plano.acao === 'preencher') { preencher(plano.campo, plano.valor); setTimeout(() => plano.botao.click(), 150); }
-      else if (plano.acao === 'escolher' || plano.acao === 'copia') { plano.radio.checked = true; plano.radio.dispatchEvent(new Event('click', { bubbles: true })); plano.radio.dispatchEvent(new Event('change', { bubbles: true })); setTimeout(() => plano.botao.click(), 150); }
+      else if (plano.acao === 'escolher' || plano.acao === 'copia') { plano.radio.click(); if (!plano.radio.checked) plano.radio.checked = true; plano.radio.dispatchEvent(new Event('change', { bubbles: true })); setTimeout(() => plano.botao.click(), 400); }
       else if (plano.acao === 'clicar') plano.el.click();
       else if (plano.acao === 'ir') location.href = new URL(plano.url, location.origin).href;
       // A página pode mudar sem recarregar (o captcha aparece no mesmo lugar): vigia o que vem depois do clique.
       let desde = Date.now();
-      const vigia = setInterval(() => {
+      const vigia = vigiaAtual = setInterval(() => {
         montarFaixa();
         const p = planejar(document, location.pathname, job);
         if (p.acao === 'esperar') { desde = Date.now(); if (p.texto !== ultimo) { ultimo = p.texto; mostrar(p.texto); dizer('espera', p.texto); } return; }

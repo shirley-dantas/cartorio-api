@@ -1229,6 +1229,10 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   de uso: decisão fechada. Para ela digitar o mínimo, o Ajudante **aprende o NIRE de cada CNPJ** na primeira busca (`nires` no armazenamento da
   extensão, só do que veio do resultado da busca) e da segunda vez abre direto a empresa, pulando pesquisa e captcha; se a JUCESP não deixar,
   cai na pesquisa de sempre. Ainda não se sabe, sem teste real, se a JUCESP deixa entrar direto.
+- **O PDF pode abrir noutra aba.** No primeiro teste real o Ajudante marcou a opção, clicou em OK e acusou "a página não mudou": a JUCESP provavelmente
+  abre o PDF numa aba nova. O fundo agora pega o `VisualizaTicket.aspx` tanto na aba do pedido quanto numa aba aberta por ela (`openerTabId`), fecha a
+  aba extra depois de guardar e avisa a aba do pedido (`pdf`, `fim`) para a faixa parar de vigiar. A escolha da opção passou a ser um **clique de verdade**
+  (`radio.click()`), porque a JUCESP guarda a escolha no clique. Ainda sem confirmação real de qual dos dois acontece.
 - Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
