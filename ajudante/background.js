@@ -34,7 +34,7 @@ function falar(job, estado, texto, fim) {
   try { Promise.resolve(chrome.tabs.sendMessage(job.painelTabId, { tipo: 'progresso', id: job.id, estado, texto, fim: !!fim })).catch(() => {}); } catch (_) { /* a aba do painel pode ter fechado */ }
 }
 async function terminar(id, estado, texto) {
-  const job = await mudar(id, (j, todos) => { j.fim = true; j.estado = estado; j.texto = texto; if (!Object.values(todos).some((x) => !x.fim)) popupsDaJucesp(false); });
+  const job = await mudar(id, (j, todos) => { j.fim = true; j.estado = estado; j.texto = texto; ev(j, { fim: estado, texto: String(texto || '').slice(0, 90) }); if (!Object.values(todos).some((x) => !x.fim)) popupsDaJucesp(false); });
   if (job) {
     falar(job, estado, texto, true);
     try { Promise.resolve(chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'fim', estado, texto })).catch(() => {}); } catch (_) { /* a aba pode já ter fechado */ }
@@ -55,13 +55,16 @@ async function lembrarNire(cnpj, nire) { await mexer(async () => { const n = (aw
 // A JUCESP abre o PDF numa janela nova, e o Chrome bloqueia essa janela quando o clique que a causou é de programa. Enquanto há pedido andando,
 // os pop-ups SÓ do site da JUCESP ficam liberados (configuração da própria extensão, que o Chrome desfaz quando ela a limpa). Nada além desse endereço.
 const PADRAO_JUCESP = JUCESP + '/*';
-function popupsDaJucesp(liberar) {
+async function popupsDaJucesp(liberar) {
   try {
-    const cs = chrome.contentSettings && chrome.contentSettings.popups; if (!cs) return;
-    if (liberar) Promise.resolve(cs.set({ primaryPattern: PADRAO_JUCESP, setting: 'allow' })).catch(() => {});
-    else Promise.resolve(cs.clear({})).catch(() => {});
-  } catch (_) { /* sem a permissão ou em janela anônima: o botão de reserva da faixa cobre */ }
+    const cs = chrome.contentSettings && chrome.contentSettings.popups; if (!cs) return 'sem a API';
+    if (liberar) await cs.set({ primaryPattern: PADRAO_JUCESP, setting: 'allow' }); else await cs.clear({});
+    return 'ok';
+  } catch (e) { return 'erro: ' + String((e && e.message) || e).slice(0, 120); }   // a reserva da faixa (um clique dela) cobre
 }
+// O que o fundo viu, para o relatório: se os pop-ups foram liberados, que abas a página abriu, o que foi baixado e como acabou.
+const ev = (job, o) => { (job.eventos = job.eventos || []).push(Object.assign({ t: Math.round((Date.now() - (job.iniciado || Date.now())) / 100) / 10 }, o)); if (job.eventos.length > 20) job.eventos.shift(); };
+const semQuery = (u) => { try { const x = new URL(u); return x.pathname; } catch (_) { return String(u || '').split('?')[0]; } };
 
 async function criarPedido(pedido, sender) {
   const quero = Array.isArray(pedido && pedido.quero) ? pedido.quero.filter((q, i, a) => DOCS[q] && a.indexOf(q) === i) : [];
@@ -72,7 +75,7 @@ async function criarPedido(pedido, sender) {
   const job = { id: pedido.id, casoId: pedido.casoId, cnpj: String(pedido.cnpj).replace(/\D/g, ''), fila: quero.slice(), feitos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
   const conhecido = await nireConhecido(job.cnpj);
   if (conhecido) { job.nire = conhecido; job.direto = true; }
-  popupsDaJucesp(true);
+  job.popups = await popupsDaJucesp(true);
   const aba = await chrome.tabs.create({ url: conhecido ? JUCESP + '/Pre_Visualiza.aspx?nire=' + conhecido + '&idproduto=' : JUCESP + '/Default.aspx' });
   job.jucespTabId = aba.id;
   await mexer(async () => { const todos = await jobs(); todos[job.id] = job; await guardar(todos); });
@@ -122,11 +125,14 @@ async function capturar(job, url) {
   try {
     // Primeiro pela aba da JUCESP (a sessão e os cookies são os dela); só se a aba não puder, pelo fundo.
     let base64 = null;
-    try { const r = await chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'buscar-pdf', url }); if (r && r.ok && r.base64) base64 = r.base64; } catch (_) { /* a aba pode ter mudado de página */ }
+    let viaAba = 'sem resposta';
+    try { const r = await chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'buscar-pdf', url }); if (r && r.ok && r.base64) { base64 = r.base64; viaAba = 'ok'; } else if (r) viaAba = 'não é PDF (' + (r.status || '?') + ', ' + (r.tipo || r.erro || '?') + ')'; } catch (_) { viaAba = 'aba indisponível'; }
+    await mudar(job.id, (x) => { ev(x, { buscaPelaAba: viaAba }); });
     if (!base64) {
       const r = await fetch(url, { credentials: 'include' });
       if (!r.ok) throw new Error('A JUCESP respondeu ' + r.status + ' ao baixar o PDF.');
       const bytes = await r.arrayBuffer();
+      await mudar(job.id, (x) => { ev(x, { buscaPeloFundo: r.status + ' ' + (r.headers.get('content-type') || '?') + ' ' + bytes.byteLength + 'B' }); });
       if (!bytes.byteLength) throw new Error('PDF vazio.');
       base64 = paraBase64(bytes);
     }
@@ -161,6 +167,7 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
       if (m.empresa && x && /^\d{11}$/.test(x.nire || '')) await lembrarNire(x.cnpj, x.nire);   // só o que veio do resultado da busca por esse CNPJ
       return responder({ ok: true });
     }
+    if (m.tipo === 'diagnostico-fundo') return responder({ popups: job.popups || '', eventos: job.eventos || [] });
     // A aba do pedido pediu o PDF pelo formulário e o trouxe de volta (sem abrir aba nenhuma): é o caminho normal.
     if (m.tipo === 'pdf-bytes') { responder({ ok: true }); await guardarPdf(job, String(m.base64 || '')); return; }
     if (m.tipo === 'manual') { await mudar(job.id, (x) => { x.manual = true; }); return responder({ ok: true }); }
@@ -178,9 +185,18 @@ chrome.tabs.onUpdated.addListener((tabId, info, aba) => {
   mexer(async () => {
     const todos = await jobs(), job = Object.values(todos).find((j) => !j.fim && (j.jucespTabId === tabId || (opener != null && j.jucespTabId === opener)));
     if (!job || job.pdfUrl === url) return null;
-    job.pdfUrl = url; job.abaDoPdf = tabId; await guardar(todos); return job;
+    job.pdfUrl = url; job.abaDoPdf = tabId; ev(job, { pdfEm: semQuery(url), aba: tabId === job.jucespTabId ? 'a do pedido' : 'nova' }); await guardar(todos); return job;
   }).then((job) => { if (job) return capturar(job, url); }).catch(() => {});
 });
+
+chrome.tabs.onCreated && chrome.tabs.onCreated.addListener((aba) => {
+  if (!aba || aba.openerTabId == null) return;
+  mudar_se_job_da_aba(aba.openerTabId, (j) => ev(j, { abaCriada: semQuery(aba.pendingUrl || aba.url || '') || '(sem endereço)' }));
+});
+async function mudar_se_job_da_aba(tabId, f) {
+  const todos = await jobs(), job = Object.values(todos).find((j) => !j.fim && j.jucespTabId === tabId);
+  if (job) await mudar(job.id, f);
+}
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   mexer(async () => { const todos = await jobs(); const job = Object.values(todos).find((j) => j.jucespTabId === tabId && !j.fim); return job ? { ...job } : null; })

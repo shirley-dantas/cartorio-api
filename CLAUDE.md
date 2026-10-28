@@ -1252,6 +1252,10 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   endereço `VisualizaTicket.aspx` da mesma origem) e só depois pelo fundo. Em aberto: se o endereço do PDF vale uma vez só (o primeiro "O que veio não é um PDF" no card
   sugere que sim); se valer, a saída seguinte é forçar o download (`declarativeNetRequest` + `downloads`, com "Permitir acesso a URLs de arquivo" ligado uma vez) em vez de
   buscar de novo.
+- **0.1.4 não bastou (29/10/2026):** com os pop-ups liberados, o OK clicado sozinho ainda não fez a página mudar e a faixa caiu na reserva — então o bloqueio de pop-up
+  **não** explica tudo. A 0.1.5 faz o *Copiar relatório* (agora também na faixa da reserva) levar o que o **fundo** viu: se `contentSettings` foi aceito (`popups`), as abas que
+  a página abriu (`abaCriada`, só o caminho, sem o ticket), o PDF visto (`pdfEm`) e como foi buscado (`buscaPelaAba`/`buscaPeloFundo`). É esse relatório que diz se o OK nem
+  dispara, se abre aba, ou se o PDF abre e o que falha é baixá-lo.
 - Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).

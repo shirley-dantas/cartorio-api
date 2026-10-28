@@ -150,7 +150,7 @@
   function relatorio(doc, caminho, job, extra) {
     const lista = (sel, f) => Array.from(doc.querySelectorAll(sel)).filter(visivel).slice(0, 40).map(f);
     return JSON.stringify({
-      versao: (extra && extra.versao) || '', aviso: (extra && extra.aviso) || '', diagnostico: (extra && extra.diagnostico) || null,   // o que a faixa dizia e qual versão da extensão está rodando
+      versao: (extra && extra.versao) || '', aviso: (extra && extra.aviso) || '', diagnostico: (extra && extra.diagnostico) || null, fundo: (extra && extra.fundo) || null,   // o que a faixa dizia e qual versão da extensão está rodando
       caminho, titulo: doc.title, pagina: tipoDePagina(doc, caminho), logada: logada(doc), passo: job && job.fila && job.fila[0],
       botoes: lista('a,button,input[type=submit],input[type=button]', (e) => (textoDe(e) || '').slice(0, 60)),
       campos: lista('input:not([type=hidden]),select,textarea', (e) => [e.type, e.name, e.id].join('|')),
@@ -200,9 +200,15 @@
 
   // `fatal`: não há o que fazer à mão (a empresa não existe na JUCESP): o pedido termina e a fila do painel segue.
   let ultimoDiagnostico = null;
+  // O relatório leva o que a aba viu e o que o fundo viu (pop-ups liberados? abas abertas? o PDF foi baixado e como?).
+  async function copiarRelatorio(job, texto, cor) {
+    let fundo = null; try { fundo = await chrome.runtime.sendMessage({ tipo: 'diagnostico-fundo' }); } catch (_) { /* o fundo pode não responder */ }
+    const extra = { versao: (chrome.runtime.getManifest && chrome.runtime.getManifest().version) || '', aviso: texto, diagnostico: ultimoDiagnostico, fundo };
+    try { await navigator.clipboard.writeText(relatorio(document, location.pathname, job, extra)); mostrar(texto + ' (relatório copiado — cole na conversa)', cor || '#B3261E'); } catch (_) { /* sem permissão de área de transferência */ }
+  }
   api.diagnostico = () => ultimoDiagnostico;   // só para o teste olhar o que foi registrado
   function parar(job, texto, estado, fatal) {
-    const copiar = ['Copiar relatório', () => { navigator.clipboard.writeText(relatorio(document, location.pathname, job, { versao: (chrome.runtime.getManifest && chrome.runtime.getManifest().version) || '', aviso: texto, diagnostico: ultimoDiagnostico })).then(() => mostrar(texto + ' (relatório copiado — cole na conversa)', '#B3261E'), () => {}); }];
+    const copiar = ['Copiar relatório', async () => { await copiarRelatorio(job, texto, null); }];
     mostrar(texto, '#B3261E', fatal ? [copiar] : [copiar, ['Fazer à mão', () => { chrome.runtime.sendMessage({ tipo: 'manual' }); mostrar('Certo — faça você. Quando o PDF abrir, eu o pego e guardo no card.', '#A9895A'); }]]);
     dizer(estado || 'erro', texto, fatal);
   }
@@ -294,7 +300,7 @@
     // o resto — pegar o PDF e guardar no card — continua sendo do Ajudante.
     const pedirClique = (plano) => {
       const aviso = 'A JUCESP não abriu o PDF com o meu clique. Clique no botão abaixo — o resto é comigo.';
-      mostrar(aviso, '#A9895A', [['Gerar o PDF (clique aqui)', () => {
+      mostrar(aviso, '#A9895A', [['Copiar relatório', async () => { await copiarRelatorio(job, aviso, '#A9895A'); }], ['Gerar o PDF (clique aqui)', () => {
         plano.radio.click(); if (!plano.radio.checked) plano.radio.checked = true;
         mostrar('Pedindo o PDF…'); dizer('andando', 'Pedindo o PDF…');
         plano.botao.click();   // dentro do clique dela: o Chrome aceita a janela do PDF
