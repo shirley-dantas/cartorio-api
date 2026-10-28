@@ -150,7 +150,7 @@
   function relatorio(doc, caminho, job, extra) {
     const lista = (sel, f) => Array.from(doc.querySelectorAll(sel)).filter(visivel).slice(0, 40).map(f);
     return JSON.stringify({
-      versao: (extra && extra.versao) || '', aviso: (extra && extra.aviso) || '',   // o que a faixa dizia e qual versão da extensão está rodando
+      versao: (extra && extra.versao) || '', aviso: (extra && extra.aviso) || '', diagnostico: (extra && extra.diagnostico) || null,   // o que a faixa dizia e qual versão da extensão está rodando
       caminho, titulo: doc.title, pagina: tipoDePagina(doc, caminho), logada: logada(doc), passo: job && job.fila && job.fila[0],
       botoes: lista('a,button,input[type=submit],input[type=button]', (e) => (textoDe(e) || '').slice(0, 60)),
       campos: lista('input:not([type=hidden]),select,textarea', (e) => [e.type, e.name, e.id].join('|')),
@@ -199,8 +199,10 @@
   }
 
   // `fatal`: não há o que fazer à mão (a empresa não existe na JUCESP): o pedido termina e a fila do painel segue.
+  let ultimoDiagnostico = null;
+  api.diagnostico = () => ultimoDiagnostico;   // só para o teste olhar o que foi registrado
   function parar(job, texto, estado, fatal) {
-    const copiar = ['Copiar relatório', () => { navigator.clipboard.writeText(relatorio(document, location.pathname, job, { versao: (chrome.runtime.getManifest && chrome.runtime.getManifest().version) || '', aviso: texto })).then(() => mostrar(texto + ' (relatório copiado — cole na conversa)', '#B3261E'), () => {}); }];
+    const copiar = ['Copiar relatório', () => { navigator.clipboard.writeText(relatorio(document, location.pathname, job, { versao: (chrome.runtime.getManifest && chrome.runtime.getManifest().version) || '', aviso: texto, diagnostico: ultimoDiagnostico })).then(() => mostrar(texto + ' (relatório copiado — cole na conversa)', '#B3261E'), () => {}); }];
     mostrar(texto, '#B3261E', fatal ? [copiar] : [copiar, ['Fazer à mão', () => { chrome.runtime.sendMessage({ tipo: 'manual' }); mostrar('Certo — faça você. Quando o PDF abrir, eu o pego e guardo no card.', '#A9895A'); }]]);
     dizer(estado || 'erro', texto, fatal);
   }
@@ -212,9 +214,13 @@
   async function pdfDaResposta(r, fundura) {
     const buf = await r.arrayBuffer();
     if (ehPdf(buf)) return buf;
-    const naoPdf = (msg) => Object.assign(new Error(msg), { naoPdf: true });
+    const texto0 = new TextDecoder().decode(buf);
+    // O que a JUCESP respondeu, para o relatório: status, tipo, tamanho e o começo do texto — sem números longos (CPF, protocolo) nem os campos escondidos.
+    const diag = { status: r.status, tipo: r.headers && r.headers.get ? r.headers.get('content-type') : '', tamanho: buf.byteLength, endereco: (() => { try { return new URL(r.url).pathname; } catch (_) { return ''; } })(),
+      trecho: texto0.replace(/value="[^"]{40,}"/g, 'value="…"').replace(/\d{8,}/g, '#').replace(/\s+/g, ' ').slice(0, 700) };
+    const naoPdf = (msg) => Object.assign(new Error(msg), { naoPdf: true, diag });
     if ((fundura || 0) >= 2) throw naoPdf('A JUCESP não devolveu o PDF.');
-    const texto = new TextDecoder().decode(buf).replace(/\\u0026|&amp;/g, '&').replace(/\\\//g, '/');
+    const texto = texto0.replace(/\\u0026|&amp;/g, '&').replace(/\\\//g, '/');
     const m = /[\w./-]*VisualizaTicket\.aspx\?[^'"\s)<>\\]+/i.exec(texto);
     if (!m) throw naoPdf('A JUCESP respondeu, mas sem o PDF (' + (r.status || '?') + ').');
     return pdfDaResposta(await fetch(new URL(m[0], r.url || location.href).href, { credentials: 'same-origin' }), (fundura || 0) + 1);
@@ -266,7 +272,7 @@
         mostrar('Recebi o PDF — guardando no card…'); dizer('andando', 'Recebi o PDF — guardando no card…');
         await chrome.runtime.sendMessage({ tipo: 'pdf-bytes', base64: paraBase64(buf) });
       } catch (e) {
-        if (e && e.naoPdf) return executar(Object.assign({}, plano, { acao: 'escolher', planejado: 'baixar' }));   // a resposta não era PDF: o caminho do clique de sempre
+        if (e && e.naoPdf) { ultimoDiagnostico = e.diag || null; return executar(Object.assign({}, plano, { acao: 'escolher', planejado: 'baixar' })); }   // a resposta não era PDF: o caminho do clique de sempre
         parar(job, 'Não consegui pedir o PDF: ' + ((e && e.message) || e));
       }
     };

@@ -458,19 +458,19 @@ await passo('página: escolher a opção é um clique de verdade (a JUCESP guard
 });
 
 // ── A JUCESP de verdade (os nomes dos campos vêm do relatório que ela copiou): o PDF é pedido pelo formulário ──
-const FORM = (acao) => `<form method="post" action="${acao}" id="aspnetForm"><input type="hidden" name="__VIEWSTATE" value="vs123"><input type="hidden" name="__EVENTVALIDATION" value="ev456">
+const FORM = (acao, extra = '') => `<form method="post" action="${acao}" id="aspnetForm" ${extra}><input type="hidden" name="__VIEWSTATE" value="vs123"><input type="hidden" name="__EVENTVALIDATION" value="ev456">
   ${['FBR - Ficha de Breve Relato Digitalizada (dados anteriores a 1992)', 'Ficha Cadastral Completa (dados a partir de 1992)', 'Ficha Cadastral Simplificada (dados atuais da empresa)', 'Cópia Digitalizada de Documentos Arquivados (cópia simples - não tem valor jurídico de certidão)']
     .map((t, i) => `<span><input type="radio" id="ctl00_cphContent_frmPreVisualiza_rblTipoDocumento_${i}" name="ctl00$cphContent$frmPreVisualiza$rblTipoDocumento" value="${i}"><label for="ctl00_cphContent_frmPreVisualiza_rblTipoDocumento_${i}">${t}</label></span>`).join('')}
   <input type="submit" name="ctl00$cphContent$frmPreVisualiza$btnEmitir" value="OK" id="ctl00_cphContent_frmPreVisualiza_btnEmitir" onclick="sessionStorage.setItem('clicouOk', String(Number(sessionStorage.getItem('clicouOk')||0)+1))"></form>`;
 const PDF_BYTES = '%PDF-1.4 ficha de verdade';
-async function ficha(respostaPost) {
+async function ficha(respostaPost, formExtra = '') {
   const posts = [], gets = [];
   await pagina.route(ORIGEM + '/**', (r) => {
     const req = r.request(), url = new URL(req.url());
     if (req.method() === 'POST') { posts.push({url: url.pathname + url.search, corpo: req.postData()}); return respostaPost(r); }
     gets.push(url.pathname + url.search);
     if (/VisualizaTicket/.test(url.pathname)) return r.fulfill({contentType: 'application/pdf', body: PDF_BYTES});
-    return r.fulfill({contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body>' + TOPO() + MENU + FORM('Pre_Visualiza.aspx?nire=35262229284&idproduto=') + '</body></html>'});
+    return r.fulfill({contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body>' + TOPO() + MENU + FORM('Pre_Visualiza.aspx?nire=35262229284&idproduto=', formExtra) + '</body></html>'});
   });
   await pagina.goto(ORIGEM + '/Pre_Visualiza.aspx?nire=35262229284&idproduto=');
   await pagina.evaluate(() => sessionStorage.clear());
@@ -500,6 +500,15 @@ await passo('formulário: erro do servidor aparece escrito, com o "fazer à mão
   const r = await ficha((rt) => rt.fulfill({status: 500, contentType: 'text/html', body: 'erro'}));
   assert.match(r.faixa, /Não consegui pedir o PDF: A JUCESP respondeu 500/); assert.match(r.faixa, /Fazer à mão/); assert(r.msgs.some((m) => m.estado === 'erro'));
 });
+await passo('formulário: quando a resposta não é PDF, o que a JUCESP respondeu fica registrado para o relatório — sem números longos nem campos escondidos', async () => {
+  const resposta = '<html><body>Olá, SHIRLEY DANTAS 34550022850 <input type="hidden" name="__VIEWSTATE" value="' + 'A'.repeat(200) + '"> Protocolo 123456789012 sua solicitação está em análise</body></html>';
+  const r = await ficha((rt) => rt.fulfill({contentType: 'text/html; charset=utf-8', body: resposta}), 'onsubmit="return false"');
+  const d = await pagina.evaluate(() => window.AJ_JUCESP.diagnostico());
+  assert(d, 'registrou'); assert.equal(d.status, 200); assert.match(d.tipo, /text\/html/); assert.equal(d.tamanho, Buffer.byteLength(resposta)); assert.equal(d.endereco, '/Pre_Visualiza.aspx');
+  assert.match(d.trecho, /sua solicitação está em análise/); assert(!/34550022850|123456789012/.test(d.trecho), 'CPF e protocolo não vão'); assert(!/AAAAAAAAAA/.test(d.trecho), 'campos escondidos não vão'); assert(d.trecho.length <= 700);
+  assert.equal(r.cliques, 1, 'e caiu no clique de sempre');
+});
+
 await passo('fundo: o PDF trazido pela aba do pedido (pdf-bytes) é conferido, guardado e a fila anda — e o que não é PDF vira erro escrito', async () => {
   const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedido({quero: ['ficha', 'contrato']})}, PAINEL); await m.msg({tipo: 'nire', nire: '35262229284', empresa: 'JRL HOLDING LTDA'}, 71);
   const b64 = Buffer.from('%PDF-1.4 x').toString('base64');
