@@ -34,7 +34,7 @@ function falar(job, estado, texto, fim) {
   try { Promise.resolve(chrome.tabs.sendMessage(job.painelTabId, { tipo: 'progresso', id: job.id, estado, texto, fim: !!fim })).catch(() => {}); } catch (_) { /* a aba do painel pode ter fechado */ }
 }
 async function terminar(id, estado, texto) {
-  const job = await mudar(id, (j) => { j.fim = true; j.estado = estado; j.texto = texto; });
+  const job = await mudar(id, (j, todos) => { j.fim = true; j.estado = estado; j.texto = texto; if (!Object.values(todos).some((x) => !x.fim)) popupsDaJucesp(false); });
   if (job) {
     falar(job, estado, texto, true);
     try { Promise.resolve(chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'fim', estado, texto })).catch(() => {}); } catch (_) { /* a aba pode já ter fechado */ }
@@ -52,6 +52,17 @@ function paraBase64(buffer) {
 async function nireConhecido(cnpj) { return ((await chrome.storage.local.get('nires')).nires || {})[cnpj] || null; }
 async function lembrarNire(cnpj, nire) { await mexer(async () => { const n = (await chrome.storage.local.get('nires')).nires || {}; n[cnpj] = nire; await chrome.storage.local.set({ nires: n }); }); }
 
+// A JUCESP abre o PDF numa janela nova, e o Chrome bloqueia essa janela quando o clique que a causou é de programa. Enquanto há pedido andando,
+// os pop-ups SÓ do site da JUCESP ficam liberados (configuração da própria extensão, que o Chrome desfaz quando ela a limpa). Nada além desse endereço.
+const PADRAO_JUCESP = JUCESP + '/*';
+function popupsDaJucesp(liberar) {
+  try {
+    const cs = chrome.contentSettings && chrome.contentSettings.popups; if (!cs) return;
+    if (liberar) Promise.resolve(cs.set({ primaryPattern: PADRAO_JUCESP, setting: 'allow' })).catch(() => {});
+    else Promise.resolve(cs.clear({})).catch(() => {});
+  } catch (_) { /* sem a permissão ou em janela anônima: o botão de reserva da faixa cobre */ }
+}
+
 async function criarPedido(pedido, sender) {
   const quero = Array.isArray(pedido && pedido.quero) ? pedido.quero.filter((q, i, a) => DOCS[q] && a.indexOf(q) === i) : [];
   if (!quero.length) return { ok: false, texto: 'Não entendi o que buscar.' };
@@ -61,6 +72,7 @@ async function criarPedido(pedido, sender) {
   const job = { id: pedido.id, casoId: pedido.casoId, cnpj: String(pedido.cnpj).replace(/\D/g, ''), fila: quero.slice(), feitos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
   const conhecido = await nireConhecido(job.cnpj);
   if (conhecido) { job.nire = conhecido; job.direto = true; }
+  popupsDaJucesp(true);
   const aba = await chrome.tabs.create({ url: conhecido ? JUCESP + '/Pre_Visualiza.aspx?nire=' + conhecido + '&idproduto=' : JUCESP + '/Default.aspx' });
   job.jucespTabId = aba.id;
   await mexer(async () => { const todos = await jobs(); todos[job.id] = job; await guardar(todos); });
@@ -108,11 +120,17 @@ async function capturar(job, url) {
   falar(job, 'andando', 'Baixando: ' + d.nome + '…');
   try { Promise.resolve(chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'pdf' })).catch(() => {}); } catch (_) { /* a aba pode estar mudando de página */ }
   try {
-    const r = await fetch(url, { credentials: 'include' });
-    if (!r.ok) throw new Error('A JUCESP respondeu ' + r.status + ' ao baixar o PDF.');
-    const bytes = await r.arrayBuffer();
-    if (!bytes.byteLength) throw new Error('PDF vazio.');
-    await guardarPdf(job, paraBase64(bytes));
+    // Primeiro pela aba da JUCESP (a sessão e os cookies são os dela); só se a aba não puder, pelo fundo.
+    let base64 = null;
+    try { const r = await chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'buscar-pdf', url }); if (r && r.ok && r.base64) base64 = r.base64; } catch (_) { /* a aba pode ter mudado de página */ }
+    if (!base64) {
+      const r = await fetch(url, { credentials: 'include' });
+      if (!r.ok) throw new Error('A JUCESP respondeu ' + r.status + ' ao baixar o PDF.');
+      const bytes = await r.arrayBuffer();
+      if (!bytes.byteLength) throw new Error('PDF vazio.');
+      base64 = paraBase64(bytes);
+    }
+    await guardarPdf(job, base64);
   } catch (e) {
     await mudar(job.id, (x) => { x.pdfUrl = null; });
     await terminar(job.id, 'erro', 'Não consegui guardar ' + d.nome + ': ' + ((e && e.message) || e) + ' Salve o PDF (Ctrl+S) e arraste para a caixa do card.');

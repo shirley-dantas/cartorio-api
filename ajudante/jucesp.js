@@ -159,7 +159,7 @@
     }, null, 1);
   }
 
-  const api = { norm, logada, achar, campoBusca, resultados, acharRadio, linhasDaCopia, escolherConsolidacao, tipoDePagina, planejar, relatorio, DOCUMENTOS };
+  const api = { config: { esperaMs: 15000 }, norm, logada, achar, campoBusca, resultados, acharRadio, linhasDaCopia, escolherConsolidacao, tipoDePagina, planejar, relatorio, DOCUMENTOS };
   raiz.AJ_JUCESP = api;
 
   // ── Daqui para baixo é a parte que mexe na página (só no navegador, com a extensão) ─────────────────────────
@@ -269,8 +269,20 @@
     mostrar('Ajudante do painel ligado…');
     let vigiaAtual = null;
     // O fundo avisa quando o PDF chegou (mesmo que tenha aberto noutra aba) e quando o pedido terminou.
-    if (chrome.runtime.onMessage && chrome.runtime.onMessage.addListener) chrome.runtime.onMessage.addListener((m) => {
+    if (chrome.runtime.onMessage && chrome.runtime.onMessage.addListener) chrome.runtime.onMessage.addListener((m, remetente, responder) => {
       if (!m) return;
+      // O fundo pede o PDF por aqui: a requisição sai da própria aba da JUCESP, com a sessão e os cookies dela (o fundo da extensão não tem garantia disso).
+      if (m.tipo === 'buscar-pdf') {
+        (async () => {
+          try {
+            const alvo = new URL(m.url, location.href);
+            if (alvo.origin !== location.origin || !/\/VisualizaTicket\.aspx/i.test(alvo.pathname)) return responder({ ok: false, erro: 'Endereço que não é do PDF da JUCESP.' });
+            const r = await fetch(alvo.href, { credentials: 'same-origin' }), buf = await r.arrayBuffer();
+            responder(ehPdf(buf) ? { ok: true, base64: paraBase64(buf) } : { ok: false, status: r.status, tipo: r.headers.get('content-type') || '' });
+          } catch (e) { responder({ ok: false, erro: String((e && e.message) || e) }); }
+        })();
+        return true;
+      }
       if (m.tipo === 'pdf') { clearInterval(vigiaAtual); mostrar('Recebi o PDF — guardando no card…'); }
       if (m.tipo === 'fim') {   // o erro já está na faixa, com os botões dele; só o sucesso e o cancelamento a trocam
         clearInterval(vigiaAtual);
@@ -278,13 +290,25 @@
       }
     });
     let ultimo = '';
+    // Reserva: se, mesmo com o OK clicado e os pop-ups liberados, a página não muda, a faixa pede UM clique dela (o do usuário o Chrome sempre aceita);
+    // o resto — pegar o PDF e guardar no card — continua sendo do Ajudante.
+    const pedirClique = (plano) => {
+      const aviso = 'A JUCESP não abriu o PDF com o meu clique. Clique no botão abaixo — o resto é comigo.';
+      mostrar(aviso, '#A9895A', [['Gerar o PDF (clique aqui)', () => {
+        plano.radio.click(); if (!plano.radio.checked) plano.radio.checked = true;
+        mostrar('Pedindo o PDF…'); dizer('andando', 'Pedindo o PDF…');
+        plano.botao.click();   // dentro do clique dela: o Chrome aceita a janela do PDF
+        vigiar(Object.assign({}, plano, { acao: 'escolher', planejado: 'baixar' }));
+      }]]);
+      dizer('manual', aviso);
+    };
     const baixar = async (plano) => {
       try {
         const buf = await baixarPorFormulario(plano.radio, plano.botao);
         mostrar('Recebi o PDF — guardando no card…'); dizer('andando', 'Recebi o PDF — guardando no card…');
         await chrome.runtime.sendMessage({ tipo: 'pdf-bytes', base64: paraBase64(buf) });
       } catch (e) {
-        if (e && e.naoPdf) { ultimoDiagnostico = e.diag || null; return executar(Object.assign({}, plano, { acao: 'escolher', planejado: 'baixar' })); }   // a resposta não era PDF: o caminho do clique de sempre
+        if (e && e.naoPdf) { ultimoDiagnostico = e.diag || null; return executar(Object.assign({}, plano, { acao: 'escolher', planejado: 'baixar' })); }   // a resposta não era PDF: clica em OK (o fundo liberou os pop-ups desse site, então a janela do PDF abre)
         parar(job, 'Não consegui pedir o PDF: ' + ((e && e.message) || e));
       }
     };
@@ -296,14 +320,17 @@
       else if (plano.acao === 'escolher' || plano.acao === 'copia') { plano.radio.click(); if (!plano.radio.checked) plano.radio.checked = true; plano.radio.dispatchEvent(new Event('change', { bubbles: true })); setTimeout(() => plano.botao.click(), 400); }
       else if (plano.acao === 'clicar') { try { clicarSemScript(plano.el); } catch (e) { parar(job, (e && e.message) || String(e)); return; } }
       else if (plano.acao === 'ir') location.href = new URL(plano.url, location.origin).href;
-      // A página pode mudar sem recarregar (o captcha aparece no mesmo lugar): vigia o que vem depois do clique.
+      vigiar(plano);
+    };
+    // A página pode mudar sem recarregar (o captcha aparece no mesmo lugar): vigia o que vem depois do clique.
+    const vigiar = (plano) => {
       let desde = Date.now();
       const vigia = vigiaAtual = setInterval(() => {
         montarFaixa();
         const p = planejar(document, location.pathname, job);
         if (p.acao === 'esperar') { desde = Date.now(); if (p.texto !== ultimo) { ultimo = p.texto; mostrar(p.texto); dizer('espera', p.texto); } return; }
         if (p.texto !== plano.texto || p.acao !== (plano.planejado || plano.acao)) { clearInterval(vigia); ultimo = ''; if (!rodar()) { const r2 = setInterval(() => { if (rodar()) clearInterval(r2); }, 1500); setTimeout(() => clearInterval(r2), 10 * 60 * 1000); } return; }
-        if (Date.now() - desde > 15000) { clearInterval(vigia); parar(job, 'A página não mudou depois do meu clique.'); }
+        if (Date.now() - desde > api.config.esperaMs) { clearInterval(vigia); if (plano.planejado === 'baixar') return pedirClique(plano); parar(job, 'A página não mudou depois do meu clique.'); }
       }, 1000);
       setTimeout(() => clearInterval(vigia), 10 * 60 * 1000);
     };
