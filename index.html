@@ -1769,6 +1769,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-solte-prog .solte-nome{flex:none;max-width:45%;font-weight:600}.cx-solte-prog .solte-msg{flex:1;color:var(--cc-tinta-3)}
 .cx-solte-prog .solte-ok .solte-ico{color:var(--cc-ok,#2F7A4F)}.cx-solte-prog .solte-erro .solte-ico,.cx-solte-prog .solte-erro .solte-msg{color:var(--cc-critico,#B3261E)}
 .cx-solte-prog .solte-confirmar .solte-ico,.cx-solte-prog .solte-confirmar .solte-msg{color:#8A5A0B}
+.cp-lista{display:grid;gap:6px;max-height:55vh;overflow:auto}
+.cp-caso{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--cc-linha-forte);background:var(--cc-sup);border-radius:14px;padding:12px 14px;font:inherit;cursor:pointer;min-height:52px}
+.cp-caso b{font-size:15px;color:var(--cc-tinta)}.cp-caso small{font-size:12px;color:var(--cc-tinta-3)}
+.cp-caso:active{background:var(--cc-sup-2)}.cp-vazio{padding:14px;color:var(--cc-tinta-3);font-size:13px}
 .cx-ped-rec{flex-basis:100%;font-size:12.5px;color:var(--cc-tinta-2)}
 .cx-ped-rec summary{cursor:pointer;font-weight:600;color:var(--cc-tinta)}
 .cx-ped-rec ul{list-style:none;padding:6px 0 0;margin:0;display:grid;gap:4px}
@@ -3079,6 +3083,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="modal-title"><i class="ti ti-calculator" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Orçamento</div>
     <div class="modal-sub" id="orc-caso-sub">—</div>
     <div id="orc-caso-conteudo"></div>
+  </div>
+</div>
+
+<!-- Arquivos compartilhados do WhatsApp: para qual caso? -->
+<div class="modal-overlay" id="modal-compartilhado">
+  <div class="modal-box" style="max-width:520px">
+    <button class="modal-close" onclick="fecharCompartilhado()">&times;</button>
+    <div class="modal-title"><i class="ti ti-share" style="font-size:15px;vertical-align:-2px;color:#2A6099"></i> Para qual caso?</div>
+    <div class="modal-sub" id="cp-sub">—</div>
+    <input type="text" id="cp-busca" placeholder="Digite o nome do cliente" oninput="compartilhadoFiltrar(this.value)" style="width:100%;margin-bottom:10px">
+    <div id="cp-lista" class="cp-lista"></div>
   </div>
 </div>
 
@@ -12188,6 +12203,54 @@ window.renomearDocCard=function(casoId,docKey){
   m.classList.add('open');
 };
 window.fecharDocNome=function(){ document.getElementById('modal-doc-nome').classList.remove('open'); };
+// "Compartilhar" do WhatsApp para o painel (celular/tablet Android, com o painel instalado): o service worker guarda os
+// arquivos no aparelho e abre o painel em /?compartilhado=N. Aqui ela escolhe o caso e eles seguem o caminho de sempre.
+const SOLTE_CACHE='painel-compartilhado';
+async function compartilhadosLer(){
+  const out=[]; try{
+    const c=await caches.open(SOLTE_CACHE), ks=await c.keys();
+    for(const k of ks){ const r=await c.match(k); if(!r) continue; const b=await r.blob(); let nome='arquivo'; try{ nome=decodeURIComponent(r.headers.get('X-Nome')||'arquivo'); }catch(_){ }
+      out.push(new File([b],nome,{type:b.type||r.headers.get('Content-Type')||''})); }
+  }catch(_){ }
+  return out;
+}
+async function compartilhadosLimpar(){ try{ const c=await caches.open(SOLTE_CACHE); for(const k of await c.keys()) await c.delete(k); }catch(_){ } }
+const semAcento=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function compartilhadoListaHtml(busca){
+  const q=semAcento(busca).trim();
+  const l=Object.values(casos).filter(c=>c&&c.id&&!c.concluido&&(!q||semAcento(c.nome).includes(q)))
+    .sort((a,b)=>String(b.atualizado||'').localeCompare(String(a.atualizado||''))||String(a.nome).localeCompare(String(b.nome))).slice(0,15);
+  return l.length?l.map(c=>`<button type="button" class="cp-caso" data-cp-caso="${esc(c.id)}"><b>${escTxt(c.nome||'Sem nome')}</b><small>${escTxt(c.tipo||'')}</small></button>`).join(''):'<div class="cp-vazio">Nenhum caso com esse nome.</div>';
+}
+let compartilhadoArquivos=[];
+window.compartilhadoAbrir=async function(){
+  compartilhadoArquivos=await compartilhadosLer();
+  if(!compartilhadoArquivos.length){ try{ history.replaceState(null,'','/'); }catch(_){ } return; }
+  const m=document.getElementById('modal-compartilhado');
+  document.getElementById('cp-sub').textContent=compartilhadoArquivos.length+(compartilhadoArquivos.length===1?' arquivo recebido':' arquivos recebidos')+' do WhatsApp';
+  document.getElementById('cp-busca').value='';
+  for(let i=0;i<40&&!Object.keys(casos).length;i++) await new Promise(r=>setTimeout(r,400));   // os casos chegam do banco um instante depois
+  document.getElementById('cp-lista').innerHTML=compartilhadoListaHtml('');
+  m.classList.add('open');
+};
+window.compartilhadoFiltrar=function(v){ document.getElementById('cp-lista').innerHTML=compartilhadoListaHtml(v); };
+window.compartilhadoEscolher=function(casoId){
+  const arquivos=compartilhadoArquivos; compartilhadoArquivos=[];
+  if(!arquivos.length||!casos[casoId]) return;
+  window.solteReceber(casoId,arquivos);
+  compartilhadosLimpar();
+  document.getElementById('modal-compartilhado').classList.remove('open');
+  try{ history.replaceState(null,'','/'); }catch(_){ }
+  finToast(arquivos.length+(arquivos.length===1?' arquivo enviado':' arquivos enviados')+' para '+(casos[casoId].nome||'o caso'));
+  if(typeof window.irParaCasoPorId==='function') window.irParaCasoPorId(casoId);
+};
+window.fecharCompartilhado=function(){
+  compartilhadoArquivos=[]; compartilhadosLimpar();
+  document.getElementById('modal-compartilhado').classList.remove('open');
+  try{ history.replaceState(null,'','/'); }catch(_){ }
+};
+document.addEventListener('click',ev=>{ const b=ev.target.closest&&ev.target.closest('[data-cp-caso]'); if(b) window.compartilhadoEscolher(b.dataset.cpCaso); });
+if(/[?&]compartilhado=/.test(location.search)) setTimeout(()=>window.compartilhadoAbrir(),0);
 // ── fim: arrastar arquivos para o card ──
 
 window.relerDocCliente=async function(casoId,docKey,btn){
