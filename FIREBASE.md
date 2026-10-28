@@ -390,3 +390,20 @@ casos pelo WhatsApp e a entrega das minutas. Para fechar também:
 
 É uma tarde de trabalho e mexe em dois sistemas que hoje funcionam — por isso
 ficou separado do fechamento do financeiro, que não dependia de nada disso.
+
+
+### 13-B. Sem a Meta: a Evolution no número pessoal (só recebendo)
+
+Mesma caixa de entrada, outra porta. Serve enquanto a API oficial não é usada. **O risco é do número pessoal ligado ao robô**
+(o 1816), nunca do Business. O robô só **recebe**: não responde ninguém.
+
+1. Confira que o servidor da Railway está no ar (abrir o endereço dele mostra "Welcome to the Evolution API").
+2. Religue a instância no número pessoal (QR code, em Conectar).
+3. Vercel → Environment Variables (e Redeploy): `EVOLUTION_HOST` (só o endereço, sem https://), `EVOLUTION_INSTANCE`,
+   `EVOLUTION_API_KEY`, `EVOLUTION_WEBHOOK_SEGREDO` (uma frase inventada), `ENTRADA_SEGREDO` (a mesma do Apps Script) e
+   `ENTRADA_REMETENTES` — o número do **Business** de onde ela encaminha, só dígitos (vários, separados por vírgula).
+   Sem essa lista nada entra: o pessoal recebe foto de todo mundo.
+4. Na Evolution, webhook da instância: URL `https://cartorio-api.vercel.app/whatsapp?via=evolution&s=<a frase do passo 3>`,
+   evento `MESSAGES_UPSERT` (ligar também o base64 no webhook poupa uma viagem, mas não é obrigatório).
+5. Apps Script e regras do Firebase: os mesmos passos 5 e 6 da seção 13.
+6. Do Business, encaminhe um PDF para o 1816. Em segundos deve aparecer o aviso no topo do painel.

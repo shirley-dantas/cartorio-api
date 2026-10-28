@@ -95,4 +95,55 @@ await passo('vercel.json: /whatsapp chega na porta certa e a função tem tempo 
   assert(v.functions['api/perguntar-joaninha.js'].maxDuration >= 60);
   const fs = require('node:fs'); assert(fs.readdirSync(new URL('../api/', import.meta.url)).filter((n) => n.endsWith('.js')).length <= 12, 'a Vercel aceita no máximo 12 funções');
 });
+
+// ── Sem a Meta: a Evolution ligada ao número pessoal, só recebendo ──
+Object.assign(process.env, {EVOLUTION_WEBHOOK_SEGREDO: 'frase-do-webhook', EVOLUTION_HOST: 'evo.exemplo.app', EVOLUTION_INSTANCE: 'escritorio', EVOLUTION_API_KEY: 'chave-da-evolution', ENTRADA_REMETENTES: '(11) 94785-0000'});
+const evo = (data, event = 'messages.upsert') => ({event, instance: 'escritorio', data});
+const evoDoc = (extra = {}) => evo({key: {remoteJid: '5511947850000@s.whatsapp.net', fromMe: false, id: '3EB0ABCDEF12345678'}, pushName: 'Cartório Business', message: {documentMessage: {mimetype: 'application/pdf', fileName: 'RG Maria.pdf'}}, ...extra});
+function redeEvo({base64 = Buffer.from('conteudo').toString('base64'), mime = 'application/pdf', status = 200, appsResp = {ok: true}} = {}) {
+  const chamadas = [];
+  globalThis.fetch = async (url, o = {}) => {
+    chamadas.push({url: String(url), o});
+    if (String(url).startsWith('https://evo.exemplo.app/chat/getBase64FromMediaMessage/escritorio')) { assert.equal(o.headers.apikey, 'chave-da-evolution'); return {ok: status < 300, status, json: async () => ({base64, mimetype: mime})}; }
+    if (String(url).startsWith('https://script.google.com/')) return {ok: true, status: 200, json: async () => appsResp};
+    throw new Error('endereço inesperado: ' + url);
+  };
+  return chamadas;
+}
+const postEvo = async (corpo, s = 'frase-do-webhook', metodo = 'POST') => { const r = resp(); await porta({method: metodo, url: '/api/perguntar-joaninha?acao=whatsapp&via=evolution', query: {acao: 'whatsapp', via: 'evolution', s}, headers: {}, body: corpo}, r); return r; };
+
+await passo('Evolution: arquivo de quem está na lista é baixado com a apikey e entregue ao Apps Script com o segredo', async () => {
+  const c = redeEvo(); const r = await postEvo(evoDoc()); assert.equal(r.codigo, 200); assert.equal(r.corpo.recebido, true);
+  const apps = JSON.parse(c.find((x) => x.url.startsWith('https://script.google.com/')).o.body);
+  assert.equal(apps.acao, 'entrada-receber'); assert.equal(apps.segredo, ENTRADA); assert.equal(apps.msgId, '3EB0ABCDEF12345678'); assert.equal(apps.nomeArquivo, 'RG Maria.pdf'); assert.equal(apps.remetente, '5511947850000'); assert.equal(apps.nomeRemetente, 'Cartório Business'); assert.equal(apps.mimetype, 'application/pdf'); assert.equal(Buffer.from(apps.base64, 'base64').toString(), 'conteudo');
+  assert.equal(c.filter((x) => /sendText|sendMessage/.test(x.url)).length, 0, 'o robô nunca responde ninguém');
+});
+await passo('Evolution: sem o segredo do endereço ou com outro, nada acontece', async () => {
+  const c = redeEvo(); assert.equal((await postEvo(evoDoc(), '')).codigo, 401); assert.equal((await postEvo(evoDoc(), 'outra')).codigo, 401); assert.equal(c.length, 0);
+  const guardado = process.env.ENTRADA_REMETENTES; delete process.env.ENTRADA_REMETENTES; assert.equal((await postEvo(evoDoc())).codigo, 500, 'sem a lista de remetentes, não aceita ninguém'); process.env.ENTRADA_REMETENTES = guardado;
+  assert.equal((await postEvo(evoDoc(), 'frase-do-webhook', 'GET')).codigo, 405);
+});
+await passo('Evolution: foto de outra pessoa, grupo, status, texto e áudio são ignorados — o número pessoal recebe de todo mundo', async () => {
+  const c = redeEvo(); const base = {fromMe: false, id: 'X1'};
+  const outro = await postEvo(evo({key: {...base, remoteJid: '5511999990000@s.whatsapp.net'}, message: {imageMessage: {mimetype: 'image/jpeg'}}})); assert.equal(outro.corpo.ignorado, 'remetente fora da lista');
+  const grupo = await postEvo(evo({key: {...base, remoteJid: '120363@g.us'}, message: {imageMessage: {mimetype: 'image/jpeg'}}})); assert.equal(grupo.corpo.ignorado, 'grupo ou status');
+  const status = await postEvo(evo({key: {...base, remoteJid: 'status@broadcast'}, message: {imageMessage: {}}})); assert.equal(status.corpo.ignorado, 'grupo ou status');
+  const texto = await postEvo(evo({key: {...base, remoteJid: '5511947850000@s.whatsapp.net'}, message: {conversation: 'oi'}})); assert.equal(texto.corpo.ignorado, 'não é PDF nem imagem');
+  const audio = await postEvo(evo({key: {...base, remoteJid: '5511947850000@s.whatsapp.net'}, message: {audioMessage: {}}})); assert.equal(audio.corpo.ignorado, 'não é PDF nem imagem');
+  const outroEvento = await postEvo(evo({}, 'connection.update')); assert.match(outroEvento.corpo.ignorado, /evento/);
+  assert.equal(c.length, 0, 'nada foi baixado nem entregue');
+});
+await passo('Evolution: o número da lista casa com e sem o 55 e o 9; legenda embrulhada e base64 já embutido funcionam', async () => {
+  assert(entrada.remetenteAceito(['5511947850000@s.whatsapp.net'], '11 94785-0000')); assert(entrada.remetenteAceito(['551147850000@s.whatsapp.net'], '+55 11 94785-0000')); assert(!entrada.remetenteAceito(['5511947851111@s.whatsapp.net'], '11947850000')); assert(!entrada.remetenteAceito([''], ''));
+  const c = redeEvo(); const emb = evo({key: {remoteJid: '5511947850000@s.whatsapp.net', fromMe: false, id: 'E1'}, base64: Buffer.from('foto').toString('base64'), message: {documentWithCaptionMessage: {message: {documentMessage: {mimetype: 'application/pdf', fileName: 'x.pdf'}}}}});
+  const r = await postEvo(emb); assert.equal(r.corpo.recebido, true); assert.equal(c.filter((x) => /getBase64/.test(x.url)).length, 0, 'não baixa de novo o que já veio embutido');
+  const img = await postEvo(evo({key: {remoteJid: '5511947850000@s.whatsapp.net', fromMe: false, id: 'ABCDEFGH12'}, message: {imageMessage: {mimetype: 'image/jpeg'}}})); assert.equal(img.corpo.recebido, true);
+  assert.equal(JSON.parse(c.filter((x) => x.url.startsWith('https://script.google.com/')).pop().o.body).nomeArquivo, 'WhatsApp_CDEFGH12.jpg', 'imagem sem nome ganha um');
+});
+await passo('Evolution: falha da Evolution ou do Apps Script devolve 500 escrito; mensagem repetida e tipo estranho não quebram', async () => {
+  redeEvo({status: 500}); const f = await postEvo(evoDoc()); assert.equal(f.codigo, 500); assert.match(f.corpo.erro, /Evolution/);
+  redeEvo({appsResp: {ok: false, erro: 'Não autorizado.'}}); const g = await postEvo(evoDoc()); assert.equal(g.codigo, 500); assert.match(g.corpo.erro, /Não autorizado/);
+  redeEvo({appsResp: {ok: true, repetida: true}}); const h = await postEvo(evoDoc()); assert.equal(h.corpo.repetida, true);
+  redeEvo({mime: 'video/mp4'}); const v = await postEvo(evoDoc()); assert.match(v.corpo.ignorado, /tipo/);
+});
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
