@@ -528,6 +528,14 @@ await passo('ONR tela: link "javascript:" que o Chrome não executa — o Ajudan
   const rel = await pagina.evaluate(() => { document.body.innerHTML = '<a href="javascript:abrirPedido(1234567890123);">+ Novo Pedido</a><h2>Listagem de Pedidos</h2>'; return window.AJ_ONR.relatorio(document, '/x', {servico: 'visualizacao'}, {}); });
   const j = JSON.parse(rel); assert(j.links.length === 1 && /abrirPedido/.test(j.links[0].href) && !/1234567890123/.test(j.links[0].href), 'o relatório mostra para onde o link vai, sem números longos');
 });
+await passo('ONR tela: o botão do PDF na tela "pedido realizado" é uma IMAGEM sem texto (btnPDF) — é reconhecido pelo nome, e o Ajudante o clica', async () => {
+  const html = OTOPO + '<p><b>Seu pedido foi realizado com sucesso.</b></p><p>O número do seu pedido é VM031586467</p><input type="image" name="btnPDF" id="btnPDF" src="x.png"><h2>Importante!</h2><a href="javascript:void(0)">Atendimento online</a>';
+  for (const servico of ['visualizacao', 'certidao']) {
+    const r = await planoOnr(html, '/VisualizarMatricula/PedidoFinalizadoVM.aspx', jobOnr({servico}));
+    assert.equal(r.tela, 'finalizado'); assert.equal(r.acao, 'baixar'); assert.equal(r.idEl, 'btnPDF'); assert.equal(r.proibido, false);
+  }
+  const sem = await planoOnr(OTOPO + '<p>Seu pedido foi realizado com sucesso.</p><a href="#">Atendimento online</a>', '/x', jobOnr()); assert.notEqual(sem.tela, 'finalizado', 'sem botão de PDF não finge que sabe');
+});
 await passo('ONR tela: "Seu pedido foi realizado com sucesso" — só falta gerar o PDF, e o Ajudante clica nesse botão (já está pago)', async () => {
   for (const servico of ['visualizacao', 'certidao']) {
     const r = await planoOnr(PO.finalizado(), '/VisualizarMatricula/PedidoFinalizadoVM.aspx', jobOnr({servico}));
