@@ -5,6 +5,7 @@
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec';
 const JUCESP = 'https://www.jucesponline.sp.gov.br';
+const RIDIGITAL = 'https://ridigital.org.br';
 const MAX_BYTES = 10 * 1024 * 1024;
 const DOCS = {
   ficha: { nome: 'Ficha cadastral completa', arquivo: 'FICHA_CADASTRAL_COMPLETA', tipo: 'FICHA_CADASTRAL_JUCESP' },
@@ -30,14 +31,14 @@ async function mudar(id, f) {
 async function jobDaAba(tabId) { const todos = await jobs(); return Object.values(todos).find((j) => !j.fim && (j.jucespTabId === tabId || (j.filhas || []).includes(tabId))) || null; }
 
 // `fim` marca o último aviso do pedido: é por ele que o painel sabe que pode começar o próximo da fila.
-function falar(job, estado, texto, fim) {
+function falar(job, estado, texto, fim, relatorio) {
   if (job.painelTabId == null) return;
-  try { Promise.resolve(chrome.tabs.sendMessage(job.painelTabId, { tipo: 'progresso', id: job.id, estado, texto, fim: !!fim })).catch(() => {}); } catch (_) { /* a aba do painel pode ter fechado */ }
+  try { Promise.resolve(chrome.tabs.sendMessage(job.painelTabId, { tipo: 'progresso', id: job.id, estado, texto, fim: !!fim, relatorio })).catch(() => {}); } catch (_) { /* a aba do painel pode ter fechado */ }
 }
 async function terminar(id, estado, texto) {
   const job = await mudar(id, (j, todos) => { j.fim = true; j.estado = estado; j.texto = texto; ev(j, { fim: estado, texto: String(texto || '').slice(0, 90) }); if (!Object.values(todos).some((x) => !x.fim)) { popupsDaJucesp(false); bloquearTicket(false); } });
   if (job) {
-    falar(job, estado, texto, true);
+    falar(job, estado, texto, true, job.site === 'onr' ? relatorioOnr(job) : undefined);
     for (const t of [job.jucespTabId].concat(job.filhas || [])) { try { Promise.resolve(chrome.tabs.sendMessage(t, { tipo: 'fim', estado, texto })).catch(() => {}); } catch (_) { /* a aba pode já ter fechado */ } }
   }
 }
@@ -82,6 +83,7 @@ const ev = (job, o) => { (job.eventos = job.eventos || []).push(Object.assign({ 
 const semQuery = (u) => { try { const x = new URL(u); return x.pathname; } catch (_) { return String(u || '').split('?')[0]; } };
 
 async function criarPedido(pedido, sender) {
+  if (pedido && pedido.site === 'onr') return criarPedidoOnr(pedido, sender);
   const quero = Array.isArray(pedido && pedido.quero) ? pedido.quero.filter((q, i, a) => DOCS[q] && a.indexOf(q) === i) : [];
   if (!quero.length) return { ok: false, texto: 'Não entendi o que buscar.' };
   if (!/^[A-Za-z0-9_-]{6,40}$/.test(String((pedido && pedido.casoId) || ''))) return { ok: false, texto: 'Caso inválido.' };
@@ -196,6 +198,108 @@ async function irParaEmpresa(job) {
   else await chrome.tabs.update(job.jucespTabId, { url: JUCESP + '/Default.aspx' });
 }
 
+// ── A RI Digital (ONR): visualização de matrícula e matrícula atualizada ────────────────────────────────────────────────────────────
+// O pedido da ONR guarda estado, cidade, cartório e as matrículas (todas do MESMO registro de imóveis). O Ajudante leva a aba até a escolha do pagamento e
+// PARA: pagar é clique dela. O PDF que o site baixa depois é pego aqui (downloads), e tudo o que acontece nesse momento fica no registro do pedido —
+// como o pedido é pago, não dá para ficar testando, então o relatório diz o que o site fez, mesmo quando o arquivo não chegou ao card.
+const rotuloOnr = (job) => (job.servico === 'certidao' ? 'Atualizada' : 'Visualizacao');
+async function criarPedidoOnr(p, sender) {
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(String(p.casoId || ''))) return { ok: false, texto: 'Caso inválido.' };
+  if (!/^[A-Za-z0-9_-]{4,40}$/.test(String(p.id || ''))) return { ok: false, texto: 'Pedido inválido.' };
+  if (p.servico !== 'visualizacao' && p.servico !== 'certidao') return { ok: false, texto: 'Não entendi qual serviço pedir.' };
+  const uf = String(p.uf || '').toUpperCase(); if (!/^[A-Z]{2}$/.test(uf)) return { ok: false, texto: 'Estado inválido (use a sigla, como SP).' };
+  const cidade = String(p.cidade || '').replace(/[\u0000-\u001f]/g, '').trim(); if (cidade.length < 2 || cidade.length > 80) return { ok: false, texto: 'Falta a cidade do registro de imóveis.' };
+  const cartorio = String(p.cartorio || '').replace(/\D/g, ''); if (cartorio.length > 3) return { ok: false, texto: 'Número de cartório inválido.' };
+  const mats = (Array.isArray(p.matriculas) ? p.matriculas : []).map((m) => String(m).replace(/\D/g, '')).filter((m, i, a) => m && a.indexOf(m) === i);
+  if (!mats.length || mats.some((m) => m.length < 3 || m.length > 12)) return { ok: false, texto: 'Confira o número da matrícula.' };
+  if (p.servico === 'visualizacao' && mats.length !== 1) return { ok: false, texto: 'A visualização é uma matrícula por vez.' };
+  if (mats.length > 100) return { ok: false, texto: 'O site aceita no máximo 100 matrículas por pedido.' };
+  const job = { id: p.id, casoId: p.casoId, site: 'onr', servico: p.servico, uf, cidade, cartorio, matriculas: mats, fila: [], feitos: [], arquivos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
+  const aba = await chrome.tabs.create({ url: RIDIGITAL + '/ServicosOnline.aspx' });
+  job.jucespTabId = aba.id;   // o campo guarda "a aba do pedido", seja qual for o site
+  await mexer(async () => { const todos = await jobs(); todos[job.id] = job; await guardar(todos); });
+  falar(job, 'andando', 'Abrindo a RI Digital…');
+  return { ok: true };
+}
+function relatorioOnr(job) {
+  let versao = ''; try { versao = chrome.runtime.getManifest().version; } catch (_) { /* sem manifesto */ }
+  return JSON.stringify({ versao, site: 'onr', servico: job.servico, uf: job.uf, cidade: job.cidade, cartorio: job.cartorio, matriculas: job.matriculas, pagouEm: job.pagouEm ? Math.round((job.pagouEm - job.iniciado) / 100) / 10 : null, arquivos: (job.arquivos || []).map((a) => a.nome), falhas: job.falhas || [], eventos: job.eventos || [] }, null, 1);
+}
+function onrResumo(job) {
+  const a = job.arquivos || [];
+  return 'Pronto! ' + (a.length === 1 ? 'Guardei no card: ' : 'Guardei ' + a.length + ' arquivos no card: ') + a.map((x) => x.nome).join(', ') + '.' + ((job.falhas || []).length ? ' Atenção: ' + job.falhas.length + ' download(s) não pude levar — veja a pasta Downloads.' : '');
+}
+function onrSemPdf(job) {
+  const f = (job.falhas || []);
+  if (f.length) return 'O site baixou ' + (f.length === 1 ? 'um arquivo' : f.length + ' arquivos') + ' para a sua pasta Downloads (' + f.map((x) => x.nome || '?').join(', ') + '), mas não consegui levar ao card (' + f[0].erro + '). Arraste o arquivo para a caixa “Solte aqui os arquivos” do card. Copie o relatório e me mande.';
+  return 'Passaram 2 minutos desde o pagamento e nenhum arquivo baixou. Veja a pasta Downloads; se o PDF estiver lá, arraste para a caixa do card. Copie o relatório e me mande.';
+}
+const hostRi = (u) => { try { const h = new URL(u).hostname; return h === 'ridigital.org.br' || h.endsWith('.ridigital.org.br'); } catch (_) { return false; } };
+const ehDoRi = (item) => !!item && [item.url, item.finalUrl, item.referrer].some((u) => hostRi(u) || /^blob:https:\/\/([a-z0-9-]+\.)*ridigital\.org\.br\//.test(String(u || '')));
+const nomeBase = (n) => String(n || '').split(/[\\/]/).pop().slice(0, 80);
+const tipoDoBase64 = (b) => (b.startsWith('JVBERi') ? 'application/pdf' : b.startsWith('iVBOR') ? 'image/png' : b.startsWith('/9j/') ? 'image/jpeg' : null);
+const EXT_ONR = { 'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg' };
+async function onrJobAtivo() { const todos = await jobs(); return Object.values(todos).find((j) => !j.fim && j.site === 'onr') || null; }
+
+// Os bytes do que o site baixou: data: decodifica; blob: só a página lê; o resto, o fundo busca com a sessão dela e, se não der, a própria aba.
+async function lerDoDownload(job, url) {
+  const via = [];
+  const daAba = async () => {
+    try { const fresco = (await jobs())[job.id] || job, r = await chrome.tabs.sendMessage(fresco.abaAtiva != null ? fresco.abaAtiva : fresco.jucespTabId, { tipo: 'buscar-url', url }); if (r && r.ok && r.base64) return r.base64; via.push('aba: ' + ((r && (r.erro || r.status)) || 'sem resposta')); }
+    catch (_) { via.push('aba indisponível'); }
+    return null;
+  };
+  let b64 = null;
+  if (/^data:[^,]*;base64,/i.test(url)) b64 = url.slice(url.indexOf(',') + 1);
+  else if (/^blob:/i.test(url)) b64 = await daAba();
+  else {
+    try {
+      const r = await fetch(url, { credentials: 'include' }), buf = await r.arrayBuffer();
+      if (r.ok && buf.byteLength) b64 = paraBase64(buf); else via.push('fundo: ' + r.status + ' ' + buf.byteLength + 'B');
+    } catch (e) { via.push('fundo: ' + String((e && e.message) || e).slice(0, 60)); }
+    if (!b64 || !tipoDoBase64(b64)) { if (b64) via.push('fundo: não é PDF/imagem'); b64 = await daAba(); }
+  }
+  return { b64, via };
+}
+async function capturarOnr(job, item) {
+  const url = String(item.finalUrl || item.url || '');
+  const nome = nomeBase(item.filename);
+  try {
+    const { b64, via } = await lerDoDownload(job, url);
+    const mime = b64 && tipoDoBase64(b64);
+    await mudar(job.id, (x) => { ev(x, { leitura: mime ? 'ok ' + mime : 'falhou', via: via.join('; ').slice(0, 160) }); });
+    if (!mime) throw new Error('não consegui ler o arquivo pelo endereço do download' + (via.length ? ' (' + via[0] + ')' : ''));
+    if (b64.length * 0.75 > MAX_BYTES) throw new Error('arquivo maior que 10 MB');
+    const atual = await onrJobAtivo(); if (!atual) return;
+    const tag = atual.matriculas.find((m) => (nome + url).includes(m)) || (atual.matriculas.length === 1 ? atual.matriculas[0] : '');
+    const rot = rotuloOnr(atual);
+    const corpo = { acao: 'painel-arquivo', casoId: atual.casoId, nomeArquivo: 'RIDIGITAL_' + rot.toUpperCase() + '_' + (tag || 'matricula') + '.' + EXT_ONR[mime], mimetype: mime, base64: b64, tipoSugerido: 'MATRICULA_IMOVEL', pessoaSugerida: rot + (tag ? ' ' + tag : ''), origemAjudante: 'onr' };
+    const r = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(corpo) });
+    let j; try { j = JSON.parse(await r.text()); } catch (_) { throw new Error('o Apps Script não respondeu em JSON (precisa de nova versão?)'); }
+    if (!j || !j.ok) throw new Error((j && j.erro) || 'o Apps Script recusou o arquivo');
+    const depois = await mudar(atual.id, (x) => { (x.arquivos = x.arquivos || []).push({ nome: j.nome, mat: tag }); x.ultimoArquivoEm = Date.now(); ev(x, { guardado: j.nome }); });
+    falar(depois, 'andando', 'Guardei no card: ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.');
+    try { Promise.resolve(chrome.tabs.sendMessage(depois.jucespTabId, { tipo: 'progresso-onr', texto: 'Guardei no card: ' + j.nome + '.' })).catch(() => {}); } catch (_) { /* a aba pode ter fechado */ }
+  } catch (e) {
+    await mudar(job.id, (x) => { (x.falhas = x.falhas || []).push({ nome, erro: String((e && e.message) || e).slice(0, 140) }); });
+  }
+}
+async function onrBaixou(item) {
+  if (!ehDoRi(item)) return;
+  const job = await onrJobAtivo(); if (!job) return;
+  await mudar(job.id, (x) => { ev(x, { download: { id: item.id, url: String(item.finalUrl || item.url || '').slice(0, 60).replace(/\?.*$/, ''), mime: item.mime || '', nome: nomeBase(item.filename) } }); });
+  await capturarOnr(job, item);
+}
+chrome.downloads && chrome.downloads.onCreated && chrome.downloads.onCreated.addListener((item) => { onrBaixou(item).catch(() => {}); });
+chrome.downloads && chrome.downloads.onChanged && chrome.downloads.onChanged.addListener((d) => {
+  if (!d || !d.state || !chrome.downloads.search) return;
+  (async () => {
+    const job = await onrJobAtivo(); if (!job) return;
+    const [item] = await chrome.downloads.search({ id: d.id }); if (!ehDoRi(item)) return;
+    await mudar(job.id, (x) => { ev(x, { downloadFim: { id: d.id, estado: d.state.current, nome: nomeBase(item.filename), bytes: item.fileSize || item.totalBytes || 0, erro: (d.error && d.error.current) || '' } }); });
+  })().catch(() => {});
+});
+
 chrome.runtime.onMessage.addListener((m, sender, responder) => {
   (async () => {
     if (!m) return responder(null);
@@ -218,6 +322,16 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
       const x = await mudar(job.id, (j) => { j.nire = String(m.nire || '').replace(/\D/g, '') || j.nire; if (m.empresa) j.empresa = String(m.empresa).slice(0, 120); });
       if (m.empresa && x && /^\d{11}$/.test(x.nire || '')) await lembrarNire(x.cnpj, x.nire);   // só o que veio do resultado da busca por esse CNPJ
       return responder({ ok: true });
+    }
+    if (job.site === 'onr') {
+      if (m.tipo === 'onr-pagina') { await mudar(job.id, (x) => { x.abaAtiva = sender.tab.id; const u = (x.eventos || []).filter((e) => e.tela).pop(); if (!u || u.tela !== m.tela || u.caminho !== m.caminho) ev(x, { tela: String(m.tela || '').slice(0, 20), caminho: semQuery(String(m.caminho || '')).slice(0, 80) }); }); return responder({ ok: true }); }
+      if (m.tipo === 'onr-pagou') { await mudar(job.id, (x) => { x.pagouEm = x.pagouEm || Date.now(); ev(x, { pagou: String(m.botao || '').slice(0, 40) }); }); return responder({ ok: true }); }
+      if (m.tipo === 'onr-vigia') {
+        const agora = Date.now(), n = (job.arquivos || []).length;
+        if (n && agora - (job.ultimoArquivoEm || 0) > 25000) await terminar(job.id, 'ok', onrResumo(job));
+        else if (!n && job.pagouEm && agora - job.pagouEm > 120000) await terminar(job.id, 'erro', onrSemPdf(job));
+        return responder({ ok: true });
+      }
     }
     if (m.tipo === 'diagnostico-fundo') return responder({ popups: job.popups || '', bloqueio: job.bloqueio || '', eventos: job.eventos || [] });
     // A aba do pedido pediu o PDF pelo formulário e o trouxe de volta (sem abrir aba nenhuma): é o caminho normal.
@@ -262,7 +376,7 @@ async function mudar_se_job_da_aba(tabId, f) {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   mexer(async () => { const todos = await jobs(); const job = Object.values(todos).find((j) => j.jucespTabId === tabId && !j.fim); return job ? { ...job } : null; })
-    .then((job) => { if (job) return terminar(job.id, 'erro', 'A aba da JUCESP foi fechada antes de terminar.'); }).catch(() => {});
+    .then((job) => { if (!job) return; if (job.site === 'onr' && (job.arquivos || []).length) return terminar(job.id, 'ok', onrResumo(job)); return terminar(job.id, 'erro', 'A aba ' + (job.site === 'onr' ? 'da RI Digital' : 'da JUCESP') + ' foi fechada antes de terminar.'); }).catch(() => {});
 });
 
 if (typeof module !== 'undefined') module.exports = { cnpjValido, paraBase64, DOCS };

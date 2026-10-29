@@ -31,3 +31,16 @@ A faixa fica vermelha. Duas saídas:
 ## Atualizar
 
 Quando vier uma versão nova, troque os arquivos da pasta e, em `chrome://extensions`, clique no botão de recarregar (↻) do Ajudante.
+
+
+## RI Digital (matrícula) — versão 0.2.0
+
+No card, o bloco **RI Digital — matrícula** tem dois botões:
+- **Visualização de matrícula** (para minutar) — uma matrícula por vez.
+- **Matrícula atualizada** (para a data de assinatura) — pode ser mais de uma, desde que do mesmo registro de imóveis.
+
+O painel preenche estado, cidade, cartório e número da matrícula **lendo a matrícula que já está no card**; você confere e clica em **Abrir a RI Digital**. A extensão escolhe a finalidade (sempre "titular de algum direito real"), preenche o pedido e **para na hora de pagar**:
+- certidão: clique você em **Saldo em Créditos** — o PDF baixa e a extensão o leva para o card;
+- visualização: marque o **"Não sou um robô"** e clique no botão que confirma — o crédito é gasto nesse clique.
+
+Se o arquivo não chegar ao card, ele está na pasta **Downloads**: arraste para a caixa do card. Nesse caso (ou em qualquer erro), clique em **Copiar relatório** e mande.
