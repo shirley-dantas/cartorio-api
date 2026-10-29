@@ -31,9 +31,9 @@
     return clicaveis(doc).find((el) => { const t = textoDe(el); return exato ? t === r : t.startsWith(r); }) || null;
   }
   // O elemento mais interno cujo texto é o procurado (um cartão de serviço é uma caixa com texto dentro; o que se clica é a caixa ou o link dela).
-  function acharTexto(doc, texto) {
-    const r = norm(texto);
-    const cand = Array.from(doc.querySelectorAll('a,button,[onclick],[role=button],div,li,span,td,h2,h3,h4,p,label')).filter(visivel).filter((el) => textoDe(el) === r || (textoDe(el).includes(r) && textoDe(el).length < r.length + 12));
+  function acharTexto(doc, texto, folga) {
+    const r = norm(texto), f = folga == null ? 12 : folga;
+    const cand = Array.from(doc.querySelectorAll('a,button,[onclick],[role=button],div,li,span,td,h2,h3,h4,p,label')).filter(visivel).filter((el) => textoDe(el) === r || (textoDe(el).includes(r) && textoDe(el).length < r.length + f));
     cand.sort((a, b) => (a.textContent || '').length - (b.textContent || '').length);
     return cand[0] ? clicavelDe(cand[0]) : null;
   }
@@ -80,6 +80,8 @@
   // Que passo do site é ESTA página? Só por sinais do conteúdo (a barra de passos aparece em todas as telas e não serve).
   function tela(doc, caminho, job) {
     if (achar(doc, 'saldo em creditos', false)) return 'pagamento';
+    // Pedido feito (e pago): só falta gerar o PDF — grátis, é a tela "Seu pedido foi realizado com sucesso".
+    if (/seu pedido foi realizado com sucesso/.test(textoDaPagina(doc)) && /gerar o pdf/.test(textoDaPagina(doc))) return 'finalizado';
     // A listagem de pedidos também tem um campo "Matrícula/CNM" (o filtro): vem ANTES de qualquer teste de campo de matrícula.
     if (/listagem de pedidos/.test(textoDaPagina(doc)) && acharTexto(doc, 'novo pedido')) return 'lista';
     if (acharSelect(doc, 'finalidade')) return 'finalidade';
@@ -107,6 +109,11 @@
     if (tipo === 'pagamento') {
       const v = valorDaTela(doc);
       return { acao: 'esperar', espera: 'pagamento', texto: 'Tudo pronto' + (v ? ' — ' + v : '') + '. Para pagar, clique em “Saldo em Créditos”: o clique é seu, eu não pago nada. Quando o PDF baixar, eu o levo para o card.' };
+    }
+    if (tipo === 'finalizado') {
+      const link = acharTexto(doc, 'matricula online clique aqui para gerar o pdf', 40) || acharTexto(doc, 'clique aqui para gerar o pdf', 20);
+      if (!link) return falta('Não achei o botão “clique aqui para gerar o PDF” nesta tela.');
+      return { acao: 'baixar', el: link, texto: 'Pedido feito. Gerando o PDF da matrícula…' };
     }
     if (tipo === 'finalidade') {
       const sel = acharSelect(doc, 'finalidade'), op = selecionarOpcao(sel, (o) => o.texto.includes(FINALIDADE));
@@ -255,6 +262,37 @@
     el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));   // desenho (SVG) não tem click()
   }
 
+  const ehPdf = (buf) => buf.byteLength > 4 && String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 4))) === '%PDF';
+  async function postarFormulario(form, extra) {
+    const corpo = new URLSearchParams();
+    for (const [k, v] of new FormData(form).entries()) if (typeof v === 'string' && !(k in extra)) corpo.append(k, v);
+    for (const k of Object.keys(extra)) corpo.set(k, extra[k]);
+    if (!corpo.has('__EVENTTARGET')) corpo.set('__EVENTTARGET', ''); if (!corpo.has('__EVENTARGUMENT')) corpo.set('__EVENTARGUMENT', '');
+    const alvo = form.getAttribute('action') ? new URL(form.getAttribute('action'), location.href).href : location.href;
+    return fetch(alvo, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: corpo.toString() });
+  }
+  // "Clique aqui para gerar o PDF": o pedido já está pago, então gerar é grátis. Tenta pegar o PDF direto da resposta (postback, endereço ou formulário) — sem abrir
+  // aba — e, se a resposta não for PDF, faz o clique de verdade (o PDF então vem por download ou aba nova, que o fundo também vigia). Tudo fica no relatório.
+  async function baixarPdf(plano) {
+    const el = plano.el, href = (el.getAttribute && el.getAttribute('href')) || '', d = destinoDoLink(href, el.getAttribute && el.getAttribute('onclick'));
+    const form = (el.closest && el.closest('form')) || document.forms[0];
+    let resp = null;
+    try {
+      if (d && d.tipo === 'postback' && form) resp = await postarFormulario(form, { __EVENTTARGET: d.alvo, __EVENTARGUMENT: d.arg });
+      else if (el.name && form && /^(image|submit)$/i.test(el.type || '')) resp = await postarFormulario(form, el.type === 'image' ? { [el.name + '.x']: '5', [el.name + '.y']: '5' } : { [el.name]: el.value || '' });
+      else if (d && d.tipo === 'ir') resp = await fetch(new URL(d.url, location.href).href, { credentials: 'same-origin' });
+      else if (el.tagName === 'A' && href && !/^\s*javascript:/i.test(href) && href.charAt(0) !== '#') resp = await fetch(new URL(href, location.href).href, { credentials: 'same-origin' });
+    } catch (e) { mandar({ tipo: 'onr-diag', diag: { erro: String((e && e.message) || e).slice(0, 120) } }); }
+    if (resp) {
+      const buf = await resp.arrayBuffer();
+      if (ehPdf(buf)) { await mandar({ tipo: 'onr-bytes', base64: paraBase64(buf), via: 'resposta' }); return 'pdf'; }
+      const txt = new TextDecoder().decode(buf.slice(0, 60000));
+      mandar({ tipo: 'onr-diag', diag: { status: resp.status, tipo: resp.headers.get('content-type') || '', bytes: buf.byteLength, trechos: [...txt.matchAll(/(window\.open|\.pdf|\.ashx|location\.href|download|Content-Disposition)/gi)].slice(0, 8).map((m) => mascarar(txt.slice(Math.max(0, m.index - 80), m.index + 140))) } });
+    }
+    clicar(el);   // o clique de verdade: download ou aba nova, que o fundo vigia
+    return 'clique';
+  }
+
   async function copiarRelatorio(job, texto, cor) {
     let fundo = null; try { fundo = await chrome.runtime.sendMessage({ tipo: 'diagnostico-fundo' }); } catch (_) { /* o fundo pode não responder */ }
     const extra = { versao: (chrome.runtime.getManifest && chrome.runtime.getManifest().version) || '', aviso: texto, fundo };
@@ -300,7 +338,8 @@
     mandar({ tipo: 'onr-pagina', tela: t0, caminho: location.pathname });
     montarFaixa();
 
-    let ultimo = { sig: '', em: 0 }, esperaDesde = 0, aguardaMao = '';
+    let ultimo = { sig: '', em: 0 }, esperaDesde = 0, aguardaMao = '', baixado = false;
+    if (t0 === 'finalizado') mandar({ tipo: 'onr-pagou', botao: 'pedido finalizado' });
     const tick = () => {
       const plano = planejar(document, location.pathname, job);
       if (plano.acao === 'esperar') {
@@ -313,6 +352,7 @@
       esperaDesde = 0;
       if (plano.acao === 'erro') { parar(job, plano.texto); return true; }
       if (plano.acao === 'manual') { mostrar(plano.texto, '#A9895A', [['Copiar relatório', async () => { await copiarRelatorio(job, plano.texto, '#A9895A'); }]]); dizer('manual', plano.texto); return false; }
+      if (plano.acao === 'baixar') { vigiarPdf(); if (baixado) { mostrar('Gerando o PDF — esperando ele chegar para levar ao card…'); return false; } }
       const sig = plano.acao + '|' + plano.texto, agora = Date.now();
       if (aguardaMao === sig) return false;   // já pedi o clique dela para este passo: espera a página mudar
       if (sig === ultimo.sig && agora - ultimo.em < 8000) return false;   // dá tempo ao site de responder
@@ -324,6 +364,7 @@
         else if (plano.acao === 'selecionar') { plano.el.value = plano.valor; plano.el.dispatchEvent(new Event('input', { bubbles: true })); plano.el.dispatchEvent(new Event('change', { bubbles: true })); }
         else if (plano.acao === 'marcar') clicar(plano.el);
         else if (plano.acao === 'clicar') { if (!plano.el) throw new Error('Não achei o botão desta tela.'); clicar(plano.el); }
+        else if (plano.acao === 'baixar') { baixado = true; baixarPdf(plano).then((r) => { if (r === 'pdf') mostrar('Recebi o PDF — guardando no card…'); }).catch((e) => { baixado = false; if (e && e.pedirClique) { aguardaMao = sig; const t = plano.texto + ' — o Chrome não me deixa clicar neste botão. Clique você nele; eu pego o PDF.'; mostrar(t, '#A9895A', [['Copiar relatório', async () => { await copiarRelatorio(job, t, '#A9895A'); }]]); dizer('manual', t); } else parar(job, (e && e.message) || String(e)); }); }
       } catch (e) {
         if (e && e.pedirClique) {   // o passo é inofensivo, só que o Chrome não deixa a extensão fazê-lo: um clique dela resolve, e o resto continua sendo do Ajudante
           aguardaMao = sig;
