@@ -217,6 +217,13 @@ await passo('ONR fundo: o PDF que o site baixa depois do pagamento vai ao Apps S
   const rel = JSON.parse(fim.relatorio); assert.equal(rel.site, 'onr'); assert(rel.eventos.some((e) => e.pagou) && rel.eventos.some((e) => e.download && e.download.nome === '187852.pdf') && rel.eventos.some((e) => e.guardado), 'o relatório conta o que aconteceu');
   assert(!/segredo/.test(fim.relatorio), 'o endereço do download não vai inteiro para o relatório');
 });
+await passo('ONR fundo: pedido velho que ficou sem terminar não engole o PDF do pedido novo (vai para o caso certo)', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedidoOnr({id: 'ajonr0001', casoId: 'CVELHO1'})}, PAINEL);
+  await m.msg({tipo: 'pedido', pedido: pedidoOnr({id: 'ajonr0002', casoId: 'CNOVO22'})}, PAINEL);
+  assert.equal(m.store.jobs.ajonr0001.fim, true, 'o velho foi encerrado ao começar o novo');
+  await baixou(m, {id: 5, url: 'https://ridigital.org.br/VisualizarMatricula/VMPDF.aspx?x=a', finalUrl: 'https://ridigital.org.br/VisualizarMatricula/VMPDF.aspx?x=a', filename: 'C:\\Users\\a\\Downloads\\VMPDF.pdf', mime: 'application/pdf'});
+  const [g] = m.gasEnviado(); assert(g, 'enviado'); assert.equal(g.casoId, 'CNOVO22');
+});
 await passo('ONR fundo: download de outro site, ou sem pedido da RI Digital andando, é ignorado', async () => {
   const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
   await baixou(m, {id: 2, url: 'https://outro-site.com/a.pdf', filename: 'a.pdf'}); assert.equal(m.gasEnviado().length, 0);

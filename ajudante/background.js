@@ -79,7 +79,7 @@ async function bloquearTicket(ligar) {
 (async () => { try { const todos = await jobs(); if (!Object.values(todos).some((x) => !x.fim)) await bloquearTicket(false); } catch (_) { /* sem armazenamento ainda */ } })();
 
 // O que o fundo viu, para o relatório: se os pop-ups foram liberados, que abas a página abriu, o que foi baixado e como acabou.
-const ev = (job, o) => { (job.eventos = job.eventos || []).push(Object.assign({ t: Math.round((Date.now() - (job.iniciado || Date.now())) / 100) / 10 }, o)); if (job.eventos.length > 20) job.eventos.shift(); };
+const ev = (job, o) => { (job.eventos = job.eventos || []).push(Object.assign({ t: Math.round((Date.now() - (job.iniciado || Date.now())) / 100) / 10 }, o)); if (job.eventos.length > 40) job.eventos.shift(); };
 const semQuery = (u) => { try { const x = new URL(u); return x.pathname; } catch (_) { return String(u || '').split('?')[0]; } };
 
 async function criarPedido(pedido, sender) {
@@ -217,7 +217,7 @@ async function criarPedidoOnr(p, sender) {
   const job = { id: p.id, casoId: p.casoId, site: 'onr', servico: p.servico, uf, cidade, cartorio, matriculas: mats, fila: [], feitos: [], arquivos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
   const aba = await chrome.tabs.create({ url: RIDIGITAL + '/ServicosOnline.aspx' });
   job.jucespTabId = aba.id;   // o campo guarda "a aba do pedido", seja qual for o site
-  await mexer(async () => { const todos = await jobs(); todos[job.id] = job; await guardar(todos); });
+  await mexer(async () => { const todos = await jobs(); for (const x of Object.values(todos)) if (!x.fim && x.site === 'onr') { x.fim = true; x.estado = 'erro'; ev(x, { fim: 'substituido por um pedido novo' }); } todos[job.id] = job; await guardar(todos); });
   falar(job, 'andando', 'Abrindo a RI Digital…');
   return { ok: true };
 }
@@ -239,7 +239,8 @@ const ehDoRi = (item) => !!item && [item.url, item.finalUrl, item.referrer].some
 const nomeBase = (n) => String(n || '').split(/[\\/]/).pop().slice(0, 80);
 const tipoDoBase64 = (b) => (b.startsWith('JVBERi') ? 'application/pdf' : b.startsWith('iVBOR') ? 'image/png' : b.startsWith('/9j/') ? 'image/jpeg' : null);
 const EXT_ONR = { 'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg' };
-async function onrJobAtivo() { const todos = await jobs(); return Object.values(todos).find((j) => !j.fim && j.site === 'onr') || null; }
+// O pedido vivo é o mais recente: um pedido velho que ficou sem terminar (aba fechada, teste pago interrompido) não pode engolir o PDF do pedido de agora.
+async function onrJobAtivo() { const todos = await jobs(); return Object.values(todos).filter((j) => !j.fim && j.site === 'onr').sort((a, b) => (b.iniciado || 0) - (a.iniciado || 0))[0] || null; }
 
 // Os bytes do que o site baixou: data: decodifica; blob: só a página lê; o resto, o fundo busca com a sessão dela e, se não der, a própria aba.
 async function lerDoDownload(job, url) {
@@ -271,15 +272,17 @@ async function capturarOnr(job, item, opc) {
     if (!mime && opc && opc.silencioso) return;   // página que só parecia ser o arquivo (HTML): não é falha
     if (!mime) throw new Error('não consegui ler o arquivo pelo endereço do download' + (via.length ? ' (' + via[0] + ')' : ''));
     if (b64.length * 0.75 > MAX_BYTES) throw new Error('arquivo maior que 10 MB');
-    const atual = await onrJobAtivo(); if (!atual) return;
+    const atual = (await jobs())[job.id]; if (!atual || atual.fim) { await mudar(job.id, (x) => { ev(x, { semPedido: 'o pedido já tinha terminado' }); (x.falhas = x.falhas || []).push({ nome, erro: 'o pedido já tinha terminado quando o arquivo chegou' }); }); return; }
     const marca = b64.length + ':' + b64.slice(200, 260);   // o mesmo PDF pode chegar por dois caminhos (resposta, download, aba): guarda uma vez
     if ((atual.marcas || []).includes(marca)) { await mudar(atual.id, (x) => { ev(x, { repetido: true }); }); return; }
     await mudar(atual.id, (x) => { (x.marcas = x.marcas || []).push(marca); });
     const tag = atual.matriculas.find((m) => (nome + url).includes(m)) || (atual.matriculas.length === 1 ? atual.matriculas[0] : '');
     const rot = rotuloOnr(atual);
     const corpo = { acao: 'painel-arquivo', casoId: atual.casoId, nomeArquivo: 'RIDIGITAL_' + rot.toUpperCase() + '_' + (tag || 'matricula') + '.' + EXT_ONR[mime], mimetype: mime, base64: b64, tipoSugerido: 'MATRICULA_IMOVEL', pessoaSugerida: rot + (tag ? ' ' + tag : ''), origemAjudante: 'onr' };
+    await mudar(atual.id, (x) => { ev(x, { enviando: corpo.nomeArquivo, caso: String(atual.casoId).slice(0, 12), kb: Math.round(b64.length * 0.75 / 1024) }); });
     const r = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(corpo) });
-    let j; try { j = JSON.parse(await r.text()); } catch (_) { throw new Error('o Apps Script não respondeu em JSON (precisa de nova versão?)'); }
+    const txt = await r.text();
+    let j; try { j = JSON.parse(txt); } catch (_) { throw new Error('o Apps Script não respondeu em JSON (precisa de nova versão?): ' + txt.replace(/\s+/g, ' ').slice(0, 60)); }
     if (!j || !j.ok) throw new Error((j && j.erro) || 'o Apps Script recusou o arquivo');
     const depois = await mudar(atual.id, (x) => { (x.arquivos = x.arquivos || []).push({ nome: j.nome, mat: tag }); x.ultimoArquivoEm = Date.now(); ev(x, { guardado: j.nome }); });
     falar(depois, 'andando', 'Guardei no card: ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.');

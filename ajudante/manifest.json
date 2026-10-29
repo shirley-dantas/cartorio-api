@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Ajudante do painel — 20º Tabelião",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Busca documentos nos sites que você já usa (JUCESP e RI Digital) e guarda no card do painel. Nada é pago sem o seu clique.",
   "permissions": ["storage", "tabs", "contentSettings", "declarativeNetRequest", "webNavigation", "scripting", "downloads"],
   "host_permissions": [
