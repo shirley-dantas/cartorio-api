@@ -1292,6 +1292,22 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
 
+## A capa do dossiê
+
+A folha de papel que acompanha o **caso físico** pelas esteiras internas do cartório. Antes era um modelo do PowerPoint (`DOSSIE.pptx`) preenchido inteiro à mão;
+agora o botão **Imprimir capa** do card (`capaImprimir`, faixa `capaFaixaHtml`) a monta com o que o painel já sabe e manda imprimir num quadro escondido (sem abrir janela).
+O desenho segue a folha do orçamento — tarja grafite com faixa champagne, blocos recuados, linhas em faixa — e sai em **preto e branco**, A4 em pé, uma página só.
+
+Regras dela, de 29/10/2026, que **não devem ser mexidas sem perguntar**:
+
+- **Vem do card**: o tipo do ato (título), o nome do card (Arquivo), o escrevente (`resp`), a data e o horário da *Assinatura da escritura* (`agendado`), Registro, Prenotação, Livro,
+  Folha e Controle, e a **matrícula lida do documento** da matrícula (`onrDoCaso`, a do cabeçalho — não as que o texto cita).
+- **Fica em branco, para a caneta**: Minuta nº, Solicitante, Outorgantes, Outorgados, as quatro modalidades (☐), os sete dias da semana, as pendências e o rodapé. O painel não tem esses
+  dados e **não os inventa**; ela escolheu deixar em branco.
+- **O orçamento vem do último orçamento do caso** (`orcValoresDaCapa`: escritura, matrícula, registro com a taxa embutida, prenotação, imposto, total) e **só para quem entrou no
+  Financeiro** — sem login o quadro sai com `R$ ______`, como qualquer valor do painel. O que não cabe nas cinco linhas aparece como *Outras despesas*, para a folha somar sempre o total impresso.
+- Teste: `node testes/capa.mjs` (inclui medir no Chromium que cabe numa página A4 com nome de arquivo comprido).
+
 ## O Caderno da Rafaela (projeto à parte)
 
 Mora em `rafaela/`, num projeto próprio da Vercel (*Root Directory*
@@ -1378,6 +1394,7 @@ node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
 node testes/ajudante.mjs
+node testes/capa.mjs
 node testes/orcamento-link-tela.mjs && node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
 ```
 
