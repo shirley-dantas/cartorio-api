@@ -343,7 +343,7 @@ await passo('card: sem o Ajudante instalado o bloco não é desenhado; ao ele re
   const m = mundoCard(); assert(m.postadas.some((p) => p.m.tipo === 'ajudante-ping' && p.o === 'https://cartorio-api.vercel.app'));
   assert(!/Buscar na JUCESP/.test(m.f.solteHtml({id: 'C1'})));
   const zona = {dataset: {solte: 'C1'}, html: '', querySelector() { return this.html ? {} : null; }, insertAdjacentHTML(_, h) { this.html += h; }}; m.zonas.push(zona);
-  m.pronto(); assert(/Buscar na JUCESP/.test(zona.html) && /Ficha cadastral/.test(zona.html) && /Contrato consolidado/.test(zona.html) && /Os dois/.test(zona.html));
+  m.pronto(); assert(/Buscar na JUCESP/.test(zona.html) && /Buscar ficha e contrato/.test(zona.html) && !/Os dois/.test(zona.html) && (zona.html.match(/ajudantePedir\(/g) || []).length === (zona.html.match(/Buscar ficha e contrato/g) || []).length);
   assert(/Buscar na JUCESP/.test(m.f.solteHtml({id: 'C1'})), 'e nos que forem desenhados depois');
 });
 await passo('card: pedir manda o caso e o CNPJ à extensão (só os dígitos); CNPJ errado nem sai e diz por quê', async () => {
