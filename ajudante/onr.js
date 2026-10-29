@@ -68,6 +68,12 @@
   const ehPlaceholder = (o) => !o.valor || /^\(?selecione|^escolha/.test(o.texto) || o.texto === '--' || o.texto === '';
   const escolhida = (sel) => { const o = opcoes(sel)[sel.selectedIndex]; return o && !ehPlaceholder(o) ? o : null; };
 
+  // O botão que gera o PDF na tela "pedido realizado" é uma IMAGEM (input type=image, name btnPDF), sem texto: acha-se pelo id/nome/alt.
+  function botaoDoPdf(doc) {
+    const c = Array.from(doc.querySelectorAll('input[type=image],input[type=submit],input[type=button],button,a')).filter(visivel);
+    const pdf = (e) => /pdf/i.test((e.id || '') + ' ' + (e.name || '') + ' ' + (e.getAttribute('alt') || '') + ' ' + (e.title || '') + ' ' + (e.value || ''));
+    return c.find((e) => /^image$/i.test(e.type || '') && pdf(e)) || c.find(pdf) || null;
+  }
   function campoMatricula(doc) {
     const campos = Array.from(doc.querySelectorAll('input[type=text],input:not([type]),textarea')).filter(visivel);
     return campos.find((c) => /matric|cnm/.test(norm((c.id || '') + ' ' + (c.name || '') + ' ' + (c.placeholder || '') + ' ' + (c.getAttribute('aria-label') || '')))) ||
@@ -81,7 +87,7 @@
   function tela(doc, caminho, job) {
     if (achar(doc, 'saldo em creditos', false)) return 'pagamento';
     // Pedido feito (e pago): só falta gerar o PDF — grátis, é a tela "Seu pedido foi realizado com sucesso".
-    if (/seu pedido foi realizado com sucesso/.test(textoDaPagina(doc)) && /gerar o pdf/.test(textoDaPagina(doc))) return 'finalizado';
+    if (/seu pedido foi realizado com sucesso/.test(textoDaPagina(doc)) && (/gerar o pdf/.test(textoDaPagina(doc)) || botaoDoPdf(doc))) return 'finalizado';
     // A listagem de pedidos também tem um campo "Matrícula/CNM" (o filtro): vem ANTES de qualquer teste de campo de matrícula.
     if (/listagem de pedidos/.test(textoDaPagina(doc)) && acharTexto(doc, 'novo pedido')) return 'lista';
     if (acharSelect(doc, 'finalidade')) return 'finalidade';
@@ -111,7 +117,7 @@
       return { acao: 'esperar', espera: 'pagamento', texto: 'Tudo pronto' + (v ? ' — ' + v : '') + '. Para pagar, clique em “Saldo em Créditos”: o clique é seu, eu não pago nada. Quando o PDF baixar, eu o levo para o card.' };
     }
     if (tipo === 'finalizado') {
-      const link = acharTexto(doc, 'matricula online clique aqui para gerar o pdf', 40) || acharTexto(doc, 'clique aqui para gerar o pdf', 20);
+      const link = botaoDoPdf(doc) || acharTexto(doc, 'matricula online clique aqui para gerar o pdf', 40) || acharTexto(doc, 'clique aqui para gerar o pdf', 20);
       if (!link) return falta('Não achei o botão “clique aqui para gerar o PDF” nesta tela.');
       return { acao: 'baixar', el: link, texto: 'Pedido feito. Gerando o PDF da matrícula…' };
     }
@@ -212,7 +218,7 @@
     }, null, 1);
   }
 
-  const api = { destinoDoLink, norm, textoDe, achar, acharTexto, acharUF, acharSelect, campoMatricula, tela, planejar, relatorio, valorDaTela, NUNCA_CLICAR, FINALIDADE, SERVICOS };
+  const api = { botaoDoPdf, destinoDoLink, norm, textoDe, achar, acharTexto, acharUF, acharSelect, campoMatricula, tela, planejar, relatorio, valorDaTela, NUNCA_CLICAR, FINALIDADE, SERVICOS };
   raiz.AJ_ONR = api;
 
   // ── Daqui para baixo é a parte que mexe na página (só no navegador, com a extensão) ─────────────────────────
@@ -276,6 +282,7 @@
   async function baixarPdf(plano) {
     const el = plano.el, href = (el.getAttribute && el.getAttribute('href')) || '', d = destinoDoLink(href, el.getAttribute && el.getAttribute('onclick'));
     const form = (el.closest && el.closest('form')) || document.forms[0];
+    if (/^(image|submit|button)$/i.test(el.type || '') && el.tagName === 'INPUT') { clicar(el); return 'clique'; }   // botão de formulário: o clique de verdade (no teste real, o PDF veio como download e foi pego)
     let resp = null;
     try {
       if (d && d.tipo === 'postback' && form) resp = await postarFormulario(form, { __EVENTTARGET: d.alvo, __EVENTARGUMENT: d.arg });
