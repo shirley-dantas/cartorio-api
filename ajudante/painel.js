@@ -2,7 +2,11 @@
 // nenhum outro site consegue mandar pedido para cá. O painel pergunta "tem Ajudante?" e só desenha o botão se ouvir resposta.
 (function () {
   'use strict';
-  const VERSAO = '0.2.3';
+  const VERSAO = '0.2.4';
+  // Depois que a extensão é recarregada ou atualizada, a página do painel que já estava aberta perde a ligação com ela: chrome.runtime.sendMessage
+  // passa a dar erro (às vezes na hora, sem promessa), e o pedido ficava parado em "abrindo…" sem dizer nada. Agora diz o que fazer.
+  const ORFA = 'A extensão foi atualizada ou reiniciada e esta página perdeu a ligação com ela. Recarregue o painel (F5) e tente de novo.';
+  const enviar = (m) => { try { if (!chrome.runtime || !chrome.runtime.id) throw new Error('sem ligação'); return Promise.resolve(chrome.runtime.sendMessage(m)); } catch (e) { return Promise.reject(e); } };
   const avisar = (m) => window.postMessage(Object.assign({ fonte: 'ajudante' }, m), location.origin);
 
   window.addEventListener('message', (e) => {
@@ -12,11 +16,11 @@
     if (d.tipo === 'ajudante-ping') return avisar({ tipo: 'ajudante-pronto', versao: VERSAO, onr: true });
     if (d.tipo === 'ajudante-pedido') {
       const id = d.pedido && d.pedido.id;
-      Promise.resolve(chrome.runtime.sendMessage({ tipo: 'pedido', pedido: d.pedido }))
+      enviar({ tipo: 'pedido', pedido: d.pedido })
         .then((r) => { if (!r || !r.ok) avisar({ tipo: 'ajudante-progresso', id, estado: 'erro', fim: true, texto: (r && r.texto) || 'O Ajudante recusou o pedido.' }); })
-        .catch(() => avisar({ tipo: 'ajudante-progresso', id, estado: 'erro', fim: true, texto: 'O Ajudante não respondeu. Recarregue a página do painel (F5) e tente de novo.' }));
+        .catch(() => avisar({ tipo: 'ajudante-progresso', id, estado: 'erro', fim: true, texto: ORFA }));
     }
-    if (d.tipo === 'ajudante-cancelar') { try { chrome.runtime.sendMessage({ tipo: 'cancelar', id: d.id }); } catch (_) { /* o painel já mostra o resto */ } }
+    if (d.tipo === 'ajudante-cancelar') { enviar({ tipo: 'cancelar', id: d.id }).catch(() => { /* o painel já mostra o resto */ }); }
   });
 
   chrome.runtime.onMessage.addListener((m) => {
