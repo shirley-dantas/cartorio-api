@@ -5215,6 +5215,105 @@ function cxTipoHtml(c){
     <details class="cx-atos-sec-details"><summary>Ato lavrado junto (opcional)</summary><div class="cx-atos-sec-opcoes">${checkboxes}</div></details>`;
 }
 
+// ── A capa do dossiê ──
+// A folha que acompanha o caso físico enquanto ele corre pelas esteiras do cartório. Antes ela era preenchida inteira à mão num modelo do PowerPoint;
+// agora sai do card com o que o painel já sabe, e o resto fica em linha para a caneta: minuta, solicitante, outorgantes e outorgados, pendências.
+// Sai em preto e branco, no desenho do orçamento (tarja grafite, blocos recuados, linhas em faixa). O dinheiro só entra para quem está no Financeiro:
+// sem login, o quadro do orçamento sai em branco, como qualquer outro valor do painel.
+const CAPA_ESCREVENTE = {shirley: 'Shirley', grazi: 'Grazi', gabriel: 'Gabriel'};
+function capaDados(c){
+  const o = (finAuth && typeof orcUltimoDoCaso === 'function') ? orcUltimoDoCaso(c.id) : null;
+  const v = o && typeof orcValoresDaCapa === 'function' ? orcValoresDaCapa(o.resultado) : null;
+  let data = '', hora = '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}))?/.exec(String(c.agendado || ''));
+  if(m){ data = m[3] + '/' + m[2] + '/' + m[1]; hora = m[4] || ''; }
+  const mats = [];
+  try{ onrDoCaso(c).forEach(g => g.matriculas.forEach(x => { if(!mats.includes(x)) mats.push(x); })); }catch(e){ /* sem documentos lidos: fica em branco */ }
+  return {
+    tipo: String(c.tipo || '').toUpperCase(), arquivo: String(c.nome || ''), escrevente: CAPA_ESCREVENTE[c.resp] || '',
+    data, hora, matricula: mats.join(', '),
+    registro: String(c.registroPrenotado || ''), livro: String(c.livro || ''), folha: String(c.folha || ''),
+    prenotacao: String(c.prenotacao || ''), controle: String(c.controle || ''), orc: v
+  };
+}
+function capaHtml(d){
+  const t = x => escTxt(x || ''), reais = x => orcMoeda(x);
+  const linhaOrc = (rot, val) => `<div class="l"><span>${rot}</span><b>${d.orc ? reais(val) : 'R$ ______'}</b></div>`;
+  const dias = ['SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO','DOMINGO'].map(n => `<div class="dia"><i>${n}</i><u></u></div>`).join('');
+  const pend = '<div class="p">☐<s></s></div>'.repeat(6);
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Capa do dossiê</title><style>
+@page{size:A4;margin:0}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+:root{--tinta:#1F2A33;--tinta2:#5B6B78;--champ:#A9895A;--recuo:#F4F1EA;--filete:#ECE7DD}
+body{margin:0;background:#fff;color:var(--tinta);font-family:Arial,Helvetica,sans-serif}
+.fl{width:210mm;height:297mm;display:flex;flex-direction:column;overflow:hidden}
+.tarja{background:var(--tinta);color:#fff;border-bottom:1.6mm solid var(--champ);padding:7mm 12mm 6mm;display:flex;justify-content:space-between;align-items:flex-end}
+.tarja .u{font-size:9pt;letter-spacing:.5mm;font-weight:700}.tarja .u b{display:block;font-size:17pt;letter-spacing:.2mm;margin-top:1.5mm}
+.tarja .t{text-align:right}.tarja .t b{display:block;font-size:22pt;letter-spacing:.5mm}.tarja .t span{font-size:11pt;display:block;margin-top:2mm}
+.corpo{padding:6mm 12mm 0;display:flex;flex-direction:column;gap:5mm;flex:1}
+.bloco{background:var(--recuo);border-radius:1.2mm;padding:4.5mm 6mm}
+.rot{font-size:7pt;font-weight:700;letter-spacing:.45mm;color:var(--tinta2);text-transform:uppercase}
+.esc{display:flex;align-items:center;gap:8mm}
+.esc .n{font-size:14pt;font-weight:800;min-width:28mm}.esc .n small{display:block;font-size:7pt;letter-spacing:.45mm;color:var(--tinta2);font-weight:700;margin-bottom:.8mm}
+.esc .d{font-size:10pt;font-weight:700;white-space:nowrap}
+.esc .m{margin-left:auto;font-size:10pt;font-weight:700;display:grid;grid-template-columns:auto auto;gap:1.6mm 7mm;white-space:nowrap}
+.meio{display:flex;gap:5mm}
+.dias{width:55mm;display:flex;flex-direction:column;gap:2.4mm}
+.dia{background:var(--recuo);border-radius:1.2mm;height:28mm;overflow:hidden}
+.dia i{display:block;background:var(--tinta);color:#fff;font:700 7pt Arial;letter-spacing:.45mm;padding:1.4mm 3.5mm;font-style:normal}
+.dia u{display:block;margin:5mm 3.5mm 0;border-bottom:0.25mm solid var(--tinta);height:6mm;text-decoration:none}
+.dir{flex:1;display:flex;flex-direction:column;gap:5mm;min-width:0}
+.r{display:flex;gap:4mm;align-items:flex-end;margin-top:4.2mm}.r:first-of-type{margin-top:2mm}
+.r b{font-size:7.5pt;letter-spacing:.35mm;min-width:27mm;color:var(--tinta2)}
+.r span{flex:1;border-bottom:0.25mm solid var(--tinta);min-height:6mm;font-size:10.5pt;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:5.5mm 9mm;margin-top:3mm}.c{display:flex;gap:2.5mm;align-items:flex-end}
+.c b{font-size:7.5pt;letter-spacing:.35mm;color:var(--tinta2);white-space:nowrap}.c span{flex:1;border-bottom:0.25mm solid var(--tinta);min-height:6mm;font-size:10.5pt;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.baixo{display:flex;gap:5mm}.baixo .bloco{flex:1}
+.orc .l{display:flex;justify-content:space-between;font-size:10pt;padding:2.3mm 2.5mm;margin:0 -2.5mm}
+.orc .l:nth-child(odd){background:var(--filete)}.orc .l b{font-weight:800}
+.orc .tot{background:var(--tinta)!important;color:#fff;font-weight:800;margin-top:2mm}
+.pen .p{display:flex;gap:2.5mm;align-items:flex-end;margin-top:5.6mm;font-size:12pt}.pen .p s{flex:1;border-bottom:0.25mm solid var(--tinta);height:5.4mm;text-decoration:none}
+.rod{background:var(--tinta);border-top:1.6mm solid var(--champ);color:#fff;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8mm;padding:5mm 12mm 7mm}
+.rod b{font-size:7pt;letter-spacing:.45mm;display:block}.rod span{display:block;border-bottom:0.25mm solid #fff;height:7mm}
+</style></head><body><div class="fl">
+<div class="tarja"><div class="u">DOSSIÊ DO CASO<b>20º CARTÓRIO ITAIM</b></div><div class="t"><b>${t(d.tipo)}</b><span>MINUTA Nº ____________</span></div></div>
+<div class="corpo">
+<div class="bloco esc"><div class="n"><small>ESCREVENTE</small>${t(d.escrevente)}</div><div class="d">DATA: ${d.data ? t(d.data) : '___/___/___'} &nbsp;&nbsp; HORÁRIO: ${d.hora ? t(d.hora) : '_____'}</div>
+<div class="m"><span>☐ PRESENCIAL</span><span>☐ DILIGÊNCIA</span><span>☐ HÍBRIDA</span><span>☐ VÍDEO</span></div></div>
+<div class="meio"><div class="dias">${dias}</div>
+<div class="dir"><div class="bloco">
+<div class="r"><b>SOLICITANTE</b><span></span></div>
+<div class="r"><b>ARQUIVO</b><span>${t(d.arquivo)}</span></div>
+<div class="r"><b>OUTORGANTE(S)</b><span></span></div><div class="r"><b>&nbsp;</b><span></span></div>
+<div class="r"><b>OUTORGADO(S)</b><span></span></div><div class="r"><b>&nbsp;</b><span></span></div></div>
+<div class="bloco"><div class="rot">Dados do imóvel / controle</div><div class="g">
+<div class="c"><b>MATRÍCULA</b><span>${t(d.matricula)}</span></div><div class="c"><b>LIVRO</b><span>${t(d.livro)}</span></div>
+<div class="c"><b>REGISTRO</b><span>${t(d.registro)}</span></div><div class="c"><b>FOLHA</b><span>${t(d.folha)}</span></div>
+<div class="c"><b>PRENOTAÇÃO</b><span>${t(d.prenotacao)}</span></div><div class="c"><b>CONTROLE</b><span>${t(d.controle)}</span></div></div></div>
+<div class="baixo"><div class="bloco orc"><div class="rot" style="margin-bottom:3mm">Orçamento</div>
+${linhaOrc('Escritura', d.orc && d.orc.escritura)}${linhaOrc('Matrícula', d.orc && d.orc.matricula)}${linhaOrc('Registro', d.orc && d.orc.registro)}${linhaOrc('Prenotação', d.orc && d.orc.prenotacao)}${linhaOrc('Imposto', d.orc && d.orc.imposto)}${d.orc && d.orc.outros ? linhaOrc('Outras despesas', d.orc.outros) : ''}<div class="l tot"><span>TOTAL</span><b>${d.orc ? reais(d.orc.total) : 'R$ ______'}</b></div></div>
+<div class="bloco pen"><div class="rot">Pendências</div>${pend}</div></div>
+</div></div></div>
+<div class="rod"><div><b>ÚLTIMA ATUALIZAÇÃO</b><span></span></div><div><b>PRÓXIMO PASSO</b><span></span></div><div><b>RESPONSÁVEL / PRAZO</b><span></span></div></div>
+</div></body></html>`;
+}
+// Imprime num quadro escondido, sem abrir janela (o navegador não bloqueia) e sem tocar na tela do painel.
+window.capaImprimir = function(casoId){
+  const c = casos[casoId]; if(!c) return;
+  const html = capaHtml(capaDados(c)), q = document.createElement('iframe');
+  q.setAttribute('aria-hidden', 'true'); q.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  q.onload = () => { try{ q.contentWindow.focus(); q.contentWindow.print(); }catch(e){ /* o navegador recusou imprimir */ } setTimeout(() => q.remove(), 60000); };
+  q.srcdoc = html; document.body.appendChild(q);
+};
+function capaFaixaHtml(c){
+  const sem = !finAuth ? 'O quadro do orçamento sai em branco: entre no Financeiro para ele vir preenchido.'
+    : (typeof orcUltimoDoCaso === 'function' && !orcUltimoDoCaso(c.id) ? 'Este caso ainda não tem orçamento: o quadro sai em branco.' : '');
+  return `<div class="cx-orc cx-ped"><span class="cx-orc-rot"><i class="ti ti-printer"></i> Capa do dossiê</span>
+    <button type="button" class="cx-btn destaque" onclick="capaImprimir('${esc(c.id)}')"><i class="ti ti-printer"></i> Imprimir capa</button>
+    ${sem ? `<span class="cx-fin-vazio">${sem}</span>` : ''}</div>`;
+}
+// ── fim: a capa do dossiê ──
+
 // ── RENDER CASOS ──
 // Campos dos dados do registro, desenhados abertos em todo card.
 const CX_REG=[
@@ -5311,6 +5410,8 @@ function renderCasos(){
         <span class="cx-orc-rot"><i class="ti ti-calculator"></i> Orçamento</span>
         ${typeof orcFaixaDoCaso==='function'?orcFaixaDoCaso(c.id):''}
       </div>
+
+      ${capaFaixaHtml(c)}
 
       <div class="cx-orc cx-ped">
         <span class="cx-orc-rot"><i class="ti ti-file-search"></i> Documentos</span>
@@ -11772,6 +11873,17 @@ function orcLinhasCliente(r){
   r.despesas.filter(d => !d.interna).forEach(d => linhas.push([d.rot.toUpperCase(), d.valor]));
   r.tributos.forEach(t => {if(t.valor != null) linhas.push([t.rot.toUpperCase(), t.valor]);});
   return linhas;
+}
+// A capa do dossiê (a folha de papel que acompanha o caso físico) pede seis linhas fixas: escritura, matrícula, registro, prenotação, imposto e total.
+// O registro vem com a taxa embutida, como na via da cliente. O que não cabe em nenhuma das cinco (outra despesa do ato) entra em `outros`, para a capa
+// somar sempre o total que está impresso — a mesma regra da via da cliente, e pela mesma razão: conta que não fecha na mão de quem confere é pior que nenhuma.
+function orcValoresDaCapa(r){
+  if(!r || !r.totais) return null;
+  const soma = item => (r.despesas || []).filter(d => d.item === item).reduce((s, d) => s + (d.valor || 0), 0);
+  const v = {escritura: r.totais.escritura || 0, matricula: soma('11'), registro: r.totais.registroComDespesas || 0, prenotacao: soma('12'),
+             imposto: (r.tributos || []).reduce((s, t) => s + (t.valor != null ? t.valor : 0), 0), total: r.totais.total || 0};
+  v.outros = v.total - (v.escritura + v.matricula + v.registro + v.prenotacao + v.imposto);
+  return v;
 }
 // O valor do negócio, que é o que a cliente reconhece: o número que ela
 // declarou, e não a base da primeira linha da tabela.
