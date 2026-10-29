@@ -1263,6 +1263,17 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   bloqueada é fechada. A regra sai ao terminar o último pedido e ao acordar sem pedido andando (uma regra esquecida bloquearia os PDFs dela). Permissões novas: `declarativeNetRequest`
   e `webNavigation`. Em aberto: se a **navegação na mesma aba** (sem aba nova) deixa o Ajudante sem aba para buscar — então o fundo tenta por conta própria (cookies `SameSite` podem
   impedir); e por que o OK clicado **sem gesto dela** não gera o PDF (o relatório da 0.1.5 traz `fundo.eventos` para ver).
+- **O bloqueio funcionou, e a aba do pedido virou a página de erro (0.1.7).** No teste da 0.1.6 ela viu "www.jucesponline.sp.gov.br está bloqueado — ERR_BLOCKED_BY_CLIENT" com o
+  endereço do PDF: o PDF tenta abrir **na própria aba do pedido**, e o bloqueio a deixa numa página que não roda o content script, então a busca pela aba não tinha quem fizesse. Agora,
+  se a aba do pedido não responde, o fundo abre uma **aba auxiliar** da JUCESP (inativa, `/Default.aspx`), busca o PDF **de dentro dela** (`scripting.executeScript`, mundo da página:
+  mesma origem, cookies `SameSite` dela), fecha a auxiliar e só então tenta por conta própria. Ao terminar, a aba do pedido volta a `/Default.aspx` em vez de ficar na página de erro.
+  Permissão nova: `scripting`.
+- **O clique automático no OK é ignorado também no passo do contrato (0.1.8).** O relatório da 0.1.6 (passo `contrato`, `fundo.eventos` vazio, sem pop-up, sem aba, sem PDF) mostra que
+  nem a passagem para a lista de cópias — uma navegação comum — acontece quando o Ajudante clica; o clique dela, sim. Ou seja: **não é só pop-up**. Sem saber como o site decide, não se
+  tenta burlá-lo (o captcha e um possível controle de "clique de gente" são proteções do site): a reserva — **um clique dela, que o Chrome e o site aceitam** — agora vale para
+  os dois passos (`escolher` e `baixar`), e o relatório traz `botaoPorDentro` (tipo, `onclick`, `onsubmit` e `target` do formulário e os trechos dos scripts da página sobre OK/janela)
+  para a próxima rodada mostrar o que o site faz com o clique. Se o site realmente exigir clique humano no OK, o fluxo possível é: ela digita o captcha e dá um clique por documento;
+  todo o resto (empresa, opção, PDF, nome, card) é do Ajudante.
 - Próximos: ONR (matrícula atualizada, com a confirmação antes de pagar) e prefeitura (valor venal).
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).

@@ -145,12 +145,25 @@
     return { acao: 'clicar', el: link, texto: 'Abrindo a pesquisa de empresas…' };
   }
 
+  // Como o botão que o Ajudante clica é por dentro (o que o site faz com o clique): atributos e o que os scripts da própria página dizem de OK, janela, formulário.
+  const mascaraCurta = (t) => String(t).replace(/[A-Za-z0-9+\/=_%-]{40,}/g, '…').replace(/\d{8,}/g, '#').replace(/\s+/g, ' ');
+  function botaoPorDentro(doc) {
+    const ok = achar(doc, 'ok', true) || achar(doc, 'continuar', true);
+    const scripts = Array.from(doc.querySelectorAll('script:not([src])')).map((x) => x.textContent || '').filter((x) => !/AJ_JUCESP/.test(x)).join('\n'), vistos = [];
+    for (const m of scripts.matchAll(/(btnEmitir|window\.open|onsubmit|\.target|__doPostBack|Emitir|ticket|VisualizaTicket)/gi)) { const t = mascaraCurta(scripts.slice(Math.max(0, m.index - 90), m.index + 160)); if (!vistos.includes(t) && vistos.length < 8) vistos.push(t); }
+    return {
+      botao: ok ? { tipo: ok.type || ok.tagName, onclick: mascaraCurta(ok.getAttribute('onclick') || ''), desabilitado: !!ok.disabled, formOnsubmit: mascaraCurta((ok.form && ok.form.getAttribute('onsubmit')) || ''), formTarget: (ok.form && ok.form.target) || '', formAcao: ok.form ? (() => { try { return new URL(ok.form.getAttribute('action') || '', doc.baseURI).pathname; } catch (_) { return ''; } })() : '' } : null,
+      scripts: vistos
+    };
+  }
+
   // Um resumo da tela para a Shirley copiar e me mandar quando algo não bate: só a forma (textos dos botões, campos), sem cookies
   // nem o endereço completo (o "sc" do PDF é um ticket da sessão dela).
   function relatorio(doc, caminho, job, extra) {
     const lista = (sel, f) => Array.from(doc.querySelectorAll(sel)).filter(visivel).slice(0, 40).map(f);
     return JSON.stringify({
       versao: (extra && extra.versao) || '', aviso: (extra && extra.aviso) || '', diagnostico: (extra && extra.diagnostico) || null, fundo: (extra && extra.fundo) || null,   // o que a faixa dizia e qual versão da extensão está rodando
+      botaoPorDentro: botaoPorDentro(doc),
       caminho, titulo: doc.title, pagina: tipoDePagina(doc, caminho), logada: logada(doc), passo: job && job.fila && job.fila[0],
       botoes: lista('a,button,input[type=submit],input[type=button]', (e) => (textoDe(e) || '').slice(0, 60)),
       campos: lista('input:not([type=hidden]),select,textarea', (e) => [e.type, e.name, e.id].join('|')),
@@ -299,7 +312,7 @@
     // Reserva: se, mesmo com o OK clicado e os pop-ups liberados, a página não muda, a faixa pede UM clique dela (o do usuário o Chrome sempre aceita);
     // o resto — pegar o PDF e guardar no card — continua sendo do Ajudante.
     const pedirClique = (plano) => {
-      const aviso = 'A JUCESP não abriu o PDF com o meu clique. Clique no botão abaixo — o resto é comigo.';
+      const aviso = 'A JUCESP não respondeu ao meu clique. Clique no botão abaixo — o resto é comigo.';
       mostrar(aviso, '#A9895A', [['Copiar relatório', async () => { await copiarRelatorio(job, aviso, '#A9895A'); }], ['Gerar o PDF (clique aqui)', () => {
         plano.radio.click(); if (!plano.radio.checked) plano.radio.checked = true;
         mostrar('Pedindo o PDF…'); dizer('andando', 'Pedindo o PDF…');
@@ -336,7 +349,7 @@
         const p = planejar(document, location.pathname, job);
         if (p.acao === 'esperar') { desde = Date.now(); if (p.texto !== ultimo) { ultimo = p.texto; mostrar(p.texto); dizer('espera', p.texto); } return; }
         if (p.texto !== plano.texto || p.acao !== (plano.planejado || plano.acao)) { clearInterval(vigia); ultimo = ''; if (!rodar()) { const r2 = setInterval(() => { if (rodar()) clearInterval(r2); }, 1500); setTimeout(() => clearInterval(r2), 10 * 60 * 1000); } return; }
-        if (Date.now() - desde > api.config.esperaMs) { clearInterval(vigia); if (plano.planejado === 'baixar') return pedirClique(plano); parar(job, 'A página não mudou depois do meu clique.'); }
+        if (Date.now() - desde > api.config.esperaMs) { clearInterval(vigia); if (plano.planejado === 'baixar' || plano.acao === 'escolher' || plano.acao === 'copia') return pedirClique(plano); parar(job, 'A página não mudou depois do meu clique.'); }
       }, 1000);
       setTimeout(() => clearInterval(vigia), 10 * 60 * 1000);
     };

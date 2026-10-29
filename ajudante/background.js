@@ -124,11 +124,35 @@ async function guardarPdf(job, base64) {
     const atual = await mudar(job.id, (x) => { x.feitos.push(qual); x.fila.shift(); x.pdfUrl = null; x.abaDoPdf = null; x.manual = false; });
     const msg = d.nome + ': guardado no card como ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.';
     if (atual.fila.length) { falar(atual, 'andando', msg + ' Agora: ' + DOCS[atual.fila[0]].nome + '…'); await irParaEmpresa(atual); }
-    else await terminar(job.id, 'ok', 'Pronto! ' + msg);
+    else {
+      await terminar(job.id, 'ok', 'Pronto! ' + msg);
+      // O PDF tentava abrir na própria aba do pedido, e o bloqueio a deixou numa página de erro: devolve-a ao site, em vez de deixá-la assim para ela.
+      if (job.abaDoPdf != null && job.abaDoPdf === job.jucespTabId) { try { await chrome.tabs.update(job.jucespTabId, { url: JUCESP + '/Default.aspx' }); } catch (_) { /* a aba pode ter fechado */ } }
+    }
   } catch (e) {
     await mudar(job.id, (x) => { x.pdfUrl = null; });
     await terminar(job.id, 'erro', 'Não consegui guardar ' + d.nome + ': ' + ((e && e.message) || e) + ' Salve o PDF (Ctrl+S) e arraste para a caixa do card.');
   }
+}
+
+// A aba do pedido pode ter virado a página de erro do bloqueio (o PDF tentava abrir NELA) e já não serve para baixar. Então abre-se uma aba auxiliar do site
+// da JUCESP — mesma origem, mesmos cookies —, o PDF é buscado de dentro dela uma vez e a aba fecha. Roda no mundo da página, onde o cookie `SameSite` é o dela.
+function baixarNaPagina(u) {
+  return fetch(u, { credentials: 'same-origin' }).then(async (r) => {
+    const b = new Uint8Array(await r.arrayBuffer()), ok = b.length > 4 && String.fromCharCode(b[0], b[1], b[2], b[3]) === '%PDF';
+    let t = ''; if (ok) for (let i = 0; i < b.length; i += 0x8000) t += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+    return { ok, base64: ok ? btoa(t) : '', status: r.status, tipo: r.headers.get('content-type') || '' };
+  }).catch((e) => ({ ok: false, erro: String((e && e.message) || e) }));
+}
+async function buscarPelaAbaAuxiliar(url) {
+  if (!chrome.scripting || !chrome.scripting.executeScript) return { ok: false, erro: 'sem a API scripting' };
+  const aba = await chrome.tabs.create({ url: JUCESP + '/Default.aspx', active: false });
+  try {
+    for (let i = 0; i < 40; i++) { const t = await chrome.tabs.get(aba.id); if (t && t.status === 'complete') break; await new Promise((r) => setTimeout(r, 400)); }
+    const [res] = await chrome.scripting.executeScript({ target: { tabId: aba.id }, func: baixarNaPagina, args: [url] });
+    return (res && res.result) || { ok: false, erro: 'sem resultado' };
+  } catch (e) { return { ok: false, erro: String((e && e.message) || e).slice(0, 120) }; }
+  finally { try { await chrome.tabs.remove(aba.id); } catch (_) { /* já fechou */ } }
 }
 
 // O PDF abriu numa aba (a do pedido ou uma nova): baixa pelo endereço, com a sessão dela.
@@ -143,6 +167,11 @@ async function capturar(job, url) {
     let viaAba = 'sem resposta';
     try { const r = await chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'buscar-pdf', url }); if (r && r.ok && r.base64) { base64 = r.base64; viaAba = 'ok'; } else if (r) viaAba = 'não é PDF (' + (r.status || '?') + ', ' + (r.tipo || r.erro || '?') + ')'; } catch (_) { viaAba = 'aba indisponível'; }
     await mudar(job.id, (x) => { ev(x, { buscaPelaAba: viaAba }); });
+    if (!base64) {
+      const r = await buscarPelaAbaAuxiliar(url);
+      if (r && r.ok && r.base64) base64 = r.base64;
+      await mudar(job.id, (x) => { ev(x, { buscaPelaAbaAuxiliar: r && r.ok ? 'ok' : 'falhou (' + ((r && (r.erro || r.status + ' ' + r.tipo)) || '?') + ')' }); });
+    }
     if (!base64) {
       const r = await fetch(url, { credentials: 'include' });
       if (!r.ok) throw new Error('A JUCESP respondeu ' + r.status + ' ao baixar o PDF.');
