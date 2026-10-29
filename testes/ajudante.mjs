@@ -21,8 +21,8 @@ await passo('manifesto: só a JUCESP, o painel e o Apps Script; sem poder amplo 
   const m = JSON.parse(ler('ajudante/manifest.json'));
   assert.equal(m.manifest_version, 3);
   assert.match(ler('ajudante/painel.js'), new RegExp("VERSAO = '" + m.version.replace(/\./g, '\\.') + "'"), 'a versão do manifesto e a da ponte andam juntas');
-  assert.deepEqual(m.permissions.sort(), ['contentSettings', 'declarativeNetRequest', 'scripting', 'storage', 'tabs', 'webNavigation']);
-  assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
+  assert.deepEqual(m.permissions.sort(), ['contentSettings', 'declarativeNetRequest', 'downloads', 'scripting', 'storage', 'tabs', 'webNavigation']);
+  assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|(\*\.)?ridigital\.org\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
   const todos = JSON.stringify(m);
   assert(!/<all_urls>|\*:\/\/\*\/|"http:\/\//.test(todos), 'nada de all_urls nem de http');
   assert(m.content_scripts.every((c) => c.matches.every((u) => u.startsWith('https://'))));
@@ -60,21 +60,22 @@ await passo('ponte: o andamento vindo do fundo chega ao painel; se o fundo não 
 });
 
 // ── O fundo ──
-function mundoFundo({auxiliar, popupsFalha, buscarPdf, pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas = {ok: true, nome: 'JRL_HOLDING_LTDA_FICHA_CADASTRAL_JUCESP_2026-10-28_1.pdf', confirmar: false}, gasTexto, statusPdf = 200} = {}) {
-  const store = {}, enviadas = [], criadas = [], atualizadas = [], removidas = [], popups = [], regras = [], auxiliares = [], busca = [], ouv = {msg: null, upd: null, rem: null};
+function mundoFundo({buscarUrl, auxiliar, popupsFalha, buscarPdf, pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas = {ok: true, nome: 'JRL_HOLDING_LTDA_FICHA_CADASTRAL_JUCESP_2026-10-28_1.pdf', confirmar: false}, gasTexto, statusPdf = 200} = {}) {
+  const baixados = [], store = {}, enviadas = [], criadas = [], atualizadas = [], removidas = [], popups = [], regras = [], auxiliares = [], busca = [], ouv = {msg: null, upd: null, rem: null};
   const chrome = {
     storage: {local: {get: async (k) => (k in store ? {[k]: JSON.parse(JSON.stringify(store[k]))} : {}), set: async (o) => { for (const [k, v] of Object.entries(o)) store[k] = JSON.parse(JSON.stringify(v)); }}},
-    tabs: {create: async (o) => { criadas.push(o); return {id: 70 + criadas.length}; }, get: async (id) => ({id, status: 'complete'}), update: async (id, o) => { atualizadas.push({id, ...o}); }, remove: async (id) => { removidas.push(id); }, sendMessage: async (id, m) => { enviadas.push({tabId: id, ...m}); if (m.tipo === 'buscar-pdf') { if (buscarPdf === 'erro') throw new Error('sem receptor'); return buscarPdf; } },
+    tabs: {create: async (o) => { criadas.push(o); return {id: 70 + criadas.length}; }, get: async (id) => ({id, status: 'complete'}), update: async (id, o) => { atualizadas.push({id, ...o}); }, remove: async (id) => { removidas.push(id); }, sendMessage: async (id, m) => { enviadas.push({tabId: id, ...m}); if (m.tipo === 'buscar-pdf') { if (buscarPdf === 'erro') throw new Error('sem receptor'); return buscarPdf; } if (m.tipo === 'buscar-url') { if (buscarUrl === 'erro') throw new Error('sem receptor'); return buscarUrl; } },
       onUpdated: {addListener: (f) => { ouv.upd = f; }}, onRemoved: {addListener: (f) => { ouv.rem = f; }}, onCreated: {addListener: (f) => { ouv.cri = f; }}},
     runtime: {onMessage: {addListener: (f) => { ouv.msg = f; }}},
     ...(auxiliar ? {scripting: {executeScript: async (o) => { auxiliares.push({tabId: o.target.tabId, args: o.args, func: typeof o.func}); if (auxiliar === 'erro') throw new Error('sem acesso'); return [{result: auxiliar}]; }}} : {}),
     declarativeNetRequest: {updateDynamicRules: async (o) => { regras.push(JSON.parse(JSON.stringify(o))); }},
     webNavigation: {onBeforeNavigate: {addListener: (f) => { ouv.nav = f; }}},
+    downloads: {onCreated: {addListener: (f) => { ouv.dl = f; }}, onChanged: {addListener: (f) => { ouv.dlmudou = f; }}, search: async ({id}) => baixados.filter((b) => b.id === id)},
     contentSettings: {popups: {set: async (o) => { if (popupsFalha) throw new Error(popupsFalha); popups.push({acao: 'set', ...o}); }, clear: async (o) => { popups.push({acao: 'clear', ...o}); }}}
   };
   const fetch = async (url, o = {}) => {
     busca.push({url: String(url), o});
-    if (String(url).startsWith('https://www.jucesponline.sp.gov.br/')) { const b = new TextEncoder().encode(pdf); return {ok: statusPdf < 300, status: statusPdf, headers: {get: () => tipoPdf}, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)}; }
+    if (String(url).startsWith('https://www.jucesponline.sp.gov.br/') || String(url).startsWith('https://ridigital.org.br/')) { const b = new TextEncoder().encode(pdf); return {ok: statusPdf < 300, status: statusPdf, headers: {get: () => tipoPdf}, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)}; }
     if (String(url).startsWith('https://script.google.com/')) return {ok: true, text: async () => gasTexto !== undefined ? gasTexto : JSON.stringify(gas)};
     throw new Error('endereço inesperado ' + url);
   };
@@ -82,7 +83,7 @@ function mundoFundo({auxiliar, popupsFalha, buscarPdf, pdf = '%PDF-1.4 conteudo'
   vm.createContext(ctx); vm.runInContext(ler('ajudante/background.js'), ctx);
   const msg = (m, aba) => new Promise((res) => ouv.msg(m, aba ? {tab: {id: aba}} : {}, res));
   const abrir = (url, aba, opener) => { ouv.upd(aba, {url}, {url, openerTabId: opener}); return esperar(); };
-  return {store, enviadas, criadas, atualizadas, removidas, popups, regras, auxiliares, busca, msg, abrir, ouv, gasEnviado: () => busca.filter((b) => b.url.startsWith('https://script.google.com/')).map((b) => JSON.parse(b.o.body))};
+  return {baixados, store, enviadas, criadas, atualizadas, removidas, popups, regras, auxiliares, busca, msg, abrir, ouv, gasEnviado: () => busca.filter((b) => b.url.startsWith('https://script.google.com/')).map((b) => JSON.parse(b.o.body))};
 }
 const pedido = (o = {}) => ({id: 'ajteste1', casoId: 'C12345', cnpj: CNPJ, quero: ['ficha'], ...o});
 const PAINEL = 5;
@@ -119,6 +120,13 @@ await passo('fundo: a consolidação que o Apps Script achou na ficha vai para o
   await m.msg({tipo: 'nire', nire: '35262229284', empresa: 'JRL HOLDING LTDA'}, 71);
   await m.abrir('https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=1', 71);
   const meio = await m.msg({tipo: 'quem'}, 71); assert.deepEqual(meio.consolidacao, cons); assert.equal(meio.fichaLida, true);
+});
+await passo('fundo: o OK da JUCESP abre a lista numa ABA NOVA (target=_blank): ela também é do trabalho, e a aba do pedido para de vigiar', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedido({quero: ['contrato']})}, PAINEL);
+  m.ouv.cri({id: 92, openerTabId: 71, pendingUrl: ''}); await esperar();
+  const lista = await m.msg({tipo: 'quem'}, 92); assert(lista && lista.cnpj === CNPJ, 'a aba aberta pelo OK recebe o pedido');
+  assert(m.enviadas.some((e) => e.tabId === 71 && e.tipo === 'seguiu'), 'a aba do pedido é avisada'); assert.equal(await m.msg({tipo: 'quem'}, 555), null, 'aba sem parentesco continua de fora');
+  const antes = m.enviadas.filter((e) => e.tipo === 'seguiu').length; await m.msg({tipo: 'quem'}, 92); assert.equal(m.enviadas.filter((e) => e.tipo === 'seguiu').length, antes, 'avisa uma vez só');
 });
 await passo('fundo: pedindo os dois, depois da ficha volta à empresa para o contrato e termina só no segundo PDF', async () => {
   const m = mundoFundo({gas: {ok: true, nome: 'X.pdf', confirmar: true}}); await m.msg({tipo: 'pedido', pedido: pedido({quero: ['ficha', 'contrato']})}, PAINEL);
@@ -174,6 +182,78 @@ await passo('fundo: o PDF que abre numa ABA NOVA (aberta pela aba do pedido) tam
   // aba nova de quem não é do pedido não vale
   const n = mundoFundo(); await n.msg({tipo: 'pedido', pedido: pedido()}, PAINEL); await n.abrir('https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=x', 91, 999); assert.equal(n.gasEnviado().length, 0);
 });
+
+// ── A RI Digital (ONR): o pedido, o PDF que o site baixa e o relatório do que aconteceu ──
+const pedidoOnr = (o = {}) => ({id: 'ajonr0001', casoId: 'C12345', site: 'onr', servico: 'certidao', uf: 'SP', cidade: 'SÃO PAULO', cartorio: '10', matriculas: ['187852'], ...o});
+const baixou = (m, item) => { m.baixados.push(item); m.ouv.dl(item); return esperar(80); };
+await passo('ONR fundo: o pedido valida estado, cidade, cartório e matrículas; visualização é uma por vez; nada recusado abre aba', async () => {
+  const m = mundoFundo();
+  for (const ruim of [{uf: 'S'}, {uf: ''}, {cidade: ''}, {cartorio: '12345'}, {matriculas: []}, {matriculas: ['12']}, {servico: 'outro'}, {casoId: '../x'}, {servico: 'visualizacao', matriculas: ['187852', '187851']}]) {
+    const r = await m.msg({tipo: 'pedido', pedido: pedidoOnr(ruim)}, PAINEL); assert.equal(r.ok, false, JSON.stringify(ruim)); assert(r.texto);
+  }
+  assert.equal(m.criadas.length, 0);
+  const ok = await m.msg({tipo: 'pedido', pedido: pedidoOnr({matriculas: ['187.852', '187851', '187852']})}, PAINEL); assert.equal(ok.ok, true);
+  assert.equal(m.criadas[0].url, 'https://ridigital.org.br/ServicosOnline.aspx');
+  const job = await m.msg({tipo: 'quem'}, 71); assert.equal(job.site, 'onr'); assert.deepEqual(Array.from(job.matriculas), ['187852', '187851'], 'só dígitos, sem repetir');
+});
+await passo('ONR fundo: o PDF que o site baixa depois do pagamento vai ao Apps Script como matrícula, com a origem e a matrícula no nome; fecha em ok depois de um tempo sem mais nada', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
+  await m.msg({tipo: 'onr-pagina', tela: 'pagamento', caminho: '/CertidaoDigital/Default.aspx'}, 71);
+  await m.msg({tipo: 'onr-pagou', botao: 'saldo em creditos'}, 71);
+  await baixou(m, {id: 1, url: 'https://ridigital.org.br/CertidaoDigital/Baixar.ashx?x=segredo', finalUrl: 'https://ridigital.org.br/CertidaoDigital/Baixar.ashx?x=segredo', filename: 'C:\\Users\\a\\Downloads\\187852.pdf', mime: 'application/pdf'});
+  const [g] = m.gasEnviado(); assert(g, 'foi enviado'); assert.equal(g.acao, 'painel-arquivo'); assert.equal(g.casoId, 'C12345'); assert.equal(g.tipoSugerido, 'MATRICULA_IMOVEL'); assert.equal(g.origemAjudante, 'onr');
+  assert.equal(g.pessoaSugerida, 'Atualizada 187852'); assert.equal(g.nomeArquivo, 'RIDIGITAL_ATUALIZADA_187852.pdf'); assert.equal(g.mimetype, 'application/pdf');
+  assert(!m.enviadas.some((e) => e.estado === 'ok'), 'ainda espera um tempo: pode vir mais de um arquivo');
+  const job = JSON.parse(JSON.stringify((await m.msg({tipo: 'quem'}, 71)))); assert.equal(job.arquivos.length, 1);
+  m.store.jobs.ajonr0001.ultimoArquivoEm = Date.now() - 30000;
+  await m.msg({tipo: 'onr-vigia'}, 71); await esperar();
+  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim && fim.estado === 'ok' && /Pronto! Guardei no card/.test(fim.texto), JSON.stringify(fim));
+  const rel = JSON.parse(fim.relatorio); assert.equal(rel.site, 'onr'); assert(rel.eventos.some((e) => e.pagou) && rel.eventos.some((e) => e.download && e.download.nome === '187852.pdf') && rel.eventos.some((e) => e.guardado), 'o relatório conta o que aconteceu');
+  assert(!/segredo/.test(fim.relatorio), 'o endereço do download não vai inteiro para o relatório');
+});
+await passo('ONR fundo: download de outro site, ou sem pedido da RI Digital andando, é ignorado', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
+  await baixou(m, {id: 2, url: 'https://outro-site.com/a.pdf', filename: 'a.pdf'}); assert.equal(m.gasEnviado().length, 0);
+  const n = mundoFundo(); await baixou(n, {id: 3, url: 'https://ridigital.org.br/x.pdf', filename: 'x.pdf'}); assert.equal(n.gasEnviado().length, 0);
+  const j = mundoFundo(); await j.msg({tipo: 'pedido', pedido: pedido()}, PAINEL); await baixou(j, {id: 4, url: 'https://ridigital.org.br/x.pdf', filename: 'x.pdf'}); assert.equal(j.gasEnviado().length, 0, 'pedido da JUCESP não pega download da RI Digital');
+});
+await passo('ONR fundo: download blob: é lido pela própria página (a aba); data: é decodificado; o que não é PDF nem imagem não vai ao card', async () => {
+  const b64 = Buffer.from('%PDF-1.4 do blob').toString('base64');
+  const m = mundoFundo({buscarUrl: {ok: true, base64: b64}}); await m.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
+  await baixou(m, {id: 5, url: 'blob:https://ridigital.org.br/abc-123', filename: 'm.pdf'});
+  assert(m.enviadas.some((e) => e.tipo === 'buscar-url' && e.url === 'blob:https://ridigital.org.br/abc-123' && e.tabId === 71)); assert.equal(m.gasEnviado().length, 1);
+  const d = mundoFundo(); await d.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
+  await baixou(d, {id: 6, url: 'data:application/pdf;base64,' + b64, filename: 'd.pdf', referrer: 'https://ridigital.org.br/'}); assert.equal(d.gasEnviado().length, 1);
+  const x = mundoFundo({pdf: '<html>erro</html>', buscarUrl: {ok: true, base64: Buffer.from('<html>').toString('base64')}}); await x.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
+  await baixou(x, {id: 7, url: 'https://ridigital.org.br/y.ashx', filename: 'y.pdf'}); assert.equal(x.gasEnviado().length, 0);
+});
+await passo('ONR fundo: se o arquivo não pôde ser levado ao card, o painel é avisado de que ele está em Downloads, com o relatório — e o download dela nunca é cancelado', async () => {
+  const m = mundoFundo({pdf: '<html>erro</html>', buscarUrl: 'erro'}); await m.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
+  await m.msg({tipo: 'onr-pagou', botao: 'saldo em creditos'}, 71);
+  await baixou(m, {id: 8, url: 'https://ridigital.org.br/z.ashx?t=1', filename: 'C:\\Downloads\\certidao.pdf', mime: 'application/pdf'});
+  assert.equal(m.gasEnviado().length, 0);
+  m.store.jobs.ajonr0001.pagouEm = Date.now() - 130000;
+  await m.msg({tipo: 'onr-vigia'}, 71); await esperar();
+  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert.equal(fim.estado, 'erro'); assert(/pasta Downloads/.test(fim.texto) && /certidao\.pdf/.test(fim.texto) && /arraste/i.test(fim.texto) && /relatório/.test(fim.texto), fim.texto);
+  const rel = JSON.parse(fim.relatorio); assert(rel.falhas.length === 1 && rel.eventos.some((e) => e.leitura === 'falhou'));
+  assert(!JSON.stringify(m.enviadas).includes('cancel'), 'nenhum download é cancelado');
+});
+await passo('ONR fundo: sem nenhum download 2 minutos depois do pagamento, diz isso; a aba fechada depois de arquivo guardado termina em ok', async () => {
+  const a = mundoFundo(); await a.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL); await a.msg({tipo: 'onr-pagou'}, 71);
+  await a.msg({tipo: 'onr-vigia'}, 71); await esperar(); assert(!a.enviadas.some((e) => e.fim), 'ainda é cedo');
+  a.store.jobs.ajonr0001.pagouEm = Date.now() - 130000; await a.msg({tipo: 'onr-vigia'}, 71); await esperar();
+  const e = a.enviadas.filter((x) => x.tipo === 'progresso' && x.fim).pop(); assert(e && e.estado === 'erro' && /nenhum arquivo baixou/.test(e.texto) && e.relatorio);
+  const b = mundoFundo(); await b.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL); await baixou(b, {id: 9, url: 'https://ridigital.org.br/q.pdf', filename: 'q.pdf'});
+  b.ouv.rem(71); await esperar(); const f = b.enviadas.filter((x) => x.tipo === 'progresso' && x.fim).pop(); assert.equal(f.estado, 'ok');
+  const c = mundoFundo(); await c.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL); c.ouv.rem(71); await esperar(); assert(c.enviadas.some((x) => x.estado === 'erro' && /RI Digital/.test(x.texto)));
+});
+await passo('ONR fundo: o fim do download (estado, nome, bytes) entra no registro', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
+  m.baixados.push({id: 11, url: 'https://ridigital.org.br/r.pdf', filename: 'C:\\D\\r.pdf', fileSize: 4321});
+  m.ouv.dlmudou({id: 11, state: {current: 'complete'}}); await esperar(80);
+  const j = m.store.jobs.ajonr0001; assert(j.eventos.some((e) => e.downloadFim && e.downloadFim.estado === 'complete' && e.downloadFim.bytes === 4321 && e.downloadFim.nome === 'r.pdf'));
+});
+
 
 // ── As telas da JUCESP, como ela mostrou ──
 const TOPO = (logada = true) => `<div class="topo">${logada ? 'Olá, <b>SHIRLEY DANTAS</b> | <a href="#">Meus Documentos</a> | <a href="#">Minha Conta</a> | <a href="#">Sair</a>' : '<a href="#">Entrar</a>'}</div>`;
@@ -316,6 +396,105 @@ await passo('página: quando a lista de cópias não tem consolidação, avisa o
   assert(r.msgs.some((m) => m.tipo === 'manual')); assert(r.msgs.some((m) => m.estado === 'manual' && /nenhum ato de consolidação/.test(m.texto))); assert.deepEqual(r.clicou, []);
 });
 
+// ── As telas da RI Digital (montadas a partir dos prints que ela mandou) ──
+const OTOPO = '<header><b>ri digital</b> <a href="#">Serviços</a> <a href="#">Cartórios e Valores</a></header>';
+const opts = (lista, sel) => lista.map((t, i) => `<option value="${i ? 'v' + i : ''}"${sel === i ? ' selected' : ''}>${t}</option>`).join('');
+const CIDADES = ['(Selecione)', 'ATIBAIA', 'SÃO PAULO'], CARTS = ['--', '1º', '10º', '11º'];
+const PO = {
+  home: () => OTOPO + '<h2>Selecione o serviço que você precisa</h2>' + ['Certidão Digital', 'e-Protocolo', 'Visualização de matrícula', 'Pesquisa Qualificada'].map((t) => `<div class="card" onclick="void 0"><i></i><span>${t}</span></div>`).join(''),
+  lista: () => OTOPO + '<h1>Visualização de Matrícula</h1><a href="#" class="novo">+ Novo Pedido</a><h2>Listagem de Pedidos</h2><table><tr><td>VM031570950</td><td>R$ 22,95</td></tr></table>',
+  aviso: (marcada = true) => OTOPO + '<div class="modal"><p>Serviço para simples visualização da imagem da matrícula. NÃO POSSUI VALIDADE JURÍDICA DE CERTIDÃO.</p><label><input type="checkbox"' + (marcada ? ' checked' : '') + '> Li, e estou ciente.</label><button>Consulta de Valores</button><button>Prosseguir</button></div>',
+  mapa: () => OTOPO + '<svg width="400" height="300"><g><path id="MG" d="M0 0h50v50H0z"/><text x="10" y="20">MG</text></g><g><path id="SP" d="M60 0h50v50H60z"/><text x="70" y="20">SP</text></g></svg>',
+  termos: () => OTOPO + '<p>Termos e condições de utilização do sistema.</p><label><input type="checkbox"> Li e concordo.</label><button>VOLTAR</button><button>Prosseguir</button>',
+  solicitacao: ({cid = 0, cart = 0, mat = '', cartorios = CARTS} = {}) => OTOPO + '<h2>Antes de solicitar a visualização de matrícula</h2><label>Cidade *<select id="ddlCidade">' + opts(CIDADES, cid) + '</select></label><label>Cartório *<select id="ddlCartorio">' + opts(cartorios, cart) + '</select></label><label>Matrícula/CNM *<input type="text" id="txtMatricula" value="' + mat + '"></label><button>Prosseguir</button>',
+  cartorio: ({cid = 0, cart = 0} = {}) => OTOPO + '<h2>Selecione o cartório onde deseja realizar a solicitação</h2><label>Cidade *<select id="ddlCidade">' + opts(CIDADES, cid) + '</select></label><label>Cartório *<select id="ddlCartorio">' + opts(CARTS, cart) + '</select></label><button>VOLTAR</button><button>Prosseguir</button>',
+  tipo: ({t = 0, p = 0} = {}) => OTOPO + '<h2>Selecione o "tipo de certidão" e o "pedido por"</h2><label>Tipo Certidão *<select id="ddlTipoCertidao">' + opts(['(Selecione)', 'Matrícula - Inteiro Teor', 'Matrícula - Certidão de Ônus'], t) + '</select></label><label>Pedido Por *<select id="ddlPedidoPor">' + opts(['(Selecione)', 'Nº de Matrícula/CNM', 'Nome do proprietário'], p) + '</select></label><button>VOLTAR</button><button>Prosseguir</button>',
+  matriculas: (v = '', botao = 'Prosseguir') => OTOPO + '<h2>Informe a(s) matrícula(s)</h2><label>Informe a(s) matrícula/CNM(s) abaixo: *<input type="text" placeholder="0000" value="' + v + '"></label><button>VOLTAR</button><button>' + botao + '</button>',
+  finalidade: ({certidao = true, marcada = 0, sem = false} = {}) => OTOPO + (certidao ? '<table><tr><td>10º - SÃO PAULO - SP</td><td>R$ 76,54</td></tr><tr><td>Total</td><td>R$ 76,54</td></tr></table><button>Adicionar Nova Certidão</button>' : '<div>CIDADE SÃO PAULO CARTÓRIO 10º MATRÍCULA 187852</div><p>Valor Total: R$ 22,95</p>') +
+    '<label>Informe a finalidade *<select id="ddlFinalidade">' + opts(['(selecione)', 'Investigação jurídico-econômica para fins de avaliação de crédito.', 'Investigação jurídica sobre o imóvel, sua titularidade ou limitações.', ...(sem ? [] : ['O solicitante é titular de algum direito real registrado sobre o imóvel.']), 'Não desejo declarar a finalidade.'], marcada) + '</select></label>' +
+    (certidao ? '<button>Prosseguir</button>' : '<div class="g-recaptcha">Não sou um robô</div><button>Confirmar</button>'),
+  pagamento: () => OTOPO + '<h3>Escolha a forma de pagamento</h3>' + ['Saldo em Créditos', 'PIX', 'Boleto Bancário', 'Cartão de Crédito'].map((t) => `<div class="forma" onclick="void 0"><b>${t}</b></div>`).join('') + '<p>Total R$ 76,54</p><a href="#">Voltar</a>'
+};
+async function planoOnr(html, caminho, job) {
+  await pagina.goto('about:blank');
+  await pagina.setContent('<!doctype html><html><body>' + html + '</body></html>');
+  await pagina.addScriptTag({content: ler('ajudante/onr.js')});
+  return pagina.evaluate(({caminho, job}) => {
+    const p = window.AJ_ONR.planejar(document, caminho, job), A = window.AJ_ONR;
+    const r = {acao: p.acao, texto: p.texto, espera: p.espera, valor: p.valor, tela: A.tela(document, caminho, job)};
+    if (p.el) { r.clicar = A.textoDe(p.el); r.idEl = p.el.id || (p.el.querySelector && (p.el.querySelector('path') || {}).id) || ''; r.proibido = A.NUNCA_CLICAR.test(A.textoDe(p.el)); }
+    if (p.campo) r.campo = p.campo.placeholder || p.campo.id;
+    return r;
+  }, {caminho, job});
+}
+const jobOnr = (o = {}) => ({id: 'ajonr0001', site: 'onr', servico: 'certidao', uf: 'SP', cidade: 'SÃO PAULO', cartorio: '10', matriculas: ['187852'], fila: [], feitos: [], ...o});
+const HOME = '/ServicosOnline.aspx', CERT = '/CertidaoDigital/Default.aspx', VIS = '/VisualizarMatricula/frmSolicitacaoMatricula.aspx';
+await passo('ONR tela: da página inicial abre o cartão certo — Certidão Digital ou Visualização de matrícula, conforme o pedido', async () => {
+  const c = await planoOnr(PO.home(), HOME, jobOnr()); assert.equal(c.acao, 'clicar'); assert.match(c.clicar, /^certidao digital/); assert.equal(c.tela, 'home');
+  const v = await planoOnr(PO.home(), HOME, jobOnr({servico: 'visualizacao'})); assert.match(v.clicar, /^visualizacao de matricula/);
+});
+await passo('ONR tela: listagem de pedidos → "+ Novo Pedido"; aviso → marca o aceite e Prosseguir; mapa → o estado; termos → aceite e Prosseguir (nunca Voltar)', async () => {
+  const l = await planoOnr(PO.lista(), '/VisualizarMatricula/Default.aspx', jobOnr({servico: 'visualizacao'})); assert.equal(l.tela, 'lista'); assert.match(l.clicar, /novo pedido/);
+  const a1 = await planoOnr(PO.aviso(false), '/VisualizarMatricula/MapaMatriculaOnline.aspx', jobOnr({servico: 'visualizacao'})); assert.equal(a1.acao, 'marcar'); assert.equal(a1.tela, 'termos');
+  const a2 = await planoOnr(PO.aviso(true), '/VisualizarMatricula/MapaMatriculaOnline.aspx', jobOnr({servico: 'visualizacao'})); assert.equal(a2.acao, 'clicar'); assert.equal(a2.clicar, 'prosseguir');
+  const m = await planoOnr(PO.mapa(), '/VisualizarMatricula/MapaMatriculaOnline.aspx', jobOnr({servico: 'visualizacao'})); assert.equal(m.tela, 'mapa'); assert.equal(m.acao, 'clicar'); assert.equal(m.idEl, 'SP');
+  const mg = await planoOnr(PO.mapa(), '/x', jobOnr({uf: 'MG'})); assert.equal(mg.idEl, 'MG');
+  const t = await planoOnr(PO.termos(), '/VisualizarMatricula/frmContratoVM.aspx', jobOnr({servico: 'visualizacao'})); assert.equal(t.acao, 'marcar');
+});
+await passo('ONR tela: visualização — cidade, depois cartório (10º, nunca o 1º), depois a matrícula, depois Prosseguir; espera a lista de cartórios carregar', async () => {
+  const J = jobOnr({servico: 'visualizacao'});
+  const c1 = await planoOnr(PO.solicitacao(), VIS, J); assert.equal(c1.acao, 'selecionar'); assert.match(c1.texto, /cidade/i); assert.equal(c1.tela, 'solicitacao');
+  const w = await planoOnr(PO.solicitacao({cid: 2, cartorios: ['--']}), VIS, J); assert.equal(w.acao, 'esperar'); assert.equal(w.espera, 'carregando');
+  const c2 = await planoOnr(PO.solicitacao({cid: 2}), VIS, J); assert.equal(c2.acao, 'selecionar'); assert.match(c2.texto, /10/);
+  const c3 = await planoOnr(PO.solicitacao({cid: 2, cart: 2}), VIS, J); assert.equal(c3.acao, 'preencher'); assert.equal(c3.valor, '187852');
+  const c4 = await planoOnr(PO.solicitacao({cid: 2, cart: 2, mat: '187852'}), VIS, J); assert.equal(c4.acao, 'clicar'); assert.equal(c4.clicar, 'prosseguir');
+  const um = await planoOnr(PO.solicitacao({cid: 2}), VIS, jobOnr({servico: 'visualizacao', cartorio: '1'})); assert.match(um.texto, /1/); assert.doesNotMatch(um.texto, /10/);
+});
+await passo('ONR tela: cidade que não existe na lista, cartório que não existe ou sem número onde há vários: para e diz, não escolhe qualquer um', async () => {
+  const a = await planoOnr(PO.solicitacao(), VIS, jobOnr({servico: 'visualizacao', cidade: 'ITU'})); assert.equal(a.acao, 'erro'); assert.match(a.texto, /ITU/);
+  const b = await planoOnr(PO.solicitacao({cid: 2}), VIS, jobOnr({servico: 'visualizacao', cartorio: '7'})); assert.equal(b.acao, 'erro'); assert.match(b.texto, /7/);
+  const c = await planoOnr(PO.solicitacao({cid: 2}), VIS, jobOnr({servico: 'visualizacao', cartorio: ''})); assert.equal(c.acao, 'erro'); assert.match(c.texto, /número do cartório/);
+  const unico = await planoOnr(PO.solicitacao({cid: 1, cartorios: ['--', '1º']}), VIS, jobOnr({servico: 'visualizacao', cidade: 'ATIBAIA', cartorio: ''})); assert.equal(unico.acao, 'selecionar', 'cartório único dispensa o número');
+});
+await passo('ONR tela: certidão — cartório, tipo (Matrícula – Inteiro Teor) e pedido por matrícula, as matrículas juntas (mesmo registro) e a finalidade', async () => {
+  const c1 = await planoOnr(PO.cartorio({cid: 2, cart: 2}), CERT, jobOnr()); assert.equal(c1.tela, 'cartorio'); assert.equal(c1.acao, 'clicar'); assert.equal(c1.clicar, 'prosseguir');
+  const t1 = await planoOnr(PO.tipo(), CERT, jobOnr()); assert.equal(t1.tela, 'tipo'); assert.equal(t1.acao, 'selecionar'); assert.match(t1.texto, /inteiro teor/i);
+  const t2 = await planoOnr(PO.tipo({t: 1}), CERT, jobOnr()); assert.equal(t2.acao, 'selecionar'); assert.match(t2.texto, /matrícula/i);
+  const t3 = await planoOnr(PO.tipo({t: 1, p: 1}), CERT, jobOnr()); assert.equal(t3.acao, 'clicar'); assert.equal(t3.clicar, 'prosseguir');
+  const J = jobOnr({matriculas: ['187852', '187851', '187850']});
+  const m1 = await planoOnr(PO.matriculas(), CERT, J); assert.equal(m1.tela, 'matriculas'); assert.equal(m1.acao, 'preencher'); assert.equal(m1.valor, '187852, 187851, 187850');
+  const m2 = await planoOnr(PO.matriculas('187852, 187851, 187850'), CERT, J); assert.equal(m2.acao, 'clicar'); assert.equal(m2.clicar, 'prosseguir');
+  const m3 = await planoOnr(PO.matriculas('187852 187851 187850'), CERT, J); assert.equal(m3.acao, 'clicar', 'separado por espaço também vale');
+  const m4 = await planoOnr(PO.matriculas('187852, 187851, 187850', 'Adicionar'), CERT, J); assert.equal(m4.clicar, 'adicionar', 'se o botão tiver outro nome, usa o dos nomes inofensivos');
+  const f1 = await planoOnr(PO.finalidade(), CERT, J); assert.equal(f1.tela, 'finalidade'); assert.equal(f1.acao, 'selecionar'); assert.match(f1.texto, /titular de direito real/);
+  const f2 = await planoOnr(PO.finalidade({marcada: 3}), CERT, J); assert.equal(f2.acao, 'clicar'); assert.equal(f2.clicar, 'prosseguir', 'e não "Adicionar Nova Certidão"');
+});
+await passo('ONR tela: a finalidade é só "titular de direito real" — se a opção não existe, para; outra opção marcada é trocada', async () => {
+  const sem = await planoOnr(PO.finalidade({sem: true}), CERT, jobOnr()); assert.equal(sem.acao, 'erro'); assert.match(sem.texto, /eu não escolho outra/);
+  const outra = await planoOnr(PO.finalidade({marcada: 2}), CERT, jobOnr()); assert.equal(outra.acao, 'selecionar', 'tinha outra finalidade marcada: troca pela dela');
+});
+await passo('ONR tela: na visualização, depois da finalidade o Ajudante ESPERA — captcha e confirmação são dela — e diz o valor', async () => {
+  const f = await planoOnr(PO.finalidade({certidao: false, marcada: 3}), VIS, jobOnr({servico: 'visualizacao'}));
+  assert.equal(f.acao, 'esperar'); assert.equal(f.espera, 'captcha'); assert.match(f.texto, /R\$ 22,95/); assert.match(f.texto, /Não sou um robô/); assert.match(f.texto, /esse clique é seu/);
+});
+await passo('ONR tela: na escolha do pagamento o Ajudante PARA e diz o valor — o clique em "Saldo em Créditos" é dela', async () => {
+  const p = await planoOnr(PO.pagamento(), CERT, jobOnr()); assert.equal(p.tela, 'pagamento'); assert.equal(p.acao, 'esperar'); assert.equal(p.espera, 'pagamento');
+  assert.match(p.texto, /R\$ 76,54/); assert.match(p.texto, /Saldo em Créditos/); assert.match(p.texto, /eu não pago nada/); assert.equal(p.clicar, undefined);
+});
+await passo('ONR tela: NUNCA clica em nada que pague ou comprometa o pedido — varre todas as telas, nos dois serviços, em todos os estados do preenchimento', async () => {
+  const telas = [PO.home(), PO.lista(), PO.aviso(false), PO.aviso(true), PO.mapa(), PO.termos(), PO.solicitacao(), PO.solicitacao({cid: 2}), PO.solicitacao({cid: 2, cart: 2}), PO.solicitacao({cid: 2, cart: 2, mat: '187852'}), PO.cartorio(), PO.cartorio({cid: 2, cart: 2}), PO.tipo(), PO.tipo({t: 1, p: 1}), PO.matriculas(), PO.matriculas('187852'), PO.matriculas('187852', 'Adicionar'), PO.finalidade(), PO.finalidade({marcada: 3}), PO.finalidade({certidao: false, marcada: 3}), PO.pagamento(), '<p>tela desconhecida</p><button>Confirmar</button>'];
+  let clicks = 0;
+  for (const servico of ['certidao', 'visualizacao']) for (const h of telas) {
+    const r = await planoOnr(h, '/qualquer', jobOnr({servico, matriculas: servico === 'certidao' ? ['187852', '187851'] : ['187852']}));
+    if (r.acao === 'clicar') { clicks++; assert.equal(r.proibido, false, 'clicaria em "' + r.clicar + '"'); }
+  }
+  assert(clicks > 10, 'o teste de fato exercitou cliques (' + clicks + ')');
+});
+await passo('ONR tela: tela que não conhece vira "manual" com o motivo (e, depois do pagamento, "esperando o PDF")', async () => {
+  const x = await planoOnr('<p>Outra coisa</p>', '/Estranha.aspx', jobOnr()); assert.equal(x.acao, 'manual'); assert.match(x.texto, /Não reconheço/);
+  const y = await planoOnr('<p>Pedido concluído</p>', '/Estranha.aspx', jobOnr({pagouEm: 123})); assert.equal(y.acao, 'esperar'); assert.equal(y.espera, 'pdf');
+});
+
 // ── O bloco do painel (card) ──
 const html = ler('index.html');
 const ini = html.indexOf('// ── Arrastar arquivos para o card'), fim = html.indexOf('// ── fim: arrastar arquivos para o card ──');
@@ -335,7 +514,7 @@ function mundoCard() {
   const win = {addEventListener: (t, f) => { (ouv[t] = ouv[t] || []).push(f); }, postMessage: (m, o) => postadas.push({m, o})};
   caixa.window = Object.assign(caixa, win);
   vm.createContext(caixa);
-  vm.runInContext(html.slice(ini, fim) + '\nthis.__f={AJUDANTE,solteHtml,ajudanteHtml,ajCnpjValido,ajEmpresasDoCaso,ajudanteOuvir:window.ajudanteOuvir,janela:window};', caixa);
+  vm.runInContext(html.slice(ini, fim) + '\nthis.__f={AJUDANTE,solteHtml,ajudanteHtml,ajCnpjValido,ajEmpresasDoCaso,onrExtrair,onrDoCaso,ajudanteOuvir:window.ajudanteOuvir,janela:window};', caixa);
   const pronto = () => ouv.message.forEach((f) => f({source: caixa.__f.janela, data: {fonte: 'ajudante', tipo: 'ajudante-pronto', versao: '0.1.0'}}));
   return {caixa, f: caixa.__f, postadas, el, pronto, zonas, ouv};
 }
@@ -367,7 +546,8 @@ await passo('card: o andamento da extensão aparece escrito no card certo; mensa
 await passo('Apps Script: o tipo vindo do Ajudante vale (sem adivinhar), com a pessoa; os dois tipos existem na lista do painel', async () => {
   const gs = ler('apps-script/cartorio-drive-api.js');
   assert(/TIPOS_DOC_CARD = \[[^\]]*"FICHA_CADASTRAL_JUCESP"[^\]]*"CONTRATO_SOCIAL"/.test(gs));
-  assert(/dados\.origemAjudante === "jucesp" && TIPOS_DO_AJUDANTE\.indexOf\(String\(dados\.tipoSugerido/.test(gs));
+  assert(/ORIGENS_DO_AJUDANTE\.indexOf\(String\(dados\.origemAjudante \|\| ""\)\) !== -1 && TIPOS_DO_AJUDANTE\.indexOf\(String\(dados\.tipoSugerido/.test(gs));
+  assert(/ORIGENS_DO_AJUDANTE = \["jucesp", "onr"\]/.test(gs) && /TIPOS_DO_AJUDANTE = \[[^\]]*"MATRICULA_IMOVEL"/.test(gs));
   assert(/\['FICHA_CADASTRAL_JUCESP','Ficha cadastral \(JUCESP\)'\],\['CONTRATO_SOCIAL','Contrato social'\]/.test(html));
 });
 
@@ -410,6 +590,47 @@ await passo('card: "todas" busca uma empresa de cada vez — a próxima só sai 
   const tela = m.el('aj-msg-C1').innerHTML; assert(/✅/.test(tela) && /⚠️/.test(tela) && /Pronto! Ficha guardada/.test(tela) && /outro estado/.test(tela), tela);
   assert(/(JRL HOLDING LTDA|LEAP SOLUTIONS LTDA): /.test(tela), 'cada linha diz de qual empresa é');
 });
+// ── A RI Digital no card ──
+const MATRICULA_TXT = 'TIPO_DOCUMENTO: Matrícula do Imóvel\nREGISTRO DE IMÓVEIS — 10º OFICIAL DE REGISTRO DE IMÓVEIS DA COMARCA DE SÃO PAULO - Estado de São Paulo\nMATRÍCULA Nº 187.852\nImóvel: apartamento 1301.';
+await passo('card RI Digital: lê cartório, cidade e matrícula do texto da matrícula; agrupa por registro de imóveis; só aparece com a extensão nova', async () => {
+  const m = mundoCard(); assert(!/RI Digital/.test(m.f.ajudanteHtml({id: 'C1'})) , 'sem extensão, nada');
+  m.pronto(); assert(!/RI Digital — matrícula/.test(m.f.ajudanteHtml({id: 'C1'})), 'extensão antiga (sem onr) não desenha');
+  m.ouv.message.forEach((f) => f({source: m.caixa.__f.janela, data: {fonte: 'ajudante', tipo: 'ajudante-pronto', versao: '0.2.0', onr: true}}));
+  const h = m.f.ajudanteHtml({id: 'C1'}); assert(/RI Digital — matrícula/.test(h) && /Visualização de matrícula/.test(h) && /para minutar/.test(h) && /Matrícula atualizada/.test(h) && /para a data de assinatura/.test(h));
+  const x = m.f.onrExtrair(MATRICULA_TXT); assert.equal(x.cartorio, '10'); assert.equal(x.cidade, 'SÃO PAULO'); assert.deepEqual(Array.from(x.matriculas), ['187852']);
+  m.caixa.casos.C1 = {id: 'C1', documentos: {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'M1.pdf', texto: MATRICULA_TXT}, b: {tipo: 'documento', nome: 'Matricula_vaga.pdf', texto: MATRICULA_TXT.replace('187.852', '187.851')}, c: {tipo: 'documento', nome: 'RG.pdf', texto: 'matrícula 999999'}, d: {tipo: 'modelo', nome: 'matricula-modelo', texto: MATRICULA_TXT}}};
+  const g = m.f.onrDoCaso(m.caixa.casos.C1); assert.equal(g.length, 1, 'mesmo cartório: um grupo só'); assert.deepEqual(Array.from(g[0].matriculas), ['187852', '187851']);
+});
+await passo('card RI Digital: ela escolhe o serviço, confere os dados preenchidos e só então o pedido sai (visualização: uma matrícula; certidão: várias do mesmo registro)', async () => {
+  const m = mundoCard(); m.ouv.message.forEach((f) => f({source: m.caixa.__f.janela, data: {fonte: 'ajudante', tipo: 'ajudante-pronto', versao: '0.2.0', onr: true}}));
+  m.caixa.casos.C1 = {id: 'C1', documentos: {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'M1.pdf', texto: MATRICULA_TXT}, b: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'M2.pdf', texto: MATRICULA_TXT.replace('187.852', '187.851')}}};
+  const pedidos = () => m.postadas.filter((x) => x.m.tipo === 'ajudante-pedido').map((x) => x.m.pedido);
+  m.caixa.onrAbrir('C1', 'visualizacao'); let tela = m.el('onr-C1').innerHTML;
+  assert(/Visualização de matrícula/.test(tela) && /uma por vez/.test(tela) && /titular de algum direito real/.test(tela) && /value="187852"/.test(tela) && /value="SÃO PAULO"/.test(tela) && /value="10"/.test(tela) && /value="SP"/.test(tela), 'dados lidos do card, só a primeira matrícula');
+  m.el('onr-uf-C1').value = 'SP'; m.el('onr-cidade-C1').value = 'SÃO PAULO'; m.el('onr-cart-C1').value = '10';
+  m.el('onr-mat-C1').value = '187852, 187851'; m.caixa.onrIniciar('C1'); assert.equal(pedidos().length, 0, 'visualização com duas não sai'); assert.match(m.f.AJUDANTE.msg.C1.texto, /uma matrícula por vez/);
+  m.el('onr-mat-C1').value = '187852'; m.el('onr-uf-C1').value = 'sp'; m.el('onr-cidade-C1').value = 'SÃO PAULO'; m.el('onr-cart-C1').value = '10º'; m.caixa.onrIniciar('C1');
+  const p = pedidos()[0]; assert(p, 'saiu'); assert.equal(p.site, 'onr'); assert.equal(p.servico, 'visualizacao'); assert.equal(p.uf, 'SP'); assert.equal(p.cidade, 'SÃO PAULO'); assert.equal(p.cartorio, '10'); assert.deepEqual(Array.from(p.matriculas), ['187852']); assert.equal(p.casoId, 'C1');
+  m.postadas.length = 0; m.caixa.onrAbrir('C1', 'certidao'); tela = m.el('onr-C1').innerHTML; assert(/Matrícula atualizada/.test(tela) && /todas do mesmo registro/.test(tela) && /value="187852, 187851"/.test(tela) && /Saldo em Créditos/.test(tela));
+  m.el('onr-mat-C1').value = '187852, 187851'; m.caixa.onrIniciar('C1'); const q = pedidos()[0]; assert.equal(q.servico, 'certidao'); assert.deepEqual(Array.from(q.matriculas), ['187852', '187851']);
+  m.postadas.length = 0; m.caixa.onrAbrir('C1', 'certidao'); m.el('onr-uf-C1').value = 'S'; m.caixa.onrIniciar('C1'); assert.equal(pedidos().length, 0); assert.match(m.f.AJUDANTE.msg.C1.texto, /sigla/);
+  m.el('onr-uf-C1').value = 'SP'; m.el('onr-cidade-C1').value = ''; m.caixa.onrIniciar('C1'); assert.equal(pedidos().length, 0); m.el('onr-cidade-C1').value = 'X'; m.el('onr-cidade-C1').value = 'ATIBAIA'; m.el('onr-mat-C1').value = '12'; m.caixa.onrIniciar('C1'); assert.equal(pedidos().length, 0, 'matrícula curta demais');
+  m.caixa.onrCancelar('C1'); assert(/Visualização de matrícula/.test(m.el('onr-C1').innerHTML) && !/Abrir a RI Digital/.test(m.el('onr-C1').innerHTML));
+});
+await passo('card RI Digital: com matrículas de registros diferentes há uma escolha; o relatório que vem no fim do pedido aparece como botão e é copiável', async () => {
+  const m = mundoCard(); m.ouv.message.forEach((f) => f({source: m.caixa.__f.janela, data: {fonte: 'ajudante', tipo: 'ajudante-pronto', versao: '0.2.0', onr: true}}));
+  m.caixa.casos.C1 = {id: 'C1', documentos: {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'M1.pdf', texto: MATRICULA_TXT}, b: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'M2.pdf', texto: MATRICULA_TXT.replace('10º', '5º').replace('187.852', '55.001')}}};
+  m.caixa.onrAbrir('C1', 'certidao'); assert(/<select onchange="onrTrocarGrupo/.test(m.el('onr-C1').innerHTML), 'duas escolhas de registro'); m.caixa.onrTrocarGrupo('C1', 1); assert(/value="5"/.test(m.el('onr-C1').innerHTML) && /value="55001"/.test(m.el('onr-C1').innerHTML));
+  m.el('onr-uf-C1').value = 'SP'; m.el('onr-cidade-C1').value = 'SÃO PAULO'; m.caixa.onrIniciar('C1'); const id = m.f.AJUDANTE.msg.C1.id;
+  m.ouv.message.forEach((f) => f({source: m.caixa.__f.janela, data: {fonte: 'ajudante', tipo: 'ajudante-progresso', id, estado: 'erro', texto: 'Passaram 2 minutos', fim: true, relatorio: '{"site":"onr"}'}}));
+  assert(/Copiar relatório/.test(m.el('aj-msg-C1').innerHTML)); let copiado = ''; m.caixa.navigator = {clipboard: {writeText: async (t) => { copiado = t; }}};
+  const botao = {textContent: ''}; m.caixa.ajCopiarRelatorio('C1', botao); await esperar(); assert.equal(copiado, '{"site":"onr"}'); assert.match(botao.textContent, /Copiado/);
+});
+await passo('ponte: a mensagem de pronto avisa que a extensão sabe a RI Digital, e o relatório do fundo chega ao painel', async () => {
+  const p = mundoPonte(); assert(p.postadas.some((x) => x.m.tipo === 'ajudante-pronto' && x.m.onr === true));
+  p.postadas.length = 0; p.aoReceber[0]({tipo: 'progresso', id: 'ajonr1', estado: 'erro', texto: 'x', fim: true, relatorio: '{"a":1}'}); assert.equal(p.postadas[0].m.relatorio, '{"a":1}');
+});
+
 await passo('card: "Parar" esvazia a fila e cancela o pedido que está andando', async () => {
   const m = mundoCard(); m.pronto(); m.caixa.casos.C1 = casoDuasPartes(); m.caixa.ajudantePedirTodas('C1'); m.postadas.length = 0;
   const id = m.f.AJUDANTE.msg.C1.id; m.caixa.ajudantePedirTodas.length; m.caixa.ajudanteCancelar('C1');

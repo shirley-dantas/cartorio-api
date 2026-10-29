@@ -2,14 +2,14 @@
 // nenhum outro site consegue mandar pedido para cá. O painel pergunta "tem Ajudante?" e só desenha o botão se ouvir resposta.
 (function () {
   'use strict';
-  const VERSAO = '0.1.9';
+  const VERSAO = '0.2.0';
   const avisar = (m) => window.postMessage(Object.assign({ fonte: 'ajudante' }, m), location.origin);
 
   window.addEventListener('message', (e) => {
     if (e.source !== window || e.origin !== location.origin) return;
     const d = e.data;
     if (!d || d.fonte !== 'painel-cartorio') return;
-    if (d.tipo === 'ajudante-ping') return avisar({ tipo: 'ajudante-pronto', versao: VERSAO });
+    if (d.tipo === 'ajudante-ping') return avisar({ tipo: 'ajudante-pronto', versao: VERSAO, onr: true });
     if (d.tipo === 'ajudante-pedido') {
       const id = d.pedido && d.pedido.id;
       Promise.resolve(chrome.runtime.sendMessage({ tipo: 'pedido', pedido: d.pedido }))
@@ -20,7 +20,7 @@
   });
 
   chrome.runtime.onMessage.addListener((m) => {
-    if (m && m.tipo === 'progresso') avisar({ tipo: 'ajudante-progresso', id: m.id, estado: m.estado, texto: m.texto, fim: !!m.fim });
+    if (m && m.tipo === 'progresso') avisar({ tipo: 'ajudante-progresso', id: m.id, estado: m.estado, texto: m.texto, fim: !!m.fim, relatorio: m.relatorio });
   });
-  avisar({ tipo: 'ajudante-pronto', versao: VERSAO });
+  avisar({ tipo: 'ajudante-pronto', versao: VERSAO, onr: true });
 })();

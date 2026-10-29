@@ -1772,6 +1772,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-aj-emp .cx-aj-bt{margin:0}.cx-aj-vazio{font-size:12.5px;color:var(--cc-tinta-3);margin-top:8px}
 .cx-aj-outro{margin-top:8px;font-size:12.5px}.cx-aj-outro summary{cursor:pointer;color:var(--cc-tinta-2)}.cx-aj-outro .cx-aj-topo{margin-top:6px}
 .cx-aj-bt{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.cx-aj-onr{margin-top:12px;padding-top:10px;border-top:1px dashed var(--cc-linha-forte)}.cx-aj-onr .cx-btn small{display:block;font-size:11px;font-weight:400;color:var(--cc-tinta-3)}
+.cx-aj-form{display:grid;grid-template-columns:70px 1fr 90px;gap:8px;margin-top:8px}.cx-aj-form label{display:grid;gap:3px;font-size:11.5px;color:var(--cc-tinta-3)}.cx-aj-form .cx-aj-mat{grid-column:1/-1}.cx-aj-form input,.cx-aj-form select{border:1px solid var(--cc-linha-forte);border-radius:10px;padding:7px 10px;font:inherit;background:#fff;min-width:0}
 .cx-aj-msg{font-size:12.5px;margin-top:6px;overflow-wrap:anywhere}.cx-aj-msg:empty{display:none}
 .cx-aj-ok{color:var(--cc-ok,#2F7A4F)}.cx-aj-erro{color:var(--cc-critico,#B3261E)}.cx-aj-manual{color:#8A5A0B}
 .cx-solte-prog{list-style:none;margin:0;padding:0;display:grid;gap:4px}.cx-solte-prog:not(:empty){margin-top:10px}
@@ -12333,7 +12335,7 @@ window.entradaDescartar=async function(remetente){
 };
 // O Ajudante do painel: extensão do Chrome que entra na JUCESP (com o certificado dela, já instalado) e traz a ficha cadastral e o
 // contrato consolidado para o card. O painel só desenha o bloco se a extensão responder — botão que o navegador não sabe cumprir não se desenha.
-const AJUDANTE={pronto:false,versao:'',msg:{},fila:{},atual:{},log:{}};
+const AJUDANTE={pronto:false,onr:false,versao:'',msg:{},fila:{},atual:{},log:{},rel:{}};
 const AJ_CNPJS_DO_CARTORIO=['45566502000112','47141731000110'];   // o do 20º Tabelião e o da Prime: aparecem nos papéis, mas não são parte do caso
 function ajCnpjValido(c){
   c=String(c||'').replace(/\D/g,''); if(c.length!==14||/^(\d)\1+$/.test(c)) return false;
@@ -12371,13 +12373,79 @@ function ajMsgHtml(casoId){
   const m=AJUDANTE.msg[casoId], log=AJUDANTE.log[casoId]||[], fila=(AJUDANTE.fila[casoId]||[]).length;
   return log.map(linha).join('<br>')+(log.length&&m&&m.texto?'<br>':'')+(m&&m.texto?linha(m):'')
     +(fila?`<br><small>Faltam ${fila} ${fila===1?'empresa':'empresas'} na fila.</small>`:'')
-    +((m&&m.id&&!m.fim)||fila?` <button type="button" class="cx-btn" onclick="ajudanteCancelar('${esc(casoId)}')">Parar</button>`:'');
+    +((m&&m.id&&!m.fim)||fila?` <button type="button" class="cx-btn" onclick="ajudanteCancelar('${esc(casoId)}')">Parar</button>`:'')
+    +(AJUDANTE.rel[casoId]?` <button type="button" class="cx-btn" onclick="ajCopiarRelatorio('${esc(casoId)}',this)">Copiar relatório</button>`:'');
 }
 function ajBotoes(casoId,cnpj){
   const id=esc(casoId), c=cnpj?`,'${esc(cnpj)}'`:'';
   // Um botão só: o contrato consolidado precisa do número da ficha, então o Ajudante sempre faz os dois, um depois do outro.
   return `<button type="button" class="cx-btn forte" onclick="ajudantePedir('${id}',['ficha','contrato']${c})">Buscar ficha e contrato</button>`;
 }
+// ── A RI Digital (ONR): visualização de matrícula e matrícula atualizada ──
+// Dois pedidos diferentes, e ela escolhe qual: a VISUALIZAÇÃO (uma matrícula por vez) serve para minutar; a MATRÍCULA ATUALIZADA (certidão digital, inteiro
+// teor — pode ser mais de uma, desde que do mesmo registro de imóveis) serve para a data de assinatura. A finalidade é sempre "titular de direito real" (escolha
+// dela). O que o painel lê da matrícula do card é só sugestão: ela confere o estado, a cidade, o cartório e os números antes de abrir o site. O pagamento é clique dela.
+const ONR={form:{}};
+const ONR_SERVICOS={visualizacao:{nome:'Visualização de matrícula',uso:'para minutar'},certidao:{nome:'Matrícula atualizada',uso:'para a data de assinatura'}};
+function onrExtrair(texto){
+  const t=String(texto||''), saida={cartorio:'',cidade:'',matriculas:[]};
+  const mc=/(\d{1,2})\s*[ºo°ª]?\s*(?:oficial|cart[óo]rio|servi[çc]o)[^.\n]{0,50}?registro\s+de\s+im[óo]veis/i.exec(t); if(mc) saida.cartorio=mc[1];
+  const mi=/registro\s+de\s+im[óo]veis\s+(?:da\s+comarca\s+d[eao]s?\s+|d[eao]s?\s+)([A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][A-Za-zÀ-ÿ' ]{1,40}?)(?=\s*(?:[-–,.;:\n(\/]|\s+(?:SP|ESTADO|COMARCA)\b|$))/i.exec(t); if(mi) saida.cidade=mi[1].trim().toUpperCase();
+  for(const m of t.matchAll(/matr[ií]cula\s*(?:n[ºo°.]*\s*)?[:\-]?\s*(\d{1,3}(?:\.\d{3})+|\d{3,7})\b/gi)){ const n=m[1].replace(/\D/g,''); if(!saida.matriculas.includes(n)) saida.matriculas.push(n); }
+  return saida;
+}
+// As matrículas que o caso já traz, agrupadas por registro de imóveis (cartório + cidade): num mesmo pedido só cabem as do mesmo cartório.
+function onrDoCaso(c){
+  const docs=Object.values((c&&c.documentos)||{}).filter(d=>d&&d.texto&&d.tipo!=='modelo'&&(d.tipoDocumento==='MATRICULA_IMOVEL'||/matr[ií]cula/i.test(d.nome||'')||/^\s*TIPO_DOCUMENTO:\s*matr[ií]cula/i.test(d.texto)));
+  const grupos={};
+  docs.forEach(d=>{ const x=onrExtrair(d.texto), k=x.cartorio+'|'+x.cidade, g=grupos[k]=grupos[k]||{cartorio:x.cartorio,cidade:x.cidade,matriculas:[]}; x.matriculas.slice(0,3).forEach(m=>{ if(!g.matriculas.includes(m)) g.matriculas.push(m); }); });
+  return Object.values(grupos).filter(g=>g.matriculas.length);
+}
+function onrHtml(c){
+  if(!AJUDANTE.pronto||!AJUDANTE.onr||!c||!c.id) return '';
+  return `<div class="cx-aj-onr"><div class="cx-aj-topo"><i class="ti ti-building-community"></i><b>RI Digital — matrícula</b><small>você confere os dados e o pagamento é seu clique</small></div><div id="onr-${esc(c.id)}">${onrFormHtml(c.id)}</div></div>`;
+}
+function onrFormHtml(casoId){
+  const id=esc(casoId), f=ONR.form[casoId];
+  if(!f) return `<div class="cx-aj-bt">${Object.keys(ONR_SERVICOS).map(k=>`<button type="button" class="cx-btn${k==='certidao'?' forte':''}" onclick="onrAbrir('${id}','${k}')">${ONR_SERVICOS[k].nome}<small>${ONR_SERVICOS[k].uso}</small></button>`).join('')}</div>`;
+  const sv=ONR_SERVICOS[f.servico], um=f.servico==='visualizacao';
+  const grupos=f.grupos.length>1?`<label class="cx-aj-mat">Registro de imóveis<select onchange="onrTrocarGrupo('${id}',this.value)">${f.grupos.map((g,i)=>`<option value="${i}"${i===f.g?' selected':''}>${esc((g.cartorio?g.cartorio+'º — ':'')+(g.cidade||'cartório não lido'))} · ${g.matriculas.join(', ')}</option>`).join('')}</select></label>`:'';
+  return `<div class="cx-aj-topo" style="margin-top:8px"><b>${sv.nome}</b><small>${sv.uso}</small></div>
+    <div class="cx-aj-form">${grupos}
+      <label>Estado<input id="onr-uf-${id}" maxlength="2" value="${esc(f.uf)}"></label>
+      <label>Cidade do registro de imóveis<input id="onr-cidade-${id}" value="${esc(f.cidade)}"></label>
+      <label>Cartório nº<input id="onr-cart-${id}" inputmode="numeric" value="${esc(f.cartorio)}" placeholder="ex.: 10"></label>
+      <label class="cx-aj-mat">${um?'Matrícula (uma por vez)':'Matrícula(s) — separe por vírgula; todas do mesmo registro'}<input id="onr-mat-${id}" inputmode="numeric" value="${esc(f.matriculas)}" placeholder="ex.: 187852"></label>
+    </div>
+    <div class="cx-aj-vazio">Finalidade: titular de algum direito real. Eu paro antes de pagar — ${um?'o botão que confirma a visualização':'o clique em “Saldo em Créditos”'} é seu.</div>
+    <div class="cx-aj-bt"><button type="button" class="cx-btn forte" onclick="onrIniciar('${id}')">Abrir a RI Digital</button><button type="button" class="cx-btn" onclick="onrCancelar('${id}')">Cancelar</button></div>`;
+}
+function onrDesenhar(casoId){ const el=document.getElementById('onr-'+casoId); if(el) el.innerHTML=onrFormHtml(casoId); }
+function onrPreencher(f,g){ const x=f.grupos[g]||{cartorio:'',cidade:'',matriculas:[]}; f.g=g; f.cartorio=x.cartorio||''; f.cidade=x.cidade||''; f.matriculas=f.servico==='visualizacao'?(x.matriculas[0]||''):x.matriculas.join(', '); }
+window.onrAbrir=function(casoId,servico){
+  const f=ONR.form[casoId]={servico,grupos:onrDoCaso(casos[casoId]),g:0,uf:'SP',cidade:'',cartorio:'',matriculas:''}; onrPreencher(f,0); onrDesenhar(casoId);
+};
+window.onrTrocarGrupo=function(casoId,i){ const f=ONR.form[casoId]; if(!f) return; onrPreencher(f,Number(i)||0); onrDesenhar(casoId); };
+window.onrCancelar=function(casoId){ delete ONR.form[casoId]; onrDesenhar(casoId); };
+window.onrIniciar=function(casoId){
+  const f=ONR.form[casoId], v=n=>{ const e=document.getElementById(n+'-'+casoId); return e?String(e.value||'').trim():''; };
+  if(!f) return;
+  const erro=t=>{ AJUDANTE.msg[casoId]={id:'',estado:'erro',texto:t,fim:true}; ajudanteAtualizar(casoId); };
+  const uf=v('onr-uf').toUpperCase(), cidade=v('onr-cidade'), cartorio=v('onr-cart').replace(/\D/g,''), mats=[...new Set(v('onr-mat').split(/[\s,;]+/).map(m=>m.replace(/\D/g,'')).filter(Boolean))];
+  if(!/^[A-Z]{2}$/.test(uf)) return erro('Escreva o estado com a sigla (SP, MG…).');
+  if(cidade.length<2) return erro('Falta a cidade do registro de imóveis.');
+  if(!mats.length||mats.some(m=>m.length<3||m.length>12)) return erro('Confira o número da matrícula.');
+  if(f.servico==='visualizacao'&&mats.length!==1) return erro('A visualização é uma matrícula por vez: deixe só uma.');
+  const id='aj'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  AJUDANTE.fila[casoId]=[]; AJUDANTE.log[casoId]=[]; delete AJUDANTE.rel[casoId]; AJUDANTE.atual[casoId]={nome:'RI Digital'};
+  AJUDANTE.msg[casoId]={id,estado:'andando',texto:'abrindo a RI Digital numa aba nova…',fim:false};
+  window.postMessage({fonte:'painel-cartorio',tipo:'ajudante-pedido',pedido:{id,casoId,site:'onr',servico:f.servico,uf,cidade,cartorio,matriculas:mats}},location.origin);
+  delete ONR.form[casoId]; onrDesenhar(casoId); ajudanteAtualizar(casoId);
+};
+window.ajCopiarRelatorio=function(casoId,btn){
+  const r=AJUDANTE.rel[casoId]; if(!r) return;
+  Promise.resolve(navigator.clipboard&&navigator.clipboard.writeText(r)).then(()=>{ if(btn) btn.textContent='Copiado ✓ — cole na conversa'; }).catch(()=>{ if(btn) btn.textContent='Não consegui copiar'; });
+};
 function ajudanteHtml(c){
   if(!AJUDANTE.pronto||!c||!c.id) return '';
   const id=esc(c.id), emp=ajEmpresasDoCaso(casos[c.id]||c);
@@ -12386,6 +12454,7 @@ function ajudanteHtml(c){
   const sem=emp.length?'':`<div class="cx-aj-vazio">Não achei CNPJ nos documentos deste caso. Solte o contrato social ou o cartão CNPJ da empresa na caixa acima — ou digite o número abaixo.</div>`;
   return `<div class="cx-aj"><div class="cx-aj-topo"><i class="ti ti-building-bank"></i><b>Buscar na JUCESP</b>${emp.length?`<small>${emp.length} ${emp.length===1?'empresa achada':'empresas achadas'} nos documentos</small>`:''}</div>
     ${linhas}${todas}${sem}
+    ${onrHtml(c)}
     <details class="cx-aj-outro"${emp.length?'':' open'}><summary>Outro CNPJ</summary><div class="cx-aj-topo"><input class="cx-aj-cnpj" id="aj-cnpj-${id}" inputmode="numeric" placeholder="CNPJ da empresa" value="${esc(ajLerCnpj(c.id))}" oninput="ajSalvarCnpj('${id}',this.value)"></div><div class="cx-aj-bt">${ajBotoes(c.id,'')}</div></details>
     <div class="cx-aj-msg" id="aj-msg-${id}">${ajMsgHtml(c.id)}</div></div>`;
 }
@@ -12416,13 +12485,14 @@ window.ajudanteCancelar=function(casoId){
 function ajudanteOuvir(e){
   const d=e&&e.data; if(!d||d.fonte!=='ajudante'||(e.source&&e.source!==window)) return;
   if(d.tipo==='ajudante-pronto'){
-    AJUDANTE.pronto=true; AJUDANTE.versao=String(d.versao||'');
+    AJUDANTE.pronto=true; AJUDANTE.onr=!!d.onr; AJUDANTE.versao=String(d.versao||'');
     document.querySelectorAll&&document.querySelectorAll('.cx-solte').forEach(z=>{ if(!z.querySelector('.cx-aj')) z.insertAdjacentHTML('beforeend',ajudanteHtml({id:z.dataset.solte})); });
   }
   if(d.tipo==='ajudante-progresso'){
     const casoId=Object.keys(AJUDANTE.msg).find(k=>AJUDANTE.msg[k].id===d.id); if(!casoId) return;
     const nome=(AJUDANTE.atual[casoId]||{}).nome||ajFormatarCnpj((AJUDANTE.atual[casoId]||{}).cnpj||'');
     const texto=(nome&&AJUDANTE.fila[casoId]!==undefined&&(AJUDANTE.log[casoId]||[]).length+(AJUDANTE.fila[casoId]||[]).length>0?nome+': ':'')+String(d.texto||'').slice(0,300);
+    if(d.relatorio) AJUDANTE.rel[casoId]=String(d.relatorio).slice(0,20000);
     const m=AJUDANTE.msg[casoId]={id:d.id,estado:String(d.estado||'andando'),texto,fim:!!d.fim};
     if(m.fim){
       const fila=AJUDANTE.fila[casoId]||[];

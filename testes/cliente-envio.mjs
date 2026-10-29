@@ -266,6 +266,14 @@ await passo('ficha da JUCESP: devolve o NUM.DOC da última CONSOLIDAÇÃO CONTRA
   assert.equal(m.caixa.consolidacaoDaFicha('NUM.DOC: 1.000/20-1 SESSÃO: 01/01/2020\nALTERAÇÃO'), null, 'sem consolidação: nulo, nunca um palpite');
   const contrato = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'CONTRATO_SOCIAL', pessoaSugerida: 'GANDINI', origemAjudante: 'jucesp'})); assert.equal(contrato.consolidacao, undefined);
 });
+await passo('RI Digital: o Ajudante pede MATRICULA_IMOVEL e o tipo vale sem adivinhar; a matrícula entra no nome e a leitura da IA fica no card', () => {
+  const m = mundo(); semear(m); iaDiz(m, {tipo: 'OUTRO', pessoa: '', confianca: 'baixa'}); m.caixa.lerDocumentoComIA = () => ({texto: 'TIPO_DOCUMENTO: Matrícula do Imóvel\nMATRÍCULA Nº 187.852', truncou: false});
+  const r = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'MATRICULA_IMOVEL', pessoaSugerida: 'Atualizada 187852', origemAjudante: 'onr'}));
+  assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.tipo, 'MATRICULA_IMOVEL'); assert.equal(r.confirmar, false); assert(/Atualizada/.test(r.nome) && /MATRICULA_IMOVEL/.test(r.nome), r.nome); assert.equal(r.consolidacao, undefined);
+  const [k] = Object.keys(m.db.casos['-Caso1'].documentos); assert(/187\.852/.test(m.db.casos['-Caso1'].documentos[k].texto), 'a IA leu a matrícula e o texto ficou no card (a minuta usa)');
+  const falso = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'MATRICULA_IMOVEL', origemAjudante: 'outro'})); assert.equal(falso.ok, true);
+  const outro = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'CPF', origemAjudante: 'onr'})); assert.notEqual(outro.tipo, 'MATRICULA_IMOVEL');
+});
 await passo('arrastado: cria a pasta do caso, salva, a IA lê e identifica, e o arquivo ganha o nome padrão', () => {
   const m = mundo(); semear(m); iaDiz(m, {tipo: 'RG_CNH', pessoa: 'Maria da Silva', confianca: 'alta'});
   const r = m.chamar(solto()); assert.equal(r.ok, true, JSON.stringify(r));
