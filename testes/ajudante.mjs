@@ -402,7 +402,7 @@ const opts = (lista, sel) => lista.map((t, i) => `<option value="${i ? 'v' + i :
 const CIDADES = ['(Selecione)', 'ATIBAIA', 'SÃO PAULO'], CARTS = ['--', '1º', '10º', '11º'];
 const PO = {
   home: () => OTOPO + '<h2>Selecione o serviço que você precisa</h2>' + ['Certidão Digital', 'e-Protocolo', 'Visualização de matrícula', 'Pesquisa Qualificada'].map((t) => `<div class="card" onclick="void 0"><i></i><span>${t}</span></div>`).join(''),
-  lista: () => OTOPO + '<h1>Visualização de Matrícula</h1><a href="#" class="novo">+ Novo Pedido</a><h2>Listagem de Pedidos</h2><table><tr><td>VM031570950</td><td>R$ 22,95</td></tr></table>',
+  lista: () => OTOPO + '<h1>Visualização de Matrícula</h1><a href="#" class="novo">+ Novo Pedido</a><h2>Listagem de Pedidos</h2><label>Protocolo de Pesquisa:<input type="text" id="txtNumero" name="txtNumero"></label><label>Matrícula/CNM:<input type="text" id="txtMatriculaCNM" name="txtMatriculaCNM"></label><input type="submit" id="btnFiltrar2" value="Filtrar"><table><tr><td>VM031570950</td><td>R$ 22,95</td></tr></table>',
   aviso: (marcada = true) => OTOPO + '<div class="modal"><p>Serviço para simples visualização da imagem da matrícula. NÃO POSSUI VALIDADE JURÍDICA DE CERTIDÃO.</p><label><input type="checkbox"' + (marcada ? ' checked' : '') + '> Li, e estou ciente.</label><button>Consulta de Valores</button><button>Prosseguir</button></div>',
   mapa: () => OTOPO + '<svg width="400" height="300"><g><path id="MG" d="M0 0h50v50H0z"/><text x="10" y="20">MG</text></g><g><path id="SP" d="M60 0h50v50H60z"/><text x="70" y="20">SP</text></g></svg>',
   termos: () => OTOPO + '<p>Termos e condições de utilização do sistema.</p><label><input type="checkbox"> Li e concordo.</label><button>VOLTAR</button><button>Prosseguir</button>',
@@ -434,7 +434,7 @@ await passo('ONR tela: da página inicial abre o cartão certo — Certidão Dig
   const v = await planoOnr(PO.home(), HOME, jobOnr({servico: 'visualizacao'})); assert.match(v.clicar, /^visualizacao de matricula/);
 });
 await passo('ONR tela: listagem de pedidos → "+ Novo Pedido"; aviso → marca o aceite e Prosseguir; mapa → o estado; termos → aceite e Prosseguir (nunca Voltar)', async () => {
-  const l = await planoOnr(PO.lista(), '/VisualizarMatricula/Default.aspx', jobOnr({servico: 'visualizacao'})); assert.equal(l.tela, 'lista'); assert.match(l.clicar, /novo pedido/);
+  const l = await planoOnr(PO.lista(), '/VisualizarMatricula/ListagemPedidosVM.aspx', jobOnr({servico: 'visualizacao'})); assert.equal(l.tela, 'lista', 'o filtro "Matrícula/CNM" da listagem não é a tela das matrículas'); assert.equal(l.acao, 'clicar'); assert.match(l.clicar, /novo pedido/);
   const a1 = await planoOnr(PO.aviso(false), '/VisualizarMatricula/MapaMatriculaOnline.aspx', jobOnr({servico: 'visualizacao'})); assert.equal(a1.acao, 'marcar'); assert.equal(a1.tela, 'termos');
   const a2 = await planoOnr(PO.aviso(true), '/VisualizarMatricula/MapaMatriculaOnline.aspx', jobOnr({servico: 'visualizacao'})); assert.equal(a2.acao, 'clicar'); assert.equal(a2.clicar, 'prosseguir');
   const m = await planoOnr(PO.mapa(), '/VisualizarMatricula/MapaMatriculaOnline.aspx', jobOnr({servico: 'visualizacao'})); assert.equal(m.tela, 'mapa'); assert.equal(m.acao, 'clicar'); assert.equal(m.idEl, 'SP');
