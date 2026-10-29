@@ -261,16 +261,20 @@ async function lerDoDownload(job, url) {
   }
   return { b64, via };
 }
-async function capturarOnr(job, item) {
+async function capturarOnr(job, item, opc) {
   const url = String(item.finalUrl || item.url || '');
   const nome = nomeBase(item.filename);
   try {
-    const { b64, via } = await lerDoDownload(job, url);
+    const { b64, via } = item.base64 ? { b64: item.base64, via: [item.via || 'bytes'] } : await lerDoDownload(job, url);
     const mime = b64 && tipoDoBase64(b64);
     await mudar(job.id, (x) => { ev(x, { leitura: mime ? 'ok ' + mime : 'falhou', via: via.join('; ').slice(0, 160) }); });
+    if (!mime && opc && opc.silencioso) return;   // página que só parecia ser o arquivo (HTML): não é falha
     if (!mime) throw new Error('não consegui ler o arquivo pelo endereço do download' + (via.length ? ' (' + via[0] + ')' : ''));
     if (b64.length * 0.75 > MAX_BYTES) throw new Error('arquivo maior que 10 MB');
     const atual = await onrJobAtivo(); if (!atual) return;
+    const marca = b64.length + ':' + b64.slice(200, 260);   // o mesmo PDF pode chegar por dois caminhos (resposta, download, aba): guarda uma vez
+    if ((atual.marcas || []).includes(marca)) { await mudar(atual.id, (x) => { ev(x, { repetido: true }); }); return; }
+    await mudar(atual.id, (x) => { (x.marcas = x.marcas || []).push(marca); });
     const tag = atual.matriculas.find((m) => (nome + url).includes(m)) || (atual.matriculas.length === 1 ? atual.matriculas[0] : '');
     const rot = rotuloOnr(atual);
     const corpo = { acao: 'painel-arquivo', casoId: atual.casoId, nomeArquivo: 'RIDIGITAL_' + rot.toUpperCase() + '_' + (tag || 'matricula') + '.' + EXT_ONR[mime], mimetype: mime, base64: b64, tipoSugerido: 'MATRICULA_IMOVEL', pessoaSugerida: rot + (tag ? ' ' + tag : ''), origemAjudante: 'onr' };
@@ -326,6 +330,8 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
     if (job.site === 'onr') {
       if (m.tipo === 'onr-pagina') { await mudar(job.id, (x) => { x.abaAtiva = sender.tab.id; const u = (x.eventos || []).filter((e) => e.tela).pop(); if (!u || u.tela !== m.tela || u.caminho !== m.caminho) ev(x, { tela: String(m.tela || '').slice(0, 20), caminho: semQuery(String(m.caminho || '')).slice(0, 80) }); }); return responder({ ok: true }); }
       if (m.tipo === 'onr-pagou') { await mudar(job.id, (x) => { x.pagouEm = x.pagouEm || Date.now(); ev(x, { pagou: String(m.botao || '').slice(0, 40) }); }); return responder({ ok: true }); }
+      if (m.tipo === 'onr-bytes') { responder({ ok: true }); await capturarOnr(job, { base64: String(m.base64 || ''), via: String(m.via || 'bytes'), url: '', filename: '' }); return; }
+      if (m.tipo === 'onr-diag') { await mudar(job.id, (x) => { ev(x, { diag: JSON.stringify(m.diag || {}).slice(0, 500) }); }); return responder({ ok: true }); }
       if (m.tipo === 'onr-vigia') {
         const agora = Date.now(), n = (job.arquivos || []).length;
         if (n && agora - (job.ultimoArquivoEm || 0) > 25000) await terminar(job.id, 'ok', onrResumo(job));
@@ -351,7 +357,21 @@ function avisarTicket(tabId, url, opener) {
     job.pdfUrl = url; job.abaDoPdf = tabId; ev(job, { pdfEm: semQuery(url), aba: tabId === job.jucespTabId ? 'a do pedido' : 'nova' }); await guardar(todos); return job;
   }).then((job) => { if (job) return capturar(job, url); }).catch(() => {});
 }
+// A matrícula pode abrir como PDF numa aba nova (ou em blob:), sem "download": quando uma aba do pedido da RI Digital vai para um endereço assim, tenta-se ler o arquivo.
+async function onrAba(tabId, info, aba) {
+  const url = String((aba && aba.url) || info.url || ''); if (!url) return;
+  const ri = hostRi(url) || /^blob:https:\/\/([a-z0-9-]+\.)*ridigital\.org\.br\//.test(url); if (!ri) return;
+  const job = await onrJobAtivo(); if (!job) return;
+  const filha = tabId !== job.jucespTabId && ((job.filhas || []).includes(tabId) || (aba && aba.openerTabId === job.jucespTabId));
+  let caminho = ''; try { caminho = new URL(url).pathname; } catch (_) { /* blob: sem caminho */ }
+  if (!(filha || (tabId === job.jucespTabId && (/^blob:/.test(url) || /(pdf|download|arquivo|baixar|\.ashx)/i.test(caminho))))) return;
+  const chave = url.slice(0, 120);
+  const novo = await mudar(job.id, (x) => { if ((x.urlsVistas || []).includes(chave)) return null; (x.urlsVistas = x.urlsVistas || []).push(chave); ev(x, { aba: filha ? 'filha' : 'pedido', url: semQuery(url).slice(0, 70) }); return x; });
+  if (!novo) return;
+  await capturarOnr(job, { url, filename: '' }, { silencioso: true });
+}
 chrome.tabs.onUpdated.addListener((tabId, info, aba) => {
+  onrAba(tabId, info, aba).catch(() => {});
   const url = (aba && aba.url) || info.url || '';
   if (!/\/VisualizaTicket\.aspx/i.test(url) || new URL(url).origin !== JUCESP) return;
   avisarTicket(tabId, url, aba && aba.openerTabId);

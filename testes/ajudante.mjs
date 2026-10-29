@@ -247,6 +247,27 @@ await passo('ONR fundo: sem nenhum download 2 minutos depois do pagamento, diz i
   b.ouv.rem(71); await esperar(); const f = b.enviadas.filter((x) => x.tipo === 'progresso' && x.fim).pop(); assert.equal(f.estado, 'ok');
   const c = mundoFundo(); await c.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL); c.ouv.rem(71); await esperar(); assert(c.enviadas.some((x) => x.estado === 'erro' && /RI Digital/.test(x.texto)));
 });
+await passo('ONR fundo: o PDF que a página tirou da própria resposta (onr-bytes) é guardado como matrícula; o mesmo PDF por outro caminho não é guardado de novo', async () => {
+  const b64 = Buffer.from('%PDF-1.4 matricula online ' + 'x'.repeat(400)).toString('base64');
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedidoOnr({servico: 'visualizacao'})}, PAINEL);
+  await m.msg({tipo: 'onr-pagou', botao: 'pedido finalizado'}, 71);
+  await m.msg({tipo: 'onr-bytes', base64: b64, via: 'resposta'}, 71); await esperar(80);
+  const [g] = m.gasEnviado(); assert(g, 'enviado'); assert.equal(g.tipoSugerido, 'MATRICULA_IMOVEL'); assert.equal(g.origemAjudante, 'onr'); assert.equal(g.pessoaSugerida, 'Visualizacao 187852'); assert.equal(g.nomeArquivo, 'RIDIGITAL_VISUALIZACAO_187852.pdf');
+  await m.msg({tipo: 'onr-bytes', base64: b64, via: 'resposta'}, 71); await esperar(80); assert.equal(m.gasEnviado().length, 1, 'repetido: uma vez só');
+  await m.msg({tipo: 'onr-diag', diag: {status: 200, tipo: 'text/html', bytes: 52000}}, 71); const j = m.store.jobs.ajonr0001; assert(j.eventos.some((e) => /text\/html/.test(e.diag || '')) && j.eventos.some((e) => e.repetido));
+  const ruim = mundoFundo(); await ruim.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL); await ruim.msg({tipo: 'onr-bytes', base64: Buffer.from('<html>').toString('base64')}, 71); await esperar(80);
+  assert.equal(ruim.gasEnviado().length, 0, 'HTML não vira matrícula');
+});
+await passo('ONR fundo: PDF aberto numa ABA NOVA (sem download) é lido; página HTML aberta numa aba nova não vira falha; aba de fora não conta', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
+  await m.abrir('https://ridigital.org.br/VisualizarMatricula/MatriculaPDF.aspx?id=1', 92, 71); await esperar(80);
+  assert.equal(m.gasEnviado().length, 1, 'PDF da aba filha guardado');
+  const h = mundoFundo({pdf: '<html>pagina</html>', buscarUrl: 'erro'}); await h.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
+  await h.abrir('https://ridigital.org.br/VisualizarMatricula/Outra.aspx', 93, 71); await esperar(80);
+  assert.equal(h.gasEnviado().length, 0); assert((h.store.jobs.ajonr0001.falhas || []).length === 0, 'página comum não é falha de download');
+  const f = mundoFundo(); await f.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL); await f.abrir('https://ridigital.org.br/x.pdf', 94, 555); await esperar(80); assert.equal(f.gasEnviado().length, 0, 'aba que não é filha do pedido');
+  const o = mundoFundo(); await o.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL); await o.abrir('https://outro.com/x.pdf', 95, 71); await esperar(80); assert.equal(o.gasEnviado().length, 0, 'outro site');
+});
 await passo('ONR fundo: o fim do download (estado, nome, bytes) entra no registro', async () => {
   const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedidoOnr()}, PAINEL);
   m.baixados.push({id: 11, url: 'https://ridigital.org.br/r.pdf', filename: 'C:\\D\\r.pdf', fileSize: 4321});
@@ -413,6 +434,7 @@ const PO = {
   finalidade: ({certidao = true, marcada = 0, sem = false} = {}) => OTOPO + (certidao ? '<table><tr><td>10º - SÃO PAULO - SP</td><td>R$ 76,54</td></tr><tr><td>Total</td><td>R$ 76,54</td></tr></table><button>Adicionar Nova Certidão</button>' : '<div>CIDADE SÃO PAULO CARTÓRIO 10º MATRÍCULA 187852</div><p>Valor Total: R$ 22,95</p>') +
     '<label>Informe a finalidade *<select id="ddlFinalidade">' + opts(['(selecione)', 'Investigação jurídico-econômica para fins de avaliação de crédito.', 'Investigação jurídica sobre o imóvel, sua titularidade ou limitações.', ...(sem ? [] : ['O solicitante é titular de algum direito real registrado sobre o imóvel.']), 'Não desejo declarar a finalidade.'], marcada) + '</select></label>' +
     (certidao ? '<button>Prosseguir</button>' : '<div class="g-recaptcha">Não sou um robô</div><button>Confirmar</button>'),
+  finalizado: () => OTOPO + '<p><b>Seu pedido foi realizado com sucesso.</b></p><p>O número do seu pedido é VM031586467</p><a href="javascript:__doPostBack(\'lbtnPdf\',\'\')"><img alt="" src="x"> MATRÍCULA ONLINE CLIQUE AQUI PARA GERAR O PDF</a><h2>Importante!</h2><p>A matrícula ficará disponível por 24 horas.</p>',
   pagamento: () => OTOPO + '<h3>Escolha a forma de pagamento</h3>' + ['Saldo em Créditos', 'PIX', 'Boleto Bancário', 'Cartão de Crédito'].map((t) => `<div class="forma" onclick="void 0"><b>${t}</b></div>`).join('') + '<p>Total R$ 76,54</p><a href="#">Voltar</a>'
 };
 async function planoOnr(html, caminho, job) {
@@ -482,11 +504,11 @@ await passo('ONR tela: na escolha do pagamento o Ajudante PARA e diz o valor —
   assert.match(p.texto, /R\$ 76,54/); assert.match(p.texto, /Saldo em Créditos/); assert.match(p.texto, /eu não pago nada/); assert.equal(p.clicar, undefined);
 });
 await passo('ONR tela: NUNCA clica em nada que pague ou comprometa o pedido — varre todas as telas, nos dois serviços, em todos os estados do preenchimento', async () => {
-  const telas = [PO.home(), PO.lista(), PO.aviso(false), PO.aviso(true), PO.mapa(), PO.termos(), PO.solicitacao(), PO.solicitacao({cid: 2}), PO.solicitacao({cid: 2, cart: 2}), PO.solicitacao({cid: 2, cart: 2, mat: '187852'}), PO.cartorio(), PO.cartorio({cid: 2, cart: 2}), PO.tipo(), PO.tipo({t: 1, p: 1}), PO.matriculas(), PO.matriculas('187852'), PO.matriculas('187852', 'Adicionar'), PO.finalidade(), PO.finalidade({marcada: 3}), PO.finalidade({certidao: false, marcada: 3}), PO.pagamento(), '<p>tela desconhecida</p><button>Confirmar</button>'];
+  const telas = [PO.home(), PO.lista(), PO.aviso(false), PO.aviso(true), PO.mapa(), PO.termos(), PO.solicitacao(), PO.solicitacao({cid: 2}), PO.solicitacao({cid: 2, cart: 2}), PO.solicitacao({cid: 2, cart: 2, mat: '187852'}), PO.cartorio(), PO.cartorio({cid: 2, cart: 2}), PO.tipo(), PO.tipo({t: 1, p: 1}), PO.matriculas(), PO.matriculas('187852'), PO.matriculas('187852', 'Adicionar'), PO.finalidade(), PO.finalidade({marcada: 3}), PO.finalidade({certidao: false, marcada: 3}), PO.pagamento(), PO.finalizado(), '<p>tela desconhecida</p><button>Confirmar</button>'];
   let clicks = 0;
   for (const servico of ['certidao', 'visualizacao']) for (const h of telas) {
     const r = await planoOnr(h, '/qualquer', jobOnr({servico, matriculas: servico === 'certidao' ? ['187852', '187851'] : ['187852']}));
-    if (r.acao === 'clicar') { clicks++; assert.equal(r.proibido, false, 'clicaria em "' + r.clicar + '"'); }
+    if (r.acao === 'clicar' || r.acao === 'baixar') { clicks++; assert.equal(r.proibido, false, 'clicaria em "' + r.clicar + '"'); }
   }
   assert(clicks > 10, 'o teste de fato exercitou cliques (' + clicks + ')');
 });
@@ -499,6 +521,12 @@ await passo('ONR tela: link "javascript:" que o Chrome não executa — o Ajudan
   assert.equal(r[3], null, 'função desconhecida: não adivinha'); assert.equal(r[4], null); assert.equal(r[5], null);
   const rel = await pagina.evaluate(() => { document.body.innerHTML = '<a href="javascript:abrirPedido(1234567890123);">+ Novo Pedido</a><h2>Listagem de Pedidos</h2>'; return window.AJ_ONR.relatorio(document, '/x', {servico: 'visualizacao'}, {}); });
   const j = JSON.parse(rel); assert(j.links.length === 1 && /abrirPedido/.test(j.links[0].href) && !/1234567890123/.test(j.links[0].href), 'o relatório mostra para onde o link vai, sem números longos');
+});
+await passo('ONR tela: "Seu pedido foi realizado com sucesso" — só falta gerar o PDF, e o Ajudante clica nesse botão (já está pago)', async () => {
+  for (const servico of ['visualizacao', 'certidao']) {
+    const r = await planoOnr(PO.finalizado(), '/VisualizarMatricula/PedidoFinalizadoVM.aspx', jobOnr({servico}));
+    assert.equal(r.tela, 'finalizado'); assert.equal(r.acao, 'baixar'); assert.match(r.clicar, /gerar o pdf/); assert.match(r.texto, /Gerando o PDF/); assert.equal(r.proibido, false);
+  }
 });
 await passo('ONR tela: tela que não conhece vira "manual" com o motivo (e, depois do pagamento, "esperando o PDF")', async () => {
   const x = await planoOnr('<p>Outra coisa</p>', '/Estranha.aspx', jobOnr()); assert.equal(x.acao, 'manual'); assert.match(x.texto, /Não reconheço/);
