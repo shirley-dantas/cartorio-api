@@ -120,6 +120,13 @@ await passo('fundo: a consolidação que o Apps Script achou na ficha vai para o
   await m.abrir('https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=1', 71);
   const meio = await m.msg({tipo: 'quem'}, 71); assert.deepEqual(meio.consolidacao, cons); assert.equal(meio.fichaLida, true);
 });
+await passo('fundo: o OK da JUCESP abre a lista numa ABA NOVA (target=_blank): ela também é do trabalho, e a aba do pedido para de vigiar', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedido({quero: ['contrato']})}, PAINEL);
+  m.ouv.cri({id: 92, openerTabId: 71, pendingUrl: ''}); await esperar();
+  const lista = await m.msg({tipo: 'quem'}, 92); assert(lista && lista.cnpj === CNPJ, 'a aba aberta pelo OK recebe o pedido');
+  assert(m.enviadas.some((e) => e.tabId === 71 && e.tipo === 'seguiu'), 'a aba do pedido é avisada'); assert.equal(await m.msg({tipo: 'quem'}, 555), null, 'aba sem parentesco continua de fora');
+  const antes = m.enviadas.filter((e) => e.tipo === 'seguiu').length; await m.msg({tipo: 'quem'}, 92); assert.equal(m.enviadas.filter((e) => e.tipo === 'seguiu').length, antes, 'avisa uma vez só');
+});
 await passo('fundo: pedindo os dois, depois da ficha volta à empresa para o contrato e termina só no segundo PDF', async () => {
   const m = mundoFundo({gas: {ok: true, nome: 'X.pdf', confirmar: true}}); await m.msg({tipo: 'pedido', pedido: pedido({quero: ['ficha', 'contrato']})}, PAINEL);
   await m.msg({tipo: 'nire', nire: '35262229284', empresa: 'JRL HOLDING LTDA'}, 71);

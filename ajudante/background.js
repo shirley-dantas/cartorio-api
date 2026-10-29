@@ -26,7 +26,8 @@ async function guardar(j) { await chrome.storage.local.set({ jobs: j }); }
 async function mudar(id, f) {
   return mexer(async () => { const todos = await jobs(), job = todos[id]; if (!job) return null; const r = await f(job, todos); await guardar(todos); return r === undefined ? job : r; });
 }
-async function jobDaAba(tabId) { const todos = await jobs(); return Object.values(todos).find((j) => j.jucespTabId === tabId && !j.fim) || null; }
+// O OK da JUCESP tem target=_blank: a lista de cópias abre numa aba NOVA, filha da do pedido. Ela também é do trabalho (senão o Ajudante nem roda nela).
+async function jobDaAba(tabId) { const todos = await jobs(); return Object.values(todos).find((j) => !j.fim && (j.jucespTabId === tabId || (j.filhas || []).includes(tabId))) || null; }
 
 // `fim` marca o último aviso do pedido: é por ele que o painel sabe que pode começar o próximo da fila.
 function falar(job, estado, texto, fim) {
@@ -37,7 +38,7 @@ async function terminar(id, estado, texto) {
   const job = await mudar(id, (j, todos) => { j.fim = true; j.estado = estado; j.texto = texto; ev(j, { fim: estado, texto: String(texto || '').slice(0, 90) }); if (!Object.values(todos).some((x) => !x.fim)) { popupsDaJucesp(false); bloquearTicket(false); } });
   if (job) {
     falar(job, estado, texto, true);
-    try { Promise.resolve(chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'fim', estado, texto })).catch(() => {}); } catch (_) { /* a aba pode já ter fechado */ }
+    for (const t of [job.jucespTabId].concat(job.filhas || [])) { try { Promise.resolve(chrome.tabs.sendMessage(t, { tipo: 'fim', estado, texto })).catch(() => {}); } catch (_) { /* a aba pode já ter fechado */ } }
   }
 }
 
@@ -123,7 +124,8 @@ async function guardarPdf(job, base64) {
     if (base64.length * 0.75 > MAX_BYTES) throw new Error('PDF maior que 10 MB.');
     const j = await enviarAoApps(job, qual, base64);
     if (job.abaDoPdf != null && job.abaDoPdf !== job.jucespTabId) { try { Promise.resolve(chrome.tabs.remove(job.abaDoPdf)).catch(() => {}); } catch (_) { /* já fechou */ } }   // a aba extra só existia para mostrar o PDF
-    const atual = await mudar(job.id, (x) => { x.feitos.push(qual); x.fila.shift(); x.pdfUrl = null; x.abaDoPdf = null; x.manual = false; if (qual === 'ficha') { x.fichaLida = true; x.consolidacao = (j && j.consolidacao) || null; } });
+    for (const t of (job.filhas || [])) { if (t !== job.jucespTabId && t !== job.abaDoPdf) { try { Promise.resolve(chrome.tabs.remove(t)).catch(() => {}); } catch (_) { /* já fechou */ } } }   // as abas que o OK abriu (a lista de cópias) já cumpriram o papel
+    const atual = await mudar(job.id, (x) => { x.feitos.push(qual); x.fila.shift(); x.pdfUrl = null; x.abaDoPdf = null; x.manual = false; x.seguiu = false; x.filhas = []; if (qual === 'ficha') { x.fichaLida = true; x.consolidacao = (j && j.consolidacao) || null; } });
     const msg = d.nome + ': guardado no card como ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.';
     if (atual.fila.length) { falar(atual, 'andando', msg + ' Agora: ' + DOCS[atual.fila[0]].nome + '…'); await irParaEmpresa(atual); }
     else {
@@ -199,7 +201,11 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
     if (!m) return responder(null);
     if (m.tipo === 'pedido') return responder(await criarPedido(m.pedido, sender));
     const job = sender && sender.tab ? await jobDaAba(sender.tab.id) : null;
-    if (m.tipo === 'quem') return responder(job);
+    if (m.tipo === 'quem') {
+      // A aba nova assumiu: a aba do pedido para de vigiar o OK que ela mesma clicou.
+      if (job && job.jucespTabId !== sender.tab.id && !job.seguiu) { await mudar(job.id, (x) => { x.seguiu = true; ev(x, { seguiuNaAba: sender.tab.id }); }); try { Promise.resolve(chrome.tabs.sendMessage(job.jucespTabId, { tipo: 'seguiu' })).catch(() => {}); } catch (_) { /* a aba pode ter fechado */ } }
+      return responder(job);
+    }
     if (m.tipo === 'cancelar') {
       const todos = await jobs(), alvo = todos[m.id];
       if (alvo && sender.tab && sender.tab.id === alvo.painelTabId) await terminar(m.id, 'erro', 'Cancelado.');
