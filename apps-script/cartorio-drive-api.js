@@ -1087,11 +1087,11 @@ function extrairArquivoComContinuacao(montarConteudo) {
 
 // Leitura de um documento pela IA (PDF ou imagem em base64). Devolve
 // {texto, truncou}. Usada pelo anexo do painel e pelo envio do cliente.
-function lerDocumentoComIA(base64, mimetype, preservarIntegral) {
+function lerDocumentoComIA(base64, mimetype, preservarIntegral, instrucaoPropria) {
     var blocoArquivo = mimetype === "application/pdf"
       ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
       : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
-    var instrucaoInicial = preservarIntegral
+    var instrucaoInicial = instrucaoPropria ? instrucaoPropria : preservarIntegral
       ? "Este documento é uma escritura ou ato notarial já pronto. Transcreva o texto completo do documento, na íntegra, sem resumir, sem comentar e sem omitir nenhuma parte. Apenas o texto puro da minuta."
       : "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Depois, numa nova linha, extraia com fidelidade total as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. NÚMEROS DE DOCUMENTO (RG, CPF, CNH, matrícula, registro): copie dígito por dígito, exatamente como estão impressos, sem corrigir, completar ou reordenar. Dígitos parecidos (0/6/8, 1/7, 3/8, 5/6) devem ser conferidos duas vezes olhando o desenho de cada um; releia o número inteiro antes de responder. Se algum dígito não estiver nítido, escreva '?' no lugar dele em vez de adivinhar. Na CNH, o número do RG aparece no campo de identidade/órgão emissor: copie-o com o mesmo cuidado. Não omita nenhum dado relevante — mas não transcreva o documento inteiro: cláusula, preâmbulo ou trecho que não carregue um fato novo, não precisa aparecer. O objetivo é o fato, não o texto do documento.";
 
@@ -1515,6 +1515,28 @@ function nomeDoArquivoDoCard(pasta, pessoa, tipo, ext, idDoProprio) {
 
 function painelArquivo(dados) { return resp(painelArquivoInterno(dados)); }
 
+// A ficha cadastral lista cada ato arquivado como "NUM.DOC: 034.366/21-0 SESSÃO: 22/01/2021" seguido das linhas do ato. O contrato social
+// consolidado é o do ÚLTIMO ato cujas linhas dizem "CONSOLIDAÇÃO CONTRATUAL"; o NUM.DOC é o mesmo número da coluna "Nº Registro" da lista
+// de cópias digitalizadas, e é por ele que o Ajudante acha a linha certa (a lista quase não traz descrição).
+// A leitura geral da IA resume o documento e pode largar justamente os NUM.DOC; por isso a ficha tem uma pergunta só sua, curta e literal.
+var PERGUNTA_CONSOLIDACAO = "Este PDF é uma ficha cadastral da JUCESP. Cada ato arquivado começa com a linha 'NUM.DOC: <número> SESSÃO: <data>' e é seguido das linhas do ato, até o próximo NUM.DOC. Liste TODOS os atos em cujas linhas aparece a expressão 'CONSOLIDAÇÃO CONTRATUAL' (a expressão pertence ao NUM.DOC que vem ANTES dela, mesmo quando ela está no pé da página), um por linha, exatamente assim: 'NUM.DOC: <número> SESSÃO: <dd/mm/aaaa> CONSOLIDAÇÃO CONTRATUAL'. Copie cada número dígito por dígito, exatamente como está impresso; se algum dígito não estiver nítido, escreva '?' no lugar. Não escreva mais nada. Se nenhum ato tiver a expressão, responda só: NENHUM.";
+function consolidacaoDoPdf(base64) {
+  try { var r = lerDocumentoComIA(base64, "application/pdf", false, PERGUNTA_CONSOLIDACAO); return consolidacaoDaFicha(r && r.texto); }
+  catch (e) { return null; }
+}
+function consolidacaoDaFicha(texto) {
+  var t = String(texto || ""), re = /NUM\.?\s*DOC\.?\s*:?\s*(\d[\d.]*\/\d{2}-\d)\s*SESS[ÃA]O\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})/gi;
+  var marcas = [], m;
+  while ((m = re.exec(t))) marcas.push({ registro: m[1], sessao: m[4] + "-" + m[3] + "-" + m[2], ini: m.index, de: re.lastIndex });
+  var melhor = null;
+  for (var i = 0; i < marcas.length; i++) {
+    var ate = i + 1 < marcas.length ? marcas[i + 1].ini : t.length;
+    if (!/CONSOLIDA[ÇC][ÃA]O\s+CONTRATUAL/i.test(t.slice(marcas[i].de, ate))) continue;
+    if (!melhor || marcas[i].sessao >= melhor.sessao) melhor = { registro: marcas[i].registro, sessao: marcas[i].sessao };
+  }
+  return melhor;
+}
+
 function painelArquivoInterno(dados) {
   var casoId = String(dados.casoId || "");
   if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId)) return { ok: false, erro: "Caso inválido." };
@@ -1563,7 +1585,9 @@ function painelArquivoInterno(dados) {
     if (nome !== arquivo.getName()) arquivo.setName(nome);
   } finally { lock.releaseLock(); }
   firebaseGravar("patch", caminho, { nome: nome, tipoDocumento: id.tipo, pessoa: id.pessoa, texto: texto || null, truncado: false, lendo: null, confirmar: confirmar, avisoLeitura: aviso || null });
-  return { ok: true, docKey: docKey, nome: nome, tipo: id.tipo, pessoa: id.pessoa, confirmar: confirmar, leu: !!texto, aviso: aviso };
+  var resposta = { ok: true, docKey: docKey, nome: nome, tipo: id.tipo, pessoa: id.pessoa, confirmar: confirmar, leu: !!texto, aviso: aviso };
+  if (dados.origemAjudante === "jucesp" && String(dados.tipoSugerido || "") === "FICHA_CADASTRAL_JUCESP") resposta.consolidacao = consolidacaoDoPdf(dados.base64);
+  return resposta;
 }
 
 // ── A caixa de entrada do WhatsApp ───────────────────────────────────────────────────────────

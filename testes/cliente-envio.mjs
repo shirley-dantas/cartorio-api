@@ -257,6 +257,15 @@ await passo('excluir um arquivo que já sumiu do Drive ainda limpa o card', () =
 // ── Arquivos arrastados para o card ──
 const solto = (extra = {}) => ({acao: 'painel-arquivo', casoId: '-Caso1', nomeArquivo: 'WhatsApp Image 2026-10-28 at 10.32.jpeg', mimetype: 'image/jpeg', base64: B64, ...extra});
 const iaDiz = (m, obj) => { m.caixa.chamarClaudeArquivoRaw = () => ({texto: JSON.stringify(obj), truncou: false}); };
+await passo('ficha da JUCESP: devolve o NUM.DOC da última CONSOLIDAÇÃO CONTRATUAL (o Nº Registro da lista de cópias)', () => {
+  const m = mundo(); semear(m);
+  const ficha = 'NUM.DOC: 180.568/10-3 SESSÃO: 02/06/2010\nCONSOLIDAÇÃO CONTRATUAL DA MATRIZ.\nNUM.DOC: 027.744/12-7 SESSÃO: 16/02/2012\nALTERAÇÃO DO NOME.\nNUM.DOC: 034.366/21-0 SESSÃO: 22/01/2021\nENDEREÇO ALTERADO\nCONSOLIDAÇÃO CONTRATUAL DA MATRIZ.\nNUM.DOC: 099.999/22-1 SESSÃO: 01/03/2022\nALTERAÇÃO DE ENDEREÇO.';
+  const perguntas = []; m.caixa.lerDocumentoComIA = (b, mime, integral, pergunta) => { perguntas.push(pergunta); return {texto: ficha, truncou: false}; };
+  const r = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'FICHA_CADASTRAL_JUCESP', pessoaSugerida: 'GANDINI', origemAjudante: 'jucesp'}));
+  assert.equal(r.ok, true, JSON.stringify(r)); assert(perguntas.some((q) => /CONSOLIDAÇÃO CONTRATUAL/.test(q || '')), 'pergunta própria, não o resumo geral'); assert.deepEqual(JSON.parse(JSON.stringify(r.consolidacao)), {registro: '034.366/21-0', sessao: '2021-01-22'});
+  assert.equal(m.caixa.consolidacaoDaFicha('NUM.DOC: 1.000/20-1 SESSÃO: 01/01/2020\nALTERAÇÃO'), null, 'sem consolidação: nulo, nunca um palpite');
+  const contrato = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'CONTRATO_SOCIAL', pessoaSugerida: 'GANDINI', origemAjudante: 'jucesp'})); assert.equal(contrato.consolidacao, undefined);
+});
 await passo('arrastado: cria a pasta do caso, salva, a IA lê e identifica, e o arquivo ganha o nome padrão', () => {
   const m = mundo(); semear(m); iaDiz(m, {tipo: 'RG_CNH', pessoa: 'Maria da Silva', confianca: 'alta'});
   const r = m.chamar(solto()); assert.equal(r.ok, true, JSON.stringify(r));

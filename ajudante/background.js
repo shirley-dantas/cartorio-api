@@ -86,6 +86,8 @@ async function criarPedido(pedido, sender) {
   if (!/^[A-Za-z0-9_-]{6,40}$/.test(String((pedido && pedido.casoId) || ''))) return { ok: false, texto: 'Caso inválido.' };
   if (!/^[A-Za-z0-9_-]{4,40}$/.test(String((pedido && pedido.id) || ''))) return { ok: false, texto: 'Pedido inválido.' };
   if (!cnpjValido(pedido.cnpj)) return { ok: false, texto: 'Esse CNPJ não confere (confira os dígitos).' };
+  // O contrato consolidado se acha pelo número que a ficha cadastral traz (a lista da JUCESP quase não tem descrição): a ficha vai primeiro, e fica no card.
+  if (quero.includes('contrato')) { if (!quero.includes('ficha')) quero.push('ficha'); quero.sort((a, b) => (a === 'ficha' ? 0 : 1) - (b === 'ficha' ? 0 : 1)); }
   const job = { id: pedido.id, casoId: pedido.casoId, cnpj: String(pedido.cnpj).replace(/\D/g, ''), fila: quero.slice(), feitos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
   const conhecido = await nireConhecido(job.cnpj);
   if (conhecido) { job.nire = conhecido; job.direto = true; }
@@ -121,7 +123,7 @@ async function guardarPdf(job, base64) {
     if (base64.length * 0.75 > MAX_BYTES) throw new Error('PDF maior que 10 MB.');
     const j = await enviarAoApps(job, qual, base64);
     if (job.abaDoPdf != null && job.abaDoPdf !== job.jucespTabId) { try { Promise.resolve(chrome.tabs.remove(job.abaDoPdf)).catch(() => {}); } catch (_) { /* já fechou */ } }   // a aba extra só existia para mostrar o PDF
-    const atual = await mudar(job.id, (x) => { x.feitos.push(qual); x.fila.shift(); x.pdfUrl = null; x.abaDoPdf = null; x.manual = false; });
+    const atual = await mudar(job.id, (x) => { x.feitos.push(qual); x.fila.shift(); x.pdfUrl = null; x.abaDoPdf = null; x.manual = false; if (qual === 'ficha') { x.fichaLida = true; x.consolidacao = (j && j.consolidacao) || null; } });
     const msg = d.nome + ': guardado no card como ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.';
     if (atual.fila.length) { falar(atual, 'andando', msg + ' Agora: ' + DOCS[atual.fila[0]].nome + '…'); await irParaEmpresa(atual); }
     else {
