@@ -573,7 +573,7 @@ function mundoCard() {
   const win = {addEventListener: (t, f) => { (ouv[t] = ouv[t] || []).push(f); }, postMessage: (m, o) => postadas.push({m, o})};
   caixa.window = Object.assign(caixa, win);
   vm.createContext(caixa);
-  vm.runInContext(html.slice(ini, fim) + '\nthis.__f={AJUDANTE,solteHtml,ajudanteHtml,ajCnpjValido,ajEmpresasDoCaso,onrExtrair,onrDoCaso,ajudanteOuvir:window.ajudanteOuvir,janela:window};', caixa);
+  vm.runInContext(html.slice(ini, fim) + '\nthis.__f={AJUDANTE,solteHtml,ajudanteHtml,ajCnpjValido,ajFormatarCnpj,ajEmpresasDoCaso,onrExtrair,onrDoCaso,ajudanteOuvir:window.ajudanteOuvir,janela:window};', caixa);
   const pronto = () => ouv.message.forEach((f) => f({source: caixa.__f.janela, data: {fonte: 'ajudante', tipo: 'ajudante-pronto', versao: '0.1.0'}}));
   return {caixa, f: caixa.__f, postadas, el, pronto, zonas, ouv};
 }
@@ -659,6 +659,25 @@ await passo('card RI Digital: lê cartório, cidade e matrícula do texto da mat
   const x = m.f.onrExtrair(MATRICULA_TXT); assert.equal(x.cartorio, '10'); assert.equal(x.cidade, 'SÃO PAULO'); assert.deepEqual(Array.from(x.matriculas), ['187852']);
   m.caixa.casos.C1 = {id: 'C1', documentos: {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'M1.pdf', texto: MATRICULA_TXT}, b: {tipo: 'documento', nome: 'Matricula_vaga.pdf', texto: MATRICULA_TXT.replace('187.852', '187.851')}, c: {tipo: 'documento', nome: 'RG.pdf', texto: 'matrícula 999999'}, d: {tipo: 'modelo', nome: 'matricula-modelo', texto: MATRICULA_TXT}}};
   const g = m.f.onrDoCaso(m.caixa.casos.C1); assert.equal(g.length, 1, 'mesmo cartório: um grupo só'); assert.deepEqual(Array.from(g[0].matriculas), ['187852', '187851']);
+});
+await passo('card RI Digital: só vale a matrícula DO documento — as que ele cita (matrícula-mãe) vão como sugestão, não para dentro do pedido; documento que só tem "matrícula" no nome não vence um reconhecido', async () => {
+  const m = mundoCard(); m.ouv.message.forEach((f) => f({source: m.caixa.__f.janela, data: {fonte: 'ajudante', tipo: 'ajudante-pronto', versao: '0.2.6', onr: true}}));
+  const comCitada = MATRICULA_TXT + '\nAverbação: imóvel desmembrado da matrícula nº 100.200 e da matrícula 55.443.';
+  m.caixa.casos.C1 = {id: 'C1', documentos: {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'M1.pdf', texto: comCitada}, b: {tipo: 'documento', tipoDocumento: 'OUTRO', nome: 'Minuta com matricula 999999.pdf', texto: 'Minuta. matrícula 999999'}}};
+  const g = m.f.onrDoCaso(m.caixa.casos.C1); assert.equal(g.length, 1); assert.deepEqual(Array.from(g[0].matriculas), ['187852'], 'só a do cabeçalho'); assert.deepEqual(Array.from(g[0].citadas).sort(), ['100200', '55443']);
+  m.caixa.onrAbrir('C1', 'certidao'); const tela = m.el('onr-C1').innerHTML;
+  assert(/value="187852"/.test(tela) && !/value="[^"]*100200/.test(tela), 'a citada não entra no campo'); assert(/lida de “M1.pdf”/.test(tela) && /também cita/.test(tela) && />100200</.test(tela), tela);
+  m.caixa.onrUsarMat('C1', '100200'); assert(/value="187852, 100200"/.test(m.el('onr-C1').innerHTML), 'um toque acrescenta na certidão');
+});
+await passo('card JUCESP: ela tira da busca as empresas que não quer; "buscar todas" respeita; dá para trazer de volta', async () => {
+  const m = mundoCard(); m.pronto(); m.caixa.casos.C1 = casoDuasPartes();
+  const todas = m.f.ajEmpresasDoCaso(m.caixa.casos.C1); assert(todas.length >= 2);
+  let h = m.f.ajudanteHtml({id: 'C1'}); assert(/Tirar/.test(h) && new RegExp('ajudantePedirTodas').test(h));
+  m.caixa.ajTirarEmpresa('C1', todas[0].cnpj);
+  h = m.f.ajudanteHtml({id: 'C1'}); assert(!h.includes(m.f.ajFormatarCnpj ? m.f.ajFormatarCnpj(todas[0].cnpj) : todas[0].cnpj), 'a tirada some da lista'); assert(/1 empresa tirada da busca/.test(h) && /trazer de volta/.test(h));
+  m.postadas.length = 0; m.caixa.ajudantePedirTodas('C1');
+  const ps = m.postadas.filter((x) => x.m.tipo === 'ajudante-pedido').map((x) => x.m.pedido); assert.equal(ps.length, 1); assert.notEqual(ps[0].cnpj, todas[0].cnpj, 'a tirada não é buscada'); assert.equal(m.f.AJUDANTE.fila.C1.length, 0);
+  m.caixa.ajTrazerEmpresas('C1'); assert(!/tirada da busca/.test(m.f.ajudanteHtml({id: 'C1'})));
 });
 await passo('card RI Digital: ela escolhe o serviço, confere os dados preenchidos e só então o pedido sai (visualização: uma matrícula; certidão: várias do mesmo registro)', async () => {
   const m = mundoCard(); m.ouv.message.forEach((f) => f({source: m.caixa.__f.janela, data: {fonte: 'ajudante', tipo: 'ajudante-pronto', versao: '0.2.0', onr: true}}));
