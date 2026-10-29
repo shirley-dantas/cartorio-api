@@ -490,6 +490,16 @@ await passo('ONR tela: NUNCA clica em nada que pague ou comprometa o pedido — 
   }
   assert(clicks > 10, 'o teste de fato exercitou cliques (' + clicks + ')');
 });
+await passo('ONR tela: link "javascript:" que o Chrome não executa — o Ajudante lê o que ele faria (postback ou ir a um endereço) e, se não souber, pede o clique dela em vez de travar', async () => {
+  await pagina.goto('about:blank'); await pagina.addScriptTag({content: ler('ajudante/onr.js')});
+  const r = await pagina.evaluate(() => { const d = window.AJ_ONR.destinoDoLink; return [
+    d("javascript:__doPostBack('lbtnNovo','')"), d("javascript:void(0);", "location.href='MapaMatriculaOnline.aspx'; return false;"), d("javascript:window.open('/VisualizarMatricula/Novo.aspx')"),
+    d("javascript:abrirPedido();"), d("", ""), d()]; });
+  assert.deepEqual(r[0], {tipo: 'postback', alvo: 'lbtnNovo', arg: ''}); assert.deepEqual(r[1], {tipo: 'ir', url: 'MapaMatriculaOnline.aspx'}); assert.deepEqual(r[2], {tipo: 'ir', url: '/VisualizarMatricula/Novo.aspx'});
+  assert.equal(r[3], null, 'função desconhecida: não adivinha'); assert.equal(r[4], null); assert.equal(r[5], null);
+  const rel = await pagina.evaluate(() => { document.body.innerHTML = '<a href="javascript:abrirPedido(1234567890123);">+ Novo Pedido</a><h2>Listagem de Pedidos</h2>'; return window.AJ_ONR.relatorio(document, '/x', {servico: 'visualizacao'}, {}); });
+  const j = JSON.parse(rel); assert(j.links.length === 1 && /abrirPedido/.test(j.links[0].href) && !/1234567890123/.test(j.links[0].href), 'o relatório mostra para onde o link vai, sem números longos');
+});
 await passo('ONR tela: tela que não conhece vira "manual" com o motivo (e, depois do pagamento, "esperando o PDF")', async () => {
   const x = await planoOnr('<p>Outra coisa</p>', '/Estranha.aspx', jobOnr()); assert.equal(x.acao, 'manual'); assert.match(x.texto, /Não reconheço/);
   const y = await planoOnr('<p>Pedido concluído</p>', '/Estranha.aspx', jobOnr({pagouEm: 123})); assert.equal(y.acao, 'esperar'); assert.equal(y.espera, 'pdf');

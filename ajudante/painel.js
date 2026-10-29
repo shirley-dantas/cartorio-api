@@ -2,7 +2,7 @@
 // nenhum outro site consegue mandar pedido para cá. O painel pergunta "tem Ajudante?" e só desenha o botão se ouvir resposta.
 (function () {
   'use strict';
-  const VERSAO = '0.2.1';
+  const VERSAO = '0.2.2';
   const avisar = (m) => window.postMessage(Object.assign({ fonte: 'ajudante' }, m), location.origin);
 
   window.addEventListener('message', (e) => {

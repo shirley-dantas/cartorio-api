@@ -181,6 +181,15 @@
     return { acao: 'manual', texto: 'Não reconheço esta tela da RI Digital. Faça o próximo passo você — se o PDF abrir ou baixar, eu o levo para o card.' };
   }
 
+  // Um link "javascript:..." que o Chrome não deixa a extensão executar: lê-se o que ele faria (postback do ASP.NET ou ir a um endereço) no href e no onclick.
+  function destinoDoLink() {
+    for (const t of Array.from(arguments).map((x) => String(x || ''))) {
+      let m = /__doPostBack\(\s*['"]([^'"]*)['"]\s*,\s*['"]([^'"]*)['"]\s*\)/.exec(t); if (m) return { tipo: 'postback', alvo: m[1], arg: m[2] };
+      m = /(?:window\.open\(|location(?:\.href)?\s*=\s*|location\.(?:assign|replace)\()\s*['"]([^'"]+)['"]/.exec(t); if (m) return { tipo: 'ir', url: m[1] };
+    }
+    return null;
+  }
+
   // O resumo da tela para ela copiar e me mandar: só a forma (botões, listas, campos), sem números longos.
   const mascarar = (t) => String(t).replace(/[A-Za-z0-9+\/=_%-]{40,}/g, '…').replace(/\d{9,}/g, '#').replace(/\s+/g, ' ');
   function relatorio(doc, caminho, job, extra) {
@@ -190,12 +199,13 @@
       caminho, titulo: doc.title, tela: tela(doc, caminho, job || {}), servico: job && job.servico,
       botoes: lista(CLICAVEIS, (e) => (textoDe(e) || '').slice(0, 60)),
       selects: lista('select', (s) => ({ id: s.id, ctx: contextoDe(s, doc).slice(0, 60), escolhida: (escolhida(s) || {}).texto || '', opcoes: opcoes(s).slice(0, 14).map((o) => o.texto.slice(0, 60)) })),
+      links: Array.from(doc.querySelectorAll('a[href^="javascript:" i],a[onclick]')).filter(visivel).slice(0, 12).map((a) => ({ texto: (textoDe(a) || '').slice(0, 40), href: mascarar(a.getAttribute('href') || '').slice(0, 140), onclick: mascarar(a.getAttribute('onclick') || '').slice(0, 140) })),
       campos: lista('input:not([type=hidden]),textarea', (e) => [e.type, e.name, e.id, e.placeholder || ''].join('|')),
       texto: mascarar(textoDaPagina(doc)).slice(0, 500)
     }, null, 1);
   }
 
-  const api = { norm, textoDe, achar, acharTexto, acharUF, acharSelect, campoMatricula, tela, planejar, relatorio, valorDaTela, NUNCA_CLICAR, FINALIDADE, SERVICOS };
+  const api = { destinoDoLink, norm, textoDe, achar, acharTexto, acharUF, acharSelect, campoMatricula, tela, planejar, relatorio, valorDaTela, NUNCA_CLICAR, FINALIDADE, SERVICOS };
   raiz.AJ_ONR = api;
 
   // ── Daqui para baixo é a parte que mexe na página (só no navegador, com a extensão) ─────────────────────────
@@ -227,15 +237,19 @@
     campo.focus(); Object.getOwnPropertyDescriptor(proto, 'value').set.call(campo, valor);
     campo.dispatchEvent(new Event('input', { bubbles: true })); campo.dispatchEvent(new Event('change', { bubbles: true }));
   }
-  // Link "javascript:__doPostBack(...)": o Chrome não deixa a extensão executar URL de script; o link só preenche dois campos e envia o formulário.
+  // Link "javascript:...": o Chrome não deixa a extensão executar URL de script. Lê-se o que o link faria (postback do ASP.NET: preenche dois campos e envia o
+  // formulário; ou ir a um endereço do próprio site). Se não der para saber, pede o clique dela — sem travar e sem adivinhar.
   function clicar(el) {
     const href = (el.getAttribute && el.getAttribute('href')) || '';
     if (/^\s*javascript:/i.test(href)) {
-      const m = /__doPostBack\(\s*['"]([^'"]*)['"]\s*,\s*['"]([^'"]*)['"]\s*\)/.exec(href), form = el.closest('form') || document.forms[0];
-      if (!m || !form) throw new Error('Esse link da página roda um script que o Chrome não deixa a extensão executar.');
-      const campo = (nome) => form.elements[nome] || Object.assign(form.appendChild(document.createElement('input')), { type: 'hidden', name: nome });
-      campo('__EVENTTARGET').value = m[1]; campo('__EVENTARGUMENT').value = m[2];
-      return HTMLFormElement.prototype.submit.call(form);
+      const d = destinoDoLink(href, el.getAttribute('onclick')), form = el.closest('form') || document.forms[0];
+      if (d && d.tipo === 'postback' && form) {
+        const campo = (nome) => form.elements[nome] || Object.assign(form.appendChild(document.createElement('input')), { type: 'hidden', name: nome });
+        campo('__EVENTTARGET').value = d.alvo; campo('__EVENTARGUMENT').value = d.arg;
+        return HTMLFormElement.prototype.submit.call(form);
+      }
+      if (d && d.tipo === 'ir') { const u = new URL(d.url, location.href); if (u.origin === location.origin) { location.href = u.href; return; } }
+      throw Object.assign(new Error('Esse botão roda um script que o Chrome não deixa a extensão executar.'), { pedirClique: true });
     }
     if (typeof el.click === 'function') return el.click();
     el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));   // desenho (SVG) não tem click()
@@ -286,7 +300,7 @@
     mandar({ tipo: 'onr-pagina', tela: t0, caminho: location.pathname });
     montarFaixa();
 
-    let ultimo = { sig: '', em: 0 }, esperaDesde = 0;
+    let ultimo = { sig: '', em: 0 }, esperaDesde = 0, aguardaMao = '';
     const tick = () => {
       const plano = planejar(document, location.pathname, job);
       if (plano.acao === 'esperar') {
@@ -300,6 +314,7 @@
       if (plano.acao === 'erro') { parar(job, plano.texto); return true; }
       if (plano.acao === 'manual') { mostrar(plano.texto, '#A9895A', [['Copiar relatório', async () => { await copiarRelatorio(job, plano.texto, '#A9895A'); }]]); dizer('manual', plano.texto); return false; }
       const sig = plano.acao + '|' + plano.texto, agora = Date.now();
+      if (aguardaMao === sig) return false;   // já pedi o clique dela para este passo: espera a página mudar
       if (sig === ultimo.sig && agora - ultimo.em < 8000) return false;   // dá tempo ao site de responder
       if (tentativas(job.id, location.pathname + '|' + sig) > 4) { parar(job, 'A página não respondeu ao que eu fiz (tentei 4 vezes).'); return true; }
       ultimo = { sig, em: agora };
@@ -309,7 +324,15 @@
         else if (plano.acao === 'selecionar') { plano.el.value = plano.valor; plano.el.dispatchEvent(new Event('input', { bubbles: true })); plano.el.dispatchEvent(new Event('change', { bubbles: true })); }
         else if (plano.acao === 'marcar') clicar(plano.el);
         else if (plano.acao === 'clicar') { if (!plano.el) throw new Error('Não achei o botão desta tela.'); clicar(plano.el); }
-      } catch (e) { parar(job, (e && e.message) || String(e)); return true; }
+      } catch (e) {
+        if (e && e.pedirClique) {   // o passo é inofensivo, só que o Chrome não deixa a extensão fazê-lo: um clique dela resolve, e o resto continua sendo do Ajudante
+          aguardaMao = sig;
+          const t = plano.texto.replace(/…$/, '') + ' — o Chrome não me deixa clicar neste botão. Clique você nele; eu sigo daí.';
+          mostrar(t, '#A9895A', [['Copiar relatório', async () => { await copiarRelatorio(job, t, '#A9895A'); }]]); dizer('manual', t);
+          return false;
+        }
+        parar(job, (e && e.message) || String(e)); return true;
+      }
       return false;
     };
     // Depois do pagamento: se o PDF não chega, ou se já chegou e nada mais vem, o fundo fecha o pedido dizendo o que houve.
