@@ -31,13 +31,13 @@ await passo('manifesto: só a JUCESP, o painel e o Apps Script; sem poder amplo 
 });
 
 // ── A ponte com o painel ──
-function mundoPonte() {
+function mundoPonte({orfa = false} = {}) {
   const ouvintes = {}, postadas = [], enviadas = [], aoReceber = [];
   const window = {
     addEventListener: (t, f) => { (ouvintes[t] = ouvintes[t] || []).push(f); },
     postMessage: (m, origem) => postadas.push({m, origem})
   };
-  const chrome = {runtime: {sendMessage: async (m) => { enviadas.push(m); return {ok: true}; }, onMessage: {addListener: (f) => aoReceber.push(f)}}};
+  const chrome = {runtime: {id: orfa ? undefined : 'abc', sendMessage: (m) => { if (orfa) throw new Error('Extension context invalidated.'); enviadas.push(m); return Promise.resolve({ok: true}); }, onMessage: {addListener: (f) => aoReceber.push(f)}}};
   const ctx = {window, chrome, location: {origin: 'https://cartorio-api.vercel.app'}, Promise};
   vm.createContext(ctx); vm.runInContext(ler('ajudante/painel.js'), ctx);
   const dizer = (data, extra = {}) => ouvintes.message.forEach((f) => f({source: window, origin: 'https://cartorio-api.vercel.app', data, ...extra}));
@@ -48,6 +48,12 @@ await passo('ponte: avisa que está pronta, responde ao "tem Ajudante?" e repass
   p.postadas.length = 0; p.dizer({fonte: 'painel-cartorio', tipo: 'ajudante-ping'}); assert.equal(p.postadas[0].m.tipo, 'ajudante-pronto');
   p.dizer({fonte: 'painel-cartorio', tipo: 'ajudante-pedido', pedido: {id: 'ajteste1', casoId: 'C12345', cnpj: CNPJ, quero: ['ficha']}}); await esperar();
   assert.equal(p.enviadas.length, 1); assert.equal(p.enviadas[0].tipo, 'pedido'); assert.equal(p.enviadas[0].pedido.cnpj, CNPJ);
+});
+await passo('ponte: depois de a extensão ser recarregada a página perde a ligação — o pedido diz "recarregue (F5)" em vez de ficar parado em "abrindo…"', async () => {
+  const p = mundoPonte({orfa: true}); p.postadas.length = 0;
+  p.dizer({fonte: 'painel-cartorio', tipo: 'ajudante-pedido', pedido: {id: 'ajorfa1', casoId: 'C12345', cnpj: CNPJ, quero: ['ficha']}}); await esperar();
+  const e = p.postadas.find((x) => x.m.tipo === 'ajudante-progresso'); assert(e, 'avisou'); assert.equal(e.m.id, 'ajorfa1'); assert.equal(e.m.estado, 'erro'); assert.equal(e.m.fim, true); assert.match(e.m.texto, /Recarregue o painel \(F5\)/);
+  p.dizer({fonte: 'painel-cartorio', tipo: 'ajudante-cancelar', id: 'ajorfa1'}); await esperar();   // cancelar sem ligação também não quebra
 });
 await passo('ponte: mensagem de outra janela, de outra origem ou de outro "fonte" é ignorada', async () => {
   const p = mundoPonte(); const pedido = {fonte: 'painel-cartorio', tipo: 'ajudante-pedido', pedido: {id: 'x', casoId: 'C12345', cnpj: CNPJ, quero: ['ficha']}};
