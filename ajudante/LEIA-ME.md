@@ -14,7 +14,7 @@ completa e contrato social consolidado). Quem identifica ela é o **certificado 
 
 ## Usar
 
-1. No card, o painel já lista as **empresas achadas nos documentos** (com o CNPJ). Clique em **Ficha cadastral**, **Contrato consolidado** ou **Os dois** na empresa, ou em **Buscar os dois documentos das N empresas** para fazer uma de cada vez. Se não achar nenhuma, use **Outro CNPJ**.
+1. No card, o painel já lista as **empresas achadas nos documentos** (com o CNPJ). Clique em **Buscar ficha e contrato** na empresa, ou em **Buscar os dois documentos das N empresas** para fazer uma de cada vez. Se não achar nenhuma, use **Outro CNPJ**.
 2. Abre uma aba da JUCESP. Se ela pedir o certificado, o PIN ou o **código da imagem**, faça como sempre — o Ajudante espera e continua sozinho. (Ele não resolve o código da imagem por você; da segunda vez em diante, com a mesma empresa, ele tenta ir direto e pular a pesquisa.)
 3. Não mexa nessa aba por uns 30 segundos. Na faixa escura, no canto, ele conta o que está fazendo.
 4. O PDF vai para a pasta do caso no Drive e aparece na lista de documentos do card.

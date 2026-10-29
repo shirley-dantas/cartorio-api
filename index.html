@@ -12375,9 +12375,8 @@ function ajMsgHtml(casoId){
 }
 function ajBotoes(casoId,cnpj){
   const id=esc(casoId), c=cnpj?`,'${esc(cnpj)}'`:'';
-  return `<button type="button" class="cx-btn" onclick="ajudantePedir('${id}',['ficha']${c})">Ficha cadastral</button>
-    <button type="button" class="cx-btn" onclick="ajudantePedir('${id}',['contrato']${c})">Contrato consolidado</button>
-    <button type="button" class="cx-btn forte" onclick="ajudantePedir('${id}',['ficha','contrato']${c})">Os dois</button>`;
+  // Um botão só: o contrato consolidado precisa do número da ficha, então o Ajudante sempre faz os dois, um depois do outro.
+  return `<button type="button" class="cx-btn forte" onclick="ajudantePedir('${id}',['ficha','contrato']${c})">Buscar ficha e contrato</button>`;
 }
 function ajudanteHtml(c){
   if(!AJUDANTE.pronto||!c||!c.id) return '';

@@ -314,7 +314,6 @@
         })();
         return true;
       }
-      if (m.tipo === 'seguiu') { clearInterval(vigiaAtual); mostrar('A JUCESP abriu a lista noutra aba — sigo por lá.'); }
       if (m.tipo === 'pdf') { clearInterval(vigiaAtual); mostrar('Recebi o PDF — guardando no card…'); }
       if (m.tipo === 'fim') {   // o erro já está na faixa, com os botões dele; só o sucesso e o cancelamento a trocam
         clearInterval(vigiaAtual);
