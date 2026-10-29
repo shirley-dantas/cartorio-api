@@ -80,6 +80,8 @@
   // Que passo do site é ESTA página? Só por sinais do conteúdo (a barra de passos aparece em todas as telas e não serve).
   function tela(doc, caminho, job) {
     if (achar(doc, 'saldo em creditos', false)) return 'pagamento';
+    // A listagem de pedidos também tem um campo "Matrícula/CNM" (o filtro): vem ANTES de qualquer teste de campo de matrícula.
+    if (/listagem de pedidos/.test(textoDaPagina(doc)) && acharTexto(doc, 'novo pedido')) return 'lista';
     if (acharSelect(doc, 'finalidade')) return 'finalidade';
     if (acharSelect(doc, 'tipo certidao', 'tipocertidao', 'tipo de certidao') && acharSelect(doc, 'pedido por', 'pedidopor')) return 'tipo';
     if (acharSelect(doc, 'cidade')) return campoMatricula(doc) ? 'solicitacao' : 'cartorio';
