@@ -112,6 +112,14 @@ await passo('fundo: o PDF que abre na JUCESP é baixado com a sessão dela e ent
   const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.estado === 'ok').pop(); assert(fim && /Pronto!/.test(fim.texto) && /Ficha cadastral completa/.test(fim.texto), JSON.stringify(m.enviadas.at(-1)));
   assert.equal(await m.msg({tipo: 'quem'}, 71), null, 'terminou: a aba deixa de ser acompanhada');
 });
+await passo('fundo: a consolidação que o Apps Script achou na ficha vai para o pedido; só o contrato pedido traz a ficha antes', async () => {
+  const cons = {registro: '034.366/21-0', sessao: '2021-01-22'};
+  const m = mundoFundo({gas: {ok: true, nome: 'F.pdf', consolidacao: cons}}); await m.msg({tipo: 'pedido', pedido: pedido({quero: ['contrato']})}, PAINEL);
+  assert.deepEqual((await m.msg({tipo: 'quem'}, 71)).fila, ['ficha', 'contrato'], 'o número vem da ficha');
+  await m.msg({tipo: 'nire', nire: '35262229284', empresa: 'JRL HOLDING LTDA'}, 71);
+  await m.abrir('https://www.jucesponline.sp.gov.br/VisualizaTicket.aspx?sc=1', 71);
+  const meio = await m.msg({tipo: 'quem'}, 71); assert.deepEqual(meio.consolidacao, cons); assert.equal(meio.fichaLida, true);
+});
 await passo('fundo: pedindo os dois, depois da ficha volta à empresa para o contrato e termina só no segundo PDF', async () => {
   const m = mundoFundo({gas: {ok: true, nome: 'X.pdf', confirmar: true}}); await m.msg({tipo: 'pedido', pedido: pedido({quero: ['ficha', 'contrato']})}, PAINEL);
   await m.msg({tipo: 'nire', nire: '35262229284', empresa: 'JRL HOLDING LTDA'}, 71);
@@ -178,9 +186,9 @@ const PAG = {
   escolha: () => TOPO() + '<p>Selecione o documento ou o serviço desejado</p><form>' + [
     'Ficha Cadastral Completa (dados a partir de 1992)', 'Ficha Cadastral Simplificada (dados atuais da empresa)', 'Cópia Digitalizada de Documentos Arquivados (cópia simples - não tem valor jurídico de certidão)', 'Certidão Simplificada'
   ].map((t, i) => `<div><input type="radio" name="p" value="${i}">${t}</div>`).join('') + '<input type="button" value="OK"></form>',
-  copia: (linhas) => TOPO() + '<h2>Cópia Digitalizada de Documentos Arquivados</h2><table><tr><th></th><th>Sessão</th><th>Nº Registro</th><th>Protocolo</th><th>Descrição</th><th></th><th>Digitalização</th></tr>' +
+  copia: (linhas, pag) => TOPO() + '<h2>Cópia Digitalizada de Documentos Arquivados</h2><table><tr><th></th><th>Sessão</th><th>Nº Registro</th><th>Protocolo</th><th>Descrição</th><th></th><th>Digitalização</th></tr>' +
     linhas.map((l, i) => `<tr><td><input type="radio" name="s" value="${i}"></td><td>${l.data}</td><td>${l.reg}</td><td>${l.prot}</td><td>${l.desc}</td><td><a href="#">DETALHES</a></td><td>${l.disp === false ? 'INDISPONÍVEL' : 'DISPONÍVEL'}</td></tr><tr class="det" style="display:none"><td colspan="7">${l.det}</td></tr>`).join('') +
-    '</table><div>« < Anterior Mostrando 1 - ' + linhas.length + ' de ' + linhas.length + ' Próximo > »</div><input type="button" value="CONTINUAR">'
+    '</table><div>« < Anterior Mostrando ' + (pag ? pag.de + ' - ' + pag.ate + ' de ' + pag.total : '1 - ' + linhas.length + ' de ' + linhas.length) + ' <a href="#">Próximo ></a> »</div><input type="button" value="CONTINUAR">'
 };
 const L1 = {data: '20/09/2023', reg: '0', prot: 'SPP2330855821', desc: 'CONSTITUIÇÃO DE 35262229284', det: 'Ato: Constituição de Matriz'};
 const L2 = {data: '02/04/2026', reg: '1.180.995/26-0', prot: 'SPN2612209383', desc: 'ALTERAÇÃO DE SOCIOS/TITULAR/DIRETOR ...', det: 'Atos: Consolidação da Matriz, Alteração de Capital e QSA'};
@@ -224,6 +232,20 @@ await passo('tela: na lista de cópias, pega a CONSOLIDAÇÃO mais recente (os d
   const tres = await plano(PAG.copia([L0, L1, L2]), '/Restricted/Solicitacoes/Fotocopia/EscolheDocumentos.aspx', job({fila: ['contrato']}));
   assert.match(tres.radio, /02\/04\/2026/); assert.match(tres.texto, /havia 2, peguei a última/);
   const ordemTroca = await plano(PAG.copia([L2, L0, L1]), '/Restricted/Solicitacoes/Fotocopia/EscolheDocumentos.aspx', job({fila: ['contrato']})); assert.match(ordemTroca.radio, /02\/04\/2026/, 'não depende da ordem da lista');
+});
+await passo('tela: o número da última CONSOLIDAÇÃO CONTRATUAL da ficha acha a linha certa, mesmo sem descrição, e pagina até achar', async () => {
+  const caminho = '/Restricted/Solicitacoes/Fotocopia/EscolheDocumentos.aspx', semDesc = (reg, data = '') => ({data, reg, prot: 'P' + reg.replace(/\D/g, ''), desc: '', det: ''});
+  const alvo = {registro: '034.366/21-0', sessao: '2021-01-22'};
+  const pg3 = [semDesc('180.568/10-3', '02/06/2010'), semDesc('027.744/12-7', '16/02/2012'), semDesc('417.973/17-2', '02/10/2017'), semDesc('034.366/21-0', '22/01/2021')];
+  const certo = await plano(PAG.copia(pg3, {de: 21, ate: 24, total: 24}), caminho, job({fila: ['contrato'], consolidacao: alvo}));
+  assert.equal(certo.acao, 'baixar'); assert.match(certo.radio, /034\.366\/21-0/); assert.equal(certo.botao, 'CONTINUAR'); assert.match(certo.texto, /034\.366\/21-0/);
+  const pg1 = Array.from({length: 10}, (_, i) => semDesc('0' + (100 + i) + '.000/1' + i + '-1'));
+  const proxima = await plano(PAG.copia(pg1, {de: 1, ate: 10, total: 24}), caminho, job({fila: ['contrato'], consolidacao: alvo}));
+  assert.equal(proxima.acao, 'clicar'); assert.match(proxima.clicar, /^Próximo/); assert.match(proxima.texto, /034\.366\/21-0/);
+  const nao = await plano(PAG.copia(pg3.slice(0, 3), {de: 21, ate: 24, total: 24}), caminho, job({fila: ['contrato'], consolidacao: alvo}));
+  assert.equal(nao.acao, 'manual', 'última página e nada: para e diz, não escolhe outra'); assert.match(nao.texto, /034\.366\/21-0/); assert.match(nao.texto, /22\/01\/2021/);
+  const naoLida = await plano(PAG.copia(pg3, {de: 21, ate: 24, total: 24}), caminho, job({fila: ['contrato'], fichaLida: true, consolidacao: null}));
+  assert.equal(naoLida.acao, 'manual'); assert.match(naoLida.texto, /ficha cadastral não mostra/);
 });
 await passo('tela: sem consolidação, ou com cópia que tem tarifa, ela decide — o Ajudante não escolhe nem paga', async () => {
   const sem = await plano(PAG.copia([L1]), '/Restricted/Solicitacoes/Fotocopia/EscolheDocumentos.aspx', job({fila: ['contrato']})); assert.equal(sem.acao, 'manual'); assert.match(sem.texto, /nenhum ato de consolidação/); assert.match(sem.texto, /20\/09\/2023/);

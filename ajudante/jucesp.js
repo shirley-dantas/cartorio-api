@@ -122,12 +122,24 @@
     if (tipo === 'copia') {
       const linhas = linhasDaCopia(doc);
       if (!linhas.length) return { acao: 'erro', texto: 'A lista de documentos arquivados veio vazia.' };
-      const { escolhida, candidatas } = escolherConsolidacao(linhas);
-      const continuar = achar(doc, 'continuar', true);
-      if (!escolhida) return { acao: 'manual', texto: 'Não achei nenhum ato de consolidação na lista (' + ROTULO_LISTA(linhas) + '). Escolha a linha certa e clique em CONTINUAR — eu pego o PDF.' };
-      if (!escolhida.disponivel) return { acao: 'manual', texto: 'A cópia da consolidação de ' + escolhida.data.split('-').reverse().join('/') + ' não está disponível de graça (digitalização com tarifa). Eu não pago nada: se quiser pedir, faça você.' };
+      const continuar = achar(doc, 'continuar', true), reg = job.consolidacao && job.consolidacao.registro;
+      let escolhida, candidatas = [];
+      if (reg) {
+        // A regra dela: o número da última CONSOLIDAÇÃO CONTRATUAL da ficha cadastral (NUM.DOC) é o "Nº Registro" da lista. A lista tem páginas.
+        escolhida = linhas.find((l) => l.registro && digitos(l.registro) === digitos(reg));
+        const sessao = (job.consolidacao.sessao || '').split('-').reverse().join('/');
+        if (!escolhida) {
+          const pag = /mostrando (\d+) - (\d+) de (\d+)/.exec(textoDaPagina(doc)), prox = achar(doc, 'proximo', false);
+          if (pag && +pag[2] < +pag[3] && prox && !prox.disabled && !/disabled/i.test(prox.className || '')) return { acao: 'clicar', el: prox, chave: 'pag' + pag[1], texto: 'Procurando o registro ' + reg + ' (já vi até a linha ' + pag[2] + ' de ' + pag[3] + ')…' };
+          return { acao: 'manual', texto: 'Não achei na lista o registro ' + reg + ' (a consolidação de ' + sessao + ' que a ficha cadastral mostra). Escolha a linha certa e clique em CONTINUAR — eu pego o PDF.' };
+        }
+      } else {
+        const r = escolherConsolidacao(linhas); escolhida = r.escolhida; candidatas = r.candidatas;
+        if (!escolhida) return { acao: 'manual', texto: (job.fichaLida ? 'A ficha cadastral não mostra nenhum ato de "CONSOLIDAÇÃO CONTRATUAL", e a lista não diz qual é' : 'Não achei nenhum ato de consolidação na lista') + ' (' + ROTULO_LISTA(linhas) + '). Escolha a linha certa e clique em CONTINUAR — eu pego o PDF.' };
+      }
+      if (!escolhida.disponivel) return { acao: 'manual', texto: 'A cópia da consolidação ' + (escolhida.registro || '') + ' não está disponível de graça (digitalização com tarifa). Eu não pago nada: se quiser pedir, faça você.' };
       if (!continuar) return { acao: 'erro', texto: 'Não achei o botão CONTINUAR.' };
-      return { acao: 'baixar', radio: escolhida.radio, botao: continuar, linha: escolhida, texto: 'Consolidação mais recente: ' + escolhida.data.split('-').reverse().join('/') + (escolhida.registro ? ' (registro ' + escolhida.registro + ')' : '') + (candidatas.length > 1 ? ' — havia ' + candidatas.length + ', peguei a última' : '') + '.' };
+      return { acao: 'baixar', radio: escolhida.radio, botao: continuar, linha: escolhida, texto: 'Consolidação mais recente' + (escolhida.data ? ' (' + escolhida.data.split('-').reverse().join('/') + ')' : '') + (escolhida.registro ? ', registro ' + escolhida.registro : '') + (candidatas.length > 1 ? ' — havia ' + candidatas.length + ', peguei a última' : '') + '.' };
     }
     if (tipo === 'resultados') {
       const rs = resultados(doc);
@@ -361,7 +373,7 @@
       if (plano.acao === 'fim') { mostrar(plano.texto); return true; }
       if (plano.acao === 'erro') { parar(job, plano.texto, 'erro', plano.fatal); return true; }
       if (plano.acao === 'manual') { chrome.runtime.sendMessage({ tipo: 'manual' }); mostrar(plano.texto, '#A9895A'); dizer('manual', plano.texto); return true; }
-      if (tentativas(job.id, location.pathname + '|' + plano.acao + '|' + (job.fila || [])[0]) > 3) { parar(job, 'A página não respondeu ao que eu fiz (tentei 3 vezes).'); return true; }
+      if (tentativas(job.id, location.pathname + '|' + plano.acao + '|' + (job.fila || [])[0] + '|' + (plano.chave || '')) > 3) { parar(job, 'A página não respondeu ao que eu fiz (tentei 3 vezes).'); return true; }
       mostrar(plano.texto); dizer('andando', plano.texto);
       executar(plano);
       return true;
