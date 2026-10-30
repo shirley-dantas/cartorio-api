@@ -887,13 +887,13 @@ await passo('negativa página (no navegador): preenche o SQL e deixa o cursor no
 });
 const pedNeg = (o = {}) => ({id: 'ajpref0009', casoId: 'C12345', site: 'pref', servico: 'negativa-iptu', sql: '159.087.0016-8', ...o});
 const pdfDuc = (m, n = 1) => baixou(m, {id: n, url: 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/ImprimeCertidao.aspx?x=segredo', finalUrl: 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/ImprimeCertidao.aspx?x=segredo', filename: 'C:\\Users\\a\\Downloads\\certidao.pdf', mime: 'application/pdf'});
-await passo('negativa fundo: o pedido não pede data, abre a emissão e o PDF baixado vai ao Apps Script como NEGATIVA_IPTU; termina em ok pedindo para conferir que é NEGATIVA', async () => {
+await passo('negativa fundo: o pedido não pede data, abre a emissão e o PDF baixado vai ao Apps Script como NEGATIVA_IPTU; termina em ok, só dizendo que guardou', async () => {
   const m = mundoFundo({gas: {ok: true, nome: '159.087.0016-8_NEGATIVA_IPTU_2026-10-30_1.pdf', confirmar: false}});
   assert.equal((await m.msg({tipo: 'pedido', pedido: pedNeg()}, PAINEL)).ok, true); assert.equal(m.criadas[0].url, 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/frmConsultaEmissaoCertificado.aspx');
   assert.equal((await m.msg({tipo: 'pedido', pedido: pedNeg({id: 'ajpref0010', sql: '123'})}, PAINEL)).ok, false);
   await m.msg({tipo: 'pref-emitida'}, 71); await pdfDuc(m);
   const [g] = m.gasEnviado(); assert(g, 'enviado'); assert.equal(g.tipoSugerido, 'NEGATIVA_IPTU'); assert.equal(g.origemAjudante, 'prefeitura'); assert.equal(g.pessoaSugerida, '159.087.0016-8'); assert.equal(g.mimetype, 'application/pdf'); assert.equal(g.nomeArquivo, 'NEGATIVA_IPTU_15908700168.pdf'); assert.equal(g.casoId, 'C12345');
-  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim && fim.estado === 'ok' && /NEGATIVA/.test(fim.texto) && /Guardei|guardei no card/.test(fim.texto), JSON.stringify(fim));
+  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim && fim.estado === 'ok' && /Certidão tributária de IPTU/.test(fim.texto) && /guardei no card/.test(fim.texto) && !/confira/i.test(fim.texto), JSON.stringify(fim));
   const rel = JSON.parse(fim.relatorio); assert(rel.eventos.some((e) => e.guardado) && rel.eventos.some((e) => e.download && e.download.nome === 'certidao.pdf')); assert(!/segredo/.test(fim.relatorio), 'o endereço do download não vai inteiro');
 });
 await passo('negativa fundo: download de outro site, ou sem pedido da negativa andando, ou de pedido de valor venal, é ignorado; o mesmo PDF duas vezes entra uma vez; vigia de 90 s', async () => {

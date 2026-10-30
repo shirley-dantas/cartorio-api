@@ -392,7 +392,7 @@ async function capturarPref(job, item, opc) {
     let j; try { j = JSON.parse(txt); } catch (_) { throw new Error('o Apps Script não respondeu em JSON (precisa de nova versão?): ' + txt.replace(/\s+/g, ' ').slice(0, 60)); }
     if (!j || !j.ok) throw new Error((j && j.erro) || 'o Apps Script recusou o arquivo');
     await mudar(atual.id, (x) => { (x.arquivos = x.arquivos || []).push({ nome: j.nome }); ev(x, { guardado: j.nome }); });
-    await terminar(atual.id, 'ok', srv.nome + ' do imóvel ' + atual.sqlFormatado + ': guardei no card como ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '. Abra o PDF e confira se é a certidão NEGATIVA.');
+    await terminar(atual.id, 'ok', srv.nome + ' do imóvel ' + atual.sqlFormatado + ': guardei no card como ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.');
   } catch (e) {
     await mudar(job.id, (x) => { (x.falhas = x.falhas || []).push({ nome, erro: String((e && e.message) || e).slice(0, 140) }); });
     await terminar(job.id, 'erro', 'A prefeitura emitiu, mas não consegui guardar o PDF no card: ' + String((e && e.message) || e).slice(0, 120) + '. Ele está na pasta Downloads — arraste para a caixa do card.');

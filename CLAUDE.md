@@ -1303,8 +1303,8 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
     (`159.087.0016-8`, achado pelo rótulo "Informe o número do SQL", não pela ordem dos campos) e deixa o cursor no código. **Nunca clica em Emitir, "Ouvir Som", "Gerar Novo Código" nem em "Fechar"** do aviso
     "Emissão da certidão concluída! Aguarde o navegador disponibilizar… e depois feche esse aviso" — o download pode depender dele. Ela digita as letras e clica em Emitir; o PDF sai na hora e é pego pelos
     **downloads** do site da prefeitura (ou aba/blob), com o mesmo cuidado da RI Digital (bytes com a sessão dela, nunca cancela o download, mesmo PDF por dois caminhos entra uma vez) e vai ao card como
-    `NEGATIVA_IPTU`. Emitida e sem PDF em 90 s: erro escrito mandando olhar a pasta Downloads. **Em aberto:** como é o PDF e a tela quando o imóvel **tem débito** (a mensagem final já pede "confira se é a
-    certidão NEGATIVA", mas o Ajudante ainda não distingue) — falta um exemplo de cada. Sem pagamento: dá para testar à vontade.
+    `NEGATIVA_IPTU`. Emitida e sem PDF em 90 s: erro escrito mandando olhar a pasta Downloads. **Decisão dela (30/10/2026): basta salvar o PDF** — o Ajudante não distingue certidão negativa de positiva nem
+    manda conferir; quem abre o PDF é ela. Sem pagamento: dá para testar à vontade.
   - Falta: dados cadastrais (caminho distinto, ainda sem prints) e a consulta de individualização (lista de unidades do endereço, achar a linha "AP 2007").
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).

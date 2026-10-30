@@ -55,4 +55,4 @@ Se a prefeitura disser que não achou o cadastro, ele avisa escrito: confira o n
 ### Negativa de IPTU (versão 0.3.1)
 
 Na mesma faixa, **Negativa de IPTU**. O Ajudante abre a emissão da prefeitura, escolhe *Certidão Tributária de IPTU* e preenche o contribuinte. **O código da imagem é seu**: digite as letras e clique em **Emitir**.
-O PDF que a prefeitura gera é guardado no card. Abra e confira que é a certidão **negativa**.
+O PDF que a prefeitura gera é guardado no card.
