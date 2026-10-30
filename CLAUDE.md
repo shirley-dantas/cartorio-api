@@ -1298,7 +1298,14 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   - **Contribuinte em área maior não pede** (o painel desliga o botão): falta a consulta de individualização (etapa 2b).
   - O clique em *Pesquisar* é do Ajudante (é submit comum, ao contrário da JUCESP); se a página não responder em 12 s, a faixa pede o clique dela.
   - Precisa do **Apps Script novo**: `ORIGENS_DO_AJUDANTE` com `"prefeitura"` e os tipos `VALOR_VENAL_REFERENCIA`, `NEGATIVA_IPTU`, `DADOS_CADASTRAIS_IMOVEL` em `TIPOS_DO_AJUDANTE` e `TIPOS_DOC_CARD`.
-  - Falta: negativa de IPTU e dados cadastrais (caminhos distintos, ainda sem prints) e a consulta de individualização (lista de unidades do endereço, achar a linha "AP 2007").
+  - **A negativa de IPTU (0.3.1)** — `duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/frmConsultaEmissaoCertificado.aspx` (*Emissão de Certidão Conjunta de Tributos Municipais*, tipo **Certidão Tributária de IPTU**).
+    **Tem captcha ("Código da imagem") e ele é dela**, como o da JUCESP e o da RI Digital: o Ajudante só escolhe o tipo (se já não estiver nele; **sem a opção ele para, não escolhe outra**), preenche o SQL
+    (`159.087.0016-8`, achado pelo rótulo "Informe o número do SQL", não pela ordem dos campos) e deixa o cursor no código. **Nunca clica em Emitir, "Ouvir Som", "Gerar Novo Código" nem em "Fechar"** do aviso
+    "Emissão da certidão concluída! Aguarde o navegador disponibilizar… e depois feche esse aviso" — o download pode depender dele. Ela digita as letras e clica em Emitir; o PDF sai na hora e é pego pelos
+    **downloads** do site da prefeitura (ou aba/blob), com o mesmo cuidado da RI Digital (bytes com a sessão dela, nunca cancela o download, mesmo PDF por dois caminhos entra uma vez) e vai ao card como
+    `NEGATIVA_IPTU`. Emitida e sem PDF em 90 s: erro escrito mandando olhar a pasta Downloads. **Em aberto:** como é o PDF e a tela quando o imóvel **tem débito** (a mensagem final já pede "confira se é a
+    certidão NEGATIVA", mas o Ajudante ainda não distingue) — falta um exemplo de cada. Sem pagamento: dá para testar à vontade.
+  - Falta: dados cadastrais (caminho distinto, ainda sem prints) e a consulta de individualização (lista de unidades do endereço, achar a linha "AP 2007").
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
 

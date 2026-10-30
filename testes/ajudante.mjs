@@ -22,7 +22,7 @@ await passo('manifesto: só a JUCESP, o painel e o Apps Script; sem poder amplo 
   assert.equal(m.manifest_version, 3);
   assert.match(ler('ajudante/painel.js'), new RegExp("VERSAO = '" + m.version.replace(/\./g, '\\.') + "'"), 'a versão do manifesto e a da ponte andam juntas');
   assert.deepEqual(m.permissions.sort(), ['contentSettings', 'declarativeNetRequest', 'downloads', 'scripting', 'storage', 'tabs', 'webNavigation']);
-  assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|(\*\.)?ridigital\.org\.br|itbi\.prefeitura\.sp\.gov\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
+  assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|(\*\.)?ridigital\.org\.br|itbi\.prefeitura\.sp\.gov\.br|duc\.prefeitura\.sp\.gov\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
   const todos = JSON.stringify(m);
   assert(!/<all_urls>|\*:\/\/\*\/|"http:\/\//.test(todos), 'nada de all_urls nem de http');
   assert(m.content_scripts.every((c) => c.matches.every((u) => u.startsWith('https://'))));
@@ -76,12 +76,12 @@ function mundoFundo({semFoto, buscarUrl, auxiliar, popupsFalha, buscarPdf, pdf =
     ...(auxiliar ? {scripting: {executeScript: async (o) => { auxiliares.push({tabId: o.target.tabId, args: o.args, func: typeof o.func}); if (auxiliar === 'erro') throw new Error('sem acesso'); return [{result: auxiliar}]; }}} : {}),
     declarativeNetRequest: {updateDynamicRules: async (o) => { regras.push(JSON.parse(JSON.stringify(o))); }},
     webNavigation: {onBeforeNavigate: {addListener: (f) => { ouv.nav = f; }}},
-    downloads: {onCreated: {addListener: (f) => { ouv.dl = f; }}, onChanged: {addListener: (f) => { ouv.dlmudou = f; }}, search: async ({id}) => baixados.filter((b) => b.id === id)},
+    downloads: {onCreated: {addListener: (f) => { (ouv.dls = ouv.dls || []).push(f); ouv.dl = (item) => ouv.dls.forEach((g) => g(item)); }}, onChanged: {addListener: (f) => { ouv.dlmudou = f; }}, search: async ({id}) => baixados.filter((b) => b.id === id)},
     contentSettings: {popups: {set: async (o) => { if (popupsFalha) throw new Error(popupsFalha); popups.push({acao: 'set', ...o}); }, clear: async (o) => { popups.push({acao: 'clear', ...o}); }}}
   };
   const fetch = async (url, o = {}) => {
     busca.push({url: String(url), o});
-    if (String(url).startsWith('https://www.jucesponline.sp.gov.br/') || String(url).startsWith('https://ridigital.org.br/')) { const b = new TextEncoder().encode(pdf); return {ok: statusPdf < 300, status: statusPdf, headers: {get: () => tipoPdf}, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)}; }
+    if (String(url).startsWith('https://www.jucesponline.sp.gov.br/') || String(url).startsWith('https://ridigital.org.br/') || String(url).startsWith('https://duc.prefeitura.sp.gov.br/')) { const b = new TextEncoder().encode(pdf); return {ok: statusPdf < 300, status: statusPdf, headers: {get: () => tipoPdf}, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)}; }
     if (String(url).startsWith('https://script.google.com/')) return {ok: true, text: async () => gasTexto !== undefined ? gasTexto : JSON.stringify(gas)};
     throw new Error('endereço inesperado ' + url);
   };
@@ -848,6 +848,62 @@ await passo('prefeitura: resposta de aba que não é a do pedido não faz nada; 
   assert.equal(await m.msg({tipo: 'pref-resultado', sql: '1', valor: '1', endereco: ''}, 99), null); assert.equal(m.fotos.length, 0);
   const gas = ler('apps-script/cartorio-drive-api.js');
   assert(/ORIGENS_DO_AJUDANTE = \[[^\]]*"prefeitura"/.test(gas)); for (const t of ['VALOR_VENAL_REFERENCIA', 'NEGATIVA_IPTU', 'DADOS_CADASTRAIS_IMOVEL']) assert(new RegExp('TIPOS_DO_AJUDANTE = \\[[^\\]]*"' + t + '"').test(gas) && new RegExp('TIPOS_DOC_CARD = \\[[^\\]]*"' + t + '"').test(gas), t);
+});
+// ── A Prefeitura: certidão tributária de IPTU (a negativa) — duc.prefeitura.sp.gov.br ──
+// As telas são as REAIS que ela mandou: a consulta com o tipo, o SQL e o "Código da imagem" (captcha, que é dela), e o aviso "Emissão da certidão concluída!".
+const PD = {
+  tela: ({sql = '', cod = '', tipos = ['Certidão Tributária de IPTU', 'Certidão Conjunta de Débitos'], sel = 0, aviso = false, sem = false} = {}) => '<h2>Emissão de Certidão Conjunta de Tributos Municipais</h2><p>Escolha um tipo de certidão, informe o CPF/Raiz de CNPJ ou SQL e selecione Emitir</p>' +
+    '<table><tr><td><label>Tipo de Certidão:</label></td><td><select id="tipo">' + (sem ? '<option>Certidão de Quitação</option>' : tipos.map((t, i) => '<option value="' + i + '"' + (i === sel ? ' selected' : '') + '>' + t + '</option>').join('')) + '</select></td></tr>' +
+    '<tr><td><label>Informe o número do SQL:</label></td><td><input type="text" id="sql" value="' + sql + '"></td></tr></table>' +
+    '<div><img alt="" src="x" width="60" height="20"><div>Código da imagem:</div><input type="text" id="cod" value="' + cod + '"><a href="#">Ouvir Som</a><a href="#">Gerar Novo Código</a></div>' +
+    '<input type="submit" value="Emitir"><input type="button" value="Limpar"><input type="button" value="Sair">' +
+    (aviso ? '<div class="modal"><b>Emissão de certidão</b><p>ATENÇÃO!</p><p>Emissão da certidão concluída! Aguarde o navegador disponibilizar a opção para abertura ou download do documento e depois feche esse aviso.</p><button>Fechar</button></div>' : '')
+};
+async function planoDuc(html, job, estado) {
+  await pagina.goto('about:blank'); await pagina.setContent('<!doctype html><html><body>' + html + '</body></html>'); await pagina.addScriptTag({content: ler('ajudante/prefeitura.js')});
+  return pagina.evaluate(({job, estado}) => { const p = window.AJ_PREF.planejarDuc(document, job, estado), r = {acao: p.acao, texto: p.texto, sqlFormatado: p.sqlFormatado, jaEstaNela: p.jaEstaNela}; if (p.sql) r.sqlId = p.sql.id; if (p.captcha) r.capId = p.captcha.id; if (p.opcao) r.opcao = p.opcao.textContent; return r; }, {job, estado});
+}
+const jobNeg = (o = {}) => jobPref({id: 'ajpref0009', servico: 'negativa-iptu', data: '', ...o});
+await passo('negativa tela: acha o SQL e o código da imagem pelos rótulos (não pela ordem), escolhe o tipo certo e preenche — o captcha fica para ela', async () => {
+  const p = await planoDuc(PD.tela(), jobNeg(), {preenchido: false});
+  assert.equal(p.acao, 'preencher'); assert.equal(p.sqlId, 'sql'); assert.equal(p.capId, 'cod'); assert.equal(p.sqlFormatado, '159.087.0016-8'); assert.match(p.opcao, /Tributária de IPTU/); assert.equal(p.jaEstaNela, true, 'já está no tipo certo: não mexe na lista');
+  const outra = await planoDuc(PD.tela({sel: 1}), jobNeg(), {preenchido: false}); assert.equal(outra.jaEstaNela, false, 'tipo diferente: precisa trocar');
+  assert.equal((await planoDuc(PD.tela({sql: '159.087.0016-8'}), jobNeg(), {preenchido: true})).acao, 'esperar-captcha');
+});
+await passo('negativa tela: "Emissão da certidão concluída" vira emitida; sem a opção do IPTU para sem escolher outra; tela estranha não é adivinhada', async () => {
+  assert.equal((await planoDuc(PD.tela({aviso: true}), jobNeg(), {preenchido: true})).acao, 'emitida');
+  const sem = await planoDuc(PD.tela({sem: true}), jobNeg(), {preenchido: false}); assert.equal(sem.acao, 'erro'); assert.match(sem.texto, /Não escolhi outra/);
+  assert.equal((await planoDuc('<h1>Outra coisa</h1><input type="text"><input type="submit" value="Entrar">', jobNeg(), {})).acao, 'nao-reconheco');
+});
+await passo('negativa página (no navegador): preenche o SQL e deixa o cursor no código da imagem SEM clicar em Emitir e sem tocar em "Ouvir Som" nem "Gerar Novo Código"; avisa o fundo quando a emissão conclui', async () => {
+  await pagina.goto('about:blank'); await pagina.setContent('<!doctype html><html><body>' + PD.tela() + '<script>window.__cliques=[];document.addEventListener("click",function(e){window.__cliques.push((e.target.value||e.target.textContent||"").trim())},true);</script></body></html>');
+  await pagina.evaluate(({job}) => { window.__msgs = []; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? job : {ok: true}; }}}; }, {job: jobNeg()});
+  await pagina.addScriptTag({content: ler('ajudante/prefeitura.js')}); await pagina.waitForTimeout(2300);
+  let r = await pagina.evaluate(() => ({sql: document.getElementById('sql').value, cod: document.getElementById('cod').value, foco: document.activeElement && document.activeElement.id, cliques: window.__cliques, msgs: window.__msgs.map((m) => m.tipo + (m.estado ? ':' + m.estado : ''))}));
+  assert.equal(r.sql, '159.087.0016-8'); assert.equal(r.cod, '', 'o código da imagem é dela'); assert.equal(r.foco, 'cod'); assert.deepEqual(r.cliques, [], 'o Ajudante não clicou em nada'); assert(r.msgs.includes('pref-pagina:espera'), r.msgs.join(','));
+  await pagina.evaluate(() => { document.body.insertAdjacentHTML('beforeend', '<div class="modal"><p>Emissão da certidão concluída! Aguarde o navegador disponibilizar a opção para abertura ou download do documento e depois feche esse aviso.</p><button>Fechar</button></div>'); });
+  await pagina.waitForTimeout(1900);
+  r = await pagina.evaluate(() => ({msgs: window.__msgs.map((m) => m.tipo), cliques: window.__cliques})); assert(r.msgs.includes('pref-emitida')); assert.equal(r.msgs.filter((t) => t === 'pref-emitida').length, 1); assert.deepEqual(r.cliques, [], 'nem o aviso ele fecha: o download pode depender dele');
+});
+const pedNeg = (o = {}) => ({id: 'ajpref0009', casoId: 'C12345', site: 'pref', servico: 'negativa-iptu', sql: '159.087.0016-8', ...o});
+const pdfDuc = (m, n = 1) => baixou(m, {id: n, url: 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/ImprimeCertidao.aspx?x=segredo', finalUrl: 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/ImprimeCertidao.aspx?x=segredo', filename: 'C:\\Users\\a\\Downloads\\certidao.pdf', mime: 'application/pdf'});
+await passo('negativa fundo: o pedido não pede data, abre a emissão e o PDF baixado vai ao Apps Script como NEGATIVA_IPTU; termina em ok pedindo para conferir que é NEGATIVA', async () => {
+  const m = mundoFundo({gas: {ok: true, nome: '159.087.0016-8_NEGATIVA_IPTU_2026-10-30_1.pdf', confirmar: false}});
+  assert.equal((await m.msg({tipo: 'pedido', pedido: pedNeg()}, PAINEL)).ok, true); assert.equal(m.criadas[0].url, 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/frmConsultaEmissaoCertificado.aspx');
+  assert.equal((await m.msg({tipo: 'pedido', pedido: pedNeg({id: 'ajpref0010', sql: '123'})}, PAINEL)).ok, false);
+  await m.msg({tipo: 'pref-emitida'}, 71); await pdfDuc(m);
+  const [g] = m.gasEnviado(); assert(g, 'enviado'); assert.equal(g.tipoSugerido, 'NEGATIVA_IPTU'); assert.equal(g.origemAjudante, 'prefeitura'); assert.equal(g.pessoaSugerida, '159.087.0016-8'); assert.equal(g.mimetype, 'application/pdf'); assert.equal(g.nomeArquivo, 'NEGATIVA_IPTU_15908700168.pdf'); assert.equal(g.casoId, 'C12345');
+  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim && fim.estado === 'ok' && /NEGATIVA/.test(fim.texto) && /Guardei|guardei no card/.test(fim.texto), JSON.stringify(fim));
+  const rel = JSON.parse(fim.relatorio); assert(rel.eventos.some((e) => e.guardado) && rel.eventos.some((e) => e.download && e.download.nome === 'certidao.pdf')); assert(!/segredo/.test(fim.relatorio), 'o endereço do download não vai inteiro');
+});
+await passo('negativa fundo: download de outro site, ou sem pedido da negativa andando, ou de pedido de valor venal, é ignorado; o mesmo PDF duas vezes entra uma vez; vigia de 90 s', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedNeg()}, PAINEL);
+  await baixou(m, {id: 7, url: 'https://exemplo.com/x.pdf', finalUrl: 'https://exemplo.com/x.pdf', filename: 'x.pdf', mime: 'application/pdf'}); assert.equal(m.gasEnviado().length, 0);
+  await pdfDuc(m, 8); await pdfDuc(m, 9); assert.equal(m.gasEnviado().length, 1, 'uma vez só');
+  const v = mundoFundo(); await v.msg({tipo: 'pedido', pedido: {id: 'ajpref0001', casoId: 'C12345', site: 'pref', servico: 'valor-venal', sql: '159.087.0016-8', data: '30/10/2026'}}, PAINEL); await pdfDuc(v); assert.equal(v.gasEnviado().length, 0, 'valor venal não espera PDF');
+  const w = mundoFundo(); await w.msg({tipo: 'pedido', pedido: pedNeg()}, PAINEL); await w.msg({tipo: 'pref-vigia'}, 71); assert(!w.enviadas.some((e) => e.fim), 'antes de emitir não há prazo');
+  await w.msg({tipo: 'pref-emitida'}, 71); w.store.jobs.ajpref0009.emitidaEm = Date.now() - 95000; await w.msg({tipo: 'pref-vigia'}, 71); await esperar();
+  const f = w.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(f && f.estado === 'erro' && /90 segundos/.test(f.texto) && /Downloads/.test(f.texto), JSON.stringify(f));
 });
 await passo('zip: o ajudante-do-painel.zip na raiz bate arquivo por arquivo com a pasta ajudante/ (se mexer na extensão, refazer o zip)', async () => {
   const {execFileSync} = await import('node:child_process'); const {readdirSync} = await import('node:fs');

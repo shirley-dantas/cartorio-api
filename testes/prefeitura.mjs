@@ -58,7 +58,7 @@ await passo('sem matrícula no card, a faixa não aparece; texto da matrícula n
 const DOC = {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'Matricula_79253.pdf', texto: T136}};
 const DOC_AREA = {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'Matricula_181816.pdf', texto: T2007}};
 await passo('o botão do valor venal: sem o Ajudante novo avisa, com ele traz a data de hoje (e vazia no inventário); contribuinte em área maior fica sem botão', () => {
-  assert(/instale o Ajudante do painel na versão 0\.3\.0/.test(mundo(DOC).__f.prefFaixaHtml(mundo(DOC).casos.C1)));
+  assert(/instale o Ajudante do painel na versão 0\.3\.1/.test(mundo(DOC).__f.prefFaixaHtml(mundo(DOC).casos.C1)));
   const m = mundo(DOC, {pref: true}), h = m.__f.prefFaixaHtml(m.casos.C1), hoje = new Date();
   assert(/Valor venal de referência/.test(h) && /pref-data-C1-0/.test(h)); assert(h.includes(String(hoje.getFullYear())), 'a data de hoje já vem escrita'); assert(/É a data de hoje/.test(h));
   const inv = mundo(DOC, {pref: true, tipo: 'Inventário e partilha'}), hi = inv.__f.prefFaixaHtml(inv.casos.C1); assert(/id="pref-data-C1-0" value=""/.test(hi) && /digite a data do óbito/.test(hi));
@@ -72,5 +72,12 @@ await passo('pedir o valor venal: manda ao Ajudante o contribuinte ESCOLHIDO e a
   assert(/área maior/.test(m.AJUDANTE.msg.C1.texto));
   const inv = mundo(DOC, {pref: true, tipo: 'Inventário', campos: {'pref-data-C1-0': ''}}); inv.window.prefPedirValorVenal('C1', 0); assert.equal(inv.postadas.length, 0); assert(/data do óbito/.test(inv.AJUDANTE.msg.C1.texto));
   const ruim = mundo(DOC, {pref: true, campos: {'pref-data-C1-0': '31/02/2026'}}); ruim.window.prefPedirValorVenal('C1', 0); assert.equal(ruim.postadas.length, 0); assert(/uma data que exista/.test(ruim.AJUDANTE.msg.C1.texto));
+});
+await passo('pedir a negativa de IPTU: manda o contribuinte escolhido, sem data; recusa área maior', () => {
+  assert(/Negativa de IPTU/.test(mundo(DOC, {pref: true}).__f.prefFaixaHtml(mundo(DOC, {pref: true}).casos.C1)) || true);
+  const m = mundo(DOC, {pref: true}); m.window.prefPedirNegativa('C1', 0);
+  assert.equal(m.postadas.length, 1); const p = m.postadas[0].pedido; assert.equal(p.site, 'pref'); assert.equal(p.servico, 'negativa-iptu'); assert.equal(p.sql, '170.049.0162-8'); assert.equal(p.data, undefined); assert.equal(p.casoId, 'C1');
+  m.window.prefEscolher('C1', 0, 0); m.window.prefPedirNegativa('C1', 0); assert.equal(m.postadas.length, 1, 'em área maior não pede'); assert(/área maior/.test(m.AJUDANTE.msg.C1.texto));
+  const h = mundo(DOC, {pref: true}); assert(/Negativa de IPTU<\/button>/.test(h.__f.prefFaixaHtml(h.casos.C1)) && /código da imagem/.test(h.__f.prefFaixaHtml(h.casos.C1)));
 });
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);

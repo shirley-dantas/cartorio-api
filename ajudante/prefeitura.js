@@ -71,7 +71,35 @@
     return { acao: 'preencher', campos: c, botao: b, partes: partesDoSql(alvo), data: job.data };
   }
 
-  const api = { planejar, campos, botaoPesquisar, mensagem, resposta, partesDoSql, formatarSql, ehData, norm };
+  // ── A certidão tributária de IPTU (a negativa): duc.prefeitura.sp.gov.br — Emissão de Certidão Conjunta de Tributos Municipais ──
+  // A tela tem CAPTCHA ("Código da imagem"), e esse é dela: o Ajudante escolhe o tipo, preenche o SQL e deixa o cursor no campo do código. Ela digita as letras e
+  // clica em Emitir; a prefeitura gera o PDF na hora e avisa "Emissão da certidão concluída!". Nunca se clica em "Ouvir Som" nem em "Gerar Novo Código".
+  const CERTIDAO_IPTU = 'tributaria de iptu';
+  // O campo que vem depois de um rótulo ("Informe o número do SQL:", "Código da imagem:"): pelo `for` do rótulo ou pelo primeiro campo de texto adiante dele.
+  function campoApos(doc, rotulo) {
+    const r = norm(rotulo);
+    const cand = Array.from(doc.querySelectorAll('label,span,td,div,b,strong,p')).filter((el) => visivel(el) && norm(el.textContent).startsWith(r) && norm(el.textContent).length < r.length + 12)
+      .sort((a, b) => (a.textContent || '').length - (b.textContent || '').length);
+    const el = cand[0]; if (!el) return null;
+    if (el.control) return el.control;
+    const todos = Array.from(doc.querySelectorAll('input')).filter((i) => visivel(i) && (!i.type || /^(text|tel|number)$/i.test(i.type)));
+    return todos.find((i) => el.compareDocumentPosition(i) & 4) || null;
+  }
+  function planejarDuc(doc, job, estado) {
+    const preenchido = !!(estado && estado.preenchido);
+    const texto = norm((doc.body && (doc.body.innerText || doc.body.textContent)) || '');
+    if (/emissao da certidao concluida/.test(texto)) return { acao: 'emitida' };
+    const sel = Array.from(doc.querySelectorAll('select')).filter(visivel).find((x) => Array.from(x.options).some((o) => norm(o.textContent).includes(CERTIDAO_IPTU)));
+    const sql = campoApos(doc, 'informe o numero do sql'), captcha = campoApos(doc, 'codigo da imagem');
+    const emitir = Array.from(doc.querySelectorAll('input[type=submit],input[type=button],button,a')).filter(visivel).find((b) => norm(b.value || b.innerText || b.textContent) === 'emitir');
+    if (!sql || !captcha || !emitir) return { acao: 'nao-reconheco', texto: 'Não reconheço esta tela da prefeitura (faltam o campo do SQL, o do código da imagem ou o botão Emitir).' };
+    if (!sel) return { acao: 'erro', texto: 'Não achei a opção “Certidão Tributária de IPTU” na lista de tipos desta tela da prefeitura. Não escolhi outra.' };
+    if (preenchido) return { acao: 'esperar-captcha', captcha };
+    const opcao = Array.from(sel.options).find((o) => norm(o.textContent).includes(CERTIDAO_IPTU));
+    return { acao: 'preencher', select: sel, opcao, jaEstaNela: sel.value === opcao.value, sql, captcha, sqlFormatado: formatarSql(job && job.sql) };
+  }
+
+  const api = { planejarDuc, campoApos, planejar, campos, botaoPesquisar, mensagem, resposta, partesDoSql, formatarSql, ehData, norm };
   raiz.AJ_PREF = api;
 
   // ── Daqui para baixo é a parte que mexe na página (só no navegador, com a extensão) ─────────────────────────
@@ -97,10 +125,43 @@
   const chave = (job) => 'ajpref_' + job.id;
   const clicouEm = (job) => { try { return Number(sessionStorage.getItem(chave(job)) || 0); } catch (_) { return 0; } };
 
+  async function iniciarDuc(job) {
+    const chaveDuc = 'ajduc_' + job.id;
+    const lido = (k) => { try { return sessionStorage.getItem(k); } catch (_) { return null; } };
+    const grava = (k, v) => { try { sessionStorage.setItem(k, v); } catch (_) { /* sem sessionStorage */ } };
+    // O clique em Emitir é dela (isTrusted): só se registra para o relatório.
+    document.addEventListener('click', (e) => { if (e.isTrusted && e.target && /emitir/i.test(String(e.target.value || e.target.textContent || ''))) mandar({ tipo: 'pref-pagina', texto: 'Emitindo a certidão…', registro: 'clique dela em Emitir' }); }, true);
+    let avisouEmitida = false, avisouCaptcha = false, preenchendo = false;
+    const tick = () => {
+      const p = planejarDuc(document, job, { preenchido: lido(chaveDuc) === '1' });
+      if (p.acao === 'emitida') {
+        if (!avisouEmitida) { avisouEmitida = true; mostrar('Emissão concluída — guardando o PDF no card…'); mandar({ tipo: 'pref-emitida' }); }
+        mandar({ tipo: 'pref-vigia' }); return false;
+      }
+      if (p.acao === 'erro' || p.acao === 'nao-reconheco') { mostrar(p.texto, '#B3261E'); mandar({ tipo: 'pref-erro', texto: p.texto + (p.acao === 'nao-reconheco' ? ' Faça à mão e arraste o PDF para a caixa do card.' : '') }); return true; }
+      if (p.acao === 'preencher' && !preenchendo) {
+        preenchendo = true;
+        if (!p.jaEstaNela) { p.select.value = p.opcao.value; p.select.dispatchEvent(new Event('change', { bubbles: true })); }
+        preencher(p.sql, p.sqlFormatado); grava(chaveDuc, '1');
+        p.captcha.focus();
+        mostrar('Preenchi o tipo e o contribuinte ' + p.sqlFormatado + '. Digite as letras da imagem e clique em Emitir — o resto é comigo.');
+        mandar({ tipo: 'pref-pagina', estado: 'espera', texto: 'Na aba da prefeitura: digite as letras da imagem e clique em Emitir.' });
+      }
+      if (p.acao === 'esperar-captcha' && !avisouCaptcha) { avisouCaptcha = true; mostrar('Digite as letras da imagem e clique em Emitir — o resto é comigo.'); p.captcha.focus(); }
+      mandar({ tipo: 'pref-vigia' });
+      return false;
+    };
+    mostrar('Ajudante ligado…');
+    const relogio = setInterval(() => { if (tick()) clearInterval(relogio); }, 1500);
+    setTimeout(() => clearInterval(relogio), 15 * 60 * 1000);
+  }
+
   async function iniciar() {
     let job;
     try { job = await chrome.runtime.sendMessage({ tipo: 'quem' }); } catch (_) { return; }
     if (!job || !job.id || job.fim || job.site !== 'pref') return;
+    if (job.servico === 'negativa-iptu') return iniciarDuc(job);   // quem decide é o pedido: este script só roda nos dois sites da prefeitura
+    if (job.servico !== 'valor-venal') return;
     mostrar('Ajudante ligado…');
     let avisouMao = false, entregue = false;
     const tick = () => {
