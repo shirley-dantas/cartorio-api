@@ -1329,6 +1329,7 @@ Regras que saíram dos casos reais dela e **não devem ser mexidas sem perguntar
 - **"Em área maior"** (`areaMaior`) não basta para pedir: só a **consulta no site** diz se já houve individualização. Quando houve, a prefeitura devolve a lista de todas as unidades do endereço
   (Compl. "AP 101", "AP 2007"… com o contribuinte de cada uma) e o Ajudante deve achar **a unidade da matrícula** (`unidade.compl`, hoje só "apartamento" → "AP n"; outros tipos ficam
   sem complemento até ela mostrar como a prefeitura escreve) e seguir com o número individual. **Não achou, ou achou mais de uma linha: para e mostra, nunca escolhe.**
+- **Quando a leitura não acha o contribuinte** (31/10/2026, o apartamento 131 dela): a leitura aceita espaços entre os grupos, `.`, `/`, `-` ou nada antes do dígito, e número de 11 dígitos sem pontuação só com "contribuinte/cadastro/SQL/inscrição" perto. Se mesmo assim nada vier, a faixa **mostra as frases do texto lido que falam de contribuinte/IPTU** (ou diz que o texto não fala nisso) e abre um campo **Contribuinte (SQL)** para digitar à mão (`prefAtual`, `PREF.manual`); digitado, os três botões aparecem, marcados "digitado por você". Nada é chutado.
 - **Falta (etapa 2):** o Ajudante na prefeitura — consulta de individualização e os três pedidos. Precisa dos prints dos caminhos, de como ela entra (certificado/senha, captcha) e se pagam algo.
 - Teste: `node testes/prefeitura.mjs` (usa trechos reais das três matrículas).
 

@@ -91,4 +91,16 @@ await passo('dados cadastrais no painel: sugere os CPF/CNPJ que a matrícula cit
   for (const [doc, ex, re] of [['', '2026', /Escreva o CPF ou CNPJ/], ['111.111.111-11', '2026', /não confere/], ['529.982.247-25', '26', /exercício/]]) { const r = mundo(DOCD, {pref: true, campos: {'pref-doc-C1-0': doc, 'pref-ex-C1-0': ex}}); r.window.prefPedirCadastrais('C1', 0); assert.equal(r.postadas.length, 0, doc + ex); assert(re.test(r.AJUDANTE.msg.C1.texto), r.AJUDANTE.msg.C1.texto); }
   ok.window.prefEscolher('C1', 0, 0); ok.window.prefPedirCadastrais('C1', 0); assert.equal(ok.postadas.length, 1, 'área maior não pede');
 });
+await passo('contribuinte: lê formatos tolerantes e, se nada for achado, mostra o que o texto diz e deixa digitar à mão', () => {
+  const f = mundo().__f;
+  for (const t of ['Contribuinte nº 170 . 049 . 0003 / 6 em maior área', 'Contribuinte 170.049.0003.6', 'Inscrição municipal: 17004900036']) { const x = f.prefExtrair(t); assert.equal(x.contribuintes.length, 1, t); assert.equal(x.contribuintes[0].sql, '170.049.0003-6', t); }
+  assert.equal(f.prefExtrair('Protocolo 17004900036 do cartório').contribuintes.length, 0, 'sem palavra de contexto, número solto não vale');
+  const DOCN = {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'M.pdf', texto: 'Apartamento 131. O imóvel está cadastrado na Prefeitura sob o número a ser informado. IPTU em dia.'}};
+  const m = mundo(DOCN, {pref: true}), h = m.__f.prefFaixaHtml(m.casos.C1);
+  assert(/Não achei número de contribuinte/.test(h) && /IPTU em dia/.test(h) && /pref-sql-C1-0/.test(h), 'mostra o trecho e o campo');
+  assert(!/Valor venal de referência<\/button>/.test(h), 'sem número não há botões');
+  m.window.prefGuardarSql('C1', 0, '170.049.0162-8');
+  const h2 = m.__f.prefFaixaHtml(m.casos.C1); assert(/Valor venal de referência<\/button>/.test(h2) && /value="170\.049\.0162-8"/.test(h2), 'digitado, os botões aparecem: ' + h2.slice(-900));
+  m.window.prefPedirNegativa('C1', 0); assert.equal(m.postadas.length, 1); assert.equal(m.postadas[0].pedido.sql, '170.049.0162-8');
+});
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
