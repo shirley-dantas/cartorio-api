@@ -22,7 +22,7 @@ await passo('manifesto: só a JUCESP, o painel e o Apps Script; sem poder amplo 
   assert.equal(m.manifest_version, 3);
   assert.match(ler('ajudante/painel.js'), new RegExp("VERSAO = '" + m.version.replace(/\./g, '\\.') + "'"), 'a versão do manifesto e a da ponte andam juntas');
   assert.deepEqual(m.permissions.sort(), ['contentSettings', 'declarativeNetRequest', 'downloads', 'scripting', 'storage', 'tabs', 'webNavigation']);
-  assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|(\*\.)?ridigital\.org\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
+  assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|(\*\.)?ridigital\.org\.br|itbi\.prefeitura\.sp\.gov\.br|duc\.prefeitura\.sp\.gov\.br|notcertiptu\.prefeitura\.sp\.gov\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
   const todos = JSON.stringify(m);
   assert(!/<all_urls>|\*:\/\/\*\/|"http:\/\//.test(todos), 'nada de all_urls nem de http');
   assert(m.content_scripts.every((c) => c.matches.every((u) => u.startsWith('https://'))));
@@ -66,30 +66,30 @@ await passo('ponte: o andamento vindo do fundo chega ao painel; se o fundo não 
 });
 
 // ── O fundo ──
-function mundoFundo({buscarUrl, auxiliar, popupsFalha, buscarPdf, pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas = {ok: true, nome: 'JRL_HOLDING_LTDA_FICHA_CADASTRAL_JUCESP_2026-10-28_1.pdf', confirmar: false}, gasTexto, statusPdf = 200} = {}) {
-  const baixados = [], store = {}, enviadas = [], criadas = [], atualizadas = [], removidas = [], popups = [], regras = [], auxiliares = [], busca = [], ouv = {msg: null, upd: null, rem: null};
+function mundoFundo({semFoto, buscarUrl, auxiliar, popupsFalha, buscarPdf, pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas = {ok: true, nome: 'JRL_HOLDING_LTDA_FICHA_CADASTRAL_JUCESP_2026-10-28_1.pdf', confirmar: false}, gasTexto, statusPdf = 200} = {}) {
+  const fotos = [], baixados = [], store = {}, enviadas = [], criadas = [], atualizadas = [], removidas = [], popups = [], regras = [], auxiliares = [], busca = [], ouv = {msg: null, upd: null, rem: null};
   const chrome = {
     storage: {local: {get: async (k) => (k in store ? {[k]: JSON.parse(JSON.stringify(store[k]))} : {}), set: async (o) => { for (const [k, v] of Object.entries(o)) store[k] = JSON.parse(JSON.stringify(v)); }}},
-    tabs: {create: async (o) => { criadas.push(o); return {id: 70 + criadas.length}; }, get: async (id) => ({id, status: 'complete'}), update: async (id, o) => { atualizadas.push({id, ...o}); }, remove: async (id) => { removidas.push(id); }, sendMessage: async (id, m) => { enviadas.push({tabId: id, ...m}); if (m.tipo === 'buscar-pdf') { if (buscarPdf === 'erro') throw new Error('sem receptor'); return buscarPdf; } if (m.tipo === 'buscar-url') { if (buscarUrl === 'erro') throw new Error('sem receptor'); return buscarUrl; } },
+    tabs: {captureVisibleTab: async (janela, o) => { fotos.push({janela, ...o}); if (semFoto) throw new Error('sem permissão'); return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg=='; }, create: async (o) => { criadas.push(o); return {id: 70 + criadas.length, windowId: 9}; }, get: async (id) => ({id, status: 'complete'}), update: async (id, o) => { atualizadas.push({id, ...o}); }, remove: async (id) => { removidas.push(id); }, sendMessage: async (id, m) => { enviadas.push({tabId: id, ...m}); if (m.tipo === 'buscar-pdf') { if (buscarPdf === 'erro') throw new Error('sem receptor'); return buscarPdf; } if (m.tipo === 'buscar-url') { if (buscarUrl === 'erro') throw new Error('sem receptor'); return buscarUrl; } },
       onUpdated: {addListener: (f) => { ouv.upd = f; }}, onRemoved: {addListener: (f) => { ouv.rem = f; }}, onCreated: {addListener: (f) => { ouv.cri = f; }}},
     runtime: {onMessage: {addListener: (f) => { ouv.msg = f; }}},
     ...(auxiliar ? {scripting: {executeScript: async (o) => { auxiliares.push({tabId: o.target.tabId, args: o.args, func: typeof o.func}); if (auxiliar === 'erro') throw new Error('sem acesso'); return [{result: auxiliar}]; }}} : {}),
     declarativeNetRequest: {updateDynamicRules: async (o) => { regras.push(JSON.parse(JSON.stringify(o))); }},
     webNavigation: {onBeforeNavigate: {addListener: (f) => { ouv.nav = f; }}},
-    downloads: {onCreated: {addListener: (f) => { ouv.dl = f; }}, onChanged: {addListener: (f) => { ouv.dlmudou = f; }}, search: async ({id}) => baixados.filter((b) => b.id === id)},
+    downloads: {onCreated: {addListener: (f) => { (ouv.dls = ouv.dls || []).push(f); ouv.dl = (item) => ouv.dls.forEach((g) => g(item)); }}, onChanged: {addListener: (f) => { ouv.dlmudou = f; }}, search: async ({id}) => baixados.filter((b) => b.id === id)},
     contentSettings: {popups: {set: async (o) => { if (popupsFalha) throw new Error(popupsFalha); popups.push({acao: 'set', ...o}); }, clear: async (o) => { popups.push({acao: 'clear', ...o}); }}}
   };
   const fetch = async (url, o = {}) => {
     busca.push({url: String(url), o});
-    if (String(url).startsWith('https://www.jucesponline.sp.gov.br/') || String(url).startsWith('https://ridigital.org.br/')) { const b = new TextEncoder().encode(pdf); return {ok: statusPdf < 300, status: statusPdf, headers: {get: () => tipoPdf}, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)}; }
+    if (String(url).startsWith('https://www.jucesponline.sp.gov.br/') || String(url).startsWith('https://ridigital.org.br/') || String(url).startsWith('https://duc.prefeitura.sp.gov.br/') || String(url).startsWith('https://notcertiptu.prefeitura.sp.gov.br/')) { const b = new TextEncoder().encode(pdf); return {ok: statusPdf < 300, status: statusPdf, headers: {get: () => tipoPdf}, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)}; }
     if (String(url).startsWith('https://script.google.com/')) return {ok: true, text: async () => gasTexto !== undefined ? gasTexto : JSON.stringify(gas)};
     throw new Error('endereço inesperado ' + url);
   };
-  const ctx = {chrome, fetch, btoa, Uint8Array, ArrayBuffer, TextEncoder, String, URL, Promise, JSON, console, Object, Array, Number, Date, Error, module: undefined};
+  const ctx = {chrome, fetch, setTimeout, btoa, Uint8Array, ArrayBuffer, TextEncoder, String, URL, Promise, JSON, console, Object, Array, Number, Date, Error, module: undefined};
   vm.createContext(ctx); vm.runInContext(ler('ajudante/background.js'), ctx);
   const msg = (m, aba) => new Promise((res) => ouv.msg(m, aba ? {tab: {id: aba}} : {}, res));
   const abrir = (url, aba, opener) => { ouv.upd(aba, {url}, {url, openerTabId: opener}); return esperar(); };
-  return {baixados, store, enviadas, criadas, atualizadas, removidas, popups, regras, auxiliares, busca, msg, abrir, ouv, gasEnviado: () => busca.filter((b) => b.url.startsWith('https://script.google.com/')).map((b) => JSON.parse(b.o.body))};
+  return {fotos, baixados, store, enviadas, criadas, atualizadas, removidas, popups, regras, auxiliares, busca, msg, abrir, ouv, gasEnviado: () => busca.filter((b) => b.url.startsWith('https://script.google.com/')).map((b) => JSON.parse(b.o.body))};
 }
 const pedido = (o = {}) => ({id: 'ajteste1', casoId: 'C12345', cnpj: CNPJ, quero: ['ficha'], ...o});
 const PAINEL = 5;
@@ -606,7 +606,7 @@ await passo('Apps Script: o tipo vindo do Ajudante vale (sem adivinhar), com a p
   const gs = ler('apps-script/cartorio-drive-api.js');
   assert(/TIPOS_DOC_CARD = \[[^\]]*"FICHA_CADASTRAL_JUCESP"[^\]]*"CONTRATO_SOCIAL"/.test(gs));
   assert(/ORIGENS_DO_AJUDANTE\.indexOf\(String\(dados\.origemAjudante \|\| ""\)\) !== -1 && TIPOS_DO_AJUDANTE\.indexOf\(String\(dados\.tipoSugerido/.test(gs));
-  assert(/ORIGENS_DO_AJUDANTE = \["jucesp", "onr"\]/.test(gs) && /TIPOS_DO_AJUDANTE = \[[^\]]*"MATRICULA_IMOVEL"/.test(gs));
+  assert(/ORIGENS_DO_AJUDANTE = \["jucesp", "onr", "prefeitura"\]/.test(gs) && /TIPOS_DO_AJUDANTE = \[[^\]]*"MATRICULA_IMOVEL"/.test(gs));
   assert(/\['FICHA_CADASTRAL_JUCESP','Ficha cadastral \(JUCESP\)'\],\['CONTRATO_SOCIAL','Contrato social'\]/.test(html));
 });
 
@@ -761,6 +761,195 @@ await passo('tela: com o NIRE já conhecido e a página caindo na pesquisa, o ca
 });
 
 // ── O zip que ela baixa pelo próprio painel ──
+// ── A Prefeitura de São Paulo: valor venal de referência ──
+// As quatro telas abaixo são as REAIS que ela mandou (30/10/2026): o formulário, a resposta, "não encontrado" e a data inválida (que vaza o erro do servidor).
+const PP = {
+  campos: (v = ['', '', '', ''], d = '') => '<h1>Consulta Valor Venal de Referência</h1><table><tr><td>Cadastro do imóvel (Número do IPTU)</td><td><input type="text" maxlength="3" value="' + v[0] + '"><input type="text" maxlength="3" value="' + v[1] + '"><input type="text" maxlength="4" value="' + v[2] + '"><input type="text" maxlength="1" value="' + v[3] + '"></td><td>Data <input type="text" value="' + d + '"></td></tr></table>',
+  botoes: '<input type="submit" value="Pesquisar"><input type="button" value="Limpar"><input type="button" value="Voltar">',
+  formulario: () => PP.campos() + PP.botoes,
+  resposta: (sql = '159.087.0016.8', valor = '305.562,00') => PP.campos(['159', '087', '0016', '8'], '30/10/2026') + '<table><tr><th>SQL</th><th>Valor</th><th>Endereço</th></tr><tr><td>' + sql + '</td><td>' + valor + '</td><td>R ESTREANO AUGUSTO ESCALERA, 00173 LT 8 QD 2 BUTANTA 05551-250</td></tr></table>' + PP.botoes,
+  naoAchou: () => PP.campos(['000', '000', '0000', '0'], '30/10/2026') + '<p>Mensagem: NUMERO DO CADASTRO DO IMOVEL NAO ENCONTRADO</p>' + PP.botoes,
+  dataRuim: () => PP.campos(['159', '087', '0016', '8'], '00/00/0000') + '<p>Mensagem: Erro3: Parametros.Add(New OracleParameter(\'P_DT_TRANSACAO\', OracleDbType.Date, 0, CDate(data), ParameterDirection.Input)) :Conversion from string "00/00/0000" to type \'Date\' is not valid.</p>' + PP.botoes
+};
+async function planoPref(html, job, estado) {
+  await pagina.goto('about:blank');
+  await pagina.setContent('<!doctype html><html><body>' + html + '</body></html>');
+  await pagina.addScriptTag({content: ler('ajudante/prefeitura.js')});
+  return pagina.evaluate(({job, estado}) => {
+    const p = window.AJ_PREF.planejar(document, job, estado), r = {acao: p.acao, texto: p.texto, sql: p.sql, valor: p.valor, endereco: p.endereco, partes: p.partes, data: p.data};
+    if (p.botao) r.botao = p.botao.value; if (p.campos) r.nCampos = p.campos.sql.length;
+    return r;
+  }, {job, estado});
+}
+const jobPref = (o = {}) => ({id: 'ajpref0001', site: 'pref', servico: 'valor-venal', sql: '15908700168', sqlFormatado: '159.087.0016-8', data: '30/10/2026', ...o});
+await passo('prefeitura tela: o formulário vazio manda preencher os quatro quadradinhos e a data, e clicar em Pesquisar — nada de erro antes de clicar', async () => {
+  const p = await planoPref(PP.formulario(), jobPref(), {clicou: false});
+  assert.equal(p.acao, 'preencher'); assert.deepEqual(p.partes, ['159', '087', '0016', '8']); assert.equal(p.data, '30/10/2026'); assert.equal(p.botao, 'Pesquisar'); assert.equal(p.nCampos, 4);
+});
+await passo('prefeitura tela: a resposta do contribuinte pedido vira resultado (SQL, valor e endereço); depois de clicar e sem resposta ainda, espera', async () => {
+  const p = await planoPref(PP.resposta(), jobPref(), {clicou: true});
+  assert.equal(p.acao, 'resultado'); assert.equal(p.sql, '159.087.0016-8'); assert.equal(p.valor, '305.562,00'); assert.match(p.endereco, /ESTREANO AUGUSTO ESCALERA, 00173/);
+  assert.equal((await planoPref(PP.campos(['159', '087', '0016', '8'], '30/10/2026') + PP.botoes, jobPref(), {clicou: true})).acao, 'esperar');
+});
+await passo('prefeitura tela: resposta de OUTRO cadastro nunca vira certidão; "não encontrado" e o erro cru do servidor viram aviso escrito', async () => {
+  const outro = await planoPref(PP.resposta('159.087.0017.6'), jobPref(), {clicou: true}); assert.equal(outro.acao, 'erro'); assert.match(outro.texto, /outro cadastro/); assert.match(outro.texto, /Não guardei nada/);
+  const nao = await planoPref(PP.naoAchou(), jobPref({sql: '00000000000', sqlFormatado: '000.000.0000-0'}), {clicou: true}); assert.equal(nao.acao, 'erro'); assert.match(nao.texto, /não achou o cadastro 000\.000\.0000-0/); assert.match(nao.texto, /Confira o número contra a matrícula/);
+  const ruim = await planoPref(PP.dataRuim(), jobPref({data: '00/00/0000'}), {clicou: true}); assert.equal(ruim.acao, 'erro'); assert.match(ruim.texto, /devolveu uma mensagem/); assert(ruim.texto.length < 260, 'o erro do servidor não é despejado inteiro');
+  assert.equal((await planoPref(PP.naoAchou(), jobPref(), {clicou: false})).acao, 'preencher', 'mensagem velha antes de clicar não conta');
+});
+await passo('prefeitura tela: página que não é a consulta não é adivinhada; data e SQL são conferidos', async () => {
+  const x = await planoPref('<h1>Outra coisa</h1><input type="text"><input type="submit" value="Entrar">', jobPref(), {clicou: false}); assert.equal(x.acao, 'nao-reconheco');
+  const r = await pagina.evaluate(() => { const A = window.AJ_PREF; return [A.ehData('30/10/2026'), A.ehData('31/02/2026'), A.ehData('00/00/0000'), A.ehData('2026-10-30'), A.formatarSql('15908700168'), A.formatarSql('123')]; });
+  assert.deepEqual(r, [true, false, false, false, '159.087.0016-8', '']);
+});
+await passo('prefeitura página (no navegador): preenche os quatro quadradinhos e a data, clica em Pesquisar e entrega o resultado ao fundo', async () => {
+  const sim = '<script>document.querySelector("input[type=submit]").onclick=function(){var i=document.querySelectorAll("input[type=text]");window.__preenchido=[i[0].value,i[1].value,i[2].value,i[3].value,i[4].value];window.__cliques=(window.__cliques||0)+1;if(!window.__muda)document.body.insertAdjacentHTML("beforeend","<table><tr><th>SQL</th><th>Valor</th><th>Endereço</th></tr><tr><td>"+[i[0].value,i[1].value,i[2].value+"."+i[3].value].join(".")+"</td><td>305.562,00</td><td>R ESTREANO AUGUSTO ESCALERA</td></tr></table>");return false};</script>';
+  for (const muda of [false, true]) {
+    await pagina.goto('about:blank'); await pagina.setContent('<!doctype html><html><body>' + PP.formulario() + sim + '</body></html>');
+    await pagina.evaluate(({job, muda}) => { window.__muda = muda; window.__msgs = []; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? job : {ok: true}; }}}; }, {job: jobPref(), muda});
+    await pagina.addScriptTag({content: ler('ajudante/prefeitura.js')});
+    await pagina.waitForTimeout(muda ? 1800 : 3300);
+    const r = await pagina.evaluate(() => ({pre: window.__preenchido, cliques: window.__cliques, msgs: window.__msgs.map((m) => m.tipo), res: window.__msgs.find((m) => m.tipo === 'pref-resultado'), faixa: (document.getElementById('aj-faixa') || {}).textContent || ''}));
+    assert.deepEqual(r.pre, ['159', '087', '0016', '8', '30/10/2026'], 'os cinco campos foram preenchidos'); assert.equal(r.cliques, 1, 'clicou uma vez só');
+    if (!muda) { assert(r.res, 'entregou o resultado'); assert.equal(r.res.sql, '159.087.0016-8'); assert.equal(r.res.valor, '305.562,00'); assert.match(r.res.endereco, /ESTREANO/); assert.equal(r.msgs.filter((t) => t === 'pref-resultado').length, 1, 'entrega uma vez'); }
+    else assert(!r.res, 'sem resposta não há resultado');
+  }
+});
+await passo('prefeitura fundo: o pedido valida contribuinte, data e serviço; recusa escrito e não abre aba; pedido bom abre a consulta e guarda o trabalho', async () => {
+  const m = mundoFundo(), ped = (o = {}) => ({id: 'ajpref0001', casoId: 'C12345', site: 'pref', servico: 'valor-venal', sql: '159.087.0016-8', data: '30/10/2026', ...o});
+  for (const ruim of [{sql: '159.087.0016'}, {sql: ''}, {data: '31/02/2026'}, {data: '2026-10-30'}, {data: ''}, {servico: 'outra'}, {casoId: '../x'}, {id: ''}]) {
+    const r = await m.msg({tipo: 'pedido', pedido: ped(ruim)}, PAINEL); assert.equal(r.ok, false, JSON.stringify(ruim)); assert(r.texto);
+  }
+  assert.equal(m.criadas.length, 0);
+  assert.equal((await m.msg({tipo: 'pedido', pedido: ped()}, PAINEL)).ok, true); assert.equal(m.criadas[0].url, 'https://itbi.prefeitura.sp.gov.br/valorreferencia/tvm/frm_tvm_consulta_valor.aspx');
+  const job = await m.msg({tipo: 'quem'}, 71); assert.equal(job.site, 'pref'); assert.equal(job.sql, '15908700168'); assert.equal(job.sqlFormatado, '159.087.0016-8'); assert.equal(job.data, '30/10/2026');
+  await m.msg({tipo: 'pedido', pedido: ped({id: 'ajpref0002'})}, PAINEL); assert.equal(m.store.jobs.ajpref0001.fim, true, 'o pedido velho é encerrado ao começar o novo');
+});
+await passo('prefeitura fundo: o resultado vira a foto da tela, vai ao Apps Script como valor venal (origem prefeitura, contribuinte no nome) e o pedido termina em ok com o valor escrito', async () => {
+  const m = mundoFundo({gas: {ok: true, nome: '159.087.0016-8_VALOR_VENAL_REFERENCIA_2026-10-30_1.png', confirmar: false}});
+  await m.msg({tipo: 'pedido', pedido: {id: 'ajpref0001', casoId: 'C12345', site: 'pref', servico: 'valor-venal', sql: '159.087.0016-8', data: '30/10/2026'}}, PAINEL);
+  await m.msg({tipo: 'pref-resultado', sql: '159.087.0016-8', valor: '305.562,00', endereco: 'R ESTREANO AUGUSTO ESCALERA, 00173 LT 8 QD 2 BUTANTA 05551-250'}, 71); await new Promise((r) => setTimeout(r, 700));
+  assert.equal(m.fotos.length, 1); assert.equal(m.fotos[0].format, 'png'); assert.equal(m.fotos[0].janela, 9, 'a janela da aba do pedido'); assert(m.atualizadas.some((a) => a.id === 71 && a.active), 'a aba vem para a frente antes da foto');
+  const [g] = m.gasEnviado(); assert(g, 'enviado'); assert.equal(g.acao, 'painel-arquivo'); assert.equal(g.casoId, 'C12345'); assert.equal(g.tipoSugerido, 'VALOR_VENAL_REFERENCIA'); assert.equal(g.origemAjudante, 'prefeitura'); assert.equal(g.pessoaSugerida, '159.087.0016-8'); assert.equal(g.mimetype, 'image/png'); assert.match(g.nomeArquivo, /^VALOR_VENAL_REFERENCIA_15908700168\.png$/);
+  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim && fim.estado === 'ok' && /305\.562,00/.test(fim.texto) && /30\/10\/2026/.test(fim.texto) && /Guardei no card/.test(fim.texto), JSON.stringify(fim));
+  const rel = JSON.parse(fim.relatorio); assert.equal(rel.site, 'pref'); assert(rel.eventos.some((e) => e.guardado));
+});
+await passo('prefeitura fundo: se a foto ou o Apps Script falham, o erro é escrito com o valor que a prefeitura deu; erro da página encerra o pedido com o motivo', async () => {
+  const ped = {id: 'ajpref0001', casoId: 'C12345', site: 'pref', servico: 'valor-venal', sql: '159.087.0016-8', data: '30/10/2026'};
+  const a = mundoFundo({semFoto: true}); await a.msg({tipo: 'pedido', pedido: ped}, PAINEL); await a.msg({tipo: 'pref-resultado', sql: '159.087.0016-8', valor: '305.562,00', endereco: 'x'}, 71); await new Promise((r) => setTimeout(r, 700));
+  const fa = a.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert.equal(fa.estado, 'erro'); assert(/305\.562,00/.test(fa.texto) && /arraste/.test(fa.texto), fa.texto);
+  const b = mundoFundo({gas: {ok: false, erro: 'Tipo de documento inválido.'}}); await b.msg({tipo: 'pedido', pedido: ped}, PAINEL); await b.msg({tipo: 'pref-resultado', sql: '159.087.0016-8', valor: '305.562,00', endereco: 'x'}, 71); await new Promise((r) => setTimeout(r, 700));
+  const fb = b.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert.equal(fb.estado, 'erro'); assert(/Tipo de documento inválido/.test(fb.texto), fb.texto);
+  const c = mundoFundo(); await c.msg({tipo: 'pedido', pedido: ped}, PAINEL); await c.msg({tipo: 'pref-erro', texto: 'A prefeitura não achou o cadastro 159.087.0016-8.'}, 71); await new Promise((r) => setTimeout(r, 700));
+  const fc = c.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert.equal(fc.estado, 'erro'); assert.match(fc.texto, /não achou o cadastro/); assert.equal(c.fotos.length, 0, 'sem resultado não tira foto');
+});
+await passo('prefeitura: resposta de aba que não é a do pedido não faz nada; o Apps Script aceita a origem e os tipos novos', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: {id: 'ajpref0001', casoId: 'C12345', site: 'pref', servico: 'valor-venal', sql: '159.087.0016-8', data: '30/10/2026'}}, PAINEL);
+  assert.equal(await m.msg({tipo: 'pref-resultado', sql: '1', valor: '1', endereco: ''}, 99), null); assert.equal(m.fotos.length, 0);
+  const gas = ler('apps-script/cartorio-drive-api.js');
+  assert(/ORIGENS_DO_AJUDANTE = \[[^\]]*"prefeitura"/.test(gas)); for (const t of ['VALOR_VENAL_REFERENCIA', 'NEGATIVA_IPTU', 'DADOS_CADASTRAIS_IMOVEL']) assert(new RegExp('TIPOS_DO_AJUDANTE = \\[[^\\]]*"' + t + '"').test(gas) && new RegExp('TIPOS_DOC_CARD = \\[[^\\]]*"' + t + '"').test(gas), t);
+});
+// ── A Prefeitura: certidão tributária de IPTU (a negativa) — duc.prefeitura.sp.gov.br ──
+// As telas são as REAIS que ela mandou: a consulta com o tipo, o SQL e o "Código da imagem" (captcha, que é dela), e o aviso "Emissão da certidão concluída!".
+const PD = {
+  tela: ({sql = '', cod = '', tipos = ['Certidão Tributária de IPTU', 'Certidão Conjunta de Débitos'], sel = 0, aviso = false, sem = false} = {}) => '<h2>Emissão de Certidão Conjunta de Tributos Municipais</h2><p>Escolha um tipo de certidão, informe o CPF/Raiz de CNPJ ou SQL e selecione Emitir</p>' +
+    '<table><tr><td><label>Tipo de Certidão:</label></td><td><select id="tipo">' + (sem ? '<option>Certidão de Quitação</option>' : tipos.map((t, i) => '<option value="' + i + '"' + (i === sel ? ' selected' : '') + '>' + t + '</option>').join('')) + '</select></td></tr>' +
+    '<tr><td><label>Informe o número do SQL:</label></td><td><input type="text" id="sql" value="' + sql + '"></td></tr></table>' +
+    '<div><img alt="" src="x" width="60" height="20"><div>Código da imagem:</div><input type="text" id="cod" value="' + cod + '"><a href="#">Ouvir Som</a><a href="#">Gerar Novo Código</a></div>' +
+    '<input type="submit" value="Emitir"><input type="button" value="Limpar"><input type="button" value="Sair">' +
+    (aviso ? '<div class="modal"><b>Emissão de certidão</b><p>ATENÇÃO!</p><p>Emissão da certidão concluída! Aguarde o navegador disponibilizar a opção para abertura ou download do documento e depois feche esse aviso.</p><button>Fechar</button></div>' : '')
+};
+async function planoDuc(html, job, estado) {
+  await pagina.goto('about:blank'); await pagina.setContent('<!doctype html><html><body>' + html + '</body></html>'); await pagina.addScriptTag({content: ler('ajudante/prefeitura.js')});
+  return pagina.evaluate(({job, estado}) => { const p = window.AJ_PREF.planejarDuc(document, job, estado), r = {acao: p.acao, texto: p.texto, sqlFormatado: p.sqlFormatado, jaEstaNela: p.jaEstaNela}; if (p.sql) r.sqlId = p.sql.id; if (p.captcha) r.capId = p.captcha.id; if (p.opcao) r.opcao = p.opcao.textContent; return r; }, {job, estado});
+}
+const jobNeg = (o = {}) => jobPref({id: 'ajpref0009', servico: 'negativa-iptu', data: '', ...o});
+await passo('negativa tela: acha o SQL e o código da imagem pelos rótulos (não pela ordem), escolhe o tipo certo e preenche — o captcha fica para ela', async () => {
+  const p = await planoDuc(PD.tela(), jobNeg(), {preenchido: false});
+  assert.equal(p.acao, 'preencher'); assert.equal(p.sqlId, 'sql'); assert.equal(p.capId, 'cod'); assert.equal(p.sqlFormatado, '159.087.0016-8'); assert.match(p.opcao, /Tributária de IPTU/); assert.equal(p.jaEstaNela, true, 'já está no tipo certo: não mexe na lista');
+  const outra = await planoDuc(PD.tela({sel: 1}), jobNeg(), {preenchido: false}); assert.equal(outra.jaEstaNela, false, 'tipo diferente: precisa trocar');
+  assert.equal((await planoDuc(PD.tela({sql: '159.087.0016-8'}), jobNeg(), {preenchido: true})).acao, 'esperar-captcha');
+});
+await passo('negativa tela: "Emissão da certidão concluída" vira emitida; sem a opção do IPTU para sem escolher outra; tela estranha não é adivinhada', async () => {
+  assert.equal((await planoDuc(PD.tela({aviso: true}), jobNeg(), {preenchido: true})).acao, 'emitida');
+  const sem = await planoDuc(PD.tela({sem: true}), jobNeg(), {preenchido: false}); assert.equal(sem.acao, 'erro'); assert.match(sem.texto, /Não escolhi outra/);
+  assert.equal((await planoDuc('<h1>Outra coisa</h1><input type="text"><input type="submit" value="Entrar">', jobNeg(), {})).acao, 'nao-reconheco');
+});
+await passo('negativa página (no navegador): preenche o SQL e deixa o cursor no código da imagem SEM clicar em Emitir e sem tocar em "Ouvir Som" nem "Gerar Novo Código"; avisa o fundo quando a emissão conclui', async () => {
+  await pagina.goto('about:blank'); await pagina.setContent('<!doctype html><html><body>' + PD.tela() + '<script>window.__cliques=[];document.addEventListener("click",function(e){window.__cliques.push((e.target.value||e.target.textContent||"").trim())},true);</script></body></html>');
+  await pagina.evaluate(({job}) => { window.__msgs = []; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? job : {ok: true}; }}}; }, {job: jobNeg()});
+  await pagina.addScriptTag({content: ler('ajudante/prefeitura.js')}); await pagina.waitForTimeout(2300);
+  let r = await pagina.evaluate(() => ({sql: document.getElementById('sql').value, cod: document.getElementById('cod').value, foco: document.activeElement && document.activeElement.id, cliques: window.__cliques, msgs: window.__msgs.map((m) => m.tipo + (m.estado ? ':' + m.estado : ''))}));
+  assert.equal(r.sql, '159.087.0016-8'); assert.equal(r.cod, '', 'o código da imagem é dela'); assert.equal(r.foco, 'cod'); assert.deepEqual(r.cliques, [], 'o Ajudante não clicou em nada'); assert(r.msgs.includes('pref-pagina:espera'), r.msgs.join(','));
+  await pagina.evaluate(() => { document.body.insertAdjacentHTML('beforeend', '<div class="modal"><p>Emissão da certidão concluída! Aguarde o navegador disponibilizar a opção para abertura ou download do documento e depois feche esse aviso.</p><button>Fechar</button></div>'); });
+  await pagina.waitForTimeout(1900);
+  r = await pagina.evaluate(() => ({msgs: window.__msgs.map((m) => m.tipo), cliques: window.__cliques})); assert(r.msgs.includes('pref-emitida')); assert.equal(r.msgs.filter((t) => t === 'pref-emitida').length, 1); assert.deepEqual(r.cliques, [], 'nem o aviso ele fecha: o download pode depender dele');
+});
+const pedNeg = (o = {}) => ({id: 'ajpref0009', casoId: 'C12345', site: 'pref', servico: 'negativa-iptu', sql: '159.087.0016-8', ...o});
+const pdfDuc = (m, n = 1) => baixou(m, {id: n, url: 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/ImprimeCertidao.aspx?x=segredo', finalUrl: 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/ImprimeCertidao.aspx?x=segredo', filename: 'C:\\Users\\a\\Downloads\\certidao.pdf', mime: 'application/pdf'});
+await passo('negativa fundo: o pedido não pede data, abre a emissão e o PDF baixado vai ao Apps Script como NEGATIVA_IPTU; termina em ok, só dizendo que guardou', async () => {
+  const m = mundoFundo({gas: {ok: true, nome: '159.087.0016-8_NEGATIVA_IPTU_2026-10-30_1.pdf', confirmar: false}});
+  assert.equal((await m.msg({tipo: 'pedido', pedido: pedNeg()}, PAINEL)).ok, true); assert.equal(m.criadas[0].url, 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/frmConsultaEmissaoCertificado.aspx');
+  assert.equal((await m.msg({tipo: 'pedido', pedido: pedNeg({id: 'ajpref0010', sql: '123'})}, PAINEL)).ok, false);
+  await m.msg({tipo: 'pref-emitida'}, 71); await pdfDuc(m);
+  const [g] = m.gasEnviado(); assert(g, 'enviado'); assert.equal(g.tipoSugerido, 'NEGATIVA_IPTU'); assert.equal(g.origemAjudante, 'prefeitura'); assert.equal(g.pessoaSugerida, '159.087.0016-8'); assert.equal(g.mimetype, 'application/pdf'); assert.equal(g.nomeArquivo, 'NEGATIVA_IPTU_15908700168.pdf'); assert.equal(g.casoId, 'C12345');
+  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim && fim.estado === 'ok' && /Certidão tributária de IPTU/.test(fim.texto) && /guardei no card/.test(fim.texto) && !/confira/i.test(fim.texto), JSON.stringify(fim));
+  const rel = JSON.parse(fim.relatorio); assert(rel.eventos.some((e) => e.guardado) && rel.eventos.some((e) => e.download && e.download.nome === 'certidao.pdf')); assert(!/segredo/.test(fim.relatorio), 'o endereço do download não vai inteiro');
+});
+await passo('negativa fundo: download de outro site, ou sem pedido da negativa andando, ou de pedido de valor venal, é ignorado; o mesmo PDF duas vezes entra uma vez; vigia de 90 s', async () => {
+  const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedNeg()}, PAINEL);
+  await baixou(m, {id: 7, url: 'https://exemplo.com/x.pdf', finalUrl: 'https://exemplo.com/x.pdf', filename: 'x.pdf', mime: 'application/pdf'}); assert.equal(m.gasEnviado().length, 0);
+  await pdfDuc(m, 8); await pdfDuc(m, 9); assert.equal(m.gasEnviado().length, 1, 'uma vez só');
+  const v = mundoFundo(); await v.msg({tipo: 'pedido', pedido: {id: 'ajpref0001', casoId: 'C12345', site: 'pref', servico: 'valor-venal', sql: '159.087.0016-8', data: '30/10/2026'}}, PAINEL); await pdfDuc(v); assert.equal(v.gasEnviado().length, 0, 'valor venal não espera PDF');
+  const w = mundoFundo(); await w.msg({tipo: 'pedido', pedido: pedNeg()}, PAINEL); await w.msg({tipo: 'pref-vigia'}, 71); assert(!w.enviadas.some((e) => e.fim), 'antes de emitir não há prazo');
+  await w.msg({tipo: 'pref-emitida'}, 71); w.store.jobs.ajpref0009.emitidaEm = Date.now() - 95000; await w.msg({tipo: 'pref-vigia'}, 71); await esperar();
+  const f = w.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(f && f.estado === 'erro' && /90 segundos/.test(f.texto) && /Downloads/.test(f.texto), JSON.stringify(f));
+});
+// ── A Prefeitura: certidão de dados cadastrais do imóvel (IPTU) — notcertiptu.prefeitura.sp.gov.br (entra-se pelo e-gov) ──
+// As telas são as REAIS que ela mandou: o formulário (Cadastro do Imóvel + Exercício), o preenchido, e o aviso que pede o CPF/CNPJ do proprietário.
+const PC = {
+  titulo: '<h2>CERTIDÃO DE DADOS CADASTRAIS DO IMÓVEL - IPTU</h2><p>Campos com asterisco (*) são de preenchimento obrigatório.</p>',
+  form: (cad = '', ex = '') => PC.titulo + '<fieldset><legend>Informe os dados solicitados:</legend><label>* Cadastro do Imóvel: <input type="text" id="cad" value="' + cad + '"></label><br><label>* Exercício (AAAA): <input type="text" id="ex" value="' + ex + '"></label></fieldset><input type="submit" value="Consultar"><input type="button" value="Limpar"><input type="button" value="Voltar">',
+  aviso: (prop = '') => PC.form('159.087.0016-8', '2026') + '<div class="modal"><h3>ATENÇÃO</h3><p>Favor informar o CPF/CNPJ do proprietário ou do compromissário e dar OK</p><label>Proprietário</label><input type="text" id="prop" value="' + prop + '"><label>Compromissário</label><input type="text" id="comp"><button>Ok</button><button>Cancelar</button></div>',
+  login: '<h1>Acesse com sua conta gov.br</h1><input type="text" id="cpf"><input type="submit" value="Entrar">'
+};
+async function planoCad(html, job, estado) {
+  await pagina.goto('about:blank'); await pagina.setContent('<!doctype html><html><body>' + html + '</body></html>'); await pagina.addScriptTag({content: ler('ajudante/prefeitura.js')});
+  return pagina.evaluate(({job, estado}) => { const p = window.AJ_PREF.planejarCad(document, job, estado), r = {acao: p.acao, texto: p.texto, sqlFormatado: p.sqlFormatado, ano: p.ano, documento: p.documento}; if (p.cadastro) r.cad = p.cadastro.id; if (p.exercicio) r.ex = p.exercicio.id; if (p.proprietario) r.prop = p.proprietario.id; return r; }, {job, estado});
+}
+const jobCad = (o = {}) => jobPref({id: 'ajpref0020', servico: 'dados-cadastrais', data: '', documento: '11222333000181', exercicio: '2026', ...o});
+await passo('dados cadastrais tela: login do e-gov é esperado (nunca erro, nunca toque); o formulário manda preencher cadastro e exercício; o aviso manda informar o proprietário (com o campo certo, e não o Compromissário)', async () => {
+  assert.equal((await planoCad(PC.login, jobCad(), {})).acao, 'aguardar-login');
+  const f = await planoCad(PC.form(), jobCad(), {}); assert.equal(f.acao, 'preencher'); assert.equal(f.cad, 'cad'); assert.equal(f.ex, 'ex'); assert.equal(f.sqlFormatado, '159.087.0016-8'); assert.equal(f.ano, '2026');
+  assert.equal((await planoCad(PC.form('159.087.0016-8', '2026'), jobCad(), {preenchido: true})).acao, 'esperar');
+  const m = await planoCad(PC.aviso(), jobCad(), {preenchido: true}); assert.equal(m.acao, 'modal'); assert.equal(m.prop, 'prop'); assert.equal(m.documento, '11.222.333/0001-81');
+  assert.equal((await planoCad(PC.aviso(), jobCad(), {preenchido: true, modal: true})).acao, 'esperar');
+  const cpf = await planoCad(PC.aviso(), jobCad({documento: '52998224725'}), {}); assert.equal(cpf.documento, '529.982.247-25');
+});
+await passo('dados cadastrais página (no navegador): preenche cadastro e exercício, clica em Consultar, preenche o proprietário no aviso e clica em Ok — avisa o fundo que o PDF vai sair; nada de login tocado', async () => {
+  const sim = '<script>window.__cliques=[];document.addEventListener("click",function(e){window.__cliques.push((e.target.value||e.target.textContent||"").trim())},true);' +
+    'document.querySelector("input[type=submit]").onclick=function(){if(!document.querySelector(".modal"))document.body.insertAdjacentHTML("beforeend","<div class=modal><h3>ATENÇÃO</h3><p>Favor informar o CPF/CNPJ do proprietário ou do compromissário e dar OK</p><label>Proprietário</label><input type=text id=prop><label>Compromissário</label><input type=text id=comp><button id=ok>Ok</button><button>Cancelar</button></div>");return false};</script>';
+  await pagina.goto('about:blank'); await pagina.setContent('<!doctype html><html><body>' + PC.form() + sim + '</body></html>');
+  await pagina.evaluate(({job}) => { window.__msgs = []; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? job : {ok: true}; }}}; }, {job: jobCad()});
+  await pagina.addScriptTag({content: ler('ajudante/prefeitura.js')}); await pagina.waitForTimeout(4800);
+  const r = await pagina.evaluate(() => ({cad: document.getElementById('cad').value, ex: document.getElementById('ex').value, prop: document.getElementById('prop') && document.getElementById('prop').value, comp: document.getElementById('comp') && document.getElementById('comp').value, cliques: window.__cliques, msgs: window.__msgs.map((m) => m.tipo), json: JSON.stringify(window.__msgs)}));
+  assert.equal(r.cad, '159.087.0016-8'); assert.equal(r.ex, '2026'); assert.equal(r.prop, '11.222.333/0001-81'); assert.equal(r.comp, '', 'o compromissário fica vazio');
+  assert.deepEqual(r.cliques, ['Consultar', 'Ok']); assert.equal(r.msgs.filter((t) => t === 'pref-emitida').length, 1); assert(!/11222333000181|11\.222\.333/.test(r.json), 'o CPF/CNPJ não vai nas mensagens ao fundo');
+});
+const pedCad = (o = {}) => ({id: 'ajpref0020', casoId: 'C12345', site: 'pref', servico: 'dados-cadastrais', sql: '159.087.0016-8', documento: '11.222.333/0001-81', exercicio: '2026', ...o});
+await passo('dados cadastrais fundo: o pedido valida CPF/CNPJ (dígitos) e exercício; abre a certidão e o PDF baixado vai como DADOS_CADASTRAIS_IMOVEL; o documento do proprietário não aparece no relatório', async () => {
+  const m = mundoFundo({gas: {ok: true, nome: '159.087.0016-8_DADOS_CADASTRAIS_IMOVEL_2026-10-30_1.pdf', confirmar: false}});
+  for (const ruim of [{documento: ''}, {documento: '111.111.111-11'}, {documento: '11.222.333/0001-82'}, {documento: '123'}, {exercicio: '26'}, {exercicio: '1999'}, {exercicio: ''}]) { const r = await m.msg({tipo: 'pedido', pedido: pedCad(ruim)}, PAINEL); assert.equal(r.ok, false, JSON.stringify(ruim)); assert(r.texto); }
+  assert.equal(m.criadas.length, 0);
+  assert.equal((await m.msg({tipo: 'pedido', pedido: pedCad()}, PAINEL)).ok, true); assert.equal(m.criadas[0].url, 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx');
+  const job = await m.msg({tipo: 'quem'}, 71); assert.equal(job.documento, '11222333000181'); assert.equal(job.exercicio, '2026');
+  await m.msg({tipo: 'pref-emitida'}, 71);
+  await baixou(m, {id: 3, url: 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/Certidao.aspx?x=segredo', finalUrl: 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/Certidao.aspx?x=segredo', filename: 'C:\\Users\\a\\Downloads\\cert.pdf', mime: 'application/pdf'});
+  const [g] = m.gasEnviado(); assert(g, 'enviado'); assert.equal(g.tipoSugerido, 'DADOS_CADASTRAIS_IMOVEL'); assert.equal(g.origemAjudante, 'prefeitura'); assert.equal(g.nomeArquivo, 'DADOS_CADASTRAIS_IMOVEL_15908700168.pdf'); assert(!JSON.stringify(g).includes('11222333000181'), 'o CPF/CNPJ não vai ao Drive junto');
+  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim && fim.estado === 'ok' && /dados cadastrais/.test(fim.texto), JSON.stringify(fim)); assert(!/11222333000181|11\.222\.333/.test(fim.relatorio), 'o relatório não leva o documento');
+  const pdf = JSON.parse(fim.relatorio); assert(!('documento' in pdf));
+  assert((await mundoFundo().msg({tipo: 'pedido', pedido: pedCad({documento: '529.982.247-25'})}, PAINEL)).ok, 'CPF válido também vale');
+});
 await passo('zip: o ajudante-do-painel.zip na raiz bate arquivo por arquivo com a pasta ajudante/ (se mexer na extensão, refazer o zip)', async () => {
   const {execFileSync} = await import('node:child_process'); const {readdirSync} = await import('node:fs');
   const zip = join(RAIZ, 'ajudante-do-painel.zip'); assert(existsSync(zip), 'falta ajudante-do-painel.zip na raiz (zip -X -r ajudante-do-painel.zip ajudante)');

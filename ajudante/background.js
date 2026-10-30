@@ -6,6 +6,15 @@
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec';
 const JUCESP = 'https://www.jucesponline.sp.gov.br';
 const RIDIGITAL = 'https://ridigital.org.br';
+const PREFEITURA_VALOR = 'https://itbi.prefeitura.sp.gov.br/valorreferencia/tvm/frm_tvm_consulta_valor.aspx';
+const PREFEITURA_NEGATIVA = 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/frmConsultaEmissaoCertificado.aspx';
+const PREFEITURA_CADASTRAIS = 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx';
+// O que cada pedido da prefeitura é: onde começa, se pede data, e como o arquivo se chama no card.
+const PREF_SERVICOS = {
+  'valor-venal': { url: PREFEITURA_VALOR, data: true },
+  'negativa-iptu': { url: PREFEITURA_NEGATIVA, data: false, tipo: 'NEGATIVA_IPTU', arquivo: 'NEGATIVA_IPTU', nome: 'Certidão tributária de IPTU' },
+  'dados-cadastrais': { url: PREFEITURA_CADASTRAIS, data: false, documento: true, tipo: 'DADOS_CADASTRAIS_IMOVEL', arquivo: 'DADOS_CADASTRAIS_IMOVEL', nome: 'Certidão de dados cadastrais' }
+};
 const MAX_BYTES = 10 * 1024 * 1024;
 const DOCS = {
   ficha: { nome: 'Ficha cadastral completa', arquivo: 'FICHA_CADASTRAL_COMPLETA', tipo: 'FICHA_CADASTRAL_JUCESP' },
@@ -38,7 +47,7 @@ function falar(job, estado, texto, fim, relatorio) {
 async function terminar(id, estado, texto) {
   const job = await mudar(id, (j, todos) => { j.fim = true; j.estado = estado; j.texto = texto; ev(j, { fim: estado, texto: String(texto || '').slice(0, 90) }); if (!Object.values(todos).some((x) => !x.fim)) { popupsDaJucesp(false); bloquearTicket(false); } });
   if (job) {
-    falar(job, estado, texto, true, job.site === 'onr' ? relatorioOnr(job) : undefined);
+    falar(job, estado, texto, true, job.site === 'onr' ? relatorioOnr(job) : job.site === 'pref' ? relatorioPref(job) : undefined);
     for (const t of [job.jucespTabId].concat(job.filhas || [])) { try { Promise.resolve(chrome.tabs.sendMessage(t, { tipo: 'fim', estado, texto })).catch(() => {}); } catch (_) { /* a aba pode já ter fechado */ } }
   }
 }
@@ -84,6 +93,7 @@ const semQuery = (u) => { try { const x = new URL(u); return x.pathname; } catch
 
 async function criarPedido(pedido, sender) {
   if (pedido && pedido.site === 'onr') return criarPedidoOnr(pedido, sender);
+  if (pedido && pedido.site === 'pref') return criarPedidoPref(pedido, sender);
   const quero = Array.isArray(pedido && pedido.quero) ? pedido.quero.filter((q, i, a) => DOCS[q] && a.indexOf(q) === i) : [];
   if (!quero.length) return { ok: false, texto: 'Não entendi o que buscar.' };
   if (!/^[A-Za-z0-9_-]{6,40}$/.test(String((pedido && pedido.casoId) || ''))) return { ok: false, texto: 'Caso inválido.' };
@@ -307,6 +317,114 @@ chrome.downloads && chrome.downloads.onChanged && chrome.downloads.onChanged.add
   })().catch(() => {});
 });
 
+// ── A Prefeitura de São Paulo: valor venal de referência ──
+// Sem login nem pagamento: a página responde na mesma tela, e o que se guarda é a FOTO dela (o que ela fazia ao imprimir a tela).
+// O que importa é que o arquivo seja do contribuinte pedido — quem confere isso é a página (prefeitura.js), que só entrega o resultado
+// quando o SQL da resposta é o do pedido.
+function dataValida(d) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(d || '')); if (!m) return false;
+  const dt = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return dt.getFullYear() === Number(m[3]) && dt.getMonth() === Number(m[2]) - 1 && dt.getDate() === Number(m[1]);
+}
+function docValido(d) {
+  d = String(d || '').replace(/\D/g, '');
+  if (/^(\d)\1+$/.test(d)) return false;
+  if (d.length === 11) { const dv = (n) => { let s = 0; for (let i = 0; i < n; i++) s += Number(d[i]) * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; }; return dv(9) === Number(d[9]) && dv(10) === Number(d[10]); }
+  return d.length === 14 && cnpjValido(d);
+}
+const sqlFormatado = (d) => d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 10) + '-' + d.slice(10);
+async function criarPedidoPref(p, sender) {
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(String(p.casoId || ''))) return { ok: false, texto: 'Caso inválido.' };
+  if (!/^[A-Za-z0-9_-]{4,40}$/.test(String(p.id || ''))) return { ok: false, texto: 'Pedido inválido.' };
+  const srv = PREF_SERVICOS[p.servico]; if (!srv) return { ok: false, texto: 'Não entendi qual certidão pedir.' };
+  const sql = String(p.sql || '').replace(/\D/g, ''); if (sql.length !== 11) return { ok: false, texto: 'O número do contribuinte precisa ter 11 dígitos (setor, quadra, lote e dígito).' };
+  const documento = String(p.documento || '').replace(/\D/g, ''); if (srv.documento && !docValido(documento)) return { ok: false, texto: 'O CPF ou CNPJ do proprietário não confere — confira os dígitos.' };
+  const exercicio = String(p.exercicio || '').trim(); if (srv.documento && !(/^\d{4}$/.test(exercicio) && Number(exercicio) >= 2000 && Number(exercicio) <= new Date().getFullYear() + 1)) return { ok: false, texto: 'Escreva o exercício com quatro dígitos (por exemplo, 2026).' };
+  const data = String(p.data || '').trim(); if (srv.data && !dataValida(data)) return { ok: false, texto: 'Escreva a data como dd/mm/aaaa (uma data que exista).' };
+  const job = { id: p.id, casoId: p.casoId, site: 'pref', servico: p.servico, sql, sqlFormatado: sqlFormatado(sql), data: srv.data ? data : '', documento: srv.documento ? documento : '', exercicio: srv.documento ? exercicio : '', fila: [], feitos: [], arquivos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
+  const aba = await chrome.tabs.create({ url: srv.url });
+  job.jucespTabId = aba.id; job.windowId = aba.windowId;   // o campo guarda "a aba do pedido", seja qual for o site
+  await mexer(async () => { const todos = await jobs(); for (const x of Object.values(todos)) if (!x.fim && x.site === 'pref') { x.fim = true; x.estado = 'erro'; ev(x, { fim: 'substituido por um pedido novo' }); } todos[job.id] = job; await guardar(todos); });
+  falar(job, 'andando', srv.data ? 'Abrindo a consulta de valor venal da prefeitura…' : srv.documento ? 'Abrindo a certidão de dados cadastrais (entre pelo e-gov se pedir)…' : 'Abrindo a emissão da certidão na prefeitura…');
+  return { ok: true };
+}
+function relatorioPref(job) {
+  let versao = ''; try { versao = chrome.runtime.getManifest().version; } catch (_) { /* sem manifesto */ }
+  return JSON.stringify({ versao, site: 'pref', servico: job.servico, sql: job.sqlFormatado, data: job.data, arquivos: (job.arquivos || []).map((a) => a.nome), falhas: job.falhas || [], eventos: job.eventos || [] }, null, 1);
+}
+// A foto da aba do pedido: a captura é da aba que está à frente na janela, então ela é trazida para a frente antes.
+async function fotoDaAba(job, sender) {
+  const janela = (sender && sender.tab && sender.tab.windowId) != null ? sender.tab.windowId : job.windowId;
+  try { await chrome.tabs.update(job.jucespTabId, { active: true }); } catch (_) { /* a aba pode ter sido movida */ }
+  await new Promise((r) => setTimeout(r, 350));
+  const url = await chrome.tabs.captureVisibleTab(janela, { format: 'png' });
+  const b64 = String(url || '').slice(String(url || '').indexOf(',') + 1);
+  if (!b64 || !b64.startsWith('iVBOR')) throw new Error('a foto da tela não saiu em PNG');
+  return b64;
+}
+async function guardarPref(job, r, sender) {
+  const b64 = await fotoDaAba(job, sender);
+  if (b64.length * 0.75 > MAX_BYTES) throw new Error('a foto da tela ficou maior que 10 MB');
+  await mudar(job.id, (x) => { ev(x, { enviando: 'VALOR_VENAL_REFERENCIA', kb: Math.round(b64.length * 0.75 / 1024) }); });
+  const corpo = { acao: 'painel-arquivo', casoId: job.casoId, nomeArquivo: 'VALOR_VENAL_REFERENCIA_' + job.sql + '.png', mimetype: 'image/png', base64: b64, tipoSugerido: 'VALOR_VENAL_REFERENCIA', pessoaSugerida: job.sqlFormatado, origemAjudante: 'prefeitura' };
+  const resp = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(corpo) });
+  const txt = await resp.text();
+  let j; try { j = JSON.parse(txt); } catch (_) { throw new Error('o Apps Script não respondeu em JSON (precisa de nova versão?): ' + txt.replace(/\s+/g, ' ').slice(0, 60)); }
+  if (!j || !j.ok) throw new Error((j && j.erro) || 'o Apps Script recusou o arquivo');
+  await mudar(job.id, (x) => { (x.arquivos = x.arquivos || []).push({ nome: j.nome }); ev(x, { guardado: j.nome }); });
+  await terminar(job.id, 'ok', 'Valor venal de referência ' + r.valor + ' em ' + job.data + ' — ' + r.sql + ', ' + String(r.endereco || '').slice(0, 90) + '. Guardei no card: ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.');
+}
+
+// ── A certidão tributária de IPTU: o PDF sai quando ela clica em Emitir (o captcha é dela) ──
+// A prefeitura gera o arquivo na hora e avisa na tela; ele chega como download (ou abre numa aba). Pega-se pelo mesmo caminho da RI Digital:
+// download do site da prefeitura enquanto há pedido esperando arquivo, bytes lidos com a sessão dela. Nunca se cancela nem se apaga o download dela.
+const hostPref = (u) => { try { const h = new URL(u).hostname; return h === 'prefeitura.sp.gov.br' || h.endsWith('.prefeitura.sp.gov.br'); } catch (_) { return false; } };
+const ehDaPref = (item) => !!item && [item.url, item.finalUrl, item.referrer].some((u) => hostPref(u) || /^blob:https:\/\/([a-z0-9-]+\.)*prefeitura\.sp\.gov\.br\//.test(String(u || '')));
+async function prefJobEsperandoArquivo() {
+  const todos = await jobs();
+  return Object.values(todos).filter((j) => !j.fim && j.site === 'pref' && PREF_SERVICOS[j.servico] && PREF_SERVICOS[j.servico].tipo).sort((a, b) => (b.iniciado || 0) - (a.iniciado || 0))[0] || null;
+}
+async function capturarPref(job, item, opc) {
+  const url = String(item.finalUrl || item.url || ''), nome = nomeBase(item.filename), srv = PREF_SERVICOS[job.servico];
+  try {
+    const { b64, via } = item.base64 ? { b64: item.base64, via: [item.via || 'bytes'] } : await lerDoDownload(job, url);
+    const mime = b64 && tipoDoBase64(b64);
+    await mudar(job.id, (x) => { ev(x, { leitura: mime ? 'ok ' + mime : 'falhou', via: via.join('; ').slice(0, 160) }); });
+    if (!mime && opc && opc.silencioso) return;   // página que só parecia ser o arquivo (HTML): não é falha
+    if (!mime) throw new Error('não consegui ler o arquivo pelo endereço do download' + (via.length ? ' (' + via[0] + ')' : ''));
+    if (b64.length * 0.75 > MAX_BYTES) throw new Error('arquivo maior que 10 MB');
+    const atual = (await jobs())[job.id]; if (!atual || atual.fim) return;
+    const marca = b64.length + ':' + b64.slice(200, 260);
+    if ((atual.marcas || []).includes(marca)) { await mudar(atual.id, (x) => { ev(x, { repetido: true }); }); return; }
+    await mudar(atual.id, (x) => { (x.marcas = x.marcas || []).push(marca); ev(x, { enviando: srv.tipo, kb: Math.round(b64.length * 0.75 / 1024) }); });
+    const corpo = { acao: 'painel-arquivo', casoId: atual.casoId, nomeArquivo: srv.arquivo + '_' + atual.sql + '.' + EXT_ONR[mime], mimetype: mime, base64: b64, tipoSugerido: srv.tipo, pessoaSugerida: atual.sqlFormatado, origemAjudante: 'prefeitura' };
+    const resp = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(corpo) }), txt = await resp.text();
+    let j; try { j = JSON.parse(txt); } catch (_) { throw new Error('o Apps Script não respondeu em JSON (precisa de nova versão?): ' + txt.replace(/\s+/g, ' ').slice(0, 60)); }
+    if (!j || !j.ok) throw new Error((j && j.erro) || 'o Apps Script recusou o arquivo');
+    await mudar(atual.id, (x) => { (x.arquivos = x.arquivos || []).push({ nome: j.nome }); ev(x, { guardado: j.nome }); });
+    await terminar(atual.id, 'ok', srv.nome + ' do imóvel ' + atual.sqlFormatado + ': guardei no card como ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.');
+  } catch (e) {
+    await mudar(job.id, (x) => { (x.falhas = x.falhas || []).push({ nome, erro: String((e && e.message) || e).slice(0, 140) }); });
+    await terminar(job.id, 'erro', 'A prefeitura emitiu, mas não consegui guardar o PDF no card: ' + String((e && e.message) || e).slice(0, 120) + '. Ele está na pasta Downloads — arraste para a caixa do card.');
+  }
+}
+chrome.downloads && chrome.downloads.onCreated && chrome.downloads.onCreated.addListener((item) => {
+  (async () => { if (!ehDaPref(item)) return; const job = await prefJobEsperandoArquivo(); if (!job) return; await mudar(job.id, (x) => { ev(x, { download: { id: item.id, url: String(item.finalUrl || item.url || '').slice(0, 60).replace(/\?.*$/, ''), mime: item.mime || '', nome: nomeBase(item.filename) } }); }); await capturarPref(job, item); })().catch(() => {});
+});
+// O PDF também pode abrir numa aba nova (ou em blob:), sem "download": quando uma aba do pedido vai para um endereço assim, tenta-se ler.
+async function prefAba(tabId, info, aba) {
+  const url = String((aba && aba.url) || info.url || ''); if (!url) return;
+  if (!(hostPref(url) || /^blob:https:\/\/([a-z0-9-]+\.)*prefeitura\.sp\.gov\.br\//.test(url))) return;
+  const job = await prefJobEsperandoArquivo(); if (!job) return;
+  const filha = tabId !== job.jucespTabId && ((job.filhas || []).includes(tabId) || (aba && aba.openerTabId === job.jucespTabId));
+  let caminho = ''; try { caminho = new URL(url).pathname; } catch (_) { /* blob: sem caminho */ }
+  if (!(filha || (tabId === job.jucespTabId && (/^blob:/.test(url) || /(pdf|download|arquivo|imprime|\.ashx)/i.test(caminho))))) return;
+  const chave = url.slice(0, 120);
+  const novo = await mudar(job.id, (x) => { if ((x.urlsVistas || []).includes(chave)) return null; (x.urlsVistas = x.urlsVistas || []).push(chave); ev(x, { aba: filha ? 'filha' : 'pedido', url: semQuery(url).slice(0, 70) }); return x; });
+  if (!novo) return;
+  await capturarPref(job, { url, filename: '' }, { silencioso: true });
+}
+
 chrome.runtime.onMessage.addListener((m, sender, responder) => {
   (async () => {
     if (!m) return responder(null);
@@ -329,6 +447,23 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
       const x = await mudar(job.id, (j) => { j.nire = String(m.nire || '').replace(/\D/g, '') || j.nire; if (m.empresa) j.empresa = String(m.empresa).slice(0, 120); });
       if (m.empresa && x && /^\d{11}$/.test(x.nire || '')) await lembrarNire(x.cnpj, x.nire);   // só o que veio do resultado da busca por esse CNPJ
       return responder({ ok: true });
+    }
+    if (job.site === 'pref') {
+      if (m.tipo === 'pref-pagina') { await mudar(job.id, (x) => { x.abaAtiva = sender.tab.id; ev(x, { pagina: String(m.texto || '').slice(0, 80), registro: m.registro ? String(m.registro).slice(0, 40) : undefined }); }); falar(job, m.estado === 'espera' ? 'espera' : 'andando', String(m.texto || '').slice(0, 160)); return responder({ ok: true }); }
+      if (m.tipo === 'pref-emitida') { await mudar(job.id, (x) => { x.abaAtiva = sender.tab.id; if (!x.emitidaEm) { x.emitidaEm = Date.now(); ev(x, { emitida: true }); } }); falar(job, 'andando', 'A prefeitura emitiu a certidão — guardando o PDF…'); return responder({ ok: true }); }
+      if (m.tipo === 'pref-vigia') {
+        if (job.emitidaEm && !(job.arquivos || []).length && Date.now() - job.emitidaEm > 90000) await terminar(job.id, 'erro', 'A prefeitura emitiu, mas o PDF não chegou até mim em 90 segundos. Veja a pasta Downloads: se estiver lá, arraste para a caixa do card.');
+        return responder({ ok: true });
+      }
+      if (m.tipo === 'pref-erro') { await mudar(job.id, (x) => { ev(x, { erro: String(m.texto || '').slice(0, 120) }); }); await terminar(job.id, 'erro', String(m.texto || '').slice(0, 300)); return responder({ ok: true }); }
+      if (m.tipo === 'pref-resultado' && job.servico === 'valor-venal') {
+        responder({ ok: true });
+        const r = { sql: String(m.sql || ''), valor: String(m.valor || '').slice(0, 40), endereco: String(m.endereco || '').slice(0, 200) };
+        await mudar(job.id, (x) => { ev(x, { resultado: r.valor }); });
+        try { await guardarPref(job, r, sender); }
+        catch (e) { await mudar(job.id, (x) => { (x.falhas = x.falhas || []).push({ erro: String((e && e.message) || e).slice(0, 140) }); }); await terminar(job.id, 'erro', 'A prefeitura respondeu (' + r.valor + ') mas não consegui guardar a foto no card: ' + String((e && e.message) || e).slice(0, 120) + '. Tire um print da tela e arraste para a caixa do card.'); }
+        return;
+      }
     }
     if (job.site === 'onr') {
       if (m.tipo === 'onr-pagina') { await mudar(job.id, (x) => { x.abaAtiva = sender.tab.id; const u = (x.eventos || []).filter((e) => e.tela).pop(); if (!u || u.tela !== m.tela || u.caminho !== m.caminho) ev(x, { tela: String(m.tela || '').slice(0, 20), caminho: semQuery(String(m.caminho || '')).slice(0, 80) }); }); return responder({ ok: true }); }
@@ -375,6 +510,7 @@ async function onrAba(tabId, info, aba) {
 }
 chrome.tabs.onUpdated.addListener((tabId, info, aba) => {
   onrAba(tabId, info, aba).catch(() => {});
+  prefAba(tabId, info, aba).catch(() => {});
   const url = (aba && aba.url) || info.url || '';
   if (!/\/VisualizaTicket\.aspx/i.test(url) || new URL(url).origin !== JUCESP) return;
   avisarTicket(tabId, url, aba && aba.openerTabId);

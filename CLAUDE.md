@@ -1288,9 +1288,49 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   - **Quinto relato real (0.2.5 → 0.2.6):** "o Ajudante não clicou em gerar o PDF, eu cliquei, e o PDF não foi salvo". O clique é a 0.2.5 (ela testou na 0.2.4). O PDF que não chegou ao card tem causa provável própria: `onrJobAtivo()` devolvia o **primeiro** pedido da RI Digital sem fim, e os testes pagos que pararam no meio deixam pedidos velhos vivos — o arquivo ia para o caso errado, sem erro nenhum. Agora o pedido vivo é o **mais recente**, começar um pedido novo encerra os velhos, `capturarOnr` grava no pedido que recebeu o arquivo (e escreve se ele já tinha terminado), e o relatório ganhou `enviando` (nome, caso, tamanho) e a resposta do Apps Script em caso de erro; a lista de eventos subiu de 20 para 40.
   - **A matrícula errada no formulário, e as empresas que ela não quer (29/10/2026, só o painel):** `onrDoCaso` levava até **três** números por documento, e a matrícula de um apartamento cita outras (matrícula-mãe, imóvel desmembrado) — a certidão ia pedir matrícula de outro imóvel sem aviso. Agora vale **uma por documento**: a do cabeçalho (`onrPropria`, ou a que o nome do arquivo confirma); as outras que o texto cita viram **sugestão ao lado** (“o documento também cita…”, um toque acrescenta) e o formulário diz de qual arquivo leu cada número. Documento só reconhecido pelo **nome** não vence um reconhecido como matrícula. Na JUCESP, cada empresa ganhou **Tirar** (`ajTirarEmpresa`, guardado por caso neste navegador): some da lista e do *Buscar os dois documentos das N empresas*, com *trazer de volta*.
   - Não validado no site de verdade ainda: o botão que "adiciona" a matrícula na certidão (o Ajudante tenta Prosseguir, depois Adicionar/Incluir), o caminho e o formato da *visualização* depois da confirmação (imagem? PDF?), e como o download chega (data/blob/endereço).
-- Próximos: prefeitura (valor venal).
+- **A Prefeitura de São Paulo — valor venal de referência (0.3.0, 30/10/2026).** `ajudante/prefeitura.js`, no site `itbi.prefeitura.sp.gov.br/valorreferencia/tvm/frm_tvm_consulta_valor.aspx`.
+  **Sem login, sem captcha e sem pagamento** (confirmado por ela): o Ajudante preenche os quatro quadradinhos do contribuinte (3+3+4+dígito) e a **Data**, clica em *Pesquisar* e a página responde
+  **na mesma tela** com SQL / Valor / Endereço — não sai PDF. Ela imprimia a tela para ter cara de certidão; o Ajudante **tira a foto da tela** (`captureVisibleTab`, PNG, a aba do pedido vem para a frente antes)
+  e guarda no card como `VALOR_VENAL_REFERENCIA` (`origemAjudante:'prefeitura'`, contribuinte no nome). Regras dela, que **não se mexem sem perguntar**:
+  - **A data é a do dia da consulta; no inventário é a do óbito** — e o painel **não adivinha** a do óbito: o campo nasce vazio e o pedido não sai sem ela (confere na certidão de óbito).
+  - **Só vale resposta do contribuinte pedido.** SQL diferente na resposta, "NUMERO DO CADASTRO DO IMOVEL NAO ENCONTRADO" e o erro cru do servidor (data inválida vaza `OracleParameter…`) viram **aviso escrito**, nunca
+    certidão; o erro do servidor é cortado em 160 caracteres. Tela que não é a consulta não é adivinhada.
+  - **Contribuinte em área maior não pede** (o painel desliga o botão): falta a consulta de individualização (etapa 2b).
+  - O clique em *Pesquisar* é do Ajudante (é submit comum, ao contrário da JUCESP); se a página não responder em 12 s, a faixa pede o clique dela.
+  - Precisa do **Apps Script novo**: `ORIGENS_DO_AJUDANTE` com `"prefeitura"` e os tipos `VALOR_VENAL_REFERENCIA`, `NEGATIVA_IPTU`, `DADOS_CADASTRAIS_IMOVEL` em `TIPOS_DO_AJUDANTE` e `TIPOS_DOC_CARD`.
+  - **A negativa de IPTU (0.3.1)** — `duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/frmConsultaEmissaoCertificado.aspx` (*Emissão de Certidão Conjunta de Tributos Municipais*, tipo **Certidão Tributária de IPTU**).
+    **Tem captcha ("Código da imagem") e ele é dela**, como o da JUCESP e o da RI Digital: o Ajudante só escolhe o tipo (se já não estiver nele; **sem a opção ele para, não escolhe outra**), preenche o SQL
+    (`159.087.0016-8`, achado pelo rótulo "Informe o número do SQL", não pela ordem dos campos) e deixa o cursor no código. **Nunca clica em Emitir, "Ouvir Som", "Gerar Novo Código" nem em "Fechar"** do aviso
+    "Emissão da certidão concluída! Aguarde o navegador disponibilizar… e depois feche esse aviso" — o download pode depender dele. Ela digita as letras e clica em Emitir; o PDF sai na hora e é pego pelos
+    **downloads** do site da prefeitura (ou aba/blob), com o mesmo cuidado da RI Digital (bytes com a sessão dela, nunca cancela o download, mesmo PDF por dois caminhos entra uma vez) e vai ao card como
+    `NEGATIVA_IPTU`. Emitida e sem PDF em 90 s: erro escrito mandando olhar a pasta Downloads. **Decisão dela (30/10/2026): basta salvar o PDF** — o Ajudante não distingue certidão negativa de positiva nem
+    manda conferir; quem abre o PDF é ela. Sem pagamento: dá para testar à vontade.
+  - **Os dados cadastrais (0.3.2)** — `notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx` (*Certidão de dados cadastrais do imóvel — IPTU*). **Só se entra pelo e-gov**: o login
+    é dela e o Ajudante nunca o toca — qualquer tela que não seja a da certidão é "aguardar o login" (nunca erro; ele continua sozinho quando a certidão abre). Na tela: *Cadastro do Imóvel*
+    (`159.087.0016-8`) + *Exercício (AAAA)* → **Consultar** → um aviso ("Favor informar o CPF/CNPJ do proprietário ou do compromissário e dar OK") → **Ok** → o PDF sai na hora. Sem captcha e sem pagamento, então
+    o Ajudante clica em Consultar e em Ok (se a página não responder em 12 s, pede o clique dela). **O CPF/CNPJ do proprietário é dela:** o painel o pede, com os que a matrícula cita como **sugestão** (só os de
+    dígito certo, nunca escolhidos sozinhos; o campo nasce vazio) e confere os dígitos antes de mandar; ele **não vai** ao relatório, aos eventos nem ao Drive. O Compromissário fica vazio. O exercício nasce com o ano
+    de hoje. O PDF é pego pelos downloads/abas do site da prefeitura (mesmo caminho da negativa) e vai ao card como `DADOS_CADASTRAIS_IMOVEL`; sem PDF em 90 s depois do Ok, erro escrito. **Em aberto:** como a
+    prefeitura avisa quando o CPF/CNPJ não bate com o proprietário, ou o imóvel não existe — o *Copiar relatório* trará o texto da tela na primeira vez.
+  - Falta: a consulta de individualização (lista de unidades do endereço, achar a linha "AP 2007").
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
+
+## As certidões do imóvel na Prefeitura de São Paulo (em construção)
+
+Valor venal de referência, negativa de IPTU e certidão de dados cadastrais — as três no site da prefeitura, em caminhos distintos, e todas pelo **número de contribuinte**
+(setor.quadra.lote-dígito) que está na matrícula. Pedido dela, 30/10/2026. **Etapa 1 feita (só o painel, sem o site):** a faixa *Prefeitura — certidões do imóvel* do card
+(`prefFaixaHtml`, `prefExtrair`) lê a matrícula, lista **todos** os contribuintes com o lugar onde aparecem (descrição do imóvel, Av.2…), marca o **último que a matrícula diz** como
+o atual e pede **conferência** (botão de rádio); nunca escolhe sozinha — o número digitalizado pode vir com um dígito trocado, e certidão do imóvel errado parece certa.
+
+Regras que saíram dos casos reais dela e **não devem ser mexidas sem perguntar**:
+- **O contribuinte pode vir com barra ou hífen no dígito** (`170.049.0003/6`, `170.049.0162-8`) e só vale o formato de três grupos (3.3.4 + dígito): "certidão nº 130.389/94-3" na mesma averbação **não** é contribuinte.
+- **"ALTERAÇÃO DO NÚMERO DE CONTRIBUINTE" (Av.x)** troca o número do cabeçalho: o atual é o último que a matrícula diz, e o anterior fica na lista como histórico.
+- **"Em área maior"** (`areaMaior`) não basta para pedir: só a **consulta no site** diz se já houve individualização. Quando houve, a prefeitura devolve a lista de todas as unidades do endereço
+  (Compl. "AP 101", "AP 2007"… com o contribuinte de cada uma) e o Ajudante deve achar **a unidade da matrícula** (`unidade.compl`, hoje só "apartamento" → "AP n"; outros tipos ficam
+  sem complemento até ela mostrar como a prefeitura escreve) e seguir com o número individual. **Não achou, ou achou mais de uma linha: para e mostra, nunca escolhe.**
+- **Falta (etapa 2):** o Ajudante na prefeitura — consulta de individualização e os três pedidos. Precisa dos prints dos caminhos, de como ela entra (certificado/senha, captcha) e se pagam algo.
+- Teste: `node testes/prefeitura.mjs` (usa trechos reais das três matrículas).
 
 ## A capa do dossiê
 
@@ -1395,6 +1435,7 @@ node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
 node testes/ajudante.mjs
 node testes/capa.mjs
+node testes/prefeitura.mjs
 node testes/orcamento-link-tela.mjs && node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
 ```
 

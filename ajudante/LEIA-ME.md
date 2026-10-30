@@ -44,3 +44,20 @@ O painel preenche estado, cidade, cartório e número da matrícula **lendo a ma
 - visualização: marque o **"Não sou um robô"** e clique no botão que confirma — o crédito é gasto nesse clique.
 
 Se o arquivo não chegar ao card, ele está na pasta **Downloads**: arraste para a caixa do card. Nesse caso (ou em qualquer erro), clique em **Copiar relatório** e mande.
+
+
+## Prefeitura de São Paulo — valor venal de referência (versão 0.3.0)
+
+No card, na faixa **Prefeitura — certidões do imóvel**, o painel lê o contribuinte da matrícula e você confere. Escolha a **data** (hoje, ou a do óbito no inventário) e clique em **Valor venal de referência**.
+O Ajudante abre a consulta da prefeitura, preenche o contribuinte e a data, clica em Pesquisar e guarda no card a **foto da tela** com o valor. Não tem senha nem pagamento.
+Se a prefeitura disser que não achou o cadastro, ele avisa escrito: confira o número contra a matrícula.
+
+### Negativa de IPTU (versão 0.3.1)
+
+Na mesma faixa, **Negativa de IPTU**. O Ajudante abre a emissão da prefeitura, escolhe *Certidão Tributária de IPTU* e preenche o contribuinte. **O código da imagem é seu**: digite as letras e clique em **Emitir**.
+O PDF que a prefeitura gera é guardado no card.
+
+### Dados cadastrais do imóvel (versão 0.3.2)
+
+Na mesma faixa, **Dados cadastrais**. Escreva o **CPF ou CNPJ do proprietário** (ou clique num dos que a matrícula cita) e confira o exercício. O Ajudante abre a certidão na prefeitura:
+**você entra pelo e-gov**; quando a tela da certidão abrir, ele preenche o cadastro e o exercício, clica em Consultar, informa o proprietário, clica em Ok e guarda o PDF no card.

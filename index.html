@@ -1767,6 +1767,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-aj-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}.cx-aj-topo i{font-size:18px;color:var(--cc-tinta-2)}
 .cx-aj-cnpj{flex:1;min-width:160px;max-width:240px;border:1px solid var(--cc-linha-forte);border-radius:10px;padding:7px 10px;font:inherit;background:#fff}
 .cx-aj-topo small{color:var(--cc-tinta-3);font-size:11.5px}
+.pref-doc{margin-top:8px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid var(--cc-linha-forte);flex-basis:100%}
+.pref-nome{font-size:12.5px;font-weight:700;margin-bottom:4px;overflow-wrap:anywhere}.pref-un{font-weight:400;color:var(--cc-tinta-3);margin-left:6px}
+.pref-linha{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:5px 6px;border-radius:8px;font-size:13px;cursor:pointer}.pref-linha.atual{background:#F4F1EA}
+.pref-linha span{color:var(--cc-tinta-3);font-size:12px}
+.pref-pedir{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--cc-linha-forte)}
+.pref-pedir label{font-size:12.5px;display:flex;align-items:center;gap:6px}.pref-data{width:110px;padding:5px 8px;border:1px solid var(--cc-linha-forte);border-radius:8px;font:inherit}
 .cx-aj-emp{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-top:8px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid var(--cc-linha-forte)}
 .cx-aj-nome{display:grid;min-width:160px;flex:1;font-size:13px}.cx-aj-nome small{color:var(--cc-tinta-3);font-size:11.5px;overflow-wrap:anywhere}
 .cx-aj-emp .cx-aj-bt{margin:0}.cx-aj-vazio{font-size:12.5px;color:var(--cc-tinta-3);margin-top:8px}
@@ -5314,6 +5320,142 @@ function capaFaixaHtml(c){
 }
 // ── fim: a capa do dossiê ──
 
+// ── As certidões do imóvel na Prefeitura de São Paulo: o contribuinte que está na matrícula ──
+// Valor venal de referência, negativa de IPTU e dados cadastrais saem todos pelo número de contribuinte (setor.quadra.lote-dígito) que a matrícula traz.
+// A matrícula não é uma coisa só: o número do cabeçalho pode estar "em maior área", e uma averbação ("ALTERAÇÃO DO NÚMERO DE CONTRIBUINTE") pode ter
+// trocado por outro — o atual é o último que a matrícula diz, e quando ele está em área maior só a consulta ao site da prefeitura sabe se já houve
+// individualização (e então o número da unidade vem de lá). Aqui só se LÊ e se pede conferência: o painel nunca escolhe o contribuinte sozinho, porque
+// certidão do imóvel errado parece certa. O número digitalizado pode vir com um dígito trocado (0 por 8), e quem confere é ela, contra a matrícula.
+const PREF = {sel: {}, data: {}, doc: {}, ex: {}};
+const PREF_COMPL = {apartamento: 'AP'};   // o complemento que a prefeitura escreve; só o que já foi visto numa tela dela
+function prefDocValido(d){
+  d = String(d || '').replace(/\D/g, ''); if(/^(\d)\1+$/.test(d)) return false;
+  if(d.length === 11){ const dv = n => { let s = 0; for(let i = 0; i < n; i++) s += Number(d[i]) * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; }; return dv(9) === Number(d[9]) && dv(10) === Number(d[10]); }
+  if(d.length === 14){ const dv = n => { let s = 0, p = n - 7; for(let i = 0; i < n; i++){ s += Number(d[i]) * p--; if(p < 2) p = 9; } const r = s % 11; return r < 2 ? 0 : 11 - r; }; return dv(12) === Number(d[12]) && dv(13) === Number(d[13]); }
+  return false;
+}
+const prefFmtDoc = d => { d = String(d || '').replace(/\D/g, ''); return d.length === 11 ? d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : d; };
+function prefMarcaDoAto(antes){
+  // "Av.2 em 25 de julho…", "R.4 - 12/03/1990": o cabeçalho do ato, e não a citação "referida no R.4," dentro do texto de outro.
+  let ult = null;
+  for(const m of String(antes).matchAll(/\b(Av|R)\.?\s*(\d+)\s*(?:em\b|[-–\/]\s*\d{1,2}[\/.])/gi)) ult = m[1][0].toUpperCase() + m[1].slice(1).toLowerCase() + '.' + m[2];
+  return ult;
+}
+function prefExtrair(texto){
+  const t = String(texto || ''), achados = [];
+  for(const m of t.matchAll(/(?<![\d.\/-])(\d{3})\.(\d{3})\.(\d{4})\s*[-–\/]\s*(\d)(?!\d)/g)){
+    const sql = `${m[1]}.${m[2]}.${m[3]}-${m[4]}`, depois = t.slice(m.index + m[0].length, m.index + m[0].length + 45), antes = t.slice(Math.max(0, m.index - 320), m.index);
+    const areaMaior = /^[^.]{0,40}?(?:em\s+maior\s+[áa]rea|[áa]rea\s+maior)/i.test(depois.replace(/^[\s,;:)(]+/, ''));
+    const alteracao = /altera[çc][ãa]o\s+do\s+n[úu]mero\s+de\s+contribuinte|atualmente\s+vem\s+sendo\s+lan[çc]ado/i.test(antes);
+    const ex = achados.find(a => a.sql === sql);
+    if(ex){ ex.areaMaior = ex.areaMaior || areaMaior; ex.alteracao = ex.alteracao || alteracao; continue; }
+    achados.push({sql, areaMaior, alteracao, onde: prefMarcaDoAto(t.slice(0, m.index)) || 'descrição do imóvel', pos: m.index});
+  }
+  let atual = achados.length ? achados.length - 1 : -1;   // o último que a matrícula diz é o que vale
+  const mu = /\b(apartamento|casa|sala|conjunto|loja|box|garagem)\s*(?:n[ºo°.]*\s*)?(\d+[A-Za-z]?)\b/i.exec(t);
+  const unidade = mu ? {tipo: mu[1].toLowerCase(), numero: mu[2].toUpperCase(), compl: PREF_COMPL[mu[1].toLowerCase()] ? PREF_COMPL[mu[1].toLowerCase()] + ' ' + mu[2].toUpperCase() : ''} : null;
+  // CPF/CNPJ que a matrícula cita (de dígito certo): são só SUGESTÕES para o aviso da certidão de dados cadastrais, que pede o do proprietário — quem escolhe é ela.
+  const documentos = [];
+  for(const m of t.matchAll(/(?<![\d.\/-])(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})(?!\d)/g)){ const d = m[1].replace(/\D/g, ''); if(prefDocValido(d) && !documentos.includes(d)) documentos.push(d); }
+  return {contribuintes: achados, atual, unidade, documentos};
+}
+function prefDocsDoCaso(c){
+  return onrDocsDaMatricula(c).map(d => ({nome: String(d.nome || 'matrícula'), x: prefExtrair(d.texto)})).filter(d => d.x.contribuintes.length || d.x.unidade);
+}
+function prefEscolhido(casoId, i, x){ const s = PREF.sel[casoId + ':' + i]; return s != null && x.contribuintes[s] ? s : x.atual; }
+const prefHoje = () => { const d = new Date(); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); };
+const prefEhInventario = (c) => /invent/i.test(String((c && c.tipo) || ''));
+const prefDataOk = (v) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(v || '').trim()); if(!m) return false; const dt = new Date(+m[3], +m[2] - 1, +m[1]); return dt.getFullYear() === +m[3] && dt.getMonth() === +m[2] - 1 && dt.getDate() === +m[1]; };
+// O pedido ao Ajudante: valor venal de referência. A data é a do dia da consulta, e no inventário a do óbito — e esta o painel não adivinha: nasce vazia.
+function prefPedirHtml(c, i, at, x){
+  const ext = typeof AJUDANTE !== 'undefined' && AJUDANTE.pronto && AJUDANTE.pref, id = esc(c.id), key = c.id + ':' + i;
+  if(!ext) return `<div class="cx-fin-vazio">Para pedir direto daqui, instale o Ajudante do painel na versão 0.3.2 ou mais nova e aperte F5.</div>`;
+  if(!at) return '';
+  if(at.areaMaior) return `<div class="cx-fin-vazio">Os botões das certidões ficam desligados enquanto o contribuinte escolhido estiver em área maior.</div>`;
+  const inv = prefEhInventario(c), val = PREF.data[key] != null ? PREF.data[key] : (inv ? '' : prefHoje());
+  return `<div class="pref-pedir"><label>Data da consulta <input class="pref-data" id="pref-data-${id}-${i}" value="${esc(val)}" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" oninput="prefGuardarData('${id}',${i},this.value)"></label>
+    <button type="button" class="cx-btn destaque" onclick="prefPedirValorVenal('${id}',${i})"><i class="ti ti-building-bank"></i> Valor venal de referência</button>
+    <span class="cx-fin-vazio">${inv ? 'Inventário: digite a data do óbito (confira na certidão de óbito).' : 'É a data de hoje; mude só se o caso pedir outra.'}</span></div>
+    <div class="pref-pedir"><button type="button" class="cx-btn destaque" onclick="prefPedirNegativa('${id}',${i})"><i class="ti ti-file-certificate"></i> Negativa de IPTU</button>
+    <span class="cx-fin-vazio">A prefeitura pede o código da imagem: você digita as letras e clica em Emitir — o Ajudante cuida do resto e guarda o PDF.</span></div>
+    <div class="pref-pedir"><label>CPF/CNPJ do proprietário <input class="pref-data pref-doc" id="pref-doc-${id}-${i}" value="${esc(PREF.doc[key] != null ? prefFmtDoc(PREF.doc[key]) : '')}" placeholder="000.000.000-00" inputmode="numeric" maxlength="18" oninput="prefGuardarDoc('${id}',${i},this.value)"></label>
+      <label>Exercício <input class="pref-data" id="pref-ex-${id}-${i}" value="${esc(PREF.ex[key] != null ? PREF.ex[key] : String(new Date().getFullYear()))}" inputmode="numeric" maxlength="4" style="width:70px" oninput="prefGuardarEx('${id}',${i},this.value)"></label>
+      <button type="button" class="cx-btn destaque" onclick="prefPedirCadastrais('${id}',${i})"><i class="ti ti-id"></i> Dados cadastrais</button>
+      ${((x && x.documentos) || []).length ? `<span class="cx-fin-vazio">A matrícula cita (podem não ser o proprietário atual): ${(x.documentos).map(d => `<button type="button" class="cx-btn" onclick="prefUsarDoc('${id}',${i},'${esc(d)}')">${esc(prefFmtDoc(d))}</button>`).join(' ')}</span>` : ''}
+      <span class="cx-fin-vazio">Você entra pelo e-gov na aba da prefeitura; o Ajudante preenche, informa o proprietário e guarda o PDF.</span></div>`;
+}
+// A negativa de IPTU (certidão tributária): não leva data, e o captcha da prefeitura é de quem pede.
+window.prefPedirNegativa = function(casoId, i){
+  const c = casos[casoId], docs = c ? prefDocsDoCaso(c) : [], d = docs[i]; if(!d) return;
+  const at = d.x.contribuintes[prefEscolhido(casoId, i, d.x)];
+  const erro = t => { AJUDANTE.msg[casoId] = {id: '', estado: 'erro', texto: t, fim: true}; ajudanteAtualizar(casoId); };
+  if(!at) return erro('Não há contribuinte escolhido para pedir.');
+  if(at.areaMaior) return erro('Este contribuinte está em área maior: ainda não dá para pedir por ele.');
+  const id = 'aj' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  AJUDANTE.fila[casoId] = []; AJUDANTE.log[casoId] = []; delete AJUDANTE.rel[casoId]; AJUDANTE.atual[casoId] = {nome: 'Prefeitura'};
+  AJUDANTE.msg[casoId] = {id, estado: 'andando', texto: 'abrindo a emissão da certidão na prefeitura…', fim: false};
+  window.postMessage({fonte: 'painel-cartorio', tipo: 'ajudante-pedido', pedido: {id, casoId, site: 'pref', servico: 'negativa-iptu', sql: at.sql}}, location.origin);
+  ajudanteAtualizar(casoId);
+};
+window.prefGuardarDoc = function(casoId, i, v){ PREF.doc[casoId + ':' + i] = String(v || '').replace(/\D/g, ''); };
+window.prefGuardarEx = function(casoId, i, v){ PREF.ex[casoId + ':' + i] = String(v || '').replace(/\D/g, '').slice(0, 4); };
+window.prefUsarDoc = function(casoId, i, d){ PREF.doc[casoId + ':' + i] = d; const el = document.getElementById('pref-doc-' + casoId + '-' + i), c = casos[casoId]; if(el) el.value = prefFmtDoc(d); else if(c){ const f = document.getElementById('pref-' + casoId); if(f) f.outerHTML = prefFaixaHtml(c); } };
+// A certidão de dados cadastrais: o login é pelo e-gov (dela) e o aviso da prefeitura pede o CPF/CNPJ do proprietário — que ela escreve ou escolhe entre os que a matrícula cita.
+window.prefPedirCadastrais = function(casoId, i){
+  const c = casos[casoId], docs = c ? prefDocsDoCaso(c) : [], d = docs[i]; if(!d) return;
+  const at = d.x.contribuintes[prefEscolhido(casoId, i, d.x)], key = casoId + ':' + i;
+  const erro = t => { AJUDANTE.msg[casoId] = {id: '', estado: 'erro', texto: t, fim: true}; ajudanteAtualizar(casoId); };
+  if(!at) return erro('Não há contribuinte escolhido para pedir.');
+  if(at.areaMaior) return erro('Este contribuinte está em área maior: ainda não dá para pedir por ele.');
+  const cd = document.getElementById('pref-doc-' + casoId + '-' + i), ce = document.getElementById('pref-ex-' + casoId + '-' + i);
+  const documento = String((cd && cd.value) || PREF.doc[key] || '').replace(/\D/g, ''), exercicio = String((ce && ce.value) || PREF.ex[key] || new Date().getFullYear()).replace(/\D/g, '');
+  if(!documento) return erro('Escreva o CPF ou CNPJ do proprietário (a prefeitura pede) — ou escolha um dos que a matrícula cita.');
+  if(!prefDocValido(documento)) return erro('O CPF ou CNPJ não confere — confira os dígitos.');
+  if(!/^\d{4}$/.test(exercicio) || +exercicio < 2000 || +exercicio > new Date().getFullYear() + 1) return erro('Escreva o exercício com quatro dígitos (por exemplo, 2026).');
+  const id = 'aj' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  AJUDANTE.fila[casoId] = []; AJUDANTE.log[casoId] = []; delete AJUDANTE.rel[casoId]; AJUDANTE.atual[casoId] = {nome: 'Prefeitura'};
+  AJUDANTE.msg[casoId] = {id, estado: 'andando', texto: 'abrindo a certidão de dados cadastrais (entre pelo e-gov se pedir)…', fim: false};
+  window.postMessage({fonte: 'painel-cartorio', tipo: 'ajudante-pedido', pedido: {id, casoId, site: 'pref', servico: 'dados-cadastrais', sql: at.sql, documento, exercicio}}, location.origin);
+  ajudanteAtualizar(casoId);
+};
+window.prefGuardarData = function(casoId, i, v){ PREF.data[casoId + ':' + i] = v; };
+window.prefPedirValorVenal = function(casoId, i){
+  const c = casos[casoId], docs = c ? prefDocsDoCaso(c) : [], d = docs[i]; if(!d) return;
+  const at = d.x.contribuintes[prefEscolhido(casoId, i, d.x)];
+  const erro = t => { AJUDANTE.msg[casoId] = {id: '', estado: 'erro', texto: t, fim: true}; ajudanteAtualizar(casoId); };
+  if(!at) return erro('Não há contribuinte escolhido para pedir.');
+  if(at.areaMaior) return erro('Este contribuinte está em área maior: ainda não dá para pedir por ele.');
+  const campo = document.getElementById('pref-data-' + casoId + '-' + i), data = String((campo && campo.value) || PREF.data[casoId + ':' + i] || '').trim();
+  if(!data) return erro(prefEhInventario(c) ? 'Inventário: digite a data do óbito (dd/mm/aaaa) antes de pedir.' : 'Digite a data da consulta (dd/mm/aaaa).');
+  if(!prefDataOk(data)) return erro('Escreva a data como dd/mm/aaaa, uma data que exista.');
+  const id = 'aj' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  AJUDANTE.fila[casoId] = []; AJUDANTE.log[casoId] = []; delete AJUDANTE.rel[casoId]; AJUDANTE.atual[casoId] = {nome: 'Prefeitura'};
+  AJUDANTE.msg[casoId] = {id, estado: 'andando', texto: 'abrindo a consulta da prefeitura numa aba nova…', fim: false};
+  window.postMessage({fonte: 'painel-cartorio', tipo: 'ajudante-pedido', pedido: {id, casoId, site: 'pref', servico: 'valor-venal', sql: at.sql, data}}, location.origin);
+  ajudanteAtualizar(casoId);
+};
+function prefFaixaHtml(c){
+  const docs = prefDocsDoCaso(c); if(!docs.length) return '';
+  const id = esc(c.id);
+  const um = docs.map((d, i) => {
+    const x = d.x, esc_ = prefEscolhido(c.id, i, x), at = x.contribuintes[esc_];
+    const linhas = x.contribuintes.map((k, j) => `<label class="pref-linha${j === esc_ ? ' atual' : ''}"><input type="radio" name="pref-${id}-${i}" ${j === esc_ ? 'checked' : ''} onchange="prefEscolher('${id}',${i},${j})">
+      <b>${escTxt(k.sql)}</b><span>${escTxt(k.onde)}${k.alteracao ? ' · alteração do número' : ''}${k.areaMaior ? ' · em área maior' : ''}${j === x.atual ? ' · o último da matrícula' : ''}</span></label>`).join('');
+    const un = x.unidade ? `<span class="pref-un">${escTxt(x.unidade.tipo)} ${escTxt(x.unidade.numero)}${x.unidade.compl ? ' · a prefeitura escreve “' + escTxt(x.unidade.compl) + '”' : ' · complemento da prefeitura ainda sem regra para este tipo'}</span>` : '';
+    const aviso = !at ? `<div class="cx-fin-vazio">Não achei número de contribuinte nesta matrícula — digite à mão quando for pedir.</div>`
+      : at.areaMaior ? `<div class="cx-fin-vazio">Este está em área maior: antes de pedir, é preciso consultar na prefeitura se já foi individualizado e achar a unidade${x.unidade ? ' ' + escTxt(x.unidade.compl || x.unidade.tipo + ' ' + x.unidade.numero) : ''}.</div>`
+      : `<div class="cx-fin-vazio">Contribuinte individual: pode pedir as certidões direto por ele.</div>`;
+    return `<div class="pref-doc"><div class="pref-nome">${escTxt(d.nome)} ${un}</div>${linhas}${aviso}${prefPedirHtml(c, i, at, x)}</div>`;
+  }).join('');
+  return `<div class="cx-orc cx-ped" id="pref-${id}"><span class="cx-orc-rot"><i class="ti ti-building-community"></i> Prefeitura — certidões do imóvel</span>
+    <span class="cx-fin-vazio">Contribuinte lido da matrícula — confira contra o papel antes de pedir.</span>${um}<div class="cx-aj-msg" id="pref-msg-${id}">${typeof ajMsgHtml === 'function' ? ajMsgHtml(c.id) : ''}</div></div>`;
+}
+window.prefEscolher = function(casoId, i, j){
+  PREF.sel[casoId + ':' + i] = j;
+  const el = document.getElementById('pref-' + casoId), c = casos[casoId]; if(el && c) el.outerHTML = prefFaixaHtml(c);
+};
+// ── fim: as certidões da prefeitura ──
+
 // ── RENDER CASOS ──
 // Campos dos dados do registro, desenhados abertos em todo card.
 const CX_REG=[
@@ -5412,6 +5554,8 @@ function renderCasos(){
       </div>
 
       ${capaFaixaHtml(c)}
+
+      ${prefFaixaHtml(c)}
 
       <div class="cx-orc cx-ped">
         <span class="cx-orc-rot"><i class="ti ti-file-search"></i> Documentos</span>
@@ -12229,7 +12373,7 @@ async function criarLinkEnvio(id,{estado,blocos,token,guiado}){
 // O que o cliente mandou pelo WhatsApp: ela solta os arquivos na caixa do card. Cada um vai para o Apps Script
 // (`painel-arquivo`), que cria a pasta do caso se faltar, guarda o arquivo, a IA lê e identifica o tipo e de
 // quem é, e o arquivo ganha o nome padrão. Salva direto; o que a IA não tem certeza fica "confirmar" no card.
-const SOLTE_TIPOS=[['RG_CNH','RG ou CNH'],['CPF','CPF'],['CERTIDAO_NASCIMENTO','Certidão de nascimento'],['CERTIDAO_CASAMENTO','Certidão de casamento'],['CERTIDAO_OBITO','Certidão de óbito'],['PACTO_ANTENUPCIAL','Pacto antenupcial'],['MATRICULA_IMOVEL','Matrícula do imóvel'],['COMPROVANTE_ENDERECO','Comprovante de endereço'],['IPTU','IPTU'],['CND','CND'],['ESCRITURA','Escritura'],['PROCURACAO','Procuração'],['CONTRATO','Contrato'],['COMPROVANTE_PAGAMENTO','Comprovante de pagamento'],['FICHA_CADASTRAL_JUCESP','Ficha cadastral (JUCESP)'],['CONTRATO_SOCIAL','Contrato social'],['OUTRO','Outro']];
+const SOLTE_TIPOS=[['RG_CNH','RG ou CNH'],['CPF','CPF'],['CERTIDAO_NASCIMENTO','Certidão de nascimento'],['CERTIDAO_CASAMENTO','Certidão de casamento'],['CERTIDAO_OBITO','Certidão de óbito'],['PACTO_ANTENUPCIAL','Pacto antenupcial'],['MATRICULA_IMOVEL','Matrícula do imóvel'],['COMPROVANTE_ENDERECO','Comprovante de endereço'],['IPTU','IPTU'],['CND','CND'],['ESCRITURA','Escritura'],['PROCURACAO','Procuração'],['CONTRATO','Contrato'],['COMPROVANTE_PAGAMENTO','Comprovante de pagamento'],['FICHA_CADASTRAL_JUCESP','Ficha cadastral (JUCESP)'],['CONTRATO_SOCIAL','Contrato social'],['VALOR_VENAL_REFERENCIA','Valor venal de referência'],['NEGATIVA_IPTU','Negativa de IPTU'],['DADOS_CADASTRAIS_IMOVEL','Dados cadastrais do imóvel'],['OUTRO','Outro']];
 const SOLTE_MIMES={'application/pdf':1,'image/jpeg':1,'image/png':1,'image/webp':1,'image/gif':1,'image/heic':1,'image/heif':1};
 const SOLTE_MAX=10*1024*1024, SOLTE_PARALELO=2;
 const SOLTE={}; // casoId -> [{id,nome,estado:'fila'|'enviando'|'ok'|'confirmar'|'erro',msg}]
@@ -12447,7 +12591,7 @@ window.entradaDescartar=async function(remetente){
 };
 // O Ajudante do painel: extensão do Chrome que entra na JUCESP (com o certificado dela, já instalado) e traz a ficha cadastral e o
 // contrato consolidado para o card. O painel só desenha o bloco se a extensão responder — botão que o navegador não sabe cumprir não se desenha.
-const AJUDANTE={pronto:false,onr:false,versao:'',msg:{},fila:{},atual:{},log:{},rel:{}};
+const AJUDANTE={pronto:false,onr:false,pref:false,versao:'',msg:{},fila:{},atual:{},log:{},rel:{}};
 const AJ_CNPJS_DO_CARTORIO=['45566502000112','47141731000110'];   // o do 20º Tabelião e o da Prime: aparecem nos papéis, mas não são parte do caso
 function ajCnpjValido(c){
   c=String(c||'').replace(/\D/g,''); if(c.length!==14||/^(\d)\1+$/.test(c)) return false;
@@ -12522,11 +12666,14 @@ function onrPropria(x,nome){
   return noNome||x.matriculas[0]||'';
 }
 // As matrículas que o caso já traz, agrupadas por registro de imóveis (cartório + cidade): num mesmo pedido só cabem as do mesmo cartório.
-function onrDoCaso(c){
+function onrDocsDaMatricula(c){
   const todos=Object.values((c&&c.documentos)||{}).filter(d=>d&&d.texto&&d.tipo!=='modelo');
   const certos=todos.filter(d=>d.tipoDocumento==='MATRICULA_IMOVEL'||/^\s*TIPO_DOCUMENTO:\s*matr[ií]cula/i.test(d.texto));
   // Só cai no "nome parece matrícula" quando nenhum documento foi reconhecido como matrícula: um arquivo que só cita a palavra no nome não manda.
-  const docs=certos.length?certos:todos.filter(d=>/matr[ií]cula/i.test(d.nome||''));
+  return certos.length?certos:todos.filter(d=>/matr[ií]cula/i.test(d.nome||''));
+}
+function onrDoCaso(c){
+  const docs=onrDocsDaMatricula(c);
   const grupos={};
   docs.forEach(d=>{
     const x=onrExtrair(d.texto), k=x.cartorio+'|'+x.cidade, g=grupos[k]=grupos[k]||{cartorio:x.cartorio,cidade:x.cidade,matriculas:[],de:{},citadas:[]}, propria=onrPropria(x,d.nome);
@@ -12608,7 +12755,7 @@ function ajudanteHtml(c){
     <details class="cx-aj-outro"${emp.length?'':' open'}><summary>Outro CNPJ</summary><div class="cx-aj-topo"><input class="cx-aj-cnpj" id="aj-cnpj-${id}" inputmode="numeric" placeholder="CNPJ da empresa" value="${esc(ajLerCnpj(c.id))}" oninput="ajSalvarCnpj('${id}',this.value)"></div><div class="cx-aj-bt">${ajBotoes(c.id,'')}</div></details>
     <div class="cx-aj-msg" id="aj-msg-${id}">${ajMsgHtml(c.id)}</div></div>`;
 }
-function ajudanteAtualizar(casoId){ const el=document.getElementById('aj-msg-'+casoId); if(el) el.innerHTML=ajMsgHtml(casoId); }
+function ajudanteAtualizar(casoId){ ['aj-msg-','pref-msg-'].forEach(pf=>{ const el=document.getElementById(pf+casoId); if(el) el.innerHTML=ajMsgHtml(casoId); }); }
 function ajudanteEnviar(casoId,cnpj,nome,quero){
   const id='aj'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
   AJUDANTE.atual[casoId]={cnpj,nome}; AJUDANTE.msg[casoId]={id,estado:'andando',texto:(nome?nome+': ':'')+'abrindo a JUCESP numa aba nova…',fim:false}; ajudanteAtualizar(casoId);
@@ -12635,7 +12782,7 @@ window.ajudanteCancelar=function(casoId){
 function ajudanteOuvir(e){
   const d=e&&e.data; if(!d||d.fonte!=='ajudante'||(e.source&&e.source!==window)) return;
   if(d.tipo==='ajudante-pronto'){
-    AJUDANTE.pronto=true; AJUDANTE.onr=!!d.onr; AJUDANTE.versao=String(d.versao||'');
+    AJUDANTE.pronto=true; AJUDANTE.onr=!!d.onr; AJUDANTE.pref=!!d.pref; AJUDANTE.versao=String(d.versao||'');
     document.querySelectorAll&&document.querySelectorAll('.cx-solte').forEach(z=>{ if(!z.querySelector('.cx-aj')) z.insertAdjacentHTML('beforeend',ajudanteHtml({id:z.dataset.solte})); });
   }
   if(d.tipo==='ajudante-progresso'){
