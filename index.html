@@ -1772,6 +1772,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .pref-linha{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:5px 6px;border-radius:8px;font-size:13px;cursor:pointer}.pref-linha.atual{background:#F4F1EA}
 .pref-linha span{color:var(--cc-tinta-3);font-size:12px}
 .pref-pedir{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--cc-linha-forte)}
+.pref-sql{width:150px}
 .pref-pedir label{font-size:12.5px;display:flex;align-items:center;gap:6px}.pref-data{width:110px;padding:5px 8px;border:1px solid var(--cc-linha-forte);border-radius:8px;font:inherit}
 .cx-aj-emp{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-top:8px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid var(--cc-linha-forte)}
 .cx-aj-nome{display:grid;min-width:160px;flex:1;font-size:13px}.cx-aj-nome small{color:var(--cc-tinta-3);font-size:11.5px;overflow-wrap:anywhere}
@@ -5326,7 +5327,7 @@ function capaFaixaHtml(c){
 // trocado por outro — o atual é o último que a matrícula diz, e quando ele está em área maior só a consulta ao site da prefeitura sabe se já houve
 // individualização (e então o número da unidade vem de lá). Aqui só se LÊ e se pede conferência: o painel nunca escolhe o contribuinte sozinho, porque
 // certidão do imóvel errado parece certa. O número digitalizado pode vir com um dígito trocado (0 por 8), e quem confere é ela, contra a matrícula.
-const PREF = {sel: {}, data: {}, doc: {}, ex: {}};
+const PREF = {sel: {}, data: {}, doc: {}, ex: {}, manual: {}};
 const PREF_COMPL = {apartamento: 'AP'};   // o complemento que a prefeitura escreve; só o que já foi visto numa tela dela
 function prefDocValido(d){
   d = String(d || '').replace(/\D/g, ''); if(/^(\d)\1+$/.test(d)) return false;
@@ -5343,8 +5344,16 @@ function prefMarcaDoAto(antes){
 }
 function prefExtrair(texto){
   const t = String(texto || ''), achados = [];
-  for(const m of t.matchAll(/(?<![\d.\/-])(\d{3})\.(\d{3})\.(\d{4})\s*[-–\/]\s*(\d)(?!\d)/g)){
-    const sql = `${m[1]}.${m[2]}.${m[3]}-${m[4]}`, depois = t.slice(m.index + m[0].length, m.index + m[0].length + 45), antes = t.slice(Math.max(0, m.index - 320), m.index);
+  // O texto da matrícula chega lido pela IA de uma imagem: o número pode vir com espaços entre os grupos, com ponto no lugar do hífen do dígito, ou sem pontuação
+  // nenhuma (só aí exige a palavra "contribuinte", "cadastro", "SQL" ou "inscrição" logo antes, para não pegar qualquer número de 11 dígitos).
+  const candidatos = [];
+  for(const m of t.matchAll(/(?<![\d.\/-])(\d{3})\s*\.\s*(\d{3})\s*\.\s*(\d{4})\s*[-–\/.]?\s*(\d)(?!\d)/g)) candidatos.push({m, sql: `${m[1]}.${m[2]}.${m[3]}-${m[4]}`});
+  for(const m of t.matchAll(/(?<![\d.\/-])(\d{3})(\d{3})(\d{4})(\d)(?![\d.\/-])/g)){
+    if(/(contribuinte|cadastro|\bsql\b|inscri[çc][ãa]o)[^\d]{0,30}$/i.test(t.slice(Math.max(0, m.index - 45), m.index))) candidatos.push({m, sql: `${m[1]}.${m[2]}.${m[3]}-${m[4]}`});
+  }
+  candidatos.sort((a, b) => a.m.index - b.m.index);
+  for(const {m, sql} of candidatos){
+    const depois = t.slice(m.index + m[0].length, m.index + m[0].length + 45), antes = t.slice(Math.max(0, m.index - 320), m.index);
     const areaMaior = /^[^.]{0,40}?(?:em\s+maior\s+[áa]rea|[áa]rea\s+maior)/i.test(depois.replace(/^[\s,;:)(]+/, ''));
     const alteracao = /altera[çc][ãa]o\s+do\s+n[úu]mero\s+de\s+contribuinte|atualmente\s+vem\s+sendo\s+lan[çc]ado/i.test(antes);
     const ex = achados.find(a => a.sql === sql);
@@ -5357,10 +5366,20 @@ function prefExtrair(texto){
   // CPF/CNPJ que a matrícula cita (de dígito certo): são só SUGESTÕES para o aviso da certidão de dados cadastrais, que pede o do proprietário — quem escolhe é ela.
   const documentos = [];
   for(const m of t.matchAll(/(?<![\d.\/-])(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})(?!\d)/g)){ const d = m[1].replace(/\D/g, ''); if(prefDocValido(d) && !documentos.includes(d)) documentos.push(d); }
-  return {contribuintes: achados, atual, unidade, documentos};
+  // Para quando nada é achado: as frases do texto lido que falam de contribuinte/IPTU, para ela (e eu) ver o que a leitura entregou.
+  const trechos = [];
+  for(const m of t.matchAll(/[^.\n]{0,90}(?:contribuinte|inscri[çc][ãa]o municipal|cadastro municipal|\bsql\b|\biptu\b)[^.\n]{0,90}/gi)){ const x = m[0].replace(/\s+/g, ' ').trim(); if(x && !trechos.includes(x)) trechos.push(x); if(trechos.length >= 3) break; }
+  return {contribuintes: achados, atual, unidade, documentos, trechos};
 }
 function prefDocsDoCaso(c){
   return onrDocsDaMatricula(c).map(d => ({nome: String(d.nome || 'matrícula'), x: prefExtrair(d.texto)})).filter(d => d.x.contribuintes.length || d.x.unidade);
+}
+const prefFmtSql = d => { d = String(d || '').replace(/\D/g, ''); return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 10)}-${d.slice(10)}` : d; };
+// O contribuinte em uso: o escolhido entre os que a matrícula traz, ou — quando a leitura não achou nenhum — o que ela digitou.
+function prefAtual(casoId, i, x){
+  const k = x.contribuintes[prefEscolhido(casoId, i, x)]; if(k) return k;
+  const m = String(PREF.manual[casoId + ':' + i] || '').replace(/\D/g, '');
+  return m.length === 11 ? {sql: prefFmtSql(m), areaMaior: false, alteracao: false, onde: 'digitado por você'} : null;
 }
 function prefEscolhido(casoId, i, x){ const s = PREF.sel[casoId + ':' + i]; return s != null && x.contribuintes[s] ? s : x.atual; }
 const prefHoje = () => { const d = new Date(); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); };
@@ -5387,7 +5406,7 @@ function prefPedirHtml(c, i, at, x){
 // A negativa de IPTU (certidão tributária): não leva data, e o captcha da prefeitura é de quem pede.
 window.prefPedirNegativa = function(casoId, i){
   const c = casos[casoId], docs = c ? prefDocsDoCaso(c) : [], d = docs[i]; if(!d) return;
-  const at = d.x.contribuintes[prefEscolhido(casoId, i, d.x)];
+  const at = prefAtual(casoId, i, d.x);
   const erro = t => { AJUDANTE.msg[casoId] = {id: '', estado: 'erro', texto: t, fim: true}; ajudanteAtualizar(casoId); };
   if(!at) return erro('Não há contribuinte escolhido para pedir.');
   if(at.areaMaior) return erro('Este contribuinte está em área maior: ainda não dá para pedir por ele.');
@@ -5397,13 +5416,14 @@ window.prefPedirNegativa = function(casoId, i){
   window.postMessage({fonte: 'painel-cartorio', tipo: 'ajudante-pedido', pedido: {id, casoId, site: 'pref', servico: 'negativa-iptu', sql: at.sql}}, location.origin);
   ajudanteAtualizar(casoId);
 };
+window.prefGuardarSql = function(casoId, i, v){ PREF.manual[casoId + ':' + i] = String(v || '').replace(/\D/g, '').slice(0, 11); const f = document.getElementById('pref-' + casoId), c = casos[casoId]; if(f && c) f.outerHTML = prefFaixaHtml(c); };
 window.prefGuardarDoc = function(casoId, i, v){ PREF.doc[casoId + ':' + i] = String(v || '').replace(/\D/g, ''); };
 window.prefGuardarEx = function(casoId, i, v){ PREF.ex[casoId + ':' + i] = String(v || '').replace(/\D/g, '').slice(0, 4); };
 window.prefUsarDoc = function(casoId, i, d){ PREF.doc[casoId + ':' + i] = d; const el = document.getElementById('pref-doc-' + casoId + '-' + i), c = casos[casoId]; if(el) el.value = prefFmtDoc(d); else if(c){ const f = document.getElementById('pref-' + casoId); if(f) f.outerHTML = prefFaixaHtml(c); } };
 // A certidão de dados cadastrais: o login é pelo e-gov (dela) e o aviso da prefeitura pede o CPF/CNPJ do proprietário — que ela escreve ou escolhe entre os que a matrícula cita.
 window.prefPedirCadastrais = function(casoId, i){
   const c = casos[casoId], docs = c ? prefDocsDoCaso(c) : [], d = docs[i]; if(!d) return;
-  const at = d.x.contribuintes[prefEscolhido(casoId, i, d.x)], key = casoId + ':' + i;
+  const at = prefAtual(casoId, i, d.x), key = casoId + ':' + i;
   const erro = t => { AJUDANTE.msg[casoId] = {id: '', estado: 'erro', texto: t, fim: true}; ajudanteAtualizar(casoId); };
   if(!at) return erro('Não há contribuinte escolhido para pedir.');
   if(at.areaMaior) return erro('Este contribuinte está em área maior: ainda não dá para pedir por ele.');
@@ -5421,7 +5441,7 @@ window.prefPedirCadastrais = function(casoId, i){
 window.prefGuardarData = function(casoId, i, v){ PREF.data[casoId + ':' + i] = v; };
 window.prefPedirValorVenal = function(casoId, i){
   const c = casos[casoId], docs = c ? prefDocsDoCaso(c) : [], d = docs[i]; if(!d) return;
-  const at = d.x.contribuintes[prefEscolhido(casoId, i, d.x)];
+  const at = prefAtual(casoId, i, d.x);
   const erro = t => { AJUDANTE.msg[casoId] = {id: '', estado: 'erro', texto: t, fim: true}; ajudanteAtualizar(casoId); };
   if(!at) return erro('Não há contribuinte escolhido para pedir.');
   if(at.areaMaior) return erro('Este contribuinte está em área maior: ainda não dá para pedir por ele.');
@@ -5438,11 +5458,14 @@ function prefFaixaHtml(c){
   const docs = prefDocsDoCaso(c); if(!docs.length) return '';
   const id = esc(c.id);
   const um = docs.map((d, i) => {
-    const x = d.x, esc_ = prefEscolhido(c.id, i, x), at = x.contribuintes[esc_];
+    const x = d.x, esc_ = prefEscolhido(c.id, i, x), at = prefAtual(c.id, i, x);
     const linhas = x.contribuintes.map((k, j) => `<label class="pref-linha${j === esc_ ? ' atual' : ''}"><input type="radio" name="pref-${id}-${i}" ${j === esc_ ? 'checked' : ''} onchange="prefEscolher('${id}',${i},${j})">
       <b>${escTxt(k.sql)}</b><span>${escTxt(k.onde)}${k.alteracao ? ' · alteração do número' : ''}${k.areaMaior ? ' · em área maior' : ''}${j === x.atual ? ' · o último da matrícula' : ''}</span></label>`).join('');
     const un = x.unidade ? `<span class="pref-un">${escTxt(x.unidade.tipo)} ${escTxt(x.unidade.numero)}${x.unidade.compl ? ' · a prefeitura escreve “' + escTxt(x.unidade.compl) + '”' : ' · complemento da prefeitura ainda sem regra para este tipo'}</span>` : '';
-    const aviso = !at ? `<div class="cx-fin-vazio">Não achei número de contribuinte nesta matrícula — digite à mão quando for pedir.</div>`
+    const manual = PREF.manual[c.id + ':' + i], campoMan = !x.contribuintes.length ? `<div class="pref-pedir"><label>Contribuinte (SQL) <input class="pref-data pref-sql" id="pref-sql-${id}-${i}" value="${esc(manual != null ? prefFmtSql(manual) : '')}" placeholder="000.000.0000-0" inputmode="numeric" maxlength="14" onchange="prefGuardarSql('${id}',${i},this.value)"></label><span class="cx-fin-vazio">${manual && String(manual).replace(/\D/g, '').length !== 11 ? 'O número precisa ter 11 dígitos (setor, quadra, lote e dígito).' : 'Digite o número que está na matrícula (setor.quadra.lote-dígito).'}</span></div>` : '';
+    const trechos = !x.contribuintes.length ? (x.trechos && x.trechos.length ? `<div class="cx-fin-vazio">O texto lido da matrícula só menciona: ${x.trechos.map(t => '“' + escTxt(t) + '”').join(' · ')}</div>` : `<div class="cx-fin-vazio">O texto lido desta matrícula não fala em contribuinte nem IPTU — a leitura pode ter perdido essa parte; confira no papel.</div>`) : '';
+    const aviso = !x.contribuintes.length ? `<div class="cx-fin-vazio">Não achei número de contribuinte nesta matrícula.</div>${trechos}${campoMan}${at ? `<div class="cx-fin-vazio">Usando o número que você digitou — confira contra o papel.</div>` : ''}`
+      : !at ? ''
       : at.areaMaior ? `<div class="cx-fin-vazio">Este está em área maior: antes de pedir, é preciso consultar na prefeitura se já foi individualizado e achar a unidade${x.unidade ? ' ' + escTxt(x.unidade.compl || x.unidade.tipo + ' ' + x.unidade.numero) : ''}.</div>`
       : `<div class="cx-fin-vazio">Contribuinte individual: pode pedir as certidões direto por ele.</div>`;
     return `<div class="pref-doc"><div class="pref-nome">${escTxt(d.nome)} ${un}</div>${linhas}${aviso}${prefPedirHtml(c, i, at, x)}</div>`;
