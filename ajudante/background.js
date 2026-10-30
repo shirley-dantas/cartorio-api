@@ -6,6 +6,7 @@
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec';
 const JUCESP = 'https://www.jucesponline.sp.gov.br';
 const RIDIGITAL = 'https://ridigital.org.br';
+const PREFEITURA_VALOR = 'https://itbi.prefeitura.sp.gov.br/valorreferencia/tvm/frm_tvm_consulta_valor.aspx';
 const MAX_BYTES = 10 * 1024 * 1024;
 const DOCS = {
   ficha: { nome: 'Ficha cadastral completa', arquivo: 'FICHA_CADASTRAL_COMPLETA', tipo: 'FICHA_CADASTRAL_JUCESP' },
@@ -38,7 +39,7 @@ function falar(job, estado, texto, fim, relatorio) {
 async function terminar(id, estado, texto) {
   const job = await mudar(id, (j, todos) => { j.fim = true; j.estado = estado; j.texto = texto; ev(j, { fim: estado, texto: String(texto || '').slice(0, 90) }); if (!Object.values(todos).some((x) => !x.fim)) { popupsDaJucesp(false); bloquearTicket(false); } });
   if (job) {
-    falar(job, estado, texto, true, job.site === 'onr' ? relatorioOnr(job) : undefined);
+    falar(job, estado, texto, true, job.site === 'onr' ? relatorioOnr(job) : job.site === 'pref' ? relatorioPref(job) : undefined);
     for (const t of [job.jucespTabId].concat(job.filhas || [])) { try { Promise.resolve(chrome.tabs.sendMessage(t, { tipo: 'fim', estado, texto })).catch(() => {}); } catch (_) { /* a aba pode já ter fechado */ } }
   }
 }
@@ -84,6 +85,7 @@ const semQuery = (u) => { try { const x = new URL(u); return x.pathname; } catch
 
 async function criarPedido(pedido, sender) {
   if (pedido && pedido.site === 'onr') return criarPedidoOnr(pedido, sender);
+  if (pedido && pedido.site === 'pref') return criarPedidoPref(pedido, sender);
   const quero = Array.isArray(pedido && pedido.quero) ? pedido.quero.filter((q, i, a) => DOCS[q] && a.indexOf(q) === i) : [];
   if (!quero.length) return { ok: false, texto: 'Não entendi o que buscar.' };
   if (!/^[A-Za-z0-9_-]{6,40}$/.test(String((pedido && pedido.casoId) || ''))) return { ok: false, texto: 'Caso inválido.' };
@@ -307,6 +309,56 @@ chrome.downloads && chrome.downloads.onChanged && chrome.downloads.onChanged.add
   })().catch(() => {});
 });
 
+// ── A Prefeitura de São Paulo: valor venal de referência ──
+// Sem login nem pagamento: a página responde na mesma tela, e o que se guarda é a FOTO dela (o que ela fazia ao imprimir a tela).
+// O que importa é que o arquivo seja do contribuinte pedido — quem confere isso é a página (prefeitura.js), que só entrega o resultado
+// quando o SQL da resposta é o do pedido.
+function dataValida(d) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(d || '')); if (!m) return false;
+  const dt = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return dt.getFullYear() === Number(m[3]) && dt.getMonth() === Number(m[2]) - 1 && dt.getDate() === Number(m[1]);
+}
+const sqlFormatado = (d) => d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 10) + '-' + d.slice(10);
+async function criarPedidoPref(p, sender) {
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(String(p.casoId || ''))) return { ok: false, texto: 'Caso inválido.' };
+  if (!/^[A-Za-z0-9_-]{4,40}$/.test(String(p.id || ''))) return { ok: false, texto: 'Pedido inválido.' };
+  if (p.servico !== 'valor-venal') return { ok: false, texto: 'Não entendi qual certidão pedir.' };
+  const sql = String(p.sql || '').replace(/\D/g, ''); if (sql.length !== 11) return { ok: false, texto: 'O número do contribuinte precisa ter 11 dígitos (setor, quadra, lote e dígito).' };
+  const data = String(p.data || '').trim(); if (!dataValida(data)) return { ok: false, texto: 'Escreva a data como dd/mm/aaaa (uma data que exista).' };
+  const job = { id: p.id, casoId: p.casoId, site: 'pref', servico: 'valor-venal', sql, sqlFormatado: sqlFormatado(sql), data, fila: [], feitos: [], arquivos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
+  const aba = await chrome.tabs.create({ url: PREFEITURA_VALOR });
+  job.jucespTabId = aba.id; job.windowId = aba.windowId;   // o campo guarda "a aba do pedido", seja qual for o site
+  await mexer(async () => { const todos = await jobs(); for (const x of Object.values(todos)) if (!x.fim && x.site === 'pref') { x.fim = true; x.estado = 'erro'; ev(x, { fim: 'substituido por um pedido novo' }); } todos[job.id] = job; await guardar(todos); });
+  falar(job, 'andando', 'Abrindo a consulta de valor venal da prefeitura…');
+  return { ok: true };
+}
+function relatorioPref(job) {
+  let versao = ''; try { versao = chrome.runtime.getManifest().version; } catch (_) { /* sem manifesto */ }
+  return JSON.stringify({ versao, site: 'pref', servico: job.servico, sql: job.sqlFormatado, data: job.data, arquivos: (job.arquivos || []).map((a) => a.nome), falhas: job.falhas || [], eventos: job.eventos || [] }, null, 1);
+}
+// A foto da aba do pedido: a captura é da aba que está à frente na janela, então ela é trazida para a frente antes.
+async function fotoDaAba(job, sender) {
+  const janela = (sender && sender.tab && sender.tab.windowId) != null ? sender.tab.windowId : job.windowId;
+  try { await chrome.tabs.update(job.jucespTabId, { active: true }); } catch (_) { /* a aba pode ter sido movida */ }
+  await new Promise((r) => setTimeout(r, 350));
+  const url = await chrome.tabs.captureVisibleTab(janela, { format: 'png' });
+  const b64 = String(url || '').slice(String(url || '').indexOf(',') + 1);
+  if (!b64 || !b64.startsWith('iVBOR')) throw new Error('a foto da tela não saiu em PNG');
+  return b64;
+}
+async function guardarPref(job, r, sender) {
+  const b64 = await fotoDaAba(job, sender);
+  if (b64.length * 0.75 > MAX_BYTES) throw new Error('a foto da tela ficou maior que 10 MB');
+  await mudar(job.id, (x) => { ev(x, { enviando: 'VALOR_VENAL_REFERENCIA', kb: Math.round(b64.length * 0.75 / 1024) }); });
+  const corpo = { acao: 'painel-arquivo', casoId: job.casoId, nomeArquivo: 'VALOR_VENAL_REFERENCIA_' + job.sql + '.png', mimetype: 'image/png', base64: b64, tipoSugerido: 'VALOR_VENAL_REFERENCIA', pessoaSugerida: job.sqlFormatado, origemAjudante: 'prefeitura' };
+  const resp = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(corpo) });
+  const txt = await resp.text();
+  let j; try { j = JSON.parse(txt); } catch (_) { throw new Error('o Apps Script não respondeu em JSON (precisa de nova versão?): ' + txt.replace(/\s+/g, ' ').slice(0, 60)); }
+  if (!j || !j.ok) throw new Error((j && j.erro) || 'o Apps Script recusou o arquivo');
+  await mudar(job.id, (x) => { (x.arquivos = x.arquivos || []).push({ nome: j.nome }); ev(x, { guardado: j.nome }); });
+  await terminar(job.id, 'ok', 'Valor venal de referência ' + r.valor + ' em ' + job.data + ' — ' + r.sql + ', ' + String(r.endereco || '').slice(0, 90) + '. Guardei no card: ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.');
+}
+
 chrome.runtime.onMessage.addListener((m, sender, responder) => {
   (async () => {
     if (!m) return responder(null);
@@ -329,6 +381,18 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
       const x = await mudar(job.id, (j) => { j.nire = String(m.nire || '').replace(/\D/g, '') || j.nire; if (m.empresa) j.empresa = String(m.empresa).slice(0, 120); });
       if (m.empresa && x && /^\d{11}$/.test(x.nire || '')) await lembrarNire(x.cnpj, x.nire);   // só o que veio do resultado da busca por esse CNPJ
       return responder({ ok: true });
+    }
+    if (job.site === 'pref') {
+      if (m.tipo === 'pref-pagina') { await mudar(job.id, (x) => { ev(x, { pagina: String(m.texto || '').slice(0, 80) }); }); falar(job, 'andando', String(m.texto || '').slice(0, 160)); return responder({ ok: true }); }
+      if (m.tipo === 'pref-erro') { await mudar(job.id, (x) => { ev(x, { erro: String(m.texto || '').slice(0, 120) }); }); await terminar(job.id, 'erro', String(m.texto || '').slice(0, 300)); return responder({ ok: true }); }
+      if (m.tipo === 'pref-resultado') {
+        responder({ ok: true });
+        const r = { sql: String(m.sql || ''), valor: String(m.valor || '').slice(0, 40), endereco: String(m.endereco || '').slice(0, 200) };
+        await mudar(job.id, (x) => { ev(x, { resultado: r.valor }); });
+        try { await guardarPref(job, r, sender); }
+        catch (e) { await mudar(job.id, (x) => { (x.falhas = x.falhas || []).push({ erro: String((e && e.message) || e).slice(0, 140) }); }); await terminar(job.id, 'erro', 'A prefeitura respondeu (' + r.valor + ') mas não consegui guardar a foto no card: ' + String((e && e.message) || e).slice(0, 120) + '. Tire um print da tela e arraste para a caixa do card.'); }
+        return;
+      }
     }
     if (job.site === 'onr') {
       if (m.tipo === 'onr-pagina') { await mudar(job.id, (x) => { x.abaAtiva = sender.tab.id; const u = (x.eventos || []).filter((e) => e.tela).pop(); if (!u || u.tela !== m.tela || u.caminho !== m.caminho) ev(x, { tela: String(m.tela || '').slice(0, 20), caminho: semQuery(String(m.caminho || '')).slice(0, 80) }); }); return responder({ ok: true }); }

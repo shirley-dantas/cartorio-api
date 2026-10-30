@@ -15,9 +15,14 @@ assert(ini > 0 && fim > ini, 'não achei o bloco da prefeitura');
 const docs = html.slice(html.indexOf('function onrDocsDaMatricula'), html.indexOf('function onrDoCaso'));
 const T136 = 'matrícula 79.253 ficha 01 São Paulo, 16 de setembro de 1985\nIMÓVEL: O APARTAMENTO Nº 136 - DUPLEX, TIPO "C", localizado nos 13º e 14º andares, de EDIFÍCIO "VILLAGE MORUMBI", à AVENIDA GIOVANNI GRONCHI, nº 4.381, no 13º Subdistrite - Butantã, com a área útil de 57,13m2. (Contribuinte 170.049.0003/6 em maior área).\n\nAv.2 em 25 de julho de 1994\nALTERAÇÃO DO NÚMERO DE CONTRIBUINTE\nProcede-se esta averbação, à vista da Carta de Sentença referida no R.4, para constar que o imóvel objeto da presente matrícula, atualmente vem sendo lançado pelo contribuinte nº. 170.049.0162-8, conforme prova a certidão nº 130.389/94-3, expedida em 7 de junho de 1994, pela Prefeitura desta Capital.\nO Escrevente Autorizado, Mauricio Gonçalves de Alvim';
 const T2007 = 'matrícula 181.816 ficha 01 CNM 111138.2.0181816-25\nImóvel: O APARTAMENTO nº 2007 (HIS-2), localizado no 20° pavimento do SETOR RESIDENCIAL do Condomínio "DO IT PINHEIROS", à Rua FERNÃO DIAS, nº 370, no 45° subdistrito, Pinheiros, CEP nº 05427-000, cabendo-lhe a fração ideal de 0,0015930 no terreno descrito na matrícula nº 151.932, na qual sob nº 36 foi registrada a instituição e especificação parcial do condomínio, tendo sido a convenção registrada sob nº 16.777 no Livro nº 3 - Auxiliar desta Serventia.\nContribuinte: 083.042.0161-5, em área maior.';
-function mundo(documentos = {}) {
-  const ctx = {escTxt: (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c])), esc: (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c])), casos: {C1: {id: 'C1', documentos}}, document: {getElementById: () => null}, window: {}};
-  vm.createContext(ctx); vm.runInContext(docs + '\n' + html.slice(ini, fim) + '\nthis.__f={prefExtrair,prefDocsDoCaso,prefFaixaHtml};', ctx); return ctx;
+function mundo(documentos = {}, {pref = false, tipo = 'Compra e venda', campos = {}} = {}) {
+  const postadas = [], atualizadas = [], esc_ = (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  const ctx = {escTxt: esc_, esc: esc_, casos: {C1: {id: 'C1', tipo, documentos}}, location: {origin: 'https://cartorio-api.vercel.app'},
+    document: {getElementById: (id) => (id in campos ? {value: campos[id]} : null)},
+    AJUDANTE: {pronto: pref, pref, onr: pref, versao: '0.3.0', msg: {}, fila: {}, atual: {}, log: {}, rel: {}},
+    ajudanteAtualizar: (id) => atualizadas.push(id), ajMsgHtml: () => '',
+    window: {postMessage: (m) => postadas.push(m)}};
+  vm.createContext(ctx); vm.runInContext(docs + '\n' + html.slice(ini, fim) + '\nthis.__f={prefExtrair,prefDocsDoCaso,prefFaixaHtml,prefPedirHtml};', ctx); ctx.postadas = postadas; ctx.atualizadas = atualizadas; return ctx;
 }
 await passo('caso da alteração: acha os dois contribuintes, o da averbação é o atual, e a certidão nº 130.389/94-3 NÃO é contribuinte', () => {
   const x = mundo().__f.prefExtrair(T136);
@@ -49,5 +54,23 @@ await passo('sem matrícula no card, a faixa não aparece; texto da matrícula n
   assert.equal(mundo().__f.prefFaixaHtml({id: 'C1', documentos: {}}), '');
   const m = mundo({a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: '<img src=x onerror=1>.pdf', texto: 'O APARTAMENTO nº 5. Contribuinte 083.042.0161-5.'}});
   const h = m.__f.prefFaixaHtml(m.casos.C1); assert(!/<img src=x/.test(h) && h.includes('&lt;img'));
+});
+const DOC = {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'Matricula_79253.pdf', texto: T136}};
+const DOC_AREA = {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'Matricula_181816.pdf', texto: T2007}};
+await passo('o botão do valor venal: sem o Ajudante novo avisa, com ele traz a data de hoje (e vazia no inventário); contribuinte em área maior fica sem botão', () => {
+  assert(/instale o Ajudante do painel na versão 0\.3\.0/.test(mundo(DOC).__f.prefFaixaHtml(mundo(DOC).casos.C1)));
+  const m = mundo(DOC, {pref: true}), h = m.__f.prefFaixaHtml(m.casos.C1), hoje = new Date();
+  assert(/Valor venal de referência/.test(h) && /pref-data-C1-0/.test(h)); assert(h.includes(String(hoje.getFullYear())), 'a data de hoje já vem escrita'); assert(/É a data de hoje/.test(h));
+  const inv = mundo(DOC, {pref: true, tipo: 'Inventário e partilha'}), hi = inv.__f.prefFaixaHtml(inv.casos.C1); assert(/id="pref-data-C1-0" value=""/.test(hi) && /digite a data do óbito/.test(hi));
+  const am = mundo(DOC_AREA, {pref: true}), ha = am.__f.prefFaixaHtml(am.casos.C1); assert(!/Valor venal de referência<\/button>/.test(ha) && /ficam desligados enquanto o contribuinte escolhido estiver em área maior/.test(ha));
+});
+await passo('pedir o valor venal: manda ao Ajudante o contribuinte ESCOLHIDO e a data; recusa data vazia (inventário), inexistente e área maior — escrito, sem mandar nada', () => {
+  const m = mundo(DOC, {pref: true, campos: {'pref-data-C1-0': '30/10/2026'}}); m.window.prefPedirValorVenal('C1', 0);
+  assert.equal(m.postadas.length, 1); const p = m.postadas[0]; assert.equal(p.fonte, 'painel-cartorio'); assert.equal(p.tipo, 'ajudante-pedido');
+  assert.equal(p.pedido.site, 'pref'); assert.equal(p.pedido.servico, 'valor-venal'); assert.equal(p.pedido.sql, '170.049.0162-8', 'o último da matrícula, que é o atual'); assert.equal(p.pedido.data, '30/10/2026'); assert.equal(p.pedido.casoId, 'C1');
+  m.window.prefEscolher && 0; m.window.prefEscolher('C1', 0, 0); m.window.prefPedirValorVenal('C1', 0); assert.equal(m.postadas.length, 1, 'o antigo está em área maior: não pede');
+  assert(/área maior/.test(m.AJUDANTE.msg.C1.texto));
+  const inv = mundo(DOC, {pref: true, tipo: 'Inventário', campos: {'pref-data-C1-0': ''}}); inv.window.prefPedirValorVenal('C1', 0); assert.equal(inv.postadas.length, 0); assert(/data do óbito/.test(inv.AJUDANTE.msg.C1.texto));
+  const ruim = mundo(DOC, {pref: true, campos: {'pref-data-C1-0': '31/02/2026'}}); ruim.window.prefPedirValorVenal('C1', 0); assert.equal(ruim.postadas.length, 0); assert(/uma data que exista/.test(ruim.AJUDANTE.msg.C1.texto));
 });
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);

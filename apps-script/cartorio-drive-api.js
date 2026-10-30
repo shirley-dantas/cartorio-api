@@ -1483,10 +1483,10 @@ function extrairIdArquivo(url) {
 // e corrige depois: o que a IA não tem certeza fica marcado "confirmar" no card, com o lápis para corrigir.
 // O Drive só é tocado pelo selo, como nos arquivos do link: o banco é aberto.
 var ORIGENS_ARQUIVO = ["link do cliente", "arrastado no card"];
-var TIPOS_DOC_CARD = ["RG_CNH", "CPF", "CERTIDAO_NASCIMENTO", "CERTIDAO_CASAMENTO", "CERTIDAO_OBITO", "PACTO_ANTENUPCIAL", "MATRICULA_IMOVEL", "COMPROVANTE_ENDERECO", "IPTU", "CND", "ESCRITURA", "PROCURACAO", "CONTRATO", "COMPROVANTE_PAGAMENTO", "FICHA_CADASTRAL_JUCESP", "CONTRATO_SOCIAL", "OUTRO"];
+var TIPOS_DOC_CARD = ["RG_CNH", "CPF", "CERTIDAO_NASCIMENTO", "CERTIDAO_CASAMENTO", "CERTIDAO_OBITO", "PACTO_ANTENUPCIAL", "MATRICULA_IMOVEL", "COMPROVANTE_ENDERECO", "IPTU", "CND", "ESCRITURA", "PROCURACAO", "CONTRATO", "COMPROVANTE_PAGAMENTO", "FICHA_CADASTRAL_JUCESP", "CONTRATO_SOCIAL", "VALOR_VENAL_REFERENCIA", "NEGATIVA_IPTU", "DADOS_CADASTRAIS_IMOVEL", "OUTRO"];
 // O que o Ajudante do painel (extensão do Chrome) sabe de antemão: veio de um pedido dela na JUCESP, então o tipo não se adivinha.
-var TIPOS_DO_AJUDANTE = ["FICHA_CADASTRAL_JUCESP", "CONTRATO_SOCIAL", "MATRICULA_IMOVEL"];   // o que o Ajudante (JUCESP e RI Digital) pede para guardar
-var ORIGENS_DO_AJUDANTE = ["jucesp", "onr"];
+var TIPOS_DO_AJUDANTE = ["FICHA_CADASTRAL_JUCESP", "CONTRATO_SOCIAL", "MATRICULA_IMOVEL", "VALOR_VENAL_REFERENCIA", "NEGATIVA_IPTU", "DADOS_CADASTRAIS_IMOVEL"];   // o que o Ajudante (JUCESP, RI Digital e Prefeitura) pede para guardar
+var ORIGENS_DO_AJUDANTE = ["jucesp", "onr", "prefeitura"];
 var TIPOS_QUE_PEDEM_PESSOA = ["RG_CNH", "CPF", "CERTIDAO_NASCIMENTO", "CERTIDAO_CASAMENTO", "CERTIDAO_OBITO", "COMPROVANTE_ENDERECO"];
 
 function instrucaoIdentificarDocumento(texto) {
