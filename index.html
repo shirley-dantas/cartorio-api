@@ -1767,6 +1767,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-aj-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}.cx-aj-topo i{font-size:18px;color:var(--cc-tinta-2)}
 .cx-aj-cnpj{flex:1;min-width:160px;max-width:240px;border:1px solid var(--cc-linha-forte);border-radius:10px;padding:7px 10px;font:inherit;background:#fff}
 .cx-aj-topo small{color:var(--cc-tinta-3);font-size:11.5px}
+.pref-doc{margin-top:8px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid var(--cc-linha-forte);flex-basis:100%}
+.pref-nome{font-size:12.5px;font-weight:700;margin-bottom:4px;overflow-wrap:anywhere}.pref-un{font-weight:400;color:var(--cc-tinta-3);margin-left:6px}
+.pref-linha{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:5px 6px;border-radius:8px;font-size:13px;cursor:pointer}.pref-linha.atual{background:#F4F1EA}
+.pref-linha span{color:var(--cc-tinta-3);font-size:12px}
 .cx-aj-emp{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-top:8px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid var(--cc-linha-forte)}
 .cx-aj-nome{display:grid;min-width:160px;flex:1;font-size:13px}.cx-aj-nome small{color:var(--cc-tinta-3);font-size:11.5px;overflow-wrap:anywhere}
 .cx-aj-emp .cx-aj-bt{margin:0}.cx-aj-vazio{font-size:12.5px;color:var(--cc-tinta-3);margin-top:8px}
@@ -5314,6 +5318,61 @@ function capaFaixaHtml(c){
 }
 // ── fim: a capa do dossiê ──
 
+// ── As certidões do imóvel na Prefeitura de São Paulo: o contribuinte que está na matrícula ──
+// Valor venal de referência, negativa de IPTU e dados cadastrais saem todos pelo número de contribuinte (setor.quadra.lote-dígito) que a matrícula traz.
+// A matrícula não é uma coisa só: o número do cabeçalho pode estar "em maior área", e uma averbação ("ALTERAÇÃO DO NÚMERO DE CONTRIBUINTE") pode ter
+// trocado por outro — o atual é o último que a matrícula diz, e quando ele está em área maior só a consulta ao site da prefeitura sabe se já houve
+// individualização (e então o número da unidade vem de lá). Aqui só se LÊ e se pede conferência: o painel nunca escolhe o contribuinte sozinho, porque
+// certidão do imóvel errado parece certa. O número digitalizado pode vir com um dígito trocado (0 por 8), e quem confere é ela, contra a matrícula.
+const PREF = {sel: {}};
+const PREF_COMPL = {apartamento: 'AP'};   // o complemento que a prefeitura escreve; só o que já foi visto numa tela dela
+function prefMarcaDoAto(antes){
+  // "Av.2 em 25 de julho…", "R.4 - 12/03/1990": o cabeçalho do ato, e não a citação "referida no R.4," dentro do texto de outro.
+  let ult = null;
+  for(const m of String(antes).matchAll(/\b(Av|R)\.?\s*(\d+)\s*(?:em\b|[-–\/]\s*\d{1,2}[\/.])/gi)) ult = m[1][0].toUpperCase() + m[1].slice(1).toLowerCase() + '.' + m[2];
+  return ult;
+}
+function prefExtrair(texto){
+  const t = String(texto || ''), achados = [];
+  for(const m of t.matchAll(/(?<![\d.\/-])(\d{3})\.(\d{3})\.(\d{4})\s*[-–\/]\s*(\d)(?!\d)/g)){
+    const sql = `${m[1]}.${m[2]}.${m[3]}-${m[4]}`, depois = t.slice(m.index + m[0].length, m.index + m[0].length + 45), antes = t.slice(Math.max(0, m.index - 320), m.index);
+    const areaMaior = /^[^.]{0,40}?(?:em\s+maior\s+[áa]rea|[áa]rea\s+maior)/i.test(depois.replace(/^[\s,;:)(]+/, ''));
+    const alteracao = /altera[çc][ãa]o\s+do\s+n[úu]mero\s+de\s+contribuinte|atualmente\s+vem\s+sendo\s+lan[çc]ado/i.test(antes);
+    const ex = achados.find(a => a.sql === sql);
+    if(ex){ ex.areaMaior = ex.areaMaior || areaMaior; ex.alteracao = ex.alteracao || alteracao; continue; }
+    achados.push({sql, areaMaior, alteracao, onde: prefMarcaDoAto(t.slice(0, m.index)) || 'descrição do imóvel', pos: m.index});
+  }
+  let atual = achados.length ? achados.length - 1 : -1;   // o último que a matrícula diz é o que vale
+  const mu = /\b(apartamento|casa|sala|conjunto|loja|box|garagem)\s*(?:n[ºo°.]*\s*)?(\d+[A-Za-z]?)\b/i.exec(t);
+  const unidade = mu ? {tipo: mu[1].toLowerCase(), numero: mu[2].toUpperCase(), compl: PREF_COMPL[mu[1].toLowerCase()] ? PREF_COMPL[mu[1].toLowerCase()] + ' ' + mu[2].toUpperCase() : ''} : null;
+  return {contribuintes: achados, atual, unidade};
+}
+function prefDocsDoCaso(c){
+  return onrDocsDaMatricula(c).map(d => ({nome: String(d.nome || 'matrícula'), x: prefExtrair(d.texto)})).filter(d => d.x.contribuintes.length || d.x.unidade);
+}
+function prefEscolhido(casoId, i, x){ const s = PREF.sel[casoId + ':' + i]; return s != null && x.contribuintes[s] ? s : x.atual; }
+function prefFaixaHtml(c){
+  const docs = prefDocsDoCaso(c); if(!docs.length) return '';
+  const id = esc(c.id);
+  const um = docs.map((d, i) => {
+    const x = d.x, esc_ = prefEscolhido(c.id, i, x), at = x.contribuintes[esc_];
+    const linhas = x.contribuintes.map((k, j) => `<label class="pref-linha${j === esc_ ? ' atual' : ''}"><input type="radio" name="pref-${id}-${i}" ${j === esc_ ? 'checked' : ''} onchange="prefEscolher('${id}',${i},${j})">
+      <b>${escTxt(k.sql)}</b><span>${escTxt(k.onde)}${k.alteracao ? ' · alteração do número' : ''}${k.areaMaior ? ' · em área maior' : ''}${j === x.atual ? ' · o último da matrícula' : ''}</span></label>`).join('');
+    const un = x.unidade ? `<span class="pref-un">${escTxt(x.unidade.tipo)} ${escTxt(x.unidade.numero)}${x.unidade.compl ? ' · a prefeitura escreve “' + escTxt(x.unidade.compl) + '”' : ' · complemento da prefeitura ainda sem regra para este tipo'}</span>` : '';
+    const aviso = !at ? `<div class="cx-fin-vazio">Não achei número de contribuinte nesta matrícula — digite à mão quando for pedir.</div>`
+      : at.areaMaior ? `<div class="cx-fin-vazio">Este está em área maior: antes de pedir, é preciso consultar na prefeitura se já foi individualizado e achar a unidade${x.unidade ? ' ' + escTxt(x.unidade.compl || x.unidade.tipo + ' ' + x.unidade.numero) : ''}.</div>`
+      : `<div class="cx-fin-vazio">Contribuinte individual: pode pedir as certidões direto por ele.</div>`;
+    return `<div class="pref-doc"><div class="pref-nome">${escTxt(d.nome)} ${un}</div>${linhas}${aviso}</div>`;
+  }).join('');
+  return `<div class="cx-orc cx-ped" id="pref-${id}"><span class="cx-orc-rot"><i class="ti ti-building-community"></i> Prefeitura — certidões do imóvel</span>
+    <span class="cx-fin-vazio">Contribuinte lido da matrícula — confira contra o papel antes de pedir.</span>${um}</div>`;
+}
+window.prefEscolher = function(casoId, i, j){
+  PREF.sel[casoId + ':' + i] = j;
+  const el = document.getElementById('pref-' + casoId), c = casos[casoId]; if(el && c) el.outerHTML = prefFaixaHtml(c);
+};
+// ── fim: as certidões da prefeitura ──
+
 // ── RENDER CASOS ──
 // Campos dos dados do registro, desenhados abertos em todo card.
 const CX_REG=[
@@ -5412,6 +5471,8 @@ function renderCasos(){
       </div>
 
       ${capaFaixaHtml(c)}
+
+      ${prefFaixaHtml(c)}
 
       <div class="cx-orc cx-ped">
         <span class="cx-orc-rot"><i class="ti ti-file-search"></i> Documentos</span>
@@ -12522,11 +12583,14 @@ function onrPropria(x,nome){
   return noNome||x.matriculas[0]||'';
 }
 // As matrículas que o caso já traz, agrupadas por registro de imóveis (cartório + cidade): num mesmo pedido só cabem as do mesmo cartório.
-function onrDoCaso(c){
+function onrDocsDaMatricula(c){
   const todos=Object.values((c&&c.documentos)||{}).filter(d=>d&&d.texto&&d.tipo!=='modelo');
   const certos=todos.filter(d=>d.tipoDocumento==='MATRICULA_IMOVEL'||/^\s*TIPO_DOCUMENTO:\s*matr[ií]cula/i.test(d.texto));
   // Só cai no "nome parece matrícula" quando nenhum documento foi reconhecido como matrícula: um arquivo que só cita a palavra no nome não manda.
-  const docs=certos.length?certos:todos.filter(d=>/matr[ií]cula/i.test(d.nome||''));
+  return certos.length?certos:todos.filter(d=>/matr[ií]cula/i.test(d.nome||''));
+}
+function onrDoCaso(c){
+  const docs=onrDocsDaMatricula(c);
   const grupos={};
   docs.forEach(d=>{
     const x=onrExtrair(d.texto), k=x.cartorio+'|'+x.cidade, g=grupos[k]=grupos[k]||{cartorio:x.cartorio,cidade:x.cidade,matriculas:[],de:{},citadas:[]}, propria=onrPropria(x,d.nome);

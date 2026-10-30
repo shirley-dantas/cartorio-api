@@ -1292,6 +1292,22 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
 
+## As certidões do imóvel na Prefeitura de São Paulo (em construção)
+
+Valor venal de referência, negativa de IPTU e certidão de dados cadastrais — as três no site da prefeitura, em caminhos distintos, e todas pelo **número de contribuinte**
+(setor.quadra.lote-dígito) que está na matrícula. Pedido dela, 30/10/2026. **Etapa 1 feita (só o painel, sem o site):** a faixa *Prefeitura — certidões do imóvel* do card
+(`prefFaixaHtml`, `prefExtrair`) lê a matrícula, lista **todos** os contribuintes com o lugar onde aparecem (descrição do imóvel, Av.2…), marca o **último que a matrícula diz** como
+o atual e pede **conferência** (botão de rádio); nunca escolhe sozinha — o número digitalizado pode vir com um dígito trocado, e certidão do imóvel errado parece certa.
+
+Regras que saíram dos casos reais dela e **não devem ser mexidas sem perguntar**:
+- **O contribuinte pode vir com barra ou hífen no dígito** (`170.049.0003/6`, `170.049.0162-8`) e só vale o formato de três grupos (3.3.4 + dígito): "certidão nº 130.389/94-3" na mesma averbação **não** é contribuinte.
+- **"ALTERAÇÃO DO NÚMERO DE CONTRIBUINTE" (Av.x)** troca o número do cabeçalho: o atual é o último que a matrícula diz, e o anterior fica na lista como histórico.
+- **"Em área maior"** (`areaMaior`) não basta para pedir: só a **consulta no site** diz se já houve individualização. Quando houve, a prefeitura devolve a lista de todas as unidades do endereço
+  (Compl. "AP 101", "AP 2007"… com o contribuinte de cada uma) e o Ajudante deve achar **a unidade da matrícula** (`unidade.compl`, hoje só "apartamento" → "AP n"; outros tipos ficam
+  sem complemento até ela mostrar como a prefeitura escreve) e seguir com o número individual. **Não achou, ou achou mais de uma linha: para e mostra, nunca escolhe.**
+- **Falta (etapa 2):** o Ajudante na prefeitura — consulta de individualização e os três pedidos. Precisa dos prints dos caminhos, de como ela entra (certificado/senha, captcha) e se pagam algo.
+- Teste: `node testes/prefeitura.mjs` (usa trechos reais das três matrículas).
+
 ## A capa do dossiê
 
 A folha de papel que acompanha o **caso físico** pelas esteiras internas do cartório. Antes era um modelo do PowerPoint (`DOSSIE.pptx`) preenchido inteiro à mão;
@@ -1395,6 +1411,7 @@ node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
 node testes/ajudante.mjs
 node testes/capa.mjs
+node testes/prefeitura.mjs
 node testes/orcamento-link-tela.mjs && node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
 ```
 
