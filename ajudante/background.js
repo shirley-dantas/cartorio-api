@@ -338,8 +338,8 @@ async function criarPedidoPref(p, sender) {
   if (!/^[A-Za-z0-9_-]{4,40}$/.test(String(p.id || ''))) return { ok: false, texto: 'Pedido inválido.' };
   const srv = PREF_SERVICOS[p.servico]; if (!srv) return { ok: false, texto: 'Não entendi qual certidão pedir.' };
   const sql = String(p.sql || '').replace(/\D/g, ''); if (sql.length !== 11) return { ok: false, texto: 'O número do contribuinte precisa ter 11 dígitos (setor, quadra, lote e dígito).' };
-  const documento = String(p.documento || '').replace(/\D/g, ''); if (srv.documento && !docValido(documento)) return { ok: false, texto: 'O CPF ou CNPJ do proprietário não confere — confira os dígitos.' };
-  const exercicio = String(p.exercicio || '').trim(); if (srv.documento && !(/^\d{4}$/.test(exercicio) && Number(exercicio) >= 2000 && Number(exercicio) <= new Date().getFullYear() + 1)) return { ok: false, texto: 'Escreva o exercício com quatro dígitos (por exemplo, 2026).' };
+  const documento = String(p.documento || '').replace(/\D/g, ''); if (documento && !docValido(documento)) return { ok: false, texto: 'O CPF ou CNPJ do proprietário não confere — confira os dígitos.' };
+  const exercicio = String(p.exercicio || new Date().getFullYear()).trim(); if (srv.documento && !(/^\d{4}$/.test(exercicio) && Number(exercicio) >= 2000 && Number(exercicio) <= new Date().getFullYear() + 1)) return { ok: false, texto: 'Escreva o exercício com quatro dígitos (por exemplo, 2026).' };
   const data = String(p.data || '').trim(); if (srv.data && !dataValida(data)) return { ok: false, texto: 'Escreva a data como dd/mm/aaaa (uma data que exista).' };
   const job = { id: p.id, casoId: p.casoId, site: 'pref', servico: p.servico, sql, sqlFormatado: sqlFormatado(sql), data: srv.data ? data : '', documento: srv.documento ? documento : '', exercicio: srv.documento ? exercicio : '', fila: [], feitos: [], arquivos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
   const aba = await chrome.tabs.create({ url: srv.url });
@@ -362,8 +362,34 @@ async function fotoDaAba(job, sender) {
   if (!b64 || !b64.startsWith('iVBOR')) throw new Error('a foto da tela não saiu em PNG');
   return b64;
 }
+// Reserva quando o Chrome não deixa fotografar a aba (a foto exige a permissão ampla "todos os sites", que a extensão não tem): o comprovante é desenhado
+// com o que a prefeitura respondeu, no estilo da folha do orçamento, e DIZ que é um desenho — nunca se passa por cópia da tela.
+async function desenharComprovante(job, r) {
+  if (typeof OffscreenCanvas === 'undefined') throw new Error('este Chrome não sabe desenhar o comprovante');
+  const L = 900, quebra = (g, t, max) => { const out = []; let lin = ''; for (const w of String(t || '').split(/\s+/)) { const x = lin ? lin + ' ' + w : w; if (g.measureText(x).width > max && lin) { out.push(lin); lin = w; } else lin = x; } if (lin) out.push(lin); return out; };
+  const medida = new OffscreenCanvas(L, 10).getContext('2d'); medida.font = '30px sans-serif';
+  const enderecoLinhas = quebra(medida, r.endereco, L - 120).slice(0, 4);
+  const A = 330 + enderecoLinhas.length * 40 + 150, c = new OffscreenCanvas(L, A), g = c.getContext('2d');
+  g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, L, A);
+  g.fillStyle = '#1F2A33'; g.fillRect(0, 0, L, 110); g.fillStyle = '#C8A96A'; g.fillRect(0, 110, L, 6);
+  g.fillStyle = '#FFFFFF'; g.font = 'bold 34px sans-serif'; g.fillText('VALOR VENAL DE REFERÊNCIA', 60, 68);
+  const rotulo = (t, y) => { g.fillStyle = '#5A6670'; g.font = 'bold 20px sans-serif'; g.fillText(t, 60, y); };
+  const valor = (t, y, tam) => { g.fillStyle = '#111111'; g.font = (tam || 'bold 32px') + ' sans-serif'; g.fillText(t, 60, y); };
+  rotulo('CONTRIBUINTE (SQL)', 170); valor(String(r.sql || job.sqlFormatado), 212);
+  rotulo('VALOR DE REFERÊNCIA', 262); valor('R$ ' + r.valor, 306);
+  rotulo('ENDEREÇO', 356); enderecoLinhas.forEach((l, i) => valor(l, 398 + i * 40, '30px'));
+  const y = 398 + enderecoLinhas.length * 40 + 16;
+  rotulo('DATA DA CONSULTA', y); valor(job.data, y + 44);
+  g.fillStyle = '#F4F1EA'; g.fillRect(0, A - 110, L, 110); g.fillStyle = '#3A444C'; g.font = '19px sans-serif';
+  g.fillText('Resultado lido pelo Ajudante em itbi.prefeitura.sp.gov.br, em ' + new Date().toLocaleString('pt-BR') + '.', 60, A - 66);
+  g.fillText('Comprovante desenhado a partir do resultado — não é a captura da tela original.', 60, A - 34);
+  const blob = await c.convertToBlob({ type: 'image/png' });
+  return paraBase64(await blob.arrayBuffer());
+}
 async function guardarPref(job, r, sender) {
-  const b64 = await fotoDaAba(job, sender);
+  let b64, desenhado = false;
+  try { b64 = await fotoDaAba(job, sender); }
+  catch (e) { b64 = await desenharComprovante(job, r); desenhado = true; await mudar(job.id, (x) => { ev(x, { foto: 'sem foto da tela (' + String(e && e.message || e).slice(0, 70) + '): comprovante desenhado' }); }); }
   if (b64.length * 0.75 > MAX_BYTES) throw new Error('a foto da tela ficou maior que 10 MB');
   await mudar(job.id, (x) => { ev(x, { enviando: 'VALOR_VENAL_REFERENCIA', kb: Math.round(b64.length * 0.75 / 1024) }); });
   const corpo = { acao: 'painel-arquivo', casoId: job.casoId, nomeArquivo: 'VALOR_VENAL_REFERENCIA_' + job.sql + '.png', mimetype: 'image/png', base64: b64, tipoSugerido: 'VALOR_VENAL_REFERENCIA', pessoaSugerida: job.sqlFormatado, origemAjudante: 'prefeitura' };
@@ -372,7 +398,7 @@ async function guardarPref(job, r, sender) {
   let j; try { j = JSON.parse(txt); } catch (_) { throw new Error('o Apps Script não respondeu em JSON (precisa de nova versão?): ' + txt.replace(/\s+/g, ' ').slice(0, 60)); }
   if (!j || !j.ok) throw new Error((j && j.erro) || 'o Apps Script recusou o arquivo');
   await mudar(job.id, (x) => { (x.arquivos = x.arquivos || []).push({ nome: j.nome }); ev(x, { guardado: j.nome }); });
-  await terminar(job.id, 'ok', 'Valor venal de referência ' + r.valor + ' em ' + job.data + ' — ' + r.sql + ', ' + String(r.endereco || '').slice(0, 90) + '. Guardei no card: ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.');
+  await terminar(job.id, 'ok', 'Valor venal de referência ' + r.valor + ' em ' + job.data + ' — ' + r.sql + ', ' + String(r.endereco || '').slice(0, 90) + '. Guardei no card: ' + j.nome + (desenhado ? ' (comprovante desenhado, não a foto da tela)' : '') + (j.confirmar ? ' (confirme o nome no card)' : '') + '.');
 }
 
 // ── A certidão tributária de IPTU: o PDF sai quando ela clica em Emitir (o captcha é dela) ──
@@ -455,7 +481,7 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
         if (job.emitidaEm && !(job.arquivos || []).length && Date.now() - job.emitidaEm > 90000) await terminar(job.id, 'erro', 'A prefeitura emitiu, mas o PDF não chegou até mim em 90 segundos. Veja a pasta Downloads: se estiver lá, arraste para a caixa do card.');
         return responder({ ok: true });
       }
-      if (m.tipo === 'pref-erro') { await mudar(job.id, (x) => { ev(x, { erro: String(m.texto || '').slice(0, 120) }); }); await terminar(job.id, 'erro', String(m.texto || '').slice(0, 300)); return responder({ ok: true }); }
+      if (m.tipo === 'pref-erro') { await mudar(job.id, (x) => { ev(x, { erro: String(m.texto || '').slice(0, 120) }); if (m.forma) ev(x, { forma: String(m.forma).slice(0, 1500) }); }); await terminar(job.id, 'erro', String(m.texto || '').slice(0, 300)); return responder({ ok: true }); }
       if (m.tipo === 'pref-resultado' && job.servico === 'valor-venal') {
         responder({ ok: true });
         const r = { sql: String(m.sql || ''), valor: String(m.valor || '').slice(0, 40), endereco: String(m.endereco || '').slice(0, 200) };

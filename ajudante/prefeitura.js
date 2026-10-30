@@ -86,14 +86,26 @@
     const todos = Array.from(doc.querySelectorAll('input')).filter((i) => visivel(i) && (!i.type || /^(text|tel|number)$/i.test(i.type)));
     return todos.find((i) => el.compareDocumentPosition(i) & 4) || null;
   }
+  // A forma da tela, sem valores digitados: para o relatório dizer o que a prefeitura desenhou quando o Ajudante não reconhece.
+  function formaDaTela(doc) {
+    const corta = (t, n) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, n);
+    const campos = Array.from(doc.querySelectorAll('input,select,textarea')).filter(visivel).slice(0, 25).map((i) => (i.tagName || '').toLowerCase() + ':' + (i.type || '') + ':' + corta(i.id || i.name, 40) + (i.type === 'submit' || i.type === 'button' ? '=' + corta(i.value, 20) : ''));
+    const botoes = Array.from(doc.querySelectorAll('button,a')).filter(visivel).map((b) => corta(b.innerText || b.textContent, 24)).filter(Boolean).slice(0, 15);
+    const rotulos = Array.from(doc.querySelectorAll('label,span,td,b,strong')).filter(visivel).map((e) => corta(e.textContent, 40)).filter((t) => /sql|codigo|imagem|emitir|certidao|numero/.test(norm(t)) && t.length < 40).slice(0, 12);
+    return corta(JSON.stringify({ campos, botoes, rotulos, iframes: doc.querySelectorAll('iframe').length, endereco: (doc.location && doc.location.pathname) || '' }), 1500);
+  }
   function planejarDuc(doc, job, estado) {
     const preenchido = !!(estado && estado.preenchido);
     const texto = norm((doc.body && (doc.body.innerText || doc.body.textContent)) || '');
     if (/emissao da certidao concluida/.test(texto)) return { acao: 'emitida' };
     const sel = Array.from(doc.querySelectorAll('select')).filter(visivel).find((x) => Array.from(x.options).some((o) => norm(o.textContent).includes(CERTIDAO_IPTU)));
-    const sql = campoApos(doc, 'informe o numero do sql'), captcha = campoApos(doc, 'codigo da imagem');
-    const emitir = Array.from(doc.querySelectorAll('input[type=submit],input[type=button],button,a')).filter(visivel).find((b) => norm(b.value || b.innerText || b.textContent) === 'emitir');
-    if (!sql || !captcha || !emitir) return { acao: 'nao-reconheco', texto: 'Não reconheço esta tela da prefeitura (faltam o campo do SQL, o do código da imagem ou o botão Emitir).' };
+    const primeiro = (rotulos) => { for (const r of rotulos) { const c = campoApos(doc, r); if (c) return c; } return null; };
+    const sql = primeiro(['informe o numero do sql', 'numero do sql', 'sql']), captcha = primeiro(['codigo da imagem', 'codigo', 'imagem']);
+    const emitir = Array.from(doc.querySelectorAll('input[type=submit],input[type=button],input[type=image],button,a')).filter(visivel).find((b) => /^emitir\b/.test(norm(b.value || b.alt || b.innerText || b.textContent)));
+    if (!sql || !captcha || !emitir) {
+      const falta = [!sql && 'o campo do SQL', !captcha && 'o campo do código da imagem', !emitir && 'o botão Emitir'].filter(Boolean).join(', ');
+      return { acao: 'nao-reconheco', texto: 'Não reconheço esta tela da prefeitura (falta ' + falta + ').', forma: formaDaTela(doc) };
+    }
     if (!sel) return { acao: 'erro', texto: 'Não achei a opção “Certidão Tributária de IPTU” na lista de tipos desta tela da prefeitura. Não escolhi outra.' };
     if (preenchido) return { acao: 'esperar-captcha', captcha };
     const opcao = Array.from(sel.options).find((o) => norm(o.textContent).includes(CERTIDAO_IPTU));
@@ -121,7 +133,7 @@
     return { acao: 'aguardar-login' };   // qualquer outra tela é a do e-gov (ou o caminho até ela): ela entra, o Ajudante espera
   }
 
-  const api = { planejarCad, formatarDoc, planejarDuc, campoApos, planejar, campos, botaoPesquisar, mensagem, resposta, partesDoSql, formatarSql, ehData, norm };
+  const api = { planejarCad, formatarDoc, planejarDuc, formaDaTela, campoApos, planejar, campos, botaoPesquisar, mensagem, resposta, partesDoSql, formatarSql, ehData, norm };
   raiz.AJ_PREF = api;
 
   // ── Daqui para baixo é a parte que mexe na página (só no navegador, com a extensão) ─────────────────────────
@@ -153,14 +165,15 @@
     const grava = (k, v) => { try { sessionStorage.setItem(k, v); } catch (_) { /* sem sessionStorage */ } };
     // O clique em Emitir é dela (isTrusted): só se registra para o relatório.
     document.addEventListener('click', (e) => { if (e.isTrusted && e.target && /emitir/i.test(String(e.target.value || e.target.textContent || ''))) mandar({ tipo: 'pref-pagina', texto: 'Emitindo a certidão…', registro: 'clique dela em Emitir' }); }, true);
-    let avisouEmitida = false, avisouCaptcha = false, preenchendo = false;
+    let avisouEmitida = false, avisouCaptcha = false, preenchendo = false, naoReconheci = 0;
     const tick = () => {
       const p = planejarDuc(document, job, { preenchido: lido(chaveDuc) === '1' });
       if (p.acao === 'emitida') {
         if (!avisouEmitida) { avisouEmitida = true; mostrar('Emissão concluída — guardando o PDF no card…'); mandar({ tipo: 'pref-emitida' }); }
         mandar({ tipo: 'pref-vigia' }); return false;
       }
-      if (p.acao === 'erro' || p.acao === 'nao-reconheco') { mostrar(p.texto, '#B3261E'); mandar({ tipo: 'pref-erro', texto: p.texto + (p.acao === 'nao-reconheco' ? ' Faça à mão e arraste o PDF para a caixa do card.' : '') }); return true; }
+      if (p.acao === 'nao-reconheco' && ++naoReconheci < 4) { mostrar('Esperando a tela da prefeitura carregar…'); return false; }   // a página pode ainda estar montando os campos
+      if (p.acao === 'erro' || p.acao === 'nao-reconheco') { mostrar(p.texto, '#B3261E'); mandar({ tipo: 'pref-erro', texto: p.texto + (p.acao === 'nao-reconheco' ? ' Faça à mão e arraste o PDF para a caixa do card.' : ''), forma: p.forma }); return true; }
       if (p.acao === 'preencher' && !preenchendo) {
         preenchendo = true;
         if (!p.jaEstaNela) { p.select.value = p.opcao.value; p.select.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -198,17 +211,24 @@
         p.consultar.click(); return false;
       }
       if (p.acao === 'modal' && !modalEm) {
-        modalEm = Date.now();
+        modalEm = Date.now(); grava(est.replace('m', '') + 'm');
+        if (!p.documento) {
+          // O CPF/CNPJ do proprietário é dela, digitado no aviso da prefeitura (como o código da imagem): o Ajudante só espera o Ok e o PDF.
+          mostrar('Digite o CPF/CNPJ do proprietário no aviso e clique em Ok. Eu pego o PDF.', '#8a6d1f');
+          mandar({ tipo: 'pref-pagina', estado: 'espera', texto: 'Digite o CPF/CNPJ do proprietário no aviso da prefeitura e clique em Ok — eu pego o PDF.' });
+          p.ok.addEventListener('click', () => mandar({ tipo: 'pref-emitida' }), { once: true, capture: true });
+          return false;
+        }
         mostrar('Informando o CPF/CNPJ do proprietário…');
-        preencher(p.proprietario, p.documento); grava(est.replace('m', '') + 'm');
+        preencher(p.proprietario, p.documento);
         mandar({ tipo: 'pref-emitida' });   // a partir do OK o PDF é gerado: o fundo passa a esperar o arquivo
         p.ok.click(); return false;
       }
       if (p.acao === 'esperar') {
         // Clicou e a página não respondeu: pede o clique dela, sem insistir.
-        const desde = modalEm || preencheu;
+        const desde = modalEm ? (job.documento ? modalEm : 0) : preencheu;   // sem CPF no pedido, o Ok é dela: nada de “não respondeu ao meu clique”
         if (desde && Date.now() - desde > 12000 && !avisouMao) { avisouMao = true; mostrar('A página não respondeu ao meu clique. Clique você em ' + (modalEm ? 'Ok' : 'Consultar') + ' — eu pego o PDF.', '#B3261E'); mandar({ tipo: 'pref-pagina', estado: 'espera', texto: 'Clique em ' + (modalEm ? 'Ok' : 'Consultar') + ' na aba da prefeitura — o Ajudante pega o PDF.' }); }
-        if (modalEm) mandar({ tipo: 'pref-vigia' });
+        if (modalEm && p.documento) mandar({ tipo: 'pref-vigia' });
       }
       return false;
     };

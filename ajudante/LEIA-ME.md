@@ -57,7 +57,6 @@ Se a prefeitura disser que não achou o cadastro, ele avisa escrito: confira o n
 Na mesma faixa, **Negativa de IPTU**. O Ajudante abre a emissão da prefeitura, escolhe *Certidão Tributária de IPTU* e preenche o contribuinte. **O código da imagem é seu**: digite as letras e clique em **Emitir**.
 O PDF que a prefeitura gera é guardado no card.
 
-### Dados cadastrais do imóvel (versão 0.3.2)
+### Dados cadastrais do imóvel (versão 0.3.3)
 
-Na mesma faixa, **Dados cadastrais**. Escreva o **CPF ou CNPJ do proprietário** (ou clique num dos que a matrícula cita) e confira o exercício. O Ajudante abre a certidão na prefeitura:
-**você entra pelo e-gov**; quando a tela da certidão abrir, ele preenche o cadastro e o exercício, clica em Consultar, informa o proprietário, clica em Ok e guarda o PDF no card.
+Na mesma faixa, **Dados cadastrais**. O painel só pede o botão — nada de CPF. O Ajudante abre a certidão na prefeitura: **você entra pelo e-gov**; quando a tela da certidão abrir, ele preenche o cadastro e o exercício e clica em Consultar. No aviso, **o CPF ou CNPJ do proprietário é seu**: digite e clique em **Ok**; o Ajudante guarda o PDF no card.

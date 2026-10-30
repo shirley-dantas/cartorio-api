@@ -5388,7 +5388,7 @@ const prefDataOk = (v) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(
 // O pedido ao Ajudante: valor venal de referência. A data é a do dia da consulta, e no inventário a do óbito — e esta o painel não adivinha: nasce vazia.
 function prefPedirHtml(c, i, at, x){
   const ext = typeof AJUDANTE !== 'undefined' && AJUDANTE.pronto && AJUDANTE.pref, id = esc(c.id), key = c.id + ':' + i;
-  if(!ext) return `<div class="cx-fin-vazio">Para pedir direto daqui, instale o Ajudante do painel na versão 0.3.2 ou mais nova e aperte F5.</div>`;
+  if(!ext) return `<div class="cx-fin-vazio">Para pedir direto daqui, instale o Ajudante do painel na versão 0.3.3 ou mais nova e aperte F5.</div>`;
   if(!at) return '';
   if(at.areaMaior) return `<div class="cx-fin-vazio">Os botões das certidões ficam desligados enquanto o contribuinte escolhido estiver em área maior.</div>`;
   const inv = prefEhInventario(c), val = PREF.data[key] != null ? PREF.data[key] : (inv ? '' : prefHoje());
@@ -5397,11 +5397,8 @@ function prefPedirHtml(c, i, at, x){
     <span class="cx-fin-vazio">${inv ? 'Inventário: digite a data do óbito (confira na certidão de óbito).' : 'É a data de hoje; mude só se o caso pedir outra.'}</span></div>
     <div class="pref-pedir"><button type="button" class="cx-btn destaque" onclick="prefPedirNegativa('${id}',${i})"><i class="ti ti-file-certificate"></i> Negativa de IPTU</button>
     <span class="cx-fin-vazio">A prefeitura pede o código da imagem: você digita as letras e clica em Emitir — o Ajudante cuida do resto e guarda o PDF.</span></div>
-    <div class="pref-pedir"><label>CPF/CNPJ do proprietário <input class="pref-data pref-doc" id="pref-doc-${id}-${i}" value="${esc(PREF.doc[key] != null ? prefFmtDoc(PREF.doc[key]) : '')}" placeholder="000.000.000-00" inputmode="numeric" maxlength="18" oninput="prefGuardarDoc('${id}',${i},this.value)"></label>
-      <label>Exercício <input class="pref-data" id="pref-ex-${id}-${i}" value="${esc(PREF.ex[key] != null ? PREF.ex[key] : String(new Date().getFullYear()))}" inputmode="numeric" maxlength="4" style="width:70px" oninput="prefGuardarEx('${id}',${i},this.value)"></label>
-      <button type="button" class="cx-btn destaque" onclick="prefPedirCadastrais('${id}',${i})"><i class="ti ti-id"></i> Dados cadastrais</button>
-      ${((x && x.documentos) || []).length ? `<span class="cx-fin-vazio">A matrícula cita (podem não ser o proprietário atual): ${(x.documentos).map(d => `<button type="button" class="cx-btn" onclick="prefUsarDoc('${id}',${i},'${esc(d)}')">${esc(prefFmtDoc(d))}</button>`).join(' ')}</span>` : ''}
-      <span class="cx-fin-vazio">Você entra pelo e-gov na aba da prefeitura; o Ajudante preenche, informa o proprietário e guarda o PDF.</span></div>`;
+    <div class="pref-pedir"><button type="button" class="cx-btn destaque" onclick="prefPedirCadastrais('${id}',${i})"><i class="ti ti-id"></i> Dados cadastrais</button>
+      <span class="cx-fin-vazio">Você entra pelo e-gov na aba da prefeitura e digita o CPF/CNPJ do proprietário no aviso; o Ajudante cuida do resto e guarda o PDF.</span></div>`;
 }
 // A negativa de IPTU (certidão tributária): não leva data, e o captcha da prefeitura é de quem pede.
 window.prefPedirNegativa = function(casoId, i){
@@ -5417,25 +5414,17 @@ window.prefPedirNegativa = function(casoId, i){
   ajudanteAtualizar(casoId);
 };
 window.prefGuardarSql = function(casoId, i, v){ PREF.manual[casoId + ':' + i] = String(v || '').replace(/\D/g, '').slice(0, 11); const f = document.getElementById('pref-' + casoId), c = casos[casoId]; if(f && c) f.outerHTML = prefFaixaHtml(c); };
-window.prefGuardarDoc = function(casoId, i, v){ PREF.doc[casoId + ':' + i] = String(v || '').replace(/\D/g, ''); };
-window.prefGuardarEx = function(casoId, i, v){ PREF.ex[casoId + ':' + i] = String(v || '').replace(/\D/g, '').slice(0, 4); };
-window.prefUsarDoc = function(casoId, i, d){ PREF.doc[casoId + ':' + i] = d; const el = document.getElementById('pref-doc-' + casoId + '-' + i), c = casos[casoId]; if(el) el.value = prefFmtDoc(d); else if(c){ const f = document.getElementById('pref-' + casoId); if(f) f.outerHTML = prefFaixaHtml(c); } };
 // A certidão de dados cadastrais: o login é pelo e-gov (dela) e o aviso da prefeitura pede o CPF/CNPJ do proprietário — que ela escreve ou escolhe entre os que a matrícula cita.
 window.prefPedirCadastrais = function(casoId, i){
   const c = casos[casoId], docs = c ? prefDocsDoCaso(c) : [], d = docs[i]; if(!d) return;
-  const at = prefAtual(casoId, i, d.x), key = casoId + ':' + i;
+  const at = prefAtual(casoId, i, d.x);
   const erro = t => { AJUDANTE.msg[casoId] = {id: '', estado: 'erro', texto: t, fim: true}; ajudanteAtualizar(casoId); };
   if(!at) return erro('Não há contribuinte escolhido para pedir.');
   if(at.areaMaior) return erro('Este contribuinte está em área maior: ainda não dá para pedir por ele.');
-  const cd = document.getElementById('pref-doc-' + casoId + '-' + i), ce = document.getElementById('pref-ex-' + casoId + '-' + i);
-  const documento = String((cd && cd.value) || PREF.doc[key] || '').replace(/\D/g, ''), exercicio = String((ce && ce.value) || PREF.ex[key] || new Date().getFullYear()).replace(/\D/g, '');
-  if(!documento) return erro('Escreva o CPF ou CNPJ do proprietário (a prefeitura pede) — ou escolha um dos que a matrícula cita.');
-  if(!prefDocValido(documento)) return erro('O CPF ou CNPJ não confere — confira os dígitos.');
-  if(!/^\d{4}$/.test(exercicio) || +exercicio < 2000 || +exercicio > new Date().getFullYear() + 1) return erro('Escreva o exercício com quatro dígitos (por exemplo, 2026).');
   const id = 'aj' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   AJUDANTE.fila[casoId] = []; AJUDANTE.log[casoId] = []; delete AJUDANTE.rel[casoId]; AJUDANTE.atual[casoId] = {nome: 'Prefeitura'};
   AJUDANTE.msg[casoId] = {id, estado: 'andando', texto: 'abrindo a certidão de dados cadastrais (entre pelo e-gov se pedir)…', fim: false};
-  window.postMessage({fonte: 'painel-cartorio', tipo: 'ajudante-pedido', pedido: {id, casoId, site: 'pref', servico: 'dados-cadastrais', sql: at.sql, documento, exercicio}}, location.origin);
+  window.postMessage({fonte: 'painel-cartorio', tipo: 'ajudante-pedido', pedido: {id, casoId, site: 'pref', servico: 'dados-cadastrais', sql: at.sql}}, location.origin);
   ajudanteAtualizar(casoId);
 };
 window.prefGuardarData = function(casoId, i, v){ PREF.data[casoId + ':' + i] = v; };
