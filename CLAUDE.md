@@ -1305,7 +1305,14 @@ Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
     **downloads** do site da prefeitura (ou aba/blob), com o mesmo cuidado da RI Digital (bytes com a sessão dela, nunca cancela o download, mesmo PDF por dois caminhos entra uma vez) e vai ao card como
     `NEGATIVA_IPTU`. Emitida e sem PDF em 90 s: erro escrito mandando olhar a pasta Downloads. **Decisão dela (30/10/2026): basta salvar o PDF** — o Ajudante não distingue certidão negativa de positiva nem
     manda conferir; quem abre o PDF é ela. Sem pagamento: dá para testar à vontade.
-  - Falta: dados cadastrais (caminho distinto, ainda sem prints) e a consulta de individualização (lista de unidades do endereço, achar a linha "AP 2007").
+  - **Os dados cadastrais (0.3.2)** — `notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx` (*Certidão de dados cadastrais do imóvel — IPTU*). **Só se entra pelo e-gov**: o login
+    é dela e o Ajudante nunca o toca — qualquer tela que não seja a da certidão é "aguardar o login" (nunca erro; ele continua sozinho quando a certidão abre). Na tela: *Cadastro do Imóvel*
+    (`159.087.0016-8`) + *Exercício (AAAA)* → **Consultar** → um aviso ("Favor informar o CPF/CNPJ do proprietário ou do compromissário e dar OK") → **Ok** → o PDF sai na hora. Sem captcha e sem pagamento, então
+    o Ajudante clica em Consultar e em Ok (se a página não responder em 12 s, pede o clique dela). **O CPF/CNPJ do proprietário é dela:** o painel o pede, com os que a matrícula cita como **sugestão** (só os de
+    dígito certo, nunca escolhidos sozinhos; o campo nasce vazio) e confere os dígitos antes de mandar; ele **não vai** ao relatório, aos eventos nem ao Drive. O Compromissário fica vazio. O exercício nasce com o ano
+    de hoje. O PDF é pego pelos downloads/abas do site da prefeitura (mesmo caminho da negativa) e vai ao card como `DADOS_CADASTRAIS_IMOVEL`; sem PDF em 90 s depois do Ok, erro escrito. **Em aberto:** como a
+    prefeitura avisa quando o CPF/CNPJ não bate com o proprietário, ou o imóvel não existe — o *Copiar relatório* trará o texto da tela na primeira vez.
+  - Falta: a consulta de individualização (lista de unidades do endereço, achar a linha "AP 2007").
 
 Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
 

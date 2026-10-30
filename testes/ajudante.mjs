@@ -22,7 +22,7 @@ await passo('manifesto: só a JUCESP, o painel e o Apps Script; sem poder amplo 
   assert.equal(m.manifest_version, 3);
   assert.match(ler('ajudante/painel.js'), new RegExp("VERSAO = '" + m.version.replace(/\./g, '\\.') + "'"), 'a versão do manifesto e a da ponte andam juntas');
   assert.deepEqual(m.permissions.sort(), ['contentSettings', 'declarativeNetRequest', 'downloads', 'scripting', 'storage', 'tabs', 'webNavigation']);
-  assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|(\*\.)?ridigital\.org\.br|itbi\.prefeitura\.sp\.gov\.br|duc\.prefeitura\.sp\.gov\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
+  assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|(\*\.)?ridigital\.org\.br|itbi\.prefeitura\.sp\.gov\.br|duc\.prefeitura\.sp\.gov\.br|notcertiptu\.prefeitura\.sp\.gov\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
   const todos = JSON.stringify(m);
   assert(!/<all_urls>|\*:\/\/\*\/|"http:\/\//.test(todos), 'nada de all_urls nem de http');
   assert(m.content_scripts.every((c) => c.matches.every((u) => u.startsWith('https://'))));
@@ -81,7 +81,7 @@ function mundoFundo({semFoto, buscarUrl, auxiliar, popupsFalha, buscarPdf, pdf =
   };
   const fetch = async (url, o = {}) => {
     busca.push({url: String(url), o});
-    if (String(url).startsWith('https://www.jucesponline.sp.gov.br/') || String(url).startsWith('https://ridigital.org.br/') || String(url).startsWith('https://duc.prefeitura.sp.gov.br/')) { const b = new TextEncoder().encode(pdf); return {ok: statusPdf < 300, status: statusPdf, headers: {get: () => tipoPdf}, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)}; }
+    if (String(url).startsWith('https://www.jucesponline.sp.gov.br/') || String(url).startsWith('https://ridigital.org.br/') || String(url).startsWith('https://duc.prefeitura.sp.gov.br/') || String(url).startsWith('https://notcertiptu.prefeitura.sp.gov.br/')) { const b = new TextEncoder().encode(pdf); return {ok: statusPdf < 300, status: statusPdf, headers: {get: () => tipoPdf}, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)}; }
     if (String(url).startsWith('https://script.google.com/')) return {ok: true, text: async () => gasTexto !== undefined ? gasTexto : JSON.stringify(gas)};
     throw new Error('endereço inesperado ' + url);
   };
@@ -904,6 +904,51 @@ await passo('negativa fundo: download de outro site, ou sem pedido da negativa a
   const w = mundoFundo(); await w.msg({tipo: 'pedido', pedido: pedNeg()}, PAINEL); await w.msg({tipo: 'pref-vigia'}, 71); assert(!w.enviadas.some((e) => e.fim), 'antes de emitir não há prazo');
   await w.msg({tipo: 'pref-emitida'}, 71); w.store.jobs.ajpref0009.emitidaEm = Date.now() - 95000; await w.msg({tipo: 'pref-vigia'}, 71); await esperar();
   const f = w.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(f && f.estado === 'erro' && /90 segundos/.test(f.texto) && /Downloads/.test(f.texto), JSON.stringify(f));
+});
+// ── A Prefeitura: certidão de dados cadastrais do imóvel (IPTU) — notcertiptu.prefeitura.sp.gov.br (entra-se pelo e-gov) ──
+// As telas são as REAIS que ela mandou: o formulário (Cadastro do Imóvel + Exercício), o preenchido, e o aviso que pede o CPF/CNPJ do proprietário.
+const PC = {
+  titulo: '<h2>CERTIDÃO DE DADOS CADASTRAIS DO IMÓVEL - IPTU</h2><p>Campos com asterisco (*) são de preenchimento obrigatório.</p>',
+  form: (cad = '', ex = '') => PC.titulo + '<fieldset><legend>Informe os dados solicitados:</legend><label>* Cadastro do Imóvel: <input type="text" id="cad" value="' + cad + '"></label><br><label>* Exercício (AAAA): <input type="text" id="ex" value="' + ex + '"></label></fieldset><input type="submit" value="Consultar"><input type="button" value="Limpar"><input type="button" value="Voltar">',
+  aviso: (prop = '') => PC.form('159.087.0016-8', '2026') + '<div class="modal"><h3>ATENÇÃO</h3><p>Favor informar o CPF/CNPJ do proprietário ou do compromissário e dar OK</p><label>Proprietário</label><input type="text" id="prop" value="' + prop + '"><label>Compromissário</label><input type="text" id="comp"><button>Ok</button><button>Cancelar</button></div>',
+  login: '<h1>Acesse com sua conta gov.br</h1><input type="text" id="cpf"><input type="submit" value="Entrar">'
+};
+async function planoCad(html, job, estado) {
+  await pagina.goto('about:blank'); await pagina.setContent('<!doctype html><html><body>' + html + '</body></html>'); await pagina.addScriptTag({content: ler('ajudante/prefeitura.js')});
+  return pagina.evaluate(({job, estado}) => { const p = window.AJ_PREF.planejarCad(document, job, estado), r = {acao: p.acao, texto: p.texto, sqlFormatado: p.sqlFormatado, ano: p.ano, documento: p.documento}; if (p.cadastro) r.cad = p.cadastro.id; if (p.exercicio) r.ex = p.exercicio.id; if (p.proprietario) r.prop = p.proprietario.id; return r; }, {job, estado});
+}
+const jobCad = (o = {}) => jobPref({id: 'ajpref0020', servico: 'dados-cadastrais', data: '', documento: '11222333000181', exercicio: '2026', ...o});
+await passo('dados cadastrais tela: login do e-gov é esperado (nunca erro, nunca toque); o formulário manda preencher cadastro e exercício; o aviso manda informar o proprietário (com o campo certo, e não o Compromissário)', async () => {
+  assert.equal((await planoCad(PC.login, jobCad(), {})).acao, 'aguardar-login');
+  const f = await planoCad(PC.form(), jobCad(), {}); assert.equal(f.acao, 'preencher'); assert.equal(f.cad, 'cad'); assert.equal(f.ex, 'ex'); assert.equal(f.sqlFormatado, '159.087.0016-8'); assert.equal(f.ano, '2026');
+  assert.equal((await planoCad(PC.form('159.087.0016-8', '2026'), jobCad(), {preenchido: true})).acao, 'esperar');
+  const m = await planoCad(PC.aviso(), jobCad(), {preenchido: true}); assert.equal(m.acao, 'modal'); assert.equal(m.prop, 'prop'); assert.equal(m.documento, '11.222.333/0001-81');
+  assert.equal((await planoCad(PC.aviso(), jobCad(), {preenchido: true, modal: true})).acao, 'esperar');
+  const cpf = await planoCad(PC.aviso(), jobCad({documento: '52998224725'}), {}); assert.equal(cpf.documento, '529.982.247-25');
+});
+await passo('dados cadastrais página (no navegador): preenche cadastro e exercício, clica em Consultar, preenche o proprietário no aviso e clica em Ok — avisa o fundo que o PDF vai sair; nada de login tocado', async () => {
+  const sim = '<script>window.__cliques=[];document.addEventListener("click",function(e){window.__cliques.push((e.target.value||e.target.textContent||"").trim())},true);' +
+    'document.querySelector("input[type=submit]").onclick=function(){if(!document.querySelector(".modal"))document.body.insertAdjacentHTML("beforeend","<div class=modal><h3>ATENÇÃO</h3><p>Favor informar o CPF/CNPJ do proprietário ou do compromissário e dar OK</p><label>Proprietário</label><input type=text id=prop><label>Compromissário</label><input type=text id=comp><button id=ok>Ok</button><button>Cancelar</button></div>");return false};</script>';
+  await pagina.goto('about:blank'); await pagina.setContent('<!doctype html><html><body>' + PC.form() + sim + '</body></html>');
+  await pagina.evaluate(({job}) => { window.__msgs = []; window.chrome = {runtime: {sendMessage: async (m) => { window.__msgs.push(m); return m.tipo === 'quem' ? job : {ok: true}; }}}; }, {job: jobCad()});
+  await pagina.addScriptTag({content: ler('ajudante/prefeitura.js')}); await pagina.waitForTimeout(4800);
+  const r = await pagina.evaluate(() => ({cad: document.getElementById('cad').value, ex: document.getElementById('ex').value, prop: document.getElementById('prop') && document.getElementById('prop').value, comp: document.getElementById('comp') && document.getElementById('comp').value, cliques: window.__cliques, msgs: window.__msgs.map((m) => m.tipo), json: JSON.stringify(window.__msgs)}));
+  assert.equal(r.cad, '159.087.0016-8'); assert.equal(r.ex, '2026'); assert.equal(r.prop, '11.222.333/0001-81'); assert.equal(r.comp, '', 'o compromissário fica vazio');
+  assert.deepEqual(r.cliques, ['Consultar', 'Ok']); assert.equal(r.msgs.filter((t) => t === 'pref-emitida').length, 1); assert(!/11222333000181|11\.222\.333/.test(r.json), 'o CPF/CNPJ não vai nas mensagens ao fundo');
+});
+const pedCad = (o = {}) => ({id: 'ajpref0020', casoId: 'C12345', site: 'pref', servico: 'dados-cadastrais', sql: '159.087.0016-8', documento: '11.222.333/0001-81', exercicio: '2026', ...o});
+await passo('dados cadastrais fundo: o pedido valida CPF/CNPJ (dígitos) e exercício; abre a certidão e o PDF baixado vai como DADOS_CADASTRAIS_IMOVEL; o documento do proprietário não aparece no relatório', async () => {
+  const m = mundoFundo({gas: {ok: true, nome: '159.087.0016-8_DADOS_CADASTRAIS_IMOVEL_2026-10-30_1.pdf', confirmar: false}});
+  for (const ruim of [{documento: ''}, {documento: '111.111.111-11'}, {documento: '11.222.333/0001-82'}, {documento: '123'}, {exercicio: '26'}, {exercicio: '1999'}, {exercicio: ''}]) { const r = await m.msg({tipo: 'pedido', pedido: pedCad(ruim)}, PAINEL); assert.equal(r.ok, false, JSON.stringify(ruim)); assert(r.texto); }
+  assert.equal(m.criadas.length, 0);
+  assert.equal((await m.msg({tipo: 'pedido', pedido: pedCad()}, PAINEL)).ok, true); assert.equal(m.criadas[0].url, 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx');
+  const job = await m.msg({tipo: 'quem'}, 71); assert.equal(job.documento, '11222333000181'); assert.equal(job.exercicio, '2026');
+  await m.msg({tipo: 'pref-emitida'}, 71);
+  await baixou(m, {id: 3, url: 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/Certidao.aspx?x=segredo', finalUrl: 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/Certidao.aspx?x=segredo', filename: 'C:\\Users\\a\\Downloads\\cert.pdf', mime: 'application/pdf'});
+  const [g] = m.gasEnviado(); assert(g, 'enviado'); assert.equal(g.tipoSugerido, 'DADOS_CADASTRAIS_IMOVEL'); assert.equal(g.origemAjudante, 'prefeitura'); assert.equal(g.nomeArquivo, 'DADOS_CADASTRAIS_IMOVEL_15908700168.pdf'); assert(!JSON.stringify(g).includes('11222333000181'), 'o CPF/CNPJ não vai ao Drive junto');
+  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim && fim.estado === 'ok' && /dados cadastrais/.test(fim.texto), JSON.stringify(fim)); assert(!/11222333000181|11\.222\.333/.test(fim.relatorio), 'o relatório não leva o documento');
+  const pdf = JSON.parse(fim.relatorio); assert(!('documento' in pdf));
+  assert((await mundoFundo().msg({tipo: 'pedido', pedido: pedCad({documento: '529.982.247-25'})}, PAINEL)).ok, 'CPF válido também vale');
 });
 await passo('zip: o ajudante-do-painel.zip na raiz bate arquivo por arquivo com a pasta ajudante/ (se mexer na extensão, refazer o zip)', async () => {
   const {execFileSync} = await import('node:child_process'); const {readdirSync} = await import('node:fs');

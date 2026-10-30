@@ -78,7 +78,8 @@
   // O campo que vem depois de um rótulo ("Informe o número do SQL:", "Código da imagem:"): pelo `for` do rótulo ou pelo primeiro campo de texto adiante dele.
   function campoApos(doc, rotulo) {
     const r = norm(rotulo);
-    const cand = Array.from(doc.querySelectorAll('label,span,td,div,b,strong,p')).filter((el) => visivel(el) && norm(el.textContent).startsWith(r) && norm(el.textContent).length < r.length + 12)
+    const limpo = (el) => norm(el.textContent).replace(/^[*\s]+/, '');   // o asterisco dos campos obrigatórios ("* Cadastro do Imóvel:") não conta
+    const cand = Array.from(doc.querySelectorAll('label,span,td,div,b,strong,p')).filter((el) => visivel(el) && limpo(el).startsWith(r) && limpo(el).length < r.length + 12)
       .sort((a, b) => (a.textContent || '').length - (b.textContent || '').length);
     const el = cand[0]; if (!el) return null;
     if (el.control) return el.control;
@@ -99,7 +100,28 @@
     return { acao: 'preencher', select: sel, opcao, jaEstaNela: sel.value === opcao.value, sql, captcha, sqlFormatado: formatarSql(job && job.sql) };
   }
 
-  const api = { planejarDuc, campoApos, planejar, campos, botaoPesquisar, mensagem, resposta, partesDoSql, formatarSql, ehData, norm };
+  // ── A certidão de dados cadastrais do imóvel — IPTU: notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx ──
+  // Só se entra pelo e-gov (o login é dela, o Ajudante nunca toca nele). Na tela: Cadastro do Imóvel + Exercício (AAAA) → Consultar → um aviso pede o CPF/CNPJ do
+  // proprietário (ou do compromissário) → OK → o PDF sai na hora. Sem captcha e sem pagamento. O documento do proprietário vem do pedido (ela confere no painel).
+  const formatarDoc = (d) => { const x = digitos(d); return x.length === 11 ? x.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : x.length === 14 ? x.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : x; };
+  function planejarCad(doc, job, estado) {
+    const e = estado || {}, texto = norm((doc.body && (doc.body.innerText || doc.body.textContent)) || '');
+    const botao = (rot) => Array.from(doc.querySelectorAll('input[type=submit],input[type=button],button,a')).filter(visivel).find((b) => norm(b.value || b.innerText || b.textContent) === rot) || null;
+    // O aviso que pede o CPF/CNPJ: campo "Proprietário" (e "Compromissário", que fica vazio) e o botão Ok.
+    if (/favor informar o cpf\/cnpj do proprietario/.test(texto)) {
+      const prop = campoApos(doc, 'proprietario'), ok = botao('ok');
+      if (!prop || !ok) return { acao: 'nao-reconheco', texto: 'Não reconheço o aviso do CPF/CNPJ do proprietário (faltam o campo ou o botão Ok).' };
+      return e.modal ? { acao: 'esperar' } : { acao: 'modal', proprietario: prop, ok, documento: formatarDoc(job && job.documento) };
+    }
+    const cadastro = campoApos(doc, 'cadastro do imovel'), exercicio = campoApos(doc, 'exercicio'), consultar = botao('consultar');
+    if (cadastro && exercicio && consultar) {
+      if (e.preenchido) return { acao: 'esperar' };
+      return { acao: 'preencher', cadastro, exercicio, consultar, sqlFormatado: formatarSql(job && job.sql), ano: String((job && job.exercicio) || '') };
+    }
+    return { acao: 'aguardar-login' };   // qualquer outra tela é a do e-gov (ou o caminho até ela): ela entra, o Ajudante espera
+  }
+
+  const api = { planejarCad, formatarDoc, planejarDuc, campoApos, planejar, campos, botaoPesquisar, mensagem, resposta, partesDoSql, formatarSql, ehData, norm };
   raiz.AJ_PREF = api;
 
   // ── Daqui para baixo é a parte que mexe na página (só no navegador, com a extensão) ─────────────────────────
@@ -156,10 +178,50 @@
     setTimeout(() => clearInterval(relogio), 15 * 60 * 1000);
   }
 
+  async function iniciarCad(job) {
+    const chaveCad = 'ajcad_' + job.id;
+    const lido = () => { try { return sessionStorage.getItem(chaveCad) || ''; } catch (_) { return ''; } };
+    const grava = (v) => { try { sessionStorage.setItem(chaveCad, v); } catch (_) { /* sem sessionStorage */ } };
+    let avisouLogin = false, preencheu = 0, modalEm = 0, avisouMao = false;
+    const tick = () => {
+      const est = lido(), p = planejarCad(document, job, { preenchido: est.includes('p'), modal: est.includes('m') });
+      if (p.acao === 'aguardar-login') {
+        if (!avisouLogin) { avisouLogin = true; mostrar('Entre pelo e-gov. Quando abrir a tela da certidão de dados cadastrais, eu continuo sozinho.'); mandar({ tipo: 'pref-pagina', estado: 'espera', texto: 'Entre pelo e-gov na aba da prefeitura — o Ajudante continua quando abrir a certidão.' }); }
+        return false;
+      }
+      if (p.acao === 'nao-reconheco') { mostrar(p.texto, '#B3261E'); mandar({ tipo: 'pref-erro', texto: p.texto + ' Faça à mão e arraste o PDF para a caixa do card.' }); return true; }
+      if (p.acao === 'preencher' && !preencheu) {
+        preencheu = Date.now(); avisouLogin = true;
+        mostrar('Preenchendo o cadastro ' + p.sqlFormatado + ' e o exercício ' + p.ano + '…');
+        preencher(p.cadastro, p.sqlFormatado); preencher(p.exercicio, p.ano); grava(est + 'p');
+        mandar({ tipo: 'pref-pagina', texto: 'Consultando o imóvel ' + p.sqlFormatado + ' na prefeitura…' });
+        p.consultar.click(); return false;
+      }
+      if (p.acao === 'modal' && !modalEm) {
+        modalEm = Date.now();
+        mostrar('Informando o CPF/CNPJ do proprietário…');
+        preencher(p.proprietario, p.documento); grava(est.replace('m', '') + 'm');
+        mandar({ tipo: 'pref-emitida' });   // a partir do OK o PDF é gerado: o fundo passa a esperar o arquivo
+        p.ok.click(); return false;
+      }
+      if (p.acao === 'esperar') {
+        // Clicou e a página não respondeu: pede o clique dela, sem insistir.
+        const desde = modalEm || preencheu;
+        if (desde && Date.now() - desde > 12000 && !avisouMao) { avisouMao = true; mostrar('A página não respondeu ao meu clique. Clique você em ' + (modalEm ? 'Ok' : 'Consultar') + ' — eu pego o PDF.', '#B3261E'); mandar({ tipo: 'pref-pagina', estado: 'espera', texto: 'Clique em ' + (modalEm ? 'Ok' : 'Consultar') + ' na aba da prefeitura — o Ajudante pega o PDF.' }); }
+        if (modalEm) mandar({ tipo: 'pref-vigia' });
+      }
+      return false;
+    };
+    mostrar('Ajudante ligado…');
+    const relogio = setInterval(() => { if (tick()) clearInterval(relogio); }, 1500);
+    setTimeout(() => clearInterval(relogio), 15 * 60 * 1000);
+  }
+
   async function iniciar() {
     let job;
     try { job = await chrome.runtime.sendMessage({ tipo: 'quem' }); } catch (_) { return; }
     if (!job || !job.id || job.fim || job.site !== 'pref') return;
+    if (job.servico === 'dados-cadastrais') return iniciarCad(job);
     if (job.servico === 'negativa-iptu') return iniciarDuc(job);   // quem decide é o pedido: este script só roda nos dois sites da prefeitura
     if (job.servico !== 'valor-venal') return;
     mostrar('Ajudante ligado…');

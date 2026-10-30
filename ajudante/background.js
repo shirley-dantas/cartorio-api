@@ -8,10 +8,12 @@ const JUCESP = 'https://www.jucesponline.sp.gov.br';
 const RIDIGITAL = 'https://ridigital.org.br';
 const PREFEITURA_VALOR = 'https://itbi.prefeitura.sp.gov.br/valorreferencia/tvm/frm_tvm_consulta_valor.aspx';
 const PREFEITURA_NEGATIVA = 'https://duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/frmConsultaEmissaoCertificado.aspx';
+const PREFEITURA_CADASTRAIS = 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx';
 // O que cada pedido da prefeitura é: onde começa, se pede data, e como o arquivo se chama no card.
 const PREF_SERVICOS = {
   'valor-venal': { url: PREFEITURA_VALOR, data: true },
-  'negativa-iptu': { url: PREFEITURA_NEGATIVA, data: false, tipo: 'NEGATIVA_IPTU', arquivo: 'NEGATIVA_IPTU', nome: 'Certidão tributária de IPTU' }
+  'negativa-iptu': { url: PREFEITURA_NEGATIVA, data: false, tipo: 'NEGATIVA_IPTU', arquivo: 'NEGATIVA_IPTU', nome: 'Certidão tributária de IPTU' },
+  'dados-cadastrais': { url: PREFEITURA_CADASTRAIS, data: false, documento: true, tipo: 'DADOS_CADASTRAIS_IMOVEL', arquivo: 'DADOS_CADASTRAIS_IMOVEL', nome: 'Certidão de dados cadastrais' }
 };
 const MAX_BYTES = 10 * 1024 * 1024;
 const DOCS = {
@@ -324,18 +326,26 @@ function dataValida(d) {
   const dt = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
   return dt.getFullYear() === Number(m[3]) && dt.getMonth() === Number(m[2]) - 1 && dt.getDate() === Number(m[1]);
 }
+function docValido(d) {
+  d = String(d || '').replace(/\D/g, '');
+  if (/^(\d)\1+$/.test(d)) return false;
+  if (d.length === 11) { const dv = (n) => { let s = 0; for (let i = 0; i < n; i++) s += Number(d[i]) * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; }; return dv(9) === Number(d[9]) && dv(10) === Number(d[10]); }
+  return d.length === 14 && cnpjValido(d);
+}
 const sqlFormatado = (d) => d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 10) + '-' + d.slice(10);
 async function criarPedidoPref(p, sender) {
   if (!/^[A-Za-z0-9_-]{6,40}$/.test(String(p.casoId || ''))) return { ok: false, texto: 'Caso inválido.' };
   if (!/^[A-Za-z0-9_-]{4,40}$/.test(String(p.id || ''))) return { ok: false, texto: 'Pedido inválido.' };
   const srv = PREF_SERVICOS[p.servico]; if (!srv) return { ok: false, texto: 'Não entendi qual certidão pedir.' };
   const sql = String(p.sql || '').replace(/\D/g, ''); if (sql.length !== 11) return { ok: false, texto: 'O número do contribuinte precisa ter 11 dígitos (setor, quadra, lote e dígito).' };
+  const documento = String(p.documento || '').replace(/\D/g, ''); if (srv.documento && !docValido(documento)) return { ok: false, texto: 'O CPF ou CNPJ do proprietário não confere — confira os dígitos.' };
+  const exercicio = String(p.exercicio || '').trim(); if (srv.documento && !(/^\d{4}$/.test(exercicio) && Number(exercicio) >= 2000 && Number(exercicio) <= new Date().getFullYear() + 1)) return { ok: false, texto: 'Escreva o exercício com quatro dígitos (por exemplo, 2026).' };
   const data = String(p.data || '').trim(); if (srv.data && !dataValida(data)) return { ok: false, texto: 'Escreva a data como dd/mm/aaaa (uma data que exista).' };
-  const job = { id: p.id, casoId: p.casoId, site: 'pref', servico: p.servico, sql, sqlFormatado: sqlFormatado(sql), data: srv.data ? data : '', fila: [], feitos: [], arquivos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
+  const job = { id: p.id, casoId: p.casoId, site: 'pref', servico: p.servico, sql, sqlFormatado: sqlFormatado(sql), data: srv.data ? data : '', documento: srv.documento ? documento : '', exercicio: srv.documento ? exercicio : '', fila: [], feitos: [], arquivos: [], painelTabId: sender && sender.tab ? sender.tab.id : null, iniciado: Date.now() };
   const aba = await chrome.tabs.create({ url: srv.url });
   job.jucespTabId = aba.id; job.windowId = aba.windowId;   // o campo guarda "a aba do pedido", seja qual for o site
   await mexer(async () => { const todos = await jobs(); for (const x of Object.values(todos)) if (!x.fim && x.site === 'pref') { x.fim = true; x.estado = 'erro'; ev(x, { fim: 'substituido por um pedido novo' }); } todos[job.id] = job; await guardar(todos); });
-  falar(job, 'andando', srv.data ? 'Abrindo a consulta de valor venal da prefeitura…' : 'Abrindo a emissão da certidão na prefeitura…');
+  falar(job, 'andando', srv.data ? 'Abrindo a consulta de valor venal da prefeitura…' : srv.documento ? 'Abrindo a certidão de dados cadastrais (entre pelo e-gov se pedir)…' : 'Abrindo a emissão da certidão na prefeitura…');
   return { ok: true };
 }
 function relatorioPref(job) {
@@ -372,7 +382,7 @@ const hostPref = (u) => { try { const h = new URL(u).hostname; return h === 'pre
 const ehDaPref = (item) => !!item && [item.url, item.finalUrl, item.referrer].some((u) => hostPref(u) || /^blob:https:\/\/([a-z0-9-]+\.)*prefeitura\.sp\.gov\.br\//.test(String(u || '')));
 async function prefJobEsperandoArquivo() {
   const todos = await jobs();
-  return Object.values(todos).filter((j) => !j.fim && j.site === 'pref' && j.servico === 'negativa-iptu').sort((a, b) => (b.iniciado || 0) - (a.iniciado || 0))[0] || null;
+  return Object.values(todos).filter((j) => !j.fim && j.site === 'pref' && PREF_SERVICOS[j.servico] && PREF_SERVICOS[j.servico].tipo).sort((a, b) => (b.iniciado || 0) - (a.iniciado || 0))[0] || null;
 }
 async function capturarPref(job, item, opc) {
   const url = String(item.finalUrl || item.url || ''), nome = nomeBase(item.filename), srv = PREF_SERVICOS[job.servico];

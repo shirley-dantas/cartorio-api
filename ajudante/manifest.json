@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Ajudante do painel — 20º Tabelião",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Busca documentos nos sites que você já usa (JUCESP, RI Digital e Prefeitura de São Paulo) e guarda no card do painel. Nada é pago sem o seu clique.",
   "permissions": [
     "storage",
@@ -17,6 +17,7 @@
     "https://ridigital.org.br/*",
     "https://itbi.prefeitura.sp.gov.br/*",
     "https://duc.prefeitura.sp.gov.br/*",
+    "https://notcertiptu.prefeitura.sp.gov.br/*",
     "https://*.ridigital.org.br/*",
     "https://script.google.com/*",
     "https://script.googleusercontent.com/*"
@@ -56,7 +57,8 @@
     {
       "matches": [
         "https://itbi.prefeitura.sp.gov.br/*",
-        "https://duc.prefeitura.sp.gov.br/*"
+        "https://duc.prefeitura.sp.gov.br/*",
+        "https://notcertiptu.prefeitura.sp.gov.br/*"
       ],
       "js": [
         "prefeitura.js"
