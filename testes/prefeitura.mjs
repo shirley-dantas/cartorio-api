@@ -58,7 +58,7 @@ await passo('sem matrícula no card, a faixa não aparece; texto da matrícula n
 const DOC = {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'Matricula_79253.pdf', texto: T136}};
 const DOC_AREA = {a: {tipo: 'documento', tipoDocumento: 'MATRICULA_IMOVEL', nome: 'Matricula_181816.pdf', texto: T2007}};
 await passo('o botão do valor venal: sem o Ajudante novo avisa, com ele traz a data de hoje (e vazia no inventário); contribuinte em área maior fica sem botão', () => {
-  assert(/instale o Ajudante do painel na versão 0\.3\.3/.test(mundo(DOC).__f.prefFaixaHtml(mundo(DOC).casos.C1)));
+  assert(/instale o Ajudante do painel na versão 0\.3\.4/.test(mundo(DOC).__f.prefFaixaHtml(mundo(DOC).casos.C1)));
   const m = mundo(DOC, {pref: true}), h = m.__f.prefFaixaHtml(m.casos.C1), hoje = new Date();
   assert(/Valor venal de referência/.test(h) && /pref-data-C1-0/.test(h)); assert(h.includes(String(hoje.getFullYear())), 'a data de hoje já vem escrita'); assert(/É a data de hoje/.test(h));
   const inv = mundo(DOC, {pref: true, tipo: 'Inventário e partilha'}), hi = inv.__f.prefFaixaHtml(inv.casos.C1); assert(/id="pref-data-C1-0" value=""/.test(hi) && /digite a data do óbito/.test(hi));

@@ -60,3 +60,9 @@ O PDF que a prefeitura gera é guardado no card.
 ### Dados cadastrais do imóvel (versão 0.3.3)
 
 Na mesma faixa, **Dados cadastrais**. O painel só pede o botão — nada de CPF. O Ajudante abre a certidão na prefeitura: **você entra pelo e-gov**; quando a tela da certidão abrir, ele preenche o cadastro e o exercício e clica em Consultar. No aviso, **o CPF ou CNPJ do proprietário é seu**: digite e clique em **Ok**; o Ajudante guarda o PDF no card.
+
+
+### Duas coisas para ligar uma vez (versão 0.3.4)
+
+- O **print do valor venal** precisa da permissão de ver a aba. Ao atualizar a extensão, o Chrome pode mostrar o aviso de permissões — aceite.
+- O **PDF dos dados cadastrais** é lido da pasta Downloads. Em `chrome://extensions` → **Detalhes** da extensão → ligue **Permitir acesso a URLs de arquivo**.

@@ -22,9 +22,10 @@ await passo('manifesto: só a JUCESP, o painel e o Apps Script; sem poder amplo 
   assert.equal(m.manifest_version, 3);
   assert.match(ler('ajudante/painel.js'), new RegExp("VERSAO = '" + m.version.replace(/\./g, '\\.') + "'"), 'a versão do manifesto e a da ponte andam juntas');
   assert.deepEqual(m.permissions.sort(), ['contentSettings', 'declarativeNetRequest', 'downloads', 'scripting', 'storage', 'tabs', 'webNavigation']);
-  assert(m.host_permissions.every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|(\*\.)?ridigital\.org\.br|itbi\.prefeitura\.sp\.gov\.br|duc\.prefeitura\.sp\.gov\.br|notcertiptu\.prefeitura\.sp\.gov\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
+  // <all_urls> existe SÓ para a foto da tela do valor venal (captureVisibleTab o exige); nenhum script entra em site fora dos listados em content_scripts.
+  assert(m.host_permissions.filter((h) => h !== '<all_urls>').every((h) => /^https:\/\/(www\.jucesponline\.sp\.gov\.br|(\*\.)?ridigital\.org\.br|itbi\.prefeitura\.sp\.gov\.br|duc\.prefeitura\.sp\.gov\.br|notcertiptu\.prefeitura\.sp\.gov\.br|script\.google\.com|script\.googleusercontent\.com)\/\*$/.test(h)), JSON.stringify(m.host_permissions));
   const todos = JSON.stringify(m);
-  assert(!/<all_urls>|\*:\/\/\*\/|"http:\/\//.test(todos), 'nada de all_urls nem de http');
+  assert(!/\*:\/\/\*\/|"http:\/\//.test(todos), 'nada de http'); assert(!/<all_urls>/.test(JSON.stringify({...m, host_permissions: []})), '<all_urls> só em host_permissions, nunca em content_scripts');
   assert(m.content_scripts.every((c) => c.matches.every((u) => u.startsWith('https://'))));
   for (const arq of [m.background.service_worker, ...m.content_scripts.flatMap((c) => c.js)]) assert(existsSync(join(EXT, arq)), 'falta ' + arq);
   const painel = m.content_scripts.find((c) => c.js.includes('painel.js')); assert.deepEqual(painel.matches, ['https://cartorio-api.vercel.app/*']);
@@ -66,7 +67,7 @@ await passo('ponte: o andamento vindo do fundo chega ao painel; se o fundo não 
 });
 
 // ── O fundo ──
-function mundoFundo({desenho, semFoto, buscarUrl, auxiliar, popupsFalha, buscarPdf, pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas = {ok: true, nome: 'JRL_HOLDING_LTDA_FICHA_CADASTRAL_JUCESP_2026-10-28_1.pdf', confirmar: false}, gasTexto, statusPdf = 200} = {}) {
+function mundoFundo({arquivoLocal, semFoto, buscarUrl, auxiliar, popupsFalha, buscarPdf, pdf = '%PDF-1.4 conteudo', tipoPdf = 'application/pdf', gas = {ok: true, nome: 'JRL_HOLDING_LTDA_FICHA_CADASTRAL_JUCESP_2026-10-28_1.pdf', confirmar: false}, gasTexto, statusPdf = 200} = {}) {
   const fotos = [], baixados = [], store = {}, enviadas = [], criadas = [], atualizadas = [], removidas = [], popups = [], regras = [], auxiliares = [], busca = [], ouv = {msg: null, upd: null, rem: null};
   const chrome = {
     storage: {local: {get: async (k) => (k in store ? {[k]: JSON.parse(JSON.stringify(store[k]))} : {}), set: async (o) => { for (const [k, v] of Object.entries(o)) store[k] = JSON.parse(JSON.stringify(v)); }}},
@@ -82,10 +83,11 @@ function mundoFundo({desenho, semFoto, buscarUrl, auxiliar, popupsFalha, buscarP
   const fetch = async (url, o = {}) => {
     busca.push({url: String(url), o});
     if (String(url).startsWith('https://www.jucesponline.sp.gov.br/') || String(url).startsWith('https://ridigital.org.br/') || String(url).startsWith('https://duc.prefeitura.sp.gov.br/') || String(url).startsWith('https://notcertiptu.prefeitura.sp.gov.br/')) { const b = new TextEncoder().encode(pdf); return {ok: statusPdf < 300, status: statusPdf, headers: {get: () => tipoPdf}, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)}; }
+    if (String(url).startsWith('file://')) { if (arquivoLocal == null) throw new TypeError('Failed to fetch'); const b = new TextEncoder().encode(arquivoLocal); return {ok: true, status: 200, headers: {get: () => 'application/pdf'}, arrayBuffer: async () => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)}; }
     if (String(url).startsWith('https://script.google.com/')) return {ok: true, text: async () => gasTexto !== undefined ? gasTexto : JSON.stringify(gas)};
     throw new Error('endereço inesperado ' + url);
   };
-  const ctx = {...(desenho ? {OffscreenCanvas: class { constructor(l, a) { this.largura = l; this.altura = a; } getContext() { const t = this; return new Proxy({}, {get: (_, k) => k === 'measureText' ? (x) => ({width: String(x).length * 14}) : (k === 'fillText' ? (x) => { (desenho.textos = desenho.textos || []).push(String(x)); } : () => {})}); } async convertToBlob() { return {arrayBuffer: async () => Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4, 5, 6, 7, 8]).buffer}; } }} : {}), chrome, fetch, setTimeout, btoa, Uint8Array, ArrayBuffer, TextEncoder, String, URL, Promise, JSON, console, Object, Array, Number, Date, Error, module: undefined};
+  const ctx = {chrome, fetch, setTimeout, btoa, Uint8Array, ArrayBuffer, TextEncoder, String, URL, Promise, JSON, console, Object, Array, Number, Date, Error, module: undefined};
   vm.createContext(ctx); vm.runInContext(ler('ajudante/background.js'), ctx);
   const msg = (m, aba) => new Promise((res) => ouv.msg(m, aba ? {tab: {id: aba}} : {}, res));
   const abrir = (url, aba, opener) => { ouv.upd(aba, {url}, {url, openerTabId: opener}); return esperar(); };
@@ -834,14 +836,6 @@ await passo('prefeitura fundo: o resultado vira a foto da tela, vai ao Apps Scri
   const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim && fim.estado === 'ok' && /305\.562,00/.test(fim.texto) && /30\/10\/2026/.test(fim.texto) && /Guardei no card/.test(fim.texto), JSON.stringify(fim));
   const rel = JSON.parse(fim.relatorio); assert.equal(rel.site, 'pref'); assert(rel.eventos.some((e) => e.guardado));
 });
-await passo('prefeitura fundo: sem permissão para fotografar a aba, o comprovante é DESENHADO com o que a prefeitura respondeu, e o texto final diz que é desenho — não a tela', async () => {
-  const desenho = {}, m = mundoFundo({semFoto: true, desenho, gas: {ok: true, nome: '159.087.0016-8_VALOR_VENAL_REFERENCIA_2026-10-30_1.png', confirmar: false}});
-  await m.msg({tipo: 'pedido', pedido: {id: 'ajpref0001', casoId: 'C12345', site: 'pref', servico: 'valor-venal', sql: '159.087.0016-8', data: '30/08/2026'}}, PAINEL);
-  await m.msg({tipo: 'pref-resultado', sql: '159.087.0016-8', valor: '305.562,00', endereco: 'R ESTREANO AUGUSTO ESCALERA, 00173 LT 8 QD 2 BUTANTA 05551-250'}, 71); await new Promise((r) => setTimeout(r, 700));
-  const [g] = m.gasEnviado(); assert(g, 'enviado'); assert.equal(g.tipoSugerido, 'VALOR_VENAL_REFERENCIA'); assert.equal(g.mimetype, 'image/png'); assert(g.base64.startsWith('iVBOR'));
-  assert(desenho.textos.some((t) => /305\.562,00/.test(t)) && desenho.textos.some((t) => /159\.087\.0016-8/.test(t)) && desenho.textos.some((t) => /30\/08\/2026/.test(t)) && desenho.textos.some((t) => /não é a captura da tela original/.test(t)));
-  const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim.estado === 'ok' && /comprovante desenhado, não a foto da tela/.test(fim.texto), JSON.stringify(fim));
-});
 await passo('prefeitura fundo: se a foto ou o Apps Script falham, o erro é escrito com o valor que a prefeitura deu; erro da página encerra o pedido com o motivo', async () => {
   const ped = {id: 'ajpref0001', casoId: 'C12345', site: 'pref', servico: 'valor-venal', sql: '159.087.0016-8', data: '30/10/2026'};
   const a = mundoFundo({semFoto: true}); await a.msg({tipo: 'pedido', pedido: ped}, PAINEL); await a.msg({tipo: 'pref-resultado', sql: '159.087.0016-8', valor: '305.562,00', endereco: 'x'}, 71); await new Promise((r) => setTimeout(r, 700));
@@ -903,6 +897,11 @@ await passo('negativa fundo: o pedido não pede data, abre a emissão e o PDF ba
   const [g] = m.gasEnviado(); assert(g, 'enviado'); assert.equal(g.tipoSugerido, 'NEGATIVA_IPTU'); assert.equal(g.origemAjudante, 'prefeitura'); assert.equal(g.pessoaSugerida, '159.087.0016-8'); assert.equal(g.mimetype, 'application/pdf'); assert.equal(g.nomeArquivo, 'NEGATIVA_IPTU_15908700168.pdf'); assert.equal(g.casoId, 'C12345');
   const fim = m.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(fim && fim.estado === 'ok' && /Certidão tributária de IPTU/.test(fim.texto) && /guardei no card/.test(fim.texto) && !/confira/i.test(fim.texto), JSON.stringify(fim));
   const rel = JSON.parse(fim.relatorio); assert(rel.eventos.some((e) => e.guardado) && rel.eventos.some((e) => e.download && e.download.nome === 'certidao.pdf')); assert(!/segredo/.test(fim.relatorio), 'o endereço do download não vai inteiro');
+});
+await passo('negativa tela: a página abre só com o tipo — escolhe-se o tipo ANTES de procurar o SQL e o código da imagem (que só aparecem depois)', async () => {
+  const so = '<label>Tipo de Certidão:</label><select id="t"><option value="0">Selecione</option><option value="1">Certidão Tributária de IPTU</option><option value="2">Certidão de Quitação</option></select><input type="submit" value="Limpar"><input type="button" value="Sair">';
+  const p = await planoDuc(so, jobNeg(), {}); assert.equal(p.acao, 'escolher'); assert.equal(p.opcao, 'Certidão Tributária de IPTU');
+  const ja = await planoDuc(so.replace('<option value="1">', '<option value="1" selected>'), jobNeg(), {}); assert.equal(ja.acao, 'nao-reconheco'); assert.match(ja.texto, /falta o campo do SQL/);
 });
 await passo('negativa fundo: download de outro site, ou sem pedido da negativa andando, ou de pedido de valor venal, é ignorado; o mesmo PDF duas vezes entra uma vez; vigia de 90 s', async () => {
   const m = mundoFundo(); await m.msg({tipo: 'pedido', pedido: pedNeg()}, PAINEL);
@@ -970,6 +969,18 @@ await passo('dados cadastrais fundo: o pedido valida CPF/CNPJ (dígitos) e exerc
   assert((await mundoFundo().msg({tipo: 'pedido', pedido: pedCad({documento: '529.982.247-25'})}, PAINEL)).ok, 'CPF válido também vale');
   const sem = mundoFundo(); assert.equal((await sem.msg({tipo: 'pedido', pedido: pedCad({documento: undefined, exercicio: undefined})}, PAINEL)).ok, true, 'o painel não pede CPF nem exercício');
   const js = await sem.msg({tipo: 'quem'}, 71); assert.equal(js.documento, ''); assert.equal(js.exercicio, String(new Date().getFullYear()));
+});
+await passo('dados cadastrais fundo: o endereço do download devolve a página (não o PDF) — o arquivo salvo na pasta Downloads é lido de lá; sem a permissão de arquivo, o erro diz qual ligar', async () => {
+  const PDF = '%PDF-1.4 certidao cadastral';
+  const ok = mundoFundo({pdf: '<html>formulario</html>', tipoPdf: 'text/html', arquivoLocal: PDF, gas: {ok: true, nome: 'DADOS_CADASTRAIS_IMOVEL_15908700168.pdf', confirmar: false}});
+  await ok.msg({tipo: 'pedido', pedido: pedCad({documento: undefined, exercicio: undefined})}, PAINEL); await ok.msg({tipo: 'pref-emitida'}, 71);
+  await baixou(ok, {id: 21, state: 'complete', url: 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx', finalUrl: 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx', filename: 'C:\\Users\\a\\Downloads\\certidao.pdf', mime: 'application/pdf'}); await esperar(200);
+  const [g] = ok.gasEnviado(); assert(g, 'enviado'); assert.equal(g.tipoSugerido, 'DADOS_CADASTRAIS_IMOVEL'); assert.equal(g.mimetype, 'application/pdf');
+  assert(ok.busca.some((b) => b.url === 'file:///C:/Users/a/Downloads/certidao.pdf'), JSON.stringify(ok.busca.map((b) => b.url)));
+  const sem = mundoFundo({pdf: '<html>formulario</html>', tipoPdf: 'text/html'});
+  await sem.msg({tipo: 'pedido', pedido: pedCad({documento: undefined, exercicio: undefined})}, PAINEL); await sem.msg({tipo: 'pref-emitida'}, 71);
+  await baixou(sem, {id: 22, state: 'complete', url: 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx', finalUrl: 'https://notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx', filename: 'C:\\Users\\a\\Downloads\\certidao.pdf', mime: 'application/pdf'}); await esperar(200);
+  const f = sem.enviadas.filter((e) => e.tipo === 'progresso' && e.fim).pop(); assert(f && f.estado === 'erro' && /Permitir acesso a URLs de arquivo/.test(f.texto), JSON.stringify(f));
 });
 await passo('zip: o ajudante-do-painel.zip na raiz bate arquivo por arquivo com a pasta ajudante/ (se mexer na extensão, refazer o zip)', async () => {
   const {execFileSync} = await import('node:child_process'); const {readdirSync} = await import('node:fs');

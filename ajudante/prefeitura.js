@@ -99,9 +99,12 @@
     const texto = norm((doc.body && (doc.body.innerText || doc.body.textContent)) || '');
     if (/emissao da certidao concluida/.test(texto)) return { acao: 'emitida' };
     const sel = Array.from(doc.querySelectorAll('select')).filter(visivel).find((x) => Array.from(x.options).some((o) => norm(o.textContent).includes(CERTIDAO_IPTU)));
+    // A tela abre só com o tipo da certidão: o SQL, o código da imagem e o Emitir só aparecem DEPOIS de escolher o tipo (a página recarrega).
+    const opcaoTipo = sel && Array.from(sel.options).find((o) => norm(o.textContent).includes(CERTIDAO_IPTU));
     const primeiro = (rotulos) => { for (const r of rotulos) { const c = campoApos(doc, r); if (c) return c; } return null; };
     const sql = primeiro(['informe o numero do sql', 'numero do sql', 'sql']), captcha = primeiro(['codigo da imagem', 'codigo', 'imagem']);
     const emitir = Array.from(doc.querySelectorAll('input[type=submit],input[type=button],input[type=image],button,a')).filter(visivel).find((b) => /^emitir\b/.test(norm(b.value || b.alt || b.innerText || b.textContent)));
+    if ((!sql || !captcha || !emitir) && opcaoTipo && sel.value !== opcaoTipo.value) return { acao: 'escolher', select: sel, opcao: opcaoTipo };
     if (!sql || !captcha || !emitir) {
       const falta = [!sql && 'o campo do SQL', !captcha && 'o campo do código da imagem', !emitir && 'o botão Emitir'].filter(Boolean).join(', ');
       return { acao: 'nao-reconheco', texto: 'Não reconheço esta tela da prefeitura (falta ' + falta + ').', forma: formaDaTela(doc) };
@@ -165,12 +168,24 @@
     const grava = (k, v) => { try { sessionStorage.setItem(k, v); } catch (_) { /* sem sessionStorage */ } };
     // O clique em Emitir é dela (isTrusted): só se registra para o relatório.
     document.addEventListener('click', (e) => { if (e.isTrusted && e.target && /emitir/i.test(String(e.target.value || e.target.textContent || ''))) mandar({ tipo: 'pref-pagina', texto: 'Emitindo a certidão…', registro: 'clique dela em Emitir' }); }, true);
-    let avisouEmitida = false, avisouCaptcha = false, preenchendo = false, naoReconheci = 0;
+    let avisouEmitida = false, avisouCaptcha = false, preenchendo = false, naoReconheci = 0, escolheuEm = 0, avisouTipo = false;
     const tick = () => {
       const p = planejarDuc(document, job, { preenchido: lido(chaveDuc) === '1' });
       if (p.acao === 'emitida') {
         if (!avisouEmitida) { avisouEmitida = true; mostrar('Emissão concluída — guardando o PDF no card…'); mandar({ tipo: 'pref-emitida' }); }
         mandar({ tipo: 'pref-vigia' }); return false;
+      }
+      if (p.acao === 'escolher') {
+        if (!escolheuEm) {
+          escolheuEm = Date.now(); avisouLogin = true;
+          mostrar('Escolhendo “Certidão Tributária de IPTU” — a página vai recarregar e eu continuo.');
+          p.select.value = p.opcao.value; p.select.dispatchEvent(new Event('change', { bubbles: true }));
+          mandar({ tipo: 'pref-pagina', texto: 'Escolhendo o tipo da certidão na prefeitura…' });
+        } else if (Date.now() - escolheuEm > 12000 && !avisouTipo) {
+          avisouTipo = true; mostrar('Escolha você “Certidão Tributária de IPTU” na lista — eu continuo quando os campos aparecerem.', '#B3261E');
+          mandar({ tipo: 'pref-pagina', estado: 'espera', texto: 'Escolha “Certidão Tributária de IPTU” na lista de tipos; o Ajudante continua quando os campos aparecerem.' });
+        }
+        return false;
       }
       if (p.acao === 'nao-reconheco' && ++naoReconheci < 4) { mostrar('Esperando a tela da prefeitura carregar…'); return false; }   // a página pode ainda estar montando os campos
       if (p.acao === 'erro' || p.acao === 'nao-reconheco') { mostrar(p.texto, '#B3261E'); mandar({ tipo: 'pref-erro', texto: p.texto + (p.acao === 'nao-reconheco' ? ' Faça à mão e arraste o PDF para a caixa do card.' : ''), forma: p.forma }); return true; }

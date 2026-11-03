@@ -362,34 +362,8 @@ async function fotoDaAba(job, sender) {
   if (!b64 || !b64.startsWith('iVBOR')) throw new Error('a foto da tela não saiu em PNG');
   return b64;
 }
-// Reserva quando o Chrome não deixa fotografar a aba (a foto exige a permissão ampla "todos os sites", que a extensão não tem): o comprovante é desenhado
-// com o que a prefeitura respondeu, no estilo da folha do orçamento, e DIZ que é um desenho — nunca se passa por cópia da tela.
-async function desenharComprovante(job, r) {
-  if (typeof OffscreenCanvas === 'undefined') throw new Error('este Chrome não sabe desenhar o comprovante');
-  const L = 900, quebra = (g, t, max) => { const out = []; let lin = ''; for (const w of String(t || '').split(/\s+/)) { const x = lin ? lin + ' ' + w : w; if (g.measureText(x).width > max && lin) { out.push(lin); lin = w; } else lin = x; } if (lin) out.push(lin); return out; };
-  const medida = new OffscreenCanvas(L, 10).getContext('2d'); medida.font = '30px sans-serif';
-  const enderecoLinhas = quebra(medida, r.endereco, L - 120).slice(0, 4);
-  const A = 330 + enderecoLinhas.length * 40 + 150, c = new OffscreenCanvas(L, A), g = c.getContext('2d');
-  g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, L, A);
-  g.fillStyle = '#1F2A33'; g.fillRect(0, 0, L, 110); g.fillStyle = '#C8A96A'; g.fillRect(0, 110, L, 6);
-  g.fillStyle = '#FFFFFF'; g.font = 'bold 34px sans-serif'; g.fillText('VALOR VENAL DE REFERÊNCIA', 60, 68);
-  const rotulo = (t, y) => { g.fillStyle = '#5A6670'; g.font = 'bold 20px sans-serif'; g.fillText(t, 60, y); };
-  const valor = (t, y, tam) => { g.fillStyle = '#111111'; g.font = (tam || 'bold 32px') + ' sans-serif'; g.fillText(t, 60, y); };
-  rotulo('CONTRIBUINTE (SQL)', 170); valor(String(r.sql || job.sqlFormatado), 212);
-  rotulo('VALOR DE REFERÊNCIA', 262); valor('R$ ' + r.valor, 306);
-  rotulo('ENDEREÇO', 356); enderecoLinhas.forEach((l, i) => valor(l, 398 + i * 40, '30px'));
-  const y = 398 + enderecoLinhas.length * 40 + 16;
-  rotulo('DATA DA CONSULTA', y); valor(job.data, y + 44);
-  g.fillStyle = '#F4F1EA'; g.fillRect(0, A - 110, L, 110); g.fillStyle = '#3A444C'; g.font = '19px sans-serif';
-  g.fillText('Resultado lido pelo Ajudante em itbi.prefeitura.sp.gov.br, em ' + new Date().toLocaleString('pt-BR') + '.', 60, A - 66);
-  g.fillText('Comprovante desenhado a partir do resultado — não é a captura da tela original.', 60, A - 34);
-  const blob = await c.convertToBlob({ type: 'image/png' });
-  return paraBase64(await blob.arrayBuffer());
-}
 async function guardarPref(job, r, sender) {
-  let b64, desenhado = false;
-  try { b64 = await fotoDaAba(job, sender); }
-  catch (e) { b64 = await desenharComprovante(job, r); desenhado = true; await mudar(job.id, (x) => { ev(x, { foto: 'sem foto da tela (' + String(e && e.message || e).slice(0, 70) + '): comprovante desenhado' }); }); }
+  const b64 = await fotoDaAba(job, sender);
   if (b64.length * 0.75 > MAX_BYTES) throw new Error('a foto da tela ficou maior que 10 MB');
   await mudar(job.id, (x) => { ev(x, { enviando: 'VALOR_VENAL_REFERENCIA', kb: Math.round(b64.length * 0.75 / 1024) }); });
   const corpo = { acao: 'painel-arquivo', casoId: job.casoId, nomeArquivo: 'VALOR_VENAL_REFERENCIA_' + job.sql + '.png', mimetype: 'image/png', base64: b64, tipoSugerido: 'VALOR_VENAL_REFERENCIA', pessoaSugerida: job.sqlFormatado, origemAjudante: 'prefeitura' };
@@ -398,7 +372,7 @@ async function guardarPref(job, r, sender) {
   let j; try { j = JSON.parse(txt); } catch (_) { throw new Error('o Apps Script não respondeu em JSON (precisa de nova versão?): ' + txt.replace(/\s+/g, ' ').slice(0, 60)); }
   if (!j || !j.ok) throw new Error((j && j.erro) || 'o Apps Script recusou o arquivo');
   await mudar(job.id, (x) => { (x.arquivos = x.arquivos || []).push({ nome: j.nome }); ev(x, { guardado: j.nome }); });
-  await terminar(job.id, 'ok', 'Valor venal de referência ' + r.valor + ' em ' + job.data + ' — ' + r.sql + ', ' + String(r.endereco || '').slice(0, 90) + '. Guardei no card: ' + j.nome + (desenhado ? ' (comprovante desenhado, não a foto da tela)' : '') + (j.confirmar ? ' (confirme o nome no card)' : '') + '.');
+  await terminar(job.id, 'ok', 'Valor venal de referência ' + r.valor + ' em ' + job.data + ' — ' + r.sql + ', ' + String(r.endereco || '').slice(0, 90) + '. Guardei no card: ' + j.nome + (j.confirmar ? ' (confirme o nome no card)' : '') + '.');
 }
 
 // ── A certidão tributária de IPTU: o PDF sai quando ela clica em Emitir (o captcha é dela) ──
@@ -410,14 +384,34 @@ async function prefJobEsperandoArquivo() {
   const todos = await jobs();
   return Object.values(todos).filter((j) => !j.fim && j.site === 'pref' && PREF_SERVICOS[j.servico] && PREF_SERVICOS[j.servico].tipo).sort((a, b) => (b.iniciado || 0) - (a.iniciado || 0))[0] || null;
 }
+// Quando o endereço do download não devolve o PDF (a prefeitura gera o arquivo na resposta do formulário, e pedir o endereço de novo traz a página), o arquivo que o
+// Chrome já salvou na pasta Downloads é lido de lá. Só funciona com "Permitir acesso a URLs de arquivo" ligado uma vez na extensão — e nada é apagado nem movido.
+async function lerDoArquivoLocal(id, via) {
+  if (id == null || !chrome.downloads || !chrome.downloads.search) return null;
+  let item = null;
+  for (let i = 0; i < 40; i++) {
+    [item] = await chrome.downloads.search({ id });
+    if (!item || item.state !== 'in_progress') break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  if (!item || item.state !== 'complete' || !item.filename) { via.push('arquivo local: o download não terminou'); return null; }
+  const caminho = String(item.filename).replace(/\\/g, '/');
+  try {
+    const r = await fetch('file://' + (caminho.startsWith('/') ? '' : '/') + encodeURI(caminho)), buf = await r.arrayBuffer();
+    if (buf.byteLength) return paraBase64(buf);
+    via.push('arquivo local vazio');
+  } catch (_) { via.push('arquivo local: ligue "Permitir acesso a URLs de arquivo" nesta extensão'); }
+  return null;
+}
 async function capturarPref(job, item, opc) {
   const url = String(item.finalUrl || item.url || ''), nome = nomeBase(item.filename), srv = PREF_SERVICOS[job.servico];
   try {
-    const { b64, via } = item.base64 ? { b64: item.base64, via: [item.via || 'bytes'] } : await lerDoDownload(job, url);
+    let { b64, via } = item.base64 ? { b64: item.base64, via: [item.via || 'bytes'] } : await lerDoDownload(job, url);
+    if ((!b64 || !tipoDoBase64(b64)) && !item.base64 && !(opc && opc.silencioso)) { const local = await lerDoArquivoLocal(item.id, via); if (local) { b64 = local; via.push('lido da pasta Downloads'); } }
     const mime = b64 && tipoDoBase64(b64);
-    await mudar(job.id, (x) => { ev(x, { leitura: mime ? 'ok ' + mime : 'falhou', via: via.join('; ').slice(0, 160) }); });
+    await mudar(job.id, (x) => { ev(x, { leitura: mime ? 'ok ' + mime : 'falhou', via: via.join('; ').slice(0, 200) }); });
     if (!mime && opc && opc.silencioso) return;   // página que só parecia ser o arquivo (HTML): não é falha
-    if (!mime) throw new Error('não consegui ler o arquivo pelo endereço do download' + (via.length ? ' (' + via[0] + ')' : ''));
+    if (!mime) throw new Error('não consegui ler o arquivo pelo endereço do download' + (via.length ? ' (' + via[via.length - 1] + ')' : ''));
     if (b64.length * 0.75 > MAX_BYTES) throw new Error('arquivo maior que 10 MB');
     const atual = (await jobs())[job.id]; if (!atual || atual.fim) return;
     const marca = b64.length + ':' + b64.slice(200, 260);
