@@ -1052,6 +1052,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-reg-titulo{font-family:inherit;font-size:11.5px;color:var(--cc-tinta-3);display:block;margin-bottom:8px}
 .cx-reg-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px 14px;
   background:var(--cc-sup-2);border:1px solid var(--cc-linha);border-radius:12px;padding:13px 15px;margin-bottom:13px}
+/* A data da assinatura e os dados do registro vêm logo abaixo do nome: é o que se olha primeiro em todo card. */
+.cx-linha-topo{display:grid;grid-template-columns:210px minmax(0,1fr);gap:14px 18px;align-items:start;padding:2px 0 14px}
+.cx-linha-topo .cx-reg-campos{grid-template-columns:repeat(auto-fit,minmax(112px,1fr));margin-bottom:0;padding:10px 13px}
+.cx-linha-topo .cx-reg-titulo{margin-bottom:6px}
+@media(max-width:760px){.cx-linha-topo{grid-template-columns:1fr}}
 
 /* Pasta do caso no Drive. O link fica à vista quando existe — é ele que se
    manda pro cliente ou pro despachante — e, quando não existe, ficam os dois
@@ -5546,6 +5551,18 @@ function renderCasos(){
         </div>
       </div>
 
+      <div class="cx-linha-topo">
+        <label class="cx-campo"><span class="cx-campo-rot">Assinatura da escritura</span>
+          <input type="datetime-local" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)"></label>
+        <div class="cx-reg-bloco">
+          <span class="cx-reg-titulo">Dados do registro</span>
+          <div class="cx-reg-campos" id="cx-reg-${c.id}">
+            ${CX_REG.map(r=>`<label class="cx-campo"><span class="cx-campo-rot">${r.rot}</span>
+              <input type="text" value="${esc(c[r.campo])}" placeholder="—" onchange="mudarCampo('${c.id}','${r.campo}',this.value)"></label>`).join('')}
+          </div>
+        </div>
+      </div>
+
       <div class="cx-campos">
         <label class="cx-campo"><span class="cx-campo-rot">Status</span>
           <select onchange="mudarCampo('${c.id}','status',this.value)">
@@ -5564,14 +5581,6 @@ function renderCasos(){
             <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
             <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
           </select></label>
-        <label class="cx-campo"><span class="cx-campo-rot">Assinatura da escritura</span>
-          <input type="datetime-local" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)"></label>
-      </div>
-
-      <span class="cx-reg-titulo">Dados do registro</span>
-      <div class="cx-reg-campos" id="cx-reg-${c.id}">
-        ${CX_REG.map(r=>`<label class="cx-campo"><span class="cx-campo-rot">${r.rot}</span>
-          <input type="text" value="${esc(c[r.campo])}" placeholder="—" onchange="mudarCampo('${c.id}','${r.campo}',this.value)"></label>`).join('')}
       </div>
 
       <div class="cx-fin">

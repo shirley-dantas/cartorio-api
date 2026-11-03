@@ -1138,6 +1138,9 @@ Regras dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   com uma caixa enorme de pendências. Mesmos botões de antes (abrir, lápis só no arrastado, *Ler de novo* só no sem leitura, excluir). A lista nasce
   **fechada** e o card se redesenha a cada mudança no banco, então quem abriu fica registrada em `DOCS_ABERTOS` — antes ela fechava sozinha. A linha de
   cima diz "N a confirmar" mesmo com a lista fechada. Teste: `node testes/docs-agrupados.mjs`.
+- **A data da assinatura e os dados do registro ficam logo abaixo do nome** (3/11/2026, passo 2 do card novo): *Assinatura da escritura* à esquerda e a caixa
+  *Dados do registro* (Registro, Prenotação, Livro, Folha, Controle) ao lado, antes de Status/Etapa/Responsável e das faixas. É o que ela olha primeiro em todo card.
+  No celular empilham em uma coluna. Só mudou de lugar: os mesmos campos, os mesmos `mudarCampo`, o mesmo `id="cx-reg-…"`. Teste: `node testes/card-topo.mjs`.
 - Só PDF e imagem, até 10 MB; áudio, vídeo e Word são recusados **antes** de sair, com o motivo escrito. No máximo dois
   arquivos sobem por vez. Arrastar só existe no computador; no celular fica o *Escolher arquivos*.
 - Passo manual: o Apps Script precisa do código novo (`painel-arquivo`, `painel-renomear`). Se não tiver, o motivo aparece
@@ -1447,6 +1450,7 @@ node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
 node testes/docs-agrupados.mjs
+node testes/card-topo.mjs
 node testes/ajudante.mjs
 node testes/capa.mjs
 node testes/prefeitura.mjs
