@@ -1056,6 +1056,42 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-linha-topo{display:grid;grid-template-columns:210px minmax(0,1fr);gap:14px 18px;align-items:start;padding:2px 0 14px}
 .cx-linha-topo .cx-reg-campos{grid-template-columns:repeat(auto-fit,minmax(112px,1fr));margin-bottom:0;padding:10px 13px}
 .cx-linha-topo .cx-reg-titulo{margin-bottom:6px}
+/* ── A esteirinha ── */
+.est{margin:2px 0 12px}
+.est-trilha{display:flex;flex-wrap:wrap;align-items:center;gap:6px 0}
+.est-liga{width:10px;height:2px;background:#DDD5C6;flex:none}
+.est-pil{display:inline-flex;align-items:center;gap:6px;border:1px solid #DDD5C6;background:#fff;color:#5C5A55;border-radius:999px;padding:5px 11px 5px 6px;font-weight:600;font-size:12px;line-height:1.2;font-family:inherit;cursor:pointer}
+.est-pil:hover{border-color:#A9895A}
+.est-n{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#EEE8DB;color:#7A7468;font-size:10px}
+.est-feita{background:#F4F1EA;color:#7A7468}
+.est-feita .est-n{background:#A9895A;color:#fff}
+.est-atual{background:#1F2A33;border-color:#1F2A33;color:#fff}
+.est-atual .est-n{background:#C9A96B;color:#1F2A33}
+.est-parada{opacity:.6}
+.est-trava{cursor:default}
+.est-espera{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.est-rot{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#8A8478;margin-right:2px}
+.est-esp{padding:5px 11px;border-style:dashed}
+.est-esp.am{border-color:#D9A441;color:#8A5B00}
+.est-esp.er{border-color:#C0392B;color:#C0392B}
+.est-esp.est-atual.am{background:#D9A441;color:#fff;border-style:solid}
+.est-esp.est-atual.er{background:#C0392B;color:#fff;border-style:solid}
+.est-sub{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:#5C5A55}
+.est-sub input{flex:1;min-width:180px;padding:6px 9px;border:1px solid #DDD5C6;border-radius:6px;font:inherit}
+.est-aviso,.est-pergunta,.est-auto{margin-top:8px;padding:8px 11px;border-radius:6px;font-size:12px;line-height:1.5}
+.est-aviso{background:#FFF4E0;color:#8A5B00}
+.est-pergunta{background:#F4F1EA;color:#1F2A33;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.est-auto{background:#EEF4EE;color:#2F5B34}
+.est-desfazer{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}
+.est-abas{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.est-aba{display:inline-flex;align-items:center;gap:5px;border:1px solid #DDD5C6;background:#fff;color:#5C5A55;border-radius:6px;padding:6px 10px;font-weight:600;font-size:12px;line-height:1;font-family:inherit;cursor:pointer}
+.est-aba.da-etapa{border-color:#A9895A}
+.est-aba.on{background:#F4F1EA;border-color:#1F2A33;color:#1F2A33}
+.est-painel{margin-bottom:10px}
+.est-minuta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.est-dica{font-size:12px;color:#7A7468;padding:8px 2px}
+.est-status{grid-template-columns:minmax(150px,220px)}
+
 @media(max-width:760px){.cx-linha-topo{grid-template-columns:1fr}}
 
 /* Pasta do caso no Drive. O link fica à vista quando existe — é ele que se
@@ -2618,10 +2654,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
   <div id="view-casos">
     <div class="cx-toolbar">
-      <button class="cx-fbtn on" data-filtro="todos" onclick="setFiltro('todos',this)">Todos</button>
-      <button class="cx-fbtn" data-filtro="shirley" onclick="setFiltro('shirley',this)">Shirley</button>
-      <button class="cx-fbtn" data-filtro="grazi" onclick="setFiltro('grazi',this)">Grazi</button>
-      <button class="cx-fbtn" data-filtro="gabriel" onclick="setFiltro('gabriel',this)">Gabriel</button>
+      <button type="button" class="cx-fbtn" id="cx-modo-card" onclick="esteiraAlternarModo()" title="Troca o desenho do card; nada se perde">Usar o card antigo</button>
       <button class="cx-fbtn cx-fbtn-arquivo" id="cx-modo-arquivo" style="display:none" onclick="setFiltro('todos')"><i class="ti ti-archive" style="font-size:13px;vertical-align:-2px"></i> Arquivo &middot; voltar aos ativos</button>
     </div>
     <div class="add-section">
@@ -2639,11 +2672,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
             <option value="atencao" selected>Atenção</option>
             <option value="emdia">Em dia</option>
           </select>
-          <select id="f-resp">
-            <option value="shirley">Shirley</option>
-            <option value="grazi">Grazi</option>
-            <option value="gabriel">Gabriel</option>
-          </select>
+          <input type="hidden" id="f-resp" value="shirley">
         </div>
         <div class="form-grid">
           <input type="text" id="f-prazo" placeholder="Prazo (ex: 30/05)">
@@ -3506,8 +3535,10 @@ onValue(casosRef,(snap)=>{
       semDepDesde.forEach(k=>{ upd[`${k}/depDesde`]=data[k].atualizado||isoHoje(); data[k].depDesde=data[k].atualizado||isoHoje(); });
       update(casosRef,upd);
     }
+    const fotoAntes=inicializado?casos:null;
     casos=data;
     inicializado=true;
+    if(fotoAntes&&typeof esteiraVarrer==='function')esteiraVarrer(fotoAntes,data);
     renderStats();
     renderCasos();
     renderCentralComando();
@@ -3996,13 +4027,8 @@ function renderCdc2Indicadores(){
 }
 
 // Select de responsável, reaproveitado pela banda "hoje" da Central.
-function respSelectHtml(c){
-  return`<span class="cc-item-resp"><select onclick="event.stopPropagation()" onchange="event.stopPropagation();mudarCampo('${c.id}','resp',this.value)">
-    <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
-    <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
-    <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
-  </select></span>`;
-}
+// O responsável saiu da tela (a equipe não escolhe mais); o dado antigo continua guardado em c.resp.
+function respSelectHtml(c){return'';}
 
 // ── ESTADO VISUAL DA CENTRAL ──
 // As 4 ações deixaram de ficar sempre à mostra (eram ~6 controles por linha,
@@ -5251,7 +5277,8 @@ function cxTipoHtml(c){
 // agora sai do card com o que o painel já sabe, e o resto fica em linha para a caneta: minuta, solicitante, outorgantes e outorgados, pendências.
 // Sai em preto e branco, no desenho do orçamento (tarja grafite, blocos recuados, linhas em faixa). O dinheiro só entra para quem está no Financeiro:
 // sem login, o quadro do orçamento sai em branco, como qualquer outro valor do painel.
-const CAPA_ESCREVENTE = {shirley: 'Shirley', grazi: 'Grazi', gabriel: 'Gabriel'};
+// A capa sai sempre com a escrevente que atende: o responsável deixou de ser escolhido no card.
+const CAPA_ESCREVENTE_FIXA = 'Shirley Dantas – Escrevente';
 function capaDados(c){
   const o = (finAuth && typeof orcUltimoDoCaso === 'function') ? orcUltimoDoCaso(c.id) : null;
   const v = o && typeof orcValoresDaCapa === 'function' ? orcValoresDaCapa(o.resultado) : null;
@@ -5261,7 +5288,7 @@ function capaDados(c){
   const mats = [];
   try{ onrDoCaso(c).forEach(g => g.matriculas.forEach(x => { if(!mats.includes(x)) mats.push(x); })); }catch(e){ /* sem documentos lidos: fica em branco */ }
   return {
-    tipo: String(c.tipo || '').toUpperCase(), arquivo: String(c.nome || ''), escrevente: CAPA_ESCREVENTE[c.resp] || '',
+    tipo: String(c.tipo || '').toUpperCase(), arquivo: String(c.nome || ''), escrevente: CAPA_ESCREVENTE_FIXA,
     data, hora, matricula: mats.join(', '),
     registro: String(c.registroPrenotado || ''), livro: String(c.livro || ''), folha: String(c.folha || ''),
     prenotacao: String(c.prenotacao || ''), controle: String(c.controle || ''), orc: v
@@ -5285,7 +5312,7 @@ body{margin:0;background:#fff;color:var(--tinta);font-family:Arial,Helvetica,san
 .bloco{background:var(--recuo);border-radius:1.2mm;padding:4.5mm 6mm}
 .rot{font-size:7pt;font-weight:700;letter-spacing:.45mm;color:var(--tinta2);text-transform:uppercase}
 .esc{display:flex;align-items:center;gap:8mm}
-.esc .n{font-size:14pt;font-weight:800;min-width:28mm}.esc .n small{display:block;font-size:7pt;letter-spacing:.45mm;color:var(--tinta2);font-weight:700;margin-bottom:.8mm}
+.esc .n{font-size:12pt;font-weight:800;min-width:28mm;white-space:nowrap}.esc .n small{display:block;font-size:7pt;letter-spacing:.45mm;color:var(--tinta2);font-weight:700;margin-bottom:.8mm}
 .esc .d{font-size:10pt;font-weight:700;white-space:nowrap}
 .esc .m{margin-left:auto;font-size:10pt;font-weight:700;display:grid;grid-template-columns:auto auto;gap:1.6mm 7mm;white-space:nowrap}
 .meio{display:flex;gap:5mm}
@@ -5502,6 +5529,356 @@ const CX_REG=[
   {campo:'controle',         rot:'Controle'}
 ];
 
+// ── A esteirinha: regras ──
+// A etapa do caso é uma só, a de sempre (`c.dep`, com os nomes de sempre). A esteirinha é uma maneira nova de ler e mexer nela: onze pílulas no caminho e três
+// "de espera" ao lado. Nada aqui apaga ou renomeia uma etapa guardada — as que saíram do fluxo (Pré-conferência, ITBI, Travar agenda) são LIDAS como a etapa que
+// as engoliu, e só viram outra coisa no banco quando ela mexe. Estas funções são puras (sem tela e sem banco): quem grava é o bloco de baixo.
+const ESTEIRA_ETAPAS=[
+  {id:'orc-enviar',   n:'Orçamento a enviar',      dep:'Orçamento a enviar',                 abas:['Orçamento']},
+  {id:'orc-aprov',    n:'Aprovação do orçamento',  dep:'Aguardando aprovação do orçamento',  abas:['Orçamento']},
+  {id:'minutando',    n:'Minutando',               dep:'Minutando',                          abas:['Documentos','Certidões','Minuta','Capa do dossiê']},
+  {id:'minuta-aprov', n:'Aprovação da minuta',     dep:'Aguardando aprovação da minuta',     abas:['Minuta','Documentos']},
+  {id:'sem-pend',     n:'Sem pendências',          dep:'',                                   abas:['Livro, folha e controle']},
+  {id:'falta-ass',    n:'Falta assinatura',        dep:'Falta assinatura',                   abas:['Livro, folha e controle']},
+  {id:'tq',           n:'TQ · Traslado',           dep:'Aguardando TQ',                      abas:['Documentos','Livro, folha e controle']},
+  {id:'registro',     n:'Registro',                dep:'Registro de Imóveis',                abas:['Livro, folha e controle','Pagamento']},
+  {id:'prefeitura',   n:'Prefeitura',              dep:'Prefeitura',                         abas:['Certidões']},
+  {id:'entregar',     n:'Entregar',                dep:'Entregar para o cliente',            abas:['Pagamento','Documentos']},
+  {id:'concluido',    n:'Concluído',               dep:'Concluído',                          abas:['Resumo']}];
+const ESTEIRA_OUTRAS=[
+  {id:'aguard-cliente',n:'Aguardando cliente',     dep:'Aguardando cliente (outro)',         cls:'am', abas:['Motivo']},
+  {id:'falta-docs',    n:'Falta documentos',       dep:'Falta documentos',                   cls:'am', abas:['Documentos']},
+  {id:'exigencia',     n:'Nota de exigência',      dep:'Nota de exigência',                  cls:'er', abas:['Resolver']}];
+const ESTEIRA_FUNCOES=['Orçamento','Documentos','Certidões','Minuta','Capa do dossiê','Livro, folha e controle','Pagamento'];
+// "TQ · Traslado" é uma pílula só, mas por dentro continuam os três estados de antes: a Central de Comando sabe de quem é a vez em cada um (construtora, cartório).
+const ESTEIRA_TQ=[['Aguardando TQ','Aguardando TQ (a construtora)'],['Aguardando traslado','Aguardando traslado'],['Traslado pronto — providenciar envio','Traslado pronto — providenciar envio']];
+const esteiraEtapa=id=>ESTEIRA_ETAPAS.concat(ESTEIRA_OUTRAS).find(e=>e.id===id)||null;
+const ESTEIRA_DEP_PARA_ETAPA={'':'sem-pend','Orçamento a enviar':'orc-enviar','Aguardando aprovação do orçamento':'orc-aprov','Minutando':'minutando',
+  'Aguardando aprovação da minuta':'minuta-aprov','Pré-conferência':'minuta-aprov','Aguardando gerar ITBI':'minuta-aprov','ITBI aguardando pagamento':'minuta-aprov',
+  'Falta assinatura':'falta-ass','Registro de Imóveis':'registro','Prefeitura':'prefeitura','Entregar para o cliente':'entregar','Concluído':'concluido',
+  'Aguardando cliente (outro)':'aguard-cliente','Aguardando cliente':'aguard-cliente','Falta documentos':'falta-docs','Nota de exigência':'exigencia'};
+// Em que etapa o caso está. null = uma etapa que não existe mais no fluxo (Jurídico Prime): a tela pede para ela escolher, em vez de chutar.
+function esteiraEtapaDe(c){
+  if(!c)return null;
+  if(c.concluido)return 'concluido';
+  const d=String(c.dep||'');
+  if(d==='Travar agenda')return c.agendado?'sem-pend':'minuta-aprov';
+  if(ESTEIRA_TQ.some(x=>x[0]===d))return 'tq';
+  return Object.prototype.hasOwnProperty.call(ESTEIRA_DEP_PARA_ETAPA,d)?ESTEIRA_DEP_PARA_ETAPA[d]:null;
+}
+// A etapa que vale para o desenho da trilha: a atual, ou — nas de espera — a de onde o caso saiu.
+function esteiraEtapaDaTrilha(c){
+  const at=esteiraEtapaDe(c);
+  if(!ESTEIRA_OUTRAS.some(e=>e.id===at))return at;
+  const v=esteiraEtapaDe({dep:c.depVolta||'',agendado:c.agendado});
+  return ESTEIRA_OUTRAS.some(e=>e.id===v)?null:v;
+}
+// O valor que se grava em `dep` ao mover para uma etapa.
+function esteiraDepDe(id,c){
+  if(id==='tq'&&c&&ESTEIRA_TQ.some(x=>x[0]===c.dep))return c.dep;
+  const e=esteiraEtapa(id); return e?e.dep:'';
+}
+// O que acontece sozinho: depois de um EVENTO (e só depois de um evento novo, nunca ao abrir o painel), a etapa anda uma casa.
+// Só para a frente, e só da etapa certa: orçamento enviado de novo com o caso já na assinatura não puxa nada para trás.
+const ESTEIRA_REGRAS={
+  'orc-enviado':  {de:['orc-enviar'],                para:'orc-aprov',    porque:'o orçamento foi enviado'},
+  'orc-aprovou':  {de:['orc-enviar','orc-aprov'],    para:'minutando',    porque:'o cliente aprovou o orçamento pelo link'},
+  'minuta-pronta':{de:['minutando'],                 para:'minuta-aprov', porque:'a minuta ficou pronta no Drive'},
+  'agenda-travada':{de:['minuta-aprov'],             para:'sem-pend',     porque:'a data da assinatura foi travada'},
+  'prenotacao':   {de:['tq'],                        para:'registro',     porque:'a prenotação foi preenchida'},
+  'docs-chegaram':{de:['falta-docs'],                para:'minutando',    porque:'chegaram documentos'}};
+// Compara duas fotos do MESMO caso e diz que eventos aconteceram entre elas.
+function esteiraEventos(antes,depois){
+  const ev=[]; if(!antes||!depois)return ev;
+  const t=x=>String(x==null?'':x).trim();
+  const orcLink=x=>(x&&x.orcLink&&x.orcLink.criadoEm)||0, aprov=x=>(x&&x.orcAprovacao&&x.orcAprovacao.em)||0;
+  if(orcLink(depois)&&orcLink(depois)!==orcLink(antes))ev.push('orc-enviado');
+  if(aprov(depois)&&aprov(depois)!==aprov(antes))ev.push('orc-aprovou');
+  if(!antes.docUrl&&depois.docUrl)ev.push('minuta-pronta');
+  if(!antes.agendado&&depois.agendado)ev.push('agenda-travada');
+  if(!t(antes.prenotacao)&&t(depois.prenotacao))ev.push('prenotacao');
+  const lf=x=>!!(t(x.livro)&&t(x.folha));
+  if(!lf(antes)&&lf(depois))ev.push('livro-folha');
+  const nd=x=>Object.values(x.documentos||{}).filter(d=>d&&d.tipo!=='informacoes'&&!d.provisorio).length;
+  if(nd(depois)>nd(antes))ev.push('docs-chegaram');
+  return ev;
+}
+// O que fazer com um evento: mover (devolve o `dep` novo e o porquê), perguntar (livro e folha: só ela sabe se falta alguém assinar) ou nada.
+function esteiraAplicar(c,evento){
+  const etapa=esteiraEtapaDe(c);
+  if(evento==='livro-folha')return etapa==='sem-pend'?{pergunta:true}:null;
+  const r=ESTEIRA_REGRAS[evento]; if(!r||!r.de.includes(etapa))return null;
+  return {dep:esteiraDepDe(r.para,c),porque:r.porque,para:r.para};
+}
+// O Financeiro só aparece quando o número de controle foi preenchido — ou quando já existe lançamento (card antigo).
+const esteiraTemControle=c=>!!String((c&&c.controle)||'').trim();
+// ── fim: a esteirinha: regras ──
+
+// ── A esteirinha: tela ──
+// O card ganhou uma trilha de etapas no lugar do seletor "Etapa", e as funções (Orçamento, Documentos, Certidões…) viraram abas: só a aberta aparece, logo abaixo da trilha.
+// O que mexe com o banco continua sendo o mesmo `dep`; "Usar o card antigo" devolve o desenho de antes, inteiro, sem perder nada.
+const ESTEIRA_ABA={};            // id do caso → função aberta (guardado aqui porque o card se redesenha a cada mudança no banco)
+const ESTEIRA_PERGUNTA=new Set();
+let ESTEIRA_ANTIGO=false; try{ESTEIRA_ANTIGO=localStorage.getItem('painel_card_antigo')==='1';}catch(e){}
+const ESTEIRA_ICONES={'Orçamento':'calculator','Documentos':'file-search','Certidões':'building-community','Minuta':'file-text','Capa do dossiê':'printer','Livro, folha e controle':'book','Pagamento':'credit-card'};
+function esteiraAbaAberta(c){
+  const a=ESTEIRA_ABA[c.id]; if(a&&ESTEIRA_FUNCOES.includes(a))return a;
+  const e=esteiraEtapa(esteiraEtapaDaTrilha(c));
+  return ((e&&e.abas)||[]).find(x=>ESTEIRA_FUNCOES.includes(x))||'Documentos';
+}
+function esteiraTrilhaHtml(c){
+  const at=esteiraEtapaDe(c), tr=esteiraEtapaDaTrilha(c), espera=ESTEIRA_OUTRAS.some(o=>o.id===at);
+  const ia=ESTEIRA_ETAPAS.findIndex(e=>e.id===tr), trava=!!c.concluido;
+  const clique=id=>trava?'':` onclick="esteiraIr('${c.id}','${id}')"`;
+  const pil=ESTEIRA_ETAPAS.map((e,i)=>{
+    const cls=(i===ia?(espera?'est-atual est-parada':'est-atual'):(ia>=0&&i<ia?'est-feita':''))+(trava?' est-trava':'');
+    return `<button type="button" class="est-pil ${cls}"${clique(e.id)}><span class="est-n">${i+1}</span>${esc(e.n)}</button>`;
+  }).join('<span class="est-liga"></span>');
+  const out=ESTEIRA_OUTRAS.map(o=>`<button type="button" class="est-pil est-esp ${o.cls} ${at===o.id?'est-atual':''}"${clique(o.id)}>${esc(o.n)}</button>`).join('');
+  let extra='';
+  if(at===null&&!trava)extra=`<div class="est-aviso">Este caso está numa etapa que saiu do fluxo (“${esc(c.dep)}”). Escolha a etapa acima.</div>`;
+  if(tr==='tq'&&!trava)extra+=`<div class="est-sub"><span>Situação:</span><select onchange="esteiraTQ('${c.id}',this.value)">${ESTEIRA_TQ.map(x=>`<option value="${esc(x[0])}"${c.dep===x[0]?' selected':''}>${esc(x[1])}</option>`).join('')}</select></div>`;
+  if(at==='aguard-cliente')extra+=`<div class="est-sub"><span>Aguardando o quê?</span><input type="text" value="${esc(c.esperaMotivo||'')}" placeholder="Ex.: RG do vendedor, resposta sobre a data…" onchange="esteiraMotivo('${c.id}',this.value)"></div>`;
+  if(ESTEIRA_OUTRAS.some(o=>o.id===at)){
+    const v=esteiraEtapaDe({dep:c.depVolta||'',agendado:c.agendado}), ve=esteiraEtapa(v);
+    if(at==='exigencia')extra+=`<div class="est-sub"><span>Exigência resolvida:</span><button type="button" class="cx-btn" onclick="esteiraIr('${c.id}','registro')">Voltar ao Registro</button><button type="button" class="cx-btn" onclick="esteiraIr('${c.id}','concluido')">Concluir</button></div>`;
+    else if(ve&&!ESTEIRA_OUTRAS.some(o=>o.id===ve.id))extra+=`<div class="est-sub"><button type="button" class="cx-btn" onclick="esteiraVoltar('${c.id}')"><i class="ti ti-arrow-back-up"></i> Voltar para “${esc(ve.n)}”</button></div>`;
+  }
+  if(ESTEIRA_PERGUNTA.has(c.id)&&!trava)extra+=`<div class="est-pergunta"><b>Livro e folha preenchidos.</b> Falta alguém assinar?
+    <button type="button" class="cx-btn destaque" onclick="esteiraResponder('${c.id}','falta-ass')">Falta assinatura</button>
+    <button type="button" class="cx-btn" onclick="esteiraResponder('${c.id}','tq')">Todos assinaram</button>
+    <button type="button" class="cx-btn" onclick="esteiraResponder('${c.id}','')">Agora não</button></div>`;
+  const av=c.esteiraAviso;
+  if(av&&av.em&&Date.now()-av.em<172800000&&av.para===at&&!trava){
+    const de=esteiraEtapa(esteiraEtapaDe({dep:av.de,agendado:c.agendado}));
+    extra+=`<div class="est-auto"><i class="ti ti-wand"></i> Movido sozinho${de?` de “${esc(de.n)}”`:''}, porque ${esc(av.porque)}. <button type="button" class="est-desfazer" onclick="esteiraDesfazer('${c.id}')">Desfazer</button></div>`;
+  }
+  return `<div class="est"><div class="est-trilha">${pil}</div>${out?`<div class="est-espera"><span class="est-rot">Em espera</span>${out}</div>`:''}${extra}</div>`;
+}
+function esteiraAbasHtml(c){
+  const aberta=esteiraAbaAberta(c), e=esteiraEtapa(esteiraEtapaDaTrilha(c)), da=(e&&e.abas)||[];
+  return `<div class="est-abas">${ESTEIRA_FUNCOES.map(f=>`<button type="button" class="est-aba${f===aberta?' on':''}${da.includes(f)?' da-etapa':''}" onclick="esteiraAba('${c.id}','${f}')"><i class="ti ti-${ESTEIRA_ICONES[f]||'point'}"></i> ${esc(f)}</button>`).join('')}</div>`;
+}
+function esteiraPainelHtml(c,pt){
+  const aba=esteiraAbaAberta(c);
+  if(aba==='Orçamento')return pt.orc;
+  if(aba==='Documentos')return pt.docs;
+  if(aba==='Certidões')return pt.pref;
+  if(aba==='Capa do dossiê')return pt.capa;
+  if(aba==='Pagamento')return pt.pag;
+  if(aba==='Minuta')return pt.minuta;
+  return `<div class="est-dica">Livro, folha e número de controle ficam em <b>Dados do registro</b>, logo acima. Quando o controle é preenchido, o Financeiro aparece aqui embaixo.</div>`;
+}
+function esteiraRedesenhar(id){
+  const c=casos[id], el=document.getElementById('card-'+id);
+  if(!c||!el){if(typeof renderCasos==='function')renderCasos();return;}
+  el.outerHTML=cardHtml(c);
+}
+function esteiraGravar(id,dep,extra){
+  const c=casos[id]; if(!c)return Promise.resolve();
+  const upd={dep:dep,atualizado:isoHoje(),...(extra||{})};
+  if((c.dep||'')!==dep)upd.depDesde=isoHoje();
+  delete ESTEIRA_ABA[id];
+  return update(ref(db,'casos/'+id),upd);
+}
+function esteiraGravarAuto(id,c,r){
+  return esteiraGravar(id,r.dep,{esteiraAviso:{em:Date.now(),de:c.dep||'',para:r.para,porque:r.porque}});
+}
+window.esteiraIr=function(id,eid){
+  const c=casos[id]; if(!c||c.concluido)return;
+  if(eid==='concluido'){toggleConcluido(id);return;}
+  const at=esteiraEtapaDe(c); if(at===eid)return;
+  const extra={esteiraAviso:null};
+  if(ESTEIRA_OUTRAS.some(o=>o.id===eid)&&!ESTEIRA_OUTRAS.some(o=>o.id===at))extra.depVolta=c.dep||'';
+  ESTEIRA_PERGUNTA.delete(id);
+  esteiraGravar(id,esteiraDepDe(eid,c),extra);
+};
+window.esteiraTQ=function(id,dep){esteiraGravar(id,dep,{esteiraAviso:null});};
+window.esteiraMotivo=function(id,v){update(ref(db,'casos/'+id),{esperaMotivo:String(v||'').trim(),atualizado:isoHoje()});};
+window.esteiraVoltar=function(id){const c=casos[id]; if(c)esteiraGravar(id,c.depVolta||'',{depVolta:'',esteiraAviso:null});};
+window.esteiraDesfazer=function(id){const c=casos[id]; if(c&&c.esteiraAviso)esteiraGravar(id,c.esteiraAviso.de||'',{esteiraAviso:null});};
+window.esteiraResponder=function(id,eid){
+  ESTEIRA_PERGUNTA.delete(id);
+  if(eid)esteiraIr(id,eid); else esteiraRedesenhar(id);
+};
+window.esteiraAba=function(id,aba){ESTEIRA_ABA[id]=aba; esteiraRedesenhar(id);};
+// Um evento que o painel conhece (orçamento enviado, por exemplo) pode andar a etapa; a mesma regra de quando o banco muda.
+window.esteiraEvento=function(id,ev){
+  const c=casos[id]; if(!c||c.concluido)return;
+  const r=esteiraAplicar(c,ev); if(r&&r.dep!==undefined)esteiraGravarAuto(id,c,r);
+};
+// Chamada a cada foto nova do banco: só olha mudanças ENTRE duas fotos, nunca a primeira — abrir o painel não move caso nenhum.
+function esteiraVarrer(antes,depois){
+  Object.keys(depois||{}).forEach(id=>{
+    const a=antes[id], b=depois[id]; if(!a||!b||b.concluido)return;
+    for(const ev of esteiraEventos(a,b)){
+      const r=esteiraAplicar(b,ev); if(!r)continue;
+      if(r.pergunta){ESTEIRA_PERGUNTA.add(id);continue;}
+      esteiraGravarAuto(id,b,r); break;
+    }
+  });
+}
+window.esteiraAlternarModo=function(){
+  ESTEIRA_ANTIGO=!ESTEIRA_ANTIGO; try{localStorage.setItem('painel_card_antigo',ESTEIRA_ANTIGO?'1':'0');}catch(e){}
+  renderCasos();
+};
+// ── fim: a esteirinha: tela ──
+
+// ── O card, em pedaços ──
+// O desenho de antes e o da esteirinha usam as MESMAS peças; só muda a ordem e o que fica à mostra. Nada foi apagado do card — só reorganizado.
+function cardPartes(c){
+  return {
+    abre:`    <div class="cx-card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
+      <div class="cx-topo">
+        <div class="cx-ident">
+          <div class="cx-nome-linha" id="cx-nome-linha-${c.id}">
+            <span class="cx-nome" id="cx-nome-txt-${c.id}">${escTxt(c.nome)}</span>
+            <button type="button" class="cx-nome-lapis" onclick="toggleNomeCaso('${c.id}')" title="Editar nome"><i class="ti ti-pencil"></i></button>
+            ${c.concluido?'':bStatus(c.status)}
+          </div>
+          <div class="cx-nome-edit" id="cx-nome-edit-${c.id}" style="display:none">
+            <input type="text" id="cx-nome-input-${c.id}" value="${esc(c.nome)}"
+              onkeydown="if(event.key==='Enter'){salvarNomeCaso('${c.id}')}else if(event.key==='Escape'){toggleNomeCaso('${c.id}')}">
+            <button class="cx-btn destaque" onclick="salvarNomeCaso('${c.id}')">Salvar</button>
+          </div>
+          ${cxTipoHtml(c)}
+        </div>
+        <div class="cx-meta-dir">
+          ${c.prazo&&c.prazo!=='—'?`<span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${esc(c.prazo)}</span>`:''}
+          ${bDias(c.atualizado,c.concluido)}
+        </div>
+      </div>`,
+    linha:`      <div class="cx-linha-topo">
+        <label class="cx-campo"><span class="cx-campo-rot">Assinatura da escritura</span>
+          <input type="datetime-local" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)"></label>
+        <div class="cx-reg-bloco">
+          <span class="cx-reg-titulo">Dados do registro</span>
+          <div class="cx-reg-campos" id="cx-reg-${c.id}">
+            ${CX_REG.map(r=>`<label class="cx-campo"><span class="cx-campo-rot">${r.rot}</span>
+              <input type="text" value="${esc(c[r.campo])}" placeholder="—" onchange="mudarCampo('${c.id}','${r.campo}',this.value)"></label>`).join('')}
+          </div>
+        </div>
+      </div>`,
+    campos:`      <div class="cx-campos">
+        <label class="cx-campo"><span class="cx-campo-rot">Status</span>
+          <select onchange="mudarCampo('${c.id}','status',this.value)">
+            <option value="prioridade"${c.status==='prioridade'?' selected':''}>Prioridade</option>
+            <option value="critico"${c.status==='critico'?' selected':''}>Crítico</option>
+            <option value="atencao"${c.status==='atencao'?' selected':''}>Atenção</option>
+            <option value="emdia"${c.status==='emdia'?' selected':''}>Em dia</option>
+          </select></label>
+        <label class="cx-campo"><span class="cx-campo-rot">Etapa</span>
+          <select onchange="mudarCampo('${c.id}','dep',this.value)">
+            ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
+          </select></label>
+        <label class="cx-campo"><span class="cx-campo-rot">Responsável</span>
+          <select onchange="mudarCampo('${c.id}','resp',this.value)">
+            <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
+            <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
+            <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
+          </select></label>
+      </div>`,
+    fin:`      <div class="cx-fin">
+        <span class="cx-fin-rot"><i class="ti ti-currency-real"></i> Financeiro</span>
+        ${typeof finFaixaDoCaso==='function'?finFaixaDoCaso(c.id):''}
+      </div>`,
+    orc:`      <div class="cx-orc">
+        <span class="cx-orc-rot"><i class="ti ti-calculator"></i> Orçamento</span>
+        ${typeof orcFaixaDoCaso==='function'?orcFaixaDoCaso(c.id):''}
+      </div>`,
+    capa:`${capaFaixaHtml(c)}`,
+    pref:`${prefFaixaHtml(c)}`,
+    docs:`      <div class="cx-orc cx-ped">
+        <span class="cx-orc-rot"><i class="ti ti-file-search"></i> Documentos</span>
+        <button class="cx-btn destaque" onclick="abrirPedidoDocs('${c.id}')"><i class="ti ti-list-check"></i> Pedir documentos</button>
+        ${pedidoPastaHtml(c)}
+        ${solteHtml(c)}
+        ${pedidoRecebidosHtml(c)}
+      </div>`,
+    pag:`      <div class="cx-orc cx-ped">
+        <span class="cx-orc-rot"><i class="ti ti-credit-card"></i> Pagamento</span>
+        ${pagFaixaHtml(c)}
+      </div>`,
+    drive:`      <div class="cx-drive">
+        <span class="cx-drive-rot"><i class="ti ti-brand-google-drive"></i> Pasta no Drive</span>
+        ${c.driveUrl?`
+          <a class="cx-drive-link" href="${esc(c.driveUrl)}" target="_blank" rel="noopener" title="${esc(c.driveUrl)}">${escTxt(driveTextoCurto(c.driveUrl))}</a>
+          <button class="cx-btn" onclick="copiarLinkDrive('${c.id}',this)"><i class="ti ti-copy"></i> Copiar link</button>
+          <button class="cx-btn" onclick="abrirColarDrive('${c.id}')"><i class="ti ti-link"></i> Trocar link</button>
+          <button class="cx-btn perigo" onclick="excluirPastaDrive('${c.id}',this)"><i class="ti ti-trash"></i> Excluir pasta</button>
+        `:`
+          <span class="cx-drive-vazio">Nenhuma pasta ligada a este caso.</span>
+          <button class="cx-btn" id="cx-drive-criar-${c.id}" onclick="criarPastaDrive('${c.id}')"><i class="ti ti-folder-plus"></i> Criar pasta no Drive</button>
+          <button class="cx-btn" onclick="abrirColarDrive('${c.id}')"><i class="ti ti-link"></i> Colar link da pasta</button>
+        `}
+        <div class="cx-drive-colar" id="cx-drive-colar-${c.id}">
+          <input type="url" id="cx-drive-input-${c.id}" value="${esc(c.driveUrl||'')}"
+            placeholder="Cole aqui o link da pasta que você criou no Drive"
+            onkeydown="if(event.key==='Enter')salvarLinkDrive('${c.id}')">
+          <button class="cx-btn destaque" onclick="salvarLinkDrive('${c.id}')">Salvar link</button>
+          ${c.driveUrl?`<button class="cx-btn perigo" onclick="removerLinkDrive('${c.id}')">Tirar do card</button>`:''}
+        </div>
+      </div>`,
+    obs:`      <div class="card-obs">
+        <span class="obs-label">Observações</span>
+        <div class="obs-text" id="obs-txt-${c.id}" onclick="toggleObs('${c.id}')">${renderObsBloco(c.obs)}</div>
+        ${c.obsAnterior?`<button class="cx-btn" style="margin-top:8px" onclick="desfazerObs('${c.id}')" title="Volta pro texto anterior"><i class="ti ti-arrow-back-up"></i> Desfazer última alteração</button>`:''}
+        <div class="obs-edit" id="obs-edit-${c.id}">
+          <span class="rascunho-msg" id="rascunho-${c.id}" style="display:none;font-size:11px;color:#B4718A;margin-bottom:4px"><i class="ti ti-note"></i> Rascunho recuperado de uma edição anterior não salva</span>
+          <textarea rows="2" id="obs-ta-${c.id}" placeholder="Digite a nova informação — ela entra numerada no topo do histórico acima" oninput="rascunharObs('${c.id}')"></textarea>
+          <div class="obs-edit-row">
+            <span class="saved-msg" id="saved-${c.id}"><i class="ti ti-check"></i> Salvo</span>
+            <button class="cx-btn destaque" onclick="salvarObs('${c.id}')">Salvar</button>
+          </div>
+        </div>
+      </div>`,
+    acoes:`      <div class="cx-acoes">
+        <button class="cx-btn" onclick="toggleObs('${c.id}')"><i class="ti ti-notes"></i> Obs</button>
+        <button class="cx-btn" onclick="abrirAtendimento('${c.id}')"><i class="ti ti-headset"></i> Atendimento</button>
+        <button class="cx-btn perigo" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash"></i> Excluir</button>
+        <button class="cx-btn concluir" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
+      </div>`,
+    acoes_antigo:`      <div class="cx-acoes">
+        <button class="cx-btn destaque" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text"></i> Minuta</button>
+        ${typeof auditPillDoCaso==='function'?auditPillDoCaso(c.id):''}
+        <button class="cx-btn" onclick="toggleObs('${c.id}')"><i class="ti ti-notes"></i> Obs</button>
+        ${c.segundaParte&&(c.segundaParte.status==='pendente'||c.segundaParte.status==='lembrete')?`<button class="cx-btn destaque" onclick="abrirSegundaParte('${c.id}')"><i class="ti ti-users"></i> Assinatura da 2ª parte</button>`:''}
+        <button class="cx-btn" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit"></i> Reeditar</button>
+        ${c.docUrl?`<button class="cx-btn" onclick="marcarModeloDoCaso('${c.id}')" title="Usa a minuta atual como referência automática para o tipo de ato"><i class="ti ti-stack-2"></i> Marcar como modelo</button>`:''}
+        <button class="cx-btn" onclick="abrirAtendimento('${c.id}')"><i class="ti ti-headset"></i> Atendimento</button>
+        <button class="cx-btn perigo" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash"></i> Excluir</button>
+        <button class="cx-btn concluir" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
+      </div>`,
+    minuta:`<div class="est-minuta">
+        <button class="cx-btn destaque" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text"></i> Minuta</button>
+        ${typeof auditPillDoCaso==='function'?auditPillDoCaso(c.id):''}
+        ${c.segundaParte&&(c.segundaParte.status==='pendente'||c.segundaParte.status==='lembrete')?`<button class="cx-btn destaque" onclick="abrirSegundaParte('${c.id}')"><i class="ti ti-users"></i> Assinatura da 2ª parte</button>`:''}
+        <button class="cx-btn" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit"></i> Reeditar</button>
+        ${c.docUrl?`<button class="cx-btn" onclick="marcarModeloDoCaso('${c.id}')" title="Usa a minuta atual como referência automática para o tipo de ato"><i class="ti ti-stack-2"></i> Marcar como modelo</button>`:''}
+    </div>`
+  };
+}
+function cardAntigoHtml(c){
+  const p=cardPartes(c);
+  return p.abre+p.linha+p.campos+p.fin+p.orc+p.capa+p.pref+p.docs+p.pag+p.drive+p.obs+p.acoes_antigo+'\n    </div>';
+}
+function cardNovoHtml(c){
+  const p=cardPartes(c);
+  const finOk=esteiraTemControle(c)||(typeof finLancamentoDoCaso==='function'&&!!finLancamentoDoCaso(c.id));
+  return p.abre+p.linha+`
+      <div class="cx-campos est-status"><label class="cx-campo"><span class="cx-campo-rot">Status</span>
+          <select onchange="mudarCampo('${c.id}','status',this.value)">
+            <option value="prioridade"${c.status==='prioridade'?' selected':''}>Prioridade</option>
+            <option value="critico"${c.status==='critico'?' selected':''}>Crítico</option>
+            <option value="atencao"${c.status==='atencao'?' selected':''}>Atenção</option>
+            <option value="emdia"${c.status==='emdia'?' selected':''}>Em dia</option>
+          </select></label></div>
+      `+esteiraTrilhaHtml(c)+esteiraAbasHtml(c)+`<div class="est-painel">`+esteiraPainelHtml(c,p)+`</div>`+(finOk?p.fin:'')+p.drive+p.obs+p.acoes+'\n    </div>';
+}
+function cardHtml(c){return ESTEIRA_ANTIGO?cardAntigoHtml(c):cardNovoHtml(c);}
+// ── fim: o card, em pedaços ──
+
+
 function renderCasos(){
   const el=document.getElementById('casos-list');
   let lista=getCasosList().filter(visivel);
@@ -5528,136 +5905,8 @@ function renderCasos(){
     const ordem={prioridade:0,critico:1,atencao:2,emdia:3};
     lista.sort((a,b)=>(ordem[a.status]??5)-(ordem[b.status]??5));
   }
-  el.innerHTML=lista.map(c=>{
-    return`
-    <div class="cx-card ${c.concluido?'concluido':c.status}" id="card-${c.id}">
-      <div class="cx-topo">
-        <div class="cx-ident">
-          <div class="cx-nome-linha" id="cx-nome-linha-${c.id}">
-            <span class="cx-nome" id="cx-nome-txt-${c.id}">${escTxt(c.nome)}</span>
-            <button type="button" class="cx-nome-lapis" onclick="toggleNomeCaso('${c.id}')" title="Editar nome"><i class="ti ti-pencil"></i></button>
-            ${c.concluido?'':bStatus(c.status)}
-          </div>
-          <div class="cx-nome-edit" id="cx-nome-edit-${c.id}" style="display:none">
-            <input type="text" id="cx-nome-input-${c.id}" value="${esc(c.nome)}"
-              onkeydown="if(event.key==='Enter'){salvarNomeCaso('${c.id}')}else if(event.key==='Escape'){toggleNomeCaso('${c.id}')}">
-            <button class="cx-btn destaque" onclick="salvarNomeCaso('${c.id}')">Salvar</button>
-          </div>
-          ${cxTipoHtml(c)}
-        </div>
-        <div class="cx-meta-dir">
-          ${c.prazo&&c.prazo!=='—'?`<span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${esc(c.prazo)}</span>`:''}
-          ${bDias(c.atualizado,c.concluido)}
-        </div>
-      </div>
-
-      <div class="cx-linha-topo">
-        <label class="cx-campo"><span class="cx-campo-rot">Assinatura da escritura</span>
-          <input type="datetime-local" value="${c.agendado||''}" onchange="mudarCampo('${c.id}','agendado',this.value)"></label>
-        <div class="cx-reg-bloco">
-          <span class="cx-reg-titulo">Dados do registro</span>
-          <div class="cx-reg-campos" id="cx-reg-${c.id}">
-            ${CX_REG.map(r=>`<label class="cx-campo"><span class="cx-campo-rot">${r.rot}</span>
-              <input type="text" value="${esc(c[r.campo])}" placeholder="—" onchange="mudarCampo('${c.id}','${r.campo}',this.value)"></label>`).join('')}
-          </div>
-        </div>
-      </div>
-
-      <div class="cx-campos">
-        <label class="cx-campo"><span class="cx-campo-rot">Status</span>
-          <select onchange="mudarCampo('${c.id}','status',this.value)">
-            <option value="prioridade"${c.status==='prioridade'?' selected':''}>Prioridade</option>
-            <option value="critico"${c.status==='critico'?' selected':''}>Crítico</option>
-            <option value="atencao"${c.status==='atencao'?' selected':''}>Atenção</option>
-            <option value="emdia"${c.status==='emdia'?' selected':''}>Em dia</option>
-          </select></label>
-        <label class="cx-campo"><span class="cx-campo-rot">Etapa</span>
-          <select onchange="mudarCampo('${c.id}','dep',this.value)">
-            ${DEPS.map(d=>`<option value="${d}"${c.dep===d?' selected':''}>${d||'Sem dependência'}</option>`).join('')}
-          </select></label>
-        <label class="cx-campo"><span class="cx-campo-rot">Responsável</span>
-          <select onchange="mudarCampo('${c.id}','resp',this.value)">
-            <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
-            <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
-            <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
-          </select></label>
-      </div>
-
-      <div class="cx-fin">
-        <span class="cx-fin-rot"><i class="ti ti-currency-real"></i> Financeiro</span>
-        ${typeof finFaixaDoCaso==='function'?finFaixaDoCaso(c.id):''}
-      </div>
-
-      <div class="cx-orc">
-        <span class="cx-orc-rot"><i class="ti ti-calculator"></i> Orçamento</span>
-        ${typeof orcFaixaDoCaso==='function'?orcFaixaDoCaso(c.id):''}
-      </div>
-
-      ${capaFaixaHtml(c)}
-
-      ${prefFaixaHtml(c)}
-
-      <div class="cx-orc cx-ped">
-        <span class="cx-orc-rot"><i class="ti ti-file-search"></i> Documentos</span>
-        <button class="cx-btn destaque" onclick="abrirPedidoDocs('${c.id}')"><i class="ti ti-list-check"></i> Pedir documentos</button>
-        ${pedidoPastaHtml(c)}
-        ${solteHtml(c)}
-        ${pedidoRecebidosHtml(c)}
-      </div>
-
-      <div class="cx-orc cx-ped">
-        <span class="cx-orc-rot"><i class="ti ti-credit-card"></i> Pagamento</span>
-        ${pagFaixaHtml(c)}
-      </div>
-
-      <div class="cx-drive">
-        <span class="cx-drive-rot"><i class="ti ti-brand-google-drive"></i> Pasta no Drive</span>
-        ${c.driveUrl?`
-          <a class="cx-drive-link" href="${esc(c.driveUrl)}" target="_blank" rel="noopener" title="${esc(c.driveUrl)}">${escTxt(driveTextoCurto(c.driveUrl))}</a>
-          <button class="cx-btn" onclick="copiarLinkDrive('${c.id}',this)"><i class="ti ti-copy"></i> Copiar link</button>
-          <button class="cx-btn" onclick="abrirColarDrive('${c.id}')"><i class="ti ti-link"></i> Trocar link</button>
-          <button class="cx-btn perigo" onclick="excluirPastaDrive('${c.id}',this)"><i class="ti ti-trash"></i> Excluir pasta</button>
-        `:`
-          <span class="cx-drive-vazio">Nenhuma pasta ligada a este caso.</span>
-          <button class="cx-btn" id="cx-drive-criar-${c.id}" onclick="criarPastaDrive('${c.id}')"><i class="ti ti-folder-plus"></i> Criar pasta no Drive</button>
-          <button class="cx-btn" onclick="abrirColarDrive('${c.id}')"><i class="ti ti-link"></i> Colar link da pasta</button>
-        `}
-        <div class="cx-drive-colar" id="cx-drive-colar-${c.id}">
-          <input type="url" id="cx-drive-input-${c.id}" value="${esc(c.driveUrl||'')}"
-            placeholder="Cole aqui o link da pasta que você criou no Drive"
-            onkeydown="if(event.key==='Enter')salvarLinkDrive('${c.id}')">
-          <button class="cx-btn destaque" onclick="salvarLinkDrive('${c.id}')">Salvar link</button>
-          ${c.driveUrl?`<button class="cx-btn perigo" onclick="removerLinkDrive('${c.id}')">Tirar do card</button>`:''}
-        </div>
-      </div>
-
-      <div class="card-obs">
-        <span class="obs-label">Observações</span>
-        <div class="obs-text" id="obs-txt-${c.id}" onclick="toggleObs('${c.id}')">${renderObsBloco(c.obs)}</div>
-        ${c.obsAnterior?`<button class="cx-btn" style="margin-top:8px" onclick="desfazerObs('${c.id}')" title="Volta pro texto anterior"><i class="ti ti-arrow-back-up"></i> Desfazer última alteração</button>`:''}
-        <div class="obs-edit" id="obs-edit-${c.id}">
-          <span class="rascunho-msg" id="rascunho-${c.id}" style="display:none;font-size:11px;color:#B4718A;margin-bottom:4px"><i class="ti ti-note"></i> Rascunho recuperado de uma edição anterior não salva</span>
-          <textarea rows="2" id="obs-ta-${c.id}" placeholder="Digite a nova informação — ela entra numerada no topo do histórico acima" oninput="rascunharObs('${c.id}')"></textarea>
-          <div class="obs-edit-row">
-            <span class="saved-msg" id="saved-${c.id}"><i class="ti ti-check"></i> Salvo</span>
-            <button class="cx-btn destaque" onclick="salvarObs('${c.id}')">Salvar</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="cx-acoes">
-        <button class="cx-btn destaque" onclick="abrirMinuta('${c.id}')"><i class="ti ti-file-text"></i> Minuta</button>
-        ${typeof auditPillDoCaso==='function'?auditPillDoCaso(c.id):''}
-        <button class="cx-btn" onclick="toggleObs('${c.id}')"><i class="ti ti-notes"></i> Obs</button>
-        ${c.segundaParte&&(c.segundaParte.status==='pendente'||c.segundaParte.status==='lembrete')?`<button class="cx-btn destaque" onclick="abrirSegundaParte('${c.id}')"><i class="ti ti-users"></i> Assinatura da 2ª parte</button>`:''}
-        <button class="cx-btn" onclick="abrirReeditar('${c.id}')"><i class="ti ti-edit"></i> Reeditar</button>
-        ${c.docUrl?`<button class="cx-btn" onclick="marcarModeloDoCaso('${c.id}')" title="Usa a minuta atual como referência automática para o tipo de ato"><i class="ti ti-stack-2"></i> Marcar como modelo</button>`:''}
-        <button class="cx-btn" onclick="abrirAtendimento('${c.id}')"><i class="ti ti-headset"></i> Atendimento</button>
-        <button class="cx-btn perigo" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash"></i> Excluir</button>
-        <button class="cx-btn concluir" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button>
-      </div>
-    </div>`;
-  }).join('');
+  el.innerHTML=lista.map(cardHtml).join('');
+  const bm=document.getElementById('cx-modo-card'); if(bm)bm.textContent=ESTEIRA_ANTIGO?'Voltar ao card novo':'Usar o card antigo';
 }
 
 
@@ -14659,6 +14908,7 @@ window.orcCopiarImagem = async function(){
   try{
     await navigator.clipboard.write([new ClipboardItem({'image/png': orcFolhaBlob})]);
     finToast('Imagem copiada — é só colar no WhatsApp ou no e-mail.');
+    if(orcCasoAberto&&typeof esteiraEvento==='function')esteiraEvento(orcCasoAberto,'orc-enviado');
   }catch(err){
     // Falar em vez de fingir: alguns navegadores só deixam copiar imagem pelo
     // menu do botão direito, e a imagem está aí do lado para isso.
@@ -14670,11 +14920,12 @@ window.orcBaixarImagem = function(){
   const a = document.createElement('a');
   a.href = orcFolhaUrl; a.download = orcNomeDaFolha(orcEmEdicao); a.click();
   finToast('Imagem baixada — é só anexar.');
+  if(orcCasoAberto&&typeof esteiraEvento==='function')esteiraEvento(orcCasoAberto,'orc-enviado');
 };
 window.orcCompartilharImagem = async function(){
   if(!orcFolhaBlob) return;
   const arquivo = new File([orcFolhaBlob], orcNomeDaFolha(orcEmEdicao), {type: 'image/png'});
-  try{ await navigator.share({files: [arquivo]}); }
+  try{ await navigator.share({files: [arquivo]}); if(orcCasoAberto&&typeof esteiraEvento==='function')esteiraEvento(orcCasoAberto,'orc-enviado'); }
   catch(err){ if(err && err.name !== 'AbortError') finToast('Não consegui compartilhar aqui.'); }
 };
 // Exposto para o teste conferir o desenho sem depender da área de

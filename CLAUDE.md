@@ -1141,6 +1141,23 @@ Regras dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
 - **A data da assinatura e os dados do registro ficam logo abaixo do nome** (3/11/2026, passo 2 do card novo): *Assinatura da escritura* à esquerda e a caixa
   *Dados do registro* (Registro, Prenotação, Livro, Folha, Controle) ao lado, antes de Status/Etapa/Responsável e das faixas. É o que ela olha primeiro em todo card.
   No celular empilham em uma coluna. Só mudou de lugar: os mesmos campos, os mesmos `mudarCampo`, o mesmo `id="cx-reg-…"`. Teste: `node testes/card-topo.mjs`.
+- **A esteirinha de etapas substituiu o seletor "Etapa"** (3/11/2026, passos 3 e 4 do card novo). O card mostra, logo abaixo de Status, uma trilha de onze
+  pílulas (Orçamento a enviar → Aprovação do orçamento → Minutando → Aprovação da minuta → Sem pendências → Falta assinatura → TQ · Traslado → Registro →
+  Prefeitura → Entregar → Concluído) e, ao lado, três de **espera** (Aguardando cliente, Falta documentos, Nota de exigência). O dado é o **mesmo `dep`** de sempre —
+  nada foi renomeado no banco. As etapas que saíram do fluxo são **lidas** como a que as engoliu (Pré-conferência, ITBI e Travar agenda → Aprovação da minuta ou
+  Sem pendências, conforme haja data de assinatura); **Jurídico Prime não tem lugar**: a tela diz "Escolha a etapa" em vez de chutar. As três etapas de TQ/traslado
+  são **uma pílula** com o estado por dentro (a Central de Comando ainda precisa saber de quem é a vez). Entrar numa espera guarda `depVolta`; sair volta para lá.
+  Aguardando cliente pede o motivo (`esperaMotivo`); Nota de exigência volta ao Registro ou conclui. As **funções viraram abas** (Orçamento, Documentos, Certidões, Minuta,
+  Capa do dossiê, Livro/folha/controle, Pagamento) — só a aberta aparece, logo abaixo da trilha, e **todas estão disponíveis em qualquer etapa** (a etapa só escolhe
+  qual abre primeiro). O **Financeiro só aparece com o número de controle** (ou lançamento já existente). **Responsável e os filtros por pessoa saíram da tela** (o dado
+  antigo continua em `c.resp`); a capa sai sempre com "Shirley Dantas – Escrevente". Status, o selo e a borda colorida ficam como eram. O botão **Usar o card antigo**
+  (na barra, guardado neste navegador) devolve o desenho inteiro de antes, com Etapa e Responsável.
+  Regras que **não devem ser mexidas sem perguntar**: a etapa só anda **para a frente e só da etapa certa** (orçamento reenviado na assinatura não puxa nada para trás);
+  o que anda sozinho é *orçamento copiado/baixado/compartilhado → Aprovação do orçamento*, *cliente aprovou pelo link → Minutando*, *minuta no Drive → Aprovação da minuta*,
+  *data de assinatura travada → Sem pendências*, *prenotação preenchida em TQ → Registro*, *documentos chegaram em Falta documentos → Minutando*; **livro + folha nunca movem**:
+  perguntam "Falta alguém assinar?" (só ela sabe). Mover sozinho só acontece entre **duas fotos** do banco (abrir o painel nunca move caso), deixa um aviso com **Desfazer**
+  (`esteiraAviso`) e é a mesma escrita de quem clica na pílula. Tudo isso mora em `// ── A esteirinha: regras ──` (puro) e `// ── A esteirinha: tela ──` do `index.html`;
+  o card é montado por `cardPartes()` (as mesmas peças para os dois desenhos). Teste: `node testes/esteirinha.mjs`.
 - Só PDF e imagem, até 10 MB; áudio, vídeo e Word são recusados **antes** de sair, com o motivo escrito. No máximo dois
   arquivos sobem por vez. Arrastar só existe no computador; no celular fica o *Escolher arquivos*.
 - Passo manual: o Apps Script precisa do código novo (`painel-arquivo`, `painel-renomear`). Se não tiver, o motivo aparece
@@ -1417,6 +1434,7 @@ o `testes/montar.mjs` recorta.
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | Pedir documentos (lista por ato e público) | `pedido-docs.js` → `PEDIDO.montar()`, `comporTexto()`, `formulario()`, `abrirJanela()` |
 | O link de envio e o que chegou no card | `criarLinkEnvio()`, `pedidoRecebidosHtml()` (index.html) · `enviar.html` · `clienteArquivo()`, `clienteDados()` (Apps Script) |
+| A esteirinha de etapas e o card em abas | `ESTEIRA_ETAPAS`, `esteiraAplicar()`, `esteiraVarrer()`, `esteiraTrilhaHtml()`, `cardPartes()`, `cardNovoHtml()` |
 | A lista de documentos recebidos (agrupada, abre e fecha) | `docsAgrupar()`, `docsRotulo()`, `pedidoRecebidosHtml()`, `DOCS_ABERTOS` |
 | O link de pagamento (janela, faixa do card, aviso, impressão) | `abrirPagamento()`, `pagGerarLink()`, `pagFaixaHtml()`, `pagAvisosHtml()`, `imprimirComprovante()` (index.html) · `pagar.html` · `pagamentoArquivo()`, `pagamentoConcluir()`, `pagamentoVer()` (Apps Script) |
 | O Ajudante (JUCESP) — a extensão | `ajudante/` → `jucesp.js` (`planejar()`, `escolherConsolidacao()`), `background.js` (`capturar()`), `painel.js` · no painel `ajudanteHtml()`, `ajudantePedir()` |
@@ -1451,6 +1469,7 @@ node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
 node testes/docs-agrupados.mjs
 node testes/card-topo.mjs
+node testes/esteirinha.mjs
 node testes/ajudante.mjs
 node testes/capa.mjs
 node testes/prefeitura.mjs
