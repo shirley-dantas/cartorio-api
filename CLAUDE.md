@@ -1130,6 +1130,14 @@ Regras dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   número** — o bot antigo, no número pessoal 11 94785-1816, foi desligado por ela em 28/10/2026 e o código dele (`api/salvar-caso.js`)
   fica parado. A `/entrada` é aberta nas regras, como `/casos` (quem escreve é o Apps Script, por REST). Passo a passo na Meta, na
   Vercel e no Apps Script: `FIREBASE.md`, seção 13. Testes: `testes/whatsapp-entrada.mjs`, `testes/cliente-envio.mjs`, `testes/solte-card.mjs`.
+- **A lista "Recebidos do cliente" é agrupada, e abre e fecha sem se perder** (3/11/2026, passo 1 do card novo). Em vez de uma fila de nomes crus,
+  `pedidoRecebidosHtml` agrupa com `docsAgrupar` (pura): **A confirmar** no alto (o que a IA não soube nomear), **Aguardando o cliente concluir**,
+  uma caixa por **pessoa** (o mesmo nome sem caixa e sem acento é uma pessoa só), a **Empresa** (ficha e contrato da JUCESP), o **Imóvel** (matrícula,
+  valor venal, negativa, dados cadastrais), os **dados digitados** e **Outros**. O nome que ela lê é o **tipo** ("RG ou CNH"); o nome do arquivo fica
+  no título e vale quando o tipo não se sabe. **Documento antigo sem tipo vai para "Outros", nunca para "A confirmar"**: um card velho não pode abrir
+  com uma caixa enorme de pendências. Mesmos botões de antes (abrir, lápis só no arrastado, *Ler de novo* só no sem leitura, excluir). A lista nasce
+  **fechada** e o card se redesenha a cada mudança no banco, então quem abriu fica registrada em `DOCS_ABERTOS` — antes ela fechava sozinha. A linha de
+  cima diz "N a confirmar" mesmo com a lista fechada. Teste: `node testes/docs-agrupados.mjs`.
 - Só PDF e imagem, até 10 MB; áudio, vídeo e Word são recusados **antes** de sair, com o motivo escrito. No máximo dois
   arquivos sobem por vez. Arrastar só existe no computador; no celular fica o *Escolher arquivos*.
 - Passo manual: o Apps Script precisa do código novo (`painel-arquivo`, `painel-renomear`). Se não tiver, o motivo aparece
@@ -1406,6 +1414,7 @@ o `testes/montar.mjs` recorta.
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | Pedir documentos (lista por ato e público) | `pedido-docs.js` → `PEDIDO.montar()`, `comporTexto()`, `formulario()`, `abrirJanela()` |
 | O link de envio e o que chegou no card | `criarLinkEnvio()`, `pedidoRecebidosHtml()` (index.html) · `enviar.html` · `clienteArquivo()`, `clienteDados()` (Apps Script) |
+| A lista de documentos recebidos (agrupada, abre e fecha) | `docsAgrupar()`, `docsRotulo()`, `pedidoRecebidosHtml()`, `DOCS_ABERTOS` |
 | O link de pagamento (janela, faixa do card, aviso, impressão) | `abrirPagamento()`, `pagGerarLink()`, `pagFaixaHtml()`, `pagAvisosHtml()`, `imprimirComprovante()` (index.html) · `pagar.html` · `pagamentoArquivo()`, `pagamentoConcluir()`, `pagamentoVer()` (Apps Script) |
 | O Ajudante (JUCESP) — a extensão | `ajudante/` → `jucesp.js` (`planejar()`, `escolherConsolidacao()`), `background.js` (`capturar()`), `painel.js` · no painel `ajudanteHtml()`, `ajudantePedir()` |
 | O Ajudante na RI Digital (ONR) | `ajudante/onr.js` (`planejar()`, `tela()`), `background.js` (`criarPedidoOnr()`, `capturarOnr()`, `relatorioOnr()`) · no painel `onrHtml()`, `onrDoCaso()`, `onrIniciar()` |
@@ -1437,6 +1446,7 @@ node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
 node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
+node testes/docs-agrupados.mjs
 node testes/ajudante.mjs
 node testes/capa.mjs
 node testes/prefeitura.mjs
