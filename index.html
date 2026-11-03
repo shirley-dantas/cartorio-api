@@ -1801,6 +1801,25 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cx-ped-rec li span b{color:var(--cc-atencao)}
 .cx-ped-rec a{color:var(--cc-info);text-decoration:none}
 .cx-ped-rec li{align-items:center}
+.cx-docs summary{display:flex;align-items:center;gap:6px;flex-wrap:wrap;list-style:none}
+.cx-docs summary::-webkit-details-marker{display:none}
+.cx-docs-ver{margin-left:auto;font-size:11px;font-weight:500;color:var(--cc-tinta-2);border:1px solid var(--cc-linha);border-radius:8px;padding:4px 10px;background:var(--cc-sup)}
+.cx-docs-ver::after{content:'Ver os documentos ▾'}
+.cx-docs[open] .cx-docs-ver::after{content:'Minimizar ▴'}
+.cx-docs summary b{color:var(--cc-atencao)}
+.cx-docs-corpo{padding-top:8px;display:grid;gap:8px}
+.cx-docs-grupo{background:var(--cc-sup);border:1px solid var(--cc-linha);border-radius:10px;overflow:hidden}
+.cx-docs-grupo h5{margin:0;padding:6px 12px;font-size:9.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--cc-tinta-3);background:var(--cc-sup-2);display:flex;justify-content:space-between;gap:8px}
+.cx-docs-grupo h5 small{letter-spacing:0;text-transform:none;font-size:10.5px}
+.cx-docs-grupo.conf{border-color:var(--cc-champagne)}.cx-docs-grupo.conf h5{background:#FBF6EC;color:#7A5F35}
+.cx-docs-grupo ul{padding:0;margin:0;gap:0}
+.cx-docs-grupo li{padding:6px 12px;border-top:1px solid var(--cc-linha);word-break:normal}
+.cx-docs-grupo h5+ul li:first-child{border-top:0}
+.cx-docs-grupo li em{font-style:normal;color:var(--cc-tinta-3);font-size:11px;margin-left:6px}
+.cx-doc-sit{white-space:nowrap}
+.cx-docs-grupo li .cx-ped-nome{flex:1;min-width:0;color:var(--cc-tinta);font-size:12.5px}
+.cx-docs-grupo li .cx-doc-sit{min-width:150px;text-align:right}
+.cx-docs-grupo .cx-ped-x{font-size:11.5px;padding:5px 7px}
 .cx-ped-nome{flex:1;min-width:0}
 .cx-ped-x{flex:none;border:0;background:none;color:var(--cc-tinta-3);cursor:pointer;padding:6px 8px;border-radius:8px;font-size:15px;line-height:1}
 .cx-ped-x:hover{background:#F6E6E4;color:var(--cc-critico)}
@@ -12873,23 +12892,69 @@ function pedidoPastaHtml(c){
 
 // O que o cliente já mandou pelo link, na faixa Documentos do card: arquivos com link para o Drive
 // e se a IA conseguiu ler (é o que a minuta usa).
+// ── A lista de documentos recebidos ──
+// O que chegou ao card (link do cliente, arrastado, Ajudante) agrupado por quem é de quem: A confirmar no alto, depois cada pessoa,
+// a empresa, o imóvel, os dados digitados e o resto. Mesma informação e mesmos botões de antes (abrir, lápis, ler de novo, excluir);
+// o que muda é a ordem, o nome limpo e o abrir/fechar que não se perde quando o painel atualiza.
+const DOCS_ABERTOS=new Set();   // cards cuja lista ela abriu: o card se redesenha a cada mudança no banco e a lista fechava sozinha
+if(typeof document!=='undefined'&&document.addEventListener){
+  document.addEventListener('toggle',ev=>{ const d=ev.target; if(d&&d.dataset&&d.dataset.docs){ if(d.open)DOCS_ABERTOS.add(d.dataset.docs); else DOCS_ABERTOS.delete(d.dataset.docs); } },true);
+}
+const DOCS_DO_IMOVEL=['MATRICULA_IMOVEL','IPTU','VALOR_VENAL_REFERENCIA','NEGATIVA_IPTU','DADOS_CADASTRAIS_IMOVEL'];
+const DOCS_DA_EMPRESA=['FICHA_CADASTRAL_JUCESP','CONTRATO_SOCIAL'];
+const DOCS_DA_PESSOA=['RG_CNH','CPF','CERTIDAO_NASCIMENTO','CERTIDAO_CASAMENTO','CERTIDAO_OBITO','PACTO_ANTENUPCIAL','COMPROVANTE_ENDERECO'];
+const docsSemAcento=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+// O nome que ela lê: o tipo do documento ("RG ou CNH"), e só quando não se sabe o tipo, o nome do arquivo.
+function docsRotulo(d){
+  if(d.tipo==='informacoes')return 'Dados digitados pelo cliente';
+  const t=(typeof SOLTE_TIPOS!=='undefined'?SOLTE_TIPOS:[]).find(x=>x[0]===d.tipoDocumento);
+  return t&&d.tipoDocumento!=='OUTRO'?t[1]:String(d.nome||'documento');
+}
+// Pura: recebe [{k,d}] e devolve os grupos na ordem em que aparecem. Sem tipo conhecido, o documento vai para "Outros" — nunca some e nunca vira pendência.
+function docsAgrupar(docs){
+  const grupos=[], por={};
+  const g=(chave,titulo,classe,ordem)=>por[chave]||(por[chave]={chave,titulo,classe:classe||'',ordem,itens:[]},grupos.push(por[chave]),por[chave]);
+  docs.forEach(x=>{
+    const d=x.d, t=d.tipoDocumento, pessoa=String(d.pessoa||'').trim();
+    let alvo;
+    if(d.provisorio)alvo=g('aguardando','Aguardando o cliente concluir o envio','conf',0);
+    else if(d.confirmar)alvo=g('confirmar','A confirmar','conf',1);
+    else if(d.tipo==='informacoes')alvo=g('dados','Dados digitados pelo cliente','',8);
+    else if(DOCS_DA_PESSOA.includes(t)&&pessoa)alvo=g('p:'+docsSemAcento(pessoa),pessoa,'',2);
+    else if(DOCS_DA_EMPRESA.includes(t))alvo=g('e:'+docsSemAcento(pessoa),pessoa?'Empresa · '+pessoa:'Empresa','',5);
+    else if(DOCS_DO_IMOVEL.includes(t))alvo=g('imovel','Imóvel','',6);
+    else alvo=g('outros','Outros documentos','',9);
+    alvo.itens.push(x);
+  });
+  grupos.forEach(gr=>gr.itens.sort((a,b)=>String(a.d.salvoEm).localeCompare(String(b.d.salvoEm))));
+  return grupos.sort((a,b)=>a.ordem-b.ordem||(a.ordem===2?String(a.titulo).localeCompare(String(b.titulo),'pt-BR'):0));
+}
 function pedidoRecebidosHtml(c){
   const todos=Object.entries((c&&c.documentos)||{}).filter(([,d])=>d&&(d.origem==='link do cliente'||d.origem==='arrastado no card'));
   if(!todos.length) return '';
   const docs=todos.map(([k,d])=>({k,d}));
   const arquivos=docs.filter(x=>x.d.tipo!=='informacoes'), ficha=docs.some(x=>x.d.tipo==='informacoes');
   const lidos=arquivos.filter(x=>x.d.texto).length, aguardando=arquivos.filter(x=>x.d.provisorio).length;
-  const linhas=docs.sort((a,b)=>String(a.d.salvoEm).localeCompare(String(b.d.salvoEm))).map(({k,d})=>{
-    const nome=d.link?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.nome)}</a>`:escTxt(d.nome);
+  const aConfirmar=arquivos.filter(x=>x.d.confirmar&&!x.d.provisorio).length;
+  const linha=({k,d})=>{
+    const rot=docsRotulo(d), quando=/^\d{4}-\d{2}-\d{2}/.test(d.salvoEm||'')?String(d.salvoEm).slice(8,10)+'/'+String(d.salvoEm).slice(5,7):'';
+    const nome=d.link?`<a href="${esc(d.link)}" target="_blank" rel="noopener" title="${esc(d.nome)}">${escTxt(rot)}</a>`:`<span title="${esc(d.nome)}">${escTxt(rot)}</span>`;
     const lendoAgora=d.lendo&&Date.now()-Number(d.lendo)<10*60*1000;
     const sit=d.tipo==='informacoes'?'dados digitados':(d.provisorio?'<b>aguardando o cliente concluir o envio</b>':(d.confirmar?'<b>confirmar o nome</b>':(d.texto?'lido':(lendoAgora?'lendo…':'<b>sem leitura</b>'))));
     const lapis=(c&&c.id&&d.origem==='arrastado no card')?`<button type="button" class="cx-ped-x" title="Corrigir o tipo e o nome" aria-label="Corrigir ${esc(d.nome)}" onclick="renomearDocCard('${esc(c.id)}','${esc(k)}')"><i class="ti ti-pencil"></i></button>`:'';
     const del=c&&c.id?`<button type="button" class="cx-ped-x" title="Excluir — enviado errado" aria-label="Excluir ${esc(d.nome)}" onclick="excluirDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-trash"></i></button>`:'';
     const ler=(c&&c.id&&d.tipo!=='informacoes'&&!d.provisorio&&!d.texto)?`<button type="button" class="cx-ped-x" title="Pedir para a IA ler de novo" aria-label="Ler de novo ${esc(d.nome)}" onclick="relerDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-refresh"></i> Ler de novo</button>`:'';
-    return `<li><span class="cx-ped-nome">${nome}</span> <span>${sit}</span>${lapis}${ler}${del}</li>`;
+    return `<li><span class="cx-ped-nome">${nome}${quando?` <em>${quando}</em>`:''}</span> <span class="cx-doc-sit">${sit}</span>${lapis}${ler}${del}</li>`;
+  };
+  const corpo=docsAgrupar(docs).map(gr=>{
+    const papeis=[...new Set(gr.itens.map(x=>String(x.d.papel||'').trim()).filter(Boolean))];
+    const titulo=escTxt(gr.titulo)+(gr.ordem===2&&papeis.length===1?` <small>(${escTxt(papeis[0])})</small>`:'');
+    return `<section class="cx-docs-grupo ${gr.classe}"><h5><span>${titulo}</span><span>${gr.itens.length}</span></h5><ul>${gr.itens.map(linha).join('')}</ul></section>`;
   }).join('');
-  return `<details class="cx-ped-rec"><summary><i class="ti ti-inbox"></i> Recebidos do cliente: ${arquivos.length} ${arquivos.length===1?'arquivo':'arquivos'}${arquivos.length?` (${lidos} lidos${aguardando?`, ${aguardando} aguardando o cliente concluir`:''})`:''}${ficha?' + dados digitados':''}</summary><ul>${linhas}</ul></details>`;
+  const id=c&&c.id?esc(c.id):'';
+  return `<details class="cx-ped-rec cx-docs" data-docs="${id}"${c&&c.id&&DOCS_ABERTOS.has(c.id)?' open':''}><summary><i class="ti ti-inbox"></i> Recebidos do cliente: ${arquivos.length} ${arquivos.length===1?'arquivo':'arquivos'}${arquivos.length?` (${lidos} lidos${aguardando?`, ${aguardando} aguardando o cliente concluir`:''})`:''}${aConfirmar?` · <b>${aConfirmar} a confirmar</b>`:''}${ficha?' + dados digitados':''}<span class="cx-docs-ver" aria-hidden="true"></span></summary><div class="cx-docs-corpo">${corpo}</div></details>`;
 }
+// ── fim: a lista de documentos recebidos ──
 
 // ── Pagamento: o link com o valor da escritura e do registro, e o comprovante de volta ──
 // O cliente abre o link (pagar.html), confere o recibo e o boleto, paga e anexa o comprovante de cada cobrança.

@@ -91,7 +91,7 @@ await passo('texto editado à mão recebe o link no fim, antes da assinatura, se
 // A lista de recebidos que o card mostra: a função sai do index.html como está.
 await passo('o card lista o que o cliente mandou: arquivos com link, lidos e sem leitura, e os dados digitados', () => {
   const html = readFileSync(join(AQUI, '..', 'index.html'), 'utf8');
-  const i = html.indexOf('function pedidoRecebidosHtml(c){'); const f = html.slice(i, html.indexOf('\n}\n', i) + 3);
+  const i = html.indexOf('// ── A lista de documentos recebidos ──'); const f = html.slice(i, html.indexOf('// ── fim: a lista de documentos recebidos ──'));
   const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;'), escTxt = (t) => String(t).replace(/</g, '&lt;');
   const caixa = {esc, escTxt}; vm.createContext(caixa); vm.runInContext(f, caixa);
   assert.equal(caixa.pedidoRecebidosHtml({documentos: {a: {nome: 'x.pdf', origem: 'foto do bot'}}}), '', 'documento de outra origem não entra');

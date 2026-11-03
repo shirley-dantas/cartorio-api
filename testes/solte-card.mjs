@@ -15,7 +15,7 @@ const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } ca
 const ini = html.indexOf('// ── Arrastar arquivos para o card'), fim = html.indexOf('// ── fim: arrastar arquivos para o card ──');
 assert(ini > 0 && fim > ini, 'não achei o bloco no index.html');
 const bloco = html.slice(ini, fim);
-const i2 = html.indexOf('function pedidoRecebidosHtml(c){'); const recebidos = html.slice(i2, html.indexOf('\n}\n', i2) + 3);
+const i2 = html.indexOf('// ── A lista de documentos recebidos ──'); const recebidos = html.slice(i2, html.indexOf('// ── fim: a lista de documentos recebidos ──'));
 
 function mundo({respostas, ...opcoes} = {}) {
   const ouvintes = {}, enviados = [], elementos = {}, toasts = [], dialogos = {alerts: [], confirmou: null, resposta: true};
