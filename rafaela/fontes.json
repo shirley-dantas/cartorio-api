@@ -247,7 +247,8 @@
    "pdf": "pdfs/enem/enem2018_1dia_prova_azul.pdf",
    "gabarito": null,
    "esperadas": 95,
-   "layout": {}
+   "layout": {},
+   "gabarito_manual": "gabaritos_manuais/enem-2018-d1-azul.json"
   },
   {
    "id": "enem-2020-d1-azul",
@@ -290,7 +291,8 @@
     "y_bot": 740,
     "divisoria_centro": true,
     "paginas_largas": "auto"
-   }
+   },
+   "gabarito_manual": "gabaritos_manuais/enem-2022-d1-azul.json"
   },
   {
    "id": "enem-2022-d2-cinza",
@@ -308,7 +310,8 @@
     "y_bot": 740,
     "divisoria_centro": true,
     "paginas_largas": "auto"
-   }
+   },
+   "gabarito_manual": "gabaritos_manuais/enem-2022-d2-cinza.json"
   }
  ],
  "imagem": {
