@@ -77,7 +77,9 @@ do repositório, e o limite de 12 funções do painel do cartório não vale aqu
 | Guardar no aparelho | `gravarLS()`, `fotoPut()` / `fotoGet()` (IndexedDB) |
 | Redução das fotos | `reduzir()`, `montarImagens()` |
 | O acervo (filtros, lista, PDF) | `baseFiltro()`, `render()`, `lista()`, `#b-pdf` |
-| Resolver online / tentar de novo | `abrirResolver()` — grava as tentativas |
+| Resolver online / tentar de novo | `abrirResolver()` — grava as tentativas (com `seg`, os segundos gastos) |
+| Cronômetro e ritmo | `abrirResolver()` (`marca()`, `pinta()`, pausa), `RITMO`, `alvoDe()`, `htmlRitmo()` |
+| Filtro de vários subtemas | `S.subtemas` (Set), chips em `#subtemas` |
 | Minhas questões (acervo pessoal) | `formQuestao()`, `montarPessoais()` — entram em `D.q` com `pessoal: true`; foto no IndexedDB (chave = id da questão), dados em `rafa.questoes` |
 | Formulário de registro | `formRegistro()`, `buscarQ()` |
 | Quadro da caneta | `quadroCaneta()` — pressão vira espessura; depois que a caneta aparece, o toque (palma) é ignorado; traços em fração da largura |
@@ -102,6 +104,10 @@ questões) e um `/api/ia` fingido, e guarda imagens em `rafaela/testes/saida/`.
 Ele cobre o caminho que ela descreveu: Acervo → *Errei esta* → foto →
 *Salvar e corrigir* → *Tentar de novo*; e as estatísticas com registros
 semeados à mão para conferir cada número.
+
+## O cronômetro
+
+Ligado sozinho no *Resolver online*: conta o tempo de cada questão (o relógio da questão fica verde até o ritmo da prova de verdade, amarelo até 1,5× e vermelho depois), mostra o total e tem **Pausar** (a questão fica escondida enquanto pausado). Sai da tela, pausa sozinho. O resultado mostra o tempo total, a média por questão contra o ritmo real, e onde mais demorou; cada tentativa guarda `seg`, e a aba Estatísticas ganha *Meu ritmo* (média por matéria, com ao menos 3 questões cronometradas). Ritmo da prova real: ENEM 5h30÷90 (3:40), FUVEST 5h÷90 (3:20), UNICAMP 5h÷72 (4:10); outro: 3:30. É só medida: não trava nem corta o tempo dela.
 
 ## Na fila
 

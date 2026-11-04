@@ -251,10 +251,50 @@ console.log("• Resolver online alimenta as estatísticas");
   await aba(p, "acervo"); await p.click(".banca >> text=UNICAMP"); await p.click("#anos .chip >> text=2024"); await p.fill("#nums", "1-3");
   await p.click("#b-online"); await p.waitForSelector(".alts .alt");
   for (let i = 0; i < 3; i++) { await p.click(".alts .alt[data-l=A]"); }
+  // cronômetro: anda, pausa (e esconde a questão), e a tentativa guarda os segundos
+  await p.waitForTimeout(2300);
+  ok((await p.textContent("#cq")) !== "0:00" && /^\d+:\d\d$/.test(await p.textContent("#ct")), "cronômetro anda");
+  await p.click("#pausa"); await p.waitForSelector(".pausa");
+  ok((await p.locator("#qi").count()) === 0, "pausado esconde a questão");
+  const tp = await p.textContent("#ct"); await p.waitForTimeout(1500);
+  ok((await p.textContent("#ct")) === tp, "pausado não conta tempo");
+  await p.screenshot({path: path.join(SAIDA, "cronometro-pausado.png")});
+  await p.click("#pausa"); await p.waitForSelector("#qi");
+  await p.screenshot({path: path.join(SAIDA, "cronometro-questao.png")});
   await p.click("#fin"); await p.waitForSelector(".score");
+  ok((await p.locator(".cron:has-text('para as 3 questões')").count()) === 1, "resultado mostra o tempo total das questões");
+  ok((await p.textContent(".cron:has-text('para as 3 questões')")).includes("ritmo da prova real"), "resultado compara com o ritmo da prova");
+  await p.screenshot({path: path.join(SAIDA, "cronometro-resultado.png")});
   const t = await p.evaluate(() => window.__rafa.estado().TENT); ok(t.length === 3, "3 tentativas guardadas: " + t.length);
+  ok(t.some(x => x.seg >= 2), "a tentativa guarda os segundos gastos");
   await p.click("#fin").catch(() => {});
   if (await p.locator("[data-reg]").count()) { await p.click("[data-reg] >> nth=0"); await p.waitForSelector("#f-rac"); ok((await p.inputValue("#f-mat")).length > 0, "'Registrar no caderno' abre o formulário já ligado à questão"); }
+  await ctx.close();
+}
+
+console.log("• Vários subtemas de uma vez");
+{
+  const {ctx, p} = await nova({viewport: {width: 1100, height: 900}});
+  await aba(p, "acervo"); await p.click(".banca >> text=FUVEST"); await p.click("#materias .chip >> text=Matemática");
+  const tudo = +(await p.textContent("#n"));
+  const subs = await p.locator("#subtemas .chip").count(); ok(subs >= 3, "subtemas viram botões marcáveis: " + subs);
+  await p.click("#subtemas .chip >> nth=0"); const n1 = +(await p.textContent("#n"));
+  await p.click("#subtemas .chip >> nth=1"); const n2 = +(await p.textContent("#n"));
+  ok(n1 > 0 && n2 > n1 && n2 < tudo, `dois subtemas somam as questões dos dois (${n1} → ${n2} de ${tudo})`);
+  ok((await p.textContent("#escopo")).includes(" + "), "o escopo lista os dois subtemas");
+  await p.screenshot({path: path.join(SAIDA, "subtemas-varios.png"), fullPage: false});
+  await p.click("#subtemas .chip >> nth=1"); ok(+(await p.textContent("#n")) === n1, "desmarcar volta ao anterior");
+  await ctx.close();
+}
+
+console.log("• Meu ritmo nas estatísticas");
+{
+  const {ctx, p} = await nova({viewport: {width: 1100, height: 900}});
+  await p.evaluate(() => { const T = []; for (let i = 0; i < 4; i++) T.push({em: new Date().toISOString(), sess: "x", qid: "q" + i, b: "fuvest", a: 2025, m: "Matemática", s: "Funções", ok: true, seg: 400}); localStorage.setItem("rafa.tentativas", JSON.stringify(T)); });
+  await p.reload(); await p.waitForFunction(() => window.__rafa); await aba(p, "stats");
+  const txt = await p.textContent("#v-stats");
+  ok(txt.includes("Meu ritmo") && txt.includes("4 questões cronometradas") && txt.includes("Matemática"), "estatística de ritmo aparece");
+  await p.screenshot({path: path.join(SAIDA, "ritmo-stats.png"), fullPage: true});
   await ctx.close();
 }
 
