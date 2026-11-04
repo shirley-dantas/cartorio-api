@@ -1,5 +1,5 @@
 // Caderno da Rafaela no Chromium: do clique até o número na tela, com a IA fingida.
-// Roda por cima do painel/index.html de verdade (e do data.json com as 1.160 questões).
+// Roda por cima do painel/index.html de verdade (e do data.json com as 1.625 questões).
 //   node rafaela/testes/painel.mjs            → confere tudo e guarda imagens em testes/saida/
 import http from "node:http";
 import fs from "node:fs";
@@ -223,7 +223,7 @@ console.log("• Estatísticas com registros de verdade");
   const txt = await p.textContent("#v-stats");
   ok(txt.includes("Revisar primeiro") && txt.includes("Química · Estequiometria"), "tela mostra a prioridade");
   ok(txt.includes("Tipos de questão que mais me confundem") && txt.includes("cálculo estequiométrico"), "tela mostra tipos de questão");
-  ok(txt.includes("O acervo") && txt.includes("1160"), "estatísticas do acervo continuam lá");
+  ok(txt.includes("O acervo") && txt.includes("1625"), "estatísticas do acervo continuam lá");
   await p.screenshot({path: path.join(SAIDA, "stats-desktop.png"), fullPage: true});
 
   console.log("• Macetes");

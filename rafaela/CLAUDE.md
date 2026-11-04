@@ -99,7 +99,7 @@ node rafaela/testes/ia.mjs       # a porta da IA, sem internet e sem chave
 node rafaela/testes/painel.mjs   # o painel no Chromium (iPad e iPhone 13), IA fingida
 ```
 
-O `painel.mjs` sobe um servidor com os arquivos de verdade (inclusive as 1.160
+O `painel.mjs` sobe um servidor com os arquivos de verdade (inclusive as 1.625
 questões) e um `/api/ia` fingido, e guarda imagens em `rafaela/testes/saida/`.
 Ele cobre o caminho que ela descreveu: Acervo → *Errei esta* → foto →
 *Salvar e corrigir* → *Tentar de novo*; e as estatísticas com registros
@@ -116,7 +116,7 @@ Ligado sozinho no *Resolver online*: conta o tempo de cada questão (o relógio 
 - A IA **ainda não foi chamada de verdade** (sem chave aqui): o formato da
   resposta e o prompt estão testados com cliente fingido. A primeira correção
   real é o primeiro lugar a olhar se algo vier estranho.
-- O `data.json` tem 1.160 questões / 14 provas (ENEM 370, FUVEST 430, UNICAMP 360; as imagens ficam em `painel/q/`, ~83 MB). A UNICAMP 2023 não tem gabarito (aparece, mas fica fora da conta de acertos); a UNICAMP 2025 tem a Q53 anulada. Para ampliar o acervo oficial
+- O `data.json` tem 1.625 questões / 19 provas (ENEM 835, FUVEST 430, UNICAMP 360; as imagens ficam em `painel/q/`, ~111 MB). **ENEM 2018, 2020 e 2022 (cinco cadernos) entraram sem gabarito** — aparecem e resolvem, mas ficam fora da conta de acertos até o gabarito oficial chegar (é só preencher `gabarito` em `fontes.json` e reimportar). O caderno do ENEM 2022 traz marca-d'água "ENEM 2022" em faixas; `recortar.py` a tira do texto de busca. A UNICAMP 2023 não tem gabarito (aparece, mas fica fora da conta de acertos); a UNICAMP 2025 tem a Q53 anulada. Para ampliar o acervo oficial
   (provas inteiras), ver `LEIA-ME.md` (importar PDFs → classificar →
   `gerar_painel.py`); questões soltas ela mesma adiciona pelo painel.
 - Os registros ainda não vão para a nuvem: trocar de aparelho é por cópia de
