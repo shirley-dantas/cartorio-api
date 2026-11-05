@@ -261,7 +261,8 @@
    "esperadas": 95,
    "layout": {
     "marcador": "(?i)QUEST[ãÃ]O\\s+(\\d{1,2})\\s*$"
-   }
+   },
+   "gabarito_manual": "gabaritos_manuais/enem-2020-d1-azul.json"
   },
   {
    "id": "enem-2020-d2-amarelo",
@@ -275,7 +276,8 @@
    "layout": {
     "marcador": "(?i)QUEST[ãÃ]O\\s+(\\d{2,3})\\s*$",
     "fim_pagina": "^(PROPOSTA DE REDA|INSTRUÇÕES PARA A REDA|MATEMÁTICA E SUAS TECNOLOGIAS$|CIÊNCIAS DA NATUREZA E SUAS TECNOLOGIAS$)"
-   }
+   },
+   "gabarito_manual": "gabaritos_manuais/enem-2020-d2-amarelo.json"
   },
   {
    "id": "enem-2022-d1-azul",
