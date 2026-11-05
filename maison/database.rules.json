@@ -39,7 +39,15 @@
         }
       },
       "atendimentos": {
-        "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && !data.exists()))" }
+        // A equipe cria o atendimento e pode REABRIR o que concluiu (marcar como cancelado/reaberto, uma vez, com o nome de quem fez); desmarcar e mudar valor continua só com a Tháriga.
+        "$id": {
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && !data.exists()))",
+          "cancelado": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && newData.val() === true && !data.exists()" },
+          "reaberto": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && newData.val() === true && !data.exists()" },
+          "canceladoPor": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && !data.exists()" },
+          "canceladoEm": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && !data.exists()" },
+          "motivoCancelamento": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && !data.exists()" }
+        }
       },
       "anamneses": {
         "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
@@ -61,6 +69,9 @@
       "servicos": {
         ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
       },
+      "config": {
+        ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
+      },
       // Anamnese por link. A cliente entra sem conta (login anônimo): lê só o convite dela
       // e grava UMA vez em /pendentes, enquanto o convite estiver aberto e dentro da validade.
       "convites": {
@@ -74,10 +85,47 @@
         ".read": "auth != null && root.child('acesso').child(auth.uid).exists()",
         "$t": {
           ".write": "auth != null && (root.child('acesso').child(auth.uid).exists() || (!data.exists() && root.child('maison').child('convites').child($t).child('usado').val() === false && root.child('maison').child('convites').child($t).child('exp').val() > now))",
-          ".validate": "newData.hasChildren(['nome','respostas','assinatura']) && newData.child('assinatura').isString() && newData.child('assinatura').val().length < 300000 && (newData.child('fotoOk').val() === true ? (newData.child('fotos').exists() && newData.child('fotos').numChildren() <= 3) : !newData.child('fotos').exists())",
+          ".validate": "newData.hasChildren(['nome','respostas','assinatura']) && newData.child('assinatura').isString() && newData.child('assinatura').val().length < 300000 && ((newData.child('fotoOk').val() === true && newData.child('fotos').hasChild('f0')) || (newData.child('fotoOk').val() !== true && !newData.child('fotos').exists()))",
           "fotos": {
-            "$i": { ".validate": "newData.isString() && newData.val().length < 700000" }
+            "f0": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "f1": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "f2": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "$outra": { ".validate": false }
           }
+        }
+      },
+      // Brinde de aniversário: só a Tháriga cria o código. Quem atende só consegue marcá-lo como usado
+      // (de "não usado" para "usado", sem mexer na regra do código), uma única vez.
+      "vouchers": {
+        "$id": {
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && data.exists() && data.child('usado').val() === false && newData.child('usado').val() === true && newData.child('cli').val() === data.child('cli').val()))",
+          ".validate": "!newData.exists() || newData.hasChildren(['cli','usado'])"
+        }
+      },
+      // Horários fechados ou reservados pela equipe, sem nome de cliente. Todas as da Maison criam e reabrem.
+      "bloqueios": {
+        "$id": {
+          ".write": "auth != null && root.child('acesso').child(auth.uid).exists()",
+          ".validate": "!newData.exists() || (newData.hasChildren(['unit','date','hora','m']) && newData.child('unit').val() === 'mai' && newData.child('hora').isString() && newData.child('hora').val().length === 5 && newData.child('m').isNumber() && newData.child('m').val() > 0 && newData.child('m').val() <= 1440)"
+        }
+      },
+      "reservas": {
+        "$id": {
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).exists() || (!data.exists() && newData.exists() && root.child('publico').child('agenda').child('mai').child('cfg').child('ativo').val() === true && $id.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}_[1-9]$/) && $id.beginsWith(newData.child('data').val())))",
+          ".validate": "!newData.exists() || newData.hasChildren(['nome','tel','serv','un','data','hora','m','em'])",
+            "un": { ".validate": "newData.val() === 'mai'" },
+            "nome": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 80" },
+            "tel": { ".validate": "newData.isString() && newData.val().length >= 8 && newData.val().length <= 30" },
+            "serv": { ".validate": "newData.isString() && newData.val().length <= 120" },
+            "data": { ".validate": "newData.isString() && newData.val().length === 10" },
+            "hora": { ".validate": "newData.isString() && newData.val().length === 5" },
+            "m": { ".validate": "newData.isNumber() && newData.val() >= 5 && newData.val() <= 480" },
+            "nova": { ".validate": "newData.isBoolean()" },
+            "obs": { ".validate": "newData.isString() && newData.val().length <= 300" },
+            "em": { ".validate": "newData.isNumber()" },
+            "st": { ".validate": "newData.isString() && newData.val().length <= 20" },
+            "agenda": { ".validate": "newData.isString() && newData.val().length <= 80" },
+            "$outra": { ".validate": false }
         }
       },
       // Pedidos de ajuda: todas enviam, só a administradora lê (o suporte também recebe por e-mail).
@@ -88,9 +136,67 @@
     },
 
     // ── Estúdio Florença: só a Tháriga ──
+    // Única exceção: a ficha por link. A cliente (login anônimo) lê só o convite dela
+    // e grava UMA vez em /pendentes, como na Maison. Nada mais do Florença fica aberto.
     "florenca": {
       ".read":  "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
-      ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
+      ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
+      "convites": {
+        "$t": { ".read": "auth != null" }
+      },
+      // Agendamento pela página pública /p: a cliente só CRIA a reserva (uma por horário; a chave é data+hora+vaga),
+      // e só enquanto a agenda online da unidade estiver ligada. Quem lê, converte em agendamento e apaga é a equipe.
+      "reservas": {
+        "$id": {
+          ".write": "auth != null && ((!data.exists() && newData.exists() && root.child('publico').child('agenda').child('flo').child('cfg').child('ativo').val() === true && $id.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}_[1-9]$/) && $id.beginsWith(newData.child('data').val())))",
+          ".validate": "!newData.exists() || newData.hasChildren(['nome','tel','serv','un','data','hora','m','em'])",
+            "un": { ".validate": "newData.val() === 'flo'" },
+            "nome": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 80" },
+            "tel": { ".validate": "newData.isString() && newData.val().length >= 8 && newData.val().length <= 30" },
+            "serv": { ".validate": "newData.isString() && newData.val().length <= 120" },
+            "data": { ".validate": "newData.isString() && newData.val().length === 10" },
+            "hora": { ".validate": "newData.isString() && newData.val().length === 5" },
+            "m": { ".validate": "newData.isNumber() && newData.val() >= 5 && newData.val() <= 480" },
+            "nova": { ".validate": "newData.isBoolean()" },
+            "obs": { ".validate": "newData.isString() && newData.val().length <= 300" },
+            "em": { ".validate": "newData.isNumber()" },
+            "st": { ".validate": "newData.isString() && newData.val().length <= 20" },
+            "agenda": { ".validate": "newData.isString() && newData.val().length <= 80" },
+            "$outra": { ".validate": false }
+        }
+      },
+      "pendentes": {
+        "$t": {
+          ".write": "auth != null && !data.exists() && root.child('florenca').child('convites').child($t).child('usado').val() === false && root.child('florenca').child('convites').child($t).child('exp').val() > now",
+          ".validate": "newData.hasChildren(['nome','respostas','assinatura']) && newData.child('assinatura').isString() && newData.child('assinatura').val().length < 300000 && ((newData.child('fotoOk').val() === true && newData.child('fotos').hasChild('f0')) || (newData.child('fotoOk').val() !== true && !newData.child('fotos').exists()))",
+          "fotos": {
+            "f0": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "f1": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "f2": { ".validate": "newData.isString() && newData.val().length < 700000" },
+            "$outra": { ".validate": false }
+          }
+        }
+      }
+    },
+
+    // ── Agenda online (página /p): horários ocupados, sem nome de ninguém ──
+    // Qualquer pessoa autenticada (inclusive a cliente anônima) lê. Só a Tháriga muda as regras (cfg).
+    // O painel mantém a lista de horários ocupados; a cliente só acrescenta o dela, e só com a agenda online ligada.
+    "publico": {
+      "agenda": {
+        "$u": {
+          ".read": "auth != null",
+          "cfg": { ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'" },
+          "ocup": {
+            "$d": {
+              "$k": {
+                ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && $u === 'mai') || (!data.exists() && newData.exists() && root.child('publico').child('agenda').child($u).child('cfg').child('ativo').val() === true && $k.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{4}_[1-9]$/)))",
+                ".validate": "!newData.exists() || (newData.hasChildren(['h','m']) && newData.child('h').isString() && newData.child('h').val().length === 5 && newData.child('m').isNumber())"
+              }
+            }
+          }
+        }
+      }
     },
 
     // ── Dinheiro cobrado em cada atendimento ──
@@ -101,8 +207,18 @@
       "valores": {
         ".read": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
         "$id": {
-          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (!data.exists() && root.child('acesso').child(auth.uid).exists()))"
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (!data.exists() && root.child('acesso').child(auth.uid).exists()))",
+          // Um valor marcado como "brinde" só é aceito se o código existe e já foi ligado a ESTE atendimento.
+          ".validate": "!newData.child('desc').exists() || newData.child('desc').child('tipo').val() !== 'brinde' || root.child('maison').child('vouchers').child(newData.child('desc').child('voucher').val()).child('atend').val() === $id || root.child('florenca').child('vouchers').child(newData.child('desc').child('voucher').val()).child('atend').val() === $id"
         }
+      }
+    },
+
+    // ── Comissão de cada profissional: a Tháriga calcula e grava; cada uma lê só a dela (só o valor da comissão) ──
+    "comissoes": {
+      "$pro": {
+        ".read": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || root.child('acesso').child(auth.uid).child('pro').val() === $pro || ($pro === 'ana' && root.child('acesso').child(auth.uid).child('pro').val() === 'ana luiza'))",
+        ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
       }
     },
 

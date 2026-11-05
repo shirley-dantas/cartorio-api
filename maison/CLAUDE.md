@@ -21,23 +21,26 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
   (`histAll()` esconde cancelados por padrão). Só a Tháriga corrige valor ou
   cancela atendimento; as regras do banco impedem a funcionária de apagar
   cliente ou mexer em atendimento já registrado.
-- **Comissão:** Rafael e Mariana 50% do valor cheio (sem desconto de cartão ou
-  material). Laís não tem comissão: paga R$ 500/mês de aluguel da sala, só
+- **Comissão:** Rafael, Mariana e Ana Luiza 50% do valor cheio por padrão (sem desconto de cartão ou
+  material); o percentual é da Tháriga e muda em *Comissões* (por profissional e, em *Ver detalhes*, por atendimento: modelo/cortesia pode ser 100%). Laís não tem comissão: paga R$ 500/mês de aluguel da sala, só
   às segundas, e fica com 100% do que cobra.
-- **Fechamento quinzenal:** 1–15 pago dia 20; 16–31 pago dia 5 do mês seguinte.
+- **Fechamento da comissão:** mensal, pago no dia 1 do mês seguinte (combinado com a equipe; o dia e o modo quinzenal — 1–15 pago dia 20, 16–31 pago dia 5 — se mudam em *Comissões*).
 - **Florença:** o percentual do acerto com a dona do estúdio **não está
   confirmado** (40% é provisório) — fica configurável, nunca travado no código.
-- **A anamnese segue a ficha oficial da Maison Beauty** (PDF da Tháriga, página 1): identificação, serviço solicitado, 12 perguntas de saúde com Sim/Não **todas obrigatórias**, detalhes, autorização de foto e assinatura. A página 2 (registro do atendimento) é por atendimento, preenchida por todas, com o nome e a data de quem preencheu (sem nova assinatura da cliente). **Fotos só de quem autorizou**, reduzidas no aparelho e guardadas no próprio banco.
+- **A anamnese segue a ficha oficial da Maison Beauty** (PDF da Tháriga, página 1): identificação, serviço solicitado, 12 perguntas de saúde com Sim/Não **todas obrigatórias**, detalhes, autorização de foto e assinatura. A página 2 (registro do atendimento) é por atendimento, preenchida por todas, com o nome e a data de quem preencheu (sem nova assinatura da cliente). **A equipe pode fotografar a cliente mesmo sem a autorização da ficha** (registro interno, na hora ou do aparelho; divulgação continua exigindo autorização), reduzidas no aparelho e guardadas no próprio banco.
 - **Cada unidade fica com os seus clientes.** A funcionária da Maison lança sempre na Maison; a Tháriga vê a unidade já escolhida pelo filtro da tela (ou, sem filtro, pelo dia de hoje: Florença quinta a sábado, Maison domingo a quarta) e pode trocar. Cliente do Florença mora em `/florenca` e a equipe da Maison nunca lê.
 - **Foto pela ficha é obrigatória para quem autoriza:** quem marca "Autorizo" na anamnese por link tira a foto na hora (câmera do celular, sem galeria; de 1 a 3 fotos, reduzidas no aparelho) e a ficha só é enviada com ela. Quem marca "Não autorizo" não manda foto e a ficha segue normal. A equipe confere e marca "Anexar" ao integrar; viram "foto inicial" do cadastro. As regras do banco exigem foto quando há autorização e recusam foto quando não há.
-- **Anamnese por link:** a cliente preenche em `anamnese.html?t=CÓDIGO`, sem conta (login anônimo). Código de 32 caracteres, 7 dias, uso único; o envio vai para `/maison/pendentes` e **só vale na ficha depois que a equipe integra**. O convite guarda só o primeiro nome. Só clientes da Maison (não Florença).
+- **Anamnese por link:** a cliente abre `/f/CÓDIGO` (a Vercel serve `anamnese.html`; o `?t=` antigo continua valendo), sem conta (login anônimo). O link mostra a logo da Maison Beauty na prévia do WhatsApp (`og-ficha.png` e as tags `og:` do `anamnese.html`). Código de 22 caracteres, 7 dias, uso único; o envio vai para `/maison/pendentes` e **só vale na ficha depois que a equipe integra**. O convite guarda o primeiro nome e o que já está no cadastro (nascimento, telefone, e-mail) para a ficha vir preenchida, e a lista de serviços das duas unidades. Vale também para clientes do Florença: o convite e o envio ficam em `/florenca/convites` e `/florenca/pendentes` (a página procura primeiro em `/maison`, depois em `/florenca`), a ficha é integrada em `/florenca/anamneses` e só a Tháriga vê a fila. Única abertura anônima do `/florenca`; o resto continua só admin.
 - **Preços e serviços** são editáveis pela Tháriga (`/maison/servicos`, sobre a tabela de partida `SERV`). Valor cobrado de atendimento já registrado nunca muda sozinho.
 - **Suporte:** botão "Preciso de ajuda" grava em `/maison/suporte` e manda e-mail pelo Apps Script (`apps-script/suporte.js`, `SUPORTE_URL` no `index.html`).
 - **Instagram (fase 1, aba só da administradora):** plano da semana (um tema por dia: seg dicas, ter bastidores, qua conversa, qui cuidados, sex autocuidado, sáb horários, dom descanso; ★ = mínimo se a semana apertar), com banco de ideias recolhido embaixo; legenda, hashtags e o que fotografar; nada é publicado pelo painel. A troca de ideia do dia fica em `/admin/instagram/plano/{data}`. Sem promessa de resultado, sem preço e sem foto de cliente. O que ela edita e o que marca como postado fica em `/admin/instagram`.
 - **A Agenda é um calendário do mês** (bolinha nos dias com horário, na cor da unidade; tocar no dia mostra os horários; "Hoje" volta). A equipe só vê as bolinhas da Maison Beauty. Substituiu a faixa de 7 dias, que escondia o que estava mais longe.
-- **Avisar a cliente do horário (sem script):** ao agendar ou remarcar abre a mensagem pronta e editável, com botões **WhatsApp** (como a anamnese) e **e-mail**, e um link que salva o horário na agenda da própria cliente. Também há o botão "Avisar a cliente" em cada cartão da agenda. A mensagem não leva valor. É o caminho principal; o convite pela Google Agenda é opcional.
+- **Avisar a cliente do horário (sem script):** ao agendar ou remarcar abre a mensagem pronta e editável, com botões **WhatsApp** (como a anamnese) e **e-mail**, e um link para uma **página própria** (`horario.html`, atalho `/h`) que mostra o horário com a logo na prévia do WhatsApp e tem os botões de salvar no Google Agenda e baixar o `.ics`. A página não leva nome, telefone nem valor, só serviço, dia, hora, unidade e profissional. Também há o botão "Avisar a cliente" em cada cartão da agenda. A mensagem não leva valor. É o caminho principal; o convite pela Google Agenda é opcional.
 - **Convite da agenda:** o evento leva só serviço, unidade e horário (nunca ficha, anamnese ou valor). Remarcar atualiza o mesmo evento, nunca cria outro.
 - **A Laís só atende às segundas, na tela e nas regras do banco** (o agendamento leva `ts` e a regra confere o dia da semana).
+- **Agendar para cliente sem anamnese válida:** o alerta traz o botão que envia o link da ficha (as duas unidades), e volta ao agendamento sem perder o que já foi escolhido. A ficha que a cliente preencher aparece na aba **Hoje** ("Fichas recebidas pelo link") até a equipe integrar.
+- **Cursos têm agenda:** a aba Cursos mostra, abaixo da pílula "Formato do curso" (que não muda), quantas alunas há por dia nos próximos 60 dias, "dia 1 de 2" para curso de vários dias (contados em sequência), os cursos sem data e um lembrete de curso que já passou da data sem ser concluído. Hoje e amanhã também aparecem na aba **Hoje** da Tháriga.
+- **Cadastro repetido pergunta antes de duplicar** (cliente por nome ou telefone, fornecedor, conta, serviço, curso, tema). Cliente, fornecedor e conta podem ser cadastrados na hora, dentro do agendamento ou da conta. O cadastro da cliente guarda a data de nascimento completa; a foto inicial vira a foto pequena da cliente nas listas (`avatar`). Fornecedor tem unidade.
 - **Todo serviço exige anamnese** válida (vence em 6 meses). Retorno padrão: 20 dias.
 - **Unidade do dia** vem do dia da semana: Florença quinta–sábado, Maison
   domingo–quarta. Tháriga não escolhe unidade à mão.
@@ -46,8 +49,7 @@ Valores, durações, anamnese e roteiros de aula vieram dele, sem mudança.
   avisa se o banco recusar; toda leitura que falha mostra o motivo e o botão
   "Tentar de novo". Nunca "salvo" sem ter salvo.
 - **Texto digitado vai por `esc()`** antes de entrar no HTML (são dados de clientes).
-- A mensagem de aniversário **não promete desconto**: o texto do protótipo
-  oferecia 15% que ninguém confirmou.
+- **Mensagem de aniversário:** são 8 textos que se alternam (o ponto de partida muda por cliente e por ano; o botão "Outra mensagem" passa para a próxima), todos fechando com o **brinde que a Tháriga escreve** em *Serviços e preços* (`/maison/config/brinde`). O painel **não inventa desconto**: sem brinde definido usa um texto neutro ("um mimo especial no seu próximo atendimento"). O protótipo oferecia 15% que ninguém confirmou.
 
 ## Rodando
 Sem `apiKey` em `firebaseConfig`, abre em **demonstração** (memória). Para
@@ -57,8 +59,123 @@ Passo a passo do Firebase em `FIREBASE.md`.
 ## Na fila
 - **Google Agenda (opcional)** já está no painel (`apps-script/agenda.js`, `AGENDA_URL` no `index.html`): só falta a Tháriga autorizar o script na conta dela. Convite só sai para cliente com e-mail; falha aparece escrita, com "Reenviar convite".
 - **Instagram, fase 2:** conectar a conta profissional (Página do Facebook + app da Meta) e publicar pelo painel; e ideias geradas pela IA (precisa de chave da API na Vercel). Foto de cliente só com termo de divulgação, que a ficha atual não dá.
-- Mariana (mariibriit00@gmail.com): criar a conta e o cadastro em `acesso`.
+- Mariana (mariibriitt00@gmail.com): criar a conta e o cadastro em `acesso`.
 - Logo e ícones já estão no painel (`logo.png`, `icon-192.png`, `icon-512.png`), tirados do PDF que a Tháriga mandou.
 - Fotos em alta resolução (Storage), só se o volume crescer.
 - Número novo da Mariana, lista de fornecedores/contas, dados de estoque.
 - Roteiros de aula de cílios, lash lifting e brow lamination.
+
+## Brinde de aniversário como voucher (rascunho, ainda não publicado)
+
+Desconto só existe por **código liberado pela Tháriga**: `NIVER-XXXXXX`, um por cliente por ano, uso único, com prazo (`/maison/vouchers`, `/florenca/vouchers`). A regra de percentual (5% ou 10% conforme o valor do serviço, limite em R$, dias de validade) fica em `/maison/config/brindeRegra`, e cada código guarda a regra de quando foi criado.
+
+- Quem atende **não digita desconto**: ao concluir, o painel acha o código da cliente (ou o digitado, que precisa ser dela), calcula e **trava o valor**. O código é marcado como usado e ligado ao atendimento (`atend`).
+- Valor abaixo da tabela **sem voucher** exige motivo e detalhe (`desc.tipo = manual`); sem isso o atendimento aparece em vermelho no relatório.
+- `financeiro/valores` guarda `tabela` e `desc`. Regras: só admin cria o código; a funcionária só marca "usado" uma vez; um valor com `desc.tipo = brinde` só é aceito se o código já está ligado àquele atendimento.
+- Relatório **Descontos dados** em Financeiro (só Tháriga): total, brinde, com motivo, sem motivo, e a lista de códigos.
+- Limite honesto: o painel controla o que é registrado; cobrar um valor e registrar outro ele não vê. Por isso desvios aparecem.
+
+## Agenda online: a "secretária" (rascunho, ainda não publicado)
+
+Um número de WhatsApp para as duas unidades. A saudação do WhatsApp Business leva a cliente para `/p` (`pedido.html`): ela escolhe a unidade, o serviço, os dias (só os da unidade) e o período, **vê os horários livres e marca sozinha**. O horário já entra na agenda.
+
+- **Quem mantém:** o painel (qualquer pessoa com ele aberto). `/publico/agenda/{mai|flo}/cfg` liga e define as regras (Tháriga, em *Serviços e preços → Agenda online*; nasce **desligada**). `/publico/agenda/{u}/ocup` guarda só os horários ocupados, **sem nome**, e o painel o mantém igual à agenda (`sincronizarPublico`). A cliente grava uma reserva em `/{base}/reservas/{data}_{hhmm}_{vaga}` (chave única: duas clientes no mesmo horário não passam do limite de vagas), e o painel a converte em agendamento (`converterReservas`): reconhece a cliente pelo telefone ou cadastra (`lk_…`), escolhe a profissional livre (Maison: Rafael, Mariana, Laís nas segundas; Florença: Tháriga) e marca `origem:'link'`.
+- **Horário livre** = dentro da abertura, no período, sem passar de "atendimentos ao mesmo tempo" contando a duração do serviço, a 3 h ou mais de agora, até 21 dias à frente, fora dos dias sem atendimento.
+- **A equipe só confere:** em Hoje, *Marcados pelo link* com *Ok, vi*, *Remarcar*, *Recusar* (cancela, libera o horário e deixa a mensagem no WhatsApp) e *Enviar ficha* para cliente nova.
+- **Regras do banco:** a cliente (anônima) só CRIA a reserva e o horário ocupado dela, e só com a agenda online da unidade ligada (é o interruptor de emergência contra spam). Florença: reservas só a Tháriga lê.
+- **Limites honestos:** o painel não lê conversas do WhatsApp; a conversão para a agenda acontece quando alguém está com o painel aberto (a vaga já fica travada antes disso); dois agendamentos de durações diferentes que se sobreponham, marcados no mesmo instante, podem escapar (aparece "Horário em conflito"); a lista de serviços da página é uma cópia da do painel. Passo a passo do app em `maison/WHATSAPP.md`.
+
+## Endereço que a cliente vê
+
+Tudo que a cliente recebe (ficha `/f/…`, horário `/h`, agendamento `/p`, prévias do WhatsApp) usa **`https://thariga-brito.vercel.app`** (`DOMINIO_PUBLICO` no `index.html`; as tags `og:image` dos três `.html` apontam para ele). O endereço antigo (`cartorio-api-maison…`) continua funcionando, mas **não pode aparecer** para cliente.
+
+### Regra viva do brinde (atualização)
+
+A porcentagem **não fica gravada no código**: vale a regra do momento (`/maison/config/brindeRegra`, `v:2`: `pct`, `limite` (0 = sem limite), `pctAte` para serviços até o limite, `dias` (0 = sem prazo)). Mudar a regra muda na hora para todos os códigos ainda não usados; o atendimento grava a porcentagem que foi aplicada (`desc.pct`). O prazo também é calculado ao vivo (`emitido` + `dias`). Os campos `valeAte/limite/pctAte/pctAcima` do código são só marcadores para as regras antigas do banco.
+
+## Endereço em toda mensagem para a cliente
+
+Toda mensagem que vai para a cliente (confirmação de horário, aniversário, retorno, ficha por link, recusa, convite do Google e as páginas `/h` e `/p`) leva o **endereço da unidade em que ela é atendida naquele momento** (`linhaEndereco(u)`, `enderecoTxt(u)`). A unidade da conversa vem do último atendimento da cliente, senão do cadastro, senão do dia de hoje (`unidadeDoContato`). O endereço é preenchido pela Tháriga em *Serviços e preços → Agenda online* (campo por unidade, em `/publico/agenda/{u}/cfg/endereco`); sem preencher, sai só o bairro. A assinatura da mensagem de aniversário também é da unidade (nunca da Maison para cliente do Florença).
+
+### Endereços das unidades (registrados em 14/10/2026)
+
+- **Estúdio Florença:** Rua Pedroso Alvarenga, 502 — Itaim Bibi, São Paulo - SP — CEP 04531-001
+- **Maison Beauty:** Rua Fontoura Xavier, 717, sala 3 — Itaquera, São Paulo - SP — CEP 08295-300
+
+Ficam como endereço de partida no `index.html` (`ENDERECO_PADRAO`), no `horario.html` e no `pedido.html`. O que a Tháriga escrever em *Serviços e preços → Agenda online* vale por cima.
+
+## Fechar e reservar horários (rascunho, ainda não publicado)
+
+Pedido da Tháriga: entrar no dia e **fechar ou reservar horários sem colocar nome de cliente**. Na aba Agenda: a grade *Horários do dia* (30 em 30 min; livre, parcial, cheio, fechado) e o botão *Fechar horário* (dia inteiro ou de hora a hora, para todos ou para uma profissional, com motivo: Fechado, Reservado, Almoço, Compromisso, Outro, e anotação). Fica em `/maison/bloqueios` e `/florenca/bloqueios` (Florença só a Tháriga). O bloqueio entra no espelho público (`/publico/agenda/{u}/ocup`) só como horário ocupado, com `n` = vagas consumidas (todas, ou 1 se for de uma profissional); o motivo nunca vai para o público. A página `/p` soma o `n`, e a conversão de reserva escolhe a profissional que não está bloqueada. *Reabrir* apaga o bloqueio. Agendar em horário fechado só avisa.
+
+Correção junto: excluir cliente com histórico olha as **duas unidades** (cadastrada numa e atendida na outra).
+
+## Cliente dos contatos do celular (rascunho, ainda não publicado)
+
+Em *Nova cliente* há **Buscar nos contatos do celular** (só onde o navegador oferece o seletor de contatos: Android/Chrome; preenche nome, o celular e o e-mail do contato escolhido) e **Importar contato (.vcf)** (iPhone e computador: o contato é compartilhado como arquivo e importado aqui). O navegador **não deixa** nenhum site ler a agenda inteira sozinho, por privacidade: a pessoa sempre escolhe o contato.
+
+## Avisos no celular (push) (rascunho, ainda não publicado)
+
+Marcação nova pelo link e ficha recebida geram notificação no celular/tablet, com o painel fechado. As páginas `/p` e `/f` chamam `api/avisar.js` depois de gravar (a função confere no banco e manda um aviso por reserva); `api/push-assinar.js` guarda o aparelho (token do Firebase confere quem é); `sw.js` mostra e abre o painel. Botão *Ativar avisos* no painel; no iPhone só com o painel instalado na tela de início. Precisa das variáveis `FIREBASE_DB_SECRET`, `VAPID_PUBLICA`, `VAPID_PRIVADA` na Vercel (a organização do Google bloqueia chave de conta de serviço, então as funções usam o secret do banco pela API REST). Detalhes em `maison/AVISOS.md`. As funções ficam em `maison/api/` (projeto Vercel próprio, fora do limite de 12 funções do painel do cartório).
+
+## Agenda por profissional e link curto (rascunho, ainda não publicado)
+
+Pedido da Tháriga em 16/10/2026: a agenda dela no celular é uma linha do tempo, e cada serviço precisa cair na agenda de quem o faz.
+
+- **Quem faz o quê** (`PRO_SERV`, `proDoServico()` no painel; mesmo mapa por nome no `pedido.html`): **Rafael** = laser (pigmento/tatuagem, micose de unha, depilação a laser, ozonioterapia, piercing — os três últimos foram atribuídos a ele por falta de resposta, ela disse "pode"); **Mariana** = unhas; **Tháriga** = o resto (sobrancelha, cílios, depilação facial, micropigmentação, lash lifting, brow lamination). No Florença é sempre a Tháriga. **A Tháriga atende na Maison nos dias em que não está no Itaim** (domingo a quarta). **A Laís não faz parte da agenda**: saiu das colunas e do agendamento (as regras do banco e a conta de aluguel/comissão continuam; só aparece uma coluna dela se já houver horário dela no dia).
+- **A tela** (`vAgenda()`, `linhaDoTempo()`): botões *Todas | Tháriga | Rafael | Mariana*, uma coluna por profissional (cor própria), bloco do tamanho da duração do serviço, bloco escuro para horário fechado/reservado. Tocar no bloco abre as ações (`cartaoAg()`: concluir, avisar, remarcar, cancelar; no bloco escuro, *Reabrir*). Tocar num espaço vazio oferece *Agendar neste horário* ou *Fechar ou reservar*, já com hora e profissional. Escolher o serviço no agendamento troca o profissional sozinho (e avisa se a pessoa trocar à mão).
+- **A página `/p` agora é por profissional**: o serviço escolhido define quem atende e só se oferecem os horários livres **dela** (`livres(…, pro)`). Cada profissional tem uma vaga fixa na chave da reserva (`VAGA_PRO`: Tháriga `_1`, Rafael `_2`, Mariana `_3`), o que impede duas marcações no mesmo horário com a mesma pessoa sem mudar as regras do banco. O espelho público (`/publico/agenda/{u}/ocup`) ganhou o campo `p` (quem fica ocupada; `todos` = unidade inteira); o campo "atendimentos ao mesmo tempo" saiu da configuração.
+- **Link curto do horário**: `/h/f-93f0-u-tha-design` (unidade, minutos desde 01/01/2026 em base 36, duração em base 36, profissional, serviço) em vez de uma URL de 250 caracteres com `%20`. Só entra `?s=` (nome) se o serviço foi renomeado ou criado por ela, e `?e=` (endereço) se ela trocou o padrão. `/h?s=…&d=…` continua funcionando.
+- **WhatsApp**: o botão abre `api.whatsapp.com/send` (o endereço oficial para onde o wa.me redireciona) **com os emojis no texto**. Se algum aparelho ainda mostrar "�", o botão *Copiar mensagem* guarda os emojis intactos.
+- **Logo**: a nova (círculo dourado TB · Tháriga Beauty & Co) está em `logo.png`, `icon-192/512.png` e na imagem de prévia `og-banner.jpg` (substituiu `og-*.png`, com nome novo para o WhatsApp não usar a imagem antiga em cache). Os textos ainda dizem "Maison Beauty".
+
+- **Nome (16/10/2026):** a marca e a unidade de Itaquera passam a se chamar **Tháriga Beauty & Co** em tudo que aparece (painel, páginas da cliente, prévias, mensagens, avisos). O Estúdio Florença continua com o nome dele. O `U.mai.n` carrega o nome e `em`/`de` (na/da) para as frases. Caminhos do banco (`/maison/...`) e identificadores do código seguem `maison`, de propósito.
+
+## Horários livres (rascunho, ainda não publicado)
+
+Aba **Horários livres** (`vLivres()`, `livresDoDia()`): mostra os próximos 7 dias de uma vez (botão *Ver mais 7 dias*, até 28), com os horários vazios de cada profissional, calculados ao vivo em cima da agenda, das reservas pelo link ainda não convertidas e dos horários fechados (`livresDoDia`). O serviço escolhido define o tempo necessário e quem faz (`proDoServico`). Tocar nos horários os escolhe: um só liga *Agendar* (abre `novoAg` já preenchido); qualquer quantidade liga *Compartilhar* (texto pronto com link `/p` e endereço, e imagem 1080 px desenhada em canvas, no padrão do orçamento do cartório). Sem escolha, *Mandar os horários da tela* leva tudo o que está visível. A equipe vê só Itaquera; dias de Florença aparecem com aviso. A lista rola dentro de uma caixa (`.lv-rol`) para a página não ficar enorme.
+
+Aba **Hoje**: atendimentos, aniversários e *Hora de voltar* são caixas menores com barra de rolagem própria (`.rol`); no computador ficam lado a lado.
+
+## Itaquera de segunda a sábado (16/10/2026)
+
+Quem atende onde (`prosDaUnidade()`, `unidadesDoDia()`, `STAFF_DIAS`): **Tháriga** em Itaquera de domingo a quarta e no Florença de quinta a sábado; **Rafael e Mariana** em Itaquera de **segunda a sábado** (domingo não). Nas quintas, sextas e sábados a agenda mostra duas linhas do tempo (Florença com a Tháriga; Itaquera com a equipe), e os Horários livres um cartão por unidade. O agendamento recusa Rafael/Mariana no domingo. Na página `/p`, os dias oferecidos dependem de quem faz o serviço escolhido (`DIAS_PRO` no `pedido.html`; ao trocar de serviço os dias se refazem e o que deixou de valer se desmarca).
+
+A linha do tempo tem **barra de rolagem própria** (`.tl-scroll`, abre no primeiro compromisso e guarda a posição entre toques). Cores dos blocos: **tonais** (fundo claro da cor da profissional com faixa forte na lateral, `--t-*` e `--p-*`); horário fechado em listras de bege. Atendido fica esmaecido, com ✓.
+
+**Ajuste de 16/10/2026 (mais tarde):** a Tháriga pediu a agenda do Rafael e da Mariana **aberta todos os dias** (`STAFF_DIAS` = domingo a sábado, e `DIAS_PRO` no `pedido.html`), mesmo que na prática atendam só em alguns dias: eles têm liberdade de mudar e fecham o que não atendem com *Fechar horário* (dia inteiro). A Tháriga continua em Itaquera de domingo a quarta e no Florença de quinta a sábado.
+
+**Cores (16/10/2026):** a agenda usa só **dourado** (Tháriga), **champanhe** (Rafael) e **rosé** (Mariana), em tom claro com faixa forte (`--p-*` e `--t-*`, claro e escuro). Marrom saiu.
+
+**Cores, ajuste final (16/10/2026):** **rosé** para a Tháriga, **champanhe** para o Rafael e **dourado** para a Mariana. As etiquetas de anamnese (*Anamnese*, *Anamnese pendente*) são rosé (`.tag.rose`, `--rose`).
+
+**Cores, ajuste de 16/10/2026 (noite):** **rosé** Tháriga, **bege** Rafael, **palha** Mariana. As bolinhas de cadastro (iniciais das clientes, `.avatar`) também são rosé.
+
+**Trocar cliente (16/10/2026):** o cartão do agendamento (só para a Tháriga) tem **Trocar cliente** (`trocarCliente()`): corrige agendamentos que ficaram no nome de um cadastro genérico (ex.: "Cliente Florença"), inclusive os já atendidos, sem mexer em valor nem histórico. A unidade da cliente continua no cadastro dela.
+
+## Ana Luiza, a quarta profissional (19/10/2026, rascunho, ainda não publicado)
+
+Faz **só sobrancelhas e cílios** em Itaquera (design, design + henna, alongamento, manutenção e remoção de cílios: `SERV_ANA`), **todos os dias** como Rafael e Mariana (ela fecha os que não atende), cor **verde sálvia** (`--p-ana`/`--t-ana`), comissão **50% do valor cheio** como os dois. Vaga `5` na chave da reserva (`VAGA_PRO.ana`).
+
+Esses cinco serviços têm **dois donos** (`donosDoServico()`: Tháriga e Ana): na página `/p` a cliente escolhe **"Com quem você prefere?"** (`#q`, `ANA` e `donosDe()` no `pedido.html`) e os dias/horários mostrados são os da escolhida; nos Horários livres aparecem as duas; a reserva diz quem é pela vaga (`proDaReserva()`), e `proLivre()` respeita a escolha. O login dela aceita `pro` = `ana` ou `ana luiza` (`entrou()` normaliza).
+
+## Agenda: buscar cliente e vários procedimentos (20/10/2026, rascunho, ainda não publicado)
+
+Pedido da Tháriga (vindo de uma cliente que usava o Amore): no *Novo agendamento* há **busca da cliente** (campo "Digite o nome ou o telefone", sem diferença de acento ou maiúscula, em vez de rolar a lista inteira) e **"+ Adicionar outro procedimento para esta cliente"**: cada um vira um horário seguido do anterior (hora editável, profissional que faz aquele serviço), na mesma data e unidade. A mensagem de confirmação lista todos os procedimentos. A foto do atendimento pela equipe já existia (*Foto inicial* / *Foto de acompanhamento* na ficha da cliente e no registro do atendimento), mas só para quem **autorizou fotos na anamnese**: essa trava é regra da ficha e não foi afrouxada.
+
+## Horários livres: imagem por dia (21/10/2026, rascunho, ainda não publicado)
+
+Cada dia da aba *Horários livres* que tem horário vago ganhou o botão **Imagem deste dia** (`data-lvdia`): abre a mensagem e **já desenha a imagem só daquele dia** (`livresGrupos(dia)`, `livresTexto(grupos,dia)`, `livresImagem(grupos,dia)`), com os horários de todas as profissionais que atendem nele (respeitando o filtro de profissional e o serviço escolhido). O botão de cima continua mandando vários dias de uma vez.
+
+## Comissões: adiantamento, percentual e dia de pagamento (22/10/2026, rascunho, ainda não publicado)
+
+Pedido da Tháriga: (1) **registrar adiantamento** pago a uma profissional — fica separado (`/admin/adiantamentos`, com `periodo`; cancelar só marca `cancelado`, nada é apagado), é descontado da comissão do período e o cartão mostra *comissão do período*, *adiantamentos já pagos* e *falta pagar*; (2) **mudar o percentual**: por profissional (`/admin/config/comPct/{pro}`) e por atendimento (`/admin/config/comAtend/{atendimento}`, em *Ver detalhes*; vale por cima), para modelo/cortesia a 100%; (3) **dia do pagamento**: fechamento mensal pago no dia escolhido (`comCiclo`, `comDia`, padrão mensal dia 1), com a opção de voltar ao quinzenal. `comPct()`/`comVal()` são a conta única, usada também no resumo do Financeiro. Tudo sob `/admin`, que já é só da Tháriga: sem regras novas no banco. Marcações de "pago" feitas no quinzenal têm outra chave (início do período) e não valem no mensal.
+
+## Pedidos de 05/11/2026 (rascunho, ainda não publicado)
+
+- **Datas de dezembro na página da cliente:** o limite era fixo em 21 dias (`dias`, gravado a cada salvar). Agora é `diasFrente` (padrão 180, de 7 a 365), campo *Até quantos dias à frente a cliente pode marcar* em *Serviços e preços → Agenda online*. `pedido.html` lê `diasFrente`; o espelho público (`sincronizarPublico`) cobre o mesmo prazo.
+- **Trocar profissional** (`trocarProfissional()`, botão no cartão do horário, a equipe também usa): muda só a agenda de quem atende; avisa se a outra já tem horário. Não vale para atendimento já concluído.
+- **Reabrir atendimento** (`reabrirAtend()`, a Tháriga e a equipe, no cartão do atendido; a equipe não vê o valor e o nome de quem reabriu fica gravado; regra nova no banco permite à equipe só marcar o atendimento como cancelado/reaberto, uma vez): o valor antigo fica como atendimento cancelado (`reaberto`), sai das comissões e do financeiro, e o horário volta a *Agendado* para concluir com o valor certo. Atendimento com código de brinde manda usar *Corrigir atendimento*.
+- **Minha comissão** (aba só das profissionais Rafael, Mariana e Ana): a Tháriga, com o painel aberto, grava em `/comissoes/{profissional}/{início do período}` só o resumo dela (por atendimento o valor do serviço e a comissão, o total faturado, o percentual, adiantamentos, falta receber, pago ou não — ex.: atendeu 5 clientes, faturou R$ 1.000, 50% = R$ 500; confirmado pela Tháriga em 05/11/2026); cada uma lê só a dela, nunca o caixa do estúdio nem as outras. Regras novas em `database.rules.json` (`comissoes`); o `pro` da conta pode ser `ana` ou `ana luiza`.
+
+**Tempo do atendimento ajustável (05/11/2026):** no *Novo agendamento* (e em *Remarcar*, e em cada procedimento extra) há **Tempo do atendimento (minutos)**, que nasce com o tempo do serviço e ela muda quando conhece a cliente (a unha dela leva 30, não 60). Só se grava `dur` no agendamento quando difere do serviço; `durServ()` usa `dur` por cima, então o bloco da agenda, os horários livres, o espelho público, o convite do Google e o link do horário seguem o tempo ajustado. O procedimento seguinte já começa quando o anterior termina.

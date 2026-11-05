@@ -14,18 +14,18 @@
 //   - "escritura assinada" nasce um lançamento com a PARTE DO TABELIÃO, não
 //     com o total que a cliente paga;
 //   - e tudo isso cabe num iPhone 13.
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import {writeSync} from 'node:fs';
 
 const diga = t => writeSync(1, t + '\n');
 const servidor = await servir();
 const erros = [];
-const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b = await abrirChromium();
 const pg = await b.newPage({viewport:{width:1280, height:900}});
 pg.on('pageerror', e => erros.push('pageerror: ' + e.message));
 
-await pg.goto('http://127.0.0.1:8199/harness-orcamento.html');
+await pg.goto(servidor.url + '/harness-orcamento.html');
 await pg.waitForFunction(() => window.__pronto === true);
 
 const PRAZO = 15000;
@@ -294,6 +294,44 @@ await passo('o ato de imóveis distintos soma cada escritura na SUA faixa, não 
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
 
+// O caso que ela trouxe em 20/10/2026, de outro sistema de cálculo: um
+// imóvel de R$ 369.576,00 (aqui, cinco imóveis que somam o mesmo valor).
+// Nua-propriedade de R$ 246.384,00 (2/3) pelo valor cheio, usufruto de
+// R$ 123.192,00 (1/3) pelo 1/4 da tabela — 75% de desconto, não os 40% do
+// ato secundário comum.
+await passo('a doação com usufruto soma os imóveis doados, e o usufruto paga 1/4 da tabela', async () => {
+  await pg.evaluate(() => orcTrocarAto('doacao-usufruto'));
+  await pg.waitForSelector('#modal-orcamento-caso.open');
+  await pg.evaluate(() => {
+    orcMudarItem('imoveisDoacao', 0, 'rotulo', 'Imóvel 1');
+    orcMudarItem('imoveisDoacao', 0, 'valor', '73.915,20');
+    for(let i = 1; i < 5; i++){
+      orcMaisItem('imoveisDoacao');
+      orcMudarItem('imoveisDoacao', i, 'rotulo', 'Imóvel ' + (i + 1));
+      orcMudarItem('imoveisDoacao', i, 'valor', '73.915,20');
+    }
+  });
+  await pg.waitForFunction(() => /369\.576,00/.test(
+    document.getElementById('orc-soma-imoveisDoacao').textContent));
+  await abrirMemoria(pg);
+  const mem = await pg.textContent('.orc-memoria');
+  if(!/246\.384,00/.test(mem)) throw new Error('a nua-propriedade não bateu com os 2/3 do caso dela: ' + mem.slice(0, 500));
+  if(!/123\.192,00/.test(mem)) throw new Error('o usufruto não bateu com o 1/3 do caso dela: ' + mem.slice(0, 500));
+  if(!/75%/.test(mem)) throw new Error('não mostrou os 75% de desconto do usufruto (1/4 da tabela): ' + mem.slice(0, 500));
+  // O registro é outra conta — cada imóvel é a sua própria matrícula, e
+  // ganha o seu par (nua-propriedade + usufruto). Cinco imóveis, dez linhas.
+  const nuaNoRegistro = (mem.match(/Registro da nua-propriedade/g) || []).length;
+  const usufrutoNoRegistro = (mem.match(/Registro do usufruto/g) || []).length;
+  if(nuaNoRegistro !== 5 || usufrutoNoRegistro !== 5)
+    throw new Error(`esperava 5 registros de nua-propriedade e 5 de usufruto (um par por imóvel), `
+      + `veio ${nuaNoRegistro} e ${usufrutoNoRegistro}`);
+  // Volta a lista a um item só — senão o próximo teste que reusa este campo
+  // (BASE CONSIDERADA, mais abaixo) herda os quatro extras e soma errado.
+  await pg.evaluate(() => { for(let i = 4; i >= 1; i--) orcTirarItem('imoveisDoacao', i); });
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
 await passo('o inventário também soma os imóveis dele', async () => {
   await pg.evaluate(() => orcTrocarAto('inventario'));
   await pg.evaluate(() => {
@@ -458,6 +496,11 @@ await passo('a via do cliente sai como imagem, para colar no WhatsApp', async ()
   if(!/^data:image\/png/.test(img.url)) throw new Error('não saiu PNG');
 });
 
+await passo('depois de aprovada, a imagem ganha o selo "aprovado pelo cliente"', async () => {
+  const r = await pg.evaluate(() => ({sem: orcFolhaDoRascunho(null).height, com: orcFolhaDoRascunho({em: 1760000000000}).height}));
+  if(r.com <= r.sem) throw new Error('o selo não ocupou lugar na folha: ' + JSON.stringify(r));
+});
+
 // Ela precisava orçar uma escritura com uma procuração junto e não tinha onde
 // dizer isso. O bloco fica na etapa 1, colado no ato principal, porque é ali
 // que ela decide o que vai na escritura.
@@ -541,7 +584,9 @@ await passo('a BASE CONSIDERADA é o valor que ela digitou, não a base da tabel
   // O caso dela: doação com reserva de usufruto de R$ 500.000,00. A tabela
   // cobra 2/3 e 1/3, e a folha mostrava R$ 333.333,33.
   await pg.evaluate(() => orcVoltarDoCliente());
-  await pg.evaluate(() => { orcTrocarAto('doacao-usufruto'); orcMudarValor('doacao', '500.000,00'); });
+  await pg.evaluate(() => { orcTrocarAto('doacao-usufruto');
+    orcMudarItem('imoveisDoacao', 0, 'rotulo', 'Imóvel');
+    orcMudarItem('imoveisDoacao', 0, 'valor', '500.000,00'); });
   await pg.evaluate(() => orcAlternarCliente());
   await pg.waitForSelector('.orc-cli-base');
   const base = await pg.textContent('.orc-cli-base');
@@ -666,6 +711,7 @@ await passo('salvo, o card mostra a versão 1 e o orçamento vira leitura', asyn
   const txt = await pg.textContent('#cartao-orc');
   if(!/versão 1/.test(txt)) throw new Error('o card não mostrou a versão: ' + txt);
   if(!/16\.522,21/.test(txt)) throw new Error('o card não mostrou o total: ' + txt);
+  if(!/Cliente aprovou/.test(txt)) throw new Error('faltou o botão Cliente aprovou na faixa: ' + txt);
 });
 
 await passo('o que foi para o banco não tem nenhum undefined', async () => {
@@ -819,7 +865,7 @@ await passo('o aviso da isenção do ITBI pula na tela quando é identificado', 
 // ── E no celular, que é onde ela confere ──
 const cel = await b.newPage({viewport:{width:390, height:844}, deviceScaleFactor:3, isMobile:true, hasTouch:true});
 cel.on('pageerror', e => erros.push('pageerror (celular): ' + e.message));
-await cel.goto('http://127.0.0.1:8199/harness-orcamento.html');
+await cel.goto(servidor.url + '/harness-orcamento.html');
 await cel.waitForFunction(() => window.__pronto === true);
 await cel.evaluate(() => {
   window.casos = {c1: {id:'c1', nome:'TANIA — apartamento 1301', tipo:'Escritura de venda e compra'}};
@@ -894,6 +940,49 @@ await passo('conferida por ela, aí sim o orçamento fecha', async () => {
   // e a volta, para os testes seguintes continuarem na Capital
   await pg.evaluate(() => { orcMudarCampoTexto('imovelMunicipio', 'São Paulo');
     orcMudarCampoTexto('imovelUf', 'SP'); });
+  await pg.unroute('**/api/aliquota-municipal');
+});
+
+// O caso que ela trouxe em 23/10/2026: um imóvel em Sorocaba, onde ela
+// buscou a alíquota do ITBI e, enquanto a busca ainda estava no ar, digitou
+// o valor do negócio. A busca terminava no MEIO da digitação e disparava um
+// redesenho da janela inteira — o mesmo defeito que a soma dos imóveis já
+// tinha (ver `orcRedesenharAcessorios`), só que ninguém tinha notado aqui
+// porque o mock dos outros testes responde na hora. Com uma resposta que
+// demora de verdade, o campo perdia o resto do que ela ainda ia digitar, e
+// o orçamento saía calculado com um valor bem menor do que o dela.
+await passo('digitar o valor enquanto a busca da alíquota está no ar não perde o que ela digita', async () => {
+  await pg.route('**/api/aliquota-municipal', async route => {
+    await new Promise(r => setTimeout(r, 1200)); // uma função da Vercel de verdade demora
+    await route.fulfill({status: 200, contentType: 'application/json',
+      body: JSON.stringify({encontrado: true, aliquota: 2.5, confianca: 'incerta',
+        chave: 'itbi-sorocaba-sp', fundamento: 'Lei Municipal 3.185/1989',
+        ressalva: 'Alíquota reduzida escalonada.',
+        fontes: ['https://itbi.sorocaba.sp.gov.br']})});
+  });
+  await pg.evaluate(() => orcNovoDoCaso('c1'));
+  await pg.waitForSelector('#modal-orcamento-caso.open');
+  await pg.evaluate(() => { orcTrocarAto('compra-venda');
+    orcMudarCampoTexto('imovelMunicipio', 'Sorocaba');
+    orcMudarCampoTexto('imovelUf', 'SP'); });
+  await pg.click('button:has-text("Buscar a alíquota")');
+  // Digita devagar, de propósito: a busca (1,2s) tem de terminar NO MEIO.
+  const campo = 'input[oninput*="orcMudarValor(\'transacao\'"]';
+  await pg.fill(campo, '');
+  await pg.click(campo);
+  await pg.type(campo, '308.315,22', {delay: 250});
+  await pg.waitForFunction(() => /encontrada pelo painel, ainda não conferida/.test(
+    (document.getElementById('orc-aliquotas') || {}).textContent || ''));
+  const v = await pg.inputValue(campo);
+  if(v !== '308.315,22') throw new Error('o campo perdeu dígitos durante a busca: ' + v);
+  await abrirMemoria(pg);
+  const mem = await pg.textContent('.orc-memoria');
+  // 2,5% (a alíquota de Sorocaba) de R$ 308.315,22 é R$ 7.707,88 — se a
+  // digitação tivesse sido cortada no meio, o ITBI sairia de um valor menor.
+  if(!/7\.707,88/.test(mem)) throw new Error('o ITBI não saiu de R$ 308.315,22: ' + mem.slice(0, 400));
+  await pg.evaluate(() => { orcMudarCampoTexto('imovelMunicipio', 'São Paulo');
+    orcMudarCampoTexto('imovelUf', 'SP');
+    orcMudarValor('transacao', '301.867,16'); });
   await pg.unroute('**/api/aliquota-municipal');
 });
 

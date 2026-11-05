@@ -56,6 +56,12 @@ const esc=s=>(s||'').replace(/"/g,'&quot;');
 // já fazia assim desde sempre; isto só põe as duas no mesmo dia.
 const HOJE_DE_MENTIRA='2026-08-20';
 const isoHoje=()=>HOJE_DE_MENTIRA;
+// Quem dirige o navegador precisa digitar nos formulários o mesmo dia em que
+// a página pensa que está. Sem isto cada lado tinha o seu: o teste lançava
+// com a data de verdade, o painel abria no fechamento de agosto e a planilha
+// amanhecia vazia — doze verificações falhando por um desencontro de
+// calendário, não por um defeito.
+window.__hoje=HOJE_DE_MENTIRA;
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 let navToastTimer=null;
 const getCasosList=()=>[{id:'c1',nome:'Gustavo Bertola',tipo:'Inventário + Compra e Venda',concluido:false},{id:'c2',nome:'Miguel | Un. 2216 Do It',tipo:'Escritura',concluido:false}];

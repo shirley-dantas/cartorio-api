@@ -1,0 +1,9 @@
+{
+  "name": "maison-beauty-painel",
+  "private": true,
+  "description": "Painel da Tháriga Brito. As funções em api/ mandam os avisos no celular.",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "web-push": "^3.6.7"
+  }
+}

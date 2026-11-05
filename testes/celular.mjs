@@ -2,20 +2,26 @@
 //
 // Roda com: node testes/celular.mjs
 // (o montar.mjs recorta o financeiro do index.html antes de cada execução)
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import {servir} from './servidor.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 // As imagens saem sempre em testes/saida, mesmo rodando de outra pasta.
 const SAIDA=(n)=>join(dirname(fileURLToPath(import.meta.url)),'saida',n);
 const servidor=await servir();
+const BASE=servidor.url;
 const erros=[];
-const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b=await abrirChromium();
 // iPhone 13 em pé
 const pg=await b.newPage({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});
 pg.on('pageerror',e=>erros.push('pageerror: '+e.message));
-await pg.goto('http://127.0.0.1:8199/harness.html');
+await pg.goto(BASE+'/harness.html');
 await pg.waitForFunction(()=>window.__pronto===true);
+// O dia que o teste digita nos formulários é o dia em que a página pensa que
+// está (congelado no faz-de-conta-navegador.js), nunca o dia de verdade:
+// datas em fechamentos diferentes abriam a planilha vazia e derrubavam a
+// suíte sem nada ter sido quebrado.
+const HOJE=await pg.evaluate(()=>window.__hoje);
 const limpo=s=>s.replace(/ /g,' ').replace(/\s+/g,' ');
 const passo=async(n,f)=>{try{await f();console.log('  ok  '+n);}catch(e){erros.push(n+' → '+e.message);console.log('FALHA '+n+' → '+e.message);}};
 
@@ -63,7 +69,7 @@ await passo('dá para lançar uma escritura pelo celular',async()=>{
   await pg.fill('#fin-f-descricao','Tania — compra e venda');
   await pg.fill('#fin-f-tabeliao','3.427,23');
   await pg.selectOption('#fin-f-status','pago');
-  await pg.fill('#fin-f-data','2026-08-10');
+  await pg.fill('#fin-f-data',HOJE);
   await pg.waitForTimeout(200);
   const p=limpo(await pg.textContent('#fin-preview'));
   if(!p.includes('R$ 856,80'))throw new Error('a prévia não fechou → '+p.slice(0,200));

@@ -6,7 +6,7 @@
 // Financeiro), e a entrada no Firebase também — o teste nunca toca no banco
 // de verdade. Termina com as fotos em testes/saida/bussola-*.png, num tablet
 // e num iPhone 13.
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -139,7 +139,7 @@ function gravar(partes, valor) {
 }
 
 const servidor = await servir(8197);
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const b = await abrirChromium();
 
 async function abrir(opts) {
   // O service worker do Bússola repassaria os pedidos por fora do banco

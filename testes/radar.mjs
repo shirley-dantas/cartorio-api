@@ -14,7 +14,7 @@
 //   - fonte que não respondeu aparece, e dia que falhou não vira dia calmo;
 //   - a divergência de numeração da NSCGJ não some da base;
 //   - a mensagem de cliente é texto, não HTML.
-import {chromium} from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 import {writeSync} from 'node:fs';
 
@@ -22,7 +22,7 @@ const diga = t => writeSync(1, t + '\n');
 
 const servidor = await servir();
 const erros = [];
-const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const b = await abrirChromium();
 const pg = await b.newPage({viewport:{width:1280, height:900}});
 pg.on('pageerror', e => erros.push('pageerror: ' + e.message));
 
@@ -39,7 +39,7 @@ await pg.route('**/api/joaninha-juridico', async rota => {
   });
 });
 
-await pg.goto('http://127.0.0.1:8199/harness-radar.html');
+await pg.goto(servidor.url + '/harness-radar.html');
 await pg.waitForFunction(() => window.__pronto === true);
 
 const limpo = s => s.replace(/ /g,' ').replace(/\s+/g,' ');
@@ -364,7 +364,7 @@ cel.on('pageerror', e => erros.push('pageerror (celular): ' + e.message));
 await cel.route('**/api/joaninha-juridico', rota => rota.fulfill({
   status:200, contentType:'application/json', body: JSON.stringify({ok:true, modo:'interna', resposta:'Resposta curta.'})
 }));
-await cel.goto('http://127.0.0.1:8199/harness-radar.html');
+await cel.goto(servidor.url + '/harness-radar.html');
 await cel.waitForFunction(() => window.__pronto === true);
 await cel.evaluate(s => {
   window.__raiz['radar-juridico'] = JSON.parse(JSON.stringify(s.dias));

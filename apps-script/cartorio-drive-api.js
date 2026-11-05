@@ -1085,6 +1085,25 @@ function extrairArquivoComContinuacao(montarConteudo) {
   return { texto: texto || null, truncou: truncou };
 }
 
+// Leitura de um documento pela IA (PDF ou imagem em base64). Devolve
+// {texto, truncou}. Usada pelo anexo do painel e pelo envio do cliente.
+function lerDocumentoComIA(base64, mimetype, preservarIntegral, instrucaoPropria) {
+    var blocoArquivo = mimetype === "application/pdf"
+      ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
+      : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
+    var instrucaoInicial = instrucaoPropria ? instrucaoPropria : preservarIntegral
+      ? "Este documento é uma escritura ou ato notarial já pronto. Transcreva o texto completo do documento, na íntegra, sem resumir, sem comentar e sem omitir nenhuma parte. Apenas o texto puro da minuta."
+      : "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Depois, numa nova linha, extraia com fidelidade total as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. NÚMEROS DE DOCUMENTO (RG, CPF, CNH, matrícula, registro): copie dígito por dígito, exatamente como estão impressos, sem corrigir, completar ou reordenar. Dígitos parecidos (0/6/8, 1/7, 3/8, 5/6) devem ser conferidos duas vezes olhando o desenho de cada um; releia o número inteiro antes de responder. Se algum dígito não estiver nítido, escreva '?' no lugar dele em vez de adivinhar. Na CNH, o número do RG aparece no campo de identidade/órgão emissor: copie-o com o mesmo cuidado. Não omita nenhum dado relevante — mas não transcreva o documento inteiro: cláusula, preâmbulo ou trecho que não carregue um fato novo, não precisa aparecer. O objetivo é o fato, não o texto do documento.";
+
+    var resultado = extrairArquivoComContinuacao(function (pass, textoAteAqui) {
+      return [
+        blocoArquivo,
+        { type: "text", text: pass === 0 ? instrucaoInicial : instrucaoContinuarExtracaoArquivo(textoAteAqui.slice(-1500)) }
+      ];
+    });
+  return resultado;
+}
+
 function extrairTextoArquivoJob(dados) {
   var jobId = dados.jobId;
   try {
@@ -1093,19 +1112,7 @@ function extrairTextoArquivoJob(dados) {
     var preservarIntegral = !!dados.preservarIntegral;
     if (!base64) throw new Error("Arquivo vazio");
 
-    var blocoArquivo = mimetype === "application/pdf"
-      ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
-      : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
-    var instrucaoInicial = preservarIntegral
-      ? "Este documento é uma escritura ou ato notarial já pronto. Transcreva o texto completo do documento, na íntegra, sem resumir, sem comentar e sem omitir nenhuma parte. Apenas o texto puro da minuta."
-      : "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Depois, numa nova linha, extraia com fidelidade total as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Não omita nenhum dado relevante — mas não transcreva o documento inteiro: cláusula, preâmbulo ou trecho que não carregue um fato novo, não precisa aparecer. O objetivo é o fato, não o texto do documento.";
-
-    var resultado = extrairArquivoComContinuacao(function (pass, textoAteAqui) {
-      return [
-        blocoArquivo,
-        { type: "text", text: pass === 0 ? instrucaoInicial : instrucaoContinuarExtracaoArquivo(textoAteAqui.slice(-1500)) }
-      ];
-    });
+    var resultado = lerDocumentoComIA(base64, mimetype, preservarIntegral);
 
     if (jobId) {
       salvarJobFirebase(jobId, { status: "done", ok: true, texto: resultado.texto || "", truncou: resultado.truncou });
@@ -1140,6 +1147,23 @@ function doPost(e) {
     if (acao === "criar-pasta") return criarPasta(dados);
     if (acao === "excluir-pasta") return excluirPasta(dados);
     if (acao === "salvar-arquivo") return salvarArquivo(dados);
+    if (acao === "cliente-arquivo") return clienteArquivo(dados);
+    if (acao === "cliente-dados") return clienteDados(dados);
+    if (acao === "cliente-ler") return clienteLer(dados);
+    if (acao === "cliente-reler") return clienteReler(dados);
+    if (acao === "pagamento-arquivo") return pagamentoArquivo(dados);
+    if (acao === "pagamento-concluir") return pagamentoConcluir(dados);
+    if (acao === "pagamento-ver") return pagamentoVer(dados);
+    if (acao === "pagamento-ler") return pagamentoLer(dados);
+    if (acao === "pagamento-remover") return pagamentoRemover(dados);
+    if (acao === "orcamento-aprovar") return orcamentoAprovar(dados);
+    if (acao === "painel-arquivo") return painelArquivo(dados);
+    if (acao === "entrada-receber") return entradaReceber(dados);
+    if (acao === "entrada-atribuir") return entradaAtribuir(dados);
+    if (acao === "entrada-descartar") return entradaDescartar(dados);
+    if (acao === "painel-renomear") return painelRenomear(dados);
+    if (acao === "cliente-remover") return clienteRemover(dados);
+    if (acao === "cliente-excluir") return clienteExcluir(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
     if (acao === "gerar-e-criar-minuta") return gerarECriarMinuta(dados);
     if (acao === "extrair-texto-arquivo") return extrairTextoArquivoJob(dados);
@@ -1364,6 +1388,705 @@ function salvarArquivo(dados) {
   var arquivo = pastaCliente.createFile(blob);
 
   return resp({ ok: true, url: arquivo.getUrl(), nome: nomeArquivo });
+}
+
+// ── Envio de documentos pelo cliente (enviar.html) ─────────────────────────
+// O cliente abre o link que o painel gerou (/pedidos/{código} no Firebase),
+// preenche o formulário e sobe os documentos. A página fala direto com este
+// script, e o que decide a qual caso o arquivo pertence é o CÓDIGO DO LINK,
+// lido aqui no banco — nunca um id que a página mande. Cada arquivo:
+//   1. é salvo na pasta do caso no Drive, com nome padronizado;
+//   2. é lido pela IA (é o texto que faz a minuta enxergar o documento);
+//   3. vira um registro em casos/{id}/documentos, com origem "link do cliente".
+// Quando o cliente termina, os dados que digitou viram mais um documento do
+// caso (DADOS_INFORMADOS_PELO_CLIENTE), que a minuta lê como os outros.
+var MIMES_CLIENTE = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "image/heic": "heic", "image/heif": "heif" };
+var MIMES_LEITURA_IA = ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"];
+var CLIENTE_MAX_BYTES = 10 * 1024 * 1024;
+var CLIENTE_MAX_ARQUIVOS = 80;
+
+function firebaseLer(caminho) {
+  var r = UrlFetchApp.fetch(FIREBASE_URL + caminho + ".json", { muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) return undefined;
+  return JSON.parse(r.getContentText());
+}
+// Várias leituras numa viagem só (uma por vez, cada uma somava quase um segundo).
+function firebaseLerVarios(caminhos) {
+  var reqs = caminhos.map(function (c) { return { url: FIREBASE_URL + c + ".json", muteHttpExceptions: true }; });
+  return UrlFetchApp.fetchAll(reqs).map(function (r) { return r.getResponseCode() === 200 ? JSON.parse(r.getContentText()) : undefined; });
+}
+function firebaseGravar(metodo, caminho, obj) {
+  return UrlFetchApp.fetch(FIREBASE_URL + caminho + ".json", {
+    method: metodo, contentType: "application/json", payload: JSON.stringify(obj), muteHttpExceptions: true
+  });
+}
+
+// Só nome de arquivo seguro: sem acento, sem barra, sem nada que o Drive ou o
+// Firebase estranhem. Vem de gente de fora, então nada passa sem lavar.
+function nomeSeguroCliente(texto, max) {
+  return String(texto == null ? "" : texto).replace(/\((a|o)\)/gi, "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^A-Za-z0-9_-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").slice(0, max || 40);
+}
+function textoCliente(v, max) {
+  return String(v == null ? "" : v).replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max || 500);
+}
+
+// Devolve {pedido, caso, casoId} ou null. Código errado, vencido ou de caso que
+// não existe mais: tudo a mesma resposta, sem dizer qual dos três.
+function pedidoDoCliente(token, aceitaConcluido) {
+  token = String(token || "");
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
+  var pedido = firebaseLer("/pedidos/" + token);
+  if (!pedido || !pedido.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(pedido.casoId))) return null;
+  if (pedido.expiraEm && Date.now() > pedido.expiraEm) return null;
+  if (pedido.concluidoEm && !aceitaConcluido) return null; // já enviado: o link fecha, para não confundir o card com um segundo preenchimento
+  // Só o que o envio usa (nome e pasta): ler o caso inteiro trazia todos os documentos com o texto lido pela
+  // IA a cada arquivo enviado — era a maior fatia da demora.
+  var nome = firebaseLer("/casos/" + pedido.casoId + "/nome");
+  if (nome === undefined || nome === null) return null;
+  var caso = { nome: nome, driveUrl: firebaseLer("/casos/" + pedido.casoId + "/driveUrl") || "" };
+  return { pedido: pedido, caso: caso, casoId: pedido.casoId, token: token };
+}
+
+// A pasta do caso: a que está ligada no card; sem ela, a do nome do cliente
+// (a mesma que o painel cria pelo botão "Criar pasta no Drive").
+function pastaDoCaso(caso, casoId) {
+  var id = extrairIdPasta(caso.driveUrl || "");
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { /* link velho: cai na pasta do nome */ } }
+  var pasta = getPastaCliente(String(caso.nome || "Sem nome").toUpperCase());
+  try { firebaseGravar("patch", "/casos/" + casoId, { driveUrl: pasta.getUrl() }); } catch (e) { /* o card só não mostra o link */ }
+  return pasta;
+}
+
+// Selo de cada arquivo que o cliente enviou: HMAC do (registro + id do arquivo) com um segredo
+// que só existe aqui. O banco é aberto, então qualquer um poderia forjar um registro "do cliente"
+// apontando para outro arquivo do Drive; sem o selo, excluir o registro nunca toca no Drive.
+function segredoCliente() {
+  var props = PropertiesService.getScriptProperties();
+  var s = props.getProperty("CLIENTE_SEGREDO");
+  if (!s) { s = Utilities.getUuid() + Utilities.getUuid(); props.setProperty("CLIENTE_SEGREDO", s); }
+  return s;
+}
+function seloDoArquivo(docKey, idArquivo) {
+  var bytes = Utilities.computeHmacSha256Signature(docKey + "|" + idArquivo, segredoCliente());
+  return bytes.map(function (b) { return ("0" + (b & 0xff).toString(16)).slice(-2); }).join("");
+}
+function extrairIdArquivo(url) {
+  var s = String(url || "");
+  var m = s.match(/\/d\/([a-zA-Z0-9_-]{10,})/) || s.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  return m ? m[1] : "";
+}
+
+// ── Arquivos arrastados para o card (o que o cliente mandou pelo WhatsApp) ──────────────────────────────
+// O painel manda o arquivo; aqui ele vai para a pasta do caso (criada se ainda não existe), a IA lê e
+// identifica o tipo e de quem é, e o arquivo ganha o nome padrão: Pessoa_Tipo_AAAA-MM-DD_n.ext. Salva direto
+// e corrige depois: o que a IA não tem certeza fica marcado "confirmar" no card, com o lápis para corrigir.
+// O Drive só é tocado pelo selo, como nos arquivos do link: o banco é aberto.
+var ORIGENS_ARQUIVO = ["link do cliente", "arrastado no card"];
+var TIPOS_DOC_CARD = ["RG_CNH", "CPF", "CERTIDAO_NASCIMENTO", "CERTIDAO_CASAMENTO", "CERTIDAO_OBITO", "PACTO_ANTENUPCIAL", "MATRICULA_IMOVEL", "COMPROVANTE_ENDERECO", "IPTU", "CND", "ESCRITURA", "PROCURACAO", "CONTRATO", "COMPROVANTE_PAGAMENTO", "FICHA_CADASTRAL_JUCESP", "CONTRATO_SOCIAL", "VALOR_VENAL_REFERENCIA", "NEGATIVA_IPTU", "DADOS_CADASTRAIS_IMOVEL", "OUTRO"];
+// O que o Ajudante do painel (extensão do Chrome) sabe de antemão: veio de um pedido dela na JUCESP, então o tipo não se adivinha.
+var TIPOS_DO_AJUDANTE = ["FICHA_CADASTRAL_JUCESP", "CONTRATO_SOCIAL", "MATRICULA_IMOVEL", "VALOR_VENAL_REFERENCIA", "NEGATIVA_IPTU", "DADOS_CADASTRAIS_IMOVEL"];   // o que o Ajudante (JUCESP, RI Digital e Prefeitura) pede para guardar
+var ORIGENS_DO_AJUDANTE = ["jucesp", "onr", "prefeitura"];
+var TIPOS_QUE_PEDEM_PESSOA = ["RG_CNH", "CPF", "CERTIDAO_NASCIMENTO", "CERTIDAO_CASAMENTO", "CERTIDAO_OBITO", "COMPROVANTE_ENDERECO"];
+
+function instrucaoIdentificarDocumento(texto) {
+  return "Abaixo está o texto extraído de UM documento de cartório. Devolva APENAS um JSON, sem comentário: " +
+    "{\"tipo\":\"<exatamente um de: " + TIPOS_DOC_CARD.join(", ") + ">\",\"pessoa\":\"<nome completo do titular, como impresso; na certidão de casamento, os dois cônjuges separados por ' e '; vazio se o documento não é de uma pessoa (matrícula, IPTU, CND de imóvel)>\",\"confianca\":\"alta|media|baixa\"}. " +
+    "Se não der para saber o tipo, use OUTRO. Nunca invente nome.\n\nTEXTO:\n" + String(texto || "").slice(0, 4000);
+}
+
+function identificarDocumento(texto) {
+  var r = chamarClaudeArquivoRaw([{ type: "text", text: instrucaoIdentificarDocumento(texto) }]);
+  var m = String((r && r.texto) || "").match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("A IA não devolveu a identificação em formato legível.");
+  var o = JSON.parse(m[0]);
+  var tipo = String(o.tipo || "").toUpperCase();
+  if (TIPOS_DOC_CARD.indexOf(tipo) === -1) tipo = "OUTRO";
+  return { tipo: tipo, pessoa: textoCliente(o.pessoa, 80), confianca: String(o.confianca || "baixa").toLowerCase() };
+}
+
+// Nome padrão e número seguinte: conta na própria pasta os arquivos que já têm esse começo. Chamar com a trava.
+function nomeDoArquivoDoCard(pasta, pessoa, tipo, ext, idDoProprio) {
+  var data = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
+  var prefixo = [nomeSeguroCliente(pessoa), nomeSeguroCliente(tipo)].filter(Boolean).join("_") + "_" + data + "_";
+  var n = 0, it = pasta.getFiles();
+  while (it.hasNext()) { var f = it.next(); if (f.getId() !== idDoProprio && f.getName().indexOf(prefixo) === 0) n++; }
+  return prefixo + (n + 1) + "." + ext;
+}
+
+function painelArquivo(dados) { return resp(painelArquivoInterno(dados)); }
+
+// A ficha cadastral lista cada ato arquivado como "NUM.DOC: 034.366/21-0 SESSÃO: 22/01/2021" seguido das linhas do ato. O contrato social
+// consolidado é o do ÚLTIMO ato cujas linhas dizem "CONSOLIDAÇÃO CONTRATUAL"; o NUM.DOC é o mesmo número da coluna "Nº Registro" da lista
+// de cópias digitalizadas, e é por ele que o Ajudante acha a linha certa (a lista quase não traz descrição).
+// A leitura geral da IA resume o documento e pode largar justamente os NUM.DOC; por isso a ficha tem uma pergunta só sua, curta e literal.
+var PERGUNTA_CONSOLIDACAO = "Este PDF é uma ficha cadastral da JUCESP. Cada ato arquivado começa com a linha 'NUM.DOC: <número> SESSÃO: <data>' e é seguido das linhas do ato, até o próximo NUM.DOC. Liste TODOS os atos em cujas linhas aparece a expressão 'CONSOLIDAÇÃO CONTRATUAL' (a expressão pertence ao NUM.DOC que vem ANTES dela, mesmo quando ela está no pé da página), um por linha, exatamente assim: 'NUM.DOC: <número> SESSÃO: <dd/mm/aaaa> CONSOLIDAÇÃO CONTRATUAL'. Copie cada número dígito por dígito, exatamente como está impresso; se algum dígito não estiver nítido, escreva '?' no lugar. Não escreva mais nada. Se nenhum ato tiver a expressão, responda só: NENHUM.";
+function consolidacaoDoPdf(base64) {
+  try { var r = lerDocumentoComIA(base64, "application/pdf", false, PERGUNTA_CONSOLIDACAO); return consolidacaoDaFicha(r && r.texto); }
+  catch (e) { return null; }
+}
+function consolidacaoDaFicha(texto) {
+  var t = String(texto || ""), re = /NUM\.?\s*DOC\.?\s*:?\s*(\d[\d.]*\/\d{2}-\d)\s*SESS[ÃA]O\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})/gi;
+  var marcas = [], m;
+  while ((m = re.exec(t))) marcas.push({ registro: m[1], sessao: m[4] + "-" + m[3] + "-" + m[2], ini: m.index, de: re.lastIndex });
+  var melhor = null;
+  for (var i = 0; i < marcas.length; i++) {
+    var ate = i + 1 < marcas.length ? marcas[i + 1].ini : t.length;
+    if (!/CONSOLIDA[ÇC][ÃA]O\s+CONTRATUAL/i.test(t.slice(marcas[i].de, ate))) continue;
+    if (!melhor || marcas[i].sessao >= melhor.sessao) melhor = { registro: marcas[i].registro, sessao: marcas[i].sessao };
+  }
+  return melhor;
+}
+
+function painelArquivoInterno(dados) {
+  var casoId = String(dados.casoId || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId)) return { ok: false, erro: "Caso inválido." };
+  var caso = firebaseLer("/casos/" + casoId);
+  if (!caso) return { ok: false, erro: "Caso não encontrado." };
+  var mime = String(dados.mimetype || "").toLowerCase(), ext = MIMES_CLIENTE[mime];
+  if (!ext) return { ok: false, erro: "Tipo de arquivo não aceito (só PDF e imagem)." };
+  var bytes;
+  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return { ok: false, erro: "Arquivo ilegível." }; }
+  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return { ok: false, erro: "Arquivo vazio ou grande demais (máx. 10 MB)." };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  var pasta, arquivo, docKey;
+  try {
+    pasta = pastaDoCaso(caso, casoId);   // cria a pasta do caso se ainda não existe (dois arquivos juntos não criam duas)
+    var data = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
+    arquivo = pasta.createFile(Utilities.newBlob(bytes, mime, "Recebido_" + data + "_" + Utilities.getUuid().replace(/-/g, "").slice(0, 8) + "." + ext));
+  } finally { lock.releaseLock(); }
+  docKey = "pnl_" + Utilities.getUuid().replace(/-/g, "").slice(0, 10);
+  var caminho = "/casos/" + casoId + "/documentos/" + docKey;
+  var gravou = firebaseGravar("put", caminho, {
+    nome: arquivo.getName(), tipo: "documento", origem: "arrastado no card", nomeOriginal: textoCliente(dados.nomeArquivo, 120),
+    link: arquivo.getUrl(), salvoEm: new Date().toISOString(), selo: seloDoArquivo(docKey, arquivo.getId()), lendo: Date.now()
+  });
+  if (gravou.getResponseCode() >= 300) { try { arquivo.setTrashed(true); } catch (e) { /* ficou solto na pasta */ } return { ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." }; }
+
+  var texto = "", id = { tipo: "OUTRO", pessoa: "", confianca: "baixa" }, aviso = "";
+  if (MIMES_LEITURA_IA.indexOf(mime) === -1) aviso = "A IA não lê este formato (" + ext.toUpperCase() + "): o arquivo ficou salvo, mas sem leitura.";
+  else {
+    try {
+      var r = lerDocumentoComIA(dados.base64, mime, false);
+      texto = (r && r.texto) || "";
+      if (!texto) aviso = "A IA não devolveu texto para este arquivo.";
+      else id = identificarDocumento(texto);
+    } catch (e) { aviso = String(e && e.message || e).slice(0, 200); }
+  }
+  if (ORIGENS_DO_AJUDANTE.indexOf(String(dados.origemAjudante || "")) !== -1 && TIPOS_DO_AJUDANTE.indexOf(String(dados.tipoSugerido || "")) !== -1) {
+    id = { tipo: String(dados.tipoSugerido), pessoa: textoCliente(dados.pessoaSugerida, 80), confianca: "alta" };
+  }
+  var confirmar = !!aviso || id.tipo === "OUTRO" || id.confianca !== "alta" || (TIPOS_QUE_PEDEM_PESSOA.indexOf(id.tipo) !== -1 && !id.pessoa);
+  var nome;
+  lock.waitLock(30000);
+  try {
+    nome = (id.tipo === "OUTRO" && !id.pessoa) ? arquivo.getName() : nomeDoArquivoDoCard(pasta, id.pessoa, id.tipo, ext, arquivo.getId());
+    if (nome !== arquivo.getName()) arquivo.setName(nome);
+  } finally { lock.releaseLock(); }
+  firebaseGravar("patch", caminho, { nome: nome, tipoDocumento: id.tipo, pessoa: id.pessoa, texto: texto || null, truncado: false, lendo: null, confirmar: confirmar, avisoLeitura: aviso || null });
+  var resposta = { ok: true, docKey: docKey, nome: nome, tipo: id.tipo, pessoa: id.pessoa, confirmar: confirmar, leu: !!texto, aviso: aviso };
+  if (dados.origemAjudante === "jucesp" && String(dados.tipoSugerido || "") === "FICHA_CADASTRAL_JUCESP") resposta.consolidacao = consolidacaoDoPdf(dados.base64);
+  return resposta;
+}
+
+// ── A caixa de entrada do WhatsApp ───────────────────────────────────────────────────────────
+// O que chega no número do cartório (API oficial da Meta) é recebido pela Vercel (lib/whatsapp-entrada.js), que baixa
+// o arquivo e o entrega aqui (entrada-receber, com o segredo combinado). Ele fica numa pasta de espera, ENTRADA
+// WHATSAPP, e vira um aviso no painel ("Chegaram N arquivos"). Só quando ela escolhe o caso (entrada-atribuir) o arquivo
+// segue o caminho de sempre: pasta do caso, leitura pela IA, nome padrão, "confirmar o nome". O que não é dela, descarta.
+var NOME_PASTA_ENTRADA = "ENTRADA WHATSAPP";
+function pastaDeEntrada() {
+  var raiz = DriveApp.getFolderById(PASTA_RAIZ_ID), busca = raiz.getFoldersByName(NOME_PASTA_ENTRADA);
+  return busca.hasNext() ? busca.next() : raiz.createFolder(NOME_PASTA_ENTRADA);
+}
+function segredoIgual(a, b) {
+  a = String(a || ""); b = String(b || "");
+  if (!a || !b || a.length !== b.length) return false;
+  var r = 0; for (var i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+function chaveDaEntrada(msgId) { return "w_" + String(msgId || "").replace(/[^A-Za-z0-9]/g, "").slice(-60); }
+
+function entradaReceber(dados) {
+  var esperado = PropertiesService.getScriptProperties().getProperty("ENTRADA_SEGREDO");
+  if (!esperado) return resp({ ok: false, erro: "ENTRADA_SEGREDO não configurado no Apps Script." });
+  if (!segredoIgual(dados.segredo, esperado)) return resp({ ok: false, erro: "Não autorizado." });
+  var mime = String(dados.mimetype || "").toLowerCase(), ext = MIMES_CLIENTE[mime];
+  if (!ext) return resp({ ok: false, erro: "Tipo de arquivo não aceito (só PDF e imagem)." });
+  var msgId = String(dados.msgId || ""); if (!msgId) return resp({ ok: false, erro: "Mensagem sem identificação." });
+  var chave = chaveDaEntrada(msgId), caminho = "/entrada/" + chave;
+  var bytes;
+  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
+  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais (máx. 10 MB)." });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  var arquivo;
+  try {
+    if (firebaseLer(caminho)) return resp({ ok: true, repetida: true });   // a Meta reentrega quando demora: a mensagem só entra uma vez
+    var data = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
+    var nome = textoCliente(dados.nomeArquivo, 120) || ("WhatsApp_" + chave + "." + ext);
+    arquivo = pastaDeEntrada().createFile(Utilities.newBlob(bytes, mime, data + "_" + nomeSeguroCliente(dados.remetente, 20) + "_" + nome));
+    var g = firebaseGravar("put", caminho, {
+      nome: nome, remetente: textoCliente(dados.remetente, 30), nomeRemetente: textoCliente(dados.nomeRemetente, 80), mime: mime,
+      tamanho: bytes.length, link: arquivo.getUrl(), selo: seloDoArquivo(chave, arquivo.getId()), em: Date.now()
+    });
+    if (g.getResponseCode() >= 300) { try { arquivo.setTrashed(true); } catch (e) { /* ficou solto na pasta de entrada */ } return resp({ ok: false, erro: "O banco recusou o registro (" + g.getResponseCode() + ")." }); }
+  } finally { lock.releaseLock(); }
+  return resp({ ok: true, chave: chave });
+}
+
+function entradaDoPainel(dados) {
+  var chave = String(dados.entradaId || "");
+  if (!/^w_[A-Za-z0-9]{1,60}$/.test(chave)) return { erro: "Arquivo da entrada inválido." };
+  var reg = firebaseLer("/entrada/" + chave);
+  if (!reg) return { erro: "Esse arquivo já foi tratado ou não existe mais." };
+  var id = extrairIdArquivo(reg.link);
+  if (!id || !reg.selo || reg.selo !== seloDoArquivo(chave, id)) return { erro: "O registro não tem o selo do arquivo." };
+  return { chave: chave, reg: reg, id: id };
+}
+
+function entradaAtribuir(dados) {
+  var e = entradaDoPainel(dados); if (e.erro) return resp({ ok: false, erro: e.erro });
+  var casoId = String(dados.casoId || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !firebaseLer("/casos/" + casoId + "/nome")) return resp({ ok: false, erro: "Caso não encontrado." });
+  var arquivo;
+  try { arquivo = DriveApp.getFileById(e.id); } catch (x) { return resp({ ok: false, erro: "O arquivo não está mais na pasta de entrada." }); }
+  var r = painelArquivoInterno({ casoId: casoId, nomeArquivo: e.reg.nome, mimetype: e.reg.mime, base64: Utilities.base64Encode(arquivo.getBlob().getBytes()) });
+  if (!r.ok) return resp(r);   // se falhou, o arquivo continua na entrada para tentar de novo
+  try { arquivo.setTrashed(true); } catch (x) { /* a cópia na pasta do caso já existe */ }
+  UrlFetchApp.fetch(FIREBASE_URL + "/entrada/" + e.chave + ".json", { method: "delete", muteHttpExceptions: true });
+  return resp(r);
+}
+
+function entradaDescartar(dados) {
+  var e = entradaDoPainel(dados); if (e.erro) return resp({ ok: false, erro: e.erro });
+  try { DriveApp.getFileById(e.id).setTrashed(true); } catch (x) { /* já não estava lá */ }
+  var r = UrlFetchApp.fetch(FIREBASE_URL + "/entrada/" + e.chave + ".json", { method: "delete", muteHttpExceptions: true });
+  if (r.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a remoção (" + r.getResponseCode() + ")." });
+  return resp({ ok: true });
+}
+
+// Corrigir depois: ela escolhe o tipo e escreve o nome da pessoa; o arquivo é renomeado no Drive e o registro acompanha.
+function painelRenomear(dados) {
+  var casoId = String(dados.casoId || ""), docKey = String(dados.docKey || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !/^pnl_[A-Za-z0-9_-]{4,40}$/.test(docKey)) return resp({ ok: false, erro: "Documento inválido." });
+  var tipo = String(dados.tipo || "").toUpperCase();
+  if (TIPOS_DOC_CARD.indexOf(tipo) === -1) return resp({ ok: false, erro: "Tipo de documento inválido." });
+  var pessoa = textoCliente(dados.pessoa, 80);
+  var caminho = "/casos/" + casoId + "/documentos/" + docKey;
+  var doc = firebaseLer(caminho);
+  if (!doc || doc.origem !== "arrastado no card") return resp({ ok: false, erro: "Documento não encontrado." });
+  var idArq = extrairIdArquivo(doc.link);
+  if (!idArq || !doc.selo || doc.selo !== seloDoArquivo(docKey, idArq)) return resp({ ok: false, erro: "O registro não tem o selo do arquivo." });
+  var arquivo = DriveApp.getFileById(idArq), nome = doc.nome;
+  var pasta = arquivo.getParents().hasNext() ? arquivo.getParents().next() : null;
+  var ext = String(arquivo.getName()).split(".").pop();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    if (pasta) { nome = nomeDoArquivoDoCard(pasta, pessoa, tipo, ext, idArq); arquivo.setName(nome); }
+  } finally { lock.releaseLock(); }
+  firebaseGravar("patch", caminho, { nome: nome, tipoDocumento: tipo, pessoa: pessoa, confirmar: false, corrigidoEm: new Date().toISOString() });
+  return resp({ ok: true, nome: nome });
+}
+
+function clienteArquivo(dados) {
+  var ctx = pedidoDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
+  var mime = String(dados.mimetype || "").toLowerCase();
+  var ext = MIMES_CLIENTE[mime];
+  if (!ext) return resp({ ok: false, erro: "Tipo de arquivo não aceito." });
+  var bytes;
+  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
+  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais." });
+
+  // A trava cobre só o que não pode correr em paralelo: o número do nome (dois arquivos do mesmo tipo
+  // chegando juntos ganhariam o mesmo) e a pasta (duas primeiras gravações criariam duas pastas). Criar o
+  // arquivo no Drive e gravar o registro — o que demora — ficam FORA dela, para os envios andarem juntos
+  // em vez de em fila. A leitura pela IA também fica de fora.
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  var docKey, nome, arquivo, pasta;
+  try {
+    // A numeração e o limite vêm de um contador pequeno do próprio pedido: ler todos os documentos do
+    // caso (cada um com o texto lido pela IA) a cada arquivo era o que mais pesava no envio.
+    var cont = firebaseLer("/pedidos/" + ctx.token + "/contagem") || {};
+    var total = Number(cont._total) || 0;
+    if (total >= CLIENTE_MAX_ARQUIVOS) return resp({ ok: false, erro: "Limite de arquivos deste link atingido." });
+    var data = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
+    var prefixo = [nomeSeguroCliente(dados.papel), nomeSeguroCliente(dados.pessoa), nomeSeguroCliente(dados.tipo)].filter(Boolean).join("_") + "_" + data + "_";
+    var chaveCont = prefixo.replace(/[^A-Za-z0-9_-]/g, "_");
+    var n = (Number(cont[chaveCont]) || 0) + 1;
+    var novaCont = { _total: total + 1 }; novaCont[chaveCont] = n;
+    firebaseGravar("patch", "/pedidos/" + ctx.token + "/contagem", novaCont);
+    nome = prefixo + n + "." + ext;
+    pasta = pastaDoCaso(ctx.caso, ctx.casoId);
+  } finally { lock.releaseLock(); }
+  {
+    arquivo = pasta.createFile(Utilities.newBlob(bytes, mime, nome));
+    docKey = "cli_" + ctx.token.slice(0, 6) + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 8);
+    var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/" + docKey, {
+      nome: nome, tipo: "documento", tipoDocumento: textoCliente(dados.tipo, 60), papel: textoCliente(dados.papel, 40),
+      pessoa: textoCliente(dados.pessoa, 80), origem: "link do cliente", link: arquivo.getUrl(), salvoEm: new Date().toISOString(),
+      selo: seloDoArquivo(docKey, arquivo.getId()),
+      provisorio: true // o cliente ainda pode trocar ou tirar; deixa de ser provisório quando ele conclui o envio
+    });
+    if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." });
+  }
+
+  var leu = false;
+  // Página nova: devolve já, e a leitura pela IA vem numa chamada à parte (cliente-ler), que corre
+  // enquanto o cliente termina de enviar — a IA era o que deixava o envio lento.
+  if (dados.lerDepois) return resp({ ok: true, nome: nome, leu: false, docKey: docKey });
+  if (MIMES_LEITURA_IA.indexOf(mime) !== -1) {
+    try {
+      var r = lerDocumentoComIA(dados.base64, mime, false);
+      if (r && r.texto) {
+        firebaseGravar("patch", "/casos/" + ctx.casoId + "/documentos/" + docKey, { texto: r.texto, truncado: !!r.truncou });
+        leu = true;
+      }
+    } catch (e) { /* o arquivo fica salvo; a minuta avisa que não conseguiu ler */ }
+  }
+  return resp({ ok: true, nome: nome, leu: leu, docKey: docKey });
+}
+
+// O cliente tirou ou trocou um arquivo que já tinha anexado (o envio acontece ao anexar). Só enquanto o link
+// está aberto, só o que nasceu deste link e só toca no Drive com o selo certo: vai para a lixeira.
+function clienteRemover(dados) {
+  var ctx = pedidoDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
+  var docKey = String(dados.docKey || "");
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(docKey) || docKey.indexOf("cli_" + ctx.token.slice(0, 6) + "_") !== 0) return resp({ ok: false, erro: "Documento inválido." });
+  var caminho = "/casos/" + ctx.casoId + "/documentos/" + docKey;
+  var doc = firebaseLer(caminho);
+  if (!doc || doc.origem !== "link do cliente") return resp({ ok: false, erro: "Documento não encontrado." });
+  var id = extrairIdArquivo(doc.link);
+  if (id && doc.selo && doc.selo === seloDoArquivo(docKey, id)) { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) { /* já não estava lá */ } }
+  var r = UrlFetchApp.fetch(FIREBASE_URL + caminho + ".json", { method: "delete", muteHttpExceptions: true });
+  if (r.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a remoção (" + r.getResponseCode() + ")." });
+  try { var cont = firebaseLer("/pedidos/" + ctx.token + "/contagem/_total"); if (Number(cont) > 0) firebaseGravar("patch", "/pedidos/" + ctx.token + "/contagem", { _total: Number(cont) - 1 }); } catch (e) { /* só um contador */ }
+  return resp({ ok: true });
+}
+
+// A leitura pela IA de um arquivo já guardado. Vale também depois de o link ser concluído (a leitura
+// termina depois do envio). O arquivo é lido do Drive, pelo registro do card; o código do link só
+// autoriza documentos nascidos dele (a chave leva o começo do código).
+function clienteLer(dados) {
+  var ctx = pedidoDoCliente(dados.t, true);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido ou vencido." });
+  var docKey = String(dados.docKey || "");
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(docKey) || docKey.indexOf("cli_" + ctx.token.slice(0, 6) + "_") !== 0) return resp({ ok: false, erro: "Documento inválido." });
+  var caminho = "/casos/" + ctx.casoId + "/documentos/" + docKey;
+  var doc = firebaseLer(caminho);
+  if (!doc || doc.origem !== "link do cliente") return resp({ ok: false, erro: "Documento não encontrado." });
+  if (doc.texto) return resp({ ok: true, leu: true });
+  var r = lerArquivoDoCliente(caminho, docKey, doc);
+  return resp({ ok: true, leu: r.leu });
+}
+
+// Lê do Drive o arquivo de um registro do card e grava o texto. Devolve {leu, erro}: o erro vai escrito
+// para quem pediu a leitura de novo, em vez de o arquivo ficar "sem leitura" sem ninguém saber por quê.
+function lerArquivoDoCliente(caminho, docKey, doc) {
+  firebaseGravar("patch", caminho, { lendo: Date.now() });
+  var id = extrairIdArquivo(doc.link), leu = false, erro = "";
+  try {
+    if (!id || !doc.selo || doc.selo !== seloDoArquivo(docKey, id)) throw new Error("O registro não tem o selo do envio pelo link.");
+    var blob = DriveApp.getFileById(id).getBlob(), mime = String(blob.getContentType() || "").toLowerCase();
+    if (MIMES_LEITURA_IA.indexOf(mime) === -1) throw new Error("A IA só lê PDF e imagem (JPG, PNG, WEBP, GIF); este arquivo é " + (mime || "de tipo desconhecido") + ".");
+    var r = lerDocumentoComIA(Utilities.base64Encode(blob.getBytes()), mime, false);
+    if (r && r.texto) { firebaseGravar("patch", caminho, { texto: r.texto, truncado: !!r.truncou, lendo: null }); leu = true; }
+    else erro = "A IA não devolveu texto para este arquivo.";
+  } catch (e) { erro = String(e && e.message || e).slice(0, 300); }
+  if (!leu) firebaseGravar("patch", caminho, { lendo: null });
+  return { leu: leu, erro: erro };
+}
+
+// Pedido do painel: "ler de novo" um arquivo que o cliente mandou e ficou sem leitura. O Drive só é
+// tocado quando o selo confere (mesma regra de cliente-excluir): o banco é aberto.
+function clienteReler(dados) {
+  var casoId = String(dados.casoId || ""), docKey = String(dados.docKey || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !/^[A-Za-z0-9_-]{1,120}$/.test(docKey)) return resp({ ok: false, erro: "Documento inválido." });
+  var caminho = "/casos/" + casoId + "/documentos/" + docKey;
+  var doc = firebaseLer(caminho);
+  if (!doc || ORIGENS_ARQUIVO.indexOf(doc.origem) === -1) return resp({ ok: false, erro: "Só dá para reler por aqui o que o cliente enviou pelo link ou o que foi arrastado para o card." });
+  var r = lerArquivoDoCliente(caminho, docKey, doc);
+  return resp(r.leu ? { ok: true, leu: true } : { ok: false, erro: r.erro || "Não consegui ler." });
+}
+
+// Os dados que o cliente digitou, em texto corrido: é assim que a minuta os lê.
+function montarFichaCliente(d, dataTxt, rotulos) {
+  d = d || {}; rotulos = rotulos || {};
+  var L = ["DADOS INFORMADOS PELO CLIENTE (preenchidos por ele no link de envio, em " + dataTxt + "; ainda não conferidos pela equipe)"];
+  if (d.ato) L.push("Ato: " + textoCliente(d.ato, 120));
+  if (Array.isArray(d.documentosFaltando) && d.documentosFaltando.length) L.push("", "DOCUMENTOS QUE O CLIENTE NÃO TINHA NA HORA DO ENVIO (ele confirmou o envio mesmo assim; a equipe deve pedir): " + d.documentosFaltando.slice(0, 40).map(function (x) { return textoCliente(x, 100); }).join("; "));
+  (Array.isArray(d.pessoas) ? d.pessoas : []).slice(0, 30).forEach(function (p) {
+    p = p || {};
+    L.push("", textoCliente(p.papel, 40).toUpperCase() + " — " + textoCliente(p.nome, 120));
+    if (p.estadoCivil) L.push("  Estado civil: " + textoCliente(p.estadoCivil, 40));
+    if (p.profissao) L.push("  Profissão: " + textoCliente(p.profissao, 80));
+    if (p.endereco) L.push("  Endereço: " + textoCliente(p.endereco, 300));
+    if (p.regime) L.push("  Regime de bens: " + textoCliente(p.regime, 80));
+    if (p.uniaoEstavel) L.push("  Vive em união estável: sim (a escritura foi pedida)");
+    if (p.conjuge && p.conjuge.nome) {
+      L.push("  Cônjuge: " + textoCliente(p.conjuge.nome, 120) + (p.conjuge.profissao ? ", " + textoCliente(p.conjuge.profissao, 80) : "") + (p.conjuge.endereco ? ", " + textoCliente(p.conjuge.endereco, 300) : ""));
+    }
+  });
+  (Array.isArray(d.falecidos) ? d.falecidos : []).slice(0, 5).forEach(function (f) {
+    f = f || {};
+    L.push("", "FALECIDO(A) — " + textoCliente(f.nome, 120));
+    if (f.estadoCivil) L.push("  Estado civil na data do óbito: " + textoCliente(f.estadoCivil, 40));
+    if (f.regime) L.push("  Regime de bens: " + textoCliente(f.regime, 80));
+    if (f.conjuge && f.conjuge.nome) L.push("  Cônjuge: " + textoCliente(f.conjuge.nome, 120) + (f.conjuge.profissao ? ", " + textoCliente(f.conjuge.profissao, 80) : ""));
+  });
+  var c = d.campos && typeof d.campos === "object" ? d.campos : {};
+  Object.keys(c).slice(0, 40).forEach(function (b) {
+    var campos = c[b] && typeof c[b] === "object" ? c[b] : {};
+    Object.keys(campos).slice(0, 20).forEach(function (f) {
+      var v = textoCliente(campos[f], 300); if (!v) return;
+      L.push("", (rotulos[b + "." + f] || textoCliente(f, 40)) + ": " + v);
+    });
+  });
+  var bancos = d.banco && typeof d.banco === "object" ? d.banco : {};
+  Object.keys(bancos).slice(0, 5).forEach(function (b) {
+    var v = bancos[b] || {};
+    var titulo = /\.pagador$/.test(b) ? "CONTA DE ONDE SAIRÁ O PAGAMENTO" : /\.recebedor$/.test(b) ? "CONTA QUE RECEBERÁ O PAGAMENTO" : "DADOS BANCÁRIOS";
+    L.push("", titulo, "  Banco: " + textoCliente(v.banco, 60) + " · Agência: " + textoCliente(v.agencia, 20) + " · Conta: " + textoCliente(v.conta, 30) + " · Titular: " + textoCliente(v.titular, 120) + (v.pix ? " · PIX: " + textoCliente(v.pix, 80) : ""));
+  });
+  if (d.advogado && (d.advogado.nome || d.advogado.oab)) {
+    L.push("", "ADVOGADO(A) — " + textoCliente(d.advogado.nome, 120) + " · OAB " + textoCliente(d.advogado.oab, 30) + (d.advogado.ec ? " · " + textoCliente(d.advogado.ec, 40) : "") + (d.advogado.end ? " · " + textoCliente(d.advogado.end, 300) : ""));
+  }
+  (Array.isArray(d.filhos) ? d.filhos : []).slice(0, 20).forEach(function (f, i) {
+    f = f || {};
+    L.push("", "FILHO(A) " + (i + 1) + " — " + textoCliente(f.nome, 120) + (f.ec ? " · " + textoCliente(f.ec, 40) : "") + (f.prof ? " · " + textoCliente(f.prof, 80) : "") + (f.end ? " · " + textoCliente(f.end, 300) : ""));
+  });
+  if (Array.isArray(d.clausulas) && d.clausulas.length) L.push("", "CLÁUSULAS QUE O CLIENTE QUER: " + d.clausulas.slice(0, 10).map(function (x) { return textoCliente(x, 60); }).join(", "));
+  if (d.observacoes) L.push("", "OBSERVAÇÕES DO CLIENTE (para a equipe conferir antes de usar na minuta): " + textoCliente(d.observacoes, 1500));
+  return L.join("\n");
+}
+
+function clienteDados(dados) {
+  var ctx = pedidoDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
+  var rotulos = {};
+  (ctx.pedido.blocos || []).forEach(function (b) { (b.campos || []).forEach(function (c) { rotulos[b.id + "." + c.id] = c.rotulo; }); });
+  var agora = new Date();
+  var ficha = montarFichaCliente(dados.dados, Utilities.formatDate(agora, "America/Sao_Paulo", "dd/MM/yyyy"), rotulos);
+  var fichaKey = "ficha_" + ctx.token.slice(0, 10);
+  var registroFicha = { nome: "DADOS_INFORMADOS_PELO_CLIENTE", tipo: "informacoes", origem: "link do cliente", texto: ficha, salvoEm: agora.toISOString() };
+  try {
+    var txt = pastaDoCaso(ctx.caso, ctx.casoId).createFile("DADOS_INFORMADOS_PELO_CLIENTE_" + Utilities.formatDate(agora, "America/Sao_Paulo", "yyyy-MM-dd") + ".txt", ficha, MimeType.PLAIN_TEXT);
+    registroFicha.link = txt.getUrl(); registroFicha.selo = seloDoArquivo(fichaKey, txt.getId());
+  } catch (e) { /* o registro no card é o que importa */ }
+  var gravou = firebaseGravar("put", "/casos/" + ctx.casoId + "/documentos/" + fichaKey, registroFicha);
+  if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou os dados (" + gravou.getResponseCode() + ")." });
+  // Os arquivos enviados ao anexar deixam de ser provisórios: o cliente concluiu.
+  var chavesOk = (Array.isArray(dados.docKeys) ? dados.docKeys : []).slice(0, CLIENTE_MAX_ARQUIVOS).filter(function (k) {
+    return /^[A-Za-z0-9_-]{1,120}$/.test(String(k)) && String(k).indexOf("cli_" + ctx.token.slice(0, 6) + "_") === 0;
+  });
+  chavesOk.forEach(function (k) { try { firebaseGravar("patch", "/casos/" + ctx.casoId + "/documentos/" + k, { provisorio: null }); } catch (e) { /* o card mostra "aguardando" */ } });
+  // O link fecha (concluidoEm) e o card ganha o aviso que o Jornal mostra no topo do painel.
+  try { firebaseGravar("patch", "/pedidos/" + ctx.token, { concluidoEm: Date.now() }); } catch (e) { /* só um carimbo */ }
+  try { firebaseGravar("put", "/casos/" + ctx.casoId + "/envioCliente", { em: Date.now(), pedido: ctx.token, arquivos: chavesOk.length || Math.max(0, Math.min(999, Number(dados.nArquivos) || 0)), ato: textoCliente(ctx.pedido.ato, 80), faltando: Array.isArray(dados.dados && dados.dados.documentosFaltando) ? Math.min(99, dados.dados.documentosFaltando.length) : 0, visto: false }); } catch (e) { /* o aviso é cortesia */ }
+  try { enviarWhatsApp("📥 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou os documentos pelo link. Já estão no card."); } catch (e) { /* aviso é cortesia */ }
+  return resp({ ok: true });
+}
+
+// Exclui um documento que o cliente enviou: o arquivo vai para a LIXEIRA do Drive (volta por até 30
+// dias, como a exclusão de pasta) e o registro sai do card — então a minuta deixa de usá-lo.
+// Só mexe no que veio pelo link (origem) e só toca no Drive quando o selo confere.
+function clienteExcluir(dados) {
+  var casoId = String(dados.casoId || ""), docKey = String(dados.docKey || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !/^[A-Za-z0-9_-]{1,120}$/.test(docKey)) return resp({ ok: false, erro: "Documento inválido." });
+  var caminho = "/casos/" + casoId + "/documentos/" + docKey;
+  var doc = firebaseLer(caminho);
+  if (!doc || ORIGENS_ARQUIVO.indexOf(doc.origem) === -1) return resp({ ok: false, erro: "Só dá para excluir por aqui o que o cliente enviou pelo link ou o que foi arrastado para o card." });
+  var arquivo = "sem arquivo";
+  var idArquivo = extrairIdArquivo(doc.link);
+  if (idArquivo) {
+    if (doc.selo && doc.selo === seloDoArquivo(docKey, idArquivo)) {
+      try { DriveApp.getFileById(idArquivo).setTrashed(true); arquivo = "lixeira"; } catch (e) { arquivo = "não encontrado"; }
+    } else {
+      arquivo = "sem selo"; // registro antigo ou forjado: sai do card, mas o Drive não é tocado
+    }
+  }
+  var r = UrlFetchApp.fetch(FIREBASE_URL + caminho + ".json", { method: "delete", muteHttpExceptions: true });
+  if (r.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a exclusão (" + r.getResponseCode() + ")." });
+  return resp({ ok: true, arquivo: arquivo });
+}
+
+// ── Pagamento: o cliente paga e anexa o comprovante (pagar.html) ───────────
+// O painel grava a cobrança em /cobrancas/{código}: "meta" (pequeno: o caso, a validade, quais cobranças e os
+// comprovantes), "dados" (valores e textos) e "imagens" (recibo, boleto e orçamento, pesados). Aqui só se lê o
+// "meta", para não trazer as imagens a cada arquivo. O comprovante vai para a pasta do caso e NÃO entra em
+// /casos/{id}/documentos: lá a minuta lê tudo, e um comprovante sem texto lido travaria a geração.
+var PAGAMENTO_ROTULO = { escritura: "escritura", registro: "registro de imóveis" };
+var PAGAMENTO_MAX_COMPROVANTES = 10;
+
+function cobrancaDoCliente(token, aceitaConcluido) {
+  token = String(token || "");
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
+  var meta = firebaseLer("/cobrancas/" + token + "/meta");
+  if (!meta || !meta.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(meta.casoId))) return null;
+  if (meta.tipo === "orcamento") return null; // o link do orçamento não serve de link de pagamento
+  if (meta.expiraEm && Date.now() > meta.expiraEm) return null;
+  if (meta.concluidoEm && !aceitaConcluido) return null; // já enviado: o link fecha
+  var lido = firebaseLerVarios(["/casos/" + meta.casoId + "/nome", "/casos/" + meta.casoId + "/driveUrl"]);
+  if (lido[0] === undefined || lido[0] === null) return null;
+  var caso = { nome: lido[0], driveUrl: lido[1] || "" };
+  return { meta: meta, caso: caso, casoId: meta.casoId, token: token };
+}
+
+function pagamentoArquivo(dados) {
+  var ctx = cobrancaDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
+  var qual = String(dados.qual || "");
+  // Os comprovantes ficam num lugar só: a página manda um código novo a cada arquivo ("c…"); "escritura"/"registro" são dos links antigos.
+  if (!PAGAMENTO_ROTULO[qual] && !/^c[a-z0-9]{4,16}$/.test(qual)) return resp({ ok: false, erro: "Comprovante inválido." });
+  if (Object.keys(ctx.meta.comprovantes || {}).length >= PAGAMENTO_MAX_COMPROVANTES && !(ctx.meta.comprovantes || {})[qual]) return resp({ ok: false, erro: "Limite de comprovantes deste link atingido." });
+  var mime = String(dados.mimetype || "").toLowerCase();
+  var ext = MIMES_CLIENTE[mime];
+  if (!ext) return resp({ ok: false, erro: "Tipo de arquivo não aceito." });
+  var bytes;
+  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
+  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais." });
+
+  // A trava só existe para duas primeiras gravações não criarem duas pastas: com a pasta do caso já conhecida, não há o que travar.
+  var pasta = null, idPasta = extrairIdPasta(ctx.caso.driveUrl || "");
+  if (idPasta) { try { pasta = DriveApp.getFolderById(idPasta); } catch (e) { pasta = null; } }
+  if (!pasta) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try { pasta = pastaDoCaso(ctx.caso, ctx.casoId); } finally { lock.releaseLock(); }
+  }
+
+  var agora = new Date();
+  var nome = "Comprovante_" + (qual === "escritura" ? "Escritura_" : qual === "registro" ? "Registro_" : "") + nomeSeguroCliente(ctx.caso.nome, 30) + "_" +
+    Utilities.formatDate(agora, "America/Sao_Paulo", "yyyy-MM-dd") + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 4) + "." + ext;
+  var arquivo = pasta.createFile(Utilities.newBlob(bytes, mime, nome));
+  var docKey = "pag_" + ctx.token.slice(0, 6) + "_" + String(Utilities.getUuid()).replace(/-/g, "").slice(0, 8);
+  var reg = { docKey: docKey, nome: textoCliente(dados.nomeArquivo, 120) || nome, arquivo: nome, link: arquivo.getUrl(), selo: seloDoArquivo(docKey, arquivo.getId()), em: Date.now(), mime: mime };
+  var anterior = (ctx.meta.comprovantes || {})[qual];
+  var gravou = firebaseGravar("put", "/cobrancas/" + ctx.token + "/meta/comprovantes/" + qual, reg);
+  if (gravou.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." });
+  // Trocou o comprovante: o anterior vai para a lixeira, só se o selo conferir.
+  if (anterior && anterior.docKey) {
+    var idAnt = extrairIdArquivo(anterior.link);
+    if (idAnt && anterior.selo && anterior.selo === seloDoArquivo(anterior.docKey, idAnt)) { try { DriveApp.getFileById(idAnt).setTrashed(true); } catch (e) { /* já não estava lá */ } }
+  }
+  return resp({ ok: true, nome: nome, docKey: docKey });
+}
+
+// O cliente anexou o comprovante errado e quer tirá-lo, enquanto o link está aberto. O arquivo só vai para a lixeira do Drive
+// se o selo conferir (o banco é aberto: um registro forjado poderia apontar para outro arquivo).
+function pagamentoRemover(dados) {
+  var ctx = cobrancaDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
+  var qual = String(dados.qual || "");
+  if (!/^c[a-z0-9]{4,16}$/.test(qual) && !PAGAMENTO_ROTULO[qual]) return resp({ ok: false, erro: "Comprovante inválido." });
+  var reg = (ctx.meta.comprovantes || {})[qual];
+  if (!reg || !reg.docKey) return resp({ ok: true }); // já não estava lá
+  var id = extrairIdArquivo(reg.link);
+  if (id && reg.selo && reg.selo === seloDoArquivo(reg.docKey, id)) { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) { /* já não estava lá */ } }
+  var r = firebaseGravar("delete", "/cobrancas/" + ctx.token + "/meta/comprovantes/" + qual, null);
+  if (r.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a remoção (" + r.getResponseCode() + ")." });
+  return resp({ ok: true });
+}
+
+function pagamentoConcluir(dados) {
+  var ctx = cobrancaDoCliente(dados.t);
+  if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
+  var itens = Object.keys(ctx.meta.itens || {}).filter(function (k) { return ctx.meta.itens[k]; });
+  var comps = ctx.meta.comprovantes || {};
+  var chegaram = Object.keys(comps).filter(function (k) { return (comps[k] || {}).docKey; }).length;
+  // Um comprovante para cada pagamento, no mínimo: os dois podem vir juntos, na ordem que o cliente anexar.
+  if (!itens.length || chegaram < itens.length) return resp({ ok: false, erro: "Faltam comprovantes: anexe um para cada pagamento (" + itens.map(function (k) { return PAGAMENTO_ROTULO[k]; }).join(" e ") + ")." });
+  var agora = Date.now();
+  var a = firebaseGravar("patch", "/cobrancas/" + ctx.token + "/meta", { concluidoEm: agora });
+  if (a.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a conclusão (" + a.getResponseCode() + ")." });
+  try { firebaseGravar("patch", "/casos/" + ctx.casoId + "/pagamento", { status: "recebido", recebidoEm: agora, visto: false, comprovantes: chegaram }); } catch (e) { /* o aviso é cortesia */ }
+  try { enviarWhatsApp("💳 O cliente do caso \"" + textoCliente(ctx.caso.nome, 80) + "\" enviou os comprovantes de pagamento (" + chegaram + " arquivo" + (chegaram > 1 ? "s" : "") + "). Estão no card."); } catch (e) { /* aviso é cortesia */ }
+  return resp({ ok: true });
+}
+
+// O cliente toca em "Aprovo este orçamento": fica registrado no card (versão, data e hora) para o link de pagamento
+// e para a equipe. Só vale para um link de orçamento (meta.tipo) ainda aberto, e aprovar de novo não muda a data.
+function orcamentoAprovar(dados) {
+  var token = String(dados.t || "");
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return resp({ ok: false, erro: "Link inválido." });
+  var meta = firebaseLer("/cobrancas/" + token + "/meta");
+  if (!meta || meta.tipo !== "orcamento" || !meta.casoId || !/^[A-Za-z0-9_-]{6,40}$/.test(String(meta.casoId))) return resp({ ok: false, erro: "Link inválido." });
+  if (meta.aprovadoEm) return resp({ ok: true, em: meta.aprovadoEm, ja: true });
+  if (meta.expiraEm && Date.now() > meta.expiraEm) return resp({ ok: false, erro: "Este link venceu. Peça um novo ao cartório." });
+  var nome = firebaseLer("/casos/" + meta.casoId + "/nome");
+  if (nome === undefined || nome === null) return resp({ ok: false, erro: "Link inválido." });
+  var agora = Date.now();
+  var a = firebaseGravar("patch", "/cobrancas/" + token + "/meta", { aprovadoEm: agora });
+  if (a.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro (" + a.getResponseCode() + ")." });
+  var b = firebaseGravar("put", "/casos/" + meta.casoId + "/orcAprovacao", { orcId: String(meta.orcId || "").slice(0, 60), versao: String(meta.versao || "").slice(0, 20), em: agora, token: token, visto: false });
+  if (b.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou o registro no card (" + b.getResponseCode() + ")." });
+  try { enviarWhatsApp("✅ O cliente do caso \"" + textoCliente(nome, 80) + "\" aprovou o orçamento (versão " + String(meta.versao || "") + "). Está no card."); } catch (e) { /* aviso é cortesia */ }
+  return resp({ ok: true, em: agora });
+}
+
+// O painel pede para a IA ler o recibo ou o boleto que acabou de anexar, e preencher os campos da janela de pagamento.
+// O que volta é HIPÓTESE: o painel confere as contas (o total do recibo contra a soma das parcelas; o valor e o
+// vencimento do boleto contra a linha digitável) antes de preencher qualquer coisa, e ela ainda confere à vista.
+var PAGAMENTO_LER_MAX_BASE64 = 7 * 1024 * 1024;
+function instrucaoLerPagamento(tipo) {
+  if (tipo === "recibo") {
+    return "Este é o recibo de pagamento de um cartório de notas. Responda SOMENTE com um JSON, sem explicação e sem formatação, neste formato exato: " +
+      '{"total_das_custas":"3.039,89","total_recebido":"3.039,89","parcelas":["1.810,12","514,46"]}. ' +
+      "total_das_custas é o valor da linha 'TOTAL DAS CUSTAS'; total_recebido é o da linha 'Total Recebido'; parcelas são os valores de cada linha de despesa listada (emolumentos, estado, secretaria da fazenda, ISS, ministério público, registro civil, tribunal de justiça, santa casa etc.), na ordem em que aparecem, sem o total. " +
+      "Copie os números dígito por dígito, exatamente como estão impressos, no formato brasileiro (ponto de milhar, vírgula nos centavos). Dígitos parecidos (0/6/8, 1/7, 3/8, 5/6) devem ser conferidos duas vezes. Se algum valor não estiver nítido, use null no lugar dele em vez de adivinhar.";
+  }
+  return "Este é um boleto bancário. Responda SOMENTE com um JSON, sem explicação e sem formatação, neste formato exato: " +
+    '{"linha_digitavel":"26091.90299 37227.373505 99600.000006 2 16080000386807","beneficiario":"NOME DO BENEFICIÁRIO","cnpj":"47.141.731/0001-10"}. ' +
+    "linha_digitavel é a sequência de 47 dígitos impressa acima do código de barras (a 'ficha de compensação'), com a pontuação e os espaços do jeito que aparecem; beneficiario é o nome de quem recebe (o 'Beneficiário'); cnpj é o CNPJ ou CPF do beneficiário. " +
+    "Copie os números dígito por dígito, exatamente como estão impressos. Dígitos parecidos (0/6/8, 1/7, 3/8, 5/6) devem ser conferidos duas vezes. Se algum campo não estiver nítido, use null no lugar dele em vez de adivinhar.";
+}
+function pagamentoLer(dados) {
+  var tipo = String(dados.tipo || ""), mime = String(dados.mimetype || "").toLowerCase(), b64 = String(dados.base64 || "");
+  if (tipo !== "recibo" && tipo !== "boleto") return resp({ ok: false, erro: "Pedido inválido." });
+  if (MIMES_LEITURA_IA.indexOf(mime) === -1) return resp({ ok: false, erro: "A IA só lê PDF e imagem." });
+  if (!b64 || b64.length > PAGAMENTO_LER_MAX_BASE64) return resp({ ok: false, erro: "Arquivo vazio ou grande demais para ler." });
+  var bloco = mime === "application/pdf"
+    ? { type: "document", source: { type: "base64", media_type: mime, data: b64 } }
+    : { type: "image", source: { type: "base64", media_type: mime, data: b64 } };
+  var r;
+  try { r = chamarClaudeArquivoRaw([bloco, { type: "text", text: instrucaoLerPagamento(tipo) }]); }
+  catch (e) { return resp({ ok: false, erro: String(e && e.message || e).slice(0, 200) }); }
+  var texto = String((r && r.texto) || "");
+  var m = texto.match(/\{[\s\S]*\}/);
+  if (!m) return resp({ ok: false, erro: "A IA não devolveu os dados em formato legível." });
+  var obj;
+  try { obj = JSON.parse(m[0]); } catch (e) { return resp({ ok: false, erro: "A IA devolveu os dados em formato ilegível." }); }
+  if (!obj || typeof obj !== "object") return resp({ ok: false, erro: "A IA não devolveu os dados." });
+  return resp({ ok: true, dados: obj });
+}
+
+// O painel pede o comprovante de volta para imprimir (a equipe leva ao financeiro do cartório). O banco é aberto,
+// então o Drive só é lido quando o selo do registro confere.
+function pagamentoVer(dados) {
+  var casoId = String(dados.casoId || ""), qual = String(dados.qual || "todos");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || (qual !== "todos" && !PAGAMENTO_ROTULO[qual] && !/^c[a-z0-9]{4,16}$/.test(qual))) return resp({ ok: false, erro: "Pedido inválido." });
+  var token = firebaseLer("/casos/" + casoId + "/pagamento/token");
+  if (!token || !/^[A-Za-z0-9_-]{16,64}$/.test(String(token))) return resp({ ok: false, erro: "Este caso não tem cobrança." });
+  var comps = firebaseLer("/cobrancas/" + token + "/meta/comprovantes") || {};
+  var chaves = Object.keys(comps).filter(function (k) { return (qual === "todos" || k === qual) && (comps[k] || {}).docKey; }).sort(function (a, b) { return (comps[a].em || 0) - (comps[b].em || 0); });
+  if (!chaves.length) return resp({ ok: false, erro: "Ainda não há comprovante desta cobrança." });
+  var itens = [], recusados = 0;
+  chaves.forEach(function (k) {
+    var reg = comps[k], id = extrairIdArquivo(reg.link);
+    // O Drive só é lido quando o selo confere: o banco é aberto e um registro forjado poderia apontar para outro arquivo.
+    if (!id || !reg.selo || reg.selo !== seloDoArquivo(reg.docKey, id)) { recusados++; return; }
+    try { var blob = DriveApp.getFileById(id).getBlob(); itens.push({ mime: String(blob.getContentType() || reg.mime || ""), nome: reg.nome || reg.arquivo || "comprovante", base64: Utilities.base64Encode(blob.getBytes()) }); }
+    catch (e) { recusados++; }
+  });
+  if (!itens.length) return resp({ ok: false, erro: recusados ? "O registro do comprovante não confere, ou o arquivo não está mais no Drive." : "Ainda não há comprovante desta cobrança." });
+  // O primeiro vai também nos campos de sempre, para o painel antigo continuar funcionando.
+  return resp({ ok: true, itens: itens, recusados: recusados, mime: itens[0].mime, nome: itens[0].nome, base64: itens[0].base64 });
 }
 
 // ── Criar minuta doc (via Vercel proxy — retorna resp()) ───────────────────

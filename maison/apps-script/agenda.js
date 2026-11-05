@@ -1,5 +1,5 @@
 /**
- * Convites da Google Agenda do painel Maison Beauty.
+ * Convites da Google Agenda do painel Tháriga Beauty & Co.
  * Mexe na agenda da Tháriga (thariga.pmu@gmail.com): o convite sai por ela,
  * e a cliente aceita ou recusa pelo próprio e-mail.
  *
