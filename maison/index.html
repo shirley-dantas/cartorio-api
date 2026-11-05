@@ -554,7 +554,7 @@ const PERGUNTAS=[['Está grávida ou amamentando?','Gestante ou amamentando'],
 
 // ═══ Estado e caches ═══════════════════════════════════════════════════
 const S={user:null,tab:'hoje',unit:'todas',day:0,q:'',erros:{}};
-const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},adiantamentos:{},instagram:{},mCfg:{},mVou:{},fVou:{},pubMai:{},pubFlo:{},mRes:{},fRes:{},mBlq:{},fBlq:{}};
+const C={mClientes:{},fClientes:{},mAgenda:{},fAgenda:{},mAtend:{},fAtend:{},mAnam:{},fAnam:{},mServ:{},fServ:{},mConv:{},mPend:{},fConv:{},fPend:{},mReg:{},fReg:{},valores:{},fornecedores:{},contas:{},cursos:{},aulas:{},config:{},pagamentos:{},adiantamentos:{},minhaCom:{},instagram:{},mCfg:{},mVou:{},fVou:{},pubMai:{},pubFlo:{},mRes:{},fRes:{},mBlq:{},fBlq:{}};
 const arr=o=>Object.entries(o||{}).map(([id,v])=>({id,...v}));
 const isAdmin=()=>S.user?.perfil==='admin';
 const meuPro=()=>S.user?.pro;
@@ -582,11 +582,11 @@ const qzChave=p=>`${iso(qzAtual().ini)}_${p}`;
 const subs=[];
 function pararLeituras(){subs.splice(0).forEach(f=>f&&f())}
 function errLeitura(p,e){S.erros[p]=e.code==='PERMISSION_DENIED'||/permission/i.test(e.message)?'o banco recusou a leitura (permissão)':e.message;render()}
-function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];agendarRender();if(/agenda|reservas|publico|bloqueios/.test(p))agendarSecretaria()},errLeitura))}
+function ouvir(p,chave){subs.push(DB.sub(p,v=>{C[chave]=v||{};delete S.erros[p];agendarRender();if(/agenda|reservas|publico|bloqueios|atendimentos|valores|admin/.test(p))agendarSecretaria()},errLeitura))}
 let rq=0;function agendarRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;if(S.user)render()})}
 function comecarLeituras(){
   pararLeituras();
-  ouvir('maison/config','mCfg');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/reservas','mRes');ouvir('maison/bloqueios','mBlq');ouvir('publico/agenda/mai','pubMai');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
+  ouvir('maison/config','mCfg');if(!isAdmin()&&COM_PROS.includes(meuPro()))ouvir('comissoes/'+meuPro(),'minhaCom');ouvir('maison/clientes','mClientes');ouvir('maison/agenda','mAgenda');ouvir('maison/atendimentos','mAtend');ouvir('maison/anamneses','mAnam');ouvir('maison/servicos','mServ');ouvir('maison/convites','mConv');ouvir('maison/vouchers','mVou');ouvir('maison/reservas','mRes');ouvir('maison/bloqueios','mBlq');ouvir('publico/agenda/mai','pubMai');ouvir('maison/pendentes','mPend');ouvir('maison/registros','mReg');
   if(isAdmin()){
     ouvir('florenca/clientes','fClientes');ouvir('florenca/agenda','fAgenda');ouvir('florenca/atendimentos','fAtend');ouvir('florenca/anamneses','fAnam');ouvir('florenca/servicos','fServ');ouvir('florenca/registros','fReg');ouvir('florenca/convites','fConv');ouvir('florenca/vouchers','fVou');ouvir('florenca/reservas','fRes');ouvir('florenca/bloqueios','fBlq');ouvir('publico/agenda/flo','pubFlo');ouvir('florenca/pendentes','fPend');
     ouvir('financeiro/valores','valores');
@@ -645,9 +645,9 @@ else{
 }
 
 // ═══ Telas ═════════════════════════════════════════════════════════════
-const TABS=[['hoje','Hoje'],['agenda','Agenda'],['livres','Horários livres'],['clientes','Clientes'],['anamnese','Anamnese'],['financeiro','Financeiro',1],['comissoes','Comissões',1],['servicos','Serviços e preços',1],['fornecedores','Fornecedores',1],['cursos','Cursos',1],['aulas','Aulas',1],['instagram','Instagram',1]];
+const TABS=[['hoje','Hoje'],['agenda','Agenda'],['livres','Horários livres'],['clientes','Clientes'],['anamnese','Anamnese'],['financeiro','Financeiro',1],['comissoes','Comissões',1],['mincom','Minha comissão',0,1],['servicos','Serviços e preços',1],['fornecedores','Fornecedores',1],['cursos','Cursos',1],['aulas','Aulas',1],['instagram','Instagram',1]];
 function renderChrome(){
-  const tabs=TABS.filter(t=>isAdmin()||!t[2]);
+  const tabs=TABS.filter(t=>t[3]?(!isAdmin()&&COM_PROS.includes(meuPro())):(isAdmin()||!t[2]));
   if(!tabs.find(t=>t[0]===S.tab))S.tab='hoje';
   document.getElementById('quem').innerHTML=`<b>${esc(S.user.nome)}</b><br>${isAdmin()?'Administradora':'Funcionária · Maison'}${DEMO?' · demonstração':''}<br><button class="btn sm" id="avisos1" data-avisos style="margin-top:8px">Ativar avisos</button> <button class="btn sm" id="sair1" style="margin-top:8px">Sair</button>`;
   document.getElementById('sair1').onclick=sair;document.getElementById('avisos1').onclick=alternarAvisos;atualizarBotaoAvisos();
@@ -819,7 +819,7 @@ const reabrirHorario=(id,p)=>grava(()=>DB.del(p+'/bloqueios/'+id),'Horário reab
 const PX30=44;
 function cartaoAg(a){const at=a.st==='Atendido'?histAll(true).find(h=>h.agenda===a.id&&!h.cancelado):null;
   return `<div class="appt ${a.st==='Atendido'?'done':''}" style="border-left-color:${COR_PRO[a.pro]||'var(--berry)'}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}${a.origem==='link'?' <span class="tag">Pelo link</span>':''}<div class="small muted">${esc(sv(a.serv,a.unit).n)} · ${esc(PEOPLE[a.pro]?.n||'')}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}</div>
-   <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}${isAdmin()?`<button class="btn sm" data-troc="${a.id}" data-p="${a._p}">Trocar cliente</button>`:''}</div></div>`}
+   <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${at&&isAdmin()?`<button class="btn sm" data-reab="${a.id}" data-p="${a._p}">Reabrir atendimento</button>`:''}${at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-trocp="${a.id}" data-p="${a._p}">Trocar profissional</button><button class="btn sm" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}${isAdmin()?`<button class="btn sm" data-troc="${a.id}" data-p="${a._p}">Trocar cliente</button>`:''}</div></div>`}
 // Troca a cliente de um horário (só a Tháriga): serve para corrigir agendamentos que ficaram no nome errado.
 // Vale também para o que já foi atendido: o histórico e o valor cobrado ficam como estão, só muda de quem é.
 function trocarCliente(id,p,pre){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a||!isAdmin())return;
@@ -833,6 +833,25 @@ function trocarCliente(id,p,pre){const a=agenda().find(x=>x.id===id&&x._p===p);i
     const ok=await grava(async()=>{await DB.upd(p+'/agenda/'+id,{cli:novo});
       const h=histAll(true).find(x=>x.agenda===id&&x._p===p);if(h)await DB.upd(p+'/atendimentos/'+h.id,{cli:novo})},'Cliente trocada');
     if(ok)closeDlg()}}
+// Troca a profissional de um horário (a equipe também pode): o horário continua o mesmo, só muda de agenda.
+function trocarProfissional(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a||a.st==='Atendido')return;
+  const lista=prosDaUnidade(a.unit,a.date);if(!lista.includes(a.pro))lista.unshift(a.pro);
+  openDlg('Trocar a profissional deste horário',`<p class="small muted" style="margin-top:0">${esc(cli(a.cli).n)} · ${esc(sv(a.serv,a.unit).n)} · ${esc(diaLongo(a.date))} às ${esc(a.hora)}<br>Hoje está na agenda de <b>${esc(PEOPLE[a.pro]?.n||'')}</b>.</p>
+   <label class="f">Passar para<select id="tp-p">${lista.map(x=>`<option value="${x}" ${x===a.pro?'selected':''}>${esc(PEOPLE[x].n)}</option>`).join('')}</select></label>
+   <div id="tp-av"></div><button class="btn p" id="tp-ok">Trocar</button>`);
+  const sel=document.getElementById('tp-p'),av=document.getElementById('tp-av');
+  const choque=()=>{const novo=sel.value,i0=minDe(a.hora),f0=i0+durServ(a);return novo!==a.pro&&agendaAtiva().find(x=>x.id!==a.id&&x.unit===a.unit&&x.pro===novo&&x.date===a.date&&minDe(x.hora)<f0&&minDe(x.hora)+durServ(x)>i0)};
+  sel.onchange=()=>{const c=choque();av.innerHTML=c?`<div class="alert">${esc(PEOPLE[sel.value].n)} já tem ${esc(cli(c.cli).n)} às ${esc(c.hora)}. Dá para trocar mesmo assim.</div>`:''};
+  document.getElementById('tp-ok').onclick=async()=>{const novo=sel.value;if(novo===a.pro){closeDlg();return}
+    if(await grava(()=>DB.upd(p+'/agenda/'+id,{pro:novo}),'Profissional trocada'))closeDlg()}}
+// Reabre um atendimento já concluído (só a Tháriga): o valor antigo fica guardado como cancelado e o horário volta a "Agendado" para concluir de novo com o valor certo.
+function reabrirAtend(aid,p){const a=agenda().find(x=>x.id===aid&&x._p===p),h=a&&histAll(true).find(x=>x.agenda===aid&&x._p===p&&!x.cancelado);if(!a||!h||!isAdmin())return;
+  const brinde=C.valores[h.id]?.desc?.tipo==='brinde';
+  openDlg('Reabrir atendimento',`<p><b>${esc(cli(h.cli).n)}</b><br><span class="muted">${esc(sv(h.serv,h.unit).n)} · ${fd(h.date)} · cobrado ${brl(h.valor)}</span></p>
+  ${brinde?'<div class="alert">Este atendimento usou um código de brinde. Para ajustar o valor, use <b>Corrigir atendimento</b> na ficha da cliente.</div>':`<p class="small muted">O valor de ${brl(h.valor)} fica guardado como atendimento cancelado, sai das comissões e do financeiro, e o horário volta a <b>Agendado</b>. Depois é só tocar em <b>Concluir atendimento</b> e lançar o valor certo.</p><button class="btn p" id="rb-ok">Reabrir</button>`}`);
+  const b=document.getElementById('rb-ok');if(b)b.onclick=async()=>{b.disabled=true;
+    const ok=await grava(async()=>{await DB.upd(p+'/atendimentos/'+h.id,{cancelado:true,reaberto:true,canceladoPor:S.user.nome,canceladoEm:iso(TODAY),motivoCancelamento:'Reaberto para ajustar'});await DB.set(p+'/agenda/'+aid+'/st','Agendado')},'Atendimento reaberto');
+    if(ok)closeDlg();else b.disabled=false}}
 // Blocos de uma coluna lado a lado quando se sobrepõem (duas marcadas no mesmo horário não escondem uma à outra).
 function raias(itens){const L=[...itens].sort((a,b)=>a.ini-b.ini||b.fim-a.fim);let grupo=[],fimG=-1;
   const fecha=()=>{const n=Math.max(1,...grupo.map(x=>x.raia+1));grupo.forEach(x=>x.n=n);grupo=[]};
@@ -1110,14 +1129,15 @@ async function cancelarAg(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if
 //  • /publico/agenda/{u}/ocup  → só HORÁRIOS ocupados, sem nome nenhum (o painel mantém sempre igual à agenda)
 //  • /{base}/reservas/{data}_{hhmm}_{n} → o que a cliente grava; o painel transforma em agendamento
 // Quem cuida disso é qualquer pessoa com o painel aberto; nada exige servidor.
+const diasFrente=g=>Math.min(365,Math.max(7,+(g&&g.diasFrente)||180));
 const AGON_PADRAO={mai:{ativo:false,ini:'07:30',fim:'19:00',paralelo:2},flo:{ativo:false,ini:'09:00',fim:'19:00',paralelo:1}};
-const agonCfg=u=>({...AGON_PADRAO[u],passo:30,dias:21,antecH:3,fechados:[],...(((u==='flo'?C.pubFlo:C.pubMai)||{}).cfg||{})});
+const agonCfg=u=>({...AGON_PADRAO[u],passo:30,dias:21,diasFrente:180,antecH:3,fechados:[],...(((u==='flo'?C.pubFlo:C.pubMai)||{}).cfg||{})});
 const durServ=a=>sv(a.serv,a.unit).d||30;
 let secT=0;const convertendo=new Set();
-function agendarSecretaria(){clearTimeout(secT);secT=setTimeout(()=>{sincronizarPublico().catch(e=>guardaErro(e.message));converterReservas().catch(e=>guardaErro(e.message))},1500)}
+function agendarSecretaria(){clearTimeout(secT);secT=setTimeout(()=>{sincronizarPublico().catch(e=>guardaErro(e.message));sincronizarComissoes().catch(e=>guardaErro(e.message));converterReservas().catch(e=>guardaErro(e.message))},1500)}
 async function sincronizarPublico(){if(!S.user)return;
-  const hoje=iso(TODAY),ate=iso(addD(TODAY,70));
-  for(const u of (isAdmin()?['mai','flo']:['mai'])){
+  const hoje=iso(TODAY);
+  for(const u of (isAdmin()?['mai','flo']:['mai'])){const ate=iso(addD(TODAY,diasFrente(agonCfg(u))));
     const pub=(u==='flo'?C.pubFlo:C.pubMai)||{},ocup=pub.ocup||{},deseja={};
     // p = quem fica ocupada ('todos' = a unidade inteira). A página da cliente só enxerga o horário e a profissional, nunca nome ou motivo.
     const poe=(d,k,h,m,p)=>{(deseja[d]=deseja[d]||{})[k]={h,m,p:p||'todos'}};
@@ -1169,6 +1189,7 @@ function agonBox(){const bloco=u=>{const g=agonCfg(u);return `<div class="box" s
    <label class="ck"><input type="checkbox" id="ag-${u}-on" ${g.ativo?'checked':''}>Receber marcações pelo link</label>
    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><label class="f" style="margin:0">Abre às<input type="time" id="ag-${u}-i" value="${g.ini}"></label><label class="f" style="margin:0">Último horário termina às<input type="time" id="ag-${u}-f" value="${g.fim}"></label></div>
    <label class="f" style="margin:10px 0 0">Endereço (sai em todas as mensagens para a cliente)<input id="ag-${u}-d" maxlength="160" value="${esc(g.endereco||ENDERECO_PADRAO[u]||'')}" placeholder="Rua, número, bairro, cidade"></label>
+   <label class="f" style="margin:10px 0 0">Até quantos dias à frente a cliente pode marcar<input type="number" id="ag-${u}-n" min="7" max="365" value="${diasFrente(g)}"></label>
    <label class="f" style="margin:10px 0 0">Dias sem atendimento (datas AAAA-MM-DD separadas por vírgula)<input id="ag-${u}-x" value="${esc((g.fechados||[]).join(', '))}" placeholder="2026-12-25, 2027-01-01"></label></div>`};
   return `<div class="box" style="margin-bottom:16px"><h2>Agenda online (a secretária)</h2>
    <p class="small muted" style="margin-top:0">A cliente abre o link, escolhe serviço, dias e período, vê só os horários livres e já marca. O horário entra na agenda sozinho. Comece ligando só uma unidade para testar.</p>
@@ -1671,6 +1692,28 @@ function extrato(){const flo=monthRecs().filter(h=>h.unit==='flo');const tot=flo
   <button class="btn p" id="cp" style="margin-top:14px">Copiar resumo</button>`);
   document.getElementById('cp').onclick=async()=>{try{await navigator.clipboard.writeText(txt);toast('Resumo copiado')}catch(e){toast('Não foi possível copiar')}}}
 
+// O que cada profissional vê da própria comissão: só o valor da comissão (nunca o valor cheio do serviço).
+// A Tháriga calcula e deixa pronto em /comissoes/{profissional}/{início do período}; roda sempre que o painel dela está aberto.
+const COM_PROS=['rafael','mariana','ana'];
+const comResumo=(p,q)=>{const ini=iso(q.ini),fim=iso(q.fim),chave=ini,itens={},adiant={};
+  histAll().filter(h=>h.pro===p&&h.date>=ini&&h.date<=fim).forEach(h=>{itens[h.id]={d:h.date,s:sv(h.serv,h.unit).n,c:comVal(h)}});
+  const adv=arr(C.adiantamentos).filter(a=>a.pro===p&&a.periodo===chave&&!a.cancelado);adv.forEach(a=>{adiant[a.id]={d:a.data,v:+a.valor||0,...(a.obs?{o:a.obs}:{})}});
+  const total=Math.round(Object.values(itens).reduce((s,x)=>s+x.c,0)*100)/100,advTot=Math.round(adv.reduce((s,a)=>s+(+a.valor||0),0)*100)/100;
+  return {chave,ini,fim,pagoEm:iso(q.pago),pct:+((C.config.comPct||{})[p]??50),itens,adiant,total,advTot,falta:Math.round((total-advTot)*100)/100,pago:!!(C.pagamentos||{})[chave+'_'+p]}};
+const comHash={};
+async function sincronizarComissoes(){if(!S.user||!isAdmin())return;
+  const cfg=C.config||{},atual=periodoCom(TODAY,cfg),ant=periodoCom(addD(atual.ini,-1),cfg);
+  for(const p of COM_PROS)for(const q of [atual,ant]){const o=comResumo(p,q),h=JSON.stringify(o),k=p+o.chave;
+    if(comHash[k]===h)continue;if(await DB.set('comissoes/'+p+'/'+o.chave,o).then(()=>true).catch(e=>{guardaErro('comissões: '+e.message);return false}))comHash[k]=h}}
+function vMinhaCom(){
+  const per=Object.values(C.minhaCom||{}).sort((a,b)=>b.ini.localeCompare(a.ini));
+  return `<div class="top"><div><h1>Minha comissão</h1><div class="sub">O que você tem a receber de cada período. Os números se atualizam quando a Tháriga abre o painel.</div></div></div>
+  ${per.length?per.map(x=>{const its=Object.values(x.itens||{}).sort((a,b)=>a.d.localeCompare(b.d)),adv=Object.values(x.adiant||{}).sort((a,b)=>a.d.localeCompare(b.d));
+   return `<div class="box"><h2>${fd(x.ini)} a ${fd(x.fim)}</h2><div class="lbl">${its.length} atendimento(s) · comissão de ${x.pct}% · pagamento em ${fd(x.pagoEm,{day:'2-digit',month:'2-digit',year:'numeric'})}</div>
+    <div class="small muted" style="margin-top:8px">Comissão do período: <b>${brl(x.total)}</b></div>
+    ${adv.length?`<div class="small" style="margin-top:6px"><b>Adiantamentos que você já recebeu: −${brl(x.advTot)}</b>${adv.map(a=>`<div class="muted">${fd(a.d)} · ${brl(a.v)}${a.o?' · '+esc(a.o):''}</div>`).join('')}</div>`:''}
+    <div class="lbl" style="margin-top:10px">${x.pago?'Pago':'Falta receber'}</div><div class="stat" style="margin:2px 0 8px">${brl(Math.max(x.falta,0))}</div>${x.pago?'<span class="tag ok">Pago</span>':''}
+    <details style="margin-top:10px"><summary class="small">Ver os atendimentos</summary>${its.map(i=>`<div class="row small"><span>${fd(i.d)}</span><div class="grow">${esc(i.s)}</div><b>${brl(i.c)}</b></div>`).join('')||'<p class="small muted">Nenhum atendimento neste período.</p>'}</details></div>`}).join(''):'<div class="note">Ainda não há comissão calculada para você. Ela aparece aqui depois que a Tháriga abrir o painel.</div>'}`}
 function vComissoes(){
   const q=qzAtual(),m=periodRecs().filter(h=>h.pro!=='tha'),cfg=C.config||{},mensal=cfg.comCiclo!=='quinzenal';
   const periodo=`${fd(iso(q.ini))} a ${fd(iso(q.fim))}`;
@@ -2082,7 +2125,7 @@ async function igPostado(id){const r=(C.instagram||{})[id]||{};
 function render(){
   if(!S.user)return;
   renderChrome();
-  const V={hoje:vHoje,agenda:vAgenda,livres:vLivres,clientes:vClientes,anamnese:vAnamnese,financeiro:vFinanceiro,comissoes:vComissoes,servicos:vServicos,fornecedores:vFornecedores,cursos:vCursos,aulas:vAulas,instagram:vInstagram};
+  const V={hoje:vHoje,agenda:vAgenda,livres:vLivres,clientes:vClientes,anamnese:vAnamnese,financeiro:vFinanceiro,comissoes:vComissoes,mincom:vMinhaCom,servicos:vServicos,fornecedores:vFornecedores,cursos:vCursos,aulas:vAulas,instagram:vInstagram};
   const main=document.getElementById('main');
   const erros=Object.entries(S.erros);
   const aviso=erros.length?`<div class="note err"><span>Não foi possível ler parte dos dados (${erros.map(([p,m])=>esc(p+': '+m)).join('; ')}). A tela pode estar incompleta.</span><button class="btn sm" id="retry">Tentar de novo</button></div>`:'';
@@ -2109,7 +2152,7 @@ function render(){
     for(const u of ['mai','flo']){const g=id=>document.getElementById('ag-'+u+'-'+id),ini=g('i').value,fim=g('f').value,par=agonCfg(u).paralelo;
       if(!ini||!fim||minDe(fim)<=minDe(ini)){toast(`${U[u].n}: confira o horário de abrir e fechar`);ags.disabled=false;return}
       const fech=g('x').value.split(/[,;\s]+/).filter(Boolean);if(fech.some(d=>!/^\d{4}-\d{2}-\d{2}$/.test(d))){toast(`${U[u].n}: as datas sem atendimento precisam estar como AAAA-MM-DD`);ags.disabled=false;return}
-      const cfg={ativo:g('on').checked,ini,fim,paralelo:par,passo:30,dias:21,antecH:3};if(fech.length)cfg.fechados=fech;{const e=g('d').value.trim();if(e)cfg.endereco=e}
+      const cfg={ativo:g('on').checked,ini,fim,paralelo:par,passo:30,dias:21,diasFrente:Math.min(365,Math.max(7,+g('n').value||180)),antecH:3};if(fech.length)cfg.fechados=fech;{const e=g('d').value.trim();if(e)cfg.endereco=e}
       ok=await grava(()=>DB.set('publico/agenda/'+u+'/cfg',cfg))&&ok}
     if(ok)toast('Agenda online salva');ags.disabled=false};
   main.querySelectorAll('[data-nvok]').forEach(b=>b.onclick=()=>grava(()=>DB.upd(b.dataset.nvp+'/clientes/'+b.dataset.nvok,{niverFeito:TODAY.getFullYear()}),'Aniversário dispensado da lista'));
@@ -2128,6 +2171,8 @@ function render(){
   main.querySelectorAll('[data-lvdia]').forEach(b=>b.onclick=()=>compartilharLivres(b.dataset.lvdia));
   const lva=document.getElementById('lv-ag');if(lva)lva.onclick=()=>{const [d,h,p]=[...S.lvSel][0].split('|');S.agData=d;S.agMes=d.slice(0,7);novoAg({data:d,hora:h,pro:p,serv:S.lvServ||undefined})};
   main.querySelectorAll('[data-troc]').forEach(b=>b.onclick=()=>trocarCliente(b.dataset.troc,b.dataset.p));
+  main.querySelectorAll('[data-trocp]').forEach(b=>b.onclick=()=>trocarProfissional(b.dataset.trocp,b.dataset.p));
+  main.querySelectorAll('[data-reab]').forEach(b=>b.onclick=()=>reabrirAtend(b.dataset.reab,b.dataset.p));
   main.querySelectorAll('[data-agpro]').forEach(b=>b.onclick=()=>{S.agPro=b.dataset.agpro;S.agSel=null;render()});
   main.querySelectorAll('[data-tlsel]').forEach(b=>b.onclick=e=>{e.stopPropagation();S.agSel=S.agSel===b.dataset.tlsel?null:b.dataset.tlsel;render();const x=document.getElementById('agsel');if(x)x.scrollIntoView({block:'nearest',behavior:'smooth'})});
   main.querySelectorAll('[data-tlc]').forEach(c=>c.onclick=e=>{if(e.target!==c)return;

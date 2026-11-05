@@ -206,6 +206,14 @@
       }
     },
 
+    // ── Comissão de cada profissional: a Tháriga calcula e grava; cada uma lê só a dela (só o valor da comissão) ──
+    "comissoes": {
+      "$pro": {
+        ".read": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || root.child('acesso').child(auth.uid).child('pro').val() === $pro || ($pro === 'ana' && root.child('acesso').child(auth.uid).child('pro').val() === 'ana luiza'))",
+        ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
+      }
+    },
+
     // ── Fornecedores, contas, cursos, aulas e configurações: só a Tháriga ──
     "admin": {
       ".read":  "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'",
