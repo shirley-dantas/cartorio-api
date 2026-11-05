@@ -237,6 +237,83 @@
      14
     ]
    }
+  },
+  {
+   "id": "enem-2018-d1-azul",
+   "banca": "enem",
+   "ano": 2018,
+   "edicao": "Aplicação regular",
+   "prova": "1º dia · Caderno 1 Azul",
+   "pdf": "pdfs/enem/enem2018_1dia_prova_azul.pdf",
+   "gabarito": null,
+   "esperadas": 95,
+   "layout": {},
+   "gabarito_manual": "gabaritos_manuais/enem-2018-d1-azul.json"
+  },
+  {
+   "id": "enem-2020-d1-azul",
+   "banca": "enem",
+   "ano": 2020,
+   "edicao": "Aplicação regular",
+   "prova": "1º dia · Caderno 1 Azul",
+   "pdf": "pdfs/enem/enem2020_1dia_prova_azul.pdf",
+   "gabarito": null,
+   "esperadas": 95,
+   "layout": {
+    "marcador": "(?i)QUEST[ãÃ]O\\s+(\\d{1,2})\\s*$"
+   },
+   "gabarito_manual": "gabaritos_manuais/enem-2020-d1-azul.json"
+  },
+  {
+   "id": "enem-2020-d2-amarelo",
+   "banca": "enem",
+   "ano": 2020,
+   "edicao": "Aplicação regular",
+   "prova": "2º dia · Caderno 5 Amarelo",
+   "pdf": "pdfs/enem/enem2020_2dia_prova_amarelo.pdf",
+   "gabarito": null,
+   "esperadas": 90,
+   "layout": {
+    "marcador": "(?i)QUEST[ãÃ]O\\s+(\\d{2,3})\\s*$",
+    "fim_pagina": "^(PROPOSTA DE REDA|INSTRUÇÕES PARA A REDA|MATEMÁTICA E SUAS TECNOLOGIAS$|CIÊNCIAS DA NATUREZA E SUAS TECNOLOGIAS$)"
+   },
+   "gabarito_manual": "gabaritos_manuais/enem-2020-d2-amarelo.json"
+  },
+  {
+   "id": "enem-2022-d1-azul",
+   "banca": "enem",
+   "ano": 2022,
+   "edicao": "Aplicação regular",
+   "prova": "1º dia · Caderno 1 Azul",
+   "pdf": "pdfs/enem/enem2022_1dia_prova_azul.pdf",
+   "gabarito": null,
+   "esperadas": 95,
+   "layout": {
+    "y_top": 58,
+    "y_bot": 740,
+    "divisoria_centro": true,
+    "paginas_largas": "auto"
+   },
+   "gabarito_manual": "gabaritos_manuais/enem-2022-d1-azul.json"
+  },
+  {
+   "id": "enem-2022-d2-cinza",
+   "banca": "enem",
+   "ano": 2022,
+   "edicao": "Aplicação regular",
+   "prova": "2º dia · Caderno 6 Cinza",
+   "pdf": "pdfs/enem/enem2022_2dia_prova_cinza.pdf",
+   "gabarito": null,
+   "esperadas": 90,
+   "layout": {
+    "marcador": "QUEST[ãÃ]O\\s+(\\d{2,3})\\s*$",
+    "fim_pagina": "^(PROPOSTA DE REDA|INSTRUÇÕES PARA A REDA|MATEMÁTICA E SUAS TECNOLOGIAS$|CIÊNCIAS DA NATUREZA E SUAS TECNOLOGIAS$)",
+    "y_top": 58,
+    "y_bot": 740,
+    "divisoria_centro": true,
+    "paginas_largas": "auto"
+   },
+   "gabarito_manual": "gabaritos_manuais/enem-2022-d2-cinza.json"
   }
  ],
  "imagem": {

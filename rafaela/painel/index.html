@@ -48,6 +48,12 @@ h3.t{font:700 20px var(--f-display);margin:0 0 6px}
 .banca span{color:var(--mut);font-size:14px}
 .banca[aria-pressed=true]{background:var(--soft);border-color:var(--c)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips-sub{max-height:230px;overflow:auto;padding:2px}
+.cron{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;background:var(--soft);border-radius:12px;padding:8px 12px;margin:0 0 10px;font-variant-numeric:tabular-nums}
+.cron b{font:700 22px var(--f-display)}
+.cron .ok{color:var(--ok)} .cron .warn{color:var(--warn)} .cron .bad{color:var(--bad)}
+.cron .btn{margin-left:auto}
+.pausa{padding:34px 14px;text-align:center;background:var(--soft);border-radius:12px}
 .chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 14px;border-radius:10px;font:600 15px var(--f-body);cursor:pointer;min-height:44px}
 .chip small{color:var(--mut);font-weight:600;margin-left:6px}
 .chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -246,7 +252,7 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
     <div class="filters">
       <div style="grid-column:1/-1"><h2>Ano (pode marcar vários)</h2><div class="chips" id="anos"></div></div>
       <div style="grid-column:1/-1"><h2>Edição da prova</h2><div class="chips" id="provas"></div></div>
-      <div><h2>Subtema</h2><select id="subtema" aria-label="Subtema"></select></div>
+      <div style="grid-column:1/-1"><h2>Subtema (pode marcar vários)</h2><div class="chips chips-sub" id="subtemas"></div></div>
       <div><h2>Número da questão</h2><input class="num" id="nums" inputmode="text" placeholder="ex.: 1-10, 15" aria-label="Número da questão"></div>
     </div></section>
   <section class="card" id="s-res"><div class="result">
@@ -275,7 +281,7 @@ const COR_BANCA={enem:"#111111",fuvest:"#B39A4A",unicamp:"#8C7F66"};
 const TIPOS_ERRO=["conceito","interpretação","cálculo","atenção","método","memorização","tempo/chute"];
 const NOME_TIPO_ERRO={"conceito":"Conceito","interpretação":"Interpretação","cálculo":"Cálculo","atenção":"Atenção","método":"Método","memorização":"Memorização","tempo/chute":"Tempo / chute","indefinido":"Ainda não sei"};
 let D={bancas:[],fontes:[],q:[]}, BANCA={}, FONTE={}, QID={}, ACERVO_OK=false;
-const S={banca:null,materia:null,anos:new Set(),provas:new Set(),subtema:"",nums:"",q:"",shown:30};
+const S={banca:null,materia:null,anos:new Set(),provas:new Set(),subtemas:new Set(),nums:"",q:"",shown:30};
 let ABA="inicio";
 
 /* ============ guardar no aparelho ============ */
@@ -399,7 +405,7 @@ function baseFiltro(ign){ // ign: chaves a ignorar (para contagens)
       if(S.anos.size&&!S.anos.has(q.a))return false;
       if(B.anos.size&&!B.anos.has(q.a))return false}
     if(!ign.includes("prova")&&S.provas.size&&!S.provas.has(q.f))return false;
-    if(!ign.includes("subtema")&&S.subtema&&q.s!==S.subtema)return false;
+    if(!ign.includes("subtema")&&S.subtemas.size&&!S.subtemas.has(q.s))return false;
     if(!ign.includes("nums")&&nr.length&&!nr.some(([a,b])=>q.n>=a&&q.n<=b))return false;
     for(const w of B.words)if(!q.hay.includes(w))return false;
     return true;});
@@ -413,28 +419,28 @@ function chip(label,n,pressed,on){
   const b=document.createElement("button");b.className="chip";b.type="button";b.setAttribute("aria-pressed",pressed);
   b.innerHTML=label+(n!=null?`<small>${n}</small>`:"");b.onclick=on;return b}
 function render(){
-  if(S.banca&&!BANCA[S.banca]){S.banca=null;S.materia=null;S.subtema="";S.anos.clear();S.provas.clear()} // a banca pessoal foi apagada
+  if(S.banca&&!BANCA[S.banca]){S.banca=null;S.materia=null;S.subtemas.clear();S.anos.clear();S.provas.clear()} // a banca pessoal foi apagada
   const bc=cnt(D.q,q=>q.b), bx=$("#bancas");bx.innerHTML="";
   D.bancas.forEach(b=>{const e=document.createElement("button");e.className="banca";e.type="button";e.style.setProperty("--c",COR_BANCA[b.id]||b.cor);
     e.setAttribute("aria-pressed",S.banca===b.id);e.innerHTML=`<b>${b.nome}</b><span>${bc[b.id]||0} ${(bc[b.id]||0)===1?"questão":"questões"}</span>`;
-    e.onclick=()=>{S.banca=S.banca===b.id?null:b.id;S.materia=null;S.anos.clear();S.provas.clear();S.subtema="";S.shown=30;render()};bx.appendChild(e)});
+    e.onclick=()=>{S.banca=S.banca===b.id?null:b.id;S.materia=null;S.anos.clear();S.provas.clear();S.subtemas.clear();S.shown=30;render()};bx.appendChild(e)});
   $("#minhas-n").textContent=QP.length?`${QP.length} ${QP.length===1?"questão adicionada":"questões adicionadas"} por você, só neste aparelho.`:"Fotografe uma questão que não está no acervo e ela entra nos filtros, no PDF e no “Resolver online”.";
-  $("#s-mat").hidden=!(S.banca||S.q||S.materia||S.subtema);
+  $("#s-mat").hidden=!(S.banca||S.q||S.materia||S.subtemas.size);
   const mx=$("#materias");mx.innerHTML="";
   const pool=baseFiltro(["materia","ano","prova","subtema","nums"]);
   const mc={};pool.forEach(q=>q.tg.forEach(t=>{if(!(t in mc))mc[t]=0;mc[t]++}));
-  mx.appendChild(chip("Todas",pool.length,!S.materia,()=>{S.materia=null;S.subtema="";S.shown=30;render()}));
+  mx.appendChild(chip("Todas",pool.length,!S.materia,()=>{S.materia=null;S.subtemas.clear();S.shown=30;render()}));
   Object.keys(mc).sort((a,b)=>MAT_ORDER.indexOf(a)-MAT_ORDER.indexOf(b)).forEach(m=>
-    mx.appendChild(chip(m,mc[m],S.materia===m,()=>{S.materia=S.materia===m?null:m;S.subtema="";S.shown=30;render()})));
+    mx.appendChild(chip(m,mc[m],S.materia===m,()=>{S.materia=S.materia===m?null:m;S.subtemas.clear();S.shown=30;render()})));
   $("#s-fil").hidden=$("#s-mat").hidden;
   const pAno=baseFiltro(["ano","prova"]);
   const ax=$("#anos");ax.innerHTML="";const ac=cnt(pAno,q=>q.a);
   Object.keys(ac).sort().forEach(a=>ax.appendChild(chip(a,ac[a],S.anos.has(+a),()=>{S.anos.has(+a)?S.anos.delete(+a):S.anos.add(+a);S.shown=30;render()})));
   const px=$("#provas");px.innerHTML="";const pc=cnt(baseFiltro(["prova"]),q=>q.f);
   Object.keys(pc).forEach(id=>{const f=FONTE[id];px.appendChild(chip(`${f.ano} · ${f.edicao} · ${f.prova}`,pc[id],S.provas.has(id),()=>{S.provas.has(id)?S.provas.delete(id):S.provas.add(id);S.shown=30;render()}))});
-  const sc=cnt(baseFiltro(["subtema"]),q=>q.s), sel=$("#subtema");
-  sel.innerHTML='<option value="">Todos os subtemas</option>'+Object.keys(sc).sort((a,b)=>a.localeCompare(b,"pt")).map(s=>`<option value="${esc(s)}">${esc(s)} (${sc[s]})</option>`).join("");
-  sel.value=S.subtema;
+  const sc=cnt(baseFiltro(["subtema"]),q=>q.s), sx=$("#subtemas");sx.innerHTML="";
+  S.subtemas.forEach(s=>{if(!(s in sc))sc[s]=0}); // marcado e sem questão nos outros filtros: continua visível para poder desmarcar
+  Object.keys(sc).sort((a,b)=>a.localeCompare(b,"pt")).forEach(t=>sx.appendChild(chip(esc(t),sc[t],S.subtemas.has(t),()=>{S.subtemas.has(t)?S.subtemas.delete(t):S.subtemas.add(t);S.shown=30;render()})));
   const R=resultado();
   $("#n").textContent=R.length;$("#nlabel").textContent=R.length===1?"questão encontrada":"questões encontradas";
   $("#escopo").textContent=escopo();
@@ -444,7 +450,7 @@ function render(){
 }
 function escopo(){
   const p=[];if(S.banca)p.push(BANCA[S.banca].nome);if(S.materia)p.push(S.materia);
-  if(S.anos.size)p.push([...S.anos].sort().join(", "));if(S.subtema)p.push(S.subtema);if(S.q)p.push("busca: “"+S.q+"”");
+  if(S.anos.size)p.push([...S.anos].sort().join(", "));if(S.subtemas.size)p.push([...S.subtemas].join(" + "));if(S.q)p.push("busca: “"+S.q+"”");
   return p.join(" · ")||"Todo o acervo";
 }
 const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){obs.unobserve(e.target);const q=QID[e.target.dataset.id];
@@ -468,18 +474,17 @@ $("#lista").addEventListener("click",e=>{
 $("#b-addq").onclick=()=>formQuestao();
 $("#mais").onclick=()=>{S.shown+=30;render()};
 $("#busca").addEventListener("input",e=>{S.q=e.target.value;S.shown=30;render()});
-$("#subtema").onchange=e=>{S.subtema=e.target.value;S.shown=30;render()};
 $("#nums").addEventListener("input",e=>{S.nums=e.target.value;S.shown=30;render()});
 
 function titulo(){return (S.banca?BANCA[S.banca].nome.split(" ")[0]:"ACERVO")+" — "+(S.materia||"TODAS AS MATÉRIAS")}
 
 /* leva para o Acervo já filtrado por matéria e assunto */
 function irAcervo(materia,assunto){
-  S.banca=null;S.anos.clear();S.provas.clear();S.nums="";$("#nums").value="";S.shown=30;S.q="";$("#busca").value="";S.subtema="";S.materia=null;
+  S.banca=null;S.anos.clear();S.provas.clear();S.nums="";$("#nums").value="";S.shown=30;S.q="";$("#busca").value="";S.subtemas.clear();S.materia=null;
   const mat=MAT_ORDER.find(m=>norm(m)===norm(materia));
   if(mat)S.materia=mat;
   const sub=D.q.find(q=>norm(q.s)===norm(assunto)&&(!mat||q.tg.includes(mat)));
-  if(sub)S.subtema=sub.s;else if(assunto){S.q=assunto;$("#busca").value=assunto}
+  if(sub)S.subtemas.add(sub.s);else if(assunto){S.q=assunto;$("#busca").value=assunto}
   aba("acervo");
 }
 
@@ -495,59 +500,87 @@ $("#b-gab").onclick=()=>{
 /* ---------- resolver online ---------- */
 // Serve ao Acervo inteiro e também ao "tentar de novo" de um registro (opt.registro).
 // Cada resposta vira uma tentativa guardada: é dela que sai "onde vou melhor" nas estatísticas.
+/* Ritmo da prova de verdade, em segundos por questão: ENEM 5h30 ÷ 90, FUVEST 5h ÷ 90, UNICAMP 5h ÷ 72. */
+const RITMO={enem:220,fuvest:200,unicamp:250}, RITMO_PADRAO=210;
+const alvoDe=q=>RITMO[q.b]||RITMO_PADRAO;
+function fmtRel(s){s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(r).padStart(2,"0")}
+function fmtDur(s){s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;return h?`${h} h ${m} min`:m?`${m} min ${String(r).padStart(2,"0")} s`:`${r} s`}
 function abrirResolver(R,opt){
   opt=opt||{};const resp={};let i=0;const sess=uid();
   const alts=q=>"ABCDE".slice(0,nAlts(q));
+  // Cronômetro: soma o tempo de cada questão; pausa à mão ou sozinho quando ela sai da tela.
+  const tempos={};let cur=0,t0=Date.now(),pausado=false,parado=false,d=null,tic=null;
+  function marca(){const ag=Date.now();if(!pausado&&!parado&&t0)tempos[cur]=(tempos[cur]||0)+(ag-t0)/1000;t0=ag;cur=i}
+  const totalT=()=>Object.values(tempos).reduce((a,b)=>a+b,0);
+  function pinta(){
+    if(!d||!d.isConnected){clearInterval(tic);document.removeEventListener("visibilitychange",aoSair);return}
+    marca();const q=R[i],a=alvoDe(q),t=tempos[i]||0,eq=d.querySelector("#cq"),et=d.querySelector("#ct");
+    if(eq){eq.textContent=fmtRel(t);eq.className=t>a*1.5?"bad":t>a?"warn":"ok"}
+    if(et)et.textContent=fmtRel(totalT());
+  }
+  function aoSair(){if(document.hidden&&!pausado&&!parado&&d&&d.isConnected){marca();pausado=true;tela()}}
+  function iniciar(){parado=false;pausado=false;t0=Date.now();cur=i;clearInterval(tic);tic=setInterval(pinta,1000);document.removeEventListener("visibilitychange",aoSair);document.addEventListener("visibilitychange",aoSair)}
   function tela(){
+    marca();
     const q=R[i];
-    const d=modal(`<div class="row"><b>Questão ${i+1} de ${R.length}</b><span class="mut">${BANCA[q.b].nome} ${q.a}</span></div>
-      <div class="prog" style="margin:8px 0 12px"><i style="width:${(Object.keys(resp).length/R.length*100).toFixed(0)}%"></i></div>
-      <div class="q"><div class="img" id="qi"><span class="mut">carregando…</span></div></div>
+    d=modal(`<div class="row"><b>Questão ${i+1} de ${R.length}</b><span class="mut">${BANCA[q.b].nome} ${q.a}</span></div>
+      <div class="prog" style="margin:8px 0 10px"><i style="width:${(Object.keys(resp).length/R.length*100).toFixed(0)}%"></i></div>
+      <div class="cron" role="timer" aria-label="Cronômetro">⏱ <b id="cq" class="ok">${fmtRel(tempos[i]||0)}</b><span class="mut">nesta questão · ritmo da prova ${fmtRel(alvoDe(q))}</span><span class="mut">total <b id="ct" style="font-size:16px">${fmtRel(totalT())}</b></span><button class="btn mini sec" id="pausa" type="button">${pausado?"CONTINUAR":"PAUSAR"}</button></div>
+      ${pausado?'<div class="pausa"><b>⏸ Cronômetro pausado</b><p class="mut" style="margin:6px 0 0">A questão fica escondida enquanto o tempo está parado.</p></div>':'<div class="q"><div class="img" id="qi"><span class="mut">carregando…</span></div></div>'}
       <div class="alts" role="group" aria-label="Alternativas">${alts(q).split("").map(l=>`<button class="alt" data-l="${l}" aria-pressed="${resp[i]===l}">${l}</button>`).join("")}</div>
       <div class="row"><div class="actions"><button class="btn sec" id="ant" ${i?"":"disabled"}>ANTERIOR</button><button class="btn sec" id="prox" ${i<R.length-1?"":"disabled"}>PRÓXIMA</button></div>
       <div class="actions"><button class="btn sec" id="sair">SAIR</button><button class="btn pri" id="fin">FINALIZAR</button></div></div>
       <p class="hint">${Object.keys(resp).length} de ${R.length} respondidas</p>`,true);
     imgUrl(q).then(u=>{const e=d.querySelector("#qi");if(e)e.innerHTML=u?`<img alt="" src="${u}">`:SEM_IMG});
+    d.querySelector("#pausa").onclick=()=>{marca();pausado=!pausado;t0=Date.now();tela()};
+    pinta();
     d.querySelectorAll(".alt").forEach(b=>b.onclick=()=>{resp[i]=resp[i]===b.dataset.l?undefined:b.dataset.l;if(resp[i]===undefined)delete resp[i];
       if(i<R.length-1&&resp[i]){i++}tela()});
     d.querySelector("#ant").onclick=()=>{i--;tela()};d.querySelector("#prox").onclick=()=>{i++;tela()};
     d.querySelector("#sair").onclick=fechar;d.querySelector("#fin").onclick=fim;
   }
   function fim(){
+    marca();parado=true;clearInterval(tic);document.removeEventListener("visibilitychange",aoSair);
     let ok=0,err=0,nr=0,an=0,sg=0;const erradas=[],log=[];
     R.forEach((q,k)=>{
       if(q.x){an++;return}
       if(!q.r){sg++;return}
       if(!resp[k]){nr++;erradas.push([k,q,null]);return}
       const certo=resp[k]===q.r;if(certo)ok++;else{err++;erradas.push([k,q,resp[k]])}
-      log.push({em:new Date().toISOString(),sess,qid:q.id,b:q.b,a:q.a,m:q.m,s:q.s,ok:certo});
+      log.push({em:new Date().toISOString(),sess,qid:q.id,b:q.b,a:q.a,m:q.m,s:q.s,ok:certo,seg:Math.round(tempos[k]||0)});
     });
     // Finalizar de novo depois de "voltar às questões" troca as respostas desta rodada, não soma.
     TENT=TENT.filter(t=>t.sess!==sess).concat(log);salvarTent();
     if(opt.registro){const r=REG.find(x=>x.id===opt.registro);if(r&&log.length){(r.retentativas=r.retentativas||[]).push({em:log[0].em,ok:log[0].ok});salvarReg()}}
     const tot=ok+err+nr, pc=tot?Math.round(ok/tot*100):0;
+    const tT=totalT(), alvoM=R.reduce((a,q)=>a+alvoDe(q),0)/R.length, mediaT=tT/R.length, difT=mediaT-alvoM;
+    const lentas=R.map((q,k)=>[k,tempos[k]||0,alvoDe(q)]).filter(x=>x[1]>x[2]).sort((a,b)=>(b[1]-b[2])-(a[1]-a[2])).slice(0,3);
+    const cx=R.length>1?`<div class="cron" style="display:block"><div>⏱ <b>${fmtDur(tT)}</b> para as ${R.length} questões</div>
+      <div class="mut" style="margin-top:4px">Média: <b>${fmtDur(mediaT)}</b> por questão · ritmo da prova real: <b>${fmtDur(alvoM)}</b> ·
+      <b class="${difT>alvoM*0.5?"bad":difT>0?"warn":"ok"}">${difT>0?fmtDur(difT)+" a mais":fmtDur(-difT)+" a menos"} por questão</b></div>
+      ${lentas.length?`<div class="mut" style="margin-top:4px">Onde mais demorei: ${lentas.map(([k,t])=>`nº ${k+1} (${fmtDur(t)})`).join(" · ")}</div>`:""}</div>`:"";
     let corpo;
     if(opt.registro){
       const l=log[0],q=R[0];
       corpo=`<h3>${!l?"Sem resposta":l.ok?"Acertou desta vez! 🎉":"Ainda não foi desta vez"}</h3>
-        ${l?`<p>Sua resposta: <b>${esc(resp[0])}</b> · gabarito: <b>${esc(q.r)}</b></p>`:`<p class="mut">${q.x?"Esta questão foi anulada.":!q.r?"Esta questão está sem gabarito no acervo.":"Você não marcou nenhuma alternativa."}</p>`}
+        ${l?`<p>Sua resposta: <b>${esc(resp[0])}</b> · gabarito: <b>${esc(q.r)}</b> · ⏱ ${fmtDur(tT)} (ritmo da prova: ${fmtDur(alvoDe(q))})</p>`:`<p class="mut">${q.x?"Esta questão foi anulada.":!q.r?"Esta questão está sem gabarito no acervo.":"Você não marcou nenhuma alternativa."}</p>`}
         <p class="hint">${l&&!l.ok?"Volte à correção do registro e confira o passo em que o caminho se desvia.":""}</p>
         <div class="row" style="margin-top:14px">${l&&l.ok?'<button class="btn pri" id="dom">MARCAR COMO DOMINADO</button>':"<span></span>"}<button class="btn" id="x">FECHAR</button></div>`;
     }else{
       corpo=`<h3>Resultado</h3><div class="mut">${esc(escopo())}</div>
-      <div class="score"><div><b style="color:var(--ok)">${ok}</b>acertos</div><div><b style="color:var(--bad)">${err}</b>erros</div><div><b>${pc}%</b>de acerto</div>${nr?`<div><b>${nr}</b>em branco</div>`:""}</div>
+      <div class="score"><div><b style="color:var(--ok)">${ok}</b>acertos</div><div><b style="color:var(--bad)">${err}</b>erros</div><div><b>${pc}%</b>de acerto</div>${nr?`<div><b>${nr}</b>em branco</div>`:""}</div>${cx}
       ${an?`<p class="hint">${an} questão(ões) anulada(s) não entram na conta.</p>`:""}${sg?`<p class="hint">${sg} questão(ões) sem gabarito no acervo não entram na conta.</p>`:""}
       <h2>Questões que errei</h2>${erradas.length?`<div class="tw"><table><tr><th>Nº</th><th>Questão</th><th>Minha resposta</th><th>Gabarito</th><th></th></tr>${erradas.map(([k,q,a],j)=>`<tr><td>${k+1}</td><td>${BANCA[q.b].nome} ${q.a} · nº ${q.n}</td><td>${a||"—"}</td><td>${q.r}</td><td><button class="btn mini sec" data-reg="${j}">Registrar no caderno</button></td></tr>`).join("")}</table></div>`:'<div class="empty">Nenhuma. 🎉</div>'}
       <div class="row" style="margin-top:14px"><button class="btn sec" id="volta">VOLTAR ÀS QUESTÕES</button><button class="btn" id="x">FECHAR</button></div>`;
     }
     const d=modal(corpo,true);
     d.querySelector("#x").onclick=fechar;
-    const v=d.querySelector("#volta");if(v)v.onclick=()=>{i=0;tela()};
+    const v=d.querySelector("#volta");if(v)v.onclick=()=>{i=0;iniciar();tela()};
     const dom=d.querySelector("#dom");if(dom)dom.onclick=()=>{const r=REG.find(x=>x.id===opt.registro);if(r){r.status="dominado";salvarReg()}fechar();aviso("Marcado como dominado.");if(ABA==="erros")listaErros()};
     d.querySelectorAll("[data-reg]").forEach(b=>b.onclick=()=>{const [k,q,a]=erradas[+b.dataset.reg];
       formRegistro({tipo:"erro",qid:q.id,minhaResposta:a||"",origem:"online"})});
   }
-  tela();
+  iniciar();tela();
 }
 $("#b-online").onclick=()=>{const R=resultado();if(R.length)abrirResolver(R)};
 
@@ -565,7 +598,7 @@ $("#b-pdf").onclick=async()=>{
     doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text(titulo(),M,y+6);y+=11;
     doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(90);
     const anos=[...new Set(R.map(q=>q.a))].sort();
-    doc.text(`${R.length} questões · ${anos.length>1?anos[0]+"–"+anos[anos.length-1]:anos[0]}${S.subtema?" · "+S.subtema:""}`,M,y+2);y+=10;
+    doc.text(`${R.length} questões · ${anos.length>1?anos[0]+"–"+anos[anos.length-1]:anos[0]}${S.subtemas.size?" · "+[...S.subtemas].join(" + "):""}`,M,y+2);y+=10;
     for(let i=0;i<R.length;i++){
       const q=R[i], f=FONTE[q.f];
       bar.querySelector("#pt").textContent=`Gerando PDF… ${i+1} de ${R.length}`;bar.querySelector("i").style.width=((i+1)/R.length*100)+"%";
@@ -681,7 +714,7 @@ function formQuestao(pid,pre){
       salvarQP();montarPessoais();
     }catch(err){d.querySelectorAll("button").forEach(x=>x.disabled=false);return falha("Este aparelho não conseguiu guardar a foto. Tente de novo ou use uma foto menor.")}
     fechar();
-    S.banca=null;S.materia=null;S.anos.clear();S.provas.clear();S.subtema="";S.nums="";$("#nums").value="";S.q="";$("#busca").value="";S.shown=30;
+    S.banca=null;S.materia=null;S.anos.clear();S.provas.clear();S.subtemas.clear();S.nums="";$("#nums").value="";S.q="";$("#busca").value="";S.shown=30;
     if(outra){aviso("Questão adicionada. Pode mandar a próxima.");formQuestao(null,{bancaNome:ban,a:ano,alts:st.alts});return}
     S.banca=bancaIdDe(ban);aba("acervo");aviso("Questão adicionada ao acervo.");
   }
@@ -1122,6 +1155,15 @@ function calc(){
 }
 const barrasH=(arr,fnLabel,fnVal,max)=>{const m=max||Math.max(...arr.map(fnVal),1);return arr.map(x=>`<div class="bar"><span>${esc(fnLabel(x))}</span><i style="width:${Math.max(3,fnVal(x)/m*100)}%"></i><span>${fnVal(x)}</span></div>`).join("")};
 function secao(titulo,lead,corpo,vazio){return `<section class="card"><h2>${titulo}</h2>${lead?`<p class="lead">${lead}</p>`:""}${corpo||`<div class="mut">${vazio}</div>`}</section>`}
+/* Ritmo: só entra tentativa online que foi cronometrada (seg > 0). Mínimo de 3 por matéria. */
+function htmlRitmo(){
+  const T=TENT.filter(t=>t.seg>0);if(!T.length)return "";
+  const por={};T.forEach(t=>{const k=t.m||"Sem matéria";(por[k]=por[k]||{n:0,s:0,a:0});por[k].n++;por[k].s+=t.seg;por[k].a+=alvoDe(t)});
+  const lin=Object.entries(por).filter(([,x])=>x.n>=3).map(([m,x])=>({m,n:x.n,med:x.s/x.n,alvo:x.a/x.n})).sort((a,b)=>(b.med-b.alvo)-(a.med-a.alvo));
+  const tot=T.reduce((a,t)=>a+t.seg,0), alvo=T.reduce((a,t)=>a+alvoDe(t),0);
+  return `<div class="mut">${T.length} questões cronometradas · média <b>${fmtDur(tot/T.length)}</b> por questão (ritmo da prova real: ${fmtDur(alvo/T.length)})</div>`+
+    (lin.length?lin.map(x=>`<div class="rev-i"><div><b>${esc(x.m)}</b><div class="mut" style="font-size:14px">média ${fmtDur(x.med)} · prova real ${fmtDur(x.alvo)} · ${x.n} questões</div></div><b class="${x.med>x.alvo*1.5?"bad":x.med>x.alvo?"warn":"ok"}" style="color:var(--${x.med>x.alvo*1.5?"bad":x.med>x.alvo?"warn":"ok"})">${x.med>x.alvo?"+"+fmtDur(x.med-x.alvo):"no ritmo"}</b></div>`).join(""):'<p class="mut">Com 3 questões cronometradas de uma mesma matéria, ela aparece aqui.</p>');
+}
 function renderStats(){
   const c=calc(), v=$("#v-stats");
   const pdesc=(p)=>`<div class="rev-i"><div><b>${esc(p.nome)}</b><div class="mut" style="font-size:14px">${esc(p.motivos.join(" · "))}</div>${p.padroes.length?`<div style="font-size:14px">Padrão: ${p.padroes.map(esc).join("; ")}</div>`:""}</div>
@@ -1143,6 +1185,7 @@ function renderStats(){
    ${secao("Onde vou melhor","Calculado a partir das questões que você resolveu online no Acervo (mínimo de 3 por assunto, 5 por matéria).",
       (c.melhoresAssuntos.length||c.melhoresMaterias.length)?(c.melhoresMaterias.length?'<h2 style="margin-top:4px">Matérias</h2>'+barrasH(c.melhoresMaterias,x=>`${x.nome} (${x.ok}/${x.n})`,x=>Math.round(x.taxa*100),100):"")+(c.melhoresAssuntos.length?'<h2 style="margin-top:12px">Assuntos</h2>'+barrasH(c.melhoresAssuntos,x=>`${x.nome} (${x.ok}/${x.n})`,x=>Math.round(x.taxa*100),100):""):"",
       "Ainda não há resoluções suficientes. Resolva questões online no Acervo (“Resolver online”) — cada acerto e erro entra aqui.")}
+   ${secao("Meu ritmo","O cronômetro do “Resolver online”: quanto tempo você leva por questão, contra o ritmo da prova de verdade.",htmlRitmo(),"Ainda não há questões cronometradas. Resolva online no Acervo — o cronômetro roda sozinho.")}
    <hr class="sep">
    <h2 style="margin-top:18px">O acervo</h2>${htmlAcervoStats()}`;
 }
