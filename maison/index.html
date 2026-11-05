@@ -1692,14 +1692,14 @@ function extrato(){const flo=monthRecs().filter(h=>h.unit==='flo');const tot=flo
   <button class="btn p" id="cp" style="margin-top:14px">Copiar resumo</button>`);
   document.getElementById('cp').onclick=async()=>{try{await navigator.clipboard.writeText(txt);toast('Resumo copiado')}catch(e){toast('Não foi possível copiar')}}}
 
-// O que cada profissional vê da própria comissão: só o valor da comissão (nunca o valor cheio do serviço).
+// O que cada profissional vê da própria comissão: o que faturou nos serviços dela, o percentual e a comissão (nada de outras profissionais, nem do caixa do estúdio).
 // A Tháriga calcula e deixa pronto em /comissoes/{profissional}/{início do período}; roda sempre que o painel dela está aberto.
 const COM_PROS=['rafael','mariana','ana'];
 const comResumo=(p,q)=>{const ini=iso(q.ini),fim=iso(q.fim),chave=ini,itens={},adiant={};
-  histAll().filter(h=>h.pro===p&&h.date>=ini&&h.date<=fim).forEach(h=>{itens[h.id]={d:h.date,s:sv(h.serv,h.unit).n,c:comVal(h)}});
+  histAll().filter(h=>h.pro===p&&h.date>=ini&&h.date<=fim).forEach(h=>{itens[h.id]={d:h.date,s:sv(h.serv,h.unit).n,v:h.valor||0,c:comVal(h)}});
   const adv=arr(C.adiantamentos).filter(a=>a.pro===p&&a.periodo===chave&&!a.cancelado);adv.forEach(a=>{adiant[a.id]={d:a.data,v:+a.valor||0,...(a.obs?{o:a.obs}:{})}});
-  const total=Math.round(Object.values(itens).reduce((s,x)=>s+x.c,0)*100)/100,advTot=Math.round(adv.reduce((s,a)=>s+(+a.valor||0),0)*100)/100;
-  return {chave,ini,fim,pagoEm:iso(q.pago),pct:+((C.config.comPct||{})[p]??50),itens,adiant,total,advTot,falta:Math.round((total-advTot)*100)/100,pago:!!(C.pagamentos||{})[chave+'_'+p]}};
+  const fat=Math.round(Object.values(itens).reduce((s,x)=>s+x.v,0)*100)/100,total=Math.round(Object.values(itens).reduce((s,x)=>s+x.c,0)*100)/100,advTot=Math.round(adv.reduce((s,a)=>s+(+a.valor||0),0)*100)/100;
+  return {chave,ini,fim,pagoEm:iso(q.pago),pct:+((C.config.comPct||{})[p]??50),itens,adiant,fat,total,advTot,falta:Math.round((total-advTot)*100)/100,pago:!!(C.pagamentos||{})[chave+'_'+p]}};
 const comHash={};
 async function sincronizarComissoes(){if(!S.user||!isAdmin())return;
   const cfg=C.config||{},atual=periodoCom(TODAY,cfg),ant=periodoCom(addD(atual.ini,-1),cfg);
@@ -1710,10 +1710,10 @@ function vMinhaCom(){
   return `<div class="top"><div><h1>Minha comissão</h1><div class="sub">O que você tem a receber de cada período. Os números se atualizam quando a Tháriga abre o painel.</div></div></div>
   ${per.length?per.map(x=>{const its=Object.values(x.itens||{}).sort((a,b)=>a.d.localeCompare(b.d)),adv=Object.values(x.adiant||{}).sort((a,b)=>a.d.localeCompare(b.d));
    return `<div class="box"><h2>${fd(x.ini)} a ${fd(x.fim)}</h2><div class="lbl">${its.length} atendimento(s) · comissão de ${x.pct}% · pagamento em ${fd(x.pagoEm,{day:'2-digit',month:'2-digit',year:'numeric'})}</div>
-    <div class="small muted" style="margin-top:8px">Comissão do período: <b>${brl(x.total)}</b></div>
+    <div class="small muted" style="margin-top:8px">Você atendeu e faturou: <b>${brl(x.fat||0)}</b> · ${x.pct}% = comissão de <b>${brl(x.total)}</b></div>
     ${adv.length?`<div class="small" style="margin-top:6px"><b>Adiantamentos que você já recebeu: −${brl(x.advTot)}</b>${adv.map(a=>`<div class="muted">${fd(a.d)} · ${brl(a.v)}${a.o?' · '+esc(a.o):''}</div>`).join('')}</div>`:''}
     <div class="lbl" style="margin-top:10px">${x.pago?'Pago':'Falta receber'}</div><div class="stat" style="margin:2px 0 8px">${brl(Math.max(x.falta,0))}</div>${x.pago?'<span class="tag ok">Pago</span>':''}
-    <details style="margin-top:10px"><summary class="small">Ver os atendimentos</summary>${its.map(i=>`<div class="row small"><span>${fd(i.d)}</span><div class="grow">${esc(i.s)}</div><b>${brl(i.c)}</b></div>`).join('')||'<p class="small muted">Nenhum atendimento neste período.</p>'}</details></div>`}).join(''):'<div class="note">Ainda não há comissão calculada para você. Ela aparece aqui depois que a Tháriga abrir o painel.</div>'}`}
+    <details style="margin-top:10px"><summary class="small">Ver os atendimentos</summary>${its.map(i=>`<div class="row small"><span>${fd(i.d)}</span><div class="grow">${esc(i.s)}<div class="muted">${brl(i.v||0)}</div></div><b>${brl(i.c)}</b></div>`).join('')||'<p class="small muted">Nenhum atendimento neste período.</p>'}</details></div>`}).join(''):'<div class="note">Ainda não há comissão calculada para você. Ela aparece aqui depois que a Tháriga abrir o painel.</div>'}`}
 function vComissoes(){
   const q=qzAtual(),m=periodRecs().filter(h=>h.pro!=='tha'),cfg=C.config||{},mensal=cfg.comCiclo!=='quinzenal';
   const periodo=`${fd(iso(q.ini))} a ${fd(iso(q.fim))}`;
