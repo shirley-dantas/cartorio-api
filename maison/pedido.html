@@ -193,7 +193,7 @@ function desenhaSlots(){
   if(!dias.length){box.innerHTML='<p class="small">Marque pelo menos um dia para ver os horários.</p>';return}
   const sv0=u.serv[+document.getElementById('s').value],dur=sv0[1],pro=proEscolhida(),per=document.querySelector('input[name=per]:checked').value,fech=c.fechados||[];
   const hoje=new Date();hoje.setHours(12,0,0,0);let html='',n=0;
-  for(let i=0;i<=(c.dias||21);i++){const d=new Date(hoje);d.setDate(d.getDate()+i);const data=iso(d);
+  for(let i=0;i<=(c.diasFrente||180);i++){const d=new Date(hoje);d.setDate(d.getDate()+i);const data=iso(d);
     if(!dias.includes(d.getDay())||fech.includes(data))continue;
     const L=livres(data,dur,per,pro);if(!L.length)continue;n+=L.length;
     html+=`<div class="dia">${fdata(data)}</div><div class="slots">${L.map(t=>`<button type="button" data-d="${data}" data-h="${hhmm(t)}">${hhmm(t)}</button>`).join('')}</div>`}

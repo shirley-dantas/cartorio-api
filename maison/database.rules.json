@@ -39,7 +39,15 @@
         }
       },
       "atendimentos": {
-        "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && !data.exists()))" }
+        // A equipe cria o atendimento e pode REABRIR o que concluiu (marcar como cancelado/reaberto, uma vez, com o nome de quem fez); desmarcar e mudar valor continua só com a Tháriga.
+        "$id": {
+          ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && !data.exists()))",
+          "cancelado": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && newData.val() === true && !data.exists()" },
+          "reaberto": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && newData.val() === true && !data.exists()" },
+          "canceladoPor": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && !data.exists()" },
+          "canceladoEm": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && !data.exists()" },
+          "motivoCancelamento": { ".write": "auth != null && root.child('acesso').child(auth.uid).exists() && !data.exists()" }
+        }
       },
       "anamneses": {
         "$id": { ".write": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || (root.child('acesso').child(auth.uid).exists() && newData.exists()))" }
@@ -203,6 +211,14 @@
           // Um valor marcado como "brinde" só é aceito se o código existe e já foi ligado a ESTE atendimento.
           ".validate": "!newData.child('desc').exists() || newData.child('desc').child('tipo').val() !== 'brinde' || root.child('maison').child('vouchers').child(newData.child('desc').child('voucher').val()).child('atend').val() === $id || root.child('florenca').child('vouchers').child(newData.child('desc').child('voucher').val()).child('atend').val() === $id"
         }
+      }
+    },
+
+    // ── Comissão de cada profissional: a Tháriga calcula e grava; cada uma lê só a dela (só o valor da comissão) ──
+    "comissoes": {
+      "$pro": {
+        ".read": "auth != null && (root.child('acesso').child(auth.uid).child('perfil').val() === 'admin' || root.child('acesso').child(auth.uid).child('pro').val() === $pro || ($pro === 'ana' && root.child('acesso').child(auth.uid).child('pro').val() === 'ana luiza'))",
+        ".write": "auth != null && root.child('acesso').child(auth.uid).child('perfil').val() === 'admin'"
       }
     },
 
