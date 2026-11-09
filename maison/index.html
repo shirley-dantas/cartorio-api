@@ -584,7 +584,8 @@ const uTag=u=>`<span class="tag ${u}">${U[u].n}</span>`;
 const anamVencida=c=>{const a=anamDe(c.id);return !a||(TODAY-new Date(a.data+'T00:00'))/864e5>180};
 const toast=m=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200)};
 const visUnit=u=>isAdmin()?(S.unit==='todas'||S.unit===u):u==='mai';
-const monthRecs=()=>histAll().filter(h=>h.date.slice(0,7)===iso(TODAY).slice(0,7));
+const finMes=()=>S.finMes||iso(TODAY).slice(0,7);
+const monthRecs=()=>histAll().filter(h=>h.date.slice(0,7)===finMes());
 const periodRecs=()=>{const q=qzAtual();return histAll().filter(h=>h.date>=iso(q.ini)&&h.date<=iso(q.fim))};
 const repasse=()=>C.config.repasse??40;
 const qzChave=p=>`${iso(qzAtual().ini)}_${p}`;
@@ -1060,9 +1061,10 @@ const lerMotivo=()=>{const m=document.getElementById('cm').value,d=document.getE
 function brindeTag(cid){const v=voucherRecente(cid);
   if(!v)return isAdmin()?`<button class="btn sm" data-lib="${cid}">Liberar brinde</button>`:'';
   return v.usado?'<span class="tag">Brinde usado</span>':venceu(v,iso(TODAY))?'<span class="tag warn">Brinde venceu</span>':`<span class="tag ok" title="${esc(v.id)}">🎁 ${ateTxt(v)}</span>`}
-function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.serv,a.unit);
+function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);let s=sv(a.serv,a.unit);
   let vou=voucherAtivo(a.cli,a.date),aplicar=!!vou;
   openDlg('Concluir atendimento',`<p><b>${esc(cli(a.cli).n)}</b><br><span class="muted">${esc(s.n)} com ${esc(PEOPLE[a.pro]?.n)} · ${U[a.unit].n}</span></p>
+  <label class="f">Procedimento realizado<select id="cserv">${servicosDe(a.unit,false).map(x=>`<option value="${x.id}" ${x.id===a.serv?'selected':''}>${esc(x.n)}</option>`).join('')}</select></label>
   <div id="cvbox"></div>
   <label class="f">Valor cobrado<input type="number" step="0.01" id="cv" value="${s.p}"></label>
   ${motivoHtml()}
@@ -1086,6 +1088,8 @@ function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.ser
         vou=v;aplicar=true;atualiza()};
       mot.hidden=!(parseFloat(cv.value)<s.p-0.005)}};
   cv.oninput=()=>{if(!(vou&&aplicar))mot.hidden=!(parseFloat(cv.value)<s.p-0.005)};
+  // A cliente fez algo diferente do agendado: troca o procedimento e o valor sugerido acompanha (ela ainda pode ajustar).
+  document.getElementById('cserv').onchange=e=>{s=sv(e.target.value,a.unit);cv.value=s.p;document.querySelector('#dlg p .muted').textContent=`${s.n} com ${PEOPLE[a.pro]?.n} · ${U[a.unit].n}`;atualiza()};
   atualiza();
   document.getElementById('csave').onclick=async()=>{
     const btn=document.getElementById('csave');btn.disabled=true;
@@ -1097,12 +1101,13 @@ function concluir(id,p){const a=agenda().find(x=>x.id===id&&x._p===p),s=sv(a.ser
     else if(valor<s.p-0.005){desc=lerMotivo();if(!desc){btn.disabled=false;return}}
     const ok=await grava(async()=>{
       // O registro do atendimento não leva dinheiro; o valor vai para o caminho que a funcionária só cria e não lê.
-      const hid=await DB.push(p+'/atendimentos',{date:a.date,cli:a.cli,serv:a.serv,pro:a.pro,unit:a.unit,obs:document.getElementById('co').value,agenda:a.id});
+      const servFeito=document.getElementById('cserv').value,hid=await DB.push(p+'/atendimentos',{date:a.date,cli:a.cli,serv:servFeito,pro:a.pro,unit:a.unit,obs:document.getElementById('co').value,agenda:a.id,...(servFeito!==a.serv?{servAgendado:a.serv}:{})});
       // O voucher é marcado como usado primeiro, já ligado a este atendimento: é isso que autoriza o valor com brinde.
       if(usaV)await DB.upd(vou._p+'/vouchers/'+vou.id,{usado:true,usadoEm:iso(TODAY),usadoPor:S.user.nome,atend:hid});
       const reg={valor,pag:document.getElementById('cp').value,tabela:s.p};if(desc)reg.desc=desc;
       await DB.set('financeiro/valores/'+hid,reg);
       await DB.set(p+'/agenda/'+a.id+'/st','Atendido');
+      if(servFeito!==a.serv)await DB.set(p+'/agenda/'+a.id+'/serv',servFeito);
     },usaV?'Atendimento registrado com o brinde':'Atendimento registrado');
     if(ok)closeDlg();else btn.disabled=false}}
 // Duração digitada: só vale se for um número entre 5 e 600 e diferente do que já vale.
@@ -1680,19 +1685,20 @@ function descontosHtml(){
    <div class="grid g3"><div><div class="lbl">Liberados e valendo</div><div class="stat" style="font-size:26px">${vAtivos.length}</div></div><div><div class="lbl">Usados</div><div class="stat" style="font-size:26px">${vUsados.length}</div></div><div><div class="lbl">Venceram sem uso</div><div class="stat" style="font-size:26px">${vVenc.length}</div></div></div>
    ${vs.length?vs.sort((a,b)=>(b.emitido||'').localeCompare(a.emitido||'')).slice(0,12).map(v=>`<div class="row"><div class="grow"><b>${esc(v.nome||cli(v.cli).n)}</b><div class="small muted">${esc(v.id)} · liberado em ${fd(v.emitido)} por ${esc(v.emitidoPor||'')} · ${v.valeAte?'vale até '+fd(v.valeAte):'sem prazo'}</div></div>${v.usado?`<span class="tag">Usado em ${fd(v.usadoEm)}${v.usadoPor?' · '+esc(v.usadoPor):''}</span>`:venceu(v,iso(TODAY))?'<span class="tag warn">Venceu</span>':'<span class="tag ok">Valendo</span>'}</div>`).join(''):'<p class="muted">Nenhum código liberado ainda. Libere na aba Hoje, em Aniversários da semana.</p>'}</div>`}
 function vFinanceiro(){
-  const m=monthRecs();const mes=TODAY.toLocaleDateString('pt-BR',{month:'long'});
+  const m=monthRecs(),corrente=finMes()===iso(TODAY).slice(0,7);const mes=prim1(new Date(finMes()+'-15T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}));
   const mai=m.filter(h=>h.unit==='mai'),flo=m.filter(h=>h.unit==='flo');
   const sum=a=>a.reduce((s,h)=>s+(h.valor||0),0);
-  const fatM=sum(mai),com=mai.filter(h=>h.pro!=='tha'&&h.pro!=='lais').reduce((s,h)=>s+comVal(h),0),desp=arr(C.contas).filter(c=>c.unit==='mai'&&c.pago&&!c.cancelada).reduce((s,c)=>s+c.v,0);
+  const fatM=sum(mai),com=mai.filter(h=>h.pro!=='tha'&&h.pro!=='lais').reduce((s,h)=>s+comVal(h),0),desp=arr(C.contas).filter(c=>c.unit==='mai'&&c.pago&&!c.cancelada&&(!c.venc||String(c.venc).slice(0,7)===finMes())).reduce((s,c)=>s+c.v,0);
   const fatF=sum(flo),rep=fatF*repasse()/100;
   const porPag=PAG.map(p=>[p,sum(m.filter(h=>h.pag===p&&visUnit(h.unit)))]);
   const showM=visUnit('mai'),showF=visUnit('flo');
-  return `<div class="top"><div><h1>Financeiro</h1><div class="sub">Resumo de ${mes} até hoje.</div></div>${unitSeg()}</div>
-  ${!m.length?'<div class="note">Ainda não há atendimentos registrados neste mês. Os números aparecem conforme você for concluindo atendimentos na Agenda.</div>':''}
+  return `<div class="top"><div><h1>Financeiro</h1><div class="sub">Resumo de ${mes}${corrente?' até hoje':''}.</div></div>${unitSeg()}</div>
+  <div class="chips-pro" style="align-items:center"><button type="button" class="btn sm" data-finmes="-1" aria-label="Mês anterior">‹ Mês anterior</button><b style="padding:0 6px">${mes}</b><button type="button" class="btn sm" data-finmes="1" ${corrente?'disabled':''} aria-label="Próximo mês">Próximo ›</button>${corrente?'':'<button type="button" class="btn sm" data-finmes="0">Mês atual</button>'}</div>
+  ${!m.length?'<div class="note">Não há atendimentos registrados neste mês. Os números aparecem conforme você for concluindo atendimentos na Agenda.</div>':''}
   <div class="grid g2">
   ${showM?`<div class="box"><h2>Tháriga Beauty & Co</h2><div class="grid g3">
     <div><div class="lbl">Faturamento</div><div class="stat">${brl(fatM)}</div></div>
-    <div><div class="lbl">Comissões (Rafael + Mariana, 50%)</div><div class="stat">${brl(com)}</div></div>
+    <div><div class="lbl">Comissões da equipe</div><div class="stat">${brl(com)}</div></div>
     <div><div class="lbl">Despesas pagas</div><div class="stat">${brl(desp)}</div></div></div>
     <div class="row" style="margin-top:12px"><div class="grow"><b>Resultado do estúdio</b></div><div class="stat" style="color:var(--ok)">${brl(fatM-com-desp)}</div></div>
     <p class="small muted" style="margin-top:8px">Não inclui a Laís, que paga aluguel fixo de R$ 500/mês pela sala às segundas-feiras — veja em Comissões.</p></div>`:''}
@@ -1708,7 +1714,7 @@ function vFinanceiro(){
   ${descontosHtml()}`;
 }
 function extrato(){const flo=monthRecs().filter(h=>h.unit==='flo');const tot=flo.reduce((s,h)=>s+(h.valor||0),0);const rep=tot*repasse()/100;
-  const txt=`Acerto Estúdio Florença — ${TODAY.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}\nAtendimentos: ${flo.length}\nTotal: ${brl(tot)}\nParte do estúdio (${repasse()}%): ${brl(rep)}\nLíquido Tháriga: ${brl(tot-rep)}`;
+  const txt=`Acerto Estúdio Florença — ${new Date(finMes()+'-15T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}\nAtendimentos: ${flo.length}\nTotal: ${brl(tot)}\nParte do estúdio (${repasse()}%): ${brl(rep)}\nLíquido Tháriga: ${brl(tot-rep)}`;
   openDlg('Extrato do acerto',`<div class="scroll"><table><tr><th>Data</th><th>Serviço</th><th class="n">Valor</th><th class="n">Estúdio</th></tr>${flo.map(h=>`<tr><td>${fd(h.date)}</td><td>${esc(sv(h.serv,'flo').n)}</td><td class="n">${brl(h.valor)}</td><td class="n">${brl((h.valor||0)*repasse()/100)}</td></tr>`).join('')}
   <tr><th>Total</th><th></th><th class="n">${brl(tot)}</th><th class="n">${brl(rep)}</th></tr></table></div>
   <button class="btn p" id="cp" style="margin-top:14px">Copiar resumo</button>`);
@@ -1720,8 +1726,11 @@ const COM_PROS=['rafael','mariana','ana'];
 const comResumo=(p,q)=>{const ini=iso(q.ini),fim=iso(q.fim),chave=ini,itens={},adiant={};
   histAll().filter(h=>h.pro===p&&h.date>=ini&&h.date<=fim).forEach(h=>{itens[h.id]={d:h.date,s:sv(h.serv,h.unit).n,v:h.valor||0,c:comVal(h)}});
   const adv=arr(C.adiantamentos).filter(a=>a.pro===p&&a.periodo===chave&&!a.cancelado);adv.forEach(a=>{adiant[a.id]={d:a.data,v:+a.valor||0,...(a.obs?{o:a.obs}:{})}});
+  // Estimativa: o que já foi feito + os horários ainda agendados até o fim do período, pelo preço de tabela (sem desconto). Concluir o atendimento troca o estimado pelo real.
+  const hoje=iso(TODAY),pctP=+((C.config.comPct||{})[p]??50),ag=agendaAtiva().filter(a=>a.pro===p&&a.st!=='Atendido'&&a.date>=hoje&&a.date>=ini&&a.date<=fim);
+  const agVal=Math.round(ag.reduce((s,a)=>s+(sv(a.serv,a.unit).p||0),0)*100)/100,agN=ag.length;
   const fat=Math.round(Object.values(itens).reduce((s,x)=>s+x.v,0)*100)/100,total=Math.round(Object.values(itens).reduce((s,x)=>s+x.c,0)*100)/100,advTot=Math.round(adv.reduce((s,a)=>s+(+a.valor||0),0)*100)/100;
-  return {chave,ini,fim,pagoEm:iso(q.pago),pct:+((C.config.comPct||{})[p]??50),itens,adiant,fat,total,advTot,falta:Math.round((total-advTot)*100)/100,pago:!!(C.pagamentos||{})[chave+'_'+p]}};
+  return {chave,ini,fim,pagoEm:iso(q.pago),pct:+((C.config.comPct||{})[p]??50),itens,adiant,fat,agN,agVal,estFat:Math.round((fat+agVal)*100)/100,estCom:Math.round((total+agVal*pctP/100)*100)/100,total,advTot,falta:Math.round((total-advTot)*100)/100,pago:!!(C.pagamentos||{})[chave+'_'+p]}};
 const comHash={};
 async function sincronizarComissoes(){if(!S.user||!isAdmin())return;
   const cfg=C.config||{},atual=periodoCom(TODAY,cfg),ant=periodoCom(addD(atual.ini,-1),cfg);
@@ -1733,6 +1742,7 @@ function vMinhaCom(){
   ${per.length?per.map(x=>{const its=Object.values(x.itens||{}).sort((a,b)=>a.d.localeCompare(b.d)),adv=Object.values(x.adiant||{}).sort((a,b)=>a.d.localeCompare(b.d));
    return `<div class="box"><h2>${fd(x.ini)} a ${fd(x.fim)}</h2><div class="lbl">${its.length} atendimento(s) · comissão de ${x.pct}% · pagamento em ${fd(x.pagoEm,{day:'2-digit',month:'2-digit',year:'numeric'})}</div>
     <div class="small muted" style="margin-top:8px">Você atendeu e faturou: <b>${brl(x.fat||0)}</b> · ${x.pct}% = comissão de <b>${brl(x.total)}</b></div>
+    ${x.agN?`<div class="small muted">Estimativa do mês: <b>${brl(x.estCom)}</b> <span style="opacity:.8">(faturamento previsto ${brl(x.estFat)}, contando ${x.agN} horário${x.agN>1?'s':''} ainda agendado${x.agN>1?'s':''})</span></div>`:''}
     ${adv.length?`<div class="small" style="margin-top:6px"><b>Adiantamentos que você já recebeu: −${brl(x.advTot)}</b>${adv.map(a=>`<div class="muted">${fd(a.d)} · ${brl(a.v)}${a.o?' · '+esc(a.o):''}</div>`).join('')}</div>`:''}
     <div class="lbl" style="margin-top:10px">${x.pago?'Pago':'Falta receber'}</div><div class="stat" style="margin:2px 0 8px">${brl(Math.max(x.falta,0))}</div>${x.pago?'<span class="tag ok">Pago</span>':''}
     <details style="margin-top:10px"><summary class="small">Ver os atendimentos</summary>${its.map(i=>`<div class="row small"><span>${fd(i.d)}</span><div class="grow">${esc(i.s)}<div class="muted">${brl(i.v||0)}</div></div><b>${brl(i.c)}</b></div>`).join('')||'<p class="small muted">Nenhum atendimento neste período.</p>'}</details></div>`}).join(''):'<div class="note">Ainda não há comissão calculada para você. Ela aparece aqui depois que a Tháriga abrir o painel.</div>'}`}
@@ -1756,6 +1766,7 @@ function vComissoes(){
     const falta=Math.round((com-advTot)*100)/100,pct=+(pcts[p]??50);
     return `<div class="box"><h2>${PEOPLE[p].n}</h2><div class="lbl">${r.length} atendimentos · ${brl(tot)} faturados · comissão de ${pct}%</div>
      <div class="small muted" style="margin-top:8px">Comissão do período: <b>${brl(com)}</b></div>
+     ${(()=>{const e=comResumo(p,q);return e.agN?`<div class="small muted">Estimativa do mês: <b>${brl(e.estCom)}</b> <span style="opacity:.8">(já feito ${brl(e.total)} + ${e.agN} agendado${e.agN>1?'s':''} ${brl(Math.round(e.agVal*e.pct)/100)})</span></div>`:''})()}
      ${adv.length?`<div class="small" style="margin-top:6px"><b>Adiantamentos já pagos: −${brl(advTot)}</b>${adv.map(a=>`<div class="muted">${fd(a.data)} · ${brl(a.valor)}${a.obs?' · '+esc(a.obs):''} <a href="#" data-advx="${a.id}" style="color:var(--warn)">cancelar</a></div>`).join('')}</div>`:''}
      <div class="lbl" style="margin-top:10px">${pago?'Pago':'Falta pagar em '+pagoData}</div>
      <div class="stat" style="margin:2px 0 10px">${brl(Math.max(falta,0))}</div>
@@ -2208,6 +2219,8 @@ function render(){
   main.querySelectorAll('[data-msg]').forEach(b=>b.onclick=()=>msgDlg(b.dataset.msg,b.dataset.c));
   main.querySelectorAll('[data-cli]').forEach(b=>b.onclick=()=>ficha(b.dataset.cli));
   main.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/pagamentos/'+qzChave(b.dataset.pay),true),'Comissão marcada como paga'));
+  main.querySelectorAll('[data-finmes]').forEach(b=>b.onclick=()=>{const n=+b.dataset.finmes,atual=iso(TODAY).slice(0,7);
+    if(n===0){S.finMes=null}else{const [y,m]=finMes().split('-').map(Number),x=new Date(y,m-1+n,1,12),k=iso(x).slice(0,7);S.finMes=k>=atual?null:k}render()});
   main.querySelectorAll('[data-adv]').forEach(b=>b.onclick=()=>dlgAdiant(b.dataset.adv));
   main.querySelectorAll('[data-advx]').forEach(a=>a.onclick=e=>{e.preventDefault();if(confirm('Cancelar este adiantamento? Ele deixa de ser descontado, mas continua guardado.'))grava(()=>DB.upd('admin/adiantamentos/'+a.dataset.advx,{cancelado:true,canceladoPor:S.user.nome}),'Adiantamento cancelado')});
   main.querySelectorAll('[data-compct]').forEach(i=>i.onchange=()=>grava(()=>DB.set('admin/config/comPct/'+i.dataset.compct,Math.min(100,Math.max(0,+i.value||0))),'Percentual salvo'));
