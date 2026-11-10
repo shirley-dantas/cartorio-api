@@ -389,6 +389,46 @@ await passo('a baixa de penhora é um orçamento à parte: só averbação, sem 
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
 
+// O caso da holding que ela trouxe em 11/11/2026: a mesma conta de "imóveis
+// distintos" serve para uma integralização de capital social — mas o nome do
+// ato não é esse para a cliente, e não há ITBI porque é imune. Dois campos
+// novos, nenhum mexe na conta por si só.
+await passo('a via da cliente descreve o negócio do jeito dela, e o ITBI pode ser isento por outro motivo', async () => {
+  await pg.evaluate(() => orcTrocarAto('compra-venda-imoveis-distintos'));
+  await pg.evaluate(() => {
+    orcMudarItem('imoveisDistintos', 0, 'rotulo', 'Imóvel 1');
+    orcMudarItem('imoveisDistintos', 0, 'valor', '755.000,00');
+  });
+  await pg.evaluate(() => orcAlternarCliente());
+  await pg.waitForSelector('.orc-cli-ato');
+  const semDescricao = await pg.textContent('.orc-cli-ato');
+  if(!/Compra e venda de im[oó]veis distintos/.test(semDescricao))
+    throw new Error('sem escrever nada, devia continuar com o nome do ato: ' + semDescricao);
+  await pg.evaluate(() => orcVoltarDoCliente());
+  await pg.evaluate(() => orcMudarDescricaoAto('Integralização de capital social — imóveis distintos'));
+  await pg.evaluate(() => orcAlternarCliente());
+  await pg.waitForFunction(() => /Integraliza..o de capital social/.test(
+    document.querySelector('.orc-cli-ato').textContent));
+  const comDescricao = await pg.textContent('#orc-caso-conteudo');
+  if(!/TOTAL ESTIMADO/.test(comDescricao)) throw new Error('a conta sumiu ao trocar a descrição: ' + comDescricao.slice(0, 300));
+  await pg.evaluate(() => orcVoltarDoCliente());
+
+  await abrirMemoria(pg);
+  const antes = await pg.textContent('.orc-memoria');
+  if(!/ITBI/.test(antes)) throw new Error('faltou o ITBI antes de isentar: ' + antes.slice(0, 500));
+  if(/[Ii]sent[oa]\/imune/.test(antes)) throw new Error('não devia estar isento sem ela marcar');
+  await pg.evaluate(() => orcMudarFlag('itbiIsentoOutroMotivo', true));
+  await pg.evaluate(() => orcMudarFlagTexto('itbiIsentoMotivoTexto',
+    'Integralização de capital social, imune (art. 156, §2º, I, CF/88).'));
+  await pg.waitForFunction(() => /art\. 156/.test(document.querySelector('.orc-memoria').textContent));
+  const depois = await pg.textContent('.orc-memoria');
+  if(!/art\. 156/.test(depois)) throw new Error('o motivo escrito por ela não apareceu: ' + depois.slice(0, 800));
+  await pg.evaluate(() => orcMudarFlag('itbiIsentoOutroMotivo', false));
+  await pg.evaluate(() => orcMudarDescricaoAto(''));
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
 // O divórcio que ela trouxe em 28/08/2026: dois imóveis na partilha e duas
 // pensões, uma por prazo em meses e outra por mês final. Ela já tinha a conta
 // à mão — R$ 152.374,00 — e o painel tem de chegar no mesmo número.

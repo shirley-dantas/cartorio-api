@@ -519,6 +519,16 @@ três formas, dação, confissão, procuração, ata e escritura declaratória.
   CUSTOS costuma ser a rua do imóvel, ou o nome do de cujus no inventário —
   coisas que o nome do card não carrega. É um campo (`identificacao`), guardado
   em cada versão; em branco, cai no nome do card, que é o que sempre foi.
+- **O nome do ato que a cliente lê também é dela.** O mesmo ato — a mesma
+  conta — às vezes é outro negócio na vida real: "Compra e venda de imóveis
+  distintos" é a conta certa para uma integralização de capital social numa
+  holding (mesmo imóvel por imóvel, escritura própria, registro próprio), mas
+  não é assim que se chama para a cliente. Caso que ela trouxe em 11/11/2026.
+  Um campo (`descricaoAto`, `orcMudarDescricaoAto()`, lido por
+  `orcDescricaoCliente()`) deixa ela escrever como prefere que a via da
+  cliente chame o negócio — sem mexer no ato nem na conta. Vazio, usa o nome
+  técnico do ato, que é o que sempre foi. Vale nas duas vias (tela e a folha
+  desenhada em canvas).
 - **A via do cliente sai como imagem.** Texto colado no WhatsApp perde o
   alinhamento dos valores, a hierarquia e o ar entre as linhas — e é justamente
   a aparência que faz o orçamento parecer o que é: trabalho de cartório, não
@@ -636,6 +646,17 @@ três formas, dação, confissão, procuração, ata e escritura declaratória.
   continua só apontado, sem botão: a isenção dele depende da UFESP e do
   enquadramento no art. 6º da Lei 10.705/2000, que o painel nunca confere
   sozinho.
+  **O ITBI por outro motivo (integralização de capital social, desapropriação
+  etc.) é um campo manual, sempre à mão.** A isenção do primeiro imóvel tem
+  teto e data para o motor conferir sozinho; esta não tem — "nem sempre será
+  assim", nas palavras dela (11/11/2026, caso de uma holding sem ITBI por
+  integralização de capital). Por isso não é um alerta automático: é um select
+  "Cobrar normalmente / Isento — escrever o motivo" (`flags.itbiIsentoOutroMotivo`,
+  `orcHtmlIsencaoItbiManual()`), sempre visível quando há ITBI na conta, e um
+  campo de texto livre para o motivo (`flags.itbiIsentoMotivoTexto`) — nunca um
+  motivo pronto escolhido de uma lista, porque o painel não tem como julgar
+  qual se aplica. Zera o imposto só depois dela ligar, e o motivo escrito vira
+  o fundamento na memória de cálculo.
 - **A taxa adicional é R$ 300 por padrão**, sem precisar perguntar. Até
   16/09/2026 ela travava o CHECK FINAL esperando resposta a cada orçamento;
   virou regra fixa a pedido dela — R$300 já entra sozinho, e o campo continua
