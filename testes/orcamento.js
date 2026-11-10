@@ -986,6 +986,9 @@ ok('o ITCMD continua só sobre a meação, nunca sobre a partilha',
    comTotalPartilha.tributos[0].base === 7055384, comTotalPartilha.tributos[0].base);
 ok('a base que a cliente lê agora é o valor total da partilha',
    orcBasePrincipal(comTotalPartilha) === 52197067);
+// O número que ela conferiu à mão: R$ 521.970,67 cai na faixa o, R$ 5.427,43.
+ok('a escritura sai exatamente no valor que ela conferiu à mão: R$ 5.427,43',
+   comTotalPartilha.escrituras[0].valor === 542743, comTotalPartilha.escrituras[0]);
 
 console.log(falhas ? `\n${falhas} falha(s).\n` : '\nTudo certo.\n');
 if(falhas) process.exit(1);
