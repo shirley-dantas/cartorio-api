@@ -11281,11 +11281,21 @@ function orcCalcular(entrada){
   // Virou regra fixa em 16/09/2026: R$ 300,00 por padrão, sem precisar
   // perguntar toda vez — ela ainda pode mudar o valor ou tirar, mas o
   // orçamento não fica mais travado esperando essa resposta.
-  if(temRegistro && d.taxaAdicional !== false)
-    despesas.push({rot: 'Despesa adicional do registro', item: null,
-      valor: d.taxaAdicionalValor != null ? d.taxaAdicionalValor : 30000,
+  //
+  // A baixa de penhora/hipoteca não entra nessa regra: não há um valor padrão
+  // combinado para ela, como há no registro de compra e venda — é "um
+  // valorzinho a mais" só de vez em quando (pedido dela, 10/11/2026). Por
+  // isso começa DESLIGADA e em R$ 0,00, em vez de ligada em R$ 300,00; o
+  // campo continua à mão para quando ela precisar.
+  const ehBaixaAverbacao = e.atoId === 'baixa-averbacao';
+  const taxaLigada = d.taxaAdicional != null ? d.taxaAdicional : !ehBaixaAverbacao;
+  if(temRegistro && taxaLigada)
+    despesas.push({rot: ehBaixaAverbacao ? 'Valor a mais na baixa' : 'Despesa adicional do registro', item: null,
+      valor: d.taxaAdicionalValor != null ? d.taxaAdicionalValor : (ehBaixaAverbacao ? 0 : 30000),
       interna: true,
-      fundamento: 'Despesa acertada com a cliente. No orçamento do cliente entra somada ao registro, sem linha própria.'});
+      fundamento: ehBaixaAverbacao
+        ? 'Valor combinado com a cliente, a mais do que a tabela de averbações prevê.'
+        : 'Despesa acertada com a cliente. No orçamento do cliente entra somada ao registro, sem linha própria.'});
 
   // ETAPA 15 — somar tudo.
   const soma = arr => arr.reduce((s, x) => s + (x.valor || 0), 0);
@@ -11524,7 +11534,9 @@ function orcCheckFinal(c){
         : 'Incluída.');
   põe('Taxa adicional', 'ok',
       !c.registros.length ? 'Não se aplica.'
-        : c.d.taxaAdicional === false ? 'Dispensada, a pedido.' : 'Incluída — R$ 300,00 por padrão.');
+        : (c.d.taxaAdicional != null ? c.d.taxaAdicional : c.ato.id !== 'baixa-averbacao')
+          ? (c.ato.id === 'baixa-averbacao' ? 'Incluída — valor digitado à mão.' : 'Incluída — R$ 300,00 por padrão.')
+          : (c.ato.id === 'baixa-averbacao' ? 'Não incluída — não é a regra padrão deste ato.' : 'Dispensada, a pedido.'));
   põe('Memória de cálculo', 'ok', 'Gerada com cada linha, faixa e fundamento.');
   return itens;
 }
@@ -12023,7 +12035,7 @@ window.orcNovoDoCaso = function(casoId){
     valores: anterior ? JSON.parse(JSON.stringify((anterior.entrada || {}).valores || {})) : {},
     flags: anterior ? {...((anterior.entrada || {}).flags || {})} : {},
     despesas: {prenotacao: true, matricula: true, registroComMatricula: true,
-               taxaAdicional: null, taxaAdicionalValor: orcTaxaPadrao()},
+               taxaAdicional: null, taxaAdicionalValor: null},
     status: 'elaboracao', obs: '', herdado: h, veioDe: anterior ? anterior.id : null
   };
   orcAbrirJanela();
@@ -13361,18 +13373,27 @@ function orcHtmlDespesas(e, r){
       ${orcVerTecnico ? `<div class="orc-campo orc-campo-largo"><label class="fin-rot">Coluna do registro na tabela
           <span class="fin-mini">— regra fixa: sempre com a certidão somada</span></label>
         <div class="fin-mini">Registro com matrícula — o registro da faixa já com a certidão somada.</div></div>` : ''}
-      <div class="orc-campo orc-campo-largo orc-taxa">
-        <label class="fin-rot">Taxa adicional nas despesas do registro
-          <span class="fin-mini">— R$ 300,00 por padrão; some do registro se marcar "Não incluir"</span></label>
+      ${(() => {
+        // Na baixa de penhora/hipoteca não existe o R$ 300 combinado do
+        // registro comum: é "um valorzinho a mais" só quando o caso pede,
+        // então nasce desligada e em R$ 0,00 (pedido dela, 10/11/2026).
+        const ehBaixaAverbacao = e.atoId === 'baixa-averbacao';
+        const ligada = d.taxaAdicional != null ? d.taxaAdicional : !ehBaixaAverbacao;
+        return `<div class="orc-campo orc-campo-largo orc-taxa">
+        <label class="fin-rot">${ehBaixaAverbacao ? 'Valor a mais na baixa' : 'Taxa adicional nas despesas do registro'}
+          <span class="fin-mini">${ehBaixaAverbacao
+            ? '— opcional, para quando o caso pede algo além da tabela'
+            : '— R$ 300,00 por padrão; some do registro se marcar "Não incluir"'}</span></label>
         <div class="orc-taxa-linha">
           <select class="fin-select" onchange="orcMudarDespesa('taxaAdicional',this.value==='1')">
-            <option value="1"${d.taxaAdicional !== false ? ' selected' : ''}>Incluir</option>
-            <option value="0"${d.taxaAdicional === false ? ' selected' : ''}>Não incluir</option></select>
-          ${d.taxaAdicional !== false ? `<input class="fin-input" style="width:130px" inputmode="decimal"
-            value="${orcBr(d.taxaAdicionalValor != null ? d.taxaAdicionalValor : orcTaxaPadrao())}"
+            <option value="1"${ligada ? ' selected' : ''}>Incluir</option>
+            <option value="0"${!ligada ? ' selected' : ''}>Não incluir</option></select>
+          ${ligada ? `<input class="fin-input" style="width:130px" inputmode="decimal"
+            value="${orcBr(d.taxaAdicionalValor != null ? d.taxaAdicionalValor : (ehBaixaAverbacao ? 0 : orcTaxaPadrao()))}"
             oninput="orcMudarDespesaNum('taxaAdicionalValor',this.value)">` : ''}
         </div>
-      </div>
+      </div>`;
+      })()}
     </div>
   </div>`;
 }

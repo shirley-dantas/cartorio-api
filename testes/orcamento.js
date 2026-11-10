@@ -916,5 +916,19 @@ ok('prenotação e certidão de matrícula entram sozinhas, como em qualquer reg
    baixa.despesas.some(d => /[Pp]renota/.test(d.rot)) && baixa.despesas.some(d => /[Mm]atr[ií]cula|[Cc]ertid/.test(d.rot)));
 ok('a base que a cliente lê é o valor da dívida digitado', orcBasePrincipal(baixa) === 4789739);
 
+// Pedido dela em 10/11/2026: poder cobrar "um valorzinho a mais" na baixa,
+// igual existe para o registro comum — mas sem o R$ 300 automático, porque
+// aqui não há valor combinado nenhum: é só às vezes.
+const baixaSemPedirNada = orcCalcular({atoId: 'baixa-averbacao', valores: {divida: 4789739}, flags: {}, despesas: {}});
+ok('sem marcar nada, a baixa NÃO ganha os R$ 300 automáticos do registro comum',
+   !baixaSemPedirNada.despesas.some(d => /[Vv]alor a mais|[Dd]espesa adicional/.test(d.rot)),
+   baixaSemPedirNada.despesas);
+const baixaComExtra = orcCalcular({atoId: 'baixa-averbacao', valores: {divida: 4789739},
+  flags: {}, despesas: {taxaAdicional: true, taxaAdicionalValor: 15000}});
+ok('marcando "Incluir", o valor digitado por ela entra certinho',
+   baixaComExtra.despesas.some(d => /[Vv]alor a mais/.test(d.rot) && d.valor === 15000),
+   baixaComExtra.despesas);
+ok('e o total soma com ele', baixaComExtra.totais.despesas === baixaSemPedirNada.totais.despesas + 15000);
+
 console.log(falhas ? `\n${falhas} falha(s).\n` : '\nTudo certo.\n');
 if(falhas) process.exit(1);

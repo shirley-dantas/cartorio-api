@@ -454,6 +454,13 @@ três formas, dação, confissão, procuração, ata e escritura declaratória.
   averbação sobre UMA matrícula, não o valor de um negócio que se desdobra em
   vários imóveis; precisando baixar várias, é um orçamento à parte para cada,
   como ela já faz para orçamentos independentes no mesmo card.
+  **Tem um "valor a mais" próprio, opcional e desligado por padrão** — pedido
+  dela no mesmo dia, 10/11/2026: "às vezes eu preciso cobrar um valorzinho a
+  mais ali". É o mesmo campo "Taxa adicional" que o registro comum já tem, mas
+  SEM o R$ 300,00 automático dele — na baixa não existe um valor combinado
+  padrão, então nasce em "Não incluir" e R$ 0,00, e ela liga e digita o valor
+  só quando o caso pedir. O rótulo também muda para "Valor a mais na baixa",
+  para não sugerir que R$ 300 é a regra aqui.
 
 - **A pensão acresce à base, e vem em parcelas.** Uma pensão raramente é um
   número só: o caso que trouxe esta regra tinha um salário mínimo por doze
