@@ -253,11 +253,11 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
       <div style="grid-column:1/-1"><h2>Ano (pode marcar vários)</h2><div class="chips" id="anos"></div></div>
       <div style="grid-column:1/-1"><h2>Edição da prova</h2><div class="chips" id="provas"></div></div>
       <div style="grid-column:1/-1"><h2>Subtema (pode marcar vários)</h2><div class="chips chips-sub" id="subtemas"></div></div>
-      <div><h2>Número da questão</h2><input class="num" id="nums" inputmode="text" placeholder="ex.: 1-10, 15" aria-label="Número da questão"></div>
+      <div><h2>Quantidade de questões</h2><input class="num" id="qtd" type="number" min="1" max="500" inputmode="numeric" placeholder="todas" aria-label="Quantidade de questões da lista"><p class="hint" style="margin:6px 0 0">Total da lista, sorteado entre os subtemas marcados.</p></div>
     </div></section>
   <section class="card" id="s-res"><div class="result">
       <div class="count"><span id="n">0</span> <span id="nlabel">questões encontradas</span><small id="escopo"></small></div>
-      <div class="actions"><button class="btn pri" id="b-pdf">GERAR PDF</button><button class="btn sec" id="b-online">RESOLVER ONLINE</button><button class="btn sec" id="b-gab">VER GABARITO</button></div>
+      <div class="actions"><button class="btn pri" id="b-pdf">GERAR PDF</button><button class="btn sec" id="b-online">RESOLVER ONLINE</button><button class="btn sec" id="b-gab">VER GABARITO</button><button class="btn sec" id="b-sort" hidden>SORTEAR DE NOVO</button></div>
     </div><p class="hint" id="aviso"></p></section>
   <section style="margin-top:14px"><div class="list" id="lista"></div><div style="text-align:center;margin-top:14px"><button class="btn sec" id="mais" hidden>Mostrar mais</button></div></section>
 </main>
@@ -281,7 +281,7 @@ const COR_BANCA={enem:"#111111",fuvest:"#B39A4A",unicamp:"#8C7F66"};
 const TIPOS_ERRO=["conceito","interpretação","cálculo","atenção","método","memorização","tempo/chute"];
 const NOME_TIPO_ERRO={"conceito":"Conceito","interpretação":"Interpretação","cálculo":"Cálculo","atenção":"Atenção","método":"Método","memorização":"Memorização","tempo/chute":"Tempo / chute","indefinido":"Ainda não sei"};
 let D={bancas:[],fontes:[],q:[]}, BANCA={}, FONTE={}, QID={}, ACERVO_OK=false;
-const S={banca:null,materia:null,anos:new Set(),provas:new Set(),subtemas:new Set(),nums:"",q:"",shown:30};
+const S={banca:null,materia:null,anos:new Set(),provas:new Set(),subtemas:new Set(),qtd:"",sorteio:null,q:"",shown:30};
 let ABA="inicio";
 
 /* ============ guardar no aparelho ============ */
@@ -378,10 +378,6 @@ const temImg=q=>!!(q&&(q.k||q.u)); // k = pacote antigo (base64); u = arquivo pr
 const SEM_IMG='<span class="mut">A imagem desta questão ainda não foi importada.</span>';
 
 /* ============ filtros do acervo ============ */
-function parseNums(s){
-  const out=[];s.split(/[,;\s]+/).filter(Boolean).forEach(p=>{const m=p.match(/^(\d+)(?:-(\d+))?$/);if(m)out.push([+m[1],+(m[2]||m[1])])});
-  return out;
-}
 const STOP=new Set(["de","da","do","das","dos","e","em","questoes","questao","quest","a","o","as","os","para","sobre","com"]);
 function parseBusca(s){
   const r={bancas:new Set(),anos:new Set(),mats:new Set(),words:[]};
@@ -394,7 +390,7 @@ function parseBusca(s){
   return r;
 }
 function baseFiltro(ign){ // ign: chaves a ignorar (para contagens)
-  const B=parseBusca(S.q), nr=parseNums(S.nums);
+  const B=parseBusca(S.q);
   return D.q.filter(q=>{
     if(S.banca&&q.b!==S.banca)return false;
     if(B.bancas.size&&!B.bancas.has(q.b))return false;
@@ -406,12 +402,31 @@ function baseFiltro(ign){ // ign: chaves a ignorar (para contagens)
       if(B.anos.size&&!B.anos.has(q.a))return false}
     if(!ign.includes("prova")&&S.provas.size&&!S.provas.has(q.f))return false;
     if(!ign.includes("subtema")&&S.subtemas.size&&!S.subtemas.has(q.s))return false;
-    if(!ign.includes("nums")&&nr.length&&!nr.some(([a,b])=>q.n>=a&&q.n<=b))return false;
     for(const w of B.words)if(!q.hay.includes(w))return false;
     return true;});
 }
 const ordem=(a,b)=>a.b.localeCompare(b.b)||a.a-b.a||a.f.localeCompare(b.f)||a.n-b.n||(a.v||"").localeCompare(b.v||"");
-function resultado(){return baseFiltro([]).sort(ordem)}
+/* Lista do Acervo. Com "Quantidade de questões", a lista é um sorteio do total pedido — não é por tema. */
+function embaralhar(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+/* Distribui por rodadas: cada rodada tira uma questão de cada subtema que ainda tem, em ordem sorteada;
+   a última rodada (que não cabe inteira) fica com subtemas sorteados. Ninguém se repete. */
+function sortearEquilibrado(pool,n){
+  const g={};pool.forEach(q=>{(g[q.s]=g[q.s]||[]).push(q)});
+  const grupos=Object.values(g).map(embaralhar);
+  const fora=[];
+  while(fora.length<n&&grupos.some(x=>x.length)){
+    for(const x of embaralhar(grupos.filter(x=>x.length))){if(fora.length>=n)break;fora.push(x.pop())}
+  }
+  return embaralhar(fora);
+}
+function qtdPedida(){const n=parseInt(S.qtd,10);return n>=1?Math.min(n,500):0}
+function resultado(){
+  const pool=baseFiltro([]).sort(ordem), n=qtdPedida();
+  if(!n||n>=pool.length)return pool; // sem quantidade, ou o filtro tem menos questões que o pedido: a lista é o filtro inteiro
+  const sig=[S.banca,S.materia,[...S.anos].sort(),[...S.provas].sort(),[...S.subtemas].sort(),S.q,n,pool.length].join("|");
+  if(!S.sorteio||S.sorteio.sig!==sig)S.sorteio={sig,ids:sortearEquilibrado(pool,n).map(q=>q.id)};
+  return S.sorteio.ids.map(id=>QID[id]).filter(Boolean); // a mesma lista no PDF, no gabarito e na prática online
+}
 const cnt=(arr,fn)=>{const m={};arr.forEach(x=>{const k=fn(x);m[k]=(m[k]||0)+1});return m};
 
 /* ============ Acervo na tela ============ */
@@ -427,7 +442,7 @@ function render(){
   $("#minhas-n").textContent=QP.length?`${QP.length} ${QP.length===1?"questão adicionada":"questões adicionadas"} por você, só neste aparelho.`:"Fotografe uma questão que não está no acervo e ela entra nos filtros, no PDF e no “Resolver online”.";
   $("#s-mat").hidden=!(S.banca||S.q||S.materia||S.subtemas.size);
   const mx=$("#materias");mx.innerHTML="";
-  const pool=baseFiltro(["materia","ano","prova","subtema","nums"]);
+  const pool=baseFiltro(["materia","ano","prova","subtema"]);
   const mc={};pool.forEach(q=>q.tg.forEach(t=>{if(!(t in mc))mc[t]=0;mc[t]++}));
   mx.appendChild(chip("Todas",pool.length,!S.materia,()=>{S.materia=null;S.subtemas.clear();S.shown=30;render()}));
   Object.keys(mc).sort((a,b)=>MAT_ORDER.indexOf(a)-MAT_ORDER.indexOf(b)).forEach(m=>
@@ -441,16 +456,19 @@ function render(){
   const sc=cnt(baseFiltro(["subtema"]),q=>q.s), sx=$("#subtemas");sx.innerHTML="";
   S.subtemas.forEach(s=>{if(!(s in sc))sc[s]=0}); // marcado e sem questão nos outros filtros: continua visível para poder desmarcar
   Object.keys(sc).sort((a,b)=>a.localeCompare(b,"pt")).forEach(t=>sx.appendChild(chip(esc(t),sc[t],S.subtemas.has(t),()=>{S.subtemas.has(t)?S.subtemas.delete(t):S.subtemas.add(t);S.shown=30;render()})));
-  const R=resultado();
-  $("#n").textContent=R.length;$("#nlabel").textContent=R.length===1?"questão encontrada":"questões encontradas";
+  const R=resultado(), nq=qtdPedida(), total=baseFiltro([]).length, sorteada=nq&&nq<total;
+  $("#n").textContent=R.length;$("#nlabel").textContent=sorteada?(R.length===1?"questão sorteada":"questões sorteadas"):(R.length===1?"questão encontrada":"questões encontradas");
+  $("#b-sort").hidden=!sorteada;
   $("#escopo").textContent=escopo();
   ["#b-pdf","#b-online","#b-gab"].forEach(i=>$(i).disabled=!R.length);
-  $("#aviso").textContent=R.length?"O PDF e a prática online não mostram respostas. O gabarito só aparece ao clicar em VER GABARITO.":"Nenhuma questão com esses filtros.";
+  $("#aviso").textContent=!R.length?"Nenhuma questão com esses filtros."
+    :(nq&&nq>total?`Só há ${total} questões com esses filtros — a lista ficou com todas.`:sorteada?`Lista sorteada: ${R.length} de ${total} questões possíveis, sem repetir. O PDF, o gabarito e a prática online usam esta mesma lista; para outra, toque em SORTEAR DE NOVO.`
+    :"O PDF e a prática online não mostram respostas. O gabarito só aparece ao clicar em VER GABARITO.");
   lista(R);
 }
 function escopo(){
   const p=[];if(S.banca)p.push(BANCA[S.banca].nome);if(S.materia)p.push(S.materia);
-  if(S.anos.size)p.push([...S.anos].sort().join(", "));if(S.subtemas.size)p.push([...S.subtemas].join(" + "));if(S.q)p.push("busca: “"+S.q+"”");
+  if(S.anos.size)p.push([...S.anos].sort().join(", "));if(S.subtemas.size)p.push([...S.subtemas].join(" + "));if(S.q)p.push("busca: “"+S.q+"”");if(qtdPedida())p.push(qtdPedida()+" questões");
   return p.join(" · ")||"Todo o acervo";
 }
 const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){obs.unobserve(e.target);const q=QID[e.target.dataset.id];
@@ -474,13 +492,14 @@ $("#lista").addEventListener("click",e=>{
 $("#b-addq").onclick=()=>formQuestao();
 $("#mais").onclick=()=>{S.shown+=30;render()};
 $("#busca").addEventListener("input",e=>{S.q=e.target.value;S.shown=30;render()});
-$("#nums").addEventListener("input",e=>{S.nums=e.target.value;S.shown=30;render()});
+$("#qtd").addEventListener("input",e=>{S.qtd=e.target.value;S.shown=30;render()});
+$("#b-sort").onclick=()=>{S.sorteio=null;S.shown=30;render()};
 
 function titulo(){return (S.banca?BANCA[S.banca].nome.split(" ")[0]:"ACERVO")+" — "+(S.materia||"TODAS AS MATÉRIAS")}
 
 /* leva para o Acervo já filtrado por matéria e assunto */
 function irAcervo(materia,assunto){
-  S.banca=null;S.anos.clear();S.provas.clear();S.nums="";$("#nums").value="";S.shown=30;S.q="";$("#busca").value="";S.subtemas.clear();S.materia=null;
+  S.banca=null;S.anos.clear();S.provas.clear();S.qtd="";$("#qtd").value="";S.sorteio=null;S.shown=30;S.q="";$("#busca").value="";S.subtemas.clear();S.materia=null;
   const mat=MAT_ORDER.find(m=>norm(m)===norm(materia));
   if(mat)S.materia=mat;
   const sub=D.q.find(q=>norm(q.s)===norm(assunto)&&(!mat||q.tg.includes(mat)));
@@ -714,7 +733,7 @@ function formQuestao(pid,pre){
       salvarQP();montarPessoais();
     }catch(err){d.querySelectorAll("button").forEach(x=>x.disabled=false);return falha("Este aparelho não conseguiu guardar a foto. Tente de novo ou use uma foto menor.")}
     fechar();
-    S.banca=null;S.materia=null;S.anos.clear();S.provas.clear();S.subtemas.clear();S.nums="";$("#nums").value="";S.q="";$("#busca").value="";S.shown=30;
+    S.banca=null;S.materia=null;S.anos.clear();S.provas.clear();S.subtemas.clear();S.qtd="";$("#qtd").value="";S.sorteio=null;S.q="";$("#busca").value="";S.shown=30;
     if(outra){aviso("Questão adicionada. Pode mandar a próxima.");formQuestao(null,{bancaNome:ban,a:ano,alts:st.alts});return}
     S.banca=bancaIdDe(ban);aba("acervo");aviso("Questão adicionada ao acervo.");
   }

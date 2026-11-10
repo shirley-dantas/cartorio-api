@@ -80,6 +80,7 @@ do repositório, e o limite de 12 funções do painel do cartório não vale aqu
 | Resolver online / tentar de novo | `abrirResolver()` — grava as tentativas (com `seg`, os segundos gastos) |
 | Cronômetro e ritmo | `abrirResolver()` (`marca()`, `pinta()`, pausa), `RITMO`, `alvoDe()`, `htmlRitmo()` |
 | Filtro de vários subtemas | `S.subtemas` (Set), chips em `#subtemas` |
+| Quantidade de questões (lista sorteada) | `S.qtd`, `resultado()`, `sortearEquilibrado()`, `#qtd`, `#b-sort` |
 | Minhas questões (acervo pessoal) | `formQuestao()`, `montarPessoais()` — entram em `D.q` com `pessoal: true`; foto no IndexedDB (chave = id da questão), dados em `rafa.questoes` |
 | Formulário de registro | `formRegistro()`, `buscarQ()` |
 | Quadro da caneta | `quadroCaneta()` — pressão vira espessura; depois que a caneta aparece, o toque (palma) é ignorado; traços em fração da largura |
@@ -104,6 +105,10 @@ questões) e um `/api/ia` fingido, e guarda imagens em `rafaela/testes/saida/`.
 Ele cobre o caminho que ela descreveu: Acervo → *Errei esta* → foto →
 *Salvar e corrigir* → *Tentar de novo*; e as estatísticas com registros
 semeados à mão para conferir cada número.
+
+## A quantidade de questões (lista sorteada)
+
+O campo *Número da questão* saiu; entrou **Quantidade de questões** (`#qtd`). Vazio = todas as questões do filtro, como sempre. Com um número N, a lista é **uma amostra de N questões no total** (não N por tema), tirada do que passa pelos filtros (banca, ano, prova, matéria, subtemas, busca): o sorteio vai em rodadas, uma questão de cada subtema por vez, em ordem sorteada, então 10 questões em 5 subtemas dão 2 de cada e 7 em 5 dão no máximo 2 por tema; sem subtema marcado, equilibra entre os subtemas que o filtro tem. **Ninguém se repete.** A lista sorteada é guardada (`S.sorteio`) e é **a mesma** no que aparece na tela, no PDF, no gabarito e na prática online; muda só com outro filtro/quantidade ou com o botão *Sortear de novo*. Pedir mais do que existe usa todas e avisa. O teste cobre 5 temas × 10 questões (`testes/painel.mjs`).
 
 ## O cronômetro
 
