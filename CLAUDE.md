@@ -497,6 +497,18 @@ três formas, dação, confissão, procuração, ata e escritura declaratória.
   resultado logo acima é trabalho que o painel já tem na tela — e é onde entra
   o erro de digitação. O botão *"Usar como Valor total da partilha"* aparece na
   linha da soma e some quando os dois já são o mesmo número.
+  **No inventário com meação, esse total é o que separa a escritura do
+  ITCMD.** Antes os dois saíam sempre do mesmo valor — a meação —, e ela
+  trouxe em 11/11/2026 um caso em que não é assim: três imóveis somando
+  R$ 521.970,67 (escritura e registro), mas o ITCMD só sobre a meação de
+  R$ 70.553,84, bem menor. O campo `totalPartilha` (o mesmo do divórcio,
+  reaproveitado) entra **antes** de `meacao` nos `campos` do ato — é por
+  isso que o botão "Usar como Valor total da partilha" aponta para ele
+  (`orcSomaDaLista` sempre pega o primeiro campo sem lista) — e a escritura
+  passa a usar `totalPartilha` quando preenchido. **Em branco, a escritura
+  continua sobre a meação**, o jeito de sempre: ninguém que já usava o ato
+  do jeito simples (partilha = meação) é pego de surpresa. O ITCMD nunca
+  muda — é sempre sobre a meação, nos dois casos.
 - **Outro ato lavrado junto entra pelo valor cheio.** A escritura sai com uma
   procuração, ou com uma ata. Os vinte atos cobrem as *combinações* conhecidas
   (garantia, novação, usufruto), e o que ficasse fora delas não tinha lugar
