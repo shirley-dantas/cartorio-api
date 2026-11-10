@@ -368,6 +368,23 @@ await passo('a baixa de penhora é um orçamento à parte: só averbação, sem 
     // Checagem mais simples: o resumo lateral não lista linha de tributo.
     if(/ITBI|ITCMD/.test(t)) throw new Error('não devia ter ITBI nem ITCMD: ' + t.slice(0, 400));
   }
+  // Pedido dela em 10/11/2026: poder cobrar "um valorzinho a mais" na baixa,
+  // sem o R$ 300 automático do registro comum (nasce desligado). Um teste
+  // mais acima já tinha ligado a taxa adicional explicitamente (regra 10,
+  // linha ~110) — aqui simula o que ela vê num orçamento de verdade recém-
+  // aberto para este ato, sem herdar esse "ligado" de outro orçamento.
+  await pg.evaluate(() => orcMudarDespesa('taxaAdicional', false));
+  if(!/Valor a mais na baixa/.test(t)) throw new Error('faltou o campo de valor a mais: ' + t.slice(0, 1000));
+  if(/517,24/.test(mem) === false) throw new Error('perdeu a referência');
+  const memSemExtra = await pg.textContent('.orc-memoria');
+  if(/Valor a mais|Despesa adicional/.test(memSemExtra))
+    throw new Error('não devia ter cobrado nada a mais sem ela pedir: ' + memSemExtra.slice(0, 800));
+  await pg.evaluate(() => orcMudarDespesa('taxaAdicional', true));
+  await pg.evaluate(() => orcMudarDespesaNum('taxaAdicionalValor', '150,00'));
+  await pg.waitForFunction(() => /Valor a mais na baixa/.test(document.querySelector('.orc-memoria').textContent));
+  const memComExtra = await pg.textContent('.orc-memoria');
+  if(!/Valor a mais na baixa/.test(memComExtra) || !/150,00/.test(memComExtra))
+    throw new Error('o valor a mais não entrou: ' + memComExtra.slice(0, 800));
   await pg.evaluate(() => orcTrocarAto('compra-venda'));
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
