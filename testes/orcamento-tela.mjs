@@ -351,6 +351,43 @@ await passo('o inventário também soma os imóveis dele', async () => {
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
 
+// O caso que ela trouxe em 11/11/2026: três imóveis somando R$ 521.970,67,
+// ITCMD só sobre a meação de R$ 70.553,84. Sem o campo novo, a escritura
+// continua sobre a meação — o botão "Usar como Valor total da partilha"
+// é o caminho dela para separar os dois valores.
+await passo('o inventário com meação separa a escritura/registro (partilha) do ITCMD (meação)', async () => {
+  await pg.evaluate(() => orcTrocarAto('inventario-meacao'));
+  await pg.evaluate(() => {
+    orcMudarValor('meacao', '70.553,84');
+    orcMudarItem('imoveis', 0, 'rotulo', 'Imóvel de SP');
+    orcMudarItem('imoveis', 0, 'valor', '396.943,00');
+    orcMaisItem('imoveis');
+    orcMudarItem('imoveis', 1, 'rotulo', 'Lote 2 - Bertioga');
+    orcMudarItem('imoveis', 1, 'valor', '54.473,83');
+    orcMaisItem('imoveis');
+    orcMudarItem('imoveis', 2, 'rotulo', 'Lote 4 - Bertioga');
+    orcMudarItem('imoveis', 2, 'valor', '70.553,84');
+  });
+  await abrirMemoria(pg);
+  const antes = await pg.textContent('.orc-memoria');
+  if(!/70\.553,84/.test(antes)) throw new Error('faltou a meação antes de somar: ' + antes.slice(0, 500));
+  // Sem o campo preenchido, a escritura ainda segue a meação — o jeito de sempre.
+  if(!/Escritura.*70\.553,84/s.test(antes.replace(/\n/g, ' ')))
+    throw new Error('sem o campo novo, a escritura devia continuar sobre a meação: ' + antes.slice(0, 500));
+  await pg.evaluate(() => orcUsarSomaComoBase('imoveis', 'totalPartilha'));
+  await pg.waitForFunction(() => /521\.970,67/.test(document.querySelector('.orc-memoria').textContent));
+  const depois = await pg.textContent('.orc-memoria');
+  if(!/521\.970,67/.test(depois)) throw new Error('a escritura não foi para o valor total da partilha: ' + depois.slice(0, 500));
+  if(!/ITCMD.*70\.553,84/s.test(depois.replace(/\n/g, ' ')))
+    throw new Error('o ITCMD deveria continuar só sobre a meação: ' + depois.slice(0, 800));
+  // Limpa a lista de imóveis e o total, para os testes seguintes (o
+  // divórcio com partilha usa os mesmos campos) não herdarem este inventário.
+  await pg.evaluate(() => { orcTirarItem('imoveis', 2); orcTirarItem('imoveis', 1); orcTirarItem('imoveis', 0);
+    orcMudarValor('totalPartilha', ''); });
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
 // O caso que ela trouxe em 10/11/2026: um orçamento separado, no mesmo card,
 // para a baixa de uma penhora — sem escritura, sem ITBI, só a averbação no
 // Registro de Imóveis pelo valor da dívida, mais prenotação e certidão.

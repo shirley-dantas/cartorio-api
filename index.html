@@ -11195,12 +11195,23 @@ const ORC_ATOS = [
     id: 'inventario-meacao',
     nome: 'Inventário e partilha com meação',
     grupo: 'Inventário',
-    campos: ['meacao', 'imoveis'],
-    comoElaEscreveu: '1 ato sobre o valor da meação, 1 registro sobre o valor de cada imóvel referente à meação, 1 ITCMD do valor da meação de 4%.',
+    // `totalPartilha` vem primeiro de propósito: é o campo que o botão "Usar
+    // como Valor total da partilha" alimenta com a soma dos imóveis (ver
+    // `orcSomaDaLista`, que aponta sempre para o primeiro campo sem lista).
+    // A meação fica para o ITCMD, nunca para a escritura.
+    campos: ['totalPartilha', 'meacao', 'imoveis'],
+    comoElaEscreveu: '1 ato sobre o valor total da partilha, 1 registro sobre o valor de cada imóvel, 1 ITCMD sobre o valor da meação de 4%.',
     montar(e){
       const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      // A escritura e o registro são sobre o valor total do que está sendo
+      // partilhado — normalmente a soma dos imóveis. O ITCMD é só sobre a
+      // meação, que pode ser bem menor (caso que ela trouxe em 10/11/2026:
+      // imóveis somando R$ 521.970,65, ITCMD só sobre R$ 70.553,84 da
+      // meação). Deixando `totalPartilha` em branco, a escritura volta a
+      // usar a meação — o jeito de sempre, para quem não precisa separar.
+      const baseEscritura = e.totalPartilha > 0 ? e.totalPartilha : e.meacao;
       return {
-        escrituras: [orcLinhaEscritura(e.meacao, {rot: 'Escritura de inventário e partilha — sobre a meação'})],
+        escrituras: [orcLinhaEscritura(baseEscritura, {rot: 'Escritura de inventário e partilha'})],
         registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
         tributos: [orcLinhaTributo('itcmd', e.meacao, {rot: 'ITCMD sobre a meação'})]
       };
@@ -11942,9 +11953,16 @@ function orcCalcular(entrada){
   // via da cliente — o resto são bases internas de cada linha da tabela.
   const campoPrincipal = (ato.campos || []).find(c => true);
   const bruto = campoPrincipal ? v[campoPrincipal] : null;
-  const baseDeclarada = (Array.isArray(bruto)
+  let baseDeclarada = (Array.isArray(bruto)
     ? bruto.filter(x => x && x.valor > 0).reduce((t, x) => t + x.valor, 0)
     : Math.round(Number(bruto) || 0)) + pensaoTotal;
+  // No inventário com meação, `totalPartilha` é o primeiro campo (é nele que
+  // o botão "Usar como Valor total da partilha" soma os imóveis), mas em
+  // branco a escritura cai para a meação — e a base que a cliente lê precisa
+  // acompanhar a mesma escritura, nunca mostrar R$ 0,00 por falta do campo
+  // que ela decidiu não preencher.
+  if(ato.id === 'inventario-meacao' && !(v.totalPartilha > 0))
+    baseDeclarada = Math.round(Number(v.meacao) || 0) + pensaoTotal;
 
   return {
     ato: {id: ato.id, nome: ato.nome, grupo: ato.grupo, comoElaEscreveu: ato.comoElaEscreveu},

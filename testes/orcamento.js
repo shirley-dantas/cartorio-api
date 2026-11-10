@@ -961,5 +961,31 @@ ok('marcando "Isento/imune", o ITBI zera e guarda o motivo escrito por ela',
    holdingIsenta.tributos[0]);
 ok('o total cai exatamente o valor do ITBI', holdingIsenta.totais.total === holding.totais.total - holding.tributos[0].valor);
 
+console.log('\n— Inventário com meação, 11/11/2026: ITCMD sobre a meação, escritura sobre a partilha —');
+// Caso real: três imóveis somando R$ 521.970,67, mas o ITCMD é só sobre a
+// meação de R$ 70.553,84. Sem o campo preenchido, o jeito de sempre continua
+// (escritura sobre a meação) — ninguém que já usava o ato é pego de surpresa.
+const imoveisDoInventario = [{rotulo: 'Imóvel de SP', valor: 39694300},
+  {rotulo: 'Lote 2', valor: 5447383}, {rotulo: 'Lote 4', valor: 7055384}];
+const semTotalPartilha = orcCalcular({atoId: 'inventario-meacao',
+  valores: {meacao: 7055384, imoveis: imoveisDoInventario}, flags: {}, despesas: {}});
+ok('sem o campo novo, a escritura continua sobre a meação — o jeito de sempre',
+   semTotalPartilha.escrituras[0].base === 7055384, semTotalPartilha.escrituras[0].base);
+ok('e a base que a cliente lê acompanha', orcBasePrincipal(semTotalPartilha) === 7055384);
+
+const comTotalPartilha = orcCalcular({atoId: 'inventario-meacao',
+  valores: {totalPartilha: 52197067, meacao: 7055384, imoveis: imoveisDoInventario},
+  flags: {}, despesas: {}});
+ok('preenchendo o valor total da partilha, a escritura sai sobre ele, não sobre a meação',
+   comTotalPartilha.escrituras[0].base === 52197067, comTotalPartilha.escrituras[0].base);
+ok('o registro continua por imóvel, três linhas, uma por imóvel',
+   comTotalPartilha.registros.length === 3
+     && comTotalPartilha.totais.registro === semTotalPartilha.totais.registro,
+   comTotalPartilha.registros);
+ok('o ITCMD continua só sobre a meação, nunca sobre a partilha',
+   comTotalPartilha.tributos[0].base === 7055384, comTotalPartilha.tributos[0].base);
+ok('a base que a cliente lê agora é o valor total da partilha',
+   orcBasePrincipal(comTotalPartilha) === 52197067);
+
 console.log(falhas ? `\n${falhas} falha(s).\n` : '\nTudo certo.\n');
 if(falhas) process.exit(1);
