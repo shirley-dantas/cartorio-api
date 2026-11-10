@@ -351,6 +351,27 @@ await passo('o inventário também soma os imóveis dele', async () => {
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
 
+// O caso que ela trouxe em 10/11/2026: um orçamento separado, no mesmo card,
+// para a baixa de uma penhora — sem escritura, sem ITBI, só a averbação no
+// Registro de Imóveis pelo valor da dívida, mais prenotação e certidão.
+await passo('a baixa de penhora é um orçamento à parte: só averbação, sem escritura nem tributo', async () => {
+  await pg.evaluate(() => orcTrocarAto('baixa-averbacao'));
+  await pg.evaluate(() => orcMudarValor('divida', '47.897,39'));
+  await abrirMemoria(pg);
+  const mem = await pg.textContent('.orc-memoria');
+  if(/EscrituraR\$/.test(mem.replace(/\s+/g, ''))) throw new Error('não devia ter escritura: ' + mem.slice(0, 300));
+  if(!/517,24/.test(mem)) throw new Error('a averbação não saiu da faixa certa: ' + mem.slice(0, 500));
+  if(!/Prenota/.test(mem) || !/80,14/.test(mem)) throw new Error('faltou a prenotação: ' + mem.slice(0, 800));
+  if(!/76,54/.test(mem)) throw new Error('faltou a certidão de matrícula: ' + mem.slice(0, 800));
+  const t = await pg.textContent('#orc-caso-conteudo');
+  if(!/TributosR\$\s*0,00|Tributos.*0,00/.test(t.replace(/\s+/g, ' '))) {
+    // Checagem mais simples: o resumo lateral não lista linha de tributo.
+    if(/ITBI|ITCMD/.test(t)) throw new Error('não devia ter ITBI nem ITCMD: ' + t.slice(0, 400));
+  }
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
 // O divórcio que ela trouxe em 28/08/2026: dois imóveis na partilha e duas
 // pensões, uma por prazo em meses e outra por mês final. Ela já tinha a conta
 // à mão — R$ 152.374,00 — e o painel tem de chegar no mesmo número.
