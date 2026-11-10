@@ -430,12 +430,37 @@ vez de apagado ou misturado com o resto.
 
 ### As regras de cobrança
 
-Vinte e um atos (eram vinte; o de imóveis distintos entrou em 29/09/2026),
-cada um com a frase dela junto (`comoElaEscreveu`), para que a
-conferência seja contra o original e não contra o que o painel entendeu.
-Compra e venda em seis variações, doação com e sem usufruto, inventário com e
-sem meação e com partilha desigual, divórcio em três formas, dação, confissão,
-procuração, ata e escritura declaratória.
+Vinte e dois atos (eram vinte; o de imóveis distintos entrou em 29/09/2026, a
+baixa de penhora/hipoteca em 10/11/2026), cada um com a frase dela junto
+(`comoElaEscreveu`), para que a conferência seja contra o original e não
+contra o que o painel entendeu. Compra e venda em seis variações, doação com e
+sem usufruto, inventário com e sem meação e com partilha desigual, divórcio em
+três formas, dação, confissão, procuração, ata e escritura declaratória.
+
+- **A baixa de penhora, hipoteca ou outro ônus não é escritura — é só
+  averbação.** Ela pediu em 10/11/2026 um orçamento separado, no mesmo card de
+  uma compra e venda, para dar baixa numa penhora de R$ 47.897,39: "normalmente
+  quem paga é o vendedor, mas pode ser outro". O ato `baixa-averbacao` não gera
+  escritura nem ITBI/ITCMD — não há transmissão de propriedade —, só uma
+  averbação com valor declarado pela tabela que já estava carregada e sem uso
+  (`ORC_TABELA_REGISTRO.faixasAverbacao`, entregue em 27/08/2026), mais a
+  prenotação e a certidão de matrícula que qualquer registro já leva. O campo é
+  só o valor da dívida a baixar (`divida`). O número exato do item dela na
+  tabela ("tabela 2, item 2 mais ou menos", nas palavras dela) não foi
+  confirmado contra o PDF — entra como 🔵 operacional, confiando nos valores já
+  transcritos e pedindo conferência só do rótulo do item antes de uma cobrança
+  formal. **Não é um ato de vagas/matrículas**: "mais de uma matrícula" (a
+  regra de 29/09/2026) fica de fora dele de propósito — ela representa UMA
+  averbação sobre UMA matrícula, não o valor de um negócio que se desdobra em
+  vários imóveis; precisando baixar várias, é um orçamento à parte para cada,
+  como ela já faz para orçamentos independentes no mesmo card.
+  **Tem um "valor a mais" próprio, opcional e desligado por padrão** — pedido
+  dela no mesmo dia, 10/11/2026: "às vezes eu preciso cobrar um valorzinho a
+  mais ali". É o mesmo campo "Taxa adicional" que o registro comum já tem, mas
+  SEM o R$ 300,00 automático dele — na baixa não existe um valor combinado
+  padrão, então nasce em "Não incluir" e R$ 0,00, e ela liga e digita o valor
+  só quando o caso pedir. O rótulo também muda para "Valor a mais na baixa",
+  para não sugerir que R$ 300 é a regra aqui.
 
 - **A pensão acresce à base, e vem em parcelas.** Uma pensão raramente é um
   número só: o caso que trouxe esta regra tinha um salário mínimo por doze
@@ -472,6 +497,18 @@ procuração, ata e escritura declaratória.
   resultado logo acima é trabalho que o painel já tem na tela — e é onde entra
   o erro de digitação. O botão *"Usar como Valor total da partilha"* aparece na
   linha da soma e some quando os dois já são o mesmo número.
+  **No inventário com meação, esse total é o que separa a escritura do
+  ITCMD.** Antes os dois saíam sempre do mesmo valor — a meação —, e ela
+  trouxe em 11/11/2026 um caso em que não é assim: três imóveis somando
+  R$ 521.970,67 (escritura e registro), mas o ITCMD só sobre a meação de
+  R$ 70.553,84, bem menor. O campo `totalPartilha` (o mesmo do divórcio,
+  reaproveitado) entra **antes** de `meacao` nos `campos` do ato — é por
+  isso que o botão "Usar como Valor total da partilha" aponta para ele
+  (`orcSomaDaLista` sempre pega o primeiro campo sem lista) — e a escritura
+  passa a usar `totalPartilha` quando preenchido. **Em branco, a escritura
+  continua sobre a meação**, o jeito de sempre: ninguém que já usava o ato
+  do jeito simples (partilha = meação) é pego de surpresa. O ITCMD nunca
+  muda — é sempre sobre a meação, nos dois casos.
 - **Outro ato lavrado junto entra pelo valor cheio.** A escritura sai com uma
   procuração, ou com uma ata. Os vinte atos cobrem as *combinações* conhecidas
   (garantia, novação, usufruto), e o que ficasse fora delas não tinha lugar
@@ -494,6 +531,16 @@ procuração, ata e escritura declaratória.
   CUSTOS costuma ser a rua do imóvel, ou o nome do de cujus no inventário —
   coisas que o nome do card não carrega. É um campo (`identificacao`), guardado
   em cada versão; em branco, cai no nome do card, que é o que sempre foi.
+- **O nome do ato que a cliente lê também é dela.** O mesmo ato — a mesma
+  conta — às vezes é outro negócio na vida real: "Compra e venda de imóveis
+  distintos" é a conta certa para uma integralização de capital social numa
+  holding (mesmo imóvel por imóvel, escritura própria, registro próprio), mas
+  não é assim que se chama para a cliente. Caso que ela trouxe em 11/11/2026.
+  Um campo (`descricaoAto`, `orcMudarDescricaoAto()`, lido por
+  `orcDescricaoCliente()`) deixa ela escrever como prefere que a via da
+  cliente chame o negócio — sem mexer no ato nem na conta. Vazio, usa o nome
+  técnico do ato, que é o que sempre foi. Vale nas duas vias (tela e a folha
+  desenhada em canvas).
 - **A via do cliente sai como imagem.** Texto colado no WhatsApp perde o
   alinhamento dos valores, a hierarquia e o ar entre as linhas — e é justamente
   a aparência que faz o orçamento parecer o que é: trabalho de cartório, não
@@ -611,6 +658,17 @@ procuração, ata e escritura declaratória.
   continua só apontado, sem botão: a isenção dele depende da UFESP e do
   enquadramento no art. 6º da Lei 10.705/2000, que o painel nunca confere
   sozinho.
+  **O ITBI por outro motivo (integralização de capital social, desapropriação
+  etc.) é um campo manual, sempre à mão.** A isenção do primeiro imóvel tem
+  teto e data para o motor conferir sozinho; esta não tem — "nem sempre será
+  assim", nas palavras dela (11/11/2026, caso de uma holding sem ITBI por
+  integralização de capital). Por isso não é um alerta automático: é um select
+  "Cobrar normalmente / Isento — escrever o motivo" (`flags.itbiIsentoOutroMotivo`,
+  `orcHtmlIsencaoItbiManual()`), sempre visível quando há ITBI na conta, e um
+  campo de texto livre para o motivo (`flags.itbiIsentoMotivoTexto`) — nunca um
+  motivo pronto escolhido de uma lista, porque o painel não tem como julgar
+  qual se aplica. Zera o imposto só depois dela ligar, e o motivo escrito vira
+  o fundamento na memória de cálculo.
 - **A taxa adicional é R$ 300 por padrão**, sem precisar perguntar. Até
   16/09/2026 ela travava o CHECK FINAL esperando resposta a cada orçamento;
   virou regra fixa a pedido dela — R$300 já entra sozinho, e o campo continua

@@ -11195,12 +11195,23 @@ const ORC_ATOS = [
     id: 'inventario-meacao',
     nome: 'Inventário e partilha com meação',
     grupo: 'Inventário',
-    campos: ['meacao', 'imoveis'],
-    comoElaEscreveu: '1 ato sobre o valor da meação, 1 registro sobre o valor de cada imóvel referente à meação, 1 ITCMD do valor da meação de 4%.',
+    // `totalPartilha` vem primeiro de propósito: é o campo que o botão "Usar
+    // como Valor total da partilha" alimenta com a soma dos imóveis (ver
+    // `orcSomaDaLista`, que aponta sempre para o primeiro campo sem lista).
+    // A meação fica para o ITCMD, nunca para a escritura.
+    campos: ['totalPartilha', 'meacao', 'imoveis'],
+    comoElaEscreveu: '1 ato sobre o valor total da partilha, 1 registro sobre o valor de cada imóvel, 1 ITCMD sobre o valor da meação de 4%.',
     montar(e){
       const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      // A escritura e o registro são sobre o valor total do que está sendo
+      // partilhado — normalmente a soma dos imóveis. O ITCMD é só sobre a
+      // meação, que pode ser bem menor (caso que ela trouxe em 10/11/2026:
+      // imóveis somando R$ 521.970,65, ITCMD só sobre R$ 70.553,84 da
+      // meação). Deixando `totalPartilha` em branco, a escritura volta a
+      // usar a meação — o jeito de sempre, para quem não precisa separar.
+      const baseEscritura = e.totalPartilha > 0 ? e.totalPartilha : e.meacao;
       return {
-        escrituras: [orcLinhaEscritura(e.meacao, {rot: 'Escritura de inventário e partilha — sobre a meação'})],
+        escrituras: [orcLinhaEscritura(baseEscritura, {rot: 'Escritura de inventário e partilha'})],
         registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
         tributos: [orcLinhaTributo('itcmd', e.meacao, {rot: 'ITCMD sobre a meação'})]
       };
@@ -11382,6 +11393,42 @@ const ORC_ATOS = [
       return {escrituras: [orcLinhaEscritura(0, {itemFixo: '6.2', rot: 'Escritura declaratória',
               fundamento: 'Item 6.2 — escritura sem valor declarado, demais escrituras.'})], registros: [], tributos: []};
     }
+  },
+  {
+    id: 'baixa-averbacao',
+    nome: 'Baixa de penhora, hipoteca ou outro ônus (averbação)',
+    grupo: 'Averbação',
+    campos: ['divida'],
+    // Pedido dela em 10/11/2026: um orçamento separado, dentro do mesmo
+    // caso, para a baixa de uma penhora (ou hipoteca, ou outro ônus) — sem
+    // relação com a escritura de compra e venda que às vezes já foi
+    // orçada ou já foi para o cliente. Não é ato de tabelionato: não há
+    // escritura, ITBI nem ITCMD — é só um pedido de averbação no Registro
+    // de Imóveis, pelo valor da dívida a ser baixada.
+    //
+    // A `faixasAverbacao` já estava na ORC_TABELA_REGISTRO desde 27/08/2026
+    // (a mesma Tabela de Custas do Registro de Imóveis — 2026), mas nenhum
+    // ato a usava. Prenotação e certidão de matrícula entram sozinhas, como
+    // em qualquer ato com registro (ETAPA 14) — não precisam ser somadas
+    // aqui.
+    comoElaEscreveu: 'Sem escritura: é só um pedido de baixa no Registro de Imóveis. 1 averbação com valor '
+                    + 'declarado, pela faixa da tabela de averbações sobre o valor da dívida, 1 prenotação, '
+                    + '1 certidão de matrícula. Sem ITBI nem ITCMD — não há transmissão de propriedade.',
+    montar(e){
+      return {
+        escrituras: [],
+        registros: [orcLinhaRegistro(e.divida, {faixas: ORC_TABELA_REGISTRO.faixasAverbacao, item: '2',
+          rot: 'Baixa de penhora/hipoteca — averbação com valor declarado',
+          fundamento: 'Averbação com valor declarado, pela faixa da Tabela de Custas do Registro de Imóveis — '
+                    + '2026 sobre o valor da dívida a ser baixada.',
+          avisos: [{confianca: 'operacional',
+            texto: 'O número exato do item na tabela de averbações (algo como "2.1") ainda não foi confirmado '
+                 + 'contra o PDF original — ela mesma disse "mais ou menos" ao descrever o caso. Os valores da '
+                 + 'faixa são os mesmos já carregados da Tabela de Custas do Registro de Imóveis — 2026; só o '
+                 + 'rótulo do item precisa ser conferido antes de uma cobrança formal.'}]})],
+        tributos: []
+      };
+    }
   }
 ];
 
@@ -11518,6 +11565,7 @@ const ORC_CAMPOS = {
   doacao:        {rot: 'Valor da doação',             pergunta: 'Qual o valor da doação?'},
   imoveisDoacao: {rot: 'Imóveis doados',               lista: true,
                   pergunta: 'Quais os valores de cada imóvel doado? A soma vira a base da doação, dividida em 2/3 e 1/3.'},
+  divida:        {rot: 'Valor da dívida',              pergunta: 'Qual o valor da dívida (penhora, hipoteca ou outro ônus) a ser baixada?'},
   monte:         {rot: 'Valor do monte',              pergunta: 'Qual o valor do monte?'},
   meacao:        {rot: 'Valor da meação',             pergunta: 'Qual o valor da meação?'},
   excedente:     {rot: 'Quinhão excedente',           pergunta: 'Qual o valor do quinhão excedente?'},
@@ -11540,6 +11588,14 @@ const ORC_CAMPOS = {
 // carrega. Vazio, cai no nome do card, que é o que sempre foi.
 function orcIdentificacao(e){
   return String((e && e.identificacao) || '').trim() || (e && e.casoNome) || '';
+}
+
+// O nome do ato que a cliente lê. Por padrão é o nome técnico do ato
+// (`ato.nome`) — mas a mesma conta às vezes é outro negócio ("compra e venda
+// de imóveis distintos" para uma integralização de capital, por exemplo), e
+// ela pode escrever como prefere que a cliente veja, sem mexer no cálculo.
+function orcDescricaoCliente(e, r){
+  return String((e && e.descricaoAto) || '').trim() || (r && r.ato && r.ato.nome) || '';
 }
 
 // A identidade de uma tabela: o bastante para a memória de cálculo dizer de
@@ -11740,8 +11796,14 @@ function orcCalcular(entrada){
   // ser o valor da primeira matrícula, e quem perguntar a ele "quanto vale o
   // negócio?" recebe o valor da vaga. A tela compara a soma das matrículas
   // com este número — ler o de depois dizia que o negócio encolheu.
+  // A baixa de penhora/hipoteca fica de fora: é uma averbação sobre UMA
+  // matrícula só, pela tabela própria de averbações — não o valor do negócio
+  // de uma compra e venda. Deixar o desdobramento valer aqui faria uma vaga
+  // esquecida de outro orçamento reaparecer sozinha na baixa (achado ao criar
+  // o ato, 10/11/2026): se um dia ela precisar baixar várias matrículas de
+  // uma vez, é um orçamento à parte para cada, como ela já faz hoje.
   const baseRegistro = registros.length === 1 && registros[0].faixa ? registros[0].base : null;
-  if(matriculas.length && registros.length === 1 && registros[0].faixa){
+  if(matriculas.length && registros.length === 1 && registros[0].faixa && e.atoId !== 'baixa-averbacao'){
     const base = registros[0].base;
     registros = matriculas.map(u => orcLinhaRegistro(u.valor,
       {rot: 'Registro — ' + (u.rotulo || 'matrícula'), reducao: registros[0].reducao}));
@@ -11845,11 +11907,21 @@ function orcCalcular(entrada){
   // Virou regra fixa em 16/09/2026: R$ 300,00 por padrão, sem precisar
   // perguntar toda vez — ela ainda pode mudar o valor ou tirar, mas o
   // orçamento não fica mais travado esperando essa resposta.
-  if(temRegistro && d.taxaAdicional !== false)
-    despesas.push({rot: 'Despesa adicional do registro', item: null,
-      valor: d.taxaAdicionalValor != null ? d.taxaAdicionalValor : 30000,
+  //
+  // A baixa de penhora/hipoteca não entra nessa regra: não há um valor padrão
+  // combinado para ela, como há no registro de compra e venda — é "um
+  // valorzinho a mais" só de vez em quando (pedido dela, 10/11/2026). Por
+  // isso começa DESLIGADA e em R$ 0,00, em vez de ligada em R$ 300,00; o
+  // campo continua à mão para quando ela precisar.
+  const ehBaixaAverbacao = e.atoId === 'baixa-averbacao';
+  const taxaLigada = d.taxaAdicional != null ? d.taxaAdicional : !ehBaixaAverbacao;
+  if(temRegistro && taxaLigada)
+    despesas.push({rot: ehBaixaAverbacao ? 'Valor a mais na baixa' : 'Despesa adicional do registro', item: null,
+      valor: d.taxaAdicionalValor != null ? d.taxaAdicionalValor : (ehBaixaAverbacao ? 0 : 30000),
       interna: true,
-      fundamento: 'Despesa acertada com a cliente. No orçamento do cliente entra somada ao registro, sem linha própria.'});
+      fundamento: ehBaixaAverbacao
+        ? 'Valor combinado com a cliente, a mais do que a tabela de averbações prevê.'
+        : 'Despesa acertada com a cliente. No orçamento do cliente entra somada ao registro, sem linha própria.'});
 
   // ETAPA 15 — somar tudo.
   const soma = arr => arr.reduce((s, x) => s + (x.valor || 0), 0);
@@ -11881,9 +11953,16 @@ function orcCalcular(entrada){
   // via da cliente — o resto são bases internas de cada linha da tabela.
   const campoPrincipal = (ato.campos || []).find(c => true);
   const bruto = campoPrincipal ? v[campoPrincipal] : null;
-  const baseDeclarada = (Array.isArray(bruto)
+  let baseDeclarada = (Array.isArray(bruto)
     ? bruto.filter(x => x && x.valor > 0).reduce((t, x) => t + x.valor, 0)
     : Math.round(Number(bruto) || 0)) + pensaoTotal;
+  // No inventário com meação, `totalPartilha` é o primeiro campo (é nele que
+  // o botão "Usar como Valor total da partilha" soma os imóveis), mas em
+  // branco a escritura cai para a meação — e a base que a cliente lê precisa
+  // acompanhar a mesma escritura, nunca mostrar R$ 0,00 por falta do campo
+  // que ela decidiu não preencher.
+  if(ato.id === 'inventario-meacao' && !(v.totalPartilha > 0))
+    baseDeclarada = Math.round(Number(v.meacao) || 0) + pensaoTotal;
 
   return {
     ato: {id: ato.id, nome: ato.nome, grupo: ato.grupo, comoElaEscreveu: ato.comoElaEscreveu},
@@ -11988,6 +12067,22 @@ function orcConferirIsencoes(ctx){
       }
     }
   }
+  // A isenção do teto do primeiro imóvel não é a única — imunidade por
+  // integralização de capital social (art. 156, §2º, I, CF/88), desapropriação
+  // e outras não têm um valor ou data contra que conferir sozinho, então não
+  // dá pra oferecer um botão automático como o de cima. Em vez disso, um
+  // campo manual, sempre à mão (não precisa estar dentro do teto nem nada):
+  // ela liga quando o caso pedir e escreve o motivo nas palavras dela — nunca
+  // aplicado sozinho, e "nem sempre será assim" (pedido dela, 11/11/2026).
+  if(itbi && itbi.valor != null && !itbi.isento && flags.itbiIsentoOutroMotivo){
+    itbi.isento = true;
+    itbi.valorAntesDaIsencao = itbi.valor;
+    itbi.valor = 0;
+    const motivo = String(flags.itbiIsentoMotivoTexto || '').trim();
+    itbi.fundamento = (motivo || 'Isento/imune — motivo não detalhado.') + ' Confirmado por você.';
+    alertas.push({nivel: 'avisa', confianca: 'confirmada', chave: 'itbiIsentoOutroMotivo',
+      texto: `ITBI isento/imune: ${motivo || 'motivo informado por você, sem detalhe.'}`});
+  }
   const itcmd = tributos.find(t => t.imposto === 'itcmd');
   if(itcmd && itcmd.valor != null){
     if(ORC_TRIBUTOS.ufesp == null)
@@ -12088,7 +12183,9 @@ function orcCheckFinal(c){
         : 'Incluída.');
   põe('Taxa adicional', 'ok',
       !c.registros.length ? 'Não se aplica.'
-        : c.d.taxaAdicional === false ? 'Dispensada, a pedido.' : 'Incluída — R$ 300,00 por padrão.');
+        : (c.d.taxaAdicional != null ? c.d.taxaAdicional : c.ato.id !== 'baixa-averbacao')
+          ? (c.ato.id === 'baixa-averbacao' ? 'Incluída — valor digitado à mão.' : 'Incluída — R$ 300,00 por padrão.')
+          : (c.ato.id === 'baixa-averbacao' ? 'Não incluída — não é a regra padrão deste ato.' : 'Dispensada, a pedido.'));
   põe('Memória de cálculo', 'ok', 'Gerada com cada linha, faixa e fundamento.');
   return itens;
 }
@@ -12387,6 +12484,7 @@ function orcAdivinharAto(texto){
   if(t.includes('procuracao')) return 'procuracao';
   if(t.includes('ata notarial') || t.includes('ata ')) return 'ata-notarial';
   if(t.includes('declaratoria')) return 'escritura-declaratoria';
+  if(t.includes('penhora') || t.includes('averbacao') || tem('baixa', 'hipotec')) return 'baixa-averbacao';
   if(t.includes('compra') || t.includes('venda')) return 'compra-venda';
   return '';
 }
@@ -12606,7 +12704,7 @@ window.orcNovoDoCaso = function(casoId){
     valores: anterior ? JSON.parse(JSON.stringify((anterior.entrada || {}).valores || {})) : {},
     flags: anterior ? {...((anterior.entrada || {}).flags || {})} : {},
     despesas: {prenotacao: true, matricula: true, registroComMatricula: true,
-               taxaAdicional: null, taxaAdicionalValor: orcTaxaPadrao()},
+               taxaAdicional: null, taxaAdicionalValor: null},
     status: 'elaboracao', obs: '', herdado: h, veioDe: anterior ? anterior.id : null
   };
   orcAbrirJanela();
@@ -13809,6 +13907,12 @@ window.orcMudarFlag = function(chave, valor){
   orcEmEdicao.flags[chave] = valor;
   renderOrcamentoDoCaso();
 };
+// Campo de texto dentro de uma flag: só o resultado se refaz (como
+// `orcMudarValor`), senão o cursor salta fora a cada letra.
+window.orcMudarFlagTexto = function(chave, valor){
+  orcEmEdicao.flags[chave] = valor;
+  orcRedesenharResultado();
+};
 // O botão do aviso de isenção do ITBI — um clique confirma que é a primeira
 // aquisição residencial (ou PMCMV), e o "Desfazer" volta ao estado de aviso,
 // caso ela tenha marcado por engano.
@@ -13829,6 +13933,16 @@ window.orcMudarCampoTexto = function(chave, txt){
 window.orcMudarIdentificacao = function(txt){
   orcEmEdicao.identificacao = txt;
   // Campo de digitar: só o resultado se refaz, senão o cursor salta fora.
+  orcRedesenharResultado();
+};
+// O mesmo ato (a mesma conta, o mesmo registro) às vezes é outro negócio na
+// vida real — "compra e venda de imóveis distintos" é a conta certa para uma
+// integralização de capital numa holding, mas não é assim que se chama para
+// a cliente. Pedido dela em 11/11/2026: a via dela pode descrever o negócio
+// com as palavras certas, sem mexer em nada da conta. Vazio, usa o nome do
+// ato, que é o que sempre foi.
+window.orcMudarDescricaoAto = function(txt){
+  orcEmEdicao.descricaoAto = txt;
   orcRedesenharResultado();
 };
 // Outros atos na mesma escritura. Fica na etapa 1, colado no ato principal,
@@ -13952,9 +14066,14 @@ function renderOrcamentoDoCaso(){
           </optgroup>`).join('')}
         </select>
         ${ato && orcVerTecnico ? `<div class="orc-comoescreveu"><b>Regra de cobrança:</b> ${escTxt(ato.comoElaEscreveu)}</div>` : ''}
+        ${ato ? `<div class="orc-campo" style="margin-top:10px">
+          <label class="fin-rot">Como descrever para a cliente
+            <span class="fin-mini">— opcional; não muda a conta</span></label>
+          <input class="fin-input" value="${esc(e.descricaoAto || '')}" placeholder="${esc(ato.nome)}"
+            oninput="orcMudarDescricaoAto(this.value)"></div>` : ''}
         ${ato ? orcHtmlOutrosAtos(e) : ''}
       </div>
-      ${ato ? orcHtmlJurisdicao(e, r) + orcHtmlValores(e, ato, r) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
+      ${ato ? orcHtmlJurisdicao(e, r) + orcHtmlValores(e, ato, r) + orcHtmlIsencaoItbiManual(e, r) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
     </div>
     <div class="orc-coluna-lateral">
       <div class="orc-resumo-cab"><i class="ti ti-file-text"></i>
@@ -14237,6 +14356,10 @@ function orcHtmlImoveis(e, ato, r){
   // ganha este bloco: seriam duas listas de imóveis no mesmo formulário, e a
   // dúvida sobre em qual digitar é pior que a falta do bloco.
   if((ato.campos || []).some(c => (ORC_CAMPOS[c] || {}).lista)) return '';
+  // A baixa de penhora/hipoteca também fica fora: é uma averbação sobre uma
+  // matrícula só, pela tabela de averbações — "mais de uma matrícula" não se
+  // aplica a ela do mesmo jeito que a uma compra e venda.
+  if(ato.id === 'baixa-averbacao') return '';
   const lista = (e.valores || {}).unidadesRegistro || [];
   return `<div class="orc-bloco">
     <div class="orc-secao"><i class="ti ti-home orc-secao-icone"></i><b>Imóveis a registrar</b><span>uma matrícula, um registro</span></div>
@@ -14272,6 +14395,31 @@ window.orcTirarTodasMatriculas = function(){
   orcEmEdicao.valores.unidadesRegistro = [];
   renderOrcamentoDoCaso();
 };
+
+// A isenção/imunidade do ITBI por outro motivo que não o teto do primeiro
+// imóvel (ver `orcConferirIsencoes`) — integralização de capital social,
+// desapropriação etc. Sempre à mão quando há ITBI na conta, porque o painel
+// não tem como desconfiar sozinho: ela liga e escreve o motivo quando o caso
+// pedir. Pedido dela em 11/11/2026, depois de uma integralização de capital
+// numa holding onde "nessa não tem ITBI".
+function orcHtmlIsencaoItbiManual(e, r){
+  if(!r || !r.tributos.some(t => t.imposto === 'itbi')) return '';
+  const f = e.flags || {};
+  const ligada = !!f.itbiIsentoOutroMotivo;
+  return `<div class="orc-bloco">
+    <div class="orc-secao"><i class="ti ti-receipt-tax orc-secao-icone"></i><b>ITBI</b><span>isenção/imunidade por outro motivo</span></div>
+    <div class="orc-campo orc-campo-largo">
+      <label class="fin-rot">O ITBI não incide neste caso
+        <span class="fin-mini">— integralização de capital social, desapropriação etc.; nem sempre se aplica</span></label>
+      <select class="fin-select" onchange="orcMudarFlag('itbiIsentoOutroMotivo',this.value==='1')">
+        <option value="0"${!ligada ? ' selected' : ''}>Cobrar normalmente</option>
+        <option value="1"${ligada ? ' selected' : ''}>Isento/imune — escrever o motivo</option></select>
+      ${ligada ? `<input class="fin-input" style="margin-top:6px" value="${esc(f.itbiIsentoMotivoTexto || '')}"
+        placeholder="Ex.: integralização de capital social, imune nos termos do art. 156, §2º, I, CF/88"
+        oninput="orcMudarFlagTexto('itbiIsentoMotivoTexto',this.value)">` : ''}
+    </div>
+  </div>`;
+}
 
 // As perguntas que só alguns atos fazem. A regra 11 dela: só o que falta, e
 // só quando falta — formulário enorme é o que ela pediu para não existir.
@@ -14459,18 +14607,27 @@ function orcHtmlDespesas(e, r){
       ${orcVerTecnico ? `<div class="orc-campo orc-campo-largo"><label class="fin-rot">Coluna do registro na tabela
           <span class="fin-mini">— regra fixa: sempre com a certidão somada</span></label>
         <div class="fin-mini">Registro com matrícula — o registro da faixa já com a certidão somada.</div></div>` : ''}
-      <div class="orc-campo orc-campo-largo orc-taxa">
-        <label class="fin-rot">Taxa adicional nas despesas do registro
-          <span class="fin-mini">— R$ 300,00 por padrão; some do registro se marcar "Não incluir"</span></label>
+      ${(() => {
+        // Na baixa de penhora/hipoteca não existe o R$ 300 combinado do
+        // registro comum: é "um valorzinho a mais" só quando o caso pede,
+        // então nasce desligada e em R$ 0,00 (pedido dela, 10/11/2026).
+        const ehBaixaAverbacao = e.atoId === 'baixa-averbacao';
+        const ligada = d.taxaAdicional != null ? d.taxaAdicional : !ehBaixaAverbacao;
+        return `<div class="orc-campo orc-campo-largo orc-taxa">
+        <label class="fin-rot">${ehBaixaAverbacao ? 'Valor a mais na baixa' : 'Taxa adicional nas despesas do registro'}
+          <span class="fin-mini">${ehBaixaAverbacao
+            ? '— opcional, para quando o caso pede algo além da tabela'
+            : '— R$ 300,00 por padrão; some do registro se marcar "Não incluir"'}</span></label>
         <div class="orc-taxa-linha">
           <select class="fin-select" onchange="orcMudarDespesa('taxaAdicional',this.value==='1')">
-            <option value="1"${d.taxaAdicional !== false ? ' selected' : ''}>Incluir</option>
-            <option value="0"${d.taxaAdicional === false ? ' selected' : ''}>Não incluir</option></select>
-          ${d.taxaAdicional !== false ? `<input class="fin-input" style="width:130px" inputmode="decimal"
-            value="${orcBr(d.taxaAdicionalValor != null ? d.taxaAdicionalValor : orcTaxaPadrao())}"
+            <option value="1"${ligada ? ' selected' : ''}>Incluir</option>
+            <option value="0"${!ligada ? ' selected' : ''}>Não incluir</option></select>
+          ${ligada ? `<input class="fin-input" style="width:130px" inputmode="decimal"
+            value="${orcBr(d.taxaAdicionalValor != null ? d.taxaAdicionalValor : (ehBaixaAverbacao ? 0 : orcTaxaPadrao()))}"
             oninput="orcMudarDespesaNum('taxaAdicionalValor',this.value)">` : ''}
         </div>
-      </div>
+      </div>`;
+      })()}
     </div>
   </div>`;
 }
@@ -14602,7 +14759,7 @@ function orcHtmlCliente(e, r){
     <div class="orc-cliente" id="orc-cliente-folha"><div class="orc-cli-cartao">
       <div class="orc-cli-titulo">ESTIMATIVA DE CUSTOS</div>
       <div class="orc-cli-caso">${escTxt(orcIdentificacao(e))}</div>
-      <div class="orc-cli-ato">${escTxt(r.ato.nome)}</div>
+      <div class="orc-cli-ato">${escTxt(orcDescricaoCliente(e, r))}</div>
       ${base ? `<div class="orc-cli-base">BASE CONSIDERADA<span>${orcMoeda(base)}</span></div>` : ''}
       <table class="orc-cli-tabela">
         <thead><tr><th>CUSTO</th><th>VALOR</th></tr></thead>
@@ -14736,7 +14893,7 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar, altFolha, aprovado){
   y += tamIdent + 10;
   tinta(F.tinta2);
   x.font = fonte(18, '500');
-  pinta(r.ato.nome, L / 2, y, 'center');
+  pinta(orcDescricaoCliente(e, r), L / 2, y, 'center');
   y += 42;
 
   // ── O selo de aprovado ──

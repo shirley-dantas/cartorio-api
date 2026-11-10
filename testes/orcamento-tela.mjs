@@ -351,6 +351,121 @@ await passo('o inventário também soma os imóveis dele', async () => {
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
 
+// O caso que ela trouxe em 11/11/2026: três imóveis somando R$ 521.970,67,
+// ITCMD só sobre a meação de R$ 70.553,84. Sem o campo novo, a escritura
+// continua sobre a meação — o botão "Usar como Valor total da partilha"
+// é o caminho dela para separar os dois valores.
+await passo('o inventário com meação separa a escritura/registro (partilha) do ITCMD (meação)', async () => {
+  await pg.evaluate(() => orcTrocarAto('inventario-meacao'));
+  await pg.evaluate(() => {
+    orcMudarValor('meacao', '70.553,84');
+    orcMudarItem('imoveis', 0, 'rotulo', 'Imóvel de SP');
+    orcMudarItem('imoveis', 0, 'valor', '396.943,00');
+    orcMaisItem('imoveis');
+    orcMudarItem('imoveis', 1, 'rotulo', 'Lote 2 - Bertioga');
+    orcMudarItem('imoveis', 1, 'valor', '54.473,83');
+    orcMaisItem('imoveis');
+    orcMudarItem('imoveis', 2, 'rotulo', 'Lote 4 - Bertioga');
+    orcMudarItem('imoveis', 2, 'valor', '70.553,84');
+  });
+  await abrirMemoria(pg);
+  const antes = await pg.textContent('.orc-memoria');
+  if(!/70\.553,84/.test(antes)) throw new Error('faltou a meação antes de somar: ' + antes.slice(0, 500));
+  // Sem o campo preenchido, a escritura ainda segue a meação — o jeito de sempre.
+  if(!/Escritura.*70\.553,84/s.test(antes.replace(/\n/g, ' ')))
+    throw new Error('sem o campo novo, a escritura devia continuar sobre a meação: ' + antes.slice(0, 500));
+  await pg.evaluate(() => orcUsarSomaComoBase('imoveis', 'totalPartilha'));
+  await pg.waitForFunction(() => /521\.970,67/.test(document.querySelector('.orc-memoria').textContent));
+  const depois = await pg.textContent('.orc-memoria');
+  if(!/521\.970,67/.test(depois)) throw new Error('a escritura não foi para o valor total da partilha: ' + depois.slice(0, 500));
+  if(!/ITCMD.*70\.553,84/s.test(depois.replace(/\n/g, ' ')))
+    throw new Error('o ITCMD deveria continuar só sobre a meação: ' + depois.slice(0, 800));
+  // Limpa a lista de imóveis e o total, para os testes seguintes (o
+  // divórcio com partilha usa os mesmos campos) não herdarem este inventário.
+  await pg.evaluate(() => { orcTirarItem('imoveis', 2); orcTirarItem('imoveis', 1); orcTirarItem('imoveis', 0);
+    orcMudarValor('totalPartilha', ''); });
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
+// O caso que ela trouxe em 10/11/2026: um orçamento separado, no mesmo card,
+// para a baixa de uma penhora — sem escritura, sem ITBI, só a averbação no
+// Registro de Imóveis pelo valor da dívida, mais prenotação e certidão.
+await passo('a baixa de penhora é um orçamento à parte: só averbação, sem escritura nem tributo', async () => {
+  await pg.evaluate(() => orcTrocarAto('baixa-averbacao'));
+  await pg.evaluate(() => orcMudarValor('divida', '47.897,39'));
+  await abrirMemoria(pg);
+  const mem = await pg.textContent('.orc-memoria');
+  if(/EscrituraR\$/.test(mem.replace(/\s+/g, ''))) throw new Error('não devia ter escritura: ' + mem.slice(0, 300));
+  if(!/517,24/.test(mem)) throw new Error('a averbação não saiu da faixa certa: ' + mem.slice(0, 500));
+  if(!/Prenota/.test(mem) || !/80,14/.test(mem)) throw new Error('faltou a prenotação: ' + mem.slice(0, 800));
+  if(!/76,54/.test(mem)) throw new Error('faltou a certidão de matrícula: ' + mem.slice(0, 800));
+  const t = await pg.textContent('#orc-caso-conteudo');
+  if(!/TributosR\$\s*0,00|Tributos.*0,00/.test(t.replace(/\s+/g, ' '))) {
+    // Checagem mais simples: o resumo lateral não lista linha de tributo.
+    if(/ITBI|ITCMD/.test(t)) throw new Error('não devia ter ITBI nem ITCMD: ' + t.slice(0, 400));
+  }
+  // Pedido dela em 10/11/2026: poder cobrar "um valorzinho a mais" na baixa,
+  // sem o R$ 300 automático do registro comum (nasce desligado). Um teste
+  // mais acima já tinha ligado a taxa adicional explicitamente (regra 10,
+  // linha ~110) — aqui simula o que ela vê num orçamento de verdade recém-
+  // aberto para este ato, sem herdar esse "ligado" de outro orçamento.
+  await pg.evaluate(() => orcMudarDespesa('taxaAdicional', false));
+  if(!/Valor a mais na baixa/.test(t)) throw new Error('faltou o campo de valor a mais: ' + t.slice(0, 1000));
+  if(/517,24/.test(mem) === false) throw new Error('perdeu a referência');
+  const memSemExtra = await pg.textContent('.orc-memoria');
+  if(/Valor a mais|Despesa adicional/.test(memSemExtra))
+    throw new Error('não devia ter cobrado nada a mais sem ela pedir: ' + memSemExtra.slice(0, 800));
+  await pg.evaluate(() => orcMudarDespesa('taxaAdicional', true));
+  await pg.evaluate(() => orcMudarDespesaNum('taxaAdicionalValor', '150,00'));
+  await pg.waitForFunction(() => /Valor a mais na baixa/.test(document.querySelector('.orc-memoria').textContent));
+  const memComExtra = await pg.textContent('.orc-memoria');
+  if(!/Valor a mais na baixa/.test(memComExtra) || !/150,00/.test(memComExtra))
+    throw new Error('o valor a mais não entrou: ' + memComExtra.slice(0, 800));
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
+// O caso da holding que ela trouxe em 11/11/2026: a mesma conta de "imóveis
+// distintos" serve para uma integralização de capital social — mas o nome do
+// ato não é esse para a cliente, e não há ITBI porque é imune. Dois campos
+// novos, nenhum mexe na conta por si só.
+await passo('a via da cliente descreve o negócio do jeito dela, e o ITBI pode ser isento por outro motivo', async () => {
+  await pg.evaluate(() => orcTrocarAto('compra-venda-imoveis-distintos'));
+  await pg.evaluate(() => {
+    orcMudarItem('imoveisDistintos', 0, 'rotulo', 'Imóvel 1');
+    orcMudarItem('imoveisDistintos', 0, 'valor', '755.000,00');
+  });
+  await pg.evaluate(() => orcAlternarCliente());
+  await pg.waitForSelector('.orc-cli-ato');
+  const semDescricao = await pg.textContent('.orc-cli-ato');
+  if(!/Compra e venda de im[oó]veis distintos/.test(semDescricao))
+    throw new Error('sem escrever nada, devia continuar com o nome do ato: ' + semDescricao);
+  await pg.evaluate(() => orcVoltarDoCliente());
+  await pg.evaluate(() => orcMudarDescricaoAto('Integralização de capital social — imóveis distintos'));
+  await pg.evaluate(() => orcAlternarCliente());
+  await pg.waitForFunction(() => /Integraliza..o de capital social/.test(
+    document.querySelector('.orc-cli-ato').textContent));
+  const comDescricao = await pg.textContent('#orc-caso-conteudo');
+  if(!/TOTAL ESTIMADO/.test(comDescricao)) throw new Error('a conta sumiu ao trocar a descrição: ' + comDescricao.slice(0, 300));
+  await pg.evaluate(() => orcVoltarDoCliente());
+
+  await abrirMemoria(pg);
+  const antes = await pg.textContent('.orc-memoria');
+  if(!/ITBI/.test(antes)) throw new Error('faltou o ITBI antes de isentar: ' + antes.slice(0, 500));
+  if(/[Ii]sent[oa]\/imune/.test(antes)) throw new Error('não devia estar isento sem ela marcar');
+  await pg.evaluate(() => orcMudarFlag('itbiIsentoOutroMotivo', true));
+  await pg.evaluate(() => orcMudarFlagTexto('itbiIsentoMotivoTexto',
+    'Integralização de capital social, imune (art. 156, §2º, I, CF/88).'));
+  await pg.waitForFunction(() => /art\. 156/.test(document.querySelector('.orc-memoria').textContent));
+  const depois = await pg.textContent('.orc-memoria');
+  if(!/art\. 156/.test(depois)) throw new Error('o motivo escrito por ela não apareceu: ' + depois.slice(0, 800));
+  await pg.evaluate(() => orcMudarFlag('itbiIsentoOutroMotivo', false));
+  await pg.evaluate(() => orcMudarDescricaoAto(''));
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
 // O divórcio que ela trouxe em 28/08/2026: dois imóveis na partilha e duas
 // pensões, uma por prazo em meses e outra por mês final. Ela já tinha a conta
 // à mão — R$ 152.374,00 — e o painel tem de chegar no mesmo número.

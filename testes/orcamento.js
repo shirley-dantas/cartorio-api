@@ -659,7 +659,8 @@ const V = {transacao: 50000000, garantia: 30000000, saldoDevedor: 20000000,
   unidades: [{rotulo: 'Apto', valor: 40000000}, {rotulo: 'Vaga', valor: 10000000}],
   imoveis: [{rotulo: 'Casa', valor: 60000000}],
   imoveisDistintos: [{rotulo: 'Lote 1', valor: 20000000}, {rotulo: 'Lote 2', valor: 15000000}],
-  imoveisDoacao: [{rotulo: 'Imóvel', valor: 45000000}]};
+  imoveisDoacao: [{rotulo: 'Imóvel', valor: 45000000}],
+  divida: 4789739};
 const desencontrados = ORC_ATOS.map(a => {
   const r = orcCalcular({atoId: a.id, data: '2026-08-28', praticadoEm: 'São Paulo',
     imovelMunicipio: 'São Paulo', imovelUf: 'SP', valores: V, flags: {}, despesas: {taxaAdicional: false}});
@@ -832,7 +833,8 @@ const amostra = {transacao: 30186716, garantia: 20000000, saldoDevedor: 15000000
   unidades: [{rotulo: 'Apto', valor: 30186716}, {rotulo: 'Vaga', valor: 4999999}],
   imoveis: [{rotulo: 'Casa', valor: 33333333}, {rotulo: 'Sítio', valor: 11111111}],
   imoveisDistintos: [{rotulo: 'Lote 1', valor: 20000000}, {rotulo: 'Lote 2', valor: 15000000}],
-  imoveisDoacao: [{rotulo: 'Imóvel', valor: 100000001}]};
+  imoveisDoacao: [{rotulo: 'Imóvel', valor: 100000001}],
+  divida: 47979797};
 const quebrados = [];
 ORC_ATOS.forEach(a => {
   const r = orcCalcular({atoId: a.id, valores: amostra,
@@ -898,6 +900,95 @@ ok('"compra e venda" sozinho, sem números, continua indo para o ato simples',
    orcAdivinharAto('Compra e venda') === 'compra-venda');
 ok('campo vazio não vira palpite', orcAdivinharAto('') === '');
 ok('texto que não bate com nada não vira palpite', orcAdivinharAto('abertura de firma') === '');
+ok('"baixa de penhora" vira o ato de averbação', orcAdivinharAto('Baixa de penhora') === 'baixa-averbacao');
+ok('"averbação de baixa de hipoteca" também', orcAdivinharAto('Averbação de baixa de hipoteca') === 'baixa-averbacao');
+
+console.log('\n— Baixa de penhora/hipoteca: só averbação, sem escritura nem tributo (pedido 10/11/2026) —');
+const baixa = orcCalcular({atoId: 'baixa-averbacao', valores: {divida: 4789739},
+  flags: {}, despesas: {taxaAdicional: false}});
+ok('nenhuma escritura — não é ato de tabelionato', baixa.escrituras.length === 0);
+ok('nenhum tributo — não há transmissão de propriedade', baixa.tributos.length === 0);
+ok('um registro só, pela tabela de averbações (faixa f, não a de registro comum)',
+   baixa.registros.length === 1 && baixa.registros[0].faixa.letra === 'f',
+   baixa.registros[0]);
+// R$ 517,24 — a faixa [3.842.001, 11.526.000] da tabela de averbações já
+// carregada (ORC_TABELA_REGISTRO.faixasAverbacao), para uma dívida de
+// R$ 47.897,39. Ela estimou de cabeça R$ 526,41 ao descrever o caso — mas
+// disse "mais ou menos", e a tabela já carregada é a fonte confiável.
+ok('a averbação sai da faixa certa da tabela: R$ 517,24',
+   baixa.registros[0].valor === 51724, baixa.registros[0].valor);
+ok('prenotação e certidão de matrícula entram sozinhas, como em qualquer registro',
+   baixa.despesas.some(d => /[Pp]renota/.test(d.rot)) && baixa.despesas.some(d => /[Mm]atr[ií]cula|[Cc]ertid/.test(d.rot)));
+ok('a base que a cliente lê é o valor da dívida digitado', orcBasePrincipal(baixa) === 4789739);
+
+// Pedido dela em 10/11/2026: poder cobrar "um valorzinho a mais" na baixa,
+// igual existe para o registro comum — mas sem o R$ 300 automático, porque
+// aqui não há valor combinado nenhum: é só às vezes.
+const baixaSemPedirNada = orcCalcular({atoId: 'baixa-averbacao', valores: {divida: 4789739}, flags: {}, despesas: {}});
+ok('sem marcar nada, a baixa NÃO ganha os R$ 300 automáticos do registro comum',
+   !baixaSemPedirNada.despesas.some(d => /[Vv]alor a mais|[Dd]espesa adicional/.test(d.rot)),
+   baixaSemPedirNada.despesas);
+const baixaComExtra = orcCalcular({atoId: 'baixa-averbacao', valores: {divida: 4789739},
+  flags: {}, despesas: {taxaAdicional: true, taxaAdicionalValor: 15000}});
+ok('marcando "Incluir", o valor digitado por ela entra certinho',
+   baixaComExtra.despesas.some(d => /[Vv]alor a mais/.test(d.rot) && d.valor === 15000),
+   baixaComExtra.despesas);
+ok('e o total soma com ele', baixaComExtra.totais.despesas === baixaSemPedirNada.totais.despesas + 15000);
+
+console.log('\n— Caso da holding, 11/11/2026: o nome do ato para a cliente, e o ITBI por outro motivo —');
+// "Compra e venda de imóveis distintos" é a conta certa para uma
+// integralização de capital social, mas não é assim que se chama para a
+// cliente — ela escreve como prefere, sem mexer na conta.
+const holding = orcCalcular({atoId: 'compra-venda-imoveis-distintos',
+  valores: {imoveisDistintos: [{rotulo: 'Imóvel 1', valor: 75500000}]}, flags: {}, despesas: {}});
+ok('sem escrever nada, o nome do ato é o mesmo de sempre',
+   orcDescricaoCliente({}, holding) === holding.ato.nome, orcDescricaoCliente({}, holding));
+ok('escrevendo, a via da cliente usa as palavras dela, sem mexer na conta',
+   orcDescricaoCliente({descricaoAto: 'Integralização de capital social — imóveis distintos'}, holding)
+     === 'Integralização de capital social — imóveis distintos');
+
+// O ITBI por integralização de capital social (ou outro motivo) não tem teto
+// nem data contra que conferir sozinho — por isso é um campo manual, nunca
+// aplicado sem ela mandar, e sempre com o motivo escrito.
+ok('sem marcar nada, o ITBI continua cobrado normalmente', holding.tributos[0].valor > 0 && !holding.tributos[0].isento);
+const holdingIsenta = orcCalcular({atoId: 'compra-venda-imoveis-distintos',
+  valores: {imoveisDistintos: [{rotulo: 'Imóvel 1', valor: 75500000}]},
+  flags: {itbiIsentoOutroMotivo: true, itbiIsentoMotivoTexto: 'Integralização de capital social, imune (art. 156, §2º, I, CF/88).'},
+  despesas: {}});
+ok('marcando "Isento/imune", o ITBI zera e guarda o motivo escrito por ela',
+   holdingIsenta.tributos[0].isento && holdingIsenta.tributos[0].valor === 0
+     && /Integraliza..o de capital social/.test(holdingIsenta.tributos[0].fundamento),
+   holdingIsenta.tributos[0]);
+ok('o total cai exatamente o valor do ITBI', holdingIsenta.totais.total === holding.totais.total - holding.tributos[0].valor);
+
+console.log('\n— Inventário com meação, 11/11/2026: ITCMD sobre a meação, escritura sobre a partilha —');
+// Caso real: três imóveis somando R$ 521.970,67, mas o ITCMD é só sobre a
+// meação de R$ 70.553,84. Sem o campo preenchido, o jeito de sempre continua
+// (escritura sobre a meação) — ninguém que já usava o ato é pego de surpresa.
+const imoveisDoInventario = [{rotulo: 'Imóvel de SP', valor: 39694300},
+  {rotulo: 'Lote 2', valor: 5447383}, {rotulo: 'Lote 4', valor: 7055384}];
+const semTotalPartilha = orcCalcular({atoId: 'inventario-meacao',
+  valores: {meacao: 7055384, imoveis: imoveisDoInventario}, flags: {}, despesas: {}});
+ok('sem o campo novo, a escritura continua sobre a meação — o jeito de sempre',
+   semTotalPartilha.escrituras[0].base === 7055384, semTotalPartilha.escrituras[0].base);
+ok('e a base que a cliente lê acompanha', orcBasePrincipal(semTotalPartilha) === 7055384);
+
+const comTotalPartilha = orcCalcular({atoId: 'inventario-meacao',
+  valores: {totalPartilha: 52197067, meacao: 7055384, imoveis: imoveisDoInventario},
+  flags: {}, despesas: {}});
+ok('preenchendo o valor total da partilha, a escritura sai sobre ele, não sobre a meação',
+   comTotalPartilha.escrituras[0].base === 52197067, comTotalPartilha.escrituras[0].base);
+ok('o registro continua por imóvel, três linhas, uma por imóvel',
+   comTotalPartilha.registros.length === 3
+     && comTotalPartilha.totais.registro === semTotalPartilha.totais.registro,
+   comTotalPartilha.registros);
+ok('o ITCMD continua só sobre a meação, nunca sobre a partilha',
+   comTotalPartilha.tributos[0].base === 7055384, comTotalPartilha.tributos[0].base);
+ok('a base que a cliente lê agora é o valor total da partilha',
+   orcBasePrincipal(comTotalPartilha) === 52197067);
+// O número que ela conferiu à mão: R$ 521.970,67 cai na faixa o, R$ 5.427,43.
+ok('a escritura sai exatamente no valor que ela conferiu à mão: R$ 5.427,43',
+   comTotalPartilha.escrituras[0].valor === 542743, comTotalPartilha.escrituras[0]);
 
 console.log(falhas ? `\n${falhas} falha(s).\n` : '\nTudo certo.\n');
 if(falhas) process.exit(1);
