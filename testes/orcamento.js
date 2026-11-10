@@ -935,5 +935,31 @@ ok('marcando "Incluir", o valor digitado por ela entra certinho',
    baixaComExtra.despesas);
 ok('e o total soma com ele', baixaComExtra.totais.despesas === baixaSemPedirNada.totais.despesas + 15000);
 
+console.log('\n— Caso da holding, 11/11/2026: o nome do ato para a cliente, e o ITBI por outro motivo —');
+// "Compra e venda de imóveis distintos" é a conta certa para uma
+// integralização de capital social, mas não é assim que se chama para a
+// cliente — ela escreve como prefere, sem mexer na conta.
+const holding = orcCalcular({atoId: 'compra-venda-imoveis-distintos',
+  valores: {imoveisDistintos: [{rotulo: 'Imóvel 1', valor: 75500000}]}, flags: {}, despesas: {}});
+ok('sem escrever nada, o nome do ato é o mesmo de sempre',
+   orcDescricaoCliente({}, holding) === holding.ato.nome, orcDescricaoCliente({}, holding));
+ok('escrevendo, a via da cliente usa as palavras dela, sem mexer na conta',
+   orcDescricaoCliente({descricaoAto: 'Integralização de capital social — imóveis distintos'}, holding)
+     === 'Integralização de capital social — imóveis distintos');
+
+// O ITBI por integralização de capital social (ou outro motivo) não tem teto
+// nem data contra que conferir sozinho — por isso é um campo manual, nunca
+// aplicado sem ela mandar, e sempre com o motivo escrito.
+ok('sem marcar nada, o ITBI continua cobrado normalmente', holding.tributos[0].valor > 0 && !holding.tributos[0].isento);
+const holdingIsenta = orcCalcular({atoId: 'compra-venda-imoveis-distintos',
+  valores: {imoveisDistintos: [{rotulo: 'Imóvel 1', valor: 75500000}]},
+  flags: {itbiIsentoOutroMotivo: true, itbiIsentoMotivoTexto: 'Integralização de capital social, imune (art. 156, §2º, I, CF/88).'},
+  despesas: {}});
+ok('marcando "Isento/imune", o ITBI zera e guarda o motivo escrito por ela',
+   holdingIsenta.tributos[0].isento && holdingIsenta.tributos[0].valor === 0
+     && /Integraliza..o de capital social/.test(holdingIsenta.tributos[0].fundamento),
+   holdingIsenta.tributos[0]);
+ok('o total cai exatamente o valor do ITBI', holdingIsenta.totais.total === holding.totais.total - holding.tributos[0].valor);
+
 console.log(falhas ? `\n${falhas} falha(s).\n` : '\nTudo certo.\n');
 if(falhas) process.exit(1);
