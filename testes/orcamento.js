@@ -654,7 +654,8 @@ const V = {transacao: 50000000, garantia: 30000000, saldoDevedor: 20000000,
   unidades: [{rotulo: 'Apto', valor: 40000000}, {rotulo: 'Vaga', valor: 10000000}],
   imoveis: [{rotulo: 'Casa', valor: 60000000}],
   imoveisDistintos: [{rotulo: 'Lote 1', valor: 20000000}, {rotulo: 'Lote 2', valor: 15000000}],
-  imoveisDoacao: [{rotulo: 'Imóvel', valor: 45000000}]};
+  imoveisDoacao: [{rotulo: 'Imóvel', valor: 45000000}],
+  divida: 4789739};
 const desencontrados = ORC_ATOS.map(a => {
   const r = orcCalcular({atoId: a.id, data: '2026-08-28', praticadoEm: 'São Paulo',
     imovelMunicipio: 'São Paulo', imovelUf: 'SP', valores: V, flags: {}, despesas: {taxaAdicional: false}});
@@ -827,7 +828,8 @@ const amostra = {transacao: 30186716, garantia: 20000000, saldoDevedor: 15000000
   unidades: [{rotulo: 'Apto', valor: 30186716}, {rotulo: 'Vaga', valor: 4999999}],
   imoveis: [{rotulo: 'Casa', valor: 33333333}, {rotulo: 'Sítio', valor: 11111111}],
   imoveisDistintos: [{rotulo: 'Lote 1', valor: 20000000}, {rotulo: 'Lote 2', valor: 15000000}],
-  imoveisDoacao: [{rotulo: 'Imóvel', valor: 100000001}]};
+  imoveisDoacao: [{rotulo: 'Imóvel', valor: 100000001}],
+  divida: 47979797};
 const quebrados = [];
 ORC_ATOS.forEach(a => {
   const r = orcCalcular({atoId: a.id, valores: amostra,
@@ -893,6 +895,26 @@ ok('"compra e venda" sozinho, sem números, continua indo para o ato simples',
    orcAdivinharAto('Compra e venda') === 'compra-venda');
 ok('campo vazio não vira palpite', orcAdivinharAto('') === '');
 ok('texto que não bate com nada não vira palpite', orcAdivinharAto('abertura de firma') === '');
+ok('"baixa de penhora" vira o ato de averbação', orcAdivinharAto('Baixa de penhora') === 'baixa-averbacao');
+ok('"averbação de baixa de hipoteca" também', orcAdivinharAto('Averbação de baixa de hipoteca') === 'baixa-averbacao');
+
+console.log('\n— Baixa de penhora/hipoteca: só averbação, sem escritura nem tributo (pedido 10/11/2026) —');
+const baixa = orcCalcular({atoId: 'baixa-averbacao', valores: {divida: 4789739},
+  flags: {}, despesas: {taxaAdicional: false}});
+ok('nenhuma escritura — não é ato de tabelionato', baixa.escrituras.length === 0);
+ok('nenhum tributo — não há transmissão de propriedade', baixa.tributos.length === 0);
+ok('um registro só, pela tabela de averbações (faixa f, não a de registro comum)',
+   baixa.registros.length === 1 && baixa.registros[0].faixa.letra === 'f',
+   baixa.registros[0]);
+// R$ 517,24 — a faixa [3.842.001, 11.526.000] da tabela de averbações já
+// carregada (ORC_TABELA_REGISTRO.faixasAverbacao), para uma dívida de
+// R$ 47.897,39. Ela estimou de cabeça R$ 526,41 ao descrever o caso — mas
+// disse "mais ou menos", e a tabela já carregada é a fonte confiável.
+ok('a averbação sai da faixa certa da tabela: R$ 517,24',
+   baixa.registros[0].valor === 51724, baixa.registros[0].valor);
+ok('prenotação e certidão de matrícula entram sozinhas, como em qualquer registro',
+   baixa.despesas.some(d => /[Pp]renota/.test(d.rot)) && baixa.despesas.some(d => /[Mm]atr[ií]cula|[Cc]ertid/.test(d.rot)));
+ok('a base que a cliente lê é o valor da dívida digitado', orcBasePrincipal(baixa) === 4789739);
 
 console.log(falhas ? `\n${falhas} falha(s).\n` : '\nTudo certo.\n');
 if(falhas) process.exit(1);

@@ -10775,6 +10775,42 @@ const ORC_ATOS = [
       return {escrituras: [orcLinhaEscritura(0, {itemFixo: '6.2', rot: 'Escritura declaratória',
               fundamento: 'Item 6.2 — escritura sem valor declarado, demais escrituras.'})], registros: [], tributos: []};
     }
+  },
+  {
+    id: 'baixa-averbacao',
+    nome: 'Baixa de penhora, hipoteca ou outro ônus (averbação)',
+    grupo: 'Averbação',
+    campos: ['divida'],
+    // Pedido dela em 10/11/2026: um orçamento separado, dentro do mesmo
+    // caso, para a baixa de uma penhora (ou hipoteca, ou outro ônus) — sem
+    // relação com a escritura de compra e venda que às vezes já foi
+    // orçada ou já foi para o cliente. Não é ato de tabelionato: não há
+    // escritura, ITBI nem ITCMD — é só um pedido de averbação no Registro
+    // de Imóveis, pelo valor da dívida a ser baixada.
+    //
+    // A `faixasAverbacao` já estava na ORC_TABELA_REGISTRO desde 27/08/2026
+    // (a mesma Tabela de Custas do Registro de Imóveis — 2026), mas nenhum
+    // ato a usava. Prenotação e certidão de matrícula entram sozinhas, como
+    // em qualquer ato com registro (ETAPA 14) — não precisam ser somadas
+    // aqui.
+    comoElaEscreveu: 'Sem escritura: é só um pedido de baixa no Registro de Imóveis. 1 averbação com valor '
+                    + 'declarado, pela faixa da tabela de averbações sobre o valor da dívida, 1 prenotação, '
+                    + '1 certidão de matrícula. Sem ITBI nem ITCMD — não há transmissão de propriedade.',
+    montar(e){
+      return {
+        escrituras: [],
+        registros: [orcLinhaRegistro(e.divida, {faixas: ORC_TABELA_REGISTRO.faixasAverbacao, item: '2',
+          rot: 'Baixa de penhora/hipoteca — averbação com valor declarado',
+          fundamento: 'Averbação com valor declarado, pela faixa da Tabela de Custas do Registro de Imóveis — '
+                    + '2026 sobre o valor da dívida a ser baixada.',
+          avisos: [{confianca: 'operacional',
+            texto: 'O número exato do item na tabela de averbações (algo como "2.1") ainda não foi confirmado '
+                 + 'contra o PDF original — ela mesma disse "mais ou menos" ao descrever o caso. Os valores da '
+                 + 'faixa são os mesmos já carregados da Tabela de Custas do Registro de Imóveis — 2026; só o '
+                 + 'rótulo do item precisa ser conferido antes de uma cobrança formal.'}]})],
+        tributos: []
+      };
+    }
   }
 ];
 
@@ -10911,6 +10947,7 @@ const ORC_CAMPOS = {
   doacao:        {rot: 'Valor da doação',             pergunta: 'Qual o valor da doação?'},
   imoveisDoacao: {rot: 'Imóveis doados',               lista: true,
                   pergunta: 'Quais os valores de cada imóvel doado? A soma vira a base da doação, dividida em 2/3 e 1/3.'},
+  divida:        {rot: 'Valor da dívida',              pergunta: 'Qual o valor da dívida (penhora, hipoteca ou outro ônus) a ser baixada?'},
   monte:         {rot: 'Valor do monte',              pergunta: 'Qual o valor do monte?'},
   meacao:        {rot: 'Valor da meação',             pergunta: 'Qual o valor da meação?'},
   excedente:     {rot: 'Quinhão excedente',           pergunta: 'Qual o valor do quinhão excedente?'},
@@ -11133,8 +11170,14 @@ function orcCalcular(entrada){
   // ser o valor da primeira matrícula, e quem perguntar a ele "quanto vale o
   // negócio?" recebe o valor da vaga. A tela compara a soma das matrículas
   // com este número — ler o de depois dizia que o negócio encolheu.
+  // A baixa de penhora/hipoteca fica de fora: é uma averbação sobre UMA
+  // matrícula só, pela tabela própria de averbações — não o valor do negócio
+  // de uma compra e venda. Deixar o desdobramento valer aqui faria uma vaga
+  // esquecida de outro orçamento reaparecer sozinha na baixa (achado ao criar
+  // o ato, 10/11/2026): se um dia ela precisar baixar várias matrículas de
+  // uma vez, é um orçamento à parte para cada, como ela já faz hoje.
   const baseRegistro = registros.length === 1 && registros[0].faixa ? registros[0].base : null;
-  if(matriculas.length && registros.length === 1 && registros[0].faixa){
+  if(matriculas.length && registros.length === 1 && registros[0].faixa && e.atoId !== 'baixa-averbacao'){
     const base = registros[0].base;
     registros = matriculas.map(u => orcLinhaRegistro(u.valor,
       {rot: 'Registro — ' + (u.rotulo || 'matrícula'), reducao: registros[0].reducao}));
@@ -11769,6 +11812,7 @@ function orcAdivinharAto(texto){
   if(t.includes('procuracao')) return 'procuracao';
   if(t.includes('ata notarial') || t.includes('ata ')) return 'ata-notarial';
   if(t.includes('declaratoria')) return 'escritura-declaratoria';
+  if(t.includes('penhora') || t.includes('averbacao') || tem('baixa', 'hipotec')) return 'baixa-averbacao';
   if(t.includes('compra') || t.includes('venda')) return 'compra-venda';
   return '';
 }
@@ -13091,6 +13135,10 @@ function orcHtmlImoveis(e, ato, r){
   // ganha este bloco: seriam duas listas de imóveis no mesmo formulário, e a
   // dúvida sobre em qual digitar é pior que a falta do bloco.
   if((ato.campos || []).some(c => (ORC_CAMPOS[c] || {}).lista)) return '';
+  // A baixa de penhora/hipoteca também fica fora: é uma averbação sobre uma
+  // matrícula só, pela tabela de averbações — "mais de uma matrícula" não se
+  // aplica a ela do mesmo jeito que a uma compra e venda.
+  if(ato.id === 'baixa-averbacao') return '';
   const lista = (e.valores || {}).unidadesRegistro || [];
   return `<div class="orc-bloco">
     <div class="orc-secao"><i class="ti ti-home orc-secao-icone"></i><b>Imóveis a registrar</b><span>uma matrícula, um registro</span></div>

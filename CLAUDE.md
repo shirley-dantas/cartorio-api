@@ -430,12 +430,30 @@ vez de apagado ou misturado com o resto.
 
 ### As regras de cobrança
 
-Vinte e um atos (eram vinte; o de imóveis distintos entrou em 29/09/2026),
-cada um com a frase dela junto (`comoElaEscreveu`), para que a
-conferência seja contra o original e não contra o que o painel entendeu.
-Compra e venda em seis variações, doação com e sem usufruto, inventário com e
-sem meação e com partilha desigual, divórcio em três formas, dação, confissão,
-procuração, ata e escritura declaratória.
+Vinte e dois atos (eram vinte; o de imóveis distintos entrou em 29/09/2026, a
+baixa de penhora/hipoteca em 10/11/2026), cada um com a frase dela junto
+(`comoElaEscreveu`), para que a conferência seja contra o original e não
+contra o que o painel entendeu. Compra e venda em seis variações, doação com e
+sem usufruto, inventário com e sem meação e com partilha desigual, divórcio em
+três formas, dação, confissão, procuração, ata e escritura declaratória.
+
+- **A baixa de penhora, hipoteca ou outro ônus não é escritura — é só
+  averbação.** Ela pediu em 10/11/2026 um orçamento separado, no mesmo card de
+  uma compra e venda, para dar baixa numa penhora de R$ 47.897,39: "normalmente
+  quem paga é o vendedor, mas pode ser outro". O ato `baixa-averbacao` não gera
+  escritura nem ITBI/ITCMD — não há transmissão de propriedade —, só uma
+  averbação com valor declarado pela tabela que já estava carregada e sem uso
+  (`ORC_TABELA_REGISTRO.faixasAverbacao`, entregue em 27/08/2026), mais a
+  prenotação e a certidão de matrícula que qualquer registro já leva. O campo é
+  só o valor da dívida a baixar (`divida`). O número exato do item dela na
+  tabela ("tabela 2, item 2 mais ou menos", nas palavras dela) não foi
+  confirmado contra o PDF — entra como 🔵 operacional, confiando nos valores já
+  transcritos e pedindo conferência só do rótulo do item antes de uma cobrança
+  formal. **Não é um ato de vagas/matrículas**: "mais de uma matrícula" (a
+  regra de 29/09/2026) fica de fora dele de propósito — ela representa UMA
+  averbação sobre UMA matrícula, não o valor de um negócio que se desdobra em
+  vários imóveis; precisando baixar várias, é um orçamento à parte para cada,
+  como ela já faz para orçamentos independentes no mesmo card.
 
 - **A pensão acresce à base, e vem em parcelas.** Uma pensão raramente é um
   número só: o caso que trouxe esta regra tinha um salário mínimo por doze
