@@ -24,6 +24,10 @@ function openaiPayload(opcoes, modelo) {
   };
   if (opcoes.system) payload.instructions = opcoes.system;
   if (opcoes.stream) payload.stream = true;
+  // Luna usa raciocínio médio por padrão. Estas rotas têm limites curtos de
+  // saída herdados do painel: reservar a saída para texto evita consumi-la
+  // inteira em raciocínio e devolver uma resposta vazia (inclusive no teste OK).
+  if (/^gpt-6-luna(?:-|$)/.test(payload.model)) payload.reasoning = {effort: 'none'};
   if (opcoes.tools && opcoes.tools.length) {
     payload.tools = [{type: 'web_search'}];
     payload.max_tool_calls = 6;

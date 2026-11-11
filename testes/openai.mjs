@@ -22,6 +22,13 @@ test('texto, instruções e limite são preservados; resposta não é armazenada
   assert.equal(p.input[0].content, 'Teste fictício');
   assert.equal(openaiPayload(opcoes, 'modelo-configurado').model, 'modelo-configurado');
 });
+test('Luna preserva o orçamento de saída para texto; configuração não altera GPT-4.1', () => {
+  const luna = openaiPayload(opcoes, 'gpt-6-luna');
+  assert.equal(luna.model, 'gpt-6-luna');
+  assert.deepEqual(luna.reasoning, {effort:'none'});
+  assert.equal(luna.max_output_tokens, 2000);
+  assert.equal(openaiPayload(opcoes).reasoning, undefined);
+});
 test('PDF e imagens seguem o formato multimodal da OpenAI', () => {
   const p = openaiPayload({...opcoes, messages: [{role: 'user', content: [
     {type: 'document', source: {type: 'base64', media_type: 'application/pdf', data: 'UEZERg=='}},
