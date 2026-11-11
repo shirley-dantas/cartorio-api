@@ -87,6 +87,34 @@
       ".write": "auth != null && root.child('acesso').child(auth.uid).child('dono').val() === true"
     },
 
+    // ── A conversa ampla da Joaninha (OpenAI) ──
+    // Mesma tranca do /orcamentos, e pela mesma razão: aqui moram conversas que citam
+    // cliente, documento e valor. Quem tem conta liberada em /acesso lê e escreve — a
+    // Shirley e a Grazi, igual: o histórico é compartilhado, e cada mensagem diz quem a
+    // escreveu. O `dono` do cofre pessoal não faz diferença aqui.
+    //
+    //   /joaninha_conversas/{id}    título, caso, quem criou, última atividade
+    //   /joaninha_mensagens/{id}    as mensagens de cada conversa
+    //   /joaninha_acoes             o registro do que a Joaninha fez com confirmação
+    //   /joaninha_uso/{aaaa-mm}     o consumo do mês — quem grava é a função da Vercel,
+    //                               com o token da própria pessoa, para o teto de R$ valer
+    "joaninha_conversas": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+    },
+    "joaninha_mensagens": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+    },
+    "joaninha_acoes": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+    },
+    "joaninha_uso": {
+      ".read":  "auth != null && root.child('acesso').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('acesso').child(auth.uid).exists()"
+    },
+
     // ── Painel operacional (segue aberto — ver o aviso lá em cima) ──
     "casos":                 { ".read": true, ".write": true },
     // A caixa de entrada do WhatsApp: o Apps Script grava os arquivos que chegaram no número do cartório (por REST, sem conta)

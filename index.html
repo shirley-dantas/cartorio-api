@@ -3215,6 +3215,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 </div>
 
 <script src="pedido-docs.js"></script>
+<script src="joaninha-chat.js"></script>
 <script src="design-system/mascots/joaninha/joaninha.js"></script>
 <!-- Google Identity Services (login/token pra abrir o Drive dela) + gapi
      (carrega só a biblioteca do Picker) — ver driveEscolherArquivos() e
@@ -5744,6 +5745,7 @@ function cardPartes(c){
           ${cxTipoHtml(c)}
         </div>
         <div class="cx-meta-dir">
+          <button type="button" class="cx-btn cx-joaninha" onclick="joaninhaConversarDoCaso('${c.id}')" title="Conversar com a Joaninha sobre este caso"><img src="design-system/mascots/joaninha/assets/idle.png" alt="" width="18" height="18" style="border-radius:50%;vertical-align:-4px;margin-right:4px">Joaninha</button>
           ${c.prazo&&c.prazo!=='—'?`<span class="prazo"><i class="ti ti-calendar" style="font-size:12px"></i>${esc(c.prazo)}</span>`:''}
           ${bDias(c.atualizado,c.concluido)}
         </div>
@@ -8100,6 +8102,58 @@ if(joaninhaInstancia.disponivel){
     return linhas;
   }
 
+  // ── gravar uma nota ──
+  // O miolo de joaninhaSalvar, separado para que a conversa ampla (joaninha-chat.js) grave
+  // exatamente pelo mesmo caminho — histórico, observações, data de assinatura e agenda —
+  // em vez de ter uma cópia que envelheceria em silêncio.
+  async function gravarNota(corpo,alvo){
+    if(alvo.tipo==='caso'){
+      const c=casos[alvo.id];
+      const entrada={data:new Date().toISOString(),texto:corpo,resumo:corpo,pendencias:[]};
+      const obsAtual=(c.obs||'').trim();
+      const novoObs=montarNovoObs(obsAtual,'🐞 '+corpo);
+      const patch={obs:novoObs,atualizado:isoHoje()};
+
+      // O campo "agendado" é reservado para a data de assinatura da escritura —
+      // nunca é preenchido sozinho a partir de uma nota. Só quando a nota parece
+      // claramente falar da assinatura (e o card ainda não tem data marcada) a
+      // Joaninha pergunta antes de aplicar. Qualquer outra data mencionada na nota
+      // (pendência, tarefa, ligação marcada etc.) vira um evento separado e
+      // identificado no Calendar, sem tocar no campo/evento da assinatura.
+      const dataDetectada=extrairAgendamentoDoTexto(corpo);
+      if(dataDetectada){
+        const dataFormatada=formatarDataHoraLocal(dataDetectada);
+        if(!c.agendado&&ehSobreAssinatura(corpo)&&confirm(`Essa nota parece falar da assinatura da escritura, em ${new Date(dataFormatada).toLocaleString('pt-BR')}. Marcar essa data como a assinatura deste card?`)){
+          patch.agendado=dataFormatada;
+          patch.agendado_desc=corpo.slice(0,120);
+        }else{
+          try{
+            const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({
+              acao:'sincronizar-evento-calendar',
+              nome:`Pendência: ${c.nome}`,
+              dataHora:dataFormatada,
+              descricao:corpo
+            })});
+            const dataCal=await r.json();
+            if(dataCal&&dataCal.ok)entrada.calendarEventId=dataCal.eventId;
+          }catch(e){}
+        }
+      }
+
+      await push(ref(db,`casos/${alvo.id}/historico`),entrada);
+      await update(ref(db,`casos/${alvo.id}`),patch);
+      if(patch.agendado)await sincronizarEventoCalendar(alvo.id,{...c,...patch});
+    }else{
+      // Escreve na MESMA lista que "+ Adicionar lembrete" na Mesa usa —
+      // sem cortar. Um corte automático aqui já apagou lembrete antigo
+      // ainda pendente sem avisar ninguém (quem tira um lembrete da lista
+      // é sempre a lixeira, nunca o painel sozinho).
+      const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
+      arr.push({id:gerarIdFoco(),text:corpo,done:false});
+      await set(focosRef,arr);
+    }
+  }
+
   // ── salvar captura rápida ──
   window.joaninhaSalvar=async function(){
     const ta=document.getElementById('joaninha-texto');
@@ -8113,51 +8167,7 @@ if(joaninhaInstancia.disponivel){
       let corpo=texto;
       if(anexosInfo.length)corpo+=(corpo?'\n':'')+anexosInfo.map(a=>'📎 '+a).join('\n');
       const alvo=(contexto&&contexto.tipo==='caso'&&casos[contexto.id])?contexto:{tipo:'foco'};
-      if(alvo.tipo==='caso'){
-        const c=casos[alvo.id];
-        const entrada={data:new Date().toISOString(),texto:corpo,resumo:corpo,pendencias:[]};
-        const obsAtual=(c.obs||'').trim();
-        const novoObs=montarNovoObs(obsAtual,'🐞 '+corpo);
-        const patch={obs:novoObs,atualizado:isoHoje()};
-
-        // O campo "agendado" é reservado para a data de assinatura da escritura —
-        // nunca é preenchido sozinho a partir de uma nota. Só quando a nota parece
-        // claramente falar da assinatura (e o card ainda não tem data marcada) a
-        // Joaninha pergunta antes de aplicar. Qualquer outra data mencionada na nota
-        // (pendência, tarefa, ligação marcada etc.) vira um evento separado e
-        // identificado no Calendar, sem tocar no campo/evento da assinatura.
-        const dataDetectada=extrairAgendamentoDoTexto(corpo);
-        if(dataDetectada){
-          const dataFormatada=formatarDataHoraLocal(dataDetectada);
-          if(!c.agendado&&ehSobreAssinatura(corpo)&&confirm(`Essa nota parece falar da assinatura da escritura, em ${new Date(dataFormatada).toLocaleString('pt-BR')}. Marcar essa data como a assinatura deste card?`)){
-            patch.agendado=dataFormatada;
-            patch.agendado_desc=corpo.slice(0,120);
-          }else{
-            try{
-              const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({
-                acao:'sincronizar-evento-calendar',
-                nome:`Pendência: ${c.nome}`,
-                dataHora:dataFormatada,
-                descricao:corpo
-              })});
-              const dataCal=await r.json();
-              if(dataCal&&dataCal.ok)entrada.calendarEventId=dataCal.eventId;
-            }catch(e){}
-          }
-        }
-
-        await push(ref(db,`casos/${alvo.id}/historico`),entrada);
-        await update(ref(db,`casos/${alvo.id}`),patch);
-        if(patch.agendado)await sincronizarEventoCalendar(alvo.id,{...c,...patch});
-      }else{
-        // Escreve na MESMA lista que "+ Adicionar lembrete" na Mesa usa —
-        // sem cortar. Um corte automático aqui já apagou lembrete antigo
-        // ainda pendente sem avisar ninguém (quem tira um lembrete da lista
-        // é sempre a lixeira, nunca o painel sozinho).
-        const arr=Array.isArray(focos)?[...focos]:Object.values(focos||{});
-        arr.push({id:gerarIdFoco(),text:corpo,done:false});
-        await set(focosRef,arr);
-      }
+      await gravarNota(corpo,alvo);
       ta.value='';
       anexosPendentes=[];
       renderAnexos();
@@ -8304,6 +8314,11 @@ if(joaninhaInstancia.disponivel){
     lembretes=snap.val()||{};
     if(painelAberto&&document.getElementById('joaninha-tab-lembrete').style.display!=='none')renderLembretes();
   });
+  // O miolo de "Criar lembrete", compartilhado com a conversa ampla.
+  async function criarLembrete({texto,quando,casoId}){
+    const novo={texto,quando:new Date(quando).toISOString(),casoId:casoId||null,criadoEm:new Date().toISOString(),notificado:false,feito:false};
+    return push(ref(db,'lembretes'),novo);
+  }
   window.joaninhaSalvarLembrete=async function(){
     const txtEl=document.getElementById('joaninha-lembrete-texto');
     const quandoEl=document.getElementById('joaninha-lembrete-quando');
@@ -8311,8 +8326,7 @@ if(joaninhaInstancia.disponivel){
     const quando=quandoEl.value;
     if(!texto||!quando){(texto?quandoEl:txtEl).focus();return;}
     const casoId=(contexto&&contexto.tipo==='caso'&&casos[contexto.id])?contexto.id:null;
-    const novo={texto,quando:new Date(quando).toISOString(),casoId,criadoEm:new Date().toISOString(),notificado:false,feito:false};
-    await push(ref(db,'lembretes'),novo);
+    await criarLembrete({texto,quando,casoId});
     txtEl.value='';quandoEl.value='';
     reagir('comemorar');
   };
@@ -8422,6 +8436,77 @@ if(joaninhaInstancia.disponivel){
   function registrarPergunta(pergunta,resposta,origem){
     push(ref(db,'joaninha_perguntas'),{pergunta,resposta,origem,data:new Date().toISOString()}).catch(()=>{});
   }
+
+  // ── A PONTE PARA A CONVERSA AMPLA (joaninha-chat.js) ──
+  // O módulo novo mora em arquivo próprio e não enxerga o que é daqui de dentro. Esta ponte
+  // entrega só o necessário: os dados que já estão em memória, as funções que JÁ gravam (nota,
+  // lembrete, foco), a sessão e o banco. Nada é reescrito do lado de lá — é por isso que a
+  // Joaninha nova faz exatamente o que a antiga faz, pelos mesmos caminhos.
+  window.JOANINHA_PONTE={
+    casos:()=>casos,
+    focos:()=>(Array.isArray(focos)?focos:Object.values(focos||{})),
+    lembretes:()=>lembretes,
+    contexto:()=>contexto,
+    definirContexto:(c)=>{contexto=c||null;},
+    casosAtivos:casosAtivosList,
+    resumo:computeResumo,
+    insights:insightsDoDia,
+    buscar:buscarTudo,
+    diasParado:(d)=>diasParado(d),
+    hoje:()=>isoHoje(),
+    gravarNota,criarLembrete,
+    concluirLembrete:(key)=>remove(ref(db,'lembretes/'+key)),
+    adicionarFoco:(texto)=>gravarNota(texto,{tipo:'foco'}),
+    orcamentoDoCaso:(id)=>(typeof orcUltimoDoCaso==='function'?orcUltimoDoCaso(id):null),
+    abrirReedicao:async(id,instrucao)=>{
+      await window.abrirReeditar(id);
+      const campo=document.getElementById('reeditar-instrucao');
+      if(campo){campo.value=instrucao;campo.focus();}
+      return !!campo;
+    },
+    irParaCaso:(id)=>window.joaninhaIrParaCaso(id),
+    mascote:{reagir,falar,pausarVagar,retomarVagar,registrarAtividade},
+    // sessão (a mesma do Financeiro: um login só para o painel inteiro)
+    logado:()=>!!finAuth,
+    usuarioNome:()=>finNomeLogado(),
+    liberada:()=>!!(finAcesso&&finAcesso.nome),
+    uid:()=>(finAuth&&finAuth.uid)||'',
+    token:async()=>(auth.currentUser?auth.currentUser.getIdToken():null),
+    entrar:async(email,senha)=>{
+      try{await signInWithEmailAndPassword(auth,email,senha);return {ok:true};}
+      catch(e){return {ok:false,erro:FIN_ERROS_LOGIN[e&&e.code]||('Não consegui entrar: '+(e&&e.code||e))};}
+    },
+    aoMudarSessao:(cb)=>onAuthStateChanged(auth,()=>cb()),
+    // banco, com o token da pessoa (as regras de /joaninha_* exigem conta liberada)
+    fb:{
+      ouvir:(caminho,cb,erro)=>onValue(ref(db,caminho),(snap)=>cb(snap.val()),erro||(()=>{})),
+      ler:async(caminho)=>(await get(ref(db,caminho))).val(),
+      empurrar:(caminho,valor)=>push(ref(db,caminho),valor),
+      gravar:(caminho,valor)=>set(ref(db,caminho),valor),
+      atualizar:(caminho,valor)=>update(ref(db,caminho),valor),
+      remover:(caminho)=>remove(ref(db,caminho))
+    }
+  };
+
+  // ── Clicar na Joaninha abre a conversa ampla ──
+  // O painel pequeno (Nota/Lembrete/Resumo/Buscar/Pergunte/Jurídico) continua inteiro: o clique
+  // sem argumento abre a conversa; quem chama com `true` (arrastar arquivo até a Joaninha, o botão
+  // do Radar) quer o painel pequeno e continua tendo. Para voltar ao desenho antigo no clique:
+  // localStorage.joaninha_chat='antigo'.
+  const _toggleJoaninhaLegado=window.toggleJoaninhaPainel;
+  window.toggleJoaninhaPainel=function(force){
+    const chat=window.JOANINHA_CHAT;
+    if(force===undefined&&chat&&chat.ativo()){chat.alternar();return;}
+    if(force===false&&chat)chat.fechar();
+    return _toggleJoaninhaLegado(force);
+  };
+  // Do card: abre a conversa já presa àquele caso.
+  window.joaninhaConversarDoCaso=function(id){
+    const c=casos[id];if(!c)return;
+    contexto={tipo:'caso',id,nome:c.nome};
+    if(window.JOANINHA_CHAT&&window.JOANINHA_CHAT.ativo())window.JOANINHA_CHAT.abrir({casoId:id});
+    else{_toggleJoaninhaLegado(true);}
+  };
 })();
 
 // ── Quem pode ver o dinheiro ──

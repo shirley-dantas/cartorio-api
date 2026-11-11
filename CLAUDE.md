@@ -370,6 +370,68 @@ o caminho no banco: `/radar-juridico` e `/base-regras` ficam abertos como
 
 ---
 
+## A Joaninha conversa (OpenAI)
+
+Clicar na Joaninha abre uma **conversa ampla**, como a do ChatGPT, dentro do painel, com as cores e
+a mascote do PRIME. A inteligência é da OpenAI; a elaboração das escrituras continua sendo do Claude.
+O painel pequeno (Nota, Lembrete, Resumo, Buscar, Pergunte, Jurídico) **continua inteiro**: o botão ⚡
+da conversa leva a ele, e arrastar arquivo até a Joaninha ou o botão do Radar abrem o pequeno como sempre
+(`toggleJoaninhaPainel(true)`). Voltar ao desenho antigo no clique: `localStorage.joaninha_chat='antigo'`.
+Passo a passo de variáveis e regras do banco: `FIREBASE.md`, seção 14.
+
+Onde mora: `joaninha-chat.js` (a tela, a voz, o histórico, as ferramentas do painel), `lib/joaninha-chat.js`
+(o servidor), `lib/joaninha-ferramentas.js` (o catálogo do que ela pode fazer) e a ponte
+`window.JOANINHA_PONTE` no fim do bloco da Joaninha no `index.html`. Entra pela porta que já existia
+(`api/perguntar-joaninha.js?acao=chat`) — **a Vercel aceita 12 funções e o painel está no limite**.
+
+Regras que **não devem ser mexidas sem perguntar**:
+
+- **A chave da OpenAI nunca vai ao navegador.** `OPENAI_API_KEY` mora na Vercel; o navegador só fala com o
+  servidor do painel. Há teste varrendo `index.html` e `joaninha-chat.js` atrás de chave ou endereço da OpenAI.
+- **Quem chama é conferido antes de gastar.** O token do Firebase é confirmado no próprio Firebase, e a conta
+  precisa estar em `/acesso`. **Shirley e Grazi têm exatamente as mesmas ferramentas e permissões**: o `dono`
+  (cofre pessoal e Rede) não conta aqui, e há teste comparando a lista de ferramentas das duas.
+- **Quem escreve nunca roda sozinha.** Nota, lembrete, foco e a reedição da minuta mostram o que vai acontecer,
+  com o texto editável, e esperam o clique em *Confirmar*. Cancelou, não grava nada, e a Joaninha é avisada.
+  Cada ação (feita ou cancelada) fica em `/joaninha_acoes`. Isso mora no navegador e tem teste de que nada é
+  gravado antes do clique — regra só no prompt dependeria de o modelo ter lembrado dela.
+- **As ferramentas usam as funções que o painel já tem.** A nota grava pelo mesmo `gravarNota` (extraído do
+  `joaninhaSalvar`, com a mesma pergunta sobre a data da assinatura e a mesma agenda); o lembrete, por
+  `criarLembrete`. O modelo pede a ferramenta, o servidor devolve o pedido, o navegador executa com a sessão da
+  própria pessoa e chama de novo com o resultado. O servidor não guarda estado.
+- **Fora do catálogo, de propósito:** Financeiro, Meu financeiro e Rede. **Orçamento só se lê**
+  (`consultar_orcamento`), para conferir a conta — a Joaninha aponta o que parece errado e nunca altera.
+- **A minuta continua sendo do Claude.** A Joaninha prepara a instrução e abre a tela de reedição
+  (`preparar_reedicao_minuta`) com o texto já escrito; quem aperta *gerar* é a pessoa. Nenhuma minuta muda sozinha.
+- **Teto de consumo: R$ 150 por mês de referência** (`JOANINHA_TETO_MENSAL_BRL`, ajustável). O custo é contado por
+  chamada, em reais, com os preços do ambiente — e **sem preços configurados vale uma tabela conservadora**, para o
+  teto chegar mais cedo, nunca mais tarde. **Sem as regras do banco publicadas a conversa não funciona**, de
+  propósito: sem o contador ela gastaria sem teto. O consumo é gravado com o token da pessoa (`/joaninha_uso`),
+  então as regras do banco continuam mandando — não há conta de serviço.
+- **Os dados não são mascarados** (decisão dela, 11/11/2026: "pode liberar tudo, já fiz as travas de segurança"). O
+  texto dos documentos só vai à OpenAI quando a Joaninha pede um documento por ferramenta (`ler_documento_caso`), não
+  no contexto de cada pergunta. Texto de documento é tratado como **dado, não instrução** no prompt.
+- **O histórico é compartilhado** (decisão dela): `/joaninha_conversas` e `/joaninha_mensagens`, mesma tranca do
+  `/orcamentos`, cada mensagem diz quem a escreveu. Conversa de card fica presa ao caso.
+- **A resposta é texto, nunca HTML**: tudo que vem da IA passa por `mdSeguro()` (escapa primeiro; só reconhece
+  negrito, itálico, código, lista e endereço http/https). Mensagem para cliente nasce editável, como a da Rede.
+- **O modelo nunca é chutado**: `OPENAI_MODEL` é obrigatória (e `OPENAI_MODEL_FORTE` para a *análise aprofundada*).
+- **Voz:** o microfone do navegador (pt-BR) e a voz do próprio navegador. *Conversar por voz* fecha o ciclo: ela
+  ouve, responde curto e falado (o servidor recebe `voz:true` e pede texto sem formatação) e volta a ouvir. Não há
+  captura de áudio no servidor.
+
+Testes: `node testes/joaninha-chat.mjs` (o servidor, com OpenAI, banco e identidade falsos), `node testes/joaninha-chat-puro.mjs`
+(markdown seguro, ferramentas, ligação no `index.html`) e `node testes/joaninha-chat-tela.mjs` (o Chromium, até o iPhone 13).
+
+**Onde paramos — 11/11/2026 (branch, sem deploy):** servidor, tela, histórico, ferramentas de leitura e escrita com
+confirmação, ponte com a reedição da minuta e voz do navegador estão feitos e testados com a OpenAI simulada. **Ainda
+não houve uma conversa de verdade com a OpenAI**: falta a chave, o `OPENAI_MODEL` e publicar as regras. Em aberto:
+**revisar a minuta pronta** (hoje a Joaninha prepara a instrução; ler o texto do Doc gerado para revisar depende de
+uma ação nova do Apps Script), **transcrição de voz pela OpenAI** (melhor que a do navegador, e funciona no iPhone) e
+**medir o consumo real** na primeira semana para ajustar o modelo e o teto.
+
+---
+
 ## Os Orçamentos
 
 Quanto a cliente vai pagar. Era conta de mão, tabela aberta ao lado, uma faixa
@@ -1508,6 +1570,9 @@ o `testes/montar.mjs` recorta.
 | O Radar, na tela | `renderRadar()`, `radarHtmlDia()`, `radarHtmlItem()`, `radarHtmlDias()` |
 | A Base de Regras, na tela | `radarHtmlBase()`, `radarHtmlTema()` |
 | A Joaninha jurídica | `joaninhaJuridico()`, `joaninhaModoJuridico()`, `radarLevarPraJoaninha()` |
+| A conversa da Joaninha (tela, voz, histórico, ferramentas) | `joaninha-chat.js` → `abrir()`, `enviar()`, `rodar()`, `executarFerramenta()`, `criarFerramentas()`, `mdSeguro()` |
+| A conversa da Joaninha (servidor, teto, quem entra) | `lib/joaninha-chat.js` → `chat()`, `verificarUsuario()`, `usoDoMes()`, `custoBRL()` · catálogo em `lib/joaninha-ferramentas.js` |
+| A ponte do painel para a conversa | `window.JOANINHA_PONTE` e `gravarNota()`/`criarLembrete()` no `index.html` |
 | A varredura das fontes | `api/radar-juridico.js` → `varrer()` |
 | O guarda-corpo da triagem | `lib/radar-triagem.js` → `conferirItem()` |
 | O prompt do Radar | `lib/radar-prompt.js` |
@@ -1531,6 +1596,7 @@ node testes/esteirinha.mjs
 node testes/ajudante.mjs
 node testes/capa.mjs
 node testes/prefeitura.mjs
+node testes/joaninha-chat.mjs && node testes/joaninha-chat-puro.mjs && node testes/joaninha-chat-tela.mjs
 node testes/orcamento-link-tela.mjs && node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
 ```
 

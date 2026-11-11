@@ -364,6 +364,43 @@ Passo a passo (nesta ordem; os dois primeiros levam dias, os outros uma tarde):
 Se algo falhar, o que a Meta recebe de volta aparece em *Webhooks* no painel da Meta, e o motivo escrito sai na resposta da Vercel.
 Mensagem que não é PDF nem imagem (texto, áudio, figurinha) é ignorada. Arquivo repetido (a Meta reentrega quando demora) entra uma vez.
 
+## 14. A conversa ampla da Joaninha (OpenAI)
+
+Clicar na Joaninha abre uma conversa como a do ChatGPT. A OpenAI responde, mas a chave nunca
+vai para o navegador: tudo passa por `/api/perguntar-joaninha?acao=chat` (código em
+`lib/joaninha-chat.js`), que confere a conta, o teto de consumo e as regras do banco antes de
+gastar um centavo.
+
+**1. Variáveis de ambiente na Vercel** (*Settings → Environment Variables*). Enquanto o trabalho
+estiver numa branch, ponha **só no ambiente Preview**; em Production só depois de aprovado.
+
+| Variável | Para quê |
+|---|---|
+| `OPENAI_API_KEY` | A chave da OpenAI. Sem ela a Joaninha diz o que falta. |
+| `OPENAI_MODEL` | O modelo do dia a dia (o mais barato que sirva). **Obrigatória**: o código não chuta nome de modelo. |
+| `OPENAI_MODEL_FORTE` | O modelo da "análise aprofundada" (documentos, minutas). Sem ela, vale o `OPENAI_MODEL`. |
+| `JOANINHA_TETO_MENSAL_BRL` | O teto de consumo do mês, em reais. Padrão **150**. Atingido o teto, a conversa para até o mês virar ou o teto subir. |
+| `JOANINHA_PRECO_ENTRADA_USD_1M`, `JOANINHA_PRECO_CACHE_USD_1M`, `JOANINHA_PRECO_SAIDA_USD_1M` | O preço do modelo escolhido, em dólares por milhão de tokens (veja a página de preços da OpenAI). **Sem eles vale uma tabela conservadora** (modelo de ponta): o teto chega mais cedo, nunca mais tarde. |
+| `JOANINHA_CAMBIO_BRL` | O câmbio usado na conta. Padrão 5,5 — ajuste de vez em quando. |
+| `JOANINHA_MAX_SAIDA` | Máximo de tokens por resposta. Padrão 6000. |
+| `JOANINHA_ESFORCO` | (opcional) esforço de raciocínio, se o modelo aceitar (`low`, `medium`, `high`). |
+
+**2. Publicar as regras do banco.** `database.rules.json` ganhou `joaninha_conversas`,
+`joaninha_mensagens`, `joaninha_acoes` e `joaninha_uso`: a mesma tranca do `/orcamentos` (conta
+liberada em `/acesso`, Shirley e Grazi iguais). Copie o arquivo para *Realtime Database → Regras* e
+**Publicar**. Sem este passo a Joaninha **não conversa** — de propósito: sem o contador de consumo
+ela gastaria sem teto, e a resposta do servidor diz isso com todas as letras.
+
+**3. Entrar.** A conversa pede a mesma conta do Financeiro (um login só para o painel inteiro).
+Conta que ainda não está em `/acesso` vê "Falta liberar esta conta".
+
+O que a Joaninha NÃO alcança, de propósito: Financeiro, Meu financeiro e Rede. Orçamento ela só lê,
+para conferir a conta. Nota, lembrete, foco e a reedição da minuta pedem a sua confirmação antes de
+qualquer coisa ser gravada.
+
+Voltar ao painel pequeno no clique da Joaninha: `localStorage.joaninha_chat = 'antigo'` (no console
+do navegador). O painel pequeno continua inteiro dentro da conversa, no botão ⚡.
+
 ## O que ainda fica aberto, e por quê
 
 `/casos`, `/jobs`, `/modelos`, os caminhos do bot e os do Radar continuam sem

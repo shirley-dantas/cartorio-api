@@ -51,6 +51,7 @@ function chamarClaude(mensagem) {
 
 const lerLetra = require("../lib/ler-letra.js");
 const whatsappEntrada = require("../lib/whatsapp-entrada.js");
+const conversaAmpla = require("../lib/joaninha-chat.js");
 
 // O corpo é lido aqui, à mão, porque a assinatura do WhatsApp (lib/whatsapp-entrada.js) é feita sobre os bytes CRUS —
 // com o leitor automático da Vercel eles já chegariam refeitos. Quem chega com o corpo pronto (os testes) passa direto.
@@ -72,6 +73,9 @@ module.exports = async (req, res) => {
   // A leitura da letra de mão do Bússola e a caixa de entrada do WhatsApp entram por esta mesma porta (ver
   // lib/ler-letra.js e lib/whatsapp-entrada.js): o plano da Vercel não comporta uma 13ª função.
   if (String(req.url || "").includes("acao=whatsapp") || (req.query && req.query.acao === "whatsapp")) return whatsappEntrada(req, res);
+  // A conversa ampla da Joaninha (OpenAI) entra por esta mesma porta, pelo mesmo motivo (lib/joaninha-chat.js).
+  // Sem CORS aberto: quem chama é o próprio painel, e a conta entra pelo token.
+  if (String(req.url || "").includes("acao=chat") || (req.query && req.query.acao === "chat")) return conversaAmpla(req, res);
   if (String(req.url || "").includes("acao=ler-letra") || (req.query && req.query.acao === "ler-letra")) return lerLetra(req, res);
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
