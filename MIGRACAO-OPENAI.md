@@ -11,9 +11,9 @@ Código preparado e testes com serviços simulados executados. A usuária config
 a chave na Vercel e nas propriedades do Apps Script. O teste manual do Apps Script
 retornou a confirmação de conexão real com a OpenAI, conforme captura enviada.
 Os arquivos principais e da Rede foram substituídos e a usuária confirmou a
-atualização da implantação existente do Google. A atualização da Vercel e os
-testes dos fluxos completos com a OpenAI ainda estão pendentes. Os testes
-manuais iniciais do painel validaram a versão anterior da IA.
+atualização da implantação existente do Google. No Preview, a usuária confirmou
+resposta da Joaninha; após selecionar Luna no Google, confirmou geração completa
+da minuta. A publicação da Vercel no endereço principal permanece pendente.
 
 ## Configuração necessária
 
@@ -23,9 +23,12 @@ manuais iniciais do painel validaram a versão anterior da IA.
   Preview. Não compartilhar o valor em chat, repositório ou logs.
 - Google Apps Script, projeto que já contém `cartorio-drive-api` e
   `cartorio-rede`: adicionar a mesma variável às propriedades do script.
-- `OPENAI_MODEL` é opcional nos dois lugares; padrão `gpt-4.1`. Usar o mesmo
-  modelo nos dois para comparar resultados. Este adaptador foi preparado
-  para esse modelo; outro modelo exige nova validação de capacidades e limites.
+- `OPENAI_MODEL` é opcional nos dois lugares; padrão `gpt-6-luna`. O modelo foi
+  escolhido porque a conta mostrou limite de 60.000 TPM para Luna e apenas
+  10.000 TPM para GPT-4.1. O Google está configurado explicitamente para Luna.
+  O limite por trecho permanece em 16.000 tokens, com continuação automática.
+  Para Luna, `reasoning.effort: none` reserva a saída para texto. Esse ajuste não
+  comprova equivalência de qualidade jurídica: a minuta exige revisão humana.
 - Acesso HTTPS a `api.openai.com`. Nenhum segredo é enviado ao navegador.
 
 O parâmetro `store: false` é enviado nas chamadas. Isso desativa o armazenamento
@@ -73,12 +76,10 @@ Os testes novos cobrem autenticação, payloads de texto/PDF/imagem, streaming
 dividido e UTF-8, fontes da pesquisa, recusas, respostas incompletas e falhas
 HTTP. Não usam créditos nem alteram dados reais.
 
-Na validação do Preview, a chave foi reconhecida, mas a pergunta à Joaninha
-retornou `rate_limit_exceeded` por volume excessivo. O contexto passou a ser
-enviado como tabela JSON com uma única legenda, preservando todos os casos e
-os mesmos campos e observações enviados antes. Não muda o modelo nem elimina
-registros. A confirmação real dessa correção ainda depende de um novo teste
-no Preview autenticado pela usuária.
+O contexto da Joaninha é enviado como tabela JSON com uma única legenda,
+preservando todos os casos e os mesmos campos e observações enviados antes.
+Os testes verificam cada campo de 116 casos e a junção integral de uma minuta
+longa em duas rodadas simuladas com Luna, preservando 16.000 tokens por rodada.
 
 Verificação adicional: `testes/bussola.mjs` executou, com uma falha pré-existente
 na comparação de `bussola/fin-motor.js` com o motor do `index.html`. Esses arquivos

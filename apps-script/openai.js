@@ -15,7 +15,7 @@ function openaiPayload(opcoes, modelo) {
     throw new Error('Tipo de documento não suportado pela IA.');
   }
   var payload = {
-    model: modelo || 'gpt-4.1',
+    model: modelo || 'gpt-6-luna',
     store: false,
     max_output_tokens: opcoes.max_tokens || 4000,
     input: opcoes.messages.map(function(m) {
