@@ -49,15 +49,15 @@ await passo('o painel continua com no máximo 12 funções (limite da Vercel)', 
     igual(conferir.code, 200, 'aberta no navegador');
     igual(conferir.corpo.funcao, 'ler-letra', 'a conferência se identifica');
     if (JSON.stringify(conferir.corpo).includes('sk-')) throw new Error('a conferência mostrou a chave');
-    const chaveAntes = process.env.ANTHROPIC_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
+    const chaveAntes = process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY;
     const semChave = await chamar('https://bussola-mu.vercel.app', 'POST', { imagem: 'x' });
     igual(semChave.code, 500, 'sem a chave da IA');
     if (!/chave da IA/.test(semChave.corpo.erro)) throw new Error('sem chave, a mensagem não disse');
-    process.env.ANTHROPIC_API_KEY = 'teste';
+    process.env.OPENAI_API_KEY = 'teste';
     igual((await chamar('https://bussola-mu.vercel.app', 'POST', {})).code, 400, 'sem imagem');
     igual((await chamar('https://bussola-mu.vercel.app', 'POST', { imagem: 'a'.repeat(3 * 1024 * 1024) })).code, 413, 'imagem grande demais');
-    if (chaveAntes === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = chaveAntes;
+    if (chaveAntes === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = chaveAntes;
   });
 }
 

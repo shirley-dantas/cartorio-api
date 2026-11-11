@@ -1,6 +1,5 @@
-const https = require("https");
+const ia = require("../lib/ia.js");
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // A mesma lista de verificação por tipo de ato que o analisar-caso e o Apps
 // Script já usam pra guiar a geração. As perguntas saem dela: é o roteiro que
@@ -43,48 +42,13 @@ Responda SOMENTE com um JSON válido, sem markdown, sem texto antes ou depois, n
 
 Se o material recebido já cobrir tudo que a minuta precisa, responda {"perguntas":[]}.`;
 
-function chamarClaude(mensagem) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1500,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: mensagem }]
-    });
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        let parsed;
-        try {
-          parsed = JSON.parse(data);
-        } catch {
-          // A API da Anthropic (ou o gateway na frente dela) às vezes devolve
-          // uma página de erro em texto puro em vez de JSON — instabilidade,
-          // limite de uso, erro 5xx. Sem este bloco, o erro cru do JSON.parse
-          // ("Unexpected token 'A', \"An error o\"...") ia direto para a tela
-          // da Shirley, sem dizer o que de fato aconteceu.
-          return reject(new Error(`A IA não respondeu em formato reconhecível (HTTP ${res.statusCode}) — provável instabilidade na API. Tente de novo em um instante.`));
-        }
-        if (parsed.error) return reject(new Error(parsed.error.message || "Erro na API Claude"));
-        resolve((parsed.content && parsed.content[0] && parsed.content[0].text) || "");
-      });
-    });
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
+async function chamarIA(mensagem) {
+  const opcoes = {
+    max_tokens: 1500,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content: mensagem }]
+  };
+  return ia.texto(opcoes);
 }
 
 function extrairJson(texto) {
@@ -123,7 +87,7 @@ MATERIAL JÁ DISPONÍVEL DO CASO:
 ${materialTexto}`;
 
   try {
-    const resposta = await chamarClaude(mensagem);
+    const resposta = await chamarIA(mensagem);
     const parsed = extrairJson(resposta);
     const perguntas = (Array.isArray(parsed.perguntas) ? parsed.perguntas : [])
       .filter(p => p && p.pergunta)

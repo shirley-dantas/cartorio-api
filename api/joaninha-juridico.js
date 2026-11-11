@@ -1,3 +1,4 @@
+const ia = require("../lib/ia.js");
 // ══ A JOANINHA CONSULTA O JURÍDICO ═══════════════════════════════════════
 //
 // Duas perguntas diferentes, a mesma base por baixo:
@@ -22,8 +23,6 @@
 const https = require("https");
 
 const FIREBASE_HOST = "painel-cartorio-default-rtdb.firebaseio.com";
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODELO = "claude-sonnet-4-6";
 const DIAS_DE_RADAR = 14;
 
 const CRITERIO_HIERARQUIA = `CRITÉRIO OBRIGATÓRIO — hierarquia normativa e etapas
@@ -98,36 +97,12 @@ function firebase(caminho) {
   });
 }
 
-function chamarClaude(system, mensagem, maxTokens) {
-  return new Promise((resolve, reject) => {
-    if (!ANTHROPIC_API_KEY) return reject(new Error("ANTHROPIC_API_KEY não configurada"));
-    const body = JSON.stringify({
-      model: MODELO, max_tokens: maxTokens, system,
+async function chamarIA(system, mensagem, maxTokens) {
+  const opcoes = {
+    max_tokens: maxTokens, system,
       messages: [{ role: "user", content: mensagem }]
-    });
-    const req = https.request({
-      hostname: "api.anthropic.com", path: "/v1/messages", method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    }, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try {
-          const p = JSON.parse(data);
-          if (p.error) return reject(new Error(p.error.message || "erro na API Claude"));
-          resolve((p.content && p.content[0] && p.content[0].text) || "");
-        } catch (e) { reject(e); }
-      });
-    });
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
+  };
+  return ia.texto(opcoes);
 }
 
 // ── A base, escrita para ser lida pela IA ────────────────────────────────
@@ -212,7 +187,7 @@ Responda usando só o que está acima. ${modo === "cliente"
   ? "Devolva apenas a mensagem pronta para o WhatsApp."
   : "Responda em no máximo 6 frases, sem markdown."}`;
 
-    const texto = await chamarClaude(
+    const texto = await chamarIA(
       modo === "cliente" ? PROMPT_CLIENTE : PROMPT_INTERNA,
       mensagem,
       modo === "cliente" ? 1200 : 500

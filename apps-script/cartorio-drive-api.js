@@ -4,7 +4,7 @@
 //
 // CONFIGURAÇÃO OBRIGATÓRIA:
 // No Apps Script: Arquivo > Propriedades do projeto > Propriedades do script
-// Adicionar: ANTHROPIC_API_KEY = sk-ant-...
+// Adicionar OPENAI_API_KEY às propriedades; incluir o arquivo openai.js no projeto.
 //
 // FIREBASE: Certifique-se que as regras do Realtime Database permitem escrita em /jobs/
 // { "rules": { "jobs": { ".read": true, ".write": true } } }
@@ -628,8 +628,8 @@ function parsearResposta(texto) {
 }
 
 function chamarClaudeRaw(mensagem, ano) {
-  var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada. Vá em Projeto > Propriedades do script e adicione a chave.");
+  var apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
+  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada. Vá em Projeto > Propriedades do script e adicione a chave.");
 
   // 8000 fazia qualquer minuta um pouco mais longa parar no meio e precisar
   // de outro pedaço — e cada pedaço custa uma volta inteira pelo Firebase e
@@ -638,26 +638,15 @@ function chamarClaudeRaw(mensagem, ano) {
   // municipal.js já usa com este mesmo modelo, sem cabeçalho especial: menos
   // pedaços, mesmo texto, mesma IA — só menos idas e vindas.
   var payload = {
-    model: "claude-sonnet-4-6",
     max_tokens: 16000,
     system: montarSystemPrompt(ano || new Date().getFullYear()),
     messages: [{ role: "user", content: mensagem }]
   };
 
-  var response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
-    method: "post",
-    contentType: "application/json",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01"
-    },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  });
-
-  var data = JSON.parse(response.getContentText());
-  if (data.error) throw new Error("Erro Claude API: " + (data.error.message || JSON.stringify(data.error)));
-  return { texto: data.content[0].text, pararPorTamanho: data.stop_reason === "max_tokens" };
+  var data = chamarOpenAI(payload);
+  if (data.recusa || !data.texto) throw new Error("A IA não concluiu a leitura.");
+  if (data.error) throw new Error("Erro OpenAI API: " + (data.error.message || JSON.stringify(data.error)));
+  return { texto: data.texto, pararPorTamanho: data.truncou };
 }
 
 function chamarClaude(mensagem) {
@@ -988,7 +977,7 @@ function extrairJsonAuditoria(texto) {
 // minuta que já foi gerada com sucesso.
 function auditarMinuta(minutaTexto, documentosTexto) {
   try {
-    var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
+    var apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
     if (!apiKey) return null;
     var doc = String(documentosTexto || "");
     if (doc.length > 100000) doc = doc.slice(0, 100000) + "\n\n[...texto truncado por limite de tamanho...]";
@@ -996,21 +985,14 @@ function auditarMinuta(minutaTexto, documentosTexto) {
       "\n\n---\n\nDOCUMENTOS E INFORMAÇÕES ORIGINAIS DO CASO (fonte da verdade):\n" + doc;
 
     var payload = {
-      model: "claude-sonnet-4-6",
       max_tokens: 2000,
       system: AUDITORIA_SYSTEM_PROMPT,
       messages: [{ role: "user", content: mensagem }]
     };
-    var response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
-      method: "post",
-      contentType: "application/json",
-      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-    var data = JSON.parse(response.getContentText());
+    var data = chamarOpenAI(payload);
+    if (data.recusa || !data.texto || data.truncou) return null;
     if (data.error) return null;
-    var texto = (data.content && data.content[0] && data.content[0].text) || "";
+    var texto = data.texto || "";
     var parsed = extrairJsonAuditoria(texto);
     return (Array.isArray(parsed.achados) ? parsed.achados : [])
       .map(function (a) { return String(a || "").trim(); })
@@ -1036,25 +1018,18 @@ var EXTRACAO_ARQUIVO_MAX_TOKENS = 8000;
 var EXTRACAO_ARQUIVO_MAX_PASSADAS = 4;
 
 function chamarClaudeArquivoRaw(content) {
-  var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada.");
+  var apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
+  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada.");
   var payload = {
-    model: "claude-sonnet-4-6",
     max_tokens: EXTRACAO_ARQUIVO_MAX_TOKENS,
     messages: [{ role: "user", content: content }]
   };
-  var response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
-    method: "post",
-    contentType: "application/json",
-    headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  });
-  var data = JSON.parse(response.getContentText());
-  if (data.error) throw new Error("Erro Claude API: " + (data.error.message || JSON.stringify(data.error)));
+  var data = chamarOpenAI(payload);
+  if (data.recusa || !data.texto) throw new Error("A IA não concluiu a leitura.");
+  if (data.error) throw new Error("Erro OpenAI API: " + (data.error.message || JSON.stringify(data.error)));
   return {
-    texto: (data.content && data.content[0] && data.content[0].text) || null,
-    truncou: data.stop_reason === "max_tokens"
+    texto: data.texto || null,
+    truncou: data.truncou
   };
 }
 

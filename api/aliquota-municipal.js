@@ -1,3 +1,4 @@
+const ia = require("../lib/ia.js");
 // ══ A ALÍQUOTA DE FORA DA CAPITAL ════════════════════════════════════════
 //
 // O ITBI é municipal e o ITCMD é estadual. O painel sabe os de São Paulo — 3%
@@ -34,15 +35,9 @@
 const https = require("https");
 
 const FIREBASE_HOST = "painel-cartorio-default-rtdb.firebaseio.com";
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODELO = "claude-opus-5";
 
-// Web search com filtragem dinâmica — a variante que o Opus 5 suporta.
-const FERRAMENTA_BUSCA = {
-  type: "web_search_20260209",
-  name: "web_search",
-  max_uses: 6
-};
+// A busca é executada pela ferramenta web_search da OpenAI.
+const FERRAMENTA_BUSCA = {type: "web_search"};
 
 const PROMPT = `Você pesquisa alíquotas de imposto para um tabelionato de notas de São Paulo que precisa orçar uma escritura.
 
@@ -68,59 +63,16 @@ Responda SOMENTE com um bloco JSON, sem texto antes nem depois:
 }`;
 
 // ── A IA, com a web aberta ───────────────────────────────────────────────
-function chamarClaude(pergunta) {
-  return new Promise((resolve, reject) => {
-    if (!ANTHROPIC_API_KEY) return reject(new Error("ANTHROPIC_API_KEY não configurada"));
-    const body = JSON.stringify({
-      model: MODELO,
-      max_tokens: 16000,
-      system: PROMPT,
-      tools: [FERRAMENTA_BUSCA],
-      messages: [{ role: "user", content: pergunta }]
-    });
-    const req = https.request({
-      hostname: "api.anthropic.com", path: "/v1/messages", method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    }, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try {
-          const p = JSON.parse(data);
-          if (p.error) return reject(new Error(p.error.message || "erro na API Claude"));
-          // A resposta traz blocos de busca e blocos de texto; o JSON está no
-          // texto. Junta-se todo o texto porque o modelo pode quebrá-lo em
-          // mais de um bloco quando intercala buscas.
-          const texto = (p.content || [])
-            .filter(b => b && b.type === "text")
-            .map(b => b.text).join("\n");
-          resolve({ texto, urls: urlsDaBusca(p.content || []) });
-        } catch (e) { reject(e); }
-      });
-    });
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
-}
-
-// As URLs que a busca de fato abriu. Servem de conferência do que o modelo
-// diz ter lido: fonte declarada que não aparece aqui é fonte que ele não viu.
-// Erro de ferramenta volta como objeto em `content`, e não como exceção — daí
-// o Array.isArray antes de percorrer.
-function urlsDaBusca(blocos) {
-  const urls = [];
-  blocos.forEach(b => {
-    if (!b || b.type !== "web_search_tool_result") return;
-    if (!Array.isArray(b.content)) return;   // veio erro, não resultado
-    b.content.forEach(r => { if (r && r.url) urls.push(r.url); });
-  });
-  return [...new Set(urls)];
+async function chamarIA(pergunta) {
+  const opcoes = {
+    max_tokens: 16000,
+    system: PROMPT,
+    tools: [FERRAMENTA_BUSCA],
+    messages: [{ role: "user", content: pergunta }]
+  };
+  const r = await ia.gerar(opcoes);
+  if (r.recusa || r.truncou || !r.texto) throw new Error("A pesquisa da IA não foi concluída.");
+  return {texto: r.texto, urls: r.urls};
 }
 
 function extrairJson(texto) {
@@ -187,7 +139,7 @@ module.exports = async (req, res) => {
     const onde = imposto === "itcmd"
       ? `no estado ${String(uf).trim()}`
       : `no município de ${String(municipio).trim()} — ${String(uf).trim()}`;
-    const achado = await chamarClaude(
+    const achado = await chamarIA(
       `Qual é a alíquota vigente do ${imposto.toUpperCase()} ${onde}?`);
     const j = extrairJson(achado.texto);
 
