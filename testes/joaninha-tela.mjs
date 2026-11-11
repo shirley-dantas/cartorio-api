@@ -32,6 +32,11 @@ async function configurar(context){
  await context.addInitScript(()=>localStorage.setItem('painel_usuario','Shirley'));
  await context.route('**/*',async rota=>{
   const url=new URL(rota.request().url());
+  if(url.hostname==='painel-cartorio-default-rtdb.firebaseio.com'){
+   const caminho=url.pathname.replace(/^\//,'').replace(/\.json$/,'');
+   const valor=await rota.request().frame().evaluate(p=>p.split('/').filter(Boolean).reduce((v,k)=>v?.[k],window.__data)??null,caminho);
+   return rota.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(valor)});
+  }
   if(url.hostname==='script.google.com'){
    contadorCalendar++;const p=JSON.parse(rota.request().postData());
    assert.equal(p.acao,'sincronizar-evento-calendar');assert.equal(p.dataHora,assinaturaTeste);
@@ -122,6 +127,19 @@ try{
  const historia=await pg.locator('.jnc-history-item').count();assert.ok(historia>=1);
  await pg.reload();await pg.waitForFunction(()=>!!window.joaninhaChat);await pg.evaluate(()=>window.abrirJoaninhaNoCaso('C1'));assert.ok(await pg.locator('.jnc-history-item').count()>=1);
  console.log('ok: histórico preservado após recarregar.');
+ await pg.evaluate(()=>{
+   window.joaninhaChat.fechar();
+   localStorage.setItem('minuta-pendente-v1:Shirley:C1:gerar',JSON.stringify({jobId:'manual-ficticio'}));
+   window.__fbWrite('jobs/manual-ficticio',{status:'done',ok:true,docUrl:'https://docs.google.com/document/d/manual-ficticio',docNome:'Minuta manual fictícia',certidoes:[],avisos:[]});
+ });
+ await pg.evaluate(()=>window.abrirMinuta('C1'));
+ assert.equal(await pg.locator('#btn-gerar').textContent(),'Verificar andamento');
+ await pg.locator('#btn-gerar').click();
+ await pg.locator('#btn-abrir-doc').waitFor({state:'visible',timeout:12000});
+ assert.equal(await pg.locator('#btn-abrir-doc').getAttribute('href'),'https://docs.google.com/document/d/manual-ficticio');
+ assert.equal(contadorMinutas,1,'retomar não pode disparar uma segunda geração');
+ assert.equal(await pg.evaluate(()=>localStorage.getItem('minuta-pendente-v1:Shirley:C1:gerar')),null);
+ console.log('ok: janela da minuta retoma execução salva e mostra documento sem nova chamada de geração.');
  const mobile=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2,serviceWorkers:'block'});await configurar(mobile);const celular=await abrir(mobile);
  await mensagem(celular,'Anote uma pendência no card.');
  await celular.getByRole('button',{name:'Confirmar e executar',exact:true}).waitFor();

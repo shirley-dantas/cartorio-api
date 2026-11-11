@@ -6375,6 +6375,7 @@ window.abrirMinuta=async function(id){
   document.getElementById('modal-doc-nome').textContent='';
   document.getElementById('btn-gerar').disabled=true;
   document.getElementById('btn-gerar').dataset.id=id;
+  document.getElementById('btn-gerar').textContent=registroMinutaPendente(id,'gerar')?'Verificar andamento':'Gerar Minuta no Drive';
   minutaArquivosModelo=[];
   minutaArquivosDoc=[];
   minutaTextoExtraido.clear();
@@ -6738,6 +6739,7 @@ window.abrirReeditar=async function(id){
   document.getElementById('btn-abrir-reeditar').style.display='inline-block';
   document.getElementById('btn-reeditar-gerar').disabled=false;
   document.getElementById('btn-reeditar-gerar').dataset.id=id;
+  document.getElementById('btn-reeditar-gerar').textContent=registroMinutaPendente(id,'revisar')?'Verificar andamento':'Gerar nova versão no Drive';
   reeditarRenderAvisoModalidade(c);
   document.getElementById('modal-reeditar').classList.add('open');
 };
@@ -7524,29 +7526,60 @@ function mostrarAlertaCertidoes(certidoes){
   });
 }
 
-async function aguardarJobFirebase(jobId,onTick){
-  const url='https://painel-cartorio-default-rtdb.firebaseio.com/jobs/'+jobId+'.json';
-  const limite=140;// max ~7 minutos (documentos longos podem levar mais tempo para gerar)
-  for(let i=0;i<limite;i++){
-    await new Promise(r=>setTimeout(r,3000));
-    if(onTick)onTick(i);
-    try{
-      const r=await fetch(url);
-      const d=await r.json();
-      if(d&&d.status==='done'){
-        // limpa job do Firebase
-        fetch(url,{method:'DELETE'}).catch(()=>{});
-        return d;
-      }
-    }catch{}
+const minutasPendentesMemoria={};
+function registroMinutaPendente(casoId,modo,valor){
+  const chave='minuta-pendente-v1:'+String(localStorage.getItem('painel_usuario')||'Equipe')+':'+casoId+':'+modo;
+  if(valor!==undefined){
+    if(valor===null){delete minutasPendentesMemoria[chave];try{localStorage.removeItem(chave);}catch(_){}return null;}
+    minutasPendentesMemoria[chave]=valor;try{localStorage.setItem(chave,JSON.stringify(valor));}catch(_){}return valor;
   }
-  throw new Error('Tempo esgotado aguardando geração da minuta (mais de 6 minutos).');
+  let d=minutasPendentesMemoria[chave];
+  if(!d)try{d=JSON.parse(localStorage.getItem(chave)||'null');}catch(_){}
+  return d&&typeof d.jobId==='string'&&/^[-_a-zA-Z0-9]{1,180}$/.test(d.jobId)?d:null;
+}
+function textoAndamentoMinuta(info){
+  const tempo=Math.floor(info.segundos/60)+'min '+Math.floor(info.segundos%60)+'s';
+  const etapa=info.rodadas?info.rodadas+' parte(s) confirmada(s); aguardando a próxima confirmação do Google.':'Aguardando confirmação do Google. Ainda não há resultado final.';
+  return 'Acompanhando a minuta… '+tempo+'<br><span style="font-size:11px;color:#AEAEB2">'+etapa+(info.segundos>=120?' Não inicie outra geração.':'')+'</span>';
+}
+async function iniciarMinutaPendente(casoId,modo,pedido){
+  const anterior=registroMinutaPendente(casoId,modo);if(anterior)return anterior;
+  const solicitacaoId=crypto.randomUUID();
+  const registro={jobId:'joaninha-'+solicitacaoId};
+  registroMinutaPendente(casoId,modo,registro);
+  const r=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...pedido,casoId,solicitacaoId})});
+  const d=await r.json();
+  if(!r.ok&&[400,401,403,405].includes(r.status)&&!d.jobId){registroMinutaPendente(casoId,modo,null);throw new Error(d.erro||'O pedido não foi aceito.');}
+  if(d.jobId&&d.jobId!==registro.jobId)throw new Error('O identificador de execução não foi confirmado. Confira o acompanhamento antes de repetir.');
+  return registro;
+}
+async function aguardarJobFirebase(jobId,onTick,opcoes={}){
+  const base='https://painel-cartorio-default-rtdb.firebaseio.com';
+  const url=base+'/jobs/'+encodeURIComponent(jobId)+'.json';
+  const inicio=Date.now(),limite=opcoes.minuta?20*60*1000:7*60*1000;
+  let i=0,rodadas=0;
+  while(Date.now()-inicio<limite){
+    await new Promise(r=>setTimeout(r,3000));
+    try{
+      const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
+      if(r.ok){const d=await r.json();if(d&&d.status==='done')return d;}
+    }catch(_){}
+    if(opcoes.minuta&&i%5===0)try{
+      const r=await fetch(base+'/geracao-estado/'+encodeURIComponent(jobId)+'/rodadas.json',{signal:AbortSignal.timeout(10000)});
+      if(r.ok){const n=await r.json();if(Number.isInteger(n)&&n>=0&&n<=6)rodadas=Math.max(rodadas,n);}
+    }catch(_){}
+    if(onTick)onTick(i,{segundos:(Date.now()-inicio)/1000,rodadas});
+    i++;
+  }
+  const e=new Error(opcoes.minuta?'Ainda não recebi a confirmação final do Google. Isso não confirma falha da geração. Use “Verificar andamento” para consultar a mesma execução, sem iniciar outra minuta.':'A leitura ainda não confirmou a conclusão. Confira a execução no Google antes de repetir.');
+  e.pendente=!!opcoes.minuta;e.jobId=jobId;throw e;
 }
 window.gerarReeditar=async function(){
   const id=document.getElementById('btn-reeditar-gerar').dataset.id;
   const c=casos[id];if(!c)return;
   const instrucao=document.getElementById('reeditar-instrucao').value.trim();
-  if(!instrucao){document.getElementById('reeditar-instrucao').focus();return;}
+  let di=registroMinutaPendente(id,'revisar');
+  if(!instrucao&&!di){document.getElementById('reeditar-instrucao').focus();return;}
   document.getElementById('btn-reeditar-gerar').disabled=true;
   document.getElementById('reeditar-result').style.display='none';
   const rLoad=document.getElementById('reeditar-loading');
@@ -7562,13 +7595,14 @@ window.gerarReeditar=async function(){
   };
   // Ato sem modalidade definida saía com "digital" calado. Não assume: pede
   // pra escolher antes de gerar (aviso já visível no modal, ver abrirReeditar).
-  if(!c.modalidade){
+  if(!c.modalidade&&!di){
     reeditarRenderAvisoModalidade(c);
     document.getElementById('reeditar-aviso-modalidade')?.scrollIntoView({behavior:'smooth',block:'center'});
     document.getElementById('btn-reeditar-gerar').disabled=false;
     return;
   }
   try{
+    if(!di){
     const arqsMinuta=reeditarArquivosMinuta;
     const arqsDoc=reeditarArquivosDoc;
     // Documento sem texto (não pôde ler, ou leitura truncada) nunca vira uma
@@ -7649,13 +7683,10 @@ window.gerarReeditar=async function(){
       }
     }
     setRLoad('Iniciando geração da minuta…');
-    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[],minutaAtualUrl:minutaAtualUrlAuto})});
-    const di=await ri.json();
-    if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
-    const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
-      const seg=(tick+1)*3;
-      setRLoad('Gerando minuta com IA… '+seg+'s<br><span style="font-size:11px;color:#AEAEB2">Aguardando Apps Script processar</span>');
-    });
+    di=await iniciarMinutaPendente(id,'revisar',{casoId:id,nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[],minutaAtualUrl:minutaAtualUrlAuto});
+    }
+    const d2=await aguardarJobFirebase(di.jobId,(tick,info)=>setRLoad(textoAndamentoMinuta(info)),{minuta:true});
+    registroMinutaPendente(id,'revisar',null);
     rLoad.style.display='none';
     if(d2.ok&&d2.docUrl) await mostrarAlertaCertidoes(d2.certidoes);
     document.getElementById('reeditar-result').style.display='block';
@@ -7679,13 +7710,16 @@ window.gerarReeditar=async function(){
     }
   }catch(e){
     setRErro(descreverErro(e,'gerar nova versão da minuta'));
+    if(registroMinutaPendente(id,'revisar'))document.getElementById('reeditar-result-titulo').textContent='⏳ Aguardando confirmação';
   }
   document.getElementById('btn-reeditar-gerar').disabled=false;
+  document.getElementById('btn-reeditar-gerar').textContent=registroMinutaPendente(id,'revisar')?'Verificar andamento':'Gerar nova versão no Drive';
 };
 window.gerarAnalise=async function(){
   const id=document.getElementById('btn-gerar').dataset.id;
   const c=casos[id];if(!c)return;
   const docs=document.getElementById('modal-docs').value.trim();
+  let di=registroMinutaPendente(id,'gerar');
   document.getElementById('btn-gerar').disabled=true;
   document.getElementById('modal-result').style.display='none';
   const loading=document.getElementById('modal-loading');
@@ -7711,13 +7745,14 @@ window.gerarAnalise=async function(){
   // Ato sem modalidade definida saía com "digital" calado — o que troca a
   // abertura e o encerramento inteiros de uma escritura presencial. Não
   // assume: pede pra escolher antes de gerar (aviso já visível no modal).
-  if(!c.modalidade){
+  if(!c.modalidade&&!di){
     minutaRenderAvisoModalidade(c);
     document.getElementById('modal-aviso-modalidade')?.scrollIntoView({behavior:'smooth',block:'center'});
     document.getElementById('btn-gerar').disabled=false;
     return;
   }
   try{
+    if(!di){
     // Anexos entram como blocos com o mesmo cabeçalho que o Apps Script já
     // reconhece: o modelo com as regras de fidelidade, os documentos como
     // fonte de dado do caso.
@@ -7794,13 +7829,10 @@ window.gerarAnalise=async function(){
       return;
     }
     setLoading('Iniciando geração da minuta…');
-    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[]})});
-    const di=await ri.json();
-    if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
-    const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
-      const seg=(tick+1)*3;
-      setLoading('Gerando minuta com IA… '+seg+'s<br><span style="font-size:11px;color:#AEAEB2">Aguardando Apps Script processar</span>');
-    });
+    di=await iniciarMinutaPendente(id,'gerar',{casoId:id,nome:c.nome,tipo:c.tipo,obs:c.obs,documentos,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[]});
+    }
+    const d2=await aguardarJobFirebase(di.jobId,(tick,info)=>setLoading(textoAndamentoMinuta(info)),{minuta:true});
+    registroMinutaPendente(id,'gerar',null);
     loading.style.display='none';
     if(d2.ok&&d2.docUrl) await mostrarAlertaCertidoes(d2.certidoes);
     document.getElementById('modal-result').style.display='block';
@@ -7828,8 +7860,10 @@ window.gerarAnalise=async function(){
     }
   }catch(e){
     setErro(descreverErro(e,'gerar a minuta'));
+    if(registroMinutaPendente(id,'gerar'))titulo.textContent='⏳ Aguardando confirmação';
   }
   document.getElementById('btn-gerar').disabled=false;
+  document.getElementById('btn-gerar').textContent=registroMinutaPendente(id,'gerar')?'Verificar andamento':'Gerar Minuta no Drive';
 };
 window.copiarRelatorio=function(){
   const txt=document.getElementById('modal-result-text').textContent;

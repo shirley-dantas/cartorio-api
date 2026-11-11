@@ -86,6 +86,19 @@ sem novo upload; envios de arquivos não são repetidos automaticamente.
 
 ## Validação automatizada
 
+A janela tradicional de Gerar/Reeditar também registra o identificador antes
+do envio e retoma a mesma execução após recarregar. O botão passa a “Verificar
+andamento” quando existe um pedido pendente. O acompanhamento aceita resultados
+que chegam após sete minutos, consulta somente a contagem de partes já
+confirmadas e mantém o job final para consulta. Após vinte minutos sem resposta
+final, informa que falta confirmação, preservando o pedido para nova consulta.
+Esse ajuste não acelera a OpenAI nem confirma que um processo está ativo.
+Pedidos feitos antes dessa atualização não têm o registro local para retomar.
+
+`node --test testes/minuta-acompanhamento.mjs` cobre envio único, recuperação
+após recarregar, rede incerta, rejeição explícita, resultado tardio e fim da
+janela de acompanhamento sem falsa confirmação de falha.
+
 `node --test testes/openai.mjs testes/joaninha-assistente.mjs` verifica contratos,
 erros, transações, idempotência, acesso financeiro, versões de orçamento,
 minuta integral, resultados assíncronos e tarefas com serviços simulados.
