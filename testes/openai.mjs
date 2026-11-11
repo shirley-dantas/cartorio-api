@@ -122,6 +122,22 @@ test('Apps Script usa o mesmo protocolo, chave das propriedades e detecta falhas
   status = 401; assert.throws(() => ctx.chamarOpenAI(opcoes), /HTTP 401/);
 });
 
+test('Apps Script aguarda limite temporário sem reduzir a minuta; cota e volume excessivo não são repetidos', () => {
+  for (const code of ['rate_limit_exceeded','insufficient_quota','grande']) {
+    let chamadas=0;const esperas=[],pedidos=[];
+    const ctx={PropertiesService:{getScriptProperties:()=>({getProperty:n=>n==='OPENAI_API_KEY'?'ficticia':null})},Utilities:{sleep:n=>esperas.push(n)},UrlFetchApp:{fetch:(url,req)=>{
+      chamadas++;pedidos.push(req.payload);
+      const falha=code!=='rate_limit_exceeded'||chamadas===1;
+      return {getResponseCode:()=>falha?429:200,getAllHeaders:()=>({'Retry-After':'2'}),getContentText:()=>JSON.stringify(falha?{error:{code:code==='grande'?'rate_limit_exceeded':code,message:code==='grande'?'Request too large':'temporário'}}:completo('Minuta completa.'))};
+    }}};
+    vm.createContext(ctx);vm.runInContext(readFileSync(new URL('../apps-script/openai.js',import.meta.url),'utf8'),ctx);
+    if(code==='rate_limit_exceeded'){
+      assert.equal(ctx.chamarOpenAI({...opcoes,max_tokens:16000}).texto,'Minuta completa.');
+      assert.deepEqual(esperas,[2000]);assert.equal(chamadas,2);assert.equal(pedidos[0],pedidos[1]);assert.equal(JSON.parse(pedidos[0]).max_output_tokens,16000);
+    }else{assert.throws(()=>ctx.chamarOpenAI(opcoes));assert.equal(chamadas,1);assert.deepEqual(esperas,[]);}
+  }
+});
+
 test('Joaninha e perguntas da minuta mantêm o contrato que o painel já lê', async () => {
   for (const [arquivo, body, resposta] of [
     ['perguntar-joaninha', {pergunta: 'Qual a prioridade?', casosAtivos: []}, 'Não há casos ativos.'],

@@ -24,6 +24,7 @@ function openaiPayload(opcoes, modelo) {
   };
   if (opcoes.system) payload.instructions = opcoes.system;
   if (opcoes.stream) payload.stream = true;
+  if (opcoes.json) payload.text = {format: {type: 'json_object'}};
   // Luna usa raciocínio médio por padrão. Estas rotas têm limites curtos de
   // saída herdados do painel: reservar a saída para texto evita consumi-la
   // inteira em raciocínio e devolver uma resposta vazia (inclusive no teste OK).
@@ -61,17 +62,34 @@ function chamarOpenAI(opcoes) {
   var props = PropertiesService.getScriptProperties();
   var chave = props.getProperty('OPENAI_API_KEY');
   if (!chave) throw new Error('OPENAI_API_KEY não configurada nas propriedades do script.');
-  var resposta = UrlFetchApp.fetch('https://api.openai.com/v1/responses', {
+  var pedido = {
     method: 'post', contentType: 'application/json',
     headers: {Authorization: 'Bearer ' + chave},
     payload: JSON.stringify(openaiPayload(opcoes, props.getProperty('OPENAI_MODEL'))),
     muteHttpExceptions: true
-  });
-  var codigo = resposta.getResponseCode();
-  if (codigo < 200 || codigo >= 300) throw new Error('A OpenAI não respondeu (HTTP ' + codigo + '). Confira a chave, os créditos e o modelo.');
-  var data;
-  try {data = JSON.parse(resposta.getContentText());} catch (_) {throw new Error('Resposta inválida da OpenAI.');}
-  return openaiResultado(data);
+  };
+  for (var tentativa = 0; tentativa < 3; tentativa++) {
+    var resposta = UrlFetchApp.fetch('https://api.openai.com/v1/responses', pedido);
+    var codigo = resposta.getResponseCode(), data;
+    try {data = JSON.parse(resposta.getContentText());} catch (_) {
+      throw new Error('A OpenAI não respondeu em formato reconhecível (HTTP ' + codigo + ').');
+    }
+    if (codigo >= 200 && codigo < 300) return openaiResultado(data);
+    var erro = data.error || {}, mensagem = String(erro.message || '');
+    var temporario = codigo === 429 && erro.code === 'rate_limit_exceeded' && !/request too large|requested.*exceeds/i.test(mensagem);
+    if (temporario && tentativa < 2) {
+      var headers = resposta.getAllHeaders ? resposta.getAllHeaders() : {};
+      var segundos = Number(headers['Retry-After'] || headers['retry-after']) || 60;
+      Utilities.sleep(Math.max(1, Math.min(60, Math.ceil(segundos))) * 1000);
+      continue;
+    }
+    if (codigo === 429) {
+      if (/insufficient_quota|billing/.test(erro.code || '')) throw new Error('A conta da OpenAI está sem cota disponível. Confira o faturamento e os créditos.');
+      if (!temporario && erro.code === 'rate_limit_exceeded') throw new Error('O volume desta solicitação ultrapassa o limite da conta OpenAI. A minuta não foi reduzida; é necessário ajustar o limite da conta.');
+      throw new Error('A OpenAI atingiu um limite de uso. Aguarde antes de tentar novamente.');
+    }
+    throw new Error('A OpenAI não respondeu (HTTP ' + codigo + '). Confira a chave, os créditos e o modelo.');
+  }
 }
 
 // Teste manual sem dados de clientes e sem escrita no Drive ou no Firebase.

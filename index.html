@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<link rel="stylesheet" href="lib/joaninha-chat.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel Operacional — 20º Tabelião de Notas</title>
@@ -3230,9 +3231,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <script>
 if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 </script>
+<script src="lib/joaninha-protocolo.js"></script>
+<script src="lib/joaninha-chat.js"></script>
 <script type="module">
+import {criarPonteJoaninha} from "./lib/joaninha-ponte.js";
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
-import { getDatabase, ref, onValue, get, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
+import { getDatabase, ref, onValue, get, set, push, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js';
 
@@ -3537,6 +3541,7 @@ onValue(casosRef,(snap)=>{
     }
     const fotoAntes=inicializado?casos:null;
     casos=data;
+    window.joaninhaChat?.atualizarCasos(data);
     inicializado=true;
     if(fotoAntes&&typeof esteiraVarrer==='function')esteiraVarrer(fotoAntes,data);
     renderStats();
@@ -7946,13 +7951,14 @@ if(joaninhaInstancia.disponivel){
 
   let painelAberto=false;
   let contexto=null; // {tipo:'caso',id,nome} ou null (= Foco do dia)
+  window.joaninhaDefinirContexto=id=>{contexto=id&&casos[id]?{tipo:'caso',id,nome:casos[id].nome}:null;};
   let anexosPendentes=[];
 
   // ── contexto: caso em foco ou Foco do dia ──
   const casosList=document.getElementById('casos-list');
   if(casosList){
     casosList.addEventListener('click',(e)=>{
-      const card=e.target.closest('.card');
+      const card=e.target.closest('.cx-card, .card');
       if(!card)return;
       const id=card.id.replace('card-','');
       const c=casos[id];
@@ -17007,6 +17013,54 @@ onAuthStateChanged(auth, async () => {
 // por ele que o teste redesenha depois de mexer no banco de mentira.
 window.renderRede = renderRede;
 
+
+// ── Conversa e ações da Joaninha ──
+if(window.JoaninhaChat && window.JoaninhaProtocolo){
+  const abrirCapturaOriginal=window.toggleJoaninhaPainel;
+  const abrirAbaOriginal=window.joaninhaTab;
+  let chatJoaninha;
+  const ponteJoaninha=criarPonteJoaninha({
+    db,ref,get,set,push,update,runTransaction,
+    casos:()=>casos,
+    protocolo:window.JoaninhaProtocolo,
+    usuario:()=>localStorage.getItem('painel_usuario')||'Equipe',
+    chaveUsuario:()=>String(finAuth?.uid||'sem-login')+':'+String(localStorage.getItem('painel_usuario')||'Equipe'),
+    acessoOrcamentos:()=>!!finAuth&&!!finAcesso&&Object.keys(finAcesso).length>0,
+    atos:()=>ORC_ATOS.map(a=>({id:a.id,nome:a.rot||a.nome||a.id,campos:(a.campos||[]).map(k=>({chave:k,nome:ORC_CAMPOS[k]?.rot||k}))})),
+    hoje:isoHoje,
+    prepararTabelas:async()=>{
+      const [cfg,aliquotas]=await Promise.all([get(orcCfgRef),get(orcAliqRef)]);
+      orcCfg=cfg.val()||{};orcAplicarCfg();ORC_TRIBUTOS.aliquotasDeFora=aliquotas.val()||{};
+    },
+    calcularOrcamento:orcCalcular,
+    desenharOrcamento:orcDesenharFolha,
+    semUndefined:orcSemUndefined,
+    montarObservacao:montarNovoObs,
+    confirmar:async texto=>window.confirm(texto),
+    fetch:(...args)=>fetch(...args),
+    abrirCaso:id=>{window.irParaCasoPorId?.(id);},
+    abrirOrcamento:(id,orcId)=>window.orcAbrirCliente(id,orcId),
+    entrar:()=>window.abrirFinanceiro?.(),
+    abrirFerramentas:(tab,id)=>{
+      window.joaninhaDefinirContexto?.(id||null);
+      if(tab==='documentos'&&id){window.abrirMinuta(id);return;}
+      abrirCapturaOriginal(true);abrirAbaOriginal(tab);
+    }
+  });
+  chatJoaninha=window.JoaninhaChat.iniciar(ponteJoaninha);
+  window.joaninhaChat=chatJoaninha;
+  window.abrirJoaninhaNoCaso=id=>chatJoaninha?.abrir(id);
+  window.toggleJoaninhaPainel=function(force){
+    if(force===true){chatJoaninha?.fechar();return abrirCapturaOriginal(true);}
+    if(force===false){chatJoaninha?.fechar();return abrirCapturaOriginal(false);}
+    if(chatJoaninha?.estaAberta()){chatJoaninha.fechar();return;}
+    abrirCapturaOriginal(false);chatJoaninha?.abrir();
+  };
+  const renderCasosAnterior=renderCasos;
+  renderCasos=function(){renderCasosAnterior();chatJoaninha?.renderTarefasNosCards();};
+  chatJoaninha?.atualizarCasos(casos);
+  onAuthStateChanged(auth,()=>chatJoaninha?.atualizarConta());
+}
 
 </script>
 </body>
