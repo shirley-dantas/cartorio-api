@@ -1,0 +1,43 @@
+name: PRIME Signature - validacao experimental
+on:
+  push:
+    branches:
+      - feature/prime-openai-piloto-20261111
+    paths:
+      - index.html
+      - prime-signature-experimental.css
+      - testes/signature-visual.mjs
+      - testes/central-aguardando-cliente.mjs
+      - .github/workflows/prime-signature-checks.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testar elementos preservados e dependencias do cliente
+        run: |
+          node testes/signature-visual.mjs
+          node testes/central-aguardando-cliente.mjs
+      - name: Instalar navegador isolado para testes da Central
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Montar a versao de teste a partir do codigo real
+        run: node testes/montar.mjs
+      - name: Testar Central e celular sem acessar dados de producao
+        run: |
+          node testes/navegador.mjs
+          node testes/celular.mjs
