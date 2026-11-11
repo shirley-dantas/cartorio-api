@@ -69,3 +69,12 @@ Tentativa de `git ls-remote https://github.com/shirley-dantas/cartorio-api.git H
 
 ### Próxima decisão de produto
 Confirmar semântica do indicador `Aguardando cliente` e depois preparar correção mínima no branch, sem alteração na `main`.
+
+
+## Validação da alteração "Aguardando cliente" — 11/11/2026
+- Código corrigido no branch: `renderCdc2Indicadores` conta `ativos.filter(c=>DEP_CONFIG[c.dep]?.quemSegura==='cliente').length`.
+- Cinco etapas de `DEP_CONFIG` têm classificação `cliente`: aprovação orçamento, aprovação minuta, aguardando cliente (outro), ITBI aguardando pagamento e falta documentos.
+- **Seis verificações estáticas/simulação** sobre a versão do arquivo obtida diretamente do GitHub passaram: 5 categorias, lista vazia, etapa desconhecida, concluídos excluídos, expressão efetiva no indicador e existência do teste automatizado no repositório.
+- Diferença `main...feature/prime-openai-piloto-20261111`: 4 commits, 3 arquivos modificados/adicionados (`index.html`, documento e teste). Sem alterações publicadas.
+- **Limitação importante:** Não equivale a executar `node testes/central-aguardando-cliente.mjs` nem a suíte completa de navegador/Playwright. O GitHub foi acessível via conector, mas o ambiente com Node não alcançou `github.com` para clonar o repositório.
+- **Próximo critério de aceite:** obter cópia executável do repositório num ambiente de testes isolado e executar regressões + mobile. Não recomendar merge/publicação até então.
