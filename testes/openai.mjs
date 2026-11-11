@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const require = createRequire(import.meta.url);
-const {openaiPayload, openaiResultado} = require('../apps-script/openai.js');
+const {openaiPayload, openaiResultado, openaiLimite} = require('../apps-script/openai.js');
 const ia = require('../lib/ia.js');
 const opcoes = {system: 'Não invente dados.', max_tokens: 2000, messages: [{role: 'user', content: 'Teste fictício'}]};
 const completo = (texto = 'Concluído.') => ({status: 'completed', output: [{type: 'message', content: [{type: 'output_text', text: texto}]}]});
@@ -92,6 +92,21 @@ test('sem chave não há requisição; JSON inválido não vira resposta vazia',
   await comFetch(async () => new Response('gateway indisponível'), async () => {
     await assert.rejects(ia.texto(opcoes), /formato reconhecível/);
   });
+});
+test('limite diário e pedido maior que o teto não são tratados como uma espera de um minuto',async()=>{
+  for(const [message,tipo,trecho] of [
+    ['Rate limit reached for org_privada model_privado on requests per day (RPD): Limit 50, Used 50, Requested 1.','diario',/limite diário/],
+    ['Rate limit reached on tokens per day (TPD): Limit 100000, Used 100000, Requested 16000.','diario',/limite diário/],
+    ['Rate limit reached on tokens per min (TPM): Limit 60000, Used 0, Requested 63710.','volume',/Repetir o mesmo pedido não resolve/]
+  ]){
+    const detalhe={code:'rate_limit_exceeded',message};const r=openaiLimite(detalhe);
+    assert.equal(r.tipo,tipo);assert.equal(r.repetir,false);assert.match(r.mensagem,trecho);assert.doesNotMatch(r.mensagem,/org_privada|model_privado/);
+    await comFetch(async()=>Response.json({error:detalhe},{status:429}),async()=>assert.rejects(ia.texto(opcoes),e=>e.status===429&&!e.repetirApos&&trecho.test(e.message)));
+    let chamadas=0,esperas=0;
+    const ctx={PropertiesService:{getScriptProperties:()=>({getProperty:n=>n==='OPENAI_API_KEY'?'ficticia':null})},Utilities:{sleep:()=>esperas++},UrlFetchApp:{fetch:()=>{chamadas++;return {getResponseCode:()=>429,getContentText:()=>JSON.stringify({error:detalhe})};}}};
+    vm.createContext(ctx);vm.runInContext(readFileSync(new URL('../apps-script/openai.js',import.meta.url),'utf8'),ctx);
+    assert.throws(()=>ctx.chamarOpenAI(opcoes),trecho);assert.equal(chamadas,1);assert.equal(esperas,0);
+  }
 });
 test('formato JSON recusado tem uma alternativa compatível; outros HTTP 400 não são repetidos', async () => {
   let chamadas=0;
