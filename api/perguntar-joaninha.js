@@ -61,9 +61,14 @@ module.exports = async (req, res) => {
 
   if (!pergunta) return res.status(400).json({ ok: false, erro: "Pergunta vazia" });
 
-  const listaCasos = casosAtivos.map(c =>
-    `- ${c.nome} (${c.tipo || "tipo não definido"}) | status: ${c.status || "—"} | responsável: ${c.resp || "—"} | prazo: ${c.prazo || "—"} | dias parado: ${c.diasParado ?? 0} | dependência: ${c.dep || "nenhuma"} | obs: ${(c.obs || "").slice(0, 250)}`
-  ).join("\n");
+  // A legenda aparece uma única vez. Cada linha conserva todos os campos e
+  // todos os casos; JSON mantém quebras de linha e separadores sem ambiguidade.
+  // Evita repetir rótulos em português em cada caso, que estourava a cota
+  // de entrada da OpenAI mesmo para perguntas curtas da equipe.
+  const listaCasos = casosAtivos.length ? JSON.stringify(casosAtivos.map(c => [
+    c.nome, c.tipo || "tipo não definido", c.status || "—", c.resp || "—",
+    c.prazo || "—", c.diasParado ?? 0, c.dep || "nenhuma", (c.obs || "").slice(0, 250)
+  ])) : "Nenhum caso ativo cadastrado.";
   const listaFocos = focosRestantes.length ? focosRestantes.map((f, i) => `${i + 1}. ${f}`).join("\n") : "Nenhuma prioridade definida para hoje.";
 
   const mensagem = `PERGUNTA DA EQUIPE: ${pergunta}
@@ -72,7 +77,8 @@ FOCO DO DIA (tarefas ainda não concluídas):
 ${listaFocos}
 
 PANORAMA DOS CASOS ATIVOS DO CARTÓRIO:
-${listaCasos || "Nenhum caso ativo cadastrado."}
+Cada linha da tabela JSON contém, nesta ordem: nome, tipo, status, responsável, prazo, dias parado, dependência, observações.
+${listaCasos}
 
 Responda à pergunta usando só esses dados.`;
 

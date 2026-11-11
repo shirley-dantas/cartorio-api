@@ -147,3 +147,23 @@ test('leitura da escrita mantém texto, ilegibilidade e recusa separados', async
     assert.equal(status, code); assert.deepEqual(saida, esperado);
   }
 });
+
+test('Joaninha compacta 116 casos sem perder campos, registros ou separadores', async () => {
+  const casosAtivos = Array.from({length:116}, (_,i) => ({nome:'Pessoa fictícia '+i, tipo:'Compra e venda', status:'atencao', resp:'Equipe', prazo:'hoje', diasParado:i, dep:'Falta documentos', obs:'Observação fictícia com | delimitador e\nquebra de linha.'}));
+  const antigo = casosAtivos.map(c => `- ${c.nome} (${c.tipo}) | status: ${c.status} | responsável: ${c.resp} | prazo: ${c.prazo} | dias parado: ${c.diasParado} | dependência: ${c.dep} | obs: ${c.obs}`).join('\n');
+  let recebido;
+  const handler = require('../api/perguntar-joaninha.js');
+  const res = {setHeader(){},status(n){assert.equal(n,200);return this;},json(j){assert.equal(j.ok,true);}};
+  await comFetch(async (url, req) => {
+    recebido=JSON.parse(req.body).input[0].content;
+    return Response.json(completo('Teste concluído.'));
+  }, async () => handler({method:'POST',url:'/api/perguntar-joaninha',headers:{},body:{pergunta:'Teste fictício',casosAtivos,focosRestantes:['Foco fictício']}},res));
+  const tabela = JSON.parse(recebido.split('observações.\n')[1].split('\n\nResponda')[0]);
+  assert.equal(tabela.length,116);
+  for(let i=0;i<116;i++) {
+    const c=casosAtivos[i];
+    assert.deepEqual(tabela[i],[c.nome,c.tipo,c.status,c.resp,c.prazo,c.diasParado,c.dep,c.obs]);
+  }
+  assert.ok(recebido.includes('Foco fictício'));
+  assert.ok(JSON.stringify(tabela).length < antigo.length * 0.8);
+});

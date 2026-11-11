@@ -73,6 +73,13 @@ Os testes novos cobrem autenticação, payloads de texto/PDF/imagem, streaming
 dividido e UTF-8, fontes da pesquisa, recusas, respostas incompletas e falhas
 HTTP. Não usam créditos nem alteram dados reais.
 
+Na validação do Preview, a chave foi reconhecida, mas a pergunta à Joaninha
+retornou `rate_limit_exceeded` por volume excessivo. O contexto passou a ser
+enviado como tabela JSON com uma única legenda, preservando todos os casos e
+os mesmos campos e observações enviados antes. Não muda o modelo nem elimina
+registros. A confirmação real dessa correção ainda depende de um novo teste
+no Preview autenticado pela usuária.
+
 Verificação adicional: `testes/bussola.mjs` executou, com uma falha pré-existente
 na comparação de `bussola/fin-motor.js` com o motor do `index.html`. Esses arquivos
 e o gerador não foram alterados por esta migração. Os demais passos da suíte,
