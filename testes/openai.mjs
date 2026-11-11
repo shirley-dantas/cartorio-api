@@ -174,3 +174,41 @@ test('Joaninha compacta 116 casos sem perder campos, registros ou separadores', 
   assert.ok(recebido.includes('Foco fictício'));
   assert.ok(JSON.stringify(tabela).length < antigo.length * 0.8);
 });
+
+test('minuta longa com Luna mantém 16.000 tokens por rodada e junta a continuação inteira', () => {
+  const inicio = 'Cláusula fictícia integral.\n'.repeat(3000);
+  const fim = 'Encerramento fictício, leitura e assinaturas.';
+  const respostas = [
+    {...completo(inicio), status:'incomplete', incomplete_details:{reason:'max_output_tokens'}},
+    completo(fim)
+  ];
+  const pedidos = [], agendados = [], finalizados = [], erros = [];
+  const ctx = {
+    PropertiesService:{getScriptProperties:()=>({getProperty:n=>({OPENAI_API_KEY:'teste-ficticio',OPENAI_MODEL:'gpt-6-luna'})[n]||null})},
+    Logger:{log(){}},
+    UrlFetchApp:{fetch:(url, req)=>{
+      assert.equal(url,'https://api.openai.com/v1/responses');
+      pedidos.push(JSON.parse(req.payload));
+      const data=respostas.shift();
+      return {getResponseCode:()=>200,getContentText:()=>JSON.stringify(data)};
+    }}
+  };
+  vm.createContext(ctx);
+  vm.runInContext(readFileSync(new URL('../apps-script/openai.js',import.meta.url),'utf8'),ctx);
+  vm.runInContext(readFileSync(new URL('../apps-script/cartorio-drive-api.js',import.meta.url),'utf8'),ctx);
+  ctx.agendarContinuacaoMinuta=(job,estado)=>agendados.push({job,estado:structuredClone(estado)});
+  ctx.finalizarGeracaoMinuta=(job,estado,truncada)=>finalizados.push({job,estado:structuredClone(estado),truncada});
+  ctx.salvarJobFirebase=(job,estado)=>erros.push({job,estado});
+  ctx.processarRodadaMinuta('teste-longo',{mensagemBase:'Somente documentos fictícios.',rodadas:0,textoAcumulado:'',temModelo:false,ano:2026,notificarWhatsApp:false});
+  assert.equal(finalizados.length,0);
+  assert.equal(agendados.length,1);
+  assert.equal(agendados[0].estado.textoAcumulado,inicio);
+  ctx.processarRodadaMinuta(agendados[0].job,agendados[0].estado);
+  assert.equal(erros.length,0);
+  assert.equal(finalizados.length,1);
+  assert.equal(finalizados[0].truncada,false);
+  assert.equal(finalizados[0].estado.textoAcumulado,inicio+fim);
+  assert.equal(pedidos.length,2);
+  for(const p of pedidos){assert.equal(p.model,'gpt-6-luna');assert.equal(p.max_output_tokens,16000);assert.equal(p.reasoning.effort,'none');}
+  assert.ok(pedidos[1].input[0].content.includes(inicio.slice(-1500)));
+});
