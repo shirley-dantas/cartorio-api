@@ -2524,10 +2524,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     </div>
   </div>
 
-  <!-- Resumo rápido — reaproveita as MESMAS contagens da lateral (Nota de
-       exigência/Falta assinatura, Aguardando TQ, Aguardando traslado) e da
-       Agenda (hoje). Não é uma 4ª definição de "crítico": é o mesmo dado,
-       só lido em outro lugar. Preenchido por renderCdc2Indicadores(). -->
+  <!-- Resumo rápido — mantém os critérios já usados para Críticos, Atenção e
+       Agenda. "Aguardando cliente" soma todas as etapas marcadas como
+       quemSegura:'cliente' no DEP_CONFIG, sem incluir cartório ou terceiros.
+       Preenchido por renderCdc2Indicadores(). -->
   <div class="cdc2-indicadores" id="cdc2-indicadores" style="display:none">
     <div class="cdc2-indic critico"><span class="cdc2-indic-ponto"></span>
       <div><div class="cdc2-indic-num" id="cdc2-ind-critico">0</div><div class="cdc2-indic-lbl">Críticos</div></div></div>
@@ -4010,10 +4010,10 @@ function renderCentralComando(){
 
 // Resumo rápido acima dos três módulos — reaproveita as MESMAS contagens
 // já usadas na lateral (ETAPAS_SIDEBAR) e na Agenda (cdc2AgendaDados),
-// preenchido depois de renderAgenda() para já ter "hoje" calculado. Não
-// inventa nenhuma definição nova de "crítico": Críticos soma Nota de
-// exigência + Falta assinatura, Atenção é Aguardando TQ, Aguardando
-// cliente é Aguardando traslado — os mesmos rótulos de sempre.
+// preenchido depois de renderAgenda() para já ter "hoje" calculado.
+// "Aguardando cliente" segue DEP_CONFIG.quemSegura==='cliente': usa a
+// classificação de cada etapa, sem considerar traslado (cartório) ou TQ
+// (terceiro) como pendências do cliente.
 function renderCdc2Indicadores(){
   const critEl=document.getElementById('cdc2-ind-critico');
   if(!critEl)return;
@@ -4022,7 +4022,7 @@ function renderCdc2Indicadores(){
   critEl.textContent=porDep('Nota de exigência')+porDep('Falta assinatura');
   document.getElementById('cdc2-ind-atencao').textContent=porDep('Aguardando TQ');
   document.getElementById('cdc2-ind-hoje').textContent=(cdc2AgendaDados.hoje||[]).length;
-  document.getElementById('cdc2-ind-cliente').textContent=porDep('Aguardando traslado');
+  document.getElementById('cdc2-ind-cliente').textContent=ativos.filter(c=>DEP_CONFIG[c.dep]?.quemSegura==='cliente').length;
   document.getElementById('cdc2-ind-total').textContent=ativos.length;
 }
 
