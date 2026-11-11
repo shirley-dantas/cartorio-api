@@ -43,3 +43,22 @@ A usuária decidiu avançar à etapa de protótipo visual da Central, mantendo *
 - Joaninha existente é flutuante, livre da grade dos cards, interativa; não substituir sua implementação por ilustração fixa.
 - Esta é aprovação de DIREÇÃO PARA PROTÓTIPO, **não aprovação de implementação nem autorização de publicação**. Card PRIME Signature aprovado anteriormente continua sem mudanças.
 - Próxima etapa: protótipo local com dados fictícios para validação de UX, desktop/celular, sem Firebase e sem deploy.
+
+
+## DECISÃO FINAL MAIS RECENTE — APROVAÇÃO DA CENTRAL DE COMANDO (11/11/2026)
+**STATUS: DESIGN VISUAL DA CENTRAL APROVADO PELA USUÁRIA.** Esta decisão substitui as explorações visuais anteriores da Central (inclusive a orientação preliminar de manter apenas a paleta original clara); o card PRIME Signature já aprovado permanece aprovado e inalterado.
+
+**Referência visual escolhida:** última versão do mockup PRIME Signature com lateral vinho, fundo creme/marfim, champagne/rosé/dourado discreto, orquídeas delicadas e Joaninha flutuante; distribuição da Central mostrada em 11/11/2026 com calendário mensal completo à direita, métricas compactas, Agenda e Prioridades ao centro, avisos de clientes, Jornal da Equipe, Bloco de Notas, e faixa Financeiro na parte inferior. A usuária aprovou o desenho **com uma única adição**: botão de olho para mostrar/ocultar o conteúdo financeiro.
+
+### Requisitos de interface obrigatórios
+- **Lateral vinho com navegação completa:** Central, Processos, Agenda, Orçamentos, Radar Jurídico, Rede, Modelos; filtros por etapa Minutando, Falta assinatura, Aguardando TQ, Aguardando traslado, No registro, Nota de exigência, Prefeitura e Arquivo; depois Financeiro, Relatórios e Configurações. Não apagar nem renomear categorias reais sem aprovação.
+- **Calendário do mês inteiro**, com navegação; Agenda independente com **Hoje, Amanhã, Próximos dias** sempre visíveis, somente compromissos.
+- **Avisos operacionais** de documentos entregues por link pelo cliente (a faixa original `cc-envios`), pagamentos (`cc-pagamentos`) e entradas (`cc-entrada`), preservando comportamento e acesso aos casos; Jornal da Equipe (`cc-jornal`) com natureza de Radar Jurídico, não confundir com avisos de recebimento.
+- Bloco de Notas com abas Shirley/Grazi; prioridades com Fazer agora/Parece esquecido?, usando motor existente.
+- Joaninha **solta/flutuante/interativa**, não somente imagem fixa.
+- **Financeiro:** mostrar apenas o título **“Financeiro”**, o valor mensal já lançado **da parte do tabelião** (sem escrever “tabelião” na UI), barra de progresso intuitiva e **percentual que falta** para atingir a meta mensal. **Não revelar o valor absoluto da meta, nem a diferença em reais, nem entradas/saídas/comissões.** O valor exemplificativo `R$ 79.463,59` e os percentuais vistos nos mockups NÃO são dados financeiros de produção.
+- **Novo requisito aprovado:** botão **olhinho** na faixa Financeiro, que alterna entre conteúdo visível e oculto (mascara valor e progresso/percentual quando ocultos). A visibilidade não pode escapar das regras de autenticação e autorização do Financeiro: dados não devem ser buscados/revelados a pessoas sem permissão, independentemente do olhinho. Evitar que estado visível reapareça após uma sessão sem autorização; comportamento exato de persistência a validar em testes.
+- Manter o design de página exclusiva do processo anteriormente aprovado, sem modificar seus fluxos, estados ou controles.
+
+### Governança
+**Aprovação do desenho não é autorização para alterar `main`, Firebase, Vercel ou dados reais.** Próximo passo: inventário dos controles no código, protótipo funcional isolado, testes de regressão e mobile; solicitar aprovação separada antes de qualquer publicação. Este registro tem prioridade cronológica sobre o direcionamento inicial da Central anotado acima.
