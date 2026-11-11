@@ -1,0 +1,160 @@
+/*
+ PRIME Signature — experiência visual EXPERIMENTAL (2026-11-11)
+ Ativação apenas com ?signature=1 na ramificação de testes.
+ Sem novas rotas, sem Firebase, sem reinterpretação de status e sem produção.
+ Esta folha apenas altera apresentação. A integração financeira virá após
+ contrato de dados, permissões e testes específicos.
+*/
+html.prime-signature{
+  --ps-wine:#6A1732;
+  --ps-wine-dark:#4E1027;
+  --ps-gold:#C29B5E;
+  --ps-cream:#FFF9F4;
+  --ps-ink:#25303A;
+  --ps-shadow:0 12px 28px rgba(87,48,43,.065),0 2px 5px rgba(87,48,43,.03);
+}
+html.prime-signature body{
+  background:#F8F3EE;
+  background-image:radial-gradient(ellipse at 88% 3%,rgba(239,211,203,.36),transparent 48%),
+                   radial-gradient(ellipse at 18% 94%,rgba(219,185,149,.11),transparent 60%);
+  color:var(--ps-ink);
+}
+html.prime-signature .sidebar{
+  background:linear-gradient(160deg,#761D39 0%,#5E1530 65%,#481027 100%);
+  border-right:1px solid rgba(211,169,112,.28);
+  scrollbar-color:rgba(244,220,200,.32) transparent;
+}
+html.prime-signature .sidebar-logo-svg text{fill:#FFF6ED}
+html.prime-signature .sidebar-divider{background:rgba(235,196,150,.34)}
+html.prime-signature .sidebar-section-title{color:#E9C99D}
+html.prime-signature .sidebar-item,
+html.prime-signature .sidebar-toggle-mais{
+  background:transparent;
+  border-color:transparent;
+  color:#F9EEE5;
+  border-radius:12px;
+}
+html.prime-signature .sidebar-item:not(.active):hover,
+html.prime-signature .sidebar-toggle-mais:hover,
+html.prime-signature .sidebar-item.on{
+  background:rgba(255,246,238,.14);
+  color:#fff;
+}
+html.prime-signature .sidebar-item.active{
+  color:#fff;
+  border:1px solid rgba(252,221,184,.37);
+  background:linear-gradient(125deg,#B65F6D,#94354F);
+  box-shadow:0 4px 16px rgba(52,10,28,.17);
+}
+html.prime-signature .sidebar-item .em-breve{background:rgba(255,255,255,.17);color:#fff2d9}
+html.prime-signature .sidebar-count,
+html.prime-signature .sidebar-count.purple,
+html.prime-signature .sidebar-count.red,
+html.prime-signature .sidebar-count.amber,
+html.prime-signature .sidebar-count.green{
+  background:#F6E5D0;
+  color:#64243B;
+}
+html.prime-signature .sidebar-footer-frase{color:#F5DFD7}
+html.prime-signature .topnav{background:rgba(255,252,249,.94);border-color:#F1E7DC}
+html.prime-signature .container{max-width:1500px}
+html.prime-signature .cdc2-topo{
+  position:relative;
+  background:linear-gradient(120deg,#FFF9F4 0%,#FAEEE9 100%);
+  border:1px solid #F1E4DC;
+  border-radius:24px;
+  padding:23px 26px;
+  gap:24px;
+  box-shadow:var(--ps-shadow);
+}
+html.prime-signature .cdc2-topo::before{
+  content:"";
+  position:absolute;
+  right:16px;top:10px;width:62px;height:47px;pointer-events:none;opacity:.65;
+  background:radial-gradient(ellipse 10px 18px at 28px 10px,rgba(223,152,147,.28),transparent 85%),
+    radial-gradient(ellipse 10px 18px at 40px 22px,rgba(219,174,159,.30),transparent 85%),
+    radial-gradient(ellipse 7px 15px at 14px 24px,rgba(196,157,97,.24),transparent 85%);
+}
+html.prime-signature .cdc2-topo-saud{color:#5F1931;font-family:'Cormorant Garamond',serif;font-size:35px;font-weight:600}
+html.prime-signature .cdc2-topo-sub{color:#675E5E}
+html.prime-signature .cdc2-topo-frase{color:#A65C72;font-size:17px}
+html.prime-signature .cdc2-topo-busca{
+  border-radius:999px;border:1px solid #EADDD5;background:#fff;
+  box-shadow:0 6px 16px rgba(92,41,55,.05);
+}
+html.prime-signature .cdc2-calendario{
+  width:258px;border:1px solid #F0E4DC;border-radius:20px;
+  background:#FFFCFA;box-shadow:0 8px 20px rgba(77,36,44,.06);
+}
+html.prime-signature .cdc2-cal-titulo{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:#58152C}
+html.prime-signature .cdc2-cal-dia.hoje{background:#FAE3DE;color:#791D39}
+html.prime-signature .cdc2-cal-dia.selecionado,
+html.prime-signature .cdc2-cal-dia.selecionado:hover{background:#761D39;color:#fff}
+html.prime-signature .cdc2-cal-dia.compromisso::after{background:#BA8C4D}
+html.prime-signature .cdc2-indicadores{gap:10px;margin-bottom:16px}
+html.prime-signature .cdc2-indic,
+html.prime-signature .cdc2-ver-todos{
+  border:1px solid #EFE3DC;border-radius:18px;background:#FFFCFA;
+  box-shadow:0 5px 16px rgba(83,39,49,.04);min-height:58px;
+}
+html.prime-signature .cdc2-indic-num{color:#5F1931;font-size:20px}
+html.prime-signature .cdc2-indic-lbl{color:#685D62;font-size:11px}
+html.prime-signature .cc-jornal{
+  background:#FFFDFB;border:1px solid #EFDFD6;border-radius:16px;
+  box-shadow:0 4px 12px rgba(83,39,49,.04);
+}
+html.prime-signature .cc-envio{
+  border-radius:15px;
+  box-shadow:0 5px 15px rgba(52,98,60,.035);
+}
+html.prime-signature .cdc2-grid3{gap:16px}
+html.prime-signature .cdc2-card{
+  border:1px solid #F0E2DB;border-radius:22px;background:#FFFDFC;
+  padding:21px 20px 20px;box-shadow:var(--ps-shadow);
+}
+html.prime-signature .cdc2-card-title{
+  color:#5C1D36;font-family:'Cormorant Garamond',serif;
+  font-size:23px;font-weight:600;letter-spacing:-.02em;
+}
+html.prime-signature .cdc2-icon-chip{
+  background:#FCF0E6;color:#AB7546;border-radius:12px;
+}
+html.prime-signature .cdc2-pill-tabs{background:#FCF5F0;border-radius:999px}
+html.prime-signature .cdc2-pill-tab{border-radius:999px;color:#6D6165}
+html.prime-signature .cdc2-pill-tab.ativa{
+  background:linear-gradient(120deg,#74203E,#58152C);
+  color:#fff;box-shadow:0 4px 12px rgba(103,22,50,.14);
+}
+html.prime-signature .cdc2-tab-u.ativa{color:#5F1931}
+html.prime-signature .cdc2-tab-u.ativa::after{background:#AE824E}
+html.prime-signature .cdc2-ag-hora{color:#8B5263}
+html.prime-signature .cdc2-ag-ponto::before{background:#B68E53;border-color:#B68E53}
+html.prime-signature .cdc2-mini{background:#FCF8F4}
+html.prime-signature .cdc2-mini-head:hover{background:#FAEFEA}
+html.prime-signature .cdc2-mini.ok{border-left-color:#2C975A}
+html.prime-signature .cdc2-btn-nova{
+  background:#FBF2EB;border-color:#EBD9C6;color:#70334A;
+}
+html.prime-signature button:focus-visible,
+html.prime-signature input:focus-visible,
+html.prime-signature .cdc2-cal-dia:focus-visible{
+  outline:2px solid #A97649;outline-offset:2px;
+}
+@media(max-width:1200px){
+  html.prime-signature .cdc2-topo{flex-wrap:wrap}
+  html.prime-signature .cdc2-grid3{gap:12px}
+  html.prime-signature .cdc2-card{padding:18px 16px}
+}
+@media(max-width:760px){
+  html.prime-signature .cdc2-topo{flex-direction:column;align-items:stretch;padding:16px}
+  html.prime-signature .cdc2-topo-saud{font-size:29px;white-space:normal}
+  html.prime-signature .cdc2-topo-sub{white-space:normal}
+  html.prime-signature .cdc2-calendario{width:100%}
+  html.prime-signature .cdc2-grid3{grid-template-columns:1fr}
+  html.prime-signature .cdc2-card-title{font-size:21px}
+}
+@media(prefers-reduced-motion:reduce){
+  html.prime-signature .sidebar-item{transition:none}
+}
+/* A Joaninha (#joaninha-host) permanece intacta: sem alterações de posição,
+ animação, clique ou contexto. As regras do Financeiro não são tocadas. */
