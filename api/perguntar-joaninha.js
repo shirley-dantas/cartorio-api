@@ -1,6 +1,5 @@
-const https = require("https");
+const ia = require("../lib/ia.js");
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const SYSTEM_PROMPT = `Você é a Joaninha, a assistente do painel PRIME do 20º Cartório de Notas de São Paulo. A equipe (Shirley, Grazi e Gabriel) te faz perguntas soltas sobre a operação do dia — tipo "o que eu faço agora?", "qual cliente espera há mais tempo?", "quais processos dependem da construtora?".
 
@@ -13,40 +12,13 @@ Regras estritas:
 - Tom: colega direta, calorosa e objetiva — nunca robótica, nunca genérica.
 - Português do Brasil, texto corrido, sem markdown, sem listas, no máximo 4 frases curtas.`;
 
-function chamarClaude(mensagem) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 350,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: mensagem }]
-    });
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.error) return reject(new Error(parsed.error.message || "Erro na API Claude"));
-          resolve((parsed.content && parsed.content[0] && parsed.content[0].text) || "");
-        } catch (e) { reject(e); }
-      });
-    });
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
+async function chamarIA(mensagem) {
+  const opcoes = {
+    max_tokens: 350,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content: mensagem }]
+  };
+  return ia.texto(opcoes);
 }
 
 const lerLetra = require("../lib/ler-letra.js");
@@ -105,7 +77,7 @@ ${listaCasos || "Nenhum caso ativo cadastrado."}
 Responda à pergunta usando só esses dados.`;
 
   try {
-    const texto = await chamarClaude(mensagem);
+    const texto = await chamarIA(mensagem);
     res.status(200).json({ ok: true, resposta: texto.trim() });
   } catch (err) {
     res.status(500).json({ ok: false, erro: err.message });

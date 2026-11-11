@@ -1,6 +1,5 @@
-const https = require("https");
+const ia = require("../lib/ia.js");
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const SYSTEM_PROMPT = `Você é assistente do 20º Cartório de Notas de São Paulo.
 
@@ -16,40 +15,13 @@ Regras:
 - Responda SOMENTE com um JSON válido, sem markdown, sem texto antes ou depois, no formato exato:
 {"resumo": "texto do resumo", "pendencias": ["pendência 1", "pendência 2"]}`;
 
-function chamarClaude(mensagem) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 500,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: mensagem }]
-    });
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.error) return reject(new Error(parsed.error.message || "Erro na API Claude"));
-          resolve((parsed.content && parsed.content[0] && parsed.content[0].text) || "");
-        } catch (e) { reject(e); }
-      });
-    });
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
+async function chamarIA(mensagem) {
+  const opcoes = {
+    max_tokens: 500,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content: mensagem }]
+  };
+  return ia.texto(opcoes);
 }
 
 function extrairJson(texto) {
@@ -80,7 +52,7 @@ RELATO DO ATENDIMENTO:
 ${texto}`;
 
   try {
-    const resposta = await chamarClaude(mensagem);
+    const resposta = await chamarIA(mensagem);
     const parsed = extrairJson(resposta);
     res.status(200).json({
       ok: true,

@@ -8,9 +8,6 @@ const require = createRequire(import.meta.url);
 const erros = [];
 const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } catch (e) { erros.push(n); console.log('FALHA ' + n + ' → ' + e.message); } };
 
-// O Bússola e a Joaninha usam o SDK da IA, que não precisa estar instalado para este teste.
-const Module = require('node:module'); const carregarOriginal = Module._load;
-Module._load = function (pedido, ...resto) { return pedido === '@anthropic-ai/sdk' ? {default: class {}} : carregarOriginal.call(this, pedido, ...resto); };
 const entrada = require('../lib/whatsapp-entrada.js');
 const porta = require('../api/perguntar-joaninha.js');
 

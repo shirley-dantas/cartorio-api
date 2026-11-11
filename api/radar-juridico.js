@@ -1,3 +1,4 @@
+const ia = require("../lib/ia.js");
 // ══ RADAR JURÍDICO DIÁRIO ════════════════════════════════════════════════
 //
 // A varredura da manhã: lê as fontes oficiais, manda para a IA fazer a
@@ -46,8 +47,6 @@ const { REGRAS_MINUTA_SYSTEM_PROMPT } = require("../lib/regras-minuta-prompt");
 const { conferirRegrasMinuta } = require("../lib/regras-minuta-triagem");
 
 const FIREBASE_HOST = "painel-cartorio-default-rtdb.firebaseio.com";
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODELO = "claude-sonnet-4-6";
 
 // Quanto de cada página vai para a IA. Homepage de tribunal é quase toda
 // menu e rodapé; o que interessa (as manchetes) está no começo do texto.
@@ -139,38 +138,13 @@ async function lerMemoria() {
 }
 
 // ── A IA ─────────────────────────────────────────────────────────────────
-function chamarClaude(mensagem, maxTokens, systemPrompt) {
-  return new Promise((resolve, reject) => {
-    if (!ANTHROPIC_API_KEY) return reject(new Error("ANTHROPIC_API_KEY não configurada"));
-    const body = JSON.stringify({
-      model: MODELO,
-      max_tokens: maxTokens || 6000,
-      system: systemPrompt || RADAR_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: mensagem }]
-    });
-    const req = https.request({
-      hostname: "api.anthropic.com", path: "/v1/messages", method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    }, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try {
-          const p = JSON.parse(data);
-          if (p.error) return reject(new Error(p.error.message || "erro na API Claude"));
-          resolve((p.content && p.content[0] && p.content[0].text) || "");
-        } catch (e) { reject(e); }
-      });
-    });
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
+async function chamarIA(mensagem, maxTokens, systemPrompt) {
+  const opcoes = {
+    max_tokens: maxTokens || 6000,
+    system: systemPrompt || RADAR_SYSTEM_PROMPT,
+    messages: [{ role: "user", content: mensagem }]
+  };
+  return ia.texto(opcoes);
 }
 
 // O guarda-corpo da triagem (item que fala em dispensa sem dizer o que
@@ -264,7 +238,7 @@ ${f.texto}`).join("\n\n")}
 
 Faça a triagem do dia e responda no formato JSON combinado.`;
 
-  const bruto = await chamarClaude(mensagem);
+  const bruto = await chamarIA(mensagem);
   const j = lerJson(bruto);
 
   const itens = (Array.isArray(j.itens) ? j.itens : []).map(conferirItem);
@@ -305,7 +279,7 @@ async function gravarIndice(dia) {
 
 // ── Regras de elaboração de minuta (tarefa=minuta) ──────────────────────
 // Pesquisa UM tipo de ato por vez, na lista fechada de lib/tipos-de-ato.js.
-// Reaproveita lerFonte/baixar e chamarClaude daqui de cima — mesma leitura
+// Reaproveita lerFonte/baixar e chamarIA daqui de cima — mesma leitura
 // de fonte, prompt diferente (lib/regras-minuta-prompt.js).
 async function pesquisarRegrasMinuta(tipoAto) {
   const fontes = fontesParaTipo(tipoAto);
@@ -346,7 +320,7 @@ Levante as regras de elaboração deste tipo de ato e responda no formato JSON c
   // sem nem sobrar tempo pra ler as fontes. Um checklist de um tipo de ato só
   // não deveria precisar de mais que isso; se precisar, é sinal de dividir a
   // pesquisa em mais de uma chamada, não de só subir o número de novo.
-  const bruto = await chamarClaude(mensagem, 4000, REGRAS_MINUTA_SYSTEM_PROMPT);
+  const bruto = await chamarIA(mensagem, 4000, REGRAS_MINUTA_SYSTEM_PROMPT);
   const j = conferirRegrasMinuta(lerJson(bruto));
   j.tipoAto = tipoAto;
   j.status = "ok";
