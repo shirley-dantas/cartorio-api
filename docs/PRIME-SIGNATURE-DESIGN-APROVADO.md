@@ -30,3 +30,16 @@ Elementos acordados:
 Inventariar funções de `index.html` e rotas do sistema; mapear cada comando no novo layout; protótipo navegável com dados fictícios; testes desktop/mobile, de regressão e permissões; revisão da usuária. Sem merge em `main`, sem Vercel ou Firebase de produção sem autorização explícita.
 
 Referência: conversas e mockups de 11/11/2026. A imagem Signature opção 1 foi aprovada como direção estética/conceitual, não como especificação pixel-perfect.
+
+
+## Central de Comando — direcionamento confirmado em 11/11/2026
+A usuária decidiu avançar à etapa de protótipo visual da Central, mantendo **EXATAMENTE a paleta atual do painel**, e não as novas paletas exploradas nas imagens:
+- Fundo off-white quente `#F2EFE9`; branco `#FFFFFF`; superfícies `#FAF8F4`; champagne `#A9895A`; tinta azul-escuro `#1F2A33`. Cores funcionais de status continuam discretas.
+- Central minimalista, feminina, moderna, com respiro visual e um ou outro pequeno elemento floral, sem ilustrações grandes, flores em excesso, caderno, selo “Aprovado”, fundos escuros ou repetições decorativas.
+- Estrutura preferida: **Agenda, Bloco de Notas e O que dá pra fazer agora** como os três módulos protagonistas; números de resumo compactos, Jornal da Equipe em faixa discreta; evitar Processos Recentes/Indicadores duplicados como módulos grandes e não inventar dados ou serviços.
+- **Agenda com três abas obrigatórias, VISÍVEIS: Hoje / Amanhã / Próximos dias**, e mostra apenas compromissos existentes, sem confundir tarefas.
+- Bloco de Notas preserva alternância Shirley / Grazi.
+- O que dá pra fazer agora preserva alternância Fazer agora / Parece esquecido?, sem alterar o motor de decisões.
+- Joaninha existente é flutuante, livre da grade dos cards, interativa; não substituir sua implementação por ilustração fixa.
+- Esta é aprovação de DIREÇÃO PARA PROTÓTIPO, **não aprovação de implementação nem autorização de publicação**. Card PRIME Signature aprovado anteriormente continua sem mudanças.
+- Próxima etapa: protótipo local com dados fictícios para validação de UX, desktop/celular, sem Firebase e sem deploy.
