@@ -7447,10 +7447,9 @@ async function extrairArquivo(file,preservarIntegral,onStatus){
   return {texto:d.texto||'',truncou:!!d.truncou,comprimiu};
 }
 
-// Lê vários arquivos ao mesmo tempo, em vez de um de cada vez — um caso com
-// muitos anexos (RG, CNDT, contrato, extrato…) levava minutos só porque cada
-// leitura esperava a anterior terminar, mesmo elas não dependendo umas das
-// outras (cada arquivo já ia para uma chamada separada do Apps Script).
+// Aceita vários arquivos e os lê pela fila compartilhada desta aba. A conta
+// OpenAI tem limite por minuto: chamadas simultâneas de PDFs passaram a
+// causar 429. Cada leitura preserva o conteúdo e o limite de saída atuais.
 // Nunca deixa um arquivo com erro derrubar os demais: cada leitura fica
 // isolada em {ok, resultado|erro}, e quem chama decide o que fazer.
 // Grava o texto já extraído de cada anexo lido com sucesso em
@@ -7482,7 +7481,7 @@ async function lerArquivosParalelo(arquivos,ler,onStatus){
   if(onStatus) onStatus(total===1?`Lendo "${arquivos[0].name}"…`:`Lendo ${total} documentos…`);
   return Promise.all(arquivos.map(async(file)=>{
     try{
-      const resultado=await ler(file);
+      const resultado=await enfileirarLeituraDocumento(()=>ler(file));
       prontos++;
       if(onStatus && total>1) onStatus(`Lendo documentos… ${prontos} de ${total} prontos`);
       return {file,ok:true,resultado};
@@ -12772,7 +12771,19 @@ async function criarLinkEnvio(id,{estado,blocos,token,guiado}){
 // quem é, e o arquivo ganha o nome padrão. Salva direto; o que a IA não tem certeza fica "confirmar" no card.
 const SOLTE_TIPOS=[['RG_CNH','RG ou CNH'],['CPF','CPF'],['CERTIDAO_NASCIMENTO','Certidão de nascimento'],['CERTIDAO_CASAMENTO','Certidão de casamento'],['CERTIDAO_OBITO','Certidão de óbito'],['PACTO_ANTENUPCIAL','Pacto antenupcial'],['MATRICULA_IMOVEL','Matrícula do imóvel'],['COMPROVANTE_ENDERECO','Comprovante de endereço'],['IPTU','IPTU'],['CND','CND'],['ESCRITURA','Escritura'],['PROCURACAO','Procuração'],['CONTRATO','Contrato'],['COMPROVANTE_PAGAMENTO','Comprovante de pagamento'],['FICHA_CADASTRAL_JUCESP','Ficha cadastral (JUCESP)'],['CONTRATO_SOCIAL','Contrato social'],['VALOR_VENAL_REFERENCIA','Valor venal de referência'],['NEGATIVA_IPTU','Negativa de IPTU'],['DADOS_CADASTRAIS_IMOVEL','Dados cadastrais do imóvel'],['OUTRO','Outro']];
 const SOLTE_MIMES={'application/pdf':1,'image/jpeg':1,'image/png':1,'image/webp':1,'image/gif':1,'image/heic':1,'image/heif':1};
-const SOLTE_MAX=10*1024*1024, SOLTE_PARALELO=2;
+const SOLTE_MAX=10*1024*1024, SOLTE_PARALELO=1;
+// Upload, releitura e anexos de minuta dividem a mesma conta OpenAI.
+// Uma fila por aba evita rajadas, inclusive de lotes/cards diferentes.
+let leituraDocumentoFila=Promise.resolve();
+function enfileirarLeituraDocumento(ler){
+  const atual=leituraDocumentoFila.then(ler);
+  leituraDocumentoFila=atual.catch(()=>{});
+  return atual;
+}
+function avisoLeituraDocumento(texto){
+  const t=String(texto||'');
+  return /HTTP\s*429/.test(t)?'A OpenAI limitou a leitura deste arquivo (429). O arquivo ficou salvo; use “Ler de novo” após conferir o limite de uso. Não é necessário reenviar.':t;
+}
 const SOLTE={}; // casoId -> [{id,nome,estado:'fila'|'enviando'|'ok'|'confirmar'|'erro',msg}]
 let soltePorId=0;
 function solteLinhaHtml(it,casoId){
@@ -12799,19 +12810,21 @@ async function soltePara64(file){
   return btoa(s);
 }
 async function solteUm(casoId,it,file){
+  return enfileirarLeituraDocumento(async()=>{
   it.estado='enviando'; solteAtualizar(casoId);
   try{
     const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'painel-arquivo',casoId,nomeArquivo:file.name,mimetype:String(file.type||'').toLowerCase(),base64:await soltePara64(file)})});
     soltePreencher(casoId,it,await r.json());
   }catch(e){ it.estado='erro'; it.msg='Erro de conexão com o Drive: '+((e&&e.message)||e); }
   solteAtualizar(casoId);
+  });
 }
 // O resultado do Apps Script (arrastado, colado, compartilhado ou vindo da entrada do WhatsApp) vira a linha da lista.
 function soltePreencher(casoId,it,j){
   if(!j||!j.ok){
     const erro=(j&&j.erro)||'motivo desconhecido';
     it.estado='erro'; it.msg=/a[çc][ãa]o desconhecida/i.test(erro)?'O Apps Script publicado ainda não recebe arquivos do painel. Atualize o código lá (apps-script/cartorio-drive-api.js) e implante uma nova versão.':erro;
-  }else if(j.confirmar){ it.estado='confirmar'; it.msg=(j.aviso?j.aviso+' ':'')+'Salvo como '+j.nome+' — confira o nome no lápis.'; }
+  }else if(j.confirmar){ it.estado='confirmar'; it.msg=(j.aviso?avisoLeituraDocumento(j.aviso)+' ':'')+'Salvo como '+j.nome+' — confira o nome no lápis.'; }
   else{ it.estado='ok'; it.msg=j.nome; setTimeout(()=>window.solteTirar(casoId,it.id),8000); }
 }
 window.solteReceber=function(casoId,files){
@@ -12967,12 +12980,12 @@ function entradaAtribuir(casoId,chaves){
   chaves.forEach(k=>{ const d=entradaWA[k]; if(!d) return; const it={id:++soltePorId,nome:d.nome||'arquivo',estado:'fila',msg:''}; lista.push(it); fila.push([it,k]); });
   solteAtualizar(casoId);
   let ativos=0;
-  const um=async([it,k])=>{
+  const um=([it,k])=>enfileirarLeituraDocumento(async()=>{
     it.estado='enviando'; solteAtualizar(casoId);
     try{ const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'entrada-atribuir',entradaId:k,casoId})}); soltePreencher(casoId,it,await r.json()); }
     catch(e){ it.estado='erro'; it.msg='Erro de conexão com o Drive: '+((e&&e.message)||e); }
     solteAtualizar(casoId);
-  };
+  });
   const proximo=()=>{ while(ativos<SOLTE_PARALELO&&fila.length){ const x=fila.shift(); ativos++; um(x).finally(()=>{ ativos--; proximo(); }); } };
   proximo();
 }
@@ -13207,11 +13220,13 @@ window.relerDocCliente=async function(casoId,docKey,btn){
   const antes=btn?btn.innerHTML:'';
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Lendo…';}
   try{
-    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'cliente-reler',casoId,docKey})});
-    const j=await r.json();
+    const j=await enfileirarLeituraDocumento(async()=>{
+      const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'cliente-reler',casoId,docKey})});
+      return r.json();
+    });
     if(j&&j.ok){ /* a lista se refaz sozinha: o item passa a "lido" */ }
     else{
-      const erro=(j&&j.erro)||'motivo desconhecido';
+      const erro=avisoLeituraDocumento((j&&j.erro)||'motivo desconhecido');
       alert(/a[çc][ãa]o desconhecida/i.test(erro)
         ? 'O Apps Script publicado ainda não conhece a leitura de novo.\n\nAtualize o código lá em script.google.com com o arquivo apps-script/cartorio-drive-api.js e implante uma nova versão.'
         : 'A IA não conseguiu ler "'+d.nome+'":\n\n'+erro);

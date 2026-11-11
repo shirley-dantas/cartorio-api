@@ -78,6 +78,12 @@ implantação. Não trocar Código.gs nem cartorio-rede.gs e não alterar a chav
 Sem essa atualização, o conector instalado continua funcionando, mas uma
 limitação temporária pode encerrar a geração em vez de aguardar.
 
+Envios de documentos pelo card, atribuição da entrada, releituras e anexos
+de minuta usam uma fila compartilhada por aba, evitando rajadas simultâneas
+contra a conta OpenAI. Isso não substitui o limite da conta nem coordena abas
+ou aparelhos diferentes. O arquivo já salvo deve ser relido por “Ler de novo”,
+sem novo upload; envios de arquivos não são repetidos automaticamente.
+
 ## Validação automatizada
 
 `node --test testes/openai.mjs testes/joaninha-assistente.mjs` verifica contratos,
