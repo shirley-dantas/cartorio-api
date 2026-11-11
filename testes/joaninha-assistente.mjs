@@ -66,6 +66,31 @@ test('criação e conclusão de tarefa são vinculadas ao card e comprovadas pel
   assert.equal(m.data.casos.C1.tarefasJoaninha[r.tarefaId].feito,true);
   await assert.rejects(m.ponte.executar(acao('alterar_tarefa',{tarefaId:'INEXISTENTE',feito:true}),crypto.randomUUID()));
 });
+test('assinatura usa campo próprio e confirma o Calendar só após retorno real; execução não se repete',async()=>{
+  const m=mundo(),id=crypto.randomUUID();let chamadas=0;
+  m.data.casos.C1.prazo='Prazo da tarefa preservado';
+  m.env.sincronizarAssinatura=async(cid,c)=>{chamadas++;assert.equal(cid,'C1');assert.equal(c.agendado,'2026-11-12T14:00');return {ok:true,eventId:'E1'};};
+  const a=acao('agendar_assinatura',{dataHora:'2026-11-12T14:00',descricao:'Assinatura do caso fictício'});
+  const r=await m.ponte.executar(a,id);assert.equal(r.status,'assinatura_agendada');assert.match(r.mensagem,/confirmado no Google Calendar/);
+  assert.equal(m.data.casos.C1.agendado,'2026-11-12T14:00');assert.equal(m.data.casos.C1.prazo,'Prazo da tarefa preservado');
+  await m.ponte.executar(a,id);assert.equal(chamadas,1);
+});
+test('assinatura rejeita datas inválidas, data passada e troca de horário não conferida',async()=>{
+  for(const dataHora of ['amanhã às 14h','2026-02-30T14:00','2026-11-12T24:00'])assert.throws(()=>P.acao(acao('agendar_assinatura',{dataHora}),['C1']));
+  const m=mundo();m.env.sincronizarAssinatura=async()=>{throw Error('Não deve ser chamado');};
+  await assert.rejects(m.ponte.executar(acao('agendar_assinatura',{dataHora:'2026-11-10T14:00'}),crypto.randomUUID()),/já passou/);
+  m.data.casos.C1.agendado='2026-11-12T10:00';
+  await assert.rejects(m.ponte.executar(acao('agendar_assinatura',{dataHora:'2026-11-12T14:00'}),crypto.randomUUID()),/outra data/);
+  assert.equal(m.data.casos.C1.agendado,'2026-11-12T10:00');
+});
+test('recusa do banco impede envio ao Calendar; falha do Calendar preserva data sem anunciar confirmação',async()=>{
+  const negado=mundo({recusarEscrita:true});let chamadas=0;
+  negado.env.sincronizarAssinatura=async()=>{chamadas++;return {ok:true};};
+  await assert.rejects(negado.ponte.executar(acao('agendar_assinatura',{dataHora:'2026-11-12T14:00'}),crypto.randomUUID()));assert.equal(chamadas,0);
+  const m=mundo();m.data.casos.C1.agendado='2026-11-12T10:00';m.env.sincronizarAssinatura=async()=>({ok:false});
+  const r=await m.ponte.executar(acao('agendar_assinatura',{dataHora:'2026-11-12T14:00',anterior:'2026-11-12T10:00'}),crypto.randomUUID());
+  assert.equal(r.status,'assinatura_salva');assert.match(r.mensagem,/Não consegui confirmar/);assert.equal(m.data.casos.C1.agendado,'2026-11-12T14:00');
+});
 test('orçamento usa o motor real, preserva versões e não expõe totais no recibo público',async()=>{
   const m=mundo(),id=crypto.randomUUID();
   const a=acao('preparar_orcamento',{atoId:'compra-venda',valores:{transacao:50000000},imovelMunicipio:'São Paulo',imovelUf:'SP'});
@@ -137,7 +162,7 @@ test('planejamento mantém o histórico, valida o card e não executa ações no
   try{
     let status,body;const res={status(n){status=n;return this;},json(v){body=v;return this;}};
     await handler({body:{pergunta:'Sim, anote no caso.',casos:[{id:'C1',nome:'JRL fictícia'}],casoId:'C1',historico:[{role:'user',content:'A matrícula chegou.'},{role:'assistant',content:'Quer uma anotação?'}]}},res);
-    assert.equal(status,200);assert.equal(body.acoes[0].casoId,'C1');assert.ok(recebido.input.some(m=>m.content==='A matrícula chegou.'));assert.equal(recebido.text.format.type,'json_object');
+    assert.equal(status,200);assert.equal(body.acoes[0].casoId,'C1');assert.ok(recebido.input.some(m=>m.content==='A matrícula chegou.'));assert.equal(recebido.text.format.type,'json_object');assert.match(recebido.input[0].content,/JSON/);
     await handler({body:{pergunta:'x',casos:[{id:'C1/errado'}]}},res);assert.equal(status,400);
   }finally{globalThis.fetch=anterior;if(chave===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=chave;}
 });

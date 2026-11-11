@@ -11,6 +11,9 @@ Financeiro. Não é sincronizado entre aparelhos.
 - Acrescentar observações, preservando as anteriores.
 - Alterar nome, tipo, status, responsável, prazo, dependência, próxima ação e modalidade.
 - Criar, editar e concluir tarefas da Joaninha vinculadas ao card.
+- Agendar a assinatura da escritura, mostrando data completa e horário de São
+  Paulo para confirmação. Uma troca exige conferir a data anterior. A data no
+  card e a confirmação do evento no Google Calendar têm resultados separados.
 - Preparar nova versão de orçamento com o motor e as tabelas existentes,
   mantendo as versões anteriores e oferecendo a imagem da via do cliente.
 - Gerar ou revisar minuta pelo fluxo existente do Google Drive, usando os
@@ -42,8 +45,9 @@ O último comando original é anexado sem depender de uma paráfrase do modelo.
 O acompanhamento usa o navegador e retoma jobs pendentes ao reabrir o painel.
 Não há notificações push com o navegador fechado. O ditado depende do suporte
 do navegador. A conversa não transmite respostas em streaming nesta versão.
-Exclusões, envio externo de mensagens, movimentação financeira e alteração da
-data de assinatura permanecem nos fluxos próprios do painel.
+Exclusões, envio externo de mensagens e movimentação financeira permanecem
+nos fluxos próprios do painel. Assinatura é uma ação específica: nunca se
+confunde com prazo de tarefa ou com datas citadas em uma simples anotação.
 
 ## Testar antes de publicar
 
@@ -57,6 +61,9 @@ data de assinatura permanecem nos fluxos próprios do painel.
 4. Pedir uma minuta com os documentos fictícios do card. Conferir o link,
    os avisos e as tarefas de geração e revisão.
 5. Reabrir a conversa e conferir o histórico, também no celular.
+6. Pedir assinatura para amanhã às 14h no card de teste. Conferir a data
+   completa antes de confirmar. Se houver data anterior, conferir a troca.
+   Verificar separadamente o card e o evento confirmado no Google Calendar.
 
 Não publicar antes do aval da Shirley sobre a aparência e o teste real. Não
 é necessário alterar Maison ou o Caderno da Rafaela.

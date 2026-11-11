@@ -93,6 +93,20 @@ test('sem chave não há requisição; JSON inválido não vira resposta vazia',
     await assert.rejects(ia.texto(opcoes), /formato reconhecível/);
   });
 });
+test('formato JSON recusado tem uma alternativa compatível; outros HTTP 400 não são repetidos', async () => {
+  let chamadas=0;
+  await comFetch(async(url,req)=>{
+    const p=JSON.parse(req.body);chamadas++;
+    if(chamadas===1){assert.equal(p.text.format.type,'json_object');return Response.json({error:{code:'unsupported_value',param:'text.format.type',message:'json_object not supported segredo'}},{status:400});}
+    assert.equal(p.text,undefined);assert.equal(p.max_output_tokens,2000);
+    return Response.json(completo('{"resposta":"Olá","acoes":[]}'));
+  },async()=>assert.equal(await ia.texto({...opcoes,json:true}),'{"resposta":"Olá","acoes":[]}'));
+  assert.equal(chamadas,2);chamadas=0;
+  await comFetch(async()=>{chamadas++;return Response.json({error:{param:'input',message:'segredo'}},{status:400});},async()=>{
+    await assert.rejects(ia.texto({...opcoes,json:true}),e=>e.status===400&&!/segredo|Confira a chave/.test(e.message));
+  });
+  assert.equal(chamadas,1);
+});
 function stream(events, chunkSize = 7) {
   const bytes = new TextEncoder().encode(events.map(e => 'data: '+JSON.stringify(e)+'\r\n\r\n').join(''));
   return new Response(new ReadableStream({start(c) {for(let i=0;i<bytes.length;i+=chunkSize) c.enqueue(bytes.slice(i,i+chunkSize));c.close();}}));

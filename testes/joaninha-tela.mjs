@@ -26,11 +26,17 @@ export const remove=async r=>{write(r.path,null);notify();};
 export const runTransaction=async(r,f)=>{const value=f(copy(read(r.path)));if(value!==undefined){write(r.path,value);notify();}return {committed:value!==undefined,snapshot:snap(r.path)};};
 `;
 const auth=`const user={uid:'U1',email:'teste@example.invalid',getIdToken:async()=> 'token-ficticio'};export const getAuth=()=>({currentUser:user});export const onAuthStateChanged=(a,f)=>{setTimeout(()=>f(user),0);return()=>{};};export const signInWithEmailAndPassword=async()=>({user});export const sendPasswordResetEmail=async()=>{};export const signOut=async()=>{};`;
-let contadorMinutas=0;const erros=[];
+let contadorMinutas=0,contadorCalendar=0;const erros=[];
+const assinaturaTeste=new Date(Date.now()+86400000).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'})+'T14:00';
 async function configurar(context){
  await context.addInitScript(()=>localStorage.setItem('painel_usuario','Shirley'));
  await context.route('**/*',async rota=>{
   const url=new URL(rota.request().url());
+  if(url.hostname==='script.google.com'){
+   contadorCalendar++;const p=JSON.parse(rota.request().postData());
+   assert.equal(p.acao,'sincronizar-evento-calendar');assert.equal(p.dataHora,assinaturaTeste);
+   return rota.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({ok:true,eventId:'evento-ficticio'})});
+  }
   if(url.hostname==='www.gstatic.com'){
    let body='';
    if(url.pathname.endsWith('firebase-app.js'))body='export const initializeApp=()=>({});';
@@ -46,6 +52,7 @@ async function configurar(context){
     let r={resposta:'O resultado foi confirmado pelo sistema.',acoes:[]};
     if(p.pergunta.startsWith('Use os resultados'))r={resposta:'O caso tem uma matrícula fictícia lida. <img src=x onerror="window.__injetou=true">',acoes:[]};
     else if(p.pergunta.startsWith('Explique os resultados'))r={resposta:'Registrei o resultado confirmado. Quando a minuta terminar, aviso nesta conversa.',acoes:[]};
+    else if(/agende/i.test(p.pergunta))r={resposta:'Vou agendar a assinatura no card de teste amanhã às 14h. Confira a data completa antes de confirmar.',acoes:[{tipo:'agendar_assinatura',casoId:'C1',descricao:'Agendar assinatura da escritura',dados:{dataHora:assinaturaTeste,descricao:'Assinatura fictícia'}}]};
     else if(/anote/i.test(p.pergunta))r={resposta:'Vou acrescentar a anotação no card, preservando o texto anterior.',acoes:[a('anotar_caso',{texto:'Conferir o documento recebido.'})]};
     else if(/orçamento/i.test(p.pergunta))r={resposta:'Vou usar o motor do cartório para calcular a venda e compra por R$ 500.000,00.',acoes:[a('preparar_orcamento',{atoId:'compra-venda',valores:{transacao:50000000},imovelMunicipio:'São Paulo',imovelUf:'SP',despesas:{taxaAdicional:false}})]};
     else if(/minuta/i.test(p.pergunta))r={resposta:'Vou gerar a minuta com os documentos e as instruções do caso.',acoes:[a('gerar_minuta',{instrucao:'Preservar todas as cláusulas, sem resumir.',modalidade:'presencial'})]};
@@ -96,6 +103,13 @@ try{
  const o=await pg.evaluate(()=>Object.values(window.__data.orcamentos)[0]);assert.equal(o.entrada.valores.transacao,50000000);assert.ok(o.resultado.totais.total>0);
  assert.equal(await pg.getByRole('link',{name:'Baixar imagem',exact:true}).count(),1);
  console.log('ok: orçamento com motor real, versão salva e imagem disponível.');
+ await mensagem(pg,'Quero que você agende a escritura para amanhã às 14 horas neste caso de teste.');
+ assert.equal(contadorCalendar,0);assert.equal(await pg.evaluate(()=>window.__data.casos.C1.agendado||''),'');
+ await mensagem(pg,'pode fazer');
+ await pg.waitForFunction(()=>window.__data.casos.C1.calendarEventId==='evento-ficticio');
+ assert.equal(await pg.evaluate(()=>window.__data.casos.C1.agendado),assinaturaTeste);assert.equal(contadorCalendar,1);
+ assert.ok((await pg.locator('.jnc-thread').innerText()).includes('Evento confirmado no Google Calendar.'));
+ console.log('ok: assinatura confirmada pela conversa, data no card e evento no Calendar sem duplicação.');
  await mensagem(pg,'Gere a minuta preservando todas as cláusulas.');
  await pg.getByRole('button',{name:'Confirmar e executar',exact:true}).click();
  await pg.getByRole('link',{name:'Abrir Minuta fictícia completa'}).waitFor({timeout:15000});

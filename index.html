@@ -3282,13 +3282,14 @@ async function lerRespostaCalendar(r){
 // Em toda chamada, o dado já foi gravado no Firebase antes desta função rodar —
 // se o Calendar falhar, o painel continua certo, só o evento do Google que fica
 // para trás. Por isso o alerta sempre deixa claro que a data já foi salva.
-async function sincronizarEventoCalendar(id,caso){
+async function sincronizarEventoCalendar(id,caso,opcoes={}){
+  const avisar=texto=>{if(!opcoes.silencioso)alert(texto);};
   try{
     if(!caso.agendado){
       if(caso.calendarEventId){
         const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'excluir-evento-calendar',eventId:caso.calendarEventId})});
         const data=await lerRespostaCalendar(r);
-        if(!data.ok){alert('Erro ao remover evento do Calendar: '+(data.erro||'motivo desconhecido'));return;}
+        if(!data.ok){avisar('Erro ao remover evento do Calendar: '+(data.erro||'motivo desconhecido'));return;}
         update(ref(db,`casos/${id}`),{calendarEventId:''});
       }
       return;
@@ -3302,12 +3303,15 @@ async function sincronizarEventoCalendar(id,caso){
     })});
     const data=await lerRespostaCalendar(r);
     if(data.ok&&data.eventId){
-      update(ref(db,`casos/${id}`),{calendarEventId:data.eventId});
+      await update(ref(db,`casos/${id}`),{calendarEventId:data.eventId});
+      return {ok:true,eventId:data.eventId};
     }else{
-      alert('Salvei a data no painel, mas o Calendar recusou: '+(data.erro||'motivo desconhecido'));
+      avisar('Salvei a data no painel, mas o Calendar recusou: '+(data.erro||'motivo desconhecido'));
+      return {ok:false};
     }
   }catch(e){
-    alert('Salvei a data no painel, mas houve erro de conexão com o Calendar: '+e.message);
+    avisar('Salvei a data no painel, mas houve erro de conexão com o Calendar: '+e.message);
+    return {ok:false};
   }
 }
 
@@ -17036,6 +17040,7 @@ if(window.JoaninhaChat && window.JoaninhaProtocolo){
     desenharOrcamento:orcDesenharFolha,
     semUndefined:orcSemUndefined,
     montarObservacao:montarNovoObs,
+    sincronizarAssinatura:(id,c)=>sincronizarEventoCalendar(id,c,{silencioso:true}),
     confirmar:async texto=>window.confirm(texto),
     fetch:(...args)=>fetch(...args),
     abrirCaso:id=>{window.irParaCasoPorId?.(id);},
