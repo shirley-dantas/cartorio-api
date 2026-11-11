@@ -91,8 +91,9 @@ test('recusa do banco impede envio ao Calendar; falha do Calendar preserva data 
   const r=await m.ponte.executar(acao('agendar_assinatura',{dataHora:'2026-11-12T14:00',anterior:'2026-11-12T10:00'}),crypto.randomUUID());
   assert.equal(r.status,'assinatura_salva');assert.match(r.mensagem,/Não consegui confirmar/);assert.equal(m.data.casos.C1.agendado,'2026-11-12T14:00');
 });
-test('orçamento usa o motor real, preserva versões e não expõe totais no recibo público',async()=>{
+test('primeiro orçamento dispensa modalidade, usa motor real, preserva versões e não expõe totais no recibo público',async()=>{
   const m=mundo(),id=crypto.randomUUID();
+  delete m.data.casos.C1.modalidade;
   const a=acao('preparar_orcamento',{atoId:'compra-venda',valores:{transacao:50000000},imovelMunicipio:'São Paulo',imovelUf:'SP'});
   const r=await m.ponte.executar(a,id);assert.equal(r.status,'orcamento_salvo');
   const o=m.data.orcamentos[r.orcamentoId];assert.equal(o.entrada.valores.transacao,50000000);assert.equal(o.versao,1);assert.ok(o.resultado.totais.total>0);
@@ -104,7 +105,7 @@ test('sem dados essenciais não anuncia orçamento pronto; sem acesso não lê v
   const m=mundo();const r=await m.ponte.executar(acao('preparar_orcamento',{atoId:'compra-venda',valores:{}}),crypto.randomUUID());
   assert.equal(r.status,'precisa_dados');assert.ok(r.faltando.length>0);assert.equal(Object.keys(m.data.orcamentos).length,0);
   const fechado=mundo({autorizado:false});
-  const c=await fechado.ponte.consultar('C1');assert.equal(typeof c.orcamentos,'string');
+  const c=await fechado.ponte.consultar('C1');assert.equal(typeof c.orcamentos,'string');assert.equal(c.acessoOrcamentos,false);assert.match(c.orcamentos,/anterior é opcional/);
   await assert.rejects(fechado.ponte.executar(acao('preparar_orcamento',{atoId:'compra-venda',valores:{transacao:50000000}}),crypto.randomUUID()),/Financeiro/);
 });
 test('recusa do banco nunca produz confirmação nem alteração parcial',async()=>{
