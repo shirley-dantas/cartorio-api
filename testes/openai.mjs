@@ -64,6 +64,19 @@ test('erros HTTP não expõem corpo nem credenciais e preservam status', async (
     });
   }
 });
+test('429 distingue falta de cota, frequência e volume excessivo sem revelar o erro bruto', async () => {
+  for (const [code, message, esperado] of [
+    ['insufficient_quota', 'segredo conta', /sem cota disponível/],
+    ['billing_hard_limit_reached', 'segredo conta', /sem cota disponível/],
+    ['rate_limit_exceeded', 'Rate limit reached segredo conta', /limite temporário/],
+    ['rate_limit_exceeded', 'Request too large segredo conta', /volume de dados/],
+    ['desconhecido', 'segredo conta', /não detalhou/]
+  ]) {
+    await comFetch(async () => Response.json({error: {code, message}}, {status: 429}), async () => {
+      await assert.rejects(ia.texto(opcoes), e => e.status === 429 && esperado.test(e.message) && !/segredo/.test(e.message));
+    });
+  }
+});
 test('sem chave não há requisição; JSON inválido não vira resposta vazia', async () => {
   await comFetch(async () => {throw Error('não deve chamar');}, async () => {
     delete process.env.OPENAI_API_KEY;
