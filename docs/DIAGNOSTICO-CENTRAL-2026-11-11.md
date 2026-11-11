@@ -41,3 +41,31 @@ Preservar a Central atual e confirmar, antes de qualquer redesenho, se ela entre
 
 ## Próxima ação técnica
 Montar ambiente de teste isolado, executar testes existentes, verificar eventuais reproduções e produzir uma primeira prévia visual sem acessar a base real.
+
+
+## Auditoria estática complementar — 11/11/2026
+**Método:** leitura da versão `main` de `index.html` e verificações de padrões no código; não houve acesso ao Firebase, testes no navegador ou chamadas à API de produção.
+
+### Achado A — indicador com rótulo potencialmente enganoso (confirmado no código)
+- Interface: `<div class="cdc2-indic-lbl">Aguardando cliente</div>`.
+- Cálculo: `document.getElementById('cdc2-ind-cliente').textContent=porDep('Aguardando traslado');`.
+- O número, portanto, **não conta** etapas como `Aguardando aprovação do orçamento`, `Aguardando aprovação da minuta`, `Aguardando cliente (outro)` nem `Falta documentos`.
+- **Não corrigir automaticamente:** é preciso decidir com a usuária se o indicador deveria se chamar `Aguardando traslado` ou se deveria contar todas as etapas classificadas como `quemSegura:'cliente'`. Há também etapas aguardando terceiros, que não devem ser somadas cegamente.
+
+### Achado B — recuperação de Firebase (confirmado no código, impacto operacional não reproduzido)
+- `onValue(focosRef,...)` e `onValue(resolucoesCentralRef,...)` não têm callback de erro no trecho analisado.
+- `onValue(ref(db,'meta/historicoDesde'),...)` executa `set` sem tratamento explícito da rejeição.
+- `set(focosRef,focos)` e `update(casosRef,upd)` em migração/backfill também não têm tratamento de rejeição.
+- Evitar adicionar gravações ou alterar regras sem reproduzir cenário de falha com dados fictícios e sem confirmar o padrão de permissões usado pelo produto.
+
+### Achado C — rerenderizações (confirmado no código; perda de foco não comprovada)
+- Listener de casos chama `renderCasos()` e `renderCentralComando()`.
+- Listener de focos chama `renderCentralComando()` após mudanças.
+- A própria Central refaz `renderBlocoNotas()`, `renderFazerAgora()`, `renderAgenda()`, `renderQuadro()` e `renderCdc2Indicadores()`.
+- Testar edição durante atualização externa de outra sessão antes de atribuir falha.
+
+### Limitação dos testes
+Tentativa de `git ls-remote https://github.com/shirley-dantas/cartorio-api.git HEAD` no ambiente de execução falhou com `Could not resolve host: github.com`. O conector GitHub permite ler e editar arquivos, mas não executa Node/Playwright. Por isso, **a suíte descrita em `CLAUDE.md` não foi executada**; o resultado até agora é uma auditoria estática reproduzível, não uma certificação do comportamento do painel.
+
+### Próxima decisão de produto
+Confirmar semântica do indicador `Aguardando cliente` e depois preparar correção mínima no branch, sem alteração na `main`.
