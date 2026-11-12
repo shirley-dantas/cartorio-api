@@ -37,6 +37,25 @@ observação” abre e foca o campo com instrução simples e “Salvar observa�
 Usa a gravação existente, preservando as observações anteriores e rascunhos.
 Prévia aprovada pela usuária e publicação autorizada em 12/11/2026.
 
+## Experiência das abas — prévia de 12/11/2026
+
+Cada ferramenta ganha ícone, seleção acessível, título e orientação curta.
+Documentos fica dedicado a receber/conferir arquivos. Certidões reúne as
+buscas existentes da JUCESP, RI Digital e Prefeitura, sem novos serviços ou
+alterações de pedidos, login, captcha ou pagamento. Sem o Ajudante, a aba
+explica como conectar; sem matrícula reconhecida, orienta adicioná-la.
+
+A conexão tardia da extensão atualiza a aba aberta. Remover/restaurar empresa
+e acompanhar o pedido usam os controles existentes na nova posição. Na
+Signature, a extensão não reinsere o bloco em Documentos; o layout clássico
+continua usando a posição anterior. A capa mantém Mais ações selecionado e
+ganha um botão para voltar. As outras ferramentas preservam seus controles.
+
+Validação: suíte Signature cobre todas as abas sem gravações, conexão tardia,
+centralização, remoção/retorno de empresa e pedido à ponte simulada; suítes
+Ajudante, Prefeitura e celular cobrem os fluxos existentes. Prévia com dados
+ilustrativos, aguardando aprovação para publicação.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já

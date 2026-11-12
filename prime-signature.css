@@ -263,6 +263,18 @@ html.prime-signature .signature-processo .cx-campo select{border-color:#e9ddd2;b
 html.prime-signature .signature-funcoes{gap:6px;padding-top:22px;flex-wrap:wrap}
 html.prime-signature .signature-funcoes .est-aba{border-radius:10px;padding:10px 14px;background:#faf5ef;color:#765260;border:1px solid #eadfD5}
 html.prime-signature .signature-funcoes .est-aba.on{background:var(--ps-wine);color:#fff;border-color:var(--ps-wine)}
+html.prime-signature .signature-funcoes .est-aba{display:inline-flex;align-items:center;gap:7px}
+html.prime-signature .signature-funcoes .est-aba:focus-visible{outline:2px solid var(--ps-wine);outline-offset:3px}
+html.prime-signature .signature-ferramenta-cabecalho{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+html.prime-signature .signature-ferramenta-cabecalho h3{font:600 25px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine);margin:0 0 5px}
+html.prime-signature .signature-ferramenta-cabecalho p{font-size:12px;color:#806c77;line-height:1.6;margin:0}
+html.prime-signature .signature-estado-vazio{padding:18px;background:#faf6f1;border:1px dashed #decbbd;border-radius:12px;margin:12px 0;font-size:13px;color:#705362}
+html.prime-signature .signature-estado-vazio p{margin:7px 0 0;font-size:12px;line-height:1.6}
+html.prime-signature .signature-certidoes-conexao{display:flex;align-items:center;gap:8px;font-size:12px;color:#806c77;margin-bottom:14px}
+html.prime-signature .signature-conexao{height:8px;width:8px;flex-shrink:0;border-radius:50%;background:#b68b55}
+html.prime-signature .signature-conexao.conectado{background:#2f9568}
+html.prime-signature .signature-certidoes>.cx-aj{margin:0 0 16px;padding:16px;border:1px solid #e7d6c8;border-radius:12px}
+html.prime-signature .signature-certidoes .cx-aj-onr{padding-top:16px;margin-top:16px;border-top:1px solid #e7d6c8}
 html.prime-signature .signature-trabalho{padding:20px 0;min-height:125px}
 html.prime-signature .signature-acoes-extras{display:flex;gap:10px;flex-wrap:wrap}
 html.prime-signature .signature-rodape{border-top:1px solid #eee3da;padding-top:16px;margin-top:8px;display:flex;gap:10px;align-items:center}
