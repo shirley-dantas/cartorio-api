@@ -41,11 +41,16 @@ do DOM ao ocultar. Trocar/sair da conta volta a ocultar imediatamente.
 Sem acesso, mostra somente o convite para entrar. Não há nova consulta
 financeira nem alteração nas regras do banco.
 
-A usuária definiu a meta mensal em R$ 80.000,00 em 12/11. A faixa mostra
-somente barra e percentual que falta, sem valores monetários no DOM ou nos
-atributos acessíveis. O progresso é limitado a 100%; ao atingir ou superar
-a meta, indica “Meta atingida”. O olhinho oculta também barra e percentual.
-A referência continua sendo o fechamento corrente do Financeiro.
+A usuária definiu a meta mensal em R$ 80.000,00 em 12/11. O valor da meta
+permanece oculto. O progresso é limitado a 100%; ao atingir ou superar
+a meta, indica “Meta atingida”. A referência continua sendo o fechamento
+corrente do Financeiro.
+
+Em seguida, pediu para mostrar o valor acumulado antes da barra de progresso.
+A prévia acrescenta esse valor em reais usando a mesma soma existente;
+nenhuma regra de cálculo muda. O olhinho oculta valor, barra e percentual,
+removendo-os do DOM. Logout ou perda de permissão também remove o valor.
+A usuária aprovou a imagem e autorizou a publicação em 12/11/2026.
 
 ## Ajustes aprovados em 12/11
 
