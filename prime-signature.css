@@ -72,6 +72,7 @@ html.prime-signature .cdc2-topo::before{
 html.prime-signature .cdc2-topo-saud{color:#5F1931;font-family:'Cormorant Garamond',serif;font-size:35px;font-weight:600}
 html.prime-signature .cdc2-topo-sub{color:#675E5E}
 html.prime-signature .cdc2-topo-frase{color:#A65C72;font-size:17px}
+html.prime-signature .cdc2-topo-frase{white-space:normal;line-height:1.45;max-width:100%;overflow-wrap:break-word}
 html.prime-signature .cdc2-topo-busca{
   border-radius:999px;border:1px solid #EADDD5;background:#fff;
   box-shadow:0 6px 16px rgba(92,41,55,.05);

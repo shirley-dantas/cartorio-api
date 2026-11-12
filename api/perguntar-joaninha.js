@@ -40,6 +40,7 @@ async function prepararCorpo(req) {
 }
 
 module.exports = async (req, res) => {
+  if(req.query?.acao==='frase-dia'||/[?&]acao=frase-dia(?:&|$)/.test(req.url||''))return require('../lib/frase-do-dia').atender(req,res);
   await prepararCorpo(req);
   if(req.method === 'POST' && (req.query?.acao === 'assistente' || /[?&]acao=assistente(?:&|$)/.test(req.url || ''))) {
     return require('../lib/joaninha-assistente.js')(req,res);

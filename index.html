@@ -2523,7 +2523,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
          na página; isto aqui é só "Sincronizado" + o convite do planner. -->
     <div class="cdc2-topo-dir">
       <span class="cdc2-topo-sync"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span>
-      <span class="cdc2-topo-frase">Vamos em frente? ❤️</span>
+      <span class="cdc2-topo-frase" id="saudacao-frase">Um passo de cada vez também constrói grandes conquistas.</span>
     </div>
   </div>
 
@@ -3236,6 +3236,7 @@ if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.js
 <script src="lib/joaninha-protocolo.js"></script>
 <script src="lib/joaninha-chat.js"></script>
 <script type="module">
+import {iniciarFraseDoDia} from './lib/frase-do-dia-cliente.js';
 import {criarPonteJoaninha} from "./lib/joaninha-ponte.js";
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, get, set, push, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -5847,6 +5848,7 @@ window.signatureConfiguracoes=function(){
 };
 function signatureMontar(){
   if(!window.PRIME_SIGNATURE)return;
+  iniciarFraseDoDia(document.getElementById('saudacao-frase'));
   const primeira=document.querySelector('.sidebar-section-title');
   const nav=document.createElement('nav');nav.className='sidebar-nav signature-nav-principal';
   nav.innerHTML=`<button class="sidebar-item active" onclick="signatureIr('central')"><i class="ti ti-layout-dashboard"></i><span>Central</span></button>

@@ -26,7 +26,7 @@ export const remove=async r=>{write(r.path,null);notify();};
 export const runTransaction=async(r,f)=>{const value=f(copy(read(r.path)));if(value!==undefined){write(r.path,value);notify();}return {committed:value!==undefined,snapshot:snap(r.path)};};
 `;
 const auth=`const user={uid:'U1',email:'teste@example.invalid',getIdToken:async()=> 'token-ficticio'};export const getAuth=()=>({currentUser:user});const subs=[];window.__trocarConta=u=>subs.forEach(f=>f(u));export const onAuthStateChanged=(a,f)=>{subs.push(f);setTimeout(()=>f(user),0);return()=>{};};export const signInWithEmailAndPassword=async()=>({user});export const sendPasswordResetEmail=async()=>{};export const signOut=async()=>{};`;
-let contadorMinutas=0,contadorCalendar=0,contadorJuridico=0,contadorPlanos=0;const erros=[];
+let contadorFrases=0,contadorMinutas=0,contadorCalendar=0,contadorJuridico=0,contadorPlanos=0;const erros=[];
 const assinaturaTeste=new Date(Date.now()+86400000).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'})+'T14:00';
 async function configurar(context){
  await context.addInitScript(()=>localStorage.setItem('painel_usuario','Shirley'));
@@ -51,6 +51,10 @@ async function configurar(context){
    return rota.fulfill({status:200,contentType:'application/javascript',body});
   }
   if(url.origin===servidor.url){
+   if(url.pathname==='/api/perguntar-joaninha'&&url.searchParams.get('acao')==='frase-dia'){
+    contadorFrases++;
+    return rota.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,data:new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'}),frase:'Seu cuidado transforma pequenos passos em grandes conquistas.',origem:'ia'})});
+   }
    if(url.pathname==='/api/joaninha-juridico'){
     contadorJuridico++;
     if(/sem fonte/.test(rota.request().postDataJSON().pergunta))return rota.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,resposta:'Orientação fictícia baseada apenas no material interno.',fontes:[],consultadoEm:'2026-11-12',aviso:'Não consegui confirmar uma fonte oficial nesta consulta.'})});
@@ -181,5 +185,8 @@ try{
  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
  console.log('ok: Central, processo e Joaninha no celular sem rolagem lateral.');
  assert.equal(contadorMinutas+contadorCalendar+contadorJuridico+contadorPlanos,0,'navegar no layout não chama IA nem altera a agenda');
+ await pg.reload();
+ await pg.waitForFunction(()=>document.getElementById('saudacao-frase')?.textContent==='Seu cuidado transforma pequenos passos em grandes conquistas.');
+ assert.equal(contadorFrases,1,'recarregar o painel reaproveita a frase do dia sem nova chamada');
  assert.deepEqual(erros,[]);
 }finally{await browser.close();servidor.close();}
