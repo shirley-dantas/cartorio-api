@@ -256,9 +256,9 @@ try{
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Documentos',exact:true}).click();
  assert.equal(await pg.locator('.signature-trabalho .cx-ped').count(),1);
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).click();
- assert.match(await pg.locator('.signature-certidoes').innerText(),/Ajudante não conectado/,'sem extensão o acesso tem orientação visível');
+ assert.match(await pg.locator('.signature-certidoes').innerText(),/Conecte o Ajudante/,'sem extensão o acesso tem orientação visível');
  await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-pronto',versao:'0.3.4',onr:true,pref:true}}));
- assert.match(await pg.locator('.signature-certidoes').innerText(),/Ajudante conectado/,'a conexão tardia atualiza a aba sem recarregar');
+ assert.equal(await pg.locator('.signature-certidoes [onclick*=onrAbrir]').isVisible(),true,'a conexão tardia atualiza a aba sem recarregar');
  assert.equal(await pg.locator('.signature-certidoes .cx-aj-onr').count(),1,'RI Digital fica em Certidões');
  await pg.evaluate(()=>window.__fbWrite('casos/C1/documentos',{
   D1:{nome:'Matricula_187852.pdf',tipo:'documento',tipoDocumento:'MATRICULA_IMOVEL',texto:'Matrícula 187852. 10º Registro de Imóveis de São Paulo. O APARTAMENTO nº 101. Contribuinte 083.042.0161-5.'},
@@ -268,22 +268,40 @@ try{
  const dadosAntesAbas=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
  for(const nome of ['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico','Mais ações']){
   await pg.locator('.signature-funcoes').getByRole('button',{name:nome,exact:true}).click();
-  assert.equal(await pg.locator('.signature-ferramenta-cabecalho h3').innerText(),nome);
+  assert.equal(await pg.locator('.signature-ferramenta-cabecalho').count(),0,'sem título e explicação repetidos');
   assert.equal(await pg.locator('.signature-funcoes [aria-pressed="true"]').count(),1);
   assert.equal(await pg.locator('.signature-trabalho').getAttribute('aria-label'),nome);
  }
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),dadosAntesAbas,'percorrer todas as abas não grava nem pede certidões');
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).click();
- await pg.locator('.signature-trabalho').screenshot({path:join(AQUI,'saida','abas-certidoes-computador.png')});
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-certidoes-computador.png')});
+ await pg.getByRole('button',{name:'Prefeitura',exact:true}).click();
+ assert.equal(await pg.locator('.signature-certidoes [onclick*=prefPedirNegativa]').isVisible(),true);
+ assert.equal(await pg.locator('.signature-certidoes [onclick*=prefPedirValorVenal]').isVisible(),false);
+ await pg.locator('.signature-certidoes select[id^=signature-pref-servico]').selectOption('valor');
+ assert.equal(await pg.locator('.signature-certidoes [onclick*=prefPedirValorVenal]').isVisible(),true);
+ assert.equal(await pg.locator('.signature-certidoes [onclick*=prefPedirNegativa]').isVisible(),false);
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-prefeitura-computador.png')});
+ await pg.getByRole('button',{name:'Imóvel',exact:true}).click();
  await pg.locator('.signature-processo').screenshot({path:join(AQUI,'saida','abas-caso-computador.png')});
  await pg.setViewportSize({width:390,height:844});
  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'certidões unificadas cabem no celular');
  await pg.locator('.signature-trabalho').screenshot({path:join(AQUI,'saida','abas-certidoes-celular.png')});
  await pg.setViewportSize({width:1440,height:1000});
+ await pg.getByRole('button',{name:'Empresas',exact:true}).click();
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-empresas-computador.png')});
  await pg.locator('.signature-certidoes [onclick*=ajTirarEmpresa]').first().click();
  assert.match(await pg.locator('.signature-certidoes').innerText(),/trazer de volta/,'ocultar empresa redesenha a nova posição');
  await pg.locator('.signature-certidoes [onclick*=ajTrazerEmpresas]').click();
  assert.equal(await pg.locator('.signature-certidoes [onclick*=ajTirarEmpresa]').count(),1);
+ assert.equal(await pg.locator('#onr-C1').count(),1,'redesenhar empresas não duplica o formulário do imóvel');
+ await pg.getByRole('button',{name:'Imóvel',exact:true}).click();
+ await pg.locator('#signature-onr-servico-C1').selectOption('visualizacao');
+ await pg.locator('.signature-certidoes').getByRole('button',{name:'Continuar',exact:true}).click();
+ assert.equal(await pg.locator('#onr-mat-C1').isVisible(),true,'Continuar abre a conferência antes do pedido');
+ await pg.locator('.signature-certidoes [onclick*=onrCancelar]').click();
+ assert.equal(await pg.locator('.signature-certidoes').getByRole('button',{name:'Continuar',exact:true}).isVisible(),true,'Cancelar volta à escolha simples');
+ await pg.getByRole('button',{name:'Empresas',exact:true}).click();
  await pg.evaluate(()=>{window.__pedidosAjudante=[];window.addEventListener('message',e=>{if(e.data?.tipo==='ajudante-pedido')window.__pedidosAjudante.push(e.data.pedido);});});
  await pg.locator('.signature-certidoes [onclick*=ajudantePedir]').first().click();
  await pg.waitForFunction(()=>window.__pedidosAjudante.length===1);

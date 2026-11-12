@@ -5931,12 +5931,29 @@ function signatureResumoHtml(c){
       <i class="ti ti-chevron-right" aria-hidden="true"></i>
     </button></article>`;
 }
+const SIGNATURE_CERT_TIPO={};
+function signatureOnrEscolhaHtml(casoId){return `<div class="signature-cert-escolha"><label for="signature-onr-servico-${esc(casoId)}">O que você precisa?</label><div><select id="signature-onr-servico-${esc(casoId)}"><option value="certidao">Matrícula atualizada · para a assinatura</option><option value="visualizacao">Visualização de matrícula · para minutar</option></select><button type="button" class="cx-btn destaque" onclick="onrAbrir('${esc(casoId)}',document.getElementById('signature-onr-servico-${esc(casoId)}').value)">Continuar</button></div></div>`;}
 function signatureCertidoesHtml(c){
   const recursos=[AJUDANTE.pronto,AJUDANTE.onr,AJUDANTE.pref].join('-');
-  const ajudante=AJUDANTE.pronto?ajudanteHtml(c):`<div class="signature-estado-vazio"><strong>Vamos conectar o Ajudante?</strong><p>Abra o painel no Chrome com a extensão Ajudante ativada e atualize a página. Os pedidos da JUCESP e RI Digital aparecem aqui quando ele se conecta.</p></div>`;
-  const prefeitura=prefFaixaHtml(c)||`<div class="signature-estado-vazio"><strong>Prefeitura — certidões do imóvel</strong><p>Adicione a matrícula em Documentos para identificar o imóvel e o contribuinte antes de pedir as certidões.</p></div>`;
-  return `<div class="signature-certidoes" id="signature-certidoes-${esc(c.id)}" data-caso="${esc(c.id)}" data-recursos="${recursos}"><div class="signature-certidoes-conexao"><span class="signature-conexao ${AJUDANTE.pronto?'conectado':''}"></span>${AJUDANTE.pronto?'Ajudante conectado':'Ajudante não conectado neste navegador'}</div>${ajudante}${prefeitura}</div>`;
+  const tipo=SIGNATURE_CERT_TIPO[c.id]||'imovel',id=esc(c.id);
+  const conectar=`<div class="signature-estado-vazio"><strong>Conecte o Ajudante para continuar</strong><p>Abra no Chrome com a extensão Ajudante ativada e atualize a página.</p></div>`;
+  let imovel=AJUDANTE.onr?onrHtml(c):conectar;
+  if(AJUDANTE.onr&&!ONR.form[c.id])imovel=imovel.replace(onrFormHtml(c.id),signatureOnrEscolhaHtml(c.id));
+  const empresas=AJUDANTE.pronto?ajudanteHtml(c).replace(onrHtml(c),'').replace('class="cx-aj-outro" open','class="cx-aj-outro"'):conectar;
+  const prefeitura=prefFaixaHtml(c)||`<div class="signature-estado-vazio"><p>Adicione a matrícula em Documentos para identificar o imóvel antes de pedir.</p></div>`;
+  return `<div class="signature-certidoes signature-certidoes-leve" id="signature-certidoes-${id}" data-caso="${id}" data-recursos="${recursos}" data-pref-servico="negativa"><nav class="signature-cert-tipos" aria-label="Tipo de certidão">${[['imovel','Imóvel'],['prefeitura','Prefeitura'],['empresas','Empresas']].map(([k,n])=>`<button type="button" aria-pressed="${k===tipo}" onclick="signatureEscolherCertidao('${id}','${k}')">${n}</button>`).join('')}</nav>
+    <section data-cert-tipo="imovel" ${tipo==='imovel'?'':'hidden'}>${imovel}</section>
+    <section data-cert-tipo="prefeitura" ${tipo==='prefeitura'?'':'hidden'}><div class="signature-cert-escolha"><label for="signature-pref-servico-${id}">Qual certidão?</label><select id="signature-pref-servico-${id}" onchange="this.closest('.signature-certidoes').dataset.prefServico=this.value"><option value="negativa">Negativa de IPTU</option><option value="valor">Valor venal de referência</option><option value="cadastrais">Dados cadastrais</option></select></div>${prefeitura}</section>
+    <section data-cert-tipo="empresas" ${tipo==='empresas'?'':'hidden'}>${empresas}</section>
+    <div class="signature-pedido-andamento" id="signature-cert-msg-${id}">${ajMsgHtml(c.id)}</div></div>`;
 }
+window.signatureEscolherCertidao=function(id,tipo){
+  if(!['imovel','prefeitura','empresas'].includes(tipo))return;
+  const el=document.getElementById('signature-certidoes-'+id);if(!el)return;
+  SIGNATURE_CERT_TIPO[id]=tipo;
+  el.querySelectorAll('[data-cert-tipo]').forEach(p=>p.hidden=p.dataset.certTipo!==tipo);
+  el.querySelectorAll('.signature-cert-tipos button').forEach((b,i)=>b.setAttribute('aria-pressed',String(['imovel','prefeitura','empresas'][i]===tipo)));
+};
 window.signatureAtualizarCertidoes=function(){
   document.querySelectorAll('.signature-certidoes').forEach(el=>{
     const c=casos[el.dataset.caso];
@@ -5949,7 +5966,7 @@ function signaturePaginaHtml(c){
   const abas=['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico','Mais ações'];
   const preferida=ESTEIRA_ABA[c.id]||esteiraAbaAberta(c);
   const aberta=abas.includes(preferida)||preferida==='Capa do dossiê'?preferida:'Documentos';
-  const orientacoes={Documentos:'Receba os arquivos do cliente e confira o que já chegou.',Certidões:'Peça certidões e acompanhe as buscas deste caso.',Minuta:'Prepare a minuta com os documentos e o modelo do caso.',Orçamento:'Crie, confira e acompanhe a aprovação do orçamento.',Pagamento:'Consulte as cobranças e o financeiro deste caso.',Drive:'Abra a pasta do caso ou atualize o link com o Drive.',Histórico:'Consulte as observações anteriores e os registros do caso.','Mais ações':'Outras ferramentas para organizar o caso.','Capa do dossiê':'Prepare a capa com os dados deste caso.'};
+
   let conteudo;
   if(aberta==='Drive')conteudo=p.drive;
   else if(aberta==='Histórico'){
@@ -5964,8 +5981,8 @@ function signaturePaginaHtml(c){
     `<div class="signature-dados">${p.campos}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
     <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Caso concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}${observacoes}</div></section>
     ${p.linha}
-    <nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')?' on':''}" aria-label="${f}" aria-pressed="${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')}" onclick="esteiraAba('${c.id}','${f}')"><i class="ti ti-${({'Documentos':'files','Certidões':'file-certificate','Minuta':'file-text','Orçamento':'calculator','Pagamento':'credit-card','Drive':'folder','Histórico':'history','Mais ações':'dots'})[f]}" aria-hidden="true"></i>${f}</button>`).join('')}</nav>
-    <section class="est-painel signature-trabalho" aria-label="${esc(aberta)}"><header class="signature-ferramenta-cabecalho"><div><h3>${escTxt(aberta)}</h3><p>${escTxt(orientacoes[aberta])}</p></div>${aberta==='Capa do dossiê'?`<button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Mais ações')">Voltar para Mais ações</button>`:''}</header>${conteudo}</section>
+    <div class="signature-ferramentas"><nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')?' on':''}" aria-label="${f}" aria-pressed="${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')}" onclick="esteiraAba('${c.id}','${f}')">${f}</button>`).join('')}</nav>
+    <section class="est-painel signature-trabalho" aria-label="${esc(aberta)}">${aberta==='Capa do dossiê'?`<button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Mais ações')">Voltar para Mais ações</button>`:''}${conteudo}</section></div>
     <footer class="cx-acoes signature-rodape"><button type="button" class="cx-btn perigo" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash"></i> Excluir</button><button type="button" class="cx-btn concluir" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button></footer></div>`;
 }
 window.signatureAdicionarObs=function(id){
@@ -13410,7 +13427,8 @@ function ajIgnoradas(casoId){ try{ return JSON.parse(localStorage.getItem('aj_ig
 function ajGuardarIgnoradas(casoId,l){ try{ localStorage.setItem('aj_ign_'+casoId,JSON.stringify(l)); }catch(e){} }
 function ajEmpresasVisiveis(casoId,c){ const ig=ajIgnoradas(casoId); return ajEmpresasDoCaso(c).filter(e=>!ig.includes(e.cnpj)); }
 function ajRedesenhar(casoId){
-  const z=document.querySelector&&document.querySelector('.cx-solte[data-solte="'+casoId+'"] .cx-aj')||document.getElementById('signature-certidoes-'+casoId)?.querySelector?.('.cx-aj'); if(z) z.outerHTML=ajudanteHtml({id:casoId});
+  const z=document.querySelector&&document.querySelector('.cx-solte[data-solte="'+casoId+'"] .cx-aj')||document.getElementById('signature-certidoes-'+casoId)?.querySelector?.('.cx-aj');
+  if(z){let html=ajudanteHtml({id:casoId});if(z.closest?.('.signature-certidoes-leve'))html=html.replace(onrHtml({id:casoId}),'').replace('class="cx-aj-outro" open','class="cx-aj-outro"');z.outerHTML=html;}
 }
 window.ajTirarEmpresa=function(casoId,cnpj){ const l=ajIgnoradas(casoId); if(!l.includes(cnpj)) l.push(cnpj); ajGuardarIgnoradas(casoId,l); ajRedesenhar(casoId); };
 window.ajTrazerEmpresas=function(casoId){ ajGuardarIgnoradas(casoId,[]); ajRedesenhar(casoId); };
@@ -13498,7 +13516,7 @@ window.onrUsarMat=function(casoId,m){
   ['uf','cidade','cart'].forEach(k=>{ const c=document.getElementById('onr-'+k+'-'+casoId); if(c) f[k==='cart'?'cartorio':k]=c.value; });
   onrDesenhar(casoId);
 };
-function onrDesenhar(casoId){ const el=document.getElementById('onr-'+casoId); if(el) el.innerHTML=onrFormHtml(casoId); }
+function onrDesenhar(casoId){ const el=document.getElementById('onr-'+casoId); if(el) el.innerHTML=!ONR.form[casoId]&&el.closest?.('.signature-certidoes-leve')?signatureOnrEscolhaHtml(casoId):onrFormHtml(casoId); }
 function onrPreencher(f,g){ const x=f.grupos[g]||{cartorio:'',cidade:'',matriculas:[]}; f.g=g; f.cartorio=x.cartorio||''; f.cidade=x.cidade||''; f.matriculas=f.servico==='visualizacao'?(x.matriculas[0]||''):x.matriculas.join(', '); }
 window.onrAbrir=function(casoId,servico){
   const f=ONR.form[casoId]={servico,grupos:onrDoCaso(casos[casoId]),g:0,uf:'SP',cidade:'',cartorio:'',matriculas:''}; onrPreencher(f,0); onrDesenhar(casoId);
@@ -13537,7 +13555,7 @@ function ajudanteHtml(c){
     <details class="cx-aj-outro"${emp.length?'':' open'}><summary>Outro CNPJ</summary><div class="cx-aj-topo"><input class="cx-aj-cnpj" id="aj-cnpj-${id}" inputmode="numeric" placeholder="CNPJ da empresa" value="${esc(ajLerCnpj(c.id))}" oninput="ajSalvarCnpj('${id}',this.value)"></div><div class="cx-aj-bt">${ajBotoes(c.id,'')}</div></details>
     <div class="cx-aj-msg" id="aj-msg-${id}">${ajMsgHtml(c.id)}</div></div>`;
 }
-function ajudanteAtualizar(casoId){ ['aj-msg-','pref-msg-'].forEach(pf=>{ const el=document.getElementById(pf+casoId); if(el) el.innerHTML=ajMsgHtml(casoId); }); }
+function ajudanteAtualizar(casoId){ ['aj-msg-','pref-msg-','signature-cert-msg-'].forEach(pf=>{ const el=document.getElementById(pf+casoId); if(el) el.innerHTML=ajMsgHtml(casoId); }); }
 function ajudanteEnviar(casoId,cnpj,nome,quero){
   const id='aj'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
   AJUDANTE.atual[casoId]={cnpj,nome}; AJUDANTE.msg[casoId]={id,estado:'andando',texto:(nome?nome+': ':'')+'abrindo a JUCESP numa aba nova…',fim:false}; ajudanteAtualizar(casoId);

@@ -51,8 +51,17 @@ Signature, a extensão não reinsere o bloco em Documentos; o layout clássico
 continua usando a posição anterior. A capa mantém Mais ações selecionado e
 ganha um botão para voltar. As outras ferramentas preservam seus controles.
 
+Após a primeira prévia, a usuária pediu menos poluição visual. A revisão
+remove ícones e cabeçalhos repetidos das abas. Certidões passa a mostrar só
+uma categoria por vez: Imóvel, Prefeitura ou Empresas. Imóvel começa com
+seleção do serviço e Continuar, antes da conferência já existente. Prefeitura
+mostra os controles do serviço escolhido, preservando contribuinte, matrícula
+e validações. Campos e informações dos outros serviços ficam recolhidos.
+Andamento e intervenção necessária permanecem visíveis em um local comum.
+
 Validação: suíte Signature cobre todas as abas sem gravações, conexão tardia,
-centralização, remoção/retorno de empresa e pedido à ponte simulada; suítes
+centralização, escolha dos serviços, conferência/cancelamento da RI Digital,
+remoção/retorno de empresa sem duplicar formulários e pedido à ponte simulada; suítes
 Ajudante, Prefeitura e celular cobrem os fluxos existentes. Prévia com dados
 ilustrativos, aguardando aprovação para publicação.
 
