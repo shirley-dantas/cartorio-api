@@ -263,6 +263,63 @@ html.prime-signature .signature-processo .cx-campo select{border-color:#e9ddd2;b
 html.prime-signature .signature-funcoes{gap:6px;padding-top:22px;flex-wrap:wrap}
 html.prime-signature .signature-funcoes .est-aba{border-radius:10px;padding:10px 14px;background:#faf5ef;color:#765260;border:1px solid #eadfD5}
 html.prime-signature .signature-funcoes .est-aba.on{background:var(--ps-wine);color:#fff;border-color:var(--ps-wine)}
+html.prime-signature .signature-funcoes .est-aba{display:inline-flex;align-items:center;gap:7px}
+html.prime-signature .signature-funcoes .est-aba:focus-visible{outline:2px solid var(--ps-wine);outline-offset:3px}
+html.prime-signature .signature-ferramenta-cabecalho{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+html.prime-signature .signature-ferramenta-cabecalho h3{font:600 25px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine);margin:0 0 5px}
+html.prime-signature .signature-ferramenta-cabecalho p{font-size:12px;color:#806c77;line-height:1.6;margin:0}
+html.prime-signature .signature-estado-vazio{padding:18px;background:#faf6f1;border:1px dashed #decbbd;border-radius:12px;margin:12px 0;font-size:13px;color:#705362}
+html.prime-signature .signature-estado-vazio p{margin:7px 0 0;font-size:12px;line-height:1.6}
+html.prime-signature .signature-certidoes-conexao{display:flex;align-items:center;gap:8px;font-size:12px;color:#806c77;margin-bottom:14px}
+html.prime-signature .signature-conexao{height:8px;width:8px;flex-shrink:0;border-radius:50%;background:#b68b55}
+html.prime-signature .signature-conexao.conectado{background:#2f9568}
+html.prime-signature .signature-certidoes>.cx-aj{margin:0 0 16px;padding:16px;border:1px solid #e7d6c8;border-radius:12px}
+html.prime-signature .signature-certidoes .cx-aj-onr{padding-top:16px;margin-top:16px;border-top:1px solid #e7d6c8}
+html.prime-signature .signature-cert-tipos{display:flex;gap:24px;border-bottom:1px solid #eee3da;margin-bottom:22px}
+html.prime-signature .signature-cert-tipos button{border:0;border-bottom:2px solid transparent;padding:8px 0 12px;background:none;color:#927d85;font:inherit;font-size:13px;cursor:pointer}
+html.prime-signature .signature-cert-tipos button[aria-pressed="true"]{border-color:#793047;color:#793047}
+html.prime-signature .signature-certidoes-leve .cx-aj-onr{padding:0;margin:0;border:0}
+html.prime-signature .signature-certidoes-leve .cx-aj-msg{display:none}
+html.prime-signature .signature-certidoes-leve .cx-aj-topo{margin-bottom:14px}
+html.prime-signature .signature-cert-escolha{display:grid;gap:8px;margin-bottom:18px;font-size:12px;color:#806c77}
+html.prime-signature .signature-cert-escolha>div{display:flex;gap:12px;flex-wrap:wrap}
+html.prime-signature .signature-cert-escolha select{max-width:100%;min-width:0;border:1px solid #e2d3c7;border-radius:9px;background:#fffdfb;padding:10px;font:inherit;color:#633b4a}
+html.prime-signature .signature-cert-escolha .destaque{background:#793047;color:white;border-color:#793047}
+html.prime-signature .signature-certidoes-leve .cx-aj-outro{margin-top:16px}
+html.prime-signature .signature-certidoes-leve .signature-pedido-andamento:empty{display:none}
+html.prime-signature .signature-certidoes-leve[data-pref-servico="negativa"] .pref-pedir:has([onclick^="prefPedirValorVenal"]),
+html.prime-signature .signature-certidoes-leve[data-pref-servico="negativa"] .pref-pedir:has([onclick^="prefPedirCadastrais"]),
+html.prime-signature .signature-certidoes-leve[data-pref-servico="valor"] .pref-pedir:has([onclick^="prefPedirNegativa"]),
+html.prime-signature .signature-certidoes-leve[data-pref-servico="valor"] .pref-pedir:has([onclick^="prefPedirCadastrais"]),
+html.prime-signature .signature-certidoes-leve[data-pref-servico="cadastrais"] .pref-pedir:has([onclick^="prefPedirValorVenal"]),
+html.prime-signature .signature-certidoes-leve[data-pref-servico="cadastrais"] .pref-pedir:has([onclick^="prefPedirNegativa"]){display:none}
+html.prime-signature .signature-cert-servicos{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 18px}
+html.prime-signature .signature-cert-servicos button{background:#fff;border:1px solid #dfcec1;border-radius:999px;padding:9px 14px;font:inherit;font-size:12px;color:#7c5b68;cursor:pointer}
+html.prime-signature .signature-cert-servicos button[aria-pressed="true"]{background:#f7e9ec;border-color:#b57c8e;color:#72223e}
+html.prime-signature .signature-cert-titulo{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:24px 0 20px}
+html.prime-signature .signature-cert-titulo h3{font:500 24px 'Cormorant Garamond',Georgia,serif;color:#72223e;margin:0}
+html.prime-signature .signature-cert-etiqueta{font-size:11px;color:#427357;background:#edf5ee;border-radius:20px;padding:6px 10px}
+html.prime-signature .signature-cert-etiqueta.manual{background:#f7f0e6;color:#8b704b}
+html.prime-signature .signature-cert-dados{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+html.prime-signature .signature-cert-dados label{flex:1;min-width:0}
+html.prime-signature .signature-cert-dados label,html.prime-signature .signature-cert-campo{display:grid;gap:9px;font-size:12px;color:#947d86}
+html.prime-signature .signature-cert-campo{margin:14px 0;max-width:650px}
+html.prime-signature .signature-cert-dados select,html.prime-signature .signature-cert-campo input{width:100%;min-width:0;border:1px solid #ddcbbd;border-radius:9px;padding:11px;background:#fff;color:#5d3b4c;font:inherit}
+html.prime-signature .signature-certidoes-servicos .cx-btn.destaque{background:#72223e;border-color:#72223e;color:#fff;padding:12px 17px;cursor:pointer}
+html.prime-signature .signature-cert-conferencia{padding:16px;border:1px solid #e4d4c7;background:#fbf4ed;border-radius:12px;margin:18px 0;font-size:12px}
+html.prime-signature .signature-cert-conferencia p{line-height:1.6}
+html.prime-signature .signature-cert-alternativa,html.prime-signature .signature-cert-salvos{border-top:1px solid #eee3da;padding-top:18px;margin-top:24px;font-size:12px;color:#8e7881}
+html.prime-signature .signature-cert-alternativa summary,html.prime-signature .signature-cert-salvos summary{cursor:pointer}
+html.prime-signature .signature-cert-salvos li{padding:7px 0;line-height:1.6}
+html.prime-signature .signature-certidoes-servicos .signature-ajuda:empty{display:none}
+html.prime-signature .signature-cert-servicos button:focus-visible,html.prime-signature .signature-cert-tipos button:focus-visible{outline:2px solid #72223e;outline-offset:3px}
+html.prime-signature .signature-certidoes-servicos[data-pref-servico="negativa"] .pref-pedir:has([onclick^="signaturePedirValorVenal"]),
+html.prime-signature .signature-certidoes-servicos[data-pref-servico="negativa"] .pref-pedir:has([onclick^="signaturePedirCadastrais"]),
+html.prime-signature .signature-certidoes-servicos[data-pref-servico="valor"] .pref-pedir:has([onclick^="signaturePedirNegativa"]),
+html.prime-signature .signature-certidoes-servicos[data-pref-servico="valor"] .pref-pedir:has([onclick^="signaturePedirCadastrais"]),
+html.prime-signature .signature-certidoes-servicos[data-pref-servico="cadastrais"] .pref-pedir:has([onclick^="signaturePedirValorVenal"]),
+html.prime-signature .signature-certidoes-servicos[data-pref-servico="cadastrais"] .pref-pedir:has([onclick^="signaturePedirNegativa"]){display:none}
+@media(max-width:760px){html.prime-signature .signature-cert-dados{display:grid;grid-template-columns:minmax(0,1fr)}html.prime-signature .signature-cert-servicos{gap:7px}html.prime-signature .signature-cert-servicos button{padding:8px 12px}html.prime-signature .signature-cert-tipos{gap:18px}}
 html.prime-signature .signature-trabalho{padding:20px 0;min-height:125px}
 html.prime-signature .signature-acoes-extras{display:flex;gap:10px;flex-wrap:wrap}
 html.prime-signature .signature-rodape{border-top:1px solid #eee3da;padding-top:16px;margin-top:8px;display:flex;gap:10px;align-items:center}

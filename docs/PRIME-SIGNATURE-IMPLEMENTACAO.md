@@ -37,6 +37,44 @@ observação” abre e foca o campo com instrução simples e “Salvar observa�
 Usa a gravação existente, preservando as observações anteriores e rascunhos.
 Prévia aprovada pela usuária e publicação autorizada em 12/11/2026.
 
+## Certidões — desenho aprovado e publicação autorizada em 12/11/2026
+
+As ferramentas do caso usam somente os nomes, sem cabeçalhos repetidos.
+Certidões oferece JUCESP (Ficha cadastral, Contrato social, Cartão CNPJ),
+Matrícula (Visualização, Matrícula atualizada), Valor venal, Negativa de IPTU,
+Dados cadastrais, Trabalhista, CND Receita Federal e Indisponibilidade.
+Apenas o conteúdo do serviço selecionado aparece.
+
+JUCESP permite escolher a empresa ou informar outro CNPJ, valida os dígitos
+e exige conferência antes de iniciar. Ficha pode ser pedida isoladamente;
+contrato mantém a dependência ficha → contrato do Ajudante existente.
+RI Digital preserva a conferência de imóvel/cartório, login, captcha e
+pagamento do fluxo anterior. Prefeitura mantém contribuinte e data, mostra
+somente a ação escolhida e pede confirmação antes de solicitar. As rotinas
+municipais continuam específicas da Prefeitura de São Paulo.
+
+Cartão CNPJ, Trabalhista, CND Receita Federal e Indisponibilidade ficam
+explicitamente manuais, com anexação real ao caso. Exigem identificação do
+titular e PDF/imagem de até 10 MB. Usam o envio existente do Apps Script e a
+fila existente de leitura; depois associam serviço, nome e titular por
+transação no registro já criado, sem substituir os dados identificados pela
+IA. Se essa associação falhar após o envio, avisam para conferir Documentos,
+sem sugerir reenvio. Cartão CNPJ fica em JUCESP por preferência de organização,
+com indicação de que o emissor é a Receita Federal.
+
+A lista de certidões salvas é recolhida. Pedidos em andamento no estado atual
+do Ajudante bloqueiam outro pedido no mesmo caso. Documentos anteriores com
+serviço/titular identificado pedem confirmação antes de repetição; nenhuma
+validade é presumida. Um arquivo de outro titular não impede a solicitação.
+A conexão tardia do Ajudante atualiza a aba. Nenhuma chamada ocorre ao abrir
+ou trocar pílulas. Não é necessário alterar o Apps Script ou a extensão.
+
+Validação: Signature cobre oito serviços e subpílulas, navegação sem gravação,
+ficha isolada/contrato com ficha, confirmação e cancelamento, bloqueio de
+pedido concorrente no caso, matrícula, pedido de IPTU, anexo manual com
+metadados preservados, recusa de repetição e celular. Ajudante, Prefeitura
+e celular passaram. Desenho aprovado e publicação explicitamente autorizada.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já

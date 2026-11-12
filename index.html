@@ -5625,7 +5625,7 @@ window.prefPedirNegativa = function(casoId, i){
   window.postMessage({fonte: 'painel-cartorio', tipo: 'ajudante-pedido', pedido: {id, casoId, site: 'pref', servico: 'negativa-iptu', sql: at.sql}}, location.origin);
   ajudanteAtualizar(casoId);
 };
-window.prefGuardarSql = function(casoId, i, v){ PREF.manual[casoId + ':' + i] = String(v || '').replace(/\D/g, '').slice(0, 11); const f = document.getElementById('pref-' + casoId), c = casos[casoId]; if(f && c) f.outerHTML = prefFaixaHtml(c); };
+window.prefGuardarSql = function(casoId, i, v){ PREF.manual[casoId + ':' + i] = String(v || '').replace(/\D/g, '').slice(0, 11); const f = document.getElementById('pref-' + casoId), c = casos[casoId]; if(f && c) f.outerHTML = f.closest?.('.signature-certidoes-servicos')?signaturePrefHtml(c):prefFaixaHtml(c); };
 // A certidão de dados cadastrais: o login é pelo e-gov (dela) e o aviso da prefeitura pede o CPF/CNPJ do proprietário — que ela escreve ou escolhe entre os que a matrícula cita.
 window.prefPedirCadastrais = function(casoId, i){
   const c = casos[casoId], docs = c ? prefDocsDoCaso(c) : [], d = docs[i]; if(!d) return;
@@ -5676,7 +5676,7 @@ function prefFaixaHtml(c){
 }
 window.prefEscolher = function(casoId, i, j){
   PREF.sel[casoId + ':' + i] = j;
-  const el = document.getElementById('pref-' + casoId), c = casos[casoId]; if(el && c) el.outerHTML = prefFaixaHtml(c);
+  const el = document.getElementById('pref-' + casoId), c = casos[casoId]; if(el && c) el.outerHTML = el.closest?.('.signature-certidoes-servicos')?signaturePrefHtml(c):prefFaixaHtml(c);
 };
 // ── fim: as certidões da prefeitura ──
 
@@ -5931,28 +5931,147 @@ function signatureResumoHtml(c){
       <i class="ti ti-chevron-right" aria-hidden="true"></i>
     </button></article>`;
 }
+const SIGNATURE_CERT_GRUPOS=[
+ {id:'jucesp',nome:'JUCESP',sub:[{id:'ficha',nome:'Ficha cadastral',tipo:'FICHA_CADASTRAL_JUCESP'},{id:'contrato',nome:'Contrato social',tipo:'CONTRATO_SOCIAL'},{id:'cnpj',nome:'Cartão CNPJ',manual:true}]},
+ {id:'matricula',nome:'Matrícula',sub:[{id:'visualizacao',nome:'Visualização'},{id:'certidao',nome:'Matrícula atualizada'}]},
+ {id:'valor',nome:'Valor venal',tipo:'VALOR_VENAL_REFERENCIA'},
+ {id:'negativa',nome:'Negativa de IPTU',tipo:'NEGATIVA_IPTU'},
+ {id:'cadastrais',nome:'Dados cadastrais',tipo:'DADOS_CADASTRAIS_IMOVEL'},
+ {id:'trabalhista',nome:'Trabalhista',manual:true},
+ {id:'cnd',nome:'CND Receita Federal',manual:true},
+ {id:'indisponibilidade',nome:'Indisponibilidade',manual:true}
+];
+const SIGNATURE_CERT_ESTADO={};
+function signatureCertEstado(id){return SIGNATURE_CERT_ESTADO[id]??={grupo:'jucesp',sub:'ficha',campos:{},confirmar:null,mensagem:'',upload:false};}
+function signatureCertServico(id){const st=signatureCertEstado(id),g=SIGNATURE_CERT_GRUPOS.find(g=>g.id===st.grupo)||SIGNATURE_CERT_GRUPOS[0],s=g.sub?.find(s=>s.id===st.sub)||g.sub?.[0]||g;return {st,g,s,chave:g.sub?g.id+':'+s.id:g.id};}
+function signatureCertCampo(id,chave,valor){signatureCertEstado(id).campos[chave]=valor;}
+window.signatureCertCampo=signatureCertCampo;
+function signatureCertRedesenhar(id){const el=document.getElementById('signature-certidoes-'+id),c=casos[id];if(el&&c)el.outerHTML=signatureCertidoesHtml(c);}
+window.signatureEscolherCertidao=function(id,grupo,sub){
+ const g=SIGNATURE_CERT_GRUPOS.find(g=>g.id===grupo);if(!g||sub&&!g.sub?.some(s=>s.id===sub))return;
+ const st=signatureCertEstado(id);st.grupo=grupo;st.sub=sub||g.sub?.[0]?.id||'';st.confirmar=null;signatureCertRedesenhar(id);
+};
+function signatureCertMensagem(id,texto){signatureCertEstado(id).mensagem=texto;const el=document.getElementById('signature-cert-feedback-'+id);if(el)el.textContent=texto;}
+function signatureCertLivre(id){
+ const m=AJUDANTE.msg[id];if(m?.id&&!m.fim||(AJUDANTE.fila[id]||[]).length||signatureCertEstado(id).upload){signatureCertMensagem(id,'Já existe um pedido ou envio em andamento neste caso. Acompanhe abaixo antes de iniciar outro.');return false;}return !!casos[id];
+}
+function signatureCertJaSalvo(c,servico,sujeito){
+ const normal=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ return Object.values(c.documentos||{}).some(d=>{
+  if(!d||!sujeito)return false;
+  if(d.certidaoServico===servico&&normal(d.certidaoSujeito)===normal(sujeito))return true;
+  const tipo={'jucesp:ficha':'FICHA_CADASTRAL_JUCESP','jucesp:contrato':'CONTRATO_SOCIAL',valor:'VALOR_VENAL_REFERENCIA',negativa:'NEGATIVA_IPTU',cadastrais:'DADOS_CADASTRAIS_IMOVEL'}[servico];
+  return tipo&&d.tipoDocumento===tipo&&normal([d.nomeOriginal,d.nome,d.pessoa,d.texto].join(' ')).includes(normal(sujeito));
+ });
+}
+function signatureCertConfirmarRepeticao(id,servico,sujeito){return !signatureCertJaSalvo(casos[id],servico,sujeito)||confirm('Já há um documento deste serviço para esses dados no caso. Deseja solicitar ou anexar outro?');}
+function signatureOnrEscolhaHtml(casoId){const {s}=signatureCertServico(casoId);return `<button type="button" class="cx-btn destaque" onclick="onrAbrir('${esc(casoId)}','${s.id==='certidao'?'certidao':'visualizacao'}')">Conferir e solicitar</button>`;}
+function signaturePrefHtml(c){return prefFaixaHtml(c).replaceAll('onclick="prefPedirValorVenal(', 'onclick="signaturePedirValorVenal(').replaceAll('onclick="prefPedirNegativa(', 'onclick="signaturePedirNegativa(').replaceAll('onclick="prefPedirCadastrais(', 'onclick="signaturePedirCadastrais(');}
+function signatureCertidoesHtml(c){
+ const {st,g,s,chave}=signatureCertServico(c.id),id=esc(c.id),recursos=[AJUDANTE.pronto,AJUDANTE.onr,AJUDANTE.pref].join('-');
+ const conectado=AJUDANTE.pronto&&(g.id==='jucesp'||g.id==='matricula'&&AJUDANTE.onr||['valor','negativa','cadastrais'].includes(g.id)&&AJUDANTE.pref);
+ const conectar=`<p class="signature-ajuda">Ative o Ajudante no Chrome e atualize a página para solicitar. Você também pode anexar o documento manualmente abaixo.</p>`;
+ let conteudo='';
+ if(g.id==='jucesp'&&!s.manual){
+  const emp=ajEmpresasVisiveis(c.id,c),atual=st.campos.cnpj??(emp[0]?.cnpj||''),selecionada=emp.some(e=>e.cnpj===atual);
+  conteudo=`<div class="signature-cert-dados"><label>Empresa do caso<select aria-label="Empresa do caso" onchange="signatureCertCampo('${id}','cnpj',this.value);signatureCertRedesenhar('${id}')">${emp.map(e=>`<option value="${esc(e.cnpj)}"${atual===e.cnpj?' selected':''}>${escTxt(e.nome||'Empresa')} · ${esc(ajFormatarCnpj(e.cnpj))}</option>`).join('')}<option value=""${!selecionada?' selected':''}>Informar outro CNPJ</option></select></label>${conectado?`<button type="button" class="cx-btn destaque" onclick="signatureConferirJucesp('${id}')">Conferir e solicitar</button>`:''}</div>${!selecionada?`<label class="signature-cert-campo">CNPJ<input aria-label="CNPJ para JUCESP" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00" value="${esc(atual)}" oninput="signatureCertCampo('${id}','cnpj',this.value)"></label>`:''}`;
+  if(s.id==='contrato')conteudo+='<p class="signature-ajuda">O Ajudante consulta primeiro a ficha cadastral para localizar o contrato consolidado.</p>';
+  if(st.confirmar?.chave===chave)conteudo+=`<div class="signature-cert-conferencia"><strong>Confira antes de iniciar</strong><p>${escTxt(s.nome)} · CNPJ ${esc(ajFormatarCnpj(st.confirmar.cnpj))}</p><button type="button" class="cx-btn destaque" onclick="signatureSolicitarJucesp('${id}')">Iniciar busca</button></div>`;
+ }else if(g.id==='matricula'&&conectado){
+  if(ONR.form[c.id]&&ONR.form[c.id].servico!==s.id)delete ONR.form[c.id];
+  let form=ONR.form[c.id]?onrFormHtml(c.id).replace("onrIniciar('","signaturePedirMatricula('"):signatureOnrEscolhaHtml(c.id);
+  conteudo=`<div id="onr-${id}">${form}</div><p class="signature-ajuda">Confira o imóvel e o registro. Login, código de segurança e confirmação de pagamento continuam com você.</p>`;
+ }else if(['valor','negativa','cadastrais'].includes(g.id)){
+  const pref=signaturePrefHtml(c);
+  conteudo=pref?pref:'<p class="signature-ajuda">Adicione a matrícula em Documentos para identificar o contribuinte do imóvel. Essas consultas são da Prefeitura de São Paulo.</p>';
+ }
+ if(!s.manual&&!conectado)conteudo+=conectar;
+ if(s.manual)conteudo='<p class="signature-ajuda">Por enquanto, obtenha este documento manualmente e anexe ao caso.</p>'+(s.id==='cnpj'?'<p class="signature-ajuda">O Cartão CNPJ é emitido pela Receita Federal.</p>':'');
+ const sujeito=st.campos['sujeito:'+chave]||'',nomeSujeito=g.id==='jucesp'?'Empresa / CNPJ da certidão':'Pessoa, empresa ou imóvel da certidão';
+ const manual=`<div class="signature-cert-anexo"><label class="signature-cert-campo">${nomeSujeito}<input aria-label="Titular da certidão" placeholder="Informe a quem este documento pertence" value="${esc(sujeito)}" oninput="signatureCertCampo('${id}','sujeito:${chave}',this.value)"${st.upload?' disabled':''}></label><label class="cx-btn ${s.manual?'destaque':''}">${st.upload?'Enviando…':'Anexar certidão'}<input type="file" data-cert-upload="${id}" data-servico="${chave}" data-nome="${esc(s.nome)}" accept="application/pdf,image/*" hidden onchange="signatureAnexarCertidao('${id}',this)"${st.upload?' disabled':''}></label></div>`;
+ const salvos=Object.values(c.documentos||{}).filter(d=>d&&(d.certidaoServico||['FICHA_CADASTRAL_JUCESP','CONTRATO_SOCIAL','VALOR_VENAL_REFERENCIA','NEGATIVA_IPTU','DADOS_CADASTRAIS_IMOVEL'].includes(d.tipoDocumento)||/^RIDIGITAL_/i.test(d.nomeOriginal||'')));
+ return `<div class="signature-certidoes signature-certidoes-leve signature-certidoes-servicos" id="signature-certidoes-${id}" data-caso="${id}" data-recursos="${recursos}" data-pref-servico="${g.id}"><nav class="signature-cert-servicos" aria-label="Certidões">${SIGNATURE_CERT_GRUPOS.map(x=>`<button type="button" aria-pressed="${x.id===g.id}" onclick="signatureEscolherCertidao('${id}','${x.id}')">${x.nome}</button>`).join('')}</nav>${g.sub?`<nav class="signature-cert-tipos" aria-label="Opções da certidão">${g.sub.map(x=>`<button type="button" aria-pressed="${x.id===s.id}" onclick="signatureEscolherCertidao('${id}','${g.id}','${x.id}')">${x.nome}</button>`).join('')}</nav>`:''}<div class="signature-cert-titulo"><h3>${s.nome}</h3><span class="signature-cert-etiqueta${s.manual?' manual':''}">${s.manual?'Manual · automação futura':'Automação existente'}</span></div>${conteudo}${s.manual?manual:`<details class="signature-cert-alternativa"><summary>Anexar documento já obtido</summary>${manual}</details>`}<p class="signature-ajuda" role="status" id="signature-cert-feedback-${id}">${escTxt(st.mensagem)}</p><div class="signature-pedido-andamento" id="signature-cert-msg-${id}" role="status">${ajMsgHtml(c.id)}</div><ul class="cx-solte-prog" id="solte-prog-${id}">${solteProgHtml(c.id)}</ul><details class="signature-cert-salvos"><summary>Certidões salvas neste caso (${salvos.length})</summary>${salvos.length?`<ul>${salvos.map(d=>`<li>${/^https:\/\//.test(d.link||'')?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.certidaoNome||docsRotulo(d))}</a>`:escTxt(d.certidaoNome||docsRotulo(d))}${d.certidaoSujeito||d.pessoa?` · ${escTxt(d.certidaoSujeito||d.pessoa)}`:''}</li>`).join('')}</ul>`:'<p class="signature-ajuda">Nenhuma certidão identificada. Os demais arquivos continuam em Documentos.</p>'}</details></div>`;
+}
+window.signatureCertRedesenhar=signatureCertRedesenhar;
+window.signatureConferirJucesp=function(id){
+ if(!signatureCertLivre(id))return;
+ const {st,g,s,chave}=signatureCertServico(id);if(g.id!=='jucesp'||s.manual||!AJUDANTE.pronto)return;
+ const emp=ajEmpresasVisiveis(id,casos[id]),cnpj=String(st.campos.cnpj??emp[0]?.cnpj??'').replace(/\D/g,'');
+ if(!ajCnpjValido(cnpj))return signatureCertMensagem(id,'Confira o CNPJ da empresa antes de continuar.');
+ st.confirmar={chave,cnpj};signatureCertRedesenhar(id);
+};
+window.signatureSolicitarJucesp=function(id){
+ if(!signatureCertLivre(id))return;
+ const {st,g,s,chave}=signatureCertServico(id),conf=st.confirmar;if(g.id!=='jucesp'||s.manual||conf?.chave!==chave||!AJUDANTE.pronto)return;
+ const atual=String(st.campos.cnpj??ajEmpresasVisiveis(id,casos[id])[0]?.cnpj??'').replace(/\D/g,'');
+ if(atual!==conf.cnpj){st.confirmar=null;signatureCertRedesenhar(id);return signatureCertMensagem(id,'O CNPJ mudou. Confira os dados novamente.');}
+ if(!signatureCertConfirmarRepeticao(id,chave,conf.cnpj))return;
+ st.confirmar=null;window.ajudantePedir(id,s.id==='ficha'?['ficha']:['ficha','contrato'],conf.cnpj);signatureCertRedesenhar(id);
+};
+window.signaturePedirMatricula=function(id){
+ if(!signatureCertLivre(id)||!AJUDANTE.pronto||!AJUDANTE.onr)return;
+ const f=ONR.form[id],mats=String(document.getElementById('onr-mat-'+id)?.value||'').split(/[\s,;]+/).filter(m=>/^\d+$/.test(m));
+ const prefixo=f?.servico==='certidao'?'RIDIGITAL_ATUALIZADA_':'RIDIGITAL_VISUALIZACAO_';
+ const repetido=Object.values(casos[id].documentos||{}).some(d=>String(d?.nomeOriginal||'').startsWith(prefixo)&&mats.some(m=>new RegExp('(?:_|\\b)'+m+'(?:_|\\b)').test(d.nomeOriginal)));
+ if(repetido&&!confirm('Já há documento deste serviço para esta matrícula no caso. Deseja solicitar outro?'))return;
+ window.onrIniciar(id);
+};
+function signaturePedirPref(id,i,servico){
+ if(!signatureCertLivre(id)||!AJUDANTE.pronto||!AJUDANTE.pref)return;
+ const c=casos[id],d=prefDocsDoCaso(c)[i],at=d&&prefAtual(id,i,d.x),chamar={valor:window.prefPedirValorVenal,negativa:window.prefPedirNegativa,cadastrais:window.prefPedirCadastrais}[servico];
+ if(!chamar)return;if(!at||at.areaMaior){chamar(id,i);return;}
+ const nome=SIGNATURE_CERT_GRUPOS.find(g=>g.id===servico).nome;
+ if(!confirm(`Solicitar ${nome} para o contribuinte ${at.sql}? Confira o imóvel e os dados antes de continuar.`))return;
+ if(signatureCertConfirmarRepeticao(id,servico,at.sql))chamar(id,i);
+}
+window.signaturePedirValorVenal=(id,i)=>signaturePedirPref(id,i,'valor');
+window.signaturePedirNegativa=(id,i)=>signaturePedirPref(id,i,'negativa');
+window.signaturePedirCadastrais=(id,i)=>signaturePedirPref(id,i,'cadastrais');
+window.signatureAnexarCertidao=async function(id,input){
+ const file=input.files?.[0],servico=input.dataset.servico,nome=input.dataset.nome;input.value='';if(!file||!casos[id])return;
+ const st=signatureCertEstado(id),sujeito=String(st.campos['sujeito:'+servico]||'').trim();
+ if(!sujeito)return signatureCertMensagem(id,'Informe a pessoa, empresa ou imóvel a quem esta certidão pertence.');
+ if(!SOLTE_MIMES[String(file.type||'').toLowerCase()]||!file.size||file.size>SOLTE_MAX)return signatureCertMensagem(id,'Escolha um PDF ou imagem de até 10 MB, que não esteja vazio.');
+ if(st.upload)return signatureCertMensagem(id,'Já há um arquivo sendo enviado. Aguarde.');
+ if(!signatureCertConfirmarRepeticao(id,servico,sujeito))return;
+ st.upload=true;st.mensagem='Enviando a certidão para o caso…';signatureCertRedesenhar(id);
+ let salvo=false;
+ try{
+  await enfileirarLeituraDocumento(async()=>{
+   const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'painel-arquivo',casoId:id,nomeArquivo:file.name,mimetype:String(file.type||'').toLowerCase(),base64:await soltePara64(file)})}),j=await r.json();
+   if(!j?.ok)throw new Error(j?.erro||'Não foi possível enviar o arquivo.');salvo=true;
+   if(!/^[A-Za-z0-9_-]{1,120}$/.test(j.docKey||''))throw new Error('O envio não informou o identificador do documento.');
+   const gravado=await runTransaction(ref(db,'casos/'+id+'/documentos/'+j.docKey),doc=>doc?{...doc,certidaoServico:servico,certidaoSujeito:sujeito,certidaoNome:nome}:undefined);
+   if(!gravado.committed)throw new Error('Não foi possível vincular a certidão ao serviço.');
+   st.mensagem=j.confirmar||j.aviso?'Certidão salva. Confira a identificação e a leitura em Documentos.':'Certidão salva neste caso.';
+  });
+ }catch(e){st.mensagem=salvo?'O arquivo foi salvo. Não reenvie: confira em Documentos; não consegui concluir o vínculo com esta pílula.':'Não consegui enviar: '+String(e.message||e);}
+ finally{st.upload=false;signatureCertRedesenhar(id);}
+};
+window.signatureAtualizarCertidoes=function(){document.querySelectorAll('.signature-certidoes').forEach(el=>{if(casos[el.dataset.caso]&&el.dataset.recursos!==[AJUDANTE.pronto,AJUDANTE.onr,AJUDANTE.pref].join('-'))signatureCertRedesenhar(el.dataset.caso);});};
 function signaturePaginaHtml(c){
   const p=cardPartes(c),md=motorDecisao(c);
   const observacoes=p.obs.replace('<span class="obs-label">Observações</span>',`<div class="signature-obs-cabecalho"><span class="obs-label">Observações</span><button type="button" class="cx-btn" onclick="signatureAdicionarObs('${c.id}')" aria-controls="obs-edit-${c.id}"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar observação</button></div>`).replace('<textarea rows="2"', '<textarea aria-label="Nova observação" rows="3"').replace('Digite a nova informação — ela entra numerada no topo do histórico acima','Escreva aqui a nova observação do caso…').replace('>Salvar</button>','>Salvar observação</button>');
   const abas=['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico','Mais ações'];
   const preferida=ESTEIRA_ABA[c.id]||esteiraAbaAberta(c);
   const aberta=abas.includes(preferida)||preferida==='Capa do dossiê'?preferida:'Documentos';
+
   let conteudo;
   if(aberta==='Drive')conteudo=p.drive;
   else if(aberta==='Histórico'){
     const eventos=Object.values(c.historico||{}).sort((a,b)=>String(b.em||b.data||'').localeCompare(String(a.em||a.data||'')));
-    conteudo=`<h3>Histórico do caso</h3><p class="signature-ajuda">As observações anteriores aparecem no bloco acima.</p>`+
+    conteudo=`<p class="signature-ajuda">As observações anteriores aparecem no bloco acima.</p>`+
       (eventos.length?`<ol class="signature-historico">${eventos.map(e=>`<li>${escTxt(e.texto||e.resumo||e.descricao||e.acao||e.tipo||'Atualização do caso')} <small>${escTxt(e.em||e.data||'')}</small></li>`).join('')}</ol>`:'<p class="signature-ajuda">Sem outras alterações registradas.</p>');
   }else if(aberta==='Mais ações')conteudo=`<div class="signature-acoes-extras"><button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button></div>`;
   else if(aberta==='Pagamento')conteudo=p.pag+p.fin;
-  else conteudo=({'Documentos':p.docs,'Certidões':p.pref,'Minuta':p.minuta,'Orçamento':p.orc,'Capa do dossiê':p.capa})[aberta];
+  else conteudo=({'Documentos':p.docs.replace(ajudanteHtml(c),''),'Certidões':signatureCertidoesHtml(c),'Minuta':p.minuta,'Orçamento':p.orc,'Capa do dossiê':p.capa})[aberta];
   const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos casos</button><span>Caso</span></div>`;
   return p.abre.replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
     `<div class="signature-dados">${p.campos}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
     <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Caso concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}${observacoes}</div></section>
     ${p.linha}
-    <nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta?' on':''}" onclick="esteiraAba('${c.id}','${f}')">${f}</button>`).join('')}</nav>
-    <section class="est-painel signature-trabalho" aria-label="${esc(aberta)}">${conteudo}</section>
+    <div class="signature-ferramentas"><nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')?' on':''}" aria-label="${f}" aria-pressed="${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')}" onclick="esteiraAba('${c.id}','${f}')">${f}</button>`).join('')}</nav>
+    <section class="est-painel signature-trabalho" aria-label="${esc(aberta)}">${aberta==='Capa do dossiê'?`<button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Mais ações')">Voltar para Mais ações</button>`:''}${conteudo}</section></div>
     <footer class="cx-acoes signature-rodape"><button type="button" class="cx-btn perigo" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash"></i> Excluir</button><button type="button" class="cx-btn concluir" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button></footer></div>`;
 }
 window.signatureAdicionarObs=function(id){
@@ -13397,7 +13516,8 @@ function ajIgnoradas(casoId){ try{ return JSON.parse(localStorage.getItem('aj_ig
 function ajGuardarIgnoradas(casoId,l){ try{ localStorage.setItem('aj_ign_'+casoId,JSON.stringify(l)); }catch(e){} }
 function ajEmpresasVisiveis(casoId,c){ const ig=ajIgnoradas(casoId); return ajEmpresasDoCaso(c).filter(e=>!ig.includes(e.cnpj)); }
 function ajRedesenhar(casoId){
-  const z=document.querySelector&&document.querySelector('.cx-solte[data-solte="'+casoId+'"] .cx-aj'); if(z) z.outerHTML=ajudanteHtml({id:casoId});
+  const z=document.querySelector&&document.querySelector('.cx-solte[data-solte="'+casoId+'"] .cx-aj')||document.getElementById('signature-certidoes-'+casoId)?.querySelector?.('.cx-aj');
+  if(z){let html=ajudanteHtml({id:casoId});if(z.closest?.('.signature-certidoes-leve'))html=html.replace(onrHtml({id:casoId}),'').replace('class="cx-aj-outro" open','class="cx-aj-outro"');z.outerHTML=html;}
 }
 window.ajTirarEmpresa=function(casoId,cnpj){ const l=ajIgnoradas(casoId); if(!l.includes(cnpj)) l.push(cnpj); ajGuardarIgnoradas(casoId,l); ajRedesenhar(casoId); };
 window.ajTrazerEmpresas=function(casoId){ ajGuardarIgnoradas(casoId,[]); ajRedesenhar(casoId); };
@@ -13485,7 +13605,7 @@ window.onrUsarMat=function(casoId,m){
   ['uf','cidade','cart'].forEach(k=>{ const c=document.getElementById('onr-'+k+'-'+casoId); if(c) f[k==='cart'?'cartorio':k]=c.value; });
   onrDesenhar(casoId);
 };
-function onrDesenhar(casoId){ const el=document.getElementById('onr-'+casoId); if(el) el.innerHTML=onrFormHtml(casoId); }
+function onrDesenhar(casoId){ const el=document.getElementById('onr-'+casoId); if(!el)return; if(el.closest?.('.signature-certidoes-servicos')){el.innerHTML=ONR.form[casoId]?onrFormHtml(casoId).replace("onrIniciar('","signaturePedirMatricula('"):signatureOnrEscolhaHtml(casoId);}else el.innerHTML=onrFormHtml(casoId); }
 function onrPreencher(f,g){ const x=f.grupos[g]||{cartorio:'',cidade:'',matriculas:[]}; f.g=g; f.cartorio=x.cartorio||''; f.cidade=x.cidade||''; f.matriculas=f.servico==='visualizacao'?(x.matriculas[0]||''):x.matriculas.join(', '); }
 window.onrAbrir=function(casoId,servico){
   const f=ONR.form[casoId]={servico,grupos:onrDoCaso(casos[casoId]),g:0,uf:'SP',cidade:'',cartorio:'',matriculas:''}; onrPreencher(f,0); onrDesenhar(casoId);
@@ -13524,7 +13644,7 @@ function ajudanteHtml(c){
     <details class="cx-aj-outro"${emp.length?'':' open'}><summary>Outro CNPJ</summary><div class="cx-aj-topo"><input class="cx-aj-cnpj" id="aj-cnpj-${id}" inputmode="numeric" placeholder="CNPJ da empresa" value="${esc(ajLerCnpj(c.id))}" oninput="ajSalvarCnpj('${id}',this.value)"></div><div class="cx-aj-bt">${ajBotoes(c.id,'')}</div></details>
     <div class="cx-aj-msg" id="aj-msg-${id}">${ajMsgHtml(c.id)}</div></div>`;
 }
-function ajudanteAtualizar(casoId){ ['aj-msg-','pref-msg-'].forEach(pf=>{ const el=document.getElementById(pf+casoId); if(el) el.innerHTML=ajMsgHtml(casoId); }); }
+function ajudanteAtualizar(casoId){ ['aj-msg-','pref-msg-','signature-cert-msg-'].forEach(pf=>{ const el=document.getElementById(pf+casoId); if(el) el.innerHTML=ajMsgHtml(casoId); }); }
 function ajudanteEnviar(casoId,cnpj,nome,quero){
   const id='aj'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
   AJUDANTE.atual[casoId]={cnpj,nome}; AJUDANTE.msg[casoId]={id,estado:'andando',texto:(nome?nome+': ':'')+'abrindo a JUCESP numa aba nova…',fim:false}; ajudanteAtualizar(casoId);
@@ -13552,7 +13672,8 @@ function ajudanteOuvir(e){
   const d=e&&e.data; if(!d||d.fonte!=='ajudante'||(e.source&&e.source!==window)) return;
   if(d.tipo==='ajudante-pronto'){
     AJUDANTE.pronto=true; AJUDANTE.onr=!!d.onr; AJUDANTE.pref=!!d.pref; AJUDANTE.versao=String(d.versao||'');
-    document.querySelectorAll&&document.querySelectorAll('.cx-solte').forEach(z=>{ if(!z.querySelector('.cx-aj')) z.insertAdjacentHTML('beforeend',ajudanteHtml({id:z.dataset.solte})); });
+    document.querySelectorAll&&document.querySelectorAll('.cx-solte').forEach(z=>{ if(!z.closest?.('.signature-processo')&&!z.querySelector('.cx-aj')) z.insertAdjacentHTML('beforeend',ajudanteHtml({id:z.dataset.solte})); });
+    if(typeof window.signatureAtualizarCertidoes==='function')window.signatureAtualizarCertidoes();
   }
   if(d.tipo==='ajudante-progresso'){
     const casoId=Object.keys(AJUDANTE.msg).find(k=>AJUDANTE.msg[k].id===d.id); if(!casoId) return;
