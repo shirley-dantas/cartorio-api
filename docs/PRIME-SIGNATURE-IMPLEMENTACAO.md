@@ -79,7 +79,7 @@ Notas. A Agenda e os pontos do calendário continuam lendo exclusivamente
 as assinaturas dos casos; salvar lembretes não chama o Google Calendar.
 Testes cobrem criação, alteração, remoção, conclusão, ordem, atrasos,
 datas antigas, desktop/celular e ausência de alteração das assinaturas.
-Rodada em prévia, ainda sem publicação.
+Prévia aprovada e publicação autorizada pela usuária em 12/11/2026.
 
 ## Verificações
 
