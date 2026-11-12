@@ -628,8 +628,8 @@ function parsearResposta(texto) {
 }
 
 function chamarClaudeRaw(mensagem, ano) {
-  var apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada. Vá em Projeto > Propriedades do script e adicione a chave.");
+  var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada. Vá em Projeto > Propriedades do script e adicione a chave.");
 
   // 8000 fazia qualquer minuta um pouco mais longa parar no meio e precisar
   // de outro pedaço — e cada pedaço custa uma volta inteira pelo Firebase e
@@ -643,9 +643,9 @@ function chamarClaudeRaw(mensagem, ano) {
     messages: [{ role: "user", content: mensagem }]
   };
 
-  var data = chamarOpenAI(payload);
+  var data = chamarAnthropicCartorio(payload);
   if (data.recusa || !data.texto) throw new Error("A IA não concluiu a leitura.");
-  if (data.error) throw new Error("Erro OpenAI API: " + (data.error.message || JSON.stringify(data.error)));
+  if (data.error) throw new Error("Erro Anthropic API: " + (data.error.message || JSON.stringify(data.error)));
   return { texto: data.texto, pararPorTamanho: data.truncou };
 }
 
@@ -853,6 +853,7 @@ function finalizarGeracaoMinuta(jobId, estado, truncada) {
     avisos.push("A IA não identificou nenhuma certidão automaticamente neste caso, mas há documento(s) anexado(s) com nome de certidão — confira manualmente a validade de cada uma antes de lavrar.");
   }
 
+  if(estado.casoId)firebaseGravar('patch','/casos/'+estado.casoId,{docUrl:docResult.url,driveUrl:docResult.folderUrl,auditoria:{status:'pendente',provedor:'openai',achados:[],atualizado:new Date().toISOString()}});
   if (jobId) {
     salvarJobFirebase(jobId, {
       status: "done",
@@ -862,6 +863,7 @@ function finalizarGeracaoMinuta(jobId, estado, truncada) {
       docUrl: docResult.url,
       folderUrl: docResult.folderUrl,
       docNome: docResult.nome,
+      conferenciaIA: "pendente",
       diagRodadas: estado.rodadas,
       diagTemModelo: estado.temModelo,
       diagBrancos: conferencia.brancos,
@@ -876,9 +878,7 @@ function finalizarGeracaoMinuta(jobId, estado, truncada) {
     // crítico. Nunca reescreve a minuta, só confere e aponta.
     var achadosAuditoria = auditarMinuta(parsed.minuta, estado.documentosTexto);
     var patchCaso = { driveUrl: docResult.folderUrl, docUrl: docResult.url };
-    if (achadosAuditoria !== null) {
-      patchCaso.auditoria = { achados: achadosAuditoria, atualizado: new Date().toISOString() };
-    }
+    patchCaso.auditoria = {status:achadosAuditoria!==null?"concluida":"pendente",provedor:"openai",achados:achadosAuditoria||[],atualizado:new Date().toISOString()};
     UrlFetchApp.fetch(FIREBASE_URL + "/casos/" + estado.casoId + ".json", {
       method: "patch",
       contentType: "application/json",
@@ -980,7 +980,6 @@ function auditarMinuta(minutaTexto, documentosTexto) {
     var apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
     if (!apiKey) return null;
     var doc = String(documentosTexto || "");
-    if (doc.length > 100000) doc = doc.slice(0, 100000) + "\n\n[...texto truncado por limite de tamanho...]";
     var mensagem = "MINUTA PRONTA (a auditar):\n" + minutaTexto +
       "\n\n---\n\nDOCUMENTOS E INFORMAÇÕES ORIGINAIS DO CASO (fonte da verdade):\n" + doc;
 
@@ -1018,15 +1017,15 @@ var EXTRACAO_ARQUIVO_MAX_TOKENS = 8000;
 var EXTRACAO_ARQUIVO_MAX_PASSADAS = 4;
 
 function chamarClaudeArquivoRaw(content) {
-  var apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada.");
+  var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada.");
   var payload = {
     max_tokens: EXTRACAO_ARQUIVO_MAX_TOKENS,
     messages: [{ role: "user", content: content }]
   };
-  var data = chamarOpenAI(payload);
+  var data = chamarAnthropicCartorio(payload);
   if (data.recusa || !data.texto) throw new Error("A IA não concluiu a leitura.");
-  if (data.error) throw new Error("Erro OpenAI API: " + (data.error.message || JSON.stringify(data.error)));
+  if (data.error) throw new Error("Erro Anthropic API: " + (data.error.message || JSON.stringify(data.error)));
   return {
     texto: data.texto || null,
     truncou: data.truncou
@@ -1237,9 +1236,6 @@ function gerarECriarMinuta(dados) {
     // pela metade (já corrigido no iniciar-minuta.js), não o tamanho do texto —
     // a IA lê o texto de entrada rápido; quem demora é a geração da resposta,
     // que já tem limite (max_tokens). Este limite aqui só evita casos extremos.
-    if (documentosTexto.length > 100000) {
-      documentosTexto = documentosTexto.slice(0, 100000) + "\n\n[...texto truncado por limite de tamanho...]";
-    }
 
     // Se a equipe não enviou um modelo explícito ("MODELO" no WhatsApp) nem uma
     // MINUTA ATUAL a seguir à risca, busca automaticamente o último modelo
@@ -2188,4 +2184,30 @@ function resp(obj) {
 
 function doGet(e) {
   return resp({ ok: true, status: "Cartório Drive API ativa" });
+}
+
+// Minutas e leitura: Anthropic. A auditoria e a Joaninha usam OpenAI.
+// Configuração privada nas propriedades do script; não registrar as chaves.
+function chamarAnthropicCartorio(opcoes) {
+  var props=PropertiesService.getScriptProperties();
+  var chave=props.getProperty('ANTHROPIC_API_KEY');
+  if(!chave)throw new Error('A chave da Anthropic não está configurada nas propriedades do script.');
+  var payload={model:props.getProperty('ANTHROPIC_MODEL')||'claude-sonnet-4-6',max_tokens:opcoes.max_tokens||8000,messages:opcoes.messages};
+  if(opcoes.system)payload.system=opcoes.system;
+  var r=UrlFetchApp.fetch('https://api.anthropic.com/v1/messages',{method:'post',contentType:'application/json',headers:{'x-api-key':chave,'anthropic-version':'2023-06-01'},payload:JSON.stringify(payload),muteHttpExceptions:true});
+  var status=r.getResponseCode();
+  if(status<200||status>=300){
+    if(status===401||status===403)throw new Error('A Anthropic não aceitou a chave ou a permissão configurada.');
+    if(status===429)throw new Error('A Anthropic atingiu um limite de uso. Confira o limite e o saldo dessa conta antes de repetir.');
+    throw new Error('A Anthropic não concluiu a solicitação (HTTP '+status+').');
+  }
+  var d;try{d=JSON.parse(r.getContentText());}catch(_){throw new Error('A Anthropic respondeu em formato inválido.');}
+  if(d.error)throw new Error('A Anthropic não concluiu a solicitação.');
+  var textos=(d.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;});
+  return {texto:textos.join(''),truncou:d.stop_reason==='max_tokens',recusa:d.stop_reason==='refusal'};
+}
+function testarAnthropicCartorio() {
+  var r=chamarAnthropicCartorio({max_tokens:32,messages:[{role:'user',content:'Responda somente com a palavra OK.'}]});
+  if(r.recusa||r.truncou||r.texto.trim()!=='OK')throw new Error('O teste da Anthropic não retornou OK.');
+  Logger.log('Anthropic confirmada para leitura e geração de minutas. Nenhum card ou documento foi alterado.');
 }

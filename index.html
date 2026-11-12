@@ -6756,6 +6756,8 @@ window.fecharReeditar=function(){
 window.auditPillDoCaso=function(id){
   const c=casos[id];
   const achados=c&&c.auditoria&&Array.isArray(c.auditoria.achados)?c.auditoria.achados:null;
+  if(c?.auditoria?.status==='pendente')return `<button type="button" class="audit-pill" onclick="abrirAuditoria('${id}')">Conferência OpenAI pendente</button>`;
+  if(c?.auditoria?.status==='concluida'&&achados&&!achados.length)return `<button type="button" class="audit-pill" onclick="abrirAuditoria('${id}')">Conferência OpenAI concluída</button>`;
   if(!achados||!achados.length)return'';
   return `<button type="button" class="audit-pill" onclick="abrirAuditoria('${id}')" title="Auditoria automática — clique para ver os pontos"><i class="ti ti-alert-triangle" style="font-size:11px"></i> Auditoria: ${achados.length} ${achados.length===1?'ponto':'pontos'}</button>`;
 };
@@ -6763,7 +6765,9 @@ window.abrirAuditoria=function(id){
   const c=casos[id];if(!c)return;
   document.getElementById('auditoria-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
   const achados=(c.auditoria&&c.auditoria.achados)||[];
-  document.getElementById('auditoria-lista').innerHTML=achados.length
+  document.getElementById('auditoria-lista').innerHTML=c.auditoria?.status==='pendente'
+    ?'<li>A minuta foi gerada. A conferência pela OpenAI ainda não foi concluída. Faça a revisão antes de usar.</li>'
+    :achados.length
     ?achados.map(a=>`<li style="margin-bottom:8px">${escTxt(a)}</li>`).join('')
     :'<li style="list-style:none;margin-left:-18px">Nenhum ponto encontrado.</li>';
   document.getElementById('modal-auditoria').classList.add('open');
@@ -7404,13 +7408,9 @@ async function extrairArquivo(file,preservarIntegral,onStatus){
     catch(e){ throw new Error(`Não consegui ler o arquivo Word "${file.name}".`); }
     if(!textoBruto) return {texto:'',truncou:false,comprimiu:false};
     if(preservarIntegral) return {texto:textoBruto,truncou:false,comprimiu:false};
-    // Documento de apoio: ainda passa por uma extração jurídica objetiva —
-    // mas envia só o TEXTO (pequeno), não o arquivo, então o limite de
-    // tamanho de envio não se aplica aqui.
-    const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({textoBruto,nomeArquivo:file.name})});
-    const j=await resp.json();
-    if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
-    return {texto:j.texto||textoBruto,truncou:!!j.truncou,comprimiu:false};
+    // Word já contém texto: preservar a íntegra localmente evita uma chamada
+    // à OpenAI. A Anthropic recebe esse conteúdo na geração da minuta.
+    return {texto:textoBruto,truncou:false,comprimiu:false};
   }
   // PDF/imagem: a IA precisa "olhar" o documento — não dá pra ler como texto
   // puro. Isso vai direto pro Apps Script (GAS_URL), não pela Vercel: a
@@ -7702,7 +7702,7 @@ window.gerarReeditar=async function(){
       }
       document.getElementById('btn-abrir-reeditar').style.display='inline-block';
       document.getElementById('btn-abrir-reeditar').href=d2.docUrl;
-      const avisos=[...(d2.truncada?['A geração pode ter parado antes do fim (bateu no limite de rodadas) — confira o final do documento.']:[]),...(d2.avisos||[])];
+      const avisos=[...(d2.truncada?['A geração pode ter parado antes do fim (bateu no limite de rodadas) — confira o final do documento.']:[]),...(d2.avisos||[]),...(d2.conferenciaIA==='pendente'?['Conferência OpenAI pendente — acompanhe o resultado no card.']:[])];
       document.getElementById('reeditar-doc-nome').textContent=[d2.docNome||'',...avisos].filter(Boolean).join(' — ');
       update(ref(db,'casos/'+id),{...(d2.folderUrl?{driveUrl:d2.folderUrl}:{}),docUrl:d2.docUrl}).catch(()=>{});
     } else {
@@ -7816,13 +7816,7 @@ window.gerarAnalise=async function(){
         return;
       }
     }
-    // O Apps Script já corta o material em 100 mil caracteres antes de mandar
-    // pra IA. Cortar aqui também não muda nada no resultado e evita um envio
-    // gigante que o servidor recusaria com um erro sem explicação nenhuma.
-    let documentos=blocos.join('\n\n');
-    if(documentos.length>100000){
-      documentos=documentos.slice(0,100000)+'\n\n[...material cortado por limite de tamanho — se algo importante ficou de fora, tire um anexo e gere de novo...]';
-    }
+    const documentos=blocos.join('\n\n');
     if(!documentos.trim()){
       setErro('Não há nada pra IA ler ainda. Escreva as informações do caso, responda as perguntas ou anexe um documento.');
       document.getElementById('btn-gerar').disabled=false;
@@ -7850,7 +7844,7 @@ window.gerarAnalise=async function(){
       }
       document.getElementById('btn-abrir-doc').href=d2.docUrl;
       document.getElementById('btn-abrir-doc').style.display='inline-block';
-      const avisos=[...(d2.truncada?['A geração pode ter parado antes do fim (bateu no limite de rodadas) — confira o final do documento.']:[]),...(d2.avisos||[])];
+      const avisos=[...(d2.truncada?['A geração pode ter parado antes do fim (bateu no limite de rodadas) — confira o final do documento.']:[]),...(d2.avisos||[]),...(d2.conferenciaIA==='pendente'?['Conferência OpenAI pendente — acompanhe o resultado no card.']:[])];
       document.getElementById('modal-doc-nome').textContent=[d2.docNome||'',...avisos].filter(Boolean).join(' — ');
       document.getElementById('modal-result-text').style.display='none';
       document.getElementById('btn-copiar-rel').style.display='none';

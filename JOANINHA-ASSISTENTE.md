@@ -1,5 +1,28 @@
 # Joaninha: conversa e ações nos cards
 
+## Divisão autorizada entre as IAs
+
+Anthropic lê PDF/imagens e gera/revisa as minutas no Apps Script, usando
+`ANTHROPIC_API_KEY` e o modelo anterior `claude-sonnet-4-6` (ou
+`ANTHROPIC_MODEL`, quando configurado). Limites de saída e continuação são
+preservados. O texto dos documentos não é cortado antes da geração.
+Word é extraído localmente, preservado integralmente e recebido pela Anthropic
+na geração, sem chamada à OpenAI para ler esse arquivo.
+
+OpenAI gerencia a Joaninha, os comandos e a conferência posterior da minuta.
+O motor existente continua calculando os orçamentos. O documento é entregue
+antes da chamada de auditoria; enquanto ela não terminar, o card mostra
+“Conferência OpenAI pendente”. Uma falha dessa auditoria mantém o aviso,
+preservando o documento e sem anunciar conferência concluída.
+
+Para ativar no Google: substituir somente **Código.gs** por
+`apps-script/cartorio-drive-api.js`, salvar e executar `testarAnthropicCartorio`.
+Esse teste usa uma chamada pequena com texto fictício e não grava cards nem
+documentos. Confirmado o teste, atualizar a mesma implantação com Nova versão.
+**OPENAI.gs e cartorio-rede.gs permanecem nos respectivos arquivos.**
+É necessário que a chave Anthropic ainda seja válida e a conta tenha capacidade
+e saldo; isso não pode ser confirmado pelos testes com serviços simulados.
+
 Ao clicar na mascote, o painel abre uma conversa com histórico, contexto do
 card, campo para ditado e acesso às ferramentas anteriores. O histórico fica
 neste navegador, separado pelo usuário escolhido no painel e pela conta do

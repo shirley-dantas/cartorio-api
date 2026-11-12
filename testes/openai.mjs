@@ -220,7 +220,7 @@ test('Joaninha compacta 116 casos sem perder campos, registros ou separadores', 
   assert.ok(JSON.stringify(tabela).length < antigo.length * 0.8);
 });
 
-test('minuta longa com Luna mantém 16.000 tokens por rodada e junta a continuação inteira', () => {
+test('minuta longa com Anthropic mantém 16.000 tokens por rodada e junta a continuação inteira', () => {
   const inicio = 'Cláusula fictícia integral.\n'.repeat(3000);
   const fim = 'Encerramento fictício, leitura e assinaturas.';
   const respostas = [
@@ -229,13 +229,13 @@ test('minuta longa com Luna mantém 16.000 tokens por rodada e junta a continua�
   ];
   const pedidos = [], agendados = [], finalizados = [], erros = [];
   const ctx = {
-    PropertiesService:{getScriptProperties:()=>({getProperty:n=>({OPENAI_API_KEY:'teste-ficticio',OPENAI_MODEL:'gpt-6-luna'})[n]||null})},
+    PropertiesService:{getScriptProperties:()=>({getProperty:n=>({ANTHROPIC_API_KEY:'teste-ficticio'})[n]||null})},
     Logger:{log(){}},
     UrlFetchApp:{fetch:(url, req)=>{
-      assert.equal(url,'https://api.openai.com/v1/responses');
+      assert.equal(url,'https://api.anthropic.com/v1/messages');
       pedidos.push(JSON.parse(req.payload));
       const data=respostas.shift();
-      return {getResponseCode:()=>200,getContentText:()=>JSON.stringify(data)};
+      return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({content:[{type:'text',text:data.output[0].content[0].text}],stop_reason:data.status==='incomplete'?'max_tokens':'end_turn'})};
     }}
   };
   vm.createContext(ctx);
@@ -254,6 +254,6 @@ test('minuta longa com Luna mantém 16.000 tokens por rodada e junta a continua�
   assert.equal(finalizados[0].truncada,false);
   assert.equal(finalizados[0].estado.textoAcumulado,inicio+fim);
   assert.equal(pedidos.length,2);
-  for(const p of pedidos){assert.equal(p.model,'gpt-6-luna');assert.equal(p.max_output_tokens,16000);assert.equal(p.reasoning.effort,'none');}
-  assert.ok(pedidos[1].input[0].content.includes(inicio.slice(-1500)));
+  for(const p of pedidos){assert.equal(p.model,'claude-sonnet-4-6');assert.equal(p.max_tokens,16000);}
+  assert.ok(pedidos[1].messages[0].content.includes(inicio.slice(-1500)));
 });

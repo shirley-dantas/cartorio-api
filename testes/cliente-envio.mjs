@@ -20,7 +20,7 @@ function mundo({recusaBanco = false, iaFalha = false} = {}) {
   const caminho = (u) => u.replace('https://painel-cartorio-default-rtdb.firebaseio.com', '').replace('.json', '').split('/').filter(Boolean);
   const pegar = (p) => p.reduce((o, k) => (o == null ? o : o[k]), db);
   const pôr = (p, v) => { let o = db; p.slice(0, -1).forEach((k) => { o = o[k] = o[k] || {}; }); o[p[p.length - 1]] = v; };
-  const externos = []; const props = {OPENAI_API_KEY: 'x'};
+  const externos = []; const props = {OPENAI_API_KEY: 'x', ANTHROPIC_API_KEY:'x'};
   const resposta = (cod, corpo) => ({getResponseCode: () => cod, getContentText: () => JSON.stringify(corpo === undefined ? null : corpo)});
   class Pasta {
     constructor(nome) { this.nome = nome; this.arquivos = []; this.sub = []; this.id = 'pasta' + (Pasta.n = (Pasta.n || 0) + 1); }
