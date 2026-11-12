@@ -81,7 +81,7 @@ Testes cobrem criação, alteração, remoção, conclusão, ordem, atrasos,
 datas antigas, desktop/celular e ausência de alteração das assinaturas.
 Prévia aprovada e publicação autorizada pela usuária em 12/11/2026.
 
-## Prévia — Atenções do dia (12/11/2026)
+## Atenções do dia — aprovado (12/11/2026)
 
 A usuária autorizou implementar a proposta de acompanhamento da Central.
 A apresentação inicial mostra três prioridades, com motivo, ação sugerida
@@ -113,8 +113,8 @@ sem concluir etapas ou modificar assinatura/status. Concluir tarefa marca
 Testes: prazos por etapa, atividade recente, fuso, vencimento por hora,
 adiamento/retorno, chaves estáveis, limite de apresentação, conjunto completo,
 leitura sem gravação, desktop/celular, navegação, conclusão, andamento
-idempotente e alteração concorrente. Prévia usa dados fictícios; publicação
-depende do aval visual da usuária.
+idempotente e alteração concorrente. Prévia com dados fictícios apresentada;
+a usuária aprovou a versão mais leve e autorizou a publicação em 12/11/2026.
 
 Após a primeira prévia, a usuária pediu um tom mais leve e fluido. A revisão
 usa frases de conversa em um único parágrafo por cartão, datas como “ontem,
