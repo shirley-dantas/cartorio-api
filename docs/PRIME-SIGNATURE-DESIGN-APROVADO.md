@@ -76,7 +76,7 @@ seguida das ferramentas existentes, mantendo a autorização atual. O pedido
 alterar o aprendizado da IA. Prévia aprovada e publicação autorizada pela
 usuária em 12/11/2026, após a apresentação da lateral simplificada.
 
-## Ajuste visual da lateral — prévia de 12/11/2026
+## Ajuste visual da lateral — aprovado em 12/11/2026
 
 A usuária apontou desalinhamento e pediu melhorar a apresentação e trocar a
 frase estática do rodapé por uma flor. Prévia com ícones, rótulos e contagens
@@ -84,3 +84,5 @@ em colunas, cápsulas de largura uniforme e espaçamento regular. Lateral um
 pouco mais larga para caberem os nomes completos. Orquídea decorativa no
 rodapé; frase diária da IA no cabeçalho da Central permanece preservada.
 Prévia aprovada e publicação autorizada pela usuária em 12/11/2026.
+Após o bloqueio diário de implantações no plano gratuito, a usuária informou
+a contratação do Vercel Pro e autorizou retomar a publicação pendente.
