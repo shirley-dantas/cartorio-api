@@ -107,6 +107,7 @@ try{
  assert.equal(await pg.evaluate(()=>window.__injetou),undefined);
  assert.equal(await pg.locator('.jnc-thread img[src="x"]').count(),0);
  console.log('ok: consulta automática e texto da IA sem interpretação de HTML.');
+ await pg.getByRole('button',{name:'Nova conversa',exact:true}).click();
  const antesJuridico=contadorPlanos;
  await mensagem(pg,'Tenho uma dúvida jurídica sobre um ato fictício.');
  assert.equal(contadorJuridico,1);assert.equal(contadorPlanos,antesJuridico+1,'a orientação jurídica não deve ser reescrita por outra inferência');
