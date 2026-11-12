@@ -15,6 +15,7 @@ const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } ca
 const ini = html.indexOf('// ── Arrastar arquivos para o card'), fim = html.indexOf('// ── fim: arrastar arquivos para o card ──');
 assert(ini > 0 && fim > ini, 'não achei o bloco no index.html');
 const bloco = html.slice(ini, fim);
+const lote=html.slice(html.indexOf('async function lerArquivosParalelo('),html.indexOf('// Um alerta bloqueante',html.indexOf('async function lerArquivosParalelo(')));
 const i2 = html.indexOf('// ── A lista de documentos recebidos ──'); const recebidos = html.slice(i2, html.indexOf('// ── fim: a lista de documentos recebidos ──'));
 
 function mundo({respostas, ...opcoes} = {}) {
@@ -35,7 +36,7 @@ function mundo({respostas, ...opcoes} = {}) {
       return {json: async () => r};
     }
   };
-  vm.createContext(caixa); vm.runInContext(bloco + '\n' + recebidos + '\nthis.__f={entradaDefinir:window.entradaDefinir,entradaEscolherCaso:window.entradaEscolherCaso,entradaDescartar:window.entradaDescartar,solteReceber:window.solteReceber,solteTirar:window.solteTirar,renomearDocCard:window.renomearDocCard,SOLTE,solteHtml,pedidoRecebidosHtml};', Object.assign(caixa, {window: caixa}));
+  vm.createContext(caixa); vm.runInContext(bloco + '\n' + recebidos + '\n'+lote+'\nthis.__f={lerArquivosParalelo,entradaDefinir:window.entradaDefinir,entradaEscolherCaso:window.entradaEscolherCaso,entradaDescartar:window.entradaDescartar,solteReceber:window.solteReceber,solteTirar:window.solteTirar,renomearDocCard:window.renomearDocCard,SOLTE,solteHtml,pedidoRecebidosHtml};', Object.assign(caixa, {window: caixa}));
   const arquivo = (nome, tipo, bytes = 'abc') => ({name: nome, type: tipo, size: bytes.length, arrayBuffer: async () => new TextEncoder().encode(bytes).buffer});
   const esperar = async () => { for (let i = 0; i < 40; i++) await new Promise((r) => setImmediate(r)); };
   return {caixa, f: caixa.__f, ouvintes, enviados, el, toasts, dialogos, arquivo, esperar, pico: () => picoVoo};
@@ -97,9 +98,30 @@ await passo('Apps Script antigo ou banco recusando: o motivo aparece escrito e o
   const c = mundo(); c.caixa.fetch = async () => { throw new Error('sem rede'); }; c.f.solteReceber('C1', [c.arquivo('a.jpg', 'image/jpeg')]); await c.esperar();
   assert(/Erro de conexão/.test(c.f.SOLTE.C1[0].msg));
 });
-await passo('vários arquivos de uma vez sobem no máximo dois por vez (o Apps Script não é invadido)', async () => {
+await passo('vários arquivos de uma vez são lidos um por vez para evitar rajadas na OpenAI', async () => {
   const m = mundo(); m.f.solteReceber('C1', Array.from({length: 7}, (_, i) => m.arquivo('f' + i + '.jpg', 'image/jpeg'))); await m.esperar();
-  assert.equal(m.enviados.length, 7); assert(m.pico() <= 2, 'pico de ' + m.pico()); assert(m.f.SOLTE.C1.every((x) => x.estado === 'ok'));
+  assert.equal(m.enviados.length, 7); assert.equal(m.pico(),1); assert(m.f.SOLTE.C1.every((x) => x.estado === 'ok'));
+});
+await passo('lotes de cards diferentes compartilham a fila e uma falha não bloqueia os próximos arquivos',async()=>{
+  const m=mundo({respostas:(c,n)=>{if(n===1)throw new Error('falha de rede');return {ok:true,nome:c.nomeArquivo};}});
+  m.f.solteReceber('C1',[m.arquivo('a.pdf','application/pdf'),m.arquivo('b.pdf','application/pdf')]);
+  m.f.solteReceber('C2',[m.arquivo('c.pdf','application/pdf')]);
+  await m.esperar();assert.equal(m.pico(),1);assert.equal(m.enviados.length,3);
+  assert.equal(m.f.SOLTE.C1[0].estado,'erro');assert.equal(m.f.SOLTE.C1[1].estado,'ok');assert.equal(m.f.SOLTE.C2[0].estado,'ok');
+});
+await passo('429 após salvar orienta reler o arquivo existente e não reenviar ou trocar a chave',async()=>{
+  const m=mundo({respostas:()=>({ok:true,nome:'Recebido_teste.pdf',confirmar:true,aviso:'A OpenAI não respondeu (HTTP 429). Confira a chave, os créditos e o modelo.'})});
+  m.f.solteReceber('C1',[m.arquivo('a.pdf','application/pdf')]);await m.esperar();
+  const r=m.f.SOLTE.C1[0];assert.equal(r.estado,'confirmar');assert.match(r.msg,/Ler de novo/);assert.match(r.msg,/Não é necessário reenviar/);assert.doesNotMatch(r.msg,/Confira a chave/);assert.equal(m.enviados.length,1);
+});
+await passo('anexos da minuta usam a mesma fila e preservam texto integral mesmo quando outro arquivo falha',async()=>{
+  const m=mundo();let ativos=0,pico=0;const integral='Documento fictício completo.\n'.repeat(1000);
+  const arquivos=['a.pdf','b.pdf','c.pdf'].map(n=>m.arquivo(n,'application/pdf'));
+  const r=await m.f.lerArquivosParalelo(arquivos,async f=>{
+    ativos++;pico=Math.max(pico,ativos);
+    try{await new Promise(resolve=>setImmediate(resolve));if(f.name==='b.pdf')throw new Error('falhou a leitura');return {texto:integral,truncou:false};}finally{ativos--;}
+  });
+  assert.equal(pico,1);assert.equal(r.length,3);assert.equal(r[0].resultado.texto,integral);assert.equal(r[1].ok,false);assert.equal(r[2].resultado.texto,integral);
 });
 await passo('a lista de recebidos mostra o que foi arrastado: "confirmar o nome" e o lápis (só nele)', () => {
   const m = mundo(); const h = m.f.pedidoRecebidosHtml({id: 'C1', documentos: {
@@ -182,14 +204,14 @@ await passo('entrada: o aviso no topo agrupa por quem mandou, com telefone legí
   assert(/Chegaram 1 arquivo pelo WhatsApp/.test(h) && /\(11\) 91111-2222/.test(h)); assert(/Escolher o caso/.test(h) && /Descartar/.test(h));
   m.f.entradaDefinir(null); assert.equal(cc.style.display, 'none'); assert.equal(cc.innerHTML, '');
 });
-await passo('entrada: escolher o caso manda cada arquivo ao Apps Script (dois por vez), mostra o andamento no card e abre o card', async () => {
+await passo('entrada: escolher o caso envia um arquivo por vez, mostra o andamento no card e abre o card', async () => {
   const m = montarEntrada({respostas: (c) => ({ok: true, nome: 'Contrato_' + c.entradaId + '.pdf', confirmar: c.entradaId === 'w_b'})});
   m.f.entradaDefinir({w_a: REG('A.pdf'), w_b: REG('B.pdf'), w_c: REG('C.pdf'), w_d: REG('D.pdf')});
   const abriu = []; m.caixa.window.irParaCasoPorId = (id) => abriu.push(id);
   m.caixa.document.getElementById('modal-compartilhado').classList.add = () => { m.caixa.__aberto = true; }; m.caixa.document.getElementById('modal-compartilhado').classList.remove = () => { m.caixa.__aberto = false; };
   m.f.entradaEscolherCaso('5511988887777'); assert.equal(m.caixa.__aberto, true); assert(/4 arquivos de Reinaldo \(WhatsApp\)/.test(m.el('cp-sub').textContent)); assert(/JRL Holding/.test(m.el('cp-lista').innerHTML));
   m.caixa.window.compartilhadoEscolher('C2'); await m.esperar();
-  const envios = m.enviados.filter((e) => e.acao === 'entrada-atribuir'); assert.equal(envios.length, 4); assert(envios.every((e) => e.casoId === 'C2')); assert.deepEqual(envios.map((e) => e.entradaId).sort(), ['w_a', 'w_b', 'w_c', 'w_d']); assert(m.pico() <= 2, 'pico de ' + m.pico());
+  const envios = m.enviados.filter((e) => e.acao === 'entrada-atribuir'); assert.equal(envios.length, 4); assert(envios.every((e) => e.casoId === 'C2')); assert.deepEqual(envios.map((e) => e.entradaId).sort(), ['w_a', 'w_b', 'w_c', 'w_d']); assert.equal(m.pico(),1);
   const l = m.f.SOLTE.C2; assert.equal(l.length, 4); assert.equal(l.filter((x) => x.estado === 'ok').length, 3); assert.equal(l.filter((x) => x.estado === 'confirmar').length, 1);
   assert.deepEqual(abriu, ['C2']); assert.equal(m.caixa.__aberto, false); assert(m.toasts.some((t) => /4 arquivos enviados para JRL Holding/.test(t)));
 });

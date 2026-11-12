@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const require = createRequire(import.meta.url);
-const {openaiPayload, openaiResultado} = require('../apps-script/openai.js');
+const {openaiPayload, openaiResultado, openaiLimite} = require('../apps-script/openai.js');
 const ia = require('../lib/ia.js');
 const opcoes = {system: 'Não invente dados.', max_tokens: 2000, messages: [{role: 'user', content: 'Teste fictício'}]};
 const completo = (texto = 'Concluído.') => ({status: 'completed', output: [{type: 'message', content: [{type: 'output_text', text: texto}]}]});
@@ -93,6 +93,35 @@ test('sem chave não há requisição; JSON inválido não vira resposta vazia',
     await assert.rejects(ia.texto(opcoes), /formato reconhecível/);
   });
 });
+test('limite diário e pedido maior que o teto não são tratados como uma espera de um minuto',async()=>{
+  for(const [message,tipo,trecho] of [
+    ['Rate limit reached for org_privada model_privado on requests per day (RPD): Limit 50, Used 50, Requested 1.','diario',/limite diário/],
+    ['Rate limit reached on tokens per day (TPD): Limit 100000, Used 100000, Requested 16000.','diario',/limite diário/],
+    ['Rate limit reached on tokens per min (TPM): Limit 60000, Used 0, Requested 63710.','volume',/Repetir o mesmo pedido não resolve/]
+  ]){
+    const detalhe={code:'rate_limit_exceeded',message};const r=openaiLimite(detalhe);
+    assert.equal(r.tipo,tipo);assert.equal(r.repetir,false);assert.match(r.mensagem,trecho);assert.doesNotMatch(r.mensagem,/org_privada|model_privado/);
+    await comFetch(async()=>Response.json({error:detalhe},{status:429}),async()=>assert.rejects(ia.texto(opcoes),e=>e.status===429&&!e.repetirApos&&trecho.test(e.message)));
+    let chamadas=0,esperas=0;
+    const ctx={PropertiesService:{getScriptProperties:()=>({getProperty:n=>n==='OPENAI_API_KEY'?'ficticia':null})},Utilities:{sleep:()=>esperas++},UrlFetchApp:{fetch:()=>{chamadas++;return {getResponseCode:()=>429,getContentText:()=>JSON.stringify({error:detalhe})};}}};
+    vm.createContext(ctx);vm.runInContext(readFileSync(new URL('../apps-script/openai.js',import.meta.url),'utf8'),ctx);
+    assert.throws(()=>ctx.chamarOpenAI(opcoes),trecho);assert.equal(chamadas,1);assert.equal(esperas,0);
+  }
+});
+test('formato JSON recusado tem uma alternativa compatível; outros HTTP 400 não são repetidos', async () => {
+  let chamadas=0;
+  await comFetch(async(url,req)=>{
+    const p=JSON.parse(req.body);chamadas++;
+    if(chamadas===1){assert.equal(p.text.format.type,'json_object');return Response.json({error:{code:'unsupported_value',param:'text.format.type',message:'json_object not supported segredo'}},{status:400});}
+    assert.equal(p.text,undefined);assert.equal(p.max_output_tokens,2000);
+    return Response.json(completo('{"resposta":"Olá","acoes":[]}'));
+  },async()=>assert.equal(await ia.texto({...opcoes,json:true}),'{"resposta":"Olá","acoes":[]}'));
+  assert.equal(chamadas,2);chamadas=0;
+  await comFetch(async()=>{chamadas++;return Response.json({error:{param:'input',message:'segredo'}},{status:400});},async()=>{
+    await assert.rejects(ia.texto({...opcoes,json:true}),e=>e.status===400&&!/segredo|Confira a chave/.test(e.message));
+  });
+  assert.equal(chamadas,1);
+});
 function stream(events, chunkSize = 7) {
   const bytes = new TextEncoder().encode(events.map(e => 'data: '+JSON.stringify(e)+'\r\n\r\n').join(''));
   return new Response(new ReadableStream({start(c) {for(let i=0;i<bytes.length;i+=chunkSize) c.enqueue(bytes.slice(i,i+chunkSize));c.close();}}));
@@ -120,6 +149,22 @@ test('Apps Script usa o mesmo protocolo, chave das propriedades e detecta falhas
   assert.equal(pedido.req.headers.Authorization, 'Bearer teste-script');
   assert.equal(JSON.parse(pedido.req.payload).store, false);
   status = 401; assert.throws(() => ctx.chamarOpenAI(opcoes), /HTTP 401/);
+});
+
+test('Apps Script aguarda limite temporário sem reduzir a minuta; cota e volume excessivo não são repetidos', () => {
+  for (const code of ['rate_limit_exceeded','insufficient_quota','grande']) {
+    let chamadas=0;const esperas=[],pedidos=[];
+    const ctx={PropertiesService:{getScriptProperties:()=>({getProperty:n=>n==='OPENAI_API_KEY'?'ficticia':null})},Utilities:{sleep:n=>esperas.push(n)},UrlFetchApp:{fetch:(url,req)=>{
+      chamadas++;pedidos.push(req.payload);
+      const falha=code!=='rate_limit_exceeded'||chamadas===1;
+      return {getResponseCode:()=>falha?429:200,getAllHeaders:()=>({'Retry-After':'2'}),getContentText:()=>JSON.stringify(falha?{error:{code:code==='grande'?'rate_limit_exceeded':code,message:code==='grande'?'Request too large':'temporário'}}:completo('Minuta completa.'))};
+    }}};
+    vm.createContext(ctx);vm.runInContext(readFileSync(new URL('../apps-script/openai.js',import.meta.url),'utf8'),ctx);
+    if(code==='rate_limit_exceeded'){
+      assert.equal(ctx.chamarOpenAI({...opcoes,max_tokens:16000}).texto,'Minuta completa.');
+      assert.deepEqual(esperas,[2000]);assert.equal(chamadas,2);assert.equal(pedidos[0],pedidos[1]);assert.equal(JSON.parse(pedidos[0]).max_output_tokens,16000);
+    }else{assert.throws(()=>ctx.chamarOpenAI(opcoes));assert.equal(chamadas,1);assert.deepEqual(esperas,[]);}
+  }
 });
 
 test('Joaninha e perguntas da minuta mantêm o contrato que o painel já lê', async () => {
@@ -175,7 +220,7 @@ test('Joaninha compacta 116 casos sem perder campos, registros ou separadores', 
   assert.ok(JSON.stringify(tabela).length < antigo.length * 0.8);
 });
 
-test('minuta longa com Luna mantém 16.000 tokens por rodada e junta a continuação inteira', () => {
+test('minuta longa com Anthropic mantém 16.000 tokens por rodada e junta a continuação inteira', () => {
   const inicio = 'Cláusula fictícia integral.\n'.repeat(3000);
   const fim = 'Encerramento fictício, leitura e assinaturas.';
   const respostas = [
@@ -184,13 +229,13 @@ test('minuta longa com Luna mantém 16.000 tokens por rodada e junta a continua�
   ];
   const pedidos = [], agendados = [], finalizados = [], erros = [];
   const ctx = {
-    PropertiesService:{getScriptProperties:()=>({getProperty:n=>({OPENAI_API_KEY:'teste-ficticio',OPENAI_MODEL:'gpt-6-luna'})[n]||null})},
+    PropertiesService:{getScriptProperties:()=>({getProperty:n=>({ANTHROPIC_API_KEY:'teste-ficticio'})[n]||null})},
     Logger:{log(){}},
     UrlFetchApp:{fetch:(url, req)=>{
-      assert.equal(url,'https://api.openai.com/v1/responses');
+      assert.equal(url,'https://api.anthropic.com/v1/messages');
       pedidos.push(JSON.parse(req.payload));
       const data=respostas.shift();
-      return {getResponseCode:()=>200,getContentText:()=>JSON.stringify(data)};
+      return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({content:[{type:'text',text:data.output[0].content[0].text}],stop_reason:data.status==='incomplete'?'max_tokens':'end_turn'})};
     }}
   };
   vm.createContext(ctx);
@@ -209,6 +254,6 @@ test('minuta longa com Luna mantém 16.000 tokens por rodada e junta a continua�
   assert.equal(finalizados[0].truncada,false);
   assert.equal(finalizados[0].estado.textoAcumulado,inicio+fim);
   assert.equal(pedidos.length,2);
-  for(const p of pedidos){assert.equal(p.model,'gpt-6-luna');assert.equal(p.max_output_tokens,16000);assert.equal(p.reasoning.effort,'none');}
-  assert.ok(pedidos[1].input[0].content.includes(inicio.slice(-1500)));
+  for(const p of pedidos){assert.equal(p.model,'claude-sonnet-4-6');assert.equal(p.max_tokens,16000);}
+  assert.ok(pedidos[1].messages[0].content.includes(inicio.slice(-1500)));
 });

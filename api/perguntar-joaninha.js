@@ -41,6 +41,9 @@ async function prepararCorpo(req) {
 
 module.exports = async (req, res) => {
   await prepararCorpo(req);
+  if(req.method === 'POST' && (req.query?.acao === 'assistente' || /[?&]acao=assistente(?:&|$)/.test(req.url || ''))) {
+    return require('../lib/joaninha-assistente.js')(req,res);
+  }
   // A leitura da letra de mão do Bússola e a caixa de entrada do WhatsApp entram por esta mesma porta (ver
   // lib/ler-letra.js e lib/whatsapp-entrada.js): o plano da Vercel não comporta uma 13ª função.
   if (String(req.url || "").includes("acao=whatsapp") || (req.query && req.query.acao === "whatsapp")) return whatsappEntrada(req, res);

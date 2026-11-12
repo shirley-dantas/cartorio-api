@@ -90,7 +90,7 @@ const snap=(p)=>{const v=get_(p);return {val:()=>v===undefined?null:JSON.parse(J
 export const getDatabase=()=>({});export const ref=(_,p)=>({p:p||'',key:(p||'').split('/').pop()});
 export const onValue=(r,cb)=>{(window.__CB[r.p]=window.__CB[r.p]||[]).push(cb);setTimeout(()=>cb(snap(r.p)),50);return ()=>{}};export const get=async(r)=>snap(r.p);
 window.__emitir=(p)=>(window.__CB[p]||[]).forEach(cb=>cb(snap(p)));
-export const set=async()=>{};export const update=async(r,o)=>{window.__UPD.push({p:r.p,o});};export const remove=async()=>{};export const push=(r)=>({p:r.p+'/n1',key:'n1'});`,
+export const set=async()=>{};export const update=async(r,o)=>{window.__UPD.push({p:r.p,o});};export const remove=async()=>{};export const push=(r)=>({p:r.p+'/n1',key:'n1'});export const runTransaction=async()=>{throw new Error('Transação não prevista nesta suíte de leitura da esteira.');};`,
   'firebase-auth.js': 'export const getAuth=()=>({currentUser:null});export const signInWithEmailAndPassword=async()=>{throw new Error("x")};export const sendPasswordResetEmail=async()=>{};export const onAuthStateChanged=(a,cb)=>{setTimeout(()=>cb(null),10);return ()=>{}};export const signOut=async()=>{};',
   'firebase-storage.js': 'export const getStorage=()=>({});export const ref=()=>({});export const uploadBytes=async()=>({});export const getDownloadURL=async()=>"";'};
 await p.route('https://www.gstatic.com/firebasejs/**', (r) => { const n = r.request().url().split('/').pop(); r.fulfill({status: 200, contentType: 'text/javascript', body: stubs[n] || 'export {}'}); });

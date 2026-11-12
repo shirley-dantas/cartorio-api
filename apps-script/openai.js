@@ -24,6 +24,7 @@ function openaiPayload(opcoes, modelo) {
   };
   if (opcoes.system) payload.instructions = opcoes.system;
   if (opcoes.stream) payload.stream = true;
+  if (opcoes.json) payload.text = {format: {type: 'json_object'}};
   // Luna usa raciocínio médio por padrão. Estas rotas têm limites curtos de
   // saída herdados do painel: reservar a saída para texto evita consumi-la
   // inteira em raciocínio e devolver uma resposta vazia (inclusive no teste OK).
@@ -56,22 +57,57 @@ function openaiResultado(data) {
   return {texto: textos.join(''), truncou: !!truncou, recusa: recusa, urls: urls.filter(function(u, i) {return urls.indexOf(u) === i;})};
 }
 
+// Só preserva categoria e contagens do limite. Nunca exibe o erro bruto,
+// que pode conter identificadores da conta e outros detalhes privados.
+function openaiLimite(erro) {
+  erro = erro || {};
+  var codigo = erro.code || erro.type || '', bruto = String(erro.message || '');
+  if (/^(insufficient_quota|billing_hard_limit_reached|billing_not_active)$/.test(codigo)) return {tipo:'cota',repetir:false,mensagem:'A conta da OpenAI está sem cota disponível. Confira o faturamento e os créditos.'};
+  if (codigo !== 'rate_limit_exceeded') return {tipo:'desconhecido',repetir:false,mensagem:'A OpenAI limitou esta chamada (429), mas não detalhou o tipo de limite. Confira os limites da conta antes de tentar novamente.'};
+  var unidade = /\b(TPM|TPD|RPM|RPD)\b/i.exec(bruto);
+  unidade = unidade ? unidade[1].toUpperCase() : /tokens per day/i.test(bruto) ? 'TPD' : /requests per day/i.test(bruto) ? 'RPD' : /tokens per min/i.test(bruto) ? 'TPM' : /requests per min/i.test(bruto) ? 'RPM' : '';
+  var numeros = [], valores = {};
+  [['Limit','Limite'],['Used','Utilizado'],['Requested','Solicitado']].forEach(function(campo) {
+    var m = new RegExp('\\b'+campo[0]+'\\s*:?\\s*([0-9][0-9,.]{0,24})(?![0-9,.])','i').exec(bruto);
+    if(m){var numero=m[1].replace(/[.,]+$/,'');numeros.push(campo[1]+': '+numero);valores[campo[0]]=Number(numero.replace(/,/g,''));}
+  });
+  var detalhe = numeros.length ? ' '+numeros.join('; ')+'.' : '';
+  if (/request too large|requested.*exceeds/i.test(bruto) || (valores.Requested>valores.Limit)) return {tipo:'volume',repetir:false,mensagem:'O volume de dados desta solicitação ultrapassa o limite permitido pela conta OpenAI.'+detalhe+' A minuta não foi reduzida. Repetir o mesmo pedido não resolve; é necessário rever os limites da conta.'};
+  if(unidade==='RPD'||unidade==='TPD'||/per day/i.test(bruto)) return {tipo:'diario',repetir:false,mensagem:'A OpenAI atingiu o limite diário de '+(unidade==='TPD'?'tokens':'solicitações')+(unidade?' ('+unidade+')':'')+'.'+detalhe+' Aguardar um minuto não resolve: é preciso esperar a renovação desse limite ou rever o nível da conta.'};
+  return {tipo:'temporario',repetir:true,mensagem:'A OpenAI atingiu um limite temporário de uso'+(unidade?' ('+unidade+')':'')+'.'+detalhe+' Aguarde antes de tentar novamente. Se persistir, confira os limites do modelo na conta.'};
+}
+
 // Executado somente no Google Apps Script. A chave fica nas propriedades.
 function chamarOpenAI(opcoes) {
   var props = PropertiesService.getScriptProperties();
   var chave = props.getProperty('OPENAI_API_KEY');
   if (!chave) throw new Error('OPENAI_API_KEY não configurada nas propriedades do script.');
-  var resposta = UrlFetchApp.fetch('https://api.openai.com/v1/responses', {
+  var pedido = {
     method: 'post', contentType: 'application/json',
     headers: {Authorization: 'Bearer ' + chave},
     payload: JSON.stringify(openaiPayload(opcoes, props.getProperty('OPENAI_MODEL'))),
     muteHttpExceptions: true
-  });
-  var codigo = resposta.getResponseCode();
-  if (codigo < 200 || codigo >= 300) throw new Error('A OpenAI não respondeu (HTTP ' + codigo + '). Confira a chave, os créditos e o modelo.');
-  var data;
-  try {data = JSON.parse(resposta.getContentText());} catch (_) {throw new Error('Resposta inválida da OpenAI.');}
-  return openaiResultado(data);
+  };
+  for (var tentativa = 0; tentativa < 3; tentativa++) {
+    var resposta = UrlFetchApp.fetch('https://api.openai.com/v1/responses', pedido);
+    var codigo = resposta.getResponseCode(), data;
+    try {data = JSON.parse(resposta.getContentText());} catch (_) {
+      throw new Error('A OpenAI não respondeu em formato reconhecível (HTTP ' + codigo + ').');
+    }
+    if (codigo >= 200 && codigo < 300) return openaiResultado(data);
+    var erro = data.error || {}, limite = codigo === 429 ? openaiLimite(erro) : null;
+    var temporario = limite && limite.repetir;
+    if (temporario && tentativa < 2) {
+      var headers = resposta.getAllHeaders ? resposta.getAllHeaders() : {};
+      var segundos = Number(headers['Retry-After'] || headers['retry-after']) || 60;
+      Utilities.sleep(Math.max(1, Math.min(60, Math.ceil(segundos))) * 1000);
+      continue;
+    }
+    if (codigo === 429) {
+      throw new Error(limite.mensagem);
+    }
+    throw new Error('A OpenAI não respondeu (HTTP ' + codigo + '). Confira a chave, os créditos e o modelo.');
+  }
 }
 
 // Teste manual sem dados de clientes e sem escrita no Drive ou no Firebase.
@@ -86,4 +122,4 @@ function testarConexaoOpenAI() {
   Logger.log('Conexão com a OpenAI confirmada. Nenhum dado do painel foi alterado.');
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = {openaiPayload: openaiPayload, openaiResultado: openaiResultado};
+if (typeof module !== 'undefined' && module.exports) module.exports = {openaiPayload: openaiPayload, openaiResultado: openaiResultado, openaiLimite: openaiLimite};

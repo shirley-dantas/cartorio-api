@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<link rel="stylesheet" href="lib/joaninha-chat.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel Operacional — 20º Tabelião de Notas</title>
@@ -3230,9 +3231,12 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <script>
 if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 </script>
+<script src="lib/joaninha-protocolo.js"></script>
+<script src="lib/joaninha-chat.js"></script>
 <script type="module">
+import {criarPonteJoaninha} from "./lib/joaninha-ponte.js";
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
-import { getDatabase, ref, onValue, get, set, push, update, remove } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
+import { getDatabase, ref, onValue, get, set, push, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js';
 
@@ -3278,13 +3282,14 @@ async function lerRespostaCalendar(r){
 // Em toda chamada, o dado já foi gravado no Firebase antes desta função rodar —
 // se o Calendar falhar, o painel continua certo, só o evento do Google que fica
 // para trás. Por isso o alerta sempre deixa claro que a data já foi salva.
-async function sincronizarEventoCalendar(id,caso){
+async function sincronizarEventoCalendar(id,caso,opcoes={}){
+  const avisar=texto=>{if(!opcoes.silencioso)alert(texto);};
   try{
     if(!caso.agendado){
       if(caso.calendarEventId){
         const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'excluir-evento-calendar',eventId:caso.calendarEventId})});
         const data=await lerRespostaCalendar(r);
-        if(!data.ok){alert('Erro ao remover evento do Calendar: '+(data.erro||'motivo desconhecido'));return;}
+        if(!data.ok){avisar('Erro ao remover evento do Calendar: '+(data.erro||'motivo desconhecido'));return;}
         update(ref(db,`casos/${id}`),{calendarEventId:''});
       }
       return;
@@ -3298,12 +3303,15 @@ async function sincronizarEventoCalendar(id,caso){
     })});
     const data=await lerRespostaCalendar(r);
     if(data.ok&&data.eventId){
-      update(ref(db,`casos/${id}`),{calendarEventId:data.eventId});
+      await update(ref(db,`casos/${id}`),{calendarEventId:data.eventId});
+      return {ok:true,eventId:data.eventId};
     }else{
-      alert('Salvei a data no painel, mas o Calendar recusou: '+(data.erro||'motivo desconhecido'));
+      avisar('Salvei a data no painel, mas o Calendar recusou: '+(data.erro||'motivo desconhecido'));
+      return {ok:false};
     }
   }catch(e){
-    alert('Salvei a data no painel, mas houve erro de conexão com o Calendar: '+e.message);
+    avisar('Salvei a data no painel, mas houve erro de conexão com o Calendar: '+e.message);
+    return {ok:false};
   }
 }
 
@@ -3537,6 +3545,7 @@ onValue(casosRef,(snap)=>{
     }
     const fotoAntes=inicializado?casos:null;
     casos=data;
+    window.joaninhaChat?.atualizarCasos(data);
     inicializado=true;
     if(fotoAntes&&typeof esteiraVarrer==='function')esteiraVarrer(fotoAntes,data);
     renderStats();
@@ -6366,6 +6375,7 @@ window.abrirMinuta=async function(id){
   document.getElementById('modal-doc-nome').textContent='';
   document.getElementById('btn-gerar').disabled=true;
   document.getElementById('btn-gerar').dataset.id=id;
+  document.getElementById('btn-gerar').textContent=registroMinutaPendente(id,'gerar')?'Verificar andamento':'Gerar Minuta no Drive';
   minutaArquivosModelo=[];
   minutaArquivosDoc=[];
   minutaTextoExtraido.clear();
@@ -6729,6 +6739,7 @@ window.abrirReeditar=async function(id){
   document.getElementById('btn-abrir-reeditar').style.display='inline-block';
   document.getElementById('btn-reeditar-gerar').disabled=false;
   document.getElementById('btn-reeditar-gerar').dataset.id=id;
+  document.getElementById('btn-reeditar-gerar').textContent=registroMinutaPendente(id,'revisar')?'Verificar andamento':'Gerar nova versão no Drive';
   reeditarRenderAvisoModalidade(c);
   document.getElementById('modal-reeditar').classList.add('open');
 };
@@ -6745,6 +6756,8 @@ window.fecharReeditar=function(){
 window.auditPillDoCaso=function(id){
   const c=casos[id];
   const achados=c&&c.auditoria&&Array.isArray(c.auditoria.achados)?c.auditoria.achados:null;
+  if(c?.auditoria?.status==='pendente')return `<button type="button" class="audit-pill" onclick="abrirAuditoria('${id}')">Conferência OpenAI pendente</button>`;
+  if(c?.auditoria?.status==='concluida'&&achados&&!achados.length)return `<button type="button" class="audit-pill" onclick="abrirAuditoria('${id}')">Conferência OpenAI concluída</button>`;
   if(!achados||!achados.length)return'';
   return `<button type="button" class="audit-pill" onclick="abrirAuditoria('${id}')" title="Auditoria automática — clique para ver os pontos"><i class="ti ti-alert-triangle" style="font-size:11px"></i> Auditoria: ${achados.length} ${achados.length===1?'ponto':'pontos'}</button>`;
 };
@@ -6752,7 +6765,9 @@ window.abrirAuditoria=function(id){
   const c=casos[id];if(!c)return;
   document.getElementById('auditoria-caso-info').textContent=`${c.nome} — ${c.tipo||'Tipo não definido'}`;
   const achados=(c.auditoria&&c.auditoria.achados)||[];
-  document.getElementById('auditoria-lista').innerHTML=achados.length
+  document.getElementById('auditoria-lista').innerHTML=c.auditoria?.status==='pendente'
+    ?'<li>A minuta foi gerada. A conferência pela OpenAI ainda não foi concluída. Faça a revisão antes de usar.</li>'
+    :achados.length
     ?achados.map(a=>`<li style="margin-bottom:8px">${escTxt(a)}</li>`).join('')
     :'<li style="list-style:none;margin-left:-18px">Nenhum ponto encontrado.</li>';
   document.getElementById('modal-auditoria').classList.add('open');
@@ -7393,13 +7408,9 @@ async function extrairArquivo(file,preservarIntegral,onStatus){
     catch(e){ throw new Error(`Não consegui ler o arquivo Word "${file.name}".`); }
     if(!textoBruto) return {texto:'',truncou:false,comprimiu:false};
     if(preservarIntegral) return {texto:textoBruto,truncou:false,comprimiu:false};
-    // Documento de apoio: ainda passa por uma extração jurídica objetiva —
-    // mas envia só o TEXTO (pequeno), não o arquivo, então o limite de
-    // tamanho de envio não se aplica aqui.
-    const resp=await fetch('/api/extrair-texto-arquivo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({textoBruto,nomeArquivo:file.name})});
-    const j=await resp.json();
-    if(!j.ok) throw new Error(j.erro||`Não consegui processar o arquivo "${file.name}".`);
-    return {texto:j.texto||textoBruto,truncou:!!j.truncou,comprimiu:false};
+    // Word já contém texto: preservar a íntegra localmente evita uma chamada
+    // à OpenAI. A Anthropic recebe esse conteúdo na geração da minuta.
+    return {texto:textoBruto,truncou:false,comprimiu:false};
   }
   // PDF/imagem: a IA precisa "olhar" o documento — não dá pra ler como texto
   // puro. Isso vai direto pro Apps Script (GAS_URL), não pela Vercel: a
@@ -7438,10 +7449,9 @@ async function extrairArquivo(file,preservarIntegral,onStatus){
   return {texto:d.texto||'',truncou:!!d.truncou,comprimiu};
 }
 
-// Lê vários arquivos ao mesmo tempo, em vez de um de cada vez — um caso com
-// muitos anexos (RG, CNDT, contrato, extrato…) levava minutos só porque cada
-// leitura esperava a anterior terminar, mesmo elas não dependendo umas das
-// outras (cada arquivo já ia para uma chamada separada do Apps Script).
+// Aceita vários arquivos e os lê pela fila compartilhada desta aba. A conta
+// OpenAI tem limite por minuto: chamadas simultâneas de PDFs passaram a
+// causar 429. Cada leitura preserva o conteúdo e o limite de saída atuais.
 // Nunca deixa um arquivo com erro derrubar os demais: cada leitura fica
 // isolada em {ok, resultado|erro}, e quem chama decide o que fazer.
 // Grava o texto já extraído de cada anexo lido com sucesso em
@@ -7473,7 +7483,7 @@ async function lerArquivosParalelo(arquivos,ler,onStatus){
   if(onStatus) onStatus(total===1?`Lendo "${arquivos[0].name}"…`:`Lendo ${total} documentos…`);
   return Promise.all(arquivos.map(async(file)=>{
     try{
-      const resultado=await ler(file);
+      const resultado=await enfileirarLeituraDocumento(()=>ler(file));
       prontos++;
       if(onStatus && total>1) onStatus(`Lendo documentos… ${prontos} de ${total} prontos`);
       return {file,ok:true,resultado};
@@ -7516,29 +7526,60 @@ function mostrarAlertaCertidoes(certidoes){
   });
 }
 
-async function aguardarJobFirebase(jobId,onTick){
-  const url='https://painel-cartorio-default-rtdb.firebaseio.com/jobs/'+jobId+'.json';
-  const limite=140;// max ~7 minutos (documentos longos podem levar mais tempo para gerar)
-  for(let i=0;i<limite;i++){
-    await new Promise(r=>setTimeout(r,3000));
-    if(onTick)onTick(i);
-    try{
-      const r=await fetch(url);
-      const d=await r.json();
-      if(d&&d.status==='done'){
-        // limpa job do Firebase
-        fetch(url,{method:'DELETE'}).catch(()=>{});
-        return d;
-      }
-    }catch{}
+const minutasPendentesMemoria={};
+function registroMinutaPendente(casoId,modo,valor){
+  const chave='minuta-pendente-v1:'+String(localStorage.getItem('painel_usuario')||'Equipe')+':'+casoId+':'+modo;
+  if(valor!==undefined){
+    if(valor===null){delete minutasPendentesMemoria[chave];try{localStorage.removeItem(chave);}catch(_){}return null;}
+    minutasPendentesMemoria[chave]=valor;try{localStorage.setItem(chave,JSON.stringify(valor));}catch(_){}return valor;
   }
-  throw new Error('Tempo esgotado aguardando geração da minuta (mais de 6 minutos).');
+  let d=minutasPendentesMemoria[chave];
+  if(!d)try{d=JSON.parse(localStorage.getItem(chave)||'null');}catch(_){}
+  return d&&typeof d.jobId==='string'&&/^[-_a-zA-Z0-9]{1,180}$/.test(d.jobId)?d:null;
+}
+function textoAndamentoMinuta(info){
+  const tempo=Math.floor(info.segundos/60)+'min '+Math.floor(info.segundos%60)+'s';
+  const etapa=info.rodadas?info.rodadas+' parte(s) confirmada(s); aguardando a próxima confirmação do Google.':'Aguardando confirmação do Google. Ainda não há resultado final.';
+  return 'Acompanhando a minuta… '+tempo+'<br><span style="font-size:11px;color:#AEAEB2">'+etapa+(info.segundos>=120?' Não inicie outra geração.':'')+'</span>';
+}
+async function iniciarMinutaPendente(casoId,modo,pedido){
+  const anterior=registroMinutaPendente(casoId,modo);if(anterior)return anterior;
+  const solicitacaoId=crypto.randomUUID();
+  const registro={jobId:'joaninha-'+solicitacaoId};
+  registroMinutaPendente(casoId,modo,registro);
+  const r=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...pedido,casoId,solicitacaoId})});
+  const d=await r.json();
+  if(!r.ok&&[400,401,403,405].includes(r.status)&&!d.jobId){registroMinutaPendente(casoId,modo,null);throw new Error(d.erro||'O pedido não foi aceito.');}
+  if(d.jobId&&d.jobId!==registro.jobId)throw new Error('O identificador de execução não foi confirmado. Confira o acompanhamento antes de repetir.');
+  return registro;
+}
+async function aguardarJobFirebase(jobId,onTick,opcoes={}){
+  const base='https://painel-cartorio-default-rtdb.firebaseio.com';
+  const url=base+'/jobs/'+encodeURIComponent(jobId)+'.json';
+  const inicio=Date.now(),limite=opcoes.minuta?20*60*1000:7*60*1000;
+  let i=0,rodadas=0;
+  while(Date.now()-inicio<limite){
+    await new Promise(r=>setTimeout(r,3000));
+    try{
+      const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
+      if(r.ok){const d=await r.json();if(d&&d.status==='done')return d;}
+    }catch(_){}
+    if(opcoes.minuta&&i%5===0)try{
+      const r=await fetch(base+'/geracao-estado/'+encodeURIComponent(jobId)+'/rodadas.json',{signal:AbortSignal.timeout(10000)});
+      if(r.ok){const n=await r.json();if(Number.isInteger(n)&&n>=0&&n<=6)rodadas=Math.max(rodadas,n);}
+    }catch(_){}
+    if(onTick)onTick(i,{segundos:(Date.now()-inicio)/1000,rodadas});
+    i++;
+  }
+  const e=new Error(opcoes.minuta?'Ainda não recebi a confirmação final do Google. Isso não confirma falha da geração. Use “Verificar andamento” para consultar a mesma execução, sem iniciar outra minuta.':'A leitura ainda não confirmou a conclusão. Confira a execução no Google antes de repetir.');
+  e.pendente=!!opcoes.minuta;e.jobId=jobId;throw e;
 }
 window.gerarReeditar=async function(){
   const id=document.getElementById('btn-reeditar-gerar').dataset.id;
   const c=casos[id];if(!c)return;
   const instrucao=document.getElementById('reeditar-instrucao').value.trim();
-  if(!instrucao){document.getElementById('reeditar-instrucao').focus();return;}
+  let di=registroMinutaPendente(id,'revisar');
+  if(!instrucao&&!di){document.getElementById('reeditar-instrucao').focus();return;}
   document.getElementById('btn-reeditar-gerar').disabled=true;
   document.getElementById('reeditar-result').style.display='none';
   const rLoad=document.getElementById('reeditar-loading');
@@ -7554,13 +7595,14 @@ window.gerarReeditar=async function(){
   };
   // Ato sem modalidade definida saía com "digital" calado. Não assume: pede
   // pra escolher antes de gerar (aviso já visível no modal, ver abrirReeditar).
-  if(!c.modalidade){
+  if(!c.modalidade&&!di){
     reeditarRenderAvisoModalidade(c);
     document.getElementById('reeditar-aviso-modalidade')?.scrollIntoView({behavior:'smooth',block:'center'});
     document.getElementById('btn-reeditar-gerar').disabled=false;
     return;
   }
   try{
+    if(!di){
     const arqsMinuta=reeditarArquivosMinuta;
     const arqsDoc=reeditarArquivosDoc;
     // Documento sem texto (não pôde ler, ou leitura truncada) nunca vira uma
@@ -7641,13 +7683,10 @@ window.gerarReeditar=async function(){
       }
     }
     setRLoad('Iniciando geração da minuta…');
-    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[],minutaAtualUrl:minutaAtualUrlAuto})});
-    const di=await ri.json();
-    if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
-    const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
-      const seg=(tick+1)*3;
-      setRLoad('Gerando minuta com IA… '+seg+'s<br><span style="font-size:11px;color:#AEAEB2">Aguardando Apps Script processar</span>');
-    });
+    di=await iniciarMinutaPendente(id,'revisar',{casoId:id,nome:c.nome,tipo:c.tipo,obs:c.obs,documentos:docsTexto,instrucao,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[],minutaAtualUrl:minutaAtualUrlAuto});
+    }
+    const d2=await aguardarJobFirebase(di.jobId,(tick,info)=>setRLoad(textoAndamentoMinuta(info)),{minuta:true});
+    registroMinutaPendente(id,'revisar',null);
     rLoad.style.display='none';
     if(d2.ok&&d2.docUrl) await mostrarAlertaCertidoes(d2.certidoes);
     document.getElementById('reeditar-result').style.display='block';
@@ -7663,7 +7702,7 @@ window.gerarReeditar=async function(){
       }
       document.getElementById('btn-abrir-reeditar').style.display='inline-block';
       document.getElementById('btn-abrir-reeditar').href=d2.docUrl;
-      const avisos=[...(d2.truncada?['A geração pode ter parado antes do fim (bateu no limite de rodadas) — confira o final do documento.']:[]),...(d2.avisos||[])];
+      const avisos=[...(d2.truncada?['A geração pode ter parado antes do fim (bateu no limite de rodadas) — confira o final do documento.']:[]),...(d2.avisos||[]),...(d2.conferenciaIA==='pendente'?['Conferência OpenAI pendente — acompanhe o resultado no card.']:[])];
       document.getElementById('reeditar-doc-nome').textContent=[d2.docNome||'',...avisos].filter(Boolean).join(' — ');
       update(ref(db,'casos/'+id),{...(d2.folderUrl?{driveUrl:d2.folderUrl}:{}),docUrl:d2.docUrl}).catch(()=>{});
     } else {
@@ -7671,13 +7710,16 @@ window.gerarReeditar=async function(){
     }
   }catch(e){
     setRErro(descreverErro(e,'gerar nova versão da minuta'));
+    if(registroMinutaPendente(id,'revisar'))document.getElementById('reeditar-result-titulo').textContent='⏳ Aguardando confirmação';
   }
   document.getElementById('btn-reeditar-gerar').disabled=false;
+  document.getElementById('btn-reeditar-gerar').textContent=registroMinutaPendente(id,'revisar')?'Verificar andamento':'Gerar nova versão no Drive';
 };
 window.gerarAnalise=async function(){
   const id=document.getElementById('btn-gerar').dataset.id;
   const c=casos[id];if(!c)return;
   const docs=document.getElementById('modal-docs').value.trim();
+  let di=registroMinutaPendente(id,'gerar');
   document.getElementById('btn-gerar').disabled=true;
   document.getElementById('modal-result').style.display='none';
   const loading=document.getElementById('modal-loading');
@@ -7703,13 +7745,14 @@ window.gerarAnalise=async function(){
   // Ato sem modalidade definida saía com "digital" calado — o que troca a
   // abertura e o encerramento inteiros de uma escritura presencial. Não
   // assume: pede pra escolher antes de gerar (aviso já visível no modal).
-  if(!c.modalidade){
+  if(!c.modalidade&&!di){
     minutaRenderAvisoModalidade(c);
     document.getElementById('modal-aviso-modalidade')?.scrollIntoView({behavior:'smooth',block:'center'});
     document.getElementById('btn-gerar').disabled=false;
     return;
   }
   try{
+    if(!di){
     // Anexos entram como blocos com o mesmo cabeçalho que o Apps Script já
     // reconhece: o modelo com as regras de fidelidade, os documentos como
     // fonte de dado do caso.
@@ -7773,26 +7816,17 @@ window.gerarAnalise=async function(){
         return;
       }
     }
-    // O Apps Script já corta o material em 100 mil caracteres antes de mandar
-    // pra IA. Cortar aqui também não muda nada no resultado e evita um envio
-    // gigante que o servidor recusaria com um erro sem explicação nenhuma.
-    let documentos=blocos.join('\n\n');
-    if(documentos.length>100000){
-      documentos=documentos.slice(0,100000)+'\n\n[...material cortado por limite de tamanho — se algo importante ficou de fora, tire um anexo e gere de novo...]';
-    }
+    const documentos=blocos.join('\n\n');
     if(!documentos.trim()){
       setErro('Não há nada pra IA ler ainda. Escreva as informações do caso, responda as perguntas ou anexe um documento.');
       document.getElementById('btn-gerar').disabled=false;
       return;
     }
     setLoading('Iniciando geração da minuta…');
-    const ri=await fetch('/api/iniciar-minuta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,tipo:c.tipo,obs:c.obs,documentos,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[]})});
-    const di=await ri.json();
-    if(!di.ok||!di.jobId) throw new Error(di.erro||'Erro ao iniciar geração.');
-    const d2=await aguardarJobFirebase(di.jobId,(tick)=>{
-      const seg=(tick+1)*3;
-      setLoading('Gerando minuta com IA… '+seg+'s<br><span style="font-size:11px;color:#AEAEB2">Aguardando Apps Script processar</span>');
-    });
+    di=await iniciarMinutaPendente(id,'gerar',{casoId:id,nome:c.nome,tipo:c.tipo,obs:c.obs,documentos,modalidade:c.modalidade,avisosDocumentos:falhas.join('; '),atosSecundarios:c.atosSecundarios||[]});
+    }
+    const d2=await aguardarJobFirebase(di.jobId,(tick,info)=>setLoading(textoAndamentoMinuta(info)),{minuta:true});
+    registroMinutaPendente(id,'gerar',null);
     loading.style.display='none';
     if(d2.ok&&d2.docUrl) await mostrarAlertaCertidoes(d2.certidoes);
     document.getElementById('modal-result').style.display='block';
@@ -7810,7 +7844,7 @@ window.gerarAnalise=async function(){
       }
       document.getElementById('btn-abrir-doc').href=d2.docUrl;
       document.getElementById('btn-abrir-doc').style.display='inline-block';
-      const avisos=[...(d2.truncada?['A geração pode ter parado antes do fim (bateu no limite de rodadas) — confira o final do documento.']:[]),...(d2.avisos||[])];
+      const avisos=[...(d2.truncada?['A geração pode ter parado antes do fim (bateu no limite de rodadas) — confira o final do documento.']:[]),...(d2.avisos||[]),...(d2.conferenciaIA==='pendente'?['Conferência OpenAI pendente — acompanhe o resultado no card.']:[])];
       document.getElementById('modal-doc-nome').textContent=[d2.docNome||'',...avisos].filter(Boolean).join(' — ');
       document.getElementById('modal-result-text').style.display='none';
       document.getElementById('btn-copiar-rel').style.display='none';
@@ -7820,8 +7854,10 @@ window.gerarAnalise=async function(){
     }
   }catch(e){
     setErro(descreverErro(e,'gerar a minuta'));
+    if(registroMinutaPendente(id,'gerar'))titulo.textContent='⏳ Aguardando confirmação';
   }
   document.getElementById('btn-gerar').disabled=false;
+  document.getElementById('btn-gerar').textContent=registroMinutaPendente(id,'gerar')?'Verificar andamento':'Gerar Minuta no Drive';
 };
 window.copiarRelatorio=function(){
   const txt=document.getElementById('modal-result-text').textContent;
@@ -7946,13 +7982,14 @@ if(joaninhaInstancia.disponivel){
 
   let painelAberto=false;
   let contexto=null; // {tipo:'caso',id,nome} ou null (= Foco do dia)
+  window.joaninhaDefinirContexto=id=>{contexto=id&&casos[id]?{tipo:'caso',id,nome:casos[id].nome}:null;};
   let anexosPendentes=[];
 
   // ── contexto: caso em foco ou Foco do dia ──
   const casosList=document.getElementById('casos-list');
   if(casosList){
     casosList.addEventListener('click',(e)=>{
-      const card=e.target.closest('.card');
+      const card=e.target.closest('.cx-card, .card');
       if(!card)return;
       const id=card.id.replace('card-','');
       const c=casos[id];
@@ -12762,7 +12799,19 @@ async function criarLinkEnvio(id,{estado,blocos,token,guiado}){
 // quem é, e o arquivo ganha o nome padrão. Salva direto; o que a IA não tem certeza fica "confirmar" no card.
 const SOLTE_TIPOS=[['RG_CNH','RG ou CNH'],['CPF','CPF'],['CERTIDAO_NASCIMENTO','Certidão de nascimento'],['CERTIDAO_CASAMENTO','Certidão de casamento'],['CERTIDAO_OBITO','Certidão de óbito'],['PACTO_ANTENUPCIAL','Pacto antenupcial'],['MATRICULA_IMOVEL','Matrícula do imóvel'],['COMPROVANTE_ENDERECO','Comprovante de endereço'],['IPTU','IPTU'],['CND','CND'],['ESCRITURA','Escritura'],['PROCURACAO','Procuração'],['CONTRATO','Contrato'],['COMPROVANTE_PAGAMENTO','Comprovante de pagamento'],['FICHA_CADASTRAL_JUCESP','Ficha cadastral (JUCESP)'],['CONTRATO_SOCIAL','Contrato social'],['VALOR_VENAL_REFERENCIA','Valor venal de referência'],['NEGATIVA_IPTU','Negativa de IPTU'],['DADOS_CADASTRAIS_IMOVEL','Dados cadastrais do imóvel'],['OUTRO','Outro']];
 const SOLTE_MIMES={'application/pdf':1,'image/jpeg':1,'image/png':1,'image/webp':1,'image/gif':1,'image/heic':1,'image/heif':1};
-const SOLTE_MAX=10*1024*1024, SOLTE_PARALELO=2;
+const SOLTE_MAX=10*1024*1024, SOLTE_PARALELO=1;
+// Upload, releitura e anexos de minuta dividem a mesma conta OpenAI.
+// Uma fila por aba evita rajadas, inclusive de lotes/cards diferentes.
+let leituraDocumentoFila=Promise.resolve();
+function enfileirarLeituraDocumento(ler){
+  const atual=leituraDocumentoFila.then(ler);
+  leituraDocumentoFila=atual.catch(()=>{});
+  return atual;
+}
+function avisoLeituraDocumento(texto){
+  const t=String(texto||'');
+  return /HTTP\s*429/.test(t)?'A OpenAI limitou a leitura deste arquivo (429). O arquivo ficou salvo; use “Ler de novo” após conferir o limite de uso. Não é necessário reenviar.':t;
+}
 const SOLTE={}; // casoId -> [{id,nome,estado:'fila'|'enviando'|'ok'|'confirmar'|'erro',msg}]
 let soltePorId=0;
 function solteLinhaHtml(it,casoId){
@@ -12789,19 +12838,21 @@ async function soltePara64(file){
   return btoa(s);
 }
 async function solteUm(casoId,it,file){
+  return enfileirarLeituraDocumento(async()=>{
   it.estado='enviando'; solteAtualizar(casoId);
   try{
     const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'painel-arquivo',casoId,nomeArquivo:file.name,mimetype:String(file.type||'').toLowerCase(),base64:await soltePara64(file)})});
     soltePreencher(casoId,it,await r.json());
   }catch(e){ it.estado='erro'; it.msg='Erro de conexão com o Drive: '+((e&&e.message)||e); }
   solteAtualizar(casoId);
+  });
 }
 // O resultado do Apps Script (arrastado, colado, compartilhado ou vindo da entrada do WhatsApp) vira a linha da lista.
 function soltePreencher(casoId,it,j){
   if(!j||!j.ok){
     const erro=(j&&j.erro)||'motivo desconhecido';
     it.estado='erro'; it.msg=/a[çc][ãa]o desconhecida/i.test(erro)?'O Apps Script publicado ainda não recebe arquivos do painel. Atualize o código lá (apps-script/cartorio-drive-api.js) e implante uma nova versão.':erro;
-  }else if(j.confirmar){ it.estado='confirmar'; it.msg=(j.aviso?j.aviso+' ':'')+'Salvo como '+j.nome+' — confira o nome no lápis.'; }
+  }else if(j.confirmar){ it.estado='confirmar'; it.msg=(j.aviso?avisoLeituraDocumento(j.aviso)+' ':'')+'Salvo como '+j.nome+' — confira o nome no lápis.'; }
   else{ it.estado='ok'; it.msg=j.nome; setTimeout(()=>window.solteTirar(casoId,it.id),8000); }
 }
 window.solteReceber=function(casoId,files){
@@ -12957,12 +13008,12 @@ function entradaAtribuir(casoId,chaves){
   chaves.forEach(k=>{ const d=entradaWA[k]; if(!d) return; const it={id:++soltePorId,nome:d.nome||'arquivo',estado:'fila',msg:''}; lista.push(it); fila.push([it,k]); });
   solteAtualizar(casoId);
   let ativos=0;
-  const um=async([it,k])=>{
+  const um=([it,k])=>enfileirarLeituraDocumento(async()=>{
     it.estado='enviando'; solteAtualizar(casoId);
     try{ const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'entrada-atribuir',entradaId:k,casoId})}); soltePreencher(casoId,it,await r.json()); }
     catch(e){ it.estado='erro'; it.msg='Erro de conexão com o Drive: '+((e&&e.message)||e); }
     solteAtualizar(casoId);
-  };
+  });
   const proximo=()=>{ while(ativos<SOLTE_PARALELO&&fila.length){ const x=fila.shift(); ativos++; um(x).finally(()=>{ ativos--; proximo(); }); } };
   proximo();
 }
@@ -13197,11 +13248,13 @@ window.relerDocCliente=async function(casoId,docKey,btn){
   const antes=btn?btn.innerHTML:'';
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Lendo…';}
   try{
-    const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'cliente-reler',casoId,docKey})});
-    const j=await r.json();
+    const j=await enfileirarLeituraDocumento(async()=>{
+      const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'cliente-reler',casoId,docKey})});
+      return r.json();
+    });
     if(j&&j.ok){ /* a lista se refaz sozinha: o item passa a "lido" */ }
     else{
-      const erro=(j&&j.erro)||'motivo desconhecido';
+      const erro=avisoLeituraDocumento((j&&j.erro)||'motivo desconhecido');
       alert(/a[çc][ãa]o desconhecida/i.test(erro)
         ? 'O Apps Script publicado ainda não conhece a leitura de novo.\n\nAtualize o código lá em script.google.com com o arquivo apps-script/cartorio-drive-api.js e implante uma nova versão.'
         : 'A IA não conseguiu ler "'+d.nome+'":\n\n'+erro);
@@ -17007,6 +17060,55 @@ onAuthStateChanged(auth, async () => {
 // por ele que o teste redesenha depois de mexer no banco de mentira.
 window.renderRede = renderRede;
 
+
+// ── Conversa e ações da Joaninha ──
+if(window.JoaninhaChat && window.JoaninhaProtocolo){
+  const abrirCapturaOriginal=window.toggleJoaninhaPainel;
+  const abrirAbaOriginal=window.joaninhaTab;
+  let chatJoaninha;
+  const ponteJoaninha=criarPonteJoaninha({
+    db,ref,get,set,push,update,runTransaction,
+    casos:()=>casos,
+    protocolo:window.JoaninhaProtocolo,
+    usuario:()=>localStorage.getItem('painel_usuario')||'Equipe',
+    chaveUsuario:()=>String(finAuth?.uid||'sem-login')+':'+String(localStorage.getItem('painel_usuario')||'Equipe'),
+    acessoOrcamentos:()=>!!finAuth&&!!finAcesso&&Object.keys(finAcesso).length>0,
+    atos:()=>ORC_ATOS.map(a=>({id:a.id,nome:a.rot||a.nome||a.id,campos:(a.campos||[]).map(k=>({chave:k,nome:ORC_CAMPOS[k]?.rot||k}))})),
+    hoje:isoHoje,
+    prepararTabelas:async()=>{
+      const [cfg,aliquotas]=await Promise.all([get(orcCfgRef),get(orcAliqRef)]);
+      orcCfg=cfg.val()||{};orcAplicarCfg();ORC_TRIBUTOS.aliquotasDeFora=aliquotas.val()||{};
+    },
+    calcularOrcamento:orcCalcular,
+    desenharOrcamento:orcDesenharFolha,
+    semUndefined:orcSemUndefined,
+    montarObservacao:montarNovoObs,
+    sincronizarAssinatura:(id,c)=>sincronizarEventoCalendar(id,c,{silencioso:true}),
+    confirmar:async texto=>window.confirm(texto),
+    fetch:(...args)=>fetch(...args),
+    abrirCaso:id=>{window.irParaCasoPorId?.(id);},
+    abrirOrcamento:(id,orcId)=>window.orcAbrirCliente(id,orcId),
+    entrar:()=>window.abrirFinanceiro?.(),
+    abrirFerramentas:(tab,id)=>{
+      window.joaninhaDefinirContexto?.(id||null);
+      if(tab==='documentos'&&id){window.abrirMinuta(id);return;}
+      abrirCapturaOriginal(true);abrirAbaOriginal(tab);
+    }
+  });
+  chatJoaninha=window.JoaninhaChat.iniciar(ponteJoaninha);
+  window.joaninhaChat=chatJoaninha;
+  window.abrirJoaninhaNoCaso=id=>chatJoaninha?.abrir(id);
+  window.toggleJoaninhaPainel=function(force){
+    if(force===true){chatJoaninha?.fechar();return abrirCapturaOriginal(true);}
+    if(force===false){chatJoaninha?.fechar();return abrirCapturaOriginal(false);}
+    if(chatJoaninha?.estaAberta()){chatJoaninha.fechar();return;}
+    abrirCapturaOriginal(false);chatJoaninha?.abrir();
+  };
+  const renderCasosAnterior=renderCasos;
+  renderCasos=function(){renderCasosAnterior();chatJoaninha?.renderTarefasNosCards();};
+  chatJoaninha?.atualizarCasos(casos);
+  onAuthStateChanged(auth,()=>chatJoaninha?.atualizarConta());
+}
 
 </script>
 </body>
