@@ -50,7 +50,7 @@ Em seguida, pediu para mostrar o valor acumulado antes da barra de progresso.
 A prévia acrescenta esse valor em reais usando a mesma soma existente;
 nenhuma regra de cálculo muda. O olhinho oculta valor, barra e percentual,
 removendo-os do DOM. Logout ou perda de permissão também remove o valor.
-A publicação dessa revisão aguarda aprovação da imagem.
+A usuária aprovou a imagem e autorizou a publicação em 12/11/2026.
 
 ## Ajustes aprovados em 12/11
 
