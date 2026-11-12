@@ -211,6 +211,10 @@ html.prime-signature .signature-fin-head{display:flex;align-items:center;gap:12p
 html.prime-signature .signature-fin-head h2{font:600 24px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine);margin:0}
 html.prime-signature .signature-fin-valor{font:500 25px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine)}
 html.prime-signature .signature-fin-oculto{color:#9f818a;letter-spacing:4px}
+html.prime-signature .signature-fin-progresso{flex:1;min-width:180px;display:grid;gap:8px}
+html.prime-signature .signature-fin-barra{height:10px;border-radius:999px;background:#eaddd2;overflow:hidden}
+html.prime-signature .signature-fin-barra>span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#a9895a,#793047)}
+html.prime-signature .signature-fin-percentual{font-size:12px;color:#744859}
 html.prime-signature .signature-historico{padding-left:20px;font-size:12px;line-height:1.8}
 html.prime-signature .signature-historico small{color:#8b7b80}
 html.prime-signature .signature-menu-mobile{display:none}
