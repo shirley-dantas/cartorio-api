@@ -26,7 +26,7 @@ export const remove=async r=>{write(r.path,null);notify();};
 export const runTransaction=async(r,f)=>{const value=f(copy(read(r.path)));if(value!==undefined){write(r.path,value);notify();}return {committed:value!==undefined,snapshot:snap(r.path)};};
 `;
 const auth=`const user={uid:'U1',email:'teste@example.invalid',getIdToken:async()=> 'token-ficticio'};export const getAuth=()=>({currentUser:user});const subs=[];window.__trocarConta=u=>subs.forEach(f=>f(u));export const onAuthStateChanged=(a,f)=>{subs.push(f);setTimeout(()=>f(user),0);return()=>{};};export const signInWithEmailAndPassword=async()=>({user});export const sendPasswordResetEmail=async()=>{};export const signOut=async()=>{};`;
-let contadorMinutas=0,contadorCalendar=0,contadorJuridico=0,contadorPlanos=0;const erros=[];
+let contadorFrases=0,contadorMinutas=0,contadorCalendar=0,contadorJuridico=0,contadorPlanos=0;const erros=[];
 const assinaturaTeste=new Date(Date.now()+86400000).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'})+'T14:00';
 async function configurar(context){
  await context.addInitScript(()=>localStorage.setItem('painel_usuario','Shirley'));
@@ -51,6 +51,10 @@ async function configurar(context){
    return rota.fulfill({status:200,contentType:'application/javascript',body});
   }
   if(url.origin===servidor.url){
+   if(url.pathname==='/api/perguntar-joaninha'&&url.searchParams.get('acao')==='frase-dia'){
+    contadorFrases++;
+    return rota.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,data:new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'}),frase:'Seu cuidado transforma pequenos passos em grandes conquistas.',origem:'ia'})});
+   }
    if(url.pathname==='/api/joaninha-juridico'){
     contadorJuridico++;
     if(/sem fonte/.test(rota.request().postDataJSON().pergunta))return rota.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,resposta:'Orientação fictícia baseada apenas no material interno.',fontes:[],consultadoEm:'2026-11-12',aviso:'Não consegui confirmar uma fonte oficial nesta consulta.'})});
@@ -87,7 +91,31 @@ try{
  const pg=await ctx.newPage();pg.on('pageerror',e=>erros.push(e.message));
  await pg.goto(servidor.url+'/index.html');await pg.waitForFunction(()=>!!window.signatureAbrirProcesso&&!!document.querySelector('.signature-resumo'));
  assert.equal(await pg.locator('html').evaluate(e=>e.classList.contains('prime-signature')),true);
- assert.equal(await pg.locator('.signature-nav-principal').getByRole('button',{name:'Processos',exact:true}).count(),1);
+ assert.equal(await pg.locator('.signature-nav-principal').getByRole('button',{name:'Casos',exact:true}).count(),1);
+
+ async function conferirCabecalho(){
+  await pg.evaluate(()=>window.scrollTo(0,0));
+  await pg.waitForTimeout(2300);
+  const geometria=await pg.evaluate(()=>{
+    const r=seletor=>{const e=document.querySelector(seletor),b=e.getBoundingClientRect();return {x:b.x,y:b.y,right:b.right,bottom:b.bottom,width:b.width};};
+    return {mascote:r('#joaninha-host'),calendario:r('.cdc2-calendario'),busca:r('.cdc2-topo-busca'),campo:r('.cdc2-topo-busca input')};
+  });
+  const cruza=(a,b)=>a.x<b.right&&a.right>b.x&&a.y<b.bottom&&a.bottom>b.y;
+  assert.equal(cruza(geometria.mascote,geometria.calendario),false,'Joaninha não cobre o calendário');
+  assert.equal(cruza(geometria.mascote,geometria.busca),false,'Joaninha não cobre a busca');
+  assert.ok(geometria.campo.width>200,'campo de busca aproveita o espaço');
+  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'cabeçalho cabe na tela');
+ }
+ await conferirCabecalho();
+ await pg.locator('#saudacao-card').screenshot({path:join(AQUI,'saida','cabecalho-ajustado-computador.png')});
+ await pg.setViewportSize({width:1100,height:900});await conferirCabecalho();
+ await pg.setViewportSize({width:390,height:844});await conferirCabecalho();
+ await pg.locator('#saudacao-card').screenshot({path:join(AQUI,'saida','cabecalho-ajustado-celular.png')});
+ const alvoJoaninha=await pg.locator('#joaninha-host button').boundingBox();
+ await pg.mouse.click(alvoJoaninha.x+alvoJoaninha.width/2,alvoJoaninha.y+alvoJoaninha.height/2);
+ assert.equal(await pg.locator('#jnc-overlay').isVisible(),true,'clique da mascote continua abrindo a conversa');
+ await pg.evaluate(()=>window.joaninhaChat.fechar());
+ await pg.setViewportSize({width:1440,height:1000});await conferirCabecalho();
  assert.equal(await pg.locator('#cdc-tab-ag-hoje').isVisible(),true);
  assert.equal(await pg.locator('#cdc-tab-ag-amanha').isVisible(),true);
  assert.equal(await pg.locator('#cdc-tab-ag-semana').isVisible(),true);
@@ -124,7 +152,7 @@ try{
  assert.equal(await pg.locator('.central-nova').isVisible(),false);
  assert.equal(await pg.locator('.signature-processo').count(),1);
  assert.equal(await pg.locator('.signature-processo .est').count(),1);
- assert.equal(await pg.getByRole('button',{name:'Voltar aos processos',exact:true}).count(),1);
+ assert.equal(await pg.getByRole('button',{name:'Voltar aos casos',exact:true}).count(),1);
  assert.equal(await pg.locator('.signature-processo .cx-reg-campos input').count(),5);
  assert.equal(await pg.locator('.signature-processo .est-aba').filter({hasText:'Livro, folha'}).count(),0);
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Drive',exact:true}).click();
@@ -133,7 +161,7 @@ try{
  assert.equal(await pg.locator('.signature-trabalho .cx-ped').count(),1);
  const antes=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Minuta',exact:true}).click();
- assert.equal(await pg.getByRole('button',{name:'Voltar aos processos',exact:true}).count(),1);
+ assert.equal(await pg.getByRole('button',{name:'Voltar aos casos',exact:true}).count(),1);
  assert.equal(await pg.locator('.signature-trabalho [onclick*=abrirMinuta]').count(),1);
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),antes,'trocar abas não grava ou gera minuta');
  await pg.screenshot({path:join(AQUI,'saida','signature-processo-computador.png'),fullPage:true});
@@ -141,7 +169,7 @@ try{
  await pg.waitForFunction(()=>window.__data.casos.C1.resp==='grazi');
  await pg.evaluate(()=>window.irParaCasoPorId('C1'));
  assert.equal(await pg.locator('.signature-processo').count(),1);
- await pg.getByRole('button',{name:'Voltar aos processos',exact:true}).click();
+ await pg.getByRole('button',{name:'Voltar aos casos',exact:true}).click();
  assert.equal(await pg.locator('.central-nova').isVisible(),true);
  console.log('ok: página exclusiva, ferramentas contextuais, cinco dados de registro, jornada única e edição preservada.');
  await pg.setViewportSize({width:390,height:844});
@@ -157,5 +185,8 @@ try{
  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
  console.log('ok: Central, processo e Joaninha no celular sem rolagem lateral.');
  assert.equal(contadorMinutas+contadorCalendar+contadorJuridico+contadorPlanos,0,'navegar no layout não chama IA nem altera a agenda');
+ await pg.reload();
+ await pg.waitForFunction(()=>document.getElementById('saudacao-frase')?.textContent==='Seu cuidado transforma pequenos passos em grandes conquistas.');
+ assert.equal(contadorFrases,1,'recarregar o painel reaproveita a frase do dia sem nova chamada');
  assert.deepEqual(erros,[]);
 }finally{await browser.close();servidor.close();}

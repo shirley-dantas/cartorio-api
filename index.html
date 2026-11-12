@@ -2452,7 +2452,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <button type="button" class="sidebar-item" onclick="abrirModelos()"><i class="ti ti-stack-2"></i><span>Modelos aprendidos</span></button>
     <button type="button" class="sidebar-item" onclick="abrirRegrasMinuta()"><i class="ti ti-gavel"></i><span>Regras de minuta</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Atividades')"><i class="ti ti-list-check"></i><span>Atividades</span><span class="em-breve">em breve</span></button>
-    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Processos')"><i class="ti ti-briefcase"></i><span>Processos</span><span class="em-breve">em breve</span></button>
+    <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Processos')"><i class="ti ti-briefcase"></i><span>Casos</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Minutas')"><i class="ti ti-file-text"></i><span>Minutas</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Documentos')"><i class="ti ti-files"></i><span>Documentos</span><span class="em-breve">em breve</span></button>
     <button type="button" class="sidebar-item disabled" onclick="navEmBreve('Agenda')"><i class="ti ti-calendar"></i><span>Agenda</span><span class="em-breve">em breve</span></button>
@@ -2523,7 +2523,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
          na página; isto aqui é só "Sincronizado" + o convite do planner. -->
     <div class="cdc2-topo-dir">
       <span class="cdc2-topo-sync"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-label">Conectando...</span></span>
-      <span class="cdc2-topo-frase">Vamos em frente? ❤️</span>
+      <span class="cdc2-topo-frase" id="saudacao-frase">Um passo de cada vez também constrói grandes conquistas.</span>
     </div>
   </div>
 
@@ -3236,6 +3236,7 @@ if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.js
 <script src="lib/joaninha-protocolo.js"></script>
 <script src="lib/joaninha-chat.js"></script>
 <script type="module">
+import {iniciarFraseDoDia} from './lib/frase-do-dia-cliente.js';
 import {criarPonteJoaninha} from "./lib/joaninha-ponte.js";
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, get, set, push, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -5045,6 +5046,16 @@ function posicionarJoaninhaNaSaudacao(){
   const topo=document.getElementById('saudacao-card');
   const host=document.getElementById('joaninha-host');
   const raiz=document.documentElement;
+  if(window.PRIME_SIGNATURE&&host){
+    const lugar=document.getElementById('signature-lugar-joaninha');
+    const r=lugar?.getBoundingClientRect();
+    const visivel=r&&topo?.style.display!=='none'&&!document.body.classList.contains('signature-no-processo')&&r.top>=12&&r.bottom<=window.innerHeight;
+    host.classList.toggle('jn-signature-saudacao',!!visivel);
+    host.classList.add('jn-balao-esquerda');
+    raiz.style.setProperty('--jn-right',visivel?Math.max(12,window.innerWidth-r.left-(r.width+host.offsetWidth)/2)+'px':'16px');
+    raiz.style.setProperty('--jn-bottom',visivel?Math.max(16,window.innerHeight-r.top-(r.height+host.offsetHeight)/2)+'px':'16px');
+    return;
+  }
   if(!topo||!host||topo.style.display==='none'){
     raiz.style.removeProperty('--jn-right');
     raiz.style.removeProperty('--jn-bottom');
@@ -5750,6 +5761,7 @@ function signatureAbrirProcesso(id,registrar=true){
   if(!signatureProcessoId)signatureScroll=window.scrollY;
   signatureProcessoId=id;
   document.body.classList.add('signature-no-processo');
+  posicionarJoaninhaNaSaudacao();
   const endereco='#processo/'+encodeURIComponent(id);
   if(registrar&&location.hash!==endereco)history.pushState({signature:true},'',endereco);
   renderCasos();window.scrollTo({top:0,behavior:'instant'});
@@ -5758,6 +5770,7 @@ function signatureAbrirProcesso(id,registrar=true){
 function signatureVoltar(redesenhar=true){
   signatureProcessoId=null;
   document.body.classList.remove('signature-no-processo');
+  posicionarJoaninhaNaSaudacao();
   if(location.hash.startsWith('#processo/'))history.replaceState(null,'',location.pathname+location.search);
   if(redesenhar)renderCasos();
   window.scrollTo({top:signatureScroll,behavior:'instant'});
@@ -5777,7 +5790,7 @@ function signatureResumoHtml(c){
     <button type="button" class="signature-resumo-abrir" onclick="signatureAbrirProcesso('${c.id}')">
       <span><strong>${escTxt(c.nome)}</strong><small>${escTxt(c.tipo||'Tipo de ato não informado')}</small></span>
       <span class="signature-resumo-etapa">${escTxt(c.concluido?'Concluído':c.dep||'Sem etapa definida')}<small>${escTxt(c.resp||'Sem responsável')}</small></span>
-      <span class="signature-resumo-proxima">${escTxt(c.concluido?'Consultar processo':md.proximaAcao)}</span>
+      <span class="signature-resumo-proxima">${escTxt(c.concluido?'Consultar caso':md.proximaAcao)}</span>
       <i class="ti ti-chevron-right" aria-hidden="true"></i>
     </button></article>`;
 }
@@ -5790,19 +5803,19 @@ function signaturePaginaHtml(c){
   if(aberta==='Drive')conteudo=p.drive;
   else if(aberta==='Histórico'){
     const eventos=Object.values(c.historico||{}).sort((a,b)=>String(b.em||b.data||'').localeCompare(String(a.em||a.data||'')));
-    conteudo=`<h3>Histórico do processo</h3><p class="signature-ajuda">As observações anteriores aparecem no bloco acima.</p>`+
-      (eventos.length?`<ol class="signature-historico">${eventos.map(e=>`<li>${escTxt(e.texto||e.resumo||e.descricao||e.acao||e.tipo||'Atualização do processo')} <small>${escTxt(e.em||e.data||'')}</small></li>`).join('')}</ol>`:'<p class="signature-ajuda">Sem outras alterações registradas.</p>');
+    conteudo=`<h3>Histórico do caso</h3><p class="signature-ajuda">As observações anteriores aparecem no bloco acima.</p>`+
+      (eventos.length?`<ol class="signature-historico">${eventos.map(e=>`<li>${escTxt(e.texto||e.resumo||e.descricao||e.acao||e.tipo||'Atualização do caso')} <small>${escTxt(e.em||e.data||'')}</small></li>`).join('')}</ol>`:'<p class="signature-ajuda">Sem outras alterações registradas.</p>');
   }else if(aberta==='Pagamento')conteudo=p.pag+p.fin;
   else conteudo=({'Documentos':p.docs,'Certidões':p.pref,'Minuta':p.minuta,'Orçamento':p.orc,'Capa do dossiê':p.capa})[aberta];
-  const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos processos</button><span>Processo</span></div>`;
+  const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos casos</button><span>Caso</span></div>`;
   return p.abre.replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
     `<div class="signature-dados">${p.campos}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
-    <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Processo concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}</div>${p.obs}</section>
+    <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Caso concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}</div>${p.obs}</section>
     ${p.linha}
-    <nav class="est-abas signature-funcoes" aria-label="Trabalhar no processo">${abas.map(f=>`<button type="button" class="est-aba${f===aberta?' on':''}" onclick="esteiraAba('${c.id}','${f}')">${f}</button>`).join('')}</nav>
+    <nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta?' on':''}" onclick="esteiraAba('${c.id}','${f}')">${f}</button>`).join('')}</nav>
     <section class="est-painel signature-trabalho" aria-label="${esc(aberta)}">${conteudo}</section>
-    <details class="signature-avancado"><summary>Mais ações do processo</summary><button class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button>${p.acoes}</details>
-    <section class="signature-jornada"><span class="signature-sobretitulo">Jornada do processo</span>${esteiraTrilhaHtml(c)}</section></div>`;
+    <details class="signature-avancado"><summary>Mais ações do caso</summary><button class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button>${p.acoes}</details>
+    <section class="signature-jornada"><span class="signature-sobretitulo">Jornada do caso</span>${esteiraTrilhaHtml(c)}</section></div>`;
 }
 function signatureRenderFinanceiro(){
   const el=document.getElementById('signature-financeiro');if(!el)return;
@@ -5835,10 +5848,11 @@ window.signatureConfiguracoes=function(){
 };
 function signatureMontar(){
   if(!window.PRIME_SIGNATURE)return;
+  iniciarFraseDoDia(document.getElementById('saudacao-frase'));
   const primeira=document.querySelector('.sidebar-section-title');
   const nav=document.createElement('nav');nav.className='sidebar-nav signature-nav-principal';
   nav.innerHTML=`<button class="sidebar-item active" onclick="signatureIr('central')"><i class="ti ti-layout-dashboard"></i><span>Central</span></button>
-    <button class="sidebar-item" onclick="signatureIr('processos')"><i class="ti ti-briefcase"></i><span>Processos</span></button>
+    <button class="sidebar-item" onclick="signatureIr('processos')"><i class="ti ti-briefcase"></i><span>Casos</span></button>
     <button class="sidebar-item" onclick="signatureIr('agenda')"><i class="ti ti-calendar"></i><span>Agenda</span></button>
     <button class="sidebar-item" onclick="abrirOrcamentos()"><i class="ti ti-calculator"></i><span>Orçamentos</span></button>
     <button class="sidebar-item" onclick="abrirRadar()"><i class="ti ti-scale"></i><span>Radar Jurídico</span></button>`;
@@ -5858,7 +5872,7 @@ function signatureMontar(){
     const b=mais.querySelector(`[onclick="${acao}"]`);if(b)fim.append(b);
   }
   document.getElementById('sidebar-mais-toggle').before(fim);
-  const titulo=document.createElement('h2');titulo.className='signature-lista-titulo';titulo.textContent='Processos';document.getElementById('view-casos').prepend(titulo);
+  const titulo=document.createElement('h2');titulo.className='signature-lista-titulo';titulo.textContent='Casos';document.getElementById('view-casos').prepend(titulo);
   const fin=document.createElement('section');fin.id='signature-financeiro';fin.className='signature-financeiro';document.querySelector('.central-nova').append(fin);
   const dialog=document.createElement('dialog');dialog.id='signature-config';dialog.innerHTML=`<form method="dialog"><button class="cx-btn" aria-label="Fechar configurações">Fechar</button></form><h2>Configurações</h2><button class="cx-btn" onclick="this.closest('dialog').close();abrirRegrasMinuta()">Regras de minuta</button><button class="cx-btn" onclick="this.closest('dialog').close();localStorage.removeItem('painel_usuario');location.reload()">Trocar identificação</button>`;document.body.append(dialog);
   const menu=document.createElement('details');menu.id='signature-menu';menu.className='signature-menu-mobile';menu.innerHTML='<summary>☰ Menu do painel</summary>';const links=document.createElement('div');links.innerHTML=nav.innerHTML+fim.innerHTML;links.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));menu.append(links);document.querySelector('.container').prepend(menu);
@@ -5875,6 +5889,16 @@ function signatureMontar(){
     if(id&&casos[id])signatureAbrirProcesso(id,false);else signatureVoltar();
   });
   signatureRenderFinanceiro();
+  const topo=document.getElementById('saudacao-card');
+  const lugar=document.createElement('div');lugar.id='signature-lugar-joaninha';lugar.setAttribute('aria-hidden','true');
+  topo.append(lugar,topo.querySelector('.cdc2-topo-busca'));
+  new ResizeObserver(posicionarJoaninhaNaSaudacao).observe(topo);
+  let reposicionar=false;
+  window.addEventListener('scroll',()=>{
+    if(reposicionar)return;reposicionar=true;
+    requestAnimationFrame(()=>{reposicionar=false;posicionarJoaninhaNaSaudacao();});
+  },{passive:true});
+  posicionarJoaninhaNaSaudacao();
 }
 
 // ── O card, em pedaços ──
@@ -8252,9 +8276,9 @@ if(joaninhaInstancia.disponivel){
     if(sugestao){
       contexto={tipo:'caso',id:sugestao.id,nome:sugestao.nome};
       atualizarContextoUI();
-      falar(`Acho que isso é do processo "${sugestao.nome}" — confira antes de salvar. 🐞`,4600);
+      falar(`Acho que isso é do caso "${sugestao.nome}" — confira antes de salvar. 🐞`,4600);
     }else{
-      falar('Não consegui identificar o processo pelo arquivo — confira onde vai salvar. 🐞',4200);
+      falar('Não consegui identificar o caso pelo arquivo — confira onde vai salvar. 🐞',4200);
     }
   }
   if(jnHost){
@@ -8412,10 +8436,10 @@ if(joaninhaInstancia.disponivel){
     const aguardCliente=ativos.filter(c=>['Aguardando aprovação do orçamento','Aguardando aprovação da minuta','Aguardando cliente (outro)'].includes(c.dep));
     const prazoUrgente=ativos.filter(c=>/hoje|amanh/i.test(c.prazo||''));
     const linhas=[];
-    if(prazoUrgente.length)linhas.push(`⏰ ${prazoUrgente.length} processo${prazoUrgente.length>1?'s':''} com prazo hoje ou amanhã.`);
-    if(parados7.length)linhas.push(`🐢 ${parados7.length} processo${parados7.length>1?'s':''} parado${parados7.length>1?'s':''} há 7 dias ou mais.`);
-    if(semDoc.length)linhas.push(`📄 ${semDoc.length} processo${semDoc.length>1?'s':''} aguardando documento do cliente.`);
-    if(aguardCliente.length)linhas.push(`⏳ ${aguardCliente.length} processo${aguardCliente.length>1?'s':''} aguardando resposta do cliente.`);
+    if(prazoUrgente.length)linhas.push(`⏰ ${prazoUrgente.length} caso${prazoUrgente.length>1?'s':''} com prazo hoje ou amanhã.`);
+    if(parados7.length)linhas.push(`🐢 ${parados7.length} caso${parados7.length>1?'s':''} parado${parados7.length>1?'s':''} há 7 dias ou mais.`);
+    if(semDoc.length)linhas.push(`📄 ${semDoc.length} caso${semDoc.length>1?'s':''} aguardando documento do cliente.`);
+    if(aguardCliente.length)linhas.push(`⏳ ${aguardCliente.length} caso${aguardCliente.length>1?'s':''} aguardando resposta do cliente.`);
     if(!linhas.length)linhas.push('Nenhum sinal de atenção agora — tudo fluindo. 🎉');
     return linhas.slice(0,4);
   }

@@ -11,7 +11,7 @@ serviu de referência visual, sem incorporar suas alterações operacionais.
 | Acesso | Comportamento preservado |
 | --- | --- |
 | Central | Agenda real, notas Shirley/Grazi e prioridades do motor atual |
-| Processos | Resumos; abrir leva a página exclusiva, identificada no endereço |
+| Casos | Resumos; abrir leva a página exclusiva, identificada no endereço |
 | Agenda | Abas Hoje/Amanhã/Próximos dias e calendário mensal completo |
 | Orçamentos/Radar/Modelos/Rede | Janelas existentes; Rede mantém restrição de acesso |
 | Etapas/Arquivo | Filtros e arquivo existentes, com os mesmos estados |
@@ -47,7 +47,25 @@ atributos acessíveis. O progresso é limitado a 100%; ao atingir ou superar
 a meta, indica “Meta atingida”. O olhinho oculta também barra e percentual.
 A referência continua sendo o fechamento corrente do Financeiro.
 
-## Verificação
+## Ajustes aprovados em 12/11
+
+Busca ampliada, Joaninha com espaço reservado no cabeçalho e nome **Casos**
+nos títulos e na navegação. A mascote mantém animações, passeio e clique;
+a posição de repouso acompanha a área reservada, com alternativa no canto
+quando o cabeçalho sai da tela. O calendário mantém os dias e a navegação.
+
+A frase motivacional passa a ser gerada pela OpenAI, curta e em português,
+sem dados dos casos no pedido. Usa a rota GET
+`/api/perguntar-joaninha?acao=frase-dia`, sem adicionar função serverless.
+Cache do navegador por data de São Paulo, cache da instância com junção de
+chamadas concorrentes e cache HTTP até a virada do dia reduzem as gerações.
+Não há promessa de uma única geração global entre instâncias frias.
+Quando a IA ou a conexão falham, uma frase de reserva é escolhida para o
+dia; não há repetição automática da chamada nesse dia no navegador.
+A busca ocorre em segundo plano e o painel aberto confere a virada de data.
+Não modifica Firebase, agenda, minutas, financeiro ou permissões.
+
+## Verificação dos ajustes
 
 - `testes/signature.mjs`: index real com Firebase simulado; desktop/celular,
   navegação, edição, abas sem gravação, registro, jornada única, privacidade
