@@ -5852,6 +5852,9 @@ function signatureMontar(){
   const primeira=document.querySelector('.sidebar-section-title');
   primeira.previousElementSibling?.remove();
   primeira.remove();
+  const rodape=document.querySelector('.sidebar-footer-frase');
+  rodape.className='signature-sidebar-flor';
+  rodape.innerHTML='<img src="/assets/signature-orquidea.svg" alt="" aria-hidden="true" width="116" height="116">';
   const mais=document.getElementById('sidebar-mais');
   // Move os acessos existentes: mantém identidade, autorização e listeners.
   const rede=document.getElementById('sidebar-rede');

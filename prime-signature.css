@@ -151,9 +151,15 @@ html.prime-signature .cdc2-cal-dia:focus-visible{
 @media(prefers-reduced-motion:reduce){
   html.prime-signature .sidebar-item{transition:none}
 }
-html.prime-signature .sidebar{width:224px;padding:22px 15px}
+html.prime-signature .sidebar{width:250px;padding:22px 14px}
 html.prime-signature .main-area{margin-left:0}
-html.prime-signature .sidebar-item{min-height:36px;padding:8px 11px;font-size:12px}
+html.prime-signature .sidebar-item{display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:40px;padding:9px 10px;font-size:12px}
+html.prime-signature .sidebar-item>i{width:18px;text-align:center;color:#d9b9bf}
+html.prime-signature .sidebar-item>span:not(.sidebar-count):not(.em-breve){min-width:0;white-space:normal;line-height:1.4}
+html.prime-signature .sidebar-item>.sidebar-count{width:32px;min-width:32px;height:22px;padding:0;display:grid;place-items:center;text-align:center;justify-self:end;font-variant-numeric:tabular-nums}
+html.prime-signature .sidebar-toggle-mais{padding:12px 10px;text-indent:0}
+html.prime-signature .signature-sidebar-flor{display:flex;justify-content:center;padding:12px 0 4px;margin:10px 0 0;border-top:1px solid rgba(235,196,150,.2)}
+html.prime-signature .signature-sidebar-flor img{width:116px;height:116px;display:block;transform:rotate(-12deg)}
 html.prime-signature .sidebar-logo{margin-bottom:12px}
 html.prime-signature .sidebar-divider{margin:14px 0}
 html.prime-signature .signature-nav-fim{margin:14px 0}
@@ -244,7 +250,7 @@ html.prime-signature .signature-no-processo .signature-lista-titulo{display:none
  html.prime-signature .signature-menu-mobile{display:block;background:#671b35;color:#fff8ee;border-radius:14px;margin:0 0 14px;padding:14px}
  html.prime-signature .signature-menu-mobile summary{cursor:pointer;font-size:13px}
  html.prime-signature .signature-menu-mobile>div{display:grid;grid-template-columns:1fr 1fr;padding-top:14px}
- html.prime-signature .signature-menu-mobile .sidebar-item{display:flex}
+ html.prime-signature .signature-menu-mobile .sidebar-item{display:grid}
 }
 @media(max-width:760px){
  html.prime-signature .container{padding:16px 12px}
