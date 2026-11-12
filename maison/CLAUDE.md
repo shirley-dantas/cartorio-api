@@ -185,3 +185,7 @@ Pedido da Tháriga: (1) **registrar adiantamento** pago a uma profissional — f
 - **Financeiro tem seletor de mês** (`finMes()`, botões *‹ Mês anterior* / *Próximo ›* / *Mês atual*): faturamento, comissões, despesas pagas (pelo vencimento da conta), formas de pagamento e extrato do Florença seguem o mês escolhido. Antes só existia o mês corrente. O rótulo agora diz *Comissões da equipe* (não mais "Rafael + Mariana, 50%").
 - **Estimativa do mês** em *Comissões* e em *Minha comissão* (`comResumo`: `agN`, `agVal`, `estFat`, `estCom`): o que já foi feito + os horários ainda agendados até o fim do período, **pelo preço de tabela, sem desconto**; concluir o atendimento troca o estimado pelo real. Horário cancelado ou já passado e não concluído não entra.
 - **Procedimento realizado** ao concluir (`#cserv`): a profissional troca o serviço se a cliente fez outra coisa; o valor sugerido acompanha. O atendimento guarda `serv` (feito) e `servAgendado`, e o horário da agenda passa a mostrar o realizado.
+
+## Mapeamento de cílios (12/11/2026)
+
+Botão **Mapeamento** no cartão da agenda (cílios, manutenção, lash lift), agendado ou atendido. Um olho só, 9 quadrantes em branco, efeito/nome do fio/curvatura/observação em texto livre. Salvo em `registros/{agenda}__mapa` (não mexe no registro do atendimento nem nas regras). O cartão mostra "Último mapa", o diálogo oferece "Usar este de novo", e a ficha da cliente lista os últimos 5 (`mapasDe`, `dlgMapa`).
