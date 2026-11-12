@@ -122,6 +122,19 @@ usa frases de conversa em um único parágrafo por cartão, datas como “ontem,
 depois”. Os critérios, os prazos e as ações permanecem iguais. O limite usual
 da etapa continua no modelo, mas sai do texto principal para reduzir ruído.
 
+## Alinhamento da Central — prévia de 12/11/2026
+
+Proposta pendente de aprovação visual: Agenda e Bloco de Notas dividem a
+primeira linha em duas colunas iguais, com topo e base alinhados. Atenções
+do dia ocupa a linha seguinte, com três prioridades lado a lado e ações
+alinhadas na base. No celular, os quadros e as prioridades ficam empilhados.
+Listas longas de assinaturas/notas têm rolagem interna; os formulários
+continuam podendo expandir o quadro. Nenhuma regra, prazo ou gravação muda.
+
+A suíte Signature confere a geometria dos quadros e ações, além dos fluxos
+existentes. As imagens usam dados fictícios; a publicação aguarda o aval da
+usuária sobre a prévia. A verificação obrigatória `celular.mjs` também passou.
+
 ## Verificações gerais
 
 - `testes/signature.mjs`: index real com Firebase simulado; desktop/celular,

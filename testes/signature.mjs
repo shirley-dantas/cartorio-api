@@ -268,22 +268,46 @@ try{
  // Atenções do dia: somente pendências verificáveis, com ações reais.
  await pg.evaluate(()=>{window.joaninhaChat.fechar();window.signatureVoltar();});
  await pg.setViewportSize({width:1440,height:1100});
- await pg.evaluate(({antigo,recente,registro,nota})=>{
+ await pg.evaluate(({antigo,recente,registro,nota,futura})=>{
   const criar=(id,nome,dep,data,resp='grazi')=>window.__fbWrite('casos/'+id,{id,nome,tipo:'Compra e venda',dep,depDesde:data,atualizado:data,resp,status:'atencao',obs:'Observação inicial preservada.',concluido:false});
   criar('A2','JRL — minuta para acompanhar','Minutando',antigo);
   criar('A3','Cliente exemplo — exigência do registro','Nota de exigência',antigo,'shirley');
   criar('A4','Caso exemplo — conferir andamento','Minutando',antigo);
   criar('A5','Imóvel exemplo — acompanhamento do registro','Registro de Imóveis',registro);
   criar('A6','Caso recente — não deve ser cobrado','Minutando',recente);
-  window.__fbWrite('focos',[...window.__data.focos,{id:'AT1',text:'Ligar ao cliente sobre a documentação',resp:'shirley',done:false,quando:nota}]);
- },{antigo:diaNota(-5),recente:diaNota(0),registro:diaNota(-40),nota:diaNota(-1)+'T10:00'});
+  window.__fbWrite('focos',[
+   {id:'G1',text:'Conferir os documentos do caso Sérgio',resp:'grazi',done:false,quando:futura+'T10:00'},
+   {id:'G2',text:'Retornar a ligação do cliente',resp:'grazi',done:false,quando:futura+'T14:00'},
+   {id:'G3',text:'Revisar a relação de documentos',resp:'grazi',done:false,quando:null},
+   {id:'AT1',text:'Ligar ao cliente sobre a documentação',resp:'shirley',done:false,quando:nota}
+  ]);
+ },{antigo:diaNota(-5),recente:diaNota(0),registro:diaNota(-40),nota:diaNota(-1)+'T10:00',futura:diaNota(1)});
  await pg.waitForFunction(()=>document.querySelectorAll('#atencoes-lista .atencao-item').length===3&&document.querySelector('#atencoes-ver-todas').textContent==='Ver todas (5)');
  assert.match(await pg.locator('#atencoes-resumo').innerText(),/3 pontos para a gente olhar hoje/);
+ await pg.evaluate(hoje=>{
+  const c=(id,nome,hora)=>window.__fbWrite('casos/'+id,{id,nome,tipo:'Compra e venda',status:'emdia',resp:'shirley',dep:'Falta assinatura',depDesde:hoje,atualizado:hoje,agendado:hoje+'T'+hora,concluido:false});
+  c('S1','ANA — UN. 160 DO RESIDENCIAL EXEMPLO','10:00');c('S2','BRUNO — UN. 2108 DO EDIFÍCIO EXEMPLO','19:00');
+ },diaNota(0));
+ await pg.locator('#cdc-tab-ag-hoje').click();
+ await pg.waitForFunction(()=>document.querySelectorAll('#cdc-agenda .cdc2-ag-linha').length===2);
+ const alinhamento=await pg.locator('.cdc2-grid3').evaluate(e=>{
+  const r=x=>{const b=x.getBoundingClientRect();return {top:b.top,bottom:b.bottom,left:b.left,right:b.right,width:b.width};};
+  const cards=[...e.children];return {agenda:r(cards[0]),notas:r(cards[1]),atencoes:r(cards[2]),avisos:[...e.querySelectorAll('.atencao-item')].map(r),botoes:[...e.querySelectorAll('.atencao-acoes')].map(r)};
+ });
+ assert.ok(Math.abs(alinhamento.agenda.top-alinhamento.notas.top)<1&&Math.abs(alinhamento.agenda.bottom-alinhamento.notas.bottom)<1,'Agenda e Notas alinhadas no topo e na base');
+ assert.ok(Math.abs(alinhamento.agenda.width-alinhamento.notas.width)<1,'larguras iguais');
+ assert.ok(alinhamento.atencoes.top>alinhamento.agenda.bottom,'Atenções fica na faixa de baixo');
+ assert.ok(Math.abs(alinhamento.atencoes.left-alinhamento.agenda.left)<1&&Math.abs(alinhamento.atencoes.right-alinhamento.notas.right)<1,'faixa ocupa a largura inteira');
+ assert.ok(alinhamento.avisos.every(a=>Math.abs(a.top-alinhamento.avisos[0].top)<1),'três prioridades na mesma linha');
+ assert.ok(alinhamento.botoes.every(a=>Math.abs(a.bottom-alinhamento.botoes[0].bottom)<1),'ações alinhadas na base');
+ await pg.locator('.cdc2-grid3').screenshot({path:join(AQUI,'saida','central-alinhada-computador.png')});
+
  const antesAtencoes=await pg.evaluate(()=>JSON.stringify({casos:window.__data.casos,focos:window.__data.focos,resolucoes:window.__data.resolucoesCentral}));
  await pg.locator('#atencoes-card').screenshot({path:join(AQUI,'saida','atencoes-computador.png')});
  await pg.setViewportSize({width:390,height:844});
  await pg.locator('#atencoes-card').screenshot({path:join(AQUI,'saida','atencoes-celular.png')});
  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'prioridades cabem no celular');
+ await pg.locator('.cdc2-grid3').screenshot({path:join(AQUI,'saida','central-alinhada-celular.png')});
  await pg.locator('#atencoes-ver-todas').click();
  assert.equal(await pg.locator('#atencoes-lista .atencao-item').count(),5);
  assert.doesNotMatch(await pg.locator('#atencoes-lista').innerText(),/Caso recente/);
