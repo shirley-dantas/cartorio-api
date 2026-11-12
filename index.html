@@ -5114,7 +5114,7 @@ function renderStats(){
   const ativos=getCasosList().filter(x=>!x.concluido);
   const cr=ativos.filter(x=>x.status==='critico').length;
   const at=ativos.filter(x=>x.status==='atencao').length;
-  document.getElementById('sidebar-stats').innerHTML=`
+  document.getElementById('sidebar-stats').innerHTML=window.PRIME_SIGNATURE?'':`
     <button type="button" class="sidebar-item sidebar-toggle-total${sidebarTotalAberto?' open':''}" id="sidebar-total-toggle" onclick="toggleSidebarTotal()"><i class="ti ti-briefcase"></i><span>Total ativos</span><span class="sidebar-count">${ativos.length}</span><i class="ti ti-chevron-down sidebar-chevron"></i></button>
     <nav class="sidebar-nav sidebar-total-sub" id="sidebar-total-sub" style="display:${sidebarTotalAberto?'flex':'none'}">
       ${STATUS_SIDEBAR.map(s=>{const n=ativos.filter(s.pred).length;return`<button type="button" class="sidebar-item" onclick="abrirStatusModal('${s.key}')"><i class="ti ${s.icon}"></i><span>${s.label}</span><span class="sidebar-count ${n?s.cor:'zero'}">${n}</span></button>`;}).join('')}
@@ -5850,24 +5850,19 @@ function signatureMontar(){
   if(!window.PRIME_SIGNATURE)return;
   iniciarFraseDoDia(document.getElementById('saudacao-frase'));
   const primeira=document.querySelector('.sidebar-section-title');
-  const nav=document.createElement('nav');nav.className='sidebar-nav signature-nav-principal';
-  nav.innerHTML=`<button class="sidebar-item active" onclick="signatureIr('central')"><i class="ti ti-layout-dashboard"></i><span>Central</span></button>
-    <button class="sidebar-item" onclick="signatureIr('processos')"><i class="ti ti-briefcase"></i><span>Casos</span></button>
-    <button class="sidebar-item" onclick="signatureIr('agenda')"><i class="ti ti-calendar"></i><span>Agenda</span></button>
-    <button class="sidebar-item" onclick="abrirOrcamentos()"><i class="ti ti-calculator"></i><span>Orçamentos</span></button>
-    <button class="sidebar-item" onclick="abrirRadar()"><i class="ti ti-scale"></i><span>Radar Jurídico</span></button>`;
-  primeira.after(nav);
+  primeira.previousElementSibling?.remove();
+  primeira.remove();
   const mais=document.getElementById('sidebar-mais');
   // Move os acessos existentes: mantém identidade, autorização e listeners.
-  const rede=document.getElementById('sidebar-rede');nav.append(rede);
-  const modelos=mais.querySelector('[onclick="abrirModelos()"]');nav.append(modelos);
-  for(const acao of ['abrirOrcamentos()','abrirRadar()'])mais.querySelector(`[onclick="${acao}"]`)?.remove();
+  const rede=document.getElementById('sidebar-rede');
+  for(const acao of ['abrirOrcamentos()','abrirRadar()','abrirModelos()'])mais.querySelector(`[onclick="${acao}"]`)?.remove();
   for(const nome of ['Processos','Agenda'])mais.querySelector(`[onclick="navEmBreve('${nome}')"]`)?.remove();
   const rel=mais.querySelector('[onclick="abrirQuadro()"]');rel.querySelector('span').textContent='Relatórios';
   mais.querySelector('[onclick="navEmBreve(\'Relatórios\')"]')?.remove();
   const cfg=mais.querySelector('[onclick="navEmBreve(\'Configurações\')"]');
   cfg.classList.remove('disabled');cfg.setAttribute('onclick','signatureConfiguracoes()');cfg.querySelector('.em-breve')?.remove();
   const fim=document.createElement('nav');fim.className='sidebar-nav signature-nav-fim';
+  fim.append(rede);
   for(const acao of ['abrirFinanceiro()','abrirMeuFinanceiro()','abrirQuadro()','signatureConfiguracoes()']){
     const b=mais.querySelector(`[onclick="${acao}"]`);if(b)fim.append(b);
   }
@@ -5875,10 +5870,10 @@ function signatureMontar(){
   const titulo=document.createElement('h2');titulo.className='signature-lista-titulo';titulo.textContent='Casos';document.getElementById('view-casos').prepend(titulo);
   const fin=document.createElement('section');fin.id='signature-financeiro';fin.className='signature-financeiro';document.querySelector('.central-nova').append(fin);
   const dialog=document.createElement('dialog');dialog.id='signature-config';dialog.innerHTML=`<form method="dialog"><button class="cx-btn" aria-label="Fechar configurações">Fechar</button></form><h2>Configurações</h2><button class="cx-btn" onclick="this.closest('dialog').close();abrirRegrasMinuta()">Regras de minuta</button><button class="cx-btn" onclick="this.closest('dialog').close();localStorage.removeItem('painel_usuario');location.reload()">Trocar identificação</button>`;document.body.append(dialog);
-  const menu=document.createElement('details');menu.id='signature-menu';menu.className='signature-menu-mobile';menu.innerHTML='<summary>☰ Menu do painel</summary>';const links=document.createElement('div');links.innerHTML=nav.innerHTML+fim.innerHTML;links.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));menu.append(links);document.querySelector('.container').prepend(menu);
+  const menu=document.createElement('details');menu.id='signature-menu';menu.className='signature-menu-mobile';menu.innerHTML='<summary>☰ Menu do painel</summary>';const links=document.createElement('div');menu.append(links);document.querySelector('.container').prepend(menu);
   // Duplicar o botão Rede no celular exige a MESMA decisão de autorização.
   const atualizarMenu=()=>{
-    links.innerHTML=nav.innerHTML+'<span class="signature-menu-secao">Por etapa</span>'+document.getElementById('sidebar-etapas').innerHTML+fim.innerHTML+mais.innerHTML;
+    links.innerHTML='<span class="signature-menu-secao">Por etapa</span>'+document.getElementById('sidebar-etapas').innerHTML+fim.innerHTML+mais.innerHTML;
     links.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
   };
   atualizarMenu();

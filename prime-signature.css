@@ -157,6 +157,7 @@ html.prime-signature .sidebar-item{min-height:36px;padding:8px 11px;font-size:12
 html.prime-signature .sidebar-logo{margin-bottom:12px}
 html.prime-signature .sidebar-divider{margin:14px 0}
 html.prime-signature .signature-nav-fim{margin:14px 0}
+html.prime-signature #sidebar-stats{display:none}
 html.prime-signature .sidebar-toggle-mais{font-size:11px}
 html.prime-signature .cdc2-topo{display:grid;grid-template-columns:minmax(0,1fr) 110px 258px;grid-template-areas:'saudacao mascote calendario' 'busca mascote calendario' 'status mascote calendario';grid-template-rows:1fr auto 1fr;column-gap:20px;row-gap:14px}
 html.prime-signature .cdc2-topo-dir{grid-area:status;align-items:flex-start;align-self:start}

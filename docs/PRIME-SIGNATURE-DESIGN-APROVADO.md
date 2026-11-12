@@ -62,3 +62,15 @@ A usuária decidiu avançar à etapa de protótipo visual da Central, mantendo *
 
 ### Governança
 **Aprovação do desenho não é autorização para alterar `main`, Firebase, Vercel ou dados reais.** Próximo passo: inventário dos controles no código, protótipo funcional isolado, testes de regressão e mobile; solicitar aprovação separada antes de qualquer publicação. Este registro tem prioridade cronológica sobre o direcionamento inicial da Central anotado acima.
+
+## Direcionamento da lateral — 12/11/2026
+
+A usuária pediu a retirada dos atalhos Central, Casos, Agenda, Orçamentos,
+Radar Jurídico, Modelos aprendidos e Total ativos da lateral, por repetirem
+acessos e informações da Central ou dos próprios casos. Esta decisão
+substitui a exigência anterior de exibir esses atalhos na lateral.
+
+Etapas e Arquivo passam a iniciar a navegação. Rede fica depois das etapas,
+seguida das ferramentas existentes, mantendo a autorização atual. O pedido
+é de apresentação: não apagar casos, orçamentos ou modelos aprendidos, nem
+alterar o aprendizado da IA. A rodada fica em prévia até aprovação visual.

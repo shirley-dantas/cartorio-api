@@ -91,7 +91,12 @@ try{
  const pg=await ctx.newPage();pg.on('pageerror',e=>erros.push(e.message));
  await pg.goto(servidor.url+'/index.html');await pg.waitForFunction(()=>!!window.signatureAbrirProcesso&&!!document.querySelector('.signature-resumo'));
  assert.equal(await pg.locator('html').evaluate(e=>e.classList.contains('prime-signature')),true);
- assert.equal(await pg.locator('.signature-nav-principal').getByRole('button',{name:'Casos',exact:true}).count(),1);
+ for(const nome of ['Central','Casos','Agenda','Orçamentos','Radar Jurídico','Modelos aprendidos','Total ativos']){
+  assert.equal(await pg.locator('.sidebar').getByRole('button',{name:nome,exact:true}).count(),0,'atalho removido: '+nome);
+ }
+ const ordem=await pg.locator('.sidebar').evaluate(e=>[...e.querySelectorAll('button')].map(b=>b.getAttribute('onclick')));
+ assert.ok(ordem.indexOf('abrirRede()')>ordem.indexOf('abrirArquivo()'),'Rede fica depois das etapas e do Arquivo');
+ await pg.locator('.sidebar').screenshot({path:join(AQUI,'saida','lateral-simplificada.png')});
 
  async function conferirCabecalho(){
   await pg.evaluate(()=>window.scrollTo(0,0));
