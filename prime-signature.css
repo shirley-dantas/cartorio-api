@@ -241,11 +241,11 @@ html.prime-signature .signature-processo .cx-nome{font:600 32px 'Cormorant Garam
 html.prime-signature .signature-dados{display:flex;align-items:end;justify-content:space-between;gap:15px;margin-top:18px}
 html.prime-signature .signature-dados .cx-campos{flex:1;border:0;margin:0;padding:0;display:grid;grid-template-columns:1fr 1.3fr 1fr}
 html.prime-signature .signature-tempo{font-size:11px;color:#886d78;padding-bottom:8px}
-html.prime-signature .signature-contexto{display:grid;grid-template-columns:.85fr 1.15fr;background:#fbf2ed;border:1px solid #eedfd5;border-radius:18px;margin:22px 0;padding:20px;gap:24px}
+html.prime-signature .signature-contexto{background:#fbf2ed;border:1px solid #eedfd5;border-radius:18px;margin:22px 0;padding:20px}
 html.prime-signature .signature-sobretitulo{display:block;color:#916c4e;font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
-html.prime-signature .signature-proxima strong{font:600 23px 'Cormorant Garamond',Georgia,serif;color:#67213a;line-height:1.3}
-html.prime-signature .signature-proxima p{font-size:12px;line-height:1.6}
-html.prime-signature .signature-contexto .card-obs{padding:0;margin:0;border:0}
+html.prime-signature .signature-proxima>strong{font:600 23px 'Cormorant Garamond',Georgia,serif;color:#67213a;line-height:1.3}
+html.prime-signature .signature-proxima>p{font-size:12px;line-height:1.6}
+html.prime-signature .signature-contexto .card-obs{padding:14px 0 0;margin:14px 0 0;border:0;border-top:1px solid #eadbd0}
 html.prime-signature .signature-contexto .obs-text{font-size:12px;line-height:1.7;color:#67545c}
 html.prime-signature .signature-contexto .obs-hist,
 html.prime-signature .signature-contexto .obs-hist-titulo{display:none}
@@ -259,11 +259,9 @@ html.prime-signature .signature-funcoes{gap:6px;padding-top:22px;flex-wrap:wrap}
 html.prime-signature .signature-funcoes .est-aba{border-radius:10px;padding:10px 14px;background:#faf5ef;color:#765260;border:1px solid #eadfD5}
 html.prime-signature .signature-funcoes .est-aba.on{background:var(--ps-wine);color:#fff;border-color:var(--ps-wine)}
 html.prime-signature .signature-trabalho{padding:20px 0;min-height:125px}
-html.prime-signature .signature-avancado{border-top:1px solid #eee3da;padding:16px 0;font-size:12px;color:#745e68}
-html.prime-signature .signature-avancado summary{cursor:pointer;margin-bottom:12px}
-html.prime-signature .signature-jornada{margin-top:20px;padding-top:20px;border-top:1px solid #eee3da}
-html.prime-signature .signature-jornada .est{opacity:.9}
-html.prime-signature .signature-jornada .est-rot{display:none}
+html.prime-signature .signature-acoes-extras{display:flex;gap:10px;flex-wrap:wrap}
+html.prime-signature .signature-rodape{border-top:1px solid #eee3da;padding-top:16px;margin-top:8px;display:flex;gap:10px;align-items:center}
+html.prime-signature .signature-rodape .concluir{margin-left:auto}
 html.prime-signature .signature-ajuda{font-size:12px;color:#806c77;line-height:1.7}
 html.prime-signature .signature-financeiro{margin-top:18px;background:linear-gradient(120deg,#faeee8,#fffaf5);border:1px solid #e7d6c8;border-radius:20px;padding:18px 24px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
 html.prime-signature .signature-fin-head{display:flex;align-items:center;gap:12px}

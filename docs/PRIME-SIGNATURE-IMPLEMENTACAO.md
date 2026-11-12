@@ -25,8 +25,14 @@ Status, responsável, assinatura e os cinco campos de registro usam os mesmos
 manipuladores. Ferramentas por contexto: Documentos, Certidões, Minuta,
 Orçamento, Pagamento, Drive e Histórico. Observações aparecem uma vez;
 Histórico revela as notas anteriores e os registros do atendimento/Joaninha.
-Capa, atendimento, exclusão e conclusão ficam em Mais ações. Jornada única
-ao final, com todas as etapas e os controles anteriores.
+Capa e anotação de observação ficam em Mais ações, na mesma linha das outras
+ferramentas. Excluir e Concluir/Reabrir ficam visíveis no rodapé. Atendimento
+sai da página Signature, sem apagar os registros anteriores.
+
+Na revisão solicitada em 12/11, a jornada deixa de ser renderizada nessa
+página. O seletor Etapa continua como controle único, e dados, histórico e
+motor de decisão permanecem disponíveis para a IA. Observações ficam dentro
+do bloco Próxima ação, abaixo da orientação. Prévia pendente de aprovação.
 
 ## Financeiro e privacidade
 
@@ -143,7 +149,7 @@ autorizou a publicação. A verificação obrigatória `celular.mjs` também pas
 ## Verificações gerais
 
 - `testes/signature.mjs`: index real com Firebase simulado; desktop/celular,
-  navegação, edição, abas sem gravação, registro, jornada única, privacidade
+  navegação, edição, abas sem gravação, registro, Etapa sem jornada duplicada, privacidade
   do olhinho/logout e Joaninha preservada.
 - `testes/joaninha-tela.mjs`: fluxo completo de anotação, jurídico, orçamento,
   assinatura, minuta, acompanhamento e histórico.
