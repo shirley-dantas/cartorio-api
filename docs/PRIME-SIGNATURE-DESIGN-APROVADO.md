@@ -83,4 +83,4 @@ frase estática do rodapé por uma flor. Prévia com ícones, rótulos e contage
 em colunas, cápsulas de largura uniforme e espaçamento regular. Lateral um
 pouco mais larga para caberem os nomes completos. Orquídea decorativa no
 rodapé; frase diária da IA no cabeçalho da Central permanece preservada.
-Publicação desta rodada depende do aval sobre a prévia.
+Prévia aprovada e publicação autorizada pela usuária em 12/11/2026.
