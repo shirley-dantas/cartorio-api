@@ -268,7 +268,7 @@ html.prime-signature .signature-ajuda{font-size:12px;color:#806c77;line-height:1
 html.prime-signature .signature-financeiro{margin-top:18px;background:linear-gradient(120deg,#faeee8,#fffaf5);border:1px solid #e7d6c8;border-radius:20px;padding:18px 24px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
 html.prime-signature .signature-fin-head{display:flex;align-items:center;gap:12px}
 html.prime-signature .signature-fin-head h2{font:600 24px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine);margin:0}
-html.prime-signature .signature-fin-valor{font:500 25px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine)}
+html.prime-signature .signature-fin-valor{font:500 25px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine);white-space:nowrap}
 html.prime-signature .signature-fin-oculto{color:#9f818a;letter-spacing:4px}
 html.prime-signature .signature-fin-progresso{flex:1;min-width:180px;display:grid;gap:8px}
 html.prime-signature .signature-fin-barra{height:10px;border-radius:999px;background:#eaddd2;overflow:hidden}
