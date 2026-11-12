@@ -335,6 +335,29 @@ html.prime-signature .signature-pref-opcoes p{line-height:1.6}
 html.prime-signature .signature-pref-atencao{font-size:12px;color:#96531f;line-height:1.6}
 html.prime-signature .signature-pref-linha .pref-pedir{margin:0;padding:0;border:0}
 html.prime-signature .signature-pref-linha .cx-btn:disabled{opacity:.5;cursor:default}
+html.prime-signature .signature-docs-conteudo h3{font:500 24px 'Cormorant Garamond',Georgia,serif;color:#72223e;margin:0 0 20px}
+html.prime-signature .signature-docs-cabecalho{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+html.prime-signature .signature-docs-cabecalho h3{margin:0}
+html.prime-signature .signature-documentos .cx-btn.destaque{background:#72223e;border-color:#72223e;color:#fff;padding:12px 17px;cursor:pointer}
+html.prime-signature .signature-docs-lista{display:grid;gap:10px}
+html.prime-signature .signature-doc-grupo{border:1px solid #e2d2c6;border-radius:11px;background:#fffdfb;min-width:0}
+html.prime-signature .signature-doc-grupo>summary{cursor:pointer;padding:14px 16px;font-size:13px;font-weight:600;color:#603a4b;line-height:1.5}
+html.prime-signature .signature-doc-contagem{float:right;background:#f4e9e0;padding:1px 8px;border-radius:20px;font-size:11px;margin-left:10px}
+html.prime-signature .signature-doc-grupo.conf{border-color:#c49b62;background:#fffbf4}
+html.prime-signature .signature-doc-grupo>ul{list-style:none;padding:0 16px;margin:0}
+html.prime-signature .signature-doc-linha{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:13px 0;border-top:1px solid #eee3da}
+html.prime-signature .signature-doc-identidade{display:grid;gap:6px;min-width:0;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+html.prime-signature .signature-doc-identidade a{color:#72223e}
+html.prime-signature .signature-doc-identidade .cx-doc-sit{font-size:11px;color:#896b79}
+html.prime-signature .signature-doc-acoes{flex-shrink:0;font-size:11px;color:#80616e;max-width:50%}
+html.prime-signature .signature-doc-acoes>summary{cursor:pointer;padding:3px 0}
+html.prime-signature .signature-doc-acoes>div{display:grid;gap:7px;margin-top:10px}
+html.prime-signature .signature-doc-acoes .cx-ped-x{width:auto;display:inline-flex;gap:5px;justify-content:flex-start;font:inherit;line-height:1.5;white-space:normal}
+html.prime-signature .signature-documentos .cx-solte{padding:22px;border:1px dashed #c5a7b4;border-radius:12px;background:#fffbfc}
+html.prime-signature .signature-documentos .cx-solte-topo{gap:14px}
+html.prime-signature .signature-documentos .cx-solte-topo>i{display:none}
+html.prime-signature .signature-documentos .signature-ajuda{margin:14px 0 20px}
+html.prime-signature .signature-doc-grupo>summary:focus-visible,html.prime-signature .signature-doc-acoes>summary:focus-visible{outline:2px solid #72223e;outline-offset:3px}
 html.prime-signature .signature-certidoes-servicos[data-pref-servico="negativa"] .pref-pedir:has([onclick^="signaturePedirValorVenal"]),
 html.prime-signature .signature-certidoes-servicos[data-pref-servico="negativa"] .pref-pedir:has([onclick^="signaturePedirCadastrais"]),
 html.prime-signature .signature-certidoes-servicos[data-pref-servico="valor"] .pref-pedir:has([onclick^="signaturePedirNegativa"]),

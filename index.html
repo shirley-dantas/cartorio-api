@@ -6065,6 +6065,21 @@ window.signatureAnexarCertidao=async function(id,input){
  finally{st.upload=false;signatureCertRedesenhar(id);}
 };
 window.signatureAtualizarCertidoes=function(){document.querySelectorAll('.signature-certidoes').forEach(el=>{if(casos[el.dataset.caso]&&el.dataset.recursos!==[AJUDANTE.pronto,AJUDANTE.onr,AJUDANTE.pref].join('-'))signatureCertRedesenhar(el.dataset.caso);});};
+const SIGNATURE_DOCS_ABA={};
+function signatureDocumentosHtml(c){
+ const id=esc(c.id),aba=SIGNATURE_DOCS_ABA[c.id]||'anexar';
+ const recebidos=pedidoRecebidosHtml(c,{compacto:true});
+ let conteudo;
+ if(aba==='anexar')conteudo=`<h3>Anexar documentos</h3>${solteHtml(c).replace(ajudanteHtml(c),'')}<p class="signature-ajuda">PDF ou imagem · até 10 MB por arquivo.</p>`;
+ else if(aba==='pedir')conteudo=`<h3>Pedir ao cliente</h3><p class="signature-ajuda">Prepare a lista de documentos e o link de envio para o cliente.</p><button type="button" class="cx-btn destaque" onclick="abrirPedidoDocs('${id}')">Preparar pedido</button>`;
+ else conteudo=`<div class="signature-docs-cabecalho"><h3>Documentos do caso</h3>${pedidoPastaHtml(c)}</div>${recebidos||`<p class="signature-ajuda">Os arquivos recebidos aparecerão aqui, organizados por pessoa e imóvel.</p><button type="button" class="cx-btn destaque" onclick="signatureEscolherDocumentos('${id}','anexar')">Anexar documentos</button>`}`;
+ return `<div class="signature-documentos" id="signature-documentos-${id}"><div class="signature-cert-subgrupo signature-docs-escolhas"><span>Organizar documentos</span><nav class="signature-cert-tipos" aria-label="Opções de documentos">${[['anexar','Anexar documentos'],['recebidos','Recebidos'],['pedir','Pedir ao cliente']].map(([k,n])=>`<button type="button" aria-pressed="${k===aba}" onclick="signatureEscolherDocumentos('${id}','${k}')">${n}</button>`).join('')}</nav></div><section class="signature-docs-conteudo" aria-label="${esc({'recebidos':'Recebidos','anexar':'Anexar documentos','pedir':'Pedir ao cliente'}[aba])}">${conteudo}</section>${aba!=='anexar'?`<ul class="cx-solte-prog" id="solte-prog-${id}">${solteProgHtml(c.id)}</ul>`:''}</div>`;
+}
+window.signatureEscolherDocumentos=function(id,aba){
+ if(!['recebidos','anexar','pedir'].includes(aba))return;
+ SIGNATURE_DOCS_ABA[id]=aba;const el=document.getElementById('signature-documentos-'+id);
+ if(el&&casos[id])el.outerHTML=signatureDocumentosHtml(casos[id]);
+};
 function signaturePaginaHtml(c){
   const p=cardPartes(c),md=motorDecisao(c);
   const observacoes=p.obs.replace('<span class="obs-label">Observações</span>',`<div class="signature-obs-cabecalho"><span class="obs-label">Observações</span><button type="button" class="cx-btn" onclick="signatureAdicionarObs('${c.id}')" aria-controls="obs-edit-${c.id}"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar observação</button></div>`).replace('<textarea rows="2"', '<textarea aria-label="Nova observação" rows="3"').replace('Digite a nova informação — ela entra numerada no topo do histórico acima','Escreva aqui a nova observação do caso…').replace('>Salvar</button>','>Salvar observação</button>');
@@ -6080,7 +6095,7 @@ function signaturePaginaHtml(c){
       (eventos.length?`<ol class="signature-historico">${eventos.map(e=>`<li>${escTxt(e.texto||e.resumo||e.descricao||e.acao||e.tipo||'Atualização do caso')} <small>${escTxt(e.em||e.data||'')}</small></li>`).join('')}</ol>`:'<p class="signature-ajuda">Sem outras alterações registradas.</p>');
   }else if(aberta==='Mais ações')conteudo=`<div class="signature-acoes-extras"><button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button></div>`;
   else if(aberta==='Pagamento')conteudo=p.pag+p.fin;
-  else conteudo=({'Documentos':p.docs.replace(ajudanteHtml(c),''),'Certidões':signatureCertidoesHtml(c),'Minuta':p.minuta,'Orçamento':p.orc,'Capa do dossiê':p.capa})[aberta];
+  else conteudo=({'Documentos':signatureDocumentosHtml(c),'Certidões':signatureCertidoesHtml(c),'Minuta':p.minuta,'Orçamento':p.orc,'Capa do dossiê':p.capa})[aberta];
   const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos casos</button><span>Caso</span></div>`;
   return p.abre.replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
     `<div class="signature-dados">${p.campos}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
@@ -13774,8 +13789,10 @@ function pedidoPastaHtml(c){
 // a empresa, o imóvel, os dados digitados e o resto. Mesma informação e mesmos botões de antes (abrir, lápis, ler de novo, excluir);
 // o que muda é a ordem, o nome limpo e o abrir/fechar que não se perde quando o painel atualiza.
 const DOCS_ABERTOS=new Set();   // cards cuja lista ela abriu: o card se redesenha a cada mudança no banco e a lista fechava sozinha
+const DOCS_GRUPOS_ABERTOS=new Map();
 if(typeof document!=='undefined'&&document.addEventListener){
   document.addEventListener('toggle',ev=>{ const d=ev.target; if(d&&d.dataset&&d.dataset.docs){ if(d.open)DOCS_ABERTOS.add(d.dataset.docs); else DOCS_ABERTOS.delete(d.dataset.docs); } },true);
+  document.addEventListener('toggle',ev=>{const d=ev.target;if(d?.dataset?.docsGrupo)DOCS_GRUPOS_ABERTOS.set(d.dataset.docsGrupo,d.open);},true);
 }
 const DOCS_DO_IMOVEL=['MATRICULA_IMOVEL','IPTU','VALOR_VENAL_REFERENCIA','NEGATIVA_IPTU','DADOS_CADASTRAIS_IMOVEL'];
 const DOCS_DA_EMPRESA=['FICHA_CADASTRAL_JUCESP','CONTRATO_SOCIAL'];
@@ -13806,8 +13823,8 @@ function docsAgrupar(docs){
   grupos.forEach(gr=>gr.itens.sort((a,b)=>String(a.d.salvoEm).localeCompare(String(b.d.salvoEm))));
   return grupos.sort((a,b)=>a.ordem-b.ordem||(a.ordem===2?String(a.titulo).localeCompare(String(b.titulo),'pt-BR'):0));
 }
-function pedidoRecebidosHtml(c){
-  const todos=Object.entries((c&&c.documentos)||{}).filter(([,d])=>d&&(d.origem==='link do cliente'||d.origem==='arrastado no card'));
+function pedidoRecebidosHtml(c,opcoes={}){
+  const todos=Object.entries((c&&c.documentos)||{}).filter(([,d])=>d&&(opcoes.compacto?d.tipo!=='modelo':d.origem==='link do cliente'||d.origem==='arrastado no card'));
   if(!todos.length) return '';
   const docs=todos.map(([k,d])=>({k,d}));
   const arquivos=docs.filter(x=>x.d.tipo!=='informacoes'), ficha=docs.some(x=>x.d.tipo==='informacoes');
@@ -13815,20 +13832,27 @@ function pedidoRecebidosHtml(c){
   const aConfirmar=arquivos.filter(x=>x.d.confirmar&&!x.d.provisorio).length;
   const linha=({k,d})=>{
     const rot=docsRotulo(d), quando=/^\d{4}-\d{2}-\d{2}/.test(d.salvoEm||'')?String(d.salvoEm).slice(8,10)+'/'+String(d.salvoEm).slice(5,7):'';
-    const nome=d.link?`<a href="${esc(d.link)}" target="_blank" rel="noopener" title="${esc(d.nome)}">${escTxt(rot)}</a>`:`<span title="${esc(d.nome)}">${escTxt(rot)}</span>`;
+    const nome=d.link&&(!opcoes.compacto||/^https:\/\//.test(d.link))?`<a href="${esc(d.link)}" target="_blank" rel="noopener" title="${esc(d.nome)}">${escTxt(rot)}</a>`:`<span title="${esc(d.nome)}">${escTxt(rot)}</span>`;
     const lendoAgora=d.lendo&&Date.now()-Number(d.lendo)<10*60*1000;
     const sit=d.tipo==='informacoes'?'dados digitados':(d.provisorio?'<b>aguardando o cliente concluir o envio</b>':(d.confirmar?'<b>confirmar o nome</b>':(d.texto?'lido':(lendoAgora?'lendo…':'<b>sem leitura</b>'))));
     const lapis=(c&&c.id&&d.origem==='arrastado no card')?`<button type="button" class="cx-ped-x" title="Corrigir o tipo e o nome" aria-label="Corrigir ${esc(d.nome)}" onclick="renomearDocCard('${esc(c.id)}','${esc(k)}')"><i class="ti ti-pencil"></i></button>`:'';
     const del=c&&c.id?`<button type="button" class="cx-ped-x" title="Excluir — enviado errado" aria-label="Excluir ${esc(d.nome)}" onclick="excluirDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-trash"></i></button>`:'';
     const ler=(c&&c.id&&d.tipo!=='informacoes'&&!d.provisorio&&!d.texto)?`<button type="button" class="cx-ped-x" title="Pedir para a IA ler de novo" aria-label="Ler de novo ${esc(d.nome)}" onclick="relerDocCliente('${esc(c.id)}','${esc(k)}',this)"><i class="ti ti-refresh"></i> Ler de novo</button>`:'';
+    if(opcoes.compacto){
+      const editavel=d.origem==='link do cliente'||d.origem==='arrastado no card'||d.selo;
+      const acoes=editavel?lapis.replace('</i></button>','</i> Corrigir</button>')+ler+del.replace('</i></button>','</i> Excluir</button>'):'';
+      return `<li class="signature-doc-linha"><div class="signature-doc-identidade"><span class="cx-ped-nome">${nome}</span><span class="cx-doc-sit">${sit}${quando?' · '+quando:''}</span></div>${acoes?`<details class="signature-doc-acoes"><summary aria-label="Ações de ${esc(d.nome)}">Mais ações</summary><div>${acoes}</div></details>`:''}</li>`;
+    }
     return `<li><span class="cx-ped-nome">${nome}${quando?` <em>${quando}</em>`:''}</span> <span class="cx-doc-sit">${sit}</span>${lapis}${ler}${del}</li>`;
   };
   const corpo=docsAgrupar(docs).map(gr=>{
     const papeis=[...new Set(gr.itens.map(x=>String(x.d.papel||'').trim()).filter(Boolean))];
     const titulo=escTxt(gr.titulo)+(gr.ordem===2&&papeis.length===1?` <small>(${escTxt(papeis[0])})</small>`:'');
+    if(opcoes.compacto){const chave=c.id+':'+gr.chave,aberto=DOCS_GRUPOS_ABERTOS.get(chave)??gr.classe==='conf';return `<details class="signature-doc-grupo ${gr.classe}" data-docs-grupo="${esc(chave)}"${aberto?' open':''}><summary><span>${titulo}</span><span class="signature-doc-contagem">${gr.itens.length}</span></summary><ul>${gr.itens.map(linha).join('')}</ul></details>`;}
     return `<section class="cx-docs-grupo ${gr.classe}"><h5><span>${titulo}</span><span>${gr.itens.length}</span></h5><ul>${gr.itens.map(linha).join('')}</ul></section>`;
   }).join('');
   const id=c&&c.id?esc(c.id):'';
+  if(opcoes.compacto)return `<div class="signature-docs-lista">${corpo}</div>`;
   return `<details class="cx-ped-rec cx-docs" data-docs="${id}"${c&&c.id&&DOCS_ABERTOS.has(c.id)?' open':''}><summary><i class="ti ti-inbox"></i> Recebidos do cliente: ${arquivos.length} ${arquivos.length===1?'arquivo':'arquivos'}${arquivos.length?` (${lidos} lidos${aguardando?`, ${aguardando} aguardando o cliente concluir`:''})`:''}${aConfirmar?` · <b>${aConfirmar} a confirmar</b>`:''}${ficha?' + dados digitados':''}<span class="cx-docs-ver" aria-hidden="true"></span></summary><div class="cx-docs-corpo">${corpo}</div></details>`;
 }
 // ── fim: a lista de documentos recebidos ──
