@@ -96,8 +96,9 @@ venal. Prefeitura e celular passaram. A usuária aprovou a prévia e autorizou a
 
 ## Documentos — prévia de 12/11/2026
 
-A página Signature separa Recebidos, Anexar documentos e Pedir ao cliente no
-mesmo padrão visual das subpílulas de Certidões. Recebidos agrupa arquivos por
+A página Signature separa Anexar documentos, Recebidos e Pedir ao cliente no
+mesmo padrão visual das subpílulas de Certidões. A usuária pediu Anexar como
+primeira opção; ela também abre por padrão ao entrar pela primeira vez. Recebidos agrupa arquivos por
 pessoa, empresa e imóvel; itens a confirmar aparecem abertos. Os demais grupos
 ficam recolhidos e preservam sua abertura ao trocar de opção ou redesenhar.
 Correção, releitura e exclusão ficam em Mais ações de cada documento elegível,

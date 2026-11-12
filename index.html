@@ -6067,13 +6067,13 @@ window.signatureAnexarCertidao=async function(id,input){
 window.signatureAtualizarCertidoes=function(){document.querySelectorAll('.signature-certidoes').forEach(el=>{if(casos[el.dataset.caso]&&el.dataset.recursos!==[AJUDANTE.pronto,AJUDANTE.onr,AJUDANTE.pref].join('-'))signatureCertRedesenhar(el.dataset.caso);});};
 const SIGNATURE_DOCS_ABA={};
 function signatureDocumentosHtml(c){
- const id=esc(c.id),aba=SIGNATURE_DOCS_ABA[c.id]||'recebidos';
+ const id=esc(c.id),aba=SIGNATURE_DOCS_ABA[c.id]||'anexar';
  const recebidos=pedidoRecebidosHtml(c,{compacto:true});
  let conteudo;
  if(aba==='anexar')conteudo=`<h3>Anexar documentos</h3>${solteHtml(c).replace(ajudanteHtml(c),'')}<p class="signature-ajuda">PDF ou imagem · até 10 MB por arquivo.</p>`;
  else if(aba==='pedir')conteudo=`<h3>Pedir ao cliente</h3><p class="signature-ajuda">Prepare a lista de documentos e o link de envio para o cliente.</p><button type="button" class="cx-btn destaque" onclick="abrirPedidoDocs('${id}')">Preparar pedido</button>`;
  else conteudo=`<div class="signature-docs-cabecalho"><h3>Documentos do caso</h3>${pedidoPastaHtml(c)}</div>${recebidos||`<p class="signature-ajuda">Os arquivos recebidos aparecerão aqui, organizados por pessoa e imóvel.</p><button type="button" class="cx-btn destaque" onclick="signatureEscolherDocumentos('${id}','anexar')">Anexar documentos</button>`}`;
- return `<div class="signature-documentos" id="signature-documentos-${id}"><div class="signature-cert-subgrupo signature-docs-escolhas"><span>Organizar documentos</span><nav class="signature-cert-tipos" aria-label="Opções de documentos">${[['recebidos','Recebidos'],['anexar','Anexar documentos'],['pedir','Pedir ao cliente']].map(([k,n])=>`<button type="button" aria-pressed="${k===aba}" onclick="signatureEscolherDocumentos('${id}','${k}')">${n}</button>`).join('')}</nav></div><section class="signature-docs-conteudo" aria-label="${esc({'recebidos':'Recebidos','anexar':'Anexar documentos','pedir':'Pedir ao cliente'}[aba])}">${conteudo}</section>${aba!=='anexar'?`<ul class="cx-solte-prog" id="solte-prog-${id}">${solteProgHtml(c.id)}</ul>`:''}</div>`;
+ return `<div class="signature-documentos" id="signature-documentos-${id}"><div class="signature-cert-subgrupo signature-docs-escolhas"><span>Organizar documentos</span><nav class="signature-cert-tipos" aria-label="Opções de documentos">${[['anexar','Anexar documentos'],['recebidos','Recebidos'],['pedir','Pedir ao cliente']].map(([k,n])=>`<button type="button" aria-pressed="${k===aba}" onclick="signatureEscolherDocumentos('${id}','${k}')">${n}</button>`).join('')}</nav></div><section class="signature-docs-conteudo" aria-label="${esc({'recebidos':'Recebidos','anexar':'Anexar documentos','pedir':'Pedir ao cliente'}[aba])}">${conteudo}</section>${aba!=='anexar'?`<ul class="cx-solte-prog" id="solte-prog-${id}">${solteProgHtml(c.id)}</ul>`:''}</div>`;
 }
 window.signatureEscolherDocumentos=function(id,aba){
  if(!['recebidos','anexar','pedir'].includes(aba))return;

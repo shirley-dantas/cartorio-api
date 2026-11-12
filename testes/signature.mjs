@@ -262,7 +262,10 @@ try{
  assert.equal(await pg.locator('.signature-trabalho .cx-drive').count(),1);
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Documentos',exact:true}).click();
  assert.equal(await pg.locator('.signature-documentos').count(),1);
- assert.deepEqual(await pg.locator('.signature-docs-escolhas button').allTextContents(),['Recebidos','Anexar documentos','Pedir ao cliente']);
+ assert.deepEqual(await pg.locator('.signature-docs-escolhas button').allTextContents(),['Anexar documentos','Recebidos','Pedir ao cliente']);
+ assert.equal(await pg.locator('.signature-docs-escolhas button[aria-pressed=true]').innerText(),'Anexar documentos','abre em Anexar por padrão');
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','documentos-primeira-opcao.png')});
+ await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Recebidos',exact:true}).click();
  await pg.evaluate(()=>window.__fbWrite('casos/C1/documentos',{
   D1:{nome:'Matrícula já existente',tipo:'documento',tipoDocumento:'MATRICULA_IMOVEL',texto:'Matrícula fictícia já lida.'},
   D2:{nome:'RG de Maria Exemplo',tipo:'documento',tipoDocumento:'RG_CNH',pessoa:'Maria Exemplo',origem:'link do cliente',texto:'Texto fictício do RG',link:'https://example.invalid/rg.pdf'},
