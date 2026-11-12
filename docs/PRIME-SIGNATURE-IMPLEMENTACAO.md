@@ -81,7 +81,48 @@ Testes cobrem criação, alteração, remoção, conclusão, ordem, atrasos,
 datas antigas, desktop/celular e ausência de alteração das assinaturas.
 Prévia aprovada e publicação autorizada pela usuária em 12/11/2026.
 
-## Verificações
+## Atenções do dia — aprovado (12/11/2026)
+
+A usuária autorizou implementar a proposta de acompanhamento da Central.
+A apresentação inicial mostra três prioridades, com motivo, ação sugerida
+e responsável. “Ver todas” mantém acesso ao conjunto completo, inclusive
+avisos adiados e a opção de reativá-los. O resumo da Joaninha descreve as
+contagens verificadas pelas regras, sem chamada adicional à IA.
+
+O modelo `lib/atencoes-dia.js` é puro: seleciona notas vencidas e casos sem
+avanço além de `DEP_CONFIG.normalAte`. Usa dias corridos de São Paulo e a
+última atividade registrada, considerando etapa, atualização, histórico,
+documentos (`salvoEm` e datas equivalentes), auditoria e tarefas da Joaninha.
+Datas futuras de assinatura não contam como atividade já realizada. Casos
+concluídos, atualizados recentemente, sem prazo conhecido ou sem data de
+referência não ganham cobrança inventada. Registro mantém seus 30 dias,
+enquanto Minutando mantém os 2 dias da regra existente.
+
+Adiamentos usam chaves `atc1_*` em `resolucoesCentral`, amarradas ao conteúdo
+do aviso. Mudanças de etapa, documento ou conteúdo invalidam adiamentos
+antigos; nenhum estado legado é apagado. O relógio reavalia os avisos a cada
+minuto enquanto a página está visível. Adiar o aviso não altera o prazo da
+nota nem a Agenda de assinaturas.
+
+Registrar andamento usa transação por caso e identificador de operação para
+preservar observações e evitar duplicação. Revalida a versão que originou o
+aviso; mudança concorrente pede revisão. Acrescenta observação e histórico,
+sem concluir etapas ou modificar assinatura/status. Concluir tarefa marca
+`done:true` por transação, sem alternar uma tarefa já concluída para aberta.
+
+Testes: prazos por etapa, atividade recente, fuso, vencimento por hora,
+adiamento/retorno, chaves estáveis, limite de apresentação, conjunto completo,
+leitura sem gravação, desktop/celular, navegação, conclusão, andamento
+idempotente e alteração concorrente. Prévia com dados fictícios apresentada;
+a usuária aprovou a versão mais leve e autorizou a publicação em 12/11/2026.
+
+Após a primeira prévia, a usuária pediu um tom mais leve e fluido. A revisão
+usa frases de conversa em um único parágrafo por cartão, datas como “ontem,
+às 10h” quando adequadas, e botões “Anotar avanço”, “Já fiz” e “Me lembrar
+depois”. Os critérios, os prazos e as ações permanecem iguais. O limite usual
+da etapa continua no modelo, mas sai do texto principal para reduzir ruído.
+
+## Verificações gerais
 
 - `testes/signature.mjs`: index real com Firebase simulado; desktop/celular,
   navegação, edição, abas sem gravação, registro, jornada única, privacidade

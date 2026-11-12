@@ -137,6 +137,29 @@ html.prime-signature .cdc2-nota-atrasada{font-weight:600}
 html.prime-signature .foco-quando-campo{display:grid;gap:6px;min-width:0}
 html.prime-signature .foco-quando-campo input{width:100%;min-width:0;max-width:100%}
 html.prime-signature .notas-somente-bloco{font-size:10px;line-height:1.5;color:#89747c;margin:2px 0 8px}
+html.prime-signature .atencoes-resumo{margin:0 0 14px;padding:12px 14px;border-radius:12px;background:#fbf1ed;color:#744153}
+html.prime-signature .atencoes-resumo>span{display:block;font-size:10px;font-weight:600;letter-spacing:.05em;margin-bottom:5px}
+html.prime-signature .atencoes-resumo>p{font-size:12px;line-height:1.6}
+html.prime-signature .atencao-item{padding:13px 12px;margin-bottom:10px;background:#fffaf7;border:1px solid #eee0d5;border-left:3px solid #b58c5e;border-radius:12px}
+html.prime-signature .atencao-item.adiada{border-left-color:#c4b7ae;background:#faf7f4}
+html.prime-signature .atencao-meta{display:flex;justify-content:space-between;gap:10px;font-size:10px;line-height:1.5;color:#947050;margin-bottom:6px}
+html.prime-signature .atencao-meta>span{overflow-wrap:anywhere}
+html.prime-signature .atencao-meta>span:last-child{text-align:right;color:#816b75}
+html.prime-signature .atencao-item h4{font-size:13px;font-weight:600;line-height:1.5;color:#68243b;overflow-wrap:anywhere;margin:0 0 5px}
+html.prime-signature .atencao-conversa{font-size:12px;line-height:1.65;color:#67545e;margin:0}
+html.prime-signature .atencao-adiada{font-size:11px;line-height:1.55;color:#887780;margin:0}
+html.prime-signature .atencao-adiada{margin-top:6px;color:#8e6e4c}
+html.prime-signature .atencao-acoes{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+html.prime-signature .atencao-acoes .cx-btn{font-size:10px;padding:6px 8px;border-color:#e5d5c8;background:#fffdfb;color:#71344a}
+html.prime-signature .atencoes-ver-todas{width:100%;justify-content:center;margin-top:3px;padding:8px}
+html.prime-signature .atencoes-ver-todas[hidden]{display:none}
+html.prime-signature .atencoes-vazio{font-size:12px;line-height:1.7;color:#8d7a84;padding:6px 0 12px}
+html.prime-signature #atencoes-feedback{font-size:11px;line-height:1.6;color:#805b6e;margin-top:8px}
+html.prime-signature .atencao-modal{max-width:450px}
+html.prime-signature #atencao-campos input,html.prime-signature #atencao-campos textarea{display:block;width:100%;min-width:0;max-width:100%;padding:11px;border:1px solid #dfd3c8;border-radius:9px;background:#fffdf9;font:inherit;color:#44343d}
+html.prime-signature .atencoes-ajuda{font-size:11px;line-height:1.6;color:#8d7a84;margin-top:10px}
+html.prime-signature #atencao-erro{font-size:12px;line-height:1.6;color:#a13c4f;margin-top:10px}
+html.prime-signature .atencao-nota-destaque{background:#fcf1e9;border-left:3px solid #b58c5e;padding-left:9px}
 html.prime-signature button:focus-visible,
 html.prime-signature input:focus-visible,
 html.prime-signature .cdc2-cal-dia:focus-visible{
