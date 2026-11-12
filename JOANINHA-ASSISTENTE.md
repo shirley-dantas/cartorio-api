@@ -7,6 +7,10 @@ aberto. O assistente deve usá-la antes de responder o mérito de dúvidas
 jurídicas. Ela é executada separadamente de qualquer alteração no caso.
 A resposta do serviço é apresentada diretamente, com fontes e ressalvas,
 sem outra chamada ao modelo para reescrevê-la.
+O estilo padrão é uma resposta de conversa, em dois ou três parágrafos curtos,
+com fundamento essencial e ressalvas indispensáveis. Pedidos de aprofundamento
+podem receber análise extensa. O limite de saída permanece suficiente para
+essa análise: a concisão é uma orientação de escrita, sem cortar a resposta.
 
 O serviço recupera a Base de Regras e os últimos 14 dias do Radar a cada
 pergunta e recebe os padrões internos dos 12 tipos de ato existentes no
