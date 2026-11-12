@@ -5584,7 +5584,7 @@ function prefExtrair(texto){
   return {contribuintes: achados, atual, unidade, documentos, trechos};
 }
 function prefDocsDoCaso(c){
-  return onrDocsDaMatricula(c).map(d => ({nome: String(d.nome || 'matrícula'), x: prefExtrair(d.texto)})).filter(d => d.x.contribuintes.length || d.x.unidade);
+  return onrDocsDaMatricula(c).map(d => ({nome: String(d.nome || 'matrícula'), texto: d.texto, x: prefExtrair(d.texto)})).filter(d => d.x.contribuintes.length || d.x.unidade);
 }
 const prefFmtSql = d => { d = String(d || '').replace(/\D/g, ''); return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 10)}-${d.slice(10)}` : d; };
 // O contribuinte em uso: o escolhido entre os que a matrícula traz, ou — quando a leitura não achou nenhum — o que ela digitou.
@@ -5949,7 +5949,7 @@ window.signatureCertCampo=signatureCertCampo;
 function signatureCertRedesenhar(id){const el=document.getElementById('signature-certidoes-'+id),c=casos[id];if(el&&c)el.outerHTML=signatureCertidoesHtml(c);}
 window.signatureEscolherCertidao=function(id,grupo,sub){
  const g=SIGNATURE_CERT_GRUPOS.find(g=>g.id===grupo);if(!g||sub&&!g.sub?.some(s=>s.id===sub))return;
- const st=signatureCertEstado(id);st.grupo=grupo;st.sub=sub||g.sub?.[0]?.id||'';st.confirmar=null;signatureCertRedesenhar(id);
+ const st=signatureCertEstado(id);st.grupo=grupo;st.sub=sub||g.sub?.[0]?.id||'';st.confirmar=null;if(!st.upload)st.mensagem='';signatureCertRedesenhar(id);
 };
 function signatureCertMensagem(id,texto){signatureCertEstado(id).mensagem=texto;const el=document.getElementById('signature-cert-feedback-'+id);if(el)el.textContent=texto;}
 function signatureCertLivre(id){
@@ -5966,11 +5966,27 @@ function signatureCertJaSalvo(c,servico,sujeito){
 }
 function signatureCertConfirmarRepeticao(id,servico,sujeito){return !signatureCertJaSalvo(casos[id],servico,sujeito)||confirm('Já há um documento deste serviço para esses dados no caso. Deseja solicitar ou anexar outro?');}
 function signatureOnrEscolhaHtml(casoId){const {s}=signatureCertServico(casoId);return `<button type="button" class="cx-btn destaque" onclick="onrAbrir('${esc(casoId)}','${s.id==='certidao'?'certidao':'visualizacao'}')">Conferir e solicitar</button>`;}
-function signaturePrefHtml(c){return prefFaixaHtml(c).replaceAll('onclick="prefPedirValorVenal(', 'onclick="signaturePedirValorVenal(').replaceAll('onclick="prefPedirNegativa(', 'onclick="signaturePedirNegativa(').replaceAll('onclick="prefPedirCadastrais(', 'onclick="signaturePedirCadastrais(');}
+function signaturePrefHtml(c){
+ const docs=prefDocsDoCaso(c);if(!docs.length)return '';
+ const {g}=signatureCertServico(c.id),id=esc(c.id),valor=g.id==='valor',conectado=AJUDANTE.pronto&&AJUDANTE.pref;
+ const acao={valor:'signaturePedirValorVenal',negativa:'signaturePedirNegativa',cadastrais:'signaturePedirCadastrais'}[g.id];
+ return `<div id="pref-${id}" class="signature-pref-compacta">${docs.map((d,i)=>{
+  const x=d.x,at=prefAtual(c.id,i,x),selecionado=prefEscolhido(c.id,i,x),key=c.id+':'+i;
+  const propria=onrPropria(onrExtrair(d.texto||''),d.nome),unidade=x.unidade?[x.unidade.tipo,x.unidade.numero].filter(Boolean).join(' '):'';
+  const imovel=[unidade,propria?'matrícula '+propria:''].filter(Boolean).join(' · ')||d.nome;
+  let contribuinte;
+  if(x.contribuintes.length>1)contribuinte=`<select aria-label="Contribuinte do imóvel ${i+1}" onchange="prefEscolher('${id}',${i},Number(this.value))">${x.contribuintes.map((k,j)=>`<option value="${j}"${j===selecionado?' selected':''}>${esc(k.sql)}${k.areaMaior?' · área maior':''}</option>`).join('')}</select>`;
+  else if(x.contribuintes.length)contribuinte=`<input aria-label="Contribuinte do imóvel ${i+1}" value="${esc(at?.sql||'')}" readonly>`;
+  else contribuinte=`<input aria-label="Contribuinte do imóvel ${i+1}" inputmode="numeric" placeholder="000.000.0000-0" maxlength="14" value="${esc(prefFmtSql(PREF.manual[key]||''))}" onchange="prefGuardarSql('${id}',${i},this.value)">`;
+  const inv=prefEhInventario(c),data=PREF.data[key]??(inv?'':prefHoje());
+  const campoData=valor?`<label class="signature-cert-campo">${inv?'Data do óbito':'Data da consulta'}<input id="pref-data-${id}-${i}" aria-label="${inv?'Data do óbito':'Data da consulta'}" value="${esc(data)}" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" oninput="prefGuardarData('${id}',${i},this.value)"></label>`:'';
+  return `<section class="signature-pref-imovel"><div class="signature-pref-linha"><label class="signature-cert-campo">Contribuinte${contribuinte}<span class="signature-pref-identificacao">${escTxt(imovel)}</span></label><div class="pref-pedir">${conectado?`<button type="button" class="cx-btn destaque" aria-label="Solicitar ${g.nome}" onclick="${acao}('${id}',${i})"${!at||at.areaMaior?' disabled':''}>Solicitar</button>`:''}</div></div>${at?.areaMaior?'<p class="signature-pref-atencao">Contribuinte em área maior. Confira a individualização antes de solicitar.</p>':''}${!at?'<p class="signature-ajuda">Informe o contribuinte deste imóvel para continuar.</p>':''}${valor&&inv?campoData:''}<details class="signature-pref-opcoes"><summary>Mais detalhes</summary><p>Documento de origem: ${escTxt(d.nome)}</p>${at?.onde?`<p>${escTxt(at.onde)}</p>`:''}${x.trechos?.length&&!x.contribuintes.length?`<p>${x.trechos.map(t=>escTxt(t)).join(' · ')}</p>`:''}${valor&&!inv?campoData:''}</details></section>`;
+ }).join('')}</div>`;
+}
 function signatureCertidoesHtml(c){
  const {st,g,s,chave}=signatureCertServico(c.id),id=esc(c.id),recursos=[AJUDANTE.pronto,AJUDANTE.onr,AJUDANTE.pref].join('-');
  const conectado=AJUDANTE.pronto&&(g.id==='jucesp'||g.id==='matricula'&&AJUDANTE.onr||['valor','negativa','cadastrais'].includes(g.id)&&AJUDANTE.pref);
- const conectar=`<p class="signature-ajuda">Ative o Ajudante no Chrome e atualize a página para solicitar. Você também pode anexar o documento manualmente abaixo.</p>`;
+ const conectar=`<p class="signature-ajuda">Solicitações automáticas: use o computador com o Ajudante. Você pode anexar documentos neste dispositivo.</p>`;
  let conteudo='';
  if(g.id==='jucesp'&&!s.manual){
   const emp=ajEmpresasVisiveis(c.id,c),atual=st.campos.cnpj??(emp[0]?.cnpj||''),selecionada=emp.some(e=>e.cnpj===atual);
@@ -5990,7 +6006,7 @@ function signatureCertidoesHtml(c){
  const sujeito=st.campos['sujeito:'+chave]||'',nomeSujeito=g.id==='jucesp'?'Empresa / CNPJ da certidão':'Pessoa, empresa ou imóvel da certidão';
  const manual=`<div class="signature-cert-anexo"><label class="signature-cert-campo">${nomeSujeito}<input aria-label="Titular da certidão" placeholder="Informe a quem este documento pertence" value="${esc(sujeito)}" oninput="signatureCertCampo('${id}','sujeito:${chave}',this.value)"${st.upload?' disabled':''}></label><label class="cx-btn ${s.manual?'destaque':''}">${st.upload?'Enviando…':'Anexar certidão'}<input type="file" data-cert-upload="${id}" data-servico="${chave}" data-nome="${esc(s.nome)}" accept="application/pdf,image/*" hidden onchange="signatureAnexarCertidao('${id}',this)"${st.upload?' disabled':''}></label></div>`;
  const salvos=Object.values(c.documentos||{}).filter(d=>d&&(d.certidaoServico||['FICHA_CADASTRAL_JUCESP','CONTRATO_SOCIAL','VALOR_VENAL_REFERENCIA','NEGATIVA_IPTU','DADOS_CADASTRAIS_IMOVEL'].includes(d.tipoDocumento)||/^RIDIGITAL_/i.test(d.nomeOriginal||'')));
- return `<div class="signature-certidoes signature-certidoes-leve signature-certidoes-servicos" id="signature-certidoes-${id}" data-caso="${id}" data-recursos="${recursos}" data-pref-servico="${g.id}"><nav class="signature-cert-servicos" aria-label="Certidões">${SIGNATURE_CERT_GRUPOS.map(x=>`<button type="button" aria-pressed="${x.id===g.id}" onclick="signatureEscolherCertidao('${id}','${x.id}')">${x.nome}</button>`).join('')}</nav>${g.sub?`<nav class="signature-cert-tipos" aria-label="Opções da certidão">${g.sub.map(x=>`<button type="button" aria-pressed="${x.id===s.id}" onclick="signatureEscolherCertidao('${id}','${g.id}','${x.id}')">${x.nome}</button>`).join('')}</nav>`:''}<div class="signature-cert-titulo"><h3>${s.nome}</h3><span class="signature-cert-etiqueta${s.manual?' manual':''}">${s.manual?'Manual · automação futura':'Automação existente'}</span></div>${conteudo}${s.manual?manual:`<details class="signature-cert-alternativa"><summary>Anexar documento já obtido</summary>${manual}</details>`}<p class="signature-ajuda" role="status" id="signature-cert-feedback-${id}">${escTxt(st.mensagem)}</p><div class="signature-pedido-andamento" id="signature-cert-msg-${id}" role="status">${ajMsgHtml(c.id)}</div><ul class="cx-solte-prog" id="solte-prog-${id}">${solteProgHtml(c.id)}</ul><details class="signature-cert-salvos"><summary>Certidões salvas neste caso (${salvos.length})</summary>${salvos.length?`<ul>${salvos.map(d=>`<li>${/^https:\/\//.test(d.link||'')?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.certidaoNome||docsRotulo(d))}</a>`:escTxt(d.certidaoNome||docsRotulo(d))}${d.certidaoSujeito||d.pessoa?` · ${escTxt(d.certidaoSujeito||d.pessoa)}`:''}</li>`).join('')}</ul>`:'<p class="signature-ajuda">Nenhuma certidão identificada. Os demais arquivos continuam em Documentos.</p>'}</details></div>`;
+ return `<div class="signature-certidoes signature-certidoes-leve signature-certidoes-servicos" id="signature-certidoes-${id}" data-caso="${id}" data-recursos="${recursos}" data-pref-servico="${g.id}"><nav class="signature-cert-servicos" aria-label="Certidões">${SIGNATURE_CERT_GRUPOS.map(x=>`<button type="button" aria-pressed="${x.id===g.id}" onclick="signatureEscolherCertidao('${id}','${x.id}')">${x.nome}</button>`).join('')}</nav>${g.sub?`<div class="signature-cert-subgrupo"><span>${g.id==='jucesp'?'Serviços da JUCESP':'Serviços de matrícula'}</span><nav class="signature-cert-tipos" aria-label="Opções da certidão">${g.sub.map(x=>`<button type="button" aria-pressed="${x.id===s.id}" onclick="signatureEscolherCertidao('${id}','${g.id}','${x.id}')">${x.nome}</button>`).join('')}</nav></div>`:''}<div class="signature-cert-titulo"><h3>${s.nome}</h3><span class="signature-cert-etiqueta${s.manual?' manual':''}">${s.manual?'Manual · automação futura':'Automação existente'}</span></div>${conteudo}${s.manual?manual:`<details class="signature-cert-alternativa"><summary>Anexar documento já obtido</summary>${manual}</details>`}<p class="signature-ajuda" role="status" id="signature-cert-feedback-${id}">${escTxt(st.mensagem)}</p><div class="signature-pedido-andamento" id="signature-cert-msg-${id}" role="status">${ajMsgHtml(c.id)}</div><ul class="cx-solte-prog" id="solte-prog-${id}">${solteProgHtml(c.id)}</ul><details class="signature-cert-salvos"><summary>Certidões salvas neste caso (${salvos.length})</summary>${salvos.length?`<ul>${salvos.map(d=>`<li>${/^https:\/\//.test(d.link||'')?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.certidaoNome||docsRotulo(d))}</a>`:escTxt(d.certidaoNome||docsRotulo(d))}${d.certidaoSujeito||d.pessoa?` · ${escTxt(d.certidaoSujeito||d.pessoa)}`:''}</li>`).join('')}</ul>`:'<p class="signature-ajuda">Nenhuma certidão identificada. Os demais arquivos continuam em Documentos.</p>'}</details></div>`;
 }
 window.signatureCertRedesenhar=signatureCertRedesenhar;
 window.signatureConferirJucesp=function(id){
