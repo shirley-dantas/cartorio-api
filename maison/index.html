@@ -107,6 +107,12 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 :root[data-theme="dark"] .btn.p{color:#1C1318}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.p{color:#1C1318}}
 .btn.sm{padding:4px 11px;font-size:13px}
+/* Mapeamento de cílios: um olho, nove quadrantes */
+.mapa-olho{display:block;margin:4px auto 0;width:100%;max-width:340px;height:auto}
+.mapa-q{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;max-width:340px;margin:0 auto}
+.mapa-q input{width:100%;min-width:0;padding:8px 0;text-align:center;font-size:15px;border:1.5px solid var(--line);border-radius:8px;background:#fff}
+.mapa-q b{display:block;text-align:center;font-size:11px;color:var(--muted);margin-top:3px;font-weight:500}
+.mapa-ult{background:var(--berry-soft);border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14px}
 /* Links dentro das janelas: na cor da marca, sem sublinhado azul */
 dialog a:not(.btn){color:var(--berry);text-decoration:none;font-weight:600}
 dialog a:not(.btn):hover{text-decoration:underline}
@@ -830,8 +836,8 @@ const reabrirHorario=(id,p)=>grava(()=>DB.del(p+'/bloqueios/'+id),'Horário reab
 // Tocar num bloco abre as ações dele; tocar num espaço vazio oferece agendar ou fechar aquele horário.
 const PX30=44;
 function cartaoAg(a){const at=a.st==='Atendido'?histAll(true).find(h=>h.agenda===a.id&&!h.cancelado):null;
-  return `<div class="appt ${a.st==='Atendido'?'done':''}" style="border-left-color:${COR_PRO[a.pro]||'var(--berry)'}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}${a.origem==='link'?' <span class="tag">Pelo link</span>':''}<div class="small muted">${esc(sv(a.serv,a.unit).n)} · ${esc(PEOPLE[a.pro]?.n||'')}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}</div>
-   <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${at?`<button class="btn sm" data-reab="${a.id}" data-p="${a._p}">Reabrir atendimento</button>`:''}${at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-trocp="${a.id}" data-p="${a._p}">Trocar profissional</button><button class="btn sm aviso" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}${isAdmin()?`<button class="btn sm" data-troc="${a.id}" data-p="${a._p}">Trocar cliente</button>`:''}</div></div>`}
+  return `<div class="appt ${a.st==='Atendido'?'done':''}" style="border-left-color:${COR_PRO[a.pro]||'var(--berry)'}"><b>${esc(a.hora)}</b> ${esc(cli(a.cli).n)}${a.origem==='link'?' <span class="tag">Pelo link</span>':''}<div class="small muted">${esc(sv(a.serv,a.unit).n)} · ${esc(PEOPLE[a.pro]?.n||'')}${isAdmin()?' · '+brl(sv(a.serv,a.unit).p):''}</div>${ehCilios(a.serv)?(()=>{const m=mapasDe(a.cli).find(x=>x.ag!==a.id)||mapasDe(a.cli)[0];return m?`<div class="small" style="margin-top:4px">🖋 Último mapa: ${esc(mapaTexto(m))}</div>`:''})():''}
+   <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${a.st==='Atendido'?`<span class="tag ok">Atendido</span>${ehCilios(a.serv)?`<button class="btn sm" data-mapa="${a.id}" data-p="${a._p}">Mapeamento</button>`:''}${at?`<button class="btn sm" data-reab="${a.id}" data-p="${a._p}">Reabrir atendimento</button>`:''}${at?`<button class="btn sm" data-regat="${at.id}" data-p="${at._p}">Registro</button>${regDe(at.id,at._p)?'':'<span class="tag warn">Sem registro</span>'}`:''}`:`<span class="tag">${esc(a.st)}</span>${respTag(a)}<button class="btn sm" data-done="${a.id}" data-p="${a._p}">Concluir atendimento</button><button class="btn sm" data-confirma="${a.id}" data-p="${a._p}">Avisar a cliente</button><button class="btn sm" data-remarcar="${a.id}" data-p="${a._p}">Remarcar</button><button class="btn sm" data-trocp="${a.id}" data-p="${a._p}">Trocar profissional</button>${ehCilios(a.serv)?`<button class="btn sm" data-mapa="${a.id}" data-p="${a._p}">Mapeamento</button>`:''}<button class="btn sm aviso" data-cancelag="${a.id}" data-p="${a._p}">Cancelar</button>`}${isAdmin()?`<button class="btn sm" data-troc="${a.id}" data-p="${a._p}">Trocar cliente</button>`:''}</div></div>`}
 // Troca a cliente de um horário (só a Tháriga): serve para corrigir agendamentos que ficaram no nome errado.
 // Vale também para o que já foi atendido: o histórico e o valor cobrado ficam como estão, só muda de quem é.
 function trocarCliente(id,p,pre){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a||!isAdmin())return;
@@ -845,6 +851,33 @@ function trocarCliente(id,p,pre){const a=agenda().find(x=>x.id===id&&x._p===p);i
     const ok=await grava(async()=>{await DB.upd(p+'/agenda/'+id,{cli:novo});
       const h=histAll(true).find(x=>x.agenda===id&&x._p===p);if(h)await DB.upd(p+'/atendimentos/'+h.id,{cli:novo})},'Cliente trocada');
     if(ok)closeDlg()}}
+// ── Mapeamento de cílios (pedido da Tháriga, 12/11/2026) ──
+// Um olho só (os dois são iguais), nove quadrantes. Efeito, fio, curvatura e observação são texto livre (os 4 efeitos mais usados vão como sugestão).
+// Fica em /registros/{agenda}__mapa (a regra dos registros já deixa a equipe gravar): assim aparece o histórico da cliente sem mexer no registro do atendimento.
+const MAPA_CILIOS=['cilios','ciliosmanut','lashlift'];
+const ehCilios=id=>MAPA_CILIOS.includes(id);
+const mapasDe=cid=>{return [...Object.entries(C.mReg||{}),...Object.entries(C.fReg||{})].filter(([k,v])=>k.endsWith('__mapa')&&v.cli===cid).map(([k,v])=>({id:k,ag:k.replace(/__mapa$/,''),...v})).sort((a,b)=>(b.data||'').localeCompare(a.data||''))};
+const mapaTexto=m=>[m.efeito||'',m.curv?'curvatura '+m.curv:'',m.fio?'fio '+m.fio:'',(m.q||[]).some(Boolean)?(m.q||[]).map(x=>x||'–').join(' · '):''].filter(Boolean).join(' · ');
+function mapaOlhoSvg(){const pts=[...Array(9)].map((_,i)=>{const t=i/8,x=20+t*300,y=70-Math.sin(t*Math.PI)*42+ (t<.5?0:0);return [x,y]});
+  return `<svg class="mapa-olho" viewBox="0 0 340 100" aria-hidden="true"><path d="M20 70 Q170 -12 320 70" fill="none" stroke="#B2706A" stroke-width="2.6" stroke-linecap="round"/><path d="M20 70 Q170 112 320 70" fill="none" stroke="#E9E1D2" stroke-width="2"/>${pts.map(([x,y],i)=>`<path d="M${x} ${y+2} l${(i-4)*2.2} -14" stroke="#9C7A2E" stroke-width="2.4" stroke-linecap="round"/>`).join('')}</svg>`}
+function dlgMapa(aid,p){const a=agenda().find(x=>x.id===aid&&x._p===p);if(!a)return;
+  const c=cli(a.cli),base=p==='florenca'?'florenca':'maison',cur=(mapasDe(a.cli).find(m=>m.ag===aid))||{},ant=mapasDe(a.cli).find(m=>m.ag!==aid);
+  const q=cur.q||[];
+  openDlg('Mapeamento · '+c.n.split(' ')[0],`<p class="small muted" style="margin-top:0">${esc(sv(a.serv,a.unit).n)} · ${esc(diaLongo(a.date))}</p>
+  ${ant?`<div class="mapa-ult"><b>Último mapeamento</b> (${fd(ant.data,{day:'2-digit',month:'2-digit',year:'numeric'})})<br>${esc(mapaTexto(ant))}${ant.obs?'<br><span class="muted">'+esc(ant.obs)+'</span>':''}<div style="margin-top:6px"><a href="#" id="mp-usar">Usar este de novo</a></div></div>`:''}
+  <label class="f">Efeito<input id="mp-ef" list="mp-efs" maxlength="40" value="${esc(cur.efeito||'')}" placeholder="Gatinho, esquilo, boneca, fox…"></label><datalist id="mp-efs"><option>Gatinho</option><option>Esquilo</option><option>Boneca</option><option>Fox</option></datalist>
+  <div style="display:flex;gap:10px"><label class="f" style="flex:1">Nome do fio<input id="mp-fio" maxlength="40" value="${esc(cur.fio||'')}"></label><label class="f" style="flex:1">Curvatura<input id="mp-cv" list="mp-cvs" maxlength="12" value="${esc(cur.curv||'')}" placeholder="C, D…"></label></div><datalist id="mp-cvs"><option>J</option><option>B</option><option>C</option><option>CC</option><option>D</option><option>DD</option><option>L</option></datalist>
+  <div class="small muted" style="margin:2px 0 4px">Numeração dos 9 quadrantes (do canto interno ao externo)</div>
+  ${mapaOlhoSvg()}
+  <div class="mapa-q">${[...Array(9)].map((_,i)=>`<div><input id="mp-q${i}" inputmode="decimal" maxlength="5" value="${esc(q[i]||'')}" aria-label="Quadrante ${i+1}"><b>${i+1}</b></div>`).join('')}</div>
+  <label class="f" style="margin-top:12px">Observação<textarea rows="2" id="mp-ob" maxlength="300">${esc(cur.obs||'')}</textarea></label>
+  <button class="btn p" id="mp-ok">Salvar mapeamento</button>`);
+  const g=i=>document.getElementById(i);
+  const us=g('mp-usar');if(us)us.onclick=e=>{e.preventDefault();g('mp-ef').value=ant.efeito||'';g('mp-fio').value=ant.fio||'';g('mp-cv').value=ant.curv||'';(ant.q||[]).forEach((v,i)=>{const el=g('mp-q'+i);if(el)el.value=v});g('mp-ob').value=ant.obs||''};
+  g('mp-ok').onclick=async()=>{const reg={cli:a.cli,data:a.date,ag:aid,efeito:g('mp-ef').value.trim(),fio:g('mp-fio').value.trim(),curv:g('mp-cv').value.trim(),q:[...Array(9)].map((_,i)=>g('mp-q'+i).value.trim()),por:S.user.nome,em:iso(TODAY)};
+    const ob=g('mp-ob').value.trim();if(ob)reg.obs=ob;
+    if(!reg.efeito&&!reg.fio&&!reg.curv&&!reg.q.some(Boolean)&&!ob){toast('Preencha ao menos um campo');return}
+    if(await grava(()=>DB.set(base+'/registros/'+aid+'__mapa',reg),'Mapeamento salvo'))closeDlg()}}
 // Troca a profissional de um horário (a equipe também pode): o horário continua o mesmo, só muda de agenda.
 function trocarProfissional(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a||a.st==='Atendido')return;
   const lista=prosDaUnidade(a.unit,a.date);if(!lista.includes(a.pro))lista.unshift(a.pro);
@@ -1370,6 +1403,7 @@ function ficha(id){const c=cli(id),an=anamDe(id);
   <div style="margin-top:8px"><button class="btn" id="anb">${an?'Atualizar anamnese':'Preencher anamnese'}</button> <button class="btn" id="anl">Enviar anamnese por link</button></div>
   <h3 style="margin-top:20px">Fotos</h3><div id="fotos-box" class="small muted">Carregando…</div><div id="fotos-box-v"></div>
   ${fotoBarraHtml('fadd')}
+  ${(()=>{const L=mapasDe(id).slice(0,5);return L.length?`<h3 style="margin-top:20px">Mapeamento de cílios</h3>${L.map(m=>`<div class="row small" style="flex-wrap:wrap"><span>${fd(m.data)}</span><div class="grow" style="min-width:190px">${esc(mapaTexto(m))}${m.obs?`<div class="muted">${esc(m.obs)}</div>`:''}</div></div>`).join('')}`:''})()}
   <h3 style="margin-top:20px">Últimos atendimentos</h3>
   ${h.map(x=>`<div class="row small" style="flex-wrap:wrap;${x.cancelado?'opacity:.55':''}"><span>${fd(x.date)}</span><div class="grow" style="min-width:190px">${esc(sv(x.serv,x.unit).n)}<span class="muted"> com ${esc(PEOPLE[x.pro]?.n)}</span>${isAdmin()&&x.valor!=null?`<div class="muted">${brl(x.valor)} · ${esc(x.pag||'')}</div>`:''}</div>${x.cancelado?'<span class="tag warn">Cancelado</span>':regDe(x.id,x._p)?'<span class="tag ok">Registro</span>':'<span class="tag warn">Sem registro</span>'}${isAdmin()?uTag(x.unit):''}${x.cancelado?'':`<button class="btn sm" data-reg="${x.id}" data-p="${x._p}">${regDe(x.id,x._p)?'Ver registro':'Preencher registro'}</button>`}${isAdmin()&&!x.cancelado?`<button class="btn sm" data-corr="${x.id}" data-p="${x._p}">Corrigir</button><button class="btn sm" data-canc="${x.id}" data-p="${x._p}">Cancelar</button>`:''}</div>`).join('')||'<p class="muted small">Sem atendimentos registrados.</p>'}`);
   document.getElementById('anb').onclick=()=>anamnese(id);
@@ -2204,6 +2238,7 @@ function render(){
   main.querySelectorAll('[data-lvdia]').forEach(b=>b.onclick=()=>compartilharLivres(b.dataset.lvdia));
   const lva=document.getElementById('lv-ag');if(lva)lva.onclick=()=>{const [d,h,p]=[...S.lvSel][0].split('|');S.agData=d;S.agMes=d.slice(0,7);novoAg({data:d,hora:h,pro:p,serv:S.lvServ||undefined})};
   main.querySelectorAll('[data-troc]').forEach(b=>b.onclick=()=>trocarCliente(b.dataset.troc,b.dataset.p));
+  main.querySelectorAll('[data-mapa]').forEach(b=>b.onclick=()=>dlgMapa(b.dataset.mapa,b.dataset.p));
   main.querySelectorAll('[data-trocp]').forEach(b=>b.onclick=()=>trocarProfissional(b.dataset.trocp,b.dataset.p));
   main.querySelectorAll('[data-reab]').forEach(b=>b.onclick=()=>reabrirAtend(b.dataset.reab,b.dataset.p));
   main.querySelectorAll('[data-agpro]').forEach(b=>b.onclick=()=>{S.agPro=b.dataset.agpro;S.agSel=null;render()});
