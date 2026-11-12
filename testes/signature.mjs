@@ -265,7 +265,7 @@ try{
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).click();
  assert.deepEqual(await pg.locator('.signature-cert-servicos button').allTextContents(),['JUCESP','Matrícula','Valor venal','Negativa de IPTU','Dados cadastrais','Trabalhista','CND Receita Federal','Indisponibilidade']);
  assert.deepEqual(await pg.locator('.signature-cert-tipos button').allTextContents(),['Ficha cadastral','Contrato social','Cartão CNPJ']);
- assert.match(await pg.locator('.signature-certidoes').innerText(),/Ative o Ajudante/);
+ assert.match(await pg.locator('.signature-certidoes').innerText(),/computador com o Ajudante/);
  await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-pronto',versao:'0.3.4',onr:true,pref:true}}));
  await pg.evaluate(()=>window.__fbWrite('casos/C1/documentos',{
   D1:{nome:'Matricula_187852.pdf',tipo:'documento',tipoDocumento:'MATRICULA_IMOVEL',texto:'Matrícula 187852. 10º Registro de Imóveis de São Paulo. O APARTAMENTO nº 101. Contribuinte 083.042.0161-5.'},
@@ -280,6 +280,11 @@ try{
  }
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),dadosAntesAbas,'navegação não grava nem pede certidões');
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).click();
+ for(const nome of ['Valor venal','Negativa de IPTU','Dados cadastrais']){
+  await pg.locator('.signature-cert-servicos').getByRole('button',{name:nome,exact:true}).click();
+  await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida',{'Valor venal':'valor-venal-enxuto.png','Negativa de IPTU':'negativa-iptu-enxuta.png','Dados cadastrais':'dados-cadastrais-enxutos.png'}[nome])});
+ }
+ await pg.locator('.signature-cert-servicos').getByRole('button',{name:'JUCESP',exact:true}).click();
  await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','certidoes-aprovadas-jucesp.png')});
  await pg.evaluate(()=>{window.__pedidosAjudante=[];window.addEventListener('message',e=>{if(e.data?.tipo==='ajudante-pedido')window.__pedidosAjudante.push(e.data.pedido);});});
  await pg.locator('.signature-certidoes').getByRole('button',{name:'Conferir e solicitar',exact:true}).click();
@@ -308,6 +313,9 @@ try{
  for(const nome of ['Valor venal','Negativa de IPTU','Dados cadastrais']){
   await pg.locator('.signature-cert-servicos').getByRole('button',{name:nome,exact:true}).click();
   assert.equal(await pg.locator('.pref-pedir button:visible').count(),1,'apenas a ação do serviço selecionado aparece');
+  assert.equal(await pg.getByRole('textbox',{name:'Contribuinte do imóvel 1',exact:true}).inputValue(),'083.042.0161-5');
+  assert.match(await pg.locator('.signature-pref-identificacao').innerText(),/apartamento 101.*187852/i);
+  assert.equal(await pg.locator('.signature-pref-opcoes').getAttribute('open'),null,'origem e informações complementares ficam recolhidas');
  }
  await pg.locator('.signature-cert-servicos').getByRole('button',{name:'Negativa de IPTU',exact:true}).click();
  pg.once('dialog',d=>d.dismiss());
@@ -318,6 +326,15 @@ try{
  await pg.waitForFunction(()=>window.__pedidosAjudante.length===3);
  assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[2].servico),'negativa-iptu');
  assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[2].sql),'083.042.0161-5');
+ await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-progresso',id:window.__pedidosAjudante.at(-1).id,estado:'ok',texto:'Teste concluído.',fim:true}}));
+ await pg.locator('.signature-cert-servicos').getByRole('button',{name:'Valor venal',exact:true}).click();
+ await pg.locator('.signature-pref-opcoes summary').click();
+ await pg.getByRole('textbox',{name:'Data da consulta',exact:true}).fill('10/11/2026');
+ pg.once('dialog',d=>d.accept());
+ await pg.locator('[onclick*=signaturePedirValorVenal]').click();
+ await pg.waitForFunction(()=>window.__pedidosAjudante.length===4);
+ assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[3].data),'10/11/2026','data em Mais detalhes continua usada pelo pedido');
+ assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[3].sql),'083.042.0161-5');
  await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-progresso',id:window.__pedidosAjudante.at(-1).id,estado:'ok',texto:'Teste concluído.',fim:true}}));
  await pg.locator('.signature-cert-servicos').getByRole('button',{name:'Trabalhista',exact:true}).click();
  assert.match(await pg.locator('.signature-cert-etiqueta').innerText(),/Manual/);

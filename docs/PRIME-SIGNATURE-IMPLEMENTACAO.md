@@ -75,6 +75,25 @@ pedido concorrente no caso, matrícula, pedido de IPTU, anexo manual com
 metadados preservados, recusa de repetição e celular. Ajudante, Prefeitura
 e celular passaram. Desenho aprovado e publicação explicitamente autorizada.
 
+## Refinamento visual das pílulas — prévia de 12/11/2026
+
+Proposta após o uso no tablet: todas as pílulas ganham texto mais contrastado,
+bordas e seleção mais claras. Subpílulas de JUCESP e Matrícula ficam em um
+bloco próprio, com botões de toque maiores e seleção preenchida em vinho.
+
+Valor venal, Negativa de IPTU e Dados cadastrais usam uma apresentação compacta:
+contribuinte, identificação da unidade/matrícula de origem e ação de solicitar.
+Múltiplos contribuintes continuam selecionáveis; quando não há número lido,
+permanece o campo manual. Documento e trechos de origem ficam em Mais detalhes.
+Data de consulta do valor venal também fica recolhida, usando o dia atual por
+padrão. Em inventário, a data do óbito permanece visível e não é inventada.
+Área maior continua sinalizada e impede solicitação, como antes.
+
+Os parâmetros e a validação dos pedidos permanecem nos manipuladores existentes.
+A suíte Signature confere o vínculo imóvel/contribuinte das três consultas,
+envio de IPTU e manutenção da data alterada em Mais detalhes no pedido de valor
+venal. Prefeitura e celular passaram. Prévia aguarda aprovação para publicação.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já

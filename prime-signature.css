@@ -313,6 +313,28 @@ html.prime-signature .signature-cert-alternativa summary,html.prime-signature .s
 html.prime-signature .signature-cert-salvos li{padding:7px 0;line-height:1.6}
 html.prime-signature .signature-certidoes-servicos .signature-ajuda:empty{display:none}
 html.prime-signature .signature-cert-servicos button:focus-visible,html.prime-signature .signature-cert-tipos button:focus-visible{outline:2px solid #72223e;outline-offset:3px}
+html.prime-signature .signature-funcoes .est-aba{font-weight:600;color:#603a4b;border-color:#d8c2b4}
+html.prime-signature .signature-funcoes .est-aba.on{color:#fff}
+html.prime-signature .signature-cert-servicos{gap:9px;padding-bottom:18px;border-bottom:1px solid #e7d8ce}
+html.prime-signature .signature-cert-servicos button{font-weight:600;color:#623447;border-color:#c9acb7;min-height:40px}
+html.prime-signature .signature-cert-servicos button[aria-pressed="true"]{border-color:#72223e;background:#f5e6eb;color:#5e1831;box-shadow:inset 0 0 0 1px #72223e}
+html.prime-signature .signature-cert-subgrupo{background:#f6ecee;border:1px solid #e5cdd5;border-radius:13px;padding:14px;margin:4px 0 23px;max-width:650px}
+html.prime-signature .signature-cert-subgrupo>span{display:block;font-size:11px;font-weight:600;color:#704655;margin-bottom:10px}
+html.prime-signature .signature-cert-subgrupo .signature-cert-tipos{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:7px;margin:0;border:0}
+html.prime-signature .signature-cert-subgrupo .signature-cert-tipos button{padding:11px 12px;min-height:44px;line-height:1.35;border:1px solid #d6bac4;border-radius:8px;background:#fffafb;color:#633346;font-weight:600}
+html.prime-signature .signature-cert-subgrupo .signature-cert-tipos button[aria-pressed="true"]{background:#72223e;color:#fff;border-color:#72223e;box-shadow:0 2px 5px #72223e22}
+html.prime-signature .signature-pref-imovel{padding:0 0 18px;margin:0 0 20px;border-bottom:1px solid #eee3da}
+html.prime-signature .signature-pref-imovel:last-child{border:0;margin-bottom:0}
+html.prime-signature .signature-pref-linha{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+html.prime-signature .signature-pref-linha .signature-cert-campo{flex:1;min-width:0;margin:0;max-width:none}
+html.prime-signature .signature-pref-linha select{width:100%;border:1px solid #ddcbbd;border-radius:9px;padding:11px;background:#fff;font:inherit;color:#5d3b4c}
+html.prime-signature .signature-pref-identificacao{font-size:12px;color:#674452;line-height:1.5}
+html.prime-signature .signature-pref-opcoes{margin-top:13px;font-size:11px;color:#80616e}
+html.prime-signature .signature-pref-opcoes summary{cursor:pointer;width:fit-content}
+html.prime-signature .signature-pref-opcoes p{line-height:1.6}
+html.prime-signature .signature-pref-atencao{font-size:12px;color:#96531f;line-height:1.6}
+html.prime-signature .signature-pref-linha .pref-pedir{margin:0;padding:0;border:0}
+html.prime-signature .signature-pref-linha .cx-btn:disabled{opacity:.5;cursor:default}
 html.prime-signature .signature-certidoes-servicos[data-pref-servico="negativa"] .pref-pedir:has([onclick^="signaturePedirValorVenal"]),
 html.prime-signature .signature-certidoes-servicos[data-pref-servico="negativa"] .pref-pedir:has([onclick^="signaturePedirCadastrais"]),
 html.prime-signature .signature-certidoes-servicos[data-pref-servico="valor"] .pref-pedir:has([onclick^="signaturePedirNegativa"]),
