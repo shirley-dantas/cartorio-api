@@ -35,7 +35,7 @@ motor de decisão permanecem disponíveis para a IA. Observações ficam dentro
 do bloco Próxima ação, abaixo da orientação. O botão visível “Adicionar
 observação” abre e foca o campo com instrução simples e “Salvar observação”.
 Usa a gravação existente, preservando as observações anteriores e rascunhos.
-Prévia pendente de aprovação.
+Prévia aprovada pela usuária e publicação autorizada em 12/11/2026.
 
 ## Financeiro e privacidade
 
