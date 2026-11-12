@@ -73,4 +73,5 @@ substitui a exigência anterior de exibir esses atalhos na lateral.
 Etapas e Arquivo passam a iniciar a navegação. Rede fica depois das etapas,
 seguida das ferramentas existentes, mantendo a autorização atual. O pedido
 é de apresentação: não apagar casos, orçamentos ou modelos aprendidos, nem
-alterar o aprendizado da IA. A rodada fica em prévia até aprovação visual.
+alterar o aprendizado da IA. Prévia aprovada e publicação autorizada pela
+usuária em 12/11/2026, após a apresentação da lateral simplificada.
