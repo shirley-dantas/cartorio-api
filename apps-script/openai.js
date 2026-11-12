@@ -30,8 +30,13 @@ function openaiPayload(opcoes, modelo) {
   // inteira em raciocínio e devolver uma resposta vazia (inclusive no teste OK).
   if (/^gpt-6-luna(?:-|$)/.test(payload.model)) payload.reasoning = {effort: 'none'};
   if (opcoes.tools && opcoes.tools.length) {
-    payload.tools = [{type: 'web_search'}];
-    payload.max_tool_calls = 6;
+    var pesquisa = {type: 'web_search'};
+    var ferramenta = opcoes.tools[0] || {};
+    if(ferramenta.filters) pesquisa.filters = ferramenta.filters;
+    if(ferramenta.user_location) pesquisa.user_location = ferramenta.user_location;
+    payload.tools = [pesquisa];
+    if(opcoes.pesquisarSempre) payload.tool_choice = 'required';
+    payload.max_tool_calls = Number.isInteger(opcoes.max_tool_calls) ? Math.max(1,Math.min(6,opcoes.max_tool_calls)) : 6;
     payload.include = ['web_search_call.action.sources'];
   }
   return payload;
