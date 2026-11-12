@@ -11,6 +11,9 @@ O estilo padrão é uma resposta de conversa, em dois ou três parágrafos curto
 com fundamento essencial e ressalvas indispensáveis. Pedidos de aprofundamento
 podem receber análise extensa. O limite de saída permanece suficiente para
 essa análise: a concisão é uma orientação de escrita, sem cortar a resposta.
+Links, data da pesquisa e detalhes da base ficam recolhidos em “Ver fontes e
+detalhes”, disponíveis sem nova chamada à IA. Ressalvas essenciais à orientação
+continuam no texto da resposta.
 
 O serviço recupera a Base de Regras e os últimos 14 dias do Radar a cada
 pergunta e recebe os padrões internos dos 12 tipos de ato existentes no

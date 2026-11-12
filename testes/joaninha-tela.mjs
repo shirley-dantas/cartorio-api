@@ -53,6 +53,7 @@ async function configurar(context){
   if(url.origin===servidor.url){
    if(url.pathname==='/api/joaninha-juridico'){
     contadorJuridico++;
+    if(/sem fonte/.test(rota.request().postDataJSON().pergunta))return rota.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,resposta:'Orientação fictícia baseada apenas no material interno.',fontes:[],consultadoEm:'2026-11-12',aviso:'Não consegui confirmar uma fonte oficial nesta consulta.'})});
     return rota.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,resposta:'Orientação jurídica fictícia: confirme a aplicação ao caso antes de prosseguir.',fontes:['https://www.planalto.gov.br/ccivil_03/leis/2002/l10406compilada.htm','https://blog.example/'],consultadoEm:'2026-11-12',atencao:['A numeração do item exige confirmação.'],temasConsultados:['Tema fictício']})});
    }
    if(url.pathname==='/api/perguntar-joaninha'){
@@ -112,10 +113,18 @@ try{
  await mensagem(pg,'Tenho uma dúvida jurídica sobre um ato fictício.');
  assert.equal(contadorJuridico,1);assert.equal(contadorPlanos,antesJuridico+1,'a orientação jurídica não deve ser reescrita por outra inferência');
  assert.match(await pg.locator('.jnc-thread').innerText(),/Orientação jurídica fictícia/);
+ const fontes=pg.locator('.jnc-legal-details').last();assert.equal(await fontes.getAttribute('open'),null);
+ assert.equal(await pg.locator('.jnc-thread a[href*="planalto.gov.br"]').isVisible(),false);
+ await fontes.locator('summary').click();
  assert.match(await pg.locator('.jnc-thread').innerText(),/numeração do item exige confirmação/);
  assert.equal(await pg.locator('.jnc-thread a[href*="planalto.gov.br"]').count(),1);assert.equal(await pg.locator('.jnc-thread a[href*="blog.example"]').count(),0);
+ assert.equal(await pg.locator('.jnc-thread a[href*="planalto.gov.br"]').isVisible(),true);
+ await fontes.locator('summary').click();
  console.log('ok: dúvida jurídica respondida na conversa, com fonte oficial e ressalva, sem gravação ou confirmação manual.');
  await pg.screenshot({path:join(AQUI,'saida','joaninha-juridico-computador.png'),fullPage:false});
+ await mensagem(pg,'Tenho uma dúvida jurídica sem fonte.');
+ assert.equal(await pg.locator('.jnc-legal-details').last().getAttribute('open'),null);
+ assert.equal(await pg.getByText('Não consegui confirmar uma fonte oficial nesta consulta.',{exact:true}).isVisible(),true,'a falta de confirmação não pode ficar escondida com as fontes');
  await mensagem(pg,'Prepare o orçamento de venda e compra de R$ 500.000,00.');
  await mensagem(pg,'pode fazer');
  await pg.waitForFunction(()=>Object.keys(window.__data.orcamentos).length===1,{},{timeout:15000});
@@ -166,6 +175,7 @@ try{
  await celular.getByRole('button',{name:'Fechar conversas',exact:true}).click();
  await mensagem(celular,'Tenho uma dúvida jurídica para a equipe.');
  assert.match(await celular.locator('.jnc-thread').innerText(),/Orientação jurídica fictícia/);
+ assert.equal(await celular.locator('.jnc-legal-details').last().getAttribute('open'),null);
  assert.equal(await celular.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  await celular.screenshot({path:join(AQUI,'saida','joaninha-juridico-celular.png'),fullPage:false});
  assert.deepEqual(erros,[],'erros de script: '+erros.join('; '));

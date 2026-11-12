@@ -5,3 +5,4 @@
 
 body.jnc-aberta{overflow:hidden}.jnc .jnc-input:focus-visible{outline:none}.jnc-input-wrap:focus-within{border-color:#d6849b;box-shadow:0 0 0 2px #f8e8ee}
 .jnc-preview{padding:8px 18px;background:#fff5de;color:#795820;font-size:11px;border-bottom:1px solid #f0dfb9;flex-shrink:0}
+.jnc-legal-details summary{cursor:pointer;color:var(--jn-dark);font-size:11px}.jnc-legal-details[open] summary{margin-bottom:10px}
