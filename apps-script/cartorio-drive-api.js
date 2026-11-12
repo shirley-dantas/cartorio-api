@@ -2207,7 +2207,13 @@ function chamarAnthropicCartorio(opcoes) {
   return {texto:textos.join(''),truncou:d.stop_reason==='max_tokens',recusa:d.stop_reason==='refusal'};
 }
 function testarAnthropicCartorio() {
-  var r=chamarAnthropicCartorio({max_tokens:32,messages:[{role:'user',content:'Responda somente com a palavra OK.'}]});
-  if(r.recusa||r.truncou||r.texto.trim()!=='OK')throw new Error('O teste da Anthropic não retornou OK.');
-  Logger.log('Anthropic confirmada para leitura e geração de minutas. Nenhum card ou documento foi alterado.');
+  return verificarConexaoAnthropic();
+}
+function verificarConexaoAnthropic() {
+  var r=chamarAnthropicCartorio({max_tokens:256,messages:[{role:'user',content:'Responda brevemente com OK para confirmar esta conexão de teste.'}]});
+  Logger.log('Teste com texto fictício: '+JSON.stringify({resposta:r.texto||'',incompleta:!!r.truncou,recusada:!!r.recusa}));
+  if(r.recusa)throw new Error('A conexão respondeu, mas o teste foi recusado.');
+  if(r.truncou)throw new Error('A conexão respondeu, mas o teste atingiu o limite de saída.');
+  if(!String(r.texto||'').trim())throw new Error('A conexão respondeu sem texto visível.');
+  Logger.log('Conexão Anthropic confirmada. Nenhum card ou documento foi alterado.');
 }

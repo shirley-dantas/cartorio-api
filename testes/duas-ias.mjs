@@ -43,3 +43,11 @@ test('documentos extensos chegam inteiros à geração, sem corte de 100 mil car
   m.ctx.gerarECriarMinuta({jobId:'J1',nome:'Fictício',tipo:'Compra e venda',modalidade:'presencial',documentos});
   assert.equal(recebido.documentosTexto,documentos);assert.ok(recebido.mensagemBase.includes(documentos));
 });
+test('teste de conexão aceita resposta breve com pontuação e identifica recusa, corte ou resposta vazia',()=>{
+  const m=mundo();let limite;
+  m.ctx.chamarAnthropicCartorio=p=>{limite=p.max_tokens;return {texto:'OK.',truncou:false,recusa:false};};
+  assert.doesNotThrow(()=>m.ctx.verificarConexaoAnthropic());assert.equal(limite,256);
+  for(const [r,esperado] of [[{texto:'',truncou:true},/limite de saída/],[{texto:'',recusa:true},/recusado/],[{texto:''},/sem texto visível/]]){
+    m.ctx.chamarAnthropicCartorio=()=>r;assert.throws(()=>m.ctx.verificarConexaoAnthropic(),esperado);
+  }
+});
