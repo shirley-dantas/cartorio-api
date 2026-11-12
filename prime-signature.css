@@ -146,8 +146,8 @@ html.prime-signature .atencao-meta{display:flex;justify-content:space-between;ga
 html.prime-signature .atencao-meta>span{overflow-wrap:anywhere}
 html.prime-signature .atencao-meta>span:last-child{text-align:right;color:#816b75}
 html.prime-signature .atencao-item h4{font-size:13px;font-weight:600;line-height:1.5;color:#68243b;overflow-wrap:anywhere;margin:0 0 5px}
-html.prime-signature .atencao-acao{font-size:12px;line-height:1.55;color:#4d4349;margin-bottom:5px}
-html.prime-signature .atencao-motivo,html.prime-signature .atencao-adiada{font-size:11px;line-height:1.55;color:#887780;margin:0}
+html.prime-signature .atencao-conversa{font-size:12px;line-height:1.65;color:#67545e;margin:0}
+html.prime-signature .atencao-adiada{font-size:11px;line-height:1.55;color:#887780;margin:0}
 html.prime-signature .atencao-adiada{margin-top:6px;color:#8e6e4c}
 html.prime-signature .atencao-acoes{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
 html.prime-signature .atencao-acoes .cx-btn{font-size:10px;padding:6px 8px;border-color:#e5d5c8;background:#fffdfb;color:#71344a}

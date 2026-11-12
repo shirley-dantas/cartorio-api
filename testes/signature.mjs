@@ -278,7 +278,7 @@ try{
   window.__fbWrite('focos',[...window.__data.focos,{id:'AT1',text:'Ligar ao cliente sobre a documentação',resp:'shirley',done:false,quando:nota}]);
  },{antigo:diaNota(-5),recente:diaNota(0),registro:diaNota(-40),nota:diaNota(-1)+'T10:00'});
  await pg.waitForFunction(()=>document.querySelectorAll('#atencoes-lista .atencao-item').length===3&&document.querySelector('#atencoes-ver-todas').textContent==='Ver todas (5)');
- assert.match(await pg.locator('#atencoes-resumo').innerText(),/1 tarefa vencida e 4 casos para acompanhar/);
+ assert.match(await pg.locator('#atencoes-resumo').innerText(),/3 pontos para a gente olhar hoje/);
  const antesAtencoes=await pg.evaluate(()=>JSON.stringify({casos:window.__data.casos,focos:window.__data.focos,resolucoes:window.__data.resolucoesCentral}));
  await pg.locator('#atencoes-card').screenshot({path:join(AQUI,'saida','atencoes-computador.png')});
  await pg.setViewportSize({width:390,height:844});
@@ -290,7 +290,7 @@ try{
  assert.equal(await pg.evaluate(()=>JSON.stringify({casos:window.__data.casos,focos:window.__data.focos,resolucoes:window.__data.resolucoesCentral})),antesAtencoes,'ler e expandir não grava dados');
  const alertaNota=()=>pg.locator('.atencao-item').filter({hasText:'Ligar ao cliente sobre a documentação'});
  const chaveAdiamento=await alertaNota().getAttribute('data-atencao');
- await alertaNota().getByRole('button',{name:'Lembrar depois',exact:true}).click();
+ await alertaNota().getByRole('button',{name:'Me lembrar depois',exact:true}).click();
  await pg.locator('#atencao-quando').fill(diaNota(-1)+'T10:00');
  await pg.locator('#atencao-salvar').click();assert.match(await pg.locator('#atencao-erro').innerText(),/futuras/);
  await pg.locator('#atencao-quando').fill(diaNota(1)+'T09:00');
@@ -299,9 +299,9 @@ try{
  await pg.waitForFunction(k=>window.__data.resolucoesCentral?.[k]?.estado==='atencao_adiada',chaveAdiamento);
  await pg.waitForFunction(()=>document.querySelector('.atencao-item.adiada'));
  assert.equal(await pg.evaluate(()=>window.__data.focos.find(n=>n.id==='AT1').quando),diaNota(-1)+'T10:00','adiar o aviso preserva o prazo da tarefa');
- await alertaNota().getByRole('button',{name:'Reativar aviso',exact:true}).click();
+ await alertaNota().getByRole('button',{name:'Mostrar agora',exact:true}).click();
  await pg.waitForFunction(()=>!document.querySelector('.atencao-item.adiada'));
- await alertaNota().getByRole('button',{name:'Concluir tarefa',exact:true}).click();
+ await alertaNota().getByRole('button',{name:'Já fiz',exact:true}).click();
  await pg.waitForFunction(()=>window.__data.focos.find(n=>n.id==='AT1').done);
  await pg.waitForFunction(()=>![...document.querySelectorAll('.atencao-item')].some(e=>e.textContent.includes('Ligar ao cliente sobre a documentação')));
  await pg.setViewportSize({width:1440,height:1100});
@@ -309,7 +309,7 @@ try{
  await alertaCaso().getByRole('button',{name:'Abrir caso',exact:true}).click();
  assert.match(await pg.locator('.signature-processo .cx-nome').innerText(),/JRL — minuta/);
  await pg.getByRole('button',{name:/Voltar aos casos/}).click();
- await alertaCaso().getByRole('button',{name:'Registrar',exact:true}).click();
+ await alertaCaso().getByRole('button',{name:'Anotar avanço',exact:true}).click();
  const cAntes=await pg.evaluate(()=>structuredClone(window.__data.casos.A2));
  await pg.locator('#atencao-texto').fill('Grazi enviou a minuta para revisão.');
  await pg.evaluate(()=>Promise.all([window.atencaoSalvar(),window.atencaoSalvar()]));
@@ -319,7 +319,7 @@ try{
  assert.equal(cDepois.dep,cAntes.dep);assert.equal(cDepois.status,cAntes.status);assert.equal(cDepois.agendado,cAntes.agendado);
  await pg.waitForFunction(()=>![...document.querySelectorAll('.atencao-item')].some(e=>e.textContent.includes('JRL — minuta para acompanhar')));
  const outro=pg.locator('.atencao-item').filter({hasText:'Caso exemplo — conferir andamento'});
- await outro.getByRole('button',{name:'Registrar',exact:true}).click();
+ await outro.getByRole('button',{name:'Anotar avanço',exact:true}).click();
  await pg.locator('#atencao-texto').fill('Registro que precisa de revalidação.');
  await pg.evaluate(hoje=>window.__fbWrite('casos/A4',{...window.__data.casos.A4,dep:'Aguardando TQ',depDesde:hoje,atualizado:hoje}),diaNota(0));
  await pg.waitForFunction(()=>![...document.querySelectorAll('.atencao-item')].some(e=>e.textContent.includes('Caso exemplo — conferir andamento')));

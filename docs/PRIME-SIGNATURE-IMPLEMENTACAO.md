@@ -116,6 +116,12 @@ leitura sem gravação, desktop/celular, navegação, conclusão, andamento
 idempotente e alteração concorrente. Prévia usa dados fictícios; publicação
 depende do aval visual da usuária.
 
+Após a primeira prévia, a usuária pediu um tom mais leve e fluido. A revisão
+usa frases de conversa em um único parágrafo por cartão, datas como “ontem,
+às 10h” quando adequadas, e botões “Anotar avanço”, “Já fiz” e “Me lembrar
+depois”. Os critérios, os prazos e as ações permanecem iguais. O limite usual
+da etapa continua no modelo, mas sai do texto principal para reduzir ruído.
+
 ## Verificações gerais
 
 - `testes/signature.mjs`: index real com Firebase simulado; desktop/celular,

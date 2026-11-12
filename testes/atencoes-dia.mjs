@@ -15,7 +15,7 @@ test('cada etapa usa seu prazo; caso com avanço recente e concluído não apare
  const c=[caso('M'),caso('R',{dep:'Registro de Imóveis',depDesde:'2026-11-01',atualizado:'2026-11-01'}),caso('R2',{dep:'Registro de Imóveis',depDesde:'2026-10-01',atualizado:'2026-10-01'}),caso('F',{atualizado:'2026-11-12'}),caso('C',{concluido:true})];
  const r=calcular({casos:c});assert.deepEqual(r.ativas.map(i=>i.id),['M','R2']);
  assert.equal(r.ativas.find(i=>i.id==='M').prazo,2);assert.equal(r.ativas.find(i=>i.id==='R2').prazo,30);
- assert.match(r.ativas[0].motivo,/4 dias sem avanço registrado/);
+ assert.match(r.ativas[0].motivo,/4 dias/);
 });
 test('documento recebido, histórico, conferência ou tarefa recente reavaliam o aviso; data futura de assinatura não finge avanço',()=>{
  for(const extra of [{documentos:{D:{salvoEm:'2026-11-12T14:00:00Z'}}},{historico:{H:{data:'2026-11-12T14:00:00Z'}}},{auditoria:{atualizado:'2026-11-12T14:00:00Z'}},{tarefasJoaninha:{T:{atualizadoEm:'2026-11-12T14:00:00Z'}}}])assert.equal(calcular({casos:[caso('M',extra)]}).ativas.length,0);
@@ -25,7 +25,9 @@ test('documento recebido, histórico, conferência ou tarefa recente reavaliam o
 });
 test('nota vence pela hora; conclusão ou reagendamento retiram o aviso, com responsável preservado',()=>{
  const notas=[{id:'N',text:'Retornar ligação',resp:'shirley',quando:'2026-11-12T11:30'},{id:'F',quando:'2026-11-12T12:30'},{id:'C',quando:'2026-11-11T10:00',done:true}];
- const r=calcular({notas,nome:'Shirley'});assert.equal(r.ativas.length,1);assert.equal(r.ativas[0].responsavel,'Shirley');assert.match(r.resumo,/1 tarefa vencida/);
+ const r=calcular({notas,nome:'Shirley'});assert.equal(r.ativas.length,1);assert.equal(r.ativas[0].responsavel,'Shirley');assert.equal(r.tarefas,1);assert.match(r.resumo,/Shirley/);
+ assert.match(r.ativas[0].motivo,/hoje, às 11h30/);
+ assert.match(calcular({notas:[{...notas[0],quando:'2026-11-11T10:00'}]}).ativas[0].motivo,/ontem, às 10h/);
  assert.equal(calcular({notas:[{...notas[0],quando:'2026-11-13T11:30'}]}).ativas.length,0);
  assert.equal(calcular({notas:[{...notas[0],done:true}]}).ativas.length,0);
 });

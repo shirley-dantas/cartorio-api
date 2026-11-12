@@ -4317,12 +4317,12 @@ function atencaoHtml(i){
   const quando=i.adiada?horarioNota(i.adiadaAte)?.texto:'';
   const abrir=i.tipo==='nota'?'Ver nota':'Abrir caso';
   return `<article class="atencao-item${i.adiada?' adiada':''}" data-atencao="${escTxt(i.chave)}">
-    <div class="atencao-meta"><span>${i.tipo==='nota'?'Tarefa vencida':escTxt(i.nomeCaso)}</span><span>${escTxt(i.responsavel)}</span></div>
-    <h4>${escTxt(i.titulo)}</h4><p class="atencao-acao">${escTxt(i.acao)}</p><p class="atencao-motivo">${escTxt(i.motivo)}</p>
-    ${quando?`<p class="atencao-adiada">Rever em ${escTxt(quando)}</p>`:''}
+    <div class="atencao-meta"><span>${i.tipo==='nota'?'Um lembrete':escTxt(i.nomeCaso)}</span><span>${escTxt(i.responsavel)}</span></div>
+    <h4>${escTxt(i.titulo)}</h4><p class="atencao-conversa">${escTxt(i.motivo)} ${escTxt(i.acao)}</p>
+    ${quando?`<p class="atencao-adiada">Volta em ${escTxt(quando)}</p>`:''}
     <div class="atencao-acoes"><button class="cx-btn" onclick="atencaoAbrir('${i.chave}')">${abrir}</button>
-      ${i.adiada?`<button class="cx-btn" onclick="atencaoReativar('${i.chave}')">Reativar aviso</button>`:
-      `${i.tipo==='nota'?`<button class="cx-btn" onclick="atencaoConcluir('${i.chave}',this)">Concluir tarefa</button>`:`<button class="cx-btn" onclick="atencaoEditar('${i.chave}','andamento')">Registrar</button>`}<button class="cx-btn" onclick="atencaoEditar('${i.chave}','lembrar')">Lembrar depois</button>`}
+      ${i.adiada?`<button class="cx-btn" onclick="atencaoReativar('${i.chave}')">Mostrar agora</button>`:
+      `${i.tipo==='nota'?`<button class="cx-btn" onclick="atencaoConcluir('${i.chave}',this)">Já fiz</button>`:`<button class="cx-btn" onclick="atencaoEditar('${i.chave}','andamento')">Anotar avanço</button>`}<button class="cx-btn" onclick="atencaoEditar('${i.chave}','lembrar')">Me lembrar depois</button>`}
     </div></article>`;
 }
 function renderAtencoesDia(){
@@ -4330,10 +4330,10 @@ function renderAtencoesDia(){
   const modelo=modeloAtencoes();
   document.getElementById('atencoes-resumo').textContent=modelo.resumo;
   const mostrar=atencoesTodas?modelo.todas:modelo.prioridades;
-  lista.innerHTML=mostrar.length?mostrar.map(atencaoHtml).join(''):'<p class="atencoes-vazio">Nenhuma prioridade vencida para mostrar agora.</p>';
+  lista.innerHTML=mostrar.length?mostrar.map(atencaoHtml).join(''):'<p class="atencoes-vazio">Os próximos lembretes aparecem aqui.</p>';
   const ver=document.getElementById('atencoes-ver-todas');
   ver.hidden=!atencoesTodas&&modelo.todas.length<=modelo.prioridades.length;
-  ver.textContent=atencoesTodas?'Mostrar prioridades':`Ver todas (${modelo.todas.length})`;
+  ver.textContent=atencoesTodas?'Voltar aos destaques':`Ver todas (${modelo.todas.length})`;
   ver.setAttribute('aria-expanded',String(atencoesTodas));
 }
 window.atencoesAlternar=function(){atencoesTodas=!atencoesTodas;renderAtencoesDia();};
@@ -4349,11 +4349,11 @@ window.atencaoAbrir=function(chave){
 window.atencaoEditar=function(chave,modo){
   const item=atencaoAtual(chave);if(!item||item.adiada){renderAtencoesDia();return;}
   atencaoEdicao={item,modo,operacao:crypto.randomUUID()};
-  document.getElementById('atencao-titulo').textContent=modo==='lembrar'?'Quando lembrar novamente?':'Registrar andamento';
+  document.getElementById('atencao-titulo').textContent=modo==='lembrar'?'Quando quer que eu te lembre?':'O que mudou por aqui?';
   document.getElementById('atencao-contexto').textContent=item.titulo;
   document.getElementById('atencao-campos').innerHTML=modo==='lembrar'?
     `<label class="modal-label" for="atencao-quando">Data e hora</label><input type="datetime-local" id="atencao-quando"><p class="atencoes-ajuda">${item.tipo==='nota'?'Este aviso volta no horário escolhido. O prazo original da tarefa continua no Bloco de Notas.':'O acompanhamento do caso volta a aparecer no horário escolhido.'}</p>`:
-    '<label class="modal-label" for="atencao-texto">Qual foi o avanço?</label><textarea id="atencao-texto" rows="3" placeholder="Ex.: a minuta foi enviada para revisão."></textarea><p class="atencoes-ajuda">O registro entra nas observações e no histórico do caso.</p>';
+    '<label class="modal-label" for="atencao-texto">Me conte a novidade</label><textarea id="atencao-texto" rows="3" placeholder="Ex.: a minuta foi enviada para revisão."></textarea><p class="atencoes-ajuda">Sua anotação fica guardada no caso.</p>';
   document.getElementById('atencao-erro').textContent='';
   document.getElementById('modal-atencao').classList.add('open');
 };
@@ -4387,7 +4387,7 @@ window.atencaoSalvar=async function(){
       if(!resultado.committed){erro.textContent='O caso foi atualizado. Confira os dados antes de registrar.';return;}
     }
     atencaoSalvando=false;atencaoFechar();renderAtencoesDia();
-    avisoAtencoes(edicao.modo==='lembrar'?'Lembrete adiado para o horário escolhido.':'Andamento registrado. As prioridades foram reavaliadas.');
+    avisoAtencoes(edicao.modo==='lembrar'?'Combinado! Ele volta por aqui no horário escolhido.':'Anotado! Atualizei os lembretes.');
   }catch(_){erro.textContent='Não consegui salvar. Seu texto continua aqui para tentar novamente.';}
   finally{atencaoSalvando=false;btn.disabled=false;}
 };
@@ -4408,7 +4408,7 @@ window.atencaoConcluir=async function(chave,btn){
       const alterar=n=>n?.id===item.id?{...n,done:true}:n;
       return Array.isArray(atuais)?atuais.map(alterar):Object.fromEntries(Object.entries(atuais).map(([k,n])=>[k,alterar(n)]));
     },{applyLocally:false});
-    avisoAtencoes(r.committed?'Tarefa concluída.':'A nota mudou; confira os dados atuais.');
+    avisoAtencoes(r.committed?'Pronto, tarefa feita!':'A nota mudou por aqui. Vamos conferir?');
   }catch(_){avisoAtencoes('Não consegui concluir a tarefa. Tente novamente.');}
   finally{btn.disabled=false;}
 };
