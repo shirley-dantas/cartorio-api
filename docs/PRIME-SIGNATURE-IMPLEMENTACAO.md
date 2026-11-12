@@ -94,7 +94,7 @@ A suíte Signature confere o vínculo imóvel/contribuinte das três consultas,
 envio de IPTU e manutenção da data alterada em Mais detalhes no pedido de valor
 venal. Prefeitura e celular passaram. A usuária aprovou a prévia e autorizou a publicação.
 
-## Documentos — prévia de 12/11/2026
+## Documentos — aprovado em 12/11/2026
 
 A página Signature separa Anexar documentos, Recebidos e Pedir ao cliente no
 mesmo padrão visual das subpílulas de Certidões. A usuária pediu Anexar como
@@ -113,7 +113,8 @@ Recebidos quando vinculada. Nenhum backend ou regra de leitura muda.
 
 Validação: Signature cobre navegação sem gravação, grupos e ações preservados,
 documentos legados, pedido existente e celular; docs-agrupados, solte-card e
-celular passaram. Prévia com dados ilustrativos, aguardando aprovação.
+celular passaram. A usuária aprovou a prévia com Anexar documentos em primeiro
+lugar e autorizou a publicação em 12/11/2026.
 
 ## Financeiro e privacidade
 
