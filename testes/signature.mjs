@@ -27,7 +27,7 @@ export const remove=async r=>{write(r.path,null);notify();};
 export const runTransaction=async(r,f)=>{const value=f(copy(read(r.path)));if(value!==undefined){write(r.path,value);notify();}return {committed:value!==undefined,snapshot:snap(r.path)};};
 `;
 const auth=`const user={uid:'U1',email:'teste@example.invalid',getIdToken:async()=> 'token-ficticio'};export const getAuth=()=>({currentUser:user});const subs=[];window.__trocarConta=u=>subs.forEach(f=>f(u));export const onAuthStateChanged=(a,f)=>{subs.push(f);setTimeout(()=>f(user),0);return()=>{};};export const signInWithEmailAndPassword=async()=>({user});export const sendPasswordResetEmail=async()=>{};export const signOut=async()=>{};`;
-let contadorFrases=0,contadorMinutas=0,contadorCalendar=0,contadorJuridico=0,contadorPlanos=0;const erros=[];
+let contadorCertAnexos=0,contadorFrases=0,contadorMinutas=0,contadorCalendar=0,contadorJuridico=0,contadorPlanos=0;const erros=[];
 const assinaturaTeste=new Date(Date.now()+86400000).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'})+'T14:00';
 async function configurar(context){
  await context.addInitScript(()=>localStorage.setItem('painel_usuario','Shirley'));
@@ -40,7 +40,14 @@ async function configurar(context){
    return rota.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(valor)});
   }
   if(url.hostname==='script.google.com'){
-   contadorCalendar++;const p=JSON.parse(rota.request().postData());
+   const p=JSON.parse(rota.request().postData());
+   if(p.acao==='painel-arquivo'){
+    contadorCertAnexos++;
+    const docKey='pnl_cert_teste_'+contadorCertAnexos;
+    await rota.request().frame().evaluate(({id,k,nome})=>window.__fbWrite('casos/'+id+'/documentos/'+k,{nome,link:'https://example.invalid/certidao.pdf',origem:'arrastado no card',tipo:'documento',tipoDocumento:'OUTRO',salvoEm:new Date().toISOString()}),{id:p.casoId,k:docKey,nome:p.nomeArquivo});
+    return rota.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({ok:true,docKey,nome:p.nomeArquivo})});
+   }
+   contadorCalendar++;
    assert.equal(p.acao,'sincronizar-evento-calendar');assert.equal(p.dataHora,assinaturaTeste);
    return rota.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify({ok:true,eventId:'evento-ficticio'})});
   }
@@ -256,62 +263,90 @@ try{
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Documentos',exact:true}).click();
  assert.equal(await pg.locator('.signature-trabalho .cx-ped').count(),1);
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).click();
- assert.match(await pg.locator('.signature-certidoes').innerText(),/Conecte o Ajudante/,'sem extensão o acesso tem orientação visível');
+ assert.deepEqual(await pg.locator('.signature-cert-servicos button').allTextContents(),['JUCESP','Matrícula','Valor venal','Negativa de IPTU','Dados cadastrais','Trabalhista','CND Receita Federal','Indisponibilidade']);
+ assert.deepEqual(await pg.locator('.signature-cert-tipos button').allTextContents(),['Ficha cadastral','Contrato social','Cartão CNPJ']);
+ assert.match(await pg.locator('.signature-certidoes').innerText(),/Ative o Ajudante/);
  await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-pronto',versao:'0.3.4',onr:true,pref:true}}));
- assert.equal(await pg.locator('.signature-certidoes [onclick*=onrAbrir]').isVisible(),true,'a conexão tardia atualiza a aba sem recarregar');
- assert.equal(await pg.locator('.signature-certidoes .cx-aj-onr').count(),1,'RI Digital fica em Certidões');
  await pg.evaluate(()=>window.__fbWrite('casos/C1/documentos',{
   D1:{nome:'Matricula_187852.pdf',tipo:'documento',tipoDocumento:'MATRICULA_IMOVEL',texto:'Matrícula 187852. 10º Registro de Imóveis de São Paulo. O APARTAMENTO nº 101. Contribuinte 083.042.0161-5.'},
   D2:{nome:'Empresa exemplo',tipo:'documento',texto:'EMPRESA EXEMPLO LTDA. CNPJ 52.247.521/0001-41.'}
  }));
- await pg.waitForFunction(()=>!!document.querySelector('.signature-certidoes [onclick*=prefPedirNegativa]'));
+ await pg.waitForFunction(()=>!!document.querySelector('.signature-cert-dados select option[value="52247521000141"]'));
  const dadosAntesAbas=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
  for(const nome of ['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico','Mais ações']){
   await pg.locator('.signature-funcoes').getByRole('button',{name:nome,exact:true}).click();
-  assert.equal(await pg.locator('.signature-ferramenta-cabecalho').count(),0,'sem título e explicação repetidos');
   assert.equal(await pg.locator('.signature-funcoes [aria-pressed="true"]').count(),1);
   assert.equal(await pg.locator('.signature-trabalho').getAttribute('aria-label'),nome);
  }
- assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),dadosAntesAbas,'percorrer todas as abas não grava nem pede certidões');
+ assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),dadosAntesAbas,'navegação não grava nem pede certidões');
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).click();
- await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-certidoes-computador.png')});
- await pg.getByRole('button',{name:'Prefeitura',exact:true}).click();
- assert.equal(await pg.locator('.signature-certidoes [onclick*=prefPedirNegativa]').isVisible(),true);
- assert.equal(await pg.locator('.signature-certidoes [onclick*=prefPedirValorVenal]').isVisible(),false);
- await pg.locator('.signature-certidoes select[id^=signature-pref-servico]').selectOption('valor');
- assert.equal(await pg.locator('.signature-certidoes [onclick*=prefPedirValorVenal]').isVisible(),true);
- assert.equal(await pg.locator('.signature-certidoes [onclick*=prefPedirNegativa]').isVisible(),false);
- await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-prefeitura-computador.png')});
- await pg.getByRole('button',{name:'Imóvel',exact:true}).click();
- await pg.locator('.signature-processo').screenshot({path:join(AQUI,'saida','abas-caso-computador.png')});
- await pg.setViewportSize({width:390,height:844});
- assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'certidões unificadas cabem no celular');
- await pg.locator('.signature-trabalho').screenshot({path:join(AQUI,'saida','abas-certidoes-celular.png')});
- await pg.setViewportSize({width:1440,height:1000});
- await pg.getByRole('button',{name:'Empresas',exact:true}).click();
- await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-empresas-computador.png')});
- await pg.locator('.signature-certidoes [onclick*=ajTirarEmpresa]').first().click();
- assert.match(await pg.locator('.signature-certidoes').innerText(),/trazer de volta/,'ocultar empresa redesenha a nova posição');
- await pg.locator('.signature-certidoes [onclick*=ajTrazerEmpresas]').click();
- assert.equal(await pg.locator('.signature-certidoes [onclick*=ajTirarEmpresa]').count(),1);
- assert.equal(await pg.locator('#onr-C1').count(),1,'redesenhar empresas não duplica o formulário do imóvel');
- await pg.getByRole('button',{name:'Imóvel',exact:true}).click();
- await pg.locator('#signature-onr-servico-C1').selectOption('visualizacao');
- await pg.locator('.signature-certidoes').getByRole('button',{name:'Continuar',exact:true}).click();
- assert.equal(await pg.locator('#onr-mat-C1').isVisible(),true,'Continuar abre a conferência antes do pedido');
- await pg.locator('.signature-certidoes [onclick*=onrCancelar]').click();
- assert.equal(await pg.locator('.signature-certidoes').getByRole('button',{name:'Continuar',exact:true}).isVisible(),true,'Cancelar volta à escolha simples');
- await pg.getByRole('button',{name:'Empresas',exact:true}).click();
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','certidoes-aprovadas-jucesp.png')});
  await pg.evaluate(()=>{window.__pedidosAjudante=[];window.addEventListener('message',e=>{if(e.data?.tipo==='ajudante-pedido')window.__pedidosAjudante.push(e.data.pedido);});});
- await pg.locator('.signature-certidoes [onclick*=ajudantePedir]').first().click();
+ await pg.locator('.signature-certidoes').getByRole('button',{name:'Conferir e solicitar',exact:true}).click();
+ assert.equal(await pg.evaluate(()=>window.__pedidosAjudante.length),0,'conferência não dispara pedido');
+ await pg.getByRole('button',{name:'Iniciar busca',exact:true}).click();
  await pg.waitForFunction(()=>window.__pedidosAjudante.length===1);
- assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[0].casoId),'C1');
+ assert.deepEqual(await pg.evaluate(()=>window.__pedidosAjudante[0].quero),['ficha']);
  assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[0].cnpj),'52247521000141');
+ assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[0].casoId),'C1');
+ await pg.getByRole('button',{name:'Conferir e solicitar',exact:true}).click();
+ assert.equal(await pg.evaluate(()=>window.__pedidosAjudante.length),1,'pedido em andamento bloqueia repetição');
+ await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-progresso',id:window.__pedidosAjudante.at(-1).id,estado:'ok',texto:'Teste concluído.',fim:true}}));
+ await pg.locator('.signature-cert-tipos').getByRole('button',{name:'Contrato social',exact:true}).click();
+ await pg.getByRole('button',{name:'Conferir e solicitar',exact:true}).click();
+ await pg.getByRole('button',{name:'Iniciar busca',exact:true}).click();
+ await pg.waitForFunction(()=>window.__pedidosAjudante.length===2);
+ assert.deepEqual(await pg.evaluate(()=>window.__pedidosAjudante[1].quero),['ficha','contrato']);
+ await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-progresso',id:window.__pedidosAjudante.at(-1).id,estado:'ok',texto:'Teste concluído.',fim:true}}));
+ await pg.locator('.signature-cert-servicos').getByRole('button',{name:'Matrícula',exact:true}).click();
+ assert.deepEqual(await pg.locator('.signature-cert-tipos button').allTextContents(),['Visualização','Matrícula atualizada']);
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','certidoes-aprovadas-matricula.png')});
+ await pg.getByRole('button',{name:'Conferir e solicitar',exact:true}).click();
+ assert.equal(await pg.locator('#onr-mat-C1').isVisible(),true);
+ await pg.locator('#onr-C1 [onclick*=onrCancelar]').click();
+ assert.equal(await pg.getByRole('button',{name:'Conferir e solicitar',exact:true}).isVisible(),true);
+ for(const nome of ['Valor venal','Negativa de IPTU','Dados cadastrais']){
+  await pg.locator('.signature-cert-servicos').getByRole('button',{name:nome,exact:true}).click();
+  assert.equal(await pg.locator('.pref-pedir button:visible').count(),1,'apenas a ação do serviço selecionado aparece');
+ }
+ await pg.locator('.signature-cert-servicos').getByRole('button',{name:'Negativa de IPTU',exact:true}).click();
+ pg.once('dialog',d=>d.dismiss());
+ await pg.locator('[onclick*=signaturePedirNegativa]').click();
+ assert.equal(await pg.evaluate(()=>window.__pedidosAjudante.length),2,'cancelar pedido à Prefeitura não envia');
+ pg.once('dialog',d=>d.accept());
+ await pg.locator('[onclick*=signaturePedirNegativa]').click();
+ await pg.waitForFunction(()=>window.__pedidosAjudante.length===3);
+ assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[2].servico),'negativa-iptu');
+ assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[2].sql),'083.042.0161-5');
+ await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-progresso',id:window.__pedidosAjudante.at(-1).id,estado:'ok',texto:'Teste concluído.',fim:true}}));
+ await pg.locator('.signature-cert-servicos').getByRole('button',{name:'Trabalhista',exact:true}).click();
+ assert.match(await pg.locator('.signature-cert-etiqueta').innerText(),/Manual/);
+ await pg.locator('input[data-cert-upload]').setInputFiles({name:'certidao.pdf',mimeType:'application/pdf',buffer:Buffer.from('PDF fictício')});
+ assert.equal(contadorCertAnexos,0,'titular obrigatório antes do envio');
+ await pg.getByRole('textbox',{name:'Titular da certidão',exact:true}).fill('Maria Exemplo');
+ await pg.locator('input[data-cert-upload]').setInputFiles({name:'certidao.pdf',mimeType:'application/pdf',buffer:Buffer.from('PDF fictício')});
+ await pg.waitForFunction(()=>window.__data.casos.C1.documentos.pnl_cert_teste_1?.certidaoServico==='trabalhista');
+ await pg.waitForFunction(()=>document.getElementById('signature-cert-feedback-C1')?.textContent.includes('Certidão salva'));
+ assert.equal(await pg.evaluate(()=>window.__data.casos.C1.documentos.pnl_cert_teste_1.certidaoSujeito),'Maria Exemplo');
+ assert.equal(await pg.evaluate(()=>window.__data.casos.C1.documentos.pnl_cert_teste_1.origem),'arrastado no card','preserva registro do arquivo');
+ await pg.locator('.signature-cert-salvos summary').click();
+ assert.match(await pg.locator('.signature-cert-salvos').innerText(),/Trabalhista/);
+ pg.once('dialog',d=>d.dismiss());
+ await pg.locator('input[data-cert-upload]').setInputFiles({name:'certidao.pdf',mimeType:'application/pdf',buffer:Buffer.from('PDF fictício')});
+ assert.equal(contadorCertAnexos,1,'recusar repetição não envia arquivo de novo');
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','certidoes-aprovadas-manual.png')});
+ await pg.setViewportSize({width:390,height:844});
+ for(const nome of ['JUCESP','Matrícula','Valor venal','Negativa de IPTU','Dados cadastrais','Trabalhista','CND Receita Federal','Indisponibilidade']){
+  await pg.locator('.signature-cert-servicos').getByRole('button',{name:nome,exact:true}).click();
+  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'serviço cabe no celular: '+nome);
+ }
+ await pg.locator('.signature-cert-servicos').getByRole('button',{name:'JUCESP',exact:true}).click();
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','certidoes-aprovadas-celular.png')});
+ await pg.setViewportSize({width:1440,height:1000});
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Documentos',exact:true}).click();
  await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-pronto',versao:'0.3.4',onr:true,pref:true}}));
- assert.equal(await pg.locator('.signature-trabalho .cx-aj').count(),0,'a automação não fica duplicada em Documentos');
- await pg.locator('.signature-trabalho').screenshot({path:join(AQUI,'saida','abas-documentos-computador.png')});
- console.log('ok: todas as abas orientam sem gravar; certidões centraliza Prefeitura/JUCESP/RI Digital, conecta tardiamente e envia pedido à ponte simulada.');
+ assert.equal(await pg.locator('.signature-trabalho .cx-aj').count(),0,'sem automação duplicada em Documentos');
+ console.log('ok: oito serviços, subpílulas, conferência, JUCESP separada/contrato com ficha, pedido Prefeitura, bloqueio de repetição, anexo manual identificado e celular.');
  const antes=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Mais ações',exact:true}).click();
  assert.equal(await pg.locator('.signature-proxima [onclick*=signatureAdicionarObs]').isVisible(),true);
