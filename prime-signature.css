@@ -205,7 +205,23 @@ html.prime-signature #signature-lugar-joaninha{grid-area:mascote;align-self:cent
 html.prime-signature #joaninha-host{right:var(--jn-right,16px);bottom:var(--jn-bottom,16px)}
 html.prime-signature #joaninha-host.jn-signature-saudacao .joaninha-bubble{left:auto;right:0;top:auto;bottom:100%;width:190px;margin:0 0 12px;transform:translateY(4px)}
 html.prime-signature #joaninha-host.jn-signature-saudacao .joaninha-bubble.show{transform:translateY(0)}
-html.prime-signature .cdc2-grid3{grid-template-columns:1fr 1fr 1.15fr;align-items:start}
+html.prime-signature .cdc2-grid3{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:18px}
+html.prime-signature .cdc2-grid3>.cdc2-card:nth-child(-n+2){min-height:340px}
+html.prime-signature .cdc2-grid3>.cdc2-card .cdc2-card-top{min-height:34px;margin-bottom:16px}
+html.prime-signature .cdc2-grid3>.cdc2-card:nth-child(-n+2) .cdc2-pill-tabs,
+html.prime-signature .cdc2-grid3>.cdc2-card:nth-child(-n+2) .cdc2-tabs-underline{min-height:36px;margin-bottom:16px;align-items:center}
+html.prime-signature .cdc2-grid3 .cdc2-icon-plain{width:26px;height:26px}
+html.prime-signature .cdc2-grid3 .cdc2-ag-lista,
+html.prime-signature .cdc2-grid3 .cdc2-check-lista{flex:1;min-height:0;max-height:220px;overflow-y:auto}
+html.prime-signature #atencoes-card{grid-column:1 / -1;min-width:0}
+html.prime-signature #atencoes-lista{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+html.prime-signature .atencao-item{display:flex;flex-direction:column;min-width:0;margin:0}
+html.prime-signature .atencao-acoes{margin-top:auto;padding-top:12px}
+html.prime-signature .atencoes-resumo{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:11px 14px}
+html.prime-signature .atencoes-resumo>span{margin:0;flex-shrink:0}
+html.prime-signature .atencoes-ver-todas{display:flex;width:fit-content;min-width:170px;margin:16px auto 0}
+html.prime-signature #atencoes-feedback:empty{display:none}
+html.prime-signature .atencoes-vazio{grid-column:1 / -1}
 html.prime-signature .signature-lista-titulo{font:600 29px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine);margin:28px 0 14px}
 html.prime-signature #cx-modo-card{display:none}
 html.prime-signature .signature-resumo{padding:0;border:1px solid #e9dfd7;border-left:3px solid #a9895a;border-radius:16px;background:#fffdfb;overflow:hidden;margin-bottom:10px}
@@ -288,6 +304,10 @@ html.prime-signature .signature-no-processo .signature-lista-titulo{display:none
  html.prime-signature .cdc2-calendario{width:100%}
  html.prime-signature .cdc2-grid3{grid-template-columns:minmax(0,1fr)}
  html.prime-signature .cdc2-grid3>.cdc2-card:nth-child(3){grid-column:auto}
+ html.prime-signature .cdc2-grid3>.cdc2-card:nth-child(-n+2){min-height:0}
+ html.prime-signature #atencoes-card{grid-column:1}
+ html.prime-signature #atencoes-lista{grid-template-columns:minmax(0,1fr)}
+ html.prime-signature .atencoes-resumo{align-items:flex-start;flex-direction:column;gap:5px}
  html.prime-signature .cdc2-pill-tabs{flex-wrap:wrap;border-radius:14px}
  html.prime-signature .cdc2-pill-tab{flex:1;white-space:nowrap;font-size:11px;padding:9px 6px}
  html.prime-signature .signature-processo{padding:18px 14px;border-radius:18px}
