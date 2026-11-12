@@ -93,17 +93,15 @@ Não publicar antes do aval da Shirley sobre a aparência e o teste real. Não
 
 ### Conector Google
 
-O fluxo funciona com o conector OpenAI já instalado. Esta alteração também
-inclui espera limitada para erros temporários 429 no arquivo
-`apps-script/openai.js`. Para ativar essa melhoria no Google, substituir
-**somente o conteúdo de OPENAI.gs**, salvar e atualizar a versão da mesma
-implantação. Não trocar Código.gs nem cartorio-rede.gs e não alterar a chave.
-Sem essa atualização, o conector instalado continua funcionando, mas uma
-limitação temporária pode encerrar a geração em vez de aguardar.
+O conector OpenAI já instalado permanece responsável pela conferência. Ele
+inclui espera limitada em erros temporários e diferencia limite diário de
+volume excessivo. Para ativar a divisão entre as IAs, seguir a substituição
+de **Código.gs** descrita no início deste documento. Não substituir OPENAI.gs
+pelo código principal nem colar o conector no lugar de Código.gs.
 
 Envios de documentos pelo card, atribuição da entrada, releituras e anexos
 de minuta usam uma fila compartilhada por aba, evitando rajadas simultâneas
-contra a conta OpenAI. Isso não substitui o limite da conta nem coordena abas
+contra o serviço de leitura. Isso não substitui o limite da conta nem coordena abas
 ou aparelhos diferentes. O arquivo já salvo deve ser relido por “Ler de novo”,
 sem novo upload; envios de arquivos não são repetidos automaticamente.
 
