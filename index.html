@@ -3239,6 +3239,7 @@ if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.js
 <script type="module">
 import {iniciarFraseDoDia} from './lib/frase-do-dia-cliente.js';
 import {horarioNota,ordenarNotasPorHorario} from './lib/notas-horario.js';
+import {calcularAtencoes,chaveAtencaoCaso,chaveAtencaoNota} from './lib/atencoes-dia.js';
 import {criarPonteJoaninha} from "./lib/joaninha-ponte.js";
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, get, set, push, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -4012,7 +4013,7 @@ function renderQuadro(itens){
 })();
 
 function renderCentralComando(){
-  if(!Object.keys(casos).length)return;
+  if(!Object.keys(casos).length){renderBlocoNotas();if(window.PRIME_SIGNATURE)renderAtencoesDia();return;}
   const itens=calcularCentralComando();
   renderBlocoNotas();
   renderFazerAgora(itens,new Set());
@@ -4253,7 +4254,7 @@ function cdc2LinhaNota(c){
     ? ` data-caso="${esc(f.casoNome)}" onclick="irParaCasoDoFoco(this.dataset.caso)" style="cursor:pointer"`
     : '';
   return`
-  <div class="cdc2-check-row">
+  <div class="cdc2-check-row" data-nota-id="${esc(f.id)}">
     <button type="button" class="cdc2-checkbox" title="Concluir lembrete" onclick="toggleFoco('${esc(f.id)}')"></button>
     <div class="cdc2-check-texto"><div${clicavel}>${esc(f.text||'')}${tagCaso}</div>${marcar}</div>
     <button type="button" class="cdc2-check-menu" title="Editar ou excluir" onclick="event.stopPropagation();abrirEditarAgenda('foco','${esc(f.id)}')"><i class="ti ti-dots-vertical"></i></button>
@@ -4298,6 +4299,130 @@ function renderBlocoNotas(){
 const CC_ESQUECIDO_PISO=3;
 function limiteEsquecido(caso){
   return Math.max(CC_ESQUECIDO_PISO,janelaNormalEtapa(caso));
+}
+
+// Atenções do dia: interface sobre dados confirmados e regras por etapa.
+let atencoesTodas=false;
+let atencaoEdicao=null;
+let atencaoSalvando=false;
+function modeloAtencoes(){
+  return calcularAtencoes({casos:getCasosList(),notas:focos,config:DEP_CONFIG,resolucoes:resolucoesCentral,
+    limite:3,nome:localStorage.getItem('painel_usuario')||''});
+}
+function atencaoAtual(chave){return modeloAtencoes().todas.find(i=>i.chave===chave);}
+function avisoAtencoes(texto){
+  const el=document.getElementById('atencoes-feedback');if(el)el.textContent=texto;
+}
+function atencaoHtml(i){
+  const quando=i.adiada?horarioNota(i.adiadaAte)?.texto:'';
+  const abrir=i.tipo==='nota'?'Ver nota':'Abrir caso';
+  return `<article class="atencao-item${i.adiada?' adiada':''}" data-atencao="${escTxt(i.chave)}">
+    <div class="atencao-meta"><span>${i.tipo==='nota'?'Tarefa vencida':escTxt(i.nomeCaso)}</span><span>${escTxt(i.responsavel)}</span></div>
+    <h4>${escTxt(i.titulo)}</h4><p class="atencao-acao">${escTxt(i.acao)}</p><p class="atencao-motivo">${escTxt(i.motivo)}</p>
+    ${quando?`<p class="atencao-adiada">Rever em ${escTxt(quando)}</p>`:''}
+    <div class="atencao-acoes"><button class="cx-btn" onclick="atencaoAbrir('${i.chave}')">${abrir}</button>
+      ${i.adiada?`<button class="cx-btn" onclick="atencaoReativar('${i.chave}')">Reativar aviso</button>`:
+      `${i.tipo==='nota'?`<button class="cx-btn" onclick="atencaoConcluir('${i.chave}',this)">Concluir tarefa</button>`:`<button class="cx-btn" onclick="atencaoEditar('${i.chave}','andamento')">Registrar</button>`}<button class="cx-btn" onclick="atencaoEditar('${i.chave}','lembrar')">Lembrar depois</button>`}
+    </div></article>`;
+}
+function renderAtencoesDia(){
+  const lista=document.getElementById('atencoes-lista');if(!lista)return;
+  const modelo=modeloAtencoes();
+  document.getElementById('atencoes-resumo').textContent=modelo.resumo;
+  const mostrar=atencoesTodas?modelo.todas:modelo.prioridades;
+  lista.innerHTML=mostrar.length?mostrar.map(atencaoHtml).join(''):'<p class="atencoes-vazio">Nenhuma prioridade vencida para mostrar agora.</p>';
+  const ver=document.getElementById('atencoes-ver-todas');
+  ver.hidden=!atencoesTodas&&modelo.todas.length<=modelo.prioridades.length;
+  ver.textContent=atencoesTodas?'Mostrar prioridades':`Ver todas (${modelo.todas.length})`;
+  ver.setAttribute('aria-expanded',String(atencoesTodas));
+}
+window.atencoesAlternar=function(){atencoesTodas=!atencoesTodas;renderAtencoesDia();};
+window.atencaoAbrir=function(chave){
+  const item=atencaoAtual(chave);if(!item){renderAtencoesDia();return;}
+  if(item.tipo==='caso'){irParaCasoPorId(item.id);return;}
+  cdc2VerNotasAba(DONOS_MESA.includes(item.resp)?item.resp:donoAtual());
+  const linha=[...document.querySelectorAll('[data-nota-id]')].find(e=>e.dataset.notaId===item.id);
+  linha?.scrollIntoView({behavior:'smooth',block:'center'});
+  linha?.classList.add('atencao-nota-destaque');
+  setTimeout(()=>linha?.classList.remove('atencao-nota-destaque'),2200);
+};
+window.atencaoEditar=function(chave,modo){
+  const item=atencaoAtual(chave);if(!item||item.adiada){renderAtencoesDia();return;}
+  atencaoEdicao={item,modo,operacao:crypto.randomUUID()};
+  document.getElementById('atencao-titulo').textContent=modo==='lembrar'?'Quando lembrar novamente?':'Registrar andamento';
+  document.getElementById('atencao-contexto').textContent=item.titulo;
+  document.getElementById('atencao-campos').innerHTML=modo==='lembrar'?
+    `<label class="modal-label" for="atencao-quando">Data e hora</label><input type="datetime-local" id="atencao-quando"><p class="atencoes-ajuda">${item.tipo==='nota'?'Este aviso volta no horário escolhido. O prazo original da tarefa continua no Bloco de Notas.':'O acompanhamento do caso volta a aparecer no horário escolhido.'}</p>`:
+    '<label class="modal-label" for="atencao-texto">Qual foi o avanço?</label><textarea id="atencao-texto" rows="3" placeholder="Ex.: a minuta foi enviada para revisão."></textarea><p class="atencoes-ajuda">O registro entra nas observações e no histórico do caso.</p>';
+  document.getElementById('atencao-erro').textContent='';
+  document.getElementById('modal-atencao').classList.add('open');
+};
+window.atencaoFechar=function(){
+  if(atencaoSalvando)return;
+  document.getElementById('modal-atencao').classList.remove('open');atencaoEdicao=null;
+};
+window.atencaoSalvar=async function(){
+  if(!atencaoEdicao||atencaoSalvando)return;
+  const edicao=atencaoEdicao,erro=document.getElementById('atencao-erro'),btn=document.getElementById('atencao-salvar');
+  const atual=atencaoAtual(edicao.item.chave);
+  if(!atual){erro.textContent='Este item mudou. Feche e confira as prioridades atualizadas.';return;}
+  const texto=document.getElementById('atencao-texto')?.value.trim();
+  const quando=document.getElementById('atencao-quando')?.value;
+  const horario=horarioNota(quando);
+  if(edicao.modo==='lembrar'&&(!horario||horario.instante<=Date.now())){erro.textContent='Escolha uma data e hora futuras.';return;}
+  if(edicao.modo==='andamento'&&!texto){erro.textContent='Escreva o andamento antes de salvar.';return;}
+  atencaoSalvando=true;btn.disabled=true;erro.textContent='';
+  try{
+    if(edicao.modo==='lembrar'){
+      await set(ref(db,'resolucoesCentral/'+atual.chave),{estado:'atencao_adiada',ate:new Date(horario.instante).toISOString(),criadoEm:new Date().toISOString(),autor:localStorage.getItem('painel_usuario')||'Equipe'});
+    }else{
+      const data=new Date().toISOString(),autor=localStorage.getItem('painel_usuario')||'Equipe',id=edicao.operacao;
+      const resultado=await runTransaction(ref(db,'casos/'+atual.id),c=>{
+        if(!c||c.concluido)return;
+        if(c.historico?.[id])return c;
+        if(chaveAtencaoCaso({...c,id:atual.id})!==atual.chave)return;
+        return {...c,obs:montarNovoObs(c.obs||'',texto),obsAnterior:c.obs||'',atualizado:isoHoje(),
+          historico:{...(c.historico||{}),[id]:{data,texto,resumo:texto,autor,origem:'atencoes-do-dia'}}};
+      },{applyLocally:false});
+      if(!resultado.committed){erro.textContent='O caso foi atualizado. Confira os dados antes de registrar.';return;}
+    }
+    atencaoSalvando=false;atencaoFechar();renderAtencoesDia();
+    avisoAtencoes(edicao.modo==='lembrar'?'Lembrete adiado para o horário escolhido.':'Andamento registrado. As prioridades foram reavaliadas.');
+  }catch(_){erro.textContent='Não consegui salvar. Seu texto continua aqui para tentar novamente.';}
+  finally{atencaoSalvando=false;btn.disabled=false;}
+};
+window.atencaoReativar=async function(chave){
+  const item=atencaoAtual(chave);if(!item?.adiada)return;
+  try{await remove(ref(db,'resolucoesCentral/'+item.chave));renderAtencoesDia();}
+  catch(_){avisoAtencoes('Não consegui reativar o aviso. Tente novamente.');}
+};
+window.atencaoConcluir=async function(chave,btn){
+  const item=atencaoAtual(chave);if(!item||item.tipo!=='nota'||btn.disabled)return;
+  btn.disabled=true;
+  try{
+    const r=await runTransaction(focosRef,atuais=>{
+      const entradas=Array.isArray(atuais)?atuais:Object.values(atuais||{}),nota=entradas.find(n=>n?.id===item.id);
+      if(!nota)return;
+      if(nota.done)return atuais;
+      if(chaveAtencaoNota(nota)!==item.chave)return;
+      const alterar=n=>n?.id===item.id?{...n,done:true}:n;
+      return Array.isArray(atuais)?atuais.map(alterar):Object.fromEntries(Object.entries(atuais).map(([k,n])=>[k,alterar(n)]));
+    },{applyLocally:false});
+    avisoAtencoes(r.committed?'Tarefa concluída.':'A nota mudou; confira os dados atuais.');
+  }catch(_){avisoAtencoes('Não consegui concluir a tarefa. Tente novamente.');}
+  finally{btn.disabled=false;}
+};
+function montarAtencoesDia(){
+  const abas=document.getElementById('cdc2-fazer-abas'),card=abas.closest('.cdc2-card');
+  card.id='atencoes-card';
+  card.querySelector('.cdc2-card-title').innerHTML='<span class="cdc2-icon-plain"><i class="ti ti-circle-check" aria-hidden="true"></i></span> Atenções do dia';
+  abas.style.display='none';document.getElementById('cdc-fazer-lista').style.display='none';document.getElementById('cdc-esq-lista').style.display='none';
+  const corpo=document.createElement('div');corpo.className='atencoes-corpo';
+  corpo.innerHTML='<div class="atencoes-resumo"><span>Joaninha</span><p id="atencoes-resumo"></p></div><div id="atencoes-lista"></div><button class="cx-btn atencoes-ver-todas" id="atencoes-ver-todas" onclick="atencoesAlternar()">Ver todas</button><p id="atencoes-feedback" role="status"></p>';
+  card.append(corpo);
+  const modal=document.createElement('div');modal.className='modal-overlay';modal.id='modal-atencao';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-labelledby','atencao-titulo');
+  modal.innerHTML='<div class="modal-box atencao-modal"><button class="modal-close" aria-label="Fechar" onclick="atencaoFechar()">×</button><h3 class="modal-title" id="atencao-titulo"></h3><p class="modal-sub" id="atencao-contexto"></p><div id="atencao-campos"></div><p id="atencao-erro" role="alert"></p><div class="modal-btn-row"><button class="btn-sm" onclick="atencaoFechar()">Cancelar</button><button class="btn-gerar" id="atencao-salvar" onclick="atencaoSalvar()">Salvar</button></div></div>';
+  document.body.append(modal);renderAtencoesDia();
 }
 
 // ── O QUE DÁ PRA FAZER AGORA · PARECE ESQUECIDO? ──
@@ -4369,6 +4494,7 @@ window.cdc2VerFazerAba=function(aba){
   if(pe)pe.style.display=aba==='esq'?'':'none';
 };
 function renderFazerAgora(itens,usados){
+  if(window.PRIME_SIGNATURE){renderAtencoesDia();return;}
   const fazerEl=document.getElementById('cdc-fazer-lista');
   const esqEl=document.getElementById('cdc-esq-lista');
   if(!fazerEl||!esqEl)return;
@@ -4846,6 +4972,7 @@ window.definirIdentidade=function(nome){
   localStorage.setItem('painel_usuario',nome);
   document.getElementById('modal-identidade').classList.remove('open');
   montarSaudacao(true);
+  if(window.PRIME_SIGNATURE)renderAtencoesDia();
 };
 window.fecharSaudacao=function(){
   document.getElementById('saudacao-card').style.display='none';
@@ -5859,7 +5986,8 @@ window.signatureConfiguracoes=function(){
 function signatureMontar(){
   if(!window.PRIME_SIGNATURE)return;
   iniciarFraseDoDia(document.getElementById('saudacao-frase'));
-  setInterval(()=>{if(!document.hidden)renderBlocoNotas();},60000);
+  montarAtencoesDia();
+  setInterval(()=>{if(!document.hidden){renderBlocoNotas();renderAtencoesDia();}},60000);
   const primeira=document.querySelector('.sidebar-section-title');
   primeira.previousElementSibling?.remove();
   primeira.remove();
