@@ -1,12 +1,13 @@
 // Fluxos completos no index.html real, com Firebase e IA inteiramente simulados.
 import assert from 'node:assert/strict';
-import {mkdirSync} from 'node:fs';
+import {mkdirSync,readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname,join} from 'node:path';
 import {abrirChromium} from './navegador-de-teste.mjs';
 import {servir} from './servidor.mjs';
 const AQUI=dirname(fileURLToPath(import.meta.url));mkdirSync(join(AQUI,'saida'),{recursive:true});
 const servidor=await servir(),browser=await abrirChromium();
+const fontesPrevia=process.env.FONTES_PREVIA_DIR?{css:readFileSync(join(process.env.FONTES_PREVIA_DIR,'tabler.css')),woff2:readFileSync(join(process.env.FONTES_PREVIA_DIR,'tabler.woff2'))}:null;
 const DB={casos:{C1:{id:'C1',nome:'JRL — caso fictício',tipo:'Compra e venda',status:'emdia',resp:'shirley',prazo:'—',dep:'',depDesde:'2026-11-11',obs:'Observação que precisa ser preservada.',atualizado:'2026-11-11',modalidade:'presencial',concluido:false,documentos:{D1:{nome:'Matrícula fictícia',tipo:'documento',texto:'Conteúdo fictício integral da matrícula.'}}}},acesso:{U1:{nome:'Shirley',dono:true}},orcamentos:{},'orcamento-config':{},'orcamento-conhecimento':{},'orcamento-aliquotas':{},jobs:{},focos:[]};
 const firebase=`
 const copy=v=>v==null?null:structuredClone(v);const listeners=[];let seq=0;
@@ -32,6 +33,7 @@ async function configurar(context){
  await context.addInitScript(()=>localStorage.setItem('painel_usuario','Shirley'));
  await context.route('**/*',async rota=>{
   const url=new URL(rota.request().url());
+  if(fontesPrevia&&url.hostname==='cdn.jsdelivr.net'&&url.pathname.includes('/@tabler/icons-webfont'))return rota.fulfill({status:200,headers:{'Access-Control-Allow-Origin':'*'},contentType:url.pathname.endsWith('.woff2')?'font/woff2':'text/css',body:url.pathname.endsWith('.woff2')?fontesPrevia.woff2:fontesPrevia.css});
   if(url.hostname==='painel-cartorio-default-rtdb.firebaseio.com'){
    const caminho=url.pathname.replace(/^\//,'').replace(/\.json$/,'');
    const valor=await rota.request().frame().evaluate(p=>p.split('/').filter(Boolean).reduce((v,k)=>v?.[k],window.__data)??null,caminho);
@@ -96,6 +98,19 @@ try{
  }
  const ordem=await pg.locator('.sidebar').evaluate(e=>[...e.querySelectorAll('button')].map(b=>b.getAttribute('onclick')));
  assert.ok(ordem.indexOf('abrirRede()')>ordem.indexOf('abrirArquivo()'),'Rede fica depois das etapas e do Arquivo');
+
+ await pg.evaluate(()=>document.fonts.ready);
+ assert.equal(await pg.locator('.signature-sidebar-flor img').count(),1);
+ assert.doesNotMatch(await pg.locator('.sidebar').innerText(),/Disciplina hoje|resultados amanhã/);
+ // Quantidades com larguras distintas verificam as colunas, sem gravar casos.
+ await pg.locator('#sidebar-etapas .sidebar-count').evaluateAll(itens=>itens.forEach((e,i)=>e.textContent=[23,3,104,3,22,8,0,73][i]));
+ const colunas=await pg.locator('#sidebar-etapas .sidebar-item').evaluateAll(itens=>itens.map(e=>{
+  const n=e.querySelector('.sidebar-count').getBoundingClientRect(),rotulo=e.querySelector('span:not(.sidebar-count)').getBoundingClientRect(),icone=e.querySelector('i').getBoundingClientRect();
+  return {numero:n.right,texto:rotulo.left,icone:icone.left,semColisao:rotulo.right<=n.left,semCorte:e.scrollWidth<=e.clientWidth};
+ }));
+ for(const campo of ['numero','texto','icone'])assert.ok(Math.max(...colunas.map(c=>c[campo]))-Math.min(...colunas.map(c=>c[campo]))<1,'coluna alinhada: '+campo);
+ assert.ok(colunas.every(c=>c.semColisao&&c.semCorte),'rótulos inteiros e sem colisão com contadores');
+ await pg.locator('.sidebar').screenshot({path:join(AQUI,'saida','lateral-alinhada-flor.png')});
  await pg.locator('.sidebar').screenshot({path:join(AQUI,'saida','lateral-simplificada.png')});
 
  async function conferirCabecalho(){
@@ -157,7 +172,7 @@ try{
  assert.equal(await pg.locator('.central-nova').isVisible(),false);
  assert.equal(await pg.locator('.signature-processo').count(),1);
  assert.equal(await pg.locator('.signature-processo .est').count(),1);
- assert.equal(await pg.getByRole('button',{name:'Voltar aos casos',exact:true}).count(),1);
+ assert.equal(await pg.getByRole('button',{name:/Voltar aos casos/}).count(),1);
  assert.equal(await pg.locator('.signature-processo .cx-reg-campos input').count(),5);
  assert.equal(await pg.locator('.signature-processo .est-aba').filter({hasText:'Livro, folha'}).count(),0);
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Drive',exact:true}).click();
@@ -166,7 +181,7 @@ try{
  assert.equal(await pg.locator('.signature-trabalho .cx-ped').count(),1);
  const antes=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Minuta',exact:true}).click();
- assert.equal(await pg.getByRole('button',{name:'Voltar aos casos',exact:true}).count(),1);
+ assert.equal(await pg.getByRole('button',{name:/Voltar aos casos/}).count(),1);
  assert.equal(await pg.locator('.signature-trabalho [onclick*=abrirMinuta]').count(),1);
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),antes,'trocar abas não grava ou gera minuta');
  await pg.screenshot({path:join(AQUI,'saida','signature-processo-computador.png'),fullPage:true});
@@ -174,12 +189,15 @@ try{
  await pg.waitForFunction(()=>window.__data.casos.C1.resp==='grazi');
  await pg.evaluate(()=>window.irParaCasoPorId('C1'));
  assert.equal(await pg.locator('.signature-processo').count(),1);
- await pg.getByRole('button',{name:'Voltar aos casos',exact:true}).click();
+ await pg.getByRole('button',{name:/Voltar aos casos/}).click();
  assert.equal(await pg.locator('.central-nova').isVisible(),true);
  console.log('ok: página exclusiva, ferramentas contextuais, cinco dados de registro, jornada única e edição preservada.');
  await pg.setViewportSize({width:390,height:844});
  await pg.screenshot({path:join(AQUI,'saida','signature-central-celular.png'),fullPage:true});
  assert.equal(await pg.locator('#signature-menu').isVisible(),true);
+ await pg.locator('#signature-menu summary').click();
+ assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'menu aberto cabe no celular');
+ await pg.locator('#signature-menu summary').click();
  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'Central cabe no celular');
  await pg.locator('.signature-resumo-abrir').click();
  await pg.screenshot({path:join(AQUI,'saida','signature-processo-celular.png'),fullPage:true});
