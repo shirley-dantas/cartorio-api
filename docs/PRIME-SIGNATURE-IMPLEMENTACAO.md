@@ -94,6 +94,26 @@ A suíte Signature confere o vínculo imóvel/contribuinte das três consultas,
 envio de IPTU e manutenção da data alterada em Mais detalhes no pedido de valor
 venal. Prefeitura e celular passaram. A usuária aprovou a prévia e autorizou a publicação.
 
+## Documentos — prévia de 12/11/2026
+
+A página Signature separa Recebidos, Anexar documentos e Pedir ao cliente no
+mesmo padrão visual das subpílulas de Certidões. Recebidos agrupa arquivos por
+pessoa, empresa e imóvel; itens a confirmar aparecem abertos. Os demais grupos
+ficam recolhidos e preservam sua abertura ao trocar de opção ou redesenhar.
+Correção, releitura e exclusão ficam em Mais ações de cada documento elegível,
+usando os manipuladores existentes. Arquivos legados sem origem também são
+visíveis; modelos continuam no fluxo de Minuta. Links da versão compacta
+exigem HTTPS. A apresentação clássica mantém seu filtro e controles atuais.
+
+Anexar preserva arrastar, escolher arquivos, colar e o andamento da fila. Pedir
+ao cliente abre o montador existente por Preparar pedido, sem criar ou enviar
+solicitações ao simplesmente navegar. A pasta do Drive continua acessível em
+Recebidos quando vinculada. Nenhum backend ou regra de leitura muda.
+
+Validação: Signature cobre navegação sem gravação, grupos e ações preservados,
+documentos legados, pedido existente e celular; docs-agrupados, solte-card e
+celular passaram. Prévia com dados ilustrativos, aguardando aprovação.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já

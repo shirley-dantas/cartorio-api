@@ -261,7 +261,49 @@ try{
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Drive',exact:true}).click();
  assert.equal(await pg.locator('.signature-trabalho .cx-drive').count(),1);
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Documentos',exact:true}).click();
- assert.equal(await pg.locator('.signature-trabalho .cx-ped').count(),1);
+ assert.equal(await pg.locator('.signature-documentos').count(),1);
+ assert.deepEqual(await pg.locator('.signature-docs-escolhas button').allTextContents(),['Recebidos','Anexar documentos','Pedir ao cliente']);
+ await pg.evaluate(()=>window.__fbWrite('casos/C1/documentos',{
+  D1:{nome:'Matrícula já existente',tipo:'documento',tipoDocumento:'MATRICULA_IMOVEL',texto:'Matrícula fictícia já lida.'},
+  D2:{nome:'RG de Maria Exemplo',tipo:'documento',tipoDocumento:'RG_CNH',pessoa:'Maria Exemplo',origem:'link do cliente',texto:'Texto fictício do RG',link:'https://example.invalid/rg.pdf'},
+  D3:{nome:'Certidão para conferir',tipo:'documento',tipoDocumento:'OUTRO',origem:'arrastado no card',confirmar:true},
+  D4:{nome:'Contrato da Empresa Exemplo',tipo:'documento',tipoDocumento:'CONTRATO_SOCIAL',pessoa:'Empresa Exemplo',origem:'arrastado no card',texto:'Contrato fictício.'}
+ }));
+ await pg.waitForFunction(()=>document.querySelectorAll('.signature-doc-grupo').length===4);
+ const antesDocumentos=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
+ assert.equal(await pg.locator('.signature-doc-grupo.conf').getAttribute('open'),'','itens a confirmar já ficam abertos');
+ await pg.locator('.signature-doc-grupo').filter({has:pg.locator('summary>span',{hasText:'Imóvel'})}).locator('summary').first().click();
+ assert.match(await pg.locator('.signature-docs-lista').innerText(),/Matrícula do imóvel/,'documento legado não desaparece por não ter origem');
+ await pg.locator('.signature-doc-grupo.conf .signature-doc-acoes summary').click();
+ assert.equal(await pg.locator('.signature-doc-grupo.conf [onclick*=renomearDocCard]').isVisible(),true);
+ assert.equal(await pg.locator('.signature-doc-grupo.conf [onclick*=relerDocCliente]').isVisible(),true);
+ assert.equal(await pg.locator('.signature-doc-grupo.conf [onclick*=excluirDocCliente]').isVisible(),true);
+ await pg.locator('.signature-doc-grupo.conf .signature-doc-acoes summary').click();
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','documentos-recebidos-computador.png')});
+ await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Anexar documentos',exact:true}).click();
+ assert.equal(await pg.locator('.signature-documentos .cx-solte').count(),1);
+ assert.equal(await pg.locator('.signature-documentos input[data-solte-input]').count(),1);
+ assert.equal(await pg.locator('#solte-prog-C1').count(),1,'uma única área de andamento');
+ assert.equal(await pg.locator('.signature-documentos .cx-aj').count(),0);
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','documentos-anexar-computador.png')});
+ await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Pedir ao cliente',exact:true}).click();
+ await pg.getByRole('button',{name:'Preparar pedido',exact:true}).click();
+ assert.equal(await pg.locator('#modal-pedido-docs').isVisible(),true,'abre o pedido existente');
+ await pg.evaluate(()=>window.fecharPedidoDocs());
+ assert.equal(await pg.locator('#modal-pedido-docs').isVisible(),false);
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','documentos-pedir-computador.png')});
+ await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Recebidos',exact:true}).click();
+ assert.equal(await pg.locator('.signature-doc-grupo').filter({has:pg.locator('summary>span',{hasText:'Imóvel'})}).getAttribute('open'),'','grupo mantém a abertura ao voltar');
+ assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),antesDocumentos,'navegar e preparar pedido não gravam dados');
+ await pg.setViewportSize({width:390,height:844});
+ for(const nome of ['Recebidos','Anexar documentos','Pedir ao cliente']){
+  await pg.locator('.signature-docs-escolhas').getByRole('button',{name:nome,exact:true}).click();
+  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'Documentos cabe no celular: '+nome);
+ }
+ await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Recebidos',exact:true}).click();
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','documentos-recebidos-celular.png')});
+ await pg.setViewportSize({width:1440,height:1000});
+ console.log('ok: Documentos separa recebidos/anexar/pedir, preserva grupos e ações, mostra documentos legados e abre o pedido existente sem gravar.');
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).click();
  assert.deepEqual(await pg.locator('.signature-cert-servicos button').allTextContents(),['JUCESP','Matrícula','Valor venal','Negativa de IPTU','Dados cadastrais','Trabalhista','CND Receita Federal','Indisponibilidade']);
  assert.deepEqual(await pg.locator('.signature-cert-tipos button').allTextContents(),['Ficha cadastral','Contrato social','Cartão CNPJ']);
