@@ -25,14 +25,17 @@ Status, responsável, assinatura e os cinco campos de registro usam os mesmos
 manipuladores. Ferramentas por contexto: Documentos, Certidões, Minuta,
 Orçamento, Pagamento, Drive e Histórico. Observações aparecem uma vez;
 Histórico revela as notas anteriores e os registros do atendimento/Joaninha.
-Capa e anotação de observação ficam em Mais ações, na mesma linha das outras
+Capa fica em Mais ações, na mesma linha das outras
 ferramentas. Excluir e Concluir/Reabrir ficam visíveis no rodapé. Atendimento
 sai da página Signature, sem apagar os registros anteriores.
 
 Na revisão solicitada em 12/11, a jornada deixa de ser renderizada nessa
 página. O seletor Etapa continua como controle único, e dados, histórico e
 motor de decisão permanecem disponíveis para a IA. Observações ficam dentro
-do bloco Próxima ação, abaixo da orientação. Prévia pendente de aprovação.
+do bloco Próxima ação, abaixo da orientação. O botão visível “Adicionar
+observação” abre e foca o campo com instrução simples e “Salvar observação”.
+Usa a gravação existente, preservando as observações anteriores e rascunhos.
+Prévia pendente de aprovação.
 
 ## Financeiro e privacidade
 

@@ -234,6 +234,17 @@ try{
  assert.equal(await pg.locator('.signature-processo').count(),1);
  assert.equal(await pg.locator('.signature-processo .est').count(),0,'jornada não duplica o controle Etapa');
  assert.equal(await pg.locator('.signature-proxima .card-obs').count(),1,'Observações ficam dentro de Próxima ação');
+ const observacaoAnterior=await pg.evaluate(()=>window.__data.casos.C1.obs);
+ await pg.locator('.signature-proxima').getByRole('button',{name:/Adicionar observação/}).click();
+ assert.equal(await pg.getByRole('textbox',{name:'Nova observação',exact:true}).evaluate(el=>el===document.activeElement),true,'botão abre e foca o campo');
+ await pg.getByRole('textbox',{name:'Nova observação',exact:true}).fill('Documentos conferidos. Aguardando retorno do cliente.');
+ await pg.locator('.signature-proxima').getByRole('button',{name:/Adicionar observação/}).click();
+ assert.equal(await pg.getByRole('textbox',{name:'Nova observação',exact:true}).isVisible(),true,'novo clique mantém o campo aberto');
+ await pg.locator('.signature-processo').screenshot({path:join(AQUI,'saida','observacao-campo-aberto.png')});
+ await pg.getByRole('button',{name:'Salvar observação',exact:true}).click();
+ await pg.waitForFunction(()=>window.__data.casos.C1.obs.includes('Documentos conferidos.'));
+ assert.equal(await pg.evaluate(t=>window.__data.casos.C1.obs.includes(t),observacaoAnterior),true,'adicionar preserva observações anteriores');
+ await pg.waitForTimeout(1500);
  assert.equal(await pg.locator('.signature-dados select[onchange*=dep]').count(),1,'Etapa continua disponível');
  assert.equal(await pg.locator('.signature-processo [onclick*=abrirAtendimento]').count(),0,'Atendimento sai do card');
  assert.equal(await pg.locator('.signature-rodape [onclick*=excluirCaso]').isVisible(),true,'Excluir fica visível');
@@ -246,7 +257,7 @@ try{
  assert.equal(await pg.locator('.signature-trabalho .cx-ped').count(),1);
  const antes=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Mais ações',exact:true}).click();
- assert.equal(await pg.locator('.signature-trabalho [onclick*=toggleObs]').isVisible(),true);
+ assert.equal(await pg.locator('.signature-proxima [onclick*=signatureAdicionarObs]').isVisible(),true);
  await pg.locator('.signature-processo').screenshot({path:join(AQUI,'saida','card-mais-acoes-computador.png')});
  await pg.locator('.signature-trabalho').getByRole('button',{name:/Capa do dossiê/}).click();
  assert.equal(await pg.locator('.signature-trabalho').getAttribute('aria-label'),'Capa do dossiê');

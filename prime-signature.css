@@ -246,6 +246,11 @@ html.prime-signature .signature-sobretitulo{display:block;color:#916c4e;font-siz
 html.prime-signature .signature-proxima>strong{font:600 23px 'Cormorant Garamond',Georgia,serif;color:#67213a;line-height:1.3}
 html.prime-signature .signature-proxima>p{font-size:12px;line-height:1.6}
 html.prime-signature .signature-contexto .card-obs{padding:14px 0 0;margin:14px 0 0;border:0;border-top:1px solid #eadbd0}
+html.prime-signature .signature-obs-cabecalho{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+html.prime-signature .signature-obs-cabecalho .obs-label{margin:0}
+html.prime-signature .signature-obs-cabecalho .cx-btn{background:#fffaf5;border-color:#d7bda3;color:#713047}
+html.prime-signature .signature-contexto .obs-edit textarea{background:#fffdfb;border:1px solid #d7bda3;min-height:90px;line-height:1.6}
+html.prime-signature .signature-contexto .obs-edit textarea:focus{outline:2px solid #793047;outline-offset:2px}
 html.prime-signature .signature-contexto .obs-text{font-size:12px;line-height:1.7;color:#67545c}
 html.prime-signature .signature-contexto .obs-hist,
 html.prime-signature .signature-contexto .obs-hist-titulo{display:none}

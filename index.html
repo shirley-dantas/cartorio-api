@@ -5933,6 +5933,7 @@ function signatureResumoHtml(c){
 }
 function signaturePaginaHtml(c){
   const p=cardPartes(c),md=motorDecisao(c);
+  const observacoes=p.obs.replace('<span class="obs-label">Observações</span>',`<div class="signature-obs-cabecalho"><span class="obs-label">Observações</span><button type="button" class="cx-btn" onclick="signatureAdicionarObs('${c.id}')" aria-controls="obs-edit-${c.id}"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar observação</button></div>`).replace('<textarea rows="2"', '<textarea aria-label="Nova observação" rows="3"').replace('Digite a nova informação — ela entra numerada no topo do histórico acima','Escreva aqui a nova observação do caso…').replace('>Salvar</button>','>Salvar observação</button>');
   const abas=['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico','Mais ações'];
   const preferida=ESTEIRA_ABA[c.id]||esteiraAbaAberta(c);
   const aberta=abas.includes(preferida)||preferida==='Capa do dossiê'?preferida:'Documentos';
@@ -5942,18 +5943,24 @@ function signaturePaginaHtml(c){
     const eventos=Object.values(c.historico||{}).sort((a,b)=>String(b.em||b.data||'').localeCompare(String(a.em||a.data||'')));
     conteudo=`<h3>Histórico do caso</h3><p class="signature-ajuda">As observações anteriores aparecem no bloco acima.</p>`+
       (eventos.length?`<ol class="signature-historico">${eventos.map(e=>`<li>${escTxt(e.texto||e.resumo||e.descricao||e.acao||e.tipo||'Atualização do caso')} <small>${escTxt(e.em||e.data||'')}</small></li>`).join('')}</ol>`:'<p class="signature-ajuda">Sem outras alterações registradas.</p>');
-  }else if(aberta==='Mais ações')conteudo=`<div class="signature-acoes-extras"><button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button><button type="button" class="cx-btn" onclick="toggleObs('${c.id}')"><i class="ti ti-notes"></i> Anotar observação</button></div>`;
+  }else if(aberta==='Mais ações')conteudo=`<div class="signature-acoes-extras"><button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button></div>`;
   else if(aberta==='Pagamento')conteudo=p.pag+p.fin;
   else conteudo=({'Documentos':p.docs,'Certidões':p.pref,'Minuta':p.minuta,'Orçamento':p.orc,'Capa do dossiê':p.capa})[aberta];
   const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos casos</button><span>Caso</span></div>`;
   return p.abre.replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
     `<div class="signature-dados">${p.campos}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
-    <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Caso concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}${p.obs}</div></section>
+    <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Caso concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}${observacoes}</div></section>
     ${p.linha}
     <nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta?' on':''}" onclick="esteiraAba('${c.id}','${f}')">${f}</button>`).join('')}</nav>
     <section class="est-painel signature-trabalho" aria-label="${esc(aberta)}">${conteudo}</section>
     <footer class="cx-acoes signature-rodape"><button type="button" class="cx-btn perigo" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash"></i> Excluir</button><button type="button" class="cx-btn concluir" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button></footer></div>`;
 }
+window.signatureAdicionarObs=function(id){
+  const editor=document.getElementById('obs-edit-'+id);
+  if(!editor)return;
+  if(editor.style.display!=='flex')window.toggleObs(id);
+  document.getElementById('obs-ta-'+id)?.focus();
+};
 function signatureRenderFinanceiro(){
   const el=document.getElementById('signature-financeiro');if(!el)return;
   const autorizado=!!finAuth&&!!finAcesso?.nome&&!signatureFinanceiroBloqueado;
