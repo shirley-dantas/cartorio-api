@@ -95,7 +95,8 @@ export const set=async()=>{};export const update=async(r,o)=>{window.__UPD.push(
   'firebase-storage.js': 'export const getStorage=()=>({});export const ref=()=>({});export const uploadBytes=async()=>({});export const getDownloadURL=async()=>"";'};
 await p.route('https://www.gstatic.com/firebasejs/**', (r) => { const n = r.request().url().split('/').pop(); r.fulfill({status: 200, contentType: 'text/javascript', body: stubs[n] || 'export {}'}); });
 await p.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => { if (r.request().url().includes('gstatic.com/firebasejs')) return r.fallback(); r.abort(); });
-await p.goto(srv.url + '/index.html'); await p.waitForTimeout(1800);
+// O card clássico continua disponível como alternativa; Signature tem suíte própria.
+await p.goto(srv.url + '/index.html?layout=classico'); await p.waitForTimeout(1800);
 const upd = () => p.evaluate(() => window.__UPD.splice(0));
 const txt = (sel) => p.$$eval(sel, (els) => els.map((e) => e.textContent.trim()));
 

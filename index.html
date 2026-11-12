@@ -2408,6 +2408,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .cdc2-vazio{font-size:12px;color:#9CA0A8;font-style:italic;padding:8px 2px}
 @media(max-width:640px){.cdc2-post-grid{grid-template-columns:1fr}}
 </style>
+<script>window.PRIME_SIGNATURE=new URLSearchParams(location.search).get('layout')!=='classico';if(window.PRIME_SIGNATURE)document.documentElement.classList.add('prime-signature');</script>
+<link rel="stylesheet" href="/prime-signature.css?v=20261112">
 </head>
 <body>
 
@@ -4731,6 +4733,7 @@ window.registrarNotaCentral=function(casoId){
   input.value='';
 };
 window.irParaCasoPorId=function(id){
+  if(window.PRIME_SIGNATURE)return signatureAbrirProcesso(id);
   const c=casos[id];
   if(!c){alert('Não encontrei mais esse caso — pode ter sido excluído.');return;}
   busca='';
@@ -5226,6 +5229,7 @@ window.irParaCasoDoFoco=function(nomeCaso){
   if(!nomeCaso)return;
   const c=encontrarCasoPorNomeFoco(nomeCaso);
   if(!c){alert('Não encontrei mais esse caso — pode ter sido excluído.');return;}
+  if(window.PRIME_SIGNATURE)return signatureAbrirProcesso(c.id);
   busca='';
   const buscaInput=document.querySelector('.search-wrap input');
   if(buscaInput)buscaInput.value='';
@@ -5682,6 +5686,7 @@ function esteiraRedesenhar(id){
   const c=casos[id], el=document.getElementById('card-'+id);
   if(!c||!el){if(typeof renderCasos==='function')renderCasos();return;}
   el.outerHTML=cardHtml(c);
+  window.joaninhaChat?.renderTarefasNosCards();
 }
 function esteiraGravar(id,dep,extra){
   const c=casos[id]; if(!c)return Promise.resolve();
@@ -5732,6 +5737,136 @@ window.esteiraAlternarModo=function(){
   renderCasos();
 };
 // ── fim: a esteirinha: tela ──
+
+// Apresentação Signature. Incluída no módulo do painel para reutilizar os
+// mesmos controles; não grava dados, não calcula orçamento nem move etapas.
+let signatureProcessoId=null;
+let signatureScroll=0;
+let signatureFinanceiroVisivel=false;
+let signatureFinanceiroUid=null;
+let signatureFinanceiroBloqueado=false;
+function signatureAbrirProcesso(id,registrar=true){
+  if(!casos[id]){alert('Não encontrei mais esse caso.');return;}
+  if(!signatureProcessoId)signatureScroll=window.scrollY;
+  signatureProcessoId=id;
+  document.body.classList.add('signature-no-processo');
+  const endereco='#processo/'+encodeURIComponent(id);
+  if(registrar&&location.hash!==endereco)history.pushState({signature:true},'',endereco);
+  renderCasos();window.scrollTo({top:0,behavior:'instant'});
+  window.joaninhaDefinirContexto?.(id);
+}
+function signatureVoltar(redesenhar=true){
+  signatureProcessoId=null;
+  document.body.classList.remove('signature-no-processo');
+  if(location.hash.startsWith('#processo/'))history.replaceState(null,'',location.pathname+location.search);
+  if(redesenhar)renderCasos();
+  window.scrollTo({top:signatureScroll,behavior:'instant'});
+}
+window.signatureAbrirProcesso=signatureAbrirProcesso;
+window.signatureVoltar=signatureVoltar;
+window.signatureIr=function(destino){
+  if(signatureProcessoId)signatureVoltar();
+  if(destino==='processos'){setFiltro('todos');scrollParaId('view-casos');}
+  else if(destino==='agenda')scrollParaId('cdc2-ag-tabs');
+  else window.scrollTo({top:0,behavior:'smooth'});
+  document.getElementById('signature-menu')?.removeAttribute('open');
+};
+function signatureResumoHtml(c){
+  const md=motorDecisao(c);
+  return `<article class="cx-card signature-resumo ${c.concluido?'concluido':c.status}" id="card-${c.id}">
+    <button type="button" class="signature-resumo-abrir" onclick="signatureAbrirProcesso('${c.id}')">
+      <span><strong>${escTxt(c.nome)}</strong><small>${escTxt(c.tipo||'Tipo de ato não informado')}</small></span>
+      <span class="signature-resumo-etapa">${escTxt(c.concluido?'Concluído':c.dep||'Sem etapa definida')}<small>${escTxt(c.resp||'Sem responsável')}</small></span>
+      <span class="signature-resumo-proxima">${escTxt(c.concluido?'Consultar processo':md.proximaAcao)}</span>
+      <i class="ti ti-chevron-right" aria-hidden="true"></i>
+    </button></article>`;
+}
+function signaturePaginaHtml(c){
+  const p=cardPartes(c),md=motorDecisao(c);
+  const abas=['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico'];
+  const preferida=ESTEIRA_ABA[c.id]||esteiraAbaAberta(c);
+  const aberta=abas.includes(preferida)||preferida==='Capa do dossiê'?preferida:'Documentos';
+  let conteudo;
+  if(aberta==='Drive')conteudo=p.drive;
+  else if(aberta==='Histórico'){
+    const eventos=Object.values(c.historico||{}).sort((a,b)=>String(b.em||b.data||'').localeCompare(String(a.em||a.data||'')));
+    conteudo=`<h3>Histórico do processo</h3><p class="signature-ajuda">As observações anteriores aparecem no bloco acima.</p>`+
+      (eventos.length?`<ol class="signature-historico">${eventos.map(e=>`<li>${escTxt(e.texto||e.resumo||e.descricao||e.acao||e.tipo||'Atualização do processo')} <small>${escTxt(e.em||e.data||'')}</small></li>`).join('')}</ol>`:'<p class="signature-ajuda">Sem outras alterações registradas.</p>');
+  }else if(aberta==='Pagamento')conteudo=p.pag+p.fin;
+  else conteudo=({'Documentos':p.docs,'Certidões':p.pref,'Minuta':p.minuta,'Orçamento':p.orc,'Capa do dossiê':p.capa})[aberta];
+  const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos processos</button><span>Processo</span></div>`;
+  return p.abre.replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
+    `<div class="signature-dados">${p.campos}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
+    <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Processo concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}</div>${p.obs}</section>
+    ${p.linha}
+    <nav class="est-abas signature-funcoes" aria-label="Trabalhar no processo">${abas.map(f=>`<button type="button" class="est-aba${f===aberta?' on':''}" onclick="esteiraAba('${c.id}','${f}')">${f}</button>`).join('')}</nav>
+    <section class="est-painel signature-trabalho" aria-label="${esc(aberta)}">${conteudo}</section>
+    <details class="signature-avancado"><summary>Mais ações do processo</summary><button class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button>${p.acoes}</details>
+    <section class="signature-jornada"><span class="signature-sobretitulo">Jornada do processo</span>${esteiraTrilhaHtml(c)}</section></div>`;
+}
+function signatureRenderFinanceiro(){
+  const el=document.getElementById('signature-financeiro');if(!el)return;
+  const autorizado=!!finAuth&&!!finAcesso?.nome&&!signatureFinanceiroBloqueado;
+  const uid=autorizado?finAuth.uid:null;
+  if(uid!==signatureFinanceiroUid){signatureFinanceiroVisivel=false;signatureFinanceiroUid=uid;}
+  const visivel=autorizado&&signatureFinanceiroVisivel;
+  // A faixa usa SOMENTE os lançamentos já carregados pela escuta autorizada.
+  // Ao ocultar, remove os valores do DOM, inclusive atributos acessíveis.
+  el.innerHTML=`<div class="signature-fin-head"><h2>Financeiro</h2><button type="button" class="cx-btn" onclick="signatureOlhoFinanceiro()" aria-label="${visivel?'Ocultar':'Mostrar'} financeiro" aria-pressed="${visivel}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>${visivel?'':'<path d="m3 3 18 18"/>'}</svg></button></div>`+
+    (!autorizado?`<button class="cx-btn" onclick="abrirFinanceiro()">Entrar para consultar</button>`:
+     !visivel?'<span class="signature-fin-oculto" aria-label="Valores ocultos">••••••</span>':
+     `<strong class="signature-fin-valor">${finMoeda(finResumoCiclo(finCicloCorrente()).movimento)}</strong><span class="signature-ajuda">Meta não definida</span>`);
+}
+window.signatureOlhoFinanceiro=function(){
+  if(!finAuth||!finAcesso?.nome||signatureFinanceiroBloqueado){signatureFinanceiroVisivel=false;signatureRenderFinanceiro();abrirFinanceiro();return;}
+  signatureFinanceiroVisivel=!signatureFinanceiroVisivel;signatureRenderFinanceiro();
+};
+window.signatureConfiguracoes=function(){
+  document.getElementById('signature-config')?.showModal();
+};
+function signatureMontar(){
+  if(!window.PRIME_SIGNATURE)return;
+  const primeira=document.querySelector('.sidebar-section-title');
+  const nav=document.createElement('nav');nav.className='sidebar-nav signature-nav-principal';
+  nav.innerHTML=`<button class="sidebar-item active" onclick="signatureIr('central')"><i class="ti ti-layout-dashboard"></i><span>Central</span></button>
+    <button class="sidebar-item" onclick="signatureIr('processos')"><i class="ti ti-briefcase"></i><span>Processos</span></button>
+    <button class="sidebar-item" onclick="signatureIr('agenda')"><i class="ti ti-calendar"></i><span>Agenda</span></button>
+    <button class="sidebar-item" onclick="abrirOrcamentos()"><i class="ti ti-calculator"></i><span>Orçamentos</span></button>
+    <button class="sidebar-item" onclick="abrirRadar()"><i class="ti ti-scale"></i><span>Radar Jurídico</span></button>`;
+  primeira.after(nav);
+  const mais=document.getElementById('sidebar-mais');
+  // Move os acessos existentes: mantém identidade, autorização e listeners.
+  const rede=document.getElementById('sidebar-rede');nav.append(rede);
+  const modelos=mais.querySelector('[onclick="abrirModelos()"]');nav.append(modelos);
+  for(const acao of ['abrirOrcamentos()','abrirRadar()'])mais.querySelector(`[onclick="${acao}"]`)?.remove();
+  for(const nome of ['Processos','Agenda'])mais.querySelector(`[onclick="navEmBreve('${nome}')"]`)?.remove();
+  const rel=mais.querySelector('[onclick="abrirQuadro()"]');rel.querySelector('span').textContent='Relatórios';
+  mais.querySelector('[onclick="navEmBreve(\'Relatórios\')"]')?.remove();
+  const cfg=mais.querySelector('[onclick="navEmBreve(\'Configurações\')"]');
+  cfg.classList.remove('disabled');cfg.setAttribute('onclick','signatureConfiguracoes()');cfg.querySelector('.em-breve')?.remove();
+  const fim=document.createElement('nav');fim.className='sidebar-nav signature-nav-fim';
+  for(const acao of ['abrirFinanceiro()','abrirMeuFinanceiro()','abrirQuadro()','signatureConfiguracoes()']){
+    const b=mais.querySelector(`[onclick="${acao}"]`);if(b)fim.append(b);
+  }
+  document.getElementById('sidebar-mais-toggle').before(fim);
+  const titulo=document.createElement('h2');titulo.className='signature-lista-titulo';titulo.textContent='Processos';document.getElementById('view-casos').prepend(titulo);
+  const fin=document.createElement('section');fin.id='signature-financeiro';fin.className='signature-financeiro';document.querySelector('.central-nova').append(fin);
+  const dialog=document.createElement('dialog');dialog.id='signature-config';dialog.innerHTML=`<form method="dialog"><button class="cx-btn" aria-label="Fechar configurações">Fechar</button></form><h2>Configurações</h2><button class="cx-btn" onclick="this.closest('dialog').close();abrirRegrasMinuta()">Regras de minuta</button><button class="cx-btn" onclick="this.closest('dialog').close();localStorage.removeItem('painel_usuario');location.reload()">Trocar identificação</button>`;document.body.append(dialog);
+  const menu=document.createElement('details');menu.id='signature-menu';menu.className='signature-menu-mobile';menu.innerHTML='<summary>☰ Menu do painel</summary>';const links=document.createElement('div');links.innerHTML=nav.innerHTML+fim.innerHTML;links.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));menu.append(links);document.querySelector('.container').prepend(menu);
+  // Duplicar o botão Rede no celular exige a MESMA decisão de autorização.
+  const atualizarMenu=()=>{
+    links.innerHTML=nav.innerHTML+'<span class="signature-menu-secao">Por etapa</span>'+document.getElementById('sidebar-etapas').innerHTML+fim.innerHTML+mais.innerHTML;
+    links.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
+  };
+  atualizarMenu();
+  new MutationObserver(atualizarMenu).observe(document.querySelector('.sidebar'),{childList:true,subtree:true,attributes:true,attributeFilter:['style']});
+  menu.addEventListener('click',e=>{if(e.target.closest('button'))menu.removeAttribute('open');});
+  window.addEventListener('popstate',()=>{
+    const id=location.hash.startsWith('#processo/')?decodeURIComponent(location.hash.slice(10)):null;
+    if(id&&casos[id])signatureAbrirProcesso(id,false);else signatureVoltar();
+  });
+  signatureRenderFinanceiro();
+}
 
 // ── O card, em pedaços ──
 // O desenho de antes e o da esteirinha usam as MESMAS peças; só muda a ordem e o que fica à mostra. Nada foi apagado do card — só reorganizado.
@@ -5884,12 +6019,24 @@ function cardNovoHtml(c){
           </select></label></div>
       `+esteiraTrilhaHtml(c)+esteiraAbasHtml(c)+`<div class="est-painel">`+esteiraPainelHtml(c,p)+`</div>`+(finOk?p.fin:'')+p.drive+p.obs+p.acoes+'\n    </div>';
 }
-function cardHtml(c){return ESTEIRA_ANTIGO?cardAntigoHtml(c):cardNovoHtml(c);}
+function cardHtml(c){
+  if(window.PRIME_SIGNATURE)return signatureProcessoId===c.id?signaturePaginaHtml(c):signatureResumoHtml(c);
+  return ESTEIRA_ANTIGO?cardAntigoHtml(c):cardNovoHtml(c);
+}
 // ── fim: o card, em pedaços ──
 
 
 function renderCasos(){
   const el=document.getElementById('casos-list');
+  if(window.PRIME_SIGNATURE&&!signatureProcessoId&&location.hash.startsWith('#processo/')){
+    const id=decodeURIComponent(location.hash.slice(10));
+    if(casos[id]){signatureProcessoId=id;document.body.classList.add('signature-no-processo');}
+  }
+  if(window.PRIME_SIGNATURE&&signatureProcessoId){
+    const c=casos[signatureProcessoId];
+    if(c){el.innerHTML=signaturePaginaHtml(c);return;}
+    signatureVoltar();
+  }
   let lista=getCasosList().filter(visivel);
   if(!lista.length&&busca&&filtro!=='concluido'){
     // Nada bateu no filtro atual — se a busca acha algo só no Arquivo, pula pra lá
@@ -7887,6 +8034,7 @@ function sincronizarFiltroAtivo(){
   if(modo)modo.style.display=filtro==='concluido'?'inline-flex':'none';
 }
 window.setFiltro=function(f){
+  if(window.PRIME_SIGNATURE&&signatureProcessoId)signatureVoltar(false);
   filtro=f;
   sincronizarFiltroAtivo();
   renderCasos();
@@ -7899,6 +8047,7 @@ window.irParaPrimeiroResultado=function(){
   // Enter na busca não fazia absolutamente nada, sem erro nenhum na tela.
   const el=document.querySelector('#casos-list .cx-card');
   if(!el)return;
+  if(window.PRIME_SIGNATURE)return signatureAbrirProcesso(el.id.slice(5));
   el.scrollIntoView({behavior:'smooth',block:'center'});
   el.classList.add('jn-destaque');
   setTimeout(()=>el.classList.remove('jn-destaque'),1800);
@@ -8495,6 +8644,7 @@ function finNomeLogado(){
 function finEhDona(){return !!(finAcesso&&finAcesso.dono===true);}
 onAuthStateChanged(auth,async(u)=>{
   finAuth=u||null;
+  if(window.PRIME_SIGNATURE){signatureFinanceiroVisivel=false;signatureFinanceiroUid=null;signatureFinanceiroBloqueado=false;signatureRenderFinanceiro();}
   finAcesso=null;
   finAuthPronto=true;
   if(u){
@@ -8928,6 +9078,7 @@ function finLigarEscuta(){
   if(!finCiclo)finCiclo=finCicloCorrente();
   onValue(finLancRef,snap=>{
     finLanc=snap.val()||{};
+    if(window.PRIME_SIGNATURE)signatureFinanceiroBloqueado=false;
     if(finAberto)renderFinanceiro();
     if(finCasoAtual)renderFinanceiroDoCaso();
     finRedesenharCards();
@@ -8956,6 +9107,7 @@ function finLigarEscuta(){
 // Regra fechada devolve permission_denied em vez de dados. Sem isto a tela
 // ficaria em branco, parecendo que não há lançamento nenhum.
 function finErroPermissao(erro){
+  if(window.PRIME_SIGNATURE){signatureFinanceiroBloqueado=true;signatureFinanceiroVisivel=false;signatureRenderFinanceiro();}
   finOuvindo=false;
   const alvo=document.getElementById('fin-conteudo');
   if(alvo&&finAberto)alvo.innerHTML=finHtmlSemAcesso();
@@ -10308,6 +10460,7 @@ window.mudarCampo=function(id,campo,valor){
 // para mostrar a faixa — mas sem disparar um render por escritura gravada.
 let _finRedesenhoCards=null;
 function finRedesenharCards(){
+  if(window.PRIME_SIGNATURE)signatureRenderFinanceiro();
   clearTimeout(_finRedesenhoCards);
   _finRedesenhoCards=setTimeout(()=>{if(typeof renderCasos==='function')renderCasos();},200);
 }
@@ -17110,6 +17263,7 @@ if(window.JoaninhaChat && window.JoaninhaProtocolo){
   onAuthStateChanged(auth,()=>chatJoaninha?.atualizarConta());
 }
 
+if(window.PRIME_SIGNATURE)signatureMontar();
 </script>
 </body>
 </html>

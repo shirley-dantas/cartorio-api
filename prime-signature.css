@@ -1,0 +1,269 @@
+/* PRIME Signature — desenho aprovado em 11/11/2026. Apenas apresentação. */
+html.prime-signature{
+  --ps-wine:#6A1732;
+  --ps-wine-dark:#4E1027;
+  --ps-gold:#C29B5E;
+  --ps-cream:#FFF9F4;
+  --ps-ink:#25303A;
+  --ps-shadow:0 12px 28px rgba(87,48,43,.065),0 2px 5px rgba(87,48,43,.03);
+}
+html.prime-signature body{
+  background:#F8F3EE;
+  background-image:radial-gradient(ellipse at 88% 3%,rgba(239,211,203,.36),transparent 48%),
+                   radial-gradient(ellipse at 18% 94%,rgba(219,185,149,.11),transparent 60%);
+  color:var(--ps-ink);
+}
+html.prime-signature .sidebar{
+  background:linear-gradient(160deg,#761D39 0%,#5E1530 65%,#481027 100%);
+  border-right:1px solid rgba(211,169,112,.28);
+  scrollbar-color:rgba(244,220,200,.32) transparent;
+}
+html.prime-signature .sidebar-logo-svg text{fill:#FFF6ED}
+html.prime-signature .sidebar-divider{background:rgba(235,196,150,.34)}
+html.prime-signature .sidebar-section-title{color:#E9C99D}
+html.prime-signature .sidebar-item,
+html.prime-signature .sidebar-toggle-mais{
+  background:transparent;
+  border-color:transparent;
+  color:#F9EEE5;
+  border-radius:12px;
+}
+html.prime-signature .sidebar-item:not(.active):hover,
+html.prime-signature .sidebar-toggle-mais:hover,
+html.prime-signature .sidebar-item.on{
+  background:rgba(255,246,238,.14);
+  color:#fff;
+}
+html.prime-signature .sidebar-item.active{
+  color:#fff;
+  border:1px solid rgba(252,221,184,.37);
+  background:linear-gradient(125deg,#B65F6D,#94354F);
+  box-shadow:0 4px 16px rgba(52,10,28,.17);
+}
+html.prime-signature .sidebar-item .em-breve{background:rgba(255,255,255,.17);color:#fff2d9}
+html.prime-signature .sidebar-count,
+html.prime-signature .sidebar-count.purple,
+html.prime-signature .sidebar-count.red,
+html.prime-signature .sidebar-count.amber,
+html.prime-signature .sidebar-count.green{
+  background:#F6E5D0;
+  color:#64243B;
+}
+html.prime-signature .sidebar-footer-frase{color:#F5DFD7}
+html.prime-signature .topnav{background:rgba(255,252,249,.94);border-color:#F1E7DC}
+html.prime-signature .container{max-width:1500px}
+html.prime-signature .cdc2-topo{
+  position:relative;
+  background:linear-gradient(120deg,#FFF9F4 0%,#FAEEE9 100%);
+  border:1px solid #F1E4DC;
+  border-radius:24px;
+  padding:23px 26px;
+  gap:24px;
+  box-shadow:var(--ps-shadow);
+}
+html.prime-signature .cdc2-topo::before{
+  content:"";
+  position:absolute;
+  right:16px;top:10px;width:62px;height:47px;pointer-events:none;opacity:.65;
+  background:radial-gradient(ellipse 10px 18px at 28px 10px,rgba(223,152,147,.28),transparent 85%),
+    radial-gradient(ellipse 10px 18px at 40px 22px,rgba(219,174,159,.30),transparent 85%),
+    radial-gradient(ellipse 7px 15px at 14px 24px,rgba(196,157,97,.24),transparent 85%);
+}
+html.prime-signature .cdc2-topo-saud{color:#5F1931;font-family:'Cormorant Garamond',serif;font-size:35px;font-weight:600}
+html.prime-signature .cdc2-topo-sub{color:#675E5E}
+html.prime-signature .cdc2-topo-frase{color:#A65C72;font-size:17px}
+html.prime-signature .cdc2-topo-busca{
+  border-radius:999px;border:1px solid #EADDD5;background:#fff;
+  box-shadow:0 6px 16px rgba(92,41,55,.05);
+}
+html.prime-signature .cdc2-calendario{
+  width:258px;border:1px solid #F0E4DC;border-radius:20px;
+  background:#FFFCFA;box-shadow:0 8px 20px rgba(77,36,44,.06);
+}
+html.prime-signature .cdc2-cal-titulo{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:#58152C}
+html.prime-signature .cdc2-cal-dia.hoje{background:#FAE3DE;color:#791D39}
+html.prime-signature .cdc2-cal-dia.selecionado,
+html.prime-signature .cdc2-cal-dia.selecionado:hover{background:#761D39;color:#fff}
+html.prime-signature .cdc2-cal-dia.compromisso::after{background:#BA8C4D}
+html.prime-signature .cdc2-indicadores{gap:10px;margin-bottom:16px}
+html.prime-signature .cdc2-indic,
+html.prime-signature .cdc2-ver-todos{
+  border:1px solid #EFE3DC;border-radius:18px;background:#FFFCFA;
+  box-shadow:0 5px 16px rgba(83,39,49,.04);min-height:58px;
+}
+html.prime-signature .cdc2-indic-num{color:#5F1931;font-size:20px}
+html.prime-signature .cdc2-indic-lbl{color:#685D62;font-size:11px}
+html.prime-signature .cc-jornal{
+  background:#FFFDFB;border:1px solid #EFDFD6;border-radius:16px;
+  box-shadow:0 4px 12px rgba(83,39,49,.04);
+}
+html.prime-signature .cc-envio{
+  border-radius:15px;
+  box-shadow:0 5px 15px rgba(52,98,60,.035);
+}
+html.prime-signature .cdc2-grid3{gap:16px}
+html.prime-signature .cdc2-card{
+  border:1px solid #F0E2DB;border-radius:22px;background:#FFFDFC;
+  padding:21px 20px 20px;box-shadow:var(--ps-shadow);
+}
+html.prime-signature .cdc2-card-title{
+  color:#5C1D36;font-family:'Cormorant Garamond',serif;
+  font-size:23px;font-weight:600;letter-spacing:-.02em;
+}
+html.prime-signature .cdc2-icon-chip{
+  background:#FCF0E6;color:#AB7546;border-radius:12px;
+}
+html.prime-signature .cdc2-pill-tabs{background:#FCF5F0;border-radius:999px}
+html.prime-signature .cdc2-pill-tab{border-radius:999px;color:#6D6165}
+html.prime-signature .cdc2-pill-tab.ativa{
+  background:linear-gradient(120deg,#74203E,#58152C);
+  color:#fff;box-shadow:0 4px 12px rgba(103,22,50,.14);
+}
+html.prime-signature .cdc2-tab-u.ativa{color:#5F1931}
+html.prime-signature .cdc2-tab-u.ativa::after{background:#AE824E}
+html.prime-signature .cdc2-ag-hora{color:#8B5263}
+html.prime-signature .cdc2-ag-ponto::before{background:#B68E53;border-color:#B68E53}
+html.prime-signature .cdc2-mini{background:#FCF8F4}
+html.prime-signature .cdc2-mini-head:hover{background:#FAEFEA}
+html.prime-signature .cdc2-mini.ok{border-left-color:#2C975A}
+html.prime-signature .cdc2-btn-nova{
+  background:#FBF2EB;border-color:#EBD9C6;color:#70334A;
+}
+html.prime-signature button:focus-visible,
+html.prime-signature input:focus-visible,
+html.prime-signature .cdc2-cal-dia:focus-visible{
+  outline:2px solid #A97649;outline-offset:2px;
+}
+@media(max-width:1200px){
+  html.prime-signature .cdc2-topo{flex-wrap:wrap}
+  html.prime-signature .cdc2-grid3{gap:12px}
+  html.prime-signature .cdc2-card{padding:18px 16px}
+}
+@media(max-width:760px){
+  html.prime-signature .cdc2-topo{flex-direction:column;align-items:stretch;padding:16px}
+  html.prime-signature .cdc2-topo-saud{font-size:29px;white-space:normal}
+  html.prime-signature .cdc2-topo-sub{white-space:normal}
+  html.prime-signature .cdc2-calendario{width:100%}
+  html.prime-signature .cdc2-grid3{grid-template-columns:1fr}
+  html.prime-signature .cdc2-card-title{font-size:21px}
+}
+@media(prefers-reduced-motion:reduce){
+  html.prime-signature .sidebar-item{transition:none}
+}
+html.prime-signature .sidebar{width:224px;padding:22px 15px}
+html.prime-signature .main-area{margin-left:0}
+html.prime-signature .sidebar-item{min-height:36px;padding:8px 11px;font-size:12px}
+html.prime-signature .sidebar-logo{margin-bottom:12px}
+html.prime-signature .sidebar-divider{margin:14px 0}
+html.prime-signature .signature-nav-fim{margin:14px 0}
+html.prime-signature .sidebar-toggle-mais{font-size:11px}
+html.prime-signature .cdc2-topo{display:grid;grid-template-columns:minmax(0,1fr) 258px}
+html.prime-signature .cdc2-topo-dir{grid-column:1;grid-row:2;align-items:flex-start}
+html.prime-signature .cdc2-calendario{grid-column:2;grid-row:1 / 3}
+html.prime-signature .cdc2-topo-esq{min-width:0}
+html.prime-signature .cdc2-topo-busca{max-width:540px}
+html.prime-signature .cdc2-grid3{grid-template-columns:1fr 1fr 1.15fr;align-items:start}
+html.prime-signature .signature-lista-titulo{font:600 29px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine);margin:28px 0 14px}
+html.prime-signature #cx-modo-card{display:none}
+html.prime-signature .signature-resumo{padding:0;border:1px solid #e9dfd7;border-left:3px solid #a9895a;border-radius:16px;background:#fffdfb;overflow:hidden;margin-bottom:10px}
+html.prime-signature .signature-resumo.critico{border-left-color:#ba4653}
+html.prime-signature .signature-resumo.prioridade{border-left-color:#7d4c9d}
+html.prime-signature .signature-resumo-abrir{display:grid;grid-template-columns:1.1fr .7fr 1fr 18px;gap:16px;align-items:center;width:100%;text-align:left;border:0;background:transparent;padding:21px;color:var(--ps-ink);font:inherit;cursor:pointer}
+html.prime-signature .signature-resumo-abrir:hover{background:#faf0eb}
+html.prime-signature .signature-resumo strong{display:block;font-size:15px;font-weight:600;color:var(--ps-wine)}
+html.prime-signature .signature-resumo small{display:block;font-size:11px;margin-top:6px;color:#746970}
+html.prime-signature .signature-resumo-etapa{font-size:12px}
+html.prime-signature .signature-resumo-proxima{font-size:12px;line-height:1.6}
+html.prime-signature .signature-resumo .jnc-card-link{margin:0 21px 12px}
+html.prime-signature .signature-caminho{display:flex;align-items:center;gap:16px;margin:12px 0 20px;color:#8b777f;font-size:12px}
+html.prime-signature .signature-processo{border:1px solid #eaddd2;border-radius:24px;background:#fffdfb;box-shadow:var(--ps-shadow);padding:28px}
+html.prime-signature .signature-processo .cx-topo{padding-bottom:20px;border-bottom:1px solid #eee3da}
+html.prime-signature .signature-processo .cx-nome{font:600 32px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine)}
+html.prime-signature .signature-dados{display:flex;align-items:end;justify-content:space-between;gap:15px;margin-top:18px}
+html.prime-signature .signature-dados .cx-campos{flex:1;border:0;margin:0;padding:0;display:grid;grid-template-columns:1fr 1.3fr 1fr}
+html.prime-signature .signature-tempo{font-size:11px;color:#886d78;padding-bottom:8px}
+html.prime-signature .signature-contexto{display:grid;grid-template-columns:.85fr 1.15fr;background:#fbf2ed;border:1px solid #eedfd5;border-radius:18px;margin:22px 0;padding:20px;gap:24px}
+html.prime-signature .signature-sobretitulo{display:block;color:#916c4e;font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+html.prime-signature .signature-proxima strong{font:600 23px 'Cormorant Garamond',Georgia,serif;color:#67213a;line-height:1.3}
+html.prime-signature .signature-proxima p{font-size:12px;line-height:1.6}
+html.prime-signature .signature-contexto .card-obs{padding:0;margin:0;border:0}
+html.prime-signature .signature-contexto .obs-text{font-size:12px;line-height:1.7;color:#67545c}
+html.prime-signature .signature-contexto .obs-hist,
+html.prime-signature .signature-contexto .obs-hist-titulo{display:none}
+html.prime-signature .signature-ver-historico .obs-hist,
+html.prime-signature .signature-ver-historico .obs-hist-titulo{display:block}
+html.prime-signature .signature-processo .cx-linha-topo{padding:0 0 22px;margin:0;border-bottom:1px solid #eee3da}
+html.prime-signature .signature-processo .cx-reg-bloco{background:#faf7f3;border-color:#eaddd2;border-radius:16px}
+html.prime-signature .signature-processo .cx-campo input,
+html.prime-signature .signature-processo .cx-campo select{border-color:#e9ddd2;background:#fffdfa;border-radius:9px}
+html.prime-signature .signature-funcoes{gap:6px;padding-top:22px;flex-wrap:wrap}
+html.prime-signature .signature-funcoes .est-aba{border-radius:10px;padding:10px 14px;background:#faf5ef;color:#765260;border:1px solid #eadfD5}
+html.prime-signature .signature-funcoes .est-aba.on{background:var(--ps-wine);color:#fff;border-color:var(--ps-wine)}
+html.prime-signature .signature-trabalho{padding:20px 0;min-height:125px}
+html.prime-signature .signature-avancado{border-top:1px solid #eee3da;padding:16px 0;font-size:12px;color:#745e68}
+html.prime-signature .signature-avancado summary{cursor:pointer;margin-bottom:12px}
+html.prime-signature .signature-jornada{margin-top:20px;padding-top:20px;border-top:1px solid #eee3da}
+html.prime-signature .signature-jornada .est{opacity:.9}
+html.prime-signature .signature-jornada .est-rot{display:none}
+html.prime-signature .signature-ajuda{font-size:12px;color:#806c77;line-height:1.7}
+html.prime-signature .signature-financeiro{margin-top:18px;background:linear-gradient(120deg,#faeee8,#fffaf5);border:1px solid #e7d6c8;border-radius:20px;padding:18px 24px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+html.prime-signature .signature-fin-head{display:flex;align-items:center;gap:12px}
+html.prime-signature .signature-fin-head h2{font:600 24px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine);margin:0}
+html.prime-signature .signature-fin-valor{font:500 25px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine)}
+html.prime-signature .signature-fin-oculto{color:#9f818a;letter-spacing:4px}
+html.prime-signature .signature-historico{padding-left:20px;font-size:12px;line-height:1.8}
+html.prime-signature .signature-historico small{color:#8b7b80}
+html.prime-signature .signature-menu-mobile{display:none}
+html.prime-signature #signature-config{border:1px solid #e7d6c8;border-radius:20px;padding:25px;max-width:calc(100vw - 32px);background:#fffaf5;color:#63243a}
+html.prime-signature #signature-config::backdrop{background:#35131c66}
+html.prime-signature #signature-config .cx-btn{margin:5px}
+html.prime-signature .signature-no-processo .central-nova,
+html.prime-signature .signature-no-processo #view-casos>.cx-toolbar,
+html.prime-signature .signature-no-processo #view-casos>.add-section,
+html.prime-signature .signature-no-processo .signature-lista-titulo{display:none}
+@media(max-width:1100px){
+ html.prime-signature .cdc2-grid3{grid-template-columns:1fr 1fr}
+ html.prime-signature .cdc2-grid3>.cdc2-card:nth-child(3){grid-column:1 / -1}
+ html.prime-signature .signature-resumo-proxima{display:none}
+ html.prime-signature .signature-resumo-abrir{grid-template-columns:1fr .8fr 18px}
+}
+@media(max-width:900px){
+ html.prime-signature .sidebar{display:none}
+ html.prime-signature .main-area{margin-left:0}
+ html.prime-signature .signature-menu-mobile{display:block;background:#671b35;color:#fff8ee;border-radius:14px;margin:0 0 14px;padding:14px}
+ html.prime-signature .signature-menu-mobile summary{cursor:pointer;font-size:13px}
+ html.prime-signature .signature-menu-mobile>div{display:grid;grid-template-columns:1fr 1fr;padding-top:14px}
+ html.prime-signature .signature-menu-mobile .sidebar-item{display:flex}
+}
+@media(max-width:760px){
+ html.prime-signature .container{padding:16px 12px}
+ html.prime-signature .cdc2-topo{grid-template-columns:1fr;padding:18px;gap:16px}
+ html.prime-signature .cdc2-topo-dir{grid-column:1;grid-row:2}
+ html.prime-signature .cdc2-calendario{grid-column:1;grid-row:3;width:100%}
+ html.prime-signature .cdc2-grid3{grid-template-columns:minmax(0,1fr)}
+ html.prime-signature .cdc2-grid3>.cdc2-card:nth-child(3){grid-column:auto}
+ html.prime-signature .cdc2-pill-tabs{flex-wrap:wrap;border-radius:14px}
+ html.prime-signature .cdc2-pill-tab{flex:1;white-space:nowrap;font-size:11px;padding:9px 6px}
+ html.prime-signature .signature-processo{padding:18px 14px;border-radius:18px}
+ html.prime-signature .signature-processo .cx-nome{font-size:27px}
+ html.prime-signature .signature-contexto{grid-template-columns:1fr;padding:16px;gap:18px}
+ html.prime-signature .signature-dados{display:block}
+ html.prime-signature .signature-dados .cx-campos{grid-template-columns:1fr 1fr}
+ html.prime-signature .signature-dados .cx-campo:nth-child(2){grid-column:1 / -1;grid-row:2}
+ html.prime-signature .signature-tempo{display:block;margin-top:10px}
+ html.prime-signature .signature-funcoes{gap:5px}
+ html.prime-signature .signature-funcoes .est-aba{padding:10px;font-size:11px}
+ html.prime-signature .signature-resumo-abrir{padding:16px;gap:10px;grid-template-columns:1fr 18px}
+ html.prime-signature .signature-resumo-etapa{grid-column:1;grid-row:2}
+ html.prime-signature .signature-resumo-abrir>i{grid-column:2;grid-row:1 / 3}
+ html.prime-signature .signature-financeiro{padding:16px;gap:12px}
+}
+
+html.prime-signature .cdc2-topo:not([style*="display: none"]):not([style*="display:none"]){display:grid!important}
+html.prime-signature .signature-processo>.signature-caminho{margin:0 0 20px}
+html.prime-signature .sidebar-count{flex:0 0 auto;padding:2px 8px}
+
+html.prime-signature .cdc2-topo::before{width:170px;height:170px;right:275px;top:0;background:url('/assets/signature-orquidea.svg') center/contain no-repeat;opacity:.6}
+html.prime-signature .signature-menu-secao{grid-column:1 / -1;color:#e9c99d;padding:16px 10px 6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+html.prime-signature .signature-fin-head .cx-btn{display:inline-flex;padding:6px;border-color:#e5d3c7;background:#fffaf5;color:#7c3b52}
+@media(max-width:760px){html.prime-signature .cdc2-topo::before{right:0;width:95px;height:95px;opacity:.45}}
