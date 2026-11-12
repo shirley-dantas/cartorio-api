@@ -41,10 +41,11 @@ do DOM ao ocultar. Trocar/sair da conta volta a ocultar imediatamente.
 Sem acesso, mostra somente o convite para entrar. Não há nova consulta
 financeira nem alteração nas regras do banco.
 
-Não havia meta mensal configurada: mostra **Meta não definida**, sem inventar
-meta, barra ou percentual. O valor foi solicitado à usuária; a configuração
-da meta e seu percentual ficam pendentes desse dado. Os valores do mockup
-nunca são usados como dados reais.
+A usuária definiu a meta mensal em R$ 80.000,00 em 12/11. A faixa mostra
+somente barra e percentual que falta, sem valores monetários no DOM ou nos
+atributos acessíveis. O progresso é limitado a 100%; ao atingir ou superar
+a meta, indica “Meta atingida”. O olhinho oculta também barra e percentual.
+A referência continua sendo o fechamento corrente do Financeiro.
 
 ## Verificação
 
