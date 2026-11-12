@@ -75,7 +75,7 @@ pedido concorrente no caso, matrícula, pedido de IPTU, anexo manual com
 metadados preservados, recusa de repetição e celular. Ajudante, Prefeitura
 e celular passaram. Desenho aprovado e publicação explicitamente autorizada.
 
-## Refinamento visual das pílulas — prévia de 12/11/2026
+## Refinamento visual das pílulas — aprovado em 12/11/2026
 
 Proposta após o uso no tablet: todas as pílulas ganham texto mais contrastado,
 bordas e seleção mais claras. Subpílulas de JUCESP e Matrícula ficam em um
@@ -92,7 +92,7 @@ padrão. Em inventário, a data do óbito permanece visível e não é inventada
 Os parâmetros e a validação dos pedidos permanecem nos manipuladores existentes.
 A suíte Signature confere o vínculo imóvel/contribuinte das três consultas,
 envio de IPTU e manutenção da data alterada em Mais detalhes no pedido de valor
-venal. Prefeitura e celular passaram. Prévia aguarda aprovação para publicação.
+venal. Prefeitura e celular passaram. A usuária aprovou a prévia e autorizou a publicação.
 
 ## Financeiro e privacidade
 
