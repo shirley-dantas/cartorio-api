@@ -65,7 +65,23 @@ dia; não há repetição automática da chamada nesse dia no navegador.
 A busca ocorre em segundo plano e o painel aberto confere a virada de data.
 Não modifica Firebase, agenda, minutas, financeiro ou permissões.
 
-## Verificação dos ajustes
+## Prévia — horários das notas (12/11/2026)
+
+Horários opcionais visíveis em cada nota e acesso direto para definir,
+alterar ou remover data e hora. Notas datadas vêm primeiro em ordem de
+horário; notas sem data preservam a ordem anterior. Atraso considera a hora
+de São Paulo, inclusive no mesmo dia, com atualização visual a cada minuto.
+A criação respeita a aba Shirley/Grazi selecionada. Usa o campo `quando`
+já existente e preserva notas antigas que tinham somente data.
+
+A edição do lembrete passa a explicar que ele fica apenas no Bloco de
+Notas. A Agenda e os pontos do calendário continuam lendo exclusivamente
+as assinaturas dos casos; salvar lembretes não chama o Google Calendar.
+Testes cobrem criação, alteração, remoção, conclusão, ordem, atrasos,
+datas antigas, desktop/celular e ausência de alteração das assinaturas.
+Rodada em prévia, ainda sem publicação.
+
+## Verificações
 
 - `testes/signature.mjs`: index real com Firebase simulado; desktop/celular,
   navegação, edição, abas sem gravação, registro, jornada única, privacidade

@@ -139,6 +139,62 @@ try{
  assert.equal(await pg.locator('#cdc-tab-ag-hoje').isVisible(),true);
  assert.equal(await pg.locator('#cdc-tab-ag-amanha').isVisible(),true);
  assert.equal(await pg.locator('#cdc-tab-ag-semana').isVisible(),true);
+
+ // Lembretes com horário pertencem somente ao Bloco de Notas.
+ const diaNota=delta=>new Date(Date.now()+delta*86400000).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+ const horaNota=diaNota(1)+'T10:00';
+ const casosAntesNotas=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
+ const agendaAntesNotas=await pg.locator('#cdc-agenda').innerText();
+ await pg.evaluate(({vencida,futura})=>window.__fbWrite('focos',[
+  {id:'N1',text:'Conferir documentos recebidos',resp:'grazi',done:false,quando:futura},
+  {id:'N2',text:'Retornar a ligação do cliente',resp:'grazi',done:false,quando:vencida},
+  {id:'N3',text:'Revisar a lista de documentos',resp:'grazi',done:false,quando:null}
+ ]),{vencida:diaNota(-1)+'T10:00',futura:horaNota});
+ await pg.locator('#cdc-aba-grazi').click();
+ await pg.waitForSelector('.cdc2-nota-atrasada');
+ assert.match(await pg.locator('#cdc-notas-lista .cdc2-check-row').first().innerText(),/Retornar a ligação/);
+ await pg.locator('#foco-add-btn').click();
+ assert.equal(await pg.locator('#foco-resp').inputValue(),'grazi');
+ await pg.locator('#foco-input').fill('Enviar a relação de pendências');
+ await pg.locator('#foco-quando').fill(diaNota(1)+'T14:00');
+ await pg.locator('#foco-input-row').getByRole('button',{name:'Adicionar',exact:true}).click();
+ await pg.waitForFunction(()=>window.__data.focos.some(n=>n.text==='Enviar a relação de pendências'));
+ const novaNota=await pg.evaluate(()=>window.__data.focos.find(n=>n.text==='Enviar a relação de pendências'));
+ assert.equal(novaNota.resp,'grazi');assert.equal(novaNota.quando,diaNota(1)+'T14:00');
+ const bloco=pg.locator('#cdc-notas-lista').locator('..');
+ await bloco.screenshot({path:join(AQUI,'saida','notas-horario-computador.png')});
+ await pg.setViewportSize({width:390,height:844});
+ await bloco.screenshot({path:join(AQUI,'saida','notas-horario-celular.png')});
+ await pg.locator('#foco-add-btn').click();
+ assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'formulário da nota cabe no celular');
+ await pg.locator('#foco-add-btn').click();
+ await pg.getByRole('button',{name:'Definir data e hora da nota: Revisar a lista de documentos',exact:true}).click();
+ assert.equal(await pg.locator('#agenda-edit-titulo').innerText(),'Data e hora da nota');
+ assert.match(await pg.locator('#agenda-edit-campos').innerText(),/somente no Bloco de Notas/);
+ await pg.locator('#agenda-edit-quando').fill(diaNota(1)+'T11:00');
+ assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'edição do horário cabe no celular');
+ await pg.locator('#agenda-edit-salvar').click();
+ await pg.waitForFunction(d=>window.__data.focos.find(n=>n.id==='N3').quando===d,diaNota(1)+'T11:00');
+ assert.match(await pg.locator('#cdc-notas-lista .cdc2-check-row').nth(1).innerText(),/Conferir documentos/);
+ await pg.getByRole('button',{name:'Alterar data e hora da nota: Conferir documentos recebidos',exact:true}).click();
+ await pg.getByRole('button',{name:'Remover data e hora',exact:true}).click();
+ await pg.locator('#agenda-edit-salvar').click();
+ await pg.waitForFunction(()=>window.__data.focos.find(n=>n.id==='N1').quando===null);
+ await pg.locator('#cdc-notas-lista .cdc2-check-row').filter({hasText:'Retornar a ligação'}).locator('.cdc2-checkbox').click();
+ await pg.waitForFunction(()=>window.__data.focos.find(n=>n.id==='N2').done);
+ await pg.waitForFunction(()=>!document.querySelector('.cdc2-nota-atrasada'));
+ assert.equal(await pg.locator('.cdc2-nota-atrasada').count(),0);
+ await pg.evaluate(data=>window.__fbWrite('focos',[...window.__data.focos,{id:'N4',text:'Nota antiga com somente data',resp:'grazi',done:false,quando:data}]),diaNota(2));
+ await pg.locator('#cdc-notas-lista .cdc2-check-row').filter({hasText:'Nota antiga com somente data'}).locator('.cdc2-check-menu').click();
+ await pg.locator('#agenda-edit-texto').fill('Nota antiga revisada');
+ await pg.locator('#agenda-edit-salvar').click();
+ await pg.waitForFunction(()=>window.__data.focos.find(n=>n.id==='N4')?.text==='Nota antiga revisada');
+ assert.equal(await pg.evaluate(()=>window.__data.focos.find(n=>n.id==='N4').quando),diaNota(2),'editar o texto preserva datas antigas sem horário');
+ assert.equal(await pg.locator('#cdc-agenda').innerText(),agendaAntesNotas,'nota com data não entra na Agenda de assinaturas');
+ assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),casosAntesNotas,'notas não alteram assinaturas ou dados dos casos');
+ assert.equal(contadorCalendar,0,'horário da tarefa não chama o Google Calendar');
+ await pg.setViewportSize({width:1440,height:1000});
+ console.log('ok: notas com criação, alteração e remoção de horário, atraso e conclusão; Agenda e Calendar preservados.');
  assert.equal(await pg.locator('#signature-financeiro').innerText().then(s=>s.includes('R$')),false);
  await pg.evaluate(()=>window.__fbWrite('financeiro/lancamentos/F1',{descricao:'Fictício',dataPagamento:new Date().toLocaleDateString('sv-SE'),status:'pago',parteTabeliao:12345.67}));
  await pg.getByRole('button',{name:'Mostrar financeiro',exact:true}).click();
