@@ -26,7 +26,7 @@ export const remove=async r=>{write(r.path,null);notify();};
 export const runTransaction=async(r,f)=>{const value=f(copy(read(r.path)));if(value!==undefined){write(r.path,value);notify();}return {committed:value!==undefined,snapshot:snap(r.path)};};
 `;
 const auth=`const user={uid:'U1',email:'teste@example.invalid',getIdToken:async()=> 'token-ficticio'};export const getAuth=()=>({currentUser:user});export const onAuthStateChanged=(a,f)=>{setTimeout(()=>f(user),0);return()=>{};};export const signInWithEmailAndPassword=async()=>({user});export const sendPasswordResetEmail=async()=>{};export const signOut=async()=>{};`;
-let contadorMinutas=0,contadorCalendar=0;const erros=[];
+let contadorMinutas=0,contadorCalendar=0,contadorJuridico=0,contadorPlanos=0;const erros=[];
 const assinaturaTeste=new Date(Date.now()+86400000).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'})+'T14:00';
 async function configurar(context){
  await context.addInitScript(()=>localStorage.setItem('painel_usuario','Shirley'));
@@ -51,12 +51,19 @@ async function configurar(context){
    return rota.fulfill({status:200,contentType:'application/javascript',body});
   }
   if(url.origin===servidor.url){
+   if(url.pathname==='/api/joaninha-juridico'){
+    contadorJuridico++;
+    if(/sem fonte/.test(rota.request().postDataJSON().pergunta))return rota.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,resposta:'Orientação fictícia baseada apenas no material interno.',fontes:[],consultadoEm:'2026-11-12',aviso:'Não consegui confirmar uma fonte oficial nesta consulta.'})});
+    return rota.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,resposta:'Orientação jurídica fictícia: confirme a aplicação ao caso antes de prosseguir.',fontes:['https://www.planalto.gov.br/ccivil_03/leis/2002/l10406compilada.htm','https://blog.example/'],consultadoEm:'2026-11-12',atencao:['A numeração do item exige confirmação.'],temasConsultados:['Tema fictício']})});
+   }
    if(url.pathname==='/api/perguntar-joaninha'){
+    contadorPlanos++;
     const p=rota.request().postDataJSON();
     const a=(tipo,dados)=>({tipo,casoId:'C1',descricao:({anotar_caso:'Acrescentar a observação solicitada',preparar_orcamento:'Calcular e salvar uma nova versão do orçamento',gerar_minuta:'Gerar a minuta usando os documentos do caso',consultar_caso:'Consultar os dados atuais do caso'})[tipo],dados});
     let r={resposta:'O resultado foi confirmado pelo sistema.',acoes:[]};
     if(p.pergunta.startsWith('Use os resultados'))r={resposta:'O caso tem uma matrícula fictícia lida. <img src=x onerror="window.__injetou=true">',acoes:[]};
     else if(p.pergunta.startsWith('Explique os resultados'))r={resposta:'Registrei o resultado confirmado. Quando a minuta terminar, aviso nesta conversa.',acoes:[]};
+    else if(/jurídica/i.test(p.pergunta))r={resposta:'Vou consultar a base e as fontes oficiais.',acoes:[{tipo:'consultar_juridico',casoId:null,dados:{pergunta:p.pergunta}}]};
     else if(/agende/i.test(p.pergunta))r={resposta:'Vou agendar a assinatura no card de teste amanhã às 14h. Confira a data completa antes de confirmar.',acoes:[{tipo:'agendar_assinatura',casoId:'C1',descricao:'Agendar assinatura da escritura',dados:{dataHora:assinaturaTeste,descricao:'Assinatura fictícia'}}]};
     else if(/anote/i.test(p.pergunta))r={resposta:'Vou acrescentar a anotação no card, preservando o texto anterior.',acoes:[a('anotar_caso',{texto:'Conferir o documento recebido.'})]};
     else if(/orçamento/i.test(p.pergunta))r={resposta:'Vou usar o motor do cartório para calcular a venda e compra por R$ 500.000,00.',acoes:[a('preparar_orcamento',{atoId:'compra-venda',valores:{transacao:50000000},imovelMunicipio:'São Paulo',imovelUf:'SP',despesas:{taxaAdicional:false}})]};
@@ -101,6 +108,23 @@ try{
  assert.equal(await pg.evaluate(()=>window.__injetou),undefined);
  assert.equal(await pg.locator('.jnc-thread img[src="x"]').count(),0);
  console.log('ok: consulta automática e texto da IA sem interpretação de HTML.');
+ await pg.getByRole('button',{name:'Nova conversa',exact:true}).click();
+ const antesJuridico=contadorPlanos;
+ await mensagem(pg,'Tenho uma dúvida jurídica sobre um ato fictício.');
+ assert.equal(contadorJuridico,1);assert.equal(contadorPlanos,antesJuridico+1,'a orientação jurídica não deve ser reescrita por outra inferência');
+ assert.match(await pg.locator('.jnc-thread').innerText(),/Orientação jurídica fictícia/);
+ const fontes=pg.locator('.jnc-legal-details').last();assert.equal(await fontes.getAttribute('open'),null);
+ assert.equal(await pg.locator('.jnc-thread a[href*="planalto.gov.br"]').isVisible(),false);
+ await fontes.locator('summary').click();
+ assert.match(await pg.locator('.jnc-thread').innerText(),/numeração do item exige confirmação/);
+ assert.equal(await pg.locator('.jnc-thread a[href*="planalto.gov.br"]').count(),1);assert.equal(await pg.locator('.jnc-thread a[href*="blog.example"]').count(),0);
+ assert.equal(await pg.locator('.jnc-thread a[href*="planalto.gov.br"]').isVisible(),true);
+ await fontes.locator('summary').click();
+ console.log('ok: dúvida jurídica respondida na conversa, com fonte oficial e ressalva, sem gravação ou confirmação manual.');
+ await pg.screenshot({path:join(AQUI,'saida','joaninha-juridico-computador.png'),fullPage:false});
+ await mensagem(pg,'Tenho uma dúvida jurídica sem fonte.');
+ assert.equal(await pg.locator('.jnc-legal-details').last().getAttribute('open'),null);
+ assert.equal(await pg.getByText('Não consegui confirmar uma fonte oficial nesta consulta.',{exact:true}).isVisible(),true,'a falta de confirmação não pode ficar escondida com as fontes');
  await mensagem(pg,'Prepare o orçamento de venda e compra de R$ 500.000,00.');
  await mensagem(pg,'pode fazer');
  await pg.waitForFunction(()=>Object.keys(window.__data.orcamentos).length===1,{},{timeout:15000});
@@ -148,6 +172,12 @@ try{
  const caixa=await celular.locator('.jnc').boundingBox();assert.equal(caixa.width,390);
  await celular.getByRole('button',{name:'Abrir conversas',exact:true}).click();assert.equal(await celular.getByRole('button',{name:'Nova conversa',exact:true}).isVisible(),true);
  console.log('ok: conversa e plano cabem no celular, histórico acessível.');
+ await celular.getByRole('button',{name:'Fechar conversas',exact:true}).click();
+ await mensagem(celular,'Tenho uma dúvida jurídica para a equipe.');
+ assert.match(await celular.locator('.jnc-thread').innerText(),/Orientação jurídica fictícia/);
+ assert.equal(await celular.locator('.jnc-legal-details').last().getAttribute('open'),null);
+ assert.equal(await celular.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await celular.screenshot({path:join(AQUI,'saida','joaninha-juridico-celular.png'),fullPage:false});
  assert.deepEqual(erros,[],'erros de script: '+erros.join('; '));
  console.log('Joaninha validada no index.html real sem serviços de produção.');
 }finally{await browser.close();servidor.close();}

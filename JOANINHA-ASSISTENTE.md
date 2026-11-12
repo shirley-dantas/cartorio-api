@@ -1,5 +1,45 @@
 # Joaninha: conversa e ações nos cards
 
+## Consulta jurídica na conversa principal
+
+`consultar_juridico` é uma consulta sem gravação, disponível mesmo sem card
+aberto. O assistente deve usá-la antes de responder o mérito de dúvidas
+jurídicas. Ela é executada separadamente de qualquer alteração no caso.
+A resposta do serviço é apresentada diretamente, com fontes e ressalvas,
+sem outra chamada ao modelo para reescrevê-la.
+O estilo padrão é uma resposta de conversa, em dois ou três parágrafos curtos,
+com fundamento essencial e ressalvas indispensáveis. Pedidos de aprofundamento
+podem receber análise extensa. O limite de saída permanece suficiente para
+essa análise: a concisão é uma orientação de escrita, sem cortar a resposta.
+Links, data da pesquisa e detalhes da base ficam recolhidos em “Ver fontes e
+detalhes”, disponíveis sem nova chamada à IA. Ressalvas essenciais à orientação
+continuam no texto da resposta.
+
+O serviço recupera a Base de Regras e os últimos 14 dias do Radar a cada
+pergunta e recebe os padrões internos dos 12 tipos de ato existentes no
+gerador de minutas, sem configurações nem chaves do Apps Script. Os padrões
+de redação são prática interna, não fonte de lei. Esses dados não equivalem
+a um treinamento sobre toda a legislação ou a um cadastro completo de todos
+os procedimentos do escritório.
+
+A pesquisa web da OpenAI é limitada a fontes governamentais e judiciais
+oficiais configuradas no serviço. Notícias continuam sujeitas a confirmação
+no texto normativo. A orientação deve distinguir competência, território,
+vigência e etapas de escritura e registro. As ressalvas de temas relacionados
+na base também são apresentadas fora do texto gerado pelo modelo.
+
+Ausência de fonte oficial é avisada; sem base nem fonte, a resposta não é
+apresentada como orientação confirmada. Não há atualização automática da base
+por uma consulta nem envio ao cliente. Falhas e limites da OpenAI continuam
+possíveis, e a qualidade jurídica depende da consulta e da revisão profissional.
+As fontes são links para conferência, não uma certificação automática de todos
+os fundamentos.
+
+Essa integração é implantada pela Vercel e não exige substituir os arquivos
+no Google. `testes/joaninha-juridico-integrado.mjs` cobre fontes, atualidade da
+base, ressalvas, API anterior, contratos e ausência de gravações. A suíte de
+tela cobre o fluxo na conversa e os links no computador e no celular.
+
 ## Divisão autorizada entre as IAs
 
 Anthropic lê PDF/imagens e gera/revisa as minutas no Apps Script, usando

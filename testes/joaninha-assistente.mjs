@@ -177,3 +177,9 @@ test('comando original da minuta é anexado integralmente sem depender da cópia
     assert.equal(body.ok,true);assert.ok(body.acoes[0].dados.instrucao.endsWith(original));
   }finally{globalThis.fetch=anterior;if(chave===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=chave;}
 });
+test('jurídico consulta sem card e devolve resposta e fontes sem gravar no banco',async()=>{
+  const m=mundo();const antes=clone(m.data);let chamada;
+  m.env.fetch=async(url,req)=>{chamada={url,body:JSON.parse(req.body)};return Response.json({ok:true,resposta:'Orientação fictícia.',fontes:['https://www.cnj.jus.br/'],consultadoEm:'2026-11-12',atencao:['Confirmar aplicação.']});};
+  const r=await m.ponte.executar({tipo:'consultar_juridico',casoId:null,dados:{pergunta:'Dúvida jurídica fictícia'}});
+  assert.equal(chamada.url,'/api/joaninha-juridico');assert.equal(chamada.body.modo,'conversa');assert.equal(r.resposta,'Orientação fictícia.');assert.equal(r.fontes.length,1);assert.deepEqual(m.data,antes);
+});
