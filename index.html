@@ -6080,25 +6080,11 @@ window.signatureEscolherDocumentos=function(id,aba){
  SIGNATURE_DOCS_ABA[id]=aba;const el=document.getElementById('signature-documentos-'+id);
  if(el&&casos[id])el.outerHTML=signatureDocumentosHtml(casos[id]);
 };
-const SIGNATURE_ORC_ABA={};
-function signatureSecaoHtml(titulo,conteudo,classe=''){
- return `<section class="signature-secao ${classe}"><h3>${escTxt(titulo)}</h3><div class="signature-secao-corpo">${conteudo}</div></section>`;
-}
 function signatureOrcamentoHtml(c){
- const id=esc(c.id),aba=SIGNATURE_ORC_ABA[c.id]||'atual';
- if(!finAuth||orcErroLeitura)return signatureSecaoHtml('Orçamento',`<div class="signature-ferramenta-acoes">${orcFaixaDoCaso(c.id)}</div>`);
- const o=orcUltimoDoCaso(c.id);
- if(!o)return signatureSecaoHtml('Orçamento',`<p class="signature-ajuda">Nenhum orçamento neste caso.</p><button type="button" class="cx-btn destaque" onclick="orcNovoDoCaso('${id}')">Novo orçamento</button>`);
- let corpo;
- if(aba==='versoes')corpo=`<h3>Versões do orçamento</h3><div class="signature-orc-versoes">${[...orcDoCaso(c.id)].reverse().map(v=>`<div><span><strong>Versão ${escTxt(v.versao)}</strong><small>${escTxt(finDataBr(v.data))} · ${escTxt(orcStatus(v.status).rot)}</small></span><span class="signature-orc-versao-valor">${orcMoeda(v.resultado?.totais?.total)}</span><button type="button" class="cx-btn" onclick="orcAbrirDoCaso('${id}','${esc(v.id)}')">Abrir</button></div>`).join('')}</div>`;
- else if(aba==='detalhes')corpo=`<h3>Detalhes e outras ações</h3><div class="signature-ferramenta-acoes"><button type="button" class="cx-btn" onclick="orcAbrirMemoria('${id}','${esc(o.id)}')">Ver memória de cálculo</button><button type="button" class="cx-btn" onclick="orcDuplicar('${esc(o.id)}')">Duplicar orçamento</button><button type="button" class="cx-btn" onclick="orcNovoDoCaso('${id}')">Novo orçamento</button></div><details class="signature-detalhe"><summary>Tabela utilizada</summary><p>${escTxt(o.resultado?.tabelas?.notas?.versao||'—')}</p></details>`;
- else corpo=`<h3>Orçamento atual</h3><div class="signature-orc-resumo"><div><span class="signature-orc-situacao">${escTxt(orcStatus(o.status).rot)}</span><p>Versão ${escTxt(o.versao)} · ${escTxt(finDataBr(o.data))}</p></div><div class="signature-orc-total"><span>Total do orçamento</span><strong>${orcMoeda(o.resultado?.totais?.total)}</strong></div></div><div class="signature-ferramenta-acoes"><button type="button" class="cx-btn destaque" onclick="orcAbrirDoCaso('${id}','${esc(o.id)}')">Ver orçamento</button><button type="button" class="cx-btn" onclick="orcAbrirCliente('${id}','${esc(o.id)}')">Modo cliente</button></div><div class="signature-orc-aprovacao">${orcBotaoAprovouHtml(c.id,o.id)}</div>`;
- return `<div class="signature-orcamento" id="signature-orcamento-${id}"><div class="signature-cert-subgrupo"><span>Organizar orçamento</span><nav class="signature-cert-tipos" aria-label="Opções de orçamento">${[['atual','Orçamento atual'],['versoes','Versões'],['detalhes','Detalhes']].map(([k,n])=>`<button type="button" aria-pressed="${aba===k}" aria-label="${n}" onclick="signatureEscolherOrcamento('${id}','${k}')">${n}${k==='versoes'?`<span class="signature-orc-contagem" aria-hidden="true">${orcDoCaso(c.id).length}</span>`:''}</button>`).join('')}</nav></div><div class="signature-secao">${corpo}</div></div>`;
+ if(!finAuth||orcErroLeitura)return `<div class="signature-orc-simples signature-orc-acesso">${orcFaixaDoCaso(c.id)}</div>`;
+ const id=esc(c.id),o=orcUltimoDoCaso(c.id);
+ return `<div class="signature-cert-subgrupo signature-orc-simples"><nav class="signature-cert-tipos" aria-label="Ações do orçamento">${o?`<button type="button" onclick="orcAbrirDoCaso('${id}','${esc(o.id)}')">Ver orçamento</button><button type="button" onclick="orcAbrirCliente('${id}','${esc(o.id)}')">Modo cliente</button>`:''}<button type="button" onclick="orcNovoDoCaso('${id}')">Novo</button></nav></div>`;
 }
-window.signatureEscolherOrcamento=function(id,aba){
- if(!['atual','versoes','detalhes'].includes(aba)||!casos[id])return;
- SIGNATURE_ORC_ABA[id]=aba;const el=document.getElementById('signature-orcamento-'+id);if(el)el.outerHTML=signatureOrcamentoHtml(casos[id]);
-};
 function signaturePaginaHtml(c){
   const p=cardPartes(c),md=motorDecisao(c);
   const observacoes=p.obs.replace('<span class="obs-label">Observações</span>',`<div class="signature-obs-cabecalho"><span class="obs-label">Observações</span><button type="button" class="cx-btn" onclick="signatureAdicionarObs('${c.id}')" aria-controls="obs-edit-${c.id}"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar observação</button></div>`).replace('<textarea rows="2"', '<textarea aria-label="Nova observação" rows="3"').replace('Digite a nova informação — ela entra numerada no topo do histórico acima','Escreva aqui a nova observação do caso…').replace('>Salvar</button>','>Salvar observação</button>');
@@ -6107,15 +6093,14 @@ function signaturePaginaHtml(c){
   const aberta=abas.includes(preferida)||preferida==='Capa do dossiê'?preferida:'Documentos';
 
   let conteudo;
-  if(aberta==='Drive')conteudo=signatureSecaoHtml('Pasta do caso',p.drive);
+  if(aberta==='Drive')conteudo=p.drive;
   else if(aberta==='Histórico'){
     const eventos=Object.values(c.historico||{}).sort((a,b)=>String(b.em||b.data||'').localeCompare(String(a.em||a.data||'')));
     conteudo=`<p class="signature-ajuda">As observações anteriores aparecem no bloco acima.</p>`+
       (eventos.length?`<ol class="signature-historico">${eventos.map(e=>`<li>${escTxt(e.texto||e.resumo||e.descricao||e.acao||e.tipo||'Atualização do caso')} <small>${escTxt(e.em||e.data||'')}</small></li>`).join('')}</ol>`:'<p class="signature-ajuda">Sem outras alterações registradas.</p>');
-    conteudo=signatureSecaoHtml('Histórico do caso',conteudo);
-  }else if(aberta==='Mais ações')conteudo=signatureSecaoHtml('Mais ações',`<div class="signature-acoes-extras"><button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button></div>`);
-  else if(aberta==='Pagamento')conteudo=signatureSecaoHtml('Pagamento',`<div class="signature-ferramenta-acoes">${pagFaixaHtml(c)}</div><details class="signature-detalhe"><summary>Lançamento financeiro do caso</summary>${p.fin}</details>`);
-  else conteudo=({'Documentos':signatureDocumentosHtml(c),'Certidões':signatureCertidoesHtml(c),'Minuta':signatureSecaoHtml('Minuta',p.minuta),'Orçamento':signatureOrcamentoHtml(c),'Capa do dossiê':signatureSecaoHtml('Capa do dossiê',p.capa)})[aberta];
+  }else if(aberta==='Mais ações')conteudo=`<div class="signature-acoes-extras"><button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button></div>`;
+  else if(aberta==='Pagamento')conteudo=p.pag+p.fin;
+  else conteudo=({'Documentos':signatureDocumentosHtml(c),'Certidões':signatureCertidoesHtml(c),'Minuta':p.minuta,'Orçamento':signatureOrcamentoHtml(c),'Capa do dossiê':p.capa})[aberta];
   const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos casos</button><span>Caso</span></div>`;
   return p.abre.replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
     `<div class="signature-dados">${p.campos}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>

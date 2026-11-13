@@ -116,31 +116,25 @@ documentos legados, pedido existente e celular; docs-agrupados, solte-card e
 celular passaram. A usuária aprovou a prévia com Anexar documentos em primeiro
 lugar e autorizou a publicação em 12/11/2026.
 
-## Acabamento comum das ferramentas — prévia de 12/11/2026
+## Cores suaves e orçamento simplificado — prévia de 12/11/2026
 
-A usuária pediu a mesma organização visual em todas as abas, com traços
-suaves e elegantes. A proposta usa bordas finas, fundos claros de rosé,
-tipografia e botões uniformes, sem blocos de seleção escuros. Documentos e
-Certidões mantêm seus fluxos; Minuta mantém exatamente os comandos existentes.
-Pagamento, Drive, Histórico, Mais ações e Capa ganham títulos e espaçamento no
-mesmo padrão. O lançamento financeiro do caso fica acessível por uma seção
-recolhível em Pagamento, preservando o conteúdo e os manipuladores existentes.
+A usuária pediu manter organização e traçado fino, mudando apenas as cores
+em Documentos, Certidões, Minuta e demais ferramentas. As estruturas publicadas
+permanecem intactas; a paleta usa rosé claro, vinho discreto e bordas suaves.
+As janelas de Minuta e Orçamento recebem somente estilos de cor/borda.
 
-Orçamento se divide em Orçamento atual, Versões e Detalhes. Total, situação,
-data e versão ficam no resumo; Ver orçamento, Modo cliente e aprovação
-continuam disponíveis. Versões mantém todos os registros, inclusive cancelados,
-e a contagem. Detalhes reúne memória de cálculo, duplicação, Novo orçamento e
-tabela utilizada. As ações continuam usando as funções anteriores; não se
-alteram cálculo, valores, status ou gravação. O resumo usa os resultados já
-salvos e a mesma proteção de acesso/erro de leitura da faixa anterior.
+No Orçamento do card, confirmou somente três atalhos: Ver orçamento, Modo
+cliente e Novo. Não há situação, total, data, versão ou outros metadados nessa
+área; eles continuam na janela existente do orçamento. Os três atalhos usam
+os manipuladores anteriores e o último orçamento não cancelado. Quando ainda
+não há orçamento, aparece Novo; autenticação e erro de leitura mantêm as
+proteções existentes. Nenhum cálculo, documento, versão ou ação de backend
+é apagado. As demais abas preservam sua organização publicada.
 
-A janela de orçamento recebe apenas CSS, com campos mais espaçosos e resumo
-delicado. Todos os campos, alertas, opções técnicas, memória e botões de
-salvar/corrigir continuam presentes. A janela de Minuta recebe só aparência.
-
-Validação: Signature percorre os controles, confere total e versões imutáveis,
-proteção no logout e celular; orçamento.gerado, orçamento-tela e celular
-passaram. Prévia local com dados fictícios, aguardando aprovação.
+Validação: Signature cobre os três atalhos, ausência de metadados na área
+externa, conteúdo dentro da janela, versões salvas imutáveis, proteção no
+logout e celular. Orçamento.gerado, orçamento-tela e a checagem da apresentação
+final passaram. Prévia aguarda aprovação para publicação.
 
 ## Financeiro e privacidade
 
