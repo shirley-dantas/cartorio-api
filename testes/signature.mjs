@@ -422,6 +422,66 @@ try{
  assert.equal(await pg.getByRole('button',{name:/Voltar aos casos/}).count(),1);
  assert.equal(await pg.locator('.signature-trabalho [onclick*=abrirMinuta]').count(),1);
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),antes,'trocar abas não grava ou gera minuta');
+ // Referência visual: somente as subpílulas passam a usar o estilo atual de Minuta.
+ const estilosSub=el=>{const c=getComputedStyle(el);return {fonte:c.fontSize,peso:c.fontWeight,padding:c.padding,borda:c.borderTopWidth,raio:c.borderRadius,fundo:c.backgroundColor,cor:c.color,corBorda:c.borderTopColor};};
+ const minutaNeutra=await pg.locator('.signature-trabalho [onclick*=abrirReeditar]').evaluate(estilosSub);
+ const minutaDestaque=await pg.locator('.signature-trabalho [onclick*=abrirMinuta]').evaluate(estilosSub);
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Documentos',exact:true}).click();
+ await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Anexar documentos',exact:true}).click();
+ await pg.mouse.move(0,0);
+ assert.deepEqual(await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Recebidos',exact:true}).evaluate(estilosSub),minutaNeutra,'subpílula neutra replica o botão atual de Minuta');
+ assert.deepEqual(await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Anexar documentos',exact:true}).evaluate(estilosSub),minutaDestaque,'subpílula ativa replica o destaque atual de Minuta');
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','somente-subpilulas-documentos.png')});
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).click();
+ await pg.locator('.signature-cert-servicos').getByRole('button',{name:'JUCESP',exact:true}).click();
+ await pg.mouse.move(0,0);
+ assert.deepEqual(await pg.locator('.signature-cert-tipos').getByRole('button',{name:'Contrato social',exact:true}).evaluate(estilosSub),minutaNeutra);
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','somente-subpilulas-certidoes.png')});
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Minuta',exact:true}).click();
+ assert.deepEqual(await pg.locator('.signature-trabalho [onclick*=abrirReeditar]').evaluate(estilosSub),minutaNeutra,'o botão de referência permanece intacto');
+ // Mesma estrutura publicada; Orçamento com apenas os três atalhos pedidos.
+ await pg.evaluate(()=>{
+  window.__trocarConta({uid:'U1',email:'teste@example.invalid',getIdToken:async()=> 'token-ficticio'});
+  const entrada={atoId:'compra-venda',data:'2026-11-12',praticadoEm:'São Paulo',imovelMunicipio:'São Paulo',imovelUf:'SP',valores:{transacao:30000000,venal:22000000,referencia:24000000},flags:{},despesas:{prenotacao:true,matricula:true,registroComMatricula:true,taxaAdicional:false}};
+  const o={id:'B1',casoId:'C1',casoNome:'JRL — caso fictício',versao:1,data:entrada.data,status:'elaboracao',entrada,resultado:window.orcCalcular(entrada)};
+  window.__fbWrite('orcamentos',{B1:o,B2:{...o,id:'B2',versao:2}});
+ });
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Orçamento',exact:true}).click();
+ await pg.waitForFunction(()=>!!document.querySelector('.signature-orc-simples [onclick*=orcAbrirDoCaso]'));
+ await pg.waitForTimeout(350); // A carga inicial agenda o redesenho dos cards em 200 ms.
+ const orcAntes=await pg.evaluate(()=>JSON.stringify(window.__data.orcamentos));
+ assert.deepEqual(await pg.locator('.signature-orc-simples button').allTextContents(),['Novo','Ver orçamento','Modo cliente']);
+ assert.doesNotMatch(await pg.locator('.signature-orc-simples').innerHTML(),/R\$|Em elaboração|Total|12\/11\/2026/,'nenhum resumo ou valor acima dos atalhos');
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','orcamento-tres-atalhos.png')});
+ await pg.locator('.signature-orc-simples').getByRole('button',{name:'Ver orçamento',exact:true}).click();
+ assert.equal(await pg.locator('#modal-orcamento-caso').isVisible(),true);
+ assert.match(await pg.locator('#orc-caso-sub').innerText(),/versão 2/);
+ assert.equal(await pg.locator('#orc-resultado .orc-total').count(),1,'total continua dentro da confecção do orçamento');
+ await pg.locator('#modal-orcamento-caso .modal-box').screenshot({path:join(AQUI,'saida','orcamento-cores-suaves.png')});
+ await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
+ await pg.locator('.signature-orc-simples').getByRole('button',{name:'Modo cliente',exact:true}).click();
+ assert.equal(await pg.locator('#modal-orcamento-caso .orc-cliente').count(),1);
+ await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
+ await pg.locator('.signature-orc-simples').getByRole('button',{name:'Novo',exact:true}).click();
+ assert.match(await pg.locator('#orc-caso-sub').innerText(),/novo orçamento/);
+ await pg.setViewportSize({width:390,height:844});
+ assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'janela original do orçamento cabe no celular');
+ await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','orcamento-tres-atalhos-celular.png')});
+ assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.orcamentos)),orcAntes,'navegar e abrir os três atalhos não alteram versões salvas');
+ await pg.setViewportSize({width:1440,height:1000});
+ for(const nome of ['Minuta','Pagamento','Drive','Histórico','Mais ações']){
+  await pg.locator('.signature-funcoes').getByRole('button',{name:nome,exact:true}).click();
+  await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-suaves-'+({'Minuta':'minuta','Pagamento':'pagamento','Drive':'drive','Histórico':'historico','Mais ações':'mais-acoes'}[nome])+'.png')});
+ }
+ await pg.evaluate(()=>window.__trocarConta(null));
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Orçamento',exact:true}).click();
+ await pg.waitForFunction(()=>!!document.querySelector('.signature-orc-acesso'));
+ assert.doesNotMatch(await pg.locator('.signature-trabalho').innerText(),/R\$/,'logout preserva a proteção do orçamento');
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Minuta',exact:true}).click();
+ assert.equal(await pg.locator('.signature-trabalho [onclick*=abrirMinuta]').count(),1);
+ assert.equal(await pg.locator('.signature-trabalho [onclick*=abrirReeditar]').count(),1);
+ console.log('ok: Orçamento só com Ver orçamento/Modo cliente/Novo; metadados dentro da janela, versões imutáveis, proteção no logout, Minuta preservada e celular.');
  await pg.screenshot({path:join(AQUI,'saida','signature-processo-computador.png'),fullPage:true});
  await pg.locator('.signature-processo').screenshot({path:join(AQUI,'saida','card-limpo-computador.png')});
  await pg.locator('.signature-dados select[onchange*=resp]').selectOption('grazi');

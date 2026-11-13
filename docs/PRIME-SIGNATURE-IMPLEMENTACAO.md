@@ -116,6 +116,28 @@ documentos legados, pedido existente e celular; docs-agrupados, solte-card e
 celular passaram. A usuária aprovou a prévia com Anexar documentos em primeiro
 lugar e autorizou a publicação em 12/11/2026.
 
+## Somente subpílulas e orçamento simplificado — aprovado em 12/11/2026
+
+A orientação final da usuária é preservar as pílulas principais exatamente
+como publicadas. Somente as subpílulas de Documentos e Certidões adotam a
+aparência dos botões atuais de Minuta/Orçamento: fundo branco, contorno fino,
+texto discreto e destaque champagne para a seleção. O bloco rosa preenchido
+sai das subpílulas. Nenhum botão de Minuta ou estilo de janela é alterado.
+
+No Orçamento do card, confirmou somente três atalhos, nesta ordem: Novo,
+Ver orçamento e Modo cliente. Não há situação, total, data, versão ou outros metadados nessa
+área; eles continuam na janela existente do orçamento. Os três atalhos usam
+os manipuladores anteriores e o último orçamento não cancelado. Quando ainda
+não há orçamento, aparece Novo; autenticação e erro de leitura mantêm as
+proteções existentes. Nenhum cálculo, documento, versão ou ação de backend
+é apagado. As demais abas preservam sua organização publicada.
+
+Validação: Signature compara os estilos calculados das subpílulas com os
+botões atuais de Minuta e confere os três atalhos do orçamento, ausência de
+metadados externos, conteúdo dentro da janela, versões salvas imutáveis,
+proteção no logout e celular. A usuária aprovou a prévia com Novo em primeiro
+lugar e autorizou a publicação em 12/11/2026.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já

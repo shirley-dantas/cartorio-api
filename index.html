@@ -6080,6 +6080,11 @@ window.signatureEscolherDocumentos=function(id,aba){
  SIGNATURE_DOCS_ABA[id]=aba;const el=document.getElementById('signature-documentos-'+id);
  if(el&&casos[id])el.outerHTML=signatureDocumentosHtml(casos[id]);
 };
+function signatureOrcamentoHtml(c){
+ if(!finAuth||orcErroLeitura)return `<div class="signature-orc-simples signature-orc-acesso">${orcFaixaDoCaso(c.id)}</div>`;
+ const id=esc(c.id),o=orcUltimoDoCaso(c.id);
+ return `<div class="signature-cert-subgrupo signature-orc-simples"><nav class="signature-cert-tipos" aria-label="Ações do orçamento"><button type="button" onclick="orcNovoDoCaso('${id}')">Novo</button>${o?`<button type="button" onclick="orcAbrirDoCaso('${id}','${esc(o.id)}')">Ver orçamento</button><button type="button" onclick="orcAbrirCliente('${id}','${esc(o.id)}')">Modo cliente</button>`:''}</nav></div>`;
+}
 function signaturePaginaHtml(c){
   const p=cardPartes(c),md=motorDecisao(c);
   const observacoes=p.obs.replace('<span class="obs-label">Observações</span>',`<div class="signature-obs-cabecalho"><span class="obs-label">Observações</span><button type="button" class="cx-btn" onclick="signatureAdicionarObs('${c.id}')" aria-controls="obs-edit-${c.id}"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar observação</button></div>`).replace('<textarea rows="2"', '<textarea aria-label="Nova observação" rows="3"').replace('Digite a nova informação — ela entra numerada no topo do histórico acima','Escreva aqui a nova observação do caso…').replace('>Salvar</button>','>Salvar observação</button>');
@@ -6095,7 +6100,7 @@ function signaturePaginaHtml(c){
       (eventos.length?`<ol class="signature-historico">${eventos.map(e=>`<li>${escTxt(e.texto||e.resumo||e.descricao||e.acao||e.tipo||'Atualização do caso')} <small>${escTxt(e.em||e.data||'')}</small></li>`).join('')}</ol>`:'<p class="signature-ajuda">Sem outras alterações registradas.</p>');
   }else if(aberta==='Mais ações')conteudo=`<div class="signature-acoes-extras"><button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button></div>`;
   else if(aberta==='Pagamento')conteudo=p.pag+p.fin;
-  else conteudo=({'Documentos':signatureDocumentosHtml(c),'Certidões':signatureCertidoesHtml(c),'Minuta':p.minuta,'Orçamento':p.orc,'Capa do dossiê':p.capa})[aberta];
+  else conteudo=({'Documentos':signatureDocumentosHtml(c),'Certidões':signatureCertidoesHtml(c),'Minuta':p.minuta,'Orçamento':signatureOrcamentoHtml(c),'Capa do dossiê':p.capa})[aberta];
   const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos casos</button><span>Caso</span></div>`;
   return p.abre.replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
     `<div class="signature-dados">${p.campos}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
