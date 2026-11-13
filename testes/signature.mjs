@@ -253,6 +253,16 @@ try{
  assert.equal(await pg.locator('.signature-processo .cx-nome-linha .badge').count(),0);
  assert.equal(await pg.getByRole('combobox',{name:'Tipo de ato',exact:true}).inputValue(),'DAÇÃO EM PAGAMENTO','valor antigo preservado sem conversão automática');
  assert.doesNotMatch(await pg.locator('.signature-processo .cx-topo').innerText(),/texto antigo/);
+ assert.equal(await pg.locator('.signature-processo .cx-topo .signature-cadastro input').count(),6,'seis campos no cabeçalho');
+ assert.equal(await pg.locator('.signature-processo .cx-linha-topo').count(),1,'campos não são duplicados');
+ const medidasCadastro=await pg.evaluate(()=>{
+  const nome=document.querySelector('.signature-processo .cx-ident').getBoundingClientRect();
+  const cadastro=document.querySelector('.signature-cadastro').getBoundingClientRect();
+  return {aoLado:cadastro.left>=nome.right,campos:[...document.querySelectorAll('.signature-cadastro input')].map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height}))};
+ });
+ assert.equal(medidasCadastro.aoLado,true,'assinatura e registro aproveitam o espaço ao lado do nome');
+ assert.ok(Math.max(...medidasCadastro.campos.map(r=>r.w))-Math.min(...medidasCadastro.campos.map(r=>r.w))<2,'larguras proporcionais');
+ assert.ok(medidasCadastro.campos.every(r=>r.h===38),'alturas iguais');
  await pg.locator('.signature-processo .cx-topo').screenshot({path:join(AQUI,'saida','cabecalho-caso-elegante-computador.png')});
  await pg.setViewportSize({width:1024,height:1000});
  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'cabeçalho cabe no tablet');
@@ -264,6 +274,12 @@ try{
  assert.equal(await pg.getByRole('checkbox',{name:'Confissão de Dívida',exact:true}).isVisible(),true);
  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'lista de atos adicionais também cabe no celular');
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),antesAbrirCabecalho,'abrir detalhes não altera o caso');
+ await pg.locator('.signature-cadastro').getByRole('textbox',{name:'Livro',exact:true}).fill('1234');
+ await pg.locator('.signature-cadastro').getByRole('textbox',{name:'Livro',exact:true}).press('Tab');
+ await pg.waitForFunction(()=>window.__data.casos.C1.livro==='1234');
+ await pg.waitForTimeout(350);
+ assert.equal(await pg.locator('.signature-cadastro').getByRole('textbox',{name:'Livro',exact:true}).inputValue(),'1234','campo movido usa a gravação existente');
+ if(!await pg.getByRole('checkbox',{name:'Confissão de Dívida',exact:true}).isVisible())await pg.locator('.signature-processo .cx-atos-sec-details summary').click();
  await pg.getByRole('checkbox',{name:'Confissão de Dívida',exact:true}).check();
  await pg.waitForFunction(()=>window.__data.casos.C1.atosSecundarios?.includes('Confissão de Dívida'));
  await pg.waitForTimeout(350);

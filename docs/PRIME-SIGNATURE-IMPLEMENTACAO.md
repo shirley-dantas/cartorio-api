@@ -173,6 +173,23 @@ teclado, cancelamento sem gravação, alterações pelos manipuladores existente
 responsável legado e limites do menu no tablet/celular. Card-topo e Celular
 também passaram. A usuária aprovou a prévia sem busca e autorizou a publicação em 13/11/2026.
 
+## Assinatura e registro no cabeçalho — prévia em 13/11/2026
+
+Os seis campos existentes de assinatura, registro, prenotação, livro, folha e
+controle passam para o espaço à direita da identificação do caso. No computador,
+ficam em duas linhas de três campos, com larguras proporcionais e a mesma altura.
+O contorno e a tipografia seguem o restante do card, sem uma caixa adicional.
+
+Quando o card tem menos de 800 px disponíveis, os campos ficam abaixo da
+identificação. No celular, a assinatura ocupa uma linha e o registro usa duas
+colunas. Nenhum campo é duplicado: os valores e os manipuladores de gravação,
+agenda e Financeiro são os mesmos. A apresentação clássica permanece igual.
+
+Signature confere seis campos únicos no cabeçalho, larguras e alturas iguais,
+posição ao lado do nome no computador, edição de Livro pelo manipulador existente
+e adaptação no tablet/celular. Celular também passou.
+A prévia aguarda aprovação antes da publicação.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já

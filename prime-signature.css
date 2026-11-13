@@ -259,6 +259,28 @@ html.prime-signature .signature-processo .cx-topo .cx-atos-sec-opcoes label{whit
 html.prime-signature .signature-processo .cx-topo .cx-atos-sec-opcoes input{flex-shrink:0}
 html.prime-signature .signature-processo .cx-topo .cx-nome-edit input{min-width:0;width:100%;border-color:#dfcfc4;background:#fffdfb}
 @media(max-width:600px){html.prime-signature .signature-processo .cx-topo{grid-template-columns:minmax(0,1fr);gap:18px}html.prime-signature .signature-processo .cx-topo .cx-nome{font-size:26px}html.prime-signature .signature-processo .cx-topo .cx-meta-dir{flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:14px;padding:0}html.prime-signature .signature-tipo-ato{max-width:none;margin-top:18px}}
+/* Assinatura e registro junto à identificação, sem duplicar campos. */
+html.prime-signature .signature-processo{container-type:inline-size}
+html.prime-signature .signature-processo .cx-topo{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:14px 28px}
+html.prime-signature .signature-processo .cx-topo .cx-ident{grid-column:1;grid-row:1 / 3}
+html.prime-signature .signature-processo .cx-topo .cx-meta-dir{grid-column:2;grid-row:1;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;align-items:center;padding:0;gap:12px}
+html.prime-signature .signature-cadastro{grid-column:2;grid-row:2;min-width:0}
+html.prime-signature .signature-processo .signature-cadastro .cx-linha-topo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px 12px;padding:0;margin:0;border:0}
+html.prime-signature .signature-cadastro .cx-reg-bloco,html.prime-signature .signature-cadastro .cx-reg-campos{display:contents}
+html.prime-signature .signature-cadastro .cx-reg-titulo{display:none}
+html.prime-signature .signature-cadastro .cx-campo-rot{font-size:9px;letter-spacing:.08em;min-height:14px;line-height:14px}
+html.prime-signature .signature-cadastro .cx-campo input{height:38px;box-sizing:border-box;padding:8px;min-width:0;width:100%;font-size:12px;background:#fffdfb;border-color:#e5d8ce}
+html.prime-signature .signature-cadastro input[type="datetime-local"]{font-size:11.5px}
+@container(max-width:800px){
+ html.prime-signature .signature-processo .cx-topo{grid-template-columns:minmax(0,1fr);gap:18px}
+ html.prime-signature .signature-processo .cx-topo .cx-ident{grid-column:1;grid-row:1}
+ html.prime-signature .signature-processo .cx-topo .cx-meta-dir{grid-column:1;grid-row:2;justify-content:flex-start}
+ html.prime-signature .signature-cadastro{grid-column:1;grid-row:3}
+}
+@container(max-width:460px){
+ html.prime-signature .signature-processo .signature-cadastro .cx-linha-topo{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ html.prime-signature .signature-cadastro .cx-linha-topo>.cx-campo{grid-column:1 / -1}
+}
 html.prime-signature .signature-dados{display:flex;align-items:end;justify-content:space-between;gap:15px;margin-top:18px}
 html.prime-signature .signature-dados .cx-campos{flex:1;border:0;margin:0;padding:0;display:grid;grid-template-columns:1fr 1.3fr 1fr}
 html.prime-signature .signature-campo{min-width:0}
