@@ -248,7 +248,7 @@ Ajudante e Celular passaram. A usuária aprovou a prévia e autorizou a
 publicação em 13/11/2026.
 Não exige nova extensão ou Apps Script.
 
-## Contraste, indicadores completos e dossiê — prévia em 13/11/2026
+## Contraste, indicadores completos e dossiê — aprovado em 13/11/2026
 
 As pílulas principais voltam a ter seleção vinho com texto branco; os serviços
 de Certidões usam contorno mais presente e seleção rosa suave. Traços continuam
@@ -285,11 +285,11 @@ Garamond e Jost ficam incorporadas na capa, com as licenças correspondentes
 em assets/capa-fontes. O detalhe floral retoma a orquídea do painel. A impressão
 aguarda as fontes carregarem.
 A usuária aprovou o visual Clássico floral e pediu um campo de conferência.
-O canto inferior direito recebe Conferência da tabeliã substituta, com caixa
+O campo de Providências é substituído por Conferência da tabeliã substituta, com caixa
 Conferido inicialmente vazia, data em branco e linha para rubrica. Esse campo
 é manual e não se confunde com auditoria de IA ou status do caso. Observações
-ficam ao lado, à esquerda. A capa segue em uma página A4.
-A prévia do campo e a publicação aguardam aprovação da usuária.
+ficam na parte inferior, em largura inteira. A capa segue em uma página A4.
+A usuária aprovou a alteração e autorizou a publicação em 13/11/2026.
 
 ## Financeiro e privacidade
 

@@ -5489,8 +5489,7 @@ body{margin:0;background:#fffdfa;color:var(--tinta);font-family:'Jost','Jost',Ar
 .acomp-cabecalho,.acomp-linha{display:grid;grid-template-columns:24mm 1fr 34mm;gap:4mm}
 .acomp-cabecalho{font:7pt 'Jost',Arial,sans-serif;color:#9b7965;padding:2mm 0;letter-spacing:.2mm}
 .acomp-linha span{min-width:0;border-bottom:.18mm solid var(--linha);height:7mm}
-.observacoes{min-height:27mm}
-.fechamento{flex:1}
+.observacoes{flex:1;min-height:27mm}
 .conferencia .rot{margin-top:-1mm;margin-bottom:2mm;font-size:6.5pt}
 .conf-confirmar{display:flex;align-items:center;gap:2.5mm;font-size:9pt;color:var(--vinho)}
 .conf-confirmar i{display:block;width:3.5mm;height:3.5mm;border:.2mm solid #a88b78;border-radius:.4mm}
@@ -5519,9 +5518,9 @@ body{margin:0;background:#fffdfa;color:var(--tinta);font-family:'Jost','Jost',Ar
 <div class="ato"><h1>${t(d.tipo)||'ESCRITURA'}</h1><div class="controle"><span class="rot">Controle</span><strong>${t(d.controle)||'________'}</strong></div></div>
 <section class="bloco identificacao"><div class="campo solicitante"><span class="rot">Solicitante</span><div class="valor">${t(d.solicitante)||'________________________________'}</div></div><div class="campo"><span class="rot">Outorgante / Outorgado</span><div class="valor">${t(d.parte)}</div></div></section>
 <section class="bloco assinatura"><div class="esc"><div class="escrevente"><span class="rot">Escrevente</span><strong>${t(d.escrevente)}</strong></div><div>Data <span class="espaço"></span></div><div>Horário <span class="espaço hora"></span></div></div><div class="modalidades">${checks}</div></section>
-<div class="dupla"><section class="bloco"><h2 class="secao-titulo">Documentos e conferências</h2><div class="lista-pendencias">${linhas(4)}</div></section><section class="bloco"><h2 class="secao-titulo">Providências</h2>${linhas(4)}</section></div>
+<div class="dupla"><section class="bloco"><h2 class="secao-titulo">Documentos e conferências</h2><div class="lista-pendencias">${linhas(4)}</div></section><section class="bloco conferencia"><h2 class="secao-titulo">Conferência</h2><span class="rot">Tabeliã substituta</span><div class="conf-confirmar"><i></i> Conferido</div><div class="conf-campos"><label>Data<span>____/____/______</span></label><label>Rubrica<span></span></label></div></section></div>
 <section class="bloco"><h2 class="secao-titulo">Acompanhamento do caso</h2><div class="acomp-cabecalho"><span>DATA</span><span>ANOTAÇÃO</span><span>RETORNO / PRAZO</span></div>${acompanhamento}</section>
-<div class="dupla fechamento"><section class="bloco observacoes"><h2 class="secao-titulo">Observações</h2>${linhas(3)}</section><section class="bloco conferencia"><h2 class="secao-titulo">Conferência</h2><span class="rot">Tabeliã substituta</span><div class="conf-confirmar"><i></i> Conferido</div><div class="conf-campos"><label>Data<span>____/____/______</span></label><label>Rubrica<span></span></label></div></section></div>
+<section class="bloco observacoes"><h2 class="secao-titulo">Observações</h2>${linhas(3)}</section>
 <footer class="rod"><span>${t(d.cartorio)}</span><span class="flor">✧</span><span>Dossiê físico</span></footer>
 </main></body></html>`;
 }

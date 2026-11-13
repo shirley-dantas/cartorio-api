@@ -21,10 +21,12 @@ assert.equal(m.capaDados({...c,nome:'CLIENTE | SOLICITANTE | COMPLEMENTO'}).soli
 for(const modelo of ['classico']){
  const h=m.capaHtml(d,modelo);
  for(const s of ['VENDA E COMPRA','20º Cartório','000123','Shirley','DR. CASTANHO','CLIENTE EXEMPLO','Outorgante / Outorgado','PRESENCIAL','DILIGÊNCIA','HÍBRIDA','VÍDEO'])assert(h.includes(s),modelo+': '+s);
- assert.doesNotMatch(h,/PRIME|Prime|Escrivão de Títulos|R\$|Orçamento|2026-11-13|15:45|LIVRO_QUE_NAO_DEVE_SAIR|REGISTRO_QUE_NAO_DEVE_SAIR/);
+ assert.doesNotMatch(h,/Providências|PRIME|Prime|Escrivão de Títulos|R\$|Orçamento|2026-11-13|15:45|LIVRO_QUE_NAO_DEVE_SAIR|REGISTRO_QUE_NAO_DEVE_SAIR/);
  assert.match(h,/Data <span class="espaço"><\/span>/);assert.match(h,/Horário <span class="espaço hora"><\/span>/);
  for(const campo of ['Conferência','Tabeliã substituta','Conferido','Rubrica'])assert(h.includes(campo),campo);
  assert.match(h,/<div class="conf-confirmar"><i><\/i> Conferido/,'a conferência nasce sem marcação');
+ assert(h.indexOf('class="bloco conferencia"')<h.indexOf('Acompanhamento do caso'),'conferência fica acima do acompanhamento');
+ assert(h.indexOf('class="bloco conferencia"')<h.indexOf('class="bloco observacoes"'));
  assert.match(h,/<label>Data<span>____\/____\/______<\/span>/);
  const malicioso=m.capaHtml(m.capaDados({...c,nome:'<img src=x onerror=alert(1)> | <script>1</script>'}),modelo);assert(!malicioso.includes('<img src=x'));assert(malicioso.includes('&lt;script&gt;'));
 }
