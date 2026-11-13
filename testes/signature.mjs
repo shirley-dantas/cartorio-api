@@ -422,6 +422,23 @@ try{
  assert.equal(await pg.getByRole('button',{name:/Voltar aos casos/}).count(),1);
  assert.equal(await pg.locator('.signature-trabalho [onclick*=abrirMinuta]').count(),1);
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),antes,'trocar abas não grava ou gera minuta');
+ // Referência visual: somente as subpílulas passam a usar o estilo atual de Minuta.
+ const estilosSub=el=>{const c=getComputedStyle(el);return {fonte:c.fontSize,peso:c.fontWeight,padding:c.padding,borda:c.borderTopWidth,raio:c.borderRadius,fundo:c.backgroundColor,cor:c.color,corBorda:c.borderTopColor};};
+ const minutaNeutra=await pg.locator('.signature-trabalho [onclick*=abrirReeditar]').evaluate(estilosSub);
+ const minutaDestaque=await pg.locator('.signature-trabalho [onclick*=abrirMinuta]').evaluate(estilosSub);
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Documentos',exact:true}).click();
+ await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Anexar documentos',exact:true}).click();
+ await pg.mouse.move(0,0);
+ assert.deepEqual(await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Recebidos',exact:true}).evaluate(estilosSub),minutaNeutra,'subpílula neutra replica o botão atual de Minuta');
+ assert.deepEqual(await pg.locator('.signature-docs-escolhas').getByRole('button',{name:'Anexar documentos',exact:true}).evaluate(estilosSub),minutaDestaque,'subpílula ativa replica o destaque atual de Minuta');
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','somente-subpilulas-documentos.png')});
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).click();
+ await pg.locator('.signature-cert-servicos').getByRole('button',{name:'JUCESP',exact:true}).click();
+ await pg.mouse.move(0,0);
+ assert.deepEqual(await pg.locator('.signature-cert-tipos').getByRole('button',{name:'Contrato social',exact:true}).evaluate(estilosSub),minutaNeutra);
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','somente-subpilulas-certidoes.png')});
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Minuta',exact:true}).click();
+ assert.deepEqual(await pg.locator('.signature-trabalho [onclick*=abrirReeditar]').evaluate(estilosSub),minutaNeutra,'o botão de referência permanece intacto');
  // Mesma estrutura publicada; Orçamento com apenas os três atalhos pedidos.
  await pg.evaluate(()=>{
   window.__trocarConta({uid:'U1',email:'teste@example.invalid',getIdToken:async()=> 'token-ficticio'});

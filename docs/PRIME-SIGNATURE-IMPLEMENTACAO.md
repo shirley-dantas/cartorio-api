@@ -116,12 +116,13 @@ documentos legados, pedido existente e celular; docs-agrupados, solte-card e
 celular passaram. A usuária aprovou a prévia com Anexar documentos em primeiro
 lugar e autorizou a publicação em 12/11/2026.
 
-## Cores suaves e orçamento simplificado — prévia de 12/11/2026
+## Somente subpílulas e orçamento simplificado — prévia de 12/11/2026
 
-A usuária pediu manter organização e traçado fino, mudando apenas as cores
-em Documentos, Certidões, Minuta e demais ferramentas. As estruturas publicadas
-permanecem intactas; a paleta usa rosé claro, vinho discreto e bordas suaves.
-As janelas de Minuta e Orçamento recebem somente estilos de cor/borda.
+A orientação final da usuária é preservar as pílulas principais exatamente
+como publicadas. Somente as subpílulas de Documentos e Certidões adotam a
+aparência dos botões atuais de Minuta/Orçamento: fundo branco, contorno fino,
+texto discreto e destaque champagne para a seleção. O bloco rosa preenchido
+sai das subpílulas. Nenhum botão de Minuta ou estilo de janela é alterado.
 
 No Orçamento do card, confirmou somente três atalhos: Ver orçamento, Modo
 cliente e Novo. Não há situação, total, data, versão ou outros metadados nessa
@@ -131,10 +132,10 @@ não há orçamento, aparece Novo; autenticação e erro de leitura mantêm as
 proteções existentes. Nenhum cálculo, documento, versão ou ação de backend
 é apagado. As demais abas preservam sua organização publicada.
 
-Validação: Signature cobre os três atalhos, ausência de metadados na área
-externa, conteúdo dentro da janela, versões salvas imutáveis, proteção no
-logout e celular. Orçamento.gerado, orçamento-tela e a checagem da apresentação
-final passaram. Prévia aguarda aprovação para publicação.
+Validação: Signature compara os estilos calculados das subpílulas com os
+botões atuais de Minuta e confere os três atalhos do orçamento, ausência de
+metadados externos, conteúdo dentro da janela, versões salvas imutáveis,
+proteção no logout e celular. Prévia aguarda aprovação para publicação.
 
 ## Financeiro e privacidade
 
