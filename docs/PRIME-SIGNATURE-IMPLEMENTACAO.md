@@ -173,7 +173,7 @@ teclado, cancelamento sem gravação, alterações pelos manipuladores existente
 responsável legado e limites do menu no tablet/celular. Card-topo e Celular
 também passaram. A usuária aprovou a prévia sem busca e autorizou a publicação em 13/11/2026.
 
-## Assinatura e registro no cabeçalho — prévia em 13/11/2026
+## Assinatura e registro no cabeçalho — aprovado em 13/11/2026
 
 Os seis campos existentes de assinatura, registro, prenotação, livro, folha e
 controle passam para o espaço à direita da identificação do caso. No computador,
@@ -188,7 +188,7 @@ agenda e Financeiro são os mesmos. A apresentação clássica permanece igual.
 Signature confere seis campos únicos no cabeçalho, larguras e alturas iguais,
 posição ao lado do nome no computador, edição de Livro pelo manipulador existente
 e adaptação no tablet/celular. Celular também passou.
-A prévia aguarda aprovação antes da publicação.
+A usuária aprovou a prévia e autorizou a publicação em 13/11/2026.
 
 ## Financeiro e privacidade
 
