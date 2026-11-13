@@ -480,7 +480,8 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const ESCALA_PADRAO={flo:[4,5,6]};
 const escalaTha=()=>((C.pubMai||{}).cfg||{}).escala||((C.pubFlo||{}).cfg||{}).escala||{};
 const floDiasEm=(data,esc)=>{esc=esc||escalaTha();const per=(esc.periodos||[]).filter(x=>x.de&&x.ate&&x.de<=data&&data<=x.ate).pop();return per?(per.flo||[]):(esc.flo||ESCALA_PADRAO.flo)};
-const unitFor=d=>{const s=typeof d==='string'?d:iso(new Date(d));return floDiasEm(s).includes(new Date(s+'T12:00').getDay())?'flo':'mai'};
+// Um dia pode ser escolhido à mão (escala.dias[data] = 'flo'|'mai'): vale por cima do padrão e dos períodos.
+const unitFor=d=>{const s=typeof d==='string'?d:iso(new Date(d)),m=(escalaTha().dias||{})[s];if(m==='flo'||m==='mai')return m;return floDiasEm(s).includes(new Date(s+'T12:00').getDay())?'flo':'mai'};
 function quinzena(ref){const y=ref.getFullYear(),m=ref.getMonth(),day=ref.getDate();
   if(day<=15) return {ini:new Date(y,m,1),fim:new Date(y,m,15),pago:new Date(y,m,20)};
   const fimMes=new Date(y,m+1,0).getDate();
@@ -941,11 +942,12 @@ function vAgenda(){
   let detalhe='';
   if(st==='a'){const a=agendaAtiva().find(x=>x.id===sid&&x._p===sp&&x.date===d);if(a&&visUnit(a.unit))detalhe=`<div id="agsel" class="box" style="margin:0 0 12px">${cartaoAg(a)}</div>`}
   if(st==='b'){const b=bloqueios().find(x=>x.id===sid&&x._p===sp&&x.date===d);if(b)detalhe=`<div id="agsel" class="box" style="margin:0 0 12px"><div class="row"><div class="grow"><b>${esc(b.hora)}–${esc(hhmmDe(minDe(b.hora)+b.m))}</b> <span class="tag warn">${esc(b.motivo||'Fechado')}</span><div class="small muted">${b.pro==='todos'||!b.pro?'Para todos':'Só '+esc(PEOPLE[b.pro]?.n||b.pro)}${b.obs?' · '+esc(b.obs):''}${b.por?' · por '+esc(b.por):''}</div></div><button class="btn sm" data-reabrir="${b.id}" data-pp="${b._p}">Reabrir</button></div></div>`}
+  const thaEsc=isAdmin()?`<div class="small" style="margin:0 0 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="muted">Tháriga neste dia:</span><button type="button" class="btn sm ${unitFor(d)==='flo'?'p':''}" data-thadia="flo">Florença</button><button type="button" class="btn sm ${unitFor(d)==='mai'?'p':''}" data-thadia="mai">Itaquera</button></div>`:'';
   return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Tháriga Beauty & Co: ${U.mai.dias}, ${U.mai.hora}. Cada serviço fica na agenda de quem faz.`:`Agenda completa da Tháriga Beauty & Co — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}${AGENDA_URL?'<button class="btn" id="resp">Atualizar respostas</button>':''}<button class="btn" id="fechar">Fechar horário</button><button class="btn p" id="novo">Novo agendamento</button></div></div>
   ${agCalendario(d)}
   <h2 style="margin:0 0 6px">${esc(prim1(new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})))}</h2>
-  ${mostrar?`${chips}${detalhe}${quadros}<p class="small muted" style="margin:8px 0 14px">Toque num bloco para concluir, remarcar ou avisar a cliente. Toque num espaço vazio para agendar ou fechar aquele horário.</p>`:'<p class="muted">Nada para mostrar nesta unidade neste dia.</p>'}`;
+  ${thaEsc}${mostrar?`${chips}${detalhe}${quadros}<p class="small muted" style="margin:8px 0 14px">Toque num bloco para concluir, remarcar ou avisar a cliente. Toque num espaço vazio para agendar ou fechar aquele horário.</p>`:'<p class="muted">Nada para mostrar nesta unidade neste dia.</p>'}`;
 }
 
 // ── Horários livres: o que está vazio na agenda, ao vivo ──
@@ -2221,6 +2223,10 @@ function render(){
     el.onscroll=()=>{(S.rolagem=S.rolagem||{})[k]=el.scrollTop}});
   const lvr=main.querySelector('.lv-rol');if(lvr){lvr.scrollTop=S.rolagemLv||0;lvr.onscroll=()=>{S.rolagemLv=lvr.scrollTop}}
   const rt=document.getElementById('retry');if(rt)rt.onclick=()=>{S.erros={};comecarLeituras()};
+  main.querySelectorAll('[data-thadia]').forEach(b=>b.onclick=async()=>{const d=S.agData||iso(TODAY),v=b.dataset.thadia;if(unitFor(d)===v)return;
+    const tem=agendaAtiva().filter(a=>a.pro==='tha'&&a.date===d&&a.unit!==v).length;
+    if(tem&&!confirm(`A Tháriga tem ${tem} agendamento(s) neste dia na outra unidade. Eles continuam onde estão. Mudar mesmo assim?`))return;
+    let ok=true;for(const u of ['mai','flo'])ok=await grava(()=>DB.set('publico/agenda/'+u+'/cfg/escala/dias/'+d,v))&&ok;if(ok){toast('Tháriga neste dia: '+U[v].n);render()}});
   main.querySelectorAll('[data-agdia]').forEach(b=>b.onclick=()=>{S.agData=b.dataset.agdia;S.agMes=b.dataset.agdia.slice(0,7);render()});
   main.querySelectorAll('[data-agmes]').forEach(b=>b.onclick=()=>{const n=+b.dataset.agmes;
     if(n===0){S.agData=iso(TODAY);S.agMes=null}

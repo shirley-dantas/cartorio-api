@@ -111,8 +111,8 @@ const DIAS_PRO={mai:{tha:[0,1,2,3],rafael:[0,1,2,3,4,5,6],mariana:[0,1,2,3,4,5,6
 UN.mai.diasTxt='Todos os dias';UN.flo.diasTxt='Dias da agenda da Tháriga';
 // Escala da Tháriga vem da agenda online (configurada no painel): dias de Florença no padrão e em períodos especiais.
 const escalaPub=()=>((pub&&pub.cfg)||{}).escala||{};
-const thaUnidadeEm=data=>{const e=escalaPub(),per=(e.periodos||[]).filter(x=>x.de&&x.ate&&x.de<=data&&data<=x.ate).pop(),fl=per?(per.flo||[]):(e.flo||[4,5,6]);return fl.includes(new Date(data+'T12:00').getDay())?'flo':'mai'};
-const diasThaUn=u=>{const e=escalaPub(),fl=new Set([...(e.flo||[4,5,6]),...(e.periodos||[]).flatMap(x=>x.flo||[])]);return u==='flo'?[...fl]:[0,1,2,3,4,5,6].filter(n=>{if(!(e.flo||[4,5,6]).includes(n))return true;return (e.periodos||[]).some(x=>!(x.flo||[]).includes(n))})};
+const thaUnidadeEm=data=>{const e=escalaPub(),m=(e.dias||{})[data];if(m==='flo'||m==='mai')return m;const per=(e.periodos||[]).filter(x=>x.de&&x.ate&&x.de<=data&&data<=x.ate).pop(),fl=per?(per.flo||[]):(e.flo||[4,5,6]);return fl.includes(new Date(data+'T12:00').getDay())?'flo':'mai'};
+const diasThaUn=u=>{const s=new Set(),h=new Date();h.setHours(12,0,0,0);for(let i=0;i<=((pub&&pub.cfg&&pub.cfg.diasFrente)||180);i++){const d=new Date(h);d.setDate(d.getDate()+i);const x=iso(d);if(thaUnidadeEm(x)===u)s.add(d.getDay())}return [...s]};
 const NOMES=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
