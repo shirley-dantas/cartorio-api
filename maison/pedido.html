@@ -108,7 +108,11 @@ const donosDe=(u,nome)=>u==='mai'&&ANA.includes(nome)?['tha','ana']:[proDe(u,nom
 const proEscolhida=()=>{const sv0=UN[un].serv[+document.getElementById('s').value],l=donosDe(un,sv0[0]),q=document.getElementById('q');return l.length>1&&q&&l.includes(q.value)?q.value:l[0]};
 // Dias de cada profissional: a Tháriga fica em Itaquera de domingo a quarta e no Florença de quinta a sábado; a agenda do Rafael e da Mariana fica aberta todos os dias (eles fecham os dias em que não atendem).
 const DIAS_PRO={mai:{tha:[0,1,2,3],rafael:[0,1,2,3,4,5,6],mariana:[0,1,2,3,4,5,6],ana:[0,1,2,3,4,5,6]},flo:{tha:[4,5,6]}};
-UN.mai.diasTxt='Todos os dias';UN.flo.diasTxt='Quinta, sexta e sábado';
+UN.mai.diasTxt='Todos os dias';UN.flo.diasTxt='Dias da agenda da Tháriga';
+// Escala da Tháriga vem da agenda online (configurada no painel): dias de Florença no padrão e em períodos especiais.
+const escalaPub=()=>((pub&&pub.cfg)||{}).escala||{};
+const thaUnidadeEm=data=>{const e=escalaPub(),m=(e.dias||{})[data];if(m==='flo'||m==='mai')return m;const per=(e.periodos||[]).filter(x=>x.de&&x.ate&&x.de<=data&&data<=x.ate).pop(),fl=per?(per.flo||[]):(e.flo||[4,5,6]);return fl.includes(new Date(data+'T12:00').getDay())?'flo':'mai'};
+const diasThaUn=u=>{const s=new Set(),h=new Date();h.setHours(12,0,0,0);for(let i=0;i<=((pub&&pub.cfg&&pub.cfg.diasFrente)||180);i++){const d=new Date(h);d.setDate(d.getDate()+i);const x=iso(d);if(thaUnidadeEm(x)===u)s.add(d.getDay())}return [...s]};
 const NOMES=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -163,7 +167,7 @@ function formulario(){
 function montaQuem(){const sv0=UN[un].serv[+document.getElementById('s').value],l=donosDe(un,sv0[0]),w=document.getElementById('qw'),q=document.getElementById('q'),cur=q.value;
   w.hidden=l.length<2;q.innerHTML=l.map(p=>`<option value="${p}">${NOME_PRO[p]}</option>`).join('');if(l.includes(cur))q.value=cur}
 function montaDias(){const d=document.getElementById('dias'),u=UN[un],sv0=u.serv[+document.getElementById('s').value],marcados=new Set([...d.querySelectorAll('input:checked')].map(i=>+i.value));
-  d.innerHTML=(DIAS_PRO[un][proEscolhida()]||[]).map(n=>`<label class="${marcados.has(n)?'on':''}"><input type="checkbox" value="${n}" ${marcados.has(n)?'checked':''}>${NOMES[n]}</label>`).join('')}
+  d.innerHTML=(proEscolhida()==='tha'?diasThaUn(un).sort((x,y)=>((x+6)%7)-((y+6)%7)):(DIAS_PRO[un][proEscolhida()]||[])).map(n=>`<label class="${marcados.has(n)?'on':''}"><input type="checkbox" value="${n}" ${marcados.has(n)?'checked':''}>${NOMES[n]}</label>`).join('')}
 async function escolheUnidade(){
   const u=UN[un],aviso=document.getElementById('aviso'),resto=document.getElementById('resto');
   escolha=null;resto.hidden=true;aviso.innerHTML='<p class="small">Carregando os horários…</p>';
@@ -194,7 +198,7 @@ function desenhaSlots(){
   const sv0=u.serv[+document.getElementById('s').value],dur=sv0[1],pro=proEscolhida(),per=document.querySelector('input[name=per]:checked').value,fech=c.fechados||[];
   const hoje=new Date();hoje.setHours(12,0,0,0);let html='',n=0;
   for(let i=0;i<=(c.diasFrente||180);i++){const d=new Date(hoje);d.setDate(d.getDate()+i);const data=iso(d);
-    if(!dias.includes(d.getDay())||fech.includes(data))continue;
+    if(!dias.includes(d.getDay())||fech.includes(data))continue;if(pro==='tha'&&thaUnidadeEm(data)!==un)continue;
     const L=livres(data,dur,per,pro);if(!L.length)continue;n+=L.length;
     html+=`<div class="dia">${fdata(data)}</div><div class="slots">${L.map(t=>`<button type="button" data-d="${data}" data-h="${hhmm(t)}">${hhmm(t)}</button>`).join('')}</div>`}
   box.innerHTML=n?html:'<p class="small">Não há horários livres nesses dias e período. Tente outro período ou outros dias.</p>';
