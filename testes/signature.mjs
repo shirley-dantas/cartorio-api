@@ -434,8 +434,8 @@ try{
  await pg.setViewportSize({width:1440,height:1000});
  console.log('ok: Documentos separa recebidos/anexar/pedir, preserva grupos e ações, mostra documentos legados e abre o pedido existente sem gravar.');
  await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).click();
- assert.deepEqual(await pg.locator('.signature-cert-servicos button').allTextContents(),['JUCESP','Matrícula','Valor venal','Negativa de IPTU','Dados cadastrais','Trabalhista','CND Receita Federal','Indisponibilidade']);
- assert.deepEqual(await pg.locator('.signature-cert-tipos button').allTextContents(),['Ficha cadastral','Contrato social','Cartão CNPJ']);
+ assert.deepEqual(await pg.locator('.signature-cert-servicos button').evaluateAll(els=>els.map(el=>el.getAttribute('aria-label'))),['JUCESP','Matrícula','Valor venal','Negativa de IPTU','Dados cadastrais','Trabalhista','CND Receita Federal','Indisponibilidade']);
+ assert.deepEqual(await pg.locator('.signature-cert-tipos button').evaluateAll(els=>els.map(el=>el.getAttribute('aria-label'))),['Ficha cadastral','Contrato social','Cartão CNPJ']);
  assert.match(await pg.locator('.signature-certidoes').innerText(),/computador com o Ajudante/);
  await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-pronto',versao:'0.3.4',onr:true,pref:true}}));
  await pg.evaluate(()=>window.__fbWrite('casos/C1/documentos',{
@@ -462,6 +462,11 @@ try{
  assert.equal(await pg.evaluate(()=>window.__pedidosAjudante.length),0,'conferência não dispara pedido');
  await pg.getByRole('button',{name:'Iniciar busca',exact:true}).click();
  await pg.waitForFunction(()=>window.__pedidosAjudante.length===1);
+ await pg.waitForFunction(()=>Object.values(window.__data.casos.C1.certidoesPedidos||{}).some(p=>p.servicos.includes('jucesp:ficha')));
+ await pg.waitForTimeout(350);
+ assert.match(await pg.locator('.signature-cert-tipos').getByRole('button',{name:'Ficha cadastral',exact:true}).innerText(),/Solicitada/);
+ assert.equal(await pg.locator('.signature-cert-tipos').getByRole('button',{name:'Ficha cadastral',exact:true}).locator('.salvo').count(),0,'solicitar não marca arquivo salvo');
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','pilulas-certidao-solicitada.png')});
  assert.deepEqual(await pg.evaluate(()=>window.__pedidosAjudante[0].quero),['ficha']);
  assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[0].cnpj),'52247521000141');
  assert.equal(await pg.evaluate(()=>window.__pedidosAjudante[0].casoId),'C1');
@@ -475,7 +480,7 @@ try{
  assert.deepEqual(await pg.evaluate(()=>window.__pedidosAjudante[1].quero),['ficha','contrato']);
  await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-progresso',id:window.__pedidosAjudante.at(-1).id,estado:'ok',texto:'Teste concluído.',fim:true}}));
  await pg.locator('.signature-cert-servicos').getByRole('button',{name:'Matrícula',exact:true}).click();
- assert.deepEqual(await pg.locator('.signature-cert-tipos button').allTextContents(),['Visualização','Matrícula atualizada']);
+ assert.deepEqual(await pg.locator('.signature-cert-tipos button').evaluateAll(els=>els.map(el=>el.getAttribute('aria-label'))),['Visualização','Matrícula atualizada']);
  await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','certidoes-aprovadas-matricula.png')});
  await pg.getByRole('button',{name:'Conferir e solicitar',exact:true}).click();
  assert.equal(await pg.locator('#onr-mat-C1').isVisible(),true);
@@ -515,6 +520,11 @@ try{
  await pg.locator('input[data-cert-upload]').setInputFiles({name:'certidao.pdf',mimeType:'application/pdf',buffer:Buffer.from('PDF fictício')});
  await pg.waitForFunction(()=>window.__data.casos.C1.documentos.pnl_cert_teste_1?.certidaoServico==='trabalhista');
  await pg.waitForFunction(()=>document.getElementById('signature-cert-feedback-C1')?.textContent.includes('Certidão salva'));
+ await pg.waitForTimeout(350);
+ assert.match(await pg.locator('.signature-cert-servicos').getByRole('button',{name:'Trabalhista',exact:true}).innerText(),/✓\s*1/);
+ assert.match(await pg.locator('.signature-funcoes').getByRole('button',{name:'Documentos',exact:true}).innerText(),/✓/);
+ assert.match(await pg.locator('.signature-funcoes').getByRole('button',{name:'Certidões',exact:true}).innerText(),/✓/);
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','pilulas-certidao-salva.png')});
  assert.equal(await pg.evaluate(()=>window.__data.casos.C1.documentos.pnl_cert_teste_1.certidaoSujeito),'Maria Exemplo');
  assert.equal(await pg.evaluate(()=>window.__data.casos.C1.documentos.pnl_cert_teste_1.origem),'arrastado no card','preserva registro do arquivo');
  await pg.locator('.signature-cert-salvos summary').click();

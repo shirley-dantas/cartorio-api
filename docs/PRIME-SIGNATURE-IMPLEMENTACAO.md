@@ -224,6 +224,29 @@ anteriormente. Nomes, ordem, controles, disposição e funções permanecem igua
 Signature e Celular passaram. A usuária aprovou a prévia e autorizou a
 publicação em 13/11/2026.
 
+## Indicadores de documentos e certidões — prévia em 13/11/2026
+
+Documentos e Certidões mostram um visto com a quantidade de arquivos disponíveis.
+Os serviços e subserviços de Certidões também recebem indicadores, derivados
+dos metadados dos documentos, tipos reconhecidos e nomes de origem da RI Digital.
+Uma matrícula comum anexada não implica uma matrícula atualizada emitida.
+O visto significa arquivo disponível, sem afirmar conferência ou validade.
+
+Novos pedidos enviados ao Ajudante ficam registrados em certidoesPedidos no caso,
+com serviços, destinatário, instante e estado. Navegação e telas de confirmação
+não criam pedidos. O registro é atualizado por transação que preserva o caso
+existente. Solicitada significa pedido enviado, aguardando o arquivo no caso;
+falha mostra Verificar e cancelamento deixa de contar como pendência. O retorno
+positivo do Ajudante sozinho não cria visto. Arquivos novos correspondentes
+encerram a pendência; pedidos antigos anteriores à implementação não são inferidos.
+Erros de gravação do acompanhamento são apresentados sem reenviar a solicitação.
+
+As pílulas mantêm nomes acessíveis e acrescentam descrição dos indicadores.
+Validação: cinco testes unitários de classificação, correspondência e pedidos;
+Signature com envio efetivo, persistência, estado solicitado e anexo salvo;
+Ajudante e Celular passaram. A prévia aguarda aprovação antes de publicar.
+Não exige nova extensão ou Apps Script.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já

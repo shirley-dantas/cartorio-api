@@ -536,3 +536,10 @@ html.prime-signature .signature-fin-head .cx-btn{display:inline-flex;padding:6px
  html.prime-signature .cdc2-topo-esq{align-self:center}
  html.prime-signature #joaninha-host.jn-signature-saudacao .joaninha-bubble{position:fixed;right:16px;bottom:16px;top:auto;width:240px;max-width:calc(100vw - 32px);margin:0}
 }
+
+/* Indicadores discretos: arquivo disponível e solicitação são estados distintos. */
+html.prime-signature .signature-pill-status{display:inline-flex;align-items:center;gap:3px;margin-left:5px;font-size:12px;line-height:1;white-space:nowrap;font-weight:500}
+html.prime-signature .signature-pill-status small{font-size:10px;font-weight:400}
+html.prime-signature .signature-pill-status.salvo{color:#3d7c5d}
+html.prime-signature .signature-pill-status.solicitado{color:#8a6b3e}
+html.prime-signature .signature-pill-status.erro{color:#a05b43}
