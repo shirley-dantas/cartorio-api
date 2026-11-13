@@ -553,3 +553,52 @@ html.prime-signature .signature-cert-servicos button[aria-pressed="true"]{backgr
 html.prime-signature .signature-funcoes .est-aba.on .signature-pill-status.salvo{color:#d5f1dd}
 html.prime-signature .signature-funcoes .est-aba.on .signature-pill-status.solicitado{color:#f6dfb3}
 html.prime-signature .signature-funcoes .est-aba.on .signature-pill-status.erro{color:#ffdcc8}
+
+/* Orçamento: uma página, formulário à esquerda e somente custos à direita. */
+html.prime-signature #modal-orcamento-caso{padding:18px 12px}
+html.prime-signature #modal-orcamento-caso>.modal-box{width:min(1120px,100%);max-width:1120px!important;max-height:calc(100dvh - 36px);overflow:auto;box-sizing:border-box;padding:28px;border-radius:20px;background:#fffdfb}
+html.prime-signature #modal-orcamento-caso .modal-title{font:500 26px 'Cormorant Garamond',Georgia,serif;color:#76243e}
+html.prime-signature #modal-orcamento-caso .modal-title>i{color:#a17d57!important}
+html.prime-signature #modal-orcamento-caso .modal-sub{margin-top:5px;margin-bottom:24px;color:#967c88;line-height:1.5}
+html.prime-signature .orc-pagina-unica .orc-layout{grid-template-columns:minmax(0,1fr) 310px;gap:24px;align-items:start}
+html.prime-signature .orc-pagina-unica .orc-coluna-principal{min-width:0}
+html.prime-signature .orc-pagina-unica .orc-bloco{padding:18px;border:1px solid #e6d8cd;border-radius:12px;margin-bottom:16px;background:#fffdfb;min-width:0}
+html.prime-signature .orc-pagina-unica .orc-secao{gap:8px;margin-bottom:14px}
+html.prime-signature .orc-pagina-unica .orc-coluna-principal .orc-secao b::before{display:none}
+html.prime-signature .orc-pagina-unica .orc-secao b{font:500 18px 'Cormorant Garamond',Georgia,serif;color:#76243e}
+html.prime-signature .orc-pagina-unica .orc-secao-icone{color:#a48260}
+html.prime-signature .orc-pagina-unica [hidden]{display:none!important}
+html.prime-signature .orc-pagina-unica .fin-input,html.prime-signature .orc-pagina-unica .fin-select{width:100%;min-width:0;max-width:100%;box-sizing:border-box;background:#fcf8f4;border:1px solid #e0d1c4;border-radius:8px;padding:9px 11px;color:#654d58;font-family:inherit}
+html.prime-signature .orc-pagina-unica .fin-input:focus,html.prime-signature .orc-pagina-unica .fin-select:focus{border-color:#b18b9b;outline:1px solid #e5d0da;outline-offset:1px}
+html.prime-signature .orc-pagina-unica .orc-grade{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+html.prime-signature .orc-pagina-unica .orc-coluna-lateral{position:sticky;top:0;min-width:0;max-height:calc(100dvh - 142px);overflow:auto;scrollbar-width:thin}
+html.prime-signature .orc-pagina-unica .orc-resumo-corpo{border:1px solid #e3d2c5;border-radius:12px;padding:16px;background:#fffaf6;min-width:0}
+html.prime-signature .orc-pagina-unica .orc-total{margin-top:0;border-radius:10px}
+html.prime-signature .orc-pagina-unica .orc-total-rot{font-size:10px;letter-spacing:.04em;line-height:1.6}
+html.prime-signature .orc-pagina-unica .orc-total-num{font:500 31px 'Cormorant Garamond',Georgia,serif;white-space:nowrap}
+html.prime-signature .orc-pagina-unica .orc-resumo-item{border-color:#e5d8ce;background:#fffdfb;border-radius:8px;padding:9px}
+html.prime-signature .orc-pagina-unica .orc-botoes-memoria{display:grid;gap:8px}
+html.prime-signature .orc-pagina-unica .orc-botoes-memoria button{justify-content:center;border-color:#dfcdbc;color:#785d6a;background:#fffdfb}
+html.prime-signature .orc-pagina-unica .orc-coluna-lateral .orc-bloco{padding:14px 0 0;border:0;border-top:1px solid #e6d8cd;border-radius:0;background:transparent;margin:14px 0 0}
+html.prime-signature .orc-pagina-unica .modal-btn-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+html.prime-signature .orc-pagina-unica .modal-btn-row button{width:100%;min-height:36px;min-width:0;font-family:inherit;font-size:11px;line-height:1.4;padding:8px;border-radius:8px}
+html.prime-signature .orc-pagina-unica .modal-btn-row .btn-save{grid-column:1/-1;order:-1;background:#76243e;border-color:#76243e;color:#fff;font-weight:400}
+html.prime-signature .orc-pagina-unica .orc-aviso-rodape{line-height:1.6;color:#947651}
+@media(max-width:860px){
+ html.prime-signature #modal-orcamento-caso>.modal-box{padding:24px 18px}
+ html.prime-signature .orc-pagina-unica .orc-layout{grid-template-columns:minmax(0,1fr);gap:4px}
+ html.prime-signature .orc-pagina-unica .orc-coluna-lateral{position:static;max-height:none;overflow:visible;margin-top:0}
+}
+@media(max-width:500px){
+ html.prime-signature .orc-pagina-unica .orc-grade{grid-template-columns:minmax(0,1fr)}
+ html.prime-signature .orc-pagina-unica .orc-bloco{padding:15px}
+}
+
+html.prime-signature .orc-historico-salvos{margin:0 0 18px;padding:0 0 14px;border-bottom:1px solid #e9ddd3;color:#8e6b7b;font-size:12px}
+html.prime-signature .orc-historico-salvos>summary{cursor:pointer;line-height:1.6}
+html.prime-signature .orc-historico-salvos>summary>span{display:inline-block;margin-left:5px;padding:0 6px;background:#f1e6df;border-radius:10px;color:#805e6d;font-size:10px}
+html.prime-signature .orc-historico-acoes{display:flex;align-items:end;gap:9px;margin-top:12px;flex-wrap:wrap}
+html.prime-signature .orc-historico-acoes>label{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1;font-size:11px;color:#9a7e89}
+html.prime-signature .orc-historico-acoes button{padding:9px 12px;min-height:36px;border-color:#dfcbbd;color:#785365;background:#fffdfb}
+html.prime-signature .orc-pagina-unica .orc-local-imovel .orc-grade{grid-template-columns:minmax(0,1fr) 65px 150px}
+@media(max-width:500px){html.prime-signature .orc-pagina-unica .orc-local-imovel .orc-grade{grid-template-columns:minmax(0,1fr)}html.prime-signature .orc-historico-acoes>label{flex-basis:100%}}
