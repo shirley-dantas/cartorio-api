@@ -18,11 +18,14 @@ const m=mundo({C1:c}),d=m.capaDados(c);
 assert.equal(d.parte,'CLIENTE EXEMPLO');assert.equal(d.solicitante,'DR. CASTANHO');assert.equal(d.escrevente,'Shirley');assert.equal(d.controle,'000123');
 assert.equal(m.capaDados({...c,nome:'Nome sem separador'}).solicitante,'');
 assert.equal(m.capaDados({...c,nome:'CLIENTE | SOLICITANTE | COMPLEMENTO'}).solicitante,'SOLICITANTE | COMPLEMENTO');
-for(const modelo of ['classico','faixa','leve']){
+for(const modelo of ['classico']){
  const h=m.capaHtml(d,modelo);
  for(const s of ['VENDA E COMPRA','20º Cartório','000123','Shirley','DR. CASTANHO','CLIENTE EXEMPLO','Outorgante / Outorgado','PRESENCIAL','DILIGÊNCIA','HÍBRIDA','VÍDEO'])assert(h.includes(s),modelo+': '+s);
  assert.doesNotMatch(h,/PRIME|Prime|Escrivão de Títulos|R\$|Orçamento|2026-11-13|15:45|LIVRO_QUE_NAO_DEVE_SAIR|REGISTRO_QUE_NAO_DEVE_SAIR/);
  assert.match(h,/Data <span class="espaço"><\/span>/);assert.match(h,/Horário <span class="espaço hora"><\/span>/);
+ for(const campo of ['Conferência','Tabeliã substituta','Conferido','Rubrica'])assert(h.includes(campo),campo);
+ assert.match(h,/<div class="conf-confirmar"><i><\/i> Conferido/,'a conferência nasce sem marcação');
+ assert.match(h,/<label>Data<span>____\/____\/______<\/span>/);
  const malicioso=m.capaHtml(m.capaDados({...c,nome:'<img src=x onerror=alert(1)> | <script>1</script>'}),modelo);assert(!malicioso.includes('<img src=x'));assert(malicioso.includes('&lt;script&gt;'));
 }
 console.log('ok: título, cartório, controle, Shirley, solicitante do subtítulo e nome principal; data/horário manuais; orçamento ausente; escape.');
@@ -30,15 +33,16 @@ m.window.capaImprimir('C1');await new Promise(r=>setTimeout(r,0));assert.equal(m
 const navegador=await abrirChromium();
 try{
  const pg=await navegador.newPage({viewport:{width:794,height:1123}});mkdirSync(join(AQUI,'saida'),{recursive:true});
- const modelos=[['classico','1 · Clássico floral','Equilibrado, com os blocos suaves do painel.'],['faixa','2 · Faixa vinho','Mais marcante, com uma faixa lateral delicada.'],['leve','3 · Essencial','Mais branco, com cabeçalho central e filetes finos.']];
+ const modelos=[['classico','Capa aprovada · 20º Cartório','Campo de conferência da tabeliã substituta.']];
  for(const [modelo] of modelos){
   for(const dados of [d,m.capaDados({...c,nome:'CLIENTE COM NOME COMPLETO MUITO LONGO PARA CONFERÊNCIA DE IMPRESSÃO | SOLICITANTE COM NOME E COMPLEMENTO EXTENSOS PARA CONFERÊNCIA',tipo:'VENDA E COMPRA COM ALIENAÇÃO FIDUCIÁRIA'})]){
-   await pg.setContent(m.capaHtml(dados,modelo));await pg.evaluate(()=>document.fonts.ready);
+   await pg.setContent(m.capaHtml(dados,modelo));await pg.evaluate(async()=>{document.body.offsetHeight;await document.fonts.ready;});
    const medidas=await pg.evaluate(()=>{const f=document.querySelector('.fl');return [f.scrollHeight-f.clientHeight,f.scrollWidth-f.clientWidth];});assert(medidas.every(x=>x<=1),modelo+' ultrapassa a página: '+medidas);
    const pdf=await pg.pdf({format:'A4',printBackground:true});assert.equal((pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g)||[]).length,1);
   }
-  await pg.setContent(m.capaHtml(d,modelo));await pg.evaluate(()=>document.fonts.ready);
+  await pg.setContent(m.capaHtml(d,modelo));await pg.evaluate(async()=>{document.body.offsetHeight;await document.fonts.ready;});
   await pg.screenshot({path:join(AQUI,'saida','capa-modelo-'+modelo+'.png'),fullPage:true});
+  if(modelo==='classico')await pg.locator('.conferencia').screenshot({path:join(AQUI,'saida','capa-conferencia-detalhe.png')});
   await pg.pdf({path:join(AQUI,'saida','capa-modelo-'+modelo+'.pdf'),format:'A4',printBackground:true});
  }
  await pg.setViewportSize({width:1400,height:740});
@@ -46,6 +50,6 @@ try{
  for(const [modelo] of modelos)await pg.locator('#'+modelo).evaluate((el,conteudo)=>el.srcdoc=conteudo,m.capaHtml(d,modelo));
  await pg.waitForTimeout(200);
  await pg.screenshot({path:join(AQUI,'saida','capa-tres-modelos.png'),fullPage:true});
- console.log('ok: três modelos em uma página A4, inclusive nomes longos; prévias e PDFs gerados.');
+ console.log('ok: modelo aprovado em uma página A4, inclusive nomes longos; prévia e PDF gerados.');
 }finally{await navegador.close();}
 process.exit(0);

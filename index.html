@@ -5444,8 +5444,8 @@ function capaDados(c){
  const separado=partes.length>1&&partes[0]&&partes.slice(1).some(Boolean);
  return {tipo:String(c.tipo||'').toUpperCase(),cartorio:'20º Cartório',controle:String(c.controle||''),escrevente:CAPA_ESCREVENTE_FIXA,solicitante:separado?partes.slice(1).join(' | '):'',parte:separado?partes[0]:String(c.nome||'')};
 }
-function capaHtml(d,modelo='classico'){
- const t=x=>escTxt(x||''),estilo=['classico','faixa','leve'].includes(modelo)?modelo:'classico';
+function capaHtml(d){
+ const t=x=>escTxt(x||'');
  const linhas=n=>'<div class="linha-manual"></div>'.repeat(n);
  const checks=['PRESENCIAL','DILIGÊNCIA','HÍBRIDA','VÍDEO'].map(x=>`<span><i></i>${x}</span>`).join('');
  const acompanhamento=Array.from({length:4},()=>'<div class="acomp-linha"><span></span><span></span><span></span></div>').join('');
@@ -5489,29 +5489,17 @@ body{margin:0;background:#fffdfa;color:var(--tinta);font-family:'Jost','Jost',Ar
 .acomp-cabecalho,.acomp-linha{display:grid;grid-template-columns:24mm 1fr 34mm;gap:4mm}
 .acomp-cabecalho{font:7pt 'Jost',Arial,sans-serif;color:#9b7965;padding:2mm 0;letter-spacing:.2mm}
 .acomp-linha span{min-width:0;border-bottom:.18mm solid var(--linha);height:7mm}
-.observacoes{flex:1;min-height:27mm}
+.observacoes{min-height:27mm}
+.fechamento{flex:1}
+.conferencia .rot{margin-top:-1mm;margin-bottom:2mm;font-size:6.5pt}
+.conf-confirmar{display:flex;align-items:center;gap:2.5mm;font-size:9pt;color:var(--vinho)}
+.conf-confirmar i{display:block;width:3.5mm;height:3.5mm;border:.2mm solid #a88b78;border-radius:.4mm}
+.conf-campos{display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:2mm}
+.conf-campos label{font-size:7pt;color:#9b7965}
+.conf-campos span{display:block;height:6mm;border-bottom:.18mm solid var(--linha);font-size:9pt;color:var(--tinta);margin-top:1.5mm}
 .rod{display:flex;justify-content:space-between;align-items:center;border-top:.2mm solid var(--linha);padding-top:3mm;color:#a28b7d;font:7pt 'Jost',Arial,sans-serif;letter-spacing:.2mm}
 .rod .flor{font:18pt 'Cormorant Garamond',Georgia,serif;color:#baa079;line-height:1}
-/* Modelo 2: a faixa lateral dá identidade, preservando o espaço de escrita. */
-.faixa{padding-left:20mm}
-.faixa:before{content:'';position:absolute;left:0;top:0;bottom:0;width:6mm;background:var(--vinho);border-right:1mm solid #c4a479}
-.faixa .tarja{border-color:#bc9763}
-.faixa .bloco{border-radius:1.5mm}
-.faixa .ato h1{font-size:22pt}
-.faixa .controle{background:#f6e9ee;border-color:#d9b7c4}
-.faixa .secao-titulo{font:12pt 'Jost',Arial,sans-serif;color:#76465a}
-/* Modelo 3: moldura fina e cabeçalho central, mais leve para impressão. */
-.leve{background:#fff}
-.leve .tarja{display:block;text-align:center;padding-bottom:4mm;border-bottom:0}
-.leve .tarja .titulo{text-align:center;margin-top:3mm;font:10pt 'Jost',Arial,sans-serif;letter-spacing:.3mm}
-.leve .marca{font-size:30pt}
-.leve .bloco{background:#fff;border-color:#e5dbd2;border-radius:1mm}
-.leve .identificacao{border-left:.6mm solid #b79565}
-.leve .ato{border-top:.2mm solid var(--linha);border-bottom:.2mm solid var(--linha);padding:2mm 0}
-.leve .ato h1{font-size:21pt}
-.leve .controle{border:0;border-left:.2mm solid var(--linha);border-radius:0;background:#fff}
-.leve .secao-titulo{font-size:14pt}
-</style></head><body><main class="fl ${estilo}"><svg class="capa-flor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="170" height="170" viewBox="0 0 170 170" fill="none">
+</style></head><body><main class="fl classico"><svg class="capa-flor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="170" height="170" viewBox="0 0 170 170" fill="none">
  <path d="M155 166c-8-60-19-100-72-137M137 115c8-29 1-51-10-70" stroke="#BD9A75" stroke-width="1.2"/>
  <g stroke="#BD9092" stroke-width=".65" fill="#EBC9C6" fill-opacity=".48">
   <path d="M84 39C57 40 40 17 51 9c11-8 30 7 33 30Z"/>
@@ -5533,7 +5521,7 @@ body{margin:0;background:#fffdfa;color:var(--tinta);font-family:'Jost','Jost',Ar
 <section class="bloco assinatura"><div class="esc"><div class="escrevente"><span class="rot">Escrevente</span><strong>${t(d.escrevente)}</strong></div><div>Data <span class="espaço"></span></div><div>Horário <span class="espaço hora"></span></div></div><div class="modalidades">${checks}</div></section>
 <div class="dupla"><section class="bloco"><h2 class="secao-titulo">Documentos e conferências</h2><div class="lista-pendencias">${linhas(4)}</div></section><section class="bloco"><h2 class="secao-titulo">Providências</h2>${linhas(4)}</section></div>
 <section class="bloco"><h2 class="secao-titulo">Acompanhamento do caso</h2><div class="acomp-cabecalho"><span>DATA</span><span>ANOTAÇÃO</span><span>RETORNO / PRAZO</span></div>${acompanhamento}</section>
-<section class="bloco observacoes"><h2 class="secao-titulo">Observações</h2>${linhas(3)}</section>
+<div class="dupla fechamento"><section class="bloco observacoes"><h2 class="secao-titulo">Observações</h2>${linhas(3)}</section><section class="bloco conferencia"><h2 class="secao-titulo">Conferência</h2><span class="rot">Tabeliã substituta</span><div class="conf-confirmar"><i></i> Conferido</div><div class="conf-campos"><label>Data<span>____/____/______</span></label><label>Rubrica<span></span></label></div></section></div>
 <footer class="rod"><span>${t(d.cartorio)}</span><span class="flor">✧</span><span>Dossiê físico</span></footer>
 </main></body></html>`;
 }

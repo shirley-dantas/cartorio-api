@@ -270,21 +270,26 @@ mesmo que o caso tenha assinatura agendada, e as quatro modalidades são caixas
 vazias para preenchimento manual. O orçamento e os dados de registro saem da
 capa, que deixa de consultar valores financeiros.
 
-Três propostas compartilham os dados e a paleta do painel: Clássico floral,
-Faixa vinho e Essencial. O restante contém somente espaços vazios de documentos
+A capa usa o modelo Clássico floral aprovado, com a paleta do painel.
+O restante contém somente espaços vazios de documentos
 e conferências, providências, acompanhamento e observações. Não há conteúdo
 jurídico gerado nem preenchimento automático desses espaços.
 
 Validação: seis testes unitários dos indicadores; Signature com os vistos,
 ação direta de Dossiê e persistência da geração; Capa com os dados simplificados,
-campos manuais, ausência de orçamento e escape; os três modelos cabem em uma
+campos manuais, ausência de orçamento e escape; o modelo aprovado cabe em uma
 página A4, inclusive com nomes e títulos longos. Celular também passou.
 A revisão final usa somente 20º Cartório como identificação institucional,
 sem a marca Prime nem outro subtítulo institucional. As fontes Cormorant
 Garamond e Jost ficam incorporadas na capa, com as licenças correspondentes
 em assets/capa-fontes. O detalhe floral retoma a orquídea do painel. A impressão
 aguarda as fontes carregarem.
-A escolha do modelo e a publicação aguardam aprovação da usuária.
+A usuária aprovou o visual Clássico floral e pediu um campo de conferência.
+O canto inferior direito recebe Conferência da tabeliã substituta, com caixa
+Conferido inicialmente vazia, data em branco e linha para rubrica. Esse campo
+é manual e não se confunde com auditoria de IA ou status do caso. Observações
+ficam ao lado, à esquerda. A capa segue em uma página A4.
+A prévia do campo e a publicação aguardam aprovação da usuária.
 
 ## Financeiro e privacidade
 
