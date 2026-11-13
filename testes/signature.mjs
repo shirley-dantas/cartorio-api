@@ -396,6 +396,10 @@ try{
  await pg.waitForFunction(()=>document.querySelectorAll('.signature-doc-grupo').length===4);
  const antesDocumentos=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
  assert.equal(await pg.locator('.signature-doc-grupo.conf').getAttribute('open'),'','itens a confirmar já ficam abertos');
+ assert.match(await pg.locator('.signature-doc-grupo').last().innerText(),/Documentos que precisam de identificação/);
+ assert.match(await pg.locator('.signature-doc-grupo').last().innerText(),/A IA não conseguiu identificar estes arquivos/);
+ assert.doesNotMatch(await pg.locator('.signature-doc-grupo').last().innerText(),/confirmar o nome|A confirmar/);
+ await pg.locator('.signature-docs-lista').screenshot({path:join(AQUI,'saida','documentos-identificacao-final.png')});
  await pg.locator('.signature-doc-grupo').filter({has:pg.locator('summary>span',{hasText:'Imóvel'})}).locator('summary').first().click();
  assert.match(await pg.locator('.signature-docs-lista').innerText(),/Matrícula do imóvel/,'documento legado não desaparece por não ter origem');
  await pg.locator('.signature-doc-grupo.conf .signature-doc-acoes summary').click();
