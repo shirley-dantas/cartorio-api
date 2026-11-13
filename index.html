@@ -3241,6 +3241,7 @@ import {iniciarFraseDoDia} from './lib/frase-do-dia-cliente.js';
 import {horarioNota,ordenarNotasPorHorario} from './lib/notas-horario.js';
 import {calcularAtencoes,chaveAtencaoCaso,chaveAtencaoNota} from './lib/atencoes-dia.js';
 import {camposCasoHtml,instalarCamposCaso} from './lib/campos-caso.js';
+import {indicadoresCaso,indicadorHtml,pedidoCertidao,descricaoIndicador} from './lib/indicadores-caso.js';
 import {criarPonteJoaninha} from "./lib/joaninha-ponte.js";
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, get, set, push, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -5985,6 +5986,7 @@ function signaturePrefHtml(c){
  }).join('')}</div>`;
 }
 function signatureCertidoesHtml(c){
+ const indicadores=indicadoresCaso(c);
  const {st,g,s,chave}=signatureCertServico(c.id),id=esc(c.id),recursos=[AJUDANTE.pronto,AJUDANTE.onr,AJUDANTE.pref].join('-');
  const conectado=AJUDANTE.pronto&&(g.id==='jucesp'||g.id==='matricula'&&AJUDANTE.onr||['valor','negativa','cadastrais'].includes(g.id)&&AJUDANTE.pref);
  const conectar=`<p class="signature-ajuda">Solicitações automáticas: use o computador com o Ajudante. Você pode anexar documentos neste dispositivo.</p>`;
@@ -6007,7 +6009,7 @@ function signatureCertidoesHtml(c){
  const sujeito=st.campos['sujeito:'+chave]||'',nomeSujeito=g.id==='jucesp'?'Empresa / CNPJ da certidão':'Pessoa, empresa ou imóvel da certidão';
  const manual=`<div class="signature-cert-anexo"><label class="signature-cert-campo">${nomeSujeito}<input aria-label="Titular da certidão" placeholder="Informe a quem este documento pertence" value="${esc(sujeito)}" oninput="signatureCertCampo('${id}','sujeito:${chave}',this.value)"${st.upload?' disabled':''}></label><label class="cx-btn ${s.manual?'destaque':''}">${st.upload?'Enviando…':'Anexar certidão'}<input type="file" data-cert-upload="${id}" data-servico="${chave}" data-nome="${esc(s.nome)}" accept="application/pdf,image/*" hidden onchange="signatureAnexarCertidao('${id}',this)"${st.upload?' disabled':''}></label></div>`;
  const salvos=Object.values(c.documentos||{}).filter(d=>d&&(d.certidaoServico||['FICHA_CADASTRAL_JUCESP','CONTRATO_SOCIAL','VALOR_VENAL_REFERENCIA','NEGATIVA_IPTU','DADOS_CADASTRAIS_IMOVEL'].includes(d.tipoDocumento)||/^RIDIGITAL_/i.test(d.nomeOriginal||'')));
- return `<div class="signature-certidoes signature-certidoes-leve signature-certidoes-servicos" id="signature-certidoes-${id}" data-caso="${id}" data-recursos="${recursos}" data-pref-servico="${g.id}"><nav class="signature-cert-servicos" aria-label="Certidões">${SIGNATURE_CERT_GRUPOS.map(x=>`<button type="button" aria-pressed="${x.id===g.id}" onclick="signatureEscolherCertidao('${id}','${x.id}')">${x.nome}</button>`).join('')}</nav>${g.sub?`<div class="signature-cert-subgrupo"><span>${g.id==='jucesp'?'Serviços da JUCESP':'Serviços de matrícula'}</span><nav class="signature-cert-tipos" aria-label="Opções da certidão">${g.sub.map(x=>`<button type="button" aria-pressed="${x.id===s.id}" onclick="signatureEscolherCertidao('${id}','${g.id}','${x.id}')">${x.nome}</button>`).join('')}</nav></div>`:''}<div class="signature-cert-titulo"><h3>${s.nome}</h3><span class="signature-cert-etiqueta${s.manual?' manual':''}">${s.manual?'Manual · automação futura':'Automação existente'}</span></div>${conteudo}${s.manual?manual:`<details class="signature-cert-alternativa"><summary>Anexar documento já obtido</summary>${manual}</details>`}<p class="signature-ajuda" role="status" id="signature-cert-feedback-${id}">${escTxt(st.mensagem)}</p><div class="signature-pedido-andamento" id="signature-cert-msg-${id}" role="status">${ajMsgHtml(c.id)}</div><ul class="cx-solte-prog" id="solte-prog-${id}">${solteProgHtml(c.id)}</ul><details class="signature-cert-salvos"><summary>Certidões salvas neste caso (${salvos.length})</summary>${salvos.length?`<ul>${salvos.map(d=>`<li>${/^https:\/\//.test(d.link||'')?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.certidaoNome||docsRotulo(d))}</a>`:escTxt(d.certidaoNome||docsRotulo(d))}${d.certidaoSujeito||d.pessoa?` · ${escTxt(d.certidaoSujeito||d.pessoa)}`:''}</li>`).join('')}</ul>`:'<p class="signature-ajuda">Nenhuma certidão identificada. Os demais arquivos continuam em Documentos.</p>'}</details></div>`;
+ return `<div class="signature-certidoes signature-certidoes-leve signature-certidoes-servicos" id="signature-certidoes-${id}" data-caso="${id}" data-recursos="${recursos}" data-pref-servico="${g.id}"><nav class="signature-cert-servicos" aria-label="Certidões">${SIGNATURE_CERT_GRUPOS.map(x=>`<button type="button" aria-label="${esc(x.nome)}" aria-description="${esc(descricaoIndicador(indicadores[x.id]))}" aria-pressed="${x.id===g.id}" onclick="signatureEscolherCertidao('${id}','${x.id}')">${x.nome}${indicadorHtml(indicadores[x.id])}</button>`).join('')}</nav>${g.sub?`<div class="signature-cert-subgrupo"><span>${g.id==='jucesp'?'Serviços da JUCESP':'Serviços de matrícula'}</span><nav class="signature-cert-tipos" aria-label="Opções da certidão">${g.sub.map(x=>`<button type="button" aria-label="${esc(x.nome)}" aria-description="${esc(descricaoIndicador(indicadores[g.id+':'+x.id]))}" aria-pressed="${x.id===s.id}" onclick="signatureEscolherCertidao('${id}','${g.id}','${x.id}')">${x.nome}${indicadorHtml(indicadores[g.id+':'+x.id])}</button>`).join('')}</nav></div>`:''}<div class="signature-cert-titulo"><h3>${s.nome}</h3><span class="signature-cert-etiqueta${s.manual?' manual':''}">${s.manual?'Manual · automação futura':'Automação existente'}</span></div>${conteudo}${s.manual?manual:`<details class="signature-cert-alternativa"><summary>Anexar documento já obtido</summary>${manual}</details>`}<p class="signature-ajuda" role="status" id="signature-cert-feedback-${id}">${escTxt(st.mensagem)}</p><div class="signature-pedido-andamento" id="signature-cert-msg-${id}" role="status">${ajMsgHtml(c.id)}</div><ul class="cx-solte-prog" id="solte-prog-${id}">${solteProgHtml(c.id)}</ul><details class="signature-cert-salvos"><summary>Certidões salvas neste caso (${salvos.length})</summary>${salvos.length?`<ul>${salvos.map(d=>`<li>${/^https:\/\//.test(d.link||'')?`<a href="${esc(d.link)}" target="_blank" rel="noopener">${escTxt(d.certidaoNome||docsRotulo(d))}</a>`:escTxt(d.certidaoNome||docsRotulo(d))}${d.certidaoSujeito||d.pessoa?` · ${escTxt(d.certidaoSujeito||d.pessoa)}`:''}</li>`).join('')}</ul>`:'<p class="signature-ajuda">Nenhuma certidão identificada. Os demais arquivos continuam em Documentos.</p>'}</details></div>`;
 }
 window.signatureCertRedesenhar=signatureCertRedesenhar;
 window.signatureConferirJucesp=function(id){
@@ -6066,6 +6068,24 @@ window.signatureAnexarCertidao=async function(id,input){
  finally{st.upload=false;signatureCertRedesenhar(id);}
 };
 window.signatureAtualizarCertidoes=function(){document.querySelectorAll('.signature-certidoes').forEach(el=>{if(casos[el.dataset.caso]&&el.dataset.recursos!==[AJUDANTE.pronto,AJUDANTE.onr,AJUDANTE.pref].join('-'))signatureCertRedesenhar(el.dataset.caso);});};
+const SIGNATURE_PEDIDOS_ATIVOS=new Map();
+async function signatureGravarPedido(id,chave,valor){
+ try{await runTransaction(ref(db,'casos/'+id),c=>c?{...c,certidoesPedidos:{...c.certidoesPedidos,[chave]:{...c.certidoesPedidos?.[chave],...valor}}}:undefined);}
+ catch(e){signatureCertMensagem(id,'Não consegui salvar o acompanhamento deste pedido. Confira o andamento abaixo antes de solicitar novamente.');}
+}
+window.addEventListener('message',ev=>{
+ const d=ev.data,p=d?.pedido;
+ if(ev.source!==window||ev.origin!==location.origin||d?.fonte!=='painel-cartorio'||d.tipo!=='ajudante-pedido'||!casos[p?.casoId]||AJUDANTE.msg[p.casoId]?.id!==p.id)return;
+ const registro=pedidoCertidao(p);if(!registro)return;
+ const em=Date.now();SIGNATURE_PEDIDOS_ATIVOS.set(p.id,{casoId:p.casoId,registro});
+ signatureGravarPedido(p.casoId,p.id,{...registro,solicitadoEm:em,atualizadoEm:em});
+});
+window.signatureProgressoPedido=function(d){
+ const pedido=SIGNATURE_PEDIDOS_ATIVOS.get(d.id);if(!pedido||!d.fim)return;
+ SIGNATURE_PEDIDOS_ATIVOS.delete(d.id);
+ const estado=/^cancelado/i.test(d.texto||'')?'cancelada':d.estado==='ok'?'aguardandoArquivo':'erro';
+ signatureGravarPedido(pedido.casoId,d.id,{estado,atualizadoEm:Date.now()});
+};
 const SIGNATURE_DOCS_ABA={};
 function signatureDocumentosHtml(c){
  const id=esc(c.id),aba=SIGNATURE_DOCS_ABA[c.id]||'anexar';
@@ -6099,7 +6119,7 @@ function signatureCabecalhoHtml(c,html){
  return html.replace(cxTipoHtml(c),tipo).replace('title="Editar nome"','title="Editar nome do caso" aria-label="Editar nome do caso"');
 }
 function signaturePaginaHtml(c){
-  const p=cardPartes(c),md=motorDecisao(c);
+  const p=cardPartes(c),md=motorDecisao(c),indicadores=indicadoresCaso(c);
   const observacoes=p.obs.replace('<span class="obs-label">Observações</span>',`<div class="signature-obs-cabecalho"><span class="obs-label">Observações</span><button type="button" class="cx-btn" onclick="signatureAdicionarObs('${c.id}')" aria-controls="obs-edit-${c.id}"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar observação</button></div>`).replace('<textarea rows="2"', '<textarea aria-label="Nova observação" rows="3"').replace('Digite a nova informação — ela entra numerada no topo do histórico acima','Escreva aqui a nova observação do caso…').replace('>Salvar</button>','>Salvar observação</button>');
   const abas=['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico','Mais ações'];
   const preferida=ESTEIRA_ABA[c.id]||esteiraAbaAberta(c);
@@ -6118,7 +6138,7 @@ function signaturePaginaHtml(c){
   return signatureCabecalhoHtml(c,p.abre.replace(/<\/div>\s*$/,`<section class="signature-cadastro" aria-label="Assinatura e registro">${p.linha}</section></div>`)).replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
     `<div class="signature-dados">${camposCasoHtml(c,DEPS)}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
     <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Caso concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}${observacoes}</div></section>
-    <div class="signature-ferramentas"><nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')?' on':''}" aria-label="${f}" aria-pressed="${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')}" onclick="esteiraAba('${c.id}','${f}')">${f}</button>`).join('')}</nav>
+    <div class="signature-ferramentas"><nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')?' on':''}" aria-label="${f}" aria-description="${esc(descricaoIndicador(indicadores[f]))}" aria-pressed="${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')}" onclick="esteiraAba('${c.id}','${f}')">${f}${indicadorHtml(indicadores[f])}</button>`).join('')}</nav>
     <section class="est-painel signature-trabalho" aria-label="${esc(aberta)}">${aberta==='Capa do dossiê'?`<button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Mais ações')">Voltar para Mais ações</button>`:''}${conteudo}</section></div>
     <footer class="cx-acoes signature-rodape"><button type="button" class="cx-btn perigo" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash"></i> Excluir</button><button type="button" class="cx-btn concluir" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button></footer></div>`;
 }
@@ -13725,6 +13745,7 @@ function ajudanteOuvir(e){
     if(typeof window.signatureAtualizarCertidoes==='function')window.signatureAtualizarCertidoes();
   }
   if(d.tipo==='ajudante-progresso'){
+    window.signatureProgressoPedido?.(d);
     const casoId=Object.keys(AJUDANTE.msg).find(k=>AJUDANTE.msg[k].id===d.id); if(!casoId) return;
     const nome=(AJUDANTE.atual[casoId]||{}).nome||ajFormatarCnpj((AJUDANTE.atual[casoId]||{}).cnpj||'');
     const texto=(nome&&AJUDANTE.fila[casoId]!==undefined&&(AJUDANTE.log[casoId]||[]).length+(AJUDANTE.fila[casoId]||[]).length>0?nome+': ':'')+String(d.texto||'').slice(0,300);
