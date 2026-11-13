@@ -189,3 +189,7 @@ Pedido da Tháriga: (1) **registrar adiantamento** pago a uma profissional — f
 ## Mapeamento de cílios (12/11/2026)
 
 Botão **Mapeamento** no cartão da agenda (cílios, manutenção, lash lift), agendado ou atendido. Um olho só, 9 quadrantes em branco, efeito/nome do fio/curvatura/observação em texto livre. Salvo em `registros/{agenda}__mapa` (não mexe no registro do atendimento nem nas regras). O cartão mostra "Último mapa", o diálogo oferece "Usar este de novo", e a ficha da cliente lista os últimos 5 (`mapasDe`, `dlgMapa`).
+
+## Escala da Tháriga (13/11/2026)
+
+Em Agenda online há a caixa **Escala da Tháriga**: marca os dias da semana em que ela fica no Florença (nos demais, Itaquera) e aceita **períodos especiais** (de/até, ex.: dezembro) que valem no lugar do normal. Guardada em `publico/agenda/{mai,flo}/cfg/escala` (`{flo:[4,5,6],periodos:[{de,ate,flo:[…]}]}`), lida por `escalaTha()`/`floDiasEm()`/`unitFor()` no painel e por `thaUnidadeEm()` em `pedido.html`. Sem escala salva, vale o padrão antigo (Florença quinta a sábado). Sem mudança nas regras do banco.

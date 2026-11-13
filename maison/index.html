@@ -399,7 +399,7 @@ window.addEventListener('unhandledrejection',e=>guardaErro(e.reason&&e.reason.me
 async function grava(fn,ok){try{await fn();if(ok)toast(ok);return true}catch(e){console.error(e);guardaErro(e.message);
   toast('Não foi possível salvar: '+(/permission/i.test(e.message)?'o banco recusou (permissão)':e.message));return false}}
 
-if(DEMO)setTimeout(()=>{window.__DB=DB},0);
+if(DEMO)setTimeout(()=>{window.__DB=DB;window.__T={unitFor,prosDaUnidade,unidadesDoDia,agonBox}},0);
 // ═══ Dados do negócio ══════════════════════════════════════════════════
 const U={
  flo:{n:'Estúdio Florença',em:'no',de:'do',s:'Itaim Bibi',dias:'Quinta, sexta e sábado',hora:'09:00–19:00'},
@@ -475,7 +475,12 @@ const iso=d=>{const x=new Date(d);return `${x.getFullYear()}-${String(x.getMonth
 const brl=v=>(+v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fd=(d,o)=>new Date(d+'T12:00').toLocaleDateString('pt-BR',o||{day:'2-digit',month:'2-digit'});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const unitFor=d=>[4,5,6].includes(new Date(typeof d==='string'?d+'T12:00':d).getDay())?'flo':'mai';
+// Escala da Tháriga (13/11/2026): em quais dias da semana ela fica no Florença (nos outros, Itaquera). Há um padrão e períodos especiais (ex.: dezembro),
+// guardados em publico/agenda/*/cfg/escala — a Shirley/Tháriga mudam sozinhas em Agenda online, sem programar nada.
+const ESCALA_PADRAO={flo:[4,5,6]};
+const escalaTha=()=>((C.pubMai||{}).cfg||{}).escala||((C.pubFlo||{}).cfg||{}).escala||{};
+const floDiasEm=(data,esc)=>{esc=esc||escalaTha();const per=(esc.periodos||[]).filter(x=>x.de&&x.ate&&x.de<=data&&data<=x.ate).pop();return per?(per.flo||[]):(esc.flo||ESCALA_PADRAO.flo)};
+const unitFor=d=>{const s=typeof d==='string'?d:iso(new Date(d));return floDiasEm(s).includes(new Date(s+'T12:00').getDay())?'flo':'mai'};
 function quinzena(ref){const y=ref.getFullYear(),m=ref.getMonth(),day=ref.getDate();
   if(day<=15) return {ini:new Date(y,m,1),fim:new Date(y,m,15),pago:new Date(y,m,20)};
   const fimMes=new Date(y,m+1,0).getDate();
@@ -792,8 +797,8 @@ const MOTIVOS_BLQ=['Fechado','Reservado','Almoço','Compromisso','Outro'];
 // Tháriga (16/10/2026): ela fica em Itaquera de domingo a quarta e no Florença de quinta a sábado; a agenda do Rafael e da Mariana fica aberta todos os dias, e eles mesmos fecham os dias em que não atendem.
 const dowDe=d=>new Date((typeof d==='string'?d:iso(d))+'T12:00').getDay();
 const STAFF_DIAS=[0,1,2,3,4,5,6]; // agendas abertas todos os dias: quem não atende num dia fecha o horário (Fechar horário → dia inteiro)
-const prosDaUnidade=(u,d)=>{if(u==='flo')return ['tha'];const w=dowDe(d);return [...(w<=3?['tha']:[]),...(STAFF_DIAS.includes(w)?['rafael','mariana','ana']:[])]};
-const unidadesDoDia=d=>dowDe(d)>=4?['flo','mai']:['mai'];
+const prosDaUnidade=(u,d)=>{if(u==='flo')return ['tha'];const w=dowDe(d);return [...(unitFor(d)==='mai'?['tha']:[]),...(STAFF_DIAS.includes(w)?['rafael','mariana','ana']:[])]};
+const unidadesDoDia=d=>unitFor(d)==='flo'?['flo','mai']:['mai'];
 function bloqueioNoSlot(u,d,t,t2){return bloqueios().filter(b=>b.unit===u&&b.date===d&&minDe(b.hora)<t2&&minDe(b.hora)+b.m>t)}
 function gradeDoDia(u,d){const g=agonCfg(u),par=g.paralelo,ini=minDe(g.ini),fim=minDe(g.fim),out=[];
   const ags=agendaAtiva().filter(a=>a.unit===u&&a.date===d);
@@ -1238,6 +1243,18 @@ function lkRecusar(id,p){const a=agenda().find(x=>x.id===id&&x._p===p);if(!a)ret
     const ok=await grava(()=>DB.upd(p+'/agenda/'+id,{st:'Cancelado',visto:true,canceladoPor:S.user.nome,canceladoEm:iso(TODAY),motivo:'recusado'}),'Horário cancelado');
     if(ok){closeDlg();window.open(zapLink(c.tel,t),'_blank','noopener')}}}
 // Configuração (Serviços e preços): a Tháriga liga cada unidade e define as regras.
+const DIAS_ORD=[1,2,3,4,5,6,0],DIAS_CURTO=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const escDiasHtml=(sel,cls)=>DIAS_ORD.map(n=>`<label class="ck" style="display:inline-flex;margin:0 10px 0 0"><input type="checkbox" class="${cls}" value="${n}" ${sel.includes(n)?'checked':''}>${DIAS_CURTO[n]}</label>`).join('');
+const escPeriodoHtml=x=>`<div class="box esc-per" style="margin:8px 0;background:var(--panel)"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end"><label class="f" style="margin:0">De<input type="date" class="esc-de" value="${x.de||''}"></label><label class="f" style="margin:0">Até<input type="date" class="esc-ate" value="${x.ate||''}"></label><button type="button" class="btn sm esc-rm">Remover</button></div><div class="small muted" style="margin:8px 0 4px">Nestes dias ela fica no Florença nos dias marcados:</div>${escDiasHtml(x.flo||[],'esc-pd')}</div>`;
+function escalaBox(){const e=escalaTha();return `<div class="box" style="margin:0 0 12px;background:var(--bg)"><h3 style="margin:0 0 4px">Escala da Tháriga</h3>
+   <p class="small muted" style="margin:0 0 8px">Marque os dias em que ela fica no <b>Florença</b>. Nos dias não marcados ela fica em <b>Itaquera</b>. Vale na agenda, nos horários livres e na página da cliente.</p>
+   <div class="small" style="margin-bottom:4px"><b>Normalmente</b></div>${escDiasHtml(e.flo||ESCALA_PADRAO.flo,'esc-pad')}
+   <div class="small" style="margin:12px 0 0"><b>Períodos especiais</b> (por exemplo, dezembro) — valem no lugar do normal</div>
+   <div id="esc-lista">${(e.periodos||[]).map(escPeriodoHtml).join('')}</div>
+   <button type="button" class="btn sm" id="esc-add">+ Adicionar período</button></div>`}
+function lerEscala(){const nums=cls=>[...document.querySelectorAll('.'+cls)].filter(i=>i.checked).map(i=>+i.value);const per=[];
+  for(const b of document.querySelectorAll('.esc-per')){const de=b.querySelector('.esc-de').value,ate=b.querySelector('.esc-ate').value;if(!de&&!ate)continue;if(!de||!ate||ate<de)return null;per.push({de,ate,flo:[...b.querySelectorAll('.esc-pd')].filter(i=>i.checked).map(i=>+i.value)})}
+  const o={flo:nums('esc-pad')};if(per.length)o.periodos=per;return o}
 function agonBox(){const bloco=u=>{const g=agonCfg(u);return `<div class="box" style="margin:0 0 12px;background:var(--bg)"><h3 style="margin:0 0 8px">${U[u].n}</h3>
    <label class="ck"><input type="checkbox" id="ag-${u}-on" ${g.ativo?'checked':''}>Receber marcações pelo link</label>
    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><label class="f" style="margin:0">Abre às<input type="time" id="ag-${u}-i" value="${g.ini}"></label><label class="f" style="margin:0">Último horário termina às<input type="time" id="ag-${u}-f" value="${g.fim}"></label></div>
@@ -1247,7 +1264,7 @@ function agonBox(){const bloco=u=>{const g=agonCfg(u);return `<div class="box" s
   return `<div class="box" style="margin-bottom:16px"><h2>Agenda online (a secretária)</h2>
    <p class="small muted" style="margin-top:0">A cliente abre o link, escolhe serviço, dias e período, vê só os horários livres e já marca. O horário entra na agenda sozinho. Comece ligando só uma unidade para testar.</p>
    <p class="small" style="margin:0 0 12px">Link para o WhatsApp e o Instagram: <b>${esc(origemPublica())}/p</b> <button class="btn sm" id="ag-copy">Copiar</button></p>
-   ${bloco('mai')}${bloco('flo')}<button class="btn p sm" id="ag-save">Salvar agenda online</button></div>`}
+   ${escalaBox()}${bloco('mai')}${bloco('flo')}<button class="btn p sm" id="ag-save">Salvar agenda online</button></div>`}
 function novoAg(pre){
   pre=pre&&typeof pre==='object'&&!(pre instanceof Event)?pre:{};
   const visiveis=cliVisiveis();
@@ -2215,11 +2232,13 @@ function render(){
   main.querySelectorAll('[data-lkrec]').forEach(b=>b.onclick=()=>lkRecusar(b.dataset.lkrec,b.dataset.pp));
   main.querySelectorAll('[data-lkfi]').forEach(b=>b.onclick=()=>enviarLinkAnamnese(b.dataset.lkfi));
   const agc=document.getElementById('ag-copy');if(agc)agc.onclick=async()=>{try{await navigator.clipboard.writeText(origemPublica()+'/p');toast('Link copiado')}catch(e){toast('Não foi possível copiar')}};
-  const ags=document.getElementById('ag-save');if(ags)ags.onclick=async()=>{ags.disabled=true;let ok=true;
+  const ea=document.getElementById('esc-add');if(ea){ea.onclick=()=>document.getElementById('esc-lista').insertAdjacentHTML('beforeend',escPeriodoHtml({}));
+    document.getElementById('esc-lista').onclick=e=>{const b=e.target.closest('.esc-rm');if(b)b.closest('.esc-per').remove()}}
+  const ags=document.getElementById('ag-save');if(ags)ags.onclick=async()=>{ags.disabled=true;let ok=true;const escala=lerEscala();if(!escala){toast('Escala da Tháriga: confira as datas dos períodos (início e fim)');ags.disabled=false;return}
     for(const u of ['mai','flo']){const g=id=>document.getElementById('ag-'+u+'-'+id),ini=g('i').value,fim=g('f').value,par=agonCfg(u).paralelo;
       if(!ini||!fim||minDe(fim)<=minDe(ini)){toast(`${U[u].n}: confira o horário de abrir e fechar`);ags.disabled=false;return}
       const fech=g('x').value.split(/[,;\s]+/).filter(Boolean);if(fech.some(d=>!/^\d{4}-\d{2}-\d{2}$/.test(d))){toast(`${U[u].n}: as datas sem atendimento precisam estar como AAAA-MM-DD`);ags.disabled=false;return}
-      const cfg={ativo:g('on').checked,ini,fim,paralelo:par,passo:30,dias:21,diasFrente:Math.min(365,Math.max(7,+g('n').value||180)),antecH:3};if(fech.length)cfg.fechados=fech;{const e=g('d').value.trim();if(e)cfg.endereco=e}
+      const cfg={ativo:g('on').checked,ini,fim,paralelo:par,passo:30,dias:21,diasFrente:Math.min(365,Math.max(7,+g('n').value||180)),antecH:3};cfg.escala=escala;if(fech.length)cfg.fechados=fech;{const e=g('d').value.trim();if(e)cfg.endereco=e}
       ok=await grava(()=>DB.set('publico/agenda/'+u+'/cfg',cfg))&&ok}
     if(ok)toast('Agenda online salva');ags.disabled=false};
   main.querySelectorAll('[data-nvok]').forEach(b=>b.onclick=()=>grava(()=>DB.upd(b.dataset.nvp+'/clientes/'+b.dataset.nvok,{niverFeito:TODAY.getFullYear()}),'Aniversário dispensado da lista'));
