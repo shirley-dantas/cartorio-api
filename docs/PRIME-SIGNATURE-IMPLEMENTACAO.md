@@ -190,7 +190,7 @@ posição ao lado do nome no computador, edição de Livro pelo manipulador exis
 e adaptação no tablet/celular. Celular também passou.
 A usuária aprovou a prévia e autorizou a publicação em 13/11/2026.
 
-## Acabamento do cabeçalho — prévia em 13/11/2026
+## Acabamento do cabeçalho — aprovado em 13/11/2026
 
 A pedido da usuária, todas as posições e dimensões do cabeçalho são mantidas.
 O acabamento usa fundo marfim discreto nos campos, contornos mais claros,
@@ -198,7 +198,8 @@ rótulos neutros e ações secundárias com menor contraste. Nome, complemento,
 tipo de ato, assinatura e registro mantêm os valores e controles existentes.
 Nenhum HTML, manipulador ou regra de negócio muda nesta etapa.
 
-A prévia aguarda aprovação antes de publicar.
+A usuária aprovou o acabamento e autorizou a publicação em 13/11/2026.
+Signature e Celular passaram.
 
 ## Financeiro e privacidade
 
