@@ -444,7 +444,7 @@ try{
  }));
  await pg.waitForFunction(()=>!!document.querySelector('.signature-cert-dados select option[value="52247521000141"]'));
  const dadosAntesAbas=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
- for(const nome of ['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico','Mais ações']){
+ for(const nome of ['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico']){
   await pg.locator('.signature-funcoes').getByRole('button',{name:nome,exact:true}).click();
   assert.equal(await pg.locator('.signature-funcoes [aria-pressed="true"]').count(),1);
   assert.equal(await pg.locator('.signature-trabalho').getAttribute('aria-label'),nome);
@@ -545,12 +545,19 @@ try{
  await pg.evaluate(()=>window.ajudanteOuvir({source:window,data:{fonte:'ajudante',tipo:'ajudante-pronto',versao:'0.3.4',onr:true,pref:true}}));
  assert.equal(await pg.locator('.signature-trabalho .cx-aj').count(),0,'sem automação duplicada em Documentos');
  console.log('ok: oito serviços, subpílulas, conferência, JUCESP separada/contrato com ficha, pedido Prefeitura, bloqueio de repetição, anexo manual identificado e celular.');
+ const antesDossie=await pg.evaluate(()=>structuredClone(window.__data.casos.C1));
+ await pg.evaluate(()=>{window.__capaOriginal=window.capaImprimir;window.__capasPedidas=[];window.capaImprimir=id=>{window.__capasPedidas.push(id);window.signatureRegistrarCapa(id);};});
+ assert.equal(await pg.locator('.signature-funcoes').getByRole('button',{name:'Mais ações',exact:true}).count(),0);
+ assert.equal(await pg.locator('.signature-funcoes').getByRole('button',{name:'Dossiê',exact:true}).locator('.ti-printer').count(),1);
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Dossiê',exact:true}).click();
+ await pg.waitForFunction(()=>window.__data.casos.C1.capaGeradaEm>0);
+ await pg.waitForTimeout(350);
+ assert.deepEqual(await pg.evaluate(()=>window.__capasPedidas),['C1'],'um clique gera a capa sem navegar para outro painel');
+ assert.equal(await pg.locator('.signature-funcoes').getByRole('button',{name:'Dossiê',exact:true}).locator('.salvo').count(),1);
+ await pg.evaluate(c=>{window.capaImprimir=window.__capaOriginal;window.__fbWrite('casos/C1',c);},antesDossie);
+ await pg.waitForTimeout(350);
  const antes=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
- await pg.locator('.signature-funcoes').getByRole('button',{name:'Mais ações',exact:true}).click();
  assert.equal(await pg.locator('.signature-proxima [onclick*=signatureAdicionarObs]').isVisible(),true);
- await pg.locator('.signature-processo').screenshot({path:join(AQUI,'saida','card-mais-acoes-computador.png')});
- await pg.locator('.signature-trabalho').getByRole('button',{name:/Capa do dossiê/}).click();
- assert.equal(await pg.locator('.signature-trabalho').getAttribute('aria-label'),'Capa do dossiê');
  pg.once('dialog',dialog=>dialog.dismiss());
  await pg.locator('.signature-rodape [onclick*=excluirCaso]').click();
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),antes,'cancelar exclusão preserva o caso');
@@ -586,6 +593,16 @@ try{
  await pg.waitForFunction(()=>!!document.querySelector('.signature-orc-simples [onclick*=orcAbrirDoCaso]'));
  await pg.waitForTimeout(350); // A carga inicial agenda o redesenho dos cards em 200 ms.
  const orcAntes=await pg.evaluate(()=>JSON.stringify(window.__data.orcamentos));
+ assert.equal(await pg.locator('.signature-funcoes').getByRole('button',{name:'Orçamento',exact:true}).locator('.salvo').count(),1,'orçamento já salvo recebe indicador');
+ const antesTicks=await pg.evaluate(()=>structuredClone(window.__data.casos.C1));
+ await pg.evaluate(()=>window.__fbWrite('casos/C1',{...window.__data.casos.C1,docUrl:'https://docs.google.com/document/d/ficticio',driveUrl:'https://drive.google.com/drive/folders/ficticio',pagamento:{token:'ficticio',status:'aguardando'},capaGeradaEm:Date.now()}));
+ await pg.waitForTimeout(350);
+ for(const nome of ['Minuta','Orçamento','Pagamento','Drive','Dossiê'])assert.equal(await pg.locator('.signature-funcoes').getByRole('button',{name:nome,exact:true}).locator('.salvo').count(),1,nome+' indica recurso já disponível');
+ assert.match(await pg.locator('.signature-funcoes').getByRole('button',{name:'Pagamento',exact:true}).getAttribute('aria-description'),/não confirma quitação/);
+ await pg.locator('.signature-funcoes').screenshot({path:join(AQUI,'saida','pilulas-contraste-todos-indicadores.png')});
+ await pg.evaluate(c=>window.__fbWrite('casos/C1',c),antesTicks);
+ await pg.waitForTimeout(350);
+
  assert.deepEqual(await pg.locator('.signature-orc-simples button').allTextContents(),['Novo','Ver orçamento','Modo cliente']);
  assert.doesNotMatch(await pg.locator('.signature-orc-simples').innerHTML(),/R\$|Em elaboração|Total|12\/11\/2026/,'nenhum resumo ou valor acima dos atalhos');
  await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','orcamento-tres-atalhos.png')});
@@ -606,7 +623,7 @@ try{
  await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','orcamento-tres-atalhos-celular.png')});
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.orcamentos)),orcAntes,'navegar e abrir os três atalhos não alteram versões salvas');
  await pg.setViewportSize({width:1440,height:1000});
- for(const nome of ['Minuta','Pagamento','Drive','Histórico','Mais ações']){
+ for(const nome of ['Minuta','Pagamento','Drive','Histórico']){
   await pg.locator('.signature-funcoes').getByRole('button',{name:nome,exact:true}).click();
   await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-suaves-'+({'Minuta':'minuta','Pagamento':'pagamento','Drive':'drive','Histórico':'historico','Mais ações':'mais-acoes'}[nome])+'.png')});
  }
@@ -627,7 +644,7 @@ try{
  assert.equal(await pg.locator('.signature-processo').count(),1);
  await pg.getByRole('button',{name:/Voltar aos casos/}).click();
  assert.equal(await pg.locator('.central-nova').isVisible(),true);
- console.log('ok: página exclusiva, Etapa sem jornada duplicada, Mais ações junto das ferramentas, Atendimento ausente, Excluir visível e confirmação preservada.');
+ console.log('ok: página exclusiva, Etapa sem jornada duplicada, Dossiê direto com impressora junto das ferramentas, Atendimento ausente, Excluir visível e confirmação preservada.');
  await pg.setViewportSize({width:390,height:844});
  await pg.screenshot({path:join(AQUI,'saida','signature-central-celular.png'),fullPage:true});
  assert.equal(await pg.locator('#signature-menu').isVisible(),true);

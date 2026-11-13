@@ -5458,64 +5458,38 @@ function capaDados(c){
   };
 }
 function capaHtml(d){
-  const t = x => escTxt(x || ''), reais = x => orcMoeda(x);
-  const linhaOrc = (rot, val) => `<div class="l"><span>${rot}</span><b>${d.orc ? reais(val) : 'R$ ______'}</b></div>`;
-  const dias = ['SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO','DOMINGO'].map(n => `<div class="dia"><i>${n}</i><u></u></div>`).join('');
-  const pend = '<div class="p">☐<s></s></div>'.repeat(6);
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Capa do dossiê</title><style>
+ const t=x=>escTxt(x||''),reais=x=>orcMoeda(x);
+ const linhaOrc=(rot,val)=>`<div class="l"><span>${rot}</span><b>${d.orc?reais(val):'R$ ______'}</b></div>`;
+ const dias=['SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO','DOMINGO'].map(n=>`<div class="dia"><i>${n}</i><u></u></div>`).join('');
+ const pend='<div class="p">☐<s></s></div>'.repeat(6);
+ return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Capa do dossiê</title><style>
 @page{size:A4;margin:0}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-:root{--tinta:#1F2A33;--tinta2:#5B6B78;--champ:#A9895A;--recuo:#F4F1EA;--filete:#ECE7DD}
-body{margin:0;background:#fff;color:var(--tinta);font-family:Arial,Helvetica,sans-serif}
-.fl{width:210mm;height:297mm;display:flex;flex-direction:column;overflow:hidden}
-.tarja{background:var(--tinta);color:#fff;border-bottom:1.6mm solid var(--champ);padding:7mm 12mm 6mm;display:flex;justify-content:space-between;align-items:flex-end}
-.tarja .u{font-size:9pt;letter-spacing:.5mm;font-weight:700}.tarja .u b{display:block;font-size:17pt;letter-spacing:.2mm;margin-top:1.5mm}
-.tarja .t{text-align:right}.tarja .t b{display:block;font-size:22pt;letter-spacing:.5mm}.tarja .t span{font-size:11pt;display:block;margin-top:2mm}
-.corpo{padding:6mm 12mm 0;display:flex;flex-direction:column;gap:5mm;flex:1}
-.bloco{background:var(--recuo);border-radius:1.2mm;padding:4.5mm 6mm}
-.rot{font-size:7pt;font-weight:700;letter-spacing:.45mm;color:var(--tinta2);text-transform:uppercase}
-.esc{display:flex;align-items:center;gap:8mm}
-.esc .n{font-size:12pt;font-weight:800;min-width:28mm;white-space:nowrap}.esc .n small{display:block;font-size:7pt;letter-spacing:.45mm;color:var(--tinta2);font-weight:700;margin-bottom:.8mm}
-.esc .d{font-size:10pt;font-weight:700;white-space:nowrap}
-.esc .m{margin-left:auto;font-size:10pt;font-weight:700;display:grid;grid-template-columns:auto auto;gap:1.6mm 7mm;white-space:nowrap}
-.meio{display:flex;gap:5mm}
-.dias{width:55mm;display:flex;flex-direction:column;gap:2.4mm}
-.dia{background:var(--recuo);border-radius:1.2mm;height:28mm;overflow:hidden}
-.dia i{display:block;background:var(--tinta);color:#fff;font:700 7pt Arial;letter-spacing:.45mm;padding:1.4mm 3.5mm;font-style:normal}
-.dia u{display:block;margin:5mm 3.5mm 0;border-bottom:0.25mm solid var(--tinta);height:6mm;text-decoration:none}
-.dir{flex:1;display:flex;flex-direction:column;gap:5mm;min-width:0}
-.r{display:flex;gap:4mm;align-items:flex-end;margin-top:4.2mm}.r:first-of-type{margin-top:2mm}
-.r b{font-size:7.5pt;letter-spacing:.35mm;min-width:27mm;color:var(--tinta2)}
-.r span{flex:1;border-bottom:0.25mm solid var(--tinta);min-height:6mm;font-size:10.5pt;font-weight:700;min-width:0;overflow-wrap:anywhere}
-.g{display:grid;grid-template-columns:1fr 1fr;gap:5.5mm 9mm;margin-top:3mm}.c{display:flex;gap:2.5mm;align-items:flex-end}
-.c b{font-size:7.5pt;letter-spacing:.35mm;color:var(--tinta2);white-space:nowrap}.c span{flex:1;border-bottom:0.25mm solid var(--tinta);min-height:6mm;font-size:10.5pt;font-weight:700;min-width:0;overflow-wrap:anywhere}
-.baixo{display:flex;gap:5mm}.baixo .bloco{flex:1}
-.orc .l{display:flex;justify-content:space-between;font-size:10pt;padding:2.3mm 2.5mm;margin:0 -2.5mm}
-.orc .l:nth-child(odd){background:var(--filete)}.orc .l b{font-weight:800}
-.orc .tot{background:var(--tinta)!important;color:#fff;font-weight:800;margin-top:2mm}
-.pen .p{display:flex;gap:2.5mm;align-items:flex-end;margin-top:5.6mm;font-size:12pt}.pen .p s{flex:1;border-bottom:0.25mm solid var(--tinta);height:5.4mm;text-decoration:none}
-.rod{background:var(--tinta);border-top:1.6mm solid var(--champ);color:#fff;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8mm;padding:5mm 12mm 7mm}
-.rod b{font-size:7pt;letter-spacing:.45mm;display:block}.rod span{display:block;border-bottom:0.25mm solid #fff;height:7mm}
+body{margin:0;background:#fff;color:#303030;font-family:Arial,Helvetica,sans-serif}
+.fl{width:210mm;height:297mm;padding:10mm 14mm 10mm;display:flex;flex-direction:column;gap:2.5mm;overflow:hidden}
+.tarja{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:.35mm solid #777;padding-bottom:5mm;gap:8mm}
+.marca{font:24pt Georgia,serif;letter-spacing:2mm;color:#343434}.marca small{display:block;font:7pt Arial,sans-serif;letter-spacing:.7mm;margin-top:2mm;color:#666}
+.t{text-align:right;font-size:8pt;letter-spacing:.35mm;line-height:1.7}.t strong{display:block;font:18pt Georgia,serif;letter-spacing:0}.t span{font-size:8pt}
+.titulo{display:flex;justify-content:space-between;gap:6mm;align-items:baseline}.titulo b{font:17pt Georgia,serif;max-width:140mm;overflow-wrap:anywhere}.titulo span{font-size:8pt;white-space:nowrap}
+.rot{font:700 7pt Arial,sans-serif;letter-spacing:.35mm;color:#666;text-transform:uppercase;margin-bottom:3mm}
+.bloco{border:.2mm solid #d8d8d8;border-radius:2mm;padding:3mm 5mm;min-width:0}
+.arquivo{font:14pt Georgia,serif;line-height:1.3;overflow-wrap:anywhere;margin-bottom:4mm}
+.esc{display:grid;grid-template-columns:1.15fr 1fr;gap:3mm 5mm;font-size:9pt;line-height:1.7}.esc .n{font-size:10pt}.esc .n small{display:block;font-size:7pt;letter-spacing:.3mm;color:#777}.esc .m{grid-column:1 / -1;font-size:8pt;display:flex;justify-content:space-between;gap:4mm;border-top:.2mm solid #e5e5e5;padding-top:2mm}
+.partes{display:grid;grid-template-columns:1fr 1fr;gap:5mm}.r{display:flex;gap:3mm;align-items:flex-end;margin-top:3mm}.r:first-child{margin-top:0}.r b{font-size:7pt;font-weight:400;color:#666;white-space:nowrap}.r span{flex:1;min-width:0;border-bottom:.2mm solid #aaa;min-height:6mm;overflow-wrap:anywhere}
+.g{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm 6mm}.c{min-width:0}.c b{display:block;font-size:7pt;font-weight:400;letter-spacing:.25mm;color:#666;margin-bottom:2mm}.c span{display:block;min-height:6mm;border-bottom:.2mm solid #aaa;font-size:10pt;overflow-wrap:anywhere}
+.dias{display:grid;grid-template-columns:repeat(7,1fr);border:.2mm solid #d8d8d8;border-radius:2mm;overflow:hidden}.dia{min-width:0;padding:3mm 2mm;border-right:.2mm solid #ddd}.dia:last-child{border:0}.dia i{display:block;font:6.5pt Arial,sans-serif;letter-spacing:.1mm;color:#666;text-align:center;font-style:normal}.dia u{display:block;min-height:8mm;border-bottom:.2mm solid #aaa;margin:0 1mm;text-decoration:none}
+.baixo{display:grid;grid-template-columns:1fr 1fr;gap:5mm}.orc .l{display:flex;justify-content:space-between;gap:3mm;font-size:9pt;line-height:1.4;padding:1.3mm 0;border-bottom:.15mm solid #ededed}.orc .l b{font-weight:400;white-space:nowrap}.orc .tot{margin-top:1mm;border:0;border-top:.3mm solid #777;font-weight:700;padding-top:3mm}.orc .tot b{font-weight:700}
+.pen .p{display:flex;gap:2.5mm;align-items:flex-end;font-size:11pt;margin-top:2.5mm}.pen .p s{flex:1;border-bottom:.2mm solid #aaa;height:6mm;text-decoration:none}
+.rod{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:6mm;margin-top:auto;border-top:.2mm solid #aaa;padding-top:4mm}.rod b{display:block;font:7pt Arial,sans-serif;letter-spacing:.2mm;color:#666}.rod span{display:block;border-bottom:.2mm solid #aaa;height:8mm}
 </style></head><body><div class="fl">
-<div class="tarja"><div class="u">DOSSIÊ DO CASO<b>20º CARTÓRIO ITAIM</b></div><div class="t"><b>${t(d.tipo)}</b><span>MINUTA Nº ____________</span></div></div>
-<div class="corpo">
-<div class="bloco esc"><div class="n"><small>ESCREVENTE</small>${t(d.escrevente)}</div><div class="d">DATA: ${d.data ? t(d.data) : '___/___/___'} &nbsp;&nbsp; HORÁRIO: ${d.hora ? t(d.hora) : '_____'}</div>
-<div class="m"><span>☐ PRESENCIAL</span><span>☐ DILIGÊNCIA</span><span>☐ HÍBRIDA</span><span>☐ VÍDEO</span></div></div>
-<div class="meio"><div class="dias">${dias}</div>
-<div class="dir"><div class="bloco">
-<div class="r"><b>SOLICITANTE</b><span></span></div>
-<div class="r"><b>ARQUIVO</b><span>${t(d.arquivo)}</span></div>
-<div class="r"><b>OUTORGANTE(S)</b><span></span></div><div class="r"><b>&nbsp;</b><span></span></div>
-<div class="r"><b>OUTORGADO(S)</b><span></span></div><div class="r"><b>&nbsp;</b><span></span></div></div>
-<div class="bloco"><div class="rot">Dados do imóvel / controle</div><div class="g">
-<div class="c"><b>MATRÍCULA</b><span>${t(d.matricula)}</span></div><div class="c"><b>LIVRO</b><span>${t(d.livro)}</span></div>
-<div class="c"><b>REGISTRO</b><span>${t(d.registro)}</span></div><div class="c"><b>FOLHA</b><span>${t(d.folha)}</span></div>
-<div class="c"><b>PRENOTAÇÃO</b><span>${t(d.prenotacao)}</span></div><div class="c"><b>CONTROLE</b><span>${t(d.controle)}</span></div></div></div>
-<div class="baixo"><div class="bloco orc"><div class="rot" style="margin-bottom:3mm">Orçamento</div>
-${linhaOrc('Escritura', d.orc && d.orc.escritura)}${linhaOrc('Matrícula', d.orc && d.orc.matricula)}${linhaOrc('Registro', d.orc && d.orc.registro)}${linhaOrc('Prenotação', d.orc && d.orc.prenotacao)}${linhaOrc('Imposto', d.orc && d.orc.imposto)}${d.orc && d.orc.outros ? linhaOrc('Outras despesas', d.orc.outros) : ''}<div class="l tot"><span>TOTAL</span><b>${d.orc ? reais(d.orc.total) : 'R$ ______'}</b></div></div>
-<div class="bloco pen"><div class="rot">Pendências</div>${pend}</div></div>
-</div></div></div>
-<div class="rod"><div><b>ÚLTIMA ATUALIZAÇÃO</b><span></span></div><div><b>PRÓXIMO PASSO</b><span></span></div><div><b>RESPONSÁVEL / PRAZO</b><span></span></div></div>
+<header class="tarja"><div class="marca">PRIME<small>20º CARTÓRIO ITAIM</small></div><div class="t"><strong>Dossiê do caso</strong><span>MINUTA Nº ____________</span></div></header>
+<div class="titulo"><b>${t(d.tipo)}</b><span>CONTROLE: ${t(d.controle)||'__________'}</span></div>
+<section class="bloco"><div class="rot">Identificação do caso</div><div class="arquivo">${t(d.arquivo)}</div><div class="esc"><div class="n"><small>ESCREVENTE</small>${t(d.escrevente)}</div><div class="d">DATA: ${d.data?t(d.data):'___/___/___'} &nbsp; HORÁRIO: ${d.hora?t(d.hora):'_____'}</div><div class="m"><span>☐ PRESENCIAL</span><span>☐ DILIGÊNCIA</span><span>☐ HÍBRIDA</span><span>☐ VÍDEO</span></div></div></section>
+<section class="bloco"><div class="rot">Partes e solicitante</div><div class="r"><b>SOLICITANTE</b><span></span></div><div class="partes"><div><div class="r"><b>OUTORGANTE(S)</b><span></span></div><div class="r"><b>&nbsp;</b><span></span></div></div><div><div class="r"><b>OUTORGADO(S)</b><span></span></div><div class="r"><b>&nbsp;</b><span></span></div></div></div></section>
+<section class="bloco"><div class="rot">Imóvel e registro</div><div class="g"><div class="c"><b>MATRÍCULA</b><span>${t(d.matricula)}</span></div><div class="c"><b>REGISTRO</b><span>${t(d.registro)}</span></div><div class="c"><b>PRENOTAÇÃO</b><span>${t(d.prenotacao)}</span></div><div class="c"><b>LIVRO</b><span>${t(d.livro)}</span></div><div class="c"><b>FOLHA</b><span>${t(d.folha)}</span></div><div class="c"><b>CONTROLE</b><span>${t(d.controle)}</span></div></div></section>
+<section><div class="rot">Acompanhamento da semana</div><div class="dias">${dias}</div></section>
+<div class="baixo"><section class="bloco orc"><div class="rot">Orçamento</div>${linhaOrc('Escritura',d.orc&&d.orc.escritura)}${linhaOrc('Matrícula',d.orc&&d.orc.matricula)}${linhaOrc('Registro',d.orc&&d.orc.registro)}${linhaOrc('Prenotação',d.orc&&d.orc.prenotacao)}${linhaOrc('Imposto',d.orc&&d.orc.imposto)}${d.orc&&d.orc.outros?linhaOrc('Outras despesas',d.orc.outros):''}<div class="l tot"><span>TOTAL</span><b>${d.orc?reais(d.orc.total):'R$ ______'}</b></div></section><section class="bloco pen"><div class="rot">Pendências</div>${pend}</section></div>
+<footer class="rod"><div><b>ÚLTIMA ATUALIZAÇÃO</b><span></span></div><div><b>PRÓXIMO PASSO</b><span></span></div><div><b>RESPONSÁVEL / PRAZO</b><span></span></div></footer>
 </div></body></html>`;
 }
 // Imprime num quadro escondido, sem abrir janela (o navegador não bloqueia) e sem tocar na tela do painel.
@@ -5525,6 +5499,7 @@ window.capaImprimir = function(casoId){
   q.setAttribute('aria-hidden', 'true'); q.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
   q.onload = () => { try{ q.contentWindow.focus(); q.contentWindow.print(); }catch(e){ /* o navegador recusou imprimir */ } setTimeout(() => q.remove(), 60000); };
   q.srcdoc = html; document.body.appendChild(q);
+  window.signatureRegistrarCapa?.(casoId);
 };
 function capaFaixaHtml(c){
   const sem = !finAuth ? 'O quadro do orçamento sai em branco: entre no Financeiro para ele vir preenchido.'
@@ -6119,11 +6094,11 @@ function signatureCabecalhoHtml(c,html){
  return html.replace(cxTipoHtml(c),tipo).replace('title="Editar nome"','title="Editar nome do caso" aria-label="Editar nome do caso"');
 }
 function signaturePaginaHtml(c){
-  const p=cardPartes(c),md=motorDecisao(c),indicadores=indicadoresCaso(c);
+  const p=cardPartes(c),md=motorDecisao(c),indicadores=indicadoresCaso(c,{temOrcamento:!!(finAuth&&!orcErroLeitura&&orcUltimoDoCaso(c.id))});
   const observacoes=p.obs.replace('<span class="obs-label">Observações</span>',`<div class="signature-obs-cabecalho"><span class="obs-label">Observações</span><button type="button" class="cx-btn" onclick="signatureAdicionarObs('${c.id}')" aria-controls="obs-edit-${c.id}"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar observação</button></div>`).replace('<textarea rows="2"', '<textarea aria-label="Nova observação" rows="3"').replace('Digite a nova informação — ela entra numerada no topo do histórico acima','Escreva aqui a nova observação do caso…').replace('>Salvar</button>','>Salvar observação</button>');
-  const abas=['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico','Mais ações'];
+  const abas=['Documentos','Certidões','Minuta','Orçamento','Pagamento','Drive','Histórico','Dossiê'];
   const preferida=ESTEIRA_ABA[c.id]||esteiraAbaAberta(c);
-  const aberta=abas.includes(preferida)||preferida==='Capa do dossiê'?preferida:'Documentos';
+  const aberta=abas.includes(preferida)&&preferida!=='Dossiê'?preferida:'Documentos';
 
   let conteudo;
   if(aberta==='Drive')conteudo=p.drive;
@@ -6131,17 +6106,20 @@ function signaturePaginaHtml(c){
     const eventos=Object.values(c.historico||{}).sort((a,b)=>String(b.em||b.data||'').localeCompare(String(a.em||a.data||'')));
     conteudo=`<p class="signature-ajuda">As observações anteriores aparecem no bloco acima.</p>`+
       (eventos.length?`<ol class="signature-historico">${eventos.map(e=>`<li>${escTxt(e.texto||e.resumo||e.descricao||e.acao||e.tipo||'Atualização do caso')} <small>${escTxt(e.em||e.data||'')}</small></li>`).join('')}</ol>`:'<p class="signature-ajuda">Sem outras alterações registradas.</p>');
-  }else if(aberta==='Mais ações')conteudo=`<div class="signature-acoes-extras"><button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Capa do dossiê')"><i class="ti ti-folder"></i> Capa do dossiê</button></div>`;
-  else if(aberta==='Pagamento')conteudo=p.pag+p.fin;
+  }  else if(aberta==='Pagamento')conteudo=p.pag+p.fin;
   else conteudo=({'Documentos':signatureDocumentosHtml(c),'Certidões':signatureCertidoesHtml(c),'Minuta':p.minuta,'Orçamento':signatureOrcamentoHtml(c),'Capa do dossiê':p.capa})[aberta];
   const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos casos</button><span>Caso</span></div>`;
   return signatureCabecalhoHtml(c,p.abre.replace(/<\/div>\s*$/,`<section class="signature-cadastro" aria-label="Assinatura e registro">${p.linha}</section></div>`)).replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
     `<div class="signature-dados">${camposCasoHtml(c,DEPS)}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
     <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Caso concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}${observacoes}</div></section>
-    <div class="signature-ferramentas"><nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')?' on':''}" aria-label="${f}" aria-description="${esc(descricaoIndicador(indicadores[f]))}" aria-pressed="${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')}" onclick="esteiraAba('${c.id}','${f}')">${f}${indicadorHtml(indicadores[f])}</button>`).join('')}</nav>
-    <section class="est-painel signature-trabalho" aria-label="${esc(aberta)}">${aberta==='Capa do dossiê'?`<button type="button" class="cx-btn" onclick="esteiraAba('${c.id}','Mais ações')">Voltar para Mais ações</button>`:''}${conteudo}</section></div>
+    <div class="signature-ferramentas"><nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta?' on':''}" aria-label="${f}" aria-description="${esc(descricaoIndicador(indicadores[f]))}" aria-pressed="${f===aberta}" title="${f==='Dossiê'?'Gerar e imprimir a capa do dossiê':f}" onclick="${f==='Dossiê'?`capaImprimir('${c.id}')`:`esteiraAba('${c.id}','${f}')`}">${f==='Dossiê'?'<i class="ti ti-printer" aria-hidden="true"></i> ':''}${f}${indicadorHtml(indicadores[f])}</button>`).join('')}</nav>
+    <section class="est-painel signature-trabalho" aria-label="${esc(aberta)}">${conteudo}</section></div>
     <footer class="cx-acoes signature-rodape"><button type="button" class="cx-btn perigo" onclick="excluirCaso('${c.id}')"><i class="ti ti-trash"></i> Excluir</button><button type="button" class="cx-btn concluir" onclick="toggleConcluido('${c.id}')">${c.concluido?'Reabrir':'Concluir'}</button></footer></div>`;
 }
+window.signatureRegistrarCapa=async function(id){
+ try{await runTransaction(ref(db,'casos/'+id),c=>c?{...c,capaGeradaEm:Date.now()}:undefined);}
+ catch(e){finToast('A capa foi gerada, mas não consegui salvar o indicador no caso.');}
+};
 window.signatureAdicionarObs=function(id){
   const editor=document.getElementById('obs-edit-'+id);
   if(!editor)return;

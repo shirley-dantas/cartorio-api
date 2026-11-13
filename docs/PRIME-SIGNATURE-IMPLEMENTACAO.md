@@ -248,6 +248,31 @@ Ajudante e Celular passaram. A usuária aprovou a prévia e autorizou a
 publicação em 13/11/2026.
 Não exige nova extensão ou Apps Script.
 
+## Contraste, indicadores completos e dossiê — prévia em 13/11/2026
+
+As pílulas principais voltam a ter seleção vinho com texto branco; os serviços
+de Certidões usam contorno mais presente e seleção rosa suave. Traços continuam
+finos. Minuta usa docUrl, Drive usa driveUrl e Orçamento usa a existência do
+orçamento não cancelado, respeitando a autenticação e os erros de leitura.
+Pagamento indica link/comprovante disponível; não afirma quitação.
+
+Mais ações é substituído por Dossiê com impressora: um clique gera a capa e
+abre a impressão existente, sem navegar por duas telas. A geração da capa
+passa a registrar capaGeradaEm por transação no caso existente; o visto indica
+capa gerada, sem afirmar que a impressão foi concluída. Gerações anteriores
+sem registro não são inferidas. Erro de gravação do indicador não reimprime.
+
+A capa A4 recebe uma composição em preto e branco, com filetes finos,
+identificação em destaque, partes em duas colunas, registro em grade, semana
+em uma linha e orçamento ao lado das pendências. Mantém todos os campos,
+espaços de escrita manual, seis linhas de pendências, sete dias, valores e
+proteção do orçamento. Não muda cálculos nem grava o conteúdo da capa.
+
+Validação: seis testes unitários dos indicadores; Signature com os vistos,
+ação direta de Dossiê e persistência da geração; Capa com valores, proteção
+financeira, escape e uma página A4 com nome/tipo longos e outras despesas;
+Celular também passou. A prévia aguarda aprovação antes de publicar.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já

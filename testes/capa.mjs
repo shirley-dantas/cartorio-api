@@ -2,7 +2,7 @@
 //   node testes/capa.mjs
 // O que se prova: o que vem do card entra, o resto fica em branco para a caneta, o dinheiro só entra para quem está no Financeiro, a folha soma o
 // total que imprime e cabe numa página A4 de verdade (medida no Chromium, com nome de arquivo comprido).
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdirSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 import vm from 'node:vm';
@@ -73,14 +73,18 @@ await passo('o botão está na faixa do card e imprime num quadro escondido, sem
   assert.equal(m.quadros.length, 1, 'um quadro escondido'); assert.equal(m.impressos.length, 1, 'mandou imprimir'); assert(m.impressos[0].includes('DIVÓRCIO') && m.impressos[0].includes('187852'), 'imprime a capa deste card');
 });
 await passo('a capa cabe numa página A4 de verdade, mesmo com nome de arquivo comprido e tudo preenchido', async () => {
-  const m = mundo(); const longo = 'REN. - DR JULIO – DIVORCIO CONSENSUAL WAGNER FERREIRA MOREIRA KLEIN E ANDREA SORENI MOREIRA KLEIN COM PARTILHA DE DOIS IMÓVEIS E PENSÃO';
-  const h = m.__f.capaHtml(m.__f.capaDados(card({nome: longo, matriculas: 1})));
+  const m = mundo({orc:{...gabarito,totais:{...gabarito.totais,total:gabarito.totais.total+12345}}}); const longo = 'REN. - DR JULIO – DIVORCIO CONSENSUAL WAGNER FERREIRA MOREIRA KLEIN E ANDREA SORENI MOREIRA KLEIN COM PARTILHA DE DOIS IMÓVEIS E PENSÃO';
+  const h = m.__f.capaHtml(m.__f.capaDados(card({nome: longo, tipo:'VENDA E COMPRA COM ALIENAÇÃO FIDUCIÁRIA', matriculas: 1})));
   const nav = await abrirChromium(); try {
     const pg = await nav.newPage({viewport: {width: 794, height: 1123}}); await pg.setContent(h);
     const med = await pg.evaluate(() => { const f = document.querySelector('.fl'); return {sh: f.scrollHeight, ch: f.clientHeight, sw: f.scrollWidth, cw: f.clientWidth}; });
     assert(med.sh <= med.ch + 1, 'estourou a altura: ' + JSON.stringify(med)); assert(med.sw <= med.cw + 1, 'estourou a largura: ' + JSON.stringify(med));
     const pdf = await pg.pdf({format: 'A4', printBackground: true}); const paginas = (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
     assert.equal(paginas, 1, 'a capa passou de uma página: ' + paginas);
+    mkdirSync(join(AQUI,'saida'),{recursive:true});
+    await pg.setContent(m.__f.capaHtml(m.__f.capaDados(card({nome:'CLIENTE EXEMPLO | REFERÊNCIA DO CASO',tipo:'Inventário'}))));
+    await pg.screenshot({path:join(AQUI,'saida','dossie-capa-redesenhada.png'),fullPage:true});
+    await pg.pdf({path:join(AQUI,'saida','dossie-capa-redesenhada.pdf'),format:'A4',printBackground:true});
   } finally { await nav.close(); }
 });
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
