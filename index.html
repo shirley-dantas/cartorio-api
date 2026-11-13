@@ -13264,7 +13264,7 @@ window.orcNovoDoCaso = function(casoId){
     // copiada: a regra 27 dela é clara em não copiar cegamente, e o resultado
     // sai da tabela de hoje, não do número que ficou guardado.
     valores: anterior ? JSON.parse(JSON.stringify((anterior.entrada || {}).valores || {})) : {},
-    flags: anterior ? {...((anterior.entrada || {}).flags || {})} : {},
+    flags: anterior ? JSON.parse(JSON.stringify((anterior.entrada || {}).flags || {})) : {},
     despesas: {prenotacao: true, matricula: true, registroComMatricula: true,
                taxaAdicional: null, taxaAdicionalValor: null},
     status: 'elaboracao', obs: '', herdado: h, veioDe: anterior ? anterior.id : null
@@ -14616,11 +14616,33 @@ window.orcUsarSugestao = function(campo, cent){
 };
 
 // ── A tela da janela ─────────────────────────────────────────────────────
+const ORC_HISTORICO_TELA={};
+function orcHistoricoHtml(e){
+ if(!finAuth||orcErroLeitura)return '';
+ const lista=orcDoCaso(e.casoId);if(!lista.length)return '';
+ const estado=ORC_HISTORICO_TELA[e.casoId]??={aberto:false,selecionado:''};
+ const contexto=JSON.stringify([e.id||'',e.veioDe||'']);
+ if(estado.contexto!==contexto){estado.contexto=contexto;estado.selecionado=e.id||e.veioDe||lista.at(-1).id;}
+ const escolhido=lista.some(o=>o.id===estado.selecionado)?estado.selecionado:e.id||lista.at(-1).id;
+ estado.selecionado=escolhido;
+ return `<details class="orc-historico-salvos"${estado.aberto?' open':''} ontoggle="orcHistoricoAlternar('${esc(e.casoId)}',this.open)"><summary>Orçamentos salvos <span>${lista.length}</span></summary><div class="orc-historico-acoes"><label>Escolha um orçamento<select class="fin-select" aria-label="Orçamentos salvos" onchange="orcSelecionarSalvo(this.value)">${lista.map(o=>`<option value="${esc(o.id)}"${o.id===escolhido?' selected':''}>Orçamento ${String(o.versao||1).padStart(2,'0')}${o.entrada?.identificacao?' · '+escTxt(o.entrada.identificacao):''}${o.status==='cancelado'?' · cancelado':''}</option>`).join('')}</select></label><button type="button" class="cx-btn" onclick="orcAbrirSalvoSelecionado('abrir')">Abrir</button><button type="button" class="cx-btn" onclick="orcAbrirSalvoSelecionado('base')">Usar como base</button></div></details>`;
+}
+window.orcHistoricoAlternar=function(id,aberto){if(orcEmEdicao?.casoId===id)(ORC_HISTORICO_TELA[id]??={}).aberto=!!aberto;};
+window.orcSelecionarSalvo=function(id){if(orcEmEdicao)(ORC_HISTORICO_TELA[orcEmEdicao.casoId]??={}).selecionado=id;};
+window.orcAbrirSalvoSelecionado=function(acao){
+ if(!finAuth||orcErroLeitura||!orcEmEdicao)return;
+ const casoId=orcEmEdicao.casoId,id=ORC_HISTORICO_TELA[casoId]?.selecionado,o=orcTudo[id];
+ if(!o||o.casoId!==casoId)return;
+ if(acao==='base')window.orcDuplicar(id);else if(acao==='abrir')window.orcAbrirDoCaso(casoId,id);
+};
 function renderOrcamentoDoCaso(){
   const alvo = document.getElementById('orc-caso-conteudo');
   const sub = document.getElementById('orc-caso-sub');
   if(!alvo || !orcEmEdicao) return;
   const e = orcEmEdicao;
+  const simples=!!window.PRIME_SIGNATURE;
+  if(simples){orcVerTecnico=false;e.praticadoEm='São Paulo';}
+  alvo.classList.toggle('orc-pagina-unica',simples&&!orcVerCliente);
   if(sub) sub.textContent = (e.casoNome || 'Sem card')
     + (e.id ? ` · versão ${e.versao} de ${finDataBr(e.data)}` : ' · novo orçamento');
 
@@ -14631,22 +14653,22 @@ function renderOrcamentoDoCaso(){
   const grupos = [...new Set(ORC_ATOS.map(a => a.grupo))];
   const h = e.herdado || {};
 
-  alvo.innerHTML = `
+  alvo.innerHTML = `${simples?orcHistoricoHtml(e):''}
   <div class="orc-layout">
     <div class="orc-coluna-principal">
-      <div class="orc-tecnico-toggle">
+      ${!simples?`<div class="orc-tecnico-toggle">
         <button type="button" class="cx-btn" onclick="orcAlternarTecnico()">
           <i class="ti ti-adjustments"></i> ${orcVerTecnico ? 'Ocultar detalhes técnicos' : 'Ver detalhes técnicos'}</button>
-      </div>
+      </div>`:''}
       ${orcVerTecnico ? orcHtmlHerdado(h) : ''}
       <div class="orc-bloco">
-        <div class="orc-secao"><i class="ti ti-file-text orc-secao-icone"></i><b>Como identificar este orçamento</b><span>é o que a cliente lê</span></div>
-        <input class="fin-input" value="${esc(e.identificacao || '')}"
-          placeholder="${esc(e.casoNome || 'Ex: Rua das Palmeiras, 210 — apto 1301')}"
+        ${!simples?'<div class="orc-secao"><i class="ti ti-file-text orc-secao-icone"></i><b>Como identificar este orçamento</b><span>é o que a cliente lê</span></div>':''}
+        <input class="fin-input" aria-label="Identificação do orçamento" value="${esc(e.identificacao || '')}"
+          placeholder="${esc(simples?'Endereço do imóvel ou identificação para a cliente':e.casoNome || 'Ex: Rua das Palmeiras, 210 — apto 1301')}"
           oninput="orcMudarIdentificacao(this.value)">
-        <div class="fin-mini" style="margin-top:5px">Sai embaixo de <b>ESTIMATIVA DE CUSTOS</b>, na via da
+        ${!simples?`<div class="fin-mini" style="margin-top:5px">Sai embaixo de <b>ESTIMATIVA DE CUSTOS</b>, na via da
           cliente. Costuma ser a rua do imóvel, ou o nome do de cujus no inventário.
-          Em branco, usa o nome do card.</div>
+          Em branco, usa o nome do card.</div>`:''}
       </div>
       <div class="orc-bloco">
         <div class="orc-secao"><i class="ti ti-gavel orc-secao-icone"></i><b>Qual é o ato</b><span>etapa 1</span></div>
@@ -14658,7 +14680,7 @@ function renderOrcamentoDoCaso(){
           </optgroup>`).join('')}
         </select>
         ${ato && orcVerTecnico ? `<div class="orc-comoescreveu"><b>Regra de cobrança:</b> ${escTxt(ato.comoElaEscreveu)}</div>` : ''}
-        ${ato ? `<div class="orc-campo" style="margin-top:10px">
+        ${ato&&!simples ? `<div class="orc-campo" style="margin-top:10px">
           <label class="fin-rot">Como descrever para a cliente
             <span class="fin-mini">— opcional; não muda a conta</span></label>
           <input class="fin-input" value="${esc(e.descricaoAto || '')}" placeholder="${esc(ato.nome)}"
@@ -14668,15 +14690,15 @@ function renderOrcamentoDoCaso(){
       ${ato ? orcHtmlJurisdicao(e, r) + orcHtmlValores(e, ato, r) + orcHtmlIsencaoItbiManual(e, r) + orcHtmlEspeciais(e, ato) + orcHtmlDespesas(e, r) : ''}
     </div>
     <div class="orc-coluna-lateral">
-      <div class="orc-resumo-cab"><i class="ti ti-file-text"></i>
-        <div><b>Resumo do orçamento</b><span>Confira os dados e valores calculados</span></div></div>
+${!simples?'<div class="orc-resumo-cab"><i class="ti ti-file-text"></i><div><b>Resumo do orçamento</b><span>Confira os dados e valores calculados</span></div></div>':''}
       <div class="orc-resumo-corpo">
-        ${ato ? orcHtmlResumoTopo(e, ato, r) : ''}
+        ${ato&&!simples ? orcHtmlResumoTopo(e, ato, r) : ''}
         <div id="orc-resultado">${r ? orcHtmlResultado(e, r) : '<div class="orc-vazio">Escolha o ato para o motor começar a calcular.</div>'}</div>
         ${ato ? orcHtmlRodape(e, r) : ''}
       </div>
     </div>
   </div>`;
+  if(simples)alvo.querySelectorAll('.orc-secao>span').forEach(el=>{if(/^etapas?\s/i.test(el.textContent.trim()))el.hidden=true;});
   orcDestacarIsencaoItbi();
 }
 // O que ela vê primeiro no resumo, antes de qualquer conta: os dados que já
@@ -14781,14 +14803,13 @@ function orcHtmlHerdado(h){
   </div>`;
 }
 function orcHtmlJurisdicao(e, r){
-  return `<div class="orc-bloco">
-    <div class="orc-secao"><i class="ti ti-map-pin orc-secao-icone"></i><b>Onde o ato sai, e onde está o imóvel</b><span>etapas 2 a 4</span></div>
+  return `<div class="orc-bloco${window.PRIME_SIGNATURE?' orc-local-imovel':''}">
+    <div class="orc-secao"><i class="ti ti-map-pin orc-secao-icone"></i><b>${window.PRIME_SIGNATURE?'Localização do imóvel':'Onde o ato sai, e onde está o imóvel'}</b><span>etapas 2 a 4</span></div>
     <div class="orc-grade">
-      <div class="orc-campo"><label class="fin-rot">Ato praticado em</label>
-        <input class="fin-input" value="${esc(e.praticadoEm || '')}" oninput="orcMudarCampoTexto('praticadoEm',this.value)"></div>
+      ${!window.PRIME_SIGNATURE?`<div class="orc-campo"><label class="fin-rot">Ato praticado em</label><input class="fin-input" value="${esc(e.praticadoEm || '')}" oninput="orcMudarCampoTexto('praticadoEm',this.value)"></div>`:''}
       <div class="orc-campo"><label class="fin-rot">Município do imóvel</label>
         <input class="fin-input" value="${esc(e.imovelMunicipio || '')}" oninput="orcMudarCampoTexto('imovelMunicipio',this.value)"></div>
-      <div class="orc-campo"><label class="fin-rot">Estado do imóvel</label>
+      <div class="orc-campo"><label class="fin-rot">${window.PRIME_SIGNATURE?'Estado':'Estado do imóvel'}</label>
         <input class="fin-input" maxlength="2" style="text-transform:uppercase" value="${esc(e.imovelUf || '')}" oninput="orcMudarCampoTexto('imovelUf',this.value.toUpperCase())"></div>
       <div class="orc-campo"><label class="fin-rot">Data considerada do ato</label>
         <input class="fin-input" type="date" value="${esc(e.data || '')}" onchange="orcMudarCampoTexto('data',this.value)"></div>

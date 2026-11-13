@@ -291,6 +291,43 @@ Conferido inicialmente vazia, data em branco e linha para rubrica. Esse campo
 ficam na parte inferior, em largura inteira. A capa segue em uma página A4.
 A usuária aprovou a alteração e autorizou a publicação em 13/11/2026.
 
+## Confecção do orçamento em uma página — aprovado em 13/11/2026
+
+A usuária prefere manter uma página, com formulário e resumo lado a lado.
+Na apresentação Signature, não há botão de detalhes técnicos. A identificação
+é um campo amplo com orientação no placeholder, sem título e explicação longos;
+a descrição adicional para a cliente sai do formulário, sem apagar dados salvos.
+O local do ato é fixado em São Paulo no rascunho Signature, conforme a regra
+confirmada pela usuária. A localização do imóvel (município e UF) e a data
+continuam disponíveis. Base de cálculo, opções condicionais e despesas usam
+os mesmos campos e manipuladores existentes. Os números decorativos e rótulos de etapas
+internas deixam de competir com os títulos dos blocos.
+
+A lateral mostra somente total, composição, pendências, alertas, memória,
+via da cliente e ações de gravação. Cliente, ato, local e data não se repetem
+acima do total. O botão principal de salvar ganha uma linha inteira; Fechar e
+Corrigir esta versão continuam disponíveis. A paleta e os contornos seguem
+o painel e os cards. A grade usa larguras mínimas adequadas para evitar que o
+resumo cubra o formulário; no celular passa para uma coluna.
+
+O histórico Orçamentos salvos fica na própria janela, recolhido por padrão.
+Permite abrir qualquer versão do caso e usar uma anterior como base de outro
+rascunho, recalculado pela rotina existente. Novo orçamento e Salvar como nova
+versão continuam criando registros distintos; a correção explícita da versão
+atual permanece disponível. A seleção acompanha a versão recém-salva e o acesso
+valida autenticação e vínculo ao caso. Flags herdadas passam a ser copiadas em
+profundidade para que editar opções de um rascunho não mude a versão em memória.
+
+Nenhuma tabela, fórmula ou controle de acesso muda. A versão clássica e o
+conteúdo da via da cliente mantêm os fluxos existentes.
+Validação: cálculos de orçamento e Financeiro, tela de Orçamentos, navegador
+financeiro e Celular passaram. Signature confere a atualização do total, campos
+removidos, avisos preservados, ausência de etapas e encaixe em 1024, 900 e 390 px.
+Também salva três novas versões sobre duas existentes, reabre a primeira e
+confere que novos orçamentos e ajustes em nova versão preservam os originais.
+A usuária aprovou a página única, o local fixo e o acesso às versões e
+autorizou a publicação em 13/11/2026.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já

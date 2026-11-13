@@ -610,6 +610,39 @@ try{
  assert.equal(await pg.locator('#modal-orcamento-caso').isVisible(),true);
  assert.match(await pg.locator('#orc-caso-sub').innerText(),/versão 2/);
  assert.equal(await pg.locator('#orc-resultado .orc-total').count(),1,'total continua dentro da confecção do orçamento');
+ const janelaOrc=pg.locator('#modal-orcamento-caso');
+ assert.equal(await janelaOrc.locator('.orc-tecnico-toggle').count(),0);
+ assert.equal(await janelaOrc.locator('[oninput*="orcMudarDescricaoAto"]').count(),0);
+ assert.equal(await janelaOrc.locator('.orc-resumo-topo,.orc-resumo-cab').count(),0,'resumo sem identificação duplicada');
+ assert.equal(await janelaOrc.locator('[oninput*="praticadoEm"]').count(),0,'São Paulo é fixo para o ato');
+ assert.match(await janelaOrc.locator('.orc-local-imovel').innerText(),/Localização do imóvel/);
+ assert.equal(await janelaOrc.locator('.orc-local-imovel input').evaluateAll(els=>{const topos=els.map(el=>el.getBoundingClientRect().top);return Math.max(...topos)-Math.min(...topos)<2;}),true,'campos de localização ficam alinhados');
+ await janelaOrc.locator('.orc-historico-salvos>summary').click();
+ assert.equal(await janelaOrc.getByRole('combobox',{name:'Orçamentos salvos',exact:true}).locator('option').count(),2);
+ await janelaOrc.locator('.orc-historico-salvos').screenshot({path:join(AQUI,'saida','orcamentos-salvos-historico.png')});
+ await janelaOrc.locator('.orc-historico-salvos>summary').click();
+ assert.equal(await janelaOrc.locator('[data-orc-passo],.orc-fluxo-nav').count(),0,'uma página sem etapas');
+ assert.equal(await janelaOrc.getByRole('textbox',{name:'Identificação do orçamento',exact:true}).getAttribute('placeholder'),'Endereço do imóvel ou identificação para a cliente');
+ const valorNegocio=janelaOrc.locator('[oninput*="orcMudarValor"][oninput*="transacao"]');
+ const antesDigitar=await valorNegocio.inputValue(),totalOriginal=await janelaOrc.locator('.orc-total-num').innerText();
+ await valorNegocio.fill('350.000,00');
+ assert.notEqual(await janelaOrc.locator('.orc-total-num').innerText(),totalOriginal,'total continua atualizando ao digitar');
+ await valorNegocio.fill(antesDigitar);
+ assert.equal(await janelaOrc.locator('.orc-total-num').innerText(),totalOriginal);
+ for(const largura of [1024,900,390]){
+  await pg.setViewportSize({width:largura,height:900});
+  assert.equal(await pg.evaluate(()=>{const b=document.querySelector('#modal-orcamento-caso .modal-box'),r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&b.scrollWidth<=b.clientWidth+1;}),true,'janela sem vazamento em '+largura);
+  assert.equal(await pg.evaluate(()=>{const a=document.querySelector('.orc-coluna-principal').getBoundingClientRect(),b=document.querySelector('.orc-coluna-lateral').getBoundingClientRect();return a.right<=b.left||b.top>=a.bottom;}),true,'resumo separado dos campos em '+largura);
+ }
+ await pg.setViewportSize({width:1440,height:1000});
+ await pg.evaluate(()=>{window.orcTrocarAto('inventario-meacao');window.orcMudarValor('meacao','65965,24');window.orcMaisItem('imoveis');window.orcMudarItem('imoveis',0,'valor','65965,24');window.orcMudarIdentificacao('');window.renderOrcamentoDoCaso();});
+ assert.match(await janelaOrc.locator('#orc-resultado').innerText(),/valor total da partilha/i,'pendência importante permanece visível');
+ await janelaOrc.locator('.modal-box').screenshot({path:join(AQUI,'saida','orcamento-pagina-unica.png')});
+ await janelaOrc.locator('.orc-coluna-lateral').screenshot({path:join(AQUI,'saida','orcamento-resumo-enxuto.png')});
+ await pg.setViewportSize({width:390,height:844});
+ await janelaOrc.locator('.modal-box').screenshot({path:join(AQUI,'saida','orcamento-pagina-unica-celular.png')});
+ await pg.setViewportSize({width:1440,height:1000});
+
  await pg.locator('#modal-orcamento-caso .modal-box').screenshot({path:join(AQUI,'saida','orcamento-cores-suaves.png')});
  await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
  await pg.locator('.signature-orc-simples').getByRole('button',{name:'Modo cliente',exact:true}).click();
@@ -622,6 +655,41 @@ try{
  await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
  await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','orcamento-tres-atalhos-celular.png')});
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.orcamentos)),orcAntes,'navegar e abrir os três atalhos não alteram versões salvas');
+ // Reaproveitar e salvar novos orçamentos preserva todos os registros anteriores.
+ const originaisOrc=await pg.evaluate(()=>structuredClone(window.__data.orcamentos));
+ await pg.setViewportSize({width:1440,height:1000});
+ await pg.evaluate(()=>window.orcNovoDoCaso('C1'));
+ const historicoJanela=pg.locator('#modal-orcamento-caso');
+ if(!await historicoJanela.locator('.orc-historico-salvos').evaluate(el=>el.open))await historicoJanela.locator('.orc-historico-salvos>summary').click();
+ await historicoJanela.getByRole('combobox',{name:'Orçamentos salvos',exact:true}).selectOption('B1');
+ await historicoJanela.getByRole('button',{name:'Usar como base',exact:true}).click();
+ assert.match(await historicoJanela.locator('#orc-caso-sub').innerText(),/novo orçamento/);
+ await historicoJanela.getByRole('textbox',{name:'Identificação do orçamento',exact:true}).fill('Alternativa a partir do orçamento 01');
+ await historicoJanela.getByRole('button',{name:'Salvar orçamento',exact:true}).click();
+ await pg.waitForFunction(()=>Object.keys(window.__data.orcamentos).length===3);
+ await pg.waitForTimeout(350);
+ assert.deepEqual(await pg.evaluate(()=>({B1:window.__data.orcamentos.B1,B2:window.__data.orcamentos.B2})),originaisOrc,'reaproveitar preserva as duas versões anteriores');
+ const comTerceiro=await pg.evaluate(()=>structuredClone(window.__data.orcamentos));
+ await pg.evaluate(()=>window.orcNovoDoCaso('C1'));
+ await historicoJanela.getByRole('textbox',{name:'Identificação do orçamento',exact:true}).fill('Outra alternativa');
+ await historicoJanela.getByRole('button',{name:'Salvar orçamento',exact:true}).click();
+ await pg.waitForFunction(()=>Object.keys(window.__data.orcamentos).length===4);
+ await pg.waitForTimeout(350);
+ for(const [id,registro]of Object.entries(comTerceiro))assert.deepEqual(await pg.evaluate(k=>window.__data.orcamentos[k],id),registro,'novo orçamento mantém '+id);
+ assert.equal(await historicoJanela.getByRole('combobox',{name:'Orçamentos salvos',exact:true}).inputValue(),await pg.evaluate(()=>Object.values(window.__data.orcamentos).find(o=>o.versao===4).id),'histórico acompanha a versão recém-salva');
+ if(!await historicoJanela.locator('.orc-historico-salvos').evaluate(el=>el.open))await historicoJanela.locator('.orc-historico-salvos>summary').click();
+ await historicoJanela.getByRole('combobox',{name:'Orçamentos salvos',exact:true}).selectOption('B1');
+ await historicoJanela.getByRole('button',{name:'Abrir',exact:true}).click();
+ assert.match(await historicoJanela.locator('#orc-caso-sub').innerText(),/versão 1/,'primeiro orçamento continua acessível');
+ assert.equal(await historicoJanela.locator('[oninput*="orcMudarValor"][oninput*="transacao"]').inputValue(),'300000,00');
+ await historicoJanela.locator('[oninput*="orcMudarValor"][oninput*="transacao"]').fill('350000,00');
+ await historicoJanela.getByRole('button',{name:'Salvar como nova versão',exact:true}).click();
+ await pg.waitForFunction(()=>Object.keys(window.__data.orcamentos).length===5);
+ await pg.waitForTimeout(350);
+ assert.deepEqual(await pg.evaluate(()=>window.__data.orcamentos.B1),originaisOrc.B1,'ajuste salvo em nova versão mantém o primeiro');
+ assert.equal(await pg.evaluate(()=>Object.values(window.__data.orcamentos).filter(o=>o.versao===5)[0].entrada.praticadoEm),'São Paulo');
+ await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
+
  await pg.setViewportSize({width:1440,height:1000});
  for(const nome of ['Minuta','Pagamento','Drive','Histórico']){
   await pg.locator('.signature-funcoes').getByRole('button',{name:nome,exact:true}).click();
