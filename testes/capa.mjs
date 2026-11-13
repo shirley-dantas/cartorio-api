@@ -11,7 +11,7 @@ assert(inicio>0&&fim>inicio);
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function mundo(casos={}){
  const impressos=[],ctx={casos,esc:escape,escTxt:escape,window:{},setTimeout,document:{body:{appendChild:q=>{q.onload?.();}},createElement:()=>({style:{},setAttribute(){},remove(){},contentWindow:{focus(){},print(){impressos.push(true);}}})},finAuth:{uid:'u'},orcUltimoDoCaso(){throw Error('A capa não deve consultar orçamento');}};
- vm.createContext(ctx);vm.runInContext(html.slice(inicio,fim)+'\nthis.f={capaDados,capaHtml,capaFaixaHtml};',ctx);return {...ctx.f,window:ctx.window,impressos};
+ vm.createContext(ctx);vm.runInContext(readFileSync(join(AQUI,'..','lib','capa-fontes.js'),'utf8').replace('export const fontesCapa','const fontesCapa')+'\n'+html.slice(inicio,fim)+'\nthis.f={capaDados,capaHtml,capaFaixaHtml};',ctx);return {...ctx.f,window:ctx.window,impressos};
 }
 const c={id:'C1',nome:'CLIENTE EXEMPLO | DR. CASTANHO',tipo:'Venda e compra',controle:'000123',agendado:'2026-11-13T15:45',livro:'LIVRO_QUE_NAO_DEVE_SAIR',registroPrenotado:'REGISTRO_QUE_NAO_DEVE_SAIR'};
 const m=mundo({C1:c}),d=m.capaDados(c);
@@ -20,24 +20,24 @@ assert.equal(m.capaDados({...c,nome:'Nome sem separador'}).solicitante,'');
 assert.equal(m.capaDados({...c,nome:'CLIENTE | SOLICITANTE | COMPLEMENTO'}).solicitante,'SOLICITANTE | COMPLEMENTO');
 for(const modelo of ['classico','faixa','leve']){
  const h=m.capaHtml(d,modelo);
- for(const s of ['VENDA E COMPRA','20º Cartório Itaim','000123','Shirley','DR. CASTANHO','CLIENTE EXEMPLO','Outorgante / Outorgado','PRESENCIAL','DILIGÊNCIA','HÍBRIDA','VÍDEO'])assert(h.includes(s),modelo+': '+s);
- assert.doesNotMatch(h,/R\$|Orçamento|2026-11-13|15:45|LIVRO_QUE_NAO_DEVE_SAIR|REGISTRO_QUE_NAO_DEVE_SAIR/);
+ for(const s of ['VENDA E COMPRA','20º Cartório','000123','Shirley','DR. CASTANHO','CLIENTE EXEMPLO','Outorgante / Outorgado','PRESENCIAL','DILIGÊNCIA','HÍBRIDA','VÍDEO'])assert(h.includes(s),modelo+': '+s);
+ assert.doesNotMatch(h,/PRIME|Prime|Escrivão de Títulos|R\$|Orçamento|2026-11-13|15:45|LIVRO_QUE_NAO_DEVE_SAIR|REGISTRO_QUE_NAO_DEVE_SAIR/);
  assert.match(h,/Data <span class="espaço"><\/span>/);assert.match(h,/Horário <span class="espaço hora"><\/span>/);
  const malicioso=m.capaHtml(m.capaDados({...c,nome:'<img src=x onerror=alert(1)> | <script>1</script>'}),modelo);assert(!malicioso.includes('<img src=x'));assert(malicioso.includes('&lt;script&gt;'));
 }
 console.log('ok: título, cartório, controle, Shirley, solicitante do subtítulo e nome principal; data/horário manuais; orçamento ausente; escape.');
-m.window.capaImprimir('C1');assert.equal(m.impressos.length,1);assert.match(m.capaFaixaHtml(c),/capaImprimir/);
+m.window.capaImprimir('C1');await new Promise(r=>setTimeout(r,0));assert.equal(m.impressos.length,1);assert.match(m.capaFaixaHtml(c),/capaImprimir/);
 const navegador=await abrirChromium();
 try{
  const pg=await navegador.newPage({viewport:{width:794,height:1123}});mkdirSync(join(AQUI,'saida'),{recursive:true});
- const modelos=[['classico','1 · Clássico Prime','Equilibrado, com os blocos suaves do painel.'],['faixa','2 · Faixa vinho','Mais marcante, com uma faixa lateral delicada.'],['leve','3 · Essencial','Mais branco, com cabeçalho central e filetes finos.']];
+ const modelos=[['classico','1 · Clássico floral','Equilibrado, com os blocos suaves do painel.'],['faixa','2 · Faixa vinho','Mais marcante, com uma faixa lateral delicada.'],['leve','3 · Essencial','Mais branco, com cabeçalho central e filetes finos.']];
  for(const [modelo] of modelos){
   for(const dados of [d,m.capaDados({...c,nome:'CLIENTE COM NOME COMPLETO MUITO LONGO PARA CONFERÊNCIA DE IMPRESSÃO | SOLICITANTE COM NOME E COMPLEMENTO EXTENSOS PARA CONFERÊNCIA',tipo:'VENDA E COMPRA COM ALIENAÇÃO FIDUCIÁRIA'})]){
-   await pg.setContent(m.capaHtml(dados,modelo));
+   await pg.setContent(m.capaHtml(dados,modelo));await pg.evaluate(()=>document.fonts.ready);
    const medidas=await pg.evaluate(()=>{const f=document.querySelector('.fl');return [f.scrollHeight-f.clientHeight,f.scrollWidth-f.clientWidth];});assert(medidas.every(x=>x<=1),modelo+' ultrapassa a página: '+medidas);
    const pdf=await pg.pdf({format:'A4',printBackground:true});assert.equal((pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g)||[]).length,1);
   }
-  await pg.setContent(m.capaHtml(d,modelo));
+  await pg.setContent(m.capaHtml(d,modelo));await pg.evaluate(()=>document.fonts.ready);
   await pg.screenshot({path:join(AQUI,'saida','capa-modelo-'+modelo+'.png'),fullPage:true});
   await pg.pdf({path:join(AQUI,'saida','capa-modelo-'+modelo+'.pdf'),format:'A4',printBackground:true});
  }

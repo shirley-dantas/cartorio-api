@@ -3237,6 +3237,7 @@ if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.js
 <script src="lib/joaninha-protocolo.js"></script>
 <script src="lib/joaninha-chat.js"></script>
 <script type="module">
+import {fontesCapa} from './lib/capa-fontes.js';
 import {iniciarFraseDoDia} from './lib/frase-do-dia-cliente.js';
 import {horarioNota,ordenarNotasPorHorario} from './lib/notas-horario.js';
 import {calcularAtencoes,chaveAtencaoCaso,chaveAtencaoNota} from './lib/atencoes-dia.js';
@@ -5441,7 +5442,7 @@ const CAPA_ESCREVENTE_FIXA = 'Shirley';
 function capaDados(c){
  const partes=String(c.nome||'').split('|').map(x=>x.trim());
  const separado=partes.length>1&&partes[0]&&partes.slice(1).some(Boolean);
- return {tipo:String(c.tipo||'').toUpperCase(),cartorio:'20º Cartório Itaim',controle:String(c.controle||''),escrevente:CAPA_ESCREVENTE_FIXA,solicitante:separado?partes.slice(1).join(' | '):'',parte:separado?partes[0]:String(c.nome||'')};
+ return {tipo:String(c.tipo||'').toUpperCase(),cartorio:'20º Cartório',controle:String(c.controle||''),escrevente:CAPA_ESCREVENTE_FIXA,solicitante:separado?partes.slice(1).join(' | '):'',parte:separado?partes[0]:String(c.nome||'')};
 }
 function capaHtml(d,modelo='classico'){
  const t=x=>escTxt(x||''),estilo=['classico','faixa','leve'].includes(modelo)?modelo:'classico';
@@ -5449,25 +5450,29 @@ function capaHtml(d,modelo='classico'){
  const checks=['PRESENCIAL','DILIGÊNCIA','HÍBRIDA','VÍDEO'].map(x=>`<span><i></i>${x}</span>`).join('');
  const acompanhamento=Array.from({length:4},()=>'<div class="acomp-linha"><span></span><span></span><span></span></div>').join('');
  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Capa do dossiê</title><style>
+${fontesCapa}
 @page{size:A4;margin:0}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 :root{--vinho:#76243e;--tinta:#5f4751;--champ:#b08a55;--linha:#e1d2c7;--fundo:#fbf6f1}
-body{margin:0;background:#fffdfa;color:var(--tinta);font-family:'Jost',Arial,sans-serif}
-.fl{width:210mm;height:297mm;padding:10mm 14mm 9mm;display:flex;flex-direction:column;gap:3mm;overflow:hidden;position:relative}
-.marca{font:25pt Georgia,serif;letter-spacing:2mm;color:var(--vinho)}
-.marca small{display:block;font:7pt Arial,sans-serif;letter-spacing:.45mm;color:#927057;margin-top:2mm}
-.tarja{display:flex;justify-content:space-between;align-items:center;border-bottom:.25mm solid var(--linha);padding-bottom:5mm;gap:8mm}
-.tarja .titulo{font:italic 14pt Georgia,serif;color:#8f6f7e;text-align:right}
+body{margin:0;background:#fffdfa;color:var(--tinta);font-family:'Jost','Jost',Arial,sans-serif}
+.fl{width:210mm;height:297mm;padding:10mm 14mm 9mm;display:flex;flex-direction:column;gap:2.5mm;overflow:hidden;position:relative}
+.capa-flor{position:absolute;width:40mm;height:40mm;right:8mm;top:5mm;opacity:.38;pointer-events:none;z-index:0}
+.tarja,.ato,.bloco,.dupla,.rod{position:relative;z-index:1}
+.tarja .titulo{padding-right:13mm}
+.marca{font:500 35pt 'Cormorant Garamond',Georgia,serif;letter-spacing:.25mm;color:var(--vinho)}
+.marca small{display:block;font:8pt 'Jost',Arial,sans-serif;letter-spacing:.8mm;color:#927057;margin-top:2mm}
+.tarja{display:flex;justify-content:space-between;align-items:center;border-bottom:.25mm solid var(--linha);padding-bottom:4mm;gap:8mm}
+.tarja .titulo{font:italic 14pt 'Cormorant Garamond',Georgia,serif;color:#8f6f7e;text-align:right}
 .ato{display:flex;align-items:center;justify-content:space-between;gap:7mm}
-.ato h1{font:23pt Georgia,serif;color:var(--vinho);font-weight:400;margin:0;max-width:143mm;overflow-wrap:anywhere;line-height:1.15}
+.ato h1{font:23pt 'Cormorant Garamond',Georgia,serif;color:var(--vinho);font-weight:400;margin:0;max-width:143mm;overflow-wrap:anywhere;line-height:1.15}
 .controle{border:.2mm solid var(--linha);border-radius:2mm;padding:3mm 4mm;min-width:30mm;text-align:center;flex-shrink:0;background:var(--fundo)}
-.rot{display:block;font:7pt Arial,sans-serif;letter-spacing:.3mm;text-transform:uppercase;color:#9b7965;margin-bottom:2.5mm}
-.controle strong{font:12pt Georgia,serif;color:var(--vinho);font-weight:400}
-.bloco{border:.2mm solid var(--linha);border-radius:3mm;padding:4mm 6mm;min-width:0;background:#fffdfa}
+.rot{display:block;font:7pt 'Jost',Arial,sans-serif;letter-spacing:.3mm;text-transform:uppercase;color:#9b7965;margin-bottom:2.5mm}
+.controle strong{font:12pt 'Cormorant Garamond',Georgia,serif;color:var(--vinho);font-weight:400}
+.bloco{border:.2mm solid var(--linha);border-radius:3mm;padding:3.5mm 6mm;min-width:0;background:#fffdfa}
 .identificacao{background:var(--fundo)}
 .campo+.campo{margin-top:5mm}
-.campo .valor{font:16pt Georgia,serif;color:var(--vinho);line-height:1.25;overflow-wrap:anywhere;min-height:7mm}
-.campo.solicitante .valor{font:11pt Arial,sans-serif;color:#6e5962}
+.campo .valor{font:16pt 'Cormorant Garamond',Georgia,serif;color:var(--vinho);line-height:1.25;overflow-wrap:anywhere;min-height:7mm}
+.campo.solicitante .valor{font:11pt 'Jost',Arial,sans-serif;color:#6e5962}
 .esc{display:flex;align-items:center;gap:5mm;font-size:10pt;flex-wrap:wrap}
 .esc strong{font-weight:400;color:var(--vinho)}
 .esc .escrevente{margin-right:auto}
@@ -5476,17 +5481,17 @@ body{margin:0;background:#fffdfa;color:var(--tinta);font-family:'Jost',Arial,san
 .modalidades{display:flex;justify-content:space-between;gap:4mm;margin-top:5mm;padding-top:4mm;border-top:.2mm solid var(--linha)}
 .modalidades span{display:flex;align-items:center;gap:2mm;font-size:7.5pt;color:#785e68}
 .modalidades i{display:inline-block;width:3mm;height:3mm;border:.2mm solid #a88b78;border-radius:.4mm}
-.secao-titulo{font:15pt Georgia,serif;color:var(--vinho);font-weight:400;margin:0 0 3mm}
+.secao-titulo{font:15pt 'Cormorant Garamond',Georgia,serif;color:var(--vinho);font-weight:400;margin:0 0 3mm}
 .dupla{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
 .linha-manual{height:7mm;border-bottom:.18mm solid var(--linha)}
 .lista-pendencias .linha-manual{position:relative;margin-left:6mm}
 .lista-pendencias .linha-manual:before{content:'';position:absolute;left:-6mm;bottom:1mm;width:2.8mm;height:2.8mm;border:.2mm solid #b8a59b;border-radius:.4mm}
 .acomp-cabecalho,.acomp-linha{display:grid;grid-template-columns:24mm 1fr 34mm;gap:4mm}
-.acomp-cabecalho{font:7pt Arial,sans-serif;color:#9b7965;padding:2mm 0;letter-spacing:.2mm}
+.acomp-cabecalho{font:7pt 'Jost',Arial,sans-serif;color:#9b7965;padding:2mm 0;letter-spacing:.2mm}
 .acomp-linha span{min-width:0;border-bottom:.18mm solid var(--linha);height:7mm}
 .observacoes{flex:1;min-height:27mm}
-.rod{display:flex;justify-content:space-between;align-items:center;border-top:.2mm solid var(--linha);padding-top:3mm;color:#a28b7d;font:7pt Arial,sans-serif;letter-spacing:.2mm}
-.rod .flor{font:18pt Georgia,serif;color:#baa079;line-height:1}
+.rod{display:flex;justify-content:space-between;align-items:center;border-top:.2mm solid var(--linha);padding-top:3mm;color:#a28b7d;font:7pt 'Jost',Arial,sans-serif;letter-spacing:.2mm}
+.rod .flor{font:18pt 'Cormorant Garamond',Georgia,serif;color:#baa079;line-height:1}
 /* Modelo 2: a faixa lateral dá identidade, preservando o espaço de escrita. */
 .faixa{padding-left:20mm}
 .faixa:before{content:'';position:absolute;left:0;top:0;bottom:0;width:6mm;background:var(--vinho);border-right:1mm solid #c4a479}
@@ -5494,27 +5499,42 @@ body{margin:0;background:#fffdfa;color:var(--tinta);font-family:'Jost',Arial,san
 .faixa .bloco{border-radius:1.5mm}
 .faixa .ato h1{font-size:22pt}
 .faixa .controle{background:#f6e9ee;border-color:#d9b7c4}
-.faixa .secao-titulo{font:12pt Arial,sans-serif;color:#76465a}
+.faixa .secao-titulo{font:12pt 'Jost',Arial,sans-serif;color:#76465a}
 /* Modelo 3: moldura fina e cabeçalho central, mais leve para impressão. */
 .leve{background:#fff}
 .leve .tarja{display:block;text-align:center;padding-bottom:4mm;border-bottom:0}
-.leve .tarja .titulo{text-align:center;margin-top:3mm;font:10pt Arial,sans-serif;letter-spacing:.3mm}
-.leve .marca{font-size:23pt}
+.leve .tarja .titulo{text-align:center;margin-top:3mm;font:10pt 'Jost',Arial,sans-serif;letter-spacing:.3mm}
+.leve .marca{font-size:30pt}
 .leve .bloco{background:#fff;border-color:#e5dbd2;border-radius:1mm}
 .leve .identificacao{border-left:.6mm solid #b79565}
 .leve .ato{border-top:.2mm solid var(--linha);border-bottom:.2mm solid var(--linha);padding:2mm 0}
 .leve .ato h1{font-size:21pt}
 .leve .controle{border:0;border-left:.2mm solid var(--linha);border-radius:0;background:#fff}
 .leve .secao-titulo{font-size:14pt}
-</style></head><body><main class="fl ${estilo}">
-<header class="tarja"><div class="marca">PRIME<small>${t(d.cartorio)}</small></div><div class="titulo">Dossiê da escritura</div></header>
+</style></head><body><main class="fl ${estilo}"><svg class="capa-flor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="170" height="170" viewBox="0 0 170 170" fill="none">
+ <path d="M155 166c-8-60-19-100-72-137M137 115c8-29 1-51-10-70" stroke="#BD9A75" stroke-width="1.2"/>
+ <g stroke="#BD9092" stroke-width=".65" fill="#EBC9C6" fill-opacity=".48">
+  <path d="M84 39C57 40 40 17 51 9c11-8 30 7 33 30Z"/>
+  <path d="M84 39c-8-27 5-43 16-34 10 9-4 29-16 34Z"/>
+  <path d="M84 39c17-17 39-12 37 0-2 12-23 11-37 0Z"/>
+  <path d="M84 39c-22-7-36 7-28 17 8 11 26-1 28-17Z"/>
+  <path d="M84 39c1 21 20 28 25 16 4-11-14-18-25-16Z"/>
+  <path d="M127 60c-22-3-34-20-24-26 10-5 23 11 24 26Z"/>
+  <path d="M127 60c-3-22 12-32 18-23 6 10-8 22-18 23Z"/>
+  <path d="M127 60c19-9 33-2 28 7-5 8-22 4-28-7Z"/>
+  <path d="M127 60c-20-1-28 13-19 19 8 6 20-6 19-19Z"/>
+  <path d="M127 60c-2 17 11 26 18 18 6-8-6-20-18-18Z"/>
+ </g>
+ <path d="m80 36 6 9 4-8M123 57l5 8 5-6" stroke="#A97567" stroke-width="2" stroke-linecap="round"/>
+</svg>
+<header class="tarja"><div class="marca">${t(d.cartorio)}</div><div class="titulo">Dossiê da escritura</div></header>
 <div class="ato"><h1>${t(d.tipo)||'ESCRITURA'}</h1><div class="controle"><span class="rot">Controle</span><strong>${t(d.controle)||'________'}</strong></div></div>
 <section class="bloco identificacao"><div class="campo solicitante"><span class="rot">Solicitante</span><div class="valor">${t(d.solicitante)||'________________________________'}</div></div><div class="campo"><span class="rot">Outorgante / Outorgado</span><div class="valor">${t(d.parte)}</div></div></section>
 <section class="bloco assinatura"><div class="esc"><div class="escrevente"><span class="rot">Escrevente</span><strong>${t(d.escrevente)}</strong></div><div>Data <span class="espaço"></span></div><div>Horário <span class="espaço hora"></span></div></div><div class="modalidades">${checks}</div></section>
 <div class="dupla"><section class="bloco"><h2 class="secao-titulo">Documentos e conferências</h2><div class="lista-pendencias">${linhas(4)}</div></section><section class="bloco"><h2 class="secao-titulo">Providências</h2>${linhas(4)}</section></div>
 <section class="bloco"><h2 class="secao-titulo">Acompanhamento do caso</h2><div class="acomp-cabecalho"><span>DATA</span><span>ANOTAÇÃO</span><span>RETORNO / PRAZO</span></div>${acompanhamento}</section>
 <section class="bloco observacoes"><h2 class="secao-titulo">Observações</h2>${linhas(3)}</section>
-<footer class="rod"><span>PRIME · DOSSIÊ FÍSICO</span><span class="flor">✧</span><span>${t(d.cartorio)}</span></footer>
+<footer class="rod"><span>${t(d.cartorio)}</span><span class="flor">✧</span><span>Dossiê físico</span></footer>
 </main></body></html>`;
 }
 // Imprime num quadro escondido, sem abrir janela (o navegador não bloqueia) e sem tocar na tela do painel.
@@ -5522,7 +5542,7 @@ window.capaImprimir = function(casoId){
   const c = casos[casoId]; if(!c) return;
   const html = capaHtml(capaDados(c)), q = document.createElement('iframe');
   q.setAttribute('aria-hidden', 'true'); q.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
-  q.onload = () => { try{ q.contentWindow.focus(); q.contentWindow.print(); }catch(e){ /* o navegador recusou imprimir */ } setTimeout(() => q.remove(), 60000); };
+  q.onload = async () => { try{ await q.contentDocument?.fonts?.ready; q.contentWindow.focus(); q.contentWindow.print(); }catch(e){ /* o navegador recusou imprimir */ } setTimeout(() => q.remove(), 60000); };
   q.srcdoc = html; document.body.appendChild(q);
   window.signatureRegistrarCapa?.(casoId);
 };
