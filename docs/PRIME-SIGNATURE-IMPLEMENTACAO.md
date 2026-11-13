@@ -156,7 +156,7 @@ adicionais, leitura sem gravação e tablet/celular. Celular também passou.
 A usuária aprovou a apresentação, confirmou o separador `|` como critério do
 subtítulo e autorizou a publicação em 13/11/2026.
 
-## Seletores do caso — prévia para aprovação em 13/11/2026
+## Seletores do caso — aprovado em 13/11/2026
 
 Status, Etapa e Responsável recebem campos com contorno fino e menus no mesmo
 estilo suave. A pedido da usuária, Etapa abre diretamente a lista, sem busca, com grupos de
@@ -171,7 +171,7 @@ histórico. Gabriel sai também das opções da apresentação clássica.
 Validação: testes unitários dos valores e escape, Signature com lista sem busca,
 teclado, cancelamento sem gravação, alterações pelos manipuladores existentes,
 responsável legado e limites do menu no tablet/celular. Card-topo e Celular
-também passaram. Publicação aguarda aprovação da prévia.
+também passaram. A usuária aprovou a prévia sem busca e autorizou a publicação em 13/11/2026.
 
 ## Financeiro e privacidade
 
