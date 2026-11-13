@@ -138,7 +138,7 @@ metadados externos, conteúdo dentro da janela, versões salvas imutáveis,
 proteção no logout e celular. A usuária aprovou a prévia com Novo em primeiro
 lugar e autorizou a publicação em 12/11/2026.
 
-## Cabeçalho do caso — prévia de 13/11/2026
+## Cabeçalho do caso — aprovado em 13/11/2026
 
 Proposta visual: títulos com separador `|` ganham nome principal e complemento
 em duas linhas, apenas na apresentação. O nome completo permanece no cadastro,
@@ -153,7 +153,8 @@ secundários. A apresentação clássica e os dados de produção não são alte
 
 Signature confere edição do nome integral, mudança explícita do tipo, atos
 adicionais, leitura sem gravação e tablet/celular. Celular também passou.
-Prévia local com dados ilustrativos; publicação aguarda aprovação.
+A usuária aprovou a apresentação, confirmou o separador `|` como critério do
+subtítulo e autorizou a publicação em 13/11/2026.
 
 ## Financeiro e privacidade
 
