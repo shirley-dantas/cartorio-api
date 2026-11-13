@@ -261,6 +261,31 @@ html.prime-signature .signature-processo .cx-topo .cx-nome-edit input{min-width:
 @media(max-width:600px){html.prime-signature .signature-processo .cx-topo{grid-template-columns:minmax(0,1fr);gap:18px}html.prime-signature .signature-processo .cx-topo .cx-nome{font-size:26px}html.prime-signature .signature-processo .cx-topo .cx-meta-dir{flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:14px;padding:0}html.prime-signature .signature-tipo-ato{max-width:none;margin-top:18px}}
 html.prime-signature .signature-dados{display:flex;align-items:end;justify-content:space-between;gap:15px;margin-top:18px}
 html.prime-signature .signature-dados .cx-campos{flex:1;border:0;margin:0;padding:0;display:grid;grid-template-columns:1fr 1.3fr 1fr}
+html.prime-signature .signature-campo{min-width:0}
+html.prime-signature .signature-campo>[role="combobox"]{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;text-align:left;font:400 12px 'Jost',Arial,sans-serif;color:#684656;background:#fffdfb;border:1px solid #dfcfc4;border-radius:9px;padding:10px 12px;cursor:pointer}
+html.prime-signature .signature-campo>[role="combobox"]:hover{border-color:#b992a3}
+html.prime-signature .signature-campo>[role="combobox"][aria-expanded="true"],html.prime-signature .signature-campo>[role="combobox"]:focus-visible{border-color:#b08b9c;outline:1px solid #dbc3cd;outline-offset:2px}
+html.prime-signature .signature-campo-valor{flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.45}
+html.prime-signature .signature-campo>[role="combobox"] svg{flex-shrink:0;color:#9c7e8c}
+html.prime-signature .signature-status-ponto{width:7px;height:7px;border-radius:50%;background:#957385;flex-shrink:0}
+html.prime-signature .signature-status-ponto[data-status="prioridade"]{background:#8b4e68}
+html.prime-signature .signature-status-ponto[data-status="critico"]{background:#b46560}
+html.prime-signature .signature-status-ponto[data-status="atencao"]{background:#b28d57}
+html.prime-signature .signature-status-ponto[data-status="emdia"]{background:#668e78}
+html.prime-signature .signature-campo-menu{position:fixed;z-index:10050;background:#fffdfb;border:1px solid #ddcbd4;border-radius:12px;box-shadow:0 10px 32px #6334471c;padding:10px;box-sizing:border-box;font:400 12px 'Jost',Arial,sans-serif;color:#684656}
+html.prime-signature .signature-campo-menu-topo{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 8px;font-size:11px;color:#8a6b79}
+html.prime-signature .signature-campo-menu-topo button{background:none;border:0;font-size:19px;color:#947482;padding:0 4px;cursor:pointer}
+html.prime-signature .signature-campo-busca{width:100%;border:1px solid #e0d1d8;border-radius:8px;background:#fff;padding:9px 11px;margin-bottom:10px;font:inherit;color:#684656;box-sizing:border-box}
+html.prime-signature .signature-campo-busca:focus{outline:1px solid #b68d9f;outline-offset:1px}
+html.prime-signature .signature-campo-lista{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#d1b7c2 transparent}
+html.prime-signature .signature-campo-grupo-titulo{display:block;padding:13px 10px 7px;font-size:10px;letter-spacing:.05em;color:#9a7b89}
+html.prime-signature .signature-campo-lista [role="option"]{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:1px solid transparent;border-radius:7px;background:transparent;padding:9px 10px;font:inherit;line-height:1.5;color:#684656;cursor:pointer;box-sizing:border-box}
+html.prime-signature .signature-campo-lista [role="option"]>span:not(.signature-status-ponto):not(.signature-campo-check){flex:1;min-width:0;overflow-wrap:anywhere}
+html.prime-signature .signature-campo-lista [role="option"][aria-selected="true"]{background:#f8f0f3;color:#702e49;border-color:#e6d4dd}
+html.prime-signature .signature-campo-lista [role="option"]:hover,html.prime-signature .signature-campo-lista [role="option"]:focus-visible{background:#fbf5f7;outline:1px solid #d4b7c5;outline-offset:-1px}
+html.prime-signature .signature-campo-check{font-size:11px;color:#a9895a}
+html.prime-signature .signature-campo-vazio{margin:12px 10px;color:#907381}
+html.prime-signature .signature-campo-menu [hidden]{display:none!important}
 html.prime-signature .signature-tempo{font-size:11px;color:#886d78;padding-bottom:8px}
 html.prime-signature .signature-contexto{background:#fbf2ed;border:1px solid #eedfd5;border-radius:18px;margin:22px 0;padding:20px}
 html.prime-signature .signature-sobretitulo{display:block;color:#916c4e;font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}

@@ -156,6 +156,23 @@ adicionais, leitura sem gravação e tablet/celular. Celular também passou.
 A usuária aprovou a apresentação, confirmou o separador `|` como critério do
 subtítulo e autorizou a publicação em 13/11/2026.
 
+## Seletores do caso — prévia para aprovação em 13/11/2026
+
+Status, Etapa e Responsável recebem campos com contorno fino e menus no mesmo
+estilo suave. Etapa oferece busca sem distinção de acentos e grupos de
+preparação, pós-assinatura e pendências. Todos os valores existentes de etapa
+e status permanecem disponíveis, com os mesmos manipuladores de alteração.
+
+Somente Shirley e Grazi ficam disponíveis para novas atribuições. Um valor
+legado de responsável permanece salvo e aparece como Responsável anterior
+até uma escolha explícita; não há reatribuição automática nem alteração do
+histórico. Gabriel sai também das opções da apresentação clássica.
+
+Validação: testes unitários dos valores e escape, Signature com busca,
+teclado, cancelamento sem gravação, alterações pelos manipuladores existentes,
+responsável legado e limites do menu no tablet/celular. Card-topo e Celular
+também passaram. Publicação aguarda aprovação da prévia.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já

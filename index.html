@@ -3240,6 +3240,7 @@ if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.js
 import {iniciarFraseDoDia} from './lib/frase-do-dia-cliente.js';
 import {horarioNota,ordenarNotasPorHorario} from './lib/notas-horario.js';
 import {calcularAtencoes,chaveAtencaoCaso,chaveAtencaoNota} from './lib/atencoes-dia.js';
+import {camposCasoHtml,instalarCamposCaso} from './lib/campos-caso.js';
 import {criarPonteJoaninha} from "./lib/joaninha-ponte.js";
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import { getDatabase, ref, onValue, get, set, push, update, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
@@ -6085,6 +6086,7 @@ function signatureOrcamentoHtml(c){
  const id=esc(c.id),o=orcUltimoDoCaso(c.id);
  return `<div class="signature-cert-subgrupo signature-orc-simples"><nav class="signature-cert-tipos" aria-label="Ações do orçamento"><button type="button" onclick="orcNovoDoCaso('${id}')">Novo</button>${o?`<button type="button" onclick="orcAbrirDoCaso('${id}','${esc(o.id)}')">Ver orçamento</button><button type="button" onclick="orcAbrirCliente('${id}','${esc(o.id)}')">Modo cliente</button>`:''}</nav></div>`;
 }
+instalarCamposCaso({obterCaso:id=>casos[id],obterEtapas:()=>DEPS,alterar:(id,campo,valor)=>window.mudarCampo(id,campo,valor)});
 function signatureCabecalhoHtml(c,html){
  const partes=String(c.nome||'').split('|').map(p=>p.trim());
  const separado=partes.length>1&&partes[0]&&partes.slice(1).some(Boolean);
@@ -6114,7 +6116,7 @@ function signaturePaginaHtml(c){
   else conteudo=({'Documentos':signatureDocumentosHtml(c),'Certidões':signatureCertidoesHtml(c),'Minuta':p.minuta,'Orçamento':signatureOrcamentoHtml(c),'Capa do dossiê':p.capa})[aberta];
   const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos casos</button><span>Caso</span></div>`;
   return signatureCabecalhoHtml(c,p.abre).replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
-    `<div class="signature-dados">${p.campos}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
+    `<div class="signature-dados">${camposCasoHtml(c,DEPS)}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
     <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Caso concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}${observacoes}</div></section>
     ${p.linha}
     <div class="signature-ferramentas"><nav class="est-abas signature-funcoes" aria-label="Trabalhar no caso">${abas.map(f=>`<button type="button" class="est-aba${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')?' on':''}" aria-label="${f}" aria-pressed="${f===aberta||(f==='Mais ações'&&aberta==='Capa do dossiê')}" onclick="esteiraAba('${c.id}','${f}')">${f}</button>`).join('')}</nav>
@@ -6261,9 +6263,10 @@ function cardPartes(c){
           </select></label>
         <label class="cx-campo"><span class="cx-campo-rot">Responsável</span>
           <select onchange="mudarCampo('${c.id}','resp',this.value)">
+            ${!c.resp?'<option value="" selected disabled>Definir responsável</option>':''}
+            ${c.resp&&!['shirley','grazi'].includes(c.resp)?`<option value="${esc(c.resp)}" selected disabled>Responsável anterior</option>`:''}
             <option value="shirley"${c.resp==='shirley'?' selected':''}>Shirley</option>
             <option value="grazi"${c.resp==='grazi'?' selected':''}>Grazi</option>
-            <option value="gabriel"${c.resp==='gabriel'?' selected':''}>Gabriel</option>
           </select></label>
       </div>`,
     fin:`      <div class="cx-fin">
