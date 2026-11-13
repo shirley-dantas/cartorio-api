@@ -13859,14 +13859,16 @@ function pedidoRecebidosHtml(c,opcoes={}){
     if(opcoes.compacto){
       const editavel=d.origem==='link do cliente'||d.origem==='arrastado no card'||d.selo;
       const acoes=editavel?lapis.replace('</i></button>','</i> Corrigir</button>')+ler+del.replace('</i></button>','</i> Excluir</button>'):'';
-      return `<li class="signature-doc-linha"><div class="signature-doc-identidade"><span class="cx-ped-nome">${nome}</span><span class="cx-doc-sit">${sit}${quando?' · '+quando:''}</span></div>${acoes?`<details class="signature-doc-acoes"><summary aria-label="Ações de ${esc(d.nome)}">Mais ações</summary><div>${acoes}</div></details>`:''}</li>`;
+      return `<li class="signature-doc-linha"><div class="signature-doc-identidade"><span class="cx-ped-nome">${nome}</span><span class="cx-doc-sit">${d.confirmar&&!d.provisorio?'Identificar documento':sit}${quando?' · '+quando:''}</span></div>${acoes?`<details class="signature-doc-acoes"><summary aria-label="Ações de ${esc(d.nome)}">Mais ações</summary><div>${acoes}</div></details>`:''}</li>`;
     }
     return `<li><span class="cx-ped-nome">${nome}${quando?` <em>${quando}</em>`:''}</span> <span class="cx-doc-sit">${sit}</span>${lapis}${ler}${del}</li>`;
   };
-  const corpo=docsAgrupar(docs).map(gr=>{
+  const grupos=docsAgrupar(docs);
+  if(opcoes.compacto)grupos.sort((a,b)=>Number(a.chave==='confirmar')-Number(b.chave==='confirmar'));
+  const corpo=grupos.map(gr=>{
     const papeis=[...new Set(gr.itens.map(x=>String(x.d.papel||'').trim()).filter(Boolean))];
-    const titulo=escTxt(gr.titulo)+(gr.ordem===2&&papeis.length===1?` <small>(${escTxt(papeis[0])})</small>`:'');
-    if(opcoes.compacto){const chave=c.id+':'+gr.chave,aberto=DOCS_GRUPOS_ABERTOS.get(chave)??gr.classe==='conf';return `<details class="signature-doc-grupo ${gr.classe}" data-docs-grupo="${esc(chave)}"${aberto?' open':''}><summary><span>${titulo}</span><span class="signature-doc-contagem">${gr.itens.length}</span></summary><ul>${gr.itens.map(linha).join('')}</ul></details>`;}
+    const titulo=escTxt(opcoes.compacto&&gr.chave==='confirmar'?'Documentos que precisam de identificação':gr.titulo)+(gr.ordem===2&&papeis.length===1?` <small>(${escTxt(papeis[0])})</small>`:'');
+    if(opcoes.compacto){const chave=c.id+':'+gr.chave,aberto=DOCS_GRUPOS_ABERTOS.get(chave)??gr.classe==='conf';return `<details class="signature-doc-grupo ${gr.classe}" data-docs-grupo="${esc(chave)}"${aberto?' open':''}><summary><span>${titulo}</span><span class="signature-doc-contagem">${gr.itens.length}</span></summary>${gr.chave==='confirmar'?'<p class="signature-doc-explicacao">A IA não conseguiu identificar estes arquivos. Confira o nome e o tipo de documento.</p>':''}<ul>${gr.itens.map(linha).join('')}</ul></details>`;}
     return `<section class="cx-docs-grupo ${gr.classe}"><h5><span>${titulo}</span><span>${gr.itens.length}</span></h5><ul>${gr.itens.map(linha).join('')}</ul></section>`;
   }).join('');
   const id=c&&c.id?esc(c.id):'';

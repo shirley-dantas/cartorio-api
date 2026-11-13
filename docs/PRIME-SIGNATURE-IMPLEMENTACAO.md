@@ -201,6 +201,18 @@ Nenhum HTML, manipulador ou regra de negócio muda nesta etapa.
 A usuária aprovou o acabamento e autorizou a publicação em 13/11/2026.
 Signature e Celular passaram.
 
+## Documentos por identificar — aprovado em 13/11/2026
+
+Na lista compacta de Recebidos, o grupo A confirmar passa para o final e se
+chama Documentos que precisam de identificação. Uma frase explica que a IA
+não conseguiu identificar os arquivos e orienta conferir nome e tipo.
+As linhas desse grupo mostram Identificar documento. Os documentos, a
+contagem, as ações e o estado aberto/fechado permanecem preservados.
+A classificação salva e a apresentação clássica não mudam.
+
+A usuária aprovou a prévia e autorizou a publicação em 13/11/2026.
+Docs-agrupados, Signature e Celular passaram.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já
