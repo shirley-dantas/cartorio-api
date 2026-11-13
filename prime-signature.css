@@ -271,6 +271,16 @@ html.prime-signature .signature-cadastro .cx-reg-titulo{display:none}
 html.prime-signature .signature-cadastro .cx-campo-rot{font-size:9px;letter-spacing:.08em;min-height:14px;line-height:14px}
 html.prime-signature .signature-cadastro .cx-campo input{height:38px;box-sizing:border-box;padding:8px;min-width:0;width:100%;font-size:12px;background:#fffdfb;border-color:#e5d8ce}
 html.prime-signature .signature-cadastro input[type="datetime-local"]{font-size:11.5px}
+/* Acabamento do cabeçalho: somente aparência, sem alterar a disposição. */
+html.prime-signature .signature-processo .cx-topo .cx-nome{color:#743348}
+html.prime-signature .signature-processo .signature-nome-complemento{color:#8a7880}
+html.prime-signature .signature-tipo-ato>span,html.prime-signature .signature-processo .signature-cadastro .cx-campo-rot{color:#97888b;letter-spacing:.065em}
+html.prime-signature .signature-processo .signature-tipo-ato .cx-tipo,html.prime-signature .signature-processo .signature-cadastro .cx-campo input{background:#f8f5f1;border-color:#eee7df;border-radius:7px;color:#65575c;box-shadow:inset 0 1px 2px #71503d03;transition:background .15s,border-color .15s}
+html.prime-signature .signature-processo .signature-cadastro .cx-campo input::placeholder{color:#b5a8a5;opacity:1}
+html.prime-signature .signature-processo .signature-tipo-ato .cx-tipo:hover,html.prime-signature .signature-processo .signature-cadastro .cx-campo input:hover{border-color:#d9cabc;background:#faf7f3}
+html.prime-signature .signature-processo .signature-cadastro .cx-campo input:focus{border-color:#bba18b;background:#fffdfb;outline:1px solid #dfd0c1;outline-offset:2px}
+html.prime-signature .signature-processo .cx-topo .cx-nome-lapis{border-color:#eee7df;background:transparent;color:#a18d90}
+html.prime-signature .signature-processo .cx-topo .cx-atos-sec-details>summary{border-color:#eee7df;background:transparent;color:#8d7b80}
 @container(max-width:800px){
  html.prime-signature .signature-processo .cx-topo{grid-template-columns:minmax(0,1fr);gap:18px}
  html.prime-signature .signature-processo .cx-topo .cx-ident{grid-column:1;grid-row:1}
