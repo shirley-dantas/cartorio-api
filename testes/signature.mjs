@@ -239,6 +239,49 @@ try{
  await pg.locator('.signature-resumo-abrir').click();
  assert.equal(await pg.locator('.central-nova').isVisible(),false);
  assert.equal(await pg.locator('.signature-processo').count(),1);
+ // Cabeçalho: apresentação apenas, com o nome completo e os controles reais preservados.
+ const casoAntesCabecalho=await pg.evaluate(()=>structuredClone(window.__data.casos.C1));
+ await pg.evaluate(()=>{
+  const data=new Date(Date.now()-14*86400000).toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+  window.__fbWrite('casos/C1',{...window.__data.casos.C1,nome:'JRL HOLDING LTDA | REINALDO ROOFTOP',tipo:'DAÇÃO EM PAGAMENTO',status:'atencao',atualizado:data});
+ });
+ await pg.waitForFunction(()=>document.querySelector('.signature-nome-complemento')?.textContent==='REINALDO ROOFTOP');
+ await pg.waitForTimeout(350); // A escrita da fixture notifica também os ouvintes com debounce de 200 ms.
+ const antesAbrirCabecalho=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
+ assert.equal(await pg.locator('.signature-nome-principal').innerText(),'JRL HOLDING LTDA');
+ assert.equal(await pg.locator('.signature-processo .cx-meta-dir .badge').count(),1);
+ assert.equal(await pg.locator('.signature-processo .cx-nome-linha .badge').count(),0);
+ assert.equal(await pg.getByRole('combobox',{name:'Tipo de ato',exact:true}).inputValue(),'DAÇÃO EM PAGAMENTO','valor antigo preservado sem conversão automática');
+ assert.doesNotMatch(await pg.locator('.signature-processo .cx-topo').innerText(),/texto antigo/);
+ await pg.locator('.signature-processo .cx-topo').screenshot({path:join(AQUI,'saida','cabecalho-caso-elegante-computador.png')});
+ await pg.setViewportSize({width:1024,height:1000});
+ assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'cabeçalho cabe no tablet');
+ await pg.locator('.signature-processo .cx-topo').screenshot({path:join(AQUI,'saida','cabecalho-caso-elegante-tablet.png')});
+ await pg.setViewportSize({width:390,height:844});
+ assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'cabeçalho cabe no celular');
+ await pg.locator('.signature-processo .cx-topo').screenshot({path:join(AQUI,'saida','cabecalho-caso-elegante-celular.png')});
+ await pg.locator('.signature-processo .cx-atos-sec-details summary').click();
+ assert.equal(await pg.getByRole('checkbox',{name:'Confissão de Dívida',exact:true}).isVisible(),true);
+ assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'lista de atos adicionais também cabe no celular');
+ assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),antesAbrirCabecalho,'abrir detalhes não altera o caso');
+ await pg.getByRole('checkbox',{name:'Confissão de Dívida',exact:true}).check();
+ await pg.waitForFunction(()=>window.__data.casos.C1.atosSecundarios?.includes('Confissão de Dívida'));
+ await pg.waitForTimeout(350);
+ await pg.getByRole('combobox',{name:'Tipo de ato',exact:true}).selectOption('Dação em Pagamento');
+ await pg.waitForFunction(()=>window.__data.casos.C1.tipo==='Dação em Pagamento');
+ await pg.waitForTimeout(350);
+ await pg.getByRole('button',{name:'Editar nome do caso',exact:true}).click();
+ assert.equal(await pg.locator('#cx-nome-input-C1').inputValue(),'JRL HOLDING LTDA | REINALDO ROOFTOP','edição mantém o nome completo');
+ await pg.locator('#cx-nome-input-C1').fill('JRL HOLDING LTDA | REFERÊNCIA REVISADA');
+ await pg.locator('#cx-nome-input-C1').press('Enter');
+ await pg.waitForFunction(()=>document.querySelector('.signature-nome-complemento')?.textContent==='REFERÊNCIA REVISADA');
+ await pg.waitForTimeout(350);
+ assert.equal(await pg.evaluate(()=>window.__data.casos.C1.nome),'JRL HOLDING LTDA | REFERÊNCIA REVISADA');
+ await pg.setViewportSize({width:1440,height:1000});
+ await pg.evaluate(c=>window.__fbWrite('casos/C1',c),casoAntesCabecalho);
+ await pg.waitForFunction(()=>document.querySelector('.signature-processo .cx-nome')?.textContent==='JRL — caso fictício');
+ await pg.waitForTimeout(350); // Os ouvintes simulados agendam o redesenho do card em 200 ms.
+ console.log('ok: cabeçalho separa nome/referência sem gravar, preserva tipo antigo, edição, atos adicionais e funciona no tablet/celular.');
  assert.equal(await pg.locator('.signature-processo .est').count(),0,'jornada não duplica o controle Etapa');
  assert.equal(await pg.locator('.signature-proxima .card-obs').count(),1,'Observações ficam dentro de Próxima ação');
  const observacaoAnterior=await pg.evaluate(()=>window.__data.casos.C1.obs);

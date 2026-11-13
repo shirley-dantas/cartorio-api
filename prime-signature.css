@@ -238,6 +238,27 @@ html.prime-signature .signature-caminho{display:flex;align-items:center;gap:16px
 html.prime-signature .signature-processo{border:1px solid #eaddd2;border-radius:24px;background:#fffdfb;box-shadow:var(--ps-shadow);padding:28px}
 html.prime-signature .signature-processo .cx-topo{padding-bottom:20px;border-bottom:1px solid #eee3da}
 html.prime-signature .signature-processo .cx-nome{font:600 32px 'Cormorant Garamond',Georgia,serif;color:var(--ps-wine)}
+html.prime-signature .signature-processo .cx-topo{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:22px;padding-bottom:24px}
+html.prime-signature .signature-processo .cx-topo .cx-ident{min-width:0}
+html.prime-signature .signature-processo .cx-topo .cx-nome-linha{align-items:flex-start;flex-wrap:nowrap;gap:12px;margin:0}
+html.prime-signature .signature-processo .cx-topo .cx-nome{font:500 29px 'Cormorant Garamond',Georgia,serif;line-height:1.2;min-width:0;overflow-wrap:anywhere}
+html.prime-signature .signature-nome-principal{display:block}
+html.prime-signature .signature-nome-complemento{display:block;font:400 14px 'Jost',Arial,sans-serif;line-height:1.5;color:#80616e;letter-spacing:.025em;margin-top:8px}
+html.prime-signature .signature-processo .cx-topo .cx-nome-lapis{margin-top:6px;border:1px solid #e8dcd3;border-radius:7px;padding:5px;opacity:1;color:#907080;background:#fffdfb}
+html.prime-signature .signature-processo .cx-topo .cx-meta-dir{display:flex;flex-direction:column;align-items:flex-end;gap:10px;padding-top:4px;min-width:100px}
+html.prime-signature .signature-processo .cx-topo .cx-meta-dir .dias-badge{font-size:11px;line-height:1.5;padding:0}
+html.prime-signature .signature-tipo-ato{display:grid;gap:7px;max-width:430px;margin-top:22px}
+html.prime-signature .signature-tipo-ato>span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8e7180}
+html.prime-signature .signature-processo .signature-tipo-ato .cx-tipo{width:100%;max-width:none;min-width:0;border:1px solid #dfcfc4;border-radius:8px;padding:10px 12px;background:#fffdfb;color:#684656;font-size:12px}
+html.prime-signature .signature-processo .signature-tipo-ato .cx-tipo:focus{outline:1px solid #b68d9b;outline-offset:2px}
+html.prime-signature .signature-processo .cx-topo .cx-atos-sec-details{margin-top:12px}
+html.prime-signature .signature-processo .cx-topo .cx-atos-sec-details>summary{padding:6px 12px;border:1px solid var(--cc-linha);border-radius:8px;background:#fff;color:var(--cc-tinta-2);font-size:11.5px;font-weight:400;gap:6px}
+html.prime-signature .signature-processo .cx-topo .cx-atos-sec-details>summary::before{font-weight:400}
+html.prime-signature .signature-processo .cx-topo .cx-atos-sec-opcoes{padding-top:12px}
+html.prime-signature .signature-processo .cx-topo .cx-atos-sec-opcoes label{white-space:normal;max-width:100%;line-height:1.5}
+html.prime-signature .signature-processo .cx-topo .cx-atos-sec-opcoes input{flex-shrink:0}
+html.prime-signature .signature-processo .cx-topo .cx-nome-edit input{min-width:0;width:100%;border-color:#dfcfc4;background:#fffdfb}
+@media(max-width:600px){html.prime-signature .signature-processo .cx-topo{grid-template-columns:minmax(0,1fr);gap:18px}html.prime-signature .signature-processo .cx-topo .cx-nome{font-size:26px}html.prime-signature .signature-processo .cx-topo .cx-meta-dir{flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:14px;padding:0}html.prime-signature .signature-tipo-ato{max-width:none;margin-top:18px}}
 html.prime-signature .signature-dados{display:flex;align-items:end;justify-content:space-between;gap:15px;margin-top:18px}
 html.prime-signature .signature-dados .cx-campos{flex:1;border:0;margin:0;padding:0;display:grid;grid-template-columns:1fr 1.3fr 1fr}
 html.prime-signature .signature-tempo{font-size:11px;color:#886d78;padding-bottom:8px}
