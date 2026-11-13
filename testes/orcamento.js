@@ -459,6 +459,11 @@ ok('doação acima do teto não levanta aviso de isenção',
    !doacaoAlta.alertas.some(a => /UFESP/.test(a.texto)));
 
 console.log('\n— A isenção do ITBI é apontada sozinha, e só aplicada com um clique dela —');
+for(const base of [0,-100]){
+ const semBase=orcCalcular({atoId:'compra-venda',data:'2026-03-10',valores:{transacao:base},imovelMunicipio:'São Paulo',imovelUf:'SP',flags:{isencaoItbiConfirmada:true},despesas:{taxaAdicional:false}});
+ ok('base não positiva não oferece nem confirma a isenção de primeiro imóvel: '+base,!semBase.alertas.some(a=>['isencaoItbiPrimeiroImovel','isencaoItbiAplicada'].includes(a.chave)));
+}
+
 const barato = orcCalcular({atoId: 'compra-venda', data: '2026-03-10',
   valores: {transacao: 20000000}, imovelMunicipio: 'São Paulo', imovelUf: 'SP',
   flags: {}, despesas: {taxaAdicional: false}});

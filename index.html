@@ -12611,7 +12611,7 @@ function orcConferirIsencoes(ctx){
   const itbi = tributos.find(t => t.imposto === 'itbi');
   if(itbi && itbi.valor != null){
     const teto = orcTetoIsencaoItbi(data || isoHoje());
-    if(teto && itbi.base <= teto){
+    if(teto && Number.isFinite(itbi.base) && itbi.base > 0 && itbi.base <= teto){
       if(flags.isencaoItbiConfirmada){
         itbi.isento = true;
         itbi.valorAntesDaIsencao = itbi.valor;
@@ -15246,6 +15246,12 @@ function orcHtmlDespesas(e, r){
 }
 
 // ── O resultado, a memória e os avisos ───────────────────────────────────
+function orcHtmlAvisoCompacto(a){
+ const candidato=a.chave==='isencaoItbiPrimeiroImovel';
+ return `<div class="orc-alerta orc-aviso-compacto${a.nivel==='bloqueia'?' grave':''}"${candidato?' id="orc-alerta-isencao-itbi"':''}>
+ ${candidato?`<b class="orc-aviso-titulo">Possível isenção de ITBI</b><p>O valor informado está dentro do teto. Confirme se é a primeira aquisição residencial ou PMCMV.</p><details><summary>Ver condições</summary><p>${escTxt(a.texto)}</p></details><button type="button" class="cx-btn" onclick="orcConfirmarIsencaoItbi()">Confirmar primeira aquisição / PMCMV</button>`:`<p><span class="orc-selo">${ORC_CONFIANCAS[a.confianca].selo}</span> ${escTxt(a.texto)}</p>${a.chave==='isencaoItbiAplicada'?'<button type="button" class="cx-btn" onclick="orcDesfazerIsencaoItbi()">Desfazer isenção</button>':''}`}
+ </div>`;
+}
 function orcHtmlResultado(e, r){
   const t = r.totais;
   const anterior = e.veioDe ? orcTudo[e.veioDe] : null;
@@ -15263,11 +15269,11 @@ function orcHtmlResultado(e, r){
       <span class="orc-resumo-item"><span><span class="orc-resumo-dot" style="background:var(--cc-atencao)"></span>Tributos</span> <b>${orcMoeda(t.tributos)}</b></span>
     </div>
     ${r.faltando.length ? `<div class="orc-perguntas">
-      <div class="orc-perguntas-rot">Para finalizar o orçamento, preciso confirmar:</div>
+      <div class="orc-perguntas-rot">${window.PRIME_SIGNATURE?'Falta confirmar':'Para finalizar o orçamento, preciso confirmar:'}</div>
       ${r.faltando.map(f => `<div class="orc-pergunta">${escTxt(f.pergunta)}</div>`).join('')}
     </div>` : ''}
     ${r.alertas.length ? `<div class="orc-alertas">
-      ${r.alertas.map(a => `<div class="orc-alerta ${a.nivel === 'bloqueia' ? 'grave' : ''}"
+      ${r.alertas.map(a => window.PRIME_SIGNATURE?orcHtmlAvisoCompacto(a):`<div class="orc-alerta ${a.nivel === 'bloqueia' ? 'grave' : ''}"
         ${a.chave === 'isencaoItbiPrimeiroImovel' ? ' id="orc-alerta-isencao-itbi"' : ''}>
         <span class="orc-selo">${ORC_CONFIANCAS[a.confianca].selo}</span> ${escTxt(a.texto)}
         ${a.chave === 'isencaoItbiPrimeiroImovel' ? `<button type="button" class="cx-btn" style="margin-left:8px"
