@@ -449,6 +449,12 @@ html.prime-signature .signature-certidoes-servicos[data-pref-servico="valor"] .p
 html.prime-signature .signature-certidoes-servicos[data-pref-servico="valor"] .pref-pedir:has([onclick^="signaturePedirCadastrais"]),
 html.prime-signature .signature-certidoes-servicos[data-pref-servico="cadastrais"] .pref-pedir:has([onclick^="signaturePedirValorVenal"]),
 html.prime-signature .signature-certidoes-servicos[data-pref-servico="cadastrais"] .pref-pedir:has([onclick^="signaturePedirNegativa"]){display:none}
+/* Prévia: hierarquia leve entre navegação principal e serviços. */
+html.prime-signature .signature-funcoes .est-aba{background:#fffdfb;border-color:#ece4dc;color:#88737b;font-weight:500;border-radius:8px;box-shadow:none}
+html.prime-signature .signature-funcoes .est-aba:hover{background:#faf5f3;border-color:#dac5cd;color:#79384e}
+html.prime-signature .signature-funcoes .est-aba.on{background:#f5e9ed;border-color:#d6b6c2;color:#762e47;box-shadow:none}
+html.prime-signature .signature-cert-servicos button{background:#fffdfb;border-color:#e6ded3;color:#847566;font-weight:400;box-shadow:none}
+html.prime-signature .signature-cert-servicos button[aria-pressed="true"]{background:#faf5eb;border-color:#c3aa80;color:#7a5f35;box-shadow:none}
 @media(max-width:760px){html.prime-signature .signature-cert-dados{display:grid;grid-template-columns:minmax(0,1fr)}html.prime-signature .signature-cert-servicos{gap:7px}html.prime-signature .signature-cert-servicos button{padding:8px 12px}html.prime-signature .signature-cert-tipos{gap:18px}}
 html.prime-signature .signature-trabalho{padding:20px 0;min-height:125px}
 html.prime-signature .signature-acoes-extras{display:flex;gap:10px;flex-wrap:wrap}

@@ -394,6 +394,7 @@ try{
   D4:{nome:'Contrato da Empresa Exemplo',tipo:'documento',tipoDocumento:'CONTRATO_SOCIAL',pessoa:'Empresa Exemplo',origem:'arrastado no card',texto:'Contrato fictício.'}
  }));
  await pg.waitForFunction(()=>document.querySelectorAll('.signature-doc-grupo').length===4);
+ await pg.waitForTimeout(350); // Aguarda o redesenho dos ouvintes simulados antes das capturas.
  const antesDocumentos=await pg.evaluate(()=>JSON.stringify(window.__data.casos));
  assert.equal(await pg.locator('.signature-doc-grupo.conf').getAttribute('open'),'','itens a confirmar já ficam abertos');
  assert.match(await pg.locator('.signature-doc-grupo').last().innerText(),/Documentos que precisam de identificação/);
