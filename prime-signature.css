@@ -543,3 +543,13 @@ html.prime-signature .signature-pill-status small{font-size:10px;font-weight:400
 html.prime-signature .signature-pill-status.salvo{color:#3d7c5d}
 html.prime-signature .signature-pill-status.solicitado{color:#8a6b3e}
 html.prime-signature .signature-pill-status.erro{color:#a05b43}
+
+/* Contraste das pílulas com contorno fino e seleção evidente. */
+html.prime-signature .signature-funcoes .est-aba{background:#faf3ed;border-color:#d7bda9;color:#653b4d}
+html.prime-signature .signature-funcoes .est-aba.on{background:#78263f;border-color:#78263f;color:#fff}
+html.prime-signature .signature-funcoes .est-aba.on:hover{background:#692037;border-color:#692037;color:#fff}
+html.prime-signature .signature-cert-servicos button{border-color:#cfaeb8;color:#77394e;background:#fffdfb}
+html.prime-signature .signature-cert-servicos button[aria-pressed="true"]{background:#f3e3e9;border-color:#984c66;color:#6d243c}
+html.prime-signature .signature-funcoes .est-aba.on .signature-pill-status.salvo{color:#d5f1dd}
+html.prime-signature .signature-funcoes .est-aba.on .signature-pill-status.solicitado{color:#f6dfb3}
+html.prime-signature .signature-funcoes .est-aba.on .signature-pill-status.erro{color:#ffdcc8}

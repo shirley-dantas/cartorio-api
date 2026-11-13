@@ -32,3 +32,12 @@ test('matrícula atualizada só encerra após retorno e arquivos de todas as mat
  c.documentos.b={nomeOriginal:'RIDIGITAL_ATUALIZADA_4567.pdf',salvoEm:new Date(2000).toISOString()};assert.equal(indicadoresCaso(c)['matricula:certidao'].solicitadas,1);
  c.documentos.b.nomeOriginal='RIDIGITAL_ATUALIZADA_456.pdf';assert.equal(indicadoresCaso(c)['matricula:certidao'].solicitadas,0);
 });
+
+test('minuta, orçamento, pagamento, Drive e capa usam registros existentes sem afirmar quitação ou impressão',()=>{
+ const c={docUrl:'https://docs.google.com/document/d/x',driveUrl:'https://drive.google.com/drive/folders/x',pagamento:{token:'x'},capaGeradaEm:1};
+ const r=indicadoresCaso(c,{temOrcamento:true});
+ for(const k of ['Minuta','Orçamento','Pagamento','Drive','Dossiê'])assert.equal(r[k].salvos,1);
+ assert.match(r.Pagamento.descricao,/não confirma quitação/);assert.match(r.Dossiê.descricao,/não confirma impressão/);
+ assert.equal(indicadoresCaso(c).Orçamento.salvos,0,'sem acesso ao orçamento não indica presença');
+ assert.equal(indicadoresCaso({docUrl:'javascript:alert(1)',driveUrl:'x'}).Minuta.salvos,0);
+});
