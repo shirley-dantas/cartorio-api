@@ -275,8 +275,6 @@ html.prime-signature .signature-status-ponto[data-status="emdia"]{background:#66
 html.prime-signature .signature-campo-menu{position:fixed;z-index:10050;background:#fffdfb;border:1px solid #ddcbd4;border-radius:12px;box-shadow:0 10px 32px #6334471c;padding:10px;box-sizing:border-box;font:400 12px 'Jost',Arial,sans-serif;color:#684656}
 html.prime-signature .signature-campo-menu-topo{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 8px;font-size:11px;color:#8a6b79}
 html.prime-signature .signature-campo-menu-topo button{background:none;border:0;font-size:19px;color:#947482;padding:0 4px;cursor:pointer}
-html.prime-signature .signature-campo-busca{width:100%;border:1px solid #e0d1d8;border-radius:8px;background:#fff;padding:9px 11px;margin-bottom:10px;font:inherit;color:#684656;box-sizing:border-box}
-html.prime-signature .signature-campo-busca:focus{outline:1px solid #b68d9f;outline-offset:1px}
 html.prime-signature .signature-campo-lista{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#d1b7c2 transparent}
 html.prime-signature .signature-campo-grupo-titulo{display:block;padding:13px 10px 7px;font-size:10px;letter-spacing:.05em;color:#9a7b89}
 html.prime-signature .signature-campo-lista [role="option"]{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:1px solid transparent;border-radius:7px;background:transparent;padding:9px 10px;font:inherit;line-height:1.5;color:#684656;cursor:pointer;box-sizing:border-box}
@@ -284,7 +282,6 @@ html.prime-signature .signature-campo-lista [role="option"]>span:not(.signature-
 html.prime-signature .signature-campo-lista [role="option"][aria-selected="true"]{background:#f8f0f3;color:#702e49;border-color:#e6d4dd}
 html.prime-signature .signature-campo-lista [role="option"]:hover,html.prime-signature .signature-campo-lista [role="option"]:focus-visible{background:#fbf5f7;outline:1px solid #d4b7c5;outline-offset:-1px}
 html.prime-signature .signature-campo-check{font-size:11px;color:#a9895a}
-html.prime-signature .signature-campo-vazio{margin:12px 10px;color:#907381}
 html.prime-signature .signature-campo-menu [hidden]{display:none!important}
 html.prime-signature .signature-tempo{font-size:11px;color:#886d78;padding-bottom:8px}
 html.prime-signature .signature-contexto{background:#fbf2ed;border:1px solid #eedfd5;border-radius:18px;margin:22px 0;padding:20px}

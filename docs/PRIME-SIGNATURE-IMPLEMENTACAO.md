@@ -159,7 +159,7 @@ subtítulo e autorizou a publicação em 13/11/2026.
 ## Seletores do caso — prévia para aprovação em 13/11/2026
 
 Status, Etapa e Responsável recebem campos com contorno fino e menus no mesmo
-estilo suave. Etapa oferece busca sem distinção de acentos e grupos de
+estilo suave. A pedido da usuária, Etapa abre diretamente a lista, sem busca, com grupos de
 preparação, pós-assinatura e pendências. Todos os valores existentes de etapa
 e status permanecem disponíveis, com os mesmos manipuladores de alteração.
 
@@ -168,7 +168,7 @@ legado de responsável permanece salvo e aparece como Responsável anterior
 até uma escolha explícita; não há reatribuição automática nem alteração do
 histórico. Gabriel sai também das opções da apresentação clássica.
 
-Validação: testes unitários dos valores e escape, Signature com busca,
+Validação: testes unitários dos valores e escape, Signature com lista sem busca,
 teclado, cancelamento sem gravação, alterações pelos manipuladores existentes,
 responsável legado e limites do menu no tablet/celular. Card-topo e Celular
 também passaram. Publicação aguarda aprovação da prévia.

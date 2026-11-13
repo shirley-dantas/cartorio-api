@@ -282,21 +282,18 @@ try{
  await pg.waitForFunction(()=>document.querySelector('.signature-processo .cx-nome')?.textContent==='JRL — caso fictício');
  await pg.waitForTimeout(350); // Os ouvintes simulados agendam o redesenho do card em 200 ms.
  console.log('ok: cabeçalho separa nome/referência sem gravar, preserva tipo antigo, edição, atos adicionais e funciona no tablet/celular.');
- // Seletores personalizados: busca, teclado, cancelamento e gravação pelos manipuladores anteriores.
+ // Seletores personalizados: lista direta, teclado, cancelamento e gravação pelos manipuladores anteriores.
  const antesSeletores=await pg.evaluate(()=>structuredClone(window.__data.casos.C1));
  const jsonSeletores=JSON.stringify(antesSeletores);
  await pg.getByRole('combobox',{name:'Etapa',exact:true}).click();
- assert.equal(await pg.getByRole('searchbox',{name:'Buscar etapa',exact:true}).evaluate(el=>el===document.activeElement),true);
- await pg.getByRole('searchbox',{name:'Buscar etapa',exact:true}).fill('aprovacao');
- assert.equal(await pg.locator('.signature-campo-menu').getByRole('option').count(),2,'busca não depende de acentos');
- await pg.getByRole('searchbox',{name:'Buscar etapa',exact:true}).fill('não existe esta etapa');
- assert.match(await pg.locator('.signature-campo-menu').innerText(),/Nenhuma etapa encontrada/);
+ assert.equal(await pg.locator('.signature-campo-menu input').count(),0,'etapas não têm campo de busca');
+ assert.equal(await pg.locator('.signature-campo-menu [role=option][aria-selected=true]').evaluate(el=>el===document.activeElement),true,'foco começa na etapa atual');
  await pg.keyboard.press('Escape');
  assert.equal(await pg.locator('.signature-campo-menu').count(),0);
  assert.equal(await pg.getByRole('combobox',{name:'Etapa',exact:true}).evaluate(el=>el===document.activeElement),true);
- assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos.C1)),jsonSeletores,'abrir, buscar e cancelar não gravam');
+ assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos.C1)),jsonSeletores,'abrir e cancelar não gravam');
  await pg.getByRole('combobox',{name:'Etapa',exact:true}).click();
- await pg.getByRole('searchbox',{name:'Buscar etapa',exact:true}).fill('Minutando');
+ await pg.locator('.signature-campo-menu').getByRole('option',{name:'Minutando',exact:true}).focus();
  await pg.keyboard.press('Enter');
  await pg.waitForFunction(()=>window.__data.casos.C1.dep==='Minutando');
  await pg.waitForTimeout(350);
@@ -332,7 +329,6 @@ try{
  await pg.setViewportSize({width:390,height:844});
  await pg.getByRole('combobox',{name:'Etapa',exact:true}).click();
  assert.equal(await pg.evaluate(()=>{const r=document.querySelector('.signature-campo-menu').getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;}),true,'lista cabe no celular');
- await pg.getByRole('searchbox',{name:'Buscar etapa',exact:true}).fill('registro');
  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
  await pg.locator('.signature-campo-menu').screenshot({path:join(AQUI,'saida','seletores-etapa-celular.png')});
  await pg.keyboard.press('Escape');
@@ -346,7 +342,7 @@ try{
  await pg.setViewportSize({width:1440,height:1000});
  await pg.evaluate(c=>window.__fbWrite('casos/C1',c),antesSeletores);
  await pg.waitForTimeout(350);
- console.log('ok: Status/Etapa/Responsável com busca, teclado e cancelamento; alterações preservadas, Gabriel fora de novas atribuições e legado sem reatribuição.');
+ console.log('ok: Status/Etapa/Responsável com lista direta, teclado e cancelamento; alterações preservadas, Gabriel fora de novas atribuições e legado sem reatribuição.');
 
  assert.equal(await pg.locator('.signature-processo .est').count(),0,'jornada não duplica o controle Etapa');
  assert.equal(await pg.locator('.signature-proxima .card-obs').count(),1,'Observações ficam dentro de Próxima ação');
