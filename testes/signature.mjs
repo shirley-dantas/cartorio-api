@@ -422,6 +422,69 @@ try{
  assert.equal(await pg.getByRole('button',{name:/Voltar aos casos/}).count(),1);
  assert.equal(await pg.locator('.signature-trabalho [onclick*=abrirMinuta]').count(),1);
  assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.casos)),antes,'trocar abas não grava ou gera minuta');
+ // Aparência uniforme: orçamento real calculado, ações existentes e proteção de acesso.
+ await pg.evaluate(()=>{
+  window.__trocarConta({uid:'U1',email:'teste@example.invalid',getIdToken:async()=> 'token-ficticio'});
+  const entrada={atoId:'compra-venda',data:'2026-11-12',praticadoEm:'São Paulo',imovelMunicipio:'São Paulo',imovelUf:'SP',valores:{transacao:30000000,venal:22000000,referencia:24000000},flags:{},despesas:{prenotacao:true,matricula:true,registroComMatricula:true,taxaAdicional:false}};
+  const anterior={id:'B1',casoId:'C1',casoNome:'JRL — caso fictício',versao:1,data:entrada.data,status:'elaboracao',entrada,resultado:window.orcCalcular(entrada)};
+  const nova={...entrada,valores:{...entrada.valores,transacao:35000000}};
+  window.__fbWrite('orcamentos',{B1:anterior,B2:{...anterior,id:'B2',versao:2,entrada:nova,resultado:window.orcCalcular(nova)}});
+ });
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Orçamento',exact:true}).click();
+ await pg.waitForFunction(()=>!!document.querySelector('.signature-orc-total'));
+ await pg.waitForTimeout(350); // A carga inicial agenda o redesenho dos cards em 200 ms.
+ const orcAntes=await pg.evaluate(()=>JSON.stringify(window.__data.orcamentos));
+ assert.equal(await pg.locator('.signature-orc-total strong').innerText().then(s=>Number(s.replace(/\D/g,''))),await pg.evaluate(()=>window.__data.orcamentos.B2.resultado.totais.total),'total salvo permanece igual');
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-suaves-orcamento-atual.png')});
+ await pg.getByRole('button',{name:'Versões',exact:true}).click();
+ assert.equal(await pg.locator('.signature-orc-versoes>div').count(),2,'todas as versões permanecem acessíveis');
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-suaves-orcamento-versoes.png')});
+ await pg.locator('.signature-orc-versoes>div').last().getByRole('button',{name:'Abrir',exact:true}).click();
+ assert.equal(await pg.locator('#modal-orcamento-caso').isVisible(),true);
+ assert.match(await pg.locator('#orc-caso-sub').innerText(),/versão 1/);
+ await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
+ await pg.getByRole('button',{name:'Detalhes',exact:true}).click();
+ assert.equal(await pg.locator('[onclick*=orcAbrirMemoria]').count(),1);
+ assert.equal(await pg.locator('[onclick*=orcDuplicar]').count(),1);
+ assert.equal(await pg.locator('[onclick*=orcNovoDoCaso]').count(),1);
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-suaves-orcamento-detalhes.png')});
+ await pg.getByRole('button',{name:'Ver memória de cálculo',exact:true}).click();
+ assert.equal(await pg.locator('#modal-orcamento-caso .orc-memoria').count(),1);
+ await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
+ await pg.getByRole('button',{name:'Duplicar orçamento',exact:true}).click();
+ assert.equal(await pg.locator('#modal-orcamento-caso').isVisible(),true);
+ await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
+ await pg.getByRole('button',{name:'Novo orçamento',exact:true}).click();
+ assert.equal(await pg.locator('#modal-orcamento-caso').isVisible(),true);
+ await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
+ await pg.getByRole('button',{name:'Orçamento atual',exact:true}).click();
+ await pg.getByRole('button',{name:'Modo cliente',exact:true}).click();
+ assert.equal(await pg.locator('#modal-orcamento-caso .orc-cliente').count(),1);
+ await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
+ await pg.getByRole('button',{name:'Ver orçamento',exact:true}).click();
+ await pg.locator('#modal-orcamento-caso .modal-box').screenshot({path:join(AQUI,'saida','abas-suaves-orcamento-janela.png')});
+ await pg.setViewportSize({width:390,height:844});
+ assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'janela do orçamento cabe no celular');
+ await pg.evaluate(()=>window.fecharOrcamentoDoCaso());
+ for(const nome of ['Orçamento atual','Versões','Detalhes']){
+  await pg.getByRole('button',{name:nome,exact:true}).click();
+  assert.equal(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'orçamento cabe no celular: '+nome);
+ }
+ await pg.getByRole('button',{name:'Orçamento atual',exact:true}).click();
+ await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-suaves-orcamento-celular.png')});
+ assert.equal(await pg.evaluate(()=>JSON.stringify(window.__data.orcamentos)),orcAntes,'abrir versões, memória, duplicar rascunho e modo cliente não alteram versões salvas');
+ await pg.setViewportSize({width:1440,height:1000});
+ for(const nome of ['Minuta','Pagamento','Drive','Histórico','Mais ações']){
+  await pg.locator('.signature-funcoes').getByRole('button',{name:nome,exact:true}).click();
+  assert.equal(await pg.locator('.signature-trabalho .signature-secao h3').count(),1,'título do painel padronizado: '+nome);
+  await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','abas-suaves-'+({'Minuta':'minuta','Pagamento':'pagamento','Drive':'drive','Histórico':'historico','Mais ações':'mais-acoes'}[nome])+'.png')});
+ }
+ await pg.evaluate(()=>window.__trocarConta(null));
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Orçamento',exact:true}).click();
+ await pg.waitForFunction(()=>!document.querySelector('.signature-orc-total'));
+ assert.doesNotMatch(await pg.locator('.signature-trabalho').innerText(),/R\$/,'logout remove os totais do orçamento');
+ await pg.locator('.signature-funcoes').getByRole('button',{name:'Minuta',exact:true}).click();
+ console.log('ok: acabamento comum das abas, orçamento atual/versões/detalhes, todos os controles preservados, valores imutáveis, logout e celular.');
  await pg.screenshot({path:join(AQUI,'saida','signature-processo-computador.png'),fullPage:true});
  await pg.locator('.signature-processo').screenshot({path:join(AQUI,'saida','card-limpo-computador.png')});
  await pg.locator('.signature-dados select[onchange*=resp]').selectOption('grazi');
