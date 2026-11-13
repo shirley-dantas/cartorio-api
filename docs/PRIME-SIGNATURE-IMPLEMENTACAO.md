@@ -116,7 +116,7 @@ documentos legados, pedido existente e celular; docs-agrupados, solte-card e
 celular passaram. A usuária aprovou a prévia com Anexar documentos em primeiro
 lugar e autorizou a publicação em 12/11/2026.
 
-## Somente subpílulas e orçamento simplificado — prévia de 12/11/2026
+## Somente subpílulas e orçamento simplificado — aprovado em 12/11/2026
 
 A orientação final da usuária é preservar as pílulas principais exatamente
 como publicadas. Somente as subpílulas de Documentos e Certidões adotam a
@@ -135,7 +135,8 @@ proteções existentes. Nenhum cálculo, documento, versão ou ação de backend
 Validação: Signature compara os estilos calculados das subpílulas com os
 botões atuais de Minuta e confere os três atalhos do orçamento, ausência de
 metadados externos, conteúdo dentro da janela, versões salvas imutáveis,
-proteção no logout e celular. Prévia aguarda aprovação para publicação.
+proteção no logout e celular. A usuária aprovou a prévia com Novo em primeiro
+lugar e autorizou a publicação em 12/11/2026.
 
 ## Financeiro e privacidade
 
