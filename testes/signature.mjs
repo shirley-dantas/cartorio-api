@@ -629,6 +629,23 @@ try{
  assert.notEqual(await janelaOrc.locator('.orc-total-num').innerText(),totalOriginal,'total continua atualizando ao digitar');
  await valorNegocio.fill(antesDigitar);
  assert.equal(await janelaOrc.locator('.orc-total-num').innerText(),totalOriginal);
+ await valorNegocio.fill('');
+ assert.equal(await janelaOrc.locator('#orc-alerta-isencao-itbi').count(),0,'sem base não oferece isenção');
+ assert.equal(await janelaOrc.locator('.orc-perguntas').count(),1,'pendência acompanha a ausência de valor');
+ await janelaOrc.locator('.orc-coluna-lateral').screenshot({path:join(AQUI,'saida','avisos-orcamento-sem-valor.png')});
+ await valorNegocio.fill('200000,00');
+ const avisoIsencao=janelaOrc.locator('#orc-alerta-isencao-itbi');
+ assert.equal(await avisoIsencao.locator('details').getAttribute('open'),null,'condições completas começam recolhidas');
+ assert.equal(await avisoIsencao.locator('button').evaluate(el=>{const r=el.getBoundingClientRect(),p=el.parentElement.getBoundingClientRect();return r.left>=p.left&&r.right<=p.right;}),true,'ação cabe dentro do aviso');
+ await janelaOrc.locator('.orc-coluna-lateral').screenshot({path:join(AQUI,'saida','avisos-orcamento-proporcionais.png'),animations:'disabled'});
+ await avisoIsencao.locator('summary').click();
+ assert.match(await avisoIsencao.locator('details').innerText(),/O valor da base/,'condições anteriores continuam acessíveis');
+ await avisoIsencao.getByRole('button',{name:'Confirmar primeira aquisição / PMCMV',exact:true}).click();
+ assert.equal(await janelaOrc.getByRole('button',{name:'Desfazer isenção',exact:true}).count(),1,'confirmação continua explícita e reversível');
+ await janelaOrc.getByRole('button',{name:'Desfazer isenção',exact:true}).click();
+ await janelaOrc.locator('[oninput*="orcMudarValor"][oninput*="transacao"]').fill(antesDigitar);
+ assert.equal(await janelaOrc.locator('#orc-alerta-isencao-itbi').count(),0,'acima do teto não há aviso de primeiro imóvel');
+
  for(const largura of [1024,900,390]){
   await pg.setViewportSize({width:largura,height:900});
   assert.equal(await pg.evaluate(()=>{const b=document.querySelector('#modal-orcamento-caso .modal-box'),r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&b.scrollWidth<=b.clientWidth+1;}),true,'janela sem vazamento em '+largura);

@@ -602,3 +602,17 @@ html.prime-signature .orc-historico-acoes>label{display:flex;flex-direction:colu
 html.prime-signature .orc-historico-acoes button{padding:9px 12px;min-height:36px;border-color:#dfcbbd;color:#785365;background:#fffdfb}
 html.prime-signature .orc-pagina-unica .orc-local-imovel .orc-grade{grid-template-columns:minmax(0,1fr) 65px 150px}
 @media(max-width:500px){html.prime-signature .orc-pagina-unica .orc-local-imovel .orc-grade{grid-template-columns:minmax(0,1fr)}html.prime-signature .orc-historico-acoes>label{flex-basis:100%}}
+
+/* Avisos pertencem ao orçamento atual e ocupam a largura da lateral. */
+html.prime-signature .orc-pagina-unica .orc-perguntas{margin-top:12px;padding:11px 12px;background:#f8f1eb;border:1px solid #e2cfc0;border-radius:9px}
+html.prime-signature .orc-pagina-unica .orc-perguntas-rot{text-transform:none;letter-spacing:0;font-size:12px;font-weight:500;color:#7c3e54;margin-bottom:5px}
+html.prime-signature .orc-pagina-unica .orc-pergunta{font-size:12px;line-height:1.55;color:#6a535e;overflow-wrap:anywhere}
+html.prime-signature .orc-pagina-unica .orc-aviso-compacto{padding:11px 12px;border:1px solid #e8dacf;background:#fcf8f4;border-radius:9px;font-size:12px;line-height:1.55;min-width:0;overflow-wrap:anywhere}
+html.prime-signature .orc-pagina-unica .orc-aviso-compacto.grave{background:#fff5e5;border-color:#dfbc83;color:#855b26}
+html.prime-signature .orc-pagina-unica .orc-aviso-compacto p{margin:0}
+html.prime-signature .orc-pagina-unica .orc-aviso-titulo{display:block;font-size:12px;font-weight:500;color:#7a4a5c;margin-bottom:5px}
+html.prime-signature .orc-pagina-unica .orc-aviso-compacto details{margin-top:7px}
+html.prime-signature .orc-pagina-unica .orc-aviso-compacto summary{font-size:11px;color:#99775a;cursor:pointer}
+html.prime-signature .orc-pagina-unica .orc-aviso-compacto details p{margin-top:7px;font-size:11px;line-height:1.6}
+html.prime-signature .orc-pagina-unica .orc-aviso-compacto>.cx-btn{display:block;width:100%;max-width:100%;box-sizing:border-box;margin:9px 0 0;padding:8px;font-size:11px;line-height:1.45;white-space:normal;text-align:center;border:1px solid #d8bdc8;background:#f7edf1;color:#74344c;border-radius:7px}
+html.prime-signature .orc-pagina-unica .orc-aviso-compacto .orc-selo{font-size:10px;vertical-align:1px}

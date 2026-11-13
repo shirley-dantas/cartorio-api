@@ -328,6 +328,25 @@ confere que novos orçamentos e ajustes em nova versão preservam os originais.
 A usuária aprovou a página única, o local fixo e o acesso às versões e
 autorizou a publicação em 13/11/2026.
 
+## Avisos proporcionais no orçamento — prévia em 13/11/2026
+
+Pendências e avisos continuam derivados do cálculo do orçamento atual, sem
+copiar mensagens do caso de exemplo. O aviso de primeira aquisição de ITBI
+passa a exigir uma base numérica positiva antes de ser oferecido ou aplicado;
+uma base zerada mantém a pergunta sobre o valor, sem sugerir isenção.
+
+Na apresentação Signature, a pendência usa o título curto Falta confirmar.
+A possível isenção fica em um quadro compacto com título próprio, explicação
+curta, condições completas em Ver condições e confirmação explícita. A ação
+ocupa a largura interna do quadro, com quebra de linha, sem ultrapassar a
+lateral. Avisos de outros tipos permanecem com seu texto e gravidade próprios.
+O botão de desfazer a isenção continua disponível após a confirmação.
+
+Validação: cálculos de Orçamento e Financeiro, tela de Orçamentos, navegador
+financeiro e Celular passaram. Signature cobre ausência do aviso sem base,
+condições completas acessíveis, confirmação e desfazer, e botão dentro do quadro.
+A prévia aguarda aprovação antes de publicar.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já
