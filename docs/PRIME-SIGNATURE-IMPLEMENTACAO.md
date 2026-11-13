@@ -262,16 +262,24 @@ passa a registrar capaGeradaEm por transação no caso existente; o visto indica
 capa gerada, sem afirmar que a impressão foi concluída. Gerações anteriores
 sem registro não são inferidas. Erro de gravação do indicador não reimprime.
 
-A capa A4 recebe uma composição em preto e branco, com filetes finos,
-identificação em destaque, partes em duas colunas, registro em grade, semana
-em uma linha e orçamento ao lado das pendências. Mantém todos os campos,
-espaços de escrita manual, seis linhas de pendências, sete dias, valores e
-proteção do orçamento. Não muda cálculos nem grava o conteúdo da capa.
+A orientação final da usuária simplifica a capa: título do ato, cartório,
+controle, escrevente Shirley, solicitante obtido do complemento após `|` e nome
+principal sob Outorgante / Outorgado. Sem separador, o solicitante fica em branco;
+não se infere o papel jurídico da parte. Data e horário ficam sempre em branco,
+mesmo que o caso tenha assinatura agendada, e as quatro modalidades são caixas
+vazias para preenchimento manual. O orçamento e os dados de registro saem da
+capa, que deixa de consultar valores financeiros.
+
+Três propostas compartilham os dados e a paleta do painel: Clássico Prime,
+Faixa vinho e Essencial. O restante contém somente espaços vazios de documentos
+e conferências, providências, acompanhamento e observações. Não há conteúdo
+jurídico gerado nem preenchimento automático desses espaços.
 
 Validação: seis testes unitários dos indicadores; Signature com os vistos,
-ação direta de Dossiê e persistência da geração; Capa com valores, proteção
-financeira, escape e uma página A4 com nome/tipo longos e outras despesas;
-Celular também passou. A prévia aguarda aprovação antes de publicar.
+ação direta de Dossiê e persistência da geração; Capa com os dados simplificados,
+campos manuais, ausência de orçamento e escape; os três modelos cabem em uma
+página A4, inclusive com nomes e títulos longos. Celular também passou.
+A escolha do modelo e a publicação aguardam aprovação da usuária.
 
 ## Financeiro e privacidade
 

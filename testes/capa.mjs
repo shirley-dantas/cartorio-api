@@ -1,90 +1,51 @@
-// A capa do dossiê: a folha de papel que acompanha o caso físico, impressa pelo card.
-//   node testes/capa.mjs
-// O que se prova: o que vem do card entra, o resto fica em branco para a caneta, o dinheiro só entra para quem está no Financeiro, a folha soma o
-// total que imprime e cabe numa página A4 de verdade (medida no Chromium, com nome de arquivo comprido).
+// Capa física: identificação do card, campos manuais e três propostas em A4.
 import {readFileSync,mkdirSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {dirname, join} from 'node:path';
+import {dirname,join} from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import {abrirChromium} from './navegador-de-teste.mjs';
-const AQUI = dirname(fileURLToPath(import.meta.url)), html = readFileSync(join(AQUI, '..', 'index.html'), 'utf8');
-const erros = [];
-const passo = async (n, f) => { try { await f(); console.log('  ok  ' + n); } catch (e) { erros.push(n); console.log('FALHA ' + n + ' → ' + (e && e.message)); } };
-const ini = html.indexOf('// ── A capa do dossiê ──'), fim = html.indexOf('// ── fim: a capa do dossiê ──');
-assert(ini > 0 && fim > ini, 'não achei o bloco da capa no index.html');
-const motor = html.slice(html.indexOf('function orcValoresDaCapa'), html.indexOf('// O valor do negócio, que é o que a cliente reconhece'));
-const gabarito = {totais: {escritura: 417624, registroComDespesas: 313328, total: 1652221}, despesas: [{item: '12', valor: 8014}, {item: '11', valor: 7654}, {item: 'taxa', valor: 30000, interna: true}], tributos: [{valor: 905601}]};
-function mundo({finAuth = true, orc = gabarito, casos = {}, mats = ['187852']} = {}) {
-  const impressos = [], quadros = [];
-  const ctx = {
-    finAuth: finAuth ? {uid: 'u'} : null, casos,
-    escTxt: (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c])),
-    esc: (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c])),
-    orcMoeda: (c) => 'R$ ' + (Number(c) / 100).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}),
-    orcUltimoDoCaso: () => orc ? {resultado: orc} : null,
-    onrDoCaso: () => mats.length ? [{matriculas: mats}] : [],
-    document: {body: {appendChild: (q) => { quadros.push(q); setTimeout(() => q.onload && q.onload(), 0); }}, createElement: () => { const q = {style: {}, setAttribute() {}, remove() {}, contentWindow: {focus() {}, print() { impressos.push(q.srcdoc); }}}; return q; }},
-    window: {}, setTimeout, console
-  };
-  vm.createContext(ctx); vm.runInContext(motor + '\n' + html.slice(ini, fim) + '\nthis.__f={capaDados,capaHtml,capaFaixaHtml,orcValoresDaCapa};', ctx);
-  ctx.impressos = impressos; ctx.quadros = quadros; return ctx;
+const AQUI=dirname(fileURLToPath(import.meta.url)),html=readFileSync(join(AQUI,'..','index.html'),'utf8');
+const inicio=html.indexOf('// ── A capa do dossiê ──'),fim=html.indexOf('// ── fim: a capa do dossiê ──');
+assert(inicio>0&&fim>inicio);
+const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function mundo(casos={}){
+ const impressos=[],ctx={casos,esc:escape,escTxt:escape,window:{},setTimeout,document:{body:{appendChild:q=>{q.onload?.();}},createElement:()=>({style:{},setAttribute(){},remove(){},contentWindow:{focus(){},print(){impressos.push(true);}}})},finAuth:{uid:'u'},orcUltimoDoCaso(){throw Error('A capa não deve consultar orçamento');}};
+ vm.createContext(ctx);vm.runInContext(html.slice(inicio,fim)+'\nthis.f={capaDados,capaHtml,capaFaixaHtml};',ctx);return {...ctx.f,window:ctx.window,impressos};
 }
-const card = (o = {}) => ({id: 'C1', nome: 'REN. - DR JULIO – DIVORCIO WAGNER E ANDREA', tipo: 'Divórcio', resp: 'shirley', agendado: '2026-10-30T14:30', registroPrenotado: 'R-12', prenotacao: '1.204.331', livro: '2', folha: '33', controle: '51 0034', ...o});
-
-await passo('o que o card sabe entra: título, arquivo, escrevente, data e horário, registro, matrícula (do documento), livro, folha, prenotação, controle', () => {
-  const m = mundo(); const h = m.__f.capaHtml(m.__f.capaDados(card()));
-  for (const t of ['DIVÓRCIO', 'REN. - DR JULIO – DIVORCIO WAGNER E ANDREA', 'Shirley', '30/10/2026', '14:30', 'R-12', '187852', '1.204.331', '51 0034'])
-    assert(h.includes(t), 'falta ' + t);
-  assert(/<b>LIVRO<\/b><span>2<\/span>/.test(h) && /<b>FOLHA<\/b><span>33<\/span>/.test(h));
-});
-await passo('o resto fica em branco para a caneta: minuta, solicitante, outorgantes, outorgados, pendências, dias e rodapé', () => {
-  const m = mundo(); const h = m.__f.capaHtml(m.__f.capaDados(card({agendado: '', resp: ''})));
-  assert(/MINUTA Nº _{8,}/.test(h) && /DATA: ___\/___\/___/.test(h) && /HORÁRIO: _____/.test(h));
-  assert(/<b>SOLICITANTE<\/b><span><\/span>/.test(h) && /<b>OUTORGANTE\(S\)<\/b><span><\/span>/.test(h) && /<b>OUTORGADO\(S\)<\/b><span><\/span>/.test(h));
-  assert.equal((h.match(/class="p">☐/g) || []).length, 6); assert.equal((h.match(/class="dia"/g) || []).length, 7);
-  for (const d of ['SEGUNDA', 'DOMINGO', 'ÚLTIMA ATUALIZAÇÃO', 'PRÓXIMO PASSO', 'RESPONSÁVEL / PRAZO']) assert(h.includes(d), d);
-});
-await passo('o orçamento do 1301 sai com os seis valores e a folha fecha o total impresso', () => {
-  const m = mundo(); const h = m.__f.capaHtml(m.__f.capaDados(card()));
-  for (const v of ['R$ 4.176,24', 'R$ 76,54', 'R$ 3.133,28', 'R$ 80,14', 'R$ 9.056,01', 'R$ 16.522,21']) assert(h.includes(v), 'falta ' + v);
-  const d = m.__f.capaDados(card()); assert.equal(d.orc.outros, 0);
-  assert.equal(d.orc.escritura + d.orc.matricula + d.orc.registro + d.orc.prenotacao + d.orc.imposto, d.orc.total);
-});
-await passo('outra despesa do ato vira "Outras despesas" — a folha continua somando o total', () => {
-  const m = mundo({orc: {...gabarito, totais: {...gabarito.totais, total: gabarito.totais.total + 12345}}}); const d = m.__f.capaDados(card());
-  assert.equal(d.orc.outros, 12345); const h = m.__f.capaHtml(d); assert(/Outras despesas/.test(h) && h.includes('R$ 123,45'));
-  assert.equal(d.orc.escritura + d.orc.matricula + d.orc.registro + d.orc.prenotacao + d.orc.imposto + d.orc.outros, d.orc.total);
-});
-await passo('sem entrar no Financeiro, nenhum valor sai (o painel operacional não tem senha de propósito); sem orçamento, também em branco', () => {
-  for (const o of [{finAuth: false}, {orc: null}]) {
-    const m = mundo(o); const h = m.__f.capaHtml(m.__f.capaDados(card()));
-    assert(!/R\$ \d/.test(h), 'vazou valor'); assert.equal((h.match(/R\$ ______/g) || []).length, 6);
+const c={id:'C1',nome:'CLIENTE EXEMPLO | DR. CASTANHO',tipo:'Venda e compra',controle:'000123',agendado:'2026-11-13T15:45',livro:'LIVRO_QUE_NAO_DEVE_SAIR',registroPrenotado:'REGISTRO_QUE_NAO_DEVE_SAIR'};
+const m=mundo({C1:c}),d=m.capaDados(c);
+assert.equal(d.parte,'CLIENTE EXEMPLO');assert.equal(d.solicitante,'DR. CASTANHO');assert.equal(d.escrevente,'Shirley');assert.equal(d.controle,'000123');
+assert.equal(m.capaDados({...c,nome:'Nome sem separador'}).solicitante,'');
+assert.equal(m.capaDados({...c,nome:'CLIENTE | SOLICITANTE | COMPLEMENTO'}).solicitante,'SOLICITANTE | COMPLEMENTO');
+for(const modelo of ['classico','faixa','leve']){
+ const h=m.capaHtml(d,modelo);
+ for(const s of ['VENDA E COMPRA','20º Cartório Itaim','000123','Shirley','DR. CASTANHO','CLIENTE EXEMPLO','Outorgante / Outorgado','PRESENCIAL','DILIGÊNCIA','HÍBRIDA','VÍDEO'])assert(h.includes(s),modelo+': '+s);
+ assert.doesNotMatch(h,/R\$|Orçamento|2026-11-13|15:45|LIVRO_QUE_NAO_DEVE_SAIR|REGISTRO_QUE_NAO_DEVE_SAIR/);
+ assert.match(h,/Data <span class="espaço"><\/span>/);assert.match(h,/Horário <span class="espaço hora"><\/span>/);
+ const malicioso=m.capaHtml(m.capaDados({...c,nome:'<img src=x onerror=alert(1)> | <script>1</script>'}),modelo);assert(!malicioso.includes('<img src=x'));assert(malicioso.includes('&lt;script&gt;'));
+}
+console.log('ok: título, cartório, controle, Shirley, solicitante do subtítulo e nome principal; data/horário manuais; orçamento ausente; escape.');
+m.window.capaImprimir('C1');assert.equal(m.impressos.length,1);assert.match(m.capaFaixaHtml(c),/capaImprimir/);
+const navegador=await abrirChromium();
+try{
+ const pg=await navegador.newPage({viewport:{width:794,height:1123}});mkdirSync(join(AQUI,'saida'),{recursive:true});
+ const modelos=[['classico','1 · Clássico Prime','Equilibrado, com os blocos suaves do painel.'],['faixa','2 · Faixa vinho','Mais marcante, com uma faixa lateral delicada.'],['leve','3 · Essencial','Mais branco, com cabeçalho central e filetes finos.']];
+ for(const [modelo] of modelos){
+  for(const dados of [d,m.capaDados({...c,nome:'CLIENTE COM NOME COMPLETO MUITO LONGO PARA CONFERÊNCIA DE IMPRESSÃO | SOLICITANTE COM NOME E COMPLEMENTO EXTENSOS PARA CONFERÊNCIA',tipo:'VENDA E COMPRA COM ALIENAÇÃO FIDUCIÁRIA'})]){
+   await pg.setContent(m.capaHtml(dados,modelo));
+   const medidas=await pg.evaluate(()=>{const f=document.querySelector('.fl');return [f.scrollHeight-f.clientHeight,f.scrollWidth-f.clientWidth];});assert(medidas.every(x=>x<=1),modelo+' ultrapassa a página: '+medidas);
+   const pdf=await pg.pdf({format:'A4',printBackground:true});assert.equal((pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g)||[]).length,1);
   }
-  assert(/entre no Financeiro/.test(mundo({finAuth: false}).__f.capaFaixaHtml(card()))); assert(/ainda não tem orçamento/.test(mundo({orc: null}).__f.capaFaixaHtml(card())));
-});
-await passo('texto do card nunca vira HTML (nome de arquivo com tag não executa)', () => {
-  const m = mundo(); const h = m.__f.capaHtml(m.__f.capaDados(card({nome: '<img src=x onerror=alert(1)>', livro: '"><script>1</script>'})));
-  assert(!/<img src=x/.test(h) && !/<script>1/.test(h)); assert(h.includes('&lt;img src=x'));
-});
-await passo('o botão está na faixa do card e imprime num quadro escondido, sem abrir janela', async () => {
-  const m = mundo({casos: {C1: card()}}); assert(/capaImprimir\('C1'\)/.test(m.__f.capaFaixaHtml(card())) && /Imprimir capa/.test(m.__f.capaFaixaHtml(card())));
-  m.window.capaImprimir('C1'); await new Promise((r) => setTimeout(r, 20));
-  assert.equal(m.quadros.length, 1, 'um quadro escondido'); assert.equal(m.impressos.length, 1, 'mandou imprimir'); assert(m.impressos[0].includes('DIVÓRCIO') && m.impressos[0].includes('187852'), 'imprime a capa deste card');
-});
-await passo('a capa cabe numa página A4 de verdade, mesmo com nome de arquivo comprido e tudo preenchido', async () => {
-  const m = mundo({orc:{...gabarito,totais:{...gabarito.totais,total:gabarito.totais.total+12345}}}); const longo = 'REN. - DR JULIO – DIVORCIO CONSENSUAL WAGNER FERREIRA MOREIRA KLEIN E ANDREA SORENI MOREIRA KLEIN COM PARTILHA DE DOIS IMÓVEIS E PENSÃO';
-  const h = m.__f.capaHtml(m.__f.capaDados(card({nome: longo, tipo:'VENDA E COMPRA COM ALIENAÇÃO FIDUCIÁRIA', matriculas: 1})));
-  const nav = await abrirChromium(); try {
-    const pg = await nav.newPage({viewport: {width: 794, height: 1123}}); await pg.setContent(h);
-    const med = await pg.evaluate(() => { const f = document.querySelector('.fl'); return {sh: f.scrollHeight, ch: f.clientHeight, sw: f.scrollWidth, cw: f.clientWidth}; });
-    assert(med.sh <= med.ch + 1, 'estourou a altura: ' + JSON.stringify(med)); assert(med.sw <= med.cw + 1, 'estourou a largura: ' + JSON.stringify(med));
-    const pdf = await pg.pdf({format: 'A4', printBackground: true}); const paginas = (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
-    assert.equal(paginas, 1, 'a capa passou de uma página: ' + paginas);
-    mkdirSync(join(AQUI,'saida'),{recursive:true});
-    await pg.setContent(m.__f.capaHtml(m.__f.capaDados(card({nome:'CLIENTE EXEMPLO | REFERÊNCIA DO CASO',tipo:'Inventário'}))));
-    await pg.screenshot({path:join(AQUI,'saida','dossie-capa-redesenhada.png'),fullPage:true});
-    await pg.pdf({path:join(AQUI,'saida','dossie-capa-redesenhada.pdf'),format:'A4',printBackground:true});
-  } finally { await nav.close(); }
-});
-console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
+  await pg.setContent(m.capaHtml(d,modelo));
+  await pg.screenshot({path:join(AQUI,'saida','capa-modelo-'+modelo+'.png'),fullPage:true});
+  await pg.pdf({path:join(AQUI,'saida','capa-modelo-'+modelo+'.pdf'),format:'A4',printBackground:true});
+ }
+ await pg.setViewportSize({width:1400,height:740});
+ await pg.setContent(`<style>*{box-sizing:border-box}body{margin:0;background:#f4ebe5;padding:28px;font-family:Arial;color:#75263f}h1{font:26px Georgia;margin:0 0 22px}.modelos{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}h2{font:21px Georgia;margin:0 0 12px}.folha{height:551px;width:390px;overflow:hidden;box-shadow:0 5px 20px #64323e15;border-radius:3px}iframe{width:794px;height:1123px;transform:scale(.49);transform-origin:top left;border:0;background:white}p{font-size:12px;color:#8a6f79;line-height:1.5;margin-top:14px}</style><h1>Três propostas para a capa do dossiê · A4</h1><div class="modelos">${modelos.map(([id,titulo,desc])=>`<section><h2>${titulo}</h2><div class="folha"><iframe id="${id}" title="${titulo}"></iframe></div><p>${desc}</p></section>`).join('')}</div>`);
+ for(const [modelo] of modelos)await pg.locator('#'+modelo).evaluate((el,conteudo)=>el.srcdoc=conteudo,m.capaHtml(d,modelo));
+ await pg.waitForTimeout(200);
+ await pg.screenshot({path:join(AQUI,'saida','capa-tres-modelos.png'),fullPage:true});
+ console.log('ok: três modelos em uma página A4, inclusive nomes longos; prévias e PDFs gerados.');
+}finally{await navegador.close();}
+process.exit(0);
