@@ -213,6 +213,17 @@ A classificação salva e a apresentação clássica não mudam.
 A usuária aprovou a prévia e autorizou a publicação em 13/11/2026.
 Docs-agrupados, Signature e Celular passaram.
 
+## Pílulas mais leves — prévia em 13/11/2026
+
+A usuária pediu uma prévia de melhoria das pílulas. A navegação principal
+recebe fundo claro e seleção em vinho suave, com contornos finos. Os serviços
+de Certidões usam tons neutros e seleção champagne, com menor peso visual.
+As subpílulas preservam o acabamento compacto de Minuta/Orçamento aprovado
+anteriormente. Nomes, ordem, controles, disposição e funções permanecem iguais.
+
+Signature e Celular passaram. Esta é uma prévia e aguarda aprovação antes
+de publicar.
+
 ## Financeiro e privacidade
 
 A faixa consulta apenas os lançamentos que a escuta financeira existente já
