@@ -124,8 +124,8 @@ aparência dos botões atuais de Minuta/Orçamento: fundo branco, contorno fino,
 texto discreto e destaque champagne para a seleção. O bloco rosa preenchido
 sai das subpílulas. Nenhum botão de Minuta ou estilo de janela é alterado.
 
-No Orçamento do card, confirmou somente três atalhos: Ver orçamento, Modo
-cliente e Novo. Não há situação, total, data, versão ou outros metadados nessa
+No Orçamento do card, confirmou somente três atalhos, nesta ordem: Novo,
+Ver orçamento e Modo cliente. Não há situação, total, data, versão ou outros metadados nessa
 área; eles continuam na janela existente do orçamento. Os três atalhos usam
 os manipuladores anteriores e o último orçamento não cancelado. Quando ainda
 não há orçamento, aparece Novo; autenticação e erro de leitura mantêm as

@@ -450,7 +450,7 @@ try{
  await pg.waitForFunction(()=>!!document.querySelector('.signature-orc-simples [onclick*=orcAbrirDoCaso]'));
  await pg.waitForTimeout(350); // A carga inicial agenda o redesenho dos cards em 200 ms.
  const orcAntes=await pg.evaluate(()=>JSON.stringify(window.__data.orcamentos));
- assert.deepEqual(await pg.locator('.signature-orc-simples button').allTextContents(),['Ver orçamento','Modo cliente','Novo']);
+ assert.deepEqual(await pg.locator('.signature-orc-simples button').allTextContents(),['Novo','Ver orçamento','Modo cliente']);
  assert.doesNotMatch(await pg.locator('.signature-orc-simples').innerHTML(),/R\$|Em elaboração|Total|12\/11\/2026/,'nenhum resumo ou valor acima dos atalhos');
  await pg.locator('.signature-ferramentas').screenshot({path:join(AQUI,'saida','orcamento-tres-atalhos.png')});
  await pg.locator('.signature-orc-simples').getByRole('button',{name:'Ver orçamento',exact:true}).click();

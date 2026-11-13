@@ -6083,7 +6083,7 @@ window.signatureEscolherDocumentos=function(id,aba){
 function signatureOrcamentoHtml(c){
  if(!finAuth||orcErroLeitura)return `<div class="signature-orc-simples signature-orc-acesso">${orcFaixaDoCaso(c.id)}</div>`;
  const id=esc(c.id),o=orcUltimoDoCaso(c.id);
- return `<div class="signature-cert-subgrupo signature-orc-simples"><nav class="signature-cert-tipos" aria-label="Ações do orçamento">${o?`<button type="button" onclick="orcAbrirDoCaso('${id}','${esc(o.id)}')">Ver orçamento</button><button type="button" onclick="orcAbrirCliente('${id}','${esc(o.id)}')">Modo cliente</button>`:''}<button type="button" onclick="orcNovoDoCaso('${id}')">Novo</button></nav></div>`;
+ return `<div class="signature-cert-subgrupo signature-orc-simples"><nav class="signature-cert-tipos" aria-label="Ações do orçamento"><button type="button" onclick="orcNovoDoCaso('${id}')">Novo</button>${o?`<button type="button" onclick="orcAbrirDoCaso('${id}','${esc(o.id)}')">Ver orçamento</button><button type="button" onclick="orcAbrirCliente('${id}','${esc(o.id)}')">Modo cliente</button>`:''}</nav></div>`;
 }
 function signaturePaginaHtml(c){
   const p=cardPartes(c),md=motorDecisao(c);
