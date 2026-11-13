@@ -6085,6 +6085,17 @@ function signatureOrcamentoHtml(c){
  const id=esc(c.id),o=orcUltimoDoCaso(c.id);
  return `<div class="signature-cert-subgrupo signature-orc-simples"><nav class="signature-cert-tipos" aria-label="Ações do orçamento"><button type="button" onclick="orcNovoDoCaso('${id}')">Novo</button>${o?`<button type="button" onclick="orcAbrirDoCaso('${id}','${esc(o.id)}')">Ver orçamento</button><button type="button" onclick="orcAbrirCliente('${id}','${esc(o.id)}')">Modo cliente</button>`:''}</nav></div>`;
 }
+function signatureCabecalhoHtml(c,html){
+ const partes=String(c.nome||'').split('|').map(p=>p.trim());
+ const separado=partes.length>1&&partes[0]&&partes.slice(1).some(Boolean);
+ const nome=separado?`<span class="signature-nome-principal">${escTxt(partes[0])}</span> <span class="signature-nome-complemento">${escTxt(partes.slice(1).join(' | '))}</span>`:escTxt(c.nome);
+ html=html.replace(`<span class="cx-nome" id="cx-nome-txt-${c.id}">${escTxt(c.nome)}</span>`,`<span class="cx-nome" id="cx-nome-txt-${c.id}" aria-label="${esc(c.nome)}">${nome}</span>`);
+ const status=c.concluido?'':bStatus(c.status);
+ if(status)html=html.replace(status,'').replace('<div class="cx-meta-dir">','<div class="cx-meta-dir">'+status);
+ let tipo=cxTipoHtml(c).replace('<select class="cx-tipo"','<label class="signature-tipo-ato"><span>Tipo de ato</span><select aria-label="Tipo de ato" class="cx-tipo"').replace('</select>','</select></label>');
+ tipo=tipo.replace(`${escTxt(c.tipo)} (texto antigo — escolha um tipo da lista)</option>`,`${escTxt(c.tipo)}</option>`).replace('<summary>Ato lavrado junto (opcional)</summary>','<summary>Adicionar ato</summary>');
+ return html.replace(cxTipoHtml(c),tipo).replace('title="Editar nome"','title="Editar nome do caso" aria-label="Editar nome do caso"');
+}
 function signaturePaginaHtml(c){
   const p=cardPartes(c),md=motorDecisao(c);
   const observacoes=p.obs.replace('<span class="obs-label">Observações</span>',`<div class="signature-obs-cabecalho"><span class="obs-label">Observações</span><button type="button" class="cx-btn" onclick="signatureAdicionarObs('${c.id}')" aria-controls="obs-edit-${c.id}"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar observação</button></div>`).replace('<textarea rows="2"', '<textarea aria-label="Nova observação" rows="3"').replace('Digite a nova informação — ela entra numerada no topo do histórico acima','Escreva aqui a nova observação do caso…').replace('>Salvar</button>','>Salvar observação</button>');
@@ -6102,7 +6113,7 @@ function signaturePaginaHtml(c){
   else if(aberta==='Pagamento')conteudo=p.pag+p.fin;
   else conteudo=({'Documentos':signatureDocumentosHtml(c),'Certidões':signatureCertidoesHtml(c),'Minuta':p.minuta,'Orçamento':signatureOrcamentoHtml(c),'Capa do dossiê':p.capa})[aberta];
   const caminho=`<div class="signature-caminho"><button class="cx-btn" onclick="signatureVoltar()"><i class="ti ti-arrow-left"></i> Voltar aos casos</button><span>Caso</span></div>`;
-  return p.abre.replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
+  return signatureCabecalhoHtml(c,p.abre).replace('class="cx-card ',`class="cx-card signature-processo ${aberta==='Histórico'?'signature-ver-historico ':''}`).replace('<div class="cx-topo">',caminho+'<div class="cx-topo">')+
     `<div class="signature-dados">${p.campos}<span class="signature-tempo">${md.diasNaEtapaAtual} dia${md.diasNaEtapaAtual===1?'':'s'} na etapa</span></div>
     <section class="signature-contexto"><div class="signature-proxima"><span class="signature-sobretitulo">Próxima ação</span><strong>${escTxt(c.concluido?'Caso concluído':md.proximaAcao)}</strong>${md.motivoBloqueio?`<p>${escTxt(md.motivoBloqueio)}</p>`:''}${observacoes}</div></section>
     ${p.linha}
