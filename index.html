@@ -11165,7 +11165,12 @@ function orcCalcular(entrada){
       if(!lista.length) faltando.push({campo: c, rot: meta.rot, pergunta: meta.pergunta, lista: true});
     }else{
       dados[c] = Math.round(Number(v[c]) || 0);
-      if(!dados[c]) faltando.push({campo: c, rot: meta ? meta.rot : c, pergunta: meta ? meta.pergunta : c});
+      // `totalPartilha` no inventário com meação é opcional — em branco, a
+      // escritura cai na meação (ver `baseEscritura` no montar() do ato).
+      // Pedir essa confirmação travava um orçamento que, do jeito simples,
+      // sempre esteve completo (achado em 16/11/2026, junto da cessão).
+      const opcional = c === 'totalPartilha' && e.atoId === 'inventario-meacao';
+      if(!dados[c] && !opcional) faltando.push({campo: c, rot: meta ? meta.rot : c, pergunta: meta ? meta.pergunta : c});
     }
   });
   dados.excedenteOneroso = !!f.excedenteOneroso;
