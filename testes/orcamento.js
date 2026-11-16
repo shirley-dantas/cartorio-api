@@ -977,6 +977,11 @@ const semTotalPartilha = orcCalcular({atoId: 'inventario-meacao',
 ok('sem o campo novo, a escritura continua sobre a meação — o jeito de sempre',
    semTotalPartilha.escrituras[0].base === 7055384, semTotalPartilha.escrituras[0].base);
 ok('e a base que a cliente lê acompanha', orcBasePrincipal(semTotalPartilha) === 7055384);
+// Achado em 16/11/2026: deixar o campo em branco (o jeito simples) estava
+// travando o orçamento como incompleto, pedindo um valor que não faz falta.
+ok('e deixar o campo em branco NÃO trava o orçamento como incompleto',
+   !semTotalPartilha.bloqueado && !semTotalPartilha.faltando.some(f => f.campo === 'totalPartilha'),
+   semTotalPartilha.faltando);
 
 const comTotalPartilha = orcCalcular({atoId: 'inventario-meacao',
   valores: {totalPartilha: 52197067, meacao: 7055384, imoveis: imoveisDoInventario},
