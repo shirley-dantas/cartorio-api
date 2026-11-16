@@ -11527,6 +11527,45 @@ const ORC_AVISO_DESCONTO_USUFRUTO = {
        + 'fundamentaria não veio no arquivo entregue — conferir antes de usar numa cobrança formal.'
 };
 
+// A cessão gratuita, com reserva de usufruto, é a MESMA conta da doação com
+// usufruto (2/3 nua-propriedade pelo valor cheio, 1/3 usufruto com 75% de
+// desconto, registro em par por imóvel, ITCMD sobre o valor global) — só
+// muda o que está sendo cedido. Caso dela em 16/11/2026: a viúva cede a
+// meação aos herdeiros, reservando o usufruto, DENTRO do mesmo inventário —
+// "dois atos dentro de um". Esta função fica à parte, pronta para entrar
+// como um bloco a mais em QUALQUER ato (hoje, nos quatro de inventário e no
+// ato avulso `cessao-usufruto`), em vez de presa a um só.
+function orcCessaoUsufrutoLinhas(lista){
+  const l = (lista || []).filter(u => u && u.valor > 0);
+  if(!l.length) return {escrituras: [], registros: [], tributos: []};
+  const v = l.reduce((s, u) => s + u.valor, 0);
+  const doisTercos = Math.round(v * 2 / 3);
+  const umTerco = v - doisTercos;
+  const registros = l.flatMap(u => {
+    const seuDoisTercos = Math.round(u.valor * 2 / 3);
+    const seuUmTerco = u.valor - seuDoisTercos;
+    const nome = u.rotulo || 'imóvel';
+    return [
+      orcLinhaRegistro(seuDoisTercos, {rot: `Registro da nua-propriedade cedida — ${nome} (2/3)`}),
+      orcLinhaRegistro(seuUmTerco,    {rot: `Registro do usufruto reservado — ${nome} (1/3)`})
+    ];
+  });
+  return {
+    escrituras: [
+      orcLinhaEscritura(doisTercos, {rot: 'Cessão gratuita da nua-propriedade — 2/3 do valor cedido'}),
+      orcLinhaEscritura(umTerco, {rot: 'Reserva de usufruto sobre o valor cedido — 1/3 (1/4 da tabela)',
+        reducao: ORC_DESCONTO_USUFRUTO, avisos: [ORC_AVISO_DESCONTO_USUFRUTO]})
+    ],
+    registros,
+    tributos: [orcLinhaTributo('itcmd', v, {rot: 'ITCMD sobre o valor global cedido',
+      avisos: [{confianca: 'operacional',
+        texto: 'A cessão gratuita de direitos hereditários é tratada aqui como uma doação — o ITCMD incide sobre '
+             + 'a transmissão do valor cedido, diferente da meação ou da herança comum (onde não há cessão, só '
+             + 'partilha). Vale conferir o enquadramento tributário exato antes de uma cobrança formal — este '
+             + 'paralelo ainda não foi confirmado contra uma fonte oficial.'}]})]
+  };
+}
+
 const ORC_ATOS = [
   {
     id: 'compra-venda',
@@ -11743,13 +11782,19 @@ const ORC_ATOS = [
     nome: 'Inventário e partilha sem meação',
     grupo: 'Inventário',
     campos: ['monte', 'imoveis'],
+    // "Dois atos dentro de um" (pedido dela, 16/11/2026): além da herança
+    // normal, a mesma escritura pode ceder um quinhão de graça, com reserva
+    // de usufruto — por isso a pergunta e a lista própria (`imoveisCessao`),
+    // somadas ao final por `orcCessaoUsufrutoLinhas`.
+    perguntas: ['cessaoMeacaoUsufruto'],
     comoElaEscreveu: '1 ato sobre o valor do monte, 1 registro sobre o valor de cada imóvel, 1 ITCMD do valor do monte de 4%.',
     montar(e){
       const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      const cessao = e.cessaoMeacaoUsufruto ? orcCessaoUsufrutoLinhas(e.imoveisCessao) : {escrituras: [], registros: [], tributos: []};
       return {
-        escrituras: [orcLinhaEscritura(e.monte, {rot: 'Escritura de inventário e partilha — sobre o monte'})],
-        registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
-        tributos: [orcLinhaTributo('itcmd', e.monte, {rot: 'ITCMD sobre o monte'})]
+        escrituras: [orcLinhaEscritura(e.monte, {rot: 'Escritura de inventário e partilha — sobre o monte'}), ...cessao.escrituras],
+        registros: [...im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})), ...cessao.registros],
+        tributos: [orcLinhaTributo('itcmd', e.monte, {rot: 'ITCMD sobre o monte'}), ...cessao.tributos]
       };
     }
   },
@@ -11762,6 +11807,7 @@ const ORC_ATOS = [
     // `orcSomaDaLista`, que aponta sempre para o primeiro campo sem lista).
     // A meação fica para o ITCMD, nunca para a escritura.
     campos: ['totalPartilha', 'meacao', 'imoveis'],
+    perguntas: ['cessaoMeacaoUsufruto'],
     comoElaEscreveu: '1 ato sobre o valor total da partilha, 1 registro sobre o valor de cada imóvel, 1 ITCMD sobre o valor da meação de 4%.',
     montar(e){
       const im = (e.imoveis || []).filter(x => x && x.valor > 0);
@@ -11772,80 +11818,58 @@ const ORC_ATOS = [
       // meação). Deixando `totalPartilha` em branco, a escritura volta a
       // usar a meação — o jeito de sempre, para quem não precisa separar.
       const baseEscritura = e.totalPartilha > 0 ? e.totalPartilha : e.meacao;
+      // "Dois atos dentro de um" (16/11/2026): a viúva pode ceder a própria
+      // meação (ou parte dela) de graça aos herdeiros, com reserva de
+      // usufruto — na MESMA escritura. Ver `orcCessaoUsufrutoLinhas`.
+      const cessao = e.cessaoMeacaoUsufruto ? orcCessaoUsufrutoLinhas(e.imoveisCessao) : {escrituras: [], registros: [], tributos: []};
       return {
-        escrituras: [orcLinhaEscritura(baseEscritura, {rot: 'Escritura de inventário e partilha'})],
-        registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
-        tributos: [orcLinhaTributo('itcmd', e.meacao, {rot: 'ITCMD sobre a meação'})]
+        escrituras: [orcLinhaEscritura(baseEscritura, {rot: 'Escritura de inventário e partilha'}), ...cessao.escrituras],
+        registros: [...im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})), ...cessao.registros],
+        tributos: [orcLinhaTributo('itcmd', e.meacao, {rot: 'ITCMD sobre a meação'}), ...cessao.tributos]
       };
     }
   },
   {
     id: 'inventario-cessao-meacao-usufruto',
-    nome: 'Inventário — cessão gratuita da meação aos herdeiros, com reserva de usufruto',
+    // Nome pedido por ela em 16/11/2026: sem o prefixo "Inventário —", porque
+    // a cessão não é exclusiva do inventário — é um negócio próprio (a
+    // meação, ou qualquer quinhão, cedida de graça, com o cedente reservando
+    // o usufruto) que também pode entrar JUNTO de um inventário, como um
+    // bloco a mais (ver `cessaoMeacaoUsufruto` nos quatro atos de inventário,
+    // logo abaixo). Este ato aqui é só para quando a cessão é tudo o que há
+    // a orçar — nada de herança ou partilha junto.
+    nome: 'Cessão gratuita com reserva de usufruto',
     grupo: 'Inventário',
-    // Caso dela em 16/11/2026: a viúva não fica com a meação — cede ela de
-    // graça aos filhos, reservando o usufruto para si. Ela mesma apontou o
-    // paralelo certo: é a conta da doação com reserva de usufruto
-    // (`doacao-usufruto`), só que sobre a meação cedida em vez de um bem
-    // qualquer. A montagem é a MESMA (mesmos 2/3 + 1/3, mesmo desconto de
-    // 75% no usufruto, mesmo par de registros por imóvel) — só os rótulos
-    // dizem "cessão" em vez de "doação". Reaproveita `imoveisDoacao`, que já
-    // é a lista para esse cálculo.
     campos: ['imoveisDoacao'],
-    comoElaEscreveu: 'Nos mesmos moldes da doação com reserva de usufruto: 1 ato sobre dois terços da meação cedida '
+    comoElaEscreveu: 'Nos mesmos moldes da doação com reserva de usufruto: 1 ato sobre dois terços do valor cedido '
                     + '(nua-propriedade, pelo valor cheio), 1 ato sobre um terço (usufruto reservado, 1/4 da tabela — '
-                    + '75% de desconto), 1 ITCMD sobre o valor global da meação cedida, e o registro em par por '
+                    + '75% de desconto), 1 ITCMD sobre o valor global cedido, e o registro em par por '
                     + 'imóvel — 1 sobre os 2/3 e 1 sobre o 1/3, os dois pelo valor cheio.',
-    montar(e){
-      const lista = (e.imoveisDoacao || []).filter(u => u && u.valor > 0);
-      const v = lista.reduce((s, u) => s + u.valor, 0);
-      const doisTercos = Math.round(v * 2 / 3);
-      const umTerco = v - doisTercos;
-      const registros = lista.flatMap(u => {
-        const seuDoisTercos = Math.round(u.valor * 2 / 3);
-        const seuUmTerco = u.valor - seuDoisTercos;
-        const nome = u.rotulo || 'imóvel';
-        return [
-          orcLinhaRegistro(seuDoisTercos, {rot: `Registro da nua-propriedade — ${nome} (2/3)`}),
-          orcLinhaRegistro(seuUmTerco,    {rot: `Registro do usufruto — ${nome} (1/3)`})
-        ];
-      });
-      return {
-        escrituras: [
-          orcLinhaEscritura(doisTercos, {rot: 'Cessão gratuita da nua-propriedade da meação — 2/3 do valor'}),
-          orcLinhaEscritura(umTerco, {rot: 'Reserva de usufruto sobre a meação cedida — 1/3 do valor (1/4 da tabela)',
-            reducao: ORC_DESCONTO_USUFRUTO, avisos: [ORC_AVISO_DESCONTO_USUFRUTO]})
-        ],
-        registros,
-        tributos: [orcLinhaTributo('itcmd', v, {rot: 'ITCMD sobre o valor global da meação cedida',
-          avisos: [{confianca: 'operacional',
-            texto: 'A cessão gratuita de direitos hereditários é tratada aqui como uma doação — o ITCMD incide sobre '
-                 + 'a transmissão da meação ao cedê-la, diferente do inventário com meação comum (onde a meação não '
-                 + 'é transmitida, só confirmada como já sendo da viúva). Vale conferir o enquadramento tributário '
-                 + 'exato antes de uma cobrança formal — este paralelo ainda não foi confirmado contra uma fonte oficial.'}]})]
-      };
-    }
+    montar(e){ return orcCessaoUsufrutoLinhas(e.imoveisDoacao); }
   },
   {
     id: 'inventario-desigual-meacao',
     nome: 'Inventário e partilha desigual, com meação',
     grupo: 'Inventário',
     campos: ['meacao', 'excedente', 'imoveis'],
-    perguntas: ['excedenteOneroso'],
+    perguntas: ['excedenteOneroso', 'cessaoMeacaoUsufruto'],
     comoElaEscreveu: '1 ato sobre o valor da meação, 1 ato sobre o quinhão excedente, 1 registro sobre o valor total de cada imóvel, 1 ITBI de 3% se o excedente for oneroso ou 1 ITCMD de 4% se for gratuito, e mais 1 ITCMD sobre o valor da meação.',
     montar(e){
       const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      const cessao = e.cessaoMeacaoUsufruto ? orcCessaoUsufrutoLinhas(e.imoveisCessao) : {escrituras: [], registros: [], tributos: []};
       return {
         escrituras: [
           orcLinhaEscritura(e.meacao,    {rot: 'Escritura de inventário — sobre a meação'}),
-          orcLinhaEscritura(e.excedente, {rot: 'Quinhão excedente'})
+          orcLinhaEscritura(e.excedente, {rot: 'Quinhão excedente'}),
+          ...cessao.escrituras
         ],
-        registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
+        registros: [...im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})), ...cessao.registros],
         tributos: [
           orcLinhaTributo('itcmd', e.meacao, {rot: 'ITCMD sobre a meação'}),
           e.excedenteOneroso
             ? orcLinhaTributo('itbi',  e.excedente, {rot: 'ITBI sobre o quinhão excedente (oneroso)'})
-            : orcLinhaTributo('itcmd', e.excedente, {rot: 'ITCMD sobre o quinhão excedente (gratuito)'})
+            : orcLinhaTributo('itcmd', e.excedente, {rot: 'ITCMD sobre o quinhão excedente (gratuito)'}),
+          ...cessao.tributos
         ]
       };
     }
@@ -11855,21 +11879,24 @@ const ORC_ATOS = [
     nome: 'Inventário e partilha desigual, sem meação',
     grupo: 'Inventário',
     campos: ['monte', 'excedente', 'imoveis'],
-    perguntas: ['excedenteOneroso'],
+    perguntas: ['excedenteOneroso', 'cessaoMeacaoUsufruto'],
     comoElaEscreveu: '1 ato sobre o valor do monte, 1 ato sobre o quinhão excedente, 1 registro sobre o valor total de cada imóvel, 1 ITBI de 3% se o excedente for oneroso ou 1 ITCMD de 4% se for gratuito, e mais 1 ITCMD sobre o valor do monte.',
     montar(e){
       const im = (e.imoveis || []).filter(x => x && x.valor > 0);
+      const cessao = e.cessaoMeacaoUsufruto ? orcCessaoUsufrutoLinhas(e.imoveisCessao) : {escrituras: [], registros: [], tributos: []};
       return {
         escrituras: [
           orcLinhaEscritura(e.monte,     {rot: 'Escritura de inventário — sobre o monte'}),
-          orcLinhaEscritura(e.excedente, {rot: 'Quinhão excedente'})
+          orcLinhaEscritura(e.excedente, {rot: 'Quinhão excedente'}),
+          ...cessao.escrituras
         ],
-        registros: im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})),
+        registros: [...im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})), ...cessao.registros],
         tributos: [
           orcLinhaTributo('itcmd', e.monte, {rot: 'ITCMD sobre o monte'}),
           e.excedenteOneroso
             ? orcLinhaTributo('itbi',  e.excedente, {rot: 'ITBI sobre o quinhão excedente (oneroso)'})
-            : orcLinhaTributo('itcmd', e.excedente, {rot: 'ITCMD sobre o quinhão excedente (gratuito)'})
+            : orcLinhaTributo('itcmd', e.excedente, {rot: 'ITCMD sobre o quinhão excedente (gratuito)'}),
+          ...cessao.tributos
         ]
       };
     }
@@ -12174,6 +12201,9 @@ const ORC_CAMPOS = {
   doacao:        {rot: 'Valor da doação',             pergunta: 'Qual o valor da doação?'},
   imoveisDoacao: {rot: 'Imóveis doados',               lista: true,
                   pergunta: 'Quais os valores de cada imóvel doado? A soma vira a base da doação, dividida em 2/3 e 1/3.'},
+  imoveisCessao: {rot: 'Imóveis cedidos, com reserva de usufruto', lista: true,
+                  pergunta: 'Quais os valores de cada imóvel (ou parte) cedida de graça? A soma vira a base da cessão, '
+                          + 'dividida em 2/3 (nua-propriedade) e 1/3 (usufruto reservado).'},
   divida:        {rot: 'Valor da dívida',              pergunta: 'Qual o valor da dívida (penhora, hipoteca ou outro ônus) a ser baixada?'},
   monte:         {rot: 'Valor do monte',              pergunta: 'Qual o valor do monte?'},
   meacao:        {rot: 'Valor da meação',             pergunta: 'Qual o valor da meação?'},
@@ -12311,6 +12341,11 @@ function orcCalcular(entrada){
   dados.diligencia = !!f.diligencia;
   dados.folhas = f.folhas || 1;
   dados.outorgantes = f.outorgantes || 1;
+  // "Dois atos dentro de um" (16/11/2026): a cessão com reserva de usufruto
+  // tem campo e lista próprios, fora de `ato.campos` — não bloqueiam o
+  // orçamento se vazios, porque só contam quando a pergunta está ligada.
+  dados.cessaoMeacaoUsufruto = !!f.cessaoMeacaoUsufruto;
+  dados.imoveisCessao = (v.imoveisCessao || []).filter(x => x && x.valor > 0);
 
   // ETAPAS 11 e 12 — emolumentos da escritura e do registro.
   const partes = ato.montar(dados);
@@ -15110,6 +15145,22 @@ function orcHtmlEspeciais(e, ato){
   if(p.includes('outorgantes'))
     bits.push(`<div class="orc-campo"><label class="fin-rot">Outorgantes <span class="fin-mini">— o casal conta como um</span></label>
       <input class="fin-input" inputmode="numeric" value="${f.outorgantes || 1}" oninput="orcMudarFlagNum('outorgantes',this.value)"></div>`);
+  // "Dois atos dentro de um" (16/11/2026): além da herança/partilha normal
+  // deste ato, a MESMA escritura pode ceder um quinhão de graça — a meação,
+  // ou parte dela — com reserva de usufruto. Liga a soma de `orcCessaoUsufrutoLinhas`
+  // ao resultado deste ato; desligado, nada muda. Lista própria
+  // (`imoveisCessao`), separada da lista do inventário — é outro negócio,
+  // com outra base.
+  if(p.includes('cessaoMeacaoUsufruto')){
+    bits.push(`<div class="orc-campo orc-campo-largo"><label class="fin-rot">Esta escritura também cede algo de graça, com reserva de usufruto?
+        <span class="fin-mini">— por exemplo, a viúva cede a meação aos herdeiros</span></label>
+      <select class="fin-select" onchange="orcMudarFlag('cessaoMeacaoUsufruto',this.value==='1')">
+        <option value="0"${f.cessaoMeacaoUsufruto ? '' : ' selected'}>Não</option>
+        <option value="1"${f.cessaoMeacaoUsufruto ? ' selected' : ''}>Sim — nos mesmos moldes da doação com reserva de usufruto</option>
+      </select></div>`);
+    if(f.cessaoMeacaoUsufruto) bits.push(orcListaHtml('imoveisCessao', 'Imóveis cedidos, com reserva de usufruto',
+      e.imoveisCessao, null, null));
+  }
   if(ato.grupo === 'Divórcio'){
     bits.push(`<div class="orc-campo"><label class="fin-rot">Tem pensão?</label>
       <select class="fin-select" onchange="orcMudarFlag('temPensao',this.value==='1')">

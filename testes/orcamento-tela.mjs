@@ -388,6 +388,40 @@ await passo('o inventário com meação separa a escritura/registro (partilha) d
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
 
+// O caso que ela trouxe em 16/11/2026: "dois atos dentro de um" — no mesmo
+// inventário com meação, a viúva cede a própria meação aos herdeiros, com
+// reserva de usufruto. Desligado, nada muda; ligado, ganha as linhas da
+// cessão na MESMA escritura, sem precisar de um orçamento à parte.
+await passo('"dois atos dentro de um": o inventário ganha a cessão com usufruto, no mesmo orçamento', async () => {
+  await pg.evaluate(() => orcTrocarAto('inventario-meacao'));
+  await pg.evaluate(() => {
+    orcMudarValor('meacao', '266.767,00');
+    orcMudarItem('imoveis', 0, 'rotulo', 'Casa');
+    orcMudarItem('imoveis', 0, 'valor', '500.000,00');
+  });
+  await abrirMemoria(pg);
+  const semCessao = await pg.textContent('.orc-memoria');
+  if(/Cess[aã]o/.test(semCessao)) throw new Error('não devia ter cessão sem marcar nada: ' + semCessao.slice(0, 500));
+  const temPergunta = await pg.evaluate(() =>
+    /cede algo de graça/.test(document.getElementById('orc-caso-conteudo').textContent));
+  if(!temPergunta) throw new Error('faltou a pergunta da cessão no formulário do inventário');
+  await pg.evaluate(() => orcMudarFlag('cessaoMeacaoUsufruto', true));
+  await pg.evaluate(() => {
+    orcMudarItem('imoveisCessao', 0, 'rotulo', 'Imóvel cedido');
+    orcMudarItem('imoveisCessao', 0, 'valor', '369.576,00');
+  });
+  await pg.waitForFunction(() => /246\.384,00/.test(document.querySelector('.orc-memoria').textContent));
+  const comCessao = await pg.textContent('.orc-memoria');
+  if(!/Escritura de invent[aá]rio e partilha/.test(comCessao)) throw new Error('perdeu a escritura do inventário: ' + comCessao.slice(0, 500));
+  if(!/Cess[aã]o gratuita da nua-propriedade/.test(comCessao)) throw new Error('faltou a nua-propriedade cedida: ' + comCessao.slice(0, 800));
+  if(!/Reserva de usufruto/.test(comCessao)) throw new Error('faltou o usufruto reservado: ' + comCessao.slice(0, 800));
+  if(!/123\.192,00/.test(comCessao)) throw new Error('o usufruto não saiu pela base certa (1/3): ' + comCessao.slice(0, 800));
+  await pg.evaluate(() => { orcTirarItem('imoveisCessao', 0); orcMudarFlag('cessaoMeacaoUsufruto', false);
+    orcTirarItem('imoveis', 0); });
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
 // O caso que ela trouxe em 10/11/2026: um orçamento separado, no mesmo card,
 // para a baixa de uma penhora — sem escritura, sem ITBI, só a averbação no
 // Registro de Imóveis pelo valor da dívida, mais prenotação e certidão.
