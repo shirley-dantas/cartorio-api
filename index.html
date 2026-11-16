@@ -11780,6 +11780,53 @@ const ORC_ATOS = [
     }
   },
   {
+    id: 'inventario-cessao-meacao-usufruto',
+    nome: 'Inventário — cessão gratuita da meação aos herdeiros, com reserva de usufruto',
+    grupo: 'Inventário',
+    // Caso dela em 16/11/2026: a viúva não fica com a meação — cede ela de
+    // graça aos filhos, reservando o usufruto para si. Ela mesma apontou o
+    // paralelo certo: é a conta da doação com reserva de usufruto
+    // (`doacao-usufruto`), só que sobre a meação cedida em vez de um bem
+    // qualquer. A montagem é a MESMA (mesmos 2/3 + 1/3, mesmo desconto de
+    // 75% no usufruto, mesmo par de registros por imóvel) — só os rótulos
+    // dizem "cessão" em vez de "doação". Reaproveita `imoveisDoacao`, que já
+    // é a lista para esse cálculo.
+    campos: ['imoveisDoacao'],
+    comoElaEscreveu: 'Nos mesmos moldes da doação com reserva de usufruto: 1 ato sobre dois terços da meação cedida '
+                    + '(nua-propriedade, pelo valor cheio), 1 ato sobre um terço (usufruto reservado, 1/4 da tabela — '
+                    + '75% de desconto), 1 ITCMD sobre o valor global da meação cedida, e o registro em par por '
+                    + 'imóvel — 1 sobre os 2/3 e 1 sobre o 1/3, os dois pelo valor cheio.',
+    montar(e){
+      const lista = (e.imoveisDoacao || []).filter(u => u && u.valor > 0);
+      const v = lista.reduce((s, u) => s + u.valor, 0);
+      const doisTercos = Math.round(v * 2 / 3);
+      const umTerco = v - doisTercos;
+      const registros = lista.flatMap(u => {
+        const seuDoisTercos = Math.round(u.valor * 2 / 3);
+        const seuUmTerco = u.valor - seuDoisTercos;
+        const nome = u.rotulo || 'imóvel';
+        return [
+          orcLinhaRegistro(seuDoisTercos, {rot: `Registro da nua-propriedade — ${nome} (2/3)`}),
+          orcLinhaRegistro(seuUmTerco,    {rot: `Registro do usufruto — ${nome} (1/3)`})
+        ];
+      });
+      return {
+        escrituras: [
+          orcLinhaEscritura(doisTercos, {rot: 'Cessão gratuita da nua-propriedade da meação — 2/3 do valor'}),
+          orcLinhaEscritura(umTerco, {rot: 'Reserva de usufruto sobre a meação cedida — 1/3 do valor (1/4 da tabela)',
+            reducao: ORC_DESCONTO_USUFRUTO, avisos: [ORC_AVISO_DESCONTO_USUFRUTO]})
+        ],
+        registros,
+        tributos: [orcLinhaTributo('itcmd', v, {rot: 'ITCMD sobre o valor global da meação cedida',
+          avisos: [{confianca: 'operacional',
+            texto: 'A cessão gratuita de direitos hereditários é tratada aqui como uma doação — o ITCMD incide sobre '
+                 + 'a transmissão da meação ao cedê-la, diferente do inventário com meação comum (onde a meação não '
+                 + 'é transmitida, só confirmada como já sendo da viúva). Vale conferir o enquadramento tributário '
+                 + 'exato antes de uma cobrança formal — este paralelo ainda não foi confirmado contra uma fonte oficial.'}]})]
+      };
+    }
+  },
+  {
     id: 'inventario-desigual-meacao',
     nome: 'Inventário e partilha desigual, com meação',
     grupo: 'Inventário',
@@ -13034,6 +13081,11 @@ function orcAdivinharAto(texto){
   if(t.includes('venda') && /\d+\s*im[oó]veis?/.test(t)) return 'compra-venda-imoveis-distintos';
   if(tem('doacao', 'usufruto')) return 'doacao-usufruto';
   if(t.includes('doacao')) return 'doacao';
+  // A cessão gratuita da meação com reserva de usufruto é cobrada nos
+  // mesmos moldes da doação com usufruto — mas o texto dela fala em
+  // "cessão", não em "doação", e precisa achar o ato certo mesmo assim.
+  if((t.includes('cessao') || t.includes('meacao')) && t.includes('usufruto') && t.includes('inventario'))
+    return 'inventario-cessao-meacao-usufruto';
   if(tem('inventario', 'desigual') && t.includes('meacao')) return 'inventario-desigual-meacao';
   if(tem('inventario', 'desigual')) return 'inventario-desigual';
   if(tem('inventario', 'meacao')) return 'inventario-meacao';

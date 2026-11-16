@@ -430,12 +430,14 @@ vez de apagado ou misturado com o resto.
 
 ### As regras de cobrança
 
-Vinte e dois atos (eram vinte; o de imóveis distintos entrou em 29/09/2026, a
-baixa de penhora/hipoteca em 10/11/2026), cada um com a frase dela junto
-(`comoElaEscreveu`), para que a conferência seja contra o original e não
-contra o que o painel entendeu. Compra e venda em seis variações, doação com e
-sem usufruto, inventário com e sem meação e com partilha desigual, divórcio em
-três formas, dação, confissão, procuração, ata e escritura declaratória.
+Vinte e três atos (eram vinte; o de imóveis distintos entrou em 29/09/2026, a
+baixa de penhora/hipoteca em 10/11/2026, a cessão da meação com usufruto em
+16/11/2026), cada um com a frase dela junto (`comoElaEscreveu`), para que a
+conferência seja contra o original e não contra o que o painel entendeu.
+Compra e venda em seis variações, doação com e sem usufruto, inventário com e
+sem meação, com partilha desigual e com cessão da meação com usufruto,
+divórcio em três formas, dação, confissão, procuração, ata e escritura
+declaratória.
 
 - **A baixa de penhora, hipoteca ou outro ônus não é escritura — é só
   averbação.** Ela pediu em 10/11/2026 um orçamento separado, no mesmo card de
@@ -509,6 +511,21 @@ três formas, dação, confissão, procuração, ata e escritura declaratória.
   continua sobre a meação**, o jeito de sempre: ninguém que já usava o ato
   do jeito simples (partilha = meação) é pego de surpresa. O ITCMD nunca
   muda — é sempre sobre a meação, nos dois casos.
+- **A cessão gratuita da meação, com reserva de usufruto, é a MESMA conta da
+  doação com usufruto.** Caso dela em 16/11/2026: a viúva não fica com a
+  meação — cede ela de graça aos filhos, reservando o usufruto para si. Ela
+  mesma achou o paralelo certo, e o ato `inventario-cessao-meacao-usufruto`
+  é por isso um espelho do `doacao-usufruto` (mesmos 2/3 de nua-propriedade
+  pelo valor cheio, mesmo 1/3 de usufruto com 75% de desconto, mesmo par de
+  registros por imóvel, mesmo ITCMD sobre o valor global) — só os rótulos
+  dizem "cessão" em vez de "doação", e reaproveita o campo `imoveisDoacao`.
+  Há teste cobrando que o resultado bate ponto a ponto com o gabarito da
+  doação, para o dia em que aquela conta mudar não esquecer desta. **O
+  enquadramento tributário entra como 🔵 operacional**: tratar a cessão como
+  doação (ITCMD sobre a transmissão da meação) é o paralelo que ela indicou,
+  mas não foi confirmado contra uma fonte oficial — o aviso na linha do ITCMD
+  pede conferência antes de uma cobrança formal. Não cobre a cessão
+  **onerosa** (ela mencionou que existe, mas não pediu esta ainda).
 - **Outro ato lavrado junto entra pelo valor cheio.** A escritura sai com uma
   procuração, ou com uma ata. Os vinte atos cobrem as *combinações* conhecidas
   (garantia, novação, usufruto), e o que ficasse fora delas não tinha lugar

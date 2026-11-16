@@ -995,5 +995,29 @@ ok('a base que a cliente lê agora é o valor total da partilha',
 ok('a escritura sai exatamente no valor que ela conferiu à mão: R$ 5.427,43',
    comTotalPartilha.escrituras[0].valor === 542743, comTotalPartilha.escrituras[0]);
 
+console.log('\n— Cessão gratuita da meação com reserva de usufruto, 16/11/2026 —');
+// Ela apontou o paralelo certo: é a mesma conta da doação com reserva de
+// usufruto, só que sobre a meação cedida. Usa o mesmo caso-gabarito já
+// conferido naquele ato (imóvel de R$ 369.576,00), para provar que a conta
+// é byte a byte a mesma — só os rótulos mudam de "doação" para "cessão".
+ok('"cessão da meação com usufruto, inventário" vira o ato certo',
+   orcAdivinharAto('Cessão da meação com reserva de usufruto, inventário') === 'inventario-cessao-meacao-usufruto');
+const cessaoMeacao = orcCalcular({atoId: 'inventario-cessao-meacao-usufruto',
+  valores: {imoveisDoacao: [{rotulo: 'Imóvel', valor: 36957600}]}, flags: {}, despesas: {}});
+const doacaoGabarito = orcCalcular({atoId: 'doacao-usufruto',
+  valores: {imoveisDoacao: [{rotulo: 'Imóvel', valor: 36957600}]}, flags: {}, despesas: {}});
+ok('a nua-propriedade (2/3) sai pelo valor cheio, igual à doação: R$ 246.384,00',
+   cessaoMeacao.escrituras[0].base === 24638400 && cessaoMeacao.escrituras[0].valor === doacaoGabarito.escrituras[0].valor,
+   cessaoMeacao.escrituras[0]);
+ok('o usufruto (1/3) sai pelo 1/4 da tabela, igual à doação: base R$ 123.192,00',
+   cessaoMeacao.escrituras[1].base === 12319200 && cessaoMeacao.escrituras[1].valor === doacaoGabarito.escrituras[1].valor,
+   cessaoMeacao.escrituras[1]);
+ok('o registro sai em par por imóvel, pelo valor cheio dos dois lados, igual à doação',
+   cessaoMeacao.totais.registro === doacaoGabarito.totais.registro, cessaoMeacao.registros);
+ok('o ITCMD é sobre o valor global, igual à doação', cessaoMeacao.tributos[0].valor === doacaoGabarito.tributos[0].valor);
+ok('e o total bate ponto a ponto com o gabarito da doação', cessaoMeacao.totais.total === doacaoGabarito.totais.total);
+ok('mas o fundamento do ITCMD avisa que é a cessão, não a meação comum, e pede conferência',
+   /cess[aã]o/.test(cessaoMeacao.tributos[0].avisos[0].texto) && cessaoMeacao.tributos[0].avisos[0].confianca === 'operacional');
+
 console.log(falhas ? `\n${falhas} falha(s).\n` : '\nTudo certo.\n');
 if(falhas) process.exit(1);
