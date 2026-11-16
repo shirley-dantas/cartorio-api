@@ -491,6 +491,8 @@ function periodoCom(ref,cfg){cfg=cfg||{};if(cfg.comCiclo==='quinzenal')return qu
   const dia=Math.min(28,Math.max(1,+cfg.comDia||1)),y=ref.getFullYear(),m=ref.getMonth();
   return {ini:new Date(y,m,1),fim:new Date(y,m+1,0),pago:new Date(y,m+1,dia)}}
 const qzAtual=()=>periodoCom(TODAY,C.config);
+// Tela de Comissões: dá para voltar aos períodos anteriores (S.comOff = 0 atual, -1 anterior…) para conferir e pagar o que já fechou.
+const qzVista=()=>{let q=qzAtual();for(let i=0;i<-(S.comOff||0);i++)q=periodoCom(addD(q.ini,-1),C.config);return q};
 // Percentual da comissão: o do atendimento (modelo, cortesia…) vale por cima do da profissional; sem nenhum, 50%.
 const comPct=h=>{const o=(C.config.comAtend||{})[h.id];if(o!=null&&o!=='')return +o;const v=(C.config.comPct||{})[h.pro];return v!=null&&v!==''?+v:50};
 const comVal=h=>Math.round((h.valor||0)*comPct(h))/100;
@@ -598,9 +600,9 @@ const toast=m=>{const t=document.getElementById('toast');t.textContent=m;t.class
 const visUnit=u=>isAdmin()?(S.unit==='todas'||S.unit===u):u==='mai';
 const finMes=()=>S.finMes||iso(TODAY).slice(0,7);
 const monthRecs=()=>histAll().filter(h=>h.date.slice(0,7)===finMes());
-const periodRecs=()=>{const q=qzAtual();return histAll().filter(h=>h.date>=iso(q.ini)&&h.date<=iso(q.fim))};
+const periodRecs=()=>{const q=qzVista();return histAll().filter(h=>h.date>=iso(q.ini)&&h.date<=iso(q.fim))};
 const repasse=()=>C.config.repasse??40;
-const qzChave=p=>`${iso(qzAtual().ini)}_${p}`;
+const qzChave=p=>`${iso(qzVista().ini)}_${p}`;
 
 // ═══ Entrada (login) ═══════════════════════════════════════════════════
 const subs=[];
@@ -1800,12 +1802,15 @@ function vMinhaCom(){
     <div class="lbl" style="margin-top:10px">${x.pago?'Pago':'Falta receber'}</div><div class="stat" style="margin:2px 0 8px">${brl(Math.max(x.falta,0))}</div>${x.pago?'<span class="tag ok">Pago</span>':''}
     <details style="margin-top:10px"><summary class="small">Ver os atendimentos</summary>${its.map(i=>`<div class="row small"><span>${fd(i.d)}</span><div class="grow">${esc(i.s)}<div class="muted">${brl(i.v||0)}</div></div><b>${brl(i.c)}</b></div>`).join('')||'<p class="small muted">Nenhum atendimento neste período.</p>'}</details></div>`}).join(''):'<div class="note">Ainda não há comissão calculada para você. Ela aparece aqui depois que a Tháriga abrir o painel.</div>'}`}
 function vComissoes(){
-  const q=qzAtual(),m=periodRecs().filter(h=>h.pro!=='tha'),cfg=C.config||{},mensal=cfg.comCiclo!=='quinzenal';
+  const q=qzVista(),m=periodRecs().filter(h=>h.pro!=='tha'),cfg=C.config||{},mensal=cfg.comCiclo!=='quinzenal';
   const periodo=`${fd(iso(q.ini))} a ${fd(iso(q.fim))}`;
   const pagoData=fd(iso(q.pago),{day:'2-digit',month:'2-digit',year:'numeric'});
   const pcts=cfg.comPct||{},chave=iso(q.ini);
   const quem=STAFF.filter(x=>x!=='lais');
-  return `<div class="top"><div><h1>Comissões</h1><div class="sub">${mensal?`Fechamento mensal, pago no dia ${Math.min(28,Math.max(1,+cfg.comDia||1))} do mês seguinte`:'Fechamento quinzenal (1–15 pago dia 20; 16–31 pago dia 5 do mês seguinte)'}, sem desconto de taxa de cartão. Período atual: ${periodo}, pagamento em ${pagoData}.</div></div></div>
+  return `<div class="top"><div><h1>Comissões</h1><div class="sub">${mensal?`Fechamento mensal, pago no dia ${Math.min(28,Math.max(1,+cfg.comDia||1))} do mês seguinte`:'Fechamento quinzenal (1–15 pago dia 20; 16–31 pago dia 5 do mês seguinte)'}, sem desconto de taxa de cartão. Período ${(S.comOff||0)?'anterior':'atual'}: ${periodo}, pagamento em ${pagoData}.</div></div></div>
+  <div class="com-nav" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px"><button class="btn sm" data-comnav="-1">‹ Período anterior</button><b>${periodo}</b>${(S.comOff||0)<0?`<button class="btn sm" data-comnav="1">Período seguinte ›</button>`:''}</div>
+  ${(()=>{if((S.comOff||0)<0)return '';const ant=periodoCom(addD(q.ini,-1),cfg),ia=iso(ant.ini),fa=iso(ant.fim);const pend=COM_PROS.filter(x=>!(C.pagamentos||{})[ia+'_'+x]&&histAll().some(h=>h.pro===x&&h.date>=ia&&h.date<=fa));
+    return pend.length?`<div class="alert">O período anterior (${fd(ia)} a ${fd(fa)}) ainda tem comissão sem marcar como paga: ${pend.map(x=>esc(PEOPLE[x].n.split(' ')[0])).join(', ')}. <a href="#" data-comnav="-1">Abrir o período anterior</a></div>`:''})()}
   <div class="grid g3">${STAFF.map(p=>{
     if(p==='lais'){const r=m.filter(h=>h.pro==='lais'),tot=r.reduce((s,h)=>s+(h.valor||0),0),pagoRent=C.pagamentos[qzChave('lais_aluguel')];
       return `<div class="box"><h2>Laís</h2><div class="lbl">Aluga a sala às segundas-feiras</div>
@@ -1850,7 +1855,7 @@ function dlgAdiant(p){
   <button class="btn p" id="ad-s">Registrar adiantamento</button>`);
   document.getElementById('ad-s').onclick=async()=>{const v=+document.getElementById('ad-v').value,d=document.getElementById('ad-d').value;
     if(!(v>0)){toast('Informe o valor pago');return}if(!d){toast('Informe a data');return}
-    const reg={pro:p,valor:Math.round(v*100)/100,data:d,periodo:iso(qzAtual().ini),por:S.user.nome};const o=document.getElementById('ad-o').value.trim();if(o)reg.obs=o;
+    const reg={pro:p,valor:Math.round(v*100)/100,data:d,periodo:iso(qzVista().ini),por:S.user.nome};const o=document.getElementById('ad-o').value.trim();if(o)reg.obs=o;
     if(await grava(()=>DB.push('admin/adiantamentos',reg),'Adiantamento registrado'))closeDlg()}}
 
 function abrirSuporte(){if(!S.user)return;
@@ -2278,6 +2283,7 @@ function render(){
   main.querySelectorAll('[data-dper]').forEach(b=>b.onclick=()=>{S.descPer=b.dataset.dper;render()});
   main.querySelectorAll('[data-msg]').forEach(b=>b.onclick=()=>msgDlg(b.dataset.msg,b.dataset.c));
   main.querySelectorAll('[data-cli]').forEach(b=>b.onclick=()=>ficha(b.dataset.cli));
+  main.querySelectorAll('[data-comnav]').forEach(b=>b.onclick=e=>{e.preventDefault();S.comOff=Math.min(0,(S.comOff||0)+(+b.dataset.comnav));render()});
   main.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>grava(()=>DB.set('admin/pagamentos/'+qzChave(b.dataset.pay),true),'Comissão marcada como paga'));
   main.querySelectorAll('[data-finmes]').forEach(b=>b.onclick=()=>{const n=+b.dataset.finmes,atual=iso(TODAY).slice(0,7);
     if(n===0){S.finMes=null}else{const [y,m]=finMes().split('-').map(Number),x=new Date(y,m-1+n,1,12),k=iso(x).slice(0,7);S.finMes=k>=atual?null:k}render()});

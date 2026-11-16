@@ -194,3 +194,7 @@ Botão **Mapeamento** no cartão da agenda (cílios, manutenção, lash lift), a
 
 Em Agenda online há a caixa **Escala da Tháriga**: marca os dias da semana em que ela fica no Florença (nos demais, Itaquera) e aceita **períodos especiais** (de/até, ex.: dezembro) que valem no lugar do normal. Guardada em `publico/agenda/{mai,flo}/cfg/escala` (`{flo:[4,5,6],periodos:[{de,ate,flo:[…]}]}`), lida por `escalaTha()`/`floDiasEm()`/`unitFor()` no painel e por `thaUnidadeEm()` em `pedido.html`. Sem escala salva, vale o padrão antigo (Florença quinta a sábado). Sem mudança nas regras do banco.
 **Dia a dia, ela decide (13/11/2026):** na Agenda, no dia aberto, os botões **Tháriga neste dia: Florença | Itaquera** gravam `escala.dias[data]`, que vale por cima do padrão e dos períodos (em `unitFor` e `thaUnidadeEm`). Só admin. Agendamentos já feitos na outra unidade não se mexem; o painel avisa antes.
+
+## Comissões: períodos anteriores (16/11/2026)
+
+Ao virar o período a tela de Comissões mostrava só o atual e o fechado "sumia". Agora há **‹ Período anterior / Período seguinte ›** (`S.comOff`, `qzVista()`), valendo para os valores, "Ver detalhes", adiantamento e "Marcar como pago" do período aberto na tela, e um aviso quando o período anterior ainda tem comissão não paga. Nada foi apagado: os dados sempre estiveram no banco.
