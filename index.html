@@ -13420,8 +13420,14 @@ const SOLTE_MAX=10*1024*1024, SOLTE_PARALELO=1;
 // Upload, releitura e anexos de minuta dividem a mesma conta OpenAI.
 // Uma fila por aba evita rajadas, inclusive de lotes/cards diferentes.
 let leituraDocumentoFila=Promise.resolve();
+// Uma leitura que nunca responde (conexão caída, Apps Script travado) não pode segurar a fila inteira: depois de LEITURA_LIMITE_MS
+// o item vira erro escrito e o próximo segue. Antes, um só pedido pendurado deixava todos os outros "na fila" para sempre.
+const LEITURA_LIMITE_MS=150000;
 function enfileirarLeituraDocumento(ler){
-  const atual=leituraDocumentoFila.then(ler);
+  const atual=leituraDocumentoFila.then(()=>new Promise((ok,erro)=>{
+    const t=setTimeout(()=>erro(new Error('A leitura demorou mais de '+Math.round(LEITURA_LIMITE_MS/60000*10)/10+' min e foi interrompida. O arquivo pode ter sido salvo: confira em Recebidos, e use “Ler de novo” se faltar o texto.')),LEITURA_LIMITE_MS);
+    Promise.resolve().then(ler).then(v=>{clearTimeout(t);ok(v);},e=>{clearTimeout(t);erro(e);});
+  }));
   leituraDocumentoFila=atual.catch(()=>{});
   return atual;
 }
@@ -13433,7 +13439,7 @@ const SOLTE={}; // casoId -> [{id,nome,estado:'fila'|'enviando'|'ok'|'confirmar'
 let soltePorId=0;
 function solteLinhaHtml(it,casoId){
   const ico=it.estado==='ok'?'✓':it.estado==='confirmar'?'⚠':it.estado==='erro'?'✕':'…';
-  const txt=it.estado==='fila'?'na fila':it.estado==='enviando'?'enviando e lendo…':it.msg||'';
+  const txt=it.estado==='fila'?'na fila (um por vez)':it.estado==='enviando'?'enviando e lendo…':it.msg||'';
   const x=(it.estado==='erro'||it.estado==='confirmar')?`<button type="button" class="cx-ped-x" aria-label="Tirar da lista" onclick="solteTirar('${esc(casoId)}',${it.id})">×</button>`:'';
   return `<li class="solte-${it.estado}"><span class="solte-ico">${ico}</span><span class="solte-nome">${escTxt(it.nome)}</span><span class="solte-msg">${escTxt(txt)}</span>${x}</li>`;
 }
@@ -13462,7 +13468,7 @@ async function solteUm(casoId,it,file){
     soltePreencher(casoId,it,await r.json());
   }catch(e){ it.estado='erro'; it.msg='Erro de conexão com o Drive: '+((e&&e.message)||e); }
   solteAtualizar(casoId);
-  });
+  }).catch(e=>{ it.estado='erro'; it.msg=(e&&e.message)||String(e); solteAtualizar(casoId); });
 }
 // O resultado do Apps Script (arrastado, colado, compartilhado ou vindo da entrada do WhatsApp) vira a linha da lista.
 function soltePreencher(casoId,it,j){
