@@ -13405,7 +13405,7 @@ function orcHtmlEspeciais(e, ato){
         <option value="1"${f.cessaoMeacaoUsufruto ? ' selected' : ''}>Sim — nos mesmos moldes da doação com reserva de usufruto</option>
       </select></div>`);
     if(f.cessaoMeacaoUsufruto) bits.push(orcListaHtml('imoveisCessao', 'Imóveis cedidos, com reserva de usufruto',
-      e.imoveisCessao, null, null));
+      (e.valores || {}).imoveisCessao, null, null));
   }
   if(ato.grupo === 'Divórcio'){
     bits.push(`<div class="orc-campo"><label class="fin-rot">Tem pensão?</label>

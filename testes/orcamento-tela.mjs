@@ -416,6 +416,16 @@ await passo('"dois atos dentro de um": o inventário ganha a cessão com usufrut
   if(!/Cess[aã]o gratuita da nua-propriedade/.test(comCessao)) throw new Error('faltou a nua-propriedade cedida: ' + comCessao.slice(0, 800));
   if(!/Reserva de usufruto/.test(comCessao)) throw new Error('faltou o usufruto reservado: ' + comCessao.slice(0, 800));
   if(!/123\.192,00/.test(comCessao)) throw new Error('o usufruto não saiu pela base certa (1/3): ' + comCessao.slice(0, 800));
+  // Um redesenho cheio (ela clicando em "Mais uma linha", ou qualquer outro
+  // campo disparando renderOrcamentoDoCaso) não pode apagar o que ela já
+  // tinha digitado na lista da cessão — achado ao investigar o relato dela
+  // de que "o motor dos cálculos não muda": a lista lia `e.imoveisCessao`
+  // (que não existe nesse objeto) em vez de `e.valores.imoveisCessao`.
+  await pg.evaluate(() => renderOrcamentoDoCaso());
+  const valorAposRedesenho = await pg.$eval(
+    'input[oninput^="orcMudarItem(\'imoveisCessao\',0,\'valor\'"]', el => el.value);
+  if(valorAposRedesenho !== '369576,00')
+    throw new Error('o valor do imóvel cedido se perdeu num redesenho cheio: ' + valorAposRedesenho);
   await pg.evaluate(() => { orcTirarItem('imoveisCessao', 0); orcMudarFlag('cessaoMeacaoUsufruto', false);
     orcTirarItem('imoveis', 0); });
   await pg.evaluate(() => orcTrocarAto('compra-venda'));
