@@ -1009,5 +1009,39 @@ ok('e o total bate ponto a ponto com o gabarito da doação', cessaoMeacao.totai
 ok('mas o fundamento do ITCMD avisa que é a cessão, não a meação comum, e pede conferência',
    /cess[aã]o/.test(cessaoMeacao.tributos[0].avisos[0].texto) && cessaoMeacao.tributos[0].avisos[0].confianca === 'operacional');
 
+console.log('\n— "Dois atos dentro de um", 16/11/2026: inventário + cessão da meação com usufruto —');
+// O caso real: inventário com meação, e a viúva cede a própria meação aos
+// herdeiros, com reserva de usufruto, NA MESMA escritura. Desligado, nada
+// muda — ninguém que já usa o inventário comum é pego de surpresa.
+const soInventario = orcCalcular({atoId: 'inventario-meacao',
+  valores: {meacao: 7055384, imoveis: [{rotulo: 'Casa', valor: 50000000}]},
+  flags: {cessaoMeacaoUsufruto: false}, despesas: {taxaAdicional: false}});
+ok('desligado, a escritura é só a do inventário — sem linha de cessão',
+   soInventario.escrituras.length === 1, soInventario.escrituras);
+const inventarioComCessao = orcCalcular({atoId: 'inventario-meacao',
+  valores: {meacao: 7055384, imoveis: [{rotulo: 'Casa', valor: 50000000}],
+    imoveisCessao: [{rotulo: 'Imóvel cedido', valor: 36957600}]},
+  flags: {cessaoMeacaoUsufruto: true}, despesas: {taxaAdicional: false}});
+ok('ligado, a escritura do inventário continua — e ganha as duas linhas da cessão',
+   inventarioComCessao.escrituras.length === 3
+     && inventarioComCessao.escrituras[0].rot === 'Escritura de inventário e partilha',
+   inventarioComCessao.escrituras.map(x => x.rot));
+ok('a nua-propriedade e o usufruto cedidos batem com o gabarito da doação',
+   inventarioComCessao.escrituras[1].valor === doacaoGabarito.escrituras[0].valor
+     && inventarioComCessao.escrituras[2].valor === doacaoGabarito.escrituras[1].valor);
+ok('o registro do inventário (a casa) soma com o par de registros da cessão (2/3 + 1/3)',
+   inventarioComCessao.registros.length === 3, inventarioComCessao.registros.map(x => x.rot));
+ok('o ITCMD da meação do inventário continua, e ganha o ITCMD da cessão — dois tributos',
+   inventarioComCessao.tributos.length === 2
+     && inventarioComCessao.tributos[0].rot === 'ITCMD sobre a meação'
+     && inventarioComCessao.tributos[1].valor === doacaoGabarito.tributos[0].valor,
+   inventarioComCessao.tributos);
+// A taxa adicional (R$ 300) entra uma vez só nesta escritura combinada —
+// não duas, uma para cada "ato dentro do ato" — por isso a comparação é
+// escritura + registro + tributos, não o total com despesas incluídas.
+const somaSemDespesas = r => r.totais.escritura + r.totais.registro + r.totais.tributos;
+ok('escritura + registro + tributos é exatamente a soma do inventário com a cessão, cada um calculado à parte',
+   somaSemDespesas(inventarioComCessao) === somaSemDespesas(soInventario) + somaSemDespesas(doacaoGabarito));
+
 console.log(falhas ? `\n${falhas} falha(s).\n` : '\nTudo certo.\n');
 if(falhas) process.exit(1);

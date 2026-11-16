@@ -511,21 +511,37 @@ declaratória.
   continua sobre a meação**, o jeito de sempre: ninguém que já usava o ato
   do jeito simples (partilha = meação) é pego de surpresa. O ITCMD nunca
   muda — é sempre sobre a meação, nos dois casos.
-- **A cessão gratuita da meação, com reserva de usufruto, é a MESMA conta da
-  doação com usufruto.** Caso dela em 16/11/2026: a viúva não fica com a
-  meação — cede ela de graça aos filhos, reservando o usufruto para si. Ela
-  mesma achou o paralelo certo, e o ato `inventario-cessao-meacao-usufruto`
-  é por isso um espelho do `doacao-usufruto` (mesmos 2/3 de nua-propriedade
-  pelo valor cheio, mesmo 1/3 de usufruto com 75% de desconto, mesmo par de
-  registros por imóvel, mesmo ITCMD sobre o valor global) — só os rótulos
-  dizem "cessão" em vez de "doação", e reaproveita o campo `imoveisDoacao`.
-  Há teste cobrando que o resultado bate ponto a ponto com o gabarito da
-  doação, para o dia em que aquela conta mudar não esquecer desta. **O
-  enquadramento tributário entra como 🔵 operacional**: tratar a cessão como
-  doação (ITCMD sobre a transmissão da meação) é o paralelo que ela indicou,
-  mas não foi confirmado contra uma fonte oficial — o aviso na linha do ITCMD
-  pede conferência antes de uma cobrança formal. Não cobre a cessão
-  **onerosa** (ela mencionou que existe, mas não pediu esta ainda).
+- **A cessão gratuita, com reserva de usufruto, é a MESMA conta da doação com
+  usufruto — e não é exclusiva do inventário.** Caso dela em 16/11/2026: num
+  inventário com meação, a viúva não fica com a meação — cede ela de graça
+  aos filhos, reservando o usufruto para si. Ela mesma achou o paralelo
+  certo: é a conta do `doacao-usufruto` (mesmos 2/3 de nua-propriedade pelo
+  valor cheio, mesmo 1/3 de usufruto com 75% de desconto, mesmo par de
+  registros por imóvel, mesmo ITCMD sobre o valor global), só que sobre o que
+  está sendo cedido em vez de doado. A conta mora numa função à parte,
+  `orcCessaoUsufrutoLinhas()`, para poder entrar em qualquer lugar — não só
+  num ato próprio.
+  - O ato **"Cessão gratuita com reserva de usufruto"** (`inventario-cessao-meacao-usufruto`,
+    nome sem o prefixo "Inventário —" a pedido dela em 16/11/2026, porque não é
+    exclusivo do inventário) serve para quando a cessão é **tudo** o que há
+    para orçar — nenhuma herança ou partilha junto.
+  - **"Dois atos dentro de um"** (pedido dela no mesmo dia): quando a cessão
+    acontece **na mesma escritura** de um inventário — o caso real dela —, os
+    quatro atos de Inventário (`inventario`, `inventario-meacao`,
+    `inventario-desigual`, `inventario-desigual-meacao`) ganharam a pergunta
+    "Esta escritura também cede algo de graça, com reserva de usufruto?"
+    (`flags.cessaoMeacaoUsufruto`) e uma lista própria, separada da lista de
+    imóveis do inventário (`imoveisCessao` — nunca a mesma lista: é outro
+    negócio, com outra base). Ligada, `orcCessaoUsufrutoLinhas()` soma as
+    próprias linhas (escritura, registro, ITCMD) às linhas do inventário —
+    nunca substitui. Desligada (o padrão), nada muda: ninguém que já usa o
+    inventário comum é pego de surpresa. Há teste cobrando que o resultado
+    combinado é exatamente a soma dos dois calculados à parte.
+  - **O enquadramento tributário entra como 🔵 operacional**: tratar a cessão
+    como doação (ITCMD sobre a transmissão) é o paralelo que ela indicou, mas
+    não foi confirmado contra uma fonte oficial — o aviso na linha do ITCMD
+    pede conferência antes de uma cobrança formal. Não cobre a cessão
+    **onerosa** (ela mencionou que existe, mas não pediu esta ainda).
 - **Outro ato lavrado junto entra pelo valor cheio.** A escritura sai com uma
   procuração, ou com uma ata. Os vinte atos cobrem as *combinações* conhecidas
   (garantia, novação, usufruto), e o que ficasse fora delas não tinha lugar
