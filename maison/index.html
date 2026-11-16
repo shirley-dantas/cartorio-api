@@ -1840,10 +1840,13 @@ function vComissoes(){
    ${mensal?`<label class="f">Pagar no dia<input type="number" id="com-dia" min="1" max="28" value="${Math.min(28,Math.max(1,+cfg.comDia||1))}"></label>`:''}</div>
    <p class="small muted" style="margin-bottom:0">Mudar o percentual vale para os atendimentos do período em aberto, inclusive os já feitos.</p></div>`;
 }
-function detCom(p){const r=periodRecs().filter(h=>h.pro===p);
-  openDlg('Atendimentos de '+PEOPLE[p].n,`<div class="scroll"><table><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th class="n">Valor</th>${p==='lais'?'':'<th class="n">%</th><th class="n">Comissão</th>'}</tr>
-  ${r.map(h=>`<tr><td>${fd(h.date)}</td><td>${esc(cli(h.cli).n)}</td><td>${esc(sv(h.serv,h.unit).n)}</td><td class="n">${brl(h.valor)}</td>${p==='lais'?'':`<td class="n"><input type="number" min="0" max="100" step="1" data-comat="${esc(h.id)}" value="${comPct(h)}" style="width:64px;padding:6px;border:1px solid var(--line);border-radius:8px;text-align:right"></td><td class="n">${brl(comVal(h))}</td>`}</tr>`).join('')||`<tr><td colspan="${p==='lais'?4:6}" class="muted">Nenhum atendimento neste período.</td></tr>`}</table></div>
-  ${p==='lais'?'':'<p class="small muted">O percentual de cada linha vale só para aquele atendimento. Deixe em branco para voltar ao percentual da profissional.</p>'}`);
+function detCom(p){const r=periodRecs().filter(h=>h.pro===p),q=qzVista(),tot=r.reduce((s,h)=>s+(h.valor||0),0),com=r.reduce((s,h)=>s+comVal(h),0);
+  openDlg('Atendimentos de '+PEOPLE[p].n,`<p class="small muted" style="margin-top:0">Período ${fd(iso(q.ini))} a ${fd(iso(q.fim))} · ${r.length} atendimento${r.length===1?'':'s'} · ${brl(tot)}${p==='lais'?'':' · comissão '+brl(com)}</p>
+  ${r.map(h=>`<div class="row" style="align-items:flex-start;flex-wrap:wrap"><div style="min-width:48px"><b>${fd(h.date)}</b></div><div class="grow" style="min-width:150px">${esc(cli(h.cli).n)}<div class="small muted">${esc(sv(h.serv,h.unit).n)} · ${brl(h.valor)}</div></div>
+   ${p==='lais'?'':`<div style="text-align:right"><div class="small muted">comissão</div><b>${brl(comVal(h))}</b><div style="margin-top:4px"><input type="number" min="0" max="100" step="1" data-comat="${esc(h.id)}" value="${comPct(h)}" aria-label="Percentual" style="width:64px;padding:6px;border:1px solid var(--line);border-radius:8px;text-align:right"> %</div></div>`}</div>`).join('')||'<p class="small muted">Nenhum atendimento neste período.</p>'}
+  ${p==='lais'?'':'<p class="small muted">O percentual de cada linha vale só para aquele atendimento. Deixe em branco para voltar ao percentual da profissional.</p>'}
+  <button class="btn" id="dc-fechar" style="margin-top:8px;width:100%">Fechar</button>`);
+  document.getElementById('dc-fechar').onclick=closeDlg;
   dlg.querySelectorAll('[data-comat]').forEach(i=>i.onchange=async()=>{const id=i.dataset.comat,v=i.value.trim();
     const ok=await grava(()=>v===''?DB.del('admin/config/comAtend/'+id):DB.set('admin/config/comAtend/'+id,Math.min(100,Math.max(0,+v||0))),'Percentual do atendimento salvo');
     if(ok)detCom(p)})}
