@@ -944,7 +944,7 @@ function vAgenda(){
   let detalhe='';
   if(st==='a'){const a=agendaAtiva().find(x=>x.id===sid&&x._p===sp&&x.date===d);if(a&&visUnit(a.unit))detalhe=`<div id="agsel" class="box" style="margin:0 0 12px">${cartaoAg(a)}</div>`}
   if(st==='b'){const b=bloqueios().find(x=>x.id===sid&&x._p===sp&&x.date===d);if(b)detalhe=`<div id="agsel" class="box" style="margin:0 0 12px"><div class="row"><div class="grow"><b>${esc(b.hora)}–${esc(hhmmDe(minDe(b.hora)+b.m))}</b> <span class="tag warn">${esc(b.motivo||'Fechado')}</span><div class="small muted">${b.pro==='todos'||!b.pro?'Para todos':'Só '+esc(PEOPLE[b.pro]?.n||b.pro)}${b.obs?' · '+esc(b.obs):''}${b.por?' · por '+esc(b.por):''}</div></div><button class="btn sm" data-reabrir="${b.id}" data-pp="${b._p}">Reabrir</button></div></div>`}
-  const thaEsc=isAdmin()?`<div class="small" style="margin:0 0 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="muted">Tháriga neste dia:</span><button type="button" class="btn sm ${unitFor(d)==='flo'?'p':''}" data-thadia="flo">Florença</button><button type="button" class="btn sm ${unitFor(d)==='mai'?'p':''}" data-thadia="mai">Itaquera</button></div>`:'';
+  const thaEsc=isAdmin()?`<div class="small" style="margin:0 0 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="muted">Tháriga neste dia:</span><button type="button" class="btn sm ${unitFor(d)==='flo'?'p':''}" data-thadia="flo">Florença</button><button type="button" class="btn sm ${unitFor(d)==='mai'?'p':''}" data-thadia="mai">Itaquera</button><button type="button" class="btn sm" data-thaper="1">Vários dias…</button></div><div class="small muted" style="margin:-4px 0 10px">${unitFor(d)==='flo'?'Neste dia você atende no Itaim: a marcação online de Itaquera para você fica fechada.':'Neste dia você atende em Itaquera: a marcação online do Itaim fica fechada.'}</div>`:'';
   return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Tháriga Beauty & Co: ${U.mai.dias}, ${U.mai.hora}. Cada serviço fica na agenda de quem faz.`:`Agenda completa da Tháriga Beauty & Co — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}${AGENDA_URL?'<button class="btn" id="resp">Atualizar respostas</button>':''}<button class="btn" id="fechar">Fechar horário</button><button class="btn p" id="novo">Novo agendamento</button></div></div>
   ${agCalendario(d)}
@@ -1259,6 +1259,18 @@ function escalaBox(){const e=escalaTha();return `<div class="box" style="margin:
 function lerEscala(){const nums=cls=>[...document.querySelectorAll('.'+cls)].filter(i=>i.checked).map(i=>+i.value);const per=[];
   for(const b of document.querySelectorAll('.esc-per')){const de=b.querySelector('.esc-de').value,ate=b.querySelector('.esc-ate').value;if(!de&&!ate)continue;if(!de||!ate||ate<de)return null;per.push({de,ate,flo:[...b.querySelectorAll('.esc-pd')].filter(i=>i.checked).map(i=>+i.value)})}
   const o={flo:nums('esc-pad')};if(per.length)o.periodos=per;return o}
+function dlgThaPeriodo(){const hoje=iso(TODAY);
+  openDlg('Onde a Tháriga atende em vários dias',`<p class="small muted" style="margin-top:0">Escolha o lugar e o período. Nesses dias a marcação online fica aberta só nessa unidade. Um dia isolado escolhido na Agenda vale por cima deste período.</p>
+  <div class="fotor"><label><input type="radio" name="tp-u" value="flo" checked>Itaim (Estúdio Florença)</label><label><input type="radio" name="tp-u" value="mai">Itaquera</label></div>
+  <label class="f">De<input type="date" id="tp-de" value="${hoje}" style="width:100%;min-width:0"></label><label class="f">Até<input type="date" id="tp-ate" value="${hoje}" style="width:100%;min-width:0"></label>
+  <p class="small muted">Dezembro inteiro: de 01/12/2026 até 31/12/2026.</p><button class="btn p" id="tp-ok">Salvar</button>`);
+  document.getElementById('tp-ok').onclick=async()=>{const de=document.getElementById('tp-de').value,ate=document.getElementById('tp-ate').value,u=document.querySelector('input[name=tp-u]:checked').value;
+    if(!de||!ate||ate<de){toast('Confira as datas: o fim não pode ser antes do começo');return}
+    const e=escalaTha(),per=[...(e.periodos||[]),{de,ate,flo:u==='flo'?[0,1,2,3,4,5,6]:[]}];
+    // limpa as escolhas isoladas dentro do período: o período novo é a decisão mais recente
+    let ok=true;for(const x of ['mai','flo']){ok=await grava(()=>DB.set('publico/agenda/'+x+'/cfg/escala/periodos',per))&&ok;
+      for(const d of Object.keys(e.dias||{}))if(d>=de&&d<=ate)ok=await grava(()=>DB.del('publico/agenda/'+x+'/cfg/escala/dias/'+d))&&ok}
+    if(ok){toast('Salvo: '+(u==='flo'?'Itaim':'Itaquera')+' de '+fd(de,{day:'2-digit',month:'2-digit',year:'numeric'})+' a '+fd(ate,{day:'2-digit',month:'2-digit',year:'numeric'}));closeDlg();render()}}}
 function agonBox(){const bloco=u=>{const g=agonCfg(u);return `<div class="box" style="margin:0 0 12px;background:var(--bg)"><h3 style="margin:0 0 8px">${U[u].n}</h3>
    <label class="ck"><input type="checkbox" id="ag-${u}-on" ${g.ativo?'checked':''}>Receber marcações pelo link</label>
    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><label class="f" style="margin:0">Abre às<input type="time" id="ag-${u}-i" value="${g.ini}"></label><label class="f" style="margin:0">Último horário termina às<input type="time" id="ag-${u}-f" value="${g.fim}"></label></div>
@@ -2231,6 +2243,7 @@ function render(){
     el.onscroll=()=>{(S.rolagem=S.rolagem||{})[k]=el.scrollTop}});
   const lvr=main.querySelector('.lv-rol');if(lvr){lvr.scrollTop=S.rolagemLv||0;lvr.onscroll=()=>{S.rolagemLv=lvr.scrollTop}}
   const rt=document.getElementById('retry');if(rt)rt.onclick=()=>{S.erros={};comecarLeituras()};
+  main.querySelectorAll('[data-thaper]').forEach(b=>b.onclick=dlgThaPeriodo);
   main.querySelectorAll('[data-thadia]').forEach(b=>b.onclick=async()=>{const d=S.agData||iso(TODAY),v=b.dataset.thadia;if(unitFor(d)===v)return;
     const tem=agendaAtiva().filter(a=>a.pro==='tha'&&a.date===d&&a.unit!==v).length;
     if(tem&&!confirm(`A Tháriga tem ${tem} agendamento(s) neste dia na outra unidade. Eles continuam onde estão. Mudar mesmo assim?`))return;
@@ -2252,7 +2265,7 @@ function render(){
     for(const u of ['mai','flo']){const g=id=>document.getElementById('ag-'+u+'-'+id),ini=g('i').value,fim=g('f').value,par=agonCfg(u).paralelo;
       if(!ini||!fim||minDe(fim)<=minDe(ini)){toast(`${U[u].n}: confira o horário de abrir e fechar`);ags.disabled=false;return}
       const fech=g('x').value.split(/[,;\s]+/).filter(Boolean);if(fech.some(d=>!/^\d{4}-\d{2}-\d{2}$/.test(d))){toast(`${U[u].n}: as datas sem atendimento precisam estar como AAAA-MM-DD`);ags.disabled=false;return}
-      const cfg={ativo:g('on').checked,ini,fim,paralelo:par,passo:30,dias:21,diasFrente:Math.min(365,Math.max(7,+g('n').value||180)),antecH:3};cfg.escala=escala;if(fech.length)cfg.fechados=fech;{const e=g('d').value.trim();if(e)cfg.endereco=e}
+      const cfg={ativo:g('on').checked,ini,fim,paralelo:par,passo:30,dias:21,diasFrente:Math.min(365,Math.max(7,+g('n').value||180)),antecH:3};cfg.escala={...escala,...(escalaTha().dias?{dias:escalaTha().dias}:{})};if(fech.length)cfg.fechados=fech;{const e=g('d').value.trim();if(e)cfg.endereco=e}
       ok=await grava(()=>DB.set('publico/agenda/'+u+'/cfg',cfg))&&ok}
     if(ok)toast('Agenda online salva');ags.disabled=false};
   main.querySelectorAll('[data-nvok]').forEach(b=>b.onclick=()=>grava(()=>DB.upd(b.dataset.nvp+'/clientes/'+b.dataset.nvok,{niverFeito:TODAY.getFullYear()}),'Aniversário dispensado da lista'));

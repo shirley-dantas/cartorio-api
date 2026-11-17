@@ -198,3 +198,5 @@ Em Agenda online há a caixa **Escala da Tháriga**: marca os dias da semana em 
 ## Comissões: períodos anteriores (16/11/2026)
 
 Ao virar o período a tela de Comissões mostrava só o atual e o fechado "sumia". Agora há **‹ Período anterior / Período seguinte ›** (`S.comOff`, `qzVista()`), valendo para os valores, "Ver detalhes", adiantamento e "Marcar como pago" do período aberto na tela, e um aviso quando o período anterior ainda tem comissão não paga. Nada foi apagado: os dados sempre estiveram no banco.
+
+**Vários dias de uma vez (17/11/2026):** na Agenda, o botão **Vários dias…** abre "Onde a Tháriga atende": escolhe Itaim ou Itaquera e de/até, e grava um período em `escala.periodos` (Itaim = os 7 dias; Itaquera = nenhum), apagando as escolhas isoladas dentro dele. Um dia isolado escolhido depois vale por cima. Também corrigido: **Salvar agenda online** apagava as escolhas dia a dia (`escala.dias`); agora preserva.
