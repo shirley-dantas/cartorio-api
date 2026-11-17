@@ -107,6 +107,24 @@ h3{font-size:15px;margin:0 0 8px;font-weight:600}
 :root[data-theme="dark"] .btn.p{color:#1C1318}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.p{color:#1C1318}}
 .btn.sm{padding:4px 11px;font-size:13px}
+/* Onde a Tháriga atende (escolha do dia e de períodos) */
+.onde{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 14px 12px;margin:0 0 14px;box-shadow:0 1px 2px #0000000a}
+.onde-t{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 10px}
+.onde-t b{font-family:var(--serif);font-size:20px;font-weight:600;letter-spacing:.2px}
+.onde-t a{font-size:13px;font-weight:600;color:var(--berry);text-decoration:none;white-space:nowrap}.onde-t a:hover{text-decoration:underline}
+.onde-op{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.onde-op button{position:relative;text-align:left;font:inherit;border:1.5px solid var(--line);background:var(--bg);border-radius:14px;padding:11px 12px 11px 40px;cursor:pointer;color:var(--ink);transition:background .15s,border-color .15s,box-shadow .15s}
+.onde-op button::before{content:"";position:absolute;left:13px;top:50%;width:16px;height:16px;margin-top:-8px;border-radius:50%;border:2px solid var(--line);background:var(--panel)}
+.onde-op button b{display:block;font-size:15px}.onde-op button span{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.onde-op button.on{background:var(--flo-soft);border-color:var(--flo);box-shadow:0 1px 0 #0000000d}
+.onde-op button[data-v=mai].on{background:var(--mai-soft);border-color:var(--mai)}
+.onde-op button.on::before{border-color:var(--flo);background:radial-gradient(circle,var(--flo) 0 4px,var(--panel) 5px)}
+.onde-op button[data-v=mai].on::before{border-color:var(--mai);background:radial-gradient(circle,var(--mai) 0 4px,var(--panel) 5px)}
+.onde-st{display:flex;gap:8px;align-items:flex-start;margin:11px 2px 0;font-size:13px;line-height:1.35;color:var(--muted)}
+.onde-st i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-top:5px;font-style:normal}
+.onde-chips{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 12px}
+.onde-chips button{border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 13px;font:inherit;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer}
+.onde-res{background:var(--berry-soft);border-radius:12px;padding:11px 13px;margin:6px 0 14px;font-size:14px;line-height:1.4}
 /* Mapeamento de cílios: um olho, nove quadrantes */
 .mapa-olho{display:block;margin:4px auto 0;width:100%;max-width:340px;height:auto}
 .mapa-q{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;max-width:340px;margin:0 auto}
@@ -944,8 +962,10 @@ function vAgenda(){
   let detalhe='';
   if(st==='a'){const a=agendaAtiva().find(x=>x.id===sid&&x._p===sp&&x.date===d);if(a&&visUnit(a.unit))detalhe=`<div id="agsel" class="box" style="margin:0 0 12px">${cartaoAg(a)}</div>`}
   if(st==='b'){const b=bloqueios().find(x=>x.id===sid&&x._p===sp&&x.date===d);if(b)detalhe=`<div id="agsel" class="box" style="margin:0 0 12px"><div class="row"><div class="grow"><b>${esc(b.hora)}–${esc(hhmmDe(minDe(b.hora)+b.m))}</b> <span class="tag warn">${esc(b.motivo||'Fechado')}</span><div class="small muted">${b.pro==='todos'||!b.pro?'Para todos':'Só '+esc(PEOPLE[b.pro]?.n||b.pro)}${b.obs?' · '+esc(b.obs):''}${b.por?' · por '+esc(b.por):''}</div></div><button class="btn sm" data-reabrir="${b.id}" data-pp="${b._p}">Reabrir</button></div></div>`}
-  const thaEsc=isAdmin()?`<div class="small" style="margin:0 0 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="muted">Tháriga neste dia:</span><button type="button" class="btn sm ${unitFor(d)==='flo'?'p':''}" data-thadia="flo">Florença</button><button type="button" class="btn sm ${unitFor(d)==='mai'?'p':''}" data-thadia="mai">Itaquera</button><button type="button" class="btn sm" data-thaper="1">Vários dias…</button></div><div class="small muted" style="margin:-4px 0 10px">${unitFor(d)==='flo'?'Neste dia você atende no Itaim: a marcação online de Itaquera para você fica fechada.':'Neste dia você atende em Itaquera: a marcação online do Itaim fica fechada.'}</div>`:'';
-  return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`Florença: ${U.flo.dias}, ${U.flo.hora}. Tháriga Beauty & Co: ${U.mai.dias}, ${U.mai.hora}. Cada serviço fica na agenda de quem faz.`:`Agenda completa da Tháriga Beauty & Co — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
+  const thaEsc=isAdmin()?(()=>{const u=unitFor(d);return `<div class="onde"><div class="onde-t"><b>Onde a Tháriga atende</b><a href="#" data-thaper="1">Vários dias…</a></div>
+    <div class="onde-op"><button type="button" data-v="flo" class="${u==='flo'?'on':''}" data-thadia="flo" aria-pressed="${u==='flo'}"><b>Itaim</b><span>Estúdio Florença</span></button><button type="button" data-v="mai" class="${u==='mai'?'on':''}" data-thadia="mai" aria-pressed="${u==='mai'}"><b>Itaquera</b><span>Tháriga Beauty & Co</span></button></div>
+    <div class="onde-st"><i></i><span>${u==='flo'?'Neste dia a marcação online abre só no <b>Itaim</b>. Itaquera fica fechada para você.':'Neste dia a marcação online abre só em <b>Itaquera</b>. O Itaim fica fechado para você.'}</span></div></div>`})():'';
+  return `<div class="top"><div><h1>Agenda</h1><div class="sub">${isAdmin()?`A Tháriga atende onde você marcar em cada dia (Itaim ou Itaquera). Itaquera: equipe todos os dias, ${U.mai.hora}. Cada serviço fica na agenda de quem faz.`:`Agenda completa da Tháriga Beauty & Co — ${U.mai.dias}, ${U.mai.hora}.`}</div></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">${unitSeg()}${AGENDA_URL?'<button class="btn" id="resp">Atualizar respostas</button>':''}<button class="btn" id="fechar">Fechar horário</button><button class="btn p" id="novo">Novo agendamento</button></div></div>
   ${agCalendario(d)}
   <h2 style="margin:0 0 6px">${esc(prim1(new Date(d+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})))}</h2>
@@ -1259,18 +1279,27 @@ function escalaBox(){const e=escalaTha();return `<div class="box" style="margin:
 function lerEscala(){const nums=cls=>[...document.querySelectorAll('.'+cls)].filter(i=>i.checked).map(i=>+i.value);const per=[];
   for(const b of document.querySelectorAll('.esc-per')){const de=b.querySelector('.esc-de').value,ate=b.querySelector('.esc-ate').value;if(!de&&!ate)continue;if(!de||!ate||ate<de)return null;per.push({de,ate,flo:[...b.querySelectorAll('.esc-pd')].filter(i=>i.checked).map(i=>+i.value)})}
   const o={flo:nums('esc-pad')};if(per.length)o.periodos=per;return o}
-function dlgThaPeriodo(){const hoje=iso(TODAY);
-  openDlg('Onde a Tháriga atende em vários dias',`<p class="small muted" style="margin-top:0">Escolha o lugar e o período. Nesses dias a marcação online fica aberta só nessa unidade. Um dia isolado escolhido na Agenda vale por cima deste período.</p>
-  <div class="fotor"><label><input type="radio" name="tp-u" value="flo" checked>Itaim (Estúdio Florença)</label><label><input type="radio" name="tp-u" value="mai">Itaquera</label></div>
+function dlgThaPeriodo(){const hoje=iso(TODAY),fmt=d=>fd(d,{day:'2-digit',month:'2-digit',year:'numeric'}),ult=(y,m)=>iso(new Date(y,m+1,0,12));
+  const y=TODAY.getFullYear(),mes=TODAY.getMonth(),dez=mes===11&&TODAY.getDate()>20?y+1:y;
+  openDlg('Onde a Tháriga atende',`<p class="small muted" style="margin-top:0">Escolha o lugar e o período. Nesses dias a marcação online abre só nessa unidade, e a outra fica fechada para você.</p>
+  <div class="onde-op" style="margin-bottom:14px"><button type="button" data-v="flo" class="on" data-tpu="flo"><b>Itaim</b><span>Estúdio Florença</span></button><button type="button" data-v="mai" data-tpu="mai"><b>Itaquera</b><span>Tháriga Beauty & Co</span></button></div>
+  <div class="onde-chips"><button type="button" data-tpr="${hoje}|${iso(addD(TODAY,6))}">Próximos 7 dias</button><button type="button" data-tpr="${hoje}|${ult(y,mes)}">Este mês</button><button type="button" data-tpr="${dez}-12-01|${dez}-12-31">Dezembro</button></div>
   <label class="f">De<input type="date" id="tp-de" value="${hoje}" style="width:100%;min-width:0"></label><label class="f">Até<input type="date" id="tp-ate" value="${hoje}" style="width:100%;min-width:0"></label>
-  <p class="small muted">Dezembro inteiro: de 01/12/2026 até 31/12/2026.</p><button class="btn p" id="tp-ok">Salvar</button>`);
-  document.getElementById('tp-ok').onclick=async()=>{const de=document.getElementById('tp-de').value,ate=document.getElementById('tp-ate').value,u=document.querySelector('input[name=tp-u]:checked').value;
+  <div class="onde-res" id="tp-res"></div>
+  <button class="btn p" id="tp-ok" style="width:100%;padding:12px 14px;font-size:15px">Salvar</button>
+  <p class="small muted" style="margin:10px 0 0;text-align:center">Um dia isolado escolhido na Agenda vale por cima do período.</p>`);
+  let u='flo';const g=i=>document.getElementById(i),res=()=>{const de=g('tp-de').value,ate=g('tp-ate').value,ok=de&&ate&&ate>=de,n=ok?Math.round((new Date(ate+'T12:00')-new Date(de+'T12:00'))/864e5)+1:0;
+    g('tp-res').innerHTML=ok?`<b>${u==='flo'?'Itaim':'Itaquera'}</b> de ${fmt(de)} a ${fmt(ate)} · ${n} dia${n>1?'s':''}<br><span class="muted">${u==='flo'?'Itaquera':'Itaim'} fica fechado para você nesses dias.</span>`:'<span style="color:var(--warn)">Confira as datas: o fim não pode ser antes do começo.</span>'};
+  dlg.querySelectorAll('[data-tpu]').forEach(b=>b.onclick=()=>{u=b.dataset.tpu;dlg.querySelectorAll('[data-tpu]').forEach(x=>x.classList.toggle('on',x===b));res()});
+  dlg.querySelectorAll('[data-tpr]').forEach(b=>b.onclick=()=>{const [a,c]=b.dataset.tpr.split('|');g('tp-de').value=a;g('tp-ate').value=c;res()});
+  g('tp-de').onchange=g('tp-ate').onchange=res;res();
+  g('tp-ok').onclick=async()=>{const de=g('tp-de').value,ate=g('tp-ate').value;
     if(!de||!ate||ate<de){toast('Confira as datas: o fim não pode ser antes do começo');return}
     const e=escalaTha(),per=[...(e.periodos||[]),{de,ate,flo:u==='flo'?[0,1,2,3,4,5,6]:[]}];
     // limpa as escolhas isoladas dentro do período: o período novo é a decisão mais recente
     let ok=true;for(const x of ['mai','flo']){ok=await grava(()=>DB.set('publico/agenda/'+x+'/cfg/escala/periodos',per))&&ok;
       for(const d of Object.keys(e.dias||{}))if(d>=de&&d<=ate)ok=await grava(()=>DB.del('publico/agenda/'+x+'/cfg/escala/dias/'+d))&&ok}
-    if(ok){toast('Salvo: '+(u==='flo'?'Itaim':'Itaquera')+' de '+fd(de,{day:'2-digit',month:'2-digit',year:'numeric'})+' a '+fd(ate,{day:'2-digit',month:'2-digit',year:'numeric'}));closeDlg();render()}}}
+    if(ok){toast('Salvo: '+(u==='flo'?'Itaim':'Itaquera')+' de '+fmt(de)+' a '+fmt(ate));closeDlg();render()}}}
 function agonBox(){const bloco=u=>{const g=agonCfg(u);return `<div class="box" style="margin:0 0 12px;background:var(--bg)"><h3 style="margin:0 0 8px">${U[u].n}</h3>
    <label class="ck"><input type="checkbox" id="ag-${u}-on" ${g.ativo?'checked':''}>Receber marcações pelo link</label>
    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><label class="f" style="margin:0">Abre às<input type="time" id="ag-${u}-i" value="${g.ini}"></label><label class="f" style="margin:0">Último horário termina às<input type="time" id="ag-${u}-f" value="${g.fim}"></label></div>
@@ -2243,7 +2272,7 @@ function render(){
     el.onscroll=()=>{(S.rolagem=S.rolagem||{})[k]=el.scrollTop}});
   const lvr=main.querySelector('.lv-rol');if(lvr){lvr.scrollTop=S.rolagemLv||0;lvr.onscroll=()=>{S.rolagemLv=lvr.scrollTop}}
   const rt=document.getElementById('retry');if(rt)rt.onclick=()=>{S.erros={};comecarLeituras()};
-  main.querySelectorAll('[data-thaper]').forEach(b=>b.onclick=dlgThaPeriodo);
+  main.querySelectorAll('[data-thaper]').forEach(b=>b.onclick=e=>{e.preventDefault();dlgThaPeriodo()});
   main.querySelectorAll('[data-thadia]').forEach(b=>b.onclick=async()=>{const d=S.agData||iso(TODAY),v=b.dataset.thadia;if(unitFor(d)===v)return;
     const tem=agendaAtiva().filter(a=>a.pro==='tha'&&a.date===d&&a.unit!==v).length;
     if(tem&&!confirm(`A Tháriga tem ${tem} agendamento(s) neste dia na outra unidade. Eles continuam onde estão. Mudar mesmo assim?`))return;
