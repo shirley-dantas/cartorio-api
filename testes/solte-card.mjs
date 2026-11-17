@@ -27,7 +27,7 @@ function mundo({respostas, ...opcoes} = {}) {
     escTxt: (t) => String(t == null ? '' : t).replace(/[&<>]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])),
     GAS_URL: 'https://gas.exemplo/exec', casos: {C1: {documentos: {pnl_a: {nome: 'Maria_RG.jpg', origem: 'arrastado no card', tipoDocumento: 'RG_CNH', pessoa: 'Maria', confirmar: true, texto: 'x'}}}},
     finToast: (t) => toasts.push(t), alert: (t) => dialogos.alerts.push(t), confirm: (t) => { dialogos.confirmou = t; return dialogos.resposta; }, btoa, atob, Uint8Array, String, Promise, console,
-    setTimeout: () => 0, location: {search: ''}, history: {replaceState() {}}, caches: opcoes.caches || {open: async () => ({keys: async () => [], match: async () => null, delete: async () => true})}, File, Blob,
+    setTimeout: () => 0, clearTimeout: () => {}, location: {search: ''}, history: {replaceState() {}}, caches: opcoes.caches || {open: async () => ({keys: async () => [], match: async () => null, delete: async () => true})}, File, Blob,
     document: {addEventListener: (t, f) => { (ouvintes[t] = ouvintes[t] || []).push(f); }, getElementById: el},
     fetch: async (url, o) => {
       const c = JSON.parse(o.body); enviados.push(c); emVoo++; picoVoo = Math.max(picoVoo, emVoo);
@@ -227,5 +227,14 @@ await passo('entrada: descartar pergunta antes, manda para a lixeira cada arquiv
   m.dialogos.resposta = false; await m.f.entradaDescartar('5511988887777'); assert(/Descartar 2 arquivos de Reinaldo/.test(m.dialogos.confirmou)); assert.equal(m.enviados.length, 0, 'disse que não: nada saiu');
   m.dialogos.resposta = true; await m.f.entradaDescartar('5511988887777'); assert.deepEqual(m.enviados.map((e) => [e.acao, e.entradaId]).sort(), [['entrada-descartar', 'w_a'], ['entrada-descartar', 'w_b']]);
   const f = montarEntrada({respostas: () => ({ok: false, erro: 'O banco recusou a remoção (401).'})}); f.f.entradaDefinir({w_a: REG('A.pdf')}); await f.f.entradaDescartar('5511988887777'); assert(/banco recusou/.test(f.dialogos.alerts.join(' ')));
+});
+await passo('fila de leitura: um pedido pendurado não segura os outros para sempre — vira erro escrito e o próximo segue', async () => {
+  const a = html.indexOf('let leituraDocumentoFila'), b = html.indexOf('function avisoLeituraDocumento');
+  assert(a > 0 && b > a, 'não achei a fila de leitura');
+  const f = new Function(html.slice(a, b).replace(/LEITURA_LIMITE_MS=\d+/, 'LEITURA_LIMITE_MS=40') + '\nreturn enfileirarLeituraDocumento;')();
+  const r1 = f(() => new Promise(() => {})), r2 = f(async () => 'segundo ok');
+  let erro = ''; try { await r1; } catch (e) { erro = e.message; }
+  assert(/demorou/.test(erro), 'o pendurado devia virar erro escrito: ' + erro);
+  assert.equal(await r2, 'segundo ok');
 });
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
