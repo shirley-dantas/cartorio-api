@@ -966,39 +966,89 @@ ok('marcando "Isento/imune", o ITBI zera e guarda o motivo escrito por ela',
    holdingIsenta.tributos[0]);
 ok('o total cai exatamente o valor do ITBI', holdingIsenta.totais.total === holding.totais.total - holding.tributos[0].valor);
 
-console.log('\n— Inventário com meação, 11/11/2026: ITCMD sobre a meação, escritura sobre a partilha —');
-// Caso real: três imóveis somando R$ 521.970,67, mas o ITCMD é só sobre a
-// meação de R$ 70.553,84. Sem o campo preenchido, o jeito de sempre continua
-// (escritura sobre a meação) — ninguém que já usava o ato é pego de surpresa.
+console.log('\n— Inventário com meação, 18/11/2026: dois valores de meação, um ITCMD por óbito —');
+// Pedido dela em 18/11/2026: a meação tem dois valores — "na presente data"
+// (base da escritura e do registro) e "na data do óbito" (base do ITCMD, com
+// multa e juros se o pagamento passar de 180 dias do óbito). As duas viraram
+// listas, porque pode haver mais de um falecimento no mesmo caso.
 const imoveisDoInventario = [{rotulo: 'Imóvel de SP', valor: 39694300},
   {rotulo: 'Lote 2', valor: 5447383}, {rotulo: 'Lote 4', valor: 7055384}];
-const semTotalPartilha = orcCalcular({atoId: 'inventario-meacao',
-  valores: {meacao: 7055384, imoveis: imoveisDoInventario}, flags: {}, despesas: {}});
-ok('sem o campo novo, a escritura continua sobre a meação — o jeito de sempre',
-   semTotalPartilha.escrituras[0].base === 7055384, semTotalPartilha.escrituras[0].base);
-ok('e a base que a cliente lê acompanha', orcBasePrincipal(semTotalPartilha) === 7055384);
-// Achado em 16/11/2026: deixar o campo em branco (o jeito simples) estava
-// travando o orçamento como incompleto, pedindo um valor que não faz falta.
-ok('e deixar o campo em branco NÃO trava o orçamento como incompleto',
-   !semTotalPartilha.bloqueado && !semTotalPartilha.faltando.some(f => f.campo === 'totalPartilha'),
-   semTotalPartilha.faltando);
-
-const comTotalPartilha = orcCalcular({atoId: 'inventario-meacao',
-  valores: {totalPartilha: 52197067, meacao: 7055384, imoveis: imoveisDoInventario},
-  flags: {}, despesas: {}});
-ok('preenchendo o valor total da partilha, a escritura sai sobre ele, não sobre a meação',
-   comTotalPartilha.escrituras[0].base === 52197067, comTotalPartilha.escrituras[0].base);
-ok('o registro continua por imóvel, três linhas, uma por imóvel',
-   comTotalPartilha.registros.length === 3
-     && comTotalPartilha.totais.registro === semTotalPartilha.totais.registro,
-   comTotalPartilha.registros);
-ok('o ITCMD continua só sobre a meação, nunca sobre a partilha',
-   comTotalPartilha.tributos[0].base === 7055384, comTotalPartilha.tributos[0].base);
-ok('a base que a cliente lê agora é o valor total da partilha',
-   orcBasePrincipal(comTotalPartilha) === 52197067);
 // O número que ela conferiu à mão: R$ 521.970,67 cai na faixa o, R$ 5.427,43.
+const simples = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 52197067}], meacaoObito: [{valor: 7055384, data: '2026-08-01'}],
+    imoveis: imoveisDoInventario}, flags: {}, despesas: {}});
+ok('a escritura sai sobre a SOMA da meação na presente data',
+   simples.escrituras[0].base === 52197067, simples.escrituras[0].base);
+ok('e a base que a cliente lê acompanha', orcBasePrincipal(simples) === 52197067);
 ok('a escritura sai exatamente no valor que ela conferiu à mão: R$ 5.427,43',
-   comTotalPartilha.escrituras[0].valor === 542743, comTotalPartilha.escrituras[0]);
+   simples.escrituras[0].valor === 542743, simples.escrituras[0]);
+ok('o registro continua por imóvel, três linhas, uma por imóvel', simples.registros.length === 3);
+ok('o ITCMD é 4% sobre a meação NA DATA DO ÓBITO, não sobre a presente nem sobre a partilha',
+   simples.tributos[0].base === 7055384 && simples.tributos[0].valor === 282215, simples.tributos[0]);
+ok('dentro de 180 dias do óbito, sem multa nem juros — não trava',
+   !simples.bloqueado && !simples.tributos[0].itcmdJurosMulta, simples);
+
+// Falta a data de um óbito lançado: sem ela não dá para saber se passou dos
+// 180 dias, e o orçamento não pode fechar fingindo que sabe.
+const semData = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}]}, flags: {}, despesas: {}});
+ok('valor sem data na meação do óbito trava o orçamento como incompleto',
+   semData.bloqueado && semData.faltando.some(f => f.campo === 'meacaoObitoData'), semData.faltando);
+
+// Mais de 180 dias entre o óbito e a data do ato: incide multa (art. 19) e
+// juros pela Selic (art. 20) — mas o painel não inventa o valor: fica
+// faltando até ela mandar calcular (ou digitar o total já apurado).
+const atrasado = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2025-01-01'}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}]}, flags: {}, despesas: {}});
+ok('passando de 180 dias, o ITCMD fica com o imposto puro até a multa e o juros serem calculados',
+   atrasado.tributos[0].valor === 282215
+     && atrasado.tributos[0].itcmdJurosMulta && atrasado.tributos[0].itcmdJurosMulta.estado === 'faltando',
+   atrasado.tributos[0]);
+ok('e o orçamento não fecha como definitivo enquanto isso',
+   atrasado.bloqueado && atrasado.alertas.some(a => /multa e os juros/.test(a.texto)), atrasado.alertas);
+
+// Calculado (busca simulada) mas ainda não conferido: entra na conta, mas
+// continua bloqueando — a mesma escada da alíquota de fora da Capital.
+const chaveAtraso = orcChaveJurosItcmd('2025-01-01', '2026-11-11');
+ORC_TRIBUTOS.jurosItcmd = {[chaveAtraso]: {multaPct: 20, selicPct: 15, confianca: 'incerta'}};
+const calculadoIncerto = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2025-01-01'}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}]}, flags: {}, despesas: {}});
+const multaEsperada = Math.round(282215 * 20 / 100), jurosEsperado = Math.round(282215 * 15 / 100);
+ok('calculado, a conta soma imposto + multa + juros',
+   calculadoIncerto.tributos[0].valor === 282215 + multaEsperada + jurosEsperado, calculadoIncerto.tributos[0]);
+ok('mas continua travado até ela conferir', calculadoIncerto.bloqueado);
+
+// Confirmado por ela, o orçamento fecha.
+ORC_TRIBUTOS.jurosItcmd = {[chaveAtraso]: {multaPct: 20, selicPct: 15, confianca: 'confirmada'}};
+const confirmado = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2025-01-01'}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}]}, flags: {}, despesas: {}});
+ok('conferido por ela, o mesmo total deixa de travar',
+   confirmado.tributos[0].valor === 282215 + multaEsperada + jurosEsperado && !confirmado.bloqueado,
+   confirmado);
+// Digitado à mão (ela já tirou o total da guia da Fazenda) vale como
+// conferido direto — sem precisar do painel buscar a Selic.
+ORC_TRIBUTOS.jurosItcmd = {[chaveAtraso]: {totalManual: 99900, confianca: 'confirmada'}};
+const manual = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2025-01-01'}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}]}, flags: {}, despesas: {}});
+ok('digitado à mão, o total soma imposto puro + o valor digitado, sem travar',
+   manual.tributos[0].valor === 282215 + 99900 && !manual.bloqueado, manual.tributos[0]);
+ORC_TRIBUTOS.jurosItcmd = {};
+
+// Dois óbitos no mesmo caso: dois ITCMDs, cada um com a sua data.
+const doisObitos = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], imoveis: [{rotulo: 'Casa', valor: 50000000}],
+    meacaoObito: [{valor: 3000000, data: '2026-08-01'}, {valor: 4055384, data: '2026-09-01'}]},
+  flags: {}, despesas: {}});
+ok('dois falecimentos viram dois ITCMDs, cada um 4% do seu próprio valor',
+   doisObitos.tributos.length === 2
+     && doisObitos.tributos[0].valor === Math.round(3000000 * 0.04)
+     && doisObitos.tributos[1].valor === Math.round(4055384 * 0.04),
+   doisObitos.tributos);
 
 console.log('\n— Cessão gratuita da meação com reserva de usufruto, 16/11/2026 —');
 // Ela apontou o paralelo certo: é a mesma conta da doação com reserva de
@@ -1028,13 +1078,15 @@ console.log('\n— "Dois atos dentro de um", 16/11/2026: inventário + cessão d
 // O caso real: inventário com meação, e a viúva cede a própria meação aos
 // herdeiros, com reserva de usufruto, NA MESMA escritura. Desligado, nada
 // muda — ninguém que já usa o inventário comum é pego de surpresa.
-const soInventario = orcCalcular({atoId: 'inventario-meacao',
-  valores: {meacao: 7055384, imoveis: [{rotulo: 'Casa', valor: 50000000}]},
+const soInventario = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2026-08-01'}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}]},
   flags: {cessaoMeacaoUsufruto: false}, despesas: {taxaAdicional: false}});
 ok('desligado, a escritura é só a do inventário — sem linha de cessão',
    soInventario.escrituras.length === 1, soInventario.escrituras);
-const inventarioComCessao = orcCalcular({atoId: 'inventario-meacao',
-  valores: {meacao: 7055384, imoveis: [{rotulo: 'Casa', valor: 50000000}],
+const inventarioComCessao = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2026-08-01'}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}],
     imoveisCessao: [{rotulo: 'Imóvel cedido', valor: 36957600}]},
   flags: {cessaoMeacaoUsufruto: true}, despesas: {taxaAdicional: false}});
 ok('ligado, a escritura do inventário continua — e ganha as duas linhas da cessão',
@@ -1046,9 +1098,9 @@ ok('a nua-propriedade e o usufruto cedidos batem com o gabarito da doação',
      && inventarioComCessao.escrituras[2].valor === doacaoGabarito.escrituras[1].valor);
 ok('o registro do inventário (a casa) soma com o par de registros da cessão (2/3 + 1/3)',
    inventarioComCessao.registros.length === 3, inventarioComCessao.registros.map(x => x.rot));
-ok('o ITCMD da meação do inventário continua, e ganha o ITCMD da cessão — dois tributos',
+ok('o ITCMD do óbito no inventário continua, e ganha o ITCMD da cessão — dois tributos',
    inventarioComCessao.tributos.length === 2
-     && inventarioComCessao.tributos[0].rot === 'ITCMD sobre a meação'
+     && /^ITCMD — óbito/.test(inventarioComCessao.tributos[0].rot)
      && inventarioComCessao.tributos[1].valor === doacaoGabarito.tributos[0].valor,
    inventarioComCessao.tributos);
 // A taxa adicional (R$ 300) entra uma vez só nesta escritura combinada —

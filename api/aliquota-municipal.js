@@ -33,6 +33,10 @@ const ia = require("../lib/ia.js");
 // as próximas.
 
 const https = require("https");
+// A busca de juros e multa do ITCMD (lib/juros-itcmd.js) não ganhou função
+// própria: a Vercel aceita no máximo 12 em api/ e o painel já está no limite
+// (ver CLAUDE.md). Divide esta porta por um campo `tipo` no corpo do pedido.
+const jurosItcmd = require("../lib/juros-itcmd.js");
 
 const FIREBASE_HOST = "painel-cartorio-default-rtdb.firebaseio.com";
 
@@ -116,6 +120,7 @@ function chaveDoLugar(imposto, municipio, uf) {
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ erro: "use POST" });
+  if (req.body && req.body.tipo === "itcmd-juros") return jurosItcmd(req, res);
   const { imposto, municipio, uf, forcar } = req.body || {};
 
   if (imposto !== "itbi" && imposto !== "itcmd")

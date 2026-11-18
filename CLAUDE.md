@@ -499,18 +499,34 @@ declaratória.
   resultado logo acima é trabalho que o painel já tem na tela — e é onde entra
   o erro de digitação. O botão *"Usar como Valor total da partilha"* aparece na
   linha da soma e some quando os dois já são o mesmo número.
-  **No inventário com meação, esse total é o que separa a escritura do
-  ITCMD.** Antes os dois saíam sempre do mesmo valor — a meação —, e ela
-  trouxe em 11/11/2026 um caso em que não é assim: três imóveis somando
-  R$ 521.970,67 (escritura e registro), mas o ITCMD só sobre a meação de
-  R$ 70.553,84, bem menor. O campo `totalPartilha` (o mesmo do divórcio,
-  reaproveitado) entra **antes** de `meacao` nos `campos` do ato — é por
-  isso que o botão "Usar como Valor total da partilha" aponta para ele
-  (`orcSomaDaLista` sempre pega o primeiro campo sem lista) — e a escritura
-  passa a usar `totalPartilha` quando preenchido. **Em branco, a escritura
-  continua sobre a meação**, o jeito de sempre: ninguém que já usava o ato
-  do jeito simples (partilha = meação) é pego de surpresa. O ITCMD nunca
-  muda — é sempre sobre a meação, nos dois casos.
+  **No inventário com meação, a meação virou dois valores — e dois ITCMDs
+  possíveis.** Ela trouxe em 11/11/2026 um caso em que a escritura e o ITCMD
+  não saem do mesmo número — três imóveis somando R$ 521.970,67 (escritura e
+  registro) contra uma meação de R$ 70.553,84 (ITCMD) —, e em 18/11/2026
+  esclareceu o porquê: são duas datas diferentes. **Meação na presente
+  data** (`meacaoAtual`) é a base da escritura e do registro — soma de uma
+  lista, porque pode haver mais de uma. **Meação na data do óbito**
+  (`meacaoObito`) é só do ITCMD: cada linha leva o seu valor **e a sua
+  data**, porque mais de um falecimento no mesmo caso vira mais de um
+  ITCMD, cada um com o seu prazo (`orcLinhaItcmdObito`). O antigo
+  `totalPartilha`/`meacao` (um valor só, com fallback) saiu: as duas listas
+  não têm mais relação de "em branco, cai no outro" — são bases
+  independentes, cada uma com o seu propósito.
+  **Passando de 180 dias entre o óbito e a data do ato, o ITCMD ganha multa
+  de mora (art. 19, Lei 10.705/2000 — 0,33%/dia, até 20%) e juros pela
+  Selic (art. 20).** Dentro de 180 dias, nenhum dos dois incide — é a régua
+  que o próprio portal da Fazenda destaca. A multa é conta fixa; o juros
+  não, a Selic muda mês a mês, e por isso o cálculo é **hipótese até ela
+  conferir** — a mesma escada da alíquota de fora da Capital
+  (`orcAplicarAliquotaDeFora`): o painel busca a Selic acumulada no período
+  na série oficial do Banco Central (`lib/juros-itcmd.js`, atendido pela
+  mesma porta de `api/aliquota-municipal.js` — a Vercel está no limite de
+  12 funções), entra 🔴 na conta, e o CHECK FINAL não fecha até ela apertar
+  "Confere — pode usar" (ou digitar o total de multa+juros já apurado na
+  guia da Fazenda, que vale como conferido direto). Ela confirmou em
+  18/11/2026 que calcula **sempre** (é sempre extrajudicial aqui), mesmo
+  havendo controvérsia no TJSP sobre multa/juros em inventário extrajudicial
+  aberto dentro do prazo — prefere orçar pelo pior cenário.
 - **A cessão gratuita, com reserva de usufruto, é a MESMA conta da doação com
   usufruto — e não é exclusiva do inventário.** Caso dela em 16/11/2026: num
   inventário com meação, a viúva não fica com a meação — cede ela de graça
@@ -1521,6 +1537,8 @@ o `testes/montar.mjs` recorta.
 | A pensão em parcelas | `orcPensaoParcelas()`, `orcPensaoDetalhe()`, `orcMesesAte()`, `orcHtmlPensao()` |
 | A alíquota de fora da Capital | `orcAplicarAliquotaDeFora()`, `orcChaveAliquota()`, `orcHtmlAliquotas()` |
 | A busca da alíquota | `api/aliquota-municipal.js` |
+| O ITCMD por óbito, com multa e juros de atraso | `orcLinhaItcmdObito()`, `orcDiasEntre()`, `orcChaveJurosItcmd()`, `orcHtmlJurosItcmd()` |
+| A busca da Selic (multa e juros do ITCMD) | `lib/juros-itcmd.js`, atendida por `api/aliquota-municipal.js` (`tipo: 'itcmd-juros'`) |
 | A isenção do ITBI (primeiro imóvel / PMCMV) | `orcConferirIsencoes()`, `orcTetoIsencaoItbi()`, `orcConfirmarIsencaoItbi()` |
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | Pedir documentos (lista por ato e público) | `pedido-docs.js` → `PEDIDO.montar()`, `comporTexto()`, `formulario()`, `abrirJanela()` |
