@@ -355,10 +355,16 @@ await passo('o inventário também soma os imóveis dele', async () => {
 // ITCMD só sobre a meação de R$ 70.553,84. Sem o campo novo, a escritura
 // continua sobre a meação — o botão "Usar como Valor total da partilha"
 // é o caminho dela para separar os dois valores.
-await passo('o inventário com meação separa a escritura/registro (partilha) do ITCMD (meação)', async () => {
+// Pedido dela em 18/11/2026: a meação virou dois campos — "na presente data"
+// (escritura/registro) e "na data do óbito" (ITCMD, com a data de cada
+// falecimento para contar os dias de multa e juros).
+await passo('o inventário com meação separa a escritura/registro (meação atual) do ITCMD (meação no óbito)', async () => {
   await pg.evaluate(() => orcTrocarAto('inventario-meacao'));
   await pg.evaluate(() => {
-    orcMudarValor('meacao', '70.553,84');
+    orcMudarCampoTexto('data', '2026-11-11');
+    orcMudarItem('meacaoAtual', 0, 'valor', '521.970,67');
+    orcMudarItem('meacaoObito', 0, 'valor', '70.553,84');
+    orcMudarItem('meacaoObito', 0, 'data', '2026-08-01');
     orcMudarItem('imoveis', 0, 'rotulo', 'Imóvel de SP');
     orcMudarItem('imoveis', 0, 'valor', '396.943,00');
     orcMaisItem('imoveis');
@@ -369,21 +375,54 @@ await passo('o inventário com meação separa a escritura/registro (partilha) d
     orcMudarItem('imoveis', 2, 'valor', '70.553,84');
   });
   await abrirMemoria(pg);
-  const antes = await pg.textContent('.orc-memoria');
-  if(!/70\.553,84/.test(antes)) throw new Error('faltou a meação antes de somar: ' + antes.slice(0, 500));
-  // Sem o campo preenchido, a escritura ainda segue a meação — o jeito de sempre.
-  if(!/Escritura.*70\.553,84/s.test(antes.replace(/\n/g, ' ')))
-    throw new Error('sem o campo novo, a escritura devia continuar sobre a meação: ' + antes.slice(0, 500));
-  await pg.evaluate(() => orcUsarSomaComoBase('imoveis', 'totalPartilha'));
   await pg.waitForFunction(() => /521\.970,67/.test(document.querySelector('.orc-memoria').textContent));
-  const depois = await pg.textContent('.orc-memoria');
-  if(!/521\.970,67/.test(depois)) throw new Error('a escritura não foi para o valor total da partilha: ' + depois.slice(0, 500));
-  if(!/ITCMD.*70\.553,84/s.test(depois.replace(/\n/g, ' ')))
-    throw new Error('o ITCMD deveria continuar só sobre a meação: ' + depois.slice(0, 800));
-  // Limpa a lista de imóveis e o total, para os testes seguintes (o
-  // divórcio com partilha usa os mesmos campos) não herdarem este inventário.
+  const mem = await pg.textContent('.orc-memoria');
+  if(!/Escritura.*521\.970,67/s.test(mem.replace(/\n/g, ' ')))
+    throw new Error('a escritura devia sair sobre a meação na presente data: ' + mem.slice(0, 500));
+  if(!/ITCMD.*70\.553,84/s.test(mem.replace(/\n/g, ' ')))
+    throw new Error('o ITCMD devia sair sobre a meação na data do óbito, não na presente: ' + mem.slice(0, 800));
+  if(!/dentro de 180 dias/.test(mem))
+    throw new Error('a 101 dias do óbito, não devia pedir multa nem juros: ' + mem.slice(0, 800));
+  // Limpa as listas, para os testes seguintes (o divórcio com partilha usa
+  // os mesmos campos de imóveis) não herdarem este inventário.
   await pg.evaluate(() => { orcTirarItem('imoveis', 2); orcTirarItem('imoveis', 1); orcTirarItem('imoveis', 0);
-    orcMudarValor('totalPartilha', ''); });
+    orcTirarItem('meacaoObito', 0); orcTirarItem('meacaoAtual', 0); });
+  await pg.evaluate(() => orcTrocarAto('compra-venda'));
+  await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
+});
+
+// Óbito com mais de 180 dias de atraso: o painel oferece calcular a multa e
+// os juros, mas o orçamento não fecha sozinho — a mesma escada da alíquota
+// de fora da Capital, só que para o ITCMD do inventário.
+await passo('ITCMD de óbito atrasado: o painel busca a multa e os juros, e ela confirma por um toque', async () => {
+  await pg.route('**/api/aliquota-municipal', route => route.fulfill({status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({encontrado: true, chave: '2025-01-01_2026-11-11', dias: 679,
+      multaPct: 20, selicPct: 12.5, confianca: 'incerta',
+      fundamento: 'Multa de mora de 20% + juros pela Selic acumulada de 12,5% entre 02/01/2025 e 11/11/2026.',
+      fontes: ['https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados']})}));
+  await pg.evaluate(() => { orcTrocarAto('inventario-meacao');
+    orcMudarCampoTexto('data', '2026-11-11');
+    orcMudarItem('meacaoAtual', 0, 'valor', '70.553,84');
+    orcMudarItem('meacaoObito', 0, 'valor', '70.553,84');
+    orcMudarItem('meacaoObito', 0, 'data', '2025-01-01');
+    orcMudarItem('imoveis', 0, 'rotulo', 'Casa');
+    orcMudarItem('imoveis', 0, 'valor', '70.553,84'); });
+  const antes = await pg.textContent('#orc-juros-itcmd');
+  if(!/Calcular multa e juros/.test(antes)) throw new Error('não ofereceu calcular: ' + antes);
+  if(!/679 dias/.test(antes)) throw new Error('não contou os dias certos: ' + antes);
+  await pg.click('button:has-text("Calcular multa e juros")');
+  await pg.waitForFunction(() => /ainda não conferido/.test(document.getElementById('orc-juros-itcmd').textContent));
+  const depois = await pg.textContent('#orc-juros-itcmd');
+  if(!/20%/.test(depois) || !/12,5%/.test(depois)) throw new Error('não mostrou os percentuais buscados: ' + depois);
+  const antesDeConferir = await pg.evaluate(() => document.getElementById('orc-caso-conteudo').innerText);
+  if(/TUDO CONFERIDO/i.test(antesDeConferir)) throw new Error('fechou com multa/juros ainda não conferidos');
+  await pg.click('button:has-text("Confere — pode usar")');
+  await pg.waitForFunction(() => /conferido por você/.test(document.getElementById('orc-juros-itcmd').textContent));
+  const depoisDeConferir = await pg.evaluate(() => document.getElementById('orc-caso-conteudo').innerText);
+  if(!/TUDO CONFERIDO/i.test(depoisDeConferir)) throw new Error('não fechou depois de conferido: ' + depoisDeConferir.slice(0, 2000));
+  await pg.unroute('**/api/aliquota-municipal');
+  await pg.evaluate(() => { orcTirarItem('imoveis', 0); orcTirarItem('meacaoObito', 0); orcTirarItem('meacaoAtual', 0); });
   await pg.evaluate(() => orcTrocarAto('compra-venda'));
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });
@@ -395,7 +434,10 @@ await passo('o inventário com meação separa a escritura/registro (partilha) d
 await passo('"dois atos dentro de um": o inventário ganha a cessão com usufruto, no mesmo orçamento', async () => {
   await pg.evaluate(() => orcTrocarAto('inventario-meacao'));
   await pg.evaluate(() => {
-    orcMudarValor('meacao', '266.767,00');
+    orcMudarCampoTexto('data', '2026-11-11');
+    orcMudarItem('meacaoAtual', 0, 'valor', '266.767,00');
+    orcMudarItem('meacaoObito', 0, 'valor', '266.767,00');
+    orcMudarItem('meacaoObito', 0, 'data', '2026-08-01');
     orcMudarItem('imoveis', 0, 'rotulo', 'Casa');
     orcMudarItem('imoveis', 0, 'valor', '500.000,00');
   });
@@ -427,7 +469,7 @@ await passo('"dois atos dentro de um": o inventário ganha a cessão com usufrut
   if(valorAposRedesenho !== '369576,00')
     throw new Error('o valor do imóvel cedido se perdeu num redesenho cheio: ' + valorAposRedesenho);
   await pg.evaluate(() => { orcTirarItem('imoveisCessao', 0); orcMudarFlag('cessaoMeacaoUsufruto', false);
-    orcTirarItem('imoveis', 0); });
+    orcTirarItem('imoveis', 0); orcTirarItem('meacaoObito', 0); orcTirarItem('meacaoAtual', 0); });
   await pg.evaluate(() => orcTrocarAto('compra-venda'));
   await pg.evaluate(() => orcMudarValor('transacao', '301.867,16'));
 });

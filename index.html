@@ -10233,7 +10233,11 @@ const ORC_TRIBUTOS = {
   // As alíquotas de fora da Capital, buscadas e guardadas por município. Chega
   // do banco (/orcamento-aliquotas); vazio é o estado normal de quem só
   // trabalha em São Paulo.
-  aliquotasDeFora: {}
+  aliquotasDeFora: {},
+  // A multa e o juros de cada ITCMD de óbito com mais de 180 dias de atraso,
+  // buscados e guardados por par (óbito, data do ato). Chega do banco
+  // (/orcamento-juros-itcmd); vazio é o estado normal de um óbito recente.
+  jurosItcmd: {}
 };
 
 // ── A busca na faixa ─────────────────────────────────────────────────────
@@ -10334,6 +10338,75 @@ function orcLinhaTributo(qual, base, opc){
           // bate com a conferência dela.
           valor: Math.round(base * aliq / 100),
           fundamento: o.fundamento || t.fundamento, avisos: o.avisos || []};
+}
+
+// Dias corridos entre duas datas ISO (aaaa-mm-dd) — usado para saber se um
+// ITCMD de óbito passou dos 180 dias que a Fazenda usa como régua de multa e
+// juros (ver `orcLinhaItcmdObito`, logo abaixo).
+function orcDiasEntre(d1, d2){
+  const a = new Date(d1 + 'T00:00:00'), b = new Date(d2 + 'T00:00:00');
+  return Math.max(0, Math.round((b - a) / 86400000));
+}
+// A mesma chave do par (óbito, data do ato) do lado do servidor
+// (lib/juros-itcmd.js) — o range de dias é o que muda a multa e o juros, e a
+// mesma combinação repete o mesmo resultado, exatamente como a alíquota de
+// fora da Capital.
+function orcChaveJurosItcmd(dataObito, dataAto){ return `${dataObito}_${dataAto}`; }
+
+// O ITCMD de UM óbito lançado em "Meação na data do óbito" (pedido dela,
+// 18/11/2026): 4% sobre a meação naquela data — nunca sobre a meação atual,
+// que é só a base da escritura e do registro. Passando de 180 dias entre o
+// óbito e a data do ato, a Lei 10.705/2000 manda somar multa de mora (art.
+// 19 — 0,33%/dia, até 20%) e juros pela Selic (art. 20); dentro de 180 dias,
+// nenhum dos dois incide — é a régua que o próprio portal da Fazenda
+// destaca. Mais de um falecimento no mesmo caso é mais de uma linha na
+// lista, e cada uma vira o seu próprio ITCMD, com os seus próprios dias.
+//
+// A multa é conta fixa; o juros não — a Selic muda mês a mês. Por isso o
+// cálculo com multa/juros é HIPÓTESE até ela conferir, a mesma escada da
+// alíquota de fora da Capital: entra na conta para o orçamento existir, sai
+// 🔴, e o CHECK FINAL não fecha sozinho (ver o laço de `alertas` logo depois
+// de `ato.montar(dados)`, em `orcCalcular`).
+function orcLinhaItcmdObito(valor, dataObito, dataAto, idx){
+  const base = Math.round(valor);
+  const impostoPuro = Math.round(base * 4 / 100);
+  const dias = dataObito && dataAto ? orcDiasEntre(dataObito, dataAto) : 0;
+  const rot = `ITCMD — óbito ${idx + 1}${dataObito ? ' (' + finDataBr(dataObito) + ')' : ''}`;
+  if(dias <= 180){
+    return {tipo: 'tributo', imposto: 'itcmd', rot, base, aliquota: 4, valor: impostoPuro,
+      fundamento: '4% sobre a meação na data do óbito. Pagamento dentro de 180 dias do óbito — '
+        + 'sem multa nem juros (arts. 19 e 20, Lei 10.705/2000).',
+      avisos: []};
+  }
+  const chave = orcChaveJurosItcmd(dataObito, dataAto);
+  const j = (ORC_TRIBUTOS.jurosItcmd || {})[chave];
+  if(!j || !j.confianca){
+    return {tipo: 'tributo', imposto: 'itcmd', rot, base, aliquota: 4, valor: impostoPuro,
+      itcmdJurosMulta: {chave, estado: 'faltando', dias, dataObito, dataAto, idx},
+      fundamento: `4% sobre a meação na data do óbito — já se passaram ${dias} dias desde o óbito, mais de 180: `
+        + 'falta calcular a multa e os juros.',
+      avisos: [{confianca: 'incerta',
+        texto: `Já se passaram ${dias} dias entre este óbito e a data do ato — incide multa de mora e juros `
+             + '(arts. 19 e 20, Lei 10.705/2000). Use o botão para o painel calcular, ou digite o valor já apurado.'}]};
+  }
+  // Digitado à mão (ela já tirou o total de multa+juros da guia da Fazenda)
+  // vale como conferido — foi ela quem digitou. Senão, o painel decompõe em
+  // multa (fixa) + juros (Selic buscada), e os dois ficam 🔴 até ela conferir.
+  const manual = j.totalManual != null;
+  const totalExtra = manual ? Math.round(j.totalManual)
+    : Math.round(impostoPuro * j.multaPct / 100) + Math.round(impostoPuro * j.selicPct / 100);
+  const conf = j.confianca === 'confirmada';
+  return {tipo: 'tributo', imposto: 'itcmd', rot, base, aliquota: 4,
+    valor: impostoPuro + totalExtra,
+    itcmdJurosMulta: {chave, estado: conf ? 'confirmada' : 'incerta', dias, dataObito, dataAto, idx,
+      manual, multaPct: j.multaPct, selicPct: j.selicPct, impostoPuro, totalExtra, fontes: j.fontes || []},
+    fundamento: manual
+      ? `4% sobre a meação (${orcMoeda(impostoPuro)}) + multa e juros digitados por você: ${orcMoeda(totalExtra)}.`
+      : `4% sobre a meação (${orcMoeda(impostoPuro)}) + multa de mora de ${j.multaPct}% + juros pela Selic de `
+        + `${j.selicPct}% — soma de ${orcMoeda(totalExtra)}, ${dias} dias desde o óbito.`
+        + (conf ? ' Conferido por você.' : ' AINDA NÃO CONFERIDO.'),
+    avisos: conf ? [] : [{confianca: 'incerta',
+      texto: 'Multa e juros calculados pelo painel (Selic buscada na internet) — confira antes de fechar o orçamento.'}]};
 }
 
 // O aviso que acompanha toda redução de 40%: ela é regra dela, e a nota
@@ -10633,22 +10706,21 @@ const ORC_ATOS = [
     id: 'inventario-meacao',
     nome: 'Inventário e partilha com meação',
     grupo: 'Inventário',
-    // `totalPartilha` vem primeiro de propósito: é o campo que o botão "Usar
-    // como Valor total da partilha" alimenta com a soma dos imóveis (ver
-    // `orcSomaDaLista`, que aponta sempre para o primeiro campo sem lista).
-    // A meação fica para o ITCMD, nunca para a escritura.
-    campos: ['totalPartilha', 'meacao', 'imoveis'],
+    // Pedido dela em 18/11/2026: a meação tem dois valores, e são duas
+    // listas — pode haver mais de um falecimento no mesmo caso.
+    // `meacaoAtual` ("Meação na presente data") soma para a escritura e o
+    // registro. `meacaoObito` ("Meação na data do óbito") é SÓ do ITCMD —
+    // cada linha, com o seu valor e a sua data, vira o seu próprio ITCMD
+    // (`orcLinhaItcmdObito`), com multa e juros quando o atraso passar de
+    // 180 dias.
+    campos: ['meacaoAtual', 'meacaoObito', 'imoveis'],
     perguntas: ['cessaoMeacaoUsufruto'],
-    comoElaEscreveu: '1 ato sobre o valor total da partilha, 1 registro sobre o valor de cada imóvel, 1 ITCMD sobre o valor da meação de 4%.',
+    comoElaEscreveu: '1 ato sobre a meação na data presente, 1 registro sobre o valor de cada imóvel, 1 ITCMD por óbito, 4% sobre a meação na data do óbito, com multa e juros se passar de 180 dias.',
     montar(e){
       const im = (e.imoveis || []).filter(x => x && x.valor > 0);
-      // A escritura e o registro são sobre o valor total do que está sendo
-      // partilhado — normalmente a soma dos imóveis. O ITCMD é só sobre a
-      // meação, que pode ser bem menor (caso que ela trouxe em 10/11/2026:
-      // imóveis somando R$ 521.970,65, ITCMD só sobre R$ 70.553,84 da
-      // meação). Deixando `totalPartilha` em branco, a escritura volta a
-      // usar a meação — o jeito de sempre, para quem não precisa separar.
-      const baseEscritura = e.totalPartilha > 0 ? e.totalPartilha : e.meacao;
+      const atuais = (e.meacaoAtual || []).filter(x => x && x.valor > 0);
+      const baseEscritura = atuais.reduce((t, x) => t + x.valor, 0);
+      const obitos = (e.meacaoObito || []).filter(x => x && x.valor > 0);
       // "Dois atos dentro de um" (16/11/2026): a viúva pode ceder a própria
       // meação (ou parte dela) de graça aos herdeiros, com reserva de
       // usufruto — na MESMA escritura. Ver `orcCessaoUsufrutoLinhas`.
@@ -10656,7 +10728,7 @@ const ORC_ATOS = [
       return {
         escrituras: [orcLinhaEscritura(baseEscritura, {rot: 'Escritura de inventário e partilha'}), ...cessao.escrituras],
         registros: [...im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})), ...cessao.registros],
-        tributos: [orcLinhaTributo('itcmd', e.meacao, {rot: 'ITCMD sobre a meação'}), ...cessao.tributos]
+        tributos: [...obitos.map((o, i) => orcLinhaItcmdObito(o.valor, o.data, e.dataDoAto, i)), ...cessao.tributos]
       };
     }
   },
@@ -11044,6 +11116,10 @@ const ORC_CAMPOS = {
   imoveisDistintos: {rot: 'Imóveis (cada um com escritura própria)', lista: true,
                      pergunta: 'Quais os valores de cada imóvel? Cada um sai numa escritura própria, na sua faixa.'},
   imoveis:       {rot: 'Imóveis a registrar',         pergunta: 'Qual o valor de cada imóvel a registrar?', lista: true},
+  // Pedido dela em 18/11/2026: a meação do inventário tem dois valores. Uma
+  // lista cada, porque pode haver mais de um falecimento no mesmo caso.
+  meacaoAtual:   {rot: 'Meação na presente data',      pergunta: 'Qual o valor da meação hoje — a base da escritura e do registro?', lista: true},
+  meacaoObito:   {rot: 'Meação na data do óbito',      pergunta: 'Qual o valor da meação na data de cada óbito, e a data — a base do ITCMD?', lista: true},
   // Opcional, e vale para qualquer ato que gere registro. Nasceu de um caso
   // real: uma compra e venda simples com duas vagas de garagem
   // individualizadas. O ato "com vagas" existia, mas obrigava a refazer tudo
@@ -11165,12 +11241,7 @@ function orcCalcular(entrada){
       if(!lista.length) faltando.push({campo: c, rot: meta.rot, pergunta: meta.pergunta, lista: true});
     }else{
       dados[c] = Math.round(Number(v[c]) || 0);
-      // `totalPartilha` no inventário com meação é opcional — em branco, a
-      // escritura cai na meação (ver `baseEscritura` no montar() do ato).
-      // Pedir essa confirmação travava um orçamento que, do jeito simples,
-      // sempre esteve completo (achado em 16/11/2026, junto da cessão).
-      const opcional = c === 'totalPartilha' && e.atoId === 'inventario-meacao';
-      if(!dados[c] && !opcional) faltando.push({campo: c, rot: meta ? meta.rot : c, pergunta: meta ? meta.pergunta : c});
+      if(!dados[c]) faltando.push({campo: c, rot: meta ? meta.rot : c, pergunta: meta ? meta.pergunta : c});
     }
   });
   dados.excedenteOneroso = !!f.excedenteOneroso;
@@ -11182,6 +11253,16 @@ function orcCalcular(entrada){
   // orçamento se vazios, porque só contam quando a pergunta está ligada.
   dados.cessaoMeacaoUsufruto = !!f.cessaoMeacaoUsufruto;
   dados.imoveisCessao = (v.imoveisCessao || []).filter(x => x && x.valor > 0);
+  // A data do ato é o que conta os dias de atraso do ITCMD por óbito (ver
+  // `orcLinhaItcmdObito`) — vai junto de `dados` porque `montar()` só recebe
+  // isso, não o `e` inteiro do orcCalcular.
+  dados.dataDoAto = dataDoAto;
+  // Cada linha de "Meação na data do óbito" precisa da data junto do valor —
+  // sem ela não dá para saber se passou dos 180 dias. Valor sem data é tão
+  // incompleto quanto campo em branco.
+  if(e.atoId === 'inventario-meacao' && (dados.meacaoObito || []).some(o => o.valor > 0 && !o.data))
+    faltando.push({campo: 'meacaoObitoData', rot: 'Data do óbito',
+      pergunta: 'Falta a data de um ou mais óbitos lançados em "Meação na data do óbito" — sem ela não dá para saber se passou dos 180 dias do ITCMD.'});
 
   // ETAPAS 11 e 12 — emolumentos da escritura e do registro.
   const partes = ato.montar(dados);
@@ -11324,6 +11405,14 @@ function orcCalcular(entrada){
     if(t.imposto === 'itcmd' && imovelUf !== 'SP')
       orcAplicarAliquotaDeFora(t, orcChaveAliquota('itcmd', null, imovelUf), alertas,
         `O imóvel está em ${imovelUf}`, 'estadual', imovelUf, base => base);
+    // O ITCMD de um óbito com mais de 180 dias de atraso não fecha como
+    // definitivo até a multa e os juros serem calculados e conferidos — a
+    // mesma régua da alíquota de fora da Capital, logo acima.
+    if(t.itcmdJurosMulta && t.itcmdJurosMulta.estado !== 'confirmada')
+      alertas.push({nivel: 'bloqueia', confianca: 'incerta',
+        texto: t.itcmdJurosMulta.estado === 'faltando'
+          ? `${t.rot}: já se passaram ${t.itcmdJurosMulta.dias} dias desde o óbito — falta calcular a multa e os juros.`
+          : `${t.rot}: a multa e os juros vieram da busca do painel e ainda não foram conferidos.`});
   });
   // Isenções: o motor aponta, nunca aplica sozinho. Isenção depende de
   // declaração da parte e de documento, e um imposto zerado por engano é o
@@ -11436,13 +11525,6 @@ function orcCalcular(entrada){
   let baseDeclarada = (Array.isArray(bruto)
     ? bruto.filter(x => x && x.valor > 0).reduce((t, x) => t + x.valor, 0)
     : Math.round(Number(bruto) || 0)) + pensaoTotal;
-  // No inventário com meação, `totalPartilha` é o primeiro campo (é nele que
-  // o botão "Usar como Valor total da partilha" soma os imóveis), mas em
-  // branco a escritura cai para a meação — e a base que a cliente lê precisa
-  // acompanhar a mesma escritura, nunca mostrar R$ 0,00 por falta do campo
-  // que ela decidiu não preencher.
-  if(ato.id === 'inventario-meacao' && !(v.totalPartilha > 0))
-    baseDeclarada = Math.round(Number(v.meacao) || 0) + pensaoTotal;
 
   return {
     ato: {id: ato.id, nome: ato.nome, grupo: ato.grupo, comoElaEscreveu: ato.comoElaEscreveu},
@@ -11622,6 +11704,21 @@ function orcCheckFinal(c){
             ? `A alíquota de ${semConferir.map(a => a.lugar).join(', ')} foi encontrada pela busca do painel `
               + 'e ainda não foi conferida por você. Confira na fonte e toque em "Confere — pode usar".'
             : `Conferida por você: ${foras.map(a => a.lugar).join(', ')}.`);
+  }
+  // O mesmo travamento da alíquota de fora, agora para a multa e os juros do
+  // ITCMD de um óbito atrasado (mais de 180 dias) — calculado pelo painel é
+  // HIPÓTESE até ela conferir.
+  const comJuros = (c.tributos || []).map(t => t.itcmdJurosMulta).filter(Boolean);
+  if(comJuros.length){
+    const semCalcular = comJuros.filter(j => j.estado === 'faltando');
+    const semConferirJuros = comJuros.filter(j => j.estado === 'incerta');
+    põe('Multa e juros do ITCMD',
+        (semCalcular.length || semConferirJuros.length) ? 'falta' : 'ok',
+        semCalcular.length
+          ? `Falta calcular a multa e os juros de ${semCalcular.length} ITCMD(s) com mais de 180 dias de atraso.`
+          : semConferirJuros.length
+            ? 'A multa e os juros foram calculados pelo painel e ainda não foram conferidos por você.'
+            : 'Conferidos por você.');
   }
   const venceu = [ORC_TABELA_NOTAS, ORC_TABELA_REGISTRO].some(t =>
     !t.vigencia || (t.vigenciaAte && String(c.data || isoHoje()).slice(0, 10) > t.vigenciaAte));
@@ -11986,6 +12083,7 @@ const orcCfgRef  = ref(db, 'orcamento-config');
 // As alíquotas de fora da Capital. Caminho aberto de propósito (é informação
 // pública, e quem escreve é a função da Vercel) — ver database.rules.json.
 const orcAliqRef = ref(db, 'orcamento-aliquotas');
+const orcJurosItcmdRef = ref(db, 'orcamento-juros-itcmd');
 
 let orcTudo = {};          // id → orçamento
 let orcConhecimento = {};  // id → regra aprendida
@@ -12064,6 +12162,7 @@ function orcLigarEscuta(){
   ouvir(orcConhRef, s => { orcConhecimento = s.val() || {}; });
   ouvir(orcCfgRef,  s => { orcCfg = s.val() || {}; orcAplicarCfg(); });
   ouvir(orcAliqRef, s => { ORC_TRIBUTOS.aliquotasDeFora = s.val() || {}; });
+  ouvir(orcJurosItcmdRef, s => { ORC_TRIBUTOS.jurosItcmd = s.val() || {}; });
 }
 window.orcTentarDeNovo = async function(){
   orcSoltarEscuta();
@@ -13086,6 +13185,9 @@ function orcRedesenharAcessorios(r){
   const aliq = document.getElementById('orc-aliquotas');
   if(aliq) aliq.innerHTML = orcHtmlAliquotasDentro(r);
 
+  const juros = document.getElementById('orc-juros-itcmd');
+  if(juros) juros.innerHTML = orcHtmlJurosItcmdDentro(r);
+
   const somaOutros = document.getElementById('orc-soma-outros');
   if(somaOutros){
     const lista = (e.flags || {}).outrosAtos || [];
@@ -13212,6 +13314,104 @@ function orcHtmlUmaAliquota(a){
 function orcDominio(u){
   try{ return new URL(u).hostname.replace(/^www\./, ''); }catch(e){ return u.slice(0, 40); }
 }
+
+// ── A multa e os juros do ITCMD com óbito atrasado, na tela ─────────────
+//
+// Mesma escada da alíquota de fora da Capital, logo acima: o painel calcula,
+// mas o que vem da busca é HIPÓTESE — sai 🔴, e o CHECK FINAL não fecha até
+// ela conferir. Um bloco por óbito com mais de 180 dias de atraso; óbito
+// recente não aparece aqui — nada a conferir.
+function orcHtmlJurosItcmd(e, r){
+  return `<div id="orc-juros-itcmd">${orcHtmlJurosItcmdDentro(r)}</div>`;
+}
+function orcHtmlJurosItcmdDentro(r){
+  if(!r) return '';
+  return (r.tributos || []).filter(t => t.itcmdJurosMulta).map(t => orcHtmlUmJurosItcmd(t)).join('');
+}
+function orcHtmlUmJurosItcmd(t){
+  const j = t.itcmdJurosMulta;
+  const id = `orc-juros-${j.chave}-${j.idx}`;
+  const buscando = orcBuscandoJuros[j.chave];
+  if(j.estado === 'faltando') return `<div class="orc-aliquota falta" id="${id}">
+    <div><b>${escTxt(t.rot)}</b> — já se passaram ${j.dias} dias desde o óbito (mais de 180): falta calcular a
+      multa de mora e os juros antes de fechar.</div>
+    <div class="orc-aliquota-acoes">
+      <button type="button" class="cx-btn destaque" ${buscando ? 'disabled' : ''}
+        onclick="orcBuscarJurosItcmd('${j.chave}')">${buscando
+          ? '<i class="ti ti-loader"></i> Procurando a Selic…'
+          : '<i class="ti ti-search"></i> Calcular multa e juros'}</button>
+      <span class="fin-mini">ou digite o total já apurado:</span>
+      <input class="fin-input" style="max-width:130px" inputmode="decimal" placeholder="0,00"
+        onchange="orcJurosItcmdNaMao('${j.chave}',this.value)" title="O valor de multa + juros, em reais, se você já tem">
+    </div>
+    ${orcBuscaJurosFalhou[j.chave] ? `<div class="orc-aliquota-erro">${escTxt(orcBuscaJurosFalhou[j.chave])}</div>` : ''}
+  </div>`;
+  const conf = j.estado === 'confirmada';
+  const guardada = (ORC_TRIBUTOS.jurosItcmd || {})[j.chave] || {};
+  return `<div class="orc-aliquota ${conf ? 'ok' : 'incerta'}" id="${id}">
+    <div><b>${escTxt(t.rot)}: ${j.manual ? 'multa e juros digitados' : `multa ${j.multaPct}% + juros ${j.selicPct}%`}
+      = ${orcMoeda(j.totalExtra)}</b> ${conf ? '— conferido por você' : '— <b>calculado pelo painel, ainda não conferido</b>'}</div>
+    ${!j.manual && guardada.fundamento ? `<div class="fin-mini">${escTxt(guardada.fundamento)}</div>` : ''}
+    ${(j.fontes || []).length ? `<div class="fin-mini">Fonte:
+      ${j.fontes.slice(0, 3).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${escTxt(orcDominio(u))}</a>`).join(' · ')}</div>` : ''}
+    ${conf ? '' : `<div class="orc-aliquota-acoes">
+      <button type="button" class="btn-save" onclick="orcConfirmarJurosItcmd('${j.chave}')">
+        <i class="ti ti-check"></i> Confere — pode usar</button>
+      <button type="button" class="cx-btn" onclick="orcBuscarJurosItcmd('${j.chave}',true)">Procurar de novo</button>
+      <span class="fin-mini">ou corrija o total:</span>
+      <input class="fin-input" style="max-width:130px" inputmode="decimal" placeholder="${orcBr(j.totalExtra)}"
+        onchange="orcJurosItcmdNaMao('${j.chave}',this.value)">
+    </div>`}
+  </div>`;
+}
+let orcBuscandoJuros = {};
+let orcBuscaJurosFalhou = {};
+// Mesma cautela da busca da alíquota: redesenho ESTREITO só, nunca o
+// redesenho cheio da tela — ela pode estar digitando outro campo no meio da
+// busca, e o redesenho cheio reconstruiria aquele campo do zero (o defeito
+// de Sorocaba, 23/10/2026).
+window.orcBuscarJurosItcmd = async function(chave, forcar){
+  const [dataObito, dataAto] = chave.split('_');
+  orcBuscandoJuros[chave] = true; orcBuscaJurosFalhou[chave] = null;
+  orcRedesenharResultado();
+  try{
+    const resp = await fetch('/api/aliquota-municipal', {method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tipo: 'itcmd-juros', dataObito, dataAto, forcar: !!forcar})});
+    const j = await resp.json();
+    if(!j.encontrado){
+      orcBuscaJurosFalhou[chave] = j.porqueNao || 'A busca não achou a Selic do período. Digite o total à mão.';
+    }else{
+      ORC_TRIBUTOS.jurosItcmd = Object.assign({}, ORC_TRIBUTOS.jurosItcmd, {[chave]: j});
+    }
+  }catch(err){
+    orcBuscaJurosFalhou[chave] = 'Não consegui procurar agora: ' + ((err && err.message) || err);
+  }
+  orcBuscandoJuros[chave] = false;
+  orcRedesenharResultado();
+};
+// Digitado à mão vale como conferido: quem digitou foi ela.
+window.orcJurosItcmdNaMao = async function(chave, txt){
+  const n = orcCent(txt);
+  if(!(n > 0)) return;
+  await orcGravarJurosItcmd(chave, {totalManual: n, confianca: 'confirmada',
+    fundamento: 'Digitado à mão por ' + (localStorage.getItem('cc_nome') || 'ela') + '.', fontes: []});
+};
+window.orcConfirmarJurosItcmd = async function(chave){
+  const j = (ORC_TRIBUTOS.jurosItcmd || {})[chave];
+  if(!j) return;
+  await orcGravarJurosItcmd(chave, Object.assign({}, j, {confianca: 'confirmada'}));
+};
+async function orcGravarJurosItcmd(chave, dados){
+  const reg = orcSemUndefined(Object.assign({chave}, dados, {
+    confirmadaPor: localStorage.getItem('cc_nome') || 'ela',
+    confirmadaEm: isoHoje()}));
+  ORC_TRIBUTOS.jurosItcmd = Object.assign({}, ORC_TRIBUTOS.jurosItcmd, {[chave]: reg});
+  orcRedesenharResultado();
+  try{ await set(ref(db, 'orcamento-juros-itcmd/' + chave), reg); }
+  catch(err){ finToast('Não consegui guardar a multa e os juros: ' + ((err && err.message) || err)); }
+}
+
 let orcBuscandoAliquota = {};
 let orcBuscaFalhou = {};
 // As quatro ações daqui já chamaram `renderOrcamentoDoCaso()` — o redesenho
@@ -13280,6 +13480,9 @@ function orcHtmlValores(e, ato, r){
   const campos = (ato.campos || []).map(c => {
     const meta = ORC_CAMPOS[c] || {rot: c};
     if(!meta.lista) return orcCampoDinheiro(c, meta.rot, v[c]);
+    // A lista do óbito leva uma data em cada linha, não só o valor — é dela
+    // que o ITCMD precisa para saber se passou dos 180 dias.
+    if(c === 'meacaoObito') return orcListaObitoHtml(v.meacaoObito);
     const q = orcSomaDaLista(c, e, r);
     return orcListaHtml(c, meta.rot, v[c], q.contra, q.alvo);
   }).join('');
@@ -13287,8 +13490,29 @@ function orcHtmlValores(e, ato, r){
     ? `<div class="orc-bloco">
         <div class="orc-secao"><i class="ti ti-currency-real orc-secao-icone"></i><b>Base de cálculo</b><span>etapa 10</span></div>
         <div class="orc-grade">${campos}</div>
+        ${orcHtmlJurosItcmd(e, r)}
       </div>` : '';
   return bloco + orcHtmlImoveis(e, ato, r);
+}
+// A lista de óbitos da meação: cada linha leva o valor E a data daquele
+// óbito — a data que conta os dias de atraso do ITCMD (`orcLinhaItcmdObito`).
+// Mais de um falecimento no mesmo caso é mais de uma linha, e cada linha
+// gera o seu próprio ITCMD. Sem rótulo — "Óbito 1", "Óbito 2" já identifica,
+// e um campo a mais por linha é poluição que ela pediu para não ter.
+function orcListaObitoHtml(lista){
+  const l = (lista || []).length ? lista : [{valor: 0, data: ''}];
+  return `<div class="orc-campo orc-campo-largo">
+    <label class="fin-rot">Meação na data do óbito <span class="fin-mini">— uma linha por falecimento; cada uma gera o seu próprio ITCMD</span></label>
+    ${l.map((x, i) => `<div class="orc-linha-lista">
+      <span class="fin-mini" style="white-space:nowrap">Óbito ${i + 1}</span>
+      <input class="fin-input" inputmode="decimal" placeholder="0,00" value="${x.valor ? orcBr(x.valor) : ''}"
+        oninput="orcMudarItem('meacaoObito',${i},'valor',this.value)">
+      <input class="fin-input" type="date" value="${esc(x.data || '')}"
+        onchange="orcMudarItem('meacaoObito',${i},'data',this.value)">
+      <button type="button" class="cx-btn perigo" onclick="orcTirarItem('meacaoObito',${i})" aria-label="Tirar"><i class="ti ti-x"></i></button>
+    </div>`).join('')}
+    <button type="button" class="cx-btn" onclick="orcMaisItem('meacaoObito')"><i class="ti ti-plus"></i> Mais um óbito</button>
+  </div>`;
 }
 
 // Os imóveis do registro. Antes isto era um botão discreto embaixo do valor, e
