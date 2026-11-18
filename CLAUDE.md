@@ -1310,10 +1310,17 @@ Regras dela que **não devem ser mexidas sem perguntar**:
   Link de orçamento nunca serve de link de pagamento (e o contrário): `meta.tipo` é conferido nos dois Apps Script/páginas.
 - **Dá para juntar mais de um recibo e mais de um boleto.** Na janela do card, a caixa de colar aceita quantos arquivos ela precisar (cada um com
   miniatura e *× Tirar*). **Com mais de um recibo, o valor da escritura é a SOMA**, mas só quando cada recibo fechou as próprias contas
-  (`pagConferirRecibo`); um que não fecha impede a soma e o motivo diz qual. O valor digitado à mão nunca é trocado (`valEManual`). Com mais
-  de um boleto, o código de barras, o valor e o vencimento são **os do primeiro** — o aviso diz isso, e se o cliente paga cada um à parte, o
-  jeito certo é um link para cada. O banco guarda `imagens.recibos`/`imagens.boletos` (listas) e, por compatibilidade, o primeiro em
-  `imagens.recibo`/`imagens.boleto`; a página do cliente mostra todos, legendados "Recibo 1 de N".
+  (`pagConferirRecibo`); um que não fecha impede a soma e o motivo diz qual. O valor digitado à mão nunca é trocado (`valEManual`).
+  **Com mais de um boleto, o valor do registro também é a SOMA** (pedido dela, 19/11/2026 — antes só o primeiro contava, e ela precisava de
+  um link por boleto). Mas um boleto não é como um recibo: cada um continua com o **seu próprio** vencimento e código de barras — não dá
+  para pagar dois boletos com um código só. Por isso `boletoDados` é uma lista paralela a `boletos` (um `{valor,venc,codigo}` por arquivo,
+  lido pela IA ou digitado, editável linha a linha; `pagSomaDosBoletos()` soma só quando todas as linhas têm valor), e o aviso do total some —
+  não faz mais sentido dizer "é do primeiro" quando cada boleto é pago à parte, com o seu próprio código. Beneficiário e CNPJ continuam um
+  campo só, compartilhado (ela confirmou: é sempre a Prime). O banco guarda `registro.boletos` (a lista nova) e, por compatibilidade com
+  cobranças antigas, o `venc`/`codigo` de sempre no topo continuam sendo os do primeiro boleto. A página do cliente (`pagar.html`) lê
+  `reg.boletos` quando existe — um bloco de código de barras por boleto, rotulado "boleto N de M" com o vencimento ao lado — e cai para o
+  `reg.codigo` único das cobranças de antes quando não existe. `imagens.recibos`/`imagens.boletos` continuam listas, com o primeiro também em
+  `imagens.recibo`/`imagens.boleto`; a página do cliente mostra todos, legendados "Recibo 1 de N" / "Boleto 1 de N".
 - **O comprovante parece instantâneo, mas o link só fecha com tudo enviado.** Na página do cliente, o arquivo aparece como anexado assim que a foto
   está reduzida (1600 px, qualidade .8) e o envio ao Drive segue em segundo plano (`fila` em `pagar.html`); o *Enviar comprovantes* espera a fila e,
   se algum envio falhou, não fecha o link e mostra o motivo escrito. O Apps Script lê as duas coisas do caso numa viagem só
