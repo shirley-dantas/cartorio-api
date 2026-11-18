@@ -195,6 +195,12 @@ def _empilhar(imgs, gap=14):
     return out
 
 
+import re as _re
+# O caderno do ENEM 2022 traz "ENEM 2022 ENEM 2022 ..." como marca-d'água em faixas; sem isto o texto de busca (e a lista para classificar) enche de lixo.
+_MARCA = _re.compile(r"(?:\b[ENM20]{1,6}\s+)?(?:ENEM\s*20\d\d\s*){2,}(?:[ENM]{1,3}\s*)?")
+def _sem_marca_dagua(t):
+    return _MARCA.sub(" ", t)
+
 def recortar(pdf_path, lay):
     """Retorna lista de dicts: numero, variante, paginas, imagem (PIL), texto."""
     doc = pymupdf.open(pdf_path)
@@ -232,7 +238,7 @@ def recortar(pdf_path, lay):
             im = _renderizar(doc[segs[s]["pno"]], r)
             if im is not None:
                 imgs.append(im)
-                textos.append(doc[segs[s]["pno"]].get_text("text", clip=r).strip())
+                textos.append(_sem_marca_dagua(doc[segs[s]["pno"]].get_text("text", clip=r)).strip())
                 pags.append(segs[s]["pno"] + 1)
         n = it["num"]
         if not imgs:  # marcador achado, mas nada para recortar: aparece como "faltam" no teste

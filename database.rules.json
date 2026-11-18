@@ -89,6 +89,9 @@
 
     // ── Painel operacional (segue aberto — ver o aviso lá em cima) ──
     "casos":                 { ".read": true, ".write": true },
+    // A caixa de entrada do WhatsApp: o Apps Script grava os arquivos que chegaram no número do cartório (por REST, sem conta)
+    // e o painel lê e apaga. Só nomes, telefones e o link do arquivo na pasta de espera do Drive.
+    "entrada":               { ".read": true, ".write": true },
 
     // ── Os links de envio de documentos (enviar.html) ──
     // /pedidos/{código}: o painel grava o pedido (o que a pessoa deve enviar) e

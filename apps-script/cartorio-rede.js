@@ -34,7 +34,7 @@
 //     REDE_CHAVE = qualquer texto longo e aleatório, guardado. É a chave da
 //     impressão digital. Se ela mudar, todo mundo vira gente nova e o cadastro
 //     duplica — então escolha uma e não troque.
-//     (O ANTHROPIC_API_KEY já deve estar aí, do cartorio-drive-api.)
+//     (O OPENAI_API_KEY já deve estar aí, do cartorio-drive-api.)
 //
 //  b) ESCOPOS: Configurações do projeto › marque "Mostrar arquivo de manifesto
 //     appsscript.json" e acrescente em oauthScopes:
@@ -177,26 +177,16 @@ function redeEhDaCasa(nome, profissao) {
 
 // ── A leitura de uma minuta ──────────────────────────────────────────────
 function redeLerMinuta(texto) {
-  const apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada.");
+  const apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
+  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada.");
 
-  const r = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
-    method: "post",
-    contentType: "application/json",
-    headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-    payload: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 4000,
-      system: REDE_EXTRACAO,
-      messages: [{ role: "user", content: texto.slice(0, REDE_PEDACO) }]
-    }),
-    muteHttpExceptions: true
+  const data = chamarOpenAI({
+    max_tokens: 4000, system: REDE_EXTRACAO,
+    messages: [{role: "user", content: texto.slice(0, REDE_PEDACO)}]
   });
+  if (data.recusa || data.truncou || !data.texto) throw new Error("A IA não concluiu a leitura da Rede.");
 
-  const data = JSON.parse(r.getContentText());
-  if (data.error) throw new Error("Claude: " + (data.error.message || JSON.stringify(data.error)));
-
-  let cru = (data.content[0].text || "").trim();
+  let cru = (data.texto || "").trim();
   // Mesmo pedindo JSON puro, de vez em quando vem embrulhado em cerca de código.
   const abre = cru.indexOf("{");
   const fecha = cru.lastIndexOf("}");

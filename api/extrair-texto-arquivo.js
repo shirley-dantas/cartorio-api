@@ -1,6 +1,5 @@
-const https = require("https");
+const ia = require("../lib/ia.js");
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // Só lê .docx agora (campo textoBruto). PDF e imagem passavam por aqui até
 // 09/09/2026, mas a leitura visual de um documento com muitas páginas passa
@@ -21,39 +20,14 @@ const EXTRACAO_MAX_PASSADAS = 4;
 // Uma chamada crua à API, sem continuação. Devolve {texto, truncou} —
 // truncou=true quando a resposta bateu no teto de tokens desta chamada
 // (stop_reason==="max_tokens").
-function chamarClaudeMensagem(content) {
-  const body = JSON.stringify({
-    model: "claude-sonnet-4-6",
+async function chamarIAMensagem(content) {
+  const opcoes = {
     max_tokens: EXTRACAO_MAX_TOKENS,
     messages: [{ role: "user", content }]
-  });
-  return new Promise((resolve) => {
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try {
-          const json = JSON.parse(data);
-          resolve({ texto: json?.content?.[0]?.text || null, truncou: json?.stop_reason === "max_tokens" });
-        }
-        catch { resolve({ texto: null, truncou: false }); }
-      });
-    });
-    req.on("error", () => resolve({ texto: null, truncou: false }));
-    req.write(body);
-    req.end();
-  });
+  };
+  const r = await ia.gerar(opcoes);
+  if (r.recusa || !r.texto) throw new Error("A IA não conseguiu ler o documento.");
+  return {texto: r.texto, truncou: r.truncou};
 }
 
 function unirTexto(a, b) {
@@ -79,7 +53,7 @@ async function extrairComContinuacao(montarConteudo) {
   let texto = "";
   let truncou = false;
   for (let i = 0; i < EXTRACAO_MAX_PASSADAS; i++) {
-    const r = await chamarClaudeMensagem(montarConteudo(i, texto));
+    const r = await chamarIAMensagem(montarConteudo(i, texto));
     // Falha na chamada (rede, parse): para aqui, mas mantém o que já tem e o
     // estado de truncou da rodada anterior — uma continuação que falhou não
     // apaga o que sabíamos (que o texto tinha ficado incompleto).
@@ -93,7 +67,7 @@ async function extrairComContinuacao(montarConteudo) {
 
 // Extração jurídica objetiva, a partir de texto puro (usado depois do
 // mammoth ler um .docx no navegador). Devolve {texto, truncou}.
-function chamarClaudeTexto(textoBruto) {
+function chamarIATexto(textoBruto) {
   const instrucaoInicial = `Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: "TIPO_DOCUMENTO: <tipo>". Depois, numa nova linha, extraia com fidelidade total as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Não omita nenhum dado relevante — mas não transcreva o documento inteiro: cláusula, preâmbulo ou trecho que não carregue um fato novo, não precisa aparecer. O objetivo é o fato, não o texto do documento.\n\nDOCUMENTO:\n${textoBruto}`;
 
   return extrairComContinuacao((pass, textoAteAqui) =>
@@ -117,7 +91,7 @@ module.exports = async (req, res) => {
   // jurídica objetiva.
   if (dados.textoBruto) {
     try {
-      const extraido = await chamarClaudeTexto(dados.textoBruto);
+      const extraido = await chamarIATexto(dados.textoBruto);
       return res.status(200).json({ ok: true, texto: extraido.texto || dados.textoBruto, truncou: extraido.truncou });
     } catch (err) {
       return res.status(500).json({ ok: false, erro: err.message });

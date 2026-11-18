@@ -12,7 +12,7 @@ function dispararAppsScript(payload) {
   // (fire-and-forget sem aguardar nada) e deixava a geração travada de forma
   // imprevisível. Aguardamos só o suficiente para garantir que os dados
   // saíram — o Apps Script continua processando em segundo plano no Google.
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const body = JSON.stringify(payload);
     const u = new URL(DRIVE_URL);
     const options = {
@@ -22,8 +22,9 @@ function dispararAppsScript(payload) {
       headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }
     };
     const req = https.request(options);
-    req.on("error", () => resolve());
-    req.on("finish", () => resolve()); // dados totalmente enviados ao socket
+    req.on("error", reject);
+    req.setTimeout(8000, () => req.destroy(new Error('Não consegui confirmar o envio ao Google.')));
+    req.on("finish", () => { req.setTimeout(0); resolve(); }); // dados totalmente enviados ao socket
     req.write(body);
     req.end();
   });
@@ -40,11 +41,15 @@ module.exports = async (req, res) => {
   try { dados = typeof req.body === "string" ? JSON.parse(req.body) : req.body; }
   catch { return res.status(400).json({ ok: false, erro: "JSON inválido" }); }
 
-  const jobId = Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+  if(!dados || typeof dados !== 'object' || Array.isArray(dados)) return res.status(400).json({ok:false,erro:'Pedido inválido.'});
+  if(dados.solicitacaoId !== undefined && !/^[a-zA-Z0-9_-]{16,100}$/.test(dados.solicitacaoId)) return res.status(400).json({ok:false,erro:'Identificador de execução inválido.'});
+  if(dados.casoId !== undefined && !/^[-_a-zA-Z0-9]{1,180}$/.test(dados.casoId)) return res.status(400).json({ok:false,erro:'Identificador do caso inválido.'});
+  const jobId = dados.solicitacaoId ? 'joaninha-'+dados.solicitacaoId : Date.now() + "-" + Math.random().toString(36).slice(2, 8);
 
-  await dispararAppsScript({
+  try { await dispararAppsScript({
     acao: "gerar-e-criar-minuta",
     jobId,
+    casoId: dados.casoId || '',
     nome: dados.nome,
     tipo: dados.tipo,
     obs: dados.obs,
@@ -65,7 +70,9 @@ module.exports = async (req, res) => {
     // marcar um destes pelo checkbox, mas isso é defesa contra um cliente
     // desatualizado ou uma chamada direta, não desconfiança dela.
     atosSecundarios: (Array.isArray(dados.atosSecundarios) ? dados.atosSecundarios : []).filter(a => ATOS_SECUNDARIOS.includes(a))
-  });
+  }); } catch (_) {
+    return res.status(502).json({ok:false,jobId,erro:'Não consegui confirmar o envio ao Google. Confira o acompanhamento antes de repetir a geração.'});
+  }
 
   return res.status(200).json({ ok: true, jobId });
 };

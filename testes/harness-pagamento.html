@@ -17,6 +17,41 @@
 .pag-lido{color:#8A6D1F;font-weight:600;text-transform:none}
 .pag-erro{margin-top:12px;padding:10px 12px;border-radius:10px;background:#FBE3E1;color:#9A1E16;font-size:14px;font-weight:600}
 .pag-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.cx-solte{flex-basis:100%;border:1.5px dashed var(--cc-linha-forte);border-radius:16px;padding:12px 14px;background:var(--cc-sup-2);transition:background .15s,border-color .15s}
+.cx-solte.sobre{background:#E8F0E9;border-color:var(--cc-ok,#2F7A4F)}
+.cx-solte-topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:600;color:var(--cc-tinta)}
+.cx-solte-topo i{font-size:18px;color:var(--cc-tinta-2)}.cx-solte-topo span{flex:1;min-width:180px}.cx-solte-topo small{display:block;font-weight:400;color:var(--cc-tinta-3);font-size:11.5px;margin-top:2px}
+.cx-solte:focus{outline:2px solid var(--cc-champagne,#A9895A);outline-offset:2px}
+.cx-aj{margin-top:10px;padding-top:10px;border-top:1px solid var(--cc-linha-forte)}
+.cx-aj-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}.cx-aj-topo i{font-size:18px;color:var(--cc-tinta-2)}
+.cx-aj-cnpj{flex:1;min-width:160px;max-width:240px;border:1px solid var(--cc-linha-forte);border-radius:10px;padding:7px 10px;font:inherit;background:#fff}
+.cx-aj-topo small{color:var(--cc-tinta-3);font-size:11.5px}
+.pref-doc{margin-top:8px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid var(--cc-linha-forte);flex-basis:100%}
+.pref-nome{font-size:12.5px;font-weight:700;margin-bottom:4px;overflow-wrap:anywhere}.pref-un{font-weight:400;color:var(--cc-tinta-3);margin-left:6px}
+.pref-linha{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:5px 6px;border-radius:8px;font-size:13px;cursor:pointer}.pref-linha.atual{background:#F4F1EA}
+.pref-linha span{color:var(--cc-tinta-3);font-size:12px}
+.pref-pedir{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--cc-linha-forte)}
+.pref-sql{width:150px}
+.pref-pedir label{font-size:12.5px;display:flex;align-items:center;gap:6px}.pref-data{width:110px;padding:5px 8px;border:1px solid var(--cc-linha-forte);border-radius:8px;font:inherit}
+.cx-aj-emp{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-top:8px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid var(--cc-linha-forte)}
+.cx-aj-nome{display:grid;min-width:160px;flex:1;font-size:13px}.cx-aj-nome small{color:var(--cc-tinta-3);font-size:11.5px;overflow-wrap:anywhere}
+.cx-aj-emp .cx-aj-bt{margin:0}.cx-aj-vazio{font-size:12.5px;color:var(--cc-tinta-3);margin-top:8px}
+.cx-aj-outro{margin-top:8px;font-size:12.5px}.cx-aj-outro summary{cursor:pointer;color:var(--cc-tinta-2)}.cx-aj-outro .cx-aj-topo{margin-top:6px}
+.cx-aj-bt{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.cx-aj-onr{margin-top:12px;padding-top:10px;border-top:1px dashed var(--cc-linha-forte)}.cx-aj-onr .cx-btn small{display:block;font-size:11px;font-weight:400;color:var(--cc-tinta-3)}
+.cx-aj-form{display:grid;grid-template-columns:70px 1fr 90px;gap:8px;margin-top:8px}.cx-aj-form label{display:grid;gap:3px;font-size:11.5px;color:var(--cc-tinta-3)}.cx-aj-form .cx-aj-mat{grid-column:1/-1}.cx-aj-form input,.cx-aj-form select{border:1px solid var(--cc-linha-forte);border-radius:10px;padding:7px 10px;font:inherit;background:#fff;min-width:0}
+.cx-aj-msg{font-size:12.5px;margin-top:6px;overflow-wrap:anywhere}.cx-aj-msg:empty{display:none}
+.cx-aj-ok{color:var(--cc-ok,#2F7A4F)}.cx-aj-erro{color:var(--cc-critico,#B3261E)}.cx-aj-manual{color:#8A5A0B}
+.cx-solte-prog{list-style:none;margin:0;padding:0;display:grid;gap:4px}.cx-solte-prog:not(:empty){margin-top:10px}
+.cx-solte-prog li{display:flex;gap:8px;align-items:baseline;font-size:12.5px;overflow-wrap:anywhere}
+.cx-solte-prog .solte-ico{flex:none;width:16px;text-align:center;font-weight:700}
+.cx-solte-prog .solte-nome{flex:none;max-width:45%;font-weight:600}.cx-solte-prog .solte-msg{flex:1;color:var(--cc-tinta-3)}
+.cx-solte-prog .solte-ok .solte-ico{color:var(--cc-ok,#2F7A4F)}.cx-solte-prog .solte-erro .solte-ico,.cx-solte-prog .solte-erro .solte-msg{color:var(--cc-critico,#B3261E)}
+.cx-solte-prog .solte-confirmar .solte-ico,.cx-solte-prog .solte-confirmar .solte-msg{color:#8A5A0B}
+.cp-lista{display:grid;gap:6px;max-height:55vh;overflow:auto}
+.cp-caso{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--cc-linha-forte);background:var(--cc-sup);border-radius:14px;padding:12px 14px;font:inherit;cursor:pointer;min-height:52px}
+.cp-caso b{font-size:15px;color:var(--cc-tinta)}.cp-caso small{font-size:12px;color:var(--cc-tinta-3)}
+.cp-caso:active{background:var(--cc-sup-2)}.cp-vazio{padding:14px;color:var(--cc-tinta-3);font-size:13px}
 </style></head><body>
 <div class="modal-overlay" id="modal-pagamento"><div id="pag-sub"></div><div id="pag-conteudo"></div></div><div id="cc-pagamentos"></div>
 <script>
@@ -50,7 +85,7 @@ function pagMensagem(itens,link){
 // A aprovação do orçamento pelo cliente (link /o/): registrada no card, serve de ponto de partida do link de pagamento.
 function orcAprovacaoHtml(c){
   const a=c&&c.orcAprovacao, l=c&&c.orcLink;
-  if(a&&a.em) return `<span class="cx-ped-rec" style="flex-basis:100%"><b>✅ Cliente aprovou o orçamento</b>${a.versao?' (versão '+esc(a.versao)+')':''} · ${esc(pagQuando(a.em))}</span>`;
+  if(a&&a.em) return `<span class="cx-ped-rec" style="flex-basis:100%"><b>✅ Cliente aprovou o orçamento</b>${a.versao?' (versão '+esc(a.versao)+')':''} · ${esc(pagQuando(a.em))}${a.manual?' · marcado pela equipe':''}</span>`;
   if(l&&l.token) return `<span class="cx-ped-rec" style="flex-basis:100%">Link do orçamento enviado${l.criadoEm?' em '+esc(pagQuando(l.criadoEm)):''}${l.versao?' (versão '+esc(l.versao)+')':''} · aguardando a aprovação do cliente</span>`;
   return '';
 }
@@ -321,22 +356,59 @@ async function pagLerArquivo(alvo,f){
 }
 // ── O link do orçamento: o cliente vê a folha e toca em "Aprovo" ──
 const orcLinkDe=tok=>(ENVIO_BASE_URL||location.origin).replace(/\/+$/,'')+'/o/'+tok;
-window.orcLinkAprovacao=async function(casoId,orcId){
+// "Link para aprovar": antes de gerar, ela escolhe quem vai aprovar e confere os documentos que a cliente
+// verá depois do "Aprovo" (a mesma lista do Pedir documentos). A janela é o montador de sempre, em modo aprovação.
+window.orcLinkAprovacao=function(casoId,orcId){
   const c=casos[casoId]||{}, o=pagOrcamentoEscolhido(casoId,orcId);
   if(!o){ alert('Não achei este orçamento.'); return; }
+  if(!pagImagemOrcamento(o)){ alert('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.'); return; }
+  document.getElementById('apr-sub').textContent=(c.nome||'Sem nome')+' — orçamento versão '+(o.versao||'');
+  PEDIDO.abrirJanela(document.getElementById('apr-conteudo'),{casoNome:c.nome,tipo:c.tipo,tipos:TIPOS_PRINCIPAIS,
+    aprovacao:{gerar:(est,sem)=>orcGerarLinkAprovacao(casoId,orcId,est,sem)}});
+  document.getElementById('modal-aprovar-link').classList.add('open');
+};
+window.fecharAprovarLink=function(){ document.getElementById('modal-aprovar-link').classList.remove('open'); };
+window.orcGerarLinkAprovacao=async function(casoId,orcId,est,semDocs){
+  const c=casos[casoId]||{}, o=pagOrcamentoEscolhido(casoId,orcId);
+  if(!o) throw new Error('Não achei este orçamento.');
   const imagem=pagImagemOrcamento(o);
-  if(!imagem){ alert('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.'); return; }
-  const token=codigoDeEnvio(), agora=Date.now(), link=orcLinkDe(token);
+  if(!imagem) throw new Error('Não consegui desenhar a folha do orçamento. Abra o orçamento, confira os campos e tente de novo.');
+  const tok=(est&&est.aprTok)||{};
+  const token=tok.aprov||codigoDeEnvio(), agora=Date.now(), link=orcLinkDe(token);
+  let docsToken='';
+  if(!semDocs){
+    // Os documentos são pedidos pelo mesmo caminho do Pedir documentos: /pedidos/{código}.
+    docsToken=(await criarLinkEnvio(casoId,{estado:est,blocos:PEDIDO.formulario(est),token:tok.docs||'',guiado:true})).token;
+    // O pedido sabe de qual aprovação veio: quando o envio termina, a tela final mostra o orçamento aprovado.
+    try{ await update(ref(db,'pedidos/'+docsToken),{orcToken:token}); }
+    catch(err){ throw new Error('Não consegui ligar os documentos ao orçamento: '+((err&&err.message)||err)); }
+  }
   try{
-    await set(ref(db,'cobrancas/'+token),orcSemUndefined({meta:{tipo:'orcamento',casoId,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,expiraEm:agora+15*864e5},dados:{nome:c.nome||'',ato:c.tipo||''},imagens:{orcamento:imagem}}));
-    await set(ref(db,'casos/'+casoId+'/orcLink'),orcSemUndefined({token,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora}));
+    await set(ref(db,'cobrancas/'+token),orcSemUndefined({meta:{tipo:'orcamento',casoId,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,expiraEm:agora+15*864e5,docsToken},dados:{nome:c.nome||'',ato:c.tipo||''},imagens:{orcamento:imagem}}));
+    await set(ref(db,'casos/'+casoId+'/orcLink'),orcSemUndefined({token,orcId:String(o.id),versao:String(o.versao||''),criadoEm:agora,docsToken}));
   }catch(err){
     const negado=/permission|PERMISSION/.test(String(err&&err.message||err));
-    alert(negado?'O banco recusou a gravação. As regras do Firebase com o caminho /cobrancas precisam estar publicadas (FIREBASE.md).':'Não consegui gerar o link: '+((err&&err.message)||err)); return;
+    throw new Error(negado?'O banco recusou a gravação. As regras do Firebase com o caminho /cobrancas precisam estar publicadas (FIREBASE.md).':'Não consegui gerar o link: '+((err&&err.message)||err));
   }
   const msg=`Olá! Para conferir e aprovar o seu orçamento, abra este link pelo celular:\n${link}\n\n20º Tabelião de Notas`;
-  window.__ultimoLinkOrc={link,msg};
-  try{ await navigator.clipboard.writeText(msg); finToast('Link do orçamento copiado. É só colar no WhatsApp.'); }catch(_){ prompt('Copie o texto e envie ao cliente:',msg); }
+  window.__ultimoLinkOrc={link,msg,docsToken};
+  return {url:link,msg,tokens:{aprov:token,docs:docsToken}};
+};
+
+window.orcMarcarAprovado = async function(casoId, orcId){
+  const o = pagOrcamentoEscolhido(casoId, orcId);
+  if(!o){ alert('Não achei este orçamento.'); return; }
+  try{
+    await set(ref(db, 'casos/' + casoId + '/orcAprovacao'), orcSemUndefined({
+      orcId: String(o.id), versao: String(o.versao || ''), em: Date.now(), visto: true, manual: true,
+      por: (localStorage.getItem('painel_usuario') || '').trim()
+    }));
+    finToast('Marcado: cliente aprovou o orçamento.');
+  }catch(err){ alert('Não consegui marcar a aprovação: ' + ((err && err.message) || err)); }
+};
+window.orcDesmarcarAprovado = async function(casoId){
+  try{ await set(ref(db, 'casos/' + casoId + '/orcAprovacao'), null); finToast('Aprovação desmarcada.'); }
+  catch(err){ alert('Não consegui desmarcar: ' + ((err && err.message) || err)); }
 };
 
 // ── A janela de gerar o link ──

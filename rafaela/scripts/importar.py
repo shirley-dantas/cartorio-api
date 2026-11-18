@@ -33,13 +33,18 @@ def main(refazer=False):
         gab = os.path.join(RAIZ, f["gabarito"]) if f.get("gabarito") else None  # prova sem gabarito (UNICAMP 2023): entra sem resposta
         if not os.path.exists(pdf):
             print("PDF ausente, pulando (já está no painel):", f["id"]); continue
-        s1, s2 = sha(pdf), (sha(gab) if gab else "")
+        man = os.path.join(RAIZ, f["gabarito_manual"]) if f.get("gabarito_manual") else None  # gabarito transcrito à mão (só tinha imagem)
+        s1, s2 = sha(pdf), (sha(gab) if gab else sha(man) if man else "")
         ja = con.execute("SELECT 1 FROM fontes WHERE sha_pdf=? AND sha_gab=?", (s1, s2)).fetchone()
         if ja and not refazer:
             print("já importada, pulando:", f["id"]); continue
         con.execute("DELETE FROM questoes WHERE fonte_id=?", (f["id"],))
         con.execute("DELETE FROM fontes WHERE id=?", (f["id"],))
         gabarito = PARSERS[f.get("gabarito_parser", f["banca"])](gab, **f.get("gab_args", {})) if gab else None
+        if man:
+            gabarito = {}
+            for k, letra in json.load(open(man))["gabarito"].items():
+                n, _, v = k.partition("-"); gabarito[(int(n), v or None)] = letra
         lay = dict(cfg["bancas"][f["banca"]]["layout"]); lay.update(f.get("layout", {}))  # cada prova pode ajustar o layout da banca
         qs = recortar(pdf, lay)
         if f.get("esperadas"):

@@ -81,6 +81,11 @@ ok('o total soma tudo', R(ap.totais.total) === R(ap.totais.escritura + ap.totais
 // A conta é sempre em centavos inteiros: um total com fração de centavo é
 // sinal de que alguém deixou float entrar na escada.
 ok('nenhum centavo quebrado no total', Number.isInteger(ap.totais.total), ap.totais.total);
+// A capa do dossiê (a folha de papel do caso físico) lê seis linhas fixas do orçamento — e tem de somar o total impresso.
+const capa1301 = orcValoresDaCapa(ap);
+ok('capa: escritura, matrícula, registro, prenotação e imposto do 1301', R(capa1301.escritura) === '4176.24' && R(capa1301.matricula) === '76.54' && R(capa1301.registro) === '3133.28' && R(capa1301.prenotacao) === '80.14' && R(capa1301.imposto) === '9056.01', JSON.stringify(capa1301));
+ok('capa: as linhas somam o total e nada sobra em "outros"', capa1301.outros === 0 && capa1301.escritura + capa1301.matricula + capa1301.registro + capa1301.prenotacao + capa1301.imposto === ap.totais.total, JSON.stringify(capa1301));
+ok('capa: sem orçamento não inventa valor', orcValoresDaCapa(null) === null);
 ok('a parte do tabelião não é o total', R(ap.totais.tabeliao) === '2486.77', R(ap.totais.tabeliao));
 
 console.log('\n— As duas certidões de matrícula são de propósito —');
@@ -454,6 +459,11 @@ ok('doação acima do teto não levanta aviso de isenção',
    !doacaoAlta.alertas.some(a => /UFESP/.test(a.texto)));
 
 console.log('\n— A isenção do ITBI é apontada sozinha, e só aplicada com um clique dela —');
+for(const base of [0,-100]){
+ const semBase=orcCalcular({atoId:'compra-venda',data:'2026-03-10',valores:{transacao:base},imovelMunicipio:'São Paulo',imovelUf:'SP',flags:{isencaoItbiConfirmada:true},despesas:{taxaAdicional:false}});
+ ok('base não positiva não oferece nem confirma a isenção de primeiro imóvel: '+base,!semBase.alertas.some(a=>['isencaoItbiPrimeiroImovel','isencaoItbiAplicada'].includes(a.chave)));
+}
+
 const barato = orcCalcular({atoId: 'compra-venda', data: '2026-03-10',
   valores: {transacao: 20000000}, imovelMunicipio: 'São Paulo', imovelUf: 'SP',
   flags: {}, despesas: {taxaAdicional: false}});

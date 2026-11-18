@@ -19,7 +19,7 @@ import vm from 'node:vm';
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const fonte = readFileSync(join(AQUI, '..', 'apps-script', 'cartorio-rede.js'), 'utf8');
 
-const propriedades = {REDE_CHAVE: 'chave-secreta-de-teste-nao-usar-no-ar', ANTHROPIC_API_KEY: 'x'};
+const propriedades = {REDE_CHAVE: 'chave-secreta-de-teste-nao-usar-no-ar', OPENAI_API_KEY: 'x'};
 
 const caixa = {
   // O Apps Script devolve bytes com sinal (-128 a 127). Fingir isso é de

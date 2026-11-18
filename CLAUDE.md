@@ -1200,6 +1200,76 @@ Passos manuais (regras do banco com `/pedidos` e Apps Script novo): `FIREBASE.md
 seção 11. Testes: `testes/enviar-tela.mjs` (a página), `testes/cliente-envio.mjs`
 (o Apps Script com o Google fingido), `testes/pedido-tela.mjs` (o botão e o card).
 
+### Arrastar o que veio pelo WhatsApp para o card
+
+Nem todo cliente preenche link (a clientela dela não é tecnológica): muita gente manda foto e PDF pelo WhatsApp. A faixa
+**Documentos** do card tem uma caixa, *"Solte aqui os arquivos recebidos do cliente"* (`solteHtml()`, `solteReceber()`), com
+o botão *Escolher arquivos* para quem não arrasta. Cada arquivo vai ao Apps Script (`painel-arquivo`), que **cria a pasta do
+caso se ainda não existe**, guarda o arquivo, a IA lê e identifica o **tipo e de quem é**, e o arquivo ganha o nome padrão
+`Pessoa_Tipo_AAAA-MM-DD_n.ext`. O registro nasce em `/casos/{id}/documentos` com `origem: "arrastado no card"` (chave `pnl_…`,
+selo, texto lido) — a minuta lê como lê os do link.
+
+Regras dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
+
+- **Pasta plana**: todos os arquivos na pasta do caso, sem subpasta por pessoa (a minuta continua lendo igual).
+- **Salva direto e corrige depois.** Não há tela de revisão antes. O que a IA não tem certeza — tipo `OUTRO`, confiança que
+  não é alta, documento de pessoa sem nome, formato que ela não lê (HEIC) — fica salvo e **marcado "confirmar o nome"** no card,
+  com o lápis (`renomearDocCard()` → `painel-renomear`) para escolher o tipo e escrever o nome; o Drive é renomeado junto.
+  **A IA nunca chuta nome**: sem nome, o arquivo fica como `Recebido_…` até alguém dizer.
+- **O Drive só é tocado pelo selo** (como nos arquivos do link). *Ler de novo* e *Excluir* valem também para o que foi
+  arrastado (`ORIGENS_ARQUIVO`).
+- **Copiar e colar também vale**: copiou a foto no WhatsApp Web (ou o arquivo na pasta), clica na caixa do card e aperta
+  Ctrl+V. A caixa ativa é a última em que ela clicou (o card se redesenha sem perder o lugar); texto colado e Ctrl+V dentro de
+  um campo de outro lugar nunca são interceptados, e sem caixa escolhida o painel não adivinha o card.
+- **Compartilhar do WhatsApp (celular/tablet Android, com o painel instalado):** ela seleciona as mensagens (várias de uma
+  vez), toca em *Compartilhar* e escolhe *Equipe Prime*. O `manifest.json` declara o `share_target` (POST em `/compartilhar`),
+  o `service-worker.js` guarda os arquivos no aparelho (cache `painel-compartilhado`, nada vai para a rede ainda) e abre o painel
+  em `/?compartilhado=N`; ali a janela **"Para qual caso?"** (`compartilhadoAbrir()`, busca por nome) manda tudo pelo mesmo
+  caminho de `solteReceber()`. Só existe onde o navegador oferece o *share target* (Android; **não** iPhone, **não** WhatsApp Web
+  no computador, que não tem botão Compartilhar). O painel precisa estar **instalado** (não só um atalho) e reinstalado uma vez
+  depois desta versão, para o Android aprender que ele recebe arquivos. Teste: `testes/solte-card.mjs`.
+- **A caixa de entrada do WhatsApp (número só de documentos, API oficial da Meta).** O cliente — ou ela, encaminhando — manda PDF
+  e foto para o número do cartório; a Vercel (`lib/whatsapp-entrada.js`, pela porta da Joaninha, `/whatsapp`) confere a assinatura da
+  Meta, baixa o arquivo e o entrega ao Apps Script (`entrada-receber`), que o guarda na pasta de espera **ENTRADA WHATSAPP**. O topo do
+  painel avisa (*"Chegaram N arquivos pelo WhatsApp"*, `#cc-entrada`); ela escolhe o caso (a janela "Para qual caso?") e cada arquivo
+  segue o caminho de sempre (`entrada-atribuir`). **Nada vira caso sozinho**, e quem descarta manda para a lixeira do Drive. A mensagem
+  repetida (a Meta reentrega) entra uma vez, pelo id dela. **Nunca por WhatsApp Web automatizado (Evolution/Baileys): é o que bane
+  número** — o bot antigo, no número pessoal 11 94785-1816, foi desligado por ela em 28/10/2026 e o código dele (`api/salvar-caso.js`)
+  fica parado. A `/entrada` é aberta nas regras, como `/casos` (quem escreve é o Apps Script, por REST). Passo a passo na Meta, na
+  Vercel e no Apps Script: `FIREBASE.md`, seção 13. Testes: `testes/whatsapp-entrada.mjs`, `testes/cliente-envio.mjs`, `testes/solte-card.mjs`.
+- **A lista "Recebidos do cliente" é agrupada, e abre e fecha sem se perder** (3/11/2026, passo 1 do card novo). Em vez de uma fila de nomes crus,
+  `pedidoRecebidosHtml` agrupa com `docsAgrupar` (pura): **A confirmar** no alto (o que a IA não soube nomear), **Aguardando o cliente concluir**,
+  uma caixa por **pessoa** (o mesmo nome sem caixa e sem acento é uma pessoa só), a **Empresa** (ficha e contrato da JUCESP), o **Imóvel** (matrícula,
+  valor venal, negativa, dados cadastrais), os **dados digitados** e **Outros**. O nome que ela lê é o **tipo** ("RG ou CNH"); o nome do arquivo fica
+  no título e vale quando o tipo não se sabe. **Documento antigo sem tipo vai para "Outros", nunca para "A confirmar"**: um card velho não pode abrir
+  com uma caixa enorme de pendências. Mesmos botões de antes (abrir, lápis só no arrastado, *Ler de novo* só no sem leitura, excluir). A lista nasce
+  **fechada** e o card se redesenha a cada mudança no banco, então quem abriu fica registrada em `DOCS_ABERTOS` — antes ela fechava sozinha. A linha de
+  cima diz "N a confirmar" mesmo com a lista fechada. Teste: `node testes/docs-agrupados.mjs`.
+- **A data da assinatura e os dados do registro ficam logo abaixo do nome** (3/11/2026, passo 2 do card novo): *Assinatura da escritura* à esquerda e a caixa
+  *Dados do registro* (Registro, Prenotação, Livro, Folha, Controle) ao lado, antes de Status/Etapa/Responsável e das faixas. É o que ela olha primeiro em todo card.
+  No celular empilham em uma coluna. Só mudou de lugar: os mesmos campos, os mesmos `mudarCampo`, o mesmo `id="cx-reg-…"`. Teste: `node testes/card-topo.mjs`.
+- **A esteirinha de etapas substituiu o seletor "Etapa"** (3/11/2026, passos 3 e 4 do card novo). O card mostra, logo abaixo de Status, uma trilha de onze
+  pílulas (Orçamento a enviar → Aprovação do orçamento → Minutando → Aprovação da minuta → Sem pendências → Falta assinatura → TQ · Traslado → Registro →
+  Prefeitura → Entregar → Concluído) e, ao lado, três de **espera** (Aguardando cliente, Falta documentos, Nota de exigência). O dado é o **mesmo `dep`** de sempre —
+  nada foi renomeado no banco. As etapas que saíram do fluxo são **lidas** como a que as engoliu (Pré-conferência, ITBI e Travar agenda → Aprovação da minuta ou
+  Sem pendências, conforme haja data de assinatura); **Jurídico Prime não tem lugar**: a tela diz "Escolha a etapa" em vez de chutar. As três etapas de TQ/traslado
+  são **uma pílula** com o estado por dentro (a Central de Comando ainda precisa saber de quem é a vez). Entrar numa espera guarda `depVolta`; sair volta para lá.
+  Aguardando cliente pede o motivo (`esperaMotivo`); Nota de exigência volta ao Registro ou conclui. As **funções viraram abas** (Orçamento, Documentos, Certidões, Minuta,
+  Capa do dossiê, Livro/folha/controle, Pagamento) — só a aberta aparece, logo abaixo da trilha, e **todas estão disponíveis em qualquer etapa** (a etapa só escolhe
+  qual abre primeiro). O **Financeiro só aparece com o número de controle** (ou lançamento já existente). **Responsável e os filtros por pessoa saíram da tela** (o dado
+  antigo continua em `c.resp`); a capa sai sempre com "Shirley Dantas – Escrevente". Status, o selo e a borda colorida ficam como eram. O botão **Usar o card antigo**
+  (na barra, guardado neste navegador) devolve o desenho inteiro de antes, com Etapa e Responsável.
+  Regras que **não devem ser mexidas sem perguntar**: a etapa só anda **para a frente e só da etapa certa** (orçamento reenviado na assinatura não puxa nada para trás);
+  o que anda sozinho é *orçamento copiado/baixado/compartilhado → Aprovação do orçamento*, *cliente aprovou pelo link → Minutando*, *minuta no Drive → Aprovação da minuta*,
+  *data de assinatura travada → Sem pendências*, *prenotação preenchida em TQ → Registro*, *documentos chegaram em Falta documentos → Minutando*; **livro + folha nunca movem**:
+  perguntam "Falta alguém assinar?" (só ela sabe). Mover sozinho só acontece entre **duas fotos** do banco (abrir o painel nunca move caso), deixa um aviso com **Desfazer**
+  (`esteiraAviso`) e é a mesma escrita de quem clica na pílula. Tudo isso mora em `// ── A esteirinha: regras ──` (puro) e `// ── A esteirinha: tela ──` do `index.html`;
+  o card é montado por `cardPartes()` (as mesmas peças para os dois desenhos). Teste: `node testes/esteirinha.mjs`.
+- Só PDF e imagem, até 10 MB; áudio, vídeo e Word são recusados **antes** de sair, com o motivo escrito. No máximo dois
+  arquivos sobem por vez. Arrastar só existe no computador; no celular fica o *Escolher arquivos*.
+- Passo manual: o Apps Script precisa do código novo (`painel-arquivo`, `painel-renomear`). Se não tiver, o motivo aparece
+  escrito na caixa. Testes: `testes/solte-card.mjs` (o painel) e `testes/cliente-envio.mjs` (o Apps Script).
+
 ### O link de pagamento: o cliente confere, paga e anexa o comprovante
 
 Pelo card, **Pagamento → Gerar link de pagamento** cria `/p/{código}` (`pagar.html`, reescrita no `vercel.json`).
@@ -1263,6 +1333,160 @@ Regras dela que **não devem ser mexidas sem perguntar**:
   `testes/pagar-tela.mjs` (a página), `testes/pagamento-envio.mjs` (o Apps Script) e `testes/pagamento-painel.mjs` (a janela,
   a faixa, o aviso e a impressão).
 
+## O Ajudante do painel (extensão do Chrome)
+
+Mora em `ajudante/` (não é uma função da Vercel: não conta nas 12). Entra nos sites com o **navegador e o certificado digital que a Shirley já usa**
+e traz o PDF para o card; o painel só desenha o bloco *Buscar na JUCESP* (dentro da caixa de soltar arquivos, `ajudanteHtml()`) quando a extensão
+responde ao "tem Ajudante?" — botão que o navegador não sabe cumprir não é desenhado. Instalação e uso: `ajudante/LEIA-ME.md`. O zip que ela baixa (`/ajudante-do-painel.zip`, na raiz, servido pela Vercel) é refeito com `zip -X -r ajudante-do-painel.zip ajudante` — o `testes/ajudante.mjs` acusa se ficar para trás.
+
+Decisões dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
+
+- **Nenhuma senha é guardada**, em lugar nenhum: quem identifica é o certificado instalado no computador (e o PIN, se houver, é ela que digita).
+- **Nada é pago sozinho.** Hoje só existe leitura e escolha. Quando entrarem serviços pagos (ONR), o robô **para antes do pagamento** com um aviso
+  "vou pagar R$ X, confirmar?" — só o clique dela paga. Cópia digitalizada com tarifa na JUCESP: o Ajudante para e deixa com ela.
+- **O contrato social é o ato de CONSOLIDAÇÃO mais recente.** Lê-se nos DETALHES de cada linha da *Cópia Digitalizada* (`escolherConsolidacao`);
+  sem consolidação, ele não escolhe: avisa e deixa para ela (e ainda pega o PDF que ela abrir).
+- **O que não reconhece, não adivinha.** Tela diferente, botão que sumiu, três tentativas iguais: faixa vermelha com *Fazer à mão* e
+  *Copiar relatório* (só a forma da tela, sem o ticket `sc` do endereço). O erro da página não encerra o pedido.
+- **O endereço do Apps Script mora no `background.js`**, não vem do pedido, e a ponte (`painel.js`) só atende a própria página do painel
+  (mesma origem e janela). O tipo (`FICHA_CADASTRAL_JUCESP`, `CONTRATO_SOCIAL`) vem do pedido — a IA não adivinha — e o arquivo segue o caminho de
+  sempre (`painel-arquivo`: pasta do caso, leitura, nome `Pessoa_Tipo_AAAA-MM-DD_n`).
+- O fluxo da JUCESP foi montado a partir de **fotos das telas**, sem acesso ao site: a primeira rodada de verdade é com ela olhando, e é provável
+  que peça ajuste (os testes usam páginas simuladas). Em aberto: se o endereço do PDF (`VisualizaTicket.aspx?sc=…`) pode ser baixado uma segunda
+  vez pela extensão; se não puder, o erro diz isso e a saída é salvar o PDF e arrastar para a caixa.
+- **Os CNPJs vêm do próprio caso, ela não digita** (29/10/2026: "cada caso pode vir com um CNPJ ou mais, de ambas as partes"). O painel lê o texto dos
+  documentos já lidos do card (`ajEmpresasDoCaso`) e lista cada empresa com os seus botões; só CNPJ de dígito verificador certo, sem os do
+  cartório e da Prime, sem os de documento-modelo, o mesmo CNPJ de vários papéis junto. *Buscar os dois documentos das N empresas* roda **uma de
+  cada vez** (a próxima só sai quando a anterior termina de vez — o aviso `fim` do fundo); empresa que a JUCESP não tem (outro estado) termina o
+  pedido sozinha e a fila segue. O campo *Outro CNPJ* continua, recolhido. **É o painel lendo o que está escrito, não a IA chutando número.**
+- **O captcha da JUCESP ninguém resolve por ela.** Depois do Buscar a JUCESP pede o código da imagem; o Ajudante reconhece, avisa ("digite as
+  letras e clique em CONTINUAR") e **espera** — não é erro e não tem prazo curto. Resolver captcha por robô burla a proteção do site e os termos
+  de uso: decisão fechada. Para ela digitar o mínimo, o Ajudante **aprende o NIRE de cada CNPJ** na primeira busca (`nires` no armazenamento da
+  extensão, só do que veio do resultado da busca) e da segunda vez abre direto a empresa, pulando pesquisa e captcha; se a JUCESP não deixar,
+  cai na pesquisa de sempre. Ainda não se sabe, sem teste real, se a JUCESP deixa entrar direto.
+- **O PDF pode abrir noutra aba.** No primeiro teste real o Ajudante marcou a opção, clicou em OK e acusou "a página não mudou": a JUCESP provavelmente
+  abre o PDF numa aba nova. O fundo agora pega o `VisualizaTicket.aspx` tanto na aba do pedido quanto numa aba aberta por ela (`openerTabId`), fecha a
+  aba extra depois de guardar e avisa a aba do pedido (`pdf`, `fim`) para a faixa parar de vigiar. A escolha da opção passou a ser um **clique de verdade**
+  (`radio.click()`), porque a JUCESP guarda a escolha no clique. Ainda sem confirmação real de qual dos dois acontece.
+- **A ficha e a cópia são pedidas pelo formulário, não por clique.** No segundo teste real o relatório que ela copiou mostrou a tela certa, a opção marcada
+  e o botão `btnEmitir` (submit de um formulário ASP.NET), mas nada abria: o Chrome **bloqueia o pop-up** que o clique de um programa faz abrir.
+  Agora a aba do pedido monta o POST a partir do próprio formulário (viewstate, a opção marcada, o botão), lê a resposta e, se for o PDF — ou uma
+  página que aponta para `VisualizaTicket.aspx?sc=…` —, entrega os bytes ao fundo (`pdf-bytes`). O endereço do PDF é buscado **uma vez só**,
+  o que também elimina a dúvida do ticket de uso único. Se a resposta não for PDF, volta ao clique de sempre. O contador de "tentei 3 vezes" é
+  **por pedido** (a mesma aba atende várias empresas).
+- **O Chrome não deixa a extensão clicar em link `javascript:`.** Os links da tabela de resultados da JUCESP (o NIRE) são `javascript:__doPostBack('alvo','')`;
+  clicar neles dá "violates Content Security Policy" e nada acontece (achado no relatório de erros da extensão, 28/10/2026). `clicarSemScript()` preenche
+  `__EVENTTARGET` e `__EVENTARGUMENT` e envia o formulário, que é tudo o que o link faria. Outro `javascript:` que não seja postback: erro escrito, nunca tentativa.
+- **A versão da extensão sobe a cada mudança** (`manifest.json` e `VERSAO` do `painel.js`, que o teste obriga a andar juntas): ela instala a extensão trocando
+  arquivos numa pasta, e sem número novo ninguém sabe se o Chrome leu os arquivos novos. O *Copiar relatório* leva a versão, a frase da faixa e — quando o pedido do PDF pelo formulário recebe uma resposta que não é PDF — o que a JUCESP respondeu (`diagnostico`: status, tipo, tamanho, os nomes dos campos enviados, os trechos da resposta que mencionam abrir janela/ticket/redirecionar e o fim do texto — sem números longos, sem tokens de 40+ caracteres e sem campos escondidos). No terceiro teste real (0.1.2) a resposta ao pedido pelo formulário foi **a mesma página** (HTML, 200, `/Pre_Visualiza.aspx`, 52 KB), sem PDF e sem endereço de ticket que a busca achasse; o diagnóstico da 0.1.3 existe para ver onde a JUCESP avisa que o documento está pronto.
+- **Depois do captcha tudo é dele (0.1.4): clicar em OK, esperar o PDF e guardar** — pedido dela, 29/10/2026 (ela não quer clique extra). O que parava a faixa no OK
+  ("a página não mudou") é, com toda a probabilidade, o **bloqueio de pop-up do Chrome**: a JUCESP abre o PDF com uma janela nova, e o Chrome a bloqueia quando o clique é de
+  programa. O fundo libera, enquanto há pedido andando, **os pop-ups só do site da JUCESP** (`chrome.contentSettings.popups`, padrão `https://www.jucesponline.sp.gov.br/*`,
+  desfeito ao terminar o último pedido; permissão `contentSettings`). Reserva: se, mesmo assim, a página não muda em 15 s, a faixa mostra **"Gerar o PDF (clique aqui)"** — um
+  clique dela, que o Chrome sempre aceita — em vez de acusar erro. O PDF aberto é pedido **primeiro à aba da JUCESP** (`buscar-pdf`: sessão e cookies da própria aba, só
+  endereço `VisualizaTicket.aspx` da mesma origem) e só depois pelo fundo. Em aberto: se o endereço do PDF vale uma vez só (o primeiro "O que veio não é um PDF" no card
+  sugere que sim); se valer, a saída seguinte é forçar o download (`declarativeNetRequest` + `downloads`, com "Permitir acesso a URLs de arquivo" ligado uma vez) em vez de
+  buscar de novo.
+- **0.1.4 não bastou (29/10/2026):** com os pop-ups liberados, o OK clicado sozinho ainda não fez a página mudar e a faixa caiu na reserva — então o bloqueio de pop-up
+  **não** explica tudo. A 0.1.5 faz o *Copiar relatório* (agora também na faixa da reserva) levar o que o **fundo** viu: se `contentSettings` foi aceito (`popups`), as abas que
+  a página abriu (`abaCriada`, só o caminho, sem o ticket), o PDF visto (`pdfEm`) e como foi buscado (`buscaPelaAba`/`buscaPeloFundo`). É esse relatório que diz se o OK nem
+  dispara, se abre aba, ou se o PDF abre e o que falha é baixá-lo.
+- **O endereço do PDF vale UMA vez (confirmado no teste real, 29/10/2026):** ela clicou, o PDF abriu para ela e o card disse "O que veio não é um PDF" — o Chrome já tinha
+  gasto o endereço. E **não havia pop-up bloqueado**: a liberação de pop-ups da 0.1.4 não era a causa (fica, é inofensiva). A 0.1.6 faz o Ajudante chegar antes do Chrome: enquanto
+  há pedido andando, a **navegação** a `VisualizaTicket.aspx` é bloqueada (`declarativeNetRequest`, regra 7001, só `main_frame`/`sub_frame`; a busca do Ajudante é outro tipo e passa),
+  o `webNavigation.onBeforeNavigate` avisa o endereço **antes** do pedido, e o PDF é baixado **uma vez só** pela aba da JUCESP (`buscar-pdf`, mesma origem, cookies dela); a aba
+  bloqueada é fechada. A regra sai ao terminar o último pedido e ao acordar sem pedido andando (uma regra esquecida bloquearia os PDFs dela). Permissões novas: `declarativeNetRequest`
+  e `webNavigation`. Em aberto: se a **navegação na mesma aba** (sem aba nova) deixa o Ajudante sem aba para buscar — então o fundo tenta por conta própria (cookies `SameSite` podem
+  impedir); e por que o OK clicado **sem gesto dela** não gera o PDF (o relatório da 0.1.5 traz `fundo.eventos` para ver).
+- **O bloqueio funcionou, e a aba do pedido virou a página de erro (0.1.7).** No teste da 0.1.6 ela viu "www.jucesponline.sp.gov.br está bloqueado — ERR_BLOCKED_BY_CLIENT" com o
+  endereço do PDF: o PDF tenta abrir **na própria aba do pedido**, e o bloqueio a deixa numa página que não roda o content script, então a busca pela aba não tinha quem fizesse. Agora,
+  se a aba do pedido não responde, o fundo abre uma **aba auxiliar** da JUCESP (inativa, `/Default.aspx`), busca o PDF **de dentro dela** (`scripting.executeScript`, mundo da página:
+  mesma origem, cookies `SameSite` dela), fecha a auxiliar e só então tenta por conta própria. Ao terminar, a aba do pedido volta a `/Default.aspx` em vez de ficar na página de erro.
+  Permissão nova: `scripting`.
+- **O clique automático no OK é ignorado também no passo do contrato (0.1.8).** O relatório da 0.1.6 (passo `contrato`, `fundo.eventos` vazio, sem pop-up, sem aba, sem PDF) mostra que
+  nem a passagem para a lista de cópias — uma navegação comum — acontece quando o Ajudante clica; o clique dela, sim. Ou seja: **não é só pop-up**. Sem saber como o site decide, não se
+  tenta burlá-lo (o captcha e um possível controle de "clique de gente" são proteções do site): a reserva — **um clique dela, que o Chrome e o site aceitam** — agora vale para
+  os dois passos (`escolher` e `baixar`), e o relatório traz `botaoPorDentro` (tipo, `onclick`, `onsubmit` e `target` do formulário e os trechos dos scripts da página sobre OK/janela)
+  para a próxima rodada mostrar o que o site faz com o clique. Se o site realmente exigir clique humano no OK, o fluxo possível é: ela digita o captcha e dá um clique por documento;
+  todo o resto (empresa, opção, PDF, nome, card) é do Ajudante.
+- **O contrato consolidado se acha pelo número da ficha (0.1.9, 29/10/2026).** A lista da *Cópia Digitalizada* quase não tem descrição (só a 1ª linha; 24 linhas em 3 páginas, "Mostrando 1 - 10 de 24"), então procurar a palavra "consolidação" nela não escolhe nada. A regra dela: ler a **ficha cadastral**, achar o **último ato com "CONSOLIDAÇÃO CONTRATUAL"** e pegar o `NUM.DOC` dele (ex.: `034.366/21-0`, sessão 22/01/2021) — é o mesmo número da coluna **Nº Registro** da lista. O Apps Script (`consolidacaoDoPdf`, pergunta própria à IA, porque a leitura geral resume e pode largar os NUM.DOC; `consolidacaoDaFicha` é a conta, sem IA) devolve `consolidacao` na resposta do `painel-arquivo` da ficha; o fundo guarda no pedido (`consolidacao`, `fichaLida`) e o `planejar` acha a linha por esse número, **paginando em "Próximo >"** até achar. Não achou na última página: para e escreve o número, nunca escolhe outra linha. Quem pede só o **Contrato** recebe a **ficha antes** (ela fica no card). Precisa do Apps Script novo.
+- **A lista de cópias abre numa ABA NOVA (0.1.10, 29/10/2026).** O relatório do teste da 0.1.9 mostrou o botão OK por dentro: `aspnetForm.target='_blank'` com POST para `SelecionaProduto.aspx`. Ou seja, o OK do contrato abre a lista **noutra aba**, filha da do pedido — e o Ajudante só respondia à aba do pedido (`jobDaAba`), então a lista aparecia sem faixa e sem ninguém trabalhando (e a aba do pedido ficava com a faixa velha "não respondeu ao meu clique"). Agora as abas filhas (`filhas`, as que o `onCreated` já registrava) também recebem o pedido; a do pedido é avisada (`seguiu`) e para de vigiar; ao guardar o PDF as abas extras fecham.
+- **A RI Digital (a ONR) — matrícula (0.2.0, 29/10/2026).** O site é `ridigital.org.br`, e quem paga é o **saldo de Créditos RI Digital** dela. Dois pedidos, e o painel pergunta qual: **Visualização de matrícula** (serve para minutar; **uma por vez**; ~R$ 22,95; abre a imagem no site por 24 h e não tem validade de certidão) e **Matrícula atualizada** (cartão *Certidão Digital → Matrícula – Inteiro Teor*, pedido por Nº de Matrícula/CNM; serve para a data de assinatura; ~R$ 76,54 por matrícula; **várias de uma vez, desde que do mesmo registro de imóveis**). A **finalidade é sempre "titular de algum direito real"** (escolha dela, não do código): o Ajudante só marca essa opção e, se ela não existir na lista, para — nunca escolhe outra. O painel lê estado, cidade, nº do cartório e as matrículas **da matrícula que já está no card** (`onrExtrair`, `onrDoCaso`, agrupando por registro) e ela **confere** antes de abrir o site. O script `ajudante/onr.js` (planejar puro + parte da página, como o da JUCESP) leva a aba por: cartão do serviço → (lista, "Novo Pedido") → aceite e Prosseguir → estado no mapa → cidade → cartório → matrícula(s) → finalidade → e **PARA**. **Regras que não se mexem sem perguntar:**
+  - **Nunca clica em nada que gaste crédito.** Só numa lista curta de botões inofensivos (`NUNCA_CLICAR` e um teste que varre todas as telas, nos dois serviços, cobram isso). Na certidão, o clique em **Saldo em Créditos é o próprio pagamento** (já baixa o PDF); na visualização, o botão de confirmar vem depois do **reCAPTCHA "Não sou um robô"**, que **também é dela** (mesma regra do captcha da JUCESP). Pix, boleto e cartão nunca são tocados.
+  - **O PDF é pego pelos downloads** (permissão `downloads`): o fundo escuta `chrome.downloads.onCreated` de `ridigital.org.br` enquanto há pedido da ONR andando, lê os bytes (data:, blob: pela própria página, ou o endereço com a sessão dela, e a aba como reserva) e entrega ao Apps Script como `MATRICULA_IMOVEL` (`origemAjudante:'onr'`, nome `Atualizada_187852_…` ou `Visualizacao_…`). **Nunca cancela nem apaga o download dela**: se o arquivo não chegar ao card, o painel diz que ele está na pasta Downloads e pede para arrastá-lo à caixa. Depois do 1º arquivo espera 25 s por mais; sem nenhum, 2 min depois do pagamento diz isso.
+  - **Como o pedido é pago, não se testa à toa.** Tudo o que acontece na saída do PDF fica no registro do pedido (`eventos`: telas vistas, clique dela no pagamento, cada download com o endereço **sem** a parte secreta, como foi lido, o que o Apps Script devolveu) e o fim do pedido leva `relatorio` ao painel — botão **Copiar relatório** no card. Os passos até o pagamento são grátis e podem pedir ajuste; o relatório diz a forma de cada tela (botões, listas, campos).
+  - **Primeiro relatório real (29/10/2026, 0.2.0):** a *listagem de pedidos* da visualização (`ListagemPedidosVM.aspx`) tem um campo de filtro `txtMatriculaCNM`, e o Ajudante o tomou pela tela das matrículas da certidão e parou ("Não achei o botão para seguir depois das matrículas"). A 0.2.1 testa a listagem **antes** de qualquer campo de matrícula (`tela()`), e o teste usa a listagem com o filtro. O resto do caminho (do cartão ao pagamento) segue sem validação real.
+  - **Segundo relatório real (0.2.1):** o caminho home → listagem funcionou; o "+ Novo Pedido" é um link `javascript:` que **não** é `__doPostBack`, e o Chrome não deixa a extensão executá-lo. A 0.2.2 lê no href e no `onclick` para onde o link vai (`destinoDoLink`: postback ou ir a um endereço do mesmo site) e, se não souber, **pede o clique dela naquele botão** e espera a página mudar, sem travar e sem adivinhar. O relatório agora lista os links `javascript:`/`onclick` da tela (`links`), para eu ver o que o botão faz.
+  - **Terceiro relatório real (0.2.2 → 0.2.3):** ela fez um pedido de visualização de verdade (R$ 22,95) e chegou à tela **"Seu pedido foi realizado com sucesso"** (`PedidoFinalizadoVM.aspx`), com o botão **"MATRÍCULA ONLINE — CLIQUE AQUI PARA GERAR O PDF"** — o pedido já está pago, então gerar é grátis e é o Ajudante que clica. A 0.2.3 reconhece a tela (`finalizado`), tenta pegar o PDF **direto da resposta** do botão (postback, endereço ou formulário, sem abrir aba: `baixarPdf`) e, se a resposta não for PDF, faz o clique de verdade; o PDF então chega por **download**, por **aba nova/blob** (`onrAba`, que ignora página HTML sem contar como falha) ou por `onr-bytes`; o mesmo PDF por dois caminhos é guardado uma vez (`marcas`). A tela marca o pedido como pago (`onr-pagou`).
+  - **Pedidos parados em "abrindo…" (0.2.4):** depois de recarregar/atualizar a extensão, a página do painel que já estava aberta perde a ligação com ela (o botão vermelho **Erros** em `chrome://extensions` mostra "Extension context invalidated"), e o pedido ficava parado sem dizer nada — inclusive os da JUCESP que já funcionavam. Conferido num Chromium de verdade com a extensão carregada: o pedido da ONR e o da JUCESP abrem a aba e o andamento volta ao painel; o que falha é a página velha. A ponte (`painel.js`, `enviar()`) agora responde "Recarregue o painel (F5)" nesse caso. **Depois de atualizar a extensão, sempre F5 no painel.**
+  - **Quarto relatório real (0.2.4 → 0.2.5):** a visualização inteira funcionou até a confirmação (clique dela) e o **download foi pego** (`VMPDF.aspx`, `application/octet-stream`, ~1 MB, lido como PDF pelo fundo — o endereço do download **pode** ser lido de novo, ao contrário do ticket da JUCESP). O defeito: na tela *pedido realizado* o botão que gera o PDF é uma **imagem** (`input type=image name=btnPDF`, sem texto), então o Ajudante não achava "gerar o PDF" e dizia "Não reconheço". A 0.2.5 acha o botão pelo id/nome/alt (`botaoDoPdf`) e **clica de verdade** nele (o caminho que o relatório provou: o clique dela gerou o download), sem POST à parte. Créditos mudaram de R$ 58.812,94 para R$ 58.743,27 nos testes pagos.
+  - **Quinto relato real (0.2.5 → 0.2.6):** "o Ajudante não clicou em gerar o PDF, eu cliquei, e o PDF não foi salvo". O clique é a 0.2.5 (ela testou na 0.2.4). O PDF que não chegou ao card tem causa provável própria: `onrJobAtivo()` devolvia o **primeiro** pedido da RI Digital sem fim, e os testes pagos que pararam no meio deixam pedidos velhos vivos — o arquivo ia para o caso errado, sem erro nenhum. Agora o pedido vivo é o **mais recente**, começar um pedido novo encerra os velhos, `capturarOnr` grava no pedido que recebeu o arquivo (e escreve se ele já tinha terminado), e o relatório ganhou `enviando` (nome, caso, tamanho) e a resposta do Apps Script em caso de erro; a lista de eventos subiu de 20 para 40.
+  - **A matrícula errada no formulário, e as empresas que ela não quer (29/10/2026, só o painel):** `onrDoCaso` levava até **três** números por documento, e a matrícula de um apartamento cita outras (matrícula-mãe, imóvel desmembrado) — a certidão ia pedir matrícula de outro imóvel sem aviso. Agora vale **uma por documento**: a do cabeçalho (`onrPropria`, ou a que o nome do arquivo confirma); as outras que o texto cita viram **sugestão ao lado** (“o documento também cita…”, um toque acrescenta) e o formulário diz de qual arquivo leu cada número. Documento só reconhecido pelo **nome** não vence um reconhecido como matrícula. Na JUCESP, cada empresa ganhou **Tirar** (`ajTirarEmpresa`, guardado por caso neste navegador): some da lista e do *Buscar os dois documentos das N empresas*, com *trazer de volta*.
+  - Não validado no site de verdade ainda: o botão que "adiciona" a matrícula na certidão (o Ajudante tenta Prosseguir, depois Adicionar/Incluir), o caminho e o formato da *visualização* depois da confirmação (imagem? PDF?), e como o download chega (data/blob/endereço).
+- **A Prefeitura de São Paulo — valor venal de referência (0.3.0, 30/10/2026).** `ajudante/prefeitura.js`, no site `itbi.prefeitura.sp.gov.br/valorreferencia/tvm/frm_tvm_consulta_valor.aspx`.
+  **Sem login, sem captcha e sem pagamento** (confirmado por ela): o Ajudante preenche os quatro quadradinhos do contribuinte (3+3+4+dígito) e a **Data**, clica em *Pesquisar* e a página responde
+  **na mesma tela** com SQL / Valor / Endereço — não sai PDF. Ela imprimia a tela para ter cara de certidão; o Ajudante **tira a foto da tela** (`captureVisibleTab`, PNG, a aba do pedido vem para a frente antes)
+  e guarda no card como `VALOR_VENAL_REFERENCIA` (`origemAjudante:'prefeitura'`, contribuinte no nome). Regras dela, que **não se mexem sem perguntar**:
+  - **A data é a do dia da consulta; no inventário é a do óbito** — e o painel **não adivinha** a do óbito: o campo nasce vazio e o pedido não sai sem ela (confere na certidão de óbito).
+  - **Só vale resposta do contribuinte pedido.** SQL diferente na resposta, "NUMERO DO CADASTRO DO IMOVEL NAO ENCONTRADO" e o erro cru do servidor (data inválida vaza `OracleParameter…`) viram **aviso escrito**, nunca
+    certidão; o erro do servidor é cortado em 160 caracteres. Tela que não é a consulta não é adivinhada.
+  - **Contribuinte em área maior não pede** (o painel desliga o botão): falta a consulta de individualização (etapa 2b).
+  - O clique em *Pesquisar* é do Ajudante (é submit comum, ao contrário da JUCESP); se a página não responder em 12 s, a faixa pede o clique dela.
+  - Precisa do **Apps Script novo**: `ORIGENS_DO_AJUDANTE` com `"prefeitura"` e os tipos `VALOR_VENAL_REFERENCIA`, `NEGATIVA_IPTU`, `DADOS_CADASTRAIS_IMOVEL` em `TIPOS_DO_AJUDANTE` e `TIPOS_DOC_CARD`.
+  - **O valor venal é o PRINT da tela, nunca um desenho nosso (0.3.4, 31/10/2026).** Em 0.3.3 a foto falhou ("Either the '<all_urls>' or 'activeTab' permission is required") e a reserva foi um comprovante desenhado com os dados; ela recusou — quer o print. `captureVisibleTab` exige a permissão ampla, então `<all_urls>` entrou em `host_permissions` **só para isso**: nenhum script da extensão roda fora dos sites de `content_scripts` (o teste cobra as duas coisas). Não há mais comprovante desenhado.
+  - **A negativa abre só com o tipo (0.3.4).** O relatório real da 0.3.3 mostrou a tela só com *Tipo de Certidão*, Limpar e Sair: o SQL, o código da imagem e o Emitir **só aparecem depois de escolher o tipo** (a página recarrega). O Ajudante agora escolhe o tipo primeiro (`acao:'escolher'`) e, se a página não recarregar em 12 s, pede para ela escolher.
+  - **O PDF dos dados cadastrais sai na resposta do formulário (0.3.4).** O download tinha o endereço da própria página da certidão: pedi-lo de novo devolve o formulário, não o PDF. O fundo agora lê o arquivo **que o Chrome já salvou na pasta Downloads** (`lerDoArquivoLocal`, `file://`), o que exige ligar **uma vez** *Permitir acesso a URLs de arquivo* nos detalhes da extensão; sem isso o erro diz exatamente isso. Nada é apagado nem movido.
+  - **A negativa que "não reconheço a tela" (0.3.3):** o Ajudante espera a página montar (4 tentativas), aceita rótulos/botões mais soltos e, se ainda assim falhar, diz **qual peça faltou** e guarda a forma da tela (`forma`: campos, botões, rótulos — sem valores) nos eventos do relatório.
+  - **A negativa de IPTU (0.3.1)** — `duc.prefeitura.sp.gov.br/certidoes/forms_anonimo/frmConsultaEmissaoCertificado.aspx` (*Emissão de Certidão Conjunta de Tributos Municipais*, tipo **Certidão Tributária de IPTU**).
+    **Tem captcha ("Código da imagem") e ele é dela**, como o da JUCESP e o da RI Digital: o Ajudante só escolhe o tipo (se já não estiver nele; **sem a opção ele para, não escolhe outra**), preenche o SQL
+    (`159.087.0016-8`, achado pelo rótulo "Informe o número do SQL", não pela ordem dos campos) e deixa o cursor no código. **Nunca clica em Emitir, "Ouvir Som", "Gerar Novo Código" nem em "Fechar"** do aviso
+    "Emissão da certidão concluída! Aguarde o navegador disponibilizar… e depois feche esse aviso" — o download pode depender dele. Ela digita as letras e clica em Emitir; o PDF sai na hora e é pego pelos
+    **downloads** do site da prefeitura (ou aba/blob), com o mesmo cuidado da RI Digital (bytes com a sessão dela, nunca cancela o download, mesmo PDF por dois caminhos entra uma vez) e vai ao card como
+    `NEGATIVA_IPTU`. Emitida e sem PDF em 90 s: erro escrito mandando olhar a pasta Downloads. **Decisão dela (30/10/2026): basta salvar o PDF** — o Ajudante não distingue certidão negativa de positiva nem
+    manda conferir; quem abre o PDF é ela. Sem pagamento: dá para testar à vontade.
+  - **Os dados cadastrais (0.3.2)** — `notcertiptu.prefeitura.sp.gov.br/PaginasRestritas/frm003_Gerar_Cert_Dados_Cad.aspx` (*Certidão de dados cadastrais do imóvel — IPTU*). **Só se entra pelo e-gov**: o login
+    é dela e o Ajudante nunca o toca — qualquer tela que não seja a da certidão é "aguardar o login" (nunca erro; ele continua sozinho quando a certidão abre). Na tela: *Cadastro do Imóvel*
+    (`159.087.0016-8`) + *Exercício (AAAA)* → **Consultar** → um aviso ("Favor informar o CPF/CNPJ do proprietário ou do compromissário e dar OK") → **Ok** → o PDF sai na hora. Sem captcha e sem pagamento, então
+    o Ajudante clica em Consultar e em Ok (se a página não responder em 12 s, pede o clique dela). **O CPF/CNPJ do proprietário é dela, e o painel não pergunta** (decisão de 31/10/2026, "segue o mesmo critério do valor venal e da negativa"): o Ajudante para no aviso, avisa "digite o CPF/CNPJ e clique em Ok" e só passa a esperar o PDF quando o clique dela chega; o número nunca passa pelo painel, pelo relatório, pelos eventos nem pelo Drive. O exercício nasce com o ano
+    de hoje. O PDF é pego pelos downloads/abas do site da prefeitura (mesmo caminho da negativa) e vai ao card como `DADOS_CADASTRAIS_IMOVEL`; sem PDF em 90 s depois do Ok, erro escrito. **Em aberto:** como a
+    prefeitura avisa quando o CPF/CNPJ não bate com o proprietário, ou o imóvel não existe — o *Copiar relatório* trará o texto da tela na primeira vez.
+  - Falta: a consulta de individualização (lista de unidades do endereço, achar a linha "AP 2007").
+
+Testes: `node testes/ajudante.mjs` (manifesto, ponte, fundo, as telas da JUCESP simuladas, a faixa e o bloco do card).
+
+## As certidões do imóvel na Prefeitura de São Paulo (em construção)
+
+Valor venal de referência, negativa de IPTU e certidão de dados cadastrais — as três no site da prefeitura, em caminhos distintos, e todas pelo **número de contribuinte**
+(setor.quadra.lote-dígito) que está na matrícula. Pedido dela, 30/10/2026. **Etapa 1 feita (só o painel, sem o site):** a faixa *Prefeitura — certidões do imóvel* do card
+(`prefFaixaHtml`, `prefExtrair`) lê a matrícula, lista **todos** os contribuintes com o lugar onde aparecem (descrição do imóvel, Av.2…), marca o **último que a matrícula diz** como
+o atual e pede **conferência** (botão de rádio); nunca escolhe sozinha — o número digitalizado pode vir com um dígito trocado, e certidão do imóvel errado parece certa.
+
+Regras que saíram dos casos reais dela e **não devem ser mexidas sem perguntar**:
+- **O contribuinte pode vir com barra ou hífen no dígito** (`170.049.0003/6`, `170.049.0162-8`) e só vale o formato de três grupos (3.3.4 + dígito): "certidão nº 130.389/94-3" na mesma averbação **não** é contribuinte.
+- **"ALTERAÇÃO DO NÚMERO DE CONTRIBUINTE" (Av.x)** troca o número do cabeçalho: o atual é o último que a matrícula diz, e o anterior fica na lista como histórico.
+- **"Em área maior"** (`areaMaior`) não basta para pedir: só a **consulta no site** diz se já houve individualização. Quando houve, a prefeitura devolve a lista de todas as unidades do endereço
+  (Compl. "AP 101", "AP 2007"… com o contribuinte de cada uma) e o Ajudante deve achar **a unidade da matrícula** (`unidade.compl`, hoje só "apartamento" → "AP n"; outros tipos ficam
+  sem complemento até ela mostrar como a prefeitura escreve) e seguir com o número individual. **Não achou, ou achou mais de uma linha: para e mostra, nunca escolhe.**
+- **Quando a leitura não acha o contribuinte** (31/10/2026, o apartamento 131 dela): a leitura aceita espaços entre os grupos, `.`, `/`, `-` ou nada antes do dígito, e número de 11 dígitos sem pontuação só com "contribuinte/cadastro/SQL/inscrição" perto. Se mesmo assim nada vier, a faixa **mostra as frases do texto lido que falam de contribuinte/IPTU** (ou diz que o texto não fala nisso) e abre um campo **Contribuinte (SQL)** para digitar à mão (`prefAtual`, `PREF.manual`); digitado, os três botões aparecem, marcados "digitado por você". Nada é chutado.
+- **Falta (etapa 2):** o Ajudante na prefeitura — consulta de individualização e os três pedidos. Precisa dos prints dos caminhos, de como ela entra (certificado/senha, captcha) e se pagam algo.
+- Teste: `node testes/prefeitura.mjs` (usa trechos reais das três matrículas).
+
+## A capa do dossiê
+
+A folha de papel que acompanha o **caso físico** pelas esteiras internas do cartório. Antes era um modelo do PowerPoint (`DOSSIE.pptx`) preenchido inteiro à mão;
+agora o botão **Imprimir capa** do card (`capaImprimir`, faixa `capaFaixaHtml`) a monta com o que o painel já sabe e manda imprimir num quadro escondido (sem abrir janela).
+O desenho segue a folha do orçamento — tarja grafite com faixa champagne, blocos recuados, linhas em faixa — e sai em **preto e branco**, A4 em pé, uma página só.
+
+Regras dela, de 29/10/2026, que **não devem ser mexidas sem perguntar**:
+
+- **Vem do card**: o tipo do ato (título), o nome do card (Arquivo), o escrevente (`resp`), a data e o horário da *Assinatura da escritura* (`agendado`), Registro, Prenotação, Livro,
+  Folha e Controle, e a **matrícula lida do documento** da matrícula (`onrDoCaso`, a do cabeçalho — não as que o texto cita).
+- **Fica em branco, para a caneta**: Minuta nº, Solicitante, Outorgantes, Outorgados, as quatro modalidades (☐), os sete dias da semana, as pendências e o rodapé. O painel não tem esses
+  dados e **não os inventa**; ela escolheu deixar em branco.
+- **O orçamento vem do último orçamento do caso** (`orcValoresDaCapa`: escritura, matrícula, registro com a taxa embutida, prenotação, imposto, total) e **só para quem entrou no
+  Financeiro** — sem login o quadro sai com `R$ ______`, como qualquer valor do painel. O que não cabe nas cinco linhas aparece como *Outras despesas*, para a folha somar sempre o total impresso.
+- Teste: `node testes/capa.mjs` (inclui medir no Chromium que cabe numa página A4 com nome de arquivo comprido).
+
 ## O Caderno da Rafaela (projeto à parte)
 
 Mora em `rafaela/`, num projeto próprio da Vercel (*Root Directory*
@@ -1319,7 +1543,11 @@ o `testes/montar.mjs` recorta.
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | Pedir documentos (lista por ato e público) | `pedido-docs.js` → `PEDIDO.montar()`, `comporTexto()`, `formulario()`, `abrirJanela()` |
 | O link de envio e o que chegou no card | `criarLinkEnvio()`, `pedidoRecebidosHtml()` (index.html) · `enviar.html` · `clienteArquivo()`, `clienteDados()` (Apps Script) |
+| A esteirinha de etapas e o card em abas | `ESTEIRA_ETAPAS`, `esteiraAplicar()`, `esteiraVarrer()`, `esteiraTrilhaHtml()`, `cardPartes()`, `cardNovoHtml()` |
+| A lista de documentos recebidos (agrupada, abre e fecha) | `docsAgrupar()`, `docsRotulo()`, `pedidoRecebidosHtml()`, `DOCS_ABERTOS` |
 | O link de pagamento (janela, faixa do card, aviso, impressão) | `abrirPagamento()`, `pagGerarLink()`, `pagFaixaHtml()`, `pagAvisosHtml()`, `imprimirComprovante()` (index.html) · `pagar.html` · `pagamentoArquivo()`, `pagamentoConcluir()`, `pagamentoVer()` (Apps Script) |
+| O Ajudante (JUCESP) — a extensão | `ajudante/` → `jucesp.js` (`planejar()`, `escolherConsolidacao()`), `background.js` (`capturar()`), `painel.js` · no painel `ajudanteHtml()`, `ajudantePedir()` |
+| O Ajudante na RI Digital (ONR) | `ajudante/onr.js` (`planejar()`, `tela()`), `background.js` (`criarPedidoOnr()`, `capturarOnr()`, `relatorioOnr()`) · no painel `onrHtml()`, `onrDoCaso()`, `onrIniciar()` |
 | A Rede, na tela | `renderRede()`, `redeHtmlFila()`, `redeHtmlConstrutoras()` |
 | O caminho até a conversa | `redeHtmlPergunta()`, `redeConvidei()`, `redeAceitou()`, `redeHoraDePerguntar()` |
 | A mensagem sugerida | `redeMensagemSugerida()`, `redeAtoNaFrase()` |
@@ -1347,7 +1575,13 @@ node testes/radar.mjs && node testes/radar-triagem.mjs
 node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
 node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
-node testes/enviar-tela.mjs && node testes/cliente-envio.mjs
+node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
+node testes/docs-agrupados.mjs
+node testes/card-topo.mjs
+node testes/esteirinha.mjs
+node testes/ajudante.mjs
+node testes/capa.mjs
+node testes/prefeitura.mjs
 node testes/orcamento-link-tela.mjs && node testes/pagar-tela.mjs && node testes/pagamento-envio.mjs && node testes/pagamento-painel.mjs
 ```
 

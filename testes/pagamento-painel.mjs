@@ -357,13 +357,38 @@ await passo('a leitura falha (Apps Script antigo ou IA fora): não trava nada, e
 await passo('link do orçamento: grava o registro de tipo orçamento com a folha e o resumo no card, e copia a mensagem', async () => {
   const pg = await abrir();
   await pg.evaluate(() => { window.__orc = [{id: 'o1', casoId: '-Caso1', status: 'enviado', versao: 1, resultado: {}}, {id: 'o2', casoId: '-Caso1', status: 'enviado', versao: 2, resultado: {}}]; });
-  await pg.evaluate(() => orcLinkAprovacao('-Caso1', 'o2'));
+  await pg.evaluate(() => orcGerarLinkAprovacao('-Caso1', 'o2', {}, true));
   const g = await pg.evaluate(() => window.__grav);
   const cob = g.find((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234'); assert(cob, JSON.stringify(g.map((x) => x[1])));
   assert.equal(cob[2].meta.tipo, 'orcamento'); assert.equal(cob[2].meta.orcId, 'o2'); assert.equal(cob[2].meta.versao, '2'); assert.equal(cob[2].meta.casoId, '-Caso1'); assert(cob[2].meta.expiraEm > Date.now() + 14 * 864e5);
   assert(/^data:image\/jpeg;base64,/.test(cob[2].imagens.orcamento)); assert.equal(cob[2].dados.nome, 'Maria da Silva');
   const l = g.find((x) => x[1] === 'casos/-Caso1/orcLink'); assert(l && l[2].token === 'TOKENFIXOabcdefghij1234' && l[2].versao === '2');
   const m = await pg.evaluate(() => window.__ultimoLinkOrc); assert.equal(m.link, 'https://painel.exemplo/o/TOKENFIXOabcdefghij1234'); assert(/aprovar o seu orçamento/.test(m.msg) && m.msg.includes(m.link));
+});
+
+await passo('link do orçamento com documentos: pede a lista pelo caminho de /pedidos e guarda o código junto', async () => {
+  const pg = await abrir();
+  await pg.evaluate(() => {
+    window.__orc = [{id: 'o2', casoId: '-Caso1', status: 'enviado', versao: 2, resultado: {}}];
+    window.PEDIDO = {formulario: (est) => [{id: 'pessoa', titulo: 'RG e CPF'}]};
+    window.__pedidoChamado = null;
+    window.criarLinkEnvio = async (id, p) => { window.__pedidoChamado = {id, blocos: p.blocos, token: p.token, guiado: p.guiado}; return {token: 'DOCS1234567890abcdef', url: 'x'}; };
+  });
+  const r = await pg.evaluate(() => orcGerarLinkAprovacao('-Caso1', 'o2', {tipo: 'Compra e venda', papel: 'comprador'}, false));
+  assert.equal(r.tokens.docs, 'DOCS1234567890abcdef'); assert.equal(await pg.evaluate(() => window.__pedidoChamado.id), '-Caso1');
+  const g = await pg.evaluate(() => window.__grav);
+  assert.equal(g.find((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234')[2].meta.docsToken, 'DOCS1234567890abcdef');
+  assert.equal(g.find((x) => x[1] === 'casos/-Caso1/orcLink')[2].docsToken, 'DOCS1234567890abcdef');
+  const lig = g.find((x) => x[0] === 'update' && x[1] === 'pedidos/DOCS1234567890abcdef'); assert(lig && lig[2].orcToken === 'TOKENFIXOabcdefghij1234', 'o pedido guarda de qual aprovação veio');
+  assert.equal(await pg.evaluate(() => window.__pedidoChamado.guiado), true, 'o pedido que nasce da aprovação é o guiado (dois passos)');
+  // Atualizar a lista reaproveita os dois códigos: o link que já foi enviado continua valendo.
+  await pg.evaluate(() => orcGerarLinkAprovacao('-Caso1', 'o2', {aprTok: {aprov: 'APROV1234567890abcdef', docs: 'DOCS1234567890abcdef'}}, false));
+  assert.equal(await pg.evaluate(() => window.__pedidoChamado.token), 'DOCS1234567890abcdef');
+  assert(await pg.evaluate(() => window.__grav.some((x) => x[1] === 'cobrancas/APROV1234567890abcdef')));
+  // Banco recusando: o erro sobe escrito (a janela mostra), nada de "link pronto" sem estar gravado.
+  await pg.evaluate(() => { window.__recusar = true; });
+  const erro = await pg.evaluate(async () => { try { await orcGerarLinkAprovacao('-Caso1', 'o2', {}, true); return ''; } catch (e) { return e.message; } });
+  assert(/banco recusou/.test(erro), erro);
 });
 
 await passo('a aprovação do cliente: aparece na faixa e no topo, e a janela de pagamento já nasce com a versão aprovada', async () => {
@@ -384,6 +409,18 @@ await passo('a aprovação do cliente: aparece na faixa e no topo, e a janela de
   assert.equal(visto[2].visto, true);
   const sem = await pg.evaluate(() => pagAvisosHtml({'-Caso1': {id: '-Caso1', nome: 'M', orcAprovacao: {em: 1, visto: true}}}));
   assert(!/aprovou/.test(sem), 'depois de visto, o aviso some');
+});
+
+await passo('"Cliente aprovou": um clique grava a aprovação (manual, já vista), e dá para desmarcar', async () => {
+  const pg = await abrir();
+  await pg.evaluate(() => { window.__orc = [{id: 'o2', casoId: '-Caso1', status: 'conferencia', versao: 2, resultado: {}}]; window.__setCasos({'-Caso1': {id: '-Caso1', nome: 'Maria da Silva'}}); });
+  await pg.evaluate(() => orcMarcarAprovado('-Caso1', 'o2'));
+  const g = await pg.evaluate(() => window.__grav.filter((x) => x[1] === 'casos/-Caso1/orcAprovacao').pop());
+  assert.equal(g[2].orcId, 'o2'); assert.equal(g[2].versao, '2'); assert.equal(g[2].manual, true); assert.equal(g[2].visto, true); assert(g[2].em > 0);
+  const r = await pg.evaluate(() => { const c = {id: '-Caso1', nome: 'M', orcAprovacao: {orcId: 'o2', versao: '2', em: 1760000000000, visto: true, manual: true}}; window.__setCasos({'-Caso1': c}); return {faixa: pagFaixaHtml(c), topo: pagAvisosHtml({'-Caso1': c})}; });
+  assert(/marcado pela equipe/.test(r.faixa)); assert(!/aprovou/.test(r.topo), 'marcado à mão não gera aviso no topo');
+  await pg.evaluate(() => orcDesmarcarAprovado('-Caso1'));
+  const d = await pg.evaluate(() => window.__grav.filter((x) => x[1] === 'casos/-Caso1/orcAprovacao').pop()); assert.equal(d[2], null);
 });
 
 await b.close(); servidor.close();

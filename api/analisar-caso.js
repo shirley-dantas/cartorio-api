@@ -1,6 +1,6 @@
+const ia = require("../lib/ia.js");
 const https = require("https");
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // Lista de verificação por tipo de ato — compartilhada com perguntas-minuta.
 const { instrucoesPorTipo } = require("../lib/instrucoes-por-tipo");
@@ -76,56 +76,13 @@ NOTA SOBRE O ENCERRAMENTO: Substitua "adquirente" pelo nome correto da parte pri
 
 A minuta deve conter todos os elementos formais: preâmbulo (abertura), qualificação completa das partes, objeto, cláusulas, disposições fiscais, encerramento e assinaturas.`;
 
-function callClaudeStream(userMessage, onChunk) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 3000,
-      stream: true,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userMessage }]
-    });
-
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let fullText = "";
-      let buffer = "";
-      res.on("data", (chunk) => {
-        buffer += chunk.toString();
-        const lines = buffer.split("\n");
-        buffer = lines.pop();
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const raw = line.slice(6).trim();
-          if (raw === "[DONE]") continue;
-          try {
-            const evt = JSON.parse(raw);
-            if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
-              const text = evt.delta.text || "";
-              fullText += text;
-              onChunk(text);
-            }
-          } catch {}
-        }
-      });
-      res.on("end", () => resolve(fullText || "Sem resposta da IA."));
-    });
-
-    req.on("error", reject);
-    req.write(body);
-    req.end();
-  });
+async function gerarTextoStream(userMessage, onChunk) {
+  const opcoes = {
+    max_tokens: 3000,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content: userMessage }]
+  };
+  return ia.texto(opcoes, onChunk);
 }
 
 const DRIVE_URL = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
@@ -243,7 +200,7 @@ Por favor, gere a minuta completa conforme as informações disponíveis, usando
   res.setHeader("X-Accel-Buffering", "no");
 
   try {
-    const resposta = await callClaudeStream(mensagem, (chunk) => {
+    const resposta = await gerarTextoStream(mensagem, (chunk) => {
       res.write(`data: ${JSON.stringify({ t: chunk })}\n\n`);
     });
     const { minuta, comentarios } = parsearResposta(resposta);

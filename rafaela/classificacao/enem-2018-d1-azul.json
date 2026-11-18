@@ -1,0 +1,483 @@
+{
+"enem-2018-d1-azul-q01-espanhol": {
+"materia": "Espanhol",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q01-ingles": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q02-espanhol": {
+"materia": "Espanhol",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q02-ingles": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q03-espanhol": {
+"materia": "Espanhol",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q03-ingles": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q04-espanhol": {
+"materia": "Espanhol",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q04-ingles": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q05-espanhol": {
+"materia": "Espanhol",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q05-ingles": {
+"materia": "Inglês",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q06": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2018-d1-azul-q07": {
+"materia": "Português",
+"subtema": "Variação linguística",
+"tags": []
+},
+"enem-2018-d1-azul-q08": {
+"materia": "Literatura",
+"subtema": "Modernismo",
+"tags": [
+"Guimarães Rosa"
+]
+},
+"enem-2018-d1-azul-q09": {
+"materia": "Português",
+"subtema": "Linguagem e tecnologia",
+"tags": []
+},
+"enem-2018-d1-azul-q10": {
+"materia": "Literatura",
+"subtema": "Literatura afro-brasileira",
+"tags": []
+},
+"enem-2018-d1-azul-q11": {
+"materia": "Artes",
+"subtema": "Artes visuais",
+"tags": []
+},
+"enem-2018-d1-azul-q12": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q13": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2018-d1-azul-q14": {
+"materia": "Português",
+"subtema": "Argumentação",
+"tags": []
+},
+"enem-2018-d1-azul-q15": {
+"materia": "Literatura",
+"subtema": "Prosa contemporânea",
+"tags": []
+},
+"enem-2018-d1-azul-q16": {
+"materia": "Literatura",
+"subtema": "Prosa contemporânea",
+"tags": []
+},
+"enem-2018-d1-azul-q17": {
+"materia": "Literatura",
+"subtema": "Prosa contemporânea",
+"tags": []
+},
+"enem-2018-d1-azul-q18": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2018-d1-azul-q19": {
+"materia": "Português",
+"subtema": "Linguagem e tecnologia",
+"tags": []
+},
+"enem-2018-d1-azul-q20": {
+"materia": "Literatura",
+"subtema": "Prosa contemporânea",
+"tags": []
+},
+"enem-2018-d1-azul-q21": {
+"materia": "Português",
+"subtema": "Semântica",
+"tags": []
+},
+"enem-2018-d1-azul-q22": {
+"materia": "Português",
+"subtema": "Variação linguística",
+"tags": []
+},
+"enem-2018-d1-azul-q23": {
+"materia": "Literatura",
+"subtema": "Modernismo",
+"tags": []
+},
+"enem-2018-d1-azul-q24": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2018-d1-azul-q25": {
+"materia": "Literatura",
+"subtema": "Modernismo",
+"tags": [
+"Guimarães Rosa"
+]
+},
+"enem-2018-d1-azul-q26": {
+"materia": "Educação Física",
+"subtema": "Esporte e sociedade",
+"tags": []
+},
+"enem-2018-d1-azul-q27": {
+"materia": "Português",
+"subtema": "Interpretação de texto",
+"tags": []
+},
+"enem-2018-d1-azul-q28": {
+"materia": "Português",
+"subtema": "Argumentação",
+"tags": []
+},
+"enem-2018-d1-azul-q29": {
+"materia": "Artes",
+"subtema": "Fotografia",
+"tags": []
+},
+"enem-2018-d1-azul-q30": {
+"materia": "Português",
+"subtema": "Letra de música",
+"tags": []
+},
+"enem-2018-d1-azul-q31": {
+"materia": "Educação Física",
+"subtema": "Esporte e sociedade",
+"tags": []
+},
+"enem-2018-d1-azul-q32": {
+"materia": "Português",
+"subtema": "Letra de música",
+"tags": []
+},
+"enem-2018-d1-azul-q33": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2018-d1-azul-q34": {
+"materia": "Artes",
+"subtema": "Artes visuais",
+"tags": []
+},
+"enem-2018-d1-azul-q35": {
+"materia": "Português",
+"subtema": "Letra de música",
+"tags": []
+},
+"enem-2018-d1-azul-q36": {
+"materia": "Literatura",
+"subtema": "Poesia contemporânea",
+"tags": []
+},
+"enem-2018-d1-azul-q37": {
+"materia": "Português",
+"subtema": "Variação linguística",
+"tags": []
+},
+"enem-2018-d1-azul-q38": {
+"materia": "Literatura",
+"subtema": "Modernismo",
+"tags": [
+"Graciliano Ramos"
+]
+},
+"enem-2018-d1-azul-q39": {
+"materia": "Português",
+"subtema": "Funções da linguagem",
+"tags": []
+},
+"enem-2018-d1-azul-q40": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2018-d1-azul-q41": {
+"materia": "Português",
+"subtema": "Argumentação",
+"tags": []
+},
+"enem-2018-d1-azul-q42": {
+"materia": "Literatura",
+"subtema": "Prosa contemporânea",
+"tags": []
+},
+"enem-2018-d1-azul-q43": {
+"materia": "Educação Física",
+"subtema": "Gênero e esporte",
+"tags": []
+},
+"enem-2018-d1-azul-q44": {
+"materia": "Português",
+"subtema": "Gêneros textuais",
+"tags": []
+},
+"enem-2018-d1-azul-q45": {
+"materia": "Artes",
+"subtema": "Artes visuais",
+"tags": []
+},
+"enem-2018-d1-azul-q46": {
+"materia": "Geografia",
+"subtema": "Pensamento geográfico",
+"tags": []
+},
+"enem-2018-d1-azul-q47": {
+"materia": "História",
+"subtema": "Idade Média",
+"tags": []
+},
+"enem-2018-d1-azul-q48": {
+"materia": "Sociologia",
+"subtema": "Antropologia e poder",
+"tags": []
+},
+"enem-2018-d1-azul-q49": {
+"materia": "Filosofia",
+"subtema": "Fenomenologia",
+"tags": []
+},
+"enem-2018-d1-azul-q50": {
+"materia": "História",
+"subtema": "Direitos civis nos EUA",
+"tags": []
+},
+"enem-2018-d1-azul-q51": {
+"materia": "Filosofia",
+"subtema": "Filosofia medieval",
+"tags": []
+},
+"enem-2018-d1-azul-q52": {
+"materia": "Filosofia",
+"subtema": "Contratualismo",
+"tags": []
+},
+"enem-2018-d1-azul-q53": {
+"materia": "Geografia",
+"subtema": "Rede urbana",
+"tags": []
+},
+"enem-2018-d1-azul-q54": {
+"materia": "História",
+"subtema": "Brasil colonial",
+"tags": []
+},
+"enem-2018-d1-azul-q55": {
+"materia": "História",
+"subtema": "Guerra Fria",
+"tags": []
+},
+"enem-2018-d1-azul-q56": {
+"materia": "Geografia",
+"subtema": "Cartografia",
+"tags": []
+},
+"enem-2018-d1-azul-q57": {
+"materia": "História",
+"subtema": "Participação feminina",
+"tags": []
+},
+"enem-2018-d1-azul-q58": {
+"materia": "História",
+"subtema": "Governo João Goulart",
+"tags": []
+},
+"enem-2018-d1-azul-q59": {
+"materia": "História",
+"subtema": "Brasil colonial",
+"tags": []
+},
+"enem-2018-d1-azul-q60": {
+"materia": "Geografia",
+"subtema": "Migrações",
+"tags": []
+},
+"enem-2018-d1-azul-q61": {
+"materia": "História",
+"subtema": "República de 1946",
+"tags": []
+},
+"enem-2018-d1-azul-q62": {
+"materia": "Geografia",
+"subtema": "Geopolítica",
+"tags": []
+},
+"enem-2018-d1-azul-q63": {
+"materia": "Geografia",
+"subtema": "Climatologia",
+"tags": []
+},
+"enem-2018-d1-azul-q64": {
+"materia": "História",
+"subtema": "Cultura africana no Brasil",
+"tags": []
+},
+"enem-2018-d1-azul-q65": {
+"materia": "Geografia",
+"subtema": "Transportes e logística",
+"tags": []
+},
+"enem-2018-d1-azul-q66": {
+"materia": "Filosofia",
+"subtema": "Iluminismo",
+"tags": []
+},
+"enem-2018-d1-azul-q67": {
+"materia": "Geografia",
+"subtema": "Hidrologia urbana",
+"tags": []
+},
+"enem-2018-d1-azul-q68": {
+"materia": "História",
+"subtema": "Conquista da América",
+"tags": []
+},
+"enem-2018-d1-azul-q69": {
+"materia": "História",
+"subtema": "Ditadura militar",
+"tags": []
+},
+"enem-2018-d1-azul-q70": {
+"materia": "Sociologia",
+"subtema": "Sociedade do espetáculo",
+"tags": []
+},
+"enem-2018-d1-azul-q71": {
+"materia": "História",
+"subtema": "Primeira República",
+"tags": []
+},
+"enem-2018-d1-azul-q72": {
+"materia": "Geografia",
+"subtema": "Amazônia e biodiversidade",
+"tags": []
+},
+"enem-2018-d1-azul-q73": {
+"materia": "Geografia",
+"subtema": "Pensamento geográfico",
+"tags": []
+},
+"enem-2018-d1-azul-q74": {
+"materia": "História",
+"subtema": "Era Vargas",
+"tags": []
+},
+"enem-2018-d1-azul-q75": {
+"materia": "Geografia",
+"subtema": "Demografia",
+"tags": []
+},
+"enem-2018-d1-azul-q76": {
+"materia": "História",
+"subtema": "Primeira República",
+"tags": []
+},
+"enem-2018-d1-azul-q77": {
+"materia": "Geografia",
+"subtema": "Relevo",
+"tags": []
+},
+"enem-2018-d1-azul-q78": {
+"materia": "História",
+"subtema": "Voto feminino",
+"tags": []
+},
+"enem-2018-d1-azul-q79": {
+"materia": "Filosofia",
+"subtema": "Epicurismo",
+"tags": []
+},
+"enem-2018-d1-azul-q80": {
+"materia": "Sociologia",
+"subtema": "Desigualdade e pobreza",
+"tags": []
+},
+"enem-2018-d1-azul-q81": {
+"materia": "Geografia",
+"subtema": "Fronteiras e território",
+"tags": []
+},
+"enem-2018-d1-azul-q82": {
+"materia": "Geografia",
+"subtema": "Recursos hídricos",
+"tags": []
+},
+"enem-2018-d1-azul-q83": {
+"materia": "Filosofia",
+"subtema": "Santo Agostinho",
+"tags": []
+},
+"enem-2018-d1-azul-q84": {
+"materia": "História",
+"subtema": "Coronelismo",
+"tags": []
+},
+"enem-2018-d1-azul-q85": {
+"materia": "História",
+"subtema": "Antiguidade oriental",
+"tags": []
+},
+"enem-2018-d1-azul-q86": {
+"materia": "Geografia",
+"subtema": "Questão agrária",
+"tags": []
+},
+"enem-2018-d1-azul-q87": {
+"materia": "Sociologia",
+"subtema": "Gênero e trabalho",
+"tags": []
+},
+"enem-2018-d1-azul-q88": {
+"materia": "Geografia",
+"subtema": "Recursos naturais",
+"tags": []
+},
+"enem-2018-d1-azul-q89": {
+"materia": "Geografia",
+"subtema": "Questões ambientais",
+"tags": []
+},
+"enem-2018-d1-azul-q90": {
+"materia": "Filosofia",
+"subtema": "Democracia",
+"tags": []
+}
+}

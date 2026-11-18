@@ -1,5 +1,5 @@
 // Caderno da Rafaela no Chromium: do clique até o número na tela, com a IA fingida.
-// Roda por cima do painel/index.html de verdade (e do data.json com as 1.160 questões).
+// Roda por cima do painel/index.html de verdade (e do data.json com as 1.625 questões).
 //   node rafaela/testes/painel.mjs            → confere tudo e guarda imagens em testes/saida/
 import http from "node:http";
 import fs from "node:fs";
@@ -223,7 +223,7 @@ console.log("• Estatísticas com registros de verdade");
   const txt = await p.textContent("#v-stats");
   ok(txt.includes("Revisar primeiro") && txt.includes("Química · Estequiometria"), "tela mostra a prioridade");
   ok(txt.includes("Tipos de questão que mais me confundem") && txt.includes("cálculo estequiométrico"), "tela mostra tipos de questão");
-  ok(txt.includes("O acervo") && txt.includes("1160"), "estatísticas do acervo continuam lá");
+  ok(txt.includes("O acervo") && txt.includes("1625"), "estatísticas do acervo continuam lá");
   await p.screenshot({path: path.join(SAIDA, "stats-desktop.png"), fullPage: true});
 
   console.log("• Macetes");
@@ -248,13 +248,86 @@ console.log("• Estatísticas com registros de verdade");
 console.log("• Resolver online alimenta as estatísticas");
 {
   const {ctx, p} = await nova({viewport: {width: 1100, height: 900}});
-  await aba(p, "acervo"); await p.click(".banca >> text=UNICAMP"); await p.click("#anos .chip >> text=2024"); await p.fill("#nums", "1-3");
+  await aba(p, "acervo"); await p.click(".banca >> text=UNICAMP"); await p.click("#anos .chip >> text=2024"); await p.fill("#qtd", "3");
   await p.click("#b-online"); await p.waitForSelector(".alts .alt");
   for (let i = 0; i < 3; i++) { await p.click(".alts .alt[data-l=A]"); }
+  // cronômetro: anda, pausa (e esconde a questão), e a tentativa guarda os segundos
+  await p.waitForTimeout(2300);
+  ok((await p.textContent("#cq")) !== "0:00" && /^\d+:\d\d$/.test(await p.textContent("#ct")), "cronômetro anda");
+  await p.click("#pausa"); await p.waitForSelector(".pausa");
+  ok((await p.locator("#qi").count()) === 0, "pausado esconde a questão");
+  const tp = await p.textContent("#ct"); await p.waitForTimeout(1500);
+  ok((await p.textContent("#ct")) === tp, "pausado não conta tempo");
+  await p.screenshot({path: path.join(SAIDA, "cronometro-pausado.png")});
+  await p.click("#pausa"); await p.waitForSelector("#qi");
+  await p.screenshot({path: path.join(SAIDA, "cronometro-questao.png")});
   await p.click("#fin"); await p.waitForSelector(".score");
+  ok((await p.locator(".cron:has-text('para as 3 questões')").count()) === 1, "resultado mostra o tempo total das questões");
+  ok((await p.textContent(".cron:has-text('para as 3 questões')")).includes("ritmo da prova real"), "resultado compara com o ritmo da prova");
+  await p.screenshot({path: path.join(SAIDA, "cronometro-resultado.png")});
   const t = await p.evaluate(() => window.__rafa.estado().TENT); ok(t.length === 3, "3 tentativas guardadas: " + t.length);
+  ok(t.some(x => x.seg >= 2), "a tentativa guarda os segundos gastos");
   await p.click("#fin").catch(() => {});
   if (await p.locator("[data-reg]").count()) { await p.click("[data-reg] >> nth=0"); await p.waitForSelector("#f-rac"); ok((await p.inputValue("#f-mat")).length > 0, "'Registrar no caderno' abre o formulário já ligado à questão"); }
+  await ctx.close();
+}
+
+console.log("• Vários subtemas de uma vez");
+{
+  const {ctx, p} = await nova({viewport: {width: 1100, height: 900}});
+  await aba(p, "acervo"); await p.click(".banca >> text=FUVEST"); await p.click("#materias .chip >> text=Matemática");
+  const tudo = +(await p.textContent("#n"));
+  const subs = await p.locator("#subtemas .chip").count(); ok(subs >= 3, "subtemas viram botões marcáveis: " + subs);
+  await p.click("#subtemas .chip >> nth=0"); const n1 = +(await p.textContent("#n"));
+  await p.click("#subtemas .chip >> nth=1"); const n2 = +(await p.textContent("#n"));
+  ok(n1 > 0 && n2 > n1 && n2 < tudo, `dois subtemas somam as questões dos dois (${n1} → ${n2} de ${tudo})`);
+  ok((await p.textContent("#escopo")).includes(" + "), "o escopo lista os dois subtemas");
+  await p.screenshot({path: path.join(SAIDA, "subtemas-varios.png"), fullPage: false});
+  await p.click("#subtemas .chip >> nth=1"); ok(+(await p.textContent("#n")) === n1, "desmarcar volta ao anterior");
+  await ctx.close();
+}
+
+console.log("• Quantidade de questões: lista sorteada entre os subtemas");
+{
+  const {ctx, p, erros} = await nova({viewport: {width: 1100, height: 900}});
+  await aba(p, "acervo"); await p.click(".banca >> text=ENEM"); await p.click("#materias .chip >> text=Matemática");
+  ok((await p.locator("#nums").count()) === 0 && (await p.locator("#qtd").count()) === 1, "'Número da questão' saiu e entrou 'Quantidade de questões'");
+  // marca 5 subtemas com pelo menos 3 questões cada
+  const nomes = await p.evaluate(() => [...document.querySelectorAll("#subtemas .chip")].filter(c => +c.querySelector("small").textContent >= 3).slice(0, 5).map(c => c.firstChild.textContent.trim()));
+  ok(nomes.length === 5, "há 5 subtemas com questões suficientes: " + nomes.length);
+  for (const n of nomes) await p.click(`#subtemas .chip:has-text("${n}")`);
+  await p.fill("#qtd", "10");
+  const ler = () => p.evaluate(() => [...document.querySelectorAll("#lista .q")].map(q => ({id: q.querySelector(".img").dataset.id, sub: q.querySelectorAll(".qh .tag")[1].textContent})));
+  ok(+(await p.textContent("#n")) === 10 && (await p.textContent("#nlabel")).includes("sorteadas"), "a lista tem 10 questões no total");
+  const l1 = await ler();
+  ok(l1.length === 10 && new Set(l1.map(x => x.id)).size === 10, "sem questão repetida");
+  const por = {}; l1.forEach(x => por[x.sub] = (por[x.sub] || 0) + 1);
+  ok(Object.keys(por).length === 5 && Object.values(por).every(v => v === 2), "equilibrado: 5 temas, 2 de cada " + JSON.stringify(por));
+  ok(l1.every(x => nomes.includes(x.sub)), "só sai questão dos temas marcados");
+  await p.fill("#qtd", "7"); const l7 = await ler(); const por7 = {}; l7.forEach(x => por7[x.sub] = (por7[x.sub] || 0) + 1);
+  ok(l7.length === 7 && Math.max(...Object.values(por7)) <= 2 && Object.keys(por7).length === 5, "7 em 5 temas: nenhum com mais de 2 " + JSON.stringify(por7));
+  await p.fill("#qtd", "10"); const lA = await ler();
+  await p.click("#b-sort"); const lB = await ler();
+  ok(lA.map(x => x.id).join() !== lB.map(x => x.id).join(), "sortear de novo traz outra lista");
+  await p.click("#b-online"); await p.waitForSelector(".alts .alt");
+  ok((await p.textContent(".dlg .row b")).includes("de 10"), "a prática online usa as 10 sorteadas");
+  await p.click("#sair");
+  await p.click("#b-gab"); ok((await p.locator(".gab > div").count()) === 10, "o gabarito é da mesma lista (10)"); await p.click("#x");
+  await p.fill("#qtd", "9999"); ok((await p.textContent("#aviso")).includes("Só há"), "pediu mais do que existe: avisa e usa todas");
+  await p.fill("#qtd", ""); ok(+(await p.textContent("#n")) > 10, "vazio volta a ser todas as questões do filtro");
+  await p.screenshot({path: path.join(SAIDA, "quantidade.png"), fullPage: false});
+  ok(!erros.length, "sem erro de script: " + erros.join(" | "));
+  await ctx.close();
+}
+
+console.log("• Meu ritmo nas estatísticas");
+{
+  const {ctx, p} = await nova({viewport: {width: 1100, height: 900}});
+  await p.evaluate(() => { const T = []; for (let i = 0; i < 4; i++) T.push({em: new Date().toISOString(), sess: "x", qid: "q" + i, b: "fuvest", a: 2025, m: "Matemática", s: "Funções", ok: true, seg: 400}); localStorage.setItem("rafa.tentativas", JSON.stringify(T)); });
+  await p.reload(); await p.waitForFunction(() => window.__rafa); await aba(p, "stats");
+  const txt = await p.textContent("#v-stats");
+  ok(txt.includes("Meu ritmo") && txt.includes("4 questões cronometradas") && txt.includes("Matemática"), "estatística de ritmo aparece");
+  await p.screenshot({path: path.join(SAIDA, "ritmo-stats.png"), fullPage: true});
   await ctx.close();
 }
 

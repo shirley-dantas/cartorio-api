@@ -25,13 +25,14 @@ await pgTmp.close();
 const RG = SAIDA('rg.png'); writeFileSync(RG, Buffer.from(png, 'base64'));
 const PDF = SAIDA('cert.pdf'); writeFileSync(PDF, '%PDF-1.4\n%%EOF');
 
-async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = true, expira, gas, concluidoEm, intro = false} = {}) {
+async function abrir(estado, {viewport = {width: 390, height: 844}, mobile = true, expira, gas, concluidoEm, intro = false, orcToken, guiado} = {}) {
   const pg = await b.newPage({viewport, deviceScaleFactor: mobile ? 2 : 1.4, isMobile: mobile, hasTouch: mobile});
-  const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), ...(concluidoEm ? {concluidoEm} : {}), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
+  const pedidos = {[TOKEN]: {casoId: '-Caso1', ato: estado.tipo, criadoEm: Date.now(), ...(concluidoEm ? {concluidoEm} : {}), ...(orcToken ? {orcToken} : {}), ...(guiado ? {guiado: true} : {}), expiraEm: expira || Date.now() + 864e5, blocos: P.formulario(estado)}};
   const chamadas = [];
   await pg.route('**/*', async (rota) => {
     const u = rota.request().url();
     if (u.includes('firebaseio.com/pedidos/')) { const t = u.split('/pedidos/')[1].replace('.json', ''); return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(pedidos[t] || null)}); }
+    if (u.includes('firebaseio.com/cobrancas/')) return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({meta: {tipo: 'orcamento'}, imagens: {orcamento: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='}})});
     if (u.includes('script.google.com')) { const corpo = JSON.parse(rota.request().postData()); chamadas.push(corpo); const r = gas ? gas(corpo) : {ok: true}; return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify(r)}); }
     if (u.includes('viacep.com.br')) return rota.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({logradouro: 'Rua das Palmeiras', bairro: 'Jardins', localidade: 'São Paulo', uf: 'SP'})});
     if (u.startsWith('http://127.0.0.1')) return rota.continue();
@@ -149,6 +150,45 @@ await passo('trava: faltando algo o envio não sai; completo, pede confirmação
   await pg.click('[data-fecha]'); assert(!chamadas.some((c) => c.acao === 'cliente-dados'), 'voltar e revisar não envia a ficha');
   await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
   assert(chamadas.some((c) => c.acao === 'cliente-dados'), 'só agora a ficha vai');
+});
+await passo('terminado o envio, o orçamento aprovado aparece fixo na tela final (só se o pedido veio de uma aprovação)', async () => {
+  const {pg} = await abrir(compra, {orcToken: 'APROV1234567890abcdef12'}); await pg.waitForSelector('[data-b="partes"]');
+  assert.equal(await pg.locator('#orcFixo').isVisible(), false, 'durante o preenchimento, nada de orçamento');
+  await preencher(pg); await pg.waitForFunction(() => /conferir e enviar/i.test(document.querySelector('#enviar').textContent));
+  await clicarEnviar(pg); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
+  await pg.waitForSelector('#orcFixo:not([hidden])'); assert(/orçamento aprovado/i.test(await pg.innerText('#orcFixo'))); assert(await pg.locator('#orcSalvar').isVisible());
+  const sem = await abrir(compra); await sem.pg.waitForSelector('[data-b="partes"]'); await preencher(sem.pg);
+  await sem.pg.waitForFunction(() => /conferir e enviar/i.test(document.querySelector('#enviar').textContent));
+  await clicarEnviar(sem.pg); await sem.pg.click('[data-ok]'); await sem.pg.waitForSelector('body.concluido');
+  assert.equal(await sem.pg.locator('#orcFixo').isVisible(), false, 'sem aprovação ligada, a tela final é a de sempre');
+});
+await passo('modo guiado: passo 1 (dados e endereço), passo 2 (um só lugar de anexar) — sem introdução, sem pagamento, sem câmera separada', async () => {
+  const {pg, chamadas} = await abrir(compra, {guiado: true}); await pg.waitForSelector('[data-b="partes"]');
+  assert.equal(await pg.locator('#intro').isVisible(), false, 'sem a página de introdução');
+  const t = await pg.innerText('#formulario'); assert(/PASSO 1 DE 2/.test(t) && /Seus dados/.test(t), t);
+  assert(!/Pagamento|Observações/.test(t), 'só dados e endereço'); assert.equal(await pg.locator('input[type=file]').count(), 0, 'nenhum documento no passo 1');
+  assert(/faltam \d+ itens/i.test(await pg.innerText('#enviar')));
+  await pg.click('#enviar'); assert(/Ainda falta preencher/.test(await pg.innerText('.folha')), 'não passa com dado faltando'); await pg.click('[data-fecha]');
+  await pg.fill('[data-f="nome"]', 'Maria da Silva'); await pg.selectOption('[data-f="ec"]', 'Solteiro(a)'); await pg.fill('[data-f="prof"]', 'Professora');
+  await pg.fill('[data-f="cep"]', '01452000'); await pg.waitForSelector('[data-editend]'); await pg.fill('[data-f="num"]', '210');
+  await pg.waitForFunction(() => /continuar/i.test(document.querySelector('#enviar').textContent));
+  await clicarEnviar(pg); await pg.waitForSelector('[data-slot="geral"]', {state: 'attached'});
+  const t2 = await pg.innerText('#formulario'); assert(/PASSO 2 DE 2/.test(t2) && /Anexar documentos/.test(t2) && !/Tirar foto/.test(t2), t2);
+  assert.equal(await pg.locator('input[type=file]').count(), 1, 'um só lugar de anexar'); assert.equal(await pg.locator('input[capture]').count(), 0, 'sem capture: o aparelho oferece foto, câmera ou arquivo');
+  assert.equal(await pg.getAttribute('[data-slot="geral"]', 'multiple') !== null, true);
+  // sem arquivo: o envio pergunta se pode seguir sem os documentos
+  await clicarEnviar(pg); assert(/Enviar sem/.test(await pg.innerText('.folha')), 'avisa que faltam documentos'); await pg.click('[data-fecha]');
+  await pg.locator('[data-slot="geral"]').setInputFiles([RG, PDF]);
+  await pg.waitForFunction(() => document.querySelectorAll('.arq small.ok').length === 2);
+  const subidos = chamadas.filter((c) => c.acao === 'cliente-arquivo'); assert.equal(subidos.length, 2); assert(subidos.every((c) => c.tipo === 'DOCUMENTOS' && c.chave === 'geral'), JSON.stringify(subidos.map((c) => [c.tipo, c.chave])));
+  await clicarEnviar(pg); assert(/Confira antes de enviar/.test(await pg.innerText('.folha')), 'com os arquivos, a conferência não reclama de documento'); await pg.click('[data-ok]'); await pg.waitForSelector('body.concluido');
+  const ficha = chamadas.find((c) => c.acao === 'cliente-dados'); assert(ficha && ficha.dados.pessoas[0].nome === 'Maria da Silva' && ficha.dados.documentosFaltando.length === 0);
+  // Voltar leva ao passo 1 sem perder o que foi digitado
+  const o = await abrir(compra, {guiado: true}); await o.pg.waitForSelector('[data-b="partes"]');
+  await o.pg.fill('[data-f="nome"]', 'Maria da Silva'); await o.pg.selectOption('[data-f="ec"]', 'Solteiro(a)'); await o.pg.fill('[data-f="prof"]', 'Professora');
+  await o.pg.fill('[data-f="cep"]', '01452000'); await o.pg.waitForSelector('[data-editend]'); await o.pg.fill('[data-f="num"]', '210');
+  await o.pg.waitForFunction(() => /continuar/i.test(document.querySelector('#enviar').textContent)); await clicarEnviar(o.pg); await o.pg.waitForSelector('[data-voltar]');
+  await o.pg.click('[data-voltar]'); await o.pg.waitForSelector('[data-f="nome"]'); assert.equal(await o.pg.inputValue('[data-f="nome"]'), 'Maria da Silva');
 });
 await passo('link já usado (concluidoEm) mostra "já foi usado" e nenhum formulário', async () => {
   const {pg} = await abrir(compra, {concluidoEm: Date.now() - 1000});

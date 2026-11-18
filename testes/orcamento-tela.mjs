@@ -697,6 +697,11 @@ await passo('a via do cliente sai como imagem, para colar no WhatsApp', async ()
   if(!/^data:image\/png/.test(img.url)) throw new Error('não saiu PNG');
 });
 
+await passo('depois de aprovada, a imagem ganha o selo "aprovado pelo cliente"', async () => {
+  const r = await pg.evaluate(() => ({sem: orcFolhaDoRascunho(null).height, com: orcFolhaDoRascunho({em: 1760000000000}).height}));
+  if(r.com <= r.sem) throw new Error('o selo não ocupou lugar na folha: ' + JSON.stringify(r));
+});
+
 // Ela precisava orçar uma escritura com uma procuração junto e não tinha onde
 // dizer isso. O bloco fica na etapa 1, colado no ato principal, porque é ali
 // que ela decide o que vai na escritura.
@@ -907,6 +912,7 @@ await passo('salvo, o card mostra a versão 1 e o orçamento vira leitura', asyn
   const txt = await pg.textContent('#cartao-orc');
   if(!/versão 1/.test(txt)) throw new Error('o card não mostrou a versão: ' + txt);
   if(!/16\.522,21/.test(txt)) throw new Error('o card não mostrou o total: ' + txt);
+  if(!/Cliente aprovou/.test(txt)) throw new Error('faltou o botão Cliente aprovou na faixa: ' + txt);
 });
 
 await passo('o que foi para o banco não tem nenhum undefined', async () => {

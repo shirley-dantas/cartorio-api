@@ -20,12 +20,13 @@ function mundo({recusaBanco = false, iaFalha = false} = {}) {
   const caminho = (u) => u.replace('https://painel-cartorio-default-rtdb.firebaseio.com', '').replace('.json', '').split('/').filter(Boolean);
   const pegar = (p) => p.reduce((o, k) => (o == null ? o : o[k]), db);
   const pôr = (p, v) => { let o = db; p.slice(0, -1).forEach((k) => { o = o[k] = o[k] || {}; }); o[p[p.length - 1]] = v; };
-  const externos = []; const props = {ANTHROPIC_API_KEY: 'x'};
+  const externos = []; const props = {OPENAI_API_KEY: 'x', ANTHROPIC_API_KEY:'x'};
   const resposta = (cod, corpo) => ({getResponseCode: () => cod, getContentText: () => JSON.stringify(corpo === undefined ? null : corpo)});
   class Pasta {
     constructor(nome) { this.nome = nome; this.arquivos = []; this.sub = []; this.id = 'pasta' + (Pasta.n = (Pasta.n || 0) + 1); }
     getUrl() { return 'https://drive.google.com/drive/folders/' + this.id; }
-    createFile(a, b) { const id = 'arq' + (Pasta.nf = (Pasta.nf || 0) + 1) + 'abcdefghij'; const f = {id, nome: a.name || a, bytes: a.bytes || b, lixeira: false, getId: () => id, getUrl: () => 'https://drive.google.com/file/d/' + id + '/view?usp=drivesdk', setTrashed(v) { f.lixeira = v; }, getBlob: () => ({getContentType: () => 'image/jpeg', getBytes: () => f.bytes})}; this.arquivos.push(f); ARQUIVOS[id] = f; return f; }
+    createFile(a, b) { const pastaDe = this; const id = 'arq' + (Pasta.nf = (Pasta.nf || 0) + 1) + 'abcdefghij'; const f = {id, nome: a.name || a, bytes: a.bytes || b, lixeira: false, getId: () => id, getUrl: () => 'https://drive.google.com/file/d/' + id + '/view?usp=drivesdk', setTrashed(v) { f.lixeira = v; }, getName: () => f.nome, setName(n) { f.nome = n; }, getParents: () => { const pais = [pastaDe]; let i = 0; return {hasNext: () => i < pais.length, next: () => pais[i++]}; }, getBlob: () => ({getContentType: () => 'image/jpeg', getBytes: () => f.bytes})}; this.arquivos.push(f); ARQUIVOS[id] = f; return f; }
+    getFiles() { const l = this.arquivos.filter((f) => !f.lixeira); let i = 0; return {hasNext: () => i < l.length, next: () => l[i++]}; }
     getFoldersByName(n) { const l = this.sub.filter((p) => p.nome === n); let i = 0; return {hasNext: () => i < l.length, next: () => l[i++]}; }
     createFolder(n) { const p = new Pasta(n); this.sub.push(p); return p; }
   }
@@ -64,7 +65,7 @@ function mundo({recusaBanco = false, iaFalha = false} = {}) {
   // O Drive fingido: a raiz tem que ser achável pelo id real que o script usa.
   todas[vm.runInContext('PASTA_RAIZ_ID', caixa)] = raiz;
   const chamar = (corpo) => JSON.parse(caixa.doPost({postData: {contents: JSON.stringify(corpo)}}).s);
-  return {db, caixa, chamar, externos, raiz, todas, reg};
+  return {db, caixa, chamar, externos, raiz, todas, reg, props};
 }
 const TOKEN = 'aB3dE6gH9jK2mN5pQ8sT1vX4';
 const B64 = Buffer.from('conteudo-do-rg').toString('base64');
@@ -252,5 +253,120 @@ await passo('excluir: chave inválida, documento que não existe e banco que rec
 await passo('excluir um arquivo que já sumiu do Drive ainda limpa o card', () => {
   const m = mundo(); semear(m); m.chamar(arq()); const [k] = Object.keys(m.db.casos['-Caso1'].documentos); const id = m.db.casos['-Caso1'].documentos[k].link.match(/\/d\/([^/]+)/)[1];
   delete ARQUIVOS[id]; const r = excluir(m, k); assert.equal(r.ok, true); assert.equal(r.arquivo, 'não encontrado'); assert(!m.db.casos['-Caso1'].documentos[k]);
+});
+// ── Arquivos arrastados para o card ──
+const solto = (extra = {}) => ({acao: 'painel-arquivo', casoId: '-Caso1', nomeArquivo: 'WhatsApp Image 2026-10-28 at 10.32.jpeg', mimetype: 'image/jpeg', base64: B64, ...extra});
+const iaDiz = (m, obj) => { m.caixa.chamarClaudeArquivoRaw = () => ({texto: JSON.stringify(obj), truncou: false}); };
+await passo('ficha da JUCESP: devolve o NUM.DOC da última CONSOLIDAÇÃO CONTRATUAL (o Nº Registro da lista de cópias)', () => {
+  const m = mundo(); semear(m);
+  const ficha = 'NUM.DOC: 180.568/10-3 SESSÃO: 02/06/2010\nCONSOLIDAÇÃO CONTRATUAL DA MATRIZ.\nNUM.DOC: 027.744/12-7 SESSÃO: 16/02/2012\nALTERAÇÃO DO NOME.\nNUM.DOC: 034.366/21-0 SESSÃO: 22/01/2021\nENDEREÇO ALTERADO\nCONSOLIDAÇÃO CONTRATUAL DA MATRIZ.\nNUM.DOC: 099.999/22-1 SESSÃO: 01/03/2022\nALTERAÇÃO DE ENDEREÇO.';
+  const perguntas = []; m.caixa.lerDocumentoComIA = (b, mime, integral, pergunta) => { perguntas.push(pergunta); return {texto: ficha, truncou: false}; };
+  const r = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'FICHA_CADASTRAL_JUCESP', pessoaSugerida: 'GANDINI', origemAjudante: 'jucesp'}));
+  assert.equal(r.ok, true, JSON.stringify(r)); assert(perguntas.some((q) => /CONSOLIDAÇÃO CONTRATUAL/.test(q || '')), 'pergunta própria, não o resumo geral'); assert.deepEqual(JSON.parse(JSON.stringify(r.consolidacao)), {registro: '034.366/21-0', sessao: '2021-01-22'});
+  assert.equal(m.caixa.consolidacaoDaFicha('NUM.DOC: 1.000/20-1 SESSÃO: 01/01/2020\nALTERAÇÃO'), null, 'sem consolidação: nulo, nunca um palpite');
+  const contrato = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'CONTRATO_SOCIAL', pessoaSugerida: 'GANDINI', origemAjudante: 'jucesp'})); assert.equal(contrato.consolidacao, undefined);
+});
+await passo('RI Digital: o Ajudante pede MATRICULA_IMOVEL e o tipo vale sem adivinhar; a matrícula entra no nome e a leitura da IA fica no card', () => {
+  const m = mundo(); semear(m); iaDiz(m, {tipo: 'OUTRO', pessoa: '', confianca: 'baixa'}); m.caixa.lerDocumentoComIA = () => ({texto: 'TIPO_DOCUMENTO: Matrícula do Imóvel\nMATRÍCULA Nº 187.852', truncou: false});
+  const r = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'MATRICULA_IMOVEL', pessoaSugerida: 'Atualizada 187852', origemAjudante: 'onr'}));
+  assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.tipo, 'MATRICULA_IMOVEL'); assert.equal(r.confirmar, false); assert(/Atualizada/.test(r.nome) && /MATRICULA_IMOVEL/.test(r.nome), r.nome); assert.equal(r.consolidacao, undefined);
+  const [k] = Object.keys(m.db.casos['-Caso1'].documentos); assert(/187\.852/.test(m.db.casos['-Caso1'].documentos[k].texto), 'a IA leu a matrícula e o texto ficou no card (a minuta usa)');
+  const falso = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'MATRICULA_IMOVEL', origemAjudante: 'outro'})); assert.equal(falso.ok, true);
+  const outro = m.chamar(solto({mimetype: 'application/pdf', tipoSugerido: 'CPF', origemAjudante: 'onr'})); assert.notEqual(outro.tipo, 'MATRICULA_IMOVEL');
+});
+await passo('arrastado: cria a pasta do caso, salva, a IA lê e identifica, e o arquivo ganha o nome padrão', () => {
+  const m = mundo(); semear(m); iaDiz(m, {tipo: 'RG_CNH', pessoa: 'Maria da Silva', confianca: 'alta'});
+  const r = m.chamar(solto()); assert.equal(r.ok, true, JSON.stringify(r));
+  assert(/^Maria_da_Silva_RG_CNH_\d{4}-\d{2}-\d{2}_1\.jpg$/.test(r.nome), r.nome); assert.equal(r.confirmar, false);
+  const [k] = Object.keys(m.db.casos['-Caso1'].documentos), d = m.db.casos['-Caso1'].documentos[k];
+  assert(k.startsWith('pnl_')); assert.equal(d.origem, 'arrastado no card'); assert.equal(d.tipoDocumento, 'RG_CNH'); assert.equal(d.pessoa, 'Maria da Silva');
+  assert(/NOME_PESSOA|Maria da Silva/.test(d.texto)); assert(d.selo && d.link); assert.equal(d.nomeOriginal.startsWith('WhatsApp'), true);
+  assert(/drive\.google\.com\/drive\/folders\//.test(m.db.casos['-Caso1'].driveUrl), 'a pasta do caso foi criada e guardada no card');
+  assert.equal(m.chamar(solto({casoId: '-Caso2'})).ok, true);
+});
+await passo('arrastado: dois arquivos do mesmo tipo e pessoa ganham números diferentes, na mesma pasta (plana)', () => {
+  const m = mundo(); semear(m); iaDiz(m, {tipo: 'RG_CNH', pessoa: 'Maria da Silva', confianca: 'alta'});
+  const a = m.chamar(solto()), b = m.chamar(solto());
+  assert(/_1\.jpg$/.test(a.nome) && /_2\.jpg$/.test(b.nome), a.nome + ' ' + b.nome);
+  const pastas = Object.values(m.todas).filter((p) => p.arquivos && p.arquivos.length); assert.equal(pastas.length, 1, 'tudo numa pasta só'); assert.equal(pastas[0].sub.length, 0, 'sem subpastas');
+});
+await passo('arrastado: IA em dúvida, sem nome da pessoa, ou fora do ar → salva igual e marca "confirmar"', () => {
+  const m = mundo(); semear(m);
+  iaDiz(m, {tipo: 'RG_CNH', pessoa: '', confianca: 'alta'}); assert.equal(m.chamar(solto()).confirmar, true, 'RG sem nome de pessoa');
+  iaDiz(m, {tipo: 'CERTIDAO_CASAMENTO', pessoa: 'A e B', confianca: 'baixa'}); assert.equal(m.chamar(solto()).confirmar, true, 'confiança baixa');
+  iaDiz(m, {tipo: 'MATRICULA_IMOVEL', pessoa: '', confianca: 'alta'}); const mat = m.chamar(solto()); assert.equal(mat.confirmar, false, 'matrícula não tem pessoa'); assert(/^MATRICULA_IMOVEL_/.test(mat.nome), mat.nome);
+  iaDiz(m, {tipo: 'ABC', pessoa: 'X', confianca: 'alta'}); assert.equal(m.chamar(solto()).tipo, 'OUTRO', 'tipo fora da lista vira OUTRO');
+  const f = mundo({iaFalha: true}); semear(f); f.caixa.lerDocumentoComIA = () => { throw new Error('IA fora'); };
+  const r = f.chamar(solto()); assert.equal(r.ok, true); assert.equal(r.confirmar, true); assert(/^Recebido_/.test(r.nome), 'sem leitura, o arquivo fica salvo com nome provisório'); assert(/IA fora/.test(r.aviso));
+  const heic = f.chamar(solto({mimetype: 'image/heic'})); assert.equal(heic.ok, true); assert(/não lê este formato/.test(heic.aviso));
+});
+await passo('arrastado: entrada ruim é recusada em voz alta (caso, tipo, tamanho, banco)', () => {
+  const m = mundo(); semear(m); iaDiz(m, {tipo: 'OUTRO', pessoa: '', confianca: 'baixa'});
+  assert.equal(m.chamar(solto({casoId: '../x'})).ok, false); assert.equal(m.chamar(solto({casoId: 'naoexiste1'})).ok, false);
+  assert.equal(m.chamar(solto({mimetype: 'audio/ogg'})).ok, false); assert.equal(m.chamar(solto({base64: ''})).ok, false);
+  const rec = mundo({recusaBanco: true}); semear(rec); const r = rec.chamar(solto()); assert.equal(r.ok, false); assert(/banco recusou/.test(r.erro));
+});
+await passo('corrigir depois: renomeia no Drive e no card, só o que foi arrastado e só com o selo certo', () => {
+  const m = mundo(); semear(m); iaDiz(m, {tipo: 'OUTRO', pessoa: '', confianca: 'baixa'});
+  const r = m.chamar(solto()), [k] = Object.keys(m.db.casos['-Caso1'].documentos);
+  const ren = (extra = {}) => m.chamar({acao: 'painel-renomear', casoId: '-Caso1', docKey: k, tipo: 'CERTIDAO_CASAMENTO', pessoa: 'João e Maria', ...extra});
+  const ok = ren(); assert.equal(ok.ok, true, JSON.stringify(ok)); assert(/^Joao_e_Maria_CERTIDAO_CASAMENTO_\d{4}-\d{2}-\d{2}_1\.jpg$/.test(ok.nome), ok.nome);
+  const d = m.db.casos['-Caso1'].documentos[k]; assert.equal(d.confirmar, false); assert.equal(d.tipoDocumento, 'CERTIDAO_CASAMENTO');
+  assert.equal(ARQUIVOS[d.link.match(/\/d\/([^/]+)/)[1]].nome, ok.nome, 'o nome mudou no Drive');
+  assert.equal(ren({tipo: 'XYZ'}).ok, false); assert.equal(ren({docKey: '../x'}).ok, false);
+  m.db.casos['-Caso1'].documentos[k].selo = 'forjado'; assert.equal(ren().ok, false, 'sem selo, o Drive não é tocado');
+  m.db.casos['-Caso1'].documentos.cli_x = {nome: 'a', origem: 'link do cliente'}; assert.equal(ren({docKey: 'cli_x'}).ok, false);
+});
+await passo('o que foi arrastado também se exclui e se lê de novo pelas ações de sempre', () => {
+  const m = mundo(); semear(m); iaDiz(m, {tipo: 'RG_CNH', pessoa: 'Maria da Silva', confianca: 'alta'});
+  m.chamar(solto()); const [k] = Object.keys(m.db.casos['-Caso1'].documentos);
+  const rl = m.chamar({acao: 'cliente-reler', casoId: '-Caso1', docKey: k}); assert.equal(rl.ok, true, JSON.stringify(rl));
+  const ex = m.chamar({acao: 'cliente-excluir', casoId: '-Caso1', docKey: k}); assert.equal(ex.ok, true); assert.equal(ex.arquivo, 'lixeira');
+  assert(!m.db.casos['-Caso1'].documentos[k]);
+});
+// ── A caixa de entrada do WhatsApp ──
+const SEGREDO = 'segredo-combinado-entre-a-vercel-e-o-apps-script';
+const ent = (extra = {}) => ({acao: 'entrada-receber', segredo: SEGREDO, msgId: 'wamid.HBgMNTUxMTk5OTk5OTk5FQIAERgSQUJD', remetente: '5511999999999', nomeRemetente: 'Reinaldo', nomeArquivo: 'JRL Holding - Contrato Social.pdf', mimetype: 'application/pdf', base64: B64, ...extra});
+const mundoEntrada = () => { const m = mundo(); semear(m); m.props.ENTRADA_SEGREDO = SEGREDO; m.caixa.chamarClaudeArquivoRaw = () => ({texto: JSON.stringify({tipo: 'CONTRATO', pessoa: '', confianca: 'alta'}), truncou: false}); return m; };
+await passo('entrada: sem segredo configurado, com segredo errado ou sem segredo, nada entra', () => {
+  const m = mundo(); semear(m);
+  assert.equal(m.chamar(ent()).ok, false); assert(/ENTRADA_SEGREDO/.test(m.chamar(ent()).erro), 'sem segredo no Apps Script, recusa em voz alta');
+  m.props.ENTRADA_SEGREDO = SEGREDO; assert.equal(m.chamar(ent({segredo: 'errado'})).ok, false); assert.equal(m.chamar(ent({segredo: ''})).ok, false);
+  assert.equal(m.db.entrada, undefined, 'nada foi gravado');
+});
+await passo('entrada: o arquivo vai para a pasta de espera e vira um aviso, sem tocar em nenhum caso', () => {
+  const m = mundoEntrada(); const r = m.chamar(ent()); assert.equal(r.ok, true, JSON.stringify(r));
+  const [k] = Object.keys(m.db.entrada), d = m.db.entrada[k];
+  assert(/^w_/.test(k)); assert.equal(d.nome, 'JRL Holding - Contrato Social.pdf'); assert.equal(d.remetente, '5511999999999'); assert.equal(d.nomeRemetente, 'Reinaldo'); assert(d.selo && d.link && d.em);
+  const pasta = Object.values(m.todas).find((p) => p.nome === 'ENTRADA WHATSAPP'); assert(pasta, 'a pasta de espera foi criada'); assert.equal(pasta.arquivos.length, 1);
+  assert.deepEqual(Object.keys(m.db.casos['-Caso1'].documentos), [], 'nenhum caso recebeu nada ainda');
+});
+await passo('entrada: a Meta reentrega a mesma mensagem, e ela só entra uma vez; recusa tipo estranho, arquivo vazio e banco que recusa', () => {
+  const m = mundoEntrada(); m.chamar(ent()); const r2 = m.chamar(ent()); assert.equal(r2.ok, true); assert.equal(r2.repetida, true); assert.equal(Object.keys(m.db.entrada).length, 1);
+  assert.equal(Object.values(m.todas).find((p) => p.nome === 'ENTRADA WHATSAPP').arquivos.length, 1, 'um arquivo só na pasta');
+  assert.equal(m.chamar(ent({msgId: 'outra', mimetype: 'audio/ogg'})).ok, false); assert.equal(m.chamar(ent({msgId: 'outra2', base64: ''})).ok, false); assert.equal(m.chamar(ent({msgId: ''})).ok, false);
+  const rec = mundo({recusaBanco: true}); semear(rec); rec.props.ENTRADA_SEGREDO = SEGREDO; const rr = rec.chamar(ent()); assert.equal(rr.ok, false); assert(/banco recusou/.test(rr.erro));
+});
+await passo('entrada → caso: ao escolher o caso o arquivo segue o caminho de sempre e sai da espera', () => {
+  const m = mundoEntrada(); m.chamar(ent()); const [k] = Object.keys(m.db.entrada), idArq = m.db.entrada[k].link.match(/\/d\/([^/]+)/)[1];
+  const r = m.chamar({acao: 'entrada-atribuir', entradaId: k, casoId: '-Caso1'}); assert.equal(r.ok, true, JSON.stringify(r));
+  const docs = m.db.casos['-Caso1'].documentos, [dk] = Object.keys(docs); assert(dk.startsWith('pnl_')); assert.equal(docs[dk].origem, 'arrastado no card'); assert.equal(docs[dk].tipoDocumento, 'CONTRATO');
+  assert.equal(m.db.entrada[k], undefined, 'o aviso sai da entrada'); assert.equal(ARQUIVOS[idArq].lixeira, true, 'a cópia de espera vai para a lixeira');
+  assert(/drive\.google\.com\/drive\/folders\//.test(m.db.casos['-Caso1'].driveUrl), 'a pasta do caso foi criada');
+  // de novo: já foi tratado
+  assert.equal(m.chamar({acao: 'entrada-atribuir', entradaId: k, casoId: '-Caso1'}).ok, false);
+});
+await passo('entrada → caso: caso inexistente, id inválido ou selo forjado não mexem em nada; falha da IA deixa na espera', () => {
+  const m = mundoEntrada(); m.chamar(ent()); const [k] = Object.keys(m.db.entrada);
+  assert.equal(m.chamar({acao: 'entrada-atribuir', entradaId: k, casoId: 'naoexiste1'}).ok, false); assert(m.db.entrada[k], 'continua na espera');
+  assert.equal(m.chamar({acao: 'entrada-atribuir', entradaId: '../x', casoId: '-Caso1'}).ok, false);
+  const forjado = m.db.entrada[k].selo; m.db.entrada[k].selo = 'forjado'; assert.equal(m.chamar({acao: 'entrada-atribuir', entradaId: k, casoId: '-Caso1'}).ok, false); assert.equal(m.chamar({acao: 'entrada-descartar', entradaId: k}).ok, false); m.db.entrada[k].selo = forjado;
+  const rec = mundoEntrada(); rec.chamar(ent()); const [k2] = Object.keys(rec.db.entrada); const antes = rec.db.entrada[k2];
+  rec.db.casos['-Caso1'].nome = 'Maria'; const ok = rec.chamar({acao: 'entrada-atribuir', entradaId: k2, casoId: '-Caso1'}); assert.equal(ok.ok, true);
+});
+await passo('entrada: descartar manda para a lixeira e limpa o aviso', () => {
+  const m = mundoEntrada(); m.chamar(ent()); const [k] = Object.keys(m.db.entrada), idArq = m.db.entrada[k].link.match(/\/d\/([^/]+)/)[1];
+  const r = m.chamar({acao: 'entrada-descartar', entradaId: k}); assert.equal(r.ok, true); assert.equal(m.db.entrada[k], undefined); assert.equal(ARQUIVOS[idArq].lixeira, true);
+  assert.equal(m.chamar({acao: 'entrada-descartar', entradaId: k}).ok, false, 'não descarta duas vezes');
 });
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);

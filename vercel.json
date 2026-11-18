@@ -1,41 +1,85 @@
 {
   "rewrites": [
-    { "source": "/e/:t", "destination": "/enviar.html" },
-    { "source": "/p/:t", "destination": "/pagar.html" },
-    { "source": "/o/:t", "destination": "/orcamento.html" }
+    {
+      "source": "/e/:t",
+      "destination": "/enviar.html"
+    },
+    {
+      "source": "/p/:t",
+      "destination": "/pagar.html"
+    },
+    {
+      "source": "/o/:t",
+      "destination": "/orcamento.html"
+    },
+    {
+      "source": "/whatsapp",
+      "destination": "/api/perguntar-joaninha?acao=whatsapp"
+    }
   ],
   "headers": [
     {
       "source": "/index.html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/service-worker.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     }
   ],
   "functions": {
-    "api/analisar-caso.js": { "maxDuration": 60 },
-    "api/criar-doc.js": { "maxDuration": 60 },
-    "api/salvar-caso.js": { "maxDuration": 60 },
-    "api/iniciar-minuta.js": { "maxDuration": 10 },
-    "api/perguntar-joaninha.js": { "maxDuration": 30 },
-    "api/perguntas-minuta.js": { "maxDuration": 30 },
-    "api/classificar-documento.js": { "maxDuration": 20 },
-    "api/registrar-atendimento.js": { "maxDuration": 25 },
-    "api/extrair-texto-arquivo.js": { "maxDuration": 60 },
-    "api/radar-juridico.js": { "maxDuration": 60 },
-    "api/joaninha-juridico.js": { "maxDuration": 30 }
+    "api/analisar-caso.js": {
+      "maxDuration": 60
+    },
+    "api/criar-doc.js": {
+      "maxDuration": 60
+    },
+    "api/salvar-caso.js": {
+      "maxDuration": 60
+    },
+    "api/iniciar-minuta.js": {
+      "maxDuration": 10
+    },
+    "api/perguntar-joaninha.js": {
+      "maxDuration": 60
+    },
+    "api/perguntas-minuta.js": {
+      "maxDuration": 30
+    },
+    "api/classificar-documento.js": {
+      "maxDuration": 20
+    },
+    "api/registrar-atendimento.js": {
+      "maxDuration": 25
+    },
+    "api/extrair-texto-arquivo.js": {
+      "maxDuration": 60
+    },
+    "api/radar-juridico.js": {
+      "maxDuration": 60
+    },
+    "api/joaninha-juridico.js": {
+      "maxDuration": 30
+    }
   },
   "crons": [
     {

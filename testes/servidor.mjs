@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
-const TIPOS = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.png': 'image/png',
+const TIPOS = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.json': 'application/json; charset=utf-8'};
 // A Rede busca lib/br-uf.json — o desenho dos estados — como o painel no ar
 // busca. Esse arquivo mora na raiz do projeto, não aqui, então quando o nome

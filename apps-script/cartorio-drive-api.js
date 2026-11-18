@@ -4,7 +4,7 @@
 //
 // CONFIGURAÇÃO OBRIGATÓRIA:
 // No Apps Script: Arquivo > Propriedades do projeto > Propriedades do script
-// Adicionar: ANTHROPIC_API_KEY = sk-ant-...
+// Adicionar OPENAI_API_KEY às propriedades; incluir o arquivo openai.js no projeto.
 //
 // FIREBASE: Certifique-se que as regras do Realtime Database permitem escrita em /jobs/
 // { "rules": { "jobs": { ".read": true, ".write": true } } }
@@ -638,26 +638,15 @@ function chamarClaudeRaw(mensagem, ano) {
   // municipal.js já usa com este mesmo modelo, sem cabeçalho especial: menos
   // pedaços, mesmo texto, mesma IA — só menos idas e vindas.
   var payload = {
-    model: "claude-sonnet-4-6",
     max_tokens: 16000,
     system: montarSystemPrompt(ano || new Date().getFullYear()),
     messages: [{ role: "user", content: mensagem }]
   };
 
-  var response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
-    method: "post",
-    contentType: "application/json",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01"
-    },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  });
-
-  var data = JSON.parse(response.getContentText());
-  if (data.error) throw new Error("Erro Claude API: " + (data.error.message || JSON.stringify(data.error)));
-  return { texto: data.content[0].text, pararPorTamanho: data.stop_reason === "max_tokens" };
+  var data = chamarAnthropicCartorio(payload);
+  if (data.recusa || !data.texto) throw new Error("A IA não concluiu a leitura.");
+  if (data.error) throw new Error("Erro Anthropic API: " + (data.error.message || JSON.stringify(data.error)));
+  return { texto: data.texto, pararPorTamanho: data.truncou };
 }
 
 function chamarClaude(mensagem) {
@@ -864,6 +853,7 @@ function finalizarGeracaoMinuta(jobId, estado, truncada) {
     avisos.push("A IA não identificou nenhuma certidão automaticamente neste caso, mas há documento(s) anexado(s) com nome de certidão — confira manualmente a validade de cada uma antes de lavrar.");
   }
 
+  if(estado.casoId)firebaseGravar('patch','/casos/'+estado.casoId,{docUrl:docResult.url,driveUrl:docResult.folderUrl,auditoria:{status:'pendente',provedor:'openai',achados:[],atualizado:new Date().toISOString()}});
   if (jobId) {
     salvarJobFirebase(jobId, {
       status: "done",
@@ -873,6 +863,7 @@ function finalizarGeracaoMinuta(jobId, estado, truncada) {
       docUrl: docResult.url,
       folderUrl: docResult.folderUrl,
       docNome: docResult.nome,
+      conferenciaIA: "pendente",
       diagRodadas: estado.rodadas,
       diagTemModelo: estado.temModelo,
       diagBrancos: conferencia.brancos,
@@ -887,9 +878,7 @@ function finalizarGeracaoMinuta(jobId, estado, truncada) {
     // crítico. Nunca reescreve a minuta, só confere e aponta.
     var achadosAuditoria = auditarMinuta(parsed.minuta, estado.documentosTexto);
     var patchCaso = { driveUrl: docResult.folderUrl, docUrl: docResult.url };
-    if (achadosAuditoria !== null) {
-      patchCaso.auditoria = { achados: achadosAuditoria, atualizado: new Date().toISOString() };
-    }
+    patchCaso.auditoria = {status:achadosAuditoria!==null?"concluida":"pendente",provedor:"openai",achados:achadosAuditoria||[],atualizado:new Date().toISOString()};
     UrlFetchApp.fetch(FIREBASE_URL + "/casos/" + estado.casoId + ".json", {
       method: "patch",
       contentType: "application/json",
@@ -988,29 +977,21 @@ function extrairJsonAuditoria(texto) {
 // minuta que já foi gerada com sucesso.
 function auditarMinuta(minutaTexto, documentosTexto) {
   try {
-    var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
+    var apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
     if (!apiKey) return null;
     var doc = String(documentosTexto || "");
-    if (doc.length > 100000) doc = doc.slice(0, 100000) + "\n\n[...texto truncado por limite de tamanho...]";
     var mensagem = "MINUTA PRONTA (a auditar):\n" + minutaTexto +
       "\n\n---\n\nDOCUMENTOS E INFORMAÇÕES ORIGINAIS DO CASO (fonte da verdade):\n" + doc;
 
     var payload = {
-      model: "claude-sonnet-4-6",
       max_tokens: 2000,
       system: AUDITORIA_SYSTEM_PROMPT,
       messages: [{ role: "user", content: mensagem }]
     };
-    var response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
-      method: "post",
-      contentType: "application/json",
-      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-    var data = JSON.parse(response.getContentText());
+    var data = chamarOpenAI(payload);
+    if (data.recusa || !data.texto || data.truncou) return null;
     if (data.error) return null;
-    var texto = (data.content && data.content[0] && data.content[0].text) || "";
+    var texto = data.texto || "";
     var parsed = extrairJsonAuditoria(texto);
     return (Array.isArray(parsed.achados) ? parsed.achados : [])
       .map(function (a) { return String(a || "").trim(); })
@@ -1039,22 +1020,15 @@ function chamarClaudeArquivoRaw(content) {
   var apiKey = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada.");
   var payload = {
-    model: "claude-sonnet-4-6",
     max_tokens: EXTRACAO_ARQUIVO_MAX_TOKENS,
     messages: [{ role: "user", content: content }]
   };
-  var response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
-    method: "post",
-    contentType: "application/json",
-    headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  });
-  var data = JSON.parse(response.getContentText());
-  if (data.error) throw new Error("Erro Claude API: " + (data.error.message || JSON.stringify(data.error)));
+  var data = chamarAnthropicCartorio(payload);
+  if (data.recusa || !data.texto) throw new Error("A IA não concluiu a leitura.");
+  if (data.error) throw new Error("Erro Anthropic API: " + (data.error.message || JSON.stringify(data.error)));
   return {
-    texto: (data.content && data.content[0] && data.content[0].text) || null,
-    truncou: data.stop_reason === "max_tokens"
+    texto: data.texto || null,
+    truncou: data.truncou
   };
 }
 
@@ -1087,11 +1061,11 @@ function extrairArquivoComContinuacao(montarConteudo) {
 
 // Leitura de um documento pela IA (PDF ou imagem em base64). Devolve
 // {texto, truncou}. Usada pelo anexo do painel e pelo envio do cliente.
-function lerDocumentoComIA(base64, mimetype, preservarIntegral) {
+function lerDocumentoComIA(base64, mimetype, preservarIntegral, instrucaoPropria) {
     var blocoArquivo = mimetype === "application/pdf"
       ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
       : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
-    var instrucaoInicial = preservarIntegral
+    var instrucaoInicial = instrucaoPropria ? instrucaoPropria : preservarIntegral
       ? "Este documento é uma escritura ou ato notarial já pronto. Transcreva o texto completo do documento, na íntegra, sem resumir, sem comentar e sem omitir nenhuma parte. Apenas o texto puro da minuta."
       : "Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: \"TIPO_DOCUMENTO: <tipo>\". Depois, numa nova linha, extraia com fidelidade total as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. NÚMEROS DE DOCUMENTO (RG, CPF, CNH, matrícula, registro): copie dígito por dígito, exatamente como estão impressos, sem corrigir, completar ou reordenar. Dígitos parecidos (0/6/8, 1/7, 3/8, 5/6) devem ser conferidos duas vezes olhando o desenho de cada um; releia o número inteiro antes de responder. Se algum dígito não estiver nítido, escreva '?' no lugar dele em vez de adivinhar. Na CNH, o número do RG aparece no campo de identidade/órgão emissor: copie-o com o mesmo cuidado. Não omita nenhum dado relevante — mas não transcreva o documento inteiro: cláusula, preâmbulo ou trecho que não carregue um fato novo, não precisa aparecer. O objetivo é o fato, não o texto do documento.";
 
@@ -1157,6 +1131,11 @@ function doPost(e) {
     if (acao === "pagamento-ler") return pagamentoLer(dados);
     if (acao === "pagamento-remover") return pagamentoRemover(dados);
     if (acao === "orcamento-aprovar") return orcamentoAprovar(dados);
+    if (acao === "painel-arquivo") return painelArquivo(dados);
+    if (acao === "entrada-receber") return entradaReceber(dados);
+    if (acao === "entrada-atribuir") return entradaAtribuir(dados);
+    if (acao === "entrada-descartar") return entradaDescartar(dados);
+    if (acao === "painel-renomear") return painelRenomear(dados);
     if (acao === "cliente-remover") return clienteRemover(dados);
     if (acao === "cliente-excluir") return clienteExcluir(dados);
     if (acao === "criar-minuta-doc") return criarMinutaDoc(dados);
@@ -1257,9 +1236,6 @@ function gerarECriarMinuta(dados) {
     // pela metade (já corrigido no iniciar-minuta.js), não o tamanho do texto —
     // a IA lê o texto de entrada rápido; quem demora é a geração da resposta,
     // que já tem limite (max_tokens). Este limite aqui só evita casos extremos.
-    if (documentosTexto.length > 100000) {
-      documentosTexto = documentosTexto.slice(0, 100000) + "\n\n[...texto truncado por limite de tamanho...]";
-    }
 
     // Se a equipe não enviou um modelo explícito ("MODELO" no WhatsApp) nem uma
     // MINUTA ATUAL a seguir à risca, busca automaticamente o último modelo
@@ -1472,6 +1448,221 @@ function extrairIdArquivo(url) {
   return m ? m[1] : "";
 }
 
+// ── Arquivos arrastados para o card (o que o cliente mandou pelo WhatsApp) ──────────────────────────────
+// O painel manda o arquivo; aqui ele vai para a pasta do caso (criada se ainda não existe), a IA lê e
+// identifica o tipo e de quem é, e o arquivo ganha o nome padrão: Pessoa_Tipo_AAAA-MM-DD_n.ext. Salva direto
+// e corrige depois: o que a IA não tem certeza fica marcado "confirmar" no card, com o lápis para corrigir.
+// O Drive só é tocado pelo selo, como nos arquivos do link: o banco é aberto.
+var ORIGENS_ARQUIVO = ["link do cliente", "arrastado no card"];
+var TIPOS_DOC_CARD = ["RG_CNH", "CPF", "CERTIDAO_NASCIMENTO", "CERTIDAO_CASAMENTO", "CERTIDAO_OBITO", "PACTO_ANTENUPCIAL", "MATRICULA_IMOVEL", "COMPROVANTE_ENDERECO", "IPTU", "CND", "ESCRITURA", "PROCURACAO", "CONTRATO", "COMPROVANTE_PAGAMENTO", "FICHA_CADASTRAL_JUCESP", "CONTRATO_SOCIAL", "VALOR_VENAL_REFERENCIA", "NEGATIVA_IPTU", "DADOS_CADASTRAIS_IMOVEL", "OUTRO"];
+// O que o Ajudante do painel (extensão do Chrome) sabe de antemão: veio de um pedido dela na JUCESP, então o tipo não se adivinha.
+var TIPOS_DO_AJUDANTE = ["FICHA_CADASTRAL_JUCESP", "CONTRATO_SOCIAL", "MATRICULA_IMOVEL", "VALOR_VENAL_REFERENCIA", "NEGATIVA_IPTU", "DADOS_CADASTRAIS_IMOVEL"];   // o que o Ajudante (JUCESP, RI Digital e Prefeitura) pede para guardar
+var ORIGENS_DO_AJUDANTE = ["jucesp", "onr", "prefeitura"];
+var TIPOS_QUE_PEDEM_PESSOA = ["RG_CNH", "CPF", "CERTIDAO_NASCIMENTO", "CERTIDAO_CASAMENTO", "CERTIDAO_OBITO", "COMPROVANTE_ENDERECO"];
+
+function instrucaoIdentificarDocumento(texto) {
+  return "Abaixo está o texto extraído de UM documento de cartório. Devolva APENAS um JSON, sem comentário: " +
+    "{\"tipo\":\"<exatamente um de: " + TIPOS_DOC_CARD.join(", ") + ">\",\"pessoa\":\"<nome completo do titular, como impresso; na certidão de casamento, os dois cônjuges separados por ' e '; vazio se o documento não é de uma pessoa (matrícula, IPTU, CND de imóvel)>\",\"confianca\":\"alta|media|baixa\"}. " +
+    "Se não der para saber o tipo, use OUTRO. Nunca invente nome.\n\nTEXTO:\n" + String(texto || "").slice(0, 4000);
+}
+
+function identificarDocumento(texto) {
+  var r = chamarClaudeArquivoRaw([{ type: "text", text: instrucaoIdentificarDocumento(texto) }]);
+  var m = String((r && r.texto) || "").match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("A IA não devolveu a identificação em formato legível.");
+  var o = JSON.parse(m[0]);
+  var tipo = String(o.tipo || "").toUpperCase();
+  if (TIPOS_DOC_CARD.indexOf(tipo) === -1) tipo = "OUTRO";
+  return { tipo: tipo, pessoa: textoCliente(o.pessoa, 80), confianca: String(o.confianca || "baixa").toLowerCase() };
+}
+
+// Nome padrão e número seguinte: conta na própria pasta os arquivos que já têm esse começo. Chamar com a trava.
+function nomeDoArquivoDoCard(pasta, pessoa, tipo, ext, idDoProprio) {
+  var data = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
+  var prefixo = [nomeSeguroCliente(pessoa), nomeSeguroCliente(tipo)].filter(Boolean).join("_") + "_" + data + "_";
+  var n = 0, it = pasta.getFiles();
+  while (it.hasNext()) { var f = it.next(); if (f.getId() !== idDoProprio && f.getName().indexOf(prefixo) === 0) n++; }
+  return prefixo + (n + 1) + "." + ext;
+}
+
+function painelArquivo(dados) { return resp(painelArquivoInterno(dados)); }
+
+// A ficha cadastral lista cada ato arquivado como "NUM.DOC: 034.366/21-0 SESSÃO: 22/01/2021" seguido das linhas do ato. O contrato social
+// consolidado é o do ÚLTIMO ato cujas linhas dizem "CONSOLIDAÇÃO CONTRATUAL"; o NUM.DOC é o mesmo número da coluna "Nº Registro" da lista
+// de cópias digitalizadas, e é por ele que o Ajudante acha a linha certa (a lista quase não traz descrição).
+// A leitura geral da IA resume o documento e pode largar justamente os NUM.DOC; por isso a ficha tem uma pergunta só sua, curta e literal.
+var PERGUNTA_CONSOLIDACAO = "Este PDF é uma ficha cadastral da JUCESP. Cada ato arquivado começa com a linha 'NUM.DOC: <número> SESSÃO: <data>' e é seguido das linhas do ato, até o próximo NUM.DOC. Liste TODOS os atos em cujas linhas aparece a expressão 'CONSOLIDAÇÃO CONTRATUAL' (a expressão pertence ao NUM.DOC que vem ANTES dela, mesmo quando ela está no pé da página), um por linha, exatamente assim: 'NUM.DOC: <número> SESSÃO: <dd/mm/aaaa> CONSOLIDAÇÃO CONTRATUAL'. Copie cada número dígito por dígito, exatamente como está impresso; se algum dígito não estiver nítido, escreva '?' no lugar. Não escreva mais nada. Se nenhum ato tiver a expressão, responda só: NENHUM.";
+function consolidacaoDoPdf(base64) {
+  try { var r = lerDocumentoComIA(base64, "application/pdf", false, PERGUNTA_CONSOLIDACAO); return consolidacaoDaFicha(r && r.texto); }
+  catch (e) { return null; }
+}
+function consolidacaoDaFicha(texto) {
+  var t = String(texto || ""), re = /NUM\.?\s*DOC\.?\s*:?\s*(\d[\d.]*\/\d{2}-\d)\s*SESS[ÃA]O\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})/gi;
+  var marcas = [], m;
+  while ((m = re.exec(t))) marcas.push({ registro: m[1], sessao: m[4] + "-" + m[3] + "-" + m[2], ini: m.index, de: re.lastIndex });
+  var melhor = null;
+  for (var i = 0; i < marcas.length; i++) {
+    var ate = i + 1 < marcas.length ? marcas[i + 1].ini : t.length;
+    if (!/CONSOLIDA[ÇC][ÃA]O\s+CONTRATUAL/i.test(t.slice(marcas[i].de, ate))) continue;
+    if (!melhor || marcas[i].sessao >= melhor.sessao) melhor = { registro: marcas[i].registro, sessao: marcas[i].sessao };
+  }
+  return melhor;
+}
+
+function painelArquivoInterno(dados) {
+  var casoId = String(dados.casoId || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId)) return { ok: false, erro: "Caso inválido." };
+  var caso = firebaseLer("/casos/" + casoId);
+  if (!caso) return { ok: false, erro: "Caso não encontrado." };
+  var mime = String(dados.mimetype || "").toLowerCase(), ext = MIMES_CLIENTE[mime];
+  if (!ext) return { ok: false, erro: "Tipo de arquivo não aceito (só PDF e imagem)." };
+  var bytes;
+  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return { ok: false, erro: "Arquivo ilegível." }; }
+  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return { ok: false, erro: "Arquivo vazio ou grande demais (máx. 10 MB)." };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  var pasta, arquivo, docKey;
+  try {
+    pasta = pastaDoCaso(caso, casoId);   // cria a pasta do caso se ainda não existe (dois arquivos juntos não criam duas)
+    var data = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
+    arquivo = pasta.createFile(Utilities.newBlob(bytes, mime, "Recebido_" + data + "_" + Utilities.getUuid().replace(/-/g, "").slice(0, 8) + "." + ext));
+  } finally { lock.releaseLock(); }
+  docKey = "pnl_" + Utilities.getUuid().replace(/-/g, "").slice(0, 10);
+  var caminho = "/casos/" + casoId + "/documentos/" + docKey;
+  var gravou = firebaseGravar("put", caminho, {
+    nome: arquivo.getName(), tipo: "documento", origem: "arrastado no card", nomeOriginal: textoCliente(dados.nomeArquivo, 120),
+    link: arquivo.getUrl(), salvoEm: new Date().toISOString(), selo: seloDoArquivo(docKey, arquivo.getId()), lendo: Date.now()
+  });
+  if (gravou.getResponseCode() >= 300) { try { arquivo.setTrashed(true); } catch (e) { /* ficou solto na pasta */ } return { ok: false, erro: "O banco recusou o registro (" + gravou.getResponseCode() + ")." }; }
+
+  var texto = "", id = { tipo: "OUTRO", pessoa: "", confianca: "baixa" }, aviso = "";
+  if (MIMES_LEITURA_IA.indexOf(mime) === -1) aviso = "A IA não lê este formato (" + ext.toUpperCase() + "): o arquivo ficou salvo, mas sem leitura.";
+  else {
+    try {
+      var r = lerDocumentoComIA(dados.base64, mime, false);
+      texto = (r && r.texto) || "";
+      if (!texto) aviso = "A IA não devolveu texto para este arquivo.";
+      else id = identificarDocumento(texto);
+    } catch (e) { aviso = String(e && e.message || e).slice(0, 200); }
+  }
+  if (ORIGENS_DO_AJUDANTE.indexOf(String(dados.origemAjudante || "")) !== -1 && TIPOS_DO_AJUDANTE.indexOf(String(dados.tipoSugerido || "")) !== -1) {
+    id = { tipo: String(dados.tipoSugerido), pessoa: textoCliente(dados.pessoaSugerida, 80), confianca: "alta" };
+  }
+  var confirmar = !!aviso || id.tipo === "OUTRO" || id.confianca !== "alta" || (TIPOS_QUE_PEDEM_PESSOA.indexOf(id.tipo) !== -1 && !id.pessoa);
+  var nome;
+  lock.waitLock(30000);
+  try {
+    nome = (id.tipo === "OUTRO" && !id.pessoa) ? arquivo.getName() : nomeDoArquivoDoCard(pasta, id.pessoa, id.tipo, ext, arquivo.getId());
+    if (nome !== arquivo.getName()) arquivo.setName(nome);
+  } finally { lock.releaseLock(); }
+  firebaseGravar("patch", caminho, { nome: nome, tipoDocumento: id.tipo, pessoa: id.pessoa, texto: texto || null, truncado: false, lendo: null, confirmar: confirmar, avisoLeitura: aviso || null });
+  var resposta = { ok: true, docKey: docKey, nome: nome, tipo: id.tipo, pessoa: id.pessoa, confirmar: confirmar, leu: !!texto, aviso: aviso };
+  if (dados.origemAjudante === "jucesp" && String(dados.tipoSugerido || "") === "FICHA_CADASTRAL_JUCESP") resposta.consolidacao = consolidacaoDoPdf(dados.base64);
+  return resposta;
+}
+
+// ── A caixa de entrada do WhatsApp ───────────────────────────────────────────────────────────
+// O que chega no número do cartório (API oficial da Meta) é recebido pela Vercel (lib/whatsapp-entrada.js), que baixa
+// o arquivo e o entrega aqui (entrada-receber, com o segredo combinado). Ele fica numa pasta de espera, ENTRADA
+// WHATSAPP, e vira um aviso no painel ("Chegaram N arquivos"). Só quando ela escolhe o caso (entrada-atribuir) o arquivo
+// segue o caminho de sempre: pasta do caso, leitura pela IA, nome padrão, "confirmar o nome". O que não é dela, descarta.
+var NOME_PASTA_ENTRADA = "ENTRADA WHATSAPP";
+function pastaDeEntrada() {
+  var raiz = DriveApp.getFolderById(PASTA_RAIZ_ID), busca = raiz.getFoldersByName(NOME_PASTA_ENTRADA);
+  return busca.hasNext() ? busca.next() : raiz.createFolder(NOME_PASTA_ENTRADA);
+}
+function segredoIgual(a, b) {
+  a = String(a || ""); b = String(b || "");
+  if (!a || !b || a.length !== b.length) return false;
+  var r = 0; for (var i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+function chaveDaEntrada(msgId) { return "w_" + String(msgId || "").replace(/[^A-Za-z0-9]/g, "").slice(-60); }
+
+function entradaReceber(dados) {
+  var esperado = PropertiesService.getScriptProperties().getProperty("ENTRADA_SEGREDO");
+  if (!esperado) return resp({ ok: false, erro: "ENTRADA_SEGREDO não configurado no Apps Script." });
+  if (!segredoIgual(dados.segredo, esperado)) return resp({ ok: false, erro: "Não autorizado." });
+  var mime = String(dados.mimetype || "").toLowerCase(), ext = MIMES_CLIENTE[mime];
+  if (!ext) return resp({ ok: false, erro: "Tipo de arquivo não aceito (só PDF e imagem)." });
+  var msgId = String(dados.msgId || ""); if (!msgId) return resp({ ok: false, erro: "Mensagem sem identificação." });
+  var chave = chaveDaEntrada(msgId), caminho = "/entrada/" + chave;
+  var bytes;
+  try { bytes = Utilities.base64Decode(dados.base64 || ""); } catch (e) { return resp({ ok: false, erro: "Arquivo ilegível." }); }
+  if (!bytes.length || bytes.length > CLIENTE_MAX_BYTES) return resp({ ok: false, erro: "Arquivo vazio ou grande demais (máx. 10 MB)." });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  var arquivo;
+  try {
+    if (firebaseLer(caminho)) return resp({ ok: true, repetida: true });   // a Meta reentrega quando demora: a mensagem só entra uma vez
+    var data = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
+    var nome = textoCliente(dados.nomeArquivo, 120) || ("WhatsApp_" + chave + "." + ext);
+    arquivo = pastaDeEntrada().createFile(Utilities.newBlob(bytes, mime, data + "_" + nomeSeguroCliente(dados.remetente, 20) + "_" + nome));
+    var g = firebaseGravar("put", caminho, {
+      nome: nome, remetente: textoCliente(dados.remetente, 30), nomeRemetente: textoCliente(dados.nomeRemetente, 80), mime: mime,
+      tamanho: bytes.length, link: arquivo.getUrl(), selo: seloDoArquivo(chave, arquivo.getId()), em: Date.now()
+    });
+    if (g.getResponseCode() >= 300) { try { arquivo.setTrashed(true); } catch (e) { /* ficou solto na pasta de entrada */ } return resp({ ok: false, erro: "O banco recusou o registro (" + g.getResponseCode() + ")." }); }
+  } finally { lock.releaseLock(); }
+  return resp({ ok: true, chave: chave });
+}
+
+function entradaDoPainel(dados) {
+  var chave = String(dados.entradaId || "");
+  if (!/^w_[A-Za-z0-9]{1,60}$/.test(chave)) return { erro: "Arquivo da entrada inválido." };
+  var reg = firebaseLer("/entrada/" + chave);
+  if (!reg) return { erro: "Esse arquivo já foi tratado ou não existe mais." };
+  var id = extrairIdArquivo(reg.link);
+  if (!id || !reg.selo || reg.selo !== seloDoArquivo(chave, id)) return { erro: "O registro não tem o selo do arquivo." };
+  return { chave: chave, reg: reg, id: id };
+}
+
+function entradaAtribuir(dados) {
+  var e = entradaDoPainel(dados); if (e.erro) return resp({ ok: false, erro: e.erro });
+  var casoId = String(dados.casoId || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !firebaseLer("/casos/" + casoId + "/nome")) return resp({ ok: false, erro: "Caso não encontrado." });
+  var arquivo;
+  try { arquivo = DriveApp.getFileById(e.id); } catch (x) { return resp({ ok: false, erro: "O arquivo não está mais na pasta de entrada." }); }
+  var r = painelArquivoInterno({ casoId: casoId, nomeArquivo: e.reg.nome, mimetype: e.reg.mime, base64: Utilities.base64Encode(arquivo.getBlob().getBytes()) });
+  if (!r.ok) return resp(r);   // se falhou, o arquivo continua na entrada para tentar de novo
+  try { arquivo.setTrashed(true); } catch (x) { /* a cópia na pasta do caso já existe */ }
+  UrlFetchApp.fetch(FIREBASE_URL + "/entrada/" + e.chave + ".json", { method: "delete", muteHttpExceptions: true });
+  return resp(r);
+}
+
+function entradaDescartar(dados) {
+  var e = entradaDoPainel(dados); if (e.erro) return resp({ ok: false, erro: e.erro });
+  try { DriveApp.getFileById(e.id).setTrashed(true); } catch (x) { /* já não estava lá */ }
+  var r = UrlFetchApp.fetch(FIREBASE_URL + "/entrada/" + e.chave + ".json", { method: "delete", muteHttpExceptions: true });
+  if (r.getResponseCode() >= 300) return resp({ ok: false, erro: "O banco recusou a remoção (" + r.getResponseCode() + ")." });
+  return resp({ ok: true });
+}
+
+// Corrigir depois: ela escolhe o tipo e escreve o nome da pessoa; o arquivo é renomeado no Drive e o registro acompanha.
+function painelRenomear(dados) {
+  var casoId = String(dados.casoId || ""), docKey = String(dados.docKey || "");
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !/^pnl_[A-Za-z0-9_-]{4,40}$/.test(docKey)) return resp({ ok: false, erro: "Documento inválido." });
+  var tipo = String(dados.tipo || "").toUpperCase();
+  if (TIPOS_DOC_CARD.indexOf(tipo) === -1) return resp({ ok: false, erro: "Tipo de documento inválido." });
+  var pessoa = textoCliente(dados.pessoa, 80);
+  var caminho = "/casos/" + casoId + "/documentos/" + docKey;
+  var doc = firebaseLer(caminho);
+  if (!doc || doc.origem !== "arrastado no card") return resp({ ok: false, erro: "Documento não encontrado." });
+  var idArq = extrairIdArquivo(doc.link);
+  if (!idArq || !doc.selo || doc.selo !== seloDoArquivo(docKey, idArq)) return resp({ ok: false, erro: "O registro não tem o selo do arquivo." });
+  var arquivo = DriveApp.getFileById(idArq), nome = doc.nome;
+  var pasta = arquivo.getParents().hasNext() ? arquivo.getParents().next() : null;
+  var ext = String(arquivo.getName()).split(".").pop();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    if (pasta) { nome = nomeDoArquivoDoCard(pasta, pessoa, tipo, ext, idArq); arquivo.setName(nome); }
+  } finally { lock.releaseLock(); }
+  firebaseGravar("patch", caminho, { nome: nome, tipoDocumento: tipo, pessoa: pessoa, confirmar: false, corrigidoEm: new Date().toISOString() });
+  return resp({ ok: true, nome: nome });
+}
+
 function clienteArquivo(dados) {
   var ctx = pedidoDoCliente(dados.t);
   if (!ctx) return resp({ ok: false, erro: "Link inválido, vencido ou já usado." });
@@ -1590,7 +1781,7 @@ function clienteReler(dados) {
   if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !/^[A-Za-z0-9_-]{1,120}$/.test(docKey)) return resp({ ok: false, erro: "Documento inválido." });
   var caminho = "/casos/" + casoId + "/documentos/" + docKey;
   var doc = firebaseLer(caminho);
-  if (!doc || doc.origem !== "link do cliente") return resp({ ok: false, erro: "Só dá para reler por aqui o que o cliente enviou pelo link." });
+  if (!doc || ORIGENS_ARQUIVO.indexOf(doc.origem) === -1) return resp({ ok: false, erro: "Só dá para reler por aqui o que o cliente enviou pelo link ou o que foi arrastado para o card." });
   var r = lerArquivoDoCliente(caminho, docKey, doc);
   return resp(r.leu ? { ok: true, leu: true } : { ok: false, erro: r.erro || "Não consegui ler." });
 }
@@ -1681,7 +1872,7 @@ function clienteExcluir(dados) {
   if (!/^[A-Za-z0-9_-]{6,40}$/.test(casoId) || !/^[A-Za-z0-9_-]{1,120}$/.test(docKey)) return resp({ ok: false, erro: "Documento inválido." });
   var caminho = "/casos/" + casoId + "/documentos/" + docKey;
   var doc = firebaseLer(caminho);
-  if (!doc || doc.origem !== "link do cliente") return resp({ ok: false, erro: "Só dá para excluir por aqui o que o cliente enviou pelo link." });
+  if (!doc || ORIGENS_ARQUIVO.indexOf(doc.origem) === -1) return resp({ ok: false, erro: "Só dá para excluir por aqui o que o cliente enviou pelo link ou o que foi arrastado para o card." });
   var arquivo = "sem arquivo";
   var idArquivo = extrairIdArquivo(doc.link);
   if (idArquivo) {
@@ -1993,4 +2184,36 @@ function resp(obj) {
 
 function doGet(e) {
   return resp({ ok: true, status: "Cartório Drive API ativa" });
+}
+
+// Minutas e leitura: Anthropic. A auditoria e a Joaninha usam OpenAI.
+// Configuração privada nas propriedades do script; não registrar as chaves.
+function chamarAnthropicCartorio(opcoes) {
+  var props=PropertiesService.getScriptProperties();
+  var chave=props.getProperty('ANTHROPIC_API_KEY');
+  if(!chave)throw new Error('A chave da Anthropic não está configurada nas propriedades do script.');
+  var payload={model:props.getProperty('ANTHROPIC_MODEL')||'claude-sonnet-4-6',max_tokens:opcoes.max_tokens||8000,messages:opcoes.messages};
+  if(opcoes.system)payload.system=opcoes.system;
+  var r=UrlFetchApp.fetch('https://api.anthropic.com/v1/messages',{method:'post',contentType:'application/json',headers:{'x-api-key':chave,'anthropic-version':'2023-06-01'},payload:JSON.stringify(payload),muteHttpExceptions:true});
+  var status=r.getResponseCode();
+  if(status<200||status>=300){
+    if(status===401||status===403)throw new Error('A Anthropic não aceitou a chave ou a permissão configurada.');
+    if(status===429)throw new Error('A Anthropic atingiu um limite de uso. Confira o limite e o saldo dessa conta antes de repetir.');
+    throw new Error('A Anthropic não concluiu a solicitação (HTTP '+status+').');
+  }
+  var d;try{d=JSON.parse(r.getContentText());}catch(_){throw new Error('A Anthropic respondeu em formato inválido.');}
+  if(d.error)throw new Error('A Anthropic não concluiu a solicitação.');
+  var textos=(d.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;});
+  return {texto:textos.join(''),truncou:d.stop_reason==='max_tokens',recusa:d.stop_reason==='refusal'};
+}
+function testarAnthropicCartorio() {
+  return verificarConexaoAnthropic();
+}
+function verificarConexaoAnthropic() {
+  var r=chamarAnthropicCartorio({max_tokens:256,messages:[{role:'user',content:'Responda brevemente com OK para confirmar esta conexão de teste.'}]});
+  Logger.log('Teste com texto fictício: '+JSON.stringify({resposta:r.texto||'',incompleta:!!r.truncou,recusada:!!r.recusa}));
+  if(r.recusa)throw new Error('A conexão respondeu, mas o teste foi recusado.');
+  if(r.truncou)throw new Error('A conexão respondeu, mas o teste atingiu o limite de saída.');
+  if(!String(r.texto||'').trim())throw new Error('A conexão respondeu sem texto visível.');
+  Logger.log('Conexão Anthropic confirmada. Nenhum card ou documento foi alterado.');
 }

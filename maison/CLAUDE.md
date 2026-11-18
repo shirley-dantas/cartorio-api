@@ -170,3 +170,33 @@ Cada dia da aba *Horários livres* que tem horário vago ganhou o botão **Image
 ## Comissões: adiantamento, percentual e dia de pagamento (22/10/2026, rascunho, ainda não publicado)
 
 Pedido da Tháriga: (1) **registrar adiantamento** pago a uma profissional — fica separado (`/admin/adiantamentos`, com `periodo`; cancelar só marca `cancelado`, nada é apagado), é descontado da comissão do período e o cartão mostra *comissão do período*, *adiantamentos já pagos* e *falta pagar*; (2) **mudar o percentual**: por profissional (`/admin/config/comPct/{pro}`) e por atendimento (`/admin/config/comAtend/{atendimento}`, em *Ver detalhes*; vale por cima), para modelo/cortesia a 100%; (3) **dia do pagamento**: fechamento mensal pago no dia escolhido (`comCiclo`, `comDia`, padrão mensal dia 1), com a opção de voltar ao quinzenal. `comPct()`/`comVal()` são a conta única, usada também no resumo do Financeiro. Tudo sob `/admin`, que já é só da Tháriga: sem regras novas no banco. Marcações de "pago" feitas no quinzenal têm outra chave (início do período) e não valem no mensal.
+
+## Pedidos de 05/11/2026 (rascunho, ainda não publicado)
+
+- **Datas de dezembro na página da cliente:** o limite era fixo em 21 dias (`dias`, gravado a cada salvar). Agora é `diasFrente` (padrão 180, de 7 a 365), campo *Até quantos dias à frente a cliente pode marcar* em *Serviços e preços → Agenda online*. `pedido.html` lê `diasFrente`; o espelho público (`sincronizarPublico`) cobre o mesmo prazo.
+- **Trocar profissional** (`trocarProfissional()`, botão no cartão do horário, a equipe também usa): muda só a agenda de quem atende; avisa se a outra já tem horário. Não vale para atendimento já concluído.
+- **Reabrir atendimento** (`reabrirAtend()`, a Tháriga e a equipe, no cartão do atendido; a equipe não vê o valor e o nome de quem reabriu fica gravado; regra nova no banco permite à equipe só marcar o atendimento como cancelado/reaberto, uma vez): o valor antigo fica como atendimento cancelado (`reaberto`), sai das comissões e do financeiro, e o horário volta a *Agendado* para concluir com o valor certo. Atendimento com código de brinde manda usar *Corrigir atendimento*.
+- **Minha comissão** (aba só das profissionais Rafael, Mariana e Ana): a Tháriga, com o painel aberto, grava em `/comissoes/{profissional}/{início do período}` só o resumo dela (por atendimento o valor do serviço e a comissão, o total faturado, o percentual, adiantamentos, falta receber, pago ou não — ex.: atendeu 5 clientes, faturou R$ 1.000, 50% = R$ 500; confirmado pela Tháriga em 05/11/2026); cada uma lê só a dela, nunca o caixa do estúdio nem as outras. Regras novas em `database.rules.json` (`comissoes`); o `pro` da conta pode ser `ana` ou `ana luiza`.
+
+**Tempo do atendimento ajustável (05/11/2026):** no *Novo agendamento* (e em *Remarcar*, e em cada procedimento extra) há **Tempo do atendimento (minutos)**, que nasce com o tempo do serviço e ela muda quando conhece a cliente (a unha dela leva 30, não 60). Só se grava `dur` no agendamento quando difere do serviço; `durServ()` usa `dur` por cima, então o bloco da agenda, os horários livres, o espelho público, o convite do Google e o link do horário seguem o tempo ajustado. O procedimento seguinte já começa quando o anterior termina.
+
+## Financeiro por mês, estimativa e procedimento realizado (09/11/2026)
+
+- **Financeiro tem seletor de mês** (`finMes()`, botões *‹ Mês anterior* / *Próximo ›* / *Mês atual*): faturamento, comissões, despesas pagas (pelo vencimento da conta), formas de pagamento e extrato do Florença seguem o mês escolhido. Antes só existia o mês corrente. O rótulo agora diz *Comissões da equipe* (não mais "Rafael + Mariana, 50%").
+- **Estimativa do mês** em *Comissões* e em *Minha comissão* (`comResumo`: `agN`, `agVal`, `estFat`, `estCom`): o que já foi feito + os horários ainda agendados até o fim do período, **pelo preço de tabela, sem desconto**; concluir o atendimento troca o estimado pelo real. Horário cancelado ou já passado e não concluído não entra.
+- **Procedimento realizado** ao concluir (`#cserv`): a profissional troca o serviço se a cliente fez outra coisa; o valor sugerido acompanha. O atendimento guarda `serv` (feito) e `servAgendado`, e o horário da agenda passa a mostrar o realizado.
+
+## Mapeamento de cílios (12/11/2026)
+
+Botão **Mapeamento** no cartão da agenda (cílios, manutenção, lash lift), agendado ou atendido. Um olho só, 9 quadrantes em branco, efeito/nome do fio/curvatura/observação em texto livre. Salvo em `registros/{agenda}__mapa` (não mexe no registro do atendimento nem nas regras). O cartão mostra "Último mapa", o diálogo oferece "Usar este de novo", e a ficha da cliente lista os últimos 5 (`mapasDe`, `dlgMapa`).
+
+## Escala da Tháriga (13/11/2026)
+
+Em Agenda online há a caixa **Escala da Tháriga**: marca os dias da semana em que ela fica no Florença (nos demais, Itaquera) e aceita **períodos especiais** (de/até, ex.: dezembro) que valem no lugar do normal. Guardada em `publico/agenda/{mai,flo}/cfg/escala` (`{flo:[4,5,6],periodos:[{de,ate,flo:[…]}]}`), lida por `escalaTha()`/`floDiasEm()`/`unitFor()` no painel e por `thaUnidadeEm()` em `pedido.html`. Sem escala salva, vale o padrão antigo (Florença quinta a sábado). Sem mudança nas regras do banco.
+**Dia a dia, ela decide (13/11/2026):** na Agenda, no dia aberto, os botões **Tháriga neste dia: Florença | Itaquera** gravam `escala.dias[data]`, que vale por cima do padrão e dos períodos (em `unitFor` e `thaUnidadeEm`). Só admin. Agendamentos já feitos na outra unidade não se mexem; o painel avisa antes.
+
+## Comissões: períodos anteriores (16/11/2026)
+
+Ao virar o período a tela de Comissões mostrava só o atual e o fechado "sumia". Agora há **‹ Período anterior / Período seguinte ›** (`S.comOff`, `qzVista()`), valendo para os valores, "Ver detalhes", adiantamento e "Marcar como pago" do período aberto na tela, e um aviso quando o período anterior ainda tem comissão não paga. Nada foi apagado: os dados sempre estiveram no banco.
+
+**Vários dias de uma vez (17/11/2026):** na Agenda, o botão **Vários dias…** abre "Onde a Tháriga atende": escolhe Itaim ou Itaquera e de/até, e grava um período em `escala.periodos` (Itaim = os 7 dias; Itaquera = nenhum), apagando as escolhas isoladas dentro dele. Um dia isolado escolhido depois vale por cima. Também corrigido: **Salvar agenda online** apagava as escolhas dia a dia (`escala.dias`); agora preserva.

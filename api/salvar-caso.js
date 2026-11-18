@@ -1,3 +1,4 @@
+const ia = require("../lib/ia.js");
 const https = require("https");
 
 // ══ CONFIGURAÇÕES ══════════════════════════════════════════════
@@ -7,7 +8,6 @@ const EVOLUTION_HOST = "evolution-api-production-59b1.up.railway.app";
 const FIREBASE_HOST = "painel-cartorio-default-rtdb.firebaseio.com";
 const DRIVE_URL = "https://script.google.com/macros/s/AKfycbz6NoiizP5ThvPWZ1ZZ_HAvJworawPrmfzCAXyCfY2n9oB8Qx4oFfYw0trGgm5liXHY/exec";
 const NUMERO_OPERACIONAL = "5511947851816";
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 // ═══════════════════════════════════════════════════════════════
 
 function normalizar(texto) {
@@ -308,39 +308,15 @@ async function gerarMinutaAssincrona(sessao) {
 
 // Mesma extração jurídica usada para PDF/imagem (extrairTextoPDF), mas a
 // partir de texto puro — usada depois do mammoth ler o .docx.
-function extrairDadosJuridicosDeTexto(texto) {
-  const body = JSON.stringify({
-    model: "claude-sonnet-4-6",
+async function extrairDadosJuridicosDeTexto(texto) {
+  const opcoes = {
     max_tokens: 1024,
     messages: [{
       role: "user",
       content: `Na primeira linha da resposta, identifique em poucas palavras o TIPO deste documento (ex: RG, CNH, Certidão de Nascimento, Certidão de Casamento, Certidão de Óbito, Matrícula do Imóvel, IPTU, Comprovante de Residência, Procuração, Contrato Social, Extrato Bancário, Guia de ITBI, Guia de ITCMD, etc.), no formato exato: "TIPO_DOCUMENTO: <tipo>". Na segunda linha, identifique o nome completo da pessoa a quem esse documento pertence/se refere (ex: titular do RG/CNH, parte citada na certidão), no formato exato: "NOME_PESSOA: <nome>" — ou "NOME_PESSOA: N/A" se o documento não for de uma pessoa específica (ex: matrícula de imóvel, IPTU, contrato social). Depois, numa nova linha, extraia as informações jurídicas relevantes deste documento: partes (nome, CPF, RG, estado civil, endereço), dados do imóvel (matrícula, endereço, área), valores, datas e qualquer dado importante para elaboração de minuta notarial. Seja objetivo e liste tudo que encontrar.\n\nDOCUMENTO:\n${texto}`
     }]
-  });
-  return new Promise((resolve) => {
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
-        catch { resolve(null); }
-      });
-    });
-    req.on("error", () => resolve(null));
-    req.write(body);
-    req.end();
-  });
+  };
+  return ia.texto(opcoes).catch(() => null);
 }
 
 async function extrairTextoDocx(base64, isModelo) {
@@ -364,8 +340,8 @@ async function extrairTextoModelo(base64, mimetype) {
   const bloco = mimetype === "application/pdf"
     ? { type: "document", source: { type: "base64", media_type: mimetype, data: base64 } }
     : { type: "image", source: { type: "base64", media_type: mimetype, data: base64 } };
-  const body = JSON.stringify({
-    model: "claude-sonnet-4-6",
+
+  const opcoes = {
     max_tokens: 4000,
     messages: [{
       role: "user",
@@ -377,36 +353,12 @@ async function extrairTextoModelo(base64, mimetype) {
         }
       ]
     }]
-  });
-  return new Promise((resolve) => {
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
-        catch { resolve(null); }
-      });
-    });
-    req.on("error", () => resolve(null));
-    req.write(body);
-    req.end();
-  });
+  };
+  return ia.texto(opcoes).catch(() => null);
 }
 
 async function extrairTextoPDF(base64, mimetype) {
-  const body = JSON.stringify({
-    model: "claude-sonnet-4-6",
+  const opcoes = {
     max_tokens: 1024,
     messages: [{
       role: "user",
@@ -421,31 +373,8 @@ async function extrairTextoPDF(base64, mimetype) {
         }
       ]
     }]
-  });
-  return new Promise((resolve) => {
-    const options = {
-      hostname: "api.anthropic.com",
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Length": Buffer.byteLength(body)
-      }
-    };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", d => data += d);
-      res.on("end", () => {
-        try { resolve(JSON.parse(data)?.content?.[0]?.text || null); }
-        catch { resolve(null); }
-      });
-    });
-    req.on("error", () => resolve(null));
-    req.write(body);
-    req.end();
-  });
+  };
+  return ia.texto(opcoes).catch(() => null);
 }
 
 // Lê o "TIPO_DOCUMENTO: X" que a IA escreve na primeira linha (ver
