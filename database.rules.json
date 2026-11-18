@@ -148,6 +148,11 @@
     // que protege o orçamento não é a tranca: é a alíquota nascer 🔴 incerta e
     // o CHECK FINAL não fechar sem a confirmação dela.
     "orcamento-aliquotas":   { ".read": true, ".write": true },
+    // A multa e os juros do ITCMD de um óbito atrasado (lib/juros-itcmd.js,
+    // atendida pela mesma porta de api/aliquota-municipal.js). Mesma razão e
+    // mesma tranca da alíquota de fora, logo acima: quem grava é a função da
+    // Vercel, e o que protege o orçamento é nascer 🔴 incerto, não o banco.
+    "orcamento-juros-itcmd": { ".read": true, ".write": true },
 
     // ── Minutas (Apps Script) ──
     "jobs":                  { ".read": true, ".write": true },
