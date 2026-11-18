@@ -400,7 +400,12 @@ function tela(){
     const pixCola=()=>vE>0?pixCopiaECola(PIX_CHAVE,vE,PIX_NOME,PIX_CIDADE):'45.566.502/0001-12';
     const l=[];
     if(modo!=='registro')l.push(`<section class="cartao">${topo(1,'B4','B5','B6',V().escritura,'recibo')}${bloco(t('D9'),'45.566.502/0001-12',pixCola(),true)}<details class="c-ted"><summary>${t('D13')}</summary>${bancos}</details></section>`);
-    if(modo!=='escritura')l.push(`<section class="cartao">${topo(modo==='registro'?1:2,'B7','B8','B9',V().registro,'boleto')}${reg.codigo?bloco(t('E10'),esc(reg.codigo),String(reg.codigo).replace(/\D/g,'')||reg.codigo):''}</section>`);
+    // Cada boleto é uma unidade diferente, com o seu próprio código de barras — não dá para pagar dois
+    // boletos com um código só. Cobrança nova traz `reg.boletos` (um valor+vencimento+código por boleto,
+    // pedido dela em 19/11/2026); cobrança antiga só tem o `reg.codigo` de sempre.
+    const boletos=(reg.boletos&&reg.boletos.length?reg.boletos:(reg.codigo?[{codigo:reg.codigo,venc:reg.venc}]:[]));
+    const blocoBoleto=(b,i,n)=>b.codigo?bloco(n>1?`${t('E10')} — boleto ${i+1} de ${n}${b.venc?' · vence '+esc(b.venc):''}`:t('E10'),esc(b.codigo),String(b.codigo).replace(/\D/g,'')||b.codigo):'';
+    if(modo!=='escritura')l.push(`<section class="cartao">${topo(modo==='registro'?1:2,'B7','B8','B9',V().registro,'boleto')}${boletos.map((b,i)=>blocoBoleto(b,i,boletos.length)).join('')}</section>`);
     h=l.join('')+(im.orcamento?`<button type="button" class="p-sec2" data-vis="orc">${t('B11')}</button>`:'')+anexosHtml();
   }
   if(k==='fim'){

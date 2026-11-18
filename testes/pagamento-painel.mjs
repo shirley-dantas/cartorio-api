@@ -49,16 +49,18 @@ await passo('"2.000" é dois mil, nunca dois reais: o dinheiro que ela digita vi
 await passo('a janela abre com os três jeitos de enviar, e só pede o que o jeito escolhido precisa', async () => {
   const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1'));
   assert(/Maria da Silva/.test(await pg.textContent('#pag-sub')));
-  let t = await pg.innerText('#pag-conteudo'); assert(/Escritura e registro/.test(t) && /Só a escritura/.test(t) && /Só o registro/.test(t) && /Valor a pagar/.test(t) && /Valor do boleto/.test(t));
-  await pg.check('input[value="escritura"]'); t = await pg.innerText('#pag-conteudo'); assert(/Valor a pagar/.test(t) && !/Valor do boleto/.test(t));
-  await pg.check('input[value="registro"]'); t = await pg.innerText('#pag-conteudo'); assert(!/Valor a pagar/.test(t) && /Valor do boleto/.test(t) && /1 · Registro/.test(t));
+  let t = await pg.innerText('#pag-conteudo'); assert(/Escritura e registro/.test(t) && /Só a escritura/.test(t) && /Só o registro/.test(t) && /Valor a pagar/.test(t) && /Boletos \(PDF ou foto\)/.test(t));
+  await pg.check('input[value="escritura"]'); t = await pg.innerText('#pag-conteudo'); assert(/Valor a pagar/.test(t) && !/Boletos \(PDF ou foto\)/.test(t));
+  await pg.check('input[value="registro"]'); t = await pg.innerText('#pag-conteudo'); assert(!/Valor a pagar/.test(t) && /Boletos \(PDF ou foto\)/.test(t) && /1 · Registro/.test(t));
 });
 
 await passo('faltando dado ou arquivo, o aviso diz o que falta e NADA é gravado', async () => {
   const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.click('#pag-gerar');
-  const e = await pg.innerText('.pag-erro'); assert(/valor da escritura/.test(e) && /recibo do cartório/.test(e) && /valor do boleto/.test(e) && /vencimento/.test(e) && /código de barras/.test(e) && /boleto/.test(e), e);
+  const e = await pg.innerText('.pag-erro'); assert(/valor da escritura/.test(e) && /recibo do cartório/.test(e) && /\bo boleto\b/.test(e), e);
   assert.equal((await pg.evaluate(() => window.__grav)).length, 0);
-  await pg.fill('#pag-valE', '3.039,89'); await pg.fill('#pag-valR', '3.868,07'); await pg.fill('#pag-venc', '31/02/2026'); await pg.fill('#pag-codigo', '26091.90299 37227');
+  await pg.fill('#pag-valE', '3.039,89');
+  await pg.locator('#pag-boleto').setInputFiles(IMG);
+  await pg.fill('input[data-pag-bol="valor:0"]', '3.868,07'); await pg.fill('input[data-pag-bol="venc:0"]', '31/02/2026'); await pg.fill('input[data-pag-bol="codigo:0"]', '26091.90299 37227');
   await pg.click('#pag-gerar'); assert(/vencimento/.test(await pg.innerText('.pag-erro')) && /recibo/.test(await pg.innerText('.pag-erro')));
 });
 
@@ -99,13 +101,15 @@ await passo('colar texto (não imagem) não faz nada, e arrastar um arquivo para
 await passo('gerar: grava a cobrança (valores em centavos, recibo e boleto como imagem), o resumo no card, e devolve o link e a mensagem', async () => {
   const pg = await abrir(); await pg.evaluate(() => { window.__orc = [{id: 'o1', status: 'enviado', versao: 1, resultado: {}}, {id: 'o2', status: 'aceito', versao: 2, resultado: {}}]; abrirPagamento('-Caso1'); });
   await pg.fill('#pag-valE', '3.039,89'); await pg.locator('#pag-recibo').setInputFiles(IMG);
-  await pg.fill('#pag-valR', '3.868,07'); await pg.fill('#pag-venc', '23/10/2026'); await pg.fill('#pag-codigo', '26091.90299 37227.373505 99600.000006 2 16080000386807'); await pg.locator('#pag-boleto').setInputFiles(IMG);
+  await pg.locator('#pag-boleto').setInputFiles(IMG);
+  await pg.fill('input[data-pag-bol="valor:0"]', '3.868,07'); await pg.fill('input[data-pag-bol="venc:0"]', '23/10/2026'); await pg.fill('input[data-pag-bol="codigo:0"]', '26091.90299 37227.373505 99600.000006 2 16080000386807');
   assert.equal(await pg.inputValue('#pag-orc'), 'o2', 'nasce marcado o aprovado pelo cliente');
   await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
   const g = await pg.evaluate(() => window.__grav);
   const cob = g.find((x) => x[1] === 'cobrancas/TOKENFIXOabcdefghij1234'); assert(cob && cob[0] === 'set', JSON.stringify(g.map((x) => x[1])));
   const v = cob[2]; assert.equal(v.meta.casoId, '-Caso1'); assert.deepEqual(v.meta.itens, {escritura: true, registro: true}); assert(v.meta.expiraEm > Date.now() + 14 * 864e5);
   assert.equal(v.dados.escritura.valorCent, 303989); assert.equal(v.dados.registro.valorCent, 386807); assert.equal(v.dados.registro.venc, '23/10/2026');
+  assert.equal(v.dados.registro.boletos.length, 1); assert.equal(v.dados.registro.boletos[0].valorCent, 386807); assert.equal(v.dados.registro.boletos[0].codigo, '26091.90299 37227.373505 99600.000006 2 16080000386807');
   assert.equal(v.dados.registro.beneficiario, 'Prime Assessoria Jurídica e Imobiliária'); assert.equal(v.dados.nome, 'Maria da Silva'); assert.equal(v.dados.ato, 'Escritura de Compra e Venda');
   assert(/^data:image\/jpeg;base64,/.test(v.imagens.recibo) && /^data:image\/jpeg;base64,/.test(v.imagens.boleto) && /^data:image\/jpeg;base64,/.test(v.imagens.orcamento), 'recibo, boleto e orçamento viram imagem');
   assert(!('boletoPdf' in v.imagens), 'boleto em foto não tem PDF para baixar');
@@ -173,31 +177,38 @@ await passo('com um recibo que não fecha entre vários, o valor NÃO é somado 
   assert.equal(await pg.inputValue('#pag-valE'), '');
 });
 
-await passo('mais de um boleto: todos vão, o campo de sempre leva o primeiro, e o aviso diz que o código é do primeiro', async () => {
+await passo('mais de um boleto: cada um lido e editável à parte, e o total é a SOMA deles', async () => {
   const pg = await abrir();
   await pg.route('https://script.google.com/**', (r) => r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify({ok: true, dados: {linha_digitavel: LINHA, beneficiario: 'X LTDA', cnpj: '11.222.333/0001-81'}})}));
   await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="registro"]');
   await pg.locator('#pag-boleto').setInputFiles([IMG, IMG]);
-  await pg.waitForFunction(() => /mais de um boleto/.test(document.querySelector('#pag-conteudo').innerText));
-  assert(/Boleto 2/.test(await pg.innerText('#pag-conteudo')));
+  await pg.waitForFunction(() => { const v = document.querySelector('input[data-pag-bol="valor:1"]'); return v && v.value !== ''; });
+  const t = await pg.innerText('#pag-conteudo'); assert(/Boleto 1/.test(t) && /Boleto 2/.test(t));
+  assert.equal(await pg.inputValue('input[data-pag-bol="valor:0"]'), '3.868,07'); assert.equal(await pg.inputValue('input[data-pag-bol="valor:1"]'), '3.868,07');
+  assert(/7\.736,14/.test(await pg.innerText('.pag-boleto-total')), await pg.innerText('.pag-boleto-total'));
   await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
-  const im = (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2].imagens;
-  assert.equal(im.boletos.length, 2); assert.equal(im.boleto, im.boletos[0]);
+  const v = (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2];
+  assert.equal(v.dados.registro.valorCent, 773614, 'soma dos dois boletos: 2 × 3.868,07');
+  assert.equal(v.dados.registro.boletos.length, 2);
+  assert.equal(v.imagens.boletos.length, 2); assert.equal(v.imagens.boleto, v.imagens.boletos[0]);
 });
 
 await passo('o valor do boleto tem de bater com o que o código de barras carrega: se divergir, o aviso diz os dois e nada é gravado', async () => {
   const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="registro"]');
-  await pg.fill('#pag-valR', '3.000,00'); await pg.fill('#pag-venc', '23/10/2026'); await pg.fill('#pag-codigo', '26091.90299 37227.373505 99600.000006 2 16080000386807');
-  await pg.locator('#pag-boleto').setInputFiles(IMG); await pg.route('https://script.google.com/**', (r) => r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify({ok: false, erro: 'x'})}));
+  await pg.locator('#pag-boleto').setInputFiles(IMG);
+  await pg.fill('input[data-pag-bol="valor:0"]', '3.000,00'); await pg.fill('input[data-pag-bol="venc:0"]', '23/10/2026'); await pg.fill('input[data-pag-bol="codigo:0"]', '26091.90299 37227.373505 99600.000006 2 16080000386807');
+  await pg.route('https://script.google.com/**', (r) => r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify({ok: false, erro: 'x'})}));
   await pg.click('#pag-gerar'); await pg.waitForSelector('.pag-erro');
   const e = await pg.innerText('.pag-erro'); assert(/código de barras diz R\$\s*3\.868,07/.test(e) && /R\$\s*3\.000,00/.test(e), e);
   assert.equal((await pg.evaluate(() => window.__grav)).length, 0);
-  await pg.fill('#pag-valR', '3.868,07'); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
+  await pg.fill('input[data-pag-bol="valor:0"]', '3.868,07'); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
 });
 
 await passo('só o registro: a mensagem fala do registro e a escritura não entra', async () => {
   const pg = await abrir(); await pg.evaluate(() => abrirPagamento('-Caso1')); await pg.check('input[value="registro"]');
-  await pg.fill('#pag-valR', '100,00'); await pg.fill('#pag-venc', '23/10/2026'); await pg.fill('#pag-codigo', '123'); await pg.locator('#pag-boleto').setInputFiles(IMG); await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
+  await pg.locator('#pag-boleto').setInputFiles(IMG);
+  await pg.fill('input[data-pag-bol="valor:0"]', '100,00'); await pg.fill('input[data-pag-bol="venc:0"]', '23/10/2026'); await pg.fill('input[data-pag-bol="codigo:0"]', '123');
+  await pg.click('#pag-gerar'); await pg.waitForSelector('#pag-msg');
   assert(/pagamento do registro de imóveis/.test(await pg.inputValue('#pag-msg')));
   const v = (await pg.evaluate(() => window.__grav)).find((x) => x[1].startsWith('cobrancas/'))[2]; assert.deepEqual(v.meta.itens, {escritura: false, registro: true}); assert(v.dados.escritura == null && !('recibo' in v.imagens));
 });
@@ -323,9 +334,9 @@ await passo('anexar o boleto preenche valor, vencimento, código, beneficiário 
   await responder(pg, {ok: true, dados: {linha_digitavel: LINHA, beneficiario: 'OUTRA ASSESSORIA LTDA', cnpj: '11.222.333/0001-81'}});
   await pg.goto('http://127.0.0.1:8199/harness-pagamento.html');
   await pg.evaluate(() => abrirPagamento('-Caso1')); await anexar(pg, 'boleto');
-  await pg.waitForFunction(() => document.querySelector('#pag-codigo').value !== '');
-  assert.equal(await pg.inputValue('#pag-valR'), '3.868,07'); assert.equal(await pg.inputValue('#pag-venc'), '23/10/2026');
-  assert.equal(await pg.inputValue('#pag-codigo'), LINHA);
+  await pg.waitForFunction(() => { const c = document.querySelector('input[data-pag-bol="codigo:0"]'); return c && c.value !== ''; });
+  assert.equal(await pg.inputValue('input[data-pag-bol="valor:0"]'), '3.868,07'); assert.equal(await pg.inputValue('input[data-pag-bol="venc:0"]'), '23/10/2026');
+  assert.equal(await pg.inputValue('input[data-pag-bol="codigo:0"]'), LINHA);
   assert.equal(await pg.inputValue('#pag-benef'), 'OUTRA ASSESSORIA LTDA'); assert.equal(await pg.inputValue('#pag-cnpj'), '11.222.333/0001-81');
 });
 
@@ -334,7 +345,7 @@ await passo('código de barras com dígito errado não é preenchido, e o aviso 
   await responder(pg, {ok: true, dados: {linha_digitavel: LINHA.replace('99600.000006', '99600.000007'), beneficiario: null, cnpj: null}});
   await pg.evaluate(() => abrirPagamento('-Caso1')); await anexar(pg, 'boleto');
   await pg.waitForFunction(() => /não passou na conferência/.test(document.querySelector('#pag-conteudo').innerText));
-  assert.equal(await pg.inputValue('#pag-codigo'), ''); assert.equal(await pg.inputValue('#pag-valR'), '');
+  assert.equal(await pg.inputValue('input[data-pag-bol="codigo:0"]'), ''); assert.equal(await pg.inputValue('input[data-pag-bol="valor:0"]'), '');
 });
 
 await passo('boleto lido sem beneficiário: o aviso diz que o nome é o de sempre e manda corrigir', async () => {
