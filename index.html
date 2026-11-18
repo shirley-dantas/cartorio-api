@@ -2112,6 +2112,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .orc-cli-tabela tfoot tr{background:var(--cc-tinta);border-radius:22px}
 .orc-cli-tabela tfoot td{font-size:16px;font-weight:600;letter-spacing:.1em;color:#fff;background:var(--cc-tinta);padding:20px 22px}
 .orc-cli-tabela tfoot td:last-child{font-size:25px;letter-spacing:0}
+/* A base e a multa/juros de um ITCMD por óbito, coladas na linha — pedido
+   dela em 18/11/2026: a cliente precisa ver de onde o número saiu, não só o
+   número. */
+.orc-cli-linha-nota{font-size:12px;font-weight:500;color:var(--cc-tinta-2);
+  margin-top:3px;text-transform:none;letter-spacing:0;line-height:1.4}
 .orc-cli-nota{margin:0;padding:16px 30px 20px;font-size:12.5px;line-height:1.6;
   color:var(--cc-tinta-2);text-align:center}
 @media(max-width:640px){
@@ -13147,7 +13152,21 @@ function orcLinhasCliente(r){
   if(r.totais.escritura) linhas.push(['ESCRITURA', r.totais.escritura]);
   if(r.totais.registro)  linhas.push(['REGISTRO', r.totais.registroComDespesas]);
   r.despesas.filter(d => !d.interna).forEach(d => linhas.push([d.rot.toUpperCase(), d.valor]));
-  r.tributos.forEach(t => {if(t.valor != null) linhas.push([t.rot.toUpperCase(), t.valor]);});
+  r.tributos.forEach(t => {
+    if(t.valor == null) return;
+    // O ITCMD de um óbito não sai da BASE CONSIDERADA (que é a meação na
+    // presente data, a base da escritura) — sai da meação NA DATA DO ÓBITO,
+    // um número diferente. Pedido dela em 18/11/2026: a cliente precisa ver
+    // de onde aquele valor saiu, e quanto dele é multa e juros de atraso.
+    const deObito = /^ITCMD — óbito/.test(t.rot);
+    const nota = deObito && t.base != null
+      ? `Base do ITCMD: ${orcMoeda(t.base)}`
+        + (t.itcmdJurosMulta && t.itcmdJurosMulta.totalExtra
+          ? ` · inclui ${orcMoeda(t.itcmdJurosMulta.totalExtra)} de multa e juros (${t.itcmdJurosMulta.dias} dias de atraso)`
+          : '')
+      : null;
+    linhas.push([t.rot.toUpperCase(), t.valor, nota]);
+  });
   return linhas;
 }
 // A capa do dossiê (a folha de papel que acompanha o caso físico) pede seis linhas fixas: escritura, matrícula, registro, prenotação, imposto e total.
@@ -15720,7 +15739,8 @@ function orcHtmlCliente(e, r){
       ${base ? `<div class="orc-cli-base">BASE CONSIDERADA<span>${orcMoeda(base)}</span></div>` : ''}
       <table class="orc-cli-tabela">
         <thead><tr><th>CUSTO</th><th>VALOR</th></tr></thead>
-        <tbody>${linhas.map(([a, b]) => `<tr><td>${escTxt(a)}</td><td>${orcMoeda(b)}</td></tr>`).join('')}</tbody>
+        <tbody>${linhas.map(([a, b, nota]) => `<tr><td>${escTxt(a)}${nota
+          ? `<div class="orc-cli-linha-nota">${escTxt(nota)}</div>` : ''}</td><td>${orcMoeda(b)}</td></tr>`).join('')}</tbody>
         <tfoot><tr><td>TOTAL ESTIMADO</td><td>${orcMoeda(r.totais.total)}</td></tr></tfoot>
       </table>
       <div class="orc-cli-nota">Valores estimados, sujeitos a atualização conforme tabela vigente,
@@ -15892,10 +15912,15 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar, altFolha, aprovado){
   // perdia o caminho do nome do custo até o valor. O contorno do vazado é
   // grosso de propósito (3px) para sobreviver à redução.
   const altLinha = 66, vao = 12;
-  linhas.forEach(([rot, val], i) => {
+  // Uma linha com nota (hoje só o ITCMD de um óbito, com a base e a multa e
+  // juros) ganha uma faixa mais alta, para a explicação caber sem apertar o
+  // rótulo e o valor — que continuam no mesmo lugar de sempre.
+  const altNota = 26;
+  linhas.forEach(([rot, val, nota], i) => {
+    const altura = altLinha + (nota ? altNota : 0);
     if(desenhar){
-      if(i % 2 === 0){ x.fillStyle = F.faixa; orcCantoRedondo(x, esq, y, dir - esq, altLinha, 26); x.fill(); }
-      else { x.strokeStyle = F.filete; x.lineWidth = 3; orcCantoRedondo(x, esq + 1.5, y + 1.5, dir - esq - 3, altLinha - 3, 25); x.stroke(); }
+      if(i % 2 === 0){ x.fillStyle = F.faixa; orcCantoRedondo(x, esq, y, dir - esq, altura, 26); x.fill(); }
+      else { x.strokeStyle = F.filete; x.lineWidth = 3; orcCantoRedondo(x, esq + 1.5, y + 1.5, dir - esq - 3, altura - 3, 25); x.stroke(); }
     }
     const vTxt = orcMoeda(val);
     x.font = fonte(24, '600');
@@ -15906,7 +15931,12 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar, altFolha, aprovado){
     x.font = fonte(24, '600');
     tinta(F.tinta);
     pinta(vTxt, dir - 28, y + altLinha / 2 + 8, 'right');
-    y += altLinha + vao;
+    if(nota){
+      tinta(F.tinta2);
+      cabeNo(nota, 13, '500', dir - esq - 56);
+      pinta(nota, esq + 28, y + altLinha + 18);
+    }
+    y += altura + vao;
   });
 
   // ── O total ──
