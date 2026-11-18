@@ -515,9 +515,17 @@ declaratória.
   **Passando de 180 dias entre o óbito e a data do ato, o ITCMD ganha multa
   de mora (art. 19, Lei 10.705/2000 — 0,33%/dia, até 20%) e juros pela
   Selic (art. 20).** Dentro de 180 dias, nenhum dos dois incide — é a régua
-  que o próprio portal da Fazenda destaca. A multa é conta fixa; o juros
-  não, a Selic muda mês a mês, e por isso o cálculo é **hipótese até ela
-  conferir** — a mesma escada da alíquota de fora da Capital
+  que o próprio portal da Fazenda destaca. **O "dia de atraso" conta do
+  VENCIMENTO (óbito + 180 dias) para a frente, nunca do óbito** — achado
+  num bug em 18/11/2026 (ela perguntou "tem certeza, sobre os juros e multa
+  do itcmd?"): a primeira versão multiplicava 0,33% pelo total de dias desde
+  o óbito, que já passa de 20% sozinho assim que cruza os 180 dias (0,33% ×
+  180 = 59,4%) — toda multa saía travada no teto, de um atraso de uma
+  semana a um atraso de um ano. `lib/juros-itcmd.js` agora calcula o
+  vencimento primeiro e só então os dias de atraso (e a janela da Selic) a
+  partir dele; `testes/juros-itcmd.mjs` existe por causa desse bug. A multa
+  é conta fixa; o juros não, a Selic muda mês a mês, e por isso o cálculo é
+  **hipótese até ela conferir** — a mesma escada da alíquota de fora da Capital
   (`orcAplicarAliquotaDeFora`): o painel busca a Selic acumulada no período
   na série oficial do Banco Central (`lib/juros-itcmd.js`, atendido pela
   mesma porta de `api/aliquota-municipal.js` — a Vercel está no limite de
@@ -1579,7 +1587,7 @@ node testes/montar.mjs && node testes/calculo.gerado.mjs
 node testes/navegador.mjs && node testes/celular.mjs
 node testes/rede.mjs && node testes/rede-varredura.mjs
 node testes/radar.mjs && node testes/radar-triagem.mjs
-node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs
+node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs && node testes/juros-itcmd.mjs
 node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
