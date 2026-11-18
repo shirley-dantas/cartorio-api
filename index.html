@@ -2010,6 +2010,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .orc-cli-tabela tfoot td{font-size:17px;font-weight:600;color:#fff;background:var(--cc-tinta);
   border-bottom:0;border-top:0;padding:20px 26px}
 .orc-cli-tabela tfoot td:last-child{font-size:23px}
+/* A base e a multa/juros de um ITCMD por óbito, coladas na linha — pedido
+   dela em 18/11/2026: a cliente precisa ver de onde o número saiu, não só o
+   número. */
+.orc-cli-linha-nota{font-size:12.5px;font-weight:500;color:var(--cc-tinta-2);
+  margin-top:4px;text-transform:none;letter-spacing:0}
 .orc-cli-nota{margin:0;padding:16px 26px 20px;font-size:12.5px;line-height:1.6;
   color:var(--cc-tinta-2);text-align:center}
 @media(max-width:640px){
@@ -11978,7 +11983,21 @@ function orcLinhasCliente(r){
   if(r.totais.escritura) linhas.push(['ESCRITURA', r.totais.escritura]);
   if(r.totais.registro)  linhas.push(['REGISTRO', r.totais.registroComDespesas]);
   r.despesas.filter(d => !d.interna).forEach(d => linhas.push([d.rot.toUpperCase(), d.valor]));
-  r.tributos.forEach(t => {if(t.valor != null) linhas.push([t.rot.toUpperCase(), t.valor]);});
+  r.tributos.forEach(t => {
+    if(t.valor == null) return;
+    // O ITCMD de um óbito não sai da BASE CONSIDERADA (que é a meação na
+    // presente data, a base da escritura) — sai da meação NA DATA DO ÓBITO,
+    // um número diferente. Pedido dela em 18/11/2026: a cliente precisa ver
+    // de onde aquele valor saiu, e quanto dele é multa e juros de atraso.
+    const deObito = /^ITCMD — óbito/.test(t.rot);
+    const nota = deObito && t.base != null
+      ? `Base do ITCMD: ${orcMoeda(t.base)}`
+        + (t.itcmdJurosMulta && t.itcmdJurosMulta.totalExtra
+          ? ` · inclui ${orcMoeda(t.itcmdJurosMulta.totalExtra)} de multa e juros (${t.itcmdJurosMulta.dias} dias de atraso)`
+          : '')
+      : null;
+    linhas.push([t.rot.toUpperCase(), t.valor, nota]);
+  });
   return linhas;
 }
 // O valor do negócio, que é o que a cliente reconhece: o número que ela
@@ -13949,7 +13968,8 @@ function orcHtmlCliente(e, r){
       ${base ? `<div class="orc-cli-base">BASE CONSIDERADA<span>${orcMoeda(base)}</span></div>` : ''}
       <table class="orc-cli-tabela">
         <thead><tr><th>CUSTO</th><th>VALOR</th></tr></thead>
-        <tbody>${linhas.map(([a, b]) => `<tr><td>${escTxt(a)}</td><td>${orcMoeda(b)}</td></tr>`).join('')}</tbody>
+        <tbody>${linhas.map(([a, b, nota]) => `<tr><td>${escTxt(a)}${nota
+          ? `<div class="orc-cli-linha-nota">${escTxt(nota)}</div>` : ''}</td><td>${orcMoeda(b)}</td></tr>`).join('')}</tbody>
         <tfoot><tr><td>TOTAL ESTIMADO</td><td>${orcMoeda(r.totais.total)}</td></tr></tfoot>
       </table>
       <div class="orc-cli-nota">Valores estimados, sujeitos a atualização conforme tabela vigente,
@@ -14098,8 +14118,14 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar){
   // depois da compressão do WhatsApp, e sem ele o olho perdia o caminho do
   // nome do custo até o valor, do outro lado de meio palmo de branco.
   const altLinha = 60;
-  linhas.forEach(([rot, val], i) => {
-    if(desenhar && i % 2 === 0){ x.fillStyle = F.faixa; x.fillRect(esq, y, dir - esq, altLinha); }
+  // Uma linha com nota (hoje só o ITCMD de um óbito, com a base e a multa e
+  // juros) ganha uma faixa mais alta, para a explicação caber sem apertar o
+  // valor de cima. O rótulo e o valor continuam no mesmo lugar de sempre —
+  // só a faixa cresce para baixo.
+  const altNota = 28;
+  linhas.forEach(([rot, val, nota], i) => {
+    const altura = altLinha + (nota ? altNota : 0);
+    if(desenhar && i % 2 === 0){ x.fillStyle = F.faixa; x.fillRect(esq, y, dir - esq, altura); }
     const vTxt = orcMoeda(val);
     x.font = fonte(23, '600');
     const largValor = x.measureText(vTxt).width;
@@ -14109,7 +14135,12 @@ function orcLayoutFolha(x, e, r, linhas, base, desenhar){
     x.font = fonte(23, '600');
     tinta(F.tinta);
     pinta(vTxt, dirT, y + altLinha / 2 + 8, 'right');
-    y += altLinha;
+    if(nota){
+      tinta(F.tinta2);
+      cabeNo(nota, 14, '500', dirT - esqT);
+      pinta(nota, esqT, y + altLinha + 20);
+    }
+    y += altura;
   });
 
   // ── O total ──
