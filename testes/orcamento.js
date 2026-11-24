@@ -1050,6 +1050,41 @@ ok('dois falecimentos viram dois ITCMDs, cada um 4% do seu próprio valor',
      && doisObitos.tributos[1].valor === Math.round(4055384 * 0.04),
    doisObitos.tributos);
 
+// A multa por ABERTURA TARDIA do inventário (art. 21, I) é diferente da
+// multa de pagar atrasado: conta do óbito até a data em que o inventário foi
+// REQUERIDO, não até a data do ato. Achada na pesquisa de 18/11/2026.
+const semAbertura = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2025-01-01'}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}]}, flags: {}, despesas: {}});
+ok('sem a data de abertura, a multa de abertura tardia não entra na conta',
+   semAbertura.tributos.length === 1, semAbertura.tributos);
+
+const abertoNoPrazo = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2025-01-01'}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}]},
+  flags: {dataAberturaInventario: '2025-02-01'}, despesas: {}});
+ok('aberto dentro de 60 dias: sem multa de abertura tardia',
+   abertoNoPrazo.tributos.length === 1, abertoNoPrazo.tributos);
+
+const abertoEntre61e180 = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2025-01-01'}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}]},
+  flags: {dataAberturaInventario: '2025-04-01'}, despesas: {}});
+const impostoPuroAbertura = Math.round(7055384 * 0.04);
+ok('aberto entre 61 e 180 dias: multa de 10% do imposto',
+   abertoEntre61e180.tributos.length === 2
+     && abertoEntre61e180.tributos[1].valor === Math.round(impostoPuroAbertura * 0.10),
+   abertoEntre61e180.tributos);
+
+const abertoDepoisDe180 = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
+  valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2025-01-01'}],
+    imoveis: [{rotulo: 'Casa', valor: 50000000}]},
+  flags: {dataAberturaInventario: '2025-12-01'}, despesas: {}});
+ok('aberto depois de 180 dias: multa de 20% do imposto',
+   abertoDepoisDe180.tributos.length === 2
+     && abertoDepoisDe180.tributos[1].valor === Math.round(impostoPuroAbertura * 0.20),
+   abertoDepoisDe180.tributos);
+
 console.log('\n— Cessão gratuita da meação com reserva de usufruto, 16/11/2026 —');
 // Ela apontou o paralelo certo: é a mesma conta da doação com reserva de
 // usufruto, só que sobre a meação cedida. Usa o mesmo caso-gabarito já

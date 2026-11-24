@@ -11591,6 +11591,34 @@ function orcLinhaItcmdObito(valor, dataObito, dataAto, idx){
       texto: 'Multa e juros calculados pelo painel (Selic buscada na internet) — confira antes de fechar o orçamento.'}]};
 }
 
+// A multa por ABERTURA TARDIA do inventário (art. 21, I, Lei 10.705/2000) —
+// achada na pesquisa de 18/11/2026, junto com a tabela de juros oficial: é
+// uma multa DIFERENTE da moratória de `orcLinhaItcmdObito` (aquela pune
+// pagar atrasado; esta pune ABRIR o inventário atrasado) e conta os dias
+// entre o óbito e a data em que o inventário foi REQUERIDO — nunca a data
+// do ato. Até 60 dias, nada; de 61 a 180, 10%; passando de 180, 20%. Sem a
+// data de abertura preenchida, a multa simplesmente não entra na conta —
+// ela não é obrigada a digitar, mas sem o dado o painel não inventa prazo.
+function orcDiasAberturaTardia(dataObito, dataAbertura){
+  return dataObito && dataAbertura ? orcDiasEntre(dataObito, dataAbertura) : null;
+}
+function orcPctMultaAberturaTardia(dias){
+  if(dias == null) return null;
+  if(dias <= 60) return 0;
+  if(dias <= 180) return 10;
+  return 20;
+}
+function orcLinhaMultaAberturaTardia(impostoPuro, dataObito, dataAbertura, idx){
+  const dias = orcDiasAberturaTardia(dataObito, dataAbertura);
+  const pct = orcPctMultaAberturaTardia(dias);
+  if(!pct) return null;
+  return {tipo: 'tributo', imposto: 'itcmd', rot: `Multa por abertura tardia do inventário — óbito ${idx + 1}`,
+    base: impostoPuro, aliquota: pct, valor: Math.round(impostoPuro * pct / 100),
+    fundamento: `Inventário requerido ${dias} dias após o óbito (${finDataBr(dataObito)} → ${finDataBr(dataAbertura)}) — `
+      + `multa de ${pct}% sobre o imposto (art. 21, I, Lei 10.705/2000).`,
+    avisos: []};
+}
+
 // O aviso que acompanha toda redução de 40%: ela é regra dela, e a nota
 // explicativa que a fundamentaria não veio nos arquivos entregues.
 const ORC_AVISO_DESCONTO = {
@@ -11896,7 +11924,7 @@ const ORC_ATOS = [
     // (`orcLinhaItcmdObito`), com multa e juros quando o atraso passar de
     // 180 dias.
     campos: ['meacaoAtual', 'meacaoObito', 'imoveis'],
-    perguntas: ['cessaoMeacaoUsufruto'],
+    perguntas: ['cessaoMeacaoUsufruto', 'dataAberturaInventario'],
     comoElaEscreveu: '1 ato sobre a meação na data presente, 1 registro sobre o valor de cada imóvel, 1 ITCMD por óbito, 4% sobre a meação na data do óbito, com multa e juros se passar de 180 dias.',
     montar(e){
       const im = (e.imoveis || []).filter(x => x && x.valor > 0);
@@ -11910,7 +11938,11 @@ const ORC_ATOS = [
       return {
         escrituras: [orcLinhaEscritura(baseEscritura, {rot: 'Escritura de inventário e partilha'}), ...cessao.escrituras],
         registros: [...im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})), ...cessao.registros],
-        tributos: [...obitos.map((o, i) => orcLinhaItcmdObito(o.valor, o.data, e.dataDoAto, i)), ...cessao.tributos]
+        tributos: [
+          ...obitos.map((o, i) => orcLinhaItcmdObito(o.valor, o.data, e.dataDoAto, i)),
+          ...obitos.map((o, i) => orcLinhaMultaAberturaTardia(Math.round(o.valor * 4 / 100), o.data, e.dataAberturaInventario, i)).filter(Boolean),
+          ...cessao.tributos
+        ]
       };
     }
   },
@@ -12439,6 +12471,10 @@ function orcCalcular(entrada){
   // `orcLinhaItcmdObito`) — vai junto de `dados` porque `montar()` só recebe
   // isso, não o `e` inteiro do orcCalcular.
   dados.dataDoAto = dataDoAto;
+  // A data de abertura do inventário (multa do art. 21, I) é outro campo,
+  // nunca a data do ato: o inventário pode ser aberto muito antes de a
+  // escritura sair.
+  dados.dataAberturaInventario = String(f.dataAberturaInventario || '').slice(0, 10);
   // Cada linha de "Meação na data do óbito" precisa da data junto do valor —
   // sem ela não dá para saber se passou dos 180 dias. Valor sem data é tão
   // incompleto quanto campo em branco.
@@ -15502,6 +15538,15 @@ function orcHtmlEspeciais(e, ato){
     if(f.cessaoMeacaoUsufruto) bits.push(orcListaHtml('imoveisCessao', 'Imóveis cedidos, com reserva de usufruto',
       (e.valores || {}).imoveisCessao, null, null));
   }
+  // Achado na pesquisa de 18/11/2026: o ITCMD leva também uma multa por
+  // ABRIR o inventário atrasado (art. 21, I), separada da multa de pagar
+  // atrasado. Conta do óbito até a data em que o inventário foi requerido —
+  // nunca a data da escritura.
+  if(p.includes('dataAberturaInventario'))
+    bits.push(`<div class="orc-campo"><label class="fin-rot">Data em que o inventário foi aberto/requerido
+        <span class="fin-mini">— multa de abertura tardia (art. 21, I); sem data, essa multa não entra na conta</span></label>
+      <input class="fin-input" type="date" value="${esc(f.dataAberturaInventario || '')}"
+        onchange="orcMudarFlagTexto('dataAberturaInventario',this.value)"></div>`);
   if(ato.grupo === 'Divórcio'){
     bits.push(`<div class="orc-campo"><label class="fin-rot">Tem pensão?</label>
       <select class="fin-select" onchange="orcMudarFlag('temPensao',this.value==='1')">
