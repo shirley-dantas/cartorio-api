@@ -525,6 +525,15 @@ declaratória.
   vencimento primeiro e só então os dias de atraso (e a janela da Selic) a
   partir dele; `testes/juros-itcmd.mjs` existe por causa desse bug. A multa
   é conta fixa; o juros não, a Selic muda mês a mês, e por isso o cálculo é
+  **A multa por ABRIR o inventário atrasado (art. 21, I) é outra multa, e conta outro prazo.**
+  Achada na mesma pesquisa de 18/11/2026: ela pune o inventário requerido tarde, não o
+  imposto pago tarde — conta os dias entre o óbito e a data em que o inventário foi
+  **requerido** (`dataAberturaInventario`, pergunta de "Inventário e partilha com
+  meação"), nunca a data do ato. Até 60 dias, nada; de 61 a 180, 10% sobre o imposto;
+  passando de 180, 20% (`orcLinhaMultaAberturaTardia`). Sem a data preenchida, a multa
+  simplesmente não entra na conta — campo que não bloqueia, mas também não inventa
+  prazo. É conta fixa, sem precisar de internet, e nasce **junto** com a multa
+  moratória e o juros como uma segunda linha de tributo, quando houver.
   **hipótese até ela conferir** — a mesma escada da alíquota de fora da Capital
   (`orcAplicarAliquotaDeFora`): o painel busca a Selic acumulada no período
   na série oficial do Banco Central (`lib/juros-itcmd.js`, atendido pela
