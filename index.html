@@ -13760,13 +13760,16 @@ if(/[?&]compartilhado=/.test(location.search)) setTimeout(()=>window.compartilha
 // A caixa de entrada do WhatsApp: o que chegou no número do cartório (API oficial da Meta) fica numa pasta de espera, e o
 // painel avisa no topo. Ela escolhe o caso (a mesma janela do Compartilhar) e cada arquivo segue o caminho de sempre.
 let entradaWA={};
+// Arquivos que ela já mandou para um caso: o aviso some na hora (o Apps Script só apaga o registro depois de ler cada arquivo, e a fila lê um por vez).
+// Se o envio falhar, o arquivo continua na pasta de entrada e VOLTA ao aviso: nada se perde em silêncio.
+const entradaOcultas=new Set();
 let compartilhadoEntrada=[];   // quando a janela "Para qual caso?" é da entrada: as chaves dos arquivos
 function entradaGrupos(){
-  const g={}; Object.entries(entradaWA||{}).forEach(([k,d])=>{ if(!d) return; const r=d.remetente||'?'; (g[r]=g[r]||{remetente:r,nome:d.nomeRemetente||'',itens:[],em:0}).itens.push({k,d}); g[r].em=Math.max(g[r].em,d.em||0); if(d.nomeRemetente) g[r].nome=d.nomeRemetente; });
+  const g={}; Object.entries(entradaWA||{}).forEach(([k,d])=>{ if(!d||entradaOcultas.has(k)) return; const r=d.remetente||'?'; (g[r]=g[r]||{remetente:r,nome:d.nomeRemetente||'',itens:[],em:0}).itens.push({k,d}); g[r].em=Math.max(g[r].em,d.em||0); if(d.nomeRemetente) g[r].nome=d.nomeRemetente; });
   return Object.values(g).sort((a,b)=>b.em-a.em);
 }
 function entradaFone(r){ const n=String(r||'').replace(/\D/g,''); const m=n.match(/^55(\d{2})(\d{4,5})(\d{4})$/); return m?`(${m[1]}) ${m[2]}-${m[3]}`:(r||''); }
-window.entradaDefinir=function(v){ entradaWA=v||{}; window.renderEntradaWA(); };
+window.entradaDefinir=function(v){ entradaWA=v||{}; entradaOcultas.forEach(k=>{ if(!entradaWA[k]) entradaOcultas.delete(k); }); window.renderEntradaWA(); };
 window.renderEntradaWA=function(){
   const el=document.getElementById('cc-entrada'); if(!el) return;
   const grupos=entradaGrupos();
@@ -13790,15 +13793,16 @@ window.entradaEscolherCaso=async function(remetente){
 };
 function entradaAtribuir(casoId,chaves){
   const lista=SOLTE[casoId]=SOLTE[casoId]||[], fila=[];
-  chaves.forEach(k=>{ const d=entradaWA[k]; if(!d) return; const it={id:++soltePorId,nome:d.nome||'arquivo',estado:'fila',msg:''}; lista.push(it); fila.push([it,k]); });
-  solteAtualizar(casoId);
+  chaves.forEach(k=>{ const d=entradaWA[k]; if(!d) return; const it={id:++soltePorId,nome:d.nome||'arquivo',estado:'fila',msg:''}; lista.push(it); fila.push([it,k]); entradaOcultas.add(k); });
+  solteAtualizar(casoId); window.renderEntradaWA();
   let ativos=0;
   const um=([it,k])=>enfileirarLeituraDocumento(async()=>{
     it.estado='enviando'; solteAtualizar(casoId);
     try{ const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'entrada-atribuir',entradaId:k,casoId})}); soltePreencher(casoId,it,await r.json()); }
     catch(e){ it.estado='erro'; it.msg='Erro de conexão com o Drive: '+((e&&e.message)||e); }
+    if(it.estado==='erro'){ entradaOcultas.delete(k); window.renderEntradaWA(); }   // não entrou no caso: o aviso volta
     solteAtualizar(casoId);
-  });
+  }).catch(e=>{ it.estado='erro'; it.msg=(e&&e.message)||String(e); entradaOcultas.delete(k); window.renderEntradaWA(); solteAtualizar(casoId); });
   const proximo=()=>{ while(ativos<SOLTE_PARALELO&&fila.length){ const x=fila.shift(); ativos++; um(x).finally(()=>{ ativos--; proximo(); }); } };
   proximo();
 }

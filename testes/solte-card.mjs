@@ -237,4 +237,15 @@ await passo('fila de leitura: um pedido pendurado não segura os outros para sem
   assert(/demorou/.test(erro), 'o pendurado devia virar erro escrito: ' + erro);
   assert.equal(await r2, 'segundo ok');
 });
+await passo('entrada: ao escolher o caso o aviso some na hora (sem esperar a leitura); se algum falhar, ele volta; o que o banco já apagou não volta', async () => {
+  const m = montarEntrada({respostas: (c) => c.entradaId === 'w_b' ? ({ok: false, erro: 'O arquivo não está mais na pasta de entrada.'}) : ({ok: true, nome: 'X_' + c.entradaId + '.pdf'})});
+  const cc = m.caixa.document.getElementById('cc-entrada');
+  m.f.entradaDefinir({w_a: REG('A.pdf'), w_b: REG('B.pdf')}); assert(/Chegaram 2 arquivos/.test(cc.innerHTML));
+  m.f.entradaEscolherCaso('5511988887777'); m.caixa.window.compartilhadoEscolher('C2');
+  assert.equal(cc.style.display, 'none', 'o aviso devia sumir assim que o caso foi escolhido, antes de qualquer leitura terminar');
+  await m.esperar();
+  assert(/Chegaram 1 arquivo pelo WhatsApp/.test(cc.innerHTML) && /B\.pdf/.test(cc.innerHTML) && !/A\.pdf/.test(cc.innerHTML), 'só o que falhou volta ao aviso: ' + cc.innerHTML);
+  m.f.entradaDefinir({w_b: REG('B.pdf')}); assert(/B\.pdf/.test(cc.innerHTML));
+  m.f.entradaDefinir({}); assert.equal(cc.style.display, 'none');
+});
 console.log(erros.length ? '\n' + erros.length + ' falha(s)' : '\ntudo certo'); process.exit(erros.length ? 1 : 0);
