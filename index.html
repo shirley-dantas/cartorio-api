@@ -13800,7 +13800,9 @@ function entradaAtribuir(casoId,chaves){
     it.estado='enviando'; solteAtualizar(casoId);
     try{ const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({acao:'entrada-atribuir',entradaId:k,casoId})}); soltePreencher(casoId,it,await r.json()); }
     catch(e){ it.estado='erro'; it.msg='Erro de conexão com o Drive: '+((e&&e.message)||e); }
-    if(it.estado==='erro'){ entradaOcultas.delete(k); window.renderEntradaWA(); }   // não entrou no caso: o aviso volta
+    // Registro órfão: o arquivo já não está na pasta de entrada (já foi tratado antes, ou foi apagado). Mantê-lo no aviso é um aviso eterno e inútil: sai do banco.
+    if(it.estado==='erro'&&/n[ãa]o est[áa] mais na pasta|j[áa] foi tratado|n[ãa]o existe mais/i.test(it.msg||'')){ try{ await remove(ref(db,'entrada/'+k)); }catch(_){ } }
+    else if(it.estado==='erro'){ entradaOcultas.delete(k); window.renderEntradaWA(); }   // não entrou no caso: o aviso volta
     solteAtualizar(casoId);
   }).catch(e=>{ it.estado='erro'; it.msg=(e&&e.message)||String(e); entradaOcultas.delete(k); window.renderEntradaWA(); solteAtualizar(casoId); });
   const proximo=()=>{ while(ativos<SOLTE_PARALELO&&fila.length){ const x=fila.shift(); ativos++; um(x).finally(()=>{ ativos--; proximo(); }); } };
