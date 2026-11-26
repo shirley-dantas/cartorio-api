@@ -14856,13 +14856,21 @@ window.orcTirarItem = function(chave, i){
   (orcEmEdicao.valores[chave] || []).splice(i, 1);
   renderOrcamentoDoCaso();
 };
+// As três funções de flag guardam `orcEmEdicao.flags` antes de escrever nela
+// — achado em 26/11/2026, num orçamento salvo que nunca tinha tocado
+// nenhuma pergunta: o Firebase não grava objeto vazio (`flags: {}` não cria
+// nó nenhum), então reabrir esse orçamento trazia `entrada.flags`
+// simplesmente AUSENTE, e o primeiro clique num botão de flag (a isenção do
+// ITCMD, por exemplo) quebrava com "Cannot set properties of undefined".
 window.orcMudarFlag = function(chave, valor){
+  orcEmEdicao.flags = orcEmEdicao.flags || {};
   orcEmEdicao.flags[chave] = valor;
   renderOrcamentoDoCaso();
 };
 // Campo de texto dentro de uma flag: só o resultado se refaz (como
 // `orcMudarValor`), senão o cursor salta fora a cada letra.
 window.orcMudarFlagTexto = function(chave, valor){
+  orcEmEdicao.flags = orcEmEdicao.flags || {};
   orcEmEdicao.flags[chave] = valor;
   orcRedesenharResultado();
 };
@@ -14883,6 +14891,7 @@ window.orcDesfazerIsencaoItcmd = function(){
   orcMudarFlag('isencaoItcmdConfirmada', false);
 };
 window.orcMudarFlagNum = function(chave, txt){
+  orcEmEdicao.flags = orcEmEdicao.flags || {};
   orcEmEdicao.flags[chave] = /mensal/i.test(chave) ? orcCent(txt) : Math.round(finNum(txt));
   orcRedesenharResultado();
 };
@@ -16246,6 +16255,10 @@ window.orcCompartilharImagem = async function(){
 // Leitura do rascunho, para o teste conferir o que a tela guardou sem poder
 // mexer no que ela está usando.
 window.orcEmEdicao_leitura = () => JSON.parse(JSON.stringify(orcEmEdicao || {}));
+// Simula o orçamento salvo que nunca tocou nenhuma pergunta: o Firebase não
+// grava objeto vazio, então `entrada.flags` volta ausente ao reabrir — é o
+// cenário do bug de 26/11/2026 (orcMudarFlag quebrando com flags undefined).
+window.orcEmEdicao_tirarFlags = () => { if(orcEmEdicao) delete orcEmEdicao.flags; };
 window.orcFolhaDoRascunho = function(aprovado){
   const r = orcCalcularRascunho();
   return r ? orcDesenharFolha(orcEmEdicao, r, aprovado === undefined ? orcAprovadoDe(orcEmEdicao) : aprovado) : null;

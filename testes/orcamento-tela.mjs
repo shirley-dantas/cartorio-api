@@ -1063,6 +1063,28 @@ await passo('o aviso da isenção do ITBI pula na tela quando é identificado', 
   if(!pulouDeNovo) throw new Error('voltou a se enquadrar no teto e não pulou de novo');
 });
 
+// Achado em 26/11/2026: um orçamento salvo que nunca tinha tocado nenhuma
+// pergunta lia de volta `entrada.flags` AUSENTE (o Firebase não grava objeto
+// vazio — `{}` não cria nó nenhum), e o primeiro clique num botão de flag
+// (aqui, a isenção do ITCMD) quebrava com "Cannot set properties of
+// undefined". `orcMudarFlag`/`orcMudarFlagTexto`/`orcMudarFlagNum` agora
+// recriam `flags` antes de escrever.
+await passo('um orçamento salvo sem flags nenhuma não quebra ao clicar no botão da isenção', async () => {
+  await pg.evaluate(() => orcNovoDoCaso('c1'));
+  await pg.waitForSelector('#modal-orcamento-caso.open');
+  await pg.evaluate(() => orcTrocarAto('divorcio-partilha-desigual'));
+  await pg.evaluate(() => { orcMudarValor('totalPartilha', '350.000,00');
+    orcMudarValor('excedente', '35.000,00'); });
+  await pg.waitForSelector('#orc-alerta-isencao-itcmd');
+  // O exato cenário dela: `flags` ausente, como vem de um orçamento salvo
+  // sem nenhuma pergunta tocada.
+  await pg.evaluate(() => orcEmEdicao_tirarFlags());
+  await pg.click('#orc-alerta-isencao-itcmd button');
+  await pg.waitForFunction(() => /isento/i.test(document.getElementById('orc-resultado').textContent));
+  const t = await pg.textContent('#orc-resultado');
+  if(!/isento/i.test(t)) throw new Error('não zerou o ITCMD: ' + t);
+});
+
 // ── E no celular, que é onde ela confere ──
 const cel = await b.newPage({viewport:{width:390, height:844}, deviceScaleFactor:3, isMobile:true, hasTouch:true});
 cel.on('pageerror', e => erros.push('pageerror (celular): ' + e.message));
