@@ -12871,12 +12871,28 @@ function orcConferirIsencoes(ctx){
              + 'e o valor da UFESP não está no painel. Declare-o em Ajustes para que o motor possa avisar quando o caso se enquadrar.'});
     else{
       const limite = ORC_TRIBUTOS.itcmd.isencaoDoacaoUfesp * ORC_TRIBUTOS.ufesp;
-      if(itcmd.base <= limite)
-        alertas.push({nivel: 'avisa', confianca: 'confirmada',
-          texto: `A base do ITCMD (${orcMoeda(itcmd.base)}) está dentro das `
-               + `${ORC_TRIBUTOS.itcmd.isencaoDoacaoUfesp.toLocaleString('pt-BR')} UFESPs de isenção da doação `
-               + `(${orcMoeda(limite)}, à UFESP de ${orcMoeda(ORC_TRIBUTOS.ufesp)}). `
-               + 'Confira o enquadramento — o motor manteve o imposto na conta.'});
+      if(itcmd.base > 0 && itcmd.base <= limite){
+        // Pedido dela em 26/11/2026, depois de ver um quinhão excedente dentro
+        // do teto ficar só apontado: o mesmo botão que o ITBI já tem — um
+        // clique dela zera, porque só ela sabe se o enquadramento é mesmo
+        // esse (e. g. se a parte já usou a isenção antes). Nunca aplicado
+        // sozinho, como manda "Isenção nunca é aplicada sozinha".
+        if(flags.isencaoItcmdConfirmada){
+          itcmd.isento = true;
+          itcmd.valorAntesDaIsencao = itcmd.valor;
+          itcmd.valor = 0;
+          itcmd.fundamento = `Isento — dentro das ${ORC_TRIBUTOS.itcmd.isencaoDoacaoUfesp.toLocaleString('pt-BR')} `
+            + `UFESPs de isenção da doação (${orcMoeda(limite)}, art. 6º, Lei 10.705/2000). Confirmado por você.`;
+          alertas.push({nivel: 'avisa', confianca: 'confirmada', chave: 'isencaoItcmdAplicada',
+            texto: `ITCMD isento: base dentro do teto de ${orcMoeda(limite)} de isenção da doação.`});
+        }else{
+          alertas.push({nivel: 'avisa', confianca: 'confirmada', chave: 'isencaoItcmdDoacao',
+            texto: `A base do ITCMD (${orcMoeda(itcmd.base)}) está dentro das `
+                 + `${ORC_TRIBUTOS.itcmd.isencaoDoacaoUfesp.toLocaleString('pt-BR')} UFESPs de isenção da doação `
+                 + `(${orcMoeda(limite)}, à UFESP de ${orcMoeda(ORC_TRIBUTOS.ufesp)}). `
+                 + 'Confira o enquadramento antes de confirmar.'});
+        }
+      }
     }
   }
 }
@@ -14853,6 +14869,13 @@ window.orcConfirmarIsencaoItbi = function(){
 window.orcDesfazerIsencaoItbi = function(){
   orcMudarFlag('isencaoItbiConfirmada', false);
 };
+// O mesmo botão do ITBI, agora para a isenção da doação do ITCMD (26/11/2026).
+window.orcConfirmarIsencaoItcmd = function(){
+  orcMudarFlag('isencaoItcmdConfirmada', true);
+};
+window.orcDesfazerIsencaoItcmd = function(){
+  orcMudarFlag('isencaoItcmdConfirmada', false);
+};
 window.orcMudarFlagNum = function(chave, txt){
   orcEmEdicao.flags[chave] = /mensal/i.test(chave) ? orcCent(txt) : Math.round(finNum(txt));
   orcRedesenharResultado();
@@ -15737,8 +15760,11 @@ function orcHtmlDespesas(e, r){
 // ── O resultado, a memória e os avisos ───────────────────────────────────
 function orcHtmlAvisoCompacto(a){
  const candidato=a.chave==='isencaoItbiPrimeiroImovel';
- return `<div class="orc-alerta orc-aviso-compacto${a.nivel==='bloqueia'?' grave':''}"${candidato?' id="orc-alerta-isencao-itbi"':''}>
- ${candidato?`<b class="orc-aviso-titulo">Possível isenção de ITBI</b><p>O valor informado está dentro do teto. Confirme se é a primeira aquisição residencial ou PMCMV.</p><details><summary>Ver condições</summary><p>${escTxt(a.texto)}</p></details><button type="button" class="cx-btn" onclick="orcConfirmarIsencaoItbi()">Confirmar primeira aquisição / PMCMV</button>`:`<p><span class="orc-selo">${ORC_CONFIANCAS[a.confianca].selo}</span> ${escTxt(a.texto)}</p>${a.chave==='isencaoItbiAplicada'?'<button type="button" class="cx-btn" onclick="orcDesfazerIsencaoItbi()">Desfazer isenção</button>':''}`}
+ const candidatoItcmd=a.chave==='isencaoItcmdDoacao';
+ return `<div class="orc-alerta orc-aviso-compacto${a.nivel==='bloqueia'?' grave':''}"${candidato?' id="orc-alerta-isencao-itbi"':''}${candidatoItcmd?' id="orc-alerta-isencao-itcmd"':''}>
+ ${candidato?`<b class="orc-aviso-titulo">Possível isenção de ITBI</b><p>O valor informado está dentro do teto. Confirme se é a primeira aquisição residencial ou PMCMV.</p><details><summary>Ver condições</summary><p>${escTxt(a.texto)}</p></details><button type="button" class="cx-btn" onclick="orcConfirmarIsencaoItbi()">Confirmar primeira aquisição / PMCMV</button>`
+ :candidatoItcmd?`<b class="orc-aviso-titulo">Possível isenção de ITCMD</b><p>O valor da base está dentro do teto de isenção da doação.</p><details><summary>Ver condições</summary><p>${escTxt(a.texto)}</p></details><button type="button" class="cx-btn" onclick="orcConfirmarIsencaoItcmd()">Confirmar isenção da doação</button>`
+ :`<p><span class="orc-selo">${ORC_CONFIANCAS[a.confianca].selo}</span> ${escTxt(a.texto)}</p>${a.chave==='isencaoItbiAplicada'?'<button type="button" class="cx-btn" onclick="orcDesfazerIsencaoItbi()">Desfazer isenção</button>':''}${a.chave==='isencaoItcmdAplicada'?'<button type="button" class="cx-btn" onclick="orcDesfazerIsencaoItcmd()">Desfazer isenção</button>':''}`}
  </div>`;
 }
 function orcHtmlResultado(e, r){
@@ -15763,12 +15789,17 @@ function orcHtmlResultado(e, r){
     </div>` : ''}
     ${r.alertas.length ? `<div class="orc-alertas">
       ${r.alertas.map(a => window.PRIME_SIGNATURE?orcHtmlAvisoCompacto(a):`<div class="orc-alerta ${a.nivel === 'bloqueia' ? 'grave' : ''}"
-        ${a.chave === 'isencaoItbiPrimeiroImovel' ? ' id="orc-alerta-isencao-itbi"' : ''}>
+        ${a.chave === 'isencaoItbiPrimeiroImovel' ? ' id="orc-alerta-isencao-itbi"' : ''}
+        ${a.chave === 'isencaoItcmdDoacao' ? ' id="orc-alerta-isencao-itcmd"' : ''}>
         <span class="orc-selo">${ORC_CONFIANCAS[a.confianca].selo}</span> ${escTxt(a.texto)}
         ${a.chave === 'isencaoItbiPrimeiroImovel' ? `<button type="button" class="cx-btn" style="margin-left:8px"
            onclick="orcConfirmarIsencaoItbi()">✅ Isenta — é a primeira aquisição / PMCMV</button>` : ''}
         ${a.chave === 'isencaoItbiAplicada' ? `<button type="button" class="cx-btn" style="margin-left:8px"
            onclick="orcDesfazerIsencaoItbi()">Desfazer</button>` : ''}
+        ${a.chave === 'isencaoItcmdDoacao' ? `<button type="button" class="cx-btn" style="margin-left:8px"
+           onclick="orcConfirmarIsencaoItcmd()">✅ Isenta — dentro do teto da doação</button>` : ''}
+        ${a.chave === 'isencaoItcmdAplicada' ? `<button type="button" class="cx-btn" style="margin-left:8px"
+           onclick="orcDesfazerIsencaoItcmd()">Desfazer</button>` : ''}
       </div>`).join('')}
     </div>` : ''}
     ${divs.length ? `<div class="orc-alertas">${divs.map(d => `<div class="orc-alerta grave">

@@ -490,6 +490,29 @@ ok('acima do teto, confirmar não zera nada — o motor não aplica o que não s
    grande.tributos[0].valor > 0 && !grande.tributos[0].isento);
 ok('o teto de 2019 é outro', R(orcTetoIsencaoItbi('2019-06-01')) === '169153.88');
 
+console.log('\n— O mesmo botão, agora na isenção da doação do ITCMD (26/11/2026) —');
+const excedenteBarato = orcCalcular({atoId: 'divorcio-partilha-desigual', data: '2026-11-26',
+  valores: {totalPartilha: 50000000, excedente: 9000000, imoveis: [{rotulo: 'Casa', valor: 50000000}]},
+  flags: {excedenteOneroso: false}, despesas: {}});
+ok('base dentro do teto levanta o aviso sozinho, com a chave que a tela usa para o botão',
+   excedenteBarato.alertas.some(a => a.chave === 'isencaoItcmdDoacao'));
+ok('mas o ITCMD continua na conta — quem decide é ela',
+   excedenteBarato.tributos.find(t => t.imposto === 'itcmd').valor > 0);
+const excedenteIsento = orcCalcular({atoId: 'divorcio-partilha-desigual', data: '2026-11-26',
+  valores: {totalPartilha: 50000000, excedente: 9000000, imoveis: [{rotulo: 'Casa', valor: 50000000}]},
+  flags: {excedenteOneroso: false, isencaoItcmdConfirmada: true}, despesas: {}});
+const itcmdIsento = excedenteIsento.tributos.find(t => t.imposto === 'itcmd');
+ok('confirmado por ela, o ITCMD zera', itcmdIsento.valor === 0);
+ok('e o tributo fica marcado como isento, com o valor de antes guardado',
+   itcmdIsento.isento === true && itcmdIsento.valorAntesDaIsencao > 0);
+ok('o aviso muda para "isento"', excedenteIsento.alertas.some(a => a.chave === 'isencaoItcmdAplicada'));
+const excedenteGrande = orcCalcular({atoId: 'divorcio-partilha-desigual', data: '2026-11-26',
+  valores: {totalPartilha: 50000000, excedente: 50000000, imoveis: [{rotulo: 'Casa', valor: 50000000}]},
+  flags: {excedenteOneroso: false, isencaoItcmdConfirmada: true}, despesas: {}});
+ok('acima do teto, confirmar não zera nada — o motor não aplica o que não se enquadra',
+   excedenteGrande.tributos.find(t => t.imposto === 'itcmd').valor > 0
+     && !excedenteGrande.tributos.find(t => t.imposto === 'itcmd').isento);
+
 console.log('\n— A regra especial de ZEIS engole os atos da escritura —');
 const zeis = orcCalcular({atoId: 'compra-venda-fiduciaria',
   valores: {transacao: 20000000, garantia: 15000000},
