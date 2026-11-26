@@ -720,10 +720,16 @@ declaratória.
   ITBI (`isencaoItbiConfirmada` nos `flags`) — com "Desfazer" ao lado, se ela
   marcar por engano. A Declaração ITBI-IV dispensa o cartório de exigir outro
   documento (Lei 13.402/2002, art. 3º; Decreto 55.196/2014, art. 26 c/c 32) —
-  é por isso que um clique já basta, sem pedir upload de nada. O ITCMD
-  continua só apontado, sem botão: a isenção dele depende da UFESP e do
-  enquadramento no art. 6º da Lei 10.705/2000, que o painel nunca confere
-  sozinho.
+  é por isso que um clique já basta, sem pedir upload de nada. **O ITCMD
+  ganhou o mesmo botão em 26/11/2026**, a pedido dela depois de ver um
+  quinhão excedente de divórcio dentro do teto de 2.500 UFESPs de isenção da
+  doação ficar só apontado: dentro do teto (`ORC_TRIBUTOS.itcmd.isencaoDoacaoUfesp`
+  × a UFESP), o aviso vem com "✅ Isenta — dentro do teto da doação"
+  (`orcConfirmarIsencaoItcmd`), e só esse clique zera o imposto
+  (`isencaoItcmdConfirmada` nos `flags`) — com "Desfazer" ao lado. O que o
+  motor não sabe — se o enquadramento no art. 6º da Lei 10.705/2000 é mesmo
+  esse — continua sendo dela: o botão só confirma o teto, nunca o
+  enquadramento.
   **O ITBI por outro motivo (integralização de capital social, desapropriação
   etc.) é um campo manual, sempre à mão.** A isenção do primeiro imóvel tem
   teto e data para o motor conferir sozinho; esta não tem — "nem sempre será
