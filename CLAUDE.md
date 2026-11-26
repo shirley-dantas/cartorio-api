@@ -1253,7 +1253,7 @@ Regras dela, de 28/10/2026, que **não devem ser mexidas sem perguntar**:
   repetida (a Meta reentrega) entra uma vez, pelo id dela. **Nunca por WhatsApp Web automatizado (Evolution/Baileys): é o que bane
   número** — o bot antigo, no número pessoal 11 94785-1816, foi desligado por ela em 28/10/2026 e o código dele (`api/salvar-caso.js`)
   fica parado. A `/entrada` é aberta nas regras, como `/casos` (quem escreve é o Apps Script, por REST). Passo a passo na Meta, na
-  Vercel e no Apps Script: `FIREBASE.md`, seção 13. Testes: `testes/whatsapp-entrada.mjs`, `testes/cliente-envio.mjs`, `testes/solte-card.mjs`.
+  Vercel e no Apps Script: `FIREBASE.md`, seção 13. **Escolheu o caso, o aviso some na hora** (17/11/2026): o Apps Script só apaga o registro de `/entrada` depois de ler cada arquivo, e a fila lê um por vez — o aviso ficava minutos na tela. Agora os arquivos escolhidos saem do aviso imediatamente (`entradaOcultas`) e o andamento aparece na lista do card; se algum falhar, ele **volta** ao aviso (continua na pasta de entrada), nada se perde em silêncio. Testes: `testes/whatsapp-entrada.mjs`, `testes/cliente-envio.mjs`, `testes/solte-card.mjs`.
 - **A lista "Recebidos do cliente" é agrupada, e abre e fecha sem se perder** (3/11/2026, passo 1 do card novo). Em vez de uma fila de nomes crus,
   `pedidoRecebidosHtml` agrupa com `docsAgrupar` (pura): **A confirmar** no alto (o que a IA não soube nomear), **Aguardando o cliente concluir**,
   uma caixa por **pessoa** (o mesmo nome sem caixa e sem acento é uma pessoa só), a **Empresa** (ficha e contrato da JUCESP), o **Imóvel** (matrícula,
