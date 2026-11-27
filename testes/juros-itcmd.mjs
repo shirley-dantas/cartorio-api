@@ -41,8 +41,10 @@ function fingirHttps(){
       cb(res);
       return { on(){} };
     }
+    // A ementa de verdade escreve a data por extenso, não "30/11/2026" — achado
+    // em 27/11/2026 ao testar contra a página real (a busca nunca achava nada).
     const html = 'Ementa Divulga a Tabela Prática para Cálculo dos Juros de Mora aplicáveis até '
-      + '30/11/2026 para os débitos de ITCMD e de IPVA. Observação '
+      + '30 de novembro de 2026 para os débitos de ITCMD e de IPVA. Observação '
       + '<a href="/SiteAssets/Paginas/Comunicado-DICAR-73-de-2026/ANEXO.pdf">anexo</a>';
     const res = { statusCode: 200, on(ev, fn){ if(ev === 'data') fn(Buffer.from(html)); if(ev === 'end') fn(); } };
     cb(res);

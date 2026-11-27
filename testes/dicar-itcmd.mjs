@@ -4,7 +4,7 @@
 // testes/fixtures/dicar-exemplo.txt). O que se testa aqui é só a conta —
 // achar a linha/coluna certa e aplicar o ajuste do último dia útil.
 import { readFileSync } from 'node:fs';
-import { extrairTabela, coeficienteDaTabela, ehUltimoDiaUtil } from '../lib/dicar-itcmd.js';
+import { extrairTabela, coeficienteDaTabela, ehUltimoDiaUtil, paraIsoExtenso } from '../lib/dicar-itcmd.js';
 
 let ok_ = 0, falhas = 0;
 function ok(nome, cond, extra) {
@@ -38,6 +38,14 @@ ok('15/06/2026 não é o último dia útil', !ehUltimoDiaUtil('2026-06-15'));
 ok('mês que termina em fim de semana recua pro último dia útil', ehUltimoDiaUtil('2026-10-30') && !ehUltimoDiaUtil('2026-10-31'));
 
 ok('texto sem "APLICÁVEIS ATÉ" não é tabela — devolve null, não quebra', extrairTabela('lixo qualquer') === null);
+
+// A ementa da PÁGINA (não do PDF) escreve a data por extenso — achado em
+// 27/11/2026, ao testar contra a página real da SEFAZ: a busca nunca achava
+// nada porque procurava "30/11/2026" onde só havia "30 de novembro de 2026".
+ok('data por extenso, como a ementa de verdade escreve',
+  paraIsoExtenso('aplicáveis até 30 de novembro de 2026 para os débitos') === '2026-11-30');
+ok('mês com cedilha (março)', paraIsoExtenso('até 5 de março de 2027') === '2027-03-05');
+ok('texto sem data por extenso devolve null', paraIsoExtenso('30/11/2026') === null);
 
 console.log(`\n${ok_} ok, ${falhas} falha(s).`);
 if (falhas) process.exit(1);
