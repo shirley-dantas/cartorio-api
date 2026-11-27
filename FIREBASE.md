@@ -210,6 +210,15 @@ O que protege o orçamento aqui **não é a tranca do banco**: é a alíquota na
 que alguém escrevesse um número no caminho aberto, ele chegaria à tela marcado
 como não conferido.
 
+**26/11/2026 — passo manual pendente.** Dois caminhos novos entraram depois do
+último *Publicar*: `itcmd-dicar-tabela` (a tabela oficial de juros do ITCMD,
+lida da SEFAZ) e `itcmd-dicar` (o ponteiro do último Comunicado achado). Sem
+publicar de novo, o painel mostra "a busca falhou: firebase 401: Permission
+Denied" no botão *Calcular multa e juros*. **Repita o passo 4**: Realtime
+Database → Rules → apagar o conteúdo, colar o `database.rules.json` de agora,
+Publicar. Mesma leitura/escrita abertas, pela mesma razão das outras duas
+linhas acima — quem grava é a função da Vercel.
+
 ## 10. Escolher documento direto do Google Drive
 
 O botão **"Escolher do Drive"**, ao lado de cada "Anexar documento(s)" (minuta
