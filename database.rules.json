@@ -153,6 +153,13 @@
     // mesma tranca da alíquota de fora, logo acima: quem grava é a função da
     // Vercel, e o que protege o orçamento é nascer 🔴 incerto, não o banco.
     "orcamento-juros-itcmd": { ".read": true, ".write": true },
+    // A tabela oficial de juros do ITCMD (lib/dicar-itcmd.js, 26/11/2026) —
+    // mesma razão e mesma tranca de cima: quem grava é a função da Vercel, e
+    // o que protege o orçamento é nascer 🔴 incerto, não o banco. Dois
+    // caminhos: a tabela em si, lida uma vez por mês, e o ponteiro do último
+    // Comunicado achado (poupa a varredura na próxima busca).
+    "itcmd-dicar-tabela":    { ".read": true, ".write": true },
+    "itcmd-dicar":           { ".read": true, ".write": true },
 
     // ── Minutas (Apps Script) ──
     "jobs":                  { ".read": true, ".write": true },
