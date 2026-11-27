@@ -11920,25 +11920,37 @@ const ORC_ATOS = [
     grupo: 'Inventário',
     // Pedido dela em 18/11/2026: a meação tem dois valores, e são duas
     // listas — pode haver mais de um falecimento no mesmo caso.
-    // `meacaoAtual` ("Meação na presente data") soma para a escritura e o
+    // `meacaoAtual` ("Meação na presente data") é a base da escritura e do
     // registro. `meacaoObito` ("Meação na data do óbito") é SÓ do ITCMD —
     // cada linha, com o seu valor e a sua data, vira o seu próprio ITCMD
     // (`orcLinhaItcmdObito`), com multa e juros quando o atraso passar de
     // 180 dias.
+    //
+    // Cada meação é a SUA PRÓPRIA escritura, nunca uma soma tributada uma
+    // vez só — achado em 27/11/2026, a mesma régua dos "imóveis distintos"
+    // de 29/09/2026: a tabela é regressiva, então somar duas meações antes
+    // de aplicar a faixa dá um número MENOR do que o certo (ela conferiu:
+    // duas meações de R$ 521.970,67 davam R$ 6.026,36 pelo caminho da soma
+    // contra R$ 10.854,86 (2 × R$ 5.427,43) pelo caminho de uma escritura
+    // por meação, que é o correto — são transmissões distintas).
     campos: ['meacaoAtual', 'meacaoObito', 'imoveis'],
     perguntas: ['cessaoMeacaoUsufruto', 'dataAberturaInventario'],
-    comoElaEscreveu: '1 ato sobre a meação na data presente, 1 registro sobre o valor de cada imóvel, 1 ITCMD por óbito, 4% sobre a meação na data do óbito, com multa e juros se passar de 180 dias.',
+    comoElaEscreveu: '1 ato por meação (na data presente), 1 registro sobre o valor de cada imóvel, 1 ITCMD por óbito, 4% sobre a meação na data do óbito, com multa e juros se passar de 180 dias.',
     montar(e){
       const im = (e.imoveis || []).filter(x => x && x.valor > 0);
       const atuais = (e.meacaoAtual || []).filter(x => x && x.valor > 0);
-      const baseEscritura = atuais.reduce((t, x) => t + x.valor, 0);
       const obitos = (e.meacaoObito || []).filter(x => x && x.valor > 0);
       // "Dois atos dentro de um" (16/11/2026): a viúva pode ceder a própria
       // meação (ou parte dela) de graça aos herdeiros, com reserva de
       // usufruto — na MESMA escritura. Ver `orcCessaoUsufrutoLinhas`.
       const cessao = e.cessaoMeacaoUsufruto ? orcCessaoUsufrutoLinhas(e.imoveisCessao) : {escrituras: [], registros: [], tributos: []};
       return {
-        escrituras: [orcLinhaEscritura(baseEscritura, {rot: 'Escritura de inventário e partilha'}), ...cessao.escrituras],
+        escrituras: [
+          ...atuais.map((x, i) => orcLinhaEscritura(x.valor, {rot: atuais.length > 1
+            ? `Escritura de inventário e partilha — meação ${i + 1}`
+            : 'Escritura de inventário e partilha'})),
+          ...cessao.escrituras
+        ],
         registros: [...im.map(x => orcLinhaRegistro(x.valor, {rot: 'Registro — ' + (x.rotulo || 'imóvel')})), ...cessao.registros],
         tributos: [
           ...obitos.map((o, i) => orcLinhaItcmdObito(o.valor, o.data, e.dataDoAto, i)),
