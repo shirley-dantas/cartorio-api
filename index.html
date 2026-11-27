@@ -11539,13 +11539,14 @@ function orcChaveJurosItcmd(dataObito, dataAto){ return `${dataObito}_${dataAto}
 // 18/11/2026): 4% sobre a meação naquela data — nunca sobre a meação atual,
 // que é só a base da escritura e do registro. Passando de 180 dias entre o
 // óbito e a data do ato, a Lei 10.705/2000 manda somar multa de mora (art.
-// 19 — 0,33%/dia, até 20%) e juros pela Selic (art. 20); dentro de 180 dias,
-// nenhum dos dois incide — é a régua que o próprio portal da Fazenda
-// destaca. Mais de um falecimento no mesmo caso é mais de uma linha na
-// lista, e cada uma vira o seu próprio ITCMD, com os seus próprios dias.
+// 19 — 0,33%/dia, até 20%) e juros pela tabela oficial da SEFAZ-SP (art. 20);
+// dentro de 180 dias, nenhum dos dois incide — é a régua que o próprio
+// portal da Fazenda destaca. Mais de um falecimento no mesmo caso é mais de
+// uma linha na lista, e cada uma vira o seu próprio ITCMD, com os seus
+// próprios dias.
 //
-// A multa é conta fixa; o juros não — a Selic muda mês a mês. Por isso o
-// cálculo com multa/juros é HIPÓTESE até ela conferir, a mesma escada da
+// A multa é conta fixa; o juros não — a tabela muda mês a mês (`lib/dicar-itcmd.js`).
+// Por isso o cálculo com multa/juros é HIPÓTESE até ela conferir, a mesma escada da
 // alíquota de fora da Capital: entra na conta para o orçamento existir, sai
 // 🔴, e o CHECK FINAL não fecha sozinho (ver o laço de `alertas` logo depois
 // de `ato.montar(dados)`, em `orcCalcular`).
@@ -11573,22 +11574,23 @@ function orcLinhaItcmdObito(valor, dataObito, dataAto, idx){
   }
   // Digitado à mão (ela já tirou o total de multa+juros da guia da Fazenda)
   // vale como conferido — foi ela quem digitou. Senão, o painel decompõe em
-  // multa (fixa) + juros (Selic buscada), e os dois ficam 🔴 até ela conferir.
+  // multa (fixa) + juros (tabela oficial DICAR/SEFAZ-SP), e os dois ficam 🔴
+  // até ela conferir.
   const manual = j.totalManual != null;
   const totalExtra = manual ? Math.round(j.totalManual)
-    : Math.round(impostoPuro * j.multaPct / 100) + Math.round(impostoPuro * j.selicPct / 100);
+    : Math.round(impostoPuro * j.multaPct / 100) + Math.round(impostoPuro * j.coefPct / 100);
   const conf = j.confianca === 'confirmada';
   return {tipo: 'tributo', imposto: 'itcmd', rot, base, aliquota: 4,
     valor: impostoPuro + totalExtra,
     itcmdJurosMulta: {chave, estado: conf ? 'confirmada' : 'incerta', dias, dataObito, dataAto, idx,
-      manual, multaPct: j.multaPct, selicPct: j.selicPct, impostoPuro, totalExtra, fontes: j.fontes || []},
+      manual, multaPct: j.multaPct, coefPct: j.coefPct, impostoPuro, totalExtra, fontes: j.fontes || []},
     fundamento: manual
       ? `4% sobre a meação (${orcMoeda(impostoPuro)}) + multa e juros digitados por você: ${orcMoeda(totalExtra)}.`
-      : `4% sobre a meação (${orcMoeda(impostoPuro)}) + multa de mora de ${j.multaPct}% + juros pela Selic de `
-        + `${j.selicPct}% — soma de ${orcMoeda(totalExtra)}, ${dias} dias desde o óbito.`
+      : `4% sobre a meação (${orcMoeda(impostoPuro)}) + multa de mora de ${j.multaPct}% + juros de ${j.coefPct}% `
+        + `(tabela oficial da SEFAZ-SP) — soma de ${orcMoeda(totalExtra)}, ${dias} dias desde o óbito.`
         + (conf ? ' Conferido por você.' : ' AINDA NÃO CONFERIDO.'),
     avisos: conf ? [] : [{confianca: 'incerta',
-      texto: 'Multa e juros calculados pelo painel (Selic buscada na internet) — confira antes de fechar o orçamento.'}]};
+      texto: 'Multa e juros calculados pelo painel (tabela oficial da SEFAZ-SP, buscada na internet) — confira antes de fechar o orçamento.'}]};
 }
 
 // A multa por ABERTURA TARDIA do inventário (art. 21, I, Lei 10.705/2000) —
@@ -15283,7 +15285,7 @@ function orcHtmlUmJurosItcmd(t){
     <div class="orc-aliquota-acoes">
       <button type="button" class="cx-btn destaque" ${buscando ? 'disabled' : ''}
         onclick="orcBuscarJurosItcmd('${j.chave}')">${buscando
-          ? '<i class="ti ti-loader"></i> Procurando a Selic…'
+          ? '<i class="ti ti-loader"></i> Procurando a tabela da SEFAZ…'
           : '<i class="ti ti-search"></i> Calcular multa e juros'}</button>
       <span class="fin-mini">ou digite o total já apurado:</span>
       <input class="fin-input" style="max-width:130px" inputmode="decimal" placeholder="0,00"
@@ -15294,7 +15296,7 @@ function orcHtmlUmJurosItcmd(t){
   const conf = j.estado === 'confirmada';
   const guardada = (ORC_TRIBUTOS.jurosItcmd || {})[j.chave] || {};
   return `<div class="orc-aliquota ${conf ? 'ok' : 'incerta'}" id="${id}">
-    <div><b>${escTxt(t.rot)}: ${j.manual ? 'multa e juros digitados' : `multa ${j.multaPct}% + juros ${j.selicPct}%`}
+    <div><b>${escTxt(t.rot)}: ${j.manual ? 'multa e juros digitados' : `multa ${j.multaPct}% + juros ${j.coefPct}%`}
       = ${orcMoeda(j.totalExtra)}</b> ${conf ? '— conferido por você' : '— <b>calculado pelo painel, ainda não conferido</b>'}</div>
     ${!j.manual && guardada.fundamento ? `<div class="fin-mini">${escTxt(guardada.fundamento)}</div>` : ''}
     ${(j.fontes || []).length ? `<div class="fin-mini">Fonte:
@@ -15325,7 +15327,7 @@ window.orcBuscarJurosItcmd = async function(chave, forcar){
       body: JSON.stringify({tipo: 'itcmd-juros', dataObito, dataAto, forcar: !!forcar})});
     const j = await resp.json();
     if(!j.encontrado){
-      orcBuscaJurosFalhou[chave] = j.porqueNao || 'A busca não achou a Selic do período. Digite o total à mão.';
+      orcBuscaJurosFalhou[chave] = j.porqueNao || 'A busca não achou a tabela oficial do período. Digite o total à mão.';
     }else{
       ORC_TRIBUTOS.jurosItcmd = Object.assign({}, ORC_TRIBUTOS.jurosItcmd, {[chave]: j});
     }

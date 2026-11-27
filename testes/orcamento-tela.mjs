@@ -398,9 +398,9 @@ await passo('ITCMD de óbito atrasado: o painel busca a multa e os juros, e ela 
   await pg.route('**/api/aliquota-municipal', route => route.fulfill({status: 200,
     contentType: 'application/json',
     body: JSON.stringify({encontrado: true, chave: '2025-01-01_2026-11-11', dias: 679,
-      multaPct: 20, selicPct: 12.5, confianca: 'incerta',
-      fundamento: 'Multa de mora de 20% + juros pela Selic acumulada de 12,5% entre 02/01/2025 e 11/11/2026.',
-      fontes: ['https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados']})}));
+      multaPct: 20, coefPct: 12.5, confianca: 'incerta',
+      fundamento: 'Multa de mora de 20% + juros de 12,5% pela Tabela Prática de Juros de Mora da SEFAZ-SP.',
+      fontes: ['https://legislacao.fazenda.sp.gov.br/Paginas/Comunicado-DICAR-99-de-2026.aspx']})}));
   await pg.evaluate(() => { orcTrocarAto('inventario-meacao');
     orcMudarCampoTexto('data', '2026-11-11');
     orcMudarItem('meacaoAtual', 0, 'valor', '70.553,84');

@@ -17,7 +17,7 @@ const FIN_CFG_PADRAO={
   percentualIR:27.5,
   pessoas:[
     {id:'shirley', nome:'Shirley', tipo:'equipe',   descontaIR:false, souEu:true},
-    {id:'grazi',   nome:'Grazi',   tipo:'equipe',   descontaIR:true},
+    {id:'grazi',   nome:'Grazi',   tipo:'equipe',   descontaIR:false},
     {id:'renato',  nome:'Renato',  tipo:'parceiro', descontaIR:true},
     {id:'basiotti',nome:'Basiotti',tipo:'parceiro', descontaIR:true},
     {id:'vinicius',nome:'Vinicius',tipo:'parceiro', descontaIR:true}
@@ -32,6 +32,10 @@ const FIN_CFG_PADRAO={
 };
 
 let finLanc={};
+// O DSR não é de uma escritura: é um valor do mês que o tabelião paga junto
+// com o repasse, e que entra no bolo a dividir. Por isso mora por ciclo de
+// fechamento, e não dentro do lançamento.
+let finDsr={};
 let finCfg=JSON.parse(JSON.stringify(FIN_CFG_PADRAO));
 let finAba='lancamentos';
 let finCiclo=null;            // chave 'AAAA-MM' do fechamento, ou '' pra todos
@@ -181,13 +185,19 @@ function finConta(l){
       const p=finPessoa(pid);
       const ajustado=ajustes[pid]!==undefined&&ajustes[pid]!==''&&ajustes[pid]!==null;
       const bCent=ajustado?Math.round(finNum(ajustes[pid])*100):(partes[gi]||0);
-      const irCent=p.descontaIR===false?0:Math.round(bCent*pctIR/100);
+      // Só parceiro tem IR retido aqui. A equipe é paga pelo próprio tabelião,
+      // que já recolhe antes de repassar — reter de novo tiraria 27,5% de um
+      // valor já tributado. A regra mora no código, e não numa caixinha de
+      // Ajustes, porque esquecer de desmarcá-la faria o fechamento sair 27,5%
+      // menor para a Grazi sem ninguém perceber.
+      const retemIR=(p.tipo==='parceiro')&&p.descontaIR!==false;
+      const irCent=retemIR?Math.round(bCent*pctIR/100):0;
       const rep=(l.repasses||{})[pid]||{};
       linhas.push({
         id:pid,nome:p.nome||pid,tipo:p.tipo||'equipe',
         quotaRot:quotas.length?`1/${quotas.length}${grupo.length>1?` ÷ ${grupo.length}`:''}`:'—',
         bruto:bCent/100, ir:irCent/100, liquido:(bCent-irCent)/100,
-        descontaIR:p.descontaIR!==false, ajustado,
+        descontaIR:retemIR, ajustado,
         repassado:rep.repassado===true, repassadoEm:rep.repassadoEm||''
       });
     });
@@ -212,6 +222,22 @@ function finConta(l){
     }
   };
 }
+function finDsrDoCiclo(ciclo){
+  if(ciclo)return finCent(finNum(finDsr[ciclo]));
+  // "todos os fechamentos" soma o DSR de todos eles
+  return finCent(Object.keys(finDsr).reduce((s,k)=>s+finNum(finDsr[k]),0));
+}
+// O DSR se divide só entre a equipe: ele vem do cartório pelo mês trabalhado,
+// não de um caso que um parceiro trouxe.
+function finPartesDsr(ciclo){
+  const equipe=finPessoas().filter(p=>p.tipo!=='parceiro'&&p.ativo!==false);
+  const partes=finDividirCentavos(Math.round(finDsrDoCiclo(ciclo)*100),equipe.length);
+  return equipe.map((p,i)=>({id:p.id,nome:p.nome,valor:(partes[i]||0)/100}));
+}
+function finDsrDe(pessoaId,ciclo){
+  const p=finPartesDsr(ciclo).find(x=>x.id===pessoaId);
+  return p?p.valor:0;
+}
 function finDataOrd(l){return (l.status==='pago'?(l.dataPagamento||l.vencimento):(l.vencimento||l.dataPagamento))||l.criadoEm||'';}
 function finCicloDoLanc(l){return finCicloDaData(finDataOrd(l));}
 
@@ -232,6 +258,10 @@ function finMeuSalario(ciclo){
     });
   });
   itens.sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+  // O DSR é parte do que o cartório paga pelo mês: entra no salário junto
+  // com as comissões, senão o número aqui seria menor que o que ela recebe.
+  const dsr=finDsrDe(eu.id,ciclo);
+  if(dsr)itens.push({descricao:'DSR do fechamento',data:'',valor:dsr,bruto:dsr,ir:0,repassado:false,ehDsr:true});
   return {total:finCent(itens.reduce((s,x)=>s+x.valor,0)),itens,semDono:false};
 }
 
