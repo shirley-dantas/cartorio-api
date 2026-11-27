@@ -1035,7 +1035,7 @@ ok('e o orçamento não fecha como definitivo enquanto isso',
 // Calculado (busca simulada) mas ainda não conferido: entra na conta, mas
 // continua bloqueando — a mesma escada da alíquota de fora da Capital.
 const chaveAtraso = orcChaveJurosItcmd('2025-01-01', '2026-11-11');
-ORC_TRIBUTOS.jurosItcmd = {[chaveAtraso]: {multaPct: 20, selicPct: 15, confianca: 'incerta'}};
+ORC_TRIBUTOS.jurosItcmd = {[chaveAtraso]: {multaPct: 20, coefPct: 15, confianca: 'incerta'}};
 const calculadoIncerto = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
   valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2025-01-01'}],
     imoveis: [{rotulo: 'Casa', valor: 50000000}]}, flags: {}, despesas: {}});
@@ -1045,7 +1045,7 @@ ok('calculado, a conta soma imposto + multa + juros',
 ok('mas continua travado até ela conferir', calculadoIncerto.bloqueado);
 
 // Confirmado por ela, o orçamento fecha.
-ORC_TRIBUTOS.jurosItcmd = {[chaveAtraso]: {multaPct: 20, selicPct: 15, confianca: 'confirmada'}};
+ORC_TRIBUTOS.jurosItcmd = {[chaveAtraso]: {multaPct: 20, coefPct: 15, confianca: 'confirmada'}};
 const confirmado = orcCalcular({atoId: 'inventario-meacao', data: '2026-11-11',
   valores: {meacaoAtual: [{valor: 7055384}], meacaoObito: [{valor: 7055384, data: '2025-01-01'}],
     imoveis: [{rotulo: 'Casa', valor: 50000000}]}, flags: {}, despesas: {}});

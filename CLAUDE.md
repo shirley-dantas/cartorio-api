@@ -513,37 +513,54 @@ declaratória.
   não têm mais relação de "em branco, cai no outro" — são bases
   independentes, cada uma com o seu propósito.
   **Passando de 180 dias entre o óbito e a data do ato, o ITCMD ganha multa
-  de mora (art. 19, Lei 10.705/2000 — 0,33%/dia, até 20%) e juros pela
-  Selic (art. 20).** Dentro de 180 dias, nenhum dos dois incide — é a régua
-  que o próprio portal da Fazenda destaca. **O "dia de atraso" conta do
-  VENCIMENTO (óbito + 180 dias) para a frente, nunca do óbito** — achado
-  num bug em 18/11/2026 (ela perguntou "tem certeza, sobre os juros e multa
-  do itcmd?"): a primeira versão multiplicava 0,33% pelo total de dias desde
-  o óbito, que já passa de 20% sozinho assim que cruza os 180 dias (0,33% ×
-  180 = 59,4%) — toda multa saía travada no teto, de um atraso de uma
-  semana a um atraso de um ano. `lib/juros-itcmd.js` agora calcula o
-  vencimento primeiro e só então os dias de atraso (e a janela da Selic) a
-  partir dele; `testes/juros-itcmd.mjs` existe por causa desse bug. A multa
-  é conta fixa; o juros não, a Selic muda mês a mês, e por isso o cálculo é
-  **A multa por ABRIR o inventário atrasado (art. 21, I) é outra multa, e conta outro prazo.**
-  Achada na mesma pesquisa de 18/11/2026: ela pune o inventário requerido tarde, não o
-  imposto pago tarde — conta os dias entre o óbito e a data em que o inventário foi
-  **requerido** (`dataAberturaInventario`, pergunta de "Inventário e partilha com
-  meação"), nunca a data do ato. Até 60 dias, nada; de 61 a 180, 10% sobre o imposto;
-  passando de 180, 20% (`orcLinhaMultaAberturaTardia`). Sem a data preenchida, a multa
-  simplesmente não entra na conta — campo que não bloqueia, mas também não inventa
-  prazo. É conta fixa, sem precisar de internet, e nasce **junto** com a multa
-  moratória e o juros como uma segunda linha de tributo, quando houver.
-  **hipótese até ela conferir** — a mesma escada da alíquota de fora da Capital
-  (`orcAplicarAliquotaDeFora`): o painel busca a Selic acumulada no período
-  na série oficial do Banco Central (`lib/juros-itcmd.js`, atendido pela
-  mesma porta de `api/aliquota-municipal.js` — a Vercel está no limite de
-  12 funções), entra 🔴 na conta, e o CHECK FINAL não fecha até ela apertar
-  "Confere — pode usar" (ou digitar o total de multa+juros já apurado na
-  guia da Fazenda, que vale como conferido direto). Ela confirmou em
-  18/11/2026 que calcula **sempre** (é sempre extrajudicial aqui), mesmo
-  havendo controvérsia no TJSP sobre multa/juros em inventário extrajudicial
-  aberto dentro do prazo — prefere orçar pelo pior cenário.
+  de mora (art. 19, Lei 10.705/2000 — 0,33%/dia, até 20%) e juros (art. 20).**
+  Dentro de 180 dias, nenhum dos dois incide — é a régua que o próprio portal
+  da Fazenda destaca. **O "dia de atraso" conta do VENCIMENTO (óbito + 180
+  dias) para a frente, nunca do óbito** — achado num bug em 18/11/2026 (ela
+  perguntou "tem certeza, sobre os juros e multa do itcmd?"): a primeira
+  versão multiplicava 0,33% pelo total de dias desde o óbito, que já passa de
+  20% sozinho assim que cruza os 180 dias (0,33% × 180 = 59,4%) — toda multa
+  saía travada no teto, de um atraso de uma semana a um atraso de um ano.
+  `lib/juros-itcmd.js` agora calcula o vencimento primeiro e só então os dias
+  de atraso; `testes/juros-itcmd.mjs` existe por causa desse bug.
+  **A multa por ABRIR o inventário atrasado (art. 21, I) é outra multa, e
+  conta outro prazo.** Achada na mesma pesquisa de 18/11/2026: ela pune o
+  inventário requerido tarde, não o imposto pago tarde — conta os dias entre
+  o óbito e a data em que o inventário foi **requerido**
+  (`dataAberturaInventario`, pergunta de "Inventário e partilha com meação"),
+  nunca a data do ato. Até 60 dias, nada; de 61 a 180, 10% sobre o imposto;
+  passando de 180, 20% (`orcLinhaMultaAberturaTardia`). Sem a data
+  preenchida, a multa simplesmente não entra na conta — campo que não
+  bloqueia, mas também não inventa prazo. É conta fixa, sem precisar de
+  internet, e nasce **junto** com a multa moratória e o juros como uma
+  segunda linha de tributo, quando houver.
+  **O juros é a tabela oficial da SEFAZ-SP, não a Selic** — trocado em
+  26/11/2026, na mesma pesquisa que a pergunta dela abriu. Até então
+  `lib/juros-itcmd.js` usava a Selic diária do Banco Central como
+  aproximação; a pesquisa achou a fonte certa, a Tabela Prática para Cálculo
+  dos Juros de Mora que a SEFAZ-SP publica todo mês num Comunicado DICAR —
+  uma matriz de coeficiente **já acumulado** (linha = mês do vencimento,
+  coluna = ano do vencimento), com uma regra de arredondamento própria
+  (vencimento no último dia útil do mês deduz 0,0100). `lib/dicar-itcmd.js`
+  lê essa tabela: acha o Comunicado certo por **varredura da ementa** (o
+  número de sequência não segue padrão — pulou de 59 para 73 entre
+  setembro e novembro de 2026, porque o mesmo contador também numera ICMS,
+  multas infracionais e taxas), baixa o PDF, extrai o texto (`pdf-parse`,
+  a versão 1.1.1 — a 2.x trazia um binário nativo de canvas, pesado demais
+  para uma função da Vercel) e guarda o resultado em cache — um PDF lido
+  uma vez por mês. `testes/dicar-itcmd.mjs` testa a leitura pura contra o
+  anexo real do Comunicado DICAR-73/26 (`testes/fixtures/`); a janela de
+  "dia útil" só pula fim de semana, sem calendário de feriado — uma
+  aproximação documentada, não um calendário completo.
+  A multa é conta fixa; o juros não (a tabela muda mês a mês), e por isso o
+  cálculo é **hipótese até ela conferir** — a mesma escada da alíquota de
+  fora da Capital (`orcAplicarAliquotaDeFora`): entra 🔴 na conta, e o CHECK
+  FINAL não fecha até ela apertar "Confere — pode usar" (ou digitar o total
+  de multa+juros já apurado na guia da Fazenda, que vale como conferido
+  direto). Ela confirmou em 18/11/2026 que calcula **sempre** (é sempre
+  extrajudicial aqui), mesmo havendo controvérsia no TJSP sobre multa/juros
+  em inventário extrajudicial aberto dentro do prazo — prefere orçar pelo
+  pior cenário.
 - **A cessão gratuita, com reserva de usufruto, é a MESMA conta da doação com
   usufruto — e não é exclusiva do inventário.** Caso dela em 16/11/2026: num
   inventário com meação, a viúva não fica com a meação — cede ela de graça
@@ -1568,7 +1585,8 @@ o `testes/montar.mjs` recorta.
 | A alíquota de fora da Capital | `orcAplicarAliquotaDeFora()`, `orcChaveAliquota()`, `orcHtmlAliquotas()` |
 | A busca da alíquota | `api/aliquota-municipal.js` |
 | O ITCMD por óbito, com multa e juros de atraso | `orcLinhaItcmdObito()`, `orcDiasEntre()`, `orcChaveJurosItcmd()`, `orcHtmlJurosItcmd()` |
-| A busca da Selic (multa e juros do ITCMD) | `lib/juros-itcmd.js`, atendida por `api/aliquota-municipal.js` (`tipo: 'itcmd-juros'`) |
+| A multa e os juros do ITCMD (art. 19 e 20) | `lib/juros-itcmd.js`, atendida por `api/aliquota-municipal.js` (`tipo: 'itcmd-juros'`) |
+| A tabela oficial de juros do ITCMD (DICAR/SEFAZ-SP) | `lib/dicar-itcmd.js` — leitura do PDF, varredura do Comunicado certo e cache |
 | A isenção do ITBI (primeiro imóvel / PMCMV) | `orcConferirIsencoes()`, `orcTetoIsencaoItbi()`, `orcConfirmarIsencaoItbi()` |
 | Do orçamento para o Financeiro | `orcParaFinanceiro()` |
 | Pedir documentos (lista por ato e público) | `pedido-docs.js` → `PEDIDO.montar()`, `comporTexto()`, `formulario()`, `abrirJanela()` |
@@ -1602,7 +1620,7 @@ node testes/montar.mjs && node testes/calculo.gerado.mjs
 node testes/navegador.mjs && node testes/celular.mjs
 node testes/rede.mjs && node testes/rede-varredura.mjs
 node testes/radar.mjs && node testes/radar-triagem.mjs
-node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs && node testes/juros-itcmd.mjs
+node testes/orcamento.gerado.mjs && node testes/orcamento-tela.mjs && node testes/juros-itcmd.mjs && node testes/dicar-itcmd.mjs
 node testes/bussola.mjs
 node testes/pedido-docs.mjs && node testes/pedido-tela.mjs
 node testes/enviar-tela.mjs && node testes/cliente-envio.mjs && node testes/solte-card.mjs && node testes/whatsapp-entrada.mjs
