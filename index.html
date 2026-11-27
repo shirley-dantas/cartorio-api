@@ -12667,15 +12667,13 @@ function orcCalcular(entrada){
   // há caso em que se tira uma certidão a mais, ou uma prenotação a menos. O
   // padrão acerta sozinho o caso comum; o campo existe para o resto.
   const quantos = (campo) => d[campo] != null ? Math.max(0, d[campo]) : nImoveis;
-  // "(3 imóveis)" só quando a quantidade é mesmo a dos imóveis. Se ela corrigiu
-  // à mão — duas prenotações para três imóveis —, a etiqueta diz só o número,
-  // porque dizer "imóveis" ali seria escrever uma coisa que não é verdade.
+  // O rótulo nunca fala em quantidade ("(2 imóveis)") — pedido dela em
+  // 27/11/2026. Sempre "Prenotação"/"Matrícula", no singular, mesmo cobrando
+  // por mais de um imóvel; quem quiser ver o "× 2" olha o fundamento, na
+  // memória de cálculo.
   const linhaPorImovel = (n, um, muitos, item, base) => {
     if(!n) return;
-    const rot = n === 1 ? um
-      : n === nImoveis ? `${muitos} (${n} imóveis)`
-      : `${muitos} (${n})`;
-    despesas.push({rot, item, valor: base.valor * n, quantidade: n,
+    despesas.push({rot: um, item, valor: base.valor * n, quantidade: n,
       fundamento: `${base.rot}${n > 1 ? ` — ${orcMoeda(base.valor)} × ${n}` : ''}.`});
   };
   if(temRegistro && d.prenotacao !== false)

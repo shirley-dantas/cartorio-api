@@ -623,8 +623,10 @@ await passo('e a quantidade das despesas acompanha junto', async () => {
 
 await passo('três imóveis são três prenotações e três certidões', async () => {
   const m = await pg.textContent('.orc-memoria');
-  if(!/Prenotações \(3 imóveis\)/.test(m)) throw new Error('cobrou uma prenotação só');
-  if(!/Matrículas \(3 imóveis\)/.test(m)) throw new Error('cobrou uma certidão só');
+  // O rótulo não fala em quantidade — pedido dela em 27/11/2026 — mas o
+  // valor continua multiplicando por imóvel, e o fundamento diz "× 3".
+  if(/Prenotações? \(\d/.test(m)) throw new Error('o rótulo ainda fala em quantidade: ' + m.slice(0, 200));
+  if(!/80,14 × 3/.test(m)) throw new Error('o fundamento não diz "× 3" para a prenotação: ' + m.slice(0, 400));
   // 80,14 × 3 e 76,54 × 3
   if(!/240,42/.test(m)) throw new Error('a prenotação não multiplicou: ' + m.slice(0, 200));
   if(!/229,62/.test(m)) throw new Error('a certidão não multiplicou');
@@ -634,10 +636,10 @@ await passo('dá para corrigir a quantidade de prenotações à mão', async () 
   await pg.evaluate(() => orcMudarDespesaNum('qtdePrenotacao', '2'));
   await pg.waitForFunction(() => /160,42|160,28/.test(document.querySelector('.orc-memoria').textContent));
   const m = await pg.textContent('.orc-memoria');
-  if(!/Prenotações \(2\)/.test(m)) throw new Error('não cobrou duas: ' + m.slice(0, 200));
-  if(/Prenotações \(2 imóveis\)/.test(m)) throw new Error('disse "imóveis" para uma quantidade que não é a deles');
+  if(/Prenotações? \(\d/.test(m)) throw new Error('o rótulo ainda fala em quantidade: ' + m.slice(0, 200));
+  if(!/80,14 × 2/.test(m)) throw new Error('não cobrou duas: ' + m.slice(0, 200));
   await pg.evaluate(() => orcMudarDespesaNum('qtdePrenotacao', ''));
-  await pg.waitForFunction(() => /Prenotações \(3 imóveis\)/.test(document.querySelector('.orc-memoria').textContent));
+  await pg.waitForFunction(() => /80,14 × 3/.test(document.querySelector('.orc-memoria').textContent));
 });
 
 await passo('mexer no valor da taxa não redesenha a tela nem tira o foco', async () => {
